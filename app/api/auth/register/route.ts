@@ -42,12 +42,6 @@ export async function POST(req: Request) {
         hashedPassword,
         name: name || null,
         isGuest: false,
-        studyStreak: {
-          create: {},
-        },
-        settings: {
-          create: {},
-        },
       },
       select: {
         id: true,
@@ -56,11 +50,24 @@ export async function POST(req: Request) {
       },
     });
 
+    await prisma.studyStreak.create({
+      data: {
+        userId: user.id,
+      },
+    });
+
+    await prisma.userSettings.create({
+      data: {
+        userId: user.id,
+      },
+    });
+
     return NextResponse.json({ user });
   } catch (err) {
-    console.error("[POST /api/auth/register]", err);
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[POST /api/auth/register]", message, err);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", message: process.env.NODE_ENV !== "production" ? message : undefined },
       { status: 500 }
     );
   }
