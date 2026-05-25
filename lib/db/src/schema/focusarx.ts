@@ -83,3 +83,24 @@ export const goalsTable = pgTable("goals", {
 });
 
 export type Goal = typeof goalsTable.$inferSelect;
+
+export const userWalletsTable = pgTable("user_wallets", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().unique().references(() => usersTable.id, { onDelete: "cascade" }),
+  coins: integer("coins").notNull().default(0),
+  totalXp: integer("total_xp").notNull().default(0),
+  weeklyXp: integer("weekly_xp").notNull().default(0),
+  weeklyXpResetAt: timestamp("weekly_xp_reset_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type UserWallet = typeof userWalletsTable.$inferSelect;
+
+export const userBadgesTable = pgTable("user_badges", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  badgeId: text("badge_id").notNull(),
+  unlockedAt: timestamp("unlocked_at").defaultNow().notNull(),
+});
+
+export type UserBadge = typeof userBadgesTable.$inferSelect;

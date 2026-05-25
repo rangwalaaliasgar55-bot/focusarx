@@ -65,6 +65,68 @@ router.get("/stats", authMiddleware, async (req: any, res) => {
   }
 });
 
+router.get("/analytics", authMiddleware, async (req: any, res) => {
+  try {
+    const now = new Date();
+    const ninetyDaysAgo = new Date(now.getTime() - 90 * 86400000);
+    const fourteenDaysAgo = new Date(now.getTime() - 13 * 86400000);
+
+    const allSessions = await db.select().from(focusSessionsTable)
+      .where(and(eq(focusSessionsTable.userId, req.userId), eq(focusSessionsTable.mode, "focus"), gte(focusSessionsTable.completedAt, ninetyDaysAgo)))
+      .orderBy(focusSessionsTable.completedAt);
+
+    // Build heatmap
+    const heatmap: Record<string, number> = {};
+    const dayTotals: Record<string, number> = {};
+    for (const s of allSessions) {
+      if (!s.completedAt) continue;
+      const date = s.completedAt.toISOString().split("T")[0]!;
+      const mins = Math.round(s.durationSec / 60);
+      heatmap[date] = (heatmap[date] ?? 0) + mins;
+      dayTotals[date] = (dayTotals[date] ?? 0) + mins;
+    }
+
+    // 14-day chart
+    const chartData14 = Array.from({ length: 14 }, (_, i) => {
+      const d = new Date(fourteenDaysAgo.getTime() + i * 86400000);
+      const date = d.toISOString().split("T")[0]!;
+      return { date, minutes: heatmap[date] ?? 0 };
+    });
+
+    // Personal bests
+    const longestSession = allSessions.reduce((max, s) => Math.max(max, s.durationSec), 0);
+    const bestDayMinutes = Math.max(0, ...Object.values(dayTotals));
+    const totalSessions = allSessions.length;
+    const totalMinutes = allSessions.reduce((acc, s) => acc + s.durationSec, 0) / 60;
+
+    // Hour-of-day distribution
+    const hourDist = Array.from({ length: 24 }, (_, h) => {
+      const mins = allSessions
+        .filter(s => s.completedAt && s.completedAt.getHours() === h)
+        .reduce((acc, s) => acc + s.durationSec / 60, 0);
+      return { hour: h, minutes: Math.round(mins) };
+    });
+
+    const [streak] = await db.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, req.userId));
+
+    res.json({
+      heatmap,
+      chartData14,
+      hourDist,
+      personalBests: {
+        longestSessionMinutes: Math.round(longestSession / 60),
+        bestDayMinutes,
+        totalSessions,
+        totalMinutes: Math.round(totalMinutes),
+        longestStreak: streak?.longestStreak ?? 0,
+      },
+    });
+  } catch (err) {
+    logger.error({ err }, "analytics error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
 router.get("/streak", authMiddleware, async (req: any, res) => {
   try {
     const [streak] = await db.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, req.userId));

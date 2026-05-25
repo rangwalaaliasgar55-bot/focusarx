@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable } from "@workspace/db";
-import { eq, and, desc, gte, lt } from "drizzle-orm";
+import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, userWalletsTable } from "@workspace/db";
+import { eq, and, desc, gte, lt, sql } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
 
@@ -76,27 +76,78 @@ router.post("/sessions", authMiddleware, async (req: any, res) => {
       focusTimeline: typeof focusTimeline === "string" ? focusTimeline : JSON.stringify(focusTimeline ?? []),
       sessionInsights: typeof sessionInsights === "string" ? sessionInsights : JSON.stringify(sessionInsights ?? null),
     }).returning();
-    await updateStreak(req.userId);
-    res.json({ session });
+
+    const streakUpdated = await updateStreak(req.userId);
+
+    // Award XP and coins for focus sessions
+    let earnedXp = 0;
+    let earnedCoins = 0;
+    if ((mode ?? "focus") === "focus" && durationSec > 0) {
+      const minutes = Math.floor(durationSec / 60);
+      earnedXp = minutes * 20;
+      earnedCoins = Math.floor(minutes / 5) * 10;
+      if (durationSec >= 1500) earnedCoins += 50; // Pomodoro bonus
+      if (earnedXp > 0 || earnedCoins > 0) {
+        await awardGamification(req.userId, earnedXp, earnedCoins);
+      }
+    }
+
+    res.json({ session, streakUpdated, earnedXp, earnedCoins });
   } catch (err) {
     logger.error({ err }, "create session error");
     res.status(500).json({ error: "Internal error" });
   }
 });
 
-async function updateStreak(userId: string) {
+async function updateStreak(userId: string): Promise<boolean> {
   try {
     const today = new Date().toISOString().split("T")[0]!;
     const [existing] = await db.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, userId));
     if (!existing) {
       await db.insert(studyStreaksTable).values({ userId, currentStreak: 1, longestStreak: 1, lastStudyDate: today });
-      return;
+      return true;
     }
-    if (existing.lastStudyDate === today) return;
+    if (existing.lastStudyDate === today) return false;
     const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0]!;
     const newStreak = existing.lastStudyDate === yesterday ? existing.currentStreak + 1 : 1;
-    await db.update(studyStreaksTable).set({ currentStreak: newStreak, longestStreak: Math.max(newStreak, existing.longestStreak), lastStudyDate: today, updatedAt: new Date() }).where(eq(studyStreaksTable.userId, userId));
-  } catch {}
+    await db.update(studyStreaksTable).set({
+      currentStreak: newStreak, longestStreak: Math.max(newStreak, existing.longestStreak),
+      lastStudyDate: today, updatedAt: new Date(),
+    }).where(eq(studyStreaksTable.userId, userId));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function awardGamification(userId: string, xp: number, coins: number) {
+  try {
+    // Check if weekly XP needs resetting (Monday of current week)
+    const now = new Date();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    monday.setHours(0, 0, 0, 0);
+
+    const [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, userId));
+
+    if (!wallet) {
+      await db.insert(userWalletsTable).values({
+        userId, coins, totalXp: xp, weeklyXp: xp, weeklyXpResetAt: monday,
+      });
+      return;
+    }
+
+    const needsReset = wallet.weeklyXpResetAt && wallet.weeklyXpResetAt < monday;
+    await db.update(userWalletsTable).set({
+      coins: wallet.coins + coins,
+      totalXp: wallet.totalXp + xp,
+      weeklyXp: needsReset ? xp : wallet.weeklyXp + xp,
+      weeklyXpResetAt: needsReset ? monday : wallet.weeklyXpResetAt,
+      updatedAt: new Date(),
+    }).where(eq(userWalletsTable.userId, userId));
+  } catch (err) {
+    logger.error({ err }, "award gamification error");
+  }
 }
 
 export { router as sessionsRouter };

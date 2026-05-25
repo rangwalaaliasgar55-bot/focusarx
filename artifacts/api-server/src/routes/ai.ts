@@ -110,9 +110,9 @@ function buildRoadmap(
   function sessionTitle(phaseIdx: number, slotIdx: number, dayNum: number): string {
     const [phaseLabel] = phases[phaseIdx % phases.length]!;
     if (slotIdx === 0) return `${phaseLabel} — ${topic}`;
-    if (slotIdx === 1) return `Deep work #${dayNum}: ${topic}`;
-    if (slotIdx === 2) return `Practice block — ${topic}`;
-    return `Review & notes — day ${dayNum}`;
+    if (slotIdx === 1) return `Deep work block ${dayNum}-${slotIdx}: ${topic}`;
+    if (slotIdx === 2) return `Practice block ${dayNum}-${slotIdx} — ${topic}`;
+    return `Review & consolidate (${dayNum}-${slotIdx}) — ${topic}`;
   }
 
   const roadmap: RoadmapDay[] = [];

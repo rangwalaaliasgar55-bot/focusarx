@@ -58,18 +58,15 @@ export default function RoadmapPage() {
   }
 
   return (
-    <div className="relative min-h-[100dvh] overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 opacity-70" aria-hidden>
-        <div className="absolute -left-24 top-0 h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.28),transparent_70%)] blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-[360px] w-[360px] rounded-full bg-[radial-gradient(circle_at_center,rgba(236,72,153,0.18),transparent_70%)] blur-3xl" />
+    <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow">
+      <div className="pointer-events-none absolute inset-0" aria-hidden>
+        <div className="absolute -left-24 top-0 h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.15),transparent_70%)] blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-[360px] w-[360px] rounded-full bg-[radial-gradient(circle_at_center,rgba(6,214,160,0.08),transparent_70%)] blur-3xl" />
       </div>
-      <main className="relative z-10 mx-auto max-w-6xl px-4 py-10 sm:py-14">
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-zinc-500">Focusarx</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">AI study roadmap</h1>
-          </div>
-          <Link href="/" className="rounded-full border border-zinc-700/60 bg-zinc-900/40 px-4 py-2 text-sm text-zinc-300 backdrop-blur-sm transition-colors hover:border-zinc-600 hover:text-white">← Timer</Link>
+      <main className="relative z-10 mx-auto max-w-6xl px-4 py-10 sm:py-12">
+        <div className="mb-8">
+          <p className="text-xs font-medium uppercase tracking-[0.22em] text-[#4B5563]">Plan your success</p>
+          <h1 className="mt-1 text-2xl font-bold text-[#E2E8F0] sm:text-3xl">AI Study Roadmap</h1>
         </div>
         <div className="grid gap-8 lg:grid-cols-[minmax(0,380px)_1fr]">
           <motion.aside layout className="h-fit rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-6 shadow-2xl backdrop-blur-2xl">
