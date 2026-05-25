@@ -1,74 +1,49 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+
+# compiled output
+dist
+tmp
+out-tsc
+*.tsbuildinfo
+.expo
+.expo-shared
 
 # dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+node_modules
 
-# testing
-/coverage
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
 
-# next.js
-/.next/
-/out/
-.next
-
-# production
-/build
-dist
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 
 # misc
+/.sass-cache
+/connect.lock
+/coverage
+/libpeerconnection.log
+npm-debug.log
+yarn-error.log
+testem.log
+/typings
+
+# System Files
 .DS_Store
 Thumbs.db
-*.pem
-*.tar.gz
-.idea/
-.vscode/
 
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-logs
-*.log
+.cursor/rules/nx-rules.mdc
+.github/instructions/nx.instructions.md
 
-# env files (can opt-in for committing if needed)
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-!.env.example
-
-# prisma local db
-/prisma/*.db
-/prisma/*.db-journal
-/prisma/prisma/*.db
-/prisma/prisma/*.db-journal
-
-# vercel
-.vercel
-
-# capacitor / android generated files
-/android/app/build/
-/android/build/
-/android/capacitor-cordova-android-plugins/build/
-/android/.gradle/
-/android/**/.gradle/
-/android/local.properties
-/android/app/src/main/assets/public/
-/android/app/src/main/assets/capacitor.config.json
-/android/app/src/main/assets/capacitor.plugins.json
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-.vercel
-.env*
+# Replit
+.cache/
+.local/
