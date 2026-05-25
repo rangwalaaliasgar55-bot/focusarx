@@ -35,11 +35,11 @@ function HeatmapCell({ minutes, date }: { minutes: number; date: string }) {
   );
 }
 
-function buildHeatmapGrid(heatmap: Record<string, number>) {
+function buildHeatmapGrid(heatmap: Record<string, number> | undefined) {
+  if (!heatmap) return [];
   const cells: Array<{ date: string; minutes: number; empty?: boolean }> = [];
   const today = new Date();
   const start = new Date(today.getTime() - 91 * 86400000);
-  // Pad to start of week (Sunday)
   const startDow = start.getDay();
   for (let i = 0; i < startDow; i++) cells.push({ date: "", minutes: 0, empty: true });
   for (let i = 0; i < 91; i++) {
@@ -72,7 +72,7 @@ export default function AnalyticsPage() {
     fetch("/api/analytics", {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((r) => r.json() as Promise<AnalyticsData>)
+      .then((r) => { if (!r.ok) throw new Error(`${r.status}`); return r.json() as Promise<AnalyticsData>; })
       .then((d) => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
