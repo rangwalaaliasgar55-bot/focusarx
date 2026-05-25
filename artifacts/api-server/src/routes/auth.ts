@@ -1,12 +1,24 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { db, usersTable, activeSessionsTable } from "@workspace/db";
+import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
 
 const router = Router();
-const JWT_SECRET = process.env.AUTH_SECRET ?? "focusarx-dev-secret-changeme-in-production";
+
+// Fail fast if AUTH_SECRET is not configured in production.
+// In development, generate a per-process random secret (tokens reset on restart).
+let JWT_SECRET: string;
+if (process.env.AUTH_SECRET) {
+  JWT_SECRET = process.env.AUTH_SECRET;
+} else if (process.env.NODE_ENV === "production") {
+  logger.error("AUTH_SECRET environment variable is required in production but was not set. Exiting.");
+  process.exit(1);
+} else {
+  JWT_SECRET = `dev-${crypto.randomUUID()}`;
+  logger.warn("AUTH_SECRET is not set. Using a random ephemeral secret — all sessions will be invalidated on server restart. Set AUTH_SECRET for stable development sessions.");
+}
 
 function makeToken(userId: string): string {
   return jwt.sign({ sub: userId }, JWT_SECRET, { expiresIn: "400d" });
