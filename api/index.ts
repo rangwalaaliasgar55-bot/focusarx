@@ -1,3 +1,4 @@
+/// <reference path="./types.d.ts" />
 /**
  * Vercel serverless Express handler for /api/*
  * Built bundle: artifacts/api-server/dist/app.mjs (see build:vercel)
