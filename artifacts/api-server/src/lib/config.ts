@@ -22,15 +22,12 @@ export function getServerConfig(): ServerConfig {
     }
   }
 
-  let adminPassword: string | null = process.env.ADMIN_PASSWORD ?? null;
-  if (!adminPassword && !isProduction) {
-    adminPassword = `dev-admin-${crypto.randomUUID().slice(0, 8)}`;
-    if (!warnedDevAdmin) {
-      warnedDevAdmin = true;
-      console.warn(
-        `[config] ADMIN_PASSWORD is not set — using ephemeral dev password: ${adminPassword}`,
-      );
-    }
+  const adminPassword: string | null = process.env.ADMIN_PASSWORD ?? null;
+  if (!adminPassword && !isProduction && !warnedDevAdmin) {
+    warnedDevAdmin = true;
+    console.warn(
+      "[config] ADMIN_PASSWORD is not set — set it in .env for local admin access.",
+    );
   }
 
   return {

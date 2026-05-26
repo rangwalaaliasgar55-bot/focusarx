@@ -39,7 +39,7 @@ function HomePage() {
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.22em] text-[#4B5563]">Deep work</p>
               <h1 className="mt-1 bg-gradient-to-br from-[#E2E8F0] via-[#A78BFA] to-[#7C3AED] bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-3xl">
-                FocusForge
+                FocusArx
               </h1>
             </div>
             <CoinXPBar />

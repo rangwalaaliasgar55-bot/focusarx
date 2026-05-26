@@ -200,9 +200,9 @@ export default function Timer() {
       .padStart(2, "0");
     const s = (secondsLeft % 60).toString().padStart(2, "0");
     document.title =
-      status === "running" ? `${m}:${s} · Focusarx` : "Focusarx";
+      status === "running" ? `${m}:${s} · FocusArx` : "FocusArx";
     return () => {
-      document.title = "Focusarx";
+      document.title = "FocusArx";
     };
   }, [secondsLeft, status]);
 

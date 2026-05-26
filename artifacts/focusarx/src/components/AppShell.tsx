@@ -2,7 +2,7 @@ import { useLocation, Link } from "wouter";
 import { useAuth } from "@/lib/auth";
 import {
   Timer, LayoutDashboard, TrendingUp, Trophy, Star,
-  Users, Sparkles, ShieldCheck, LogOut, LogIn, Menu, X,
+  Users, Sparkles, LogOut, LogIn, Menu, X,
 } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -78,7 +78,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <Timer size={15} className="text-white" />
           </div>
           <div>
-            <p className="text-sm font-bold tracking-tight text-[#E2E8F0]">FocusForge</p>
+            <p className="text-sm font-bold tracking-tight text-[#E2E8F0]">FocusArx</p>
             <p className="text-[10px] text-[#4B5563]">Study OS</p>
           </div>
         </div>
@@ -122,13 +122,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               Sign in
             </Link>
           )}
-          <Link
-            href="/admin"
-            className="flex items-center gap-3 rounded-xl px-3 py-2 text-xs text-[#4B5563] transition-colors hover:bg-[rgba(124,58,237,0.08)] hover:text-[#6B7280]"
-          >
-            <ShieldCheck size={14} />
-            Admin
-          </Link>
         </div>
       </aside>
 
@@ -138,7 +131,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#4F46E5]">
             <Timer size={13} className="text-white" />
           </div>
-          <span className="text-sm font-bold text-[#E2E8F0]">FocusForge</span>
+          <span className="text-sm font-bold text-[#E2E8F0]">FocusArx</span>
         </div>
         <button
           onClick={() => setMobileOpen(true)}
@@ -171,7 +164,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#4F46E5]">
                     <Timer size={15} className="text-white" />
                   </div>
-                  <span className="text-sm font-bold text-[#E2E8F0]">FocusForge</span>
+                  <span className="text-sm font-bold text-[#E2E8F0]">FocusArx</span>
                 </div>
                 <button onClick={() => setMobileOpen(false)} className="p-1 text-[#6B7280]">
                   <X size={18} />
