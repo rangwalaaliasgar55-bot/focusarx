@@ -7,6 +7,7 @@ out-tsc
 *.tsbuildinfo
 .expo
 .expo-shared
+out
 
 # dependencies
 node_modules
@@ -37,6 +38,10 @@ yarn-error.log
 testem.log
 /typings
 
+# env (never commit secrets)
+.env
+.env.*
+
 # System Files
 .DS_Store
 Thumbs.db
@@ -47,3 +52,6 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Next.js leftovers (migration artifacts)
+.next/
