@@ -98,7 +98,7 @@ export function useFocusTracking(
       const video = getVideo();
       if (video && !inFlightRef.current) {
         inFlightRef.current = true;
-        void processVideoFrame(video, performance.now())
+        void processVideoFrame(video)
           .then((result) => {
             const visible = document.visibilityState === "visible";
             processFaceDetection(result.facePresent, visible);
