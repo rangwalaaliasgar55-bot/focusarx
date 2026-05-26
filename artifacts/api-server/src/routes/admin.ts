@@ -1,23 +1,23 @@
 import { Router } from "express";
 import { db, usersTable, focusSessionsTable, studyStreaksTable, activeSessionsTable } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { getServerConfig } from "../lib/config";
 import cookie from "cookie";
 
 const router = Router();
 const ADMIN_COOKIE = "focusarx_admin";
 const IS_PROD = process.env.NODE_ENV === "production";
 
-// Fail fast in production if ADMIN_PASSWORD is not set.
-// In development, fall through with a warning so local dev still works.
-let ADMIN_PASSWORD: string;
-if (process.env.ADMIN_PASSWORD) {
-  ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
-} else if (IS_PROD) {
-  logger.error("ADMIN_PASSWORD environment variable is required in production but was not set. Exiting.");
-  process.exit(1);
-} else {
-  ADMIN_PASSWORD = `dev-admin-${crypto.randomUUID().slice(0, 8)}`;
-  logger.warn({ hint: "Set ADMIN_PASSWORD to a strong secret via Replit Secrets." }, `ADMIN_PASSWORD is not set. Using ephemeral dev password: ${ADMIN_PASSWORD}`);
+function adminPasswordOrRespond(res: { status: (code: number) => { json: (body: unknown) => void } }): string | null {
+  const password = getServerConfig().adminPassword;
+  if (!password) {
+    res.status(503).json({
+      error: "Admin panel is not configured",
+      hint: "Set ADMIN_PASSWORD in Vercel environment variables",
+    });
+    return null;
+  }
+  return password;
 }
 
 // Server-side session store — maps random session ID to expiry timestamp.
@@ -42,8 +42,10 @@ function isAdminAuthed(req: any): boolean {
 const SECURE_FLAG = IS_PROD ? "; Secure" : "";
 
 router.post("/admin/auth", async (req, res) => {
+  const adminPassword = adminPasswordOrRespond(res);
+  if (!adminPassword) return;
   const { password } = req.body as { password?: string };
-  if (!password || password !== ADMIN_PASSWORD) {
+  if (!password || password !== adminPassword) {
     res.status(403).json({ error: "Access denied" });
     return;
   }

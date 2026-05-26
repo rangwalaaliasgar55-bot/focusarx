@@ -1,7 +1,11 @@
 /**
- * Vercel serverless entry: mounts the Express API at /api/*.
- * Requires DATABASE_URL (and AUTH_SECRET in production) in Vercel project env.
+ * Vercel serverless Express handler for /api/*
+ * Built bundle: artifacts/api-server/dist/app.mjs (see build:vercel)
  */
-import app from "../artifacts/api-server/src/app";
+import app from "../artifacts/api-server/dist/app.mjs";
 
 export default app;
+
+export const config = {
+  maxDuration: 60,
+};

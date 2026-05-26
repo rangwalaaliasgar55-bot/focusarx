@@ -4,43 +4,46 @@ import jwt from "jsonwebtoken";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import { getServerConfig } from "../lib/config";
 
 const router = Router();
 
-// Fail fast if AUTH_SECRET is not configured in production.
-// In development, generate a per-process random secret (tokens reset on restart).
-let JWT_SECRET: string;
-if (process.env.AUTH_SECRET) {
-  JWT_SECRET = process.env.AUTH_SECRET;
-} else if (process.env.NODE_ENV === "production") {
-  logger.error("AUTH_SECRET environment variable is required in production but was not set. Exiting.");
-  process.exit(1);
-} else {
-  JWT_SECRET = `dev-${crypto.randomUUID()}`;
-  logger.warn("AUTH_SECRET is not set. Using a random ephemeral secret — all sessions will be invalidated on server restart. Set AUTH_SECRET for stable development sessions.");
+function jwtSecretOrRespond(res: { status: (code: number) => { json: (body: unknown) => void } }): string | null {
+  const secret = getServerConfig().jwtSecret;
+  if (!secret) {
+    res.status(503).json({
+      error: "Authentication is not configured",
+      hint: "Set AUTH_SECRET in Vercel environment variables",
+    });
+    return null;
+  }
+  return secret;
 }
 
-function makeToken(userId: string): string {
-  return jwt.sign({ sub: userId }, JWT_SECRET, { expiresIn: "400d" });
+function makeToken(userId: string, secret: string): string {
+  return jwt.sign({ sub: userId }, secret, { expiresIn: "400d" });
 }
 
-function verifyToken(token: string): { sub: string } | null {
+function verifyToken(token: string, secret: string): { sub: string } | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as { sub: string };
+    return jwt.verify(token, secret) as { sub: string };
   } catch {
     return null;
   }
 }
 
 export function extractUserId(req: { headers: { authorization?: string } }): string | null {
+  const secret = getServerConfig().jwtSecret;
+  if (!secret) return null;
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) return null;
   const token = authHeader.slice(7);
-  const payload = verifyToken(token);
+  const payload = verifyToken(token, secret);
   return payload?.sub ?? null;
 }
 
 router.get("/auth/session", async (req, res) => {
+  if (!jwtSecretOrRespond(res)) return;
   const userId = extractUserId(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
@@ -54,6 +57,8 @@ router.get("/auth/session", async (req, res) => {
 });
 
 router.post("/auth/login", async (req, res) => {
+  const secret = jwtSecretOrRespond(res);
+  if (!secret) return;
   const { email, password } = req.body as { email?: string; password?: string };
   if (!email || !password) { res.status(400).json({ error: "Email and password required" }); return; }
   try {
@@ -61,7 +66,7 @@ router.post("/auth/login", async (req, res) => {
     if (!user?.hashedPassword) { res.status(401).json({ error: "Invalid credentials" }); return; }
     const valid = await bcrypt.compare(password, user.hashedPassword);
     if (!valid) { res.status(401).json({ error: "Invalid credentials" }); return; }
-    res.json({ token: makeToken(user.id), user: { id: user.id, email: user.email, name: user.name, isGuest: user.isGuest } });
+    res.json({ token: makeToken(user.id, secret), user: { id: user.id, email: user.email, name: user.name, isGuest: user.isGuest } });
   } catch (err) {
     logger.error({ err }, "login error");
     res.status(500).json({ error: "Internal error" });
@@ -86,6 +91,8 @@ router.post("/auth/register", async (req, res) => {
 });
 
 router.post("/auth/guest", async (req, res) => {
+  const secret = jwtSecretOrRespond(res);
+  if (!secret) return;
   const { guestKey } = req.body as { guestKey?: string };
   if (!guestKey || guestKey.length < 8) { res.status(400).json({ error: "Invalid guest key" }); return; }
   const safeKey = guestKey.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 120);
@@ -97,7 +104,7 @@ router.post("/auth/guest", async (req, res) => {
       user = created;
     }
     if (!user) { res.status(500).json({ error: "Failed to create guest" }); return; }
-    res.json({ token: makeToken(user.id), user: { id: user.id, email: user.email, name: user.name, isGuest: true } });
+    res.json({ token: makeToken(user.id, secret), user: { id: user.id, email: user.email, name: user.name, isGuest: true } });
   } catch (err) {
     logger.error({ err }, "guest error");
     res.status(500).json({ error: "Internal error" });
