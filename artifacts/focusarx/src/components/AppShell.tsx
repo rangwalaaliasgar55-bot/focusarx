@@ -76,15 +76,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (mobileOpen) {
-      document.addEventListener("keydown", handleKeyDown);
-      // Lock body scroll when drawer is open
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.removeEventListener("keydown", handleKeyDown);
-        document.body.style.overflow = "";
-      };
-    }
+    if (!mobileOpen) return;
+    document.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
+    };
   }, [mobileOpen, handleKeyDown]);
 
   // Close drawer on route change
