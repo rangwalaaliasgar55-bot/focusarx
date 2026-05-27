@@ -14,7 +14,9 @@ let warnedDevAdmin = false;
 export function getServerConfig(): ServerConfig {
   const isProduction = process.env.NODE_ENV === "production";
 
-  let jwtSecret: string | null = process.env.AUTH_SECRET ?? null;
+  // AUTH_SECRET takes priority; fall back to SESSION_SECRET so existing Vercel/Replit secrets work
+  let jwtSecret: string | null =
+    process.env.AUTH_SECRET ?? process.env.SESSION_SECRET ?? null;
   if (!jwtSecret && !isProduction) {
     jwtSecret = `dev-${crypto.randomUUID()}`;
     if (!warnedDevJwt) {

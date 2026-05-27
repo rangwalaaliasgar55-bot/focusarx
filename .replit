@@ -26,3 +26,8 @@ externalPort = 8080
 [[ports]]
 localPort = 20925
 externalPort = 80
+
+[userenv]
+
+[userenv.shared]
+APP_URL = "https://ffdf8732-c649-4a2d-bd32-be36a9cc6c89-00-1ltipucvjv43f.sisko.replit.dev"
