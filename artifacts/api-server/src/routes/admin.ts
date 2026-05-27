@@ -1,7 +1,9 @@
 import { Router } from "express";
 import { db, usersTable, focusSessionsTable, studyStreaksTable, activeSessionsTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getServerConfig } from "../lib/config";
+import { extractUserId } from "./auth";
 import cookie from "cookie";
 
 const router = Router();
@@ -66,7 +68,17 @@ router.delete("/admin/auth", (req: any, res) => {
 });
 
 router.get("/admin/users", async (req, res) => {
-  if (!isAdminAuthed(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  // Allow access via: (1) admin cookie session, OR (2) JWT-authenticated admin-role user
+  const cookieAuthed = isAdminAuthed(req);
+  const userId = extractUserId(req);
+  let jwtAdmin = false;
+  if (userId) {
+    try {
+      const [user] = await db.select({ role: usersTable.role }).from(usersTable).where(eq(usersTable.id, userId));
+      if (user?.role === "admin") jwtAdmin = true;
+    } catch { /* fall through */ }
+  }
+  if (!cookieAuthed && !jwtAdmin) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
     const users = await db.select().from(usersTable).orderBy(usersTable.createdAt);
     const sessions = await db.select().from(focusSessionsTable);

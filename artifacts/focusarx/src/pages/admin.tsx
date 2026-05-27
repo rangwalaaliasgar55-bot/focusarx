@@ -25,7 +25,11 @@ export default function AdminPage() {
   useEffect(() => {
     const check = async () => {
       try {
-        const res = await fetch("/api/admin/users");
+        // Try with JWT token first (for admin-role users)
+        const token = localStorage.getItem("token");
+        const headers: Record<string, string> = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        const res = await fetch("/api/admin/users", { headers });
         if (res.status === 401 || res.status === 403) {
           setAuthed(false);
         } else if (res.ok) {

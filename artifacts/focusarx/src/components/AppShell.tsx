@@ -4,7 +4,7 @@ import {
   Timer, LayoutDashboard, TrendingUp, Trophy, Star,
   Users, Sparkles, LogOut, LogIn, Menu, X,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const NAV_ITEMS = [
@@ -54,10 +54,43 @@ function NavItem({ href, label, icon: Icon, active, shortcut, onClick, compact }
   );
 }
 
+function LogoMark({ size = "default" }: { size?: "default" | "small" }) {
+  const imgSize = size === "small" ? "h-7 w-7" : "h-9 w-9";
+  return (
+    <img
+      src="/logo.png"
+      alt="FocusArx Shield Crest Logo"
+      className={`${imgSize} object-contain drop-shadow-[0_0_8px_rgba(147,51,234,0.5)]`}
+    />
+  );
+}
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { data: session, status, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close mobile drawer on Escape key
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === "Escape") setMobileOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (mobileOpen) {
+      document.addEventListener("keydown", handleKeyDown);
+      // Lock body scroll when drawer is open
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.removeEventListener("keydown", handleKeyDown);
+        document.body.style.overflow = "";
+      };
+    }
+  }, [mobileOpen, handleKeyDown]);
+
+  // Close drawer on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location]);
 
   if (NO_SHELL.some((p) => location === p || location.startsWith(p))) {
     return <>{children}</>;
@@ -70,13 +103,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-[100dvh] forge-bg-glow">
-      {/* Desktop sidebar */}
+      {/* ==================== DESKTOP SIDEBAR ==================== */}
       <aside className="app-sidebar hidden md:flex">
-        {/* Logo */}
+        {/* Logo — desktop */}
         <div className="flex items-center gap-2.5 border-b border-[rgba(124,58,237,0.15)] px-5 py-5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] shadow-[0_0_12px_rgba(124,58,237,0.4)]">
-            <Timer size={15} className="text-white" />
-          </div>
+          <LogoMark />
           <div>
             <p className="text-sm font-bold tracking-tight text-[#E2E8F0]">FocusArx</p>
             <p className="text-[10px] text-[#4B5563]">Study OS</p>
@@ -125,51 +156,62 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {/* Mobile header */}
+      {/* ==================== MOBILE HEADER ==================== */}
       <div className="fixed left-0 right-0 top-0 z-40 flex h-14 items-center justify-between border-b border-[rgba(124,58,237,0.15)] bg-[rgba(8,12,28,0.95)] px-4 backdrop-blur-xl md:hidden">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#4F46E5]">
-            <Timer size={13} className="text-white" />
-          </div>
+          <LogoMark size="small" />
           <span className="text-sm font-bold text-[#E2E8F0]">FocusArx</span>
         </div>
         <button
           onClick={() => setMobileOpen(true)}
           className="rounded-lg p-2 text-[#94A3B8] hover:bg-[rgba(124,58,237,0.1)] hover:text-[#A78BFA]"
+          aria-label="Open menu"
         >
           <Menu size={18} />
         </button>
       </div>
 
-      {/* Mobile drawer */}
+      {/* ==================== MOBILE DRAWER ==================== */}
       <AnimatePresence>
         {mobileOpen && (
           <>
+            {/* Backdrop overlay — click to dismiss */}
             <motion.div
+              key="mobile-backdrop"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
               className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden"
               onClick={() => setMobileOpen(false)}
+              aria-label="Close menu"
             />
-            <motion.div
+
+            {/* Slide-out drawer */}
+            <motion.aside
+              key="mobile-drawer"
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="fixed inset-y-0 left-0 z-50 w-72 bg-[rgba(8,12,28,0.99)] md:hidden flex flex-col border-r border-[rgba(124,58,237,0.2)]"
+              className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-[rgba(124,58,237,0.2)] bg-[rgba(8,12,28,0.99)] md:hidden"
             >
+              {/* Drawer header — logo + close X */}
               <div className="flex items-center justify-between border-b border-[rgba(124,58,237,0.15)] px-5 py-5">
                 <div className="flex items-center gap-2.5">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#4F46E5]">
-                    <Timer size={15} className="text-white" />
-                  </div>
+                  <LogoMark size="small" />
                   <span className="text-sm font-bold text-[#E2E8F0]">FocusArx</span>
                 </div>
-                <button onClick={() => setMobileOpen(false)} className="p-1 text-[#6B7280]">
+                <button
+                  onClick={() => setMobileOpen(false)}
+                  className="rounded-lg p-1.5 text-[#6B7280] transition-colors hover:bg-[rgba(124,58,237,0.15)] hover:text-[#E2E8F0]"
+                  aria-label="Close menu"
+                >
                   <X size={18} />
                 </button>
               </div>
+
+              {/* Drawer nav — auto-dismiss on link click */}
               <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
                 {NAV_ITEMS.map((item) => (
                   <NavItem
@@ -180,33 +222,43 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   />
                 ))}
               </nav>
+
+              {/* Drawer footer */}
               <div className="border-t border-[rgba(124,58,237,0.15)] px-3 py-4">
                 {status === "authenticated" && user ? (
                   <button
                     onClick={() => { void signOut(); setMobileOpen(false); }}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs text-[#6B7280] hover:bg-[rgba(239,68,68,0.1)] hover:text-[#F87171]"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs text-[#6B7280] transition-colors hover:bg-[rgba(239,68,68,0.1)] hover:text-[#F87171]"
                   >
                     <LogOut size={14} /> Sign out
                   </button>
                 ) : (
-                  <Link href="/login" onClick={() => setMobileOpen(false)}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2 text-xs text-[#6B7280] hover:text-[#A78BFA]">
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2 text-xs text-[#6B7280] transition-colors hover:text-[#A78BFA]"
+                  >
                     <LogIn size={14} /> Sign in
                   </Link>
                 )}
               </div>
-            </motion.div>
+            </motion.aside>
           </>
         )}
       </AnimatePresence>
 
-      {/* Bottom tab bar (mobile) */}
+      {/* ==================== BOTTOM TAB BAR (mobile) ==================== */}
       <nav className="app-bottom-nav flex items-center justify-around md:hidden">
         {NAV_ITEMS.slice(0, 5).map(({ href, label, icon: Icon }) => {
           const active = location === href;
           return (
-            <Link key={href} href={href}
-              className={`flex flex-col items-center gap-0.5 px-2 py-1 transition-colors ${active ? "text-[#A78BFA]" : "text-[#4B5563]"}`}>
+            <Link
+              key={href}
+              href={href}
+              className={`flex flex-col items-center gap-0.5 px-2 py-1 transition-colors ${
+                active ? "text-[#A78BFA]" : "text-[#4B5563]"
+              }`}
+            >
               <Icon size={20} />
               <span className="text-[9px] font-medium">{label.split(" ")[0]}</span>
             </Link>
@@ -214,7 +266,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         })}
       </nav>
 
-      {/* Main content */}
+      {/* ==================== MAIN CONTENT ==================== */}
       <main className="flex-1 md:ml-[240px] pt-14 pb-16 md:pt-0 md:pb-0 min-w-0">
         {children}
       </main>
