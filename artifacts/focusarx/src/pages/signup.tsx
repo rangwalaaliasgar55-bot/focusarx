@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { useToast } from "@/components/Toast";
 import { useAuth } from "@/lib/auth";
@@ -11,6 +11,15 @@ export default function SignupPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { signIn } = useAuth();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const err = params.get("error");
+    if (err === "google_not_configured") {
+      toast("Google sign-in is not configured yet. Use email & password instead.", "error");
+      window.history.replaceState({}, "", "/signup");
+    }
+  }, [toast]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();

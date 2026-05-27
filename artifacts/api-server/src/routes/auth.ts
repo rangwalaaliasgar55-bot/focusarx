@@ -115,7 +115,11 @@ router.post("/auth/guest", async (req, res) => {
 
 router.get("/auth/google", (req, res) => {
   const { googleClientId, appUrl } = getServerConfig();
-  if (!googleClientId) { res.status(503).json({ error: "Google OAuth not configured" }); return; }
+  if (!googleClientId) {
+    // Redirect back to login with a friendly error instead of JSON 503
+    res.redirect(`${appUrl}/login?error=google_not_configured`);
+    return;
+  }
   const redirectUri = `${appUrl}/api/auth/google/callback`;
   const params = new URLSearchParams({
     client_id: googleClientId,
