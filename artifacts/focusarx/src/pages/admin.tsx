@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { AdminGate } from "@/components/admin/AdminGate";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { motion, AnimatePresence } from "framer-motion";
 
 type AdminUser = {
   id: string;
@@ -13,36 +14,79 @@ type AdminUser = {
   createdAt: string;
 };
 
+type DailyPoint = {
+  day: string;
+  date: string;
+  sessions: number;
+  minutes: number;
+};
+
+type TopUser = {
+  id: string;
+  name: string;
+  email: string;
+  isGuest: boolean;
+  minutes: number;
+};
+
+type AdminStats = {
+  totalUsers: number;
+  registeredUsers: number;
+  totalFocusHours: number;
+  totalSessions: number;
+  activeSessions: number;
+  newUsersThisWeek: number;
+  dailyChart: DailyPoint[];
+  topUsers: TopUser[];
+};
+
 type AdminData = {
   users: AdminUser[];
   activeCount: number;
 };
 
+type Tab = "overview" | "users";
+
 export default function AdminPage() {
   const [authed, setAuthed] = useState<boolean | null>(null);
   const [data, setData] = useState<AdminData | null>(null);
+  const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [roleLoading, setRoleLoading] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("overview");
+
+  const authHeaders = useCallback((): Record<string, string> => {
+    const token = localStorage.getItem("focusarx-auth-token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }, []);
 
   const loadData = useCallback(async () => {
     try {
-      const token = localStorage.getItem("focusarx-auth-token");
-      const headers: Record<string, string> = {};
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-      const res = await fetch("/api/admin/users", { headers, credentials: "include" });
-      if (res.status === 401 || res.status === 403) {
+      const [usersRes, statsRes] = await Promise.all([
+        fetch("/api/admin/users", { headers: authHeaders(), credentials: "include" }),
+        fetch("/api/admin/stats", { headers: authHeaders(), credentials: "include" }),
+      ]);
+      if (usersRes.status === 401 || usersRes.status === 403) {
         setAuthed(false);
-      } else if (res.ok) {
-        const json = await res.json() as AdminData;
+        return;
+      }
+      if (usersRes.ok) {
+        const json = await usersRes.json() as AdminData;
         setData(json);
         setAuthed(true);
+      }
+      if (statsRes.ok) {
+        const json = await statsRes.json() as AdminStats;
+        setStats(json);
       }
     } catch {
       setAuthed(false);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [authHeaders]);
 
   useEffect(() => { void loadData(); }, [loadData]);
 
@@ -50,12 +94,9 @@ export default function AdminPage() {
     const newRole = user.role === "admin" ? "user" : "admin";
     setRoleLoading(user.id);
     try {
-      const token = localStorage.getItem("focusarx-auth-token");
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
       const res = await fetch(`/api/admin/users/${user.id}/role`, {
         method: "PATCH",
-        headers,
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         credentials: "include",
         body: JSON.stringify({ role: newRole }),
       });
@@ -70,6 +111,24 @@ export default function AdminPage() {
     }
   };
 
+  const deleteUser = async (id: string) => {
+    setDeleteLoading(id);
+    try {
+      const res = await fetch(`/api/admin/users/${id}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+        credentials: "include",
+      });
+      if (res.ok) {
+        setData((prev) => prev ? { ...prev, users: prev.users.filter((u) => u.id !== id) } : prev);
+        setStats((prev) => prev ? { ...prev, totalUsers: prev.totalUsers - 1 } : prev);
+      }
+    } finally {
+      setDeleteLoading(null);
+      setDeleteConfirm(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center">
@@ -81,7 +140,6 @@ export default function AdminPage() {
   if (!authed) return <AdminGate />;
 
   const users = data?.users ?? [];
-  const activeCount = data?.activeCount ?? 0;
 
   function maskEmail(email: string) {
     const [local, domain] = email.split("@");
@@ -90,87 +148,266 @@ export default function AdminPage() {
     return local.slice(0, 2) + "***@" + domain;
   }
 
+  const maxSessions = Math.max(1, ...(stats?.dailyChart.map((d) => d.sessions) ?? [1]));
+
   return (
     <AdminShell>
       <div className="space-y-8">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Users</h1>
-          <p className="mt-1 text-sm text-zinc-500">All accounts — manage roles, inspect sessions and streaks.</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Admin Dashboard</h1>
+            <p className="mt-1 text-sm text-zinc-500">Platform overview and user management.</p>
+          </div>
+          <div className="flex gap-1 rounded-xl border border-zinc-800 bg-zinc-900/60 p-1">
+            {(["overview", "users"] as Tab[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`rounded-lg px-4 py-1.5 text-xs font-medium capitalize transition ${
+                  tab === t
+                    ? "bg-zinc-800 text-zinc-100"
+                    : "text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="grid gap-3 sm:grid-cols-4">
-          <MetricCard label="Total users" value={String(users.length)} />
-          <MetricCard label="Registered" value={String(users.filter((u) => !u.isGuest).length)} />
-          <MetricCard label="Guest accounts" value={String(users.filter((u) => u.isGuest).length)} />
-          <MetricCard label="Active sessions" value={String(activeCount)} accent="rose" />
-        </div>
-        <div className="overflow-hidden rounded-xl border border-zinc-800/80">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-zinc-900/80 text-xs uppercase tracking-wider text-zinc-500">
-              <tr>
-                <th className="px-4 py-3 font-medium">User</th>
-                <th className="px-4 py-3 font-medium">Type</th>
-                <th className="px-4 py-3 font-medium">Role</th>
-                <th className="px-4 py-3 font-medium">Sessions</th>
-                <th className="px-4 py-3 font-medium">Streak</th>
-                <th className="px-4 py-3 font-medium">Joined</th>
-                <th className="px-4 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user) => (
-                <tr key={user.id} className="border-t border-zinc-800/60 transition hover:bg-zinc-900/40">
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-zinc-200">{user.name ?? "Unnamed"}</p>
-                    <p className="text-xs text-zinc-500">{maskEmail(user.email)}</p>
-                    <p className="mt-0.5 font-mono text-[10px] text-zinc-600">{user.id.slice(0, 8)}…</p>
-                  </td>
-                  <td className="px-4 py-3">
-                    {user.isGuest ? (
-                      <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400">Guest</span>
-                    ) : (
-                      <span className="rounded-full bg-sky-950 px-2 py-0.5 text-xs text-sky-400">Registered</span>
+
+        <AnimatePresence mode="wait">
+          {tab === "overview" ? (
+            <motion.div
+              key="overview"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
+              className="space-y-6"
+            >
+              <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                <StatCard label="Total users" value={String(stats?.totalUsers ?? users.length)} />
+                <StatCard label="Registered" value={String(stats?.registeredUsers ?? users.filter(u => !u.isGuest).length)} />
+                <StatCard label="New this week" value={String(stats?.newUsersThisWeek ?? 0)} accent="sky" />
+                <StatCard label="Active sessions" value={String(stats?.activeSessions ?? data?.activeCount ?? 0)} accent="rose" />
+                <StatCard label="Total focus hrs" value={String(stats?.totalFocusHours ?? 0)} accent="violet" />
+                <StatCard label="Total sessions" value={String(stats?.totalSessions ?? 0)} />
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-5">
+                <div className="lg:col-span-3 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-5">
+                  <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Platform activity — last 7 days</p>
+                  <div className="mt-4 flex items-end gap-1.5 h-32">
+                    {(stats?.dailyChart ?? Array.from({ length: 7 }, (_, i) => ({ day: ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][i] ?? "?", date: "", sessions: 0, minutes: 0 }))).map((d) => (
+                      <div key={d.date || d.day} className="flex flex-1 flex-col items-center gap-1">
+                        <div
+                          className="w-full rounded-t-md bg-rose-500/70 transition-all hover:bg-rose-400/90"
+                          style={{ height: `${Math.round((d.sessions / maxSessions) * 100)}%`, minHeight: d.sessions > 0 ? "4px" : "2px" }}
+                          title={`${d.sessions} sessions · ${d.minutes}m`}
+                        />
+                        <span className="text-[10px] text-zinc-600">{d.day}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex items-center gap-3">
+                    <div className="h-2 w-2 rounded-full bg-rose-500/70" />
+                    <span className="text-xs text-zinc-500">Sessions per day</span>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-2 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-5">
+                  <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Top focusers</p>
+                  <div className="mt-3 space-y-2.5">
+                    {(stats?.topUsers ?? []).length === 0 && (
+                      <p className="text-sm text-zinc-600">No sessions yet.</p>
                     )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {user.role === "admin" ? (
-                      <span className="rounded-full bg-violet-950 px-2 py-0.5 text-xs text-violet-300">Admin</span>
-                    ) : (
-                      <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400">User</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-zinc-300">{user.sessionCount}</td>
-                  <td className="px-4 py-3 text-zinc-300">{user.streak} 🔥</td>
-                  <td className="px-4 py-3 text-xs text-zinc-500">{new Date(user.createdAt).toLocaleDateString()}</td>
-                  <td className="px-4 py-3">
-                    {!user.isGuest && (
-                      <button
-                        onClick={() => void toggleRole(user)}
-                        disabled={roleLoading === user.id}
-                        className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition disabled:opacity-40 ${
-                          user.role === "admin"
-                            ? "border-rose-800 text-rose-400 hover:bg-rose-950"
-                            : "border-violet-800 text-violet-400 hover:bg-violet-950"
-                        }`}
-                      >
-                        {roleLoading === user.id ? "…" : user.role === "admin" ? "Demote" : "Make Admin"}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    {(stats?.topUsers ?? []).map((u, i) => (
+                      <div key={u.id} className="flex items-center gap-3">
+                        <span className={`w-5 shrink-0 text-center text-xs font-bold ${i === 0 ? "text-amber-400" : i === 1 ? "text-zinc-300" : i === 2 ? "text-orange-600" : "text-zinc-600"}`}>
+                          {i + 1}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm text-zinc-200">{u.name || maskEmail(u.email)}</p>
+                          <p className="text-xs text-zinc-500">{u.minutes}m focused</p>
+                        </div>
+                        <div className="h-1.5 w-16 shrink-0 overflow-hidden rounded-full bg-zinc-800">
+                          <div
+                            className="h-full rounded-full bg-violet-500/70"
+                            style={{ width: `${Math.round((u.minutes / Math.max(1, stats?.topUsers[0]?.minutes ?? 1)) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-5">
+                <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 mb-3">Recent signups</p>
+                <div className="divide-y divide-zinc-800/60">
+                  {users.slice(0, 5).map((u) => (
+                    <div key={u.id} className="flex items-center justify-between py-2.5">
+                      <div>
+                        <span className="text-sm text-zinc-200">{u.name ?? "Unnamed"}</span>
+                        <span className="ml-2 text-xs text-zinc-500">{maskEmail(u.email)}</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-zinc-500">
+                        <span>{u.sessionCount} sessions</span>
+                        <span>{u.streak} 🔥</span>
+                        <span>{new Date(u.createdAt).toLocaleDateString()}</span>
+                        {u.role === "admin" && (
+                          <span className="rounded-full bg-violet-950 px-2 py-0.5 text-violet-300">Admin</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {users.length > 5 && (
+                  <button
+                    onClick={() => setTab("users")}
+                    className="mt-3 text-xs text-zinc-500 hover:text-zinc-300 transition"
+                  >
+                    View all {users.length} users →
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="users"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
+              className="space-y-4"
+            >
+              <div className="grid gap-3 sm:grid-cols-4">
+                <StatCard label="Total users" value={String(users.length)} />
+                <StatCard label="Registered" value={String(users.filter((u) => !u.isGuest).length)} />
+                <StatCard label="Guest accounts" value={String(users.filter((u) => u.isGuest).length)} />
+                <StatCard label="Active sessions" value={String(data?.activeCount ?? 0)} accent="rose" />
+              </div>
+
+              <div className="overflow-x-auto rounded-xl border border-zinc-800/80">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-zinc-900/80 text-xs uppercase tracking-wider text-zinc-500">
+                    <tr>
+                      <th className="px-4 py-3 font-medium">User</th>
+                      <th className="px-4 py-3 font-medium">Type</th>
+                      <th className="px-4 py-3 font-medium">Role</th>
+                      <th className="px-4 py-3 font-medium">Sessions</th>
+                      <th className="px-4 py-3 font-medium">Streak</th>
+                      <th className="px-4 py-3 font-medium">Joined</th>
+                      <th className="px-4 py-3 font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map((user) => (
+                      <tr key={user.id} className="border-t border-zinc-800/60 transition hover:bg-zinc-900/40">
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-zinc-200">{user.name ?? "Unnamed"}</p>
+                          <p className="text-xs text-zinc-500">{maskEmail(user.email)}</p>
+                          <p className="mt-0.5 font-mono text-[10px] text-zinc-600">{user.id.slice(0, 8)}…</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          {user.isGuest ? (
+                            <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400">Guest</span>
+                          ) : (
+                            <span className="rounded-full bg-sky-950 px-2 py-0.5 text-xs text-sky-400">Registered</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          {user.role === "admin" ? (
+                            <span className="rounded-full bg-violet-950 px-2 py-0.5 text-xs text-violet-300">Admin</span>
+                          ) : (
+                            <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400">User</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-zinc-300">{user.sessionCount}</td>
+                        <td className="px-4 py-3 text-zinc-300">{user.streak} 🔥</td>
+                        <td className="px-4 py-3 text-xs text-zinc-500 whitespace-nowrap">{new Date(user.createdAt).toLocaleDateString()}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            {!user.isGuest && (
+                              <button
+                                onClick={() => void toggleRole(user)}
+                                disabled={roleLoading === user.id}
+                                className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition disabled:opacity-40 ${
+                                  user.role === "admin"
+                                    ? "border-rose-800 text-rose-400 hover:bg-rose-950"
+                                    : "border-violet-800 text-violet-400 hover:bg-violet-950"
+                                }`}
+                              >
+                                {roleLoading === user.id ? "…" : user.role === "admin" ? "Demote" : "Make Admin"}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setDeleteConfirm(user.id)}
+                              className="rounded-lg border border-zinc-800 px-2.5 py-1 text-xs text-zinc-500 transition hover:border-red-900 hover:text-red-400"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
+
+      <AnimatePresence>
+        {deleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+            onClick={() => setDeleteConfirm(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl"
+            >
+              <h2 className="text-base font-semibold text-zinc-100">Delete user?</h2>
+              <p className="mt-2 text-sm text-zinc-400">
+                This will permanently remove this account and all their data. This cannot be undone.
+              </p>
+              <div className="mt-5 flex gap-3">
+                <button
+                  onClick={() => setDeleteConfirm(null)}
+                  className="flex-1 rounded-xl border border-zinc-700 py-2 text-sm text-zinc-400 transition hover:text-zinc-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => void deleteUser(deleteConfirm)}
+                  disabled={deleteLoading === deleteConfirm}
+                  className="flex-1 rounded-xl bg-red-700 py-2 text-sm font-medium text-white transition hover:bg-red-600 disabled:opacity-50"
+                >
+                  {deleteLoading === deleteConfirm ? "Deleting…" : "Delete"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </AdminShell>
   );
 }
 
-function MetricCard({ label, value, accent }: { label: string; value: string; accent?: "rose" }) {
+function StatCard({ label, value, accent }: { label: string; value: string; accent?: "rose" | "sky" | "violet" }) {
+  const color = accent === "rose" ? "text-rose-400" : accent === "sky" ? "text-sky-400" : accent === "violet" ? "text-violet-400" : "text-zinc-100";
   return (
     <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/40 px-4 py-4">
       <p className="text-xs text-zinc-500">{label}</p>
-      <p className={`mt-1 text-2xl font-semibold ${accent === "rose" ? "text-rose-400" : "text-zinc-100"}`}>{value}</p>
+      <p className={`mt-1 text-2xl font-semibold ${color}`}>{value}</p>
     </div>
   );
 }

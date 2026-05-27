@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, usersTable, focusSessionsTable, studyStreaksTable, activeSessionsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, gte } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getServerConfig } from "../lib/config";
 import { extractUserId } from "./auth";
@@ -101,6 +101,77 @@ router.get("/admin/users", async (req, res) => {
     });
   } catch (err) {
     logger.error({ err }, "admin users error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// Platform-wide stats for admin dashboard
+router.get("/admin/stats", async (req, res) => {
+  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  try {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 6 * 86400000);
+
+    const allSessions = await db.select().from(focusSessionsTable)
+      .where(gte(focusSessionsTable.createdAt, sevenDaysAgo));
+    const allUsers = await db.select({ id: usersTable.id, createdAt: usersTable.createdAt, isGuest: usersTable.isGuest }).from(usersTable);
+    const allFocusSessions = await db.select({
+      userId: focusSessionsTable.userId,
+      durationSec: focusSessionsTable.durationSec,
+      completedAt: focusSessionsTable.completedAt,
+      mode: focusSessionsTable.mode,
+    }).from(focusSessionsTable);
+    const active = await db.select().from(activeSessionsTable);
+
+    // Total focus hours across all users
+    const totalFocusSec = allFocusSessions
+      .filter(s => s.mode === "focus")
+      .reduce((acc, s) => acc + (s.durationSec ?? 0), 0);
+
+    // Sessions per day for last 7 days
+    const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const dailyChart = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date(sevenDaysAgo.getTime() + i * 86400000);
+      const dateStr = date.toISOString().split("T")[0]!;
+      const daySessions = allSessions.filter(s => s.completedAt && s.completedAt.toISOString().split("T")[0] === dateStr);
+      return {
+        day: dayLabels[date.getDay()] ?? "?",
+        date: dateStr,
+        sessions: daySessions.length,
+        minutes: Math.round(daySessions.reduce((acc, s) => acc + (s.durationSec ?? 0), 0) / 60),
+      };
+    });
+
+    // Top 5 users by total focus time
+    const timeByUser: Record<string, number> = {};
+    for (const s of allFocusSessions) {
+      if (s.mode === "focus") timeByUser[s.userId] = (timeByUser[s.userId] ?? 0) + (s.durationSec ?? 0);
+    }
+    const topUserIds = Object.entries(timeByUser)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([id, secs]) => ({ id, minutes: Math.round(secs / 60) }));
+
+    const topUsersData = await Promise.all(topUserIds.map(async ({ id, minutes }) => {
+      const [user] = await db.select({ name: usersTable.name, email: usersTable.email, isGuest: usersTable.isGuest }).from(usersTable).where(eq(usersTable.id, id));
+      return { id, name: user?.name ?? "Unknown", email: user?.email ?? "", isGuest: user?.isGuest ?? false, minutes };
+    }));
+
+    // New users last 7 days
+    const newUsersThisWeek = allUsers.filter(u => u.createdAt && u.createdAt >= sevenDaysAgo).length;
+
+    res.json({
+      totalUsers: allUsers.length,
+      registeredUsers: allUsers.filter(u => !u.isGuest).length,
+      totalFocusHours: Math.round(totalFocusSec / 3600),
+      totalSessions: allFocusSessions.filter(s => s.mode === "focus").length,
+      activeSessions: active.length,
+      newUsersThisWeek,
+      dailyChart,
+      topUsers: topUsersData,
+    });
+  } catch (err) {
+    logger.error({ err }, "admin stats error");
     res.status(500).json({ error: "Internal error" });
   }
 });
