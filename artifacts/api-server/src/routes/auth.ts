@@ -1,8 +1,9 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { db, usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import nodemailer from "nodemailer";
+import { db, usersTable, passwordResetTokensTable } from "@workspace/db";
+import { eq, and, gt, isNull } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getServerConfig } from "../lib/config";
 
@@ -111,6 +112,22 @@ router.post("/auth/guest", async (req, res) => {
   }
 });
 
+// ── Google OAuth debug (dev only) ─────────────────────────────────────────
+
+router.get("/auth/google/debug", (req, res) => {
+  const { googleClientId, appUrl } = getServerConfig();
+  const redirectUri = `${appUrl}/api/auth/google/callback`;
+  res.json({
+    clientIdSet: !!googleClientId,
+    clientIdPrefix: googleClientId ? googleClientId.slice(0, 12) + "..." : null,
+    appUrl,
+    redirectUri,
+    oauthUrl: googleClientId
+      ? `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId.slice(0, 12)}...&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid+email+profile`
+      : null,
+  });
+});
+
 // ── Google OAuth ──────────────────────────────────────────────────────────
 
 router.get("/auth/google", (req, res) => {
@@ -181,6 +198,103 @@ router.get("/auth/google/callback", async (req, res) => {
   } catch (err) {
     logger.error({ err }, "google oauth error");
     res.status(500).json({ error: "OAuth failed" });
+  }
+});
+
+// ── Password reset ────────────────────────────────────────────────────────
+
+async function sendResetEmail(to: string, resetUrl: string): Promise<boolean> {
+  const host = process.env.SMTP_HOST;
+  const port = parseInt(process.env.SMTP_PORT ?? "587");
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  const from = process.env.SMTP_FROM ?? user ?? "noreply@focusarx.app";
+
+  if (!host || !user || !pass) return false;
+
+  try {
+    const transporter = nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } });
+    await transporter.sendMail({
+      from: `"FocusArx" <${from}>`,
+      to,
+      subject: "Reset your FocusArx password",
+      text: `Click the link below to reset your password. It expires in 1 hour.\n\n${resetUrl}\n\nIf you didn't request this, ignore this email.`,
+      html: `<p>Click the link below to reset your password. It expires in 1 hour.</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>If you didn't request this, ignore this email.</p>`,
+    });
+    return true;
+  } catch (err) {
+    logger.warn({ err }, "failed to send reset email");
+    return false;
+  }
+}
+
+router.post("/auth/forgot-password", async (req, res) => {
+  const { email } = req.body as { email?: string };
+  if (!email) { res.status(400).json({ error: "Email is required" }); return; }
+  const { appUrl } = getServerConfig();
+
+  try {
+    const [user] = await db.select({ id: usersTable.id, email: usersTable.email })
+      .from(usersTable).where(and(eq(usersTable.email, email.toLowerCase().trim()), eq(usersTable.isGuest, false)));
+
+    // Always respond with the same message (don't reveal if email exists)
+    if (!user) {
+      res.json({ ok: true, emailSent: false });
+      return;
+    }
+
+    // Generate a secure token
+    const token = crypto.randomUUID() + "-" + crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 3600_000); // 1 hour
+
+    await db.insert(passwordResetTokensTable).values({ userId: user.id, token, expiresAt });
+
+    const resetUrl = `${appUrl}/reset-password?token=${token}`;
+    const emailSent = await sendResetEmail(user.email, resetUrl);
+
+    // In development, return the link directly if email isn't configured
+    const isDev = process.env.NODE_ENV !== "production";
+    res.json({ ok: true, emailSent, ...(isDev && !emailSent ? { devResetUrl: resetUrl } : {}) });
+  } catch (err) {
+    logger.error({ err }, "forgot password error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+router.post("/auth/reset-password", async (req, res) => {
+  const { token, password } = req.body as { token?: string; password?: string };
+  if (!token || !password) { res.status(400).json({ error: "Token and password are required" }); return; }
+  if (password.length < 8) { res.status(400).json({ error: "Password must be at least 8 characters" }); return; }
+
+  try {
+    const now = new Date();
+    const [resetToken] = await db.select().from(passwordResetTokensTable)
+      .where(and(eq(passwordResetTokensTable.token, token), gt(passwordResetTokensTable.expiresAt, now), isNull(passwordResetTokensTable.usedAt)));
+
+    if (!resetToken) { res.status(400).json({ error: "Reset link is invalid or expired" }); return; }
+
+    const hashed = await bcrypt.hash(password, 12);
+    await db.update(usersTable).set({ hashedPassword: hashed }).where(eq(usersTable.id, resetToken.userId));
+    await db.update(passwordResetTokensTable).set({ usedAt: now }).where(eq(passwordResetTokensTable.id, resetToken.id));
+
+    res.json({ ok: true });
+  } catch (err) {
+    logger.error({ err }, "reset password error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+router.get("/auth/reset-password/verify", async (req, res) => {
+  const token = req.query.token as string | undefined;
+  if (!token) { res.status(400).json({ valid: false }); return; }
+  try {
+    const now = new Date();
+    const [resetToken] = await db.select({ id: passwordResetTokensTable.id })
+      .from(passwordResetTokensTable)
+      .where(and(eq(passwordResetTokensTable.token, token), gt(passwordResetTokensTable.expiresAt, now), isNull(passwordResetTokensTable.usedAt)));
+    res.json({ valid: !!resetToken });
+  } catch {
+    res.json({ valid: false });
   }
 });
 
