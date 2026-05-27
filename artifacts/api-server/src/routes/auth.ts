@@ -47,7 +47,7 @@ router.get("/auth/session", async (req, res) => {
   const userId = extractUserId(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
-    const [user] = await db.select({ id: usersTable.id, email: usersTable.email, name: usersTable.name, isGuest: usersTable.isGuest }).from(usersTable).where(eq(usersTable.id, userId));
+    const [user] = await db.select({ id: usersTable.id, email: usersTable.email, name: usersTable.name, isGuest: usersTable.isGuest, role: usersTable.role }).from(usersTable).where(eq(usersTable.id, userId));
     if (!user) { res.status(401).json({ error: "User not found" }); return; }
     res.json({ user });
   } catch (err) {

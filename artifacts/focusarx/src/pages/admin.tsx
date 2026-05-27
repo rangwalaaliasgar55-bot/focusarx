@@ -26,7 +26,7 @@ export default function AdminPage() {
     const check = async () => {
       try {
         // Try with JWT token first (for admin-role users)
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("focusarx-auth-token");
         const headers: Record<string, string> = {};
         if (token) headers["Authorization"] = `Bearer ${token}`;
         const res = await fetch("/api/admin/users", { headers });

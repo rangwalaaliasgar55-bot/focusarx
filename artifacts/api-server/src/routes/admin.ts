@@ -75,7 +75,7 @@ router.get("/admin/users", async (req, res) => {
   if (userId) {
     try {
       const [user] = await db.select({ role: usersTable.role }).from(usersTable).where(eq(usersTable.id, userId));
-      if (user?.role === "admin") jwtAdmin = true;
+      if (user?.role?.toLowerCase() === "admin") jwtAdmin = true;
     } catch { /* fall through */ }
   }
   if (!cookieAuthed && !jwtAdmin) { res.status(401).json({ error: "Unauthorized" }); return; }
