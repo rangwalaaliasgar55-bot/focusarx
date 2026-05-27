@@ -26,7 +26,10 @@ app.use(
     },
   }),
 );
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true,
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -40,7 +43,7 @@ app.use("/api", (req, res, next) => {
     res.status(503).json({
       error: "Server is missing required configuration",
       missing,
-      hint: "Add these in Vercel → Project Settings → Environment Variables, then redeploy.",
+      hint: "Add these in your environment variables.",
     });
     return;
   }

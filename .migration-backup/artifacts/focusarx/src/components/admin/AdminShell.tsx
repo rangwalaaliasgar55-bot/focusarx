@@ -2,7 +2,7 @@ import { Link } from "wouter";
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const logout = async () => {
-    await fetch("/api/admin/auth", { method: "DELETE" });
+    await fetch("/api/admin/auth", { method: "DELETE", credentials: "include" });
     window.location.reload();
   };
 

@@ -3,7 +3,6 @@ import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
-import { getConfigErrors } from "./lib/config";
 
 const app: Express = express();
 
@@ -26,29 +25,9 @@ app.use(
     },
   }),
 );
-app.use(cors({
-  origin: true,
-  credentials: true,
-}));
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-app.use("/api", (req, res, next) => {
-  if (req.path === "/healthz") {
-    next();
-    return;
-  }
-  const missing = getConfigErrors();
-  if (missing.length > 0) {
-    res.status(503).json({
-      error: "Server is missing required configuration",
-      missing,
-      hint: "Add these in your environment variables.",
-    });
-    return;
-  }
-  next();
-});
 
 app.use("/api", router);
 

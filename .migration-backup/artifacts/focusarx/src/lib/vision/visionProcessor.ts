@@ -11,12 +11,14 @@ export type VisionFrameResult = {
   attentionScore: number;
 };
 
+let _ready = false;
+
 export async function initVisionProcessor(): Promise<void> {
-  /* no-op */
+  _ready = true;
 }
 
 export function isVisionProcessorReady(): boolean {
-  return false;
+  return _ready;
 }
 
 export async function processVideoFrame(

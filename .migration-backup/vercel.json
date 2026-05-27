@@ -1,18 +1,17 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "vite",
-  "installCommand": "pnpm install",
-  "buildCommand": "pnpm run build:vercel",
+  "framework": null,
+  "buildCommand": "pnpm --filter @workspace/focusarx run build",
   "outputDirectory": "artifacts/focusarx/dist/public",
-  "functions": {
-    "api/index.js": {
-      "includeFiles": "artifacts/api-server/dist/**"
-    }
-  },
+  "installCommand": "pnpm install --frozen-lockfile",
   "rewrites": [
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ],
+  "headers": [
     {
-      "source": "/((?!api/).*)",
-      "destination": "/index.html"
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
     }
   ]
 }
