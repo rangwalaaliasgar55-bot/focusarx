@@ -15,7 +15,6 @@ import { getModeLabel } from "@/lib/timerUtils";
 import { DEFAULT_CONFIG } from "@/lib/constants";
 import type { PersistedActiveSession } from "@/types/session-persistence";
 import type { TimerMode } from "@/types/timer";
-import { FocusCamera } from "@/components/camera/FocusCamera";
 
 const MODES: TimerMode[] = ["focus", "break", "longBreak"];
 
@@ -370,7 +369,6 @@ export default function Timer() {
           </motion.p>
         </AnimatePresence>
 
-        {mode === "focus" && <FocusCamera className="mt-6" />}
       </motion.div>
     </motion.section>
   );
