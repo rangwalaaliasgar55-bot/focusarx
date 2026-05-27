@@ -1,0 +1,672 @@
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;500;600;700;800&display=swap');
+:root{
+  --bg:#0d0f1a;--s1:#131627;--s2:#1a1e35;--s3:#202540;
+  --red:#e8365d;--purple:#7c3aed;--teal:#0fd4a8;--gold:#f4c842;--blue:#3b82f6;--orange:#f97316;
+  --text:#e8eaf0;--muted:#6b7280;--dim:#3a3f5a;--border:rgba(255,255,255,0.07);
+  --mono:'JetBrains Mono',monospace;--sans:'Syne',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+.root{font-family:var(--sans);background:var(--bg);color:var(--text);border-radius:14px;overflow:hidden;border:1px solid var(--border);}
+.shell{display:flex;min-height:680px;}
+
+/* SIDEBAR */
+.sb{width:196px;min-width:196px;background:var(--s1);border-right:1px solid var(--border);display:flex;flex-direction:column;}
+.sb-brand{padding:18px 14px 14px;border-bottom:1px solid var(--border);}
+.sb-tag{font-size:9px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;margin-bottom:3px;}
+.sb-name{font-size:17px;font-weight:800;color:var(--text);}
+.sb-name span{color:var(--red);}
+.sb-nav{flex:1;padding:10px 7px;display:flex;flex-direction:column;gap:1px;}
+.ni{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:500;color:var(--muted);transition:all .15s;position:relative;}
+.ni:hover{background:var(--s2);color:var(--text);}
+.ni.on{background:rgba(232,54,93,.12);color:var(--red);}
+.ni.on::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:14px;background:var(--red);border-radius:0 3px 3px 0;}
+.nb{margin-left:auto;font-size:9px;font-family:var(--mono);background:var(--s3);color:var(--muted);padding:1px 5px;border-radius:3px;}
+.nb.new{background:rgba(232,54,93,.2);color:var(--red);}
+.nb.hot{background:rgba(244,200,66,.15);color:var(--gold);}
+.sb-foot{padding:10px 8px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px;}
+.mood-row{display:flex;gap:4px;align-items:center;}
+.mood-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-right:2px;}
+.mood-btn{width:24px;height:24px;border-radius:6px;border:1px solid var(--border);background:var(--s2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .15s;}
+.mood-btn.sel{border-color:var(--teal);background:rgba(15,212,168,.12);}
+.coin-bar{background:var(--s2);border-radius:7px;padding:8px 10px;border:1px solid var(--border);}
+.coin-top{display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.1em;}
+.coin-top span{color:var(--gold);font-family:var(--mono);}
+.coin-track{height:3px;background:var(--s3);border-radius:2px;overflow:hidden;}
+.coin-fill{height:100%;width:68%;background:var(--gold);border-radius:2px;}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;}
+.topbar{height:50px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:10px;background:var(--s1);}
+.tb-title{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
+.tb-title b{color:var(--text);}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.pill{display:flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;font-family:var(--mono);}
+.pill.fire{background:rgba(244,200,66,.1);border:1px solid rgba(244,200,66,.25);color:var(--gold);}
+.pill.env{background:rgba(15,212,168,.1);border:1px solid rgba(15,212,168,.2);color:var(--teal);}
+.ava{width:28px;height:28px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;}
+
+/* TAB BAR */
+.tabbar{display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--s1);padding:0 18px;}
+.tab{padding:10px 14px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;}
+.tab.on{color:var(--red);border-bottom-color:var(--red);}
+.tab:hover{color:var(--text);}
+
+/* PAGES */
+.page{display:none;flex:1;}
+.page.on{display:flex;}
+
+/* ── TIMER PAGE ── */
+.timer-page{flex:1;display:grid;grid-template-columns:1fr 250px;}
+.timer-main{padding:20px;display:flex;flex-direction:column;gap:16px;border-right:1px solid var(--border);}
+.mode-tabs{display:flex;gap:3px;background:var(--s1);border-radius:9px;padding:3px;width:fit-content;}
+.mt{padding:6px 14px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;color:var(--muted);transition:all .15s;}
+.mt.on{background:var(--red);color:#fff;}
+.tcard{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:24px 20px;display:flex;flex-direction:column;align-items:center;gap:16px;}
+.t-ring{position:relative;width:180px;height:180px;}
+.t-ring svg{transform:rotate(-90deg);}
+.t-disp{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.t-num{font-family:var(--mono);font-size:40px;font-weight:600;color:var(--red);letter-spacing:-2px;}
+.t-sub{font-size:9px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;margin-top:2px;}
+.ctrls{display:flex;align-items:center;gap:10px;}
+.cbtn{width:36px;height:36px;border-radius:50%;background:var(--s2);border:1px solid var(--border);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s;}
+.cbtn:hover{background:var(--s3);color:var(--text);}
+.pbtn{width:52px;height:52px;background:var(--red);border-radius:50%;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .15s;}
+.pbtn:hover{opacity:.88;}
+.pbtn.run{background:var(--s2);border:1px solid var(--border);color:var(--text);}
+.dots{display:flex;gap:5px;align-items:center;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--s3);border:1px solid var(--dim);}
+.dot.done{background:var(--teal);border-color:var(--teal);}
+
+/* ambient sound */
+.amb-row{display:flex;gap:6px;flex-wrap:wrap;}
+.amb-btn{display:flex;align-items:center;gap:5px;padding:5px 10px;background:var(--s2);border:1px solid var(--border);border-radius:20px;font-size:11px;color:var(--muted);cursor:pointer;transition:all .15s;}
+.amb-btn.on{background:rgba(15,212,168,.12);border-color:rgba(15,212,168,.3);color:var(--teal);}
+.amb-btn i{font-size:13px;}
+
+/* timer right panel */
+.tr-panel{padding:16px 14px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;}
+.pc{background:var(--s1);border:1px solid var(--border);border-radius:11px;padding:13px;}
+.pt{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+.pt a{color:var(--red);cursor:pointer;font-size:9px;}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.sb2{background:var(--s2);border-radius:7px;padding:9px;}
+.sv{font-size:18px;font-weight:700;font-family:var(--mono);color:var(--text);}
+.sv.r{color:var(--red);}.sv.t{color:var(--teal);}.sv.g{color:var(--gold);}
+.sk{font-size:9px;color:var(--muted);margin-top:1px;}
+.tk-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px;}
+.tkc{background:var(--s2);border-radius:7px;padding:7px 9px;display:flex;align-items:center;gap:6px;}
+.tki{width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px;}
+.tka{font-size:12px;font-weight:700;font-family:var(--mono);color:var(--text);}
+.tkn{font-size:9px;color:var(--muted);}
+.earn-btn{width:100%;background:rgba(15,212,168,.1);border:1px solid rgba(15,212,168,.25);color:var(--teal);font-size:11px;font-family:var(--sans);font-weight:600;padding:7px;border-radius:7px;cursor:pointer;}
+.earn-btn:hover{background:rgba(15,212,168,.18);}
+.task-list{display:flex;flex-direction:column;gap:5px;max-height:150px;overflow-y:auto;}
+.tr{display:flex;align-items:center;gap:7px;padding:7px;background:var(--s2);border-radius:6px;cursor:pointer;transition:background .12s;}
+.tr:hover{background:var(--s3);}
+.tch{width:14px;height:14px;border-radius:3px;border:1.5px solid var(--dim);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.tch.done{background:var(--teal);border-color:var(--teal);color:#fff;font-size:8px;}
+.tt{font-size:11px;color:var(--text);flex:1;}
+.tt.done{color:var(--muted);text-decoration:line-through;}
+.tpts{font-size:9px;color:var(--gold);font-family:var(--mono);}
+.tadd{display:flex;gap:5px;margin-top:7px;}
+.tinp{flex:1;background:var(--s2);border:1px solid var(--border);color:var(--text);font-size:11px;font-family:var(--sans);padding:5px 9px;border-radius:6px;outline:none;}
+.tinp::placeholder{color:var(--muted);}
+.tinp:focus{border-color:rgba(232,54,93,.4);}
+.abtn{background:var(--red);border:none;color:#fff;width:26px;height:26px;border-radius:6px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;}
+
+/* ── ANALYTICS PAGE ── */
+.analytics-page{flex:1;padding:20px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;}
+.a-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.acard{background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.acard-val{font-size:22px;font-weight:700;font-family:var(--mono);}
+.acard-key{font-size:10px;color:var(--muted);margin-top:3px;}
+.acard-delta{font-size:10px;margin-top:4px;font-family:var(--mono);}
+.up{color:var(--teal);}.dn{color:var(--red);}
+.chart-wrap{background:var(--s1);border:1px solid var(--border);border-radius:11px;padding:16px;}
+.chart-title{font-size:11px;font-weight:600;color:var(--text);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;}
+.chart-title span{font-size:10px;color:var(--muted);font-weight:400;}
+.bar-chart{display:flex;align-items:flex-end;gap:6px;height:100px;}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.bar{width:100%;border-radius:3px 3px 0 0;transition:all .3s;}
+.bar-label{font-size:9px;color:var(--muted);font-family:var(--mono);}
+.heatmap{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.hm-cell{height:16px;border-radius:2px;background:var(--s3);}
+.hm-cell.l1{background:rgba(15,212,168,.2);}
+.hm-cell.l2{background:rgba(15,212,168,.45);}
+.hm-cell.l3{background:rgba(15,212,168,.7);}
+.hm-cell.l4{background:var(--teal);}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.score-ring{display:flex;justify-content:center;align-items:center;padding:8px 0;}
+
+/* ── LEADERBOARD PAGE ── */
+.lb-page{flex:1;padding:20px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;}
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:10px;padding:10px 0 6px;}
+.pod{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.pod-ava{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;}
+.pod-name{font-size:11px;font-weight:600;color:var(--text);}
+.pod-score{font-size:10px;font-family:var(--mono);color:var(--gold);}
+.pod-bar{border-radius:4px 4px 0 0;}
+.pod.p1 .pod-bar{background:var(--gold);width:50px;height:70px;}
+.pod.p2 .pod-bar{background:var(--muted);width:44px;height:50px;}
+.pod.p3 .pod-bar{background:#cd7f32;width:44px;height:36px;}
+.pod.p1 .pod-ava{width:44px;height:44px;background:var(--gold);font-size:14px;}
+.pod.p2 .pod-ava{width:36px;height:36px;background:var(--muted);font-size:12px;}
+.pod.p3 .pod-ava{width:34px;height:34px;background:#cd7f32;font-size:11px;}
+.lb-list{display:flex;flex-direction:column;gap:6px;}
+.lb-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--s1);border:1px solid var(--border);border-radius:9px;}
+.lb-rank{font-size:12px;font-family:var(--mono);color:var(--muted);width:20px;text-align:center;}
+.lb-ava{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;}
+.lb-info{flex:1;}
+.lb-name{font-size:12px;font-weight:600;color:var(--text);}
+.lb-sub{font-size:10px;color:var(--muted);}
+.lb-pts{font-size:13px;font-family:var(--mono);font-weight:600;color:var(--gold);}
+.lb-streak{font-size:10px;color:var(--red);font-family:var(--mono);}
+.lb-you{border-color:rgba(232,54,93,.3);background:rgba(232,54,93,.05);}
+
+/* ── ACHIEVEMENTS PAGE ── */
+.ach-page{flex:1;padding:20px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;}
+.badge-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.badge-card{background:var(--s1);border:1px solid var(--border);border-radius:11px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:all .15s;}
+.badge-card:hover{border-color:rgba(255,255,255,.15);}
+.badge-card.locked{opacity:.45;}
+.badge-card.earned{border-color:rgba(244,200,66,.3);}
+.badge-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;}
+.badge-name{font-size:11px;font-weight:700;color:var(--text);text-align:center;}
+.badge-desc{font-size:10px;color:var(--muted);text-align:center;}
+.badge-pts{font-size:10px;font-family:var(--mono);color:var(--gold);}
+.prog-bar{width:100%;height:3px;background:var(--s3);border-radius:2px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:2px;}
+
+/* ── FORGE ROOM ── */
+.forge-page{flex:1;padding:20px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;}
+.forge-bal{background:var(--s1);border:1px solid rgba(244,200,66,.25);border-radius:11px;padding:14px 16px;display:flex;align-items:center;gap:12px;}
+.forge-bal-val{font-size:28px;font-weight:800;font-family:var(--mono);color:var(--gold);}
+.forge-bal-label{font-size:11px;color:var(--muted);}
+.forge-bal-label b{display:block;font-size:13px;color:var(--text);}
+.shop-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.shop-card{background:var(--s1);border:1px solid var(--border);border-radius:11px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:8px;}
+.shop-icon{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;}
+.shop-name{font-size:12px;font-weight:700;color:var(--text);text-align:center;}
+.shop-desc{font-size:10px;color:var(--muted);text-align:center;}
+.shop-price{font-size:13px;font-family:var(--mono);color:var(--gold);font-weight:600;}
+.shop-btn{width:100%;padding:6px;border-radius:7px;border:1px solid var(--border);background:var(--s2);color:var(--muted);font-size:11px;font-family:var(--sans);font-weight:600;cursor:pointer;transition:all .15s;}
+.shop-btn:hover{background:rgba(244,200,66,.1);border-color:rgba(244,200,66,.3);color:var(--gold);}
+.shop-btn.owned{background:rgba(15,212,168,.1);border-color:rgba(15,212,168,.25);color:var(--teal);}
+
+/* ── AI ROADMAP ── */
+.road-page{flex:1;padding:20px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;}
+.road-header{background:var(--s1);border:1px solid rgba(124,58,237,.3);border-radius:11px;padding:14px 16px;display:flex;align-items:center;gap:12px;}
+.road-icon{width:44px;height:44px;border-radius:10px;background:rgba(124,58,237,.15);display:flex;align-items:center;justify-content:center;color:var(--purple);font-size:20px;}
+.road-title{font-size:14px;font-weight:700;color:var(--text);}
+.road-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.road-gen{margin-left:auto;background:var(--purple);border:none;color:#fff;font-size:11px;font-family:var(--sans);font-weight:600;padding:7px 14px;border-radius:7px;cursor:pointer;}
+.road-week{display:flex;flex-direction:column;gap:8px;}
+.day-card{background:var(--s1);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.day-head{padding:11px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;}
+.day-num{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:var(--mono);}
+.day-title{font-size:12px;font-weight:600;color:var(--text);flex:1;}
+.day-blocks{font-size:10px;color:var(--muted);font-family:var(--mono);}
+.day-tasks{padding:0 14px 12px;display:flex;flex-direction:column;gap:5px;}
+.dt{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);}
+.dt i{font-size:13px;}
+
+@keyframes pulse{0%,100%{opacity:.5}50%{opacity:.15}}
+.pulse{animation:pulse 2s ease-in-out infinite;}
+</style>
+
+<h2 class="sr-only">FocusArx v3 — full-featured focus OS with timer, analytics, leaderboard, achievements, forge, and AI roadmap</h2>
+
+<div class="root">
+<div class="shell">
+
+<!-- SIDEBAR -->
+<div class="sb">
+  <div class="sb-brand">
+    <div class="sb-tag">Study OS</div>
+    <div class="sb-name">Focus<span>Arx</span></div>
+  </div>
+  <nav class="sb-nav" id="sb-nav">
+    <div class="ni on" data-page="timer"><i class="ti ti-clock" aria-hidden="true" style="font-size:14px"></i> Timer <span class="nb">1</span></div>
+    <div class="ni" data-page="analytics"><i class="ti ti-chart-line" aria-hidden="true" style="font-size:14px"></i> Analytics <span class="nb hot">★</span></div>
+    <div class="ni" data-page="leaderboard"><i class="ti ti-trophy" aria-hidden="true" style="font-size:14px"></i> Leaderboard <span class="nb">4</span></div>
+    <div class="ni" data-page="achievements"><i class="ti ti-medal" aria-hidden="true" style="font-size:14px"></i> Achievements <span class="nb new">3</span></div>
+    <div class="ni" data-page="forge"><i class="ti ti-sword" aria-hidden="true" style="font-size:14px"></i> Forge Room <span class="nb hot">680</span></div>
+    <div class="ni" data-page="roadmap"><i class="ti ti-road" aria-hidden="true" style="font-size:14px"></i> AI Roadmap <span class="nb new">AI</span></div>
+  </nav>
+  <div class="sb-foot">
+    <div class="mood-row">
+      <span class="mood-label">Mood</span>
+      <div class="mood-btn sel" title="Focused" onclick="setMood(this)"><i class="ti ti-brain" aria-hidden="true" style="font-size:12px;color:var(--teal)"></i></div>
+      <div class="mood-btn" title="Tired" onclick="setMood(this)"><i class="ti ti-zzz" aria-hidden="true" style="font-size:12px"></i></div>
+      <div class="mood-btn" title="Motivated" onclick="setMood(this)"><i class="ti ti-flame" aria-hidden="true" style="font-size:12px"></i></div>
+      <div class="mood-btn" title="Stressed" onclick="setMood(this)"><i class="ti ti-alert-circle" aria-hidden="true" style="font-size:12px"></i></div>
+    </div>
+    <div class="coin-bar">
+      <div class="coin-top">ARX tokens <span id="coin-val">680</span></div>
+      <div class="coin-track"><div class="coin-fill" id="coin-fill"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="tb-title" id="tb-title"><b>Timer</b> — Deep Work</div>
+    <div class="tb-right">
+      <div class="pill env"><i class="ti ti-leaf" aria-hidden="true" style="font-size:11px"></i> Forest: 12 trees</div>
+      <div class="pill fire"><i class="ti ti-flame" aria-hidden="true" style="font-size:11px"></i> 7d</div>
+      <div class="ava">AX</div>
+    </div>
+  </div>
+
+  <!-- TAB BAR for timer sub-sections (only visible on timer page) -->
+  <div class="tabbar" id="timer-tabs">
+    <div class="tab on" data-sub="main">Pomodoro</div>
+    <div class="tab" data-sub="ambient">Ambient</div>
+    <div class="tab" data-sub="intention">Intention</div>
+  </div>
+
+  <!-- PAGES -->
+
+  <!-- TIMER PAGE -->
+  <div class="page on" id="page-timer">
+    <div class="timer-page">
+      <div class="timer-main">
+        <div class="mode-tabs">
+          <div class="mt on" id="mt-focus">Focus</div>
+          <div class="mt" id="mt-short">Short Break</div>
+          <div class="mt" id="mt-long">Long Break</div>
+        </div>
+
+        <div class="tcard">
+          <div class="t-ring">
+            <svg width="180" height="180" viewBox="0 0 180 180">
+              <circle cx="90" cy="90" r="82" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="7"/>
+              <circle cx="90" cy="90" r="82" fill="none" stroke="rgba(232,54,93,0.07)" stroke-width="4" class="pulse"/>
+              <circle id="prog" cx="90" cy="90" r="78" fill="none" stroke="#e8365d" stroke-width="5" stroke-linecap="round"
+                stroke-dasharray="490" stroke-dashoffset="122" style="transition:stroke-dashoffset 1s linear;"/>
+            </svg>
+            <div class="t-disp">
+              <div class="t-num" id="t-disp">25:00</div>
+              <div class="t-sub" id="t-status">READY</div>
+            </div>
+          </div>
+          <div class="ctrls">
+            <button class="cbtn" id="btn-reset" aria-label="Reset"><i class="ti ti-rotate" aria-hidden="true"></i></button>
+            <button class="pbtn" id="btn-play" aria-label="Start"><i class="ti ti-player-play" id="play-ic" aria-hidden="true"></i></button>
+            <button class="cbtn" id="btn-skip" aria-label="Skip"><i class="ti ti-player-skip-forward" aria-hidden="true"></i></button>
+          </div>
+          <div class="dots">
+            <div class="dot done"></div><div class="dot done"></div><div class="dot" id="d3"></div><div class="dot" id="d4"></div>
+            <span style="font-size:10px;color:var(--muted);margin-left:4px;">2 blocks today</span>
+          </div>
+        </div>
+
+        <!-- AMBIENT SOUNDS -->
+        <div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:7px;">Ambient Sound</div>
+          <div class="amb-row">
+            <div class="amb-btn on" onclick="toggleAmb(this)"><i class="ti ti-trees" aria-hidden="true"></i> Forest</div>
+            <div class="amb-btn" onclick="toggleAmb(this)"><i class="ti ti-cloud-rain" aria-hidden="true"></i> Rain</div>
+            <div class="amb-btn" onclick="toggleAmb(this)"><i class="ti ti-wave-saw-tool" aria-hidden="true"></i> Waves</div>
+            <div class="amb-btn" onclick="toggleAmb(this)"><i class="ti ti-coffee" aria-hidden="true"></i> Cafe</div>
+            <div class="amb-btn" onclick="toggleAmb(this)"><i class="ti ti-music" aria-hidden="true"></i> Lo-fi</div>
+          </div>
+        </div>
+
+        <!-- INTENTION -->
+        <div style="background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:12px;">
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center;">
+            Session intention
+            <button style="background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.25);color:var(--purple);font-size:9px;padding:2px 8px;border-radius:5px;cursor:pointer;font-family:var(--sans);" onclick="sendPrompt('Suggest a powerful focus intention for a deep work session on coding')">AI suggest ↗</button>
+          </div>
+          <div id="intention-text" style="font-size:12px;color:var(--text);font-style:italic;">Build the auth module without interruption.</div>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL -->
+      <div class="tr-panel">
+        <div class="pc">
+          <div class="pt">Today's Stats</div>
+          <div class="sg">
+            <div class="sb2"><div class="sv r">2</div><div class="sk">Blocks</div></div>
+            <div class="sb2"><div class="sv t">1/3</div><div class="sk">Tasks</div></div>
+            <div class="sb2"><div class="sv g">50</div><div class="sk">Focus min</div></div>
+            <div class="sb2"><div class="sv">84</div><div class="sk">Flow score</div></div>
+          </div>
+        </div>
+
+        <div class="pc">
+          <div class="pt">ARX Tokens <a onclick="goPage('forge')">forge ↗</a></div>
+          <div class="tk-grid">
+            <div class="tkc"><div class="tki" style="background:rgba(244,200,66,.12);color:var(--gold)"><i class="ti ti-coin" aria-hidden="true"></i></div><div><div class="tka">680</div><div class="tkn">ARX</div></div></div>
+            <div class="tkc"><div class="tki" style="background:rgba(232,54,93,.12);color:var(--red)"><i class="ti ti-flame" aria-hidden="true"></i></div><div><div class="tka">7d</div><div class="tkn">Streak</div></div></div>
+            <div class="tkc"><div class="tki" style="background:rgba(15,212,168,.12);color:var(--teal)"><i class="ti ti-bolt" aria-hidden="true"></i></div><div><div class="tka">+25</div><div class="tkn">/block</div></div></div>
+            <div class="tkc"><div class="tki" style="background:rgba(124,58,237,.12);color:var(--purple)"><i class="ti ti-award" aria-hidden="true"></i></div><div><div class="tka">3</div><div class="tkn">Badges</div></div></div>
+          </div>
+          <button class="earn-btn">Spend in Forge Room</button>
+        </div>
+
+        <div class="pc">
+          <div class="pt">Tasks <a onclick="sendPrompt('Generate 3 focused deep work tasks for a developer')">+ AI ↗</a></div>
+          <div class="task-list" id="task-list">
+            <div class="tr" onclick="setTask('Read sys-design ch.','Est. 1 block',this)"><div class="tch done"><i class="ti ti-check" aria-hidden="true" style="font-size:8px"></i></div><div class="tt done">Read sys-design ch.</div><div class="tpts">+25</div></div>
+            <div class="tr" onclick="setTask('Build auth module','Est. 2 blocks',this)"><div class="tch"></div><div class="tt">Build auth module</div><div class="tpts">+25</div></div>
+            <div class="tr" onclick="setTask('Review PR comments','Est. 1 block',this)"><div class="tch"></div><div class="tt">Review PR comments</div><div class="tpts">+25</div></div>
+          </div>
+          <div class="tadd">
+            <input class="tinp" id="new-task" placeholder="Add task..." aria-label="New task"/>
+            <button class="abtn" id="add-btn" aria-label="Add task"><i class="ti ti-plus" aria-hidden="true" style="font-size:13px"></i></button>
+          </div>
+        </div>
+
+        <div class="pc">
+          <div class="pt">AI Focus Monitor</div>
+          <div style="display:flex;align-items:center;gap:9px;">
+            <div style="width:38px;height:38px;border-radius:9px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.25);display:flex;align-items:center;justify-content:center;color:var(--purple);font-size:17px;"><i class="ti ti-camera" aria-hidden="true"></i></div>
+            <div style="flex:1;"><div style="font-size:12px;font-weight:600;color:var(--text);">Face tracking</div><div style="font-size:10px;color:var(--muted);">Real-time focus score</div></div>
+            <button style="background:var(--purple);border:none;color:#fff;font-size:10px;font-family:var(--sans);font-weight:600;padding:5px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;">Start</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANALYTICS PAGE -->
+  <div class="page" id="page-analytics">
+    <div class="analytics-page">
+      <div class="a-grid">
+        <div class="acard"><div class="acard-val r">42</div><div class="acard-key">Total blocks</div><div class="acard-delta up">↑ 12% vs last week</div></div>
+        <div class="acard"><div class="acard-val t">17.5h</div><div class="acard-key">Focus time</div><div class="acard-delta up">↑ 8% vs last week</div></div>
+        <div class="acard"><div class="acard-val g">87</div><div class="acard-key">Avg flow score</div><div class="acard-delta up">↑ 5 pts</div></div>
+        <div class="acard"><div class="acard-val" style="color:var(--orange)">7</div><div class="acard-key">Current streak</div><div class="acard-delta up">Personal best!</div></div>
+      </div>
+      <div class="two-col">
+        <div class="chart-wrap">
+          <div class="chart-title">Weekly focus blocks <span>This week</span></div>
+          <div class="bar-chart" id="weekly-bars"></div>
+        </div>
+        <div class="chart-wrap">
+          <div class="chart-title">Focus time by hour <span>Today</span></div>
+          <div class="bar-chart" id="hourly-bars"></div>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-title">Focus heatmap <span>Last 28 days</span></div>
+        <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;">
+          <span style="font-size:9px;color:var(--muted);">Sun</span>
+          <span style="font-size:9px;color:var(--muted);margin-left:auto;">Today</span>
+        </div>
+        <div class="heatmap" id="heatmap"></div>
+        <div style="display:flex;align-items:center;gap:5px;margin-top:8px;font-size:9px;color:var(--muted);">
+          Less <div style="width:10px;height:10px;border-radius:2px;background:var(--s3);"></div>
+          <div style="width:10px;height:10px;border-radius:2px;background:rgba(15,212,168,.2)"></div>
+          <div style="width:10px;height:10px;border-radius:2px;background:rgba(15,212,168,.5)"></div>
+          <div style="width:10px;height:10px;border-radius:2px;background:var(--teal)"></div> More
+        </div>
+      </div>
+      <div style="text-align:center;">
+        <button style="background:rgba(232,54,93,.1);border:1px solid rgba(232,54,93,.25);color:var(--red);font-size:12px;font-family:var(--sans);padding:9px 20px;border-radius:8px;cursor:pointer;" onclick="sendPrompt('Analyze my FocusArx productivity data and give me 3 specific improvements for next week')">AI productivity analysis ↗</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEADERBOARD PAGE -->
+  <div class="page" id="page-leaderboard">
+    <div class="lb-page">
+      <div style="display:flex;gap:8px;margin-bottom:4px;">
+        <div style="flex:1;background:var(--s1);border:1px solid var(--border);border-radius:9px;padding:10px 14px;display:flex;align-items:center;gap:8px;">
+          <i class="ti ti-calendar-week" aria-hidden="true" style="font-size:16px;color:var(--muted)"></i>
+          <div style="font-size:12px;font-weight:600;color:var(--text);">Weekly ARX</div>
+          <div style="margin-left:auto;background:rgba(232,54,93,.12);border:1px solid rgba(232,54,93,.2);color:var(--red);font-size:10px;padding:2px 8px;border-radius:5px;font-family:var(--mono);">LIVE</div>
+        </div>
+        <div style="flex:1;background:var(--s1);border:1px solid var(--border);border-radius:9px;padding:10px 14px;display:flex;align-items:center;gap:8px;">
+          <i class="ti ti-users" aria-hidden="true" style="font-size:16px;color:var(--muted)"></i>
+          <div style="font-size:12px;font-weight:600;color:var(--text);">Study Group</div>
+          <div style="margin-left:auto;font-size:10px;color:var(--muted);">8 members</div>
+        </div>
+      </div>
+      <div class="podium">
+        <div class="pod p2"><div class="pod-ava">MK</div><div class="pod-name">Maya K.</div><div class="pod-score">1,240 ARX</div><div class="pod-bar"></div></div>
+        <div class="pod p1"><div class="pod-ava">AX</div><div class="pod-name">You</div><div class="pod-score">1,580 ARX</div><div class="pod-bar"></div></div>
+        <div class="pod p3"><div class="pod-ava">RS</div><div class="pod-name">Raj S.</div><div class="pod-score">980 ARX</div><div class="pod-bar"></div></div>
+      </div>
+      <div class="lb-list">
+        <div class="lb-row lb-you">
+          <div class="lb-rank" style="color:var(--gold)">1</div>
+          <div class="lb-ava" style="background:var(--red);">AX</div>
+          <div class="lb-info"><div class="lb-name">You (ArxUser)</div><div class="lb-sub">42 blocks · 17.5h</div></div>
+          <div><div class="lb-pts">1,580</div><div class="lb-streak">7d 🔥</div></div>
+        </div>
+        <div class="lb-row"><div class="lb-rank">2</div><div class="lb-ava" style="background:#6b7280">MK</div><div class="lb-info"><div class="lb-name">Maya K.</div><div class="lb-sub">38 blocks · 15.2h</div></div><div><div class="lb-pts">1,240</div><div class="lb-streak">5d</div></div></div>
+        <div class="lb-row"><div class="lb-rank">3</div><div class="lb-ava" style="background:#cd7f32">RS</div><div class="lb-info"><div class="lb-name">Raj S.</div><div class="lb-sub">28 blocks · 11.6h</div></div><div><div class="lb-pts">980</div><div class="lb-streak">3d</div></div></div>
+        <div class="lb-row"><div class="lb-rank">4</div><div class="lb-ava" style="background:var(--purple)">PJ</div><div class="lb-info"><div class="lb-name">Priya J.</div><div class="lb-sub">24 blocks · 10h</div></div><div><div class="lb-pts">820</div><div class="lb-streak">2d</div></div></div>
+        <div class="lb-row"><div class="lb-rank">5</div><div class="lb-ava" style="background:var(--teal);color:#0d0f1a">KL</div><div class="lb-info"><div class="lb-name">Kevin L.</div><div class="lb-sub">20 blocks · 8.3h</div></div><div><div class="lb-pts">640</div><div class="lb-streak">1d</div></div></div>
+      </div>
+      <button style="background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.25);color:var(--purple);font-size:11px;font-family:var(--sans);padding:8px 16px;border-radius:8px;cursor:pointer;width:fit-content;" onclick="sendPrompt('How can I climb the FocusArx leaderboard faster this week?')">AI strategy to climb ranks ↗</button>
+    </div>
+  </div>
+
+  <!-- ACHIEVEMENTS PAGE -->
+  <div class="page" id="page-achievements">
+    <div class="ach-page">
+      <div style="display:flex;gap:10px;margin-bottom:4px;">
+        <div style="background:var(--s1);border:1px solid var(--border);border-radius:9px;padding:10px 14px;flex:1;"><div style="font-size:18px;font-weight:700;font-family:var(--mono);color:var(--gold);">3/18</div><div style="font-size:10px;color:var(--muted);">Badges earned</div></div>
+        <div style="background:var(--s1);border:1px solid var(--border);border-radius:9px;padding:10px 14px;flex:1;"><div style="font-size:18px;font-weight:700;font-family:var(--mono);color:var(--teal);">150</div><div style="font-size:10px;color:var(--muted);">ARX from badges</div></div>
+        <div style="background:var(--s1);border:1px solid var(--border);border-radius:9px;padding:10px 14px;flex:1;"><div style="font-size:18px;font-weight:700;font-family:var(--mono);color:var(--purple);">3</div><div style="font-size:10px;color:var(--muted);">Newly unlocked</div></div>
+      </div>
+      <div class="badge-grid">
+        <div class="badge-card earned"><div class="badge-icon" style="background:rgba(244,200,66,.12);"><i class="ti ti-flame" aria-hidden="true" style="font-size:22px;color:var(--gold)"></i></div><div class="badge-name">First Spark</div><div class="badge-desc">Complete your first focus block</div><div class="badge-pts">+50 ARX</div><div class="prog-bar"><div class="prog-fill" style="width:100%;background:var(--gold)"></div></div></div>
+        <div class="badge-card earned"><div class="badge-icon" style="background:rgba(15,212,168,.12);"><i class="ti ti-clock" aria-hidden="true" style="font-size:22px;color:var(--teal)"></i></div><div class="badge-name">5h Deep Work</div><div class="badge-desc">Log 5 total focus hours</div><div class="badge-pts">+50 ARX</div><div class="prog-bar"><div class="prog-fill" style="width:100%;background:var(--teal)"></div></div></div>
+        <div class="badge-card earned"><div class="badge-icon" style="background:rgba(232,54,93,.12);"><i class="ti ti-trophy" aria-hidden="true" style="font-size:22px;color:var(--red)"></i></div><div class="badge-name">Streak King</div><div class="badge-desc">Maintain a 7-day streak</div><div class="badge-pts">+50 ARX</div><div class="prog-bar"><div class="prog-fill" style="width:100%;background:var(--red)"></div></div></div>
+        <div class="badge-card"><div class="badge-icon" style="background:rgba(124,58,237,.12);"><i class="ti ti-brain" aria-hidden="true" style="font-size:22px;color:var(--purple)"></i></div><div class="badge-name">Deep Scholar</div><div class="badge-desc">20h total focus time</div><div class="badge-pts">+100 ARX</div><div class="prog-bar"><div class="prog-fill" style="width:87%;background:var(--purple)"></div></div></div>
+        <div class="badge-card locked"><div class="badge-icon" style="background:rgba(59,130,246,.12);"><i class="ti ti-moon" aria-hidden="true" style="font-size:22px;color:var(--blue)"></i></div><div class="badge-name">Night Owl</div><div class="badge-desc">5 sessions after 10pm</div><div class="badge-pts">+75 ARX</div><div class="prog-bar"><div class="prog-fill" style="width:40%;background:var(--blue)"></div></div></div>
+        <div class="badge-card locked"><div class="badge-icon" style="background:rgba(249,115,22,.12);"><i class="ti ti-rocket" aria-hidden="true" style="font-size:22px;color:var(--orange)"></i></div><div class="badge-name">Rocket Mode</div><div class="badge-desc">10 blocks in one day</div><div class="badge-pts">+200 ARX</div><div class="prog-bar"><div class="prog-fill" style="width:20%;background:var(--orange)"></div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORGE ROOM PAGE -->
+  <div class="page" id="page-forge">
+    <div class="forge-page">
+      <div class="forge-bal">
+        <div><div class="forge-bal-val">680</div><div class="forge-bal-label"><b>ARX Token Balance</b>Earn 320 more to unlock Neon Theme</div></div>
+        <div style="margin-left:auto;text-align:right;"><div style="font-size:10px;color:var(--muted);">Next reward</div><div style="font-size:12px;font-weight:600;color:var(--text);margin-top:2px;">1000 ARX</div><div style="width:100px;height:3px;background:var(--s3);border-radius:2px;margin-top:5px;overflow:hidden;"><div style="width:68%;height:100%;background:var(--gold);border-radius:2px;"></div></div></div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;">Themes</div>
+      <div class="shop-grid">
+        <div class="shop-card"><div class="shop-icon" style="background:rgba(15,212,168,.12);"><i class="ti ti-palette" aria-hidden="true" style="color:var(--teal)"></i></div><div class="shop-name">Cyber Teal</div><div class="shop-desc">Dark teal accent theme</div><div class="shop-price">200 ARX</div><button class="shop-btn">Buy Theme</button></div>
+        <div class="shop-card"><div class="shop-icon" style="background:rgba(249,115,22,.12);"><i class="ti ti-sun" aria-hidden="true" style="color:var(--orange)"></i></div><div class="shop-name">Neon Sunset</div><div class="shop-desc">Orange-purple gradient</div><div class="shop-price">1000 ARX</div><button class="shop-btn" style="opacity:.5;cursor:default">Locked</button></div>
+        <div class="shop-card"><div class="shop-icon" style="background:rgba(232,54,93,.1);"><i class="ti ti-moon" aria-hidden="true" style="color:var(--red)"></i></div><div class="shop-name">Crimson Night</div><div class="shop-desc">Current default</div><div class="shop-price">Free</div><button class="shop-btn owned"><i class="ti ti-check" aria-hidden="true" style="font-size:11px"></i> Equipped</button></div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;">Power-ups</div>
+      <div class="shop-grid">
+        <div class="shop-card"><div class="shop-icon" style="background:rgba(124,58,237,.12);"><i class="ti ti-stars" aria-hidden="true" style="color:var(--purple)"></i></div><div class="shop-name">AI Credits</div><div class="shop-desc">5 AI roadmap sessions</div><div class="shop-price">150 ARX</div><button class="shop-btn">Buy</button></div>
+        <div class="shop-card"><div class="shop-icon" style="background:rgba(244,200,66,.12);"><i class="ti ti-bolt" aria-hidden="true" style="color:var(--gold)"></i></div><div class="shop-name">2x Token Day</div><div class="shop-desc">Double ARX for 24h</div><div class="shop-price">300 ARX</div><button class="shop-btn">Buy</button></div>
+        <div class="shop-card"><div class="shop-icon" style="background:rgba(59,130,246,.12);"><i class="ti ti-leaf" aria-hidden="true" style="color:var(--blue)"></i></div><div class="shop-name">Forest Plant</div><div class="shop-desc">Plant a real tree 🌳</div><div class="shop-price">500 ARX</div><button class="shop-btn">Buy</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI ROADMAP PAGE -->
+  <div class="page" id="page-roadmap">
+    <div class="road-page">
+      <div class="road-header">
+        <div class="road-icon"><i class="ti ti-robot" aria-hidden="true"></i></div>
+        <div><div class="road-title">AI Study Roadmap</div><div class="road-sub">Personalized by Claude · updates weekly</div></div>
+        <button class="road-gen" onclick="sendPrompt('Generate a new personalized study roadmap for a full-stack developer learning system design and DSA')">Regenerate ↗</button>
+      </div>
+      <div style="background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);border-radius:9px;padding:11px 14px;font-size:11px;color:var(--purple);">
+        <i class="ti ti-sparkles" aria-hidden="true" style="font-size:13px;margin-right:5px;"></i>
+        This week's goal: Master system design fundamentals · 14 blocks · 6h focus
+      </div>
+      <div class="road-week">
+        <div class="day-card">
+          <div class="day-head">
+            <div class="day-num" style="background:rgba(15,212,168,.12);color:var(--teal);">Mon</div>
+            <div class="day-title">Scalability & Load Balancing</div>
+            <div class="day-blocks">2 blocks</div>
+          </div>
+          <div class="day-tasks">
+            <div class="dt"><div style="width:14px;height:14px;border-radius:3px;background:var(--teal);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="ti ti-check" aria-hidden="true" style="font-size:8px;color:#0d0f1a"></i></div> Read: Designing Data-Intensive Applications Ch.1</div>
+            <div class="dt"><div style="width:14px;height:14px;border-radius:3px;background:var(--teal);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="ti ti-check" aria-hidden="true" style="font-size:8px;color:#0d0f1a"></i></div> Practice: Draw horizontal scaling diagram</div>
+          </div>
+        </div>
+        <div class="day-card">
+          <div class="day-head">
+            <div class="day-num" style="background:rgba(232,54,93,.12);color:var(--red);">Tue</div>
+            <div class="day-title">Databases & Caching</div>
+            <div class="day-blocks">2 blocks</div>
+          </div>
+          <div class="day-tasks">
+            <div class="dt"><div style="width:14px;height:14px;border-radius:3px;border:1px solid var(--dim);flex-shrink:0;"></div> Read: SQL vs NoSQL trade-offs</div>
+            <div class="dt"><div style="width:14px;height:14px;border-radius:3px;border:1px solid var(--dim);flex-shrink:0;"></div> Implement: Redis caching layer in demo app</div>
+          </div>
+        </div>
+        <div class="day-card">
+          <div class="day-head">
+            <div class="day-num" style="background:rgba(244,200,66,.12);color:var(--gold);">Wed</div>
+            <div class="day-title">API Design + REST vs gRPC</div>
+            <div class="day-blocks">2 blocks</div>
+          </div>
+          <div class="day-tasks">
+            <div class="dt"><div style="width:14px;height:14px;border-radius:3px;border:1px solid var(--dim);flex-shrink:0;"></div> Study: REST best practices + HTTP status codes</div>
+            <div class="dt"><div style="width:14px;height:14px;border-radius:3px;border:1px solid var(--dim);flex-shrink:0;"></div> Project: Build a rate-limited API endpoint</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:center;">
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--dim);"></div>
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--dim);"></div>
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--dim);"></div>
+        </div>
+      </div>
+      <button style="background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.25);color:var(--purple);font-size:11px;font-family:var(--sans);padding:9px 18px;border-radius:8px;cursor:pointer;align-self:flex-start;" onclick="sendPrompt('Adjust my FocusArx roadmap — I want to focus more on DSA instead of system design this week')">Adjust roadmap with AI ↗</button>
+    </div>
+  </div>
+
+</div>
+</div>
+</div>
+
+<script>
+const DURATIONS = {focus:25*60,short:5*60,long:15*60};
+let mode='focus', total=DURATIONS.focus, remaining=total, running=false, ivl=null;
+const CIRC = 2*Math.PI*78;
+
+function updateDisplay(){
+  const m=Math.floor(remaining/60), s=remaining%60;
+  document.getElementById('t-disp').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  const pct=1-(remaining/total);
+  document.getElementById('prog').style.strokeDashoffset=CIRC-(CIRC*pct);
+}
+
+function setMode(m){
+  mode=m; total=DURATIONS[m]; remaining=total; running=false; clearInterval(ivl);
+  document.getElementById('play-ic').className='ti ti-player-play';
+  document.getElementById('btn-play').classList.remove('run');
+  document.getElementById('t-status').textContent='READY';
+  updateDisplay();
+  document.querySelectorAll('.mt').forEach(t=>t.classList.remove('on'));
+  document.getElementById('mt-'+m).classList.add('on');
+}
+
+document.getElementById('mt-focus').onclick=()=>setMode('focus');
+document.getElementById('mt-short').onclick=()=>setMode('short');
+document.getElementById('mt-long').onclick=()=>setMode('long');
+
+document.getElementById('btn-play').onclick=function(){
+  if(running){
+    running=false; clearInterval(ivl);
+    this.classList.remove('run');
+    document.getElementById('play-ic').className='ti ti-player-play';
+    document.getElementById('t-status').textContent='PAUSED';
+  } else {
+    running=true; this.classList.add('run');
+    document.getElementById('play-ic').className='ti ti-player-pause';
+    document.getElementById('t-status').textContent=mode==='focus'?'FOCUSING':'BREAK';
+    ivl=setInterval(()=>{
+      if(remaining>0){remaining--;updateDisplay();}
+      else{clearInterval(ivl);running=false;document.getElementById('btn-play').classList.remove('run');document.getElementById('play-ic').className='ti ti-player-play';document.getElementById('t-status').textContent='DONE!';}
+    },1000);
+  }
+};
+document.getElementById('btn-reset').onclick=()=>setMode(mode);
+document.getElementById('btn-skip').onclick=()=>{clearInterval(ivl);running=false;remaining=0;updateDisplay();document.getElementById('t-status').textContent='DONE!';document.getElementById('btn-play').classList.remove('run');document.getElementById('play-ic').className='ti ti-player-play';};
+
+function setTask(name,meta,row){
+  if(row.querySelector('.tch').classList.contains('done'))return;
+  document.querySelectorAll('.tr').forEach(r=>r.style.background='');
+  row.style.background='rgba(232,54,93,.08)';
+}
+
+document.getElementById('add-btn').onclick=addTask;
+document.getElementById('new-task').onkeydown=e=>{if(e.key==='Enter')addTask();};
+function addTask(){
+  const inp=document.getElementById('new-task'), val=inp.value.trim();
+  if(!val)return;
+  const list=document.getElementById('task-list');
+  const r=document.createElement('div'); r.className='tr';
+  r.innerHTML=`<div class="tch"></div><div class="tt">${val}</div><div class="tpts">+25</div>`;
+  r.onclick=function(){setTask(val,'Est. 1 block',this);};
+  list.appendChild(r); inp.value='';
+}
+
+function toggleAmb(btn){btn.classList.toggle('on');}
+function setMood(btn){document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');}
+
+const TITLES={'timer':'<b>Timer</b> — Deep Work','analytics':'<b>Analytics</b> — Insights','leaderboard':'<b>Leaderboard</b> — Rankings','achievements':'<b>Achievements</b> — Badges','forge':'<b>Forge Room</b> — Shop','roadmap':'<b>AI Roadmap</b> — Study Plan'};
+
+function goPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
+  document.getElementById('page-'+name).classList.add('on');
+  document.querySelector(`[data-page="${name}"]`).classList.add('on');
+  document.getElementById('tb-title').innerHTML=TITLES[name];
+  document.getElementById('timer-tabs').style.display=name==='timer'?'flex':'none';
+}
+
+document.querySelectorAll('.ni').forEach(ni=>{
+  ni.onclick=()=>goPage(ni.dataset.page);
+});
+
+const days=['M','T','W','T','F','S','S'];
+const wData=[3,5,2,6,4,7,5,3,0,1,4,6,5,2,4,3,7,6,4,5,3,2,6,5,4,3,5,6];
+const hm=document.getElementById('heatmap');
+wData.forEach(v=>{
+  const c=document.createElement('div');
+  c.className='hm-cell'+(v===0?'':v<=2?' l1':v<=4?' l2':v<=6?' l3':' l4');
+  hm.appendChild(c);
+});
+
+const wbData=[4,6,5,7,6,3,5];
+const wLabels=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const wb=document.getElementById('weekly-bars');
+const maxW=Math.max(...wbData);
+wbData.forEach((v,i)=>{
+  const col=document.createElement('div'); col.className='bar-col';
+  const bar=document.createElement('div'); bar.className='bar';
+  bar.style.height=Math.round((v/maxW)*80)+'px';
+  bar.style.background=i===3?'var(--red)':'var(--s3)';
+  const lbl=document.createElement('div'); lbl.className='bar-label'; lbl.textContent=wLabels[i][0];
+  col.appendChild(bar); col.appendChild(lbl); wb.appendChild(col);
+});
+
+const hData=[0,0,0,0,0,0,1,2,3,4,3,2,1,2,3,4,4,3,2,1,0,0,0,0];
+const hh=document.getElementById('hourly-bars');
+const maxH=Math.max(...hData);
+hData.forEach((v,i)=>{
+  if(i%3!==0&&v===0)return;
+  const col=document.createElement('div'); col.className='bar-col';
+  const bar=document.createElement('div'); bar.className='bar';
+  bar.style.height=v>0?Math.round((v/maxH)*80)+'px':'3px';
+  bar.style.background=v>0?'var(--teal)':'var(--s3)';
+  const lbl=document.createElement('div'); lbl.className='bar-label';
+  lbl.textContent=i%6===0?i+'h':'';
+  col.appendChild(bar); col.appendChild(lbl); hh.appendChild(col);
+});
+
+updateDisplay();
+document.getElementById('timer-tabs').style.display='flex';
+</script>
