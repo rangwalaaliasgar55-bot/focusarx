@@ -17,7 +17,7 @@ const NAV_ITEMS = [
   { href: "/roadmap",      label: "AI Roadmap",    icon: Sparkles,      shortcut: "7" },
 ];
 
-const NO_SHELL = ["/login", "/signup", "/forgot-password", "/admin"];
+const NO_SHELL = ["/login", "/signup", "/forgot-password", "/admin", "/auth/callback"];
 
 interface NavItemProps {
   href: string;

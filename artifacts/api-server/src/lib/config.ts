@@ -3,6 +3,9 @@ export type ServerConfig = {
   adminPassword: string | null;
   databaseUrl: string | null;
   isProduction: boolean;
+  googleClientId: string | null;
+  googleClientSecret: string | null;
+  appUrl: string | null;
 };
 
 let warnedDevJwt = false;
@@ -35,6 +38,9 @@ export function getServerConfig(): ServerConfig {
     adminPassword,
     databaseUrl: process.env.DATABASE_URL ?? null,
     isProduction,
+    googleClientId: process.env.GOOGLE_CLIENT_ID ?? null,
+    googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? null,
+    appUrl: process.env.APP_URL ?? (isProduction ? "https://focusarx.vercel.app" : "http://localhost:20925"),
   };
 }
 

@@ -14,6 +14,7 @@ import NotFound from "@/pages/not-found";
 import LoginPage from "@/pages/login";
 import SignupPage from "@/pages/signup";
 import ForgotPasswordPage from "@/pages/forgot-password";
+import AuthCallbackPage from "@/pages/auth-callback";
 import DashboardPage from "@/pages/dashboard";
 import RoadmapPage from "@/pages/roadmap";
 import AdminPage from "@/pages/admin";
@@ -86,6 +87,7 @@ function AppWithPalette() {
           <Route path="/login" component={LoginPage} />
           <Route path="/signup" component={SignupPage} />
           <Route path="/forgot-password" component={ForgotPasswordPage} />
+          <Route path="/auth/callback" component={AuthCallbackPage} />
           <Route path="/roadmap" component={RoadmapPage} />
           <Route path="/admin" component={AdminPage} />
           <Route component={NotFound} />

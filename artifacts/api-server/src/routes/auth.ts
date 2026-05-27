@@ -111,4 +111,73 @@ router.post("/auth/guest", async (req, res) => {
   }
 });
 
+// ── Google OAuth ──────────────────────────────────────────────────────────
+
+router.get("/auth/google", (req, res) => {
+  const { googleClientId, appUrl } = getServerConfig();
+  if (!googleClientId) { res.status(503).json({ error: "Google OAuth not configured" }); return; }
+  const redirectUri = `${appUrl}/api/auth/google/callback`;
+  const params = new URLSearchParams({
+    client_id: googleClientId,
+    redirect_uri: redirectUri,
+    response_type: "code",
+    scope: "openid email profile",
+    access_type: "offline",
+    prompt: "consent",
+  });
+  res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
+});
+
+router.get("/auth/google/callback", async (req, res) => {
+  const secret = jwtSecretOrRespond(res);
+  if (!secret) return;
+  const { googleClientId, googleClientSecret, appUrl } = getServerConfig();
+  const code = req.query.code as string | undefined;
+  if (!code || !googleClientId || !googleClientSecret) { res.status(400).json({ error: "OAuth callback failed" }); return; }
+
+  try {
+    // Exchange code for tokens
+    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code,
+        client_id: googleClientId,
+        client_secret: googleClientSecret,
+        redirect_uri: `${appUrl}/api/auth/google/callback`,
+        grant_type: "authorization_code",
+      }),
+    });
+    const tokenData = await tokenRes.json() as { access_token?: string; error?: string };
+    if (!tokenData.access_token) { res.status(401).json({ error: "Failed to get Google token" }); return; }
+
+    // Fetch user profile
+    const profileRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    });
+    const profile = await profileRes.json() as { id: string; email: string; name?: string; picture?: string };
+    if (!profile.email) { res.status(401).json({ error: "Could not retrieve email from Google" }); return; }
+
+    // Find or create user
+    const [existing] = await db.select().from(usersTable).where(eq(usersTable.email, profile.email));
+    let user = existing;
+    if (!user) {
+      const [created] = await db.insert(usersTable).values({
+        email: profile.email,
+        name: profile.name ?? null,
+        isGuest: false,
+      }).returning();
+      user = created;
+    }
+    if (!user) { res.status(500).json({ error: "Failed to create user" }); return; }
+
+    // Redirect to frontend with token
+    const token = makeToken(user.id, secret);
+    res.redirect(`${appUrl}/auth/callback?token=${token}`);
+  } catch (err) {
+    logger.error({ err }, "google oauth error");
+    res.status(500).json({ error: "OAuth failed" });
+  }
+});
+
 export { router as authRouter };
