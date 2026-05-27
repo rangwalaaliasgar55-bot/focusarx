@@ -5,6 +5,7 @@ export type AuthUser = {
   email: string;
   name: string | null;
   isGuest?: boolean;
+  onboardingCompleted?: boolean;
 };
 
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated";

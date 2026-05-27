@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { setToken } from "@/lib/auth";
+import { setToken, getToken } from "@/lib/auth";
 
 export default function AuthCallbackPage() {
   const [, setLocation] = useLocation();
@@ -9,12 +9,30 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
+    const isNew = params.get("new") === "1";
 
     if (token) {
       setToken(token);
-      // Clean the URL
       window.history.replaceState({}, "", "/auth/callback");
-      setLocation("/dashboard");
+
+      if (isNew) {
+        setLocation("/onboarding");
+        return;
+      }
+
+      // Check onboarding status for existing Google users
+      void fetch("/api/auth/session", {
+        headers: { Authorization: `Bearer ${getToken() ?? ""}` },
+      })
+        .then(r => r.ok ? r.json() : null)
+        .then((d: { user?: { onboardingCompleted?: boolean } } | null) => {
+          if (d?.user?.onboardingCompleted === false) {
+            setLocation("/onboarding");
+          } else {
+            setLocation("/dashboard");
+          }
+        })
+        .catch(() => setLocation("/dashboard"));
     } else {
       setError("Authentication failed — no token received.");
     }

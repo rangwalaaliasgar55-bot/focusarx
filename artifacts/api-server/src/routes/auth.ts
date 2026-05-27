@@ -48,7 +48,7 @@ router.get("/auth/session", async (req, res) => {
   const userId = extractUserId(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
-    const [user] = await db.select({ id: usersTable.id, email: usersTable.email, name: usersTable.name, isGuest: usersTable.isGuest, role: usersTable.role }).from(usersTable).where(eq(usersTable.id, userId));
+    const [user] = await db.select({ id: usersTable.id, email: usersTable.email, name: usersTable.name, isGuest: usersTable.isGuest, role: usersTable.role, onboardingCompleted: usersTable.onboardingCompleted }).from(usersTable).where(eq(usersTable.id, userId));
     if (!user) { res.status(401).json({ error: "User not found" }); return; }
     res.json({ user });
   } catch (err) {
@@ -192,9 +192,10 @@ router.get("/auth/google/callback", async (req, res) => {
     }
     if (!user) { res.status(500).json({ error: "Failed to create user" }); return; }
 
-    // Redirect to frontend with token
+    // Redirect to frontend with token — mark new users so they see onboarding
     const token = makeToken(user.id, secret);
-    res.redirect(`${appUrl}/auth/callback?token=${token}`);
+    const isNew = !existing;
+    res.redirect(`${appUrl}/auth/callback?token=${token}${isNew ? "&new=1" : ""}`);
   } catch (err) {
     logger.error({ err }, "google oauth error");
     res.status(500).json({ error: "OAuth failed" });
@@ -295,6 +296,24 @@ router.get("/auth/reset-password/verify", async (req, res) => {
     res.json({ valid: !!resetToken });
   } catch {
     res.json({ valid: false });
+  }
+});
+
+// ── Onboarding ────────────────────────────────────────────────────────────
+
+router.post("/auth/onboarding", async (req, res) => {
+  const userId = extractUserId(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const { data } = req.body as { data?: Record<string, unknown> };
+  if (!data) { res.status(400).json({ error: "Missing onboarding data" }); return; }
+  try {
+    await db.update(usersTable)
+      .set({ onboardingCompleted: true, onboardingData: data })
+      .where(eq(usersTable.id, userId));
+    res.json({ ok: true });
+  } catch (err) {
+    logger.error({ err }, "onboarding save error");
+    res.status(500).json({ error: "Internal error" });
   }
 });
 

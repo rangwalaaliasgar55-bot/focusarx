@@ -42,7 +42,7 @@ export default function SignupPage() {
         setLocation("/login");
       } else {
         toast("Account created successfully", "success");
-        setLocation("/dashboard");
+        setLocation("/onboarding");
       }
     } catch {
       toast("Something went wrong. Please try again.", "error");

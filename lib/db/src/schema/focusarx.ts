@@ -10,6 +10,8 @@ export const usersTable = pgTable("users", {
   guestKey: text("guest_key").unique(),
   isGuest: boolean("is_guest").default(false).notNull(),
   role: text("role").default("user").notNull(), // "user" | "admin"
+  onboardingCompleted: boolean("onboarding_completed").default(false).notNull(),
+  onboardingData: jsonb("onboarding_data"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
