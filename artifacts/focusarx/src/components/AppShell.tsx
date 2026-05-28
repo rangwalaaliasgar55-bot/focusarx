@@ -70,7 +70,7 @@ function LogoMark({ size = "default" }: { size?: "default" | "small" }) {
     <img
       src="/logo.png"
       alt="FocusArx Shield Crest Logo"
-      className={`${imgSize} object-contain drop-shadow-[0_0_8px_rgba(147,51,234,0.5)]`}
+      className={`${imgSize} rounded-full object-cover drop-shadow-[0_0_8px_rgba(147,51,234,0.5)]`}
     />
   );
 }

@@ -487,7 +487,7 @@ export default function Timer() {
     </motion.section>
 
     {/* ── Upgrade 1: Task Timeline + Overrun ─────────────────────────── */}
-    <div className="mt-6 w-full max-w-md">
+    <div className="mt-14 w-full max-w-md">
       <TaskTimeline
         elapsedSeconds={isRunning ? (totalFocusSec - secondsLeft) : 0}
         isRunning={isRunning && mode === "focus"}
