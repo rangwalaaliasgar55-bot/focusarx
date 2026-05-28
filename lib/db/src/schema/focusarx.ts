@@ -71,6 +71,7 @@ export const tasksTable = pgTable("tasks", {
   text: text("text").notNull(),
   completed: boolean("completed").default(false).notNull(),
   order: integer("order").default(0),
+  estimatedMinutes: integer("estimated_minutes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -107,6 +108,46 @@ export const userBadgesTable = pgTable("user_badges", {
 });
 
 export type UserBadge = typeof userBadgesTable.$inferSelect;
+
+export const readinessLogsTable = pgTable("readiness_logs", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  date: text("date").notNull(),
+  sleep: integer("sleep").notNull(),
+  stress: integer("stress").notNull(),
+  energy: integer("energy").notNull(),
+  score: integer("score").notNull(),
+  sessionLengthRec: integer("session_length_rec").notNull(),
+  hrv: integer("hrv"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type ReadinessLog = typeof readinessLogsTable.$inferSelect;
+
+export const distractionLogsTable = pgTable("distraction_logs", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  sessionId: text("session_id"),
+  reason: text("reason").notNull(),
+  worthIt: boolean("worth_it").notNull().default(false),
+  hour: integer("hour").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type DistractionLog = typeof distractionLogsTable.$inferSelect;
+
+export const focusProfilesTable = pgTable("focus_profiles", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  ssid: text("ssid"),
+  blockedDomains: jsonb("blocked_domains").$type<string[]>().default([]),
+  whitelist: jsonb("whitelist").$type<string[]>().default([]),
+  isActive: boolean("is_active").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type FocusProfile = typeof focusProfilesTable.$inferSelect;
 
 export const passwordResetTokensTable = pgTable("password_reset_tokens", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),

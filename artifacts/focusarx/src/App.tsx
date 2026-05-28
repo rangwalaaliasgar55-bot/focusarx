@@ -15,6 +15,8 @@ import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
 import AuthCallbackPage from "@/pages/auth-callback";
 import OnboardingPage from "@/pages/onboarding";
+import DistractionsPage from "@/pages/distractions";
+import ProfilesPage from "@/pages/profiles";
 import DashboardPage from "@/pages/dashboard";
 import RoadmapPage from "@/pages/roadmap";
 import AdminPage from "@/pages/admin";
@@ -183,6 +185,8 @@ function AppWithPalette() {
           <Route path="/forgot-password" component={ForgotPasswordPage} />
           <Route path="/reset-password" component={ResetPasswordPage} />
           <Route path="/onboarding" component={OnboardingPage} />
+          <Route path="/distractions" component={DistractionsPage} />
+          <Route path="/profiles" component={ProfilesPage} />
           <Route path="/auth/callback" component={AuthCallbackPage} />
           <Route path="/roadmap" component={RoadmapPage} />
           <Route path="/admin" component={AdminPage} />

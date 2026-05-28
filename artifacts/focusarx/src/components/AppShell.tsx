@@ -2,10 +2,11 @@ import { useLocation, Link } from "wouter";
 import { useAuth } from "@/lib/auth";
 import {
   Timer, LayoutDashboard, TrendingUp, Trophy, Star,
-  Users, Sparkles, LogOut, LogIn, Menu, X,
+  Users, Sparkles, LogOut, LogIn, Menu, X, Shield, BookOpen,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import CoachPanel from "@/components/CoachPanel";
 
 const NAV_ITEMS = [
   { href: "/",             label: "Timer",         icon: Timer,         shortcut: "1" },
@@ -15,6 +16,8 @@ const NAV_ITEMS = [
   { href: "/achievements", label: "Achievements",  icon: Star,          shortcut: "5" },
   { href: "/forge",        label: "Forge Room",    icon: Users,         shortcut: "6" },
   { href: "/roadmap",      label: "AI Roadmap",    icon: Sparkles,      shortcut: "7" },
+  { href: "/profiles",     label: "Profiles",      icon: Shield,        shortcut: "8" },
+  { href: "/distractions", label: "Focus Journal", icon: BookOpen,      shortcut: "9" },
 ];
 
 const NO_SHELL = ["/login", "/signup", "/forgot-password", "/admin", "/auth/callback"];
@@ -268,6 +271,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <main className="flex-1 md:ml-[240px] pt-14 pb-16 md:pt-0 md:pb-0 min-w-0">
         {children}
       </main>
+
+      {/* ==================== AI COACH PANEL ==================== */}
+      {status === "authenticated" && <CoachPanel />}
     </div>
   );
 }

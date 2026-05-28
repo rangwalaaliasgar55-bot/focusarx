@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { PageTransition } from "@/components/PageTransition";
 import FocusGarden from "@/components/FocusGarden";
+import ReadinessWidget from "@/components/ReadinessWidget";
 import { LayoutDashboard, Zap, Clock, Target, Flame, CheckCircle } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -92,6 +93,9 @@ export default function DashboardPage() {
 
           {!loading && stats && (
             <div className="space-y-6">
+              {/* Readiness Widget */}
+              <ReadinessWidget />
+
               {/* Focus Garden + Stats grid */}
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="rounded-2xl border border-[rgba(74,222,128,0.2)] bg-[rgba(74,222,128,0.04)] p-5 backdrop-blur-xl flex flex-col items-center">

@@ -15,6 +15,10 @@ import { getModeLabel } from "@/lib/timerUtils";
 import { DEFAULT_CONFIG } from "@/lib/constants";
 import type { PersistedActiveSession } from "@/types/session-persistence";
 import type { TimerMode } from "@/types/timer";
+import FocusLockOverlay, { LockModePicker } from "./FocusLockOverlay";
+import type { LockMode } from "./FocusLockOverlay";
+import DistractionModal from "./DistractionModal";
+import TaskTimeline, { OverrunModal } from "./TaskTimeline";
 
 const MODES: TimerMode[] = ["focus", "break", "longBreak"];
 
@@ -71,6 +75,20 @@ export default function Timer() {
   const persistenceRef = useRef<ReturnType<typeof useSessionPersistence> | null>(
     null
   );
+
+  // ── Upgrade 3: Lock mode ────────────────────────────────────────────────
+  const [showLockPicker, setShowLockPicker] = useState(false);
+  const [lockMode, setLockMode] = useState<LockMode>("none");
+  const [exitPhrase, setExitPhrase] = useState("");
+  const [activeTaskName, setActiveTaskName] = useState("");
+  const [totalFocusSec, setTotalFocusSec] = useState(0);
+
+  // ── Upgrade 4: Distraction modal ────────────────────────────────────────
+  const [showDistractionModal, setShowDistractionModal] = useState(false);
+
+  // ── Upgrade 1: Overrun modal ─────────────────────────────────────────────
+  const [overrunTask, setOverrunTask] = useState<{ text: string } | null>(null);
+  const [overrunMinutes, setOverrunMinutes] = useState(0);
 
   monitorEnabledRef.current = monitorEnabled;
 
@@ -225,6 +243,36 @@ export default function Timer() {
   const isRunning = status === "running";
   const canPickMode = status !== "running";
 
+  // Intercept toggle: show lock picker when idle, pass through otherwise
+  const handleToggle = useCallback(() => {
+    if (status === "idle" && mode === "focus") {
+      setTotalFocusSec(secondsLeft);
+      setShowLockPicker(true);
+    } else {
+      toggle();
+    }
+  }, [status, mode, secondsLeft, toggle]);
+
+  // Intercept reset: show distraction modal if running a focus session
+  const handleReset = useCallback(() => {
+    if (status === "running" && mode === "focus") {
+      setShowDistractionModal(true);
+    }
+    persistence.clearDbSession();
+    reset(false);
+    setLockMode("none");
+    setExitPhrase("");
+  }, [status, mode, persistence, reset]);
+
+  // Exit lock overlay → reset
+  const handleLockExit = useCallback(() => {
+    setShowDistractionModal(true);
+    persistence.clearDbSession();
+    reset(false);
+    setLockMode("none");
+    setExitPhrase("");
+  }, [persistence, reset]);
+
   const handleEditTime = () => {
     if (status !== "idle") return;
     const currentMins = Math.floor(secondsLeft / 60);
@@ -253,6 +301,7 @@ export default function Timer() {
   }
 
   return (
+    <>
     <motion.section
       layout
       animate={justCompleted ? { scale: [1, 1.02, 1] } : { scale: 1 }}
@@ -323,11 +372,8 @@ export default function Timer() {
 
         <TimerControls
           status={status}
-          onToggle={toggle}
-          onReset={() => {
-            persistence.clearDbSession();
-            reset(false);
-          }}
+          onToggle={handleToggle}
+          onReset={handleReset}
           onSkip={skipToNext}
         />
 
@@ -371,5 +417,67 @@ export default function Timer() {
 
       </motion.div>
     </motion.section>
+
+    {/* ── Upgrade 1: Task Timeline + Overrun ─────────────────────────── */}
+    <div className="mt-6 w-full max-w-md">
+      <TaskTimeline
+        elapsedSeconds={isRunning ? (totalFocusSec - secondsLeft) : 0}
+        isRunning={isRunning && mode === "focus"}
+        onOverrun={(task, mins) => {
+          setOverrunTask({ text: task.text });
+          setOverrunMinutes(mins);
+        }}
+      />
+    </div>
+
+    {/* ── Overlays ────────────────────────────────────────────────────── */}
+    <AnimatePresence>
+      {showLockPicker && (
+        <LockModePicker
+          onConfirm={(m, phrase) => {
+            setLockMode(m);
+            setExitPhrase(phrase);
+            setShowLockPicker(false);
+            toggle();
+          }}
+          onCancel={() => setShowLockPicker(false)}
+        />
+      )}
+    </AnimatePresence>
+
+    <AnimatePresence>
+      {isRunning && lockMode !== "none" && (
+        <FocusLockOverlay
+          mode={lockMode}
+          exitPhrase={exitPhrase}
+          secondsLeft={secondsLeft}
+          totalSeconds={totalFocusSec}
+          taskName={activeTaskName}
+          onExit={handleLockExit}
+        />
+      )}
+    </AnimatePresence>
+
+    <AnimatePresence>
+      {showDistractionModal && (
+        <DistractionModal
+          onDone={() => setShowDistractionModal(false)}
+          onSkip={() => setShowDistractionModal(false)}
+        />
+      )}
+    </AnimatePresence>
+
+    <AnimatePresence>
+      {overrunTask && (
+        <OverrunModal
+          task={overrunTask}
+          overrunMinutes={overrunMinutes}
+          onReschedule={() => { toast("Tasks compressed — timeline updated.", "success"); setOverrunTask(null); }}
+          onDefer={() => { toast("Remaining tasks deferred to tomorrow.", "info"); setOverrunTask(null); }}
+          onDrop={() => { toast("Remaining tasks dropped.", "info"); setOverrunTask(null); }}
+        />
+      )}
+    </AnimatePresence>
+  </>
   );
 }

@@ -7,6 +7,10 @@ import { tasksRouter } from "./tasks";
 import { adminRouter } from "./admin";
 import { aiRouter } from "./ai";
 import { gamificationRouter } from "./gamification";
+import { readinessRouter } from "./readiness";
+import { distractionsRouter } from "./distractions";
+import { profilesRouter } from "./profiles";
+import { coachRouter } from "./coach";
 
 const router: IRouter = Router();
 
@@ -18,5 +22,9 @@ router.use(tasksRouter);
 router.use(adminRouter);
 router.use(aiRouter);
 router.use(gamificationRouter);
+router.use(readinessRouter);
+router.use(distractionsRouter);
+router.use(profilesRouter);
+router.use(coachRouter);
 
 export default router;
