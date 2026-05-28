@@ -39,14 +39,17 @@ router.post("/tasks", authMiddleware, async (req: any, res) => {
   }
 });
 
-router.patch("/tasks/:id", authMiddleware, async (req: any, res) => {
+async function handleTaskUpdate(req: any, res: any) {
   const { id } = req.params as { id: string };
-  const { completed, text, order } = req.body as { completed?: boolean; text?: string; order?: number };
+  const { completed, text, order, estimatedMinutes } = req.body as {
+    completed?: boolean; text?: string; order?: number; estimatedMinutes?: number | null;
+  };
   try {
     const updates: Partial<typeof tasksTable.$inferInsert> = {};
     if (completed !== undefined) updates.completed = completed;
     if (text !== undefined) updates.text = text;
     if (order !== undefined) updates.order = order;
+    if (estimatedMinutes !== undefined) updates.estimatedMinutes = estimatedMinutes;
     const [task] = await db.update(tasksTable).set(updates)
       .where(and(eq(tasksTable.id, id), eq(tasksTable.userId, req.userId)))
       .returning();
@@ -56,7 +59,10 @@ router.patch("/tasks/:id", authMiddleware, async (req: any, res) => {
     logger.error({ err }, "update task error");
     res.status(500).json({ error: "Internal error" });
   }
-});
+}
+
+router.patch("/tasks/:id", authMiddleware, handleTaskUpdate);
+router.put("/tasks/:id", authMiddleware, handleTaskUpdate);
 
 router.delete("/tasks/:id", authMiddleware, async (req: any, res) => {
   const { id } = req.params as { id: string };

@@ -4,11 +4,12 @@ import { eq, gte } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getServerConfig } from "../lib/config";
 import { extractUserId } from "./auth";
-import cookie from "cookie";
+import jwt from "jsonwebtoken";
 
 const router = Router();
 const ADMIN_COOKIE = "focusarx_admin";
 const IS_PROD = process.env.NODE_ENV === "production";
+const ADMIN_TOKEN_EXPIRY = "24h";
 
 function adminPasswordOrRespond(res: { status: (code: number) => { json: (body: unknown) => void } }): string | null {
   const password = getServerConfig().adminPassword;
@@ -22,21 +23,21 @@ function adminPasswordOrRespond(res: { status: (code: number) => { json: (body: 
   return password;
 }
 
-const adminSessions = new Map<string, number>();
-
-function pruneExpiredSessions() {
-  const now = Date.now();
-  for (const [id, exp] of adminSessions) {
-    if (exp < now) adminSessions.delete(id);
-  }
+function getJwtSecret(): string {
+  return getServerConfig().jwtSecret ?? "admin-dev-secret";
 }
 
 function isAdminAuthed(req: any): boolean {
-  pruneExpiredSessions();
-  const cookieHeader = req.headers.cookie ?? "";
-  const cookies = cookie.parse(cookieHeader);
-  const sid = cookies[ADMIN_COOKIE];
-  return !!sid && adminSessions.has(sid);
+  const cookieHeader: string = req.headers.cookie ?? "";
+  const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${ADMIN_COOKIE}=([^;]+)`));
+  const token = match?.[1];
+  if (!token) return false;
+  try {
+    const payload = jwt.verify(token, getJwtSecret()) as { role?: string };
+    return payload?.role === "admin_session";
+  } catch {
+    return false;
+  }
 }
 
 async function checkAuth(req: any): Promise<boolean> {
@@ -59,18 +60,12 @@ router.post("/admin/auth", async (req, res) => {
     res.status(403).json({ error: "Access denied" });
     return;
   }
-  const sessionId = crypto.randomUUID();
-  const expiry = Date.now() + 86400_000;
-  adminSessions.set(sessionId, expiry);
-  res.setHeader("Set-Cookie", `${ADMIN_COOKIE}=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${SECURE_FLAG}`);
+  const token = jwt.sign({ role: "admin_session" }, getJwtSecret(), { expiresIn: ADMIN_TOKEN_EXPIRY });
+  res.setHeader("Set-Cookie", `${ADMIN_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${SECURE_FLAG}`);
   res.json({ ok: true });
 });
 
-router.delete("/admin/auth", (req: any, res) => {
-  const cookieHeader = req.headers.cookie ?? "";
-  const cookies = cookie.parse(cookieHeader);
-  const sid = cookies[ADMIN_COOKIE];
-  if (sid) adminSessions.delete(sid);
+router.delete("/admin/auth", (_req: any, res) => {
   res.setHeader("Set-Cookie", `${ADMIN_COOKIE}=; Path=/; HttpOnly; Max-Age=0${SECURE_FLAG}`);
   res.json({ ok: true });
 });
