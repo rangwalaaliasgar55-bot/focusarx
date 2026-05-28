@@ -1,0 +1,13 @@
+{
+  "buildCommand": "pnpm run build:vercel",
+  "ignoreCommand": "",
+  "functions": {
+    "api/index.js": {
+      "runtime": "nodejs20.x"
+    }
+  },
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/index.js" },
+    { "src": "/(.*)", "dest": "/artifacts/focusarx/dist/public/$1" }
+  ]
+}
