@@ -1,4 +1,4 @@
-modules = ["nodejs-24", "python-3.11"]
+modules = ["nodejs-20", "web", "bash"]
 
 [deployment]
 router = "application"
@@ -49,8 +49,9 @@ args = "PORT=8080 pnpm --filter @workspace/api-server run dev"
 waitForPort = 8080
 
 [agent]
-stack = "PNPM_WORKSPACE"
+stack = "BEST_EFFORT_FALLBACK"
 expertMode = true
+integrations = ["javascript_anthropic_ai_integrations:2.0.0"]
 
 [postMerge]
 path = "scripts/post-merge.sh"
@@ -74,3 +75,4 @@ externalPort = 80
 APP_URL = "https://ffdf8732-c649-4a2d-bd32-be36a9cc6c89-00-1ltipucvjv43f.sisko.replit.dev"
 
 [nix]
+channel = "stable-25_05"
