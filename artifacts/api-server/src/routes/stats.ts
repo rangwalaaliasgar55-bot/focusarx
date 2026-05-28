@@ -109,15 +109,48 @@ router.get("/analytics", authMiddleware, async (req: any, res) => {
 
     const [streak] = await db.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, req.userId));
 
+    // Weekly comparison: this week vs last week
+    const thisWeekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
+    const lastWeekStart = new Date(thisWeekStart.getTime() - 7 * 86400000);
+    const thisWeekSessions = allSessions.filter(s => s.completedAt && s.completedAt >= thisWeekStart);
+    const lastWeekSessions = await db.select().from(focusSessionsTable)
+      .where(and(
+        eq(focusSessionsTable.userId, req.userId),
+        eq(focusSessionsTable.mode, "focus"),
+        gte(focusSessionsTable.completedAt, lastWeekStart),
+        lt(focusSessionsTable.completedAt, thisWeekStart),
+      ));
+    const thisWeekMinutes = Math.round(thisWeekSessions.reduce((acc, s) => acc + s.durationSec, 0) / 60);
+    const lastWeekMinutes = Math.round(lastWeekSessions.reduce((acc, s) => acc + s.durationSec, 0) / 60);
+    const weekChangePercent = lastWeekMinutes > 0
+      ? Math.round(((thisWeekMinutes - lastWeekMinutes) / lastWeekMinutes) * 100)
+      : thisWeekMinutes > 0 ? 100 : 0;
+
+    // Weekly bar chart (last 7 days of week labels)
+    const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const weekBarData = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(thisWeekStart.getTime() + i * 86400000);
+      const ds = d.toISOString().split("T")[0]!;
+      return { day: dayLabels[d.getDay()] ?? "?", date: ds, minutes: dayTotals[ds] ?? 0 };
+    });
+
+    // All-time stats (query without date filter for totals)
+    const allTimeSessions = await db.select().from(focusSessionsTable)
+      .where(and(eq(focusSessionsTable.userId, req.userId), eq(focusSessionsTable.mode, "focus")));
+    const allTotalMinutes = Math.round(allTimeSessions.reduce((acc, s) => acc + s.durationSec, 0) / 60);
+    const allTotalSessions = allTimeSessions.length;
+
     res.json({
       heatmap,
       chartData14,
       hourDist,
+      weekBarData,
+      weekComparison: { thisWeekMinutes, lastWeekMinutes, changePercent: weekChangePercent },
       personalBests: {
         longestSessionMinutes: Math.round(longestSession / 60),
         bestDayMinutes,
-        totalSessions,
-        totalMinutes: Math.round(totalMinutes),
+        totalSessions: allTotalSessions,
+        totalMinutes: allTotalMinutes,
         longestStreak: streak?.longestStreak ?? 0,
       },
     });

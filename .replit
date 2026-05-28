@@ -11,6 +11,43 @@ env = { "CI" = "true" }
 [workflows]
 runButton = "Project"
 
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "FocusArx Frontend"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "FocusArx API"
+
+[[workflows.workflow]]
+name = "FocusArx Frontend"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PORT=20925 BASE_PATH=/ pnpm --filter @workspace/focusarx run dev"
+waitForPort = 20925
+
+[[workflows.workflow]]
+name = "FocusArx API"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PORT=8080 pnpm --filter @workspace/api-server run dev"
+waitForPort = 8080
+
 [agent]
 stack = "PNPM_WORKSPACE"
 expertMode = true
@@ -35,3 +72,5 @@ externalPort = 80
 
 [userenv.shared]
 APP_URL = "https://ffdf8732-c649-4a2d-bd32-be36a9cc6c89-00-1ltipucvjv43f.sisko.replit.dev"
+
+[nix]

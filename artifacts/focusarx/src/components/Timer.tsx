@@ -19,6 +19,9 @@ import FocusLockOverlay, { LockModePicker } from "./FocusLockOverlay";
 import type { LockMode } from "./FocusLockOverlay";
 import DistractionModal from "./DistractionModal";
 import TaskTimeline, { OverrunModal } from "./TaskTimeline";
+import { SoundEngine } from "./SoundEngine";
+import SessionTypePicker, { type SessionType, SESSION_TYPE_TINTS } from "./SessionTypePicker";
+import AmbientSoundBar from "./AmbientSoundBar";
 
 const MODES: TimerMode[] = ["focus", "break", "longBreak"];
 
@@ -75,6 +78,10 @@ export default function Timer() {
   const persistenceRef = useRef<ReturnType<typeof useSessionPersistence> | null>(
     null
   );
+
+  // ── Session type selector ────────────────────────────────────────────────
+  const [showSessionTypePicker, setShowSessionTypePicker] = useState(false);
+  const [sessionType, setSessionType] = useState<SessionType>("deep_work");
 
   // ── Upgrade 3: Lock mode ────────────────────────────────────────────────
   const [showLockPicker, setShowLockPicker] = useState(false);
@@ -164,6 +171,33 @@ export default function Timer() {
             : "Break finished — ready to focus again."
         );
       }
+
+      // Auto-save ghost when a focus session completes
+      if (session.mode === "focus" && session.durationSec > 0) {
+        const token = localStorage.getItem("focusarx-auth-token");
+        if (token) {
+          // Compute longest unbroken focus seconds from timeline
+          let longestUnbroken = 0;
+          let cur = 0;
+          const tl: Array<{ type: string; ts: number }> = Array.isArray(session.focusTimeline)
+            ? session.focusTimeline as Array<{ type: string; ts: number }>
+            : [];
+          for (const ev of tl) {
+            if (ev.type === "focus" || ev.type === "running") { cur++; if (cur > longestUnbroken) longestUnbroken = cur; }
+            else cur = 0;
+          }
+          fetch("/api/ghosts", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              taskCategory: "General",
+              durationSec: session.durationSec,
+              unbrokenSec: longestUnbroken * 10,
+              sessionId: res.sessionId ?? null,
+            }),
+          }).catch(() => {});
+        }
+      }
     },
   });
 
@@ -243,15 +277,25 @@ export default function Timer() {
   const isRunning = status === "running";
   const canPickMode = status !== "running";
 
-  // Intercept toggle: show lock picker when idle, pass through otherwise
+  // Intercept toggle: show session type picker first (when idle+focus), then lock picker
   const handleToggle = useCallback(() => {
     if (status === "idle" && mode === "focus") {
       setTotalFocusSec(secondsLeft);
-      setShowLockPicker(true);
+      setShowSessionTypePicker(true);
     } else {
       toggle();
     }
   }, [status, mode, secondsLeft, toggle]);
+
+  const handleSessionTypeSelected = useCallback((type: SessionType) => {
+    setSessionType(type);
+    if (type === "recharge") {
+      // Recharge: navigate to breathe page instead of starting timer
+      window.location.href = "/breathe";
+      return;
+    }
+    setShowLockPicker(true);
+  }, []);
 
   // Intercept reset: show distraction modal if running a focus session
   const handleReset = useCallback(() => {
@@ -300,12 +344,15 @@ export default function Timer() {
     );
   }
 
+  const typeTint = isRunning ? SESSION_TYPE_TINTS[sessionType] : null;
+
   return (
     <>
     <motion.section
       layout
       animate={justCompleted ? { scale: [1, 1.02, 1] } : { scale: 1 }}
       className="w-full max-w-md rounded-[1.75rem] border border-[var(--card-border)] bg-[var(--card)] p-8 shadow-[0_24px_80px_-24px_rgba(0,0,0,0.55)] backdrop-blur-2xl sm:p-10"
+      style={typeTint ? { background: `linear-gradient(135deg, var(--card) 60%, ${typeTint.bg})`, borderColor: `${typeTint.accent}22` } : undefined}
       transition={{ type: "spring", stiffness: 260, damping: 32 }}
     >
       <motion.div
@@ -387,6 +434,27 @@ export default function Timer() {
           </button>
         )}
 
+        {/* Sound Engine */}
+        <div className="mt-3 flex items-center justify-center">
+          <SoundEngine
+            sessionActive={isRunning && mode === "focus"}
+            sessionMinutesLeft={Math.floor(secondsLeft / 60)}
+            sessionTotalMinutes={Math.floor(totalFocusSec / 60)}
+          />
+        </div>
+
+        {/* Session type badge when running */}
+        {isRunning && typeTint && (
+          <div className="mt-2 flex justify-center">
+            <span
+              className="rounded-full px-3 py-0.5 text-[10px] font-semibold"
+              style={{ background: `${typeTint.accent}18`, color: typeTint.text, border: `1px solid ${typeTint.accent}30` }}
+            >
+              {sessionType.replace("_", " ")}
+            </span>
+          </div>
+        )}
+
         <AnimatePresence mode="wait">
           <motion.p
             key={`${mode}-${status}`}
@@ -430,7 +498,17 @@ export default function Timer() {
       />
     </div>
 
+    {/* Ambient Sound Bar — visible when focus session is running */}
+    <AmbientSoundBar visible={isRunning && mode === "focus"} />
+
     {/* ── Overlays ────────────────────────────────────────────────────── */}
+    <SessionTypePicker
+      open={showSessionTypePicker}
+      onClose={() => setShowSessionTypePicker(false)}
+      onSelect={handleSessionTypeSelected}
+      selected={sessionType}
+    />
+
     <AnimatePresence>
       {showLockPicker && (
         <LockModePicker

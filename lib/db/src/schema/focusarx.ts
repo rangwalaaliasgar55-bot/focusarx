@@ -149,6 +149,64 @@ export const focusProfilesTable = pgTable("focus_profiles", {
 
 export type FocusProfile = typeof focusProfilesTable.$inferSelect;
 
+export const focusDnaTable = pgTable("focus_dna", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().unique().references(() => usersTable.id, { onDelete: "cascade" }),
+  archetype: text("archetype").notNull(),
+  description: text("description").notNull(),
+  colorPrimary: text("color_primary").notNull(),
+  colorSecondary: text("color_secondary").notNull(),
+  icon: text("icon").notNull(),
+  topFocusHour: integer("top_focus_hour"),
+  avgSessionMin: integer("avg_session_min"),
+  strongestDay: text("strongest_day"),
+  biggestWeakness: text("biggest_weakness"),
+  sessionCountAtGeneration: integer("session_count_at_generation").notNull().default(0),
+  generatedAt: timestamp("generated_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type FocusDna = typeof focusDnaTable.$inferSelect;
+
+export const sessionGhostsTable = pgTable("session_ghosts", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  taskCategory: text("task_category").notNull().default("General"),
+  bestDurationSec: integer("best_duration_sec").notNull().default(0),
+  bestUnbrokenSec: integer("best_unbroken_sec").notNull().default(0),
+  sessionId: text("session_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type SessionGhost = typeof sessionGhostsTable.$inferSelect;
+
+export const consequenceContractsTable = pgTable("consequence_contracts", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  weekStart: text("week_start").notNull(),
+  contractType: text("contract_type").notNull(),
+  targetMinutes: integer("target_minutes").notNull().default(0),
+  charityName: text("charity_name"),
+  charityAmount: integer("charity_amount"),
+  achieved: boolean("achieved").default(false).notNull(),
+  consequenceTriggered: boolean("consequence_triggered").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type ConsequenceContract = typeof consequenceContractsTable.$inferSelect;
+
+export const freezeTokensTable = pgTable("freeze_tokens", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().unique().references(() => usersTable.id, { onDelete: "cascade" }),
+  tokensAvailable: integer("tokens_available").notNull().default(0),
+  tokensUsed: integer("tokens_used").notNull().default(0),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type FreezeToken = typeof freezeTokensTable.$inferSelect;
+
 export const passwordResetTokensTable = pgTable("password_reset_tokens", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),

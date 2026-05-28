@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { PageTransition } from "@/components/PageTransition";
 import FocusGarden from "@/components/FocusGarden";
 import ReadinessWidget from "@/components/ReadinessWidget";
+import WeatherWidget from "@/components/WeatherWidget";
 import { LayoutDashboard, Zap, Clock, Target, Flame, CheckCircle } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -93,6 +94,9 @@ export default function DashboardPage() {
 
           {!loading && stats && (
             <div className="space-y-6">
+              {/* Focus Weather */}
+              <WeatherWidget />
+
               {/* Readiness Widget */}
               <ReadinessWidget />
 

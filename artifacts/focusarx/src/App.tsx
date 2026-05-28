@@ -24,6 +24,12 @@ import LeaderboardPage from "@/pages/leaderboard";
 import AchievementsPage from "@/pages/achievements";
 import AnalyticsPage from "@/pages/analytics";
 import ForgePage from "@/pages/forge";
+import FocusDnaPage from "@/pages/focus-dna";
+import GhostsPage from "@/pages/ghosts";
+import ConsequencesPage from "@/pages/consequences";
+import ReplayPage from "@/pages/replay";
+import BreathePage from "@/pages/breathe";
+import ProfilePage from "@/pages/profile";
 import { FocusCamera } from "@/components/camera/FocusCamera";
 import { useSessionHistory } from "@/hooks/useSessionHistory";
 import { useTasks } from "@/hooks/useTasks";
@@ -190,6 +196,12 @@ function AppWithPalette() {
           <Route path="/auth/callback" component={AuthCallbackPage} />
           <Route path="/roadmap" component={RoadmapPage} />
           <Route path="/admin" component={AdminPage} />
+          <Route path="/focus-dna" component={FocusDnaPage} />
+          <Route path="/ghosts" component={GhostsPage} />
+          <Route path="/consequences" component={ConsequencesPage} />
+          <Route path="/replay" component={ReplayPage} />
+          <Route path="/breathe" component={BreathePage} />
+          <Route path="/profile" component={ProfilePage} />
           <Route component={NotFound} />
         </Switch>
       </AppShell>

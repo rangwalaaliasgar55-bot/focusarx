@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { TrendingUp, Clock, Zap, Calendar, Award } from "lucide-react";
+import { TrendingUp, Clock, Zap, Calendar, Award, ArrowUp, ArrowDown, Minus } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
+  BarChart, Bar,
 } from "recharts";
 import { getToken } from "@/lib/auth";
 import { PageTransition } from "@/components/PageTransition";
@@ -13,6 +14,8 @@ interface AnalyticsData {
   heatmap: Record<string, number>;
   chartData14: Array<{ date: string; minutes: number }>;
   hourDist: Array<{ hour: number; minutes: number }>;
+  weekBarData?: Array<{ day: string; date: string; minutes: number }>;
+  weekComparison?: { thisWeekMinutes: number; lastWeekMinutes: number; changePercent: number };
   personalBests: {
     longestSessionMinutes: number;
     bestDayMinutes: number;
@@ -62,6 +65,16 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
+const BarTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-lg border border-[rgba(124,58,237,0.3)] bg-[rgba(12,17,40,0.95)] px-3 py-2 text-xs text-[#E2E8F0] shadow-xl backdrop-blur-xl">
+      <p className="font-semibold">{label}</p>
+      <p className="text-[#06D6A0]">{payload[0]?.value}m</p>
+    </div>
+  );
+};
+
 export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -94,6 +107,9 @@ export default function AnalyticsPage() {
       fill: HOUR_COLORS[i] ?? "#7C3AED",
     }));
 
+  const wc = data?.weekComparison;
+  const weekBar = data?.weekBarData ?? [];
+
   return (
     <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
@@ -119,22 +135,79 @@ export default function AnalyticsPage() {
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Personal bests */}
+              {/* All-time personal bests */}
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
                 {[
-                  { icon: Clock,    label: "Total hours",     value: `${Math.round((data.personalBests.totalMinutes ?? 0) / 60)}h`,   color: "#A78BFA" },
-                  { icon: Zap,      label: "Total sessions",  value: `${data.personalBests.totalSessions}`,                           color: "#06D6A0" },
-                  { icon: TrendingUp, label: "Best session",  value: `${data.personalBests.longestSessionMinutes}m`,                  color: "#FFB800" },
-                  { icon: Calendar, label: "Best day",        value: `${data.personalBests.bestDayMinutes}m`,                        color: "#F97316" },
-                  { icon: Award,    label: "Best streak",     value: `${data.personalBests.longestStreak}d`,                         color: "#EC4899" },
+                  { icon: Clock,      label: "Total hours",    value: `${Math.round((data.personalBests.totalMinutes ?? 0) / 60)}h`, color: "#A78BFA" },
+                  { icon: Zap,        label: "Total sessions", value: `${data.personalBests.totalSessions}`,                         color: "#06D6A0" },
+                  { icon: TrendingUp, label: "Best session",   value: `${data.personalBests.longestSessionMinutes}m`,                color: "#FFB800" },
+                  { icon: Calendar,   label: "Best day",       value: `${data.personalBests.bestDayMinutes}m`,                      color: "#F97316" },
+                  { icon: Award,      label: "Best streak",    value: `${data.personalBests.longestStreak}d`,                       color: "#EC4899" },
                 ].map(({ icon: Icon, label, value, color }) => (
-                  <div key={label} className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4 text-center backdrop-blur-xl">
+                  <motion.div
+                    key={label}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4 text-center backdrop-blur-xl"
+                  >
                     <Icon size={16} className="mx-auto mb-1.5" style={{ color }} />
                     <p className="text-[10px] text-[#4B5563]">{label}</p>
                     <p className="mt-0.5 text-lg font-bold" style={{ color }}>{value}</p>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
+
+              {/* Weekly comparison card */}
+              {wc && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <p className="text-xs text-[#4B5563]">Compared to last week</p>
+                        <div className="mt-1 flex items-center gap-2">
+                          {wc.changePercent > 0 ? (
+                            <div className="flex items-center gap-1 text-emerald-400">
+                              <ArrowUp size={14} />
+                              <span className="text-lg font-bold">+{wc.changePercent}%</span>
+                            </div>
+                          ) : wc.changePercent < 0 ? (
+                            <div className="flex items-center gap-1 text-red-400">
+                              <ArrowDown size={14} />
+                              <span className="text-lg font-bold">{wc.changePercent}%</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 text-[#94A3B8]">
+                              <Minus size={14} />
+                              <span className="text-lg font-bold">0%</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] text-[#4B5563]">This week</p>
+                        <p className="text-sm font-bold text-[#E2E8F0]">{Math.round(wc.thisWeekMinutes / 60)}h {wc.thisWeekMinutes % 60}m</p>
+                        <p className="text-[10px] text-[#4B5563] mt-1">Last week</p>
+                        <p className="text-sm font-bold text-[#6B7280]">{Math.round(wc.lastWeekMinutes / 60)}h {wc.lastWeekMinutes % 60}m</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Weekly bar chart */}
+                  {weekBar.length > 0 && (
+                    <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
+                      <p className="text-xs font-semibold text-[#E2E8F0] mb-3">This week — daily focus</p>
+                      <ResponsiveContainer width="100%" height={100}>
+                        <BarChart data={weekBar} margin={{ top: 2, right: 0, bottom: 0, left: -24 }}>
+                          <XAxis dataKey="day" tick={{ fill: "#4B5563", fontSize: 9 }} axisLine={false} tickLine={false} />
+                          <YAxis tick={{ fill: "#4B5563", fontSize: 9 }} axisLine={false} tickLine={false} unit="m" />
+                          <Tooltip content={<BarTooltip />} />
+                          <Bar dataKey="minutes" fill="#06D6A0" radius={[4, 4, 0, 0]} opacity={0.85} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* 14-day focus chart */}
               <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-6 backdrop-blur-xl">
@@ -198,7 +271,7 @@ export default function AnalyticsPage() {
                   </div>
                 )}
 
-                {/* Activity heatmap */}
+                {/* Activity heatmap — 91 days */}
                 <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-6 backdrop-blur-xl">
                   <h2 className="mb-4 text-sm font-semibold text-[#E2E8F0]">Activity — last 91 days</h2>
                   <div className="flex gap-1 mb-2 text-[9px] text-[#4B5563]">

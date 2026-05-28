@@ -3,6 +3,7 @@ import { useAuth } from "@/lib/auth";
 import {
   Timer, LayoutDashboard, TrendingUp, Trophy, Star,
   Users, Sparkles, LogOut, LogIn, Menu, X, Shield, BookOpen,
+  Dna, Ghost, Sword, Radio, Wind, UserCircle,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -16,8 +17,14 @@ const NAV_ITEMS = [
   { href: "/achievements", label: "Achievements",  icon: Star,          shortcut: "5" },
   { href: "/forge",        label: "Forge Room",    icon: Users,         shortcut: "6" },
   { href: "/roadmap",      label: "AI Roadmap",    icon: Sparkles,      shortcut: "7" },
+  { href: "/breathe",      label: "Breathe",       icon: Wind,          shortcut: "" },
+  { href: "/profile",      label: "Profile",       icon: UserCircle,    shortcut: "" },
   { href: "/profiles",     label: "Profiles",      icon: Shield,        shortcut: "8" },
   { href: "/distractions", label: "Focus Journal", icon: BookOpen,      shortcut: "9" },
+  { href: "/focus-dna",    label: "Focus DNA",     icon: Dna,           shortcut: "0" },
+  { href: "/ghosts",       label: "Ghost Mode",    icon: Ghost,         shortcut: "" },
+  { href: "/consequences", label: "Consequences",  icon: Sword,         shortcut: "" },
+  { href: "/replay",       label: "Session Replay",icon: Radio,         shortcut: "" },
 ];
 
 const NO_SHELL = ["/login", "/signup", "/forgot-password", "/admin", "/auth/callback"];

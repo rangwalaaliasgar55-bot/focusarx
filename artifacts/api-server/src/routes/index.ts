@@ -11,6 +11,11 @@ import { readinessRouter } from "./readiness";
 import { distractionsRouter } from "./distractions";
 import { profilesRouter } from "./profiles";
 import { coachRouter } from "./coach";
+import { focusDnaRouter } from "./focusDna";
+import { ghostsRouter } from "./ghosts";
+import { consequencesRouter } from "./consequences";
+import { focusWeatherRouter } from "./focusWeather";
+import { sessionReplayRouter } from "./sessionReplay";
 
 const router: IRouter = Router();
 
@@ -26,5 +31,10 @@ router.use(readinessRouter);
 router.use(distractionsRouter);
 router.use(profilesRouter);
 router.use(coachRouter);
+router.use(focusDnaRouter);
+router.use(ghostsRouter);
+router.use(consequencesRouter);
+router.use(focusWeatherRouter);
+router.use(sessionReplayRouter);
 
 export default router;
