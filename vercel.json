@@ -1,13 +1,15 @@
 {
   "buildCommand": "pnpm run build:vercel",
+  "outputDirectory": "artifacts/focusarx/dist/public",
   "ignoreCommand": "",
   "functions": {
     "api/index.js": {
-      "runtime": "nodejs20.x"
+      "includeFiles": "artifacts/api-server/dist/**"
     }
   },
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/index.js" },
-    { "src": "/(.*)", "dest": "/artifacts/focusarx/dist/public/$1" }
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
