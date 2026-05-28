@@ -2,10 +2,34 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
+import { z } from "zod";
 import { db, usersTable, passwordResetTokensTable } from "@workspace/db";
 import { eq, and, gt, isNull } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getServerConfig } from "../lib/config";
+import { authLimiter, forgotPasswordLimiter } from "../lib/rateLimiter";
+
+const isDev = process.env.NODE_ENV !== "production";
+
+const loginSchema = z.object({
+  email: z.string().email().max(254).toLowerCase().trim(),
+  password: z.string().min(1).max(256),
+});
+
+const registerSchema = z.object({
+  email: z.string().email().max(254).toLowerCase().trim(),
+  password: z.string().min(8).max(128),
+  name: z.string().max(100).optional(),
+});
+
+const forgotSchema = z.object({
+  email: z.string().email().max(254).toLowerCase().trim(),
+});
+
+const resetSchema = z.object({
+  token: z.string().min(10).max(200),
+  password: z.string().min(8).max(128),
+});
 
 const router = Router();
 
@@ -22,7 +46,7 @@ function jwtSecretOrRespond(res: { status: (code: number) => { json: (body: unkn
 }
 
 function makeToken(userId: string, secret: string): string {
-  return jwt.sign({ sub: userId }, secret, { expiresIn: "400d" });
+  return jwt.sign({ sub: userId }, secret, { expiresIn: "30d" });
 }
 
 function verifyToken(token: string, secret: string): { sub: string } | null {
@@ -57,11 +81,12 @@ router.get("/auth/session", async (req, res) => {
   }
 });
 
-router.post("/auth/login", async (req, res) => {
+router.post("/auth/login", authLimiter, async (req, res) => {
   const secret = jwtSecretOrRespond(res);
   if (!secret) return;
-  const { email, password } = req.body as { email?: string; password?: string };
-  if (!email || !password) { res.status(400).json({ error: "Email and password required" }); return; }
+  const parsed = loginSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Invalid email or password format" }); return; }
+  const { email, password } = parsed.data;
   try {
     const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email));
     if (!user?.hashedPassword) { res.status(401).json({ error: "Invalid credentials" }); return; }
@@ -74,10 +99,14 @@ router.post("/auth/login", async (req, res) => {
   }
 });
 
-router.post("/auth/register", async (req, res) => {
-  const { email, password, name } = req.body as { email?: string; password?: string; name?: string };
-  if (!email || !password) { res.status(400).json({ error: "Email and password required" }); return; }
-  if (password.length < 6) { res.status(400).json({ error: "Password must be at least 6 characters" }); return; }
+router.post("/auth/register", authLimiter, async (req, res) => {
+  const parsed = registerSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const msg = parsed.error.errors[0]?.message ?? "Invalid input";
+    res.status(400).json({ error: msg });
+    return;
+  }
+  const { email, password, name } = parsed.data;
   try {
     const [existing] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, email));
     if (existing) { res.status(400).json({ error: "Email already registered" }); return; }
@@ -115,6 +144,7 @@ router.post("/auth/guest", async (req, res) => {
 // ── Google OAuth debug (dev only) ─────────────────────────────────────────
 
 router.get("/auth/google/debug", (req, res) => {
+  if (!isDev) { res.status(404).json({ error: "Not found" }); return; }
   const { googleClientId, appUrl } = getServerConfig();
   const redirectUri = `${appUrl}/api/auth/google/callback`;
   res.json({
@@ -229,9 +259,10 @@ async function sendResetEmail(to: string, resetUrl: string): Promise<boolean> {
   }
 }
 
-router.post("/auth/forgot-password", async (req, res) => {
-  const { email } = req.body as { email?: string };
-  if (!email) { res.status(400).json({ error: "Email is required" }); return; }
+router.post("/auth/forgot-password", forgotPasswordLimiter, async (req, res) => {
+  const parsed = forgotSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Valid email required" }); return; }
+  const { email } = parsed.data;
   const { appUrl } = getServerConfig();
 
   try {
@@ -262,10 +293,10 @@ router.post("/auth/forgot-password", async (req, res) => {
   }
 });
 
-router.post("/auth/reset-password", async (req, res) => {
-  const { token, password } = req.body as { token?: string; password?: string };
-  if (!token || !password) { res.status(400).json({ error: "Token and password are required" }); return; }
-  if (password.length < 8) { res.status(400).json({ error: "Password must be at least 8 characters" }); return; }
+router.post("/auth/reset-password", authLimiter, async (req, res) => {
+  const parsed = resetSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Token and a password of at least 8 characters are required" }); return; }
+  const { token, password } = parsed.data;
 
   try {
     const now = new Date();

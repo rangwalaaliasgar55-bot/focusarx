@@ -1,8 +1,37 @@
 import { Router } from "express";
+import { z } from "zod";
 import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, userWalletsTable } from "@workspace/db";
 import { eq, and, desc, gte, lt, sql } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
+
+const sessionSchema = z.object({
+  mode: z.enum(["focus", "short_break", "long_break"]).default("focus"),
+  durationSec: z.number().int().min(0).max(86400).default(0),
+  focusScore: z.number().min(0).max(100).nullable().optional(),
+  focusQuality: z.string().max(20).nullable().optional(),
+  stabilityRating: z.number().min(0).max(100).nullable().optional(),
+  focusTimeline: z.unknown().optional(),
+  sessionInsights: z.unknown().optional(),
+  taskId: z.string().uuid().nullable().optional(),
+  clientNonce: z.string().max(64).optional(),
+  completedAt: z.string().optional(),
+});
+
+const activeSyncSchema = z.object({
+  sessionId: z.string().uuid(),
+  activeSeconds: z.number().int().min(0).max(86400).optional(),
+  secondsLeft: z.number().int().min(0).max(86400).optional(),
+  timerStatus: z.enum(["running", "paused", "idle"]).optional(),
+  mode: z.enum(["focus", "short_break", "long_break"]).optional(),
+  focusScore: z.number().min(0).max(100).nullable().optional(),
+  focusQuality: z.string().max(20).nullable().optional(),
+  focusState: z.string().max(30).nullable().optional(),
+  distractionCount: z.number().int().min(0).optional(),
+  lastSeenFaceAt: z.string().nullable().optional(),
+  focusTimeline: z.unknown().optional(),
+  monitorEnabled: z.boolean().optional(),
+});
 
 const router = Router();
 
@@ -40,8 +69,9 @@ router.post("/sessions/active", authMiddleware, async (req: any, res) => {
 });
 
 router.post("/sessions/sync", authMiddleware, async (req: any, res) => {
-  const { sessionId, activeSeconds, secondsLeft, timerStatus, mode, focusScore, focusQuality, focusState, distractionCount, lastSeenFaceAt, focusTimeline, monitorEnabled } = req.body as any;
-  if (!sessionId) { res.status(400).json({ error: "sessionId required" }); return; }
+  const parsed = activeSyncSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Invalid sync payload" }); return; }
+  const { sessionId, activeSeconds, secondsLeft, timerStatus, mode, focusScore, focusQuality, focusState, distractionCount, lastSeenFaceAt, focusTimeline, monitorEnabled } = parsed.data;
   try {
     await db.update(activeSessionsTable).set({
       activeSeconds: activeSeconds ?? 0, secondsLeft: secondsLeft ?? 1500,
@@ -68,7 +98,9 @@ router.delete("/sessions/active", authMiddleware, async (req: any, res) => {
 });
 
 router.post("/sessions", authMiddleware, async (req: any, res) => {
-  const { mode, durationSec, focusScore, focusQuality, stabilityRating, focusTimeline, sessionInsights } = req.body as any;
+  const parsed = sessionSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Invalid session data" }); return; }
+  const { mode, durationSec, focusScore, focusQuality, stabilityRating, focusTimeline, sessionInsights } = parsed.data;
   try {
     const [session] = await db.insert(focusSessionsTable).values({
       userId: req.userId, mode: mode ?? "focus", durationSec: durationSec ?? 0,
