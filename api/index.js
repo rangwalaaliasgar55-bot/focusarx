@@ -1,4 +1,1 @@
-import('../artifacts/api-server/dist/index.mjs').catch((err) => {
-  console.error('Failed to load API server:', err);
-  process.exit(1);
-});
+module.exports = (req, res) => import('../artifacts/api-server/dist/index.mjs').then(m => m.default(req, res));
