@@ -19,10 +19,12 @@ export default function LoginPage() {
     const res = await signIn("credentials", { email, password });
     setIsLoading(false);
     if (!res.ok) {
-      toast("Invalid email or password", "error");
+      toast(res.error ?? "Invalid email or password", "error");
     } else {
-      toast("Logged in successfully", "success");
-      setLocation("/dashboard");
+      toast("Welcome back!", "success");
+      const params = new URLSearchParams(window.location.search);
+      const redirect = params.get("redirect") ?? "/dashboard";
+      setLocation(redirect);
     }
   };
 

@@ -61,10 +61,35 @@ async function checkAuth(req: any): Promise<boolean> {
 const SECURE_FLAG = IS_PROD ? "; Secure" : "";
 
 router.post("/admin/auth", async (req, res) => {
-  const adminPassword = adminPasswordOrRespond(res);
-  if (!adminPassword) return;
-  const { password } = req.body as { password?: string };
-  if (!password || password !== adminPassword) {
+  const password = getServerConfig().adminPassword;
+  if (!password) {
+    // No password configured — only role-based access works
+    const userId = extractUserId(req);
+    if (!userId) {
+      res.status(503).json({
+        error: "ADMIN_PASSWORD not configured",
+        hint: "Set ADMIN_PASSWORD in Vercel env vars or use a user with role=admin.",
+      });
+      return;
+    }
+    try {
+      const [user] = await db.select({ role: usersTable.role }).from(usersTable).where(eq(usersTable.id, userId));
+      if (user?.role?.toLowerCase() !== "admin") {
+        res.status(403).json({ error: "Access denied" });
+        return;
+      }
+      // Issue admin session cookie for the already-authenticated admin user
+      const token = jwt.sign({ role: "admin_session" }, getJwtSecret(), { expiresIn: ADMIN_TOKEN_EXPIRY });
+      res.setHeader("Set-Cookie", `${ADMIN_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${SECURE_FLAG}`);
+      res.json({ ok: true });
+    } catch (err) {
+      logger.error({ err }, "admin auth role check error");
+      res.status(500).json({ error: "Internal error" });
+    }
+    return;
+  }
+  const { password: inputPassword } = req.body as { password?: string };
+  if (!inputPassword || inputPassword !== password) {
     res.status(403).json({ error: "Access denied" });
     return;
   }
