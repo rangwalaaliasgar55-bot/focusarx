@@ -13,6 +13,7 @@ function extractUserId(req: any): string | null {
   if (!token) return null;
   try {
     const config = getServerConfig();
+    if (!config.jwtSecret) return null;
     const payload = jwt.verify(token, config.jwtSecret) as { sub?: string };
     return payload?.sub ?? null;
   } catch { return null; }
