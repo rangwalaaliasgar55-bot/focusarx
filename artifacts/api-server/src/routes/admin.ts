@@ -24,7 +24,7 @@ function adminPasswordOrRespond(res: { status: (code: number) => { json: (body: 
 }
 
 function getJwtSecret(): string {
-  return getServerConfig().jwtSecret ?? "admin-dev-secret";
+  return getServerConfig().jwtSecret ?? "admin-dev-secret-change-in-prod";
 }
 
 function isAdminAuthed(req: any): boolean {
@@ -40,13 +40,21 @@ function isAdminAuthed(req: any): boolean {
   }
 }
 
+const adminAuthCache = new Map<string, number>();
+
 async function checkAuth(req: any): Promise<boolean> {
   if (isAdminAuthed(req)) return true;
   const userId = extractUserId(req);
   if (!userId) return false;
+
+  const cached = adminAuthCache.get(userId);
+  if (cached && cached > Date.now()) return true;
+
   try {
     const [user] = await db.select({ role: usersTable.role }).from(usersTable).where(eq(usersTable.id, userId));
-    return user?.role?.toLowerCase() === "admin";
+    const isAdmin = user?.role?.toLowerCase() === "admin";
+    if (isAdmin) adminAuthCache.set(userId, Date.now() + 5 * 60 * 1000);
+    return isAdmin;
   } catch { return false; }
 }
 
@@ -100,7 +108,6 @@ router.get("/admin/users", async (req, res) => {
   }
 });
 
-// Platform-wide stats for admin dashboard
 router.get("/admin/stats", async (req, res) => {
   if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
@@ -118,12 +125,10 @@ router.get("/admin/stats", async (req, res) => {
     }).from(focusSessionsTable);
     const active = await db.select().from(activeSessionsTable);
 
-    // Total focus hours across all users
     const totalFocusSec = allFocusSessions
       .filter(s => s.mode === "focus")
       .reduce((acc, s) => acc + (s.durationSec ?? 0), 0);
 
-    // Sessions per day for last 7 days
     const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const dailyChart = Array.from({ length: 7 }, (_, i) => {
       const date = new Date(sevenDaysAgo.getTime() + i * 86400000);
@@ -137,7 +142,6 @@ router.get("/admin/stats", async (req, res) => {
       };
     });
 
-    // Top 5 users by total focus time
     const timeByUser: Record<string, number> = {};
     for (const s of allFocusSessions) {
       if (s.mode === "focus") timeByUser[s.userId] = (timeByUser[s.userId] ?? 0) + (s.durationSec ?? 0);
@@ -152,7 +156,6 @@ router.get("/admin/stats", async (req, res) => {
       return { id, name: user?.name ?? "Unknown", email: user?.email ?? "", isGuest: user?.isGuest ?? false, minutes };
     }));
 
-    // New users last 7 days
     const newUsersThisWeek = allUsers.filter(u => u.createdAt && u.createdAt >= sevenDaysAgo).length;
 
     res.json({
@@ -171,7 +174,6 @@ router.get("/admin/stats", async (req, res) => {
   }
 });
 
-// Promote / demote a user's role
 router.patch("/admin/users/:id/role", async (req, res) => {
   if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
   const { id } = req.params;
@@ -190,7 +192,6 @@ router.patch("/admin/users/:id/role", async (req, res) => {
   }
 });
 
-// Delete a user
 router.delete("/admin/users/:id", async (req, res) => {
   if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
   const { id } = req.params;

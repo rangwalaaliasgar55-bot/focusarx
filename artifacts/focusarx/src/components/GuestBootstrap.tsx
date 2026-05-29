@@ -1,14 +1,19 @@
 import { useEffect, useRef } from "react";
 import { STORAGE_KEYS } from "@/lib/constants";
 import { useAuth, setToken } from "@/lib/auth";
+import { useLocation } from "wouter";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+const NO_GUEST_PATHS = ["/login", "/signup", "/forgot-password", "/reset-password", "/auth/callback", "/onboarding", "/admin"];
+
 export function GuestBootstrap() {
   const { status, refresh } = useAuth();
+  const [location] = useLocation();
   const ran = useRef(false);
 
   useEffect(() => {
+    if (NO_GUEST_PATHS.some((p) => location.startsWith(p))) return;
     if (ran.current) return;
     if (status !== "unauthenticated") return;
     ran.current = true;
@@ -22,7 +27,7 @@ export function GuestBootstrap() {
 
       const waits = [0, 400, 1200, 2500];
       for (let i = 0; i < waits.length; i++) {
-        if (waits[i] > 0) await sleep(waits[i]);
+        if (waits[i]! > 0) await sleep(waits[i]!);
         try {
           const res = await fetch("/api/auth/guest", {
             method: "POST",
@@ -44,7 +49,7 @@ export function GuestBootstrap() {
     };
 
     void run();
-  }, [status, refresh]);
+  }, [status, refresh, location]);
 
   return null;
 }

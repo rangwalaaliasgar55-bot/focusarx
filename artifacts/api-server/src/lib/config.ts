@@ -27,11 +27,12 @@ export function getServerConfig(): ServerConfig {
     }
   }
 
-  const adminPassword: string | null = process.env.ADMIN_PASSWORD ?? null;
-  if (!adminPassword && !isProduction && !warnedDevAdmin) {
+  const adminPassword: string | null =
+    process.env.ADMIN_PASSWORD ?? (!isProduction ? "admin123" : null);
+  if (!process.env.ADMIN_PASSWORD && !isProduction && !warnedDevAdmin) {
     warnedDevAdmin = true;
     console.warn(
-      "[config] ADMIN_PASSWORD is not set — set it in .env for local admin access.",
+      "[config] ADMIN_PASSWORD is not set — using default dev password 'admin123'.",
     );
   }
 

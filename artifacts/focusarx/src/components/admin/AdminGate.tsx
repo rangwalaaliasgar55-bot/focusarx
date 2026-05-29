@@ -22,8 +22,12 @@ export function AdminGate() {
       });
 
       if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as { error?: string };
-        setError(data.error ?? "Access denied");
+        const data = (await res.json().catch(() => ({}))) as { error?: string; hint?: string };
+        if (data.hint) {
+          setError(`${data.error ?? "Access denied"} — ${data.hint}`);
+        } else {
+          setError(data.error ?? "Access denied");
+        }
         return;
       }
 
@@ -69,6 +73,11 @@ export function AdminGate() {
         >
           {loading ? "Verifying…" : "Unlock admin"}
         </button>
+        {process.env.NODE_ENV !== "production" && (
+          <p className="mt-4 text-center text-xs text-zinc-700">
+            Dev default: <code className="text-zinc-600">admin123</code> (set ADMIN_PASSWORD to change)
+          </p>
+        )}
       </form>
     </motion.div>
   );

@@ -9,7 +9,7 @@ export default function CoachPanel() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [unconfigured, setUnconfigured] = useState(false);
+  const [isFallback, setIsFallback] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -35,8 +35,8 @@ export default function CoachPanel() {
   const fetchTip = async () => {
     try {
       const r = await fetch("/api/coach/session-tip", { headers: headers() });
-      const d = await r.json() as { tip?: string | null; error?: string };
-      if (d.error?.includes("not configured")) { setUnconfigured(true); return; }
+      const d = await r.json() as { tip?: string | null; error?: string; fallback?: boolean };
+      if (d.fallback) setIsFallback(true);
       if (d.tip) {
         setMessages([{ role: "assistant", content: d.tip }]);
       } else {
@@ -65,8 +65,8 @@ export default function CoachPanel() {
           conversationHistory: messages.slice(-8),
         }),
       });
-      const d = await r.json() as { reply?: string; error?: string };
-      if (d.error?.includes("not configured")) { setUnconfigured(true); setLoading(false); return; }
+      const d = await r.json() as { reply?: string; error?: string; fallback?: boolean };
+      if (d.fallback) setIsFallback(true);
       const reply = d.reply ?? "Stay focused — you've got this!";
       setMessages(h => [...h, { role: "assistant", content: reply }]);
     } catch {
@@ -81,7 +81,7 @@ export default function CoachPanel() {
         onClick={() => setOpen(o => !o)}
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.93 }}
-        className="fixed bottom-24 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] shadow-[0_4px_20px_rgba(124,58,237,0.5)] md:bottom-8"
+        className="fixed bottom-28 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] shadow-[0_4px_20px_rgba(124,58,237,0.5)] md:bottom-10 md:right-6"
         title="FocusArx Coach"
       >
         <span className="text-xl">{open ? "✕" : "🧠"}</span>
@@ -94,7 +94,7 @@ export default function CoachPanel() {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 40, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed bottom-40 right-4 z-40 flex w-[340px] max-h-[480px] flex-col rounded-2xl border border-[rgba(124,58,237,0.3)] bg-[rgba(8,12,28,0.92)] shadow-2xl backdrop-blur-2xl md:bottom-24"
+            className="fixed bottom-44 right-4 z-40 flex w-[340px] max-sm:w-[calc(100vw-2rem)] max-h-[420px] flex-col rounded-2xl border border-[rgba(124,58,237,0.3)] bg-[rgba(8,12,28,0.92)] shadow-2xl backdrop-blur-2xl md:bottom-28 md:right-6"
           >
             <div className="flex items-center gap-3 border-b border-[rgba(124,58,237,0.15)] px-4 py-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] text-sm">🧠</div>
@@ -102,72 +102,67 @@ export default function CoachPanel() {
                 <p className="text-sm font-bold text-[#E2E8F0]">FocusArx Coach</p>
                 <p className="text-[10px] text-[#4B5563]">Productivity & neuroscience</p>
               </div>
-              <div className={`ml-auto h-2 w-2 rounded-full ${unconfigured ? "bg-red-500" : "bg-emerald-400"}`} title={unconfigured ? "API key not set" : "Online"} />
+              {isFallback && (
+                <span className="ml-auto text-[9px] text-zinc-600 border border-zinc-800 rounded px-1.5 py-0.5">Basic</span>
+              )}
             </div>
 
-            {unconfigured ? (
-              <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-                <span className="text-3xl">🔑</span>
-                <p className="text-sm text-[#94A3B8]">Set <code className="rounded bg-[rgba(124,58,237,0.15)] px-1 py-0.5 text-xs text-[#A78BFA]">ANTHROPIC_API_KEY</code> to activate the AI Coach.</p>
-              </div>
-            ) : (
-              <div className="flex flex-1 flex-col overflow-hidden">
-                <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-                  {messages.map((msg, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                    >
-                      <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                        msg.role === "user"
-                          ? "rounded-br-sm bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] text-white"
-                          : "rounded-bl-sm bg-[rgba(124,58,237,0.1)] text-[#E2E8F0]"
-                      }`}>
-                        {msg.content}
-                      </div>
-                    </motion.div>
-                  ))}
-                  {loading && (
-                    <div className="flex justify-start">
-                      <div className="rounded-2xl rounded-bl-sm bg-[rgba(124,58,237,0.1)] px-4 py-3">
-                        <div className="flex gap-1">
-                          {[0, 0.2, 0.4].map((d, i) => (
-                            <motion.div key={i} className="h-1.5 w-1.5 rounded-full bg-[#A78BFA]"
-                              animate={{ opacity: [0.3, 1, 0.3] }}
-                              transition={{ repeat: Infinity, duration: 1, delay: d }}
-                            />
-                          ))}
-                        </div>
+            <div className="flex flex-1 flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+                {messages.map((msg, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                  >
+                    <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                      msg.role === "user"
+                        ? "rounded-br-sm bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] text-white"
+                        : "rounded-bl-sm bg-[rgba(124,58,237,0.1)] text-[#E2E8F0]"
+                    }`}>
+                      {msg.content}
+                    </div>
+                  </motion.div>
+                ))}
+                {loading && (
+                  <div className="flex justify-start">
+                    <div className="rounded-2xl rounded-bl-sm bg-[rgba(124,58,237,0.1)] px-4 py-3">
+                      <div className="flex gap-1">
+                        {[0, 0.2, 0.4].map((d, i) => (
+                          <motion.div key={i} className="h-1.5 w-1.5 rounded-full bg-[#A78BFA]"
+                            animate={{ opacity: [0.3, 1, 0.3] }}
+                            transition={{ repeat: Infinity, duration: 1, delay: d }}
+                          />
+                        ))}
                       </div>
                     </div>
-                  )}
-                  <div ref={bottomRef} />
-                </div>
-
-                <div className="border-t border-[rgba(124,58,237,0.15)] p-3">
-                  <div className="flex gap-2">
-                    <input
-                      ref={inputRef}
-                      type="text"
-                      value={input}
-                      onChange={e => setInput(e.target.value)}
-                      onKeyDown={e => e.key === "Enter" && void send()}
-                      placeholder="Ask your coach…"
-                      className="flex-1 rounded-xl border border-[rgba(124,58,237,0.2)] bg-[rgba(124,58,237,0.05)] px-3 py-2 text-sm text-[#E2E8F0] placeholder-[#4B5563] focus:border-[#7C3AED] focus:outline-none"
-                    />
-                    <button
-                      onClick={() => void send()}
-                      disabled={!input.trim() || loading}
-                      className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#7C3AED] text-white transition hover:bg-[#6D28D9] disabled:opacity-40"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z" /></svg>
-                    </button>
                   </div>
+                )}
+                <div ref={bottomRef} />
+              </div>
+
+              <div className="border-t border-[rgba(124,58,237,0.15)] p-3">
+                <div className="flex gap-2">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={input}
+                    onChange={e => setInput(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && void send()}
+                    placeholder="Ask your coach…"
+                    className="flex-1 rounded-xl border border-[rgba(124,58,237,0.2)] bg-[rgba(124,58,237,0.05)] px-3 py-2 text-sm text-[#E2E8F0] placeholder-[#4B5563] focus:border-[#7C3AED] focus:outline-none"
+                  />
+                  <button
+                    onClick={() => void send()}
+                    disabled={!input.trim() || loading}
+                    className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#7C3AED] text-white transition hover:bg-[#6D28D9] disabled:opacity-40"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z" /></svg>
+                  </button>
                 </div>
               </div>
-            )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

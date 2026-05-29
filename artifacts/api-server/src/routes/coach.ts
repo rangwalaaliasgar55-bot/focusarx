@@ -17,7 +17,16 @@ function auth(req: any, res: any, next: any) {
 router.post("/coach/chat", auth, async (req: any, res) => {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    res.status(503).json({ error: "AI Coach not configured. Set ANTHROPIC_API_KEY environment variable." });
+    const fallbackReplies = [
+      "Focus on one task at a time — multitasking reduces efficiency by up to 40%.",
+      "Try the 2-minute rule: if something takes less than 2 minutes, do it now.",
+      "Your next Pomodoro session is your most important one. Start it.",
+      "Break your goal into the smallest possible next step and do just that.",
+      "Deep work requires uninterrupted blocks. Protect your focus time fiercely.",
+      "Review what you accomplished today — recognizing progress fuels motivation.",
+    ];
+    const reply = fallbackReplies[Math.floor(Math.random() * fallbackReplies.length)]!;
+    res.json({ reply, fallback: true });
     return;
   }
 

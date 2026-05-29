@@ -1,6 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, useState } from "react";
-import { Link } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { aiRoadmapSchema } from "@/lib/validators";
 import { getToken } from "@/lib/auth";
@@ -23,9 +22,9 @@ export default function RoadmapPage() {
   const [error, setError] = useState<string | null>(null);
   const [roadmap, setRoadmap] = useState<RoadmapDay[] | null>(null);
   const [openDay, setOpenDay] = useState<number | null>(1);
+  const [checked, setChecked] = useState<Set<string>>(new Set());
 
   const validPayload = useMemo(() => ({ goal, dailyHours, level, deadline: deadline || undefined, currentProgress: currentProgress || undefined }), [goal, dailyHours, level, deadline, currentProgress]);
-  const sessionReady = authStatus === "authenticated";
 
   async function generate() {
     setError(null);
@@ -34,7 +33,6 @@ export default function RoadmapPage() {
       setError(parsed.error.issues.map((i) => `${i.path.join(".") || "form"}: ${i.message}`).join(" · ") || "Please check your inputs.");
       return;
     }
-    if (!sessionReady) { setError("Still connecting your session. Wait a moment, then try again."); return; }
     setLoading(true);
     try {
       const token = getToken();
@@ -53,6 +51,7 @@ export default function RoadmapPage() {
       if (days.length === 0) { setError("The server returned an empty roadmap. Please try again."); setRoadmap(null); return; }
       setRoadmap(days);
       setOpenDay(1);
+      setChecked(new Set());
     } catch { setError("Network error — is the dev server running?"); }
     finally { setLoading(false); }
   }
@@ -72,8 +71,12 @@ export default function RoadmapPage() {
           <motion.aside layout className="h-fit rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-6 shadow-2xl backdrop-blur-2xl">
             <h2 className="text-sm font-semibold text-zinc-200">Plan inputs</h2>
             <p className="mt-1 text-xs text-zinc-500">We will shape Pomodoro-sized blocks to match your day.</p>
-            {authStatus === "loading" && <p className="mt-3 text-xs text-amber-200/90">Connecting your session…</p>}
-            {authStatus === "unauthenticated" && <p className="mt-3 text-xs text-amber-200/90">Signing you in as a guest… If this stays stuck, refresh the page.</p>}
+            {authStatus === "loading" && (
+              <p className="mt-3 flex items-center gap-2 text-xs text-zinc-500">
+                <span className="h-3 w-3 animate-spin rounded-full border border-zinc-700 border-t-zinc-400" />
+                Connecting…
+              </p>
+            )}
             <label className="mt-5 block text-xs font-medium text-zinc-400">Goal
               <textarea value={goal} onChange={(e) => setGoal(e.target.value)} rows={3} className="mt-1.5 w-full resize-none rounded-xl border border-zinc-800/80 bg-zinc-950/40 px-3 py-2 text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-sky-500/40" />
             </label>
@@ -93,7 +96,7 @@ export default function RoadmapPage() {
             <label className="mt-4 block text-xs font-medium text-zinc-400">Current progress
               <textarea value={currentProgress} onChange={(e) => setCurrentProgress(e.target.value)} rows={2} className="mt-1.5 w-full resize-none rounded-xl border border-zinc-800/80 bg-zinc-950/40 px-3 py-2 text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-sky-500/40" />
             </label>
-            <motion.button type="button" disabled={loading || authStatus === "loading"} onClick={() => void generate()} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="mt-6 flex w-full items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-fuchsia-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-900/30 disabled:cursor-not-allowed disabled:opacity-60">
+            <motion.button type="button" disabled={loading} onClick={() => void generate()} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="mt-6 flex w-full items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-fuchsia-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-900/30 disabled:cursor-not-allowed disabled:opacity-60">
               {loading ? "AI is planning your success…" : "Generate roadmap"}
             </motion.button>
             {error && <p className="mt-3 text-xs text-rose-400" role="alert">{error}</p>}
@@ -116,9 +119,19 @@ export default function RoadmapPage() {
                       <button type="button" onClick={() => setOpenDay(open ? null : day.day)} className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-white/5">
                         <div>
                           <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Day plan</p>
-                          <h3 className="text-lg font-semibold text-zinc-50">Day {day.day}</h3>
+                          <h3 className="text-lg font-semibold text-zinc-50">
+                            Day {day.day}
+                            {day.focusSessions[0] && (
+                              <span className="ml-2 text-sm font-normal text-zinc-500">
+                                — {day.focusSessions[0].split("—")[0]?.trim()}
+                              </span>
+                            )}
+                          </h3>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-full bg-indigo-950/60 border border-indigo-800/40 px-2 py-0.5 text-[10px] text-indigo-400">
+                            {day.focusSessions.length} sessions
+                          </span>
                           <span className="text-xs text-zinc-500">~{day.estimatedTime} min</span>
                           <span className="text-xs text-zinc-500">{open ? "Hide" : "Expand"}</span>
                         </div>
@@ -133,7 +146,30 @@ export default function RoadmapPage() {
                               </div>
                               <div>
                                 <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Tasks</p>
-                                <ul className="mt-2 list-disc space-y-1 pl-4">{day.tasks.map((t) => <li key={t}>{t}</li>)}</ul>
+                                <ul className="mt-2 space-y-1.5">
+                                  {day.tasks.map((t) => {
+                                    const key = `${day.day}-${t}`;
+                                    const done = checked.has(key);
+                                    return (
+                                      <li
+                                        key={t}
+                                        className="flex items-center gap-2 cursor-pointer"
+                                        onClick={() => {
+                                          setChecked(prev => {
+                                            const next = new Set(prev);
+                                            done ? next.delete(key) : next.add(key);
+                                            return next;
+                                          });
+                                        }}
+                                      >
+                                        <span className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-colors ${done ? "bg-emerald-500 border-emerald-500" : "border-zinc-700"}`}>
+                                          {done && <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1.5 5L4 7.5L8.5 2.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                                        </span>
+                                        <span className={`text-sm ${done ? "line-through text-zinc-600" : "text-zinc-300"}`}>{t}</span>
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
                               </div>
                             </div>
                           </motion.div>
@@ -146,7 +182,7 @@ export default function RoadmapPage() {
             )}
             {!loading && (roadmap === null || roadmap.length === 0) && (
               <div className="rounded-2xl border border-zinc-800/60 bg-zinc-950/30 px-6 py-12 text-center text-sm text-zinc-500 backdrop-blur-xl">
-                {authStatus === "authenticated" ? "Generate a roadmap to see your week unfold here." : "Once your session is connected, generate a roadmap to see it here."}
+                Generate a roadmap to see your week unfold here.
               </div>
             )}
           </section>

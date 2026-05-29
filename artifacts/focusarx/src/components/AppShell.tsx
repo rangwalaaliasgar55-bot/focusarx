@@ -41,26 +41,28 @@ interface NavItemProps {
 
 function NavItem({ href, label, icon: Icon, active, shortcut, onClick, compact }: NavItemProps) {
   return (
-    <Link
-      href={href}
-      onClick={onClick}
-      className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
-        active
-          ? "bg-[rgba(124,58,237,0.2)] text-[#A78BFA] shadow-[0_0_12px_rgba(124,58,237,0.15)]"
-          : "text-[#94A3B8] hover:bg-[rgba(124,58,237,0.1)] hover:text-[#E2E8F0]"
-      } ${compact ? "justify-center px-2" : ""}`}
-    >
-      {active && (
-        <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r bg-[#7C3AED]" />
-      )}
-      <Icon size={16} className="shrink-0" />
-      {!compact && <span>{label}</span>}
-      {!compact && shortcut && (
-        <span className="ml-auto hidden text-[10px] text-[#4B5563] group-hover:text-[#6B7280] lg:block">
-          {shortcut}
-        </span>
-      )}
-    </Link>
+    <motion.div whileHover={{ x: 2 }} transition={{ type: "spring", stiffness: 400, damping: 30 }}>
+      <Link
+        href={href}
+        onClick={onClick}
+        className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
+          active
+            ? "bg-[rgba(124,58,237,0.2)] text-[#A78BFA] shadow-[0_0_12px_rgba(124,58,237,0.15)]"
+            : "text-[#94A3B8] hover:bg-[rgba(124,58,237,0.1)] hover:text-[#E2E8F0]"
+        } ${compact ? "justify-center px-2" : ""}`}
+      >
+        {active && (
+          <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r bg-[#7C3AED]" />
+        )}
+        <Icon size={16} className="shrink-0" />
+        {!compact && <span>{label}</span>}
+        {!compact && shortcut && (
+          <span className="ml-auto hidden text-[10px] text-[#4B5563] group-hover:text-[#6B7280] lg:block">
+            {shortcut}
+          </span>
+        )}
+      </Link>
+    </motion.div>
   );
 }
 
@@ -71,6 +73,9 @@ function LogoMark({ size = "default" }: { size?: "default" | "small" }) {
       src="/logo.png"
       alt="FocusArx Shield Crest Logo"
       className={`${imgSize} rounded-full object-cover drop-shadow-[0_0_8px_rgba(147,51,234,0.5)]`}
+      loading="lazy"
+      width={size === "small" ? 28 : 36}
+      height={size === "small" ? 28 : 36}
     />
   );
 }
@@ -80,7 +85,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const { data: session, status, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Close mobile drawer on Escape key
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === "Escape") setMobileOpen(false);
   }, []);
@@ -95,7 +99,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, [mobileOpen, handleKeyDown]);
 
-  // Close drawer on route change
   useEffect(() => {
     setMobileOpen(false);
   }, [location]);
@@ -127,6 +130,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           {NAV_ITEMS.map((item) => (
             <NavItem key={item.href} {...item} active={location === item.href} />
           ))}
+          {session?.user && (session.user as any).role === "admin" && (
+            <NavItem
+              href="/admin"
+              label="Admin"
+              icon={Shield}
+              active={location === "/admin"}
+            />
+          )}
         </nav>
 
         {/* User section */}
@@ -141,7 +152,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   <p className="truncate text-xs font-medium text-[#E2E8F0]">
                     {user.name || user.email?.split("@")[0] || "User"}
                   </p>
-                  <p className="text-[10px] text-[#4B5563]">{user.isGuest ? "Guest" : "Signed in"}</p>
+                  <p className="truncate text-[10px] text-[#4B5563]">
+                    {user.isGuest ? "Guest session" : (user.email ?? "Signed in")}
+                  </p>
                 </div>
               </div>
               <button
@@ -183,7 +196,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <AnimatePresence>
         {mobileOpen && (
           <>
-            {/* Backdrop overlay — click to dismiss */}
             <motion.div
               key="mobile-backdrop"
               initial={{ opacity: 0 }}
@@ -195,7 +207,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               aria-label="Close menu"
             />
 
-            {/* Slide-out drawer */}
             <motion.aside
               key="mobile-drawer"
               initial={{ x: "-100%" }}
@@ -204,7 +215,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
               className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-[rgba(124,58,237,0.2)] bg-[rgba(8,12,28,0.99)] md:hidden"
             >
-              {/* Drawer header — logo + close X */}
               <div className="flex items-center justify-between border-b border-[rgba(124,58,237,0.15)] px-5 py-5">
                 <div className="flex items-center gap-2.5">
                   <LogoMark size="small" />
@@ -219,7 +229,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 </button>
               </div>
 
-              {/* Drawer nav — auto-dismiss on link click */}
               <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
                 {NAV_ITEMS.map((item) => (
                   <NavItem
@@ -229,9 +238,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     onClick={() => setMobileOpen(false)}
                   />
                 ))}
+                {session?.user && (session.user as any).role === "admin" && (
+                  <NavItem
+                    href="/admin"
+                    label="Admin"
+                    icon={Shield}
+                    active={location === "/admin"}
+                    onClick={() => setMobileOpen(false)}
+                  />
+                )}
               </nav>
 
-              {/* Drawer footer */}
               <div className="border-t border-[rgba(124,58,237,0.15)] px-3 py-4">
                 {status === "authenticated" && user ? (
                   <button
