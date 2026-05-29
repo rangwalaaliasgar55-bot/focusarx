@@ -34,11 +34,21 @@ if (!rawConnectionString) {
 }
 
 /**
- * Strip SSL query params from the connection string before passing it to the
- * Pool. When `sslmode=verify-full` (or similar) is present in the URL *and*
- * we also pass an explicit `ssl` object, pg emits a Node.js security warning
- * and the two settings conflict — potentially causing 500 errors. We own the
- * SSL configuration entirely through the `ssl` Pool option below.
+ * Read the sslmode query param from the URL.
+ * Returns null if the URL can't be parsed or the param isn't present.
+ */
+function getSslMode(url: string): string | null {
+  try {
+    return new URL(url).searchParams.get("sslmode");
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Strip SSL-related query params from a connection string.
+ * Only called when we are taking over SSL handling via the Pool `ssl` option —
+ * never called when sslmode=disable, so that instruction reaches pg intact.
  */
 function stripSslParams(url: string): string {
   try {
@@ -52,13 +62,24 @@ function stripSslParams(url: string): string {
   }
 }
 
-const connectionString = stripSslParams(rawConnectionString);
+const sslMode = getSslMode(rawConnectionString);
 
+// sslmode=disable means the server explicitly does not support SSL — never
+// override that.  For all other cases (require, verify-full, no param, or
+// we're on Vercel/Supabase/a non-local host) we handle SSL ourselves via the
+// Pool `ssl` option and strip the param from the URL to avoid conflicts.
 const useSsl =
-  process.env.VERCEL === "1" ||
-  rawConnectionString.includes("supabase") ||
-  rawConnectionString.includes("sslmode=") ||
-  (!rawConnectionString.includes("localhost") && !rawConnectionString.includes("127.0.0.1"));
+  sslMode !== "disable" &&
+  (
+    process.env.VERCEL === "1" ||
+    rawConnectionString.includes("supabase") ||
+    (sslMode !== null && sslMode !== "") ||
+    (!rawConnectionString.includes("localhost") && !rawConnectionString.includes("127.0.0.1"))
+  );
+
+// Only strip SSL params when we're taking over SSL handling.  When useSsl is
+// false (e.g. sslmode=disable or a plain localhost URL) leave the string alone.
+const connectionString = useSsl ? stripSslParams(rawConnectionString) : rawConnectionString;
 
 export const pool = new Pool({
   connectionString,
