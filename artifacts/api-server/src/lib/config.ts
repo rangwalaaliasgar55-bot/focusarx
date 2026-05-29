@@ -39,7 +39,7 @@ export function getServerConfig(): ServerConfig {
   return {
     jwtSecret,
     adminPassword,
-    databaseUrl: process.env.DATABASE_URL ?? null,
+    databaseUrl: process.env.DATABASE_URL ?? process.env.POSTGRES_URL ?? null,
     isProduction,
     googleClientId: process.env.GOOGLE_CLIENT_ID ?? null,
     googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? null,
@@ -51,7 +51,7 @@ export function getServerConfig(): ServerConfig {
 export function getConfigErrors(): string[] {
   const config = getServerConfig();
   const missing: string[] = [];
-  if (!config.databaseUrl) missing.push("DATABASE_URL");
+  if (!config.databaseUrl) missing.push("DATABASE_URL or POSTGRES_URL");
   if (config.isProduction && !config.jwtSecret) missing.push("AUTH_SECRET");
   return missing;
 }
