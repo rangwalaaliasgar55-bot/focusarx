@@ -46,15 +46,15 @@ export default defineConfig({
       },
       output: {
         manualChunks(id) {
-          if (!id.includes("node_modules")) return;
-          const pkg = id.split("node_modules/").pop()?.split("/")[0] ?? "";
-          if (pkg === "react" || pkg === "react-dom" || pkg === "scheduler") return "react-vendor";
-          if (pkg.startsWith("@radix-ui")) return "radix-vendor";
-          if (pkg === "framer-motion" || pkg === "motion") return "framer-vendor";
-          if (pkg.startsWith("@tanstack")) return "tanstack-vendor";
-          if (pkg === "recharts" || pkg.startsWith("d3-") || pkg === "d3") return "charts-vendor";
-          if (pkg === "@mediapipe" || pkg === "react-webcam") return "vision-vendor";
-          return "vendor";
+          if (id.includes("node_modules")) {
+            if (id.includes("react") || id.includes("react-dom") || id.includes("react-router")) {
+              return "react-vendor";
+            }
+            if (id.includes("framer-motion")) {
+              return "framer-vendor";
+            }
+            return "vendor";
+          }
         },
       },
     },
