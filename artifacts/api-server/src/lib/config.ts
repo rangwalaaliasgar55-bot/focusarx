@@ -4,6 +4,8 @@ export type ServerConfig = {
   databaseUrl: string | null;
   isProduction: boolean;
   appUrl: string | null;
+  googleClientId: string | null;
+  googleClientSecret: string | null;
 };
 
 let warnedDevJwt = false;
