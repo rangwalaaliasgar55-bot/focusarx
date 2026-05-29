@@ -27,6 +27,15 @@ node_modules
 !.vscode/launch.json
 !.vscode/extensions.json
 
+# env / secrets / deploy cache
+.env
+.env.*
+!.env.example
+.vercel
+.next
+out
+prisma/migrations/**/migration_lock.toml
+
 # misc
 /.sass-cache
 /connect.lock

@@ -14,13 +14,68 @@ function auth(req: any, res: any, next: any) {
   next();
 }
 
-router.post("/coach/chat", auth, async (req: any, res) => {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    res.status(503).json({ error: "AI Coach not configured. Set ANTHROPIC_API_KEY environment variable." });
-    return;
+// Groq API — Llama 3.1 8B Instant (feels near-instant for users)
+async function callGroq(
+  systemPrompt: string,
+  messages: Array<{ role: "user" | "assistant"; content: string }>,
+  userMessage: string,
+  maxTokens = 300,
+): Promise<string | null> {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) return null;
+  try {
+    const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "llama-3.1-8b-instant",
+        max_tokens: maxTokens,
+        temperature: 0.7,
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages,
+          { role: "user", content: userMessage },
+        ],
+      }),
+      signal: AbortSignal.timeout(12_000),
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json() as { choices?: Array<{ message?: { content?: string } }> };
+    return data.choices?.[0]?.message?.content?.trim() ?? null;
+  } catch {
+    return null;
   }
+}
 
+// Smart built-in fallback (no API key required)
+function builtinReply(userMessage: string): string {
+  const msg = userMessage.toLowerCase();
+  const tips = [
+    "Break your work into 25-minute focused blocks with 5-minute breaks. Consistency beats intensity.",
+    "The best time to start was yesterday. The second best time is now.",
+    "Eliminate distractions before they happen — phone in another room, notifications off, water nearby.",
+    "Review what you accomplished today, not what you didn't. Progress compounds over time.",
+    "Energy management matters more than time management. Match hard tasks to your peak energy hours.",
+    "One focused hour beats three distracted hours. Close all tabs except what you need right now.",
+    "Your brain needs recovery. A proper 5-minute break makes the next session sharper.",
+  ];
+  if (msg.includes("distract") || msg.includes("focus"))
+    return "Close everything except the one thing you're working on. Set a 25-minute timer and commit fully.";
+  if (msg.includes("tired") || msg.includes("energy") || msg.includes("exhausted"))
+    return "Take a real 10-minute break — walk outside if you can. Tired focus sessions waste more time than they save.";
+  if (msg.includes("motivat") || msg.includes("stuck") || msg.includes("procrastinat"))
+    return "Start with the smallest possible version of the task. Open the file. Write one sentence. Momentum builds from tiny actions.";
+  if (msg.includes("plan") || msg.includes("priorit"))
+    return "Pick your 3 most important tasks. Do the hardest one first while your willpower is highest.";
+  if (msg.includes("overwhelm") || msg.includes("stress") || msg.includes("anxious"))
+    return "When everything feels urgent, nothing is. Take 3 deep breaths, then pick ONE thing to do in the next 25 minutes.";
+  return tips[Math.floor(Date.now() / 1000) % tips.length]!;
+}
+
+router.post("/coach/chat", auth, async (req: any, res) => {
   const { message, conversationHistory } = req.body as {
     message?: string;
     conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>;
@@ -50,48 +105,25 @@ router.post("/coach/chat", auth, async (req: any, res) => {
     if (user?.name) context.push(`User's name: ${user.name}`);
     const od = user?.onboardingData as any;
     if (od?.goal) context.push(`Focus goal: ${od.goal}`);
-    if (readiness) context.push(`Today's readiness score: ${readiness.score}/100 (recommended session: ${readiness.sessionLengthRec}min)`);
+    if (readiness) context.push(`Today's readiness: ${readiness.score}/100 (recommended session: ${readiness.sessionLengthRec}min)`);
     if (activeSession?.timerStatus === "running") {
       const minsLeft = Math.floor((activeSession.secondsLeft ?? 0) / 60);
-      context.push(`Currently in a ${activeSession.mode} session with ${minsLeft} minutes left`);
+      context.push(`Currently in a ${activeSession.mode} session, ${minsLeft}min left`);
     }
     if (recentDistractions.length > 0) {
       context.push(`Recent distractions: ${recentDistractions.map(d => d.reason).join(", ")}`);
     }
 
-    const systemPrompt = `You are FocusArx Coach, an expert productivity and neuroscience coach. You have access to the user's context below. Be warm, sharp, and motivating. Under 100 words unless asked for more.
+    const systemPrompt = `You are FocusArx Coach — an expert productivity and deep-work coach powered by neuroscience. You have real-time context about this user below. Be warm, sharp, direct. Under 80 words unless the user asks for more. Never use bullet points.
 
 User context:
 ${context.length > 0 ? context.join("\n") : "No context available yet."}`;
 
-    const history = (conversationHistory ?? []).slice(-10);
-    const messages = [...history, { role: "user" as const, content: message }];
+    const history = (conversationHistory ?? []).slice(-8);
+    const reply = await callGroq(systemPrompt, history, message)
+      ?? builtinReply(message);
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-3-5-sonnet-20241022",
-        max_tokens: 300,
-        system: systemPrompt,
-        messages,
-      }),
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      logger.error({ status: response.status, errText }, "Anthropic API error");
-      res.status(502).json({ error: "AI service error" });
-      return;
-    }
-
-    const data = await response.json() as { content?: Array<{ text?: string }> };
-    const reply = data.content?.[0]?.text ?? "Stay focused — you've got this!";
-    res.json({ reply });
+    res.json({ reply, fallback: !process.env.GROQ_API_KEY });
   } catch (err) {
     logger.error({ err }, "coach chat error");
     res.status(500).json({ error: "Internal error" });
@@ -99,31 +131,21 @@ ${context.length > 0 ? context.join("\n") : "No context available yet."}`;
 });
 
 router.get("/coach/session-tip", auth, async (req: any, res) => {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) { res.json({ tip: null }); return; }
-
   try {
     const today = new Date().toISOString().split("T")[0]!;
     const [readiness] = await db.select({ score: readinessLogsTable.score })
       .from(readinessLogsTable)
       .where(and(eq(readinessLogsTable.userId, req.userId), eq(readinessLogsTable.date, today)));
 
-    const prompt = `Give one ultra-concise focus tip (max 2 sentences, no bullet points) for a user about to start a focus session.${readiness ? ` Their readiness score is ${readiness.score}/100.` : ""}`;
+    const systemPrompt = "You are a focus coach. Give ONE ultra-concise focus tip (max 2 sentences, plain text, no bullet points).";
+    const userMessage = `Quick tip for a user about to start a focus session.${readiness ? ` Readiness: ${readiness.score}/100.` : ""}`;
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-3-5-sonnet-20241022",
-        max_tokens: 100,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
+    const tip = await callGroq(systemPrompt, [], userMessage, 80)
+      ?? "Start your timer, close every other tab. The hardest part is always the first 2 minutes.";
 
-    const data = await response.json() as { content?: Array<{ text?: string }> };
-    res.json({ tip: data.content?.[0]?.text ?? null });
+    res.json({ tip, fallback: !process.env.GROQ_API_KEY });
   } catch {
-    res.json({ tip: null });
+    res.json({ tip: "Start your timer, close every other tab." });
   }
 });
 

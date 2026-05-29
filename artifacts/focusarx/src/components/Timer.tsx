@@ -22,6 +22,7 @@ import TaskTimeline, { OverrunModal } from "./TaskTimeline";
 import { SoundEngine } from "./SoundEngine";
 import SessionTypePicker, { type SessionType, SESSION_TYPE_TINTS } from "./SessionTypePicker";
 import AmbientSoundBar from "./AmbientSoundBar";
+import { useTasks } from "@/hooks/useTasks";
 
 const MODES: TimerMode[] = ["focus", "break", "longBreak"];
 
@@ -67,6 +68,7 @@ export default function Timer() {
   const { addSession, focusSessionsToday } = useSessionHistory();
   const { toast } = useToast();
   const { requestMonitorRecovery, monitorEnabled } = useSessionRecovery();
+  const { activeTasks } = useTasks();
   const [storageReady, setStorageReady] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
@@ -351,7 +353,7 @@ export default function Timer() {
     <motion.section
       layout
       animate={justCompleted ? { scale: [1, 1.02, 1] } : { scale: 1 }}
-      className="w-full max-w-md rounded-[1.75rem] border border-[var(--card-border)] bg-[var(--card)] p-8 shadow-[0_24px_80px_-24px_rgba(0,0,0,0.55)] backdrop-blur-2xl sm:p-10"
+      className={`w-full max-w-md rounded-[1.75rem] border border-[var(--card-border)] bg-[var(--card)] p-8 backdrop-blur-2xl sm:p-10 ${isRunning ? "timer-running-glow" : "shadow-[0_24px_80px_-24px_rgba(0,0,0,0.55)]"}`}
       style={typeTint ? { background: `linear-gradient(135deg, var(--card) 60%, ${typeTint.bg})`, borderColor: `${typeTint.accent}22` } : undefined}
       transition={{ type: "spring", stiffness: 260, damping: 32 }}
     >
@@ -487,8 +489,15 @@ export default function Timer() {
     </motion.section>
 
     {/* ── Upgrade 1: Task Timeline + Overrun ─────────────────────────── */}
-    <div className="mt-6 w-full max-w-md">
+    <div className="mt-14 w-full max-w-md">
       <TaskTimeline
+        tasks={activeTasks.map(t => ({
+          id: t.id,
+          text: t.title,
+          completed: t.done,
+          estimatedMinutes: t.estimatedPomodoros ? t.estimatedPomodoros * 25 : null,
+          order: 0,
+        }))}
         elapsedSeconds={isRunning ? (totalFocusSec - secondsLeft) : 0}
         isRunning={isRunning && mode === "focus"}
         onOverrun={(task, mins) => {

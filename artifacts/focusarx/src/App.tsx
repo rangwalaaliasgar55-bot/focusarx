@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { ToastProvider } from "@/components/Toast";
@@ -36,6 +36,28 @@ import { useTasks } from "@/hooks/useTasks";
 import { useEffect, useState } from "react";
 
 const queryClient = new QueryClient();
+
+function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+  const { status } = useAuth();
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      setLocation("/login");
+    }
+  }, [status, setLocation]);
+
+  if (status === "loading") {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-[#7C3AED]" />
+      </div>
+    );
+  }
+
+  if (status === "unauthenticated") return null;
+  return <Component />;
+}
 
 function SidePanel() {
   const { focusSessionsToday } = useSessionHistory();
@@ -180,28 +202,31 @@ function AppWithPalette() {
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <AppShell>
         <Switch>
-          <Route path="/" component={HomePage} />
-          <Route path="/dashboard" component={DashboardPage} />
-          <Route path="/analytics" component={AnalyticsPage} />
-          <Route path="/leaderboard" component={LeaderboardPage} />
-          <Route path="/achievements" component={AchievementsPage} />
-          <Route path="/forge" component={ForgePage} />
+          {/* Auth routes — no protection needed */}
           <Route path="/login" component={LoginPage} />
           <Route path="/signup" component={SignupPage} />
           <Route path="/forgot-password" component={ForgotPasswordPage} />
           <Route path="/reset-password" component={ResetPasswordPage} />
-          <Route path="/onboarding" component={OnboardingPage} />
-          <Route path="/distractions" component={DistractionsPage} />
-          <Route path="/profiles" component={ProfilesPage} />
           <Route path="/auth/callback" component={AuthCallbackPage} />
-          <Route path="/roadmap" component={RoadmapPage} />
           <Route path="/admin" component={AdminPage} />
-          <Route path="/focus-dna" component={FocusDnaPage} />
-          <Route path="/ghosts" component={GhostsPage} />
-          <Route path="/consequences" component={ConsequencesPage} />
-          <Route path="/replay" component={ReplayPage} />
+
+          {/* Protected routes */}
+          <Route path="/" component={HomePage} />
+          <Route path="/dashboard" component={() => <ProtectedRoute component={DashboardPage} />} />
+          <Route path="/analytics" component={() => <ProtectedRoute component={AnalyticsPage} />} />
+          <Route path="/leaderboard" component={() => <ProtectedRoute component={LeaderboardPage} />} />
+          <Route path="/achievements" component={() => <ProtectedRoute component={AchievementsPage} />} />
+          <Route path="/forge" component={() => <ProtectedRoute component={ForgePage} />} />
+          <Route path="/onboarding" component={() => <ProtectedRoute component={OnboardingPage} />} />
+          <Route path="/distractions" component={() => <ProtectedRoute component={DistractionsPage} />} />
+          <Route path="/profiles" component={() => <ProtectedRoute component={ProfilesPage} />} />
+          <Route path="/roadmap" component={RoadmapPage} />
+          <Route path="/focus-dna" component={() => <ProtectedRoute component={FocusDnaPage} />} />
+          <Route path="/ghosts" component={() => <ProtectedRoute component={GhostsPage} />} />
+          <Route path="/consequences" component={() => <ProtectedRoute component={ConsequencesPage} />} />
+          <Route path="/replay" component={() => <ProtectedRoute component={ReplayPage} />} />
           <Route path="/breathe" component={BreathePage} />
-          <Route path="/profile" component={ProfilePage} />
+          <Route path="/profile" component={() => <ProtectedRoute component={ProfilePage} />} />
           <Route component={NotFound} />
         </Switch>
       </AppShell>

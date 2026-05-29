@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
 type ToastType = "success" | "info" | "error";
@@ -9,46 +9,81 @@ interface Toast {
   id: string;
   message: string;
   type: ToastType;
+  duration: number;
 }
 
 interface ToastContextType {
-  toast: (message: string, type?: ToastType) => void;
+  toast: (message: string, type?: ToastType, duration?: number) => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
+const ICONS: Record<ToastType, string> = {
+  success: "✅",
+  error: "❌",
+  info: "ℹ️",
+};
+
+const COLORS: Record<ToastType, { bg: string; ring: string; bar: string }> = {
+  success: { bg: "bg-zinc-900/95 text-emerald-300", ring: "ring-emerald-500/30", bar: "bg-emerald-500" },
+  error:   { bg: "bg-zinc-900/95 text-rose-300",    ring: "ring-rose-500/30",    bar: "bg-rose-500"    },
+  info:    { bg: "bg-zinc-900/95 text-zinc-200",    ring: "ring-zinc-600/50",    bar: "bg-[#7C3AED]"   },
+};
+
+function ToastItem({ toast: t, onRemove }: { toast: Toast; onRemove: (id: string) => void }) {
+  const c = COLORS[t.type];
+  useEffect(() => {
+    const id = setTimeout(() => onRemove(t.id), t.duration);
+    return () => clearTimeout(id);
+  }, [t.id, t.duration, onRemove]);
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, x: 60, scale: 0.95 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: 40, scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 340, damping: 30 }}
+      className={`pointer-events-auto relative flex min-w-[260px] max-w-sm items-start gap-3 overflow-hidden rounded-2xl px-4 py-3 shadow-2xl backdrop-blur-xl ring-1 ${c.bg} ${c.ring}`}
+    >
+      <span className="shrink-0 text-base leading-none mt-0.5">{ICONS[t.type]}</span>
+      <p className="flex-1 text-sm font-medium leading-snug">{t.message}</p>
+      <button
+        type="button"
+        onClick={() => onRemove(t.id)}
+        className="shrink-0 text-zinc-600 hover:text-zinc-300 transition-colors text-xs leading-none mt-0.5"
+        aria-label="Dismiss"
+      >✕</button>
+      {/* Progress bar */}
+      <motion.div
+        className={`absolute bottom-0 left-0 h-[2px] rounded-full ${c.bar}`}
+        initial={{ width: "100%" }}
+        animate={{ width: "0%" }}
+        transition={{ duration: t.duration / 1000, ease: "linear" }}
+      />
+    </motion.div>
+  );
+}
+
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const toast = useCallback((message: string, type: ToastType = "info") => {
+  const toast = useCallback((message: string, type: ToastType = "info", duration = 4000) => {
     const id = Math.random().toString(36).slice(2, 9);
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
+    setToasts((prev) => [...prev.slice(-4), { id, message, type, duration }]);
+  }, []);
+
+  const remove = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 flex-col items-center gap-2 pointer-events-none">
-        <AnimatePresence>
+      <div className="fixed bottom-24 right-4 z-[9999] flex flex-col items-end gap-2 pointer-events-none md:bottom-6">
+        <AnimatePresence mode="popLayout">
           {toasts.map((t) => (
-            <motion.div
-              key={t.id}
-              initial={{ opacity: 0, y: 20, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              className={`pointer-events-auto rounded-full px-4 py-2 text-sm font-medium shadow-lg backdrop-blur-md ${
-                t.type === "success"
-                  ? "bg-emerald-500/90 text-emerald-50 ring-1 ring-emerald-400/50"
-                  : t.type === "error"
-                  ? "bg-rose-500/90 text-rose-50 ring-1 ring-rose-400/50"
-                  : "bg-zinc-800/90 text-zinc-100 ring-1 ring-zinc-700"
-              }`}
-            >
-              {t.message}
-            </motion.div>
+            <ToastItem key={t.id} toast={t} onRemove={remove} />
           ))}
         </AnimatePresence>
       </div>

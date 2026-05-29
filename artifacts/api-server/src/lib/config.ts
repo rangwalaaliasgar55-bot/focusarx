@@ -11,10 +11,29 @@ export type ServerConfig = {
 let warnedDevJwt = false;
 let warnedDevAdmin = false;
 
+export function resolveDatabaseUrl(): string | null {
+  const isVercel = Boolean(process.env.VERCEL);
+  if (isVercel) {
+    return (
+      process.env.POSTGRES_URL_NON_POOLING ??
+      process.env.DATABASE_URL ??
+      process.env.POSTGRES_PRISMA_URL ??
+      process.env.POSTGRES_URL ??
+      null
+    );
+  }
+  return (
+    process.env.DATABASE_URL ??
+    process.env.POSTGRES_PRISMA_URL ??
+    process.env.POSTGRES_URL ??
+    process.env.POSTGRES_URL_NON_POOLING ??
+    null
+  );
+}
+
 export function getServerConfig(): ServerConfig {
   const isProduction = process.env.NODE_ENV === "production";
 
-  // AUTH_SECRET takes priority; fall back to SESSION_SECRET so existing Vercel/Replit secrets work
   let jwtSecret: string | null =
     process.env.AUTH_SECRET ?? process.env.SESSION_SECRET ?? null;
   if (!jwtSecret && !isProduction) {
@@ -27,11 +46,12 @@ export function getServerConfig(): ServerConfig {
     }
   }
 
-  const adminPassword: string | null = process.env.ADMIN_PASSWORD ?? null;
-  if (!adminPassword && !isProduction && !warnedDevAdmin) {
+  const adminPassword: string | null =
+    process.env.ADMIN_PASSWORD ?? (!isProduction ? "admin123" : null);
+  if (!process.env.ADMIN_PASSWORD && !isProduction && !warnedDevAdmin) {
     warnedDevAdmin = true;
     console.warn(
-      "[config] ADMIN_PASSWORD is not set — set it in .env for local admin access.",
+      "[config] ADMIN_PASSWORD is not set — using default dev password 'admin123'.",
     );
   }
 
@@ -42,7 +62,7 @@ export function getServerConfig(): ServerConfig {
   return {
     jwtSecret,
     adminPassword,
-    databaseUrl: process.env.DATABASE_URL ?? null,
+    databaseUrl: resolveDatabaseUrl(),
     isProduction,
     googleClientId: process.env.GOOGLE_CLIENT_ID ?? null,
     googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? null,
@@ -53,11 +73,13 @@ export function getServerConfig(): ServerConfig {
   };
 }
 
-/** Env vars that must be set in production (Vercel) for auth + data routes. */
+/** Env vars that must be set in production for auth + data routes. */
 export function getConfigErrors(): string[] {
   const config = getServerConfig();
   const missing: string[] = [];
-  if (!config.databaseUrl) missing.push("DATABASE_URL");
+  if (!config.databaseUrl) {
+    missing.push("DATABASE_URL or POSTGRES_URL_NON_POOLING");
+  }
   if (config.isProduction && !config.jwtSecret) missing.push("AUTH_SECRET");
   return missing;
 }

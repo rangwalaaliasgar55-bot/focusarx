@@ -1,15 +1,21 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useMemo, useState } from "react";
-import { Link } from "wouter";
+import { useMemo, useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { aiRoadmapSchema } from "@/lib/validators";
 import { getToken } from "@/lib/auth";
+import { BookmarkPlus, Trash2 } from "lucide-react";
 
 type RoadmapDay = {
   day: number;
   focusSessions: string[];
   tasks: string[];
   estimatedTime: number;
+};
+
+type SavedRoadmap = {
+  id: string;
+  subject: string;
+  createdAt: string;
 };
 
 export default function RoadmapPage() {
@@ -23,9 +29,35 @@ export default function RoadmapPage() {
   const [error, setError] = useState<string | null>(null);
   const [roadmap, setRoadmap] = useState<RoadmapDay[] | null>(null);
   const [openDay, setOpenDay] = useState<number | null>(1);
+  const [checked, setChecked] = useState<Set<string>>(new Set());
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [savedRoadmaps, setSavedRoadmaps] = useState<SavedRoadmap[]>([]);
+  const [loadingList, setLoadingList] = useState(false);
 
   const validPayload = useMemo(() => ({ goal, dailyHours, level, deadline: deadline || undefined, currentProgress: currentProgress || undefined }), [goal, dailyHours, level, deadline, currentProgress]);
-  const sessionReady = authStatus === "authenticated";
+
+  const authHeaders = () => {
+    const token = getToken();
+    return { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+  };
+
+  useEffect(() => {
+    if (authStatus !== "authenticated") return;
+    void fetchSavedList();
+  }, [authStatus]);
+
+  async function fetchSavedList() {
+    setLoadingList(true);
+    try {
+      const r = await fetch("/api/roadmap/list", { headers: authHeaders() });
+      if (r.ok) {
+        const d = await r.json() as { roadmaps: SavedRoadmap[] };
+        setSavedRoadmaps(d.roadmaps ?? []);
+      }
+    } catch { /* ignore */ }
+    setLoadingList(false);
+  }
 
   async function generate() {
     setError(null);
@@ -34,13 +66,12 @@ export default function RoadmapPage() {
       setError(parsed.error.issues.map((i) => `${i.path.join(".") || "form"}: ${i.message}`).join(" · ") || "Please check your inputs.");
       return;
     }
-    if (!sessionReady) { setError("Still connecting your session. Wait a moment, then try again."); return; }
     setLoading(true);
+    setSaved(false);
     try {
-      const token = getToken();
       const res = await fetch("/api/ai/roadmap", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: authHeaders(),
         body: JSON.stringify(parsed.data),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string; roadmap?: RoadmapDay[] };
@@ -53,8 +84,47 @@ export default function RoadmapPage() {
       if (days.length === 0) { setError("The server returned an empty roadmap. Please try again."); setRoadmap(null); return; }
       setRoadmap(days);
       setOpenDay(1);
+      setChecked(new Set());
     } catch { setError("Network error — is the dev server running?"); }
     finally { setLoading(false); }
+  }
+
+  async function saveRoadmap() {
+    if (!roadmap || saving) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/roadmap/save", {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ subject: goal, data: roadmap }),
+      });
+      if (res.ok) {
+        setSaved(true);
+        await fetchSavedList();
+      }
+    } catch { /* ignore */ }
+    setSaving(false);
+  }
+
+  async function loadRoadmap(id: string) {
+    try {
+      const res = await fetch(`/api/roadmap/${id}`, { headers: authHeaders() });
+      if (res.ok) {
+        const d = await res.json() as { roadmap: { subject: string; data: RoadmapDay[] } };
+        setRoadmap(Array.isArray(d.roadmap.data) ? d.roadmap.data : []);
+        setGoal(d.roadmap.subject);
+        setOpenDay(1);
+        setChecked(new Set());
+        setSaved(true);
+      }
+    } catch { /* ignore */ }
+  }
+
+  async function deleteRoadmap(id: string) {
+    try {
+      await fetch(`/api/roadmap/${id}`, { method: "DELETE", headers: authHeaders() });
+      setSavedRoadmaps(prev => prev.filter(r => r.id !== id));
+    } catch { /* ignore */ }
   }
 
   return (
@@ -72,8 +142,12 @@ export default function RoadmapPage() {
           <motion.aside layout className="h-fit rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-6 shadow-2xl backdrop-blur-2xl">
             <h2 className="text-sm font-semibold text-zinc-200">Plan inputs</h2>
             <p className="mt-1 text-xs text-zinc-500">We will shape Pomodoro-sized blocks to match your day.</p>
-            {authStatus === "loading" && <p className="mt-3 text-xs text-amber-200/90">Connecting your session…</p>}
-            {authStatus === "unauthenticated" && <p className="mt-3 text-xs text-amber-200/90">Signing you in as a guest… If this stays stuck, refresh the page.</p>}
+            {authStatus === "loading" && (
+              <p className="mt-3 flex items-center gap-2 text-xs text-zinc-500">
+                <span className="h-3 w-3 animate-spin rounded-full border border-zinc-700 border-t-zinc-400" />
+                Connecting…
+              </p>
+            )}
             <label className="mt-5 block text-xs font-medium text-zinc-400">Goal
               <textarea value={goal} onChange={(e) => setGoal(e.target.value)} rows={3} className="mt-1.5 w-full resize-none rounded-xl border border-zinc-800/80 bg-zinc-950/40 px-3 py-2 text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-sky-500/40" />
             </label>
@@ -93,11 +167,47 @@ export default function RoadmapPage() {
             <label className="mt-4 block text-xs font-medium text-zinc-400">Current progress
               <textarea value={currentProgress} onChange={(e) => setCurrentProgress(e.target.value)} rows={2} className="mt-1.5 w-full resize-none rounded-xl border border-zinc-800/80 bg-zinc-950/40 px-3 py-2 text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-sky-500/40" />
             </label>
-            <motion.button type="button" disabled={loading || authStatus === "loading"} onClick={() => void generate()} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="mt-6 flex w-full items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-fuchsia-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-900/30 disabled:cursor-not-allowed disabled:opacity-60">
+            <motion.button type="button" disabled={loading} onClick={() => void generate()} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="mt-6 flex w-full items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-fuchsia-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-900/30 disabled:cursor-not-allowed disabled:opacity-60">
               {loading ? "AI is planning your success…" : "Generate roadmap"}
             </motion.button>
             {error && <p className="mt-3 text-xs text-rose-400" role="alert">{error}</p>}
+
+            {/* Saved roadmaps list */}
+            {authStatus === "authenticated" && savedRoadmaps.length > 0 && (
+              <div className="mt-6 border-t border-zinc-800/60 pt-5">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Saved roadmaps</p>
+                {loadingList ? (
+                  <div className="h-8 animate-pulse rounded-lg bg-zinc-900/50" />
+                ) : (
+                  <ul className="space-y-1">
+                    {savedRoadmaps.map((r) => (
+                      <li key={r.id} className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-zinc-800/40">
+                        <button
+                          type="button"
+                          onClick={() => void loadRoadmap(r.id)}
+                          className="flex-1 text-left text-xs text-zinc-400 hover:text-zinc-100 truncate"
+                        >
+                          {r.subject}
+                          <span className="ml-2 text-[10px] text-zinc-600">
+                            {new Date(r.createdAt).toLocaleDateString()}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void deleteRoadmap(r.id)}
+                          className="shrink-0 text-zinc-700 hover:text-rose-400 transition-colors"
+                          aria-label="Delete roadmap"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
           </motion.aside>
+
           <section className="space-y-4">
             <AnimatePresence mode="wait">
               {loading && (
@@ -109,6 +219,27 @@ export default function RoadmapPage() {
             </AnimatePresence>
             {!loading && roadmap !== null && roadmap.length > 0 && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+                {/* Header with save button */}
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-zinc-500">Generated</p>
+                    <h2 className="text-base font-semibold text-zinc-200">{goal}</h2>
+                  </div>
+                  {authStatus === "authenticated" && (
+                    <motion.button
+                      type="button"
+                      onClick={() => void saveRoadmap()}
+                      disabled={saving || saved}
+                      whileHover={{ scale: 1.04 }}
+                      whileTap={{ scale: 0.96 }}
+                      className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-medium transition-colors ${saved ? "border-emerald-700/40 bg-emerald-950/40 text-emerald-400" : "border-indigo-800/40 bg-indigo-950/40 text-indigo-300 hover:bg-indigo-900/40"} disabled:opacity-60`}
+                    >
+                      <BookmarkPlus size={13} />
+                      {saved ? "Saved" : saving ? "Saving…" : "Save roadmap"}
+                    </motion.button>
+                  )}
+                </div>
+
                 {roadmap.map((day) => {
                   const open = openDay === day.day;
                   return (
@@ -116,11 +247,21 @@ export default function RoadmapPage() {
                       <button type="button" onClick={() => setOpenDay(open ? null : day.day)} className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-white/5">
                         <div>
                           <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Day plan</p>
-                          <h3 className="text-lg font-semibold text-zinc-50">Day {day.day}</h3>
+                          <h3 className="text-lg font-semibold text-zinc-50">
+                            Day {day.day}
+                            {day.focusSessions[0] && (
+                              <span className="ml-2 text-sm font-normal text-zinc-500">
+                                — {day.focusSessions[0].split("—")[0]?.trim()}
+                              </span>
+                            )}
+                          </h3>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-full bg-indigo-950/60 border border-indigo-800/40 px-2 py-0.5 text-[10px] text-indigo-400">
+                            {day.focusSessions.length} sessions
+                          </span>
                           <span className="text-xs text-zinc-500">~{day.estimatedTime} min</span>
-                          <span className="text-xs text-zinc-500">{open ? "Hide" : "Expand"}</span>
+                          <span className="text-xs text-zinc-500">{open ? "▲" : "▼"}</span>
                         </div>
                       </button>
                       <AnimatePresence initial={false}>
@@ -133,7 +274,30 @@ export default function RoadmapPage() {
                               </div>
                               <div>
                                 <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Tasks</p>
-                                <ul className="mt-2 list-disc space-y-1 pl-4">{day.tasks.map((t) => <li key={t}>{t}</li>)}</ul>
+                                <ul className="mt-2 space-y-1.5">
+                                  {day.tasks.map((t) => {
+                                    const key = `${day.day}-${t}`;
+                                    const done = checked.has(key);
+                                    return (
+                                      <li
+                                        key={t}
+                                        className="flex items-center gap-2 cursor-pointer"
+                                        onClick={() => {
+                                          setChecked(prev => {
+                                            const next = new Set(prev);
+                                            done ? next.delete(key) : next.add(key);
+                                            return next;
+                                          });
+                                        }}
+                                      >
+                                        <span className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-colors ${done ? "bg-emerald-500 border-emerald-500" : "border-zinc-700"}`}>
+                                          {done && <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1.5 5L4 7.5L8.5 2.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                                        </span>
+                                        <span className={`text-sm ${done ? "line-through text-zinc-600" : "text-zinc-300"}`}>{t}</span>
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
                               </div>
                             </div>
                           </motion.div>
@@ -146,7 +310,7 @@ export default function RoadmapPage() {
             )}
             {!loading && (roadmap === null || roadmap.length === 0) && (
               <div className="rounded-2xl border border-zinc-800/60 bg-zinc-950/30 px-6 py-12 text-center text-sm text-zinc-500 backdrop-blur-xl">
-                {authStatus === "authenticated" ? "Generate a roadmap to see your week unfold here." : "Once your session is connected, generate a roadmap to see it here."}
+                Generate a roadmap to see your week unfold here.
               </div>
             )}
           </section>

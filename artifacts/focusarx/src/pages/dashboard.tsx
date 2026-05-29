@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { PageTransition } from "@/components/PageTransition";
@@ -36,6 +36,99 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     </div>
   );
 };
+
+function StreakHeatmap({ chartData, streak }: { chartData: DashboardStats["chartData"]; streak: number }) {
+  const today = useMemo(() => new Date(), []);
+  const cells = useMemo(() => {
+    const arr: { date: string; minutes: number }[] = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split("T")[0]!;
+      const found = chartData.find((c) => c.date === dateStr);
+      arr.push({ date: dateStr, minutes: found?.minutes ?? 0 });
+    }
+    return arr;
+  }, [chartData, today]);
+
+  const maxMin = Math.max(...cells.map((c) => c.minutes), 1);
+
+  return (
+    <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-[#4B5563]">Study Streak</p>
+          <p className="mt-0.5 flex items-center gap-1.5 text-2xl font-bold text-[#E2E8F0]">
+            🔥 <span>{streak}</span>
+            <span className="text-sm font-normal text-[#4B5563]">days</span>
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] uppercase tracking-wider text-[#4B5563]">Last 30 days</p>
+          <p className="text-xs text-[#6B7280]">{cells.filter((c) => c.minutes > 0).length} active</p>
+        </div>
+      </div>
+      <div className="grid grid-cols-[repeat(30,1fr)] gap-0.5">
+        {cells.map((cell) => {
+          const intensity = cell.minutes / maxMin;
+          const opacity = cell.minutes === 0 ? 0.06 : 0.15 + intensity * 0.85;
+          return (
+            <div
+              key={cell.date}
+              title={`${cell.date}: ${cell.minutes}m`}
+              className="aspect-square rounded-sm"
+              style={{ background: cell.minutes === 0 ? "rgba(124,58,237,0.08)" : `rgba(124,58,237,${opacity.toFixed(2)})` }}
+            />
+          );
+        })}
+      </div>
+      <div className="mt-2 flex justify-between text-[9px] text-[#374151]">
+        <span>30d ago</span>
+        <span>today</span>
+      </div>
+    </div>
+  );
+}
+
+function GoalRing({ sessionsToday, target = 6 }: { sessionsToday: number; target?: number }) {
+  const pct = Math.min(sessionsToday / target, 1);
+  const r = 32;
+  const circ = 2 * Math.PI * r;
+  const dash = pct * circ;
+
+  return (
+    <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl flex flex-col items-center justify-center gap-2">
+      <p className="text-xs font-medium uppercase tracking-[0.18em] text-[#4B5563]">Today's Goal</p>
+      <div className="relative">
+        <svg width={88} height={88} className="-rotate-90">
+          <circle cx={44} cy={44} r={r} fill="none" stroke="rgba(124,58,237,0.1)" strokeWidth={7} />
+          <circle
+            cx={44} cy={44} r={r}
+            fill="none"
+            stroke="url(#goal-grad)"
+            strokeWidth={7}
+            strokeLinecap="round"
+            strokeDasharray={`${dash} ${circ}`}
+            style={{ transition: "stroke-dasharray 0.6s ease" }}
+          />
+          <defs>
+            <linearGradient id="goal-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#7C3AED" />
+              <stop offset="100%" stopColor="#A78BFA" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-lg font-bold text-[#E2E8F0]">{sessionsToday}</span>
+          <span className="text-[10px] text-[#4B5563]">of {target}</span>
+        </div>
+      </div>
+      <p className="text-xs text-[#6B7280]">{pct >= 1 ? "🎉 Goal reached!" : `${target - sessionsToday} block${target - sessionsToday !== 1 ? "s" : ""} to go`}</p>
+    </div>
+  );
+}
+
+const SESSION_EMOJIS: Record<string, string> = { focus: "🧠", break: "☕", longBreak: "🌊" };
 
 export default function DashboardPage() {
   const { status } = useAuth();
@@ -87,13 +180,21 @@ export default function DashboardPage() {
           )}
 
           {loading && status !== "unauthenticated" && (
-            <div className="flex h-48 items-center justify-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-[rgba(124,58,237,0.3)] border-t-[#7C3AED]" />
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-24 animate-pulse rounded-2xl bg-zinc-900/50" />
+              ))}
             </div>
           )}
 
           {!loading && stats && (
             <div className="space-y-6">
+              {/* Streak heatmap + Goal ring */}
+              <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
+                <StreakHeatmap chartData={stats.chartData} streak={stats.currentStreak} />
+                <GoalRing sessionsToday={stats.sessionsToday} target={6} />
+              </div>
+
               {/* Focus Weather */}
               <WeatherWidget />
 
@@ -141,30 +242,60 @@ export default function DashboardPage() {
               <div className="space-y-3">
                 <h2 className="text-sm font-semibold text-[#E2E8F0]">Recent sessions</h2>
                 {stats.recentSessions.length === 0 ? (
-                  <p className="text-center text-sm text-[#4B5563]">Complete a focus block to see insights.</p>
+                  <div className="rounded-2xl border border-dashed border-zinc-800/60 bg-zinc-950/30 px-6 py-10 text-center text-sm text-zinc-500">
+                    Complete a focus block to see session insights here.
+                  </div>
                 ) : (
-                  stats.recentSessions.map((s) => (
-                    <div key={s.id} className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4 backdrop-blur-xl hover:border-[rgba(124,58,237,0.35)] transition-colors">
-                      <div className="flex items-center justify-between">
-                        <span className="rounded-full bg-[rgba(124,58,237,0.12)] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-[#A78BFA]">{s.mode}</span>
-                        <span className="text-xs text-[#4B5563]">{Math.round(s.durationSec / 60)}m</span>
-                      </div>
-                      {s.focusScore != null && (
-                        <div className="mt-2 flex items-center gap-2">
-                          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[rgba(124,58,237,0.1)]">
-                            <div
-                              className="h-full rounded-full bg-gradient-to-r from-[#7C3AED] to-[#A78BFA]"
-                              style={{ width: `${s.focusScore}%` }}
-                            />
-                          </div>
-                          <span className="text-xs font-semibold text-[#A78BFA]">{s.focusScore}</span>
-                        </div>
-                      )}
-                      <p className="mt-1.5 text-[10px] text-[#4B5563]">{new Date(s.completedAt).toLocaleString()}</p>
-                    </div>
-                  ))
+                  <div className="overflow-hidden rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] backdrop-blur-xl">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-zinc-800/60 text-[#4B5563]">
+                          <th className="px-4 py-3 text-left font-medium">Mode</th>
+                          <th className="px-4 py-3 text-left font-medium">Duration</th>
+                          <th className="px-4 py-3 text-left font-medium hidden sm:table-cell">Focus</th>
+                          <th className="px-4 py-3 text-left font-medium">When</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {stats.recentSessions.map((s) => (
+                          <tr key={s.id} className="border-b border-zinc-800/30 transition-colors hover:bg-zinc-800/20 last:border-0">
+                            <td className="px-4 py-3">
+                              <span className="flex items-center gap-1.5 font-medium text-[#A78BFA]">
+                                <span>{SESSION_EMOJIS[s.mode] ?? "⏱"}</span>
+                                <span>{s.mode}</span>
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-zinc-400">{Math.round(s.durationSec / 60)}m</td>
+                            <td className="px-4 py-3 hidden sm:table-cell">
+                              {s.focusScore != null ? (
+                                <div className="flex items-center gap-2">
+                                  <div className="h-1.5 w-16 overflow-hidden rounded-full bg-zinc-800">
+                                    <div className="h-full rounded-full bg-gradient-to-r from-[#7C3AED] to-[#A78BFA]" style={{ width: `${s.focusScore}%` }} />
+                                  </div>
+                                  <span className="font-medium text-[#A78BFA]">{s.focusScore}</span>
+                                </div>
+                              ) : (
+                                <span className="text-zinc-600">—</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-zinc-500">
+                              {new Date(s.completedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {!loading && !stats && status === "authenticated" && (
+            <div className="rounded-2xl border border-dashed border-zinc-800/60 bg-zinc-950/30 px-6 py-12 text-center text-sm text-zinc-500">
+              <p className="mb-2 text-zinc-400">No data yet</p>
+              <p>Complete your first focus session to see stats appear here.</p>
+              <Link href="/" className="mt-4 inline-block text-xs text-[#A78BFA] hover:text-[#7C3AED]">Go to Timer →</Link>
             </div>
           )}
         </PageTransition>

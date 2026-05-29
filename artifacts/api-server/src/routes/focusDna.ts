@@ -18,36 +18,41 @@ function auth(req: any, res: any, next: any) {
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 const ARCHETYPES = [
-  { name: "Night Sprinter",    colorPrimary: "#7C3AED", colorSecondary: "#A78BFA", icon: "🌙" },
-  { name: "Deep Diver",        colorPrimary: "#0EA5E9", colorSecondary: "#38BDF8", icon: "🌊" },
-  { name: "Chaos Warrior",     colorPrimary: "#EF4444", colorSecondary: "#F97316", icon: "⚡" },
-  { name: "Morning Monk",      colorPrimary: "#F59E0B", colorSecondary: "#FCD34D", icon: "☀️" },
-  { name: "Steady Climber",    colorPrimary: "#10B981", colorSecondary: "#34D399", icon: "🏔️" },
-  { name: "Flow Phantom",      colorPrimary: "#8B5CF6", colorSecondary: "#C4B5FD", icon: "👻" },
-  { name: "Iron Scheduler",    colorPrimary: "#64748B", colorSecondary: "#94A3B8", icon: "🤖" },
-  { name: "Spark Chaser",      colorPrimary: "#EC4899", colorSecondary: "#F472B6", icon: "✨" },
+  { name: "Night Sprinter",  colorPrimary: "#7C3AED", colorSecondary: "#A78BFA", icon: "🌙" },
+  { name: "Deep Diver",      colorPrimary: "#0EA5E9", colorSecondary: "#38BDF8", icon: "🌊" },
+  { name: "Chaos Warrior",   colorPrimary: "#EF4444", colorSecondary: "#F97316", icon: "⚡" },
+  { name: "Morning Monk",    colorPrimary: "#F59E0B", colorSecondary: "#FCD34D", icon: "☀️" },
+  { name: "Steady Climber",  colorPrimary: "#10B981", colorSecondary: "#34D399", icon: "🏔️" },
+  { name: "Flow Phantom",    colorPrimary: "#8B5CF6", colorSecondary: "#C4B5FD", icon: "👻" },
+  { name: "Iron Scheduler",  colorPrimary: "#64748B", colorSecondary: "#94A3B8", icon: "🤖" },
+  { name: "Spark Chaser",    colorPrimary: "#EC4899", colorSecondary: "#F472B6", icon: "✨" },
 ];
 
-async function callClaude(prompt: string, systemPrompt: string): Promise<string | null> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+// Groq API — fast description generation
+async function callGroq(systemPrompt: string, userPrompt: string): Promise<string | null> {
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return null;
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 300,
-        system: systemPrompt,
-        messages: [{ role: "user", content: prompt }],
+        model: "llama-3.1-8b-instant",
+        max_tokens: 120,
+        temperature: 0.8,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
       }),
+      signal: AbortSignal.timeout(10_000),
     });
-    const data = await res.json() as { content?: Array<{ text?: string }> };
-    return data.content?.[0]?.text ?? null;
+    if (!resp.ok) return null;
+    const data = await resp.json() as { choices?: Array<{ message?: { content?: string } }> };
+    return data.choices?.[0]?.message?.content?.trim() ?? null;
   } catch {
     return null;
   }
@@ -88,7 +93,6 @@ router.post("/focus-dna/generate", auth, async (req: any, res) => {
       .orderBy(desc(distractionLogsTable.createdAt))
       .limit(50);
 
-    // Analyze patterns
     const hourCounts: Record<number, number> = {};
     const dayCounts: Record<number, number> = {};
     let totalDurationSec = 0;
@@ -96,10 +100,8 @@ router.post("/focus-dna/generate", auth, async (req: any, res) => {
     for (const s of sessions) {
       totalDurationSec += s.durationSec;
       const d = s.completedAt ? new Date(s.completedAt) : new Date(s.createdAt);
-      const h = d.getHours();
-      const day = d.getDay();
-      hourCounts[h] = (hourCounts[h] ?? 0) + 1;
-      dayCounts[day] = (dayCounts[day] ?? 0) + 1;
+      hourCounts[d.getHours()] = (hourCounts[d.getHours()] ?? 0) + 1;
+      dayCounts[d.getDay()] = (dayCounts[d.getDay()] ?? 0) + 1;
     }
 
     const topHour = Number(Object.entries(hourCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 12);
@@ -111,70 +113,46 @@ router.post("/focus-dna/generate", auth, async (req: any, res) => {
     for (const d of distractions) {
       distractionFreq[d.reason] = (distractionFreq[d.reason] ?? 0) + 1;
     }
-    const biggestWeakness = Object.entries(distractionFreq).sort((a, b) => b[1] - a[1])[0]?.[0]
-      ?? "Social media";
+    const biggestWeakness = Object.entries(distractionFreq).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "Social media";
 
-    // Pick archetype based on patterns
     let archetypeIdx = 0;
-    if (topHour >= 20 || topHour < 4) archetypeIdx = 0; // Night Sprinter
-    else if (avgSessionMin >= 45) archetypeIdx = 1; // Deep Diver
-    else if (sessions.length > 50) archetypeIdx = 2; // Chaos Warrior
-    else if (topHour >= 5 && topHour < 10) archetypeIdx = 3; // Morning Monk
-    else if (avgSessionMin >= 30 && avgSessionMin < 45) archetypeIdx = 4; // Steady Climber
-    else if (distractions.length < 5) archetypeIdx = 5; // Flow Phantom
-    else if (strongestDay === "Monday" || strongestDay === "Tuesday") archetypeIdx = 6; // Iron Scheduler
-    else archetypeIdx = 7; // Spark Chaser
+    if (topHour >= 20 || topHour < 4) archetypeIdx = 0;
+    else if (avgSessionMin >= 45) archetypeIdx = 1;
+    else if (sessions.length > 50) archetypeIdx = 2;
+    else if (topHour >= 5 && topHour < 10) archetypeIdx = 3;
+    else if (avgSessionMin >= 30 && avgSessionMin < 45) archetypeIdx = 4;
+    else if (distractions.length < 5) archetypeIdx = 5;
+    else if (strongestDay === "Monday" || strongestDay === "Tuesday") archetypeIdx = 6;
+    else archetypeIdx = 7;
 
     const archetype = ARCHETYPES[archetypeIdx]!;
-
     const hrFmt = topHour === 0 ? "12am" : topHour < 12 ? `${topHour}am` : topHour === 12 ? "12pm" : `${topHour - 12}pm`;
 
-    const description = await callClaude(
-      `Write a 2-sentence personality description for someone with the focus archetype "${archetype.name}". 
-      Their stats: peak focus hour ${hrFmt}, avg session ${avgSessionMin} min, strongest day ${strongestDay}, biggest distraction: ${biggestWeakness}.
-      Make it feel like a trading card personality — dramatic, accurate, motivating. No markdown.`,
-      "You write punchy, insightful personality descriptions for a focus productivity app called FocusArx. Keep it under 50 words, no lists.",
+    const description = await callGroq(
+      "You write punchy, insightful personality descriptions for a focus productivity app called FocusArx. Keep it under 50 words, no lists, no markdown.",
+      `Write a 2-sentence personality description for someone with the focus archetype "${archetype.name}".
+Their stats: peak focus hour ${hrFmt}, avg session ${avgSessionMin} min, strongest day ${strongestDay}, biggest distraction: ${biggestWeakness}.
+Make it feel like a trading card personality — dramatic, accurate, motivating.`,
     ) ?? `A ${archetype.name} who dominates at ${hrFmt} with relentless ${avgSessionMin}-minute focus blocks. ${strongestDay}s are your superpower — use them.`;
 
     const [existing] = await db.select().from(focusDnaTable).where(eq(focusDnaTable.userId, req.userId));
 
     let dna;
     if (existing) {
-      [dna] = await db
-        .update(focusDnaTable)
-        .set({
-          archetype: archetype.name,
-          description,
-          colorPrimary: archetype.colorPrimary,
-          colorSecondary: archetype.colorSecondary,
-          icon: archetype.icon,
-          topFocusHour: topHour,
-          avgSessionMin,
-          strongestDay,
-          biggestWeakness,
-          sessionCountAtGeneration: sessions.length,
-          generatedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(focusDnaTable.userId, req.userId))
-        .returning();
+      [dna] = await db.update(focusDnaTable).set({
+        archetype: archetype.name, description,
+        colorPrimary: archetype.colorPrimary, colorSecondary: archetype.colorSecondary,
+        icon: archetype.icon, topFocusHour: topHour, avgSessionMin, strongestDay,
+        biggestWeakness, sessionCountAtGeneration: sessions.length,
+        generatedAt: new Date(), updatedAt: new Date(),
+      }).where(eq(focusDnaTable.userId, req.userId)).returning();
     } else {
-      [dna] = await db
-        .insert(focusDnaTable)
-        .values({
-          userId: req.userId,
-          archetype: archetype.name,
-          description,
-          colorPrimary: archetype.colorPrimary,
-          colorSecondary: archetype.colorSecondary,
-          icon: archetype.icon,
-          topFocusHour: topHour,
-          avgSessionMin,
-          strongestDay,
-          biggestWeakness,
-          sessionCountAtGeneration: sessions.length,
-        })
-        .returning();
+      [dna] = await db.insert(focusDnaTable).values({
+        userId: req.userId, archetype: archetype.name, description,
+        colorPrimary: archetype.colorPrimary, colorSecondary: archetype.colorSecondary,
+        icon: archetype.icon, topFocusHour: topHour, avgSessionMin, strongestDay,
+        biggestWeakness, sessionCountAtGeneration: sessions.length,
+      }).returning();
     }
 
     res.json({ dna, isNew: !existing });

@@ -25,9 +25,18 @@ export function AdminGate({ onUnlocked }: AdminGateProps) {
         body: JSON.stringify({ password }),
       });
 
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string; hint?: string; ok?: boolean;
+      };
+
       if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as { error?: string };
-        setError(data.error ?? "Access denied");
+        if (res.status === 503) {
+          setError("Admin panel needs ADMIN_PASSWORD set in your environment variables.");
+        } else if (res.status === 403 || res.status === 401) {
+          setError("Wrong password.");
+        } else {
+          setError(data.error ?? "Access denied");
+        }
         return;
       }
 
@@ -38,7 +47,7 @@ export function AdminGate({ onUnlocked }: AdminGateProps) {
         window.location.reload();
       }
     } catch {
-      setError("Could not reach server");
+      setError("Could not reach server — check your connection.");
     } finally {
       setLoading(false);
     }
@@ -77,6 +86,11 @@ export function AdminGate({ onUnlocked }: AdminGateProps) {
         >
           {loading ? "Verifying…" : "Unlock admin"}
         </button>
+        {process.env.NODE_ENV !== "production" && (
+          <p className="mt-4 text-center text-xs text-zinc-700">
+            Dev default: <code className="text-zinc-600">admin123</code> (set ADMIN_PASSWORD to change)
+          </p>
+        )}
       </form>
     </motion.div>
   );

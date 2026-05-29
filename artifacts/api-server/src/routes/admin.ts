@@ -5,76 +5,88 @@ import { eq, gte } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getServerConfig } from "../lib/config";
 import { extractUserId } from "./auth";
-import cookie from "cookie";
 
 const router = Router();
 const ADMIN_COOKIE = "focusarx_admin";
 const IS_PROD = process.env.NODE_ENV === "production";
+const ADMIN_TOKEN_EXPIRY = "24h";
 
-function adminPasswordOrRespond(res: { status: (code: number) => { json: (body: unknown) => void } }): string | null {
-  const password = getServerConfig().adminPassword;
-  if (!password) {
-    res.status(503).json({
-      error: "Admin panel is not configured",
-      hint: "Set ADMIN_PASSWORD in environment variables",
-    });
-    return null;
+function getJwtSecret(): string {
+  const secret = getServerConfig().jwtSecret;
+  if (!secret) {
+    throw new Error("AUTH_SECRET is not configured");
   }
-  return password;
+  return secret;
 }
 
-/** Signed cookie survives Vercel serverless cold starts (unlike in-memory session maps). */
-function signAdminCookie(secret: string): string {
-  return jwt.sign({ admin: true }, secret, { expiresIn: "1d" });
-}
-
-function isAdminCookieValid(token: string | undefined, secret: string | null): boolean {
-  if (!token || !secret) return false;
+function isAdminAuthed(req: { headers: { cookie?: string } }): boolean {
+  const cookieHeader = req.headers.cookie ?? "";
+  const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${ADMIN_COOKIE}=([^;]+)`));
+  const token = match?.[1];
+  if (!token) return false;
   try {
-    const payload = jwt.verify(token, secret) as { admin?: boolean };
-    return payload.admin === true;
+    const payload = jwt.verify(token, getJwtSecret()) as { role?: string };
+    return payload?.role === "admin_session";
   } catch {
     return false;
   }
 }
 
-function isAdminAuthed(req: { headers: { cookie?: string } }): boolean {
-  const secret = getServerConfig().jwtSecret;
-  const cookieHeader = req.headers.cookie ?? "";
-  const cookies = cookie.parse(cookieHeader);
-  return isAdminCookieValid(cookies[ADMIN_COOKIE], secret);
-}
+const adminAuthCache = new Map<string, number>();
 
-async function checkAuth(req: any): Promise<boolean> {
+async function checkAuth(req: { headers: { cookie?: string; authorization?: string } }): Promise<boolean> {
   if (isAdminAuthed(req)) return true;
   const userId = extractUserId(req);
   if (!userId) return false;
+
+  const cached = adminAuthCache.get(userId);
+  if (cached && cached > Date.now()) return true;
+
   try {
     const [user] = await db.select({ role: usersTable.role }).from(usersTable).where(eq(usersTable.id, userId));
-    return user?.role?.toLowerCase() === "admin";
-  } catch { return false; }
+    const isAdmin = user?.role?.toLowerCase() === "admin";
+    if (isAdmin) adminAuthCache.set(userId, Date.now() + 5 * 60 * 1000);
+    return isAdmin;
+  } catch {
+    return false;
+  }
 }
 
 const SECURE_FLAG = IS_PROD ? "; Secure" : "";
 
 router.post("/admin/auth", async (req, res) => {
-  const adminPassword = adminPasswordOrRespond(res);
-  if (!adminPassword) return;
-  const secret = getServerConfig().jwtSecret;
-  if (!secret) {
-    res.status(503).json({
-      error: "Authentication is not configured",
-      hint: "Set AUTH_SECRET in environment variables",
-    });
+  const password = getServerConfig().adminPassword;
+  if (!password) {
+    const userId = extractUserId(req);
+    if (!userId) {
+      res.status(503).json({
+        error: "ADMIN_PASSWORD not configured",
+        hint: "Set ADMIN_PASSWORD in Vercel env vars or use a user with role=admin.",
+      });
+      return;
+    }
+    try {
+      const [user] = await db.select({ role: usersTable.role }).from(usersTable).where(eq(usersTable.id, userId));
+      if (user?.role?.toLowerCase() !== "admin") {
+        res.status(403).json({ error: "Access denied" });
+        return;
+      }
+      const token = jwt.sign({ role: "admin_session" }, getJwtSecret(), { expiresIn: ADMIN_TOKEN_EXPIRY });
+      res.setHeader("Set-Cookie", `${ADMIN_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${SECURE_FLAG}`);
+      res.json({ ok: true });
+    } catch (err) {
+      logger.error({ err }, "admin auth role check error");
+      res.status(500).json({ error: "Internal error" });
+    }
     return;
   }
-  const { password } = req.body as { password?: string };
-  if (!password || password !== adminPassword) {
+  const { password: inputPassword } = req.body as { password?: string };
+  if (!inputPassword || inputPassword !== password) {
     res.status(403).json({ error: "Access denied" });
     return;
   }
-  const signed = signAdminCookie(secret);
-  res.setHeader("Set-Cookie", `${ADMIN_COOKIE}=${signed}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${SECURE_FLAG}`);
+  const token = jwt.sign({ role: "admin_session" }, getJwtSecret(), { expiresIn: ADMIN_TOKEN_EXPIRY });
+  res.setHeader("Set-Cookie", `${ADMIN_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${SECURE_FLAG}`);
   res.json({ ok: true });
 });
 
@@ -113,7 +125,6 @@ router.get("/admin/users", async (req, res) => {
   }
 });
 
-// Platform-wide stats for admin dashboard
 router.get("/admin/stats", async (req, res) => {
   if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
@@ -131,12 +142,10 @@ router.get("/admin/stats", async (req, res) => {
     }).from(focusSessionsTable);
     const active = await db.select().from(activeSessionsTable);
 
-    // Total focus hours across all users
     const totalFocusSec = allFocusSessions
       .filter(s => s.mode === "focus")
       .reduce((acc, s) => acc + (s.durationSec ?? 0), 0);
 
-    // Sessions per day for last 7 days
     const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const dailyChart = Array.from({ length: 7 }, (_, i) => {
       const date = new Date(sevenDaysAgo.getTime() + i * 86400000);
@@ -150,7 +159,6 @@ router.get("/admin/stats", async (req, res) => {
       };
     });
 
-    // Top 5 users by total focus time
     const timeByUser: Record<string, number> = {};
     for (const s of allFocusSessions) {
       if (s.mode === "focus") timeByUser[s.userId] = (timeByUser[s.userId] ?? 0) + (s.durationSec ?? 0);
@@ -165,7 +173,6 @@ router.get("/admin/stats", async (req, res) => {
       return { id, name: user?.name ?? "Unknown", email: user?.email ?? "", isGuest: user?.isGuest ?? false, minutes };
     }));
 
-    // New users last 7 days
     const newUsersThisWeek = allUsers.filter(u => u.createdAt && u.createdAt >= sevenDaysAgo).length;
 
     res.json({
@@ -184,7 +191,6 @@ router.get("/admin/stats", async (req, res) => {
   }
 });
 
-// Promote / demote a user's role
 router.patch("/admin/users/:id/role", async (req, res) => {
   if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
   const { id } = req.params;
@@ -203,7 +209,6 @@ router.patch("/admin/users/:id/role", async (req, res) => {
   }
 });
 
-// Delete a user
 router.delete("/admin/users/:id", async (req, res) => {
   if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
   const { id } = req.params;

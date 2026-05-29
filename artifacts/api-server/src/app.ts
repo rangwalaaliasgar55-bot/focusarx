@@ -9,12 +9,6 @@ import { generalLimiter } from "./lib/rateLimiter";
 
 const isDev = process.env.NODE_ENV !== "production";
 
-const ALLOWED_ORIGINS = [
-  process.env.APP_URL,
-  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
-  process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : undefined,
-].filter(Boolean) as string[];
-
 const app: Express = express();
 
 app.set("trust proxy", 1);
@@ -62,11 +56,11 @@ app.use(
     origin: (origin, cb) => {
       if (!origin) { cb(null, true); return; }
       if (isDev) { cb(null, true); return; }
-      if (ALLOWED_ORIGINS.some((o) => origin === o || origin.endsWith(".replit.dev"))) {
-        cb(null, true);
-      } else {
-        cb(new Error("CORS: origin not allowed"));
-      }
+      if (origin.endsWith(".vercel.app")) { cb(null, true); return; }
+      if (origin.endsWith(".replit.dev") || origin.endsWith(".repl.co")) { cb(null, true); return; }
+      const appUrl = process.env.APP_URL;
+      if (appUrl && origin === appUrl) { cb(null, true); return; }
+      cb(new Error("CORS: origin not allowed"));
     },
     credentials: true,
   }),
@@ -87,7 +81,7 @@ app.use("/api", (req, res, next) => {
     res.status(503).json({
       error: "Server is missing required configuration",
       missing,
-      hint: "Add these in your environment variables.",
+      hint: "Add these in your environment variables: " + missing.join(", "),
     });
     return;
   }
@@ -98,7 +92,7 @@ app.use("/api", router);
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   if (err.message?.startsWith("CORS")) {
-    res.status(403).json({ error: "Forbidden" });
+    res.status(403).json({ error: "Forbidden", reason: err.message });
     return;
   }
   logger.error({ err }, "unhandled error");
