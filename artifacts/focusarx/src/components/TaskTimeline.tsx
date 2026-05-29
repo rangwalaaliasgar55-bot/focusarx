@@ -7,30 +7,38 @@ type Task = { id: string; text: string; completed: boolean; estimatedMinutes: nu
 const COLORS = ["#7C3AED", "#4F46E5", "#06B6D4", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"];
 
 interface Props {
+  tasks?: Task[];          // Accept tasks from parent (useTasks hook)
   elapsedSeconds?: number;
   isRunning?: boolean;
   onOverrun?: (task: Task, overrunMinutes: number) => void;
 }
 
-export default function TaskTimeline({ elapsedSeconds = 0, isRunning = false, onOverrun }: Props) {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function TaskTimeline({ tasks: propTasks, elapsedSeconds = 0, isRunning = false, onOverrun }: Props) {
+  const [apiTasks, setApiTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(!propTasks);
   const [overrunShown, setOverrunShown] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editVal, setEditVal] = useState("");
   const overrunRef = useRef(false);
 
-  const headers = () => {
-    const token = getToken();
-    return { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-  };
-
   useEffect(() => {
-    fetch("/api/tasks", { headers: headers() })
+    // If tasks passed as prop, use them directly
+    if (propTasks !== undefined) {
+      setLoading(false);
+      return;
+    }
+    // Otherwise fetch from API
+    const token = getToken();
+    fetch("/api/tasks", {
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    })
       .then(r => r.ok ? r.json() : { tasks: [] })
-      .then((d: { tasks?: Task[] }) => { setTasks(d.tasks?.filter(t => !t.completed) ?? []); setLoading(false); })
+      .then((d: { tasks?: Task[] }) => { setApiTasks(d.tasks?.filter(t => !t.completed) ?? []); setLoading(false); })
       .catch(() => setLoading(false));
-  }, []);
+  }, [propTasks]);
+
+  // Use prop tasks if provided, otherwise use API tasks
+  const tasks = propTasks?.filter(t => !t.completed) ?? apiTasks;
 
   const tasksWithTime = tasks.filter(t => t.estimatedMinutes && t.estimatedMinutes > 0);
   const totalMinutes = tasksWithTime.reduce((sum, t) => sum + (t.estimatedMinutes ?? 0), 0);
@@ -54,7 +62,7 @@ export default function TaskTimeline({ elapsedSeconds = 0, isRunning = false, on
       headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: JSON.stringify({ estimatedMinutes: minutes }),
     });
-    setTasks(ts => ts.map(t => t.id === taskId ? { ...t, estimatedMinutes: minutes } : t));
+    setApiTasks(ts => ts.map(t => t.id === taskId ? { ...t, estimatedMinutes: minutes } : t));
     setEditingId(null);
   };
 

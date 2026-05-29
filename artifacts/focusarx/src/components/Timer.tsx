@@ -22,6 +22,7 @@ import TaskTimeline, { OverrunModal } from "./TaskTimeline";
 import { SoundEngine } from "./SoundEngine";
 import SessionTypePicker, { type SessionType, SESSION_TYPE_TINTS } from "./SessionTypePicker";
 import AmbientSoundBar from "./AmbientSoundBar";
+import { useTasks } from "@/hooks/useTasks";
 
 const MODES: TimerMode[] = ["focus", "break", "longBreak"];
 
@@ -67,6 +68,7 @@ export default function Timer() {
   const { addSession, focusSessionsToday } = useSessionHistory();
   const { toast } = useToast();
   const { requestMonitorRecovery, monitorEnabled } = useSessionRecovery();
+  const { activeTasks } = useTasks();
   const [storageReady, setStorageReady] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
@@ -489,6 +491,13 @@ export default function Timer() {
     {/* ── Upgrade 1: Task Timeline + Overrun ─────────────────────────── */}
     <div className="mt-14 w-full max-w-md">
       <TaskTimeline
+        tasks={activeTasks.map(t => ({
+          id: t.id,
+          text: t.title,
+          completed: t.done,
+          estimatedMinutes: t.estimatedPomodoros ? t.estimatedPomodoros * 25 : null,
+          order: 0,
+        }))}
         elapsedSeconds={isRunning ? (totalFocusSec - secondsLeft) : 0}
         isRunning={isRunning && mode === "focus"}
         onOverrun={(task, mins) => {

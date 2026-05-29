@@ -26,11 +26,12 @@ router.get("/tasks", authMiddleware, async (req: any, res) => {
 });
 
 router.post("/tasks", authMiddleware, async (req: any, res) => {
-  const { text, order } = req.body as { text?: string; order?: number };
-  if (!text?.trim()) { res.status(400).json({ error: "Task text required" }); return; }
+  const { text, title, order } = req.body as { text?: string; title?: string; order?: number };
+  const taskText = (text || title)?.trim();
+  if (!taskText) { res.status(400).json({ error: "Task text required" }); return; }
   try {
     const [task] = await db.insert(tasksTable).values({
-      userId: req.userId, text: text.trim(), completed: false, order: order ?? 0,
+      userId: req.userId, text: taskText, completed: false, order: order ?? 0,
     }).returning();
     res.status(201).json({ task });
   } catch (err) {
@@ -41,13 +42,16 @@ router.post("/tasks", authMiddleware, async (req: any, res) => {
 
 async function handleTaskUpdate(req: any, res: any) {
   const { id } = req.params as { id: string };
-  const { completed, text, order, estimatedMinutes } = req.body as {
-    completed?: boolean; text?: string; order?: number; estimatedMinutes?: number | null;
+  const { completed, done, text, title, order, estimatedMinutes } = req.body as {
+    completed?: boolean; done?: boolean; text?: string; title?: string;
+    order?: number; estimatedMinutes?: number | null;
   };
   try {
     const updates: Partial<typeof tasksTable.$inferInsert> = {};
     if (completed !== undefined) updates.completed = completed;
+    if (done !== undefined) updates.completed = done;
     if (text !== undefined) updates.text = text;
+    if (title !== undefined) updates.text = title;
     if (order !== undefined) updates.order = order;
     if (estimatedMinutes !== undefined) updates.estimatedMinutes = estimatedMinutes;
     const [task] = await db.update(tasksTable).set(updates)
