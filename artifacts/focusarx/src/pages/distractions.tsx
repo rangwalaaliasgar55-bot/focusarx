@@ -27,7 +27,7 @@ export default function DistractionsPage() {
   const [nudge, setNudge] = useState<NudgeData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const headers = () => {
+  const headers = (): HeadersInit => {
     const token = getToken();
     return token ? { Authorization: `Bearer ${token}` } : {};
   };

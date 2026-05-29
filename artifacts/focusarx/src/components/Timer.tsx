@@ -173,17 +173,17 @@ export default function Timer() {
       }
 
       // Auto-save ghost when a focus session completes
-      if (session.mode === "focus" && session.durationSec > 0) {
+      if (session.mode === "focus" && session.durationSeconds > 0) {
         const token = localStorage.getItem("focusarx-auth-token");
         if (token) {
           // Compute longest unbroken focus seconds from timeline
           let longestUnbroken = 0;
           let cur = 0;
-          const tl: Array<{ type: string; ts: number }> = Array.isArray(session.focusTimeline)
-            ? session.focusTimeline as Array<{ type: string; ts: number }>
+          const tl = Array.isArray(session.focusTimeline)
+            ? session.focusTimeline
             : [];
           for (const ev of tl) {
-            if (ev.type === "focus" || ev.type === "running") { cur++; if (cur > longestUnbroken) longestUnbroken = cur; }
+            if (ev.state === "focus") { cur++; if (cur > longestUnbroken) longestUnbroken = cur; }
             else cur = 0;
           }
           fetch("/api/ghosts", {
@@ -191,7 +191,7 @@ export default function Timer() {
             headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
             body: JSON.stringify({
               taskCategory: "General",
-              durationSec: session.durationSec,
+              durationSec: session.durationSeconds,
               unbrokenSec: longestUnbroken * 10,
               sessionId: res.sessionId ?? null,
             }),

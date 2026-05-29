@@ -10,24 +10,13 @@ globalThis.require = createRequire(import.meta.url);
 
 const artifactDir = path.dirname(fileURLToPath(import.meta.url));
 
-async function buildAll() {
-  const distDir = path.resolve(artifactDir, "dist");
-  await rm(distDir, { recursive: true, force: true });
-
-  await esbuild({
-    entryPoints: [path.resolve(artifactDir, "src/index.ts")],
-    platform: "node",
-    bundle: true,
-    format: "esm",
-    outdir: distDir,
-    outExtension: { ".js": ".mjs" },
-    logLevel: "info",
-    // Some packages may not be bundleable, so we externalize them, we can add more here as needed.
-    // Some of the packages below may not be imported or installed, but we're adding them in case they are in the future.
-    // Examples of unbundleable packages:
-    // - uses native modules and loads them dynamically (e.g. sharp)
-    // - use path traversal to read files (e.g. @google-cloud/secret-manager loads sibling .proto files)
-    external: [
+const sharedBuildOptions = {
+  platform: "node",
+  bundle: true,
+  format: "esm",
+  logLevel: "info",
+  // Some packages may not be bundleable, so we externalize them, we can add more here as needed.
+  external: [
       "*.node",
       "sharp",
       "better-sqlite3",
@@ -101,14 +90,9 @@ async function buildAll() {
       "puppeteer-core",
       "electron",
     ],
-    sourcemap: "linked",
-    plugins: [
-      // pino relies on workers to handle logging, instead of externalizing it we use a plugin to handle it
-      esbuildPluginPino({ transports: ["pino-pretty"] })
-    ],
-    // Make sure packages that are cjs only (e.g. express) but are bundled continue to work in our esm output file
-    banner: {
-      js: `import { createRequire as __bannerCrReq } from 'node:module';
+  sourcemap: "linked",
+  banner: {
+    js: `import { createRequire as __bannerCrReq } from 'node:module';
 import __bannerPath from 'node:path';
 import __bannerUrl from 'node:url';
 
@@ -116,7 +100,29 @@ globalThis.require = __bannerCrReq(import.meta.url);
 globalThis.__filename = __bannerUrl.fileURLToPath(import.meta.url);
 globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
     `,
-    },
+  },
+};
+
+async function buildAll() {
+  const distDir = path.resolve(artifactDir, "dist");
+  await rm(distDir, { recursive: true, force: true });
+
+  await esbuild({
+    ...sharedBuildOptions,
+    entryPoints: [path.resolve(artifactDir, "src/index.ts")],
+    outdir: distDir,
+    outExtension: { ".js": ".mjs" },
+    plugins: [
+      esbuildPluginPino({ transports: ["pino-pretty"] }),
+    ],
+  });
+
+  // Vercel serverless: Express app only (no listen), no pino worker transport
+  await esbuild({
+    ...sharedBuildOptions,
+    entryPoints: [path.resolve(artifactDir, "src/app.ts")],
+    outfile: path.resolve(distDir, "app.mjs"),
+    plugins: [],
   });
 }
 

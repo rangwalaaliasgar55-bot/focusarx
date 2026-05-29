@@ -35,6 +35,10 @@ export function getServerConfig(): ServerConfig {
     );
   }
 
+  const vercelUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : null;
+
   return {
     jwtSecret,
     adminPassword,
@@ -42,7 +46,10 @@ export function getServerConfig(): ServerConfig {
     isProduction,
     googleClientId: process.env.GOOGLE_CLIENT_ID ?? null,
     googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? null,
-    appUrl: process.env.APP_URL ?? (isProduction ? "https://focusarx.vercel.app" : "http://localhost:20925"),
+    appUrl:
+      process.env.APP_URL ??
+      vercelUrl ??
+      (isProduction ? "https://focusarx.vercel.app" : "http://localhost:5173"),
   };
 }
 

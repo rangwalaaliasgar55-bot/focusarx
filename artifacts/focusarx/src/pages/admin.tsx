@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { AdminGate } from "@/components/admin/AdminGate";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/lib/auth";
 
 type AdminUser = {
   id: string;
@@ -48,6 +49,7 @@ type AdminData = {
 type Tab = "overview" | "users";
 
 export default function AdminPage() {
+  const { data: session, status: authStatus } = useAuth();
   const [authed, setAuthed] = useState<boolean | null>(null);
   const [data, setData] = useState<AdminData | null>(null);
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -63,6 +65,7 @@ export default function AdminPage() {
   }, []);
 
   const loadData = useCallback(async () => {
+    if (authStatus === "loading") return;
     try {
       const [usersRes, statsRes] = await Promise.all([
         fetch("/api/admin/users", { headers: authHeaders(), credentials: "include" }),
@@ -86,7 +89,7 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
-  }, [authHeaders]);
+  }, [authHeaders, authStatus]);
 
   useEffect(() => { void loadData(); }, [loadData]);
 
@@ -137,7 +140,17 @@ export default function AdminPage() {
     );
   }
 
-  if (!authed) return <AdminGate />;
+  if (!authed) {
+    return (
+      <AdminGate
+        onUnlocked={() => {
+          setAuthed(true);
+          setLoading(true);
+          void loadData();
+        }}
+      />
+    );
+  }
 
   const users = data?.users ?? [];
 

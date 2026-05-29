@@ -91,7 +91,7 @@ export default function ReadinessWidget() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ sleep: 3, stress: 3, energy: 3, hrv: "" });
 
-  const headers = () => {
+  const headers = (): HeadersInit => {
     const token = getToken();
     return token ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` } : { "Content-Type": "application/json" };
   };

@@ -2,7 +2,11 @@ import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { useState } from "react";
 
-export function AdminGate() {
+type AdminGateProps = {
+  onUnlocked?: () => void;
+};
+
+export function AdminGate({ onUnlocked }: AdminGateProps) {
   const [, setLocation] = useLocation();
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -27,8 +31,12 @@ export function AdminGate() {
         return;
       }
 
-      setLocation("/admin");
-      window.location.reload();
+      if (onUnlocked) {
+        onUnlocked();
+      } else {
+        setLocation("/admin");
+        window.location.reload();
+      }
     } catch {
       setError("Could not reach server");
     } finally {

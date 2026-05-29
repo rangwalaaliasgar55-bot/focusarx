@@ -11,6 +11,7 @@ const isDev = process.env.NODE_ENV !== "production";
 
 const ALLOWED_ORIGINS = [
   process.env.APP_URL,
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
   process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : undefined,
 ].filter(Boolean) as string[];
 

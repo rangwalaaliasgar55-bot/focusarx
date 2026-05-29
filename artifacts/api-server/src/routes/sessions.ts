@@ -35,10 +35,15 @@ const activeSyncSchema = z.object({
 
 const router = Router();
 
+function stringOrNullish(value: unknown): string | null | undefined {
+  if (value === null || value === undefined) return value;
+  return String(value);
+}
+
 function authMiddleware(req: any, res: any, next: any) {
   const userId = extractUserId(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-  req.userId = userId;
+  req.userId = String(userId);
   next();
 }
 
@@ -104,7 +109,7 @@ router.post("/sessions", authMiddleware, async (req: any, res) => {
   try {
     const [session] = await db.insert(focusSessionsTable).values({
       userId: req.userId, mode: mode ?? "focus", durationSec: durationSec ?? 0,
-      completedAt: new Date(), focusScore, focusQuality, stabilityRating,
+      completedAt: new Date(), focusScore, focusQuality, stabilityRating: stringOrNullish(stabilityRating),
       focusTimeline: typeof focusTimeline === "string" ? focusTimeline : JSON.stringify(focusTimeline ?? []),
       sessionInsights: typeof sessionInsights === "string" ? sessionInsights : JSON.stringify(sessionInsights ?? null),
     }).returning();

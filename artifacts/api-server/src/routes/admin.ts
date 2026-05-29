@@ -1,4 +1,5 @@
 import { Router } from "express";
+import jwt from "jsonwebtoken";
 import { db, usersTable, focusSessionsTable, studyStreaksTable, activeSessionsTable } from "@workspace/db";
 import { eq, gte } from "drizzle-orm";
 import { logger } from "../lib/logger";
@@ -22,21 +23,26 @@ function adminPasswordOrRespond(res: { status: (code: number) => { json: (body: 
   return password;
 }
 
-const adminSessions = new Map<string, number>();
+/** Signed cookie survives Vercel serverless cold starts (unlike in-memory session maps). */
+function signAdminCookie(secret: string): string {
+  return jwt.sign({ admin: true }, secret, { expiresIn: "1d" });
+}
 
-function pruneExpiredSessions() {
-  const now = Date.now();
-  for (const [id, exp] of adminSessions) {
-    if (exp < now) adminSessions.delete(id);
+function isAdminCookieValid(token: string | undefined, secret: string | null): boolean {
+  if (!token || !secret) return false;
+  try {
+    const payload = jwt.verify(token, secret) as { admin?: boolean };
+    return payload.admin === true;
+  } catch {
+    return false;
   }
 }
 
-function isAdminAuthed(req: any): boolean {
-  pruneExpiredSessions();
+function isAdminAuthed(req: { headers: { cookie?: string } }): boolean {
+  const secret = getServerConfig().jwtSecret;
   const cookieHeader = req.headers.cookie ?? "";
   const cookies = cookie.parse(cookieHeader);
-  const sid = cookies[ADMIN_COOKIE];
-  return !!sid && adminSessions.has(sid);
+  return isAdminCookieValid(cookies[ADMIN_COOKIE], secret);
 }
 
 async function checkAuth(req: any): Promise<boolean> {
@@ -54,23 +60,25 @@ const SECURE_FLAG = IS_PROD ? "; Secure" : "";
 router.post("/admin/auth", async (req, res) => {
   const adminPassword = adminPasswordOrRespond(res);
   if (!adminPassword) return;
+  const secret = getServerConfig().jwtSecret;
+  if (!secret) {
+    res.status(503).json({
+      error: "Authentication is not configured",
+      hint: "Set AUTH_SECRET in environment variables",
+    });
+    return;
+  }
   const { password } = req.body as { password?: string };
   if (!password || password !== adminPassword) {
     res.status(403).json({ error: "Access denied" });
     return;
   }
-  const sessionId = crypto.randomUUID();
-  const expiry = Date.now() + 86400_000;
-  adminSessions.set(sessionId, expiry);
-  res.setHeader("Set-Cookie", `${ADMIN_COOKIE}=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${SECURE_FLAG}`);
+  const signed = signAdminCookie(secret);
+  res.setHeader("Set-Cookie", `${ADMIN_COOKIE}=${signed}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${SECURE_FLAG}`);
   res.json({ ok: true });
 });
 
-router.delete("/admin/auth", (req: any, res) => {
-  const cookieHeader = req.headers.cookie ?? "";
-  const cookies = cookie.parse(cookieHeader);
-  const sid = cookies[ADMIN_COOKIE];
-  if (sid) adminSessions.delete(sid);
+router.delete("/admin/auth", (_req, res) => {
   res.setHeader("Set-Cookie", `${ADMIN_COOKIE}=; Path=/; HttpOnly; Max-Age=0${SECURE_FLAG}`);
   res.json({ ok: true });
 });

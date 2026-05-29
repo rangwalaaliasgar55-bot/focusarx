@@ -1,5 +1,5 @@
 import { useLocation, Link } from "wouter";
-import { useAuth } from "@/lib/auth";
+import { useAuth, isAdminUser } from "@/lib/auth";
 import {
   Timer, LayoutDashboard, TrendingUp, Trophy, Star,
   Users, Sparkles, LogOut, LogIn, Menu, X, Shield, BookOpen,
@@ -27,7 +27,7 @@ const NAV_ITEMS = [
   { href: "/replay",       label: "Session Replay",icon: Radio,         shortcut: "" },
 ];
 
-const NO_SHELL = ["/login", "/signup", "/forgot-password", "/admin", "/auth/callback"];
+const NO_SHELL = ["/login", "/signup", "/forgot-password", "/reset-password", "/admin", "/auth/callback"];
 
 interface NavItemProps {
   href: string;
@@ -127,6 +127,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           {NAV_ITEMS.map((item) => (
             <NavItem key={item.href} {...item} active={location === item.href} />
           ))}
+          {isAdminUser(user) && (
+            <NavItem href="/admin" label="Admin" icon={Shield} active={location === "/admin"} />
+          )}
         </nav>
 
         {/* User section */}
@@ -229,6 +232,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     onClick={() => setMobileOpen(false)}
                   />
                 ))}
+                {isAdminUser(user) && (
+                  <NavItem
+                    href="/admin"
+                    label="Admin"
+                    icon={Shield}
+                    active={location === "/admin"}
+                    onClick={() => setMobileOpen(false)}
+                  />
+                )}
               </nav>
 
               {/* Drawer footer */}

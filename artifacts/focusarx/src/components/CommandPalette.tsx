@@ -1,16 +1,27 @@
 import { useEffect, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Timer, LayoutDashboard, TrendingUp, Trophy, Star, Users, Sparkles, X } from "lucide-react";
+import {
+  Search, Timer, LayoutDashboard, TrendingUp, Trophy, Star, Users, Sparkles, X,
+  Wind, UserCircle, Shield, BookOpen, Dna, Ghost, Sword, Radio,
+} from "lucide-react";
 
 const COMMANDS = [
-  { id: "timer",        label: "Go to Timer",         icon: Timer,           href: "/",             shortcut: "1" },
-  { id: "dashboard",    label: "Go to Dashboard",     icon: LayoutDashboard, href: "/dashboard",    shortcut: "2" },
-  { id: "analytics",    label: "Go to Analytics",     icon: TrendingUp,      href: "/analytics",    shortcut: "3" },
-  { id: "leaderboard",  label: "Go to Leaderboard",   icon: Trophy,          href: "/leaderboard",  shortcut: "4" },
-  { id: "achievements", label: "Go to Achievements",  icon: Star,            href: "/achievements", shortcut: "5" },
-  { id: "forge",        label: "Go to Forge Room",    icon: Users,           href: "/forge",        shortcut: "6" },
-  { id: "roadmap",      label: "Go to AI Roadmap",    icon: Sparkles,        href: "/roadmap",      shortcut: "7" },
+  { id: "timer",        label: "Go to Timer",          icon: Timer,           href: "/",             shortcut: "1" },
+  { id: "dashboard",    label: "Go to Dashboard",      icon: LayoutDashboard, href: "/dashboard",    shortcut: "2" },
+  { id: "analytics",    label: "Go to Analytics",      icon: TrendingUp,      href: "/analytics",    shortcut: "3" },
+  { id: "leaderboard",  label: "Go to Leaderboard",    icon: Trophy,          href: "/leaderboard",  shortcut: "4" },
+  { id: "achievements", label: "Go to Achievements",   icon: Star,            href: "/achievements", shortcut: "5" },
+  { id: "forge",        label: "Go to Forge Room",     icon: Users,           href: "/forge",        shortcut: "6" },
+  { id: "roadmap",      label: "Go to AI Roadmap",     icon: Sparkles,        href: "/roadmap",      shortcut: "7" },
+  { id: "breathe",      label: "Go to Breathe",        icon: Wind,            href: "/breathe",      shortcut: "" },
+  { id: "profile",      label: "Go to Profile",        icon: UserCircle,      href: "/profile",      shortcut: "" },
+  { id: "profiles",     label: "Go to Profiles",       icon: Shield,          href: "/profiles",     shortcut: "8" },
+  { id: "distractions", label: "Go to Focus Journal",  icon: BookOpen,        href: "/distractions", shortcut: "9" },
+  { id: "focus-dna",    label: "Go to Focus DNA",      icon: Dna,             href: "/focus-dna",    shortcut: "0" },
+  { id: "ghosts",       label: "Go to Ghost Mode",     icon: Ghost,           href: "/ghosts",       shortcut: "" },
+  { id: "consequences", label: "Go to Consequences",   icon: Sword,           href: "/consequences", shortcut: "" },
+  { id: "replay",       label: "Go to Session Replay", icon: Radio,           href: "/replay",       shortcut: "" },
 ];
 
 interface CommandPaletteProps {

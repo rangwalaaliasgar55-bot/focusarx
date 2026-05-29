@@ -5,8 +5,13 @@ export type AuthUser = {
   email: string;
   name: string | null;
   isGuest?: boolean;
+  role?: string;
   onboardingCompleted?: boolean;
 };
+
+export function isAdminUser(user: AuthUser | null | undefined): boolean {
+  return user?.role?.toLowerCase() === "admin";
+}
 
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
