@@ -33,6 +33,8 @@ import ProfilePage from "@/pages/profile";
 import { FocusCamera } from "@/components/camera/FocusCamera";
 import { useSessionHistory } from "@/hooks/useSessionHistory";
 import { useTasks } from "@/hooks/useTasks";
+import ReadinessCheckInModal from "@/components/ReadinessCheckInModal";
+import DailyGoal from "@/components/DailyGoal";
 import { useEffect, useState } from "react";
 
 const queryClient = new QueryClient();
@@ -128,6 +130,9 @@ function SidePanel() {
         </form>
       </div>
 
+      {/* Daily Goal */}
+      <DailyGoal />
+
       {/* Camera */}
       <div className="rounded-2xl border border-[#1e2130] bg-[#111318] p-4">
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4a4f62] mb-3">AI Camera</p>
@@ -178,6 +183,7 @@ function HomePage() {
           {/* Side panel */}
           <SidePanel />
         </div>
+        <ReadinessCheckInModal />
       </div>
     </SessionRecoveryProvider>
   );
