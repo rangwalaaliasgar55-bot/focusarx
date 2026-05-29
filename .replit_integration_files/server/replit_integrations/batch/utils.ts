@@ -2,30 +2,31 @@ import pLimit from "p-limit";
 import pRetry from "p-retry";
 
 /**
- * Batch Processing Utilities for Anthropic
+ * Batch Processing Utilities for Gemini
  *
- * Supported models: claude-opus-4-7 (most capable), claude-sonnet-4-6 (balanced), claude-haiku-4-5 (fastest)
+ * Supported models: gemini-2.5-flash (fast), gemini-2.5-pro (advanced reasoning), gemini-2.5-flash-image (image generation)
  *
  * USAGE:
  * ```typescript
  * import { batchProcess } from "./replit_integrations/batch";
- * import Anthropic from "@anthropic-ai/sdk";
+ * import { GoogleGenAI } from "@google/genai";
  *
- * const anthropic = new Anthropic({
- *   apiKey: process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY,
- *   baseURL: process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL,
+ * const ai = new GoogleGenAI({
+ *   apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY,
+ *   httpOptions: {
+ *     apiVersion: "",
+ *     baseUrl: process.env.AI_INTEGRATIONS_GEMINI_BASE_URL,
+ *   },
  * });
  *
  * const results = await batchProcess(
  *   items,
  *   async (item) => {
- *     const message = await anthropic.messages.create({
- *       model: "claude-sonnet-4-6",
- *       max_tokens: 8192,
- *       messages: [{ role: "user", content: `Process: ${item.name}` }],
+ *     const response = await ai.models.generateContent({
+ *       model: "gemini-2.5-flash",
+ *       contents: `Process: ${item.name}`,
  *     });
- *     const content = message.content[0];
- *     return content.type === "text" ? content.text : "";
+ *     return response.text || "";
  *   }
  * );
  * ```
