@@ -76,7 +76,7 @@ app.use(express.urlencoded({ extended: true, limit: "100kb" }));
 app.use("/api", generalLimiter);
 
 app.use("/api", (req, res, next) => {
-  if (req.path === "/healthz") {
+  if (req.path === "/healthz" || req.path.startsWith("/healthz/")) {
     next();
     return;
   }
