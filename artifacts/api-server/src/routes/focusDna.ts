@@ -28,19 +28,32 @@ const ARCHETYPES = [
   { name: "Spark Chaser",      colorPrimary: "#EC4899", colorSecondary: "#F472B6", icon: "✨" },
 ];
 
+function getAnthropicConfig(): { apiKey: string; baseUrl: string } | null {
+  const replitKey = process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY;
+  const replitBase = process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL;
+  if (replitKey && replitBase) {
+    return { apiKey: replitKey, baseUrl: replitBase.replace(/\/$/, "") };
+  }
+  const directKey = process.env.ANTHROPIC_API_KEY;
+  if (directKey) {
+    return { apiKey: directKey, baseUrl: "https://api.anthropic.com" };
+  }
+  return null;
+}
+
 async function callClaude(prompt: string, systemPrompt: string): Promise<string | null> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return null;
+  const config = getAnthropicConfig();
+  if (!config) return null;
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await fetch(`${config.baseUrl}/v1/messages`, {
       method: "POST",
       headers: {
-        "x-api-key": apiKey,
+        "x-api-key": config.apiKey,
         "anthropic-version": "2023-06-01",
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-haiku-4-5",
         max_tokens: 300,
         system: systemPrompt,
         messages: [{ role: "user", content: prompt }],
@@ -88,7 +101,6 @@ router.post("/focus-dna/generate", auth, async (req: any, res) => {
       .orderBy(desc(distractionLogsTable.createdAt))
       .limit(50);
 
-    // Analyze patterns
     const hourCounts: Record<number, number> = {};
     const dayCounts: Record<number, number> = {};
     let totalDurationSec = 0;
@@ -114,23 +126,22 @@ router.post("/focus-dna/generate", auth, async (req: any, res) => {
     const biggestWeakness = Object.entries(distractionFreq).sort((a, b) => b[1] - a[1])[0]?.[0]
       ?? "Social media";
 
-    // Pick archetype based on patterns
     let archetypeIdx = 0;
-    if (topHour >= 20 || topHour < 4) archetypeIdx = 0; // Night Sprinter
-    else if (avgSessionMin >= 45) archetypeIdx = 1; // Deep Diver
-    else if (sessions.length > 50) archetypeIdx = 2; // Chaos Warrior
-    else if (topHour >= 5 && topHour < 10) archetypeIdx = 3; // Morning Monk
-    else if (avgSessionMin >= 30 && avgSessionMin < 45) archetypeIdx = 4; // Steady Climber
-    else if (distractions.length < 5) archetypeIdx = 5; // Flow Phantom
-    else if (strongestDay === "Monday" || strongestDay === "Tuesday") archetypeIdx = 6; // Iron Scheduler
-    else archetypeIdx = 7; // Spark Chaser
+    if (topHour >= 20 || topHour < 4) archetypeIdx = 0;
+    else if (avgSessionMin >= 45) archetypeIdx = 1;
+    else if (sessions.length > 50) archetypeIdx = 2;
+    else if (topHour >= 5 && topHour < 10) archetypeIdx = 3;
+    else if (avgSessionMin >= 30 && avgSessionMin < 45) archetypeIdx = 4;
+    else if (distractions.length < 5) archetypeIdx = 5;
+    else if (strongestDay === "Monday" || strongestDay === "Tuesday") archetypeIdx = 6;
+    else archetypeIdx = 7;
 
     const archetype = ARCHETYPES[archetypeIdx]!;
 
     const hrFmt = topHour === 0 ? "12am" : topHour < 12 ? `${topHour}am` : topHour === 12 ? "12pm" : `${topHour - 12}pm`;
 
     const description = await callClaude(
-      `Write a 2-sentence personality description for someone with the focus archetype "${archetype.name}". 
+      `Write a 2-sentence personality description for someone with the focus archetype "${archetype.name}".
       Their stats: peak focus hour ${hrFmt}, avg session ${avgSessionMin} min, strongest day ${strongestDay}, biggest distraction: ${biggestWeakness}.
       Make it feel like a trading card personality — dramatic, accurate, motivating. No markdown.`,
       "You write punchy, insightful personality descriptions for a focus productivity app called FocusArx. Keep it under 50 words, no lists.",

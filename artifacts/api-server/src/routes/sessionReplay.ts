@@ -13,19 +13,32 @@ function auth(req: any, res: any, next: any) {
   next();
 }
 
+function getAnthropicConfig(): { apiKey: string; baseUrl: string } | null {
+  const replitKey = process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY;
+  const replitBase = process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL;
+  if (replitKey && replitBase) {
+    return { apiKey: replitKey, baseUrl: replitBase.replace(/\/$/, "") };
+  }
+  const directKey = process.env.ANTHROPIC_API_KEY;
+  if (directKey) {
+    return { apiKey: directKey, baseUrl: "https://api.anthropic.com" };
+  }
+  return null;
+}
+
 async function callClaude(prompt: string): Promise<string | null> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return null;
+  const config = getAnthropicConfig();
+  if (!config) return null;
   try {
-    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    const resp = await fetch(`${config.baseUrl}/v1/messages`, {
       method: "POST",
       headers: {
-        "x-api-key": apiKey,
+        "x-api-key": config.apiKey,
         "anthropic-version": "2023-06-01",
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-haiku-4-5",
         max_tokens: 150,
         messages: [{ role: "user", content: prompt }],
       }),

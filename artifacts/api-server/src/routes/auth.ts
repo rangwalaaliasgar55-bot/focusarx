@@ -9,8 +9,6 @@ import { logger } from "../lib/logger";
 import { getServerConfig } from "../lib/config";
 import { authLimiter, forgotPasswordLimiter } from "../lib/rateLimiter";
 
-const isDev = process.env.NODE_ENV !== "production";
-
 const loginSchema = z.object({
   email: z.string().email().max(254).toLowerCase().trim(),
   password: z.string().min(1).max(256),
@@ -38,7 +36,7 @@ function jwtSecretOrRespond(res: { status: (code: number) => { json: (body: unkn
   if (!secret) {
     res.status(503).json({
       error: "Authentication is not configured",
-      hint: "Set AUTH_SECRET in Vercel environment variables",
+      hint: "Set AUTH_SECRET in your environment variables",
     });
     return null;
   }
@@ -141,97 +139,6 @@ router.post("/auth/guest", async (req, res) => {
   }
 });
 
-// ── Google OAuth debug (dev only) ─────────────────────────────────────────
-
-router.get("/auth/google/debug", (req, res) => {
-  if (!isDev) { res.status(404).json({ error: "Not found" }); return; }
-  const { googleClientId, appUrl } = getServerConfig();
-  const redirectUri = `${appUrl}/api/auth/google/callback`;
-  res.json({
-    clientIdSet: !!googleClientId,
-    clientIdPrefix: googleClientId ? googleClientId.slice(0, 12) + "..." : null,
-    appUrl,
-    redirectUri,
-    oauthUrl: googleClientId
-      ? `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId.slice(0, 12)}...&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid+email+profile`
-      : null,
-  });
-});
-
-// ── Google OAuth ──────────────────────────────────────────────────────────
-
-router.get("/auth/google", (req, res) => {
-  const { googleClientId, appUrl } = getServerConfig();
-  if (!googleClientId) {
-    // Redirect back to login with a friendly error instead of JSON 503
-    res.redirect(`${appUrl}/login?error=google_not_configured`);
-    return;
-  }
-  const redirectUri = `${appUrl}/api/auth/google/callback`;
-  const params = new URLSearchParams({
-    client_id: googleClientId,
-    redirect_uri: redirectUri,
-    response_type: "code",
-    scope: "openid email profile",
-    access_type: "offline",
-    prompt: "consent",
-  });
-  res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
-});
-
-router.get("/auth/google/callback", async (req, res) => {
-  const secret = jwtSecretOrRespond(res);
-  if (!secret) return;
-  const { googleClientId, googleClientSecret, appUrl } = getServerConfig();
-  const code = req.query.code as string | undefined;
-  if (!code || !googleClientId || !googleClientSecret) { res.status(400).json({ error: "OAuth callback failed" }); return; }
-
-  try {
-    // Exchange code for tokens
-    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        code,
-        client_id: googleClientId,
-        client_secret: googleClientSecret,
-        redirect_uri: `${appUrl}/api/auth/google/callback`,
-        grant_type: "authorization_code",
-      }),
-    });
-    const tokenData = await tokenRes.json() as { access_token?: string; error?: string };
-    if (!tokenData.access_token) { res.status(401).json({ error: "Failed to get Google token" }); return; }
-
-    // Fetch user profile
-    const profileRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
-      headers: { Authorization: `Bearer ${tokenData.access_token}` },
-    });
-    const profile = await profileRes.json() as { id: string; email: string; name?: string; picture?: string };
-    if (!profile.email) { res.status(401).json({ error: "Could not retrieve email from Google" }); return; }
-
-    // Find or create user
-    const [existing] = await db.select().from(usersTable).where(eq(usersTable.email, profile.email));
-    let user = existing;
-    if (!user) {
-      const [created] = await db.insert(usersTable).values({
-        email: profile.email,
-        name: profile.name ?? null,
-        isGuest: false,
-      }).returning();
-      user = created;
-    }
-    if (!user) { res.status(500).json({ error: "Failed to create user" }); return; }
-
-    // Redirect to frontend with token — mark new users so they see onboarding
-    const token = makeToken(user.id, secret);
-    const isNew = !existing;
-    res.redirect(`${appUrl}/auth/callback?token=${token}${isNew ? "&new=1" : ""}`);
-  } catch (err) {
-    logger.error({ err }, "google oauth error");
-    res.status(500).json({ error: "OAuth failed" });
-  }
-});
-
 // ── Password reset ────────────────────────────────────────────────────────
 
 async function sendResetEmail(to: string, resetUrl: string): Promise<boolean> {
@@ -269,22 +176,19 @@ router.post("/auth/forgot-password", forgotPasswordLimiter, async (req, res) => 
     const [user] = await db.select({ id: usersTable.id, email: usersTable.email })
       .from(usersTable).where(and(eq(usersTable.email, email.toLowerCase().trim()), eq(usersTable.isGuest, false)));
 
-    // Always respond with the same message (don't reveal if email exists)
     if (!user) {
       res.json({ ok: true, emailSent: false });
       return;
     }
 
-    // Generate a secure token
     const token = crypto.randomUUID() + "-" + crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 3600_000); // 1 hour
+    const expiresAt = new Date(Date.now() + 3600_000);
 
     await db.insert(passwordResetTokensTable).values({ userId: user.id, token, expiresAt });
 
     const resetUrl = `${appUrl}/reset-password?token=${token}`;
     const emailSent = await sendResetEmail(user.email, resetUrl);
 
-    // In development, return the link directly if email isn't configured
     const isDev = process.env.NODE_ENV !== "production";
     res.json({ ok: true, emailSent, ...(isDev && !emailSent ? { devResetUrl: resetUrl } : {}) });
   } catch (err) {

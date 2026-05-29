@@ -14,22 +14,43 @@ function auth(req: any, res: any, next: any) {
   next();
 }
 
+// Resolve the Anthropic API key and base URL — supports both Replit AI Integration
+// and a user-supplied ANTHROPIC_API_KEY for Vercel/other deployments.
+function getAnthropicConfig(): { apiKey: string; baseUrl: string } | null {
+  // Replit AI Integration (preferred on Replit)
+  const replitKey = process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY;
+  const replitBase = process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL;
+  if (replitKey && replitBase) {
+    return { apiKey: replitKey, baseUrl: replitBase.replace(/\/$/, "") };
+  }
+  // Direct Anthropic API key (Vercel or user-supplied)
+  const directKey = process.env.ANTHROPIC_API_KEY;
+  if (directKey) {
+    return { apiKey: directKey, baseUrl: "https://api.anthropic.com" };
+  }
+  return null;
+}
+
 // Tiered AI response system
 async function getAIReply(
   systemPrompt: string,
   messages: Array<{ role: "user" | "assistant"; content: string }>,
   userMessage: string
 ): Promise<{ reply: string; source: string }> {
-  
-  // Option 1: Anthropic
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
-  if (anthropicKey) {
+
+  // Option 1: Anthropic (Replit integration or direct key)
+  const anthropic = getAnthropicConfig();
+  if (anthropic) {
     try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch(`${anthropic.baseUrl}/v1/messages`, {
         method: "POST",
-        headers: { "x-api-key": anthropicKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+        headers: {
+          "x-api-key": anthropic.apiKey,
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+        },
         body: JSON.stringify({
-          model: "claude-3-5-sonnet-20241022",
+          model: "claude-haiku-4-5",
           max_tokens: 300,
           system: systemPrompt,
           messages: [...messages, { role: "user", content: userMessage }],
@@ -43,7 +64,7 @@ async function getAIReply(
     } catch { /* fall through */ }
   }
 
-  // Option 2: Ollama (free, local)
+  // Option 2: Ollama (local, optional)
   const ollamaUrl = process.env.OLLAMA_URL;
   if (ollamaUrl) {
     try {
@@ -65,7 +86,7 @@ async function getAIReply(
     } catch { /* fall through */ }
   }
 
-  // Option 3: Smart built-in fallback based on message content
+  // Option 3: Smart built-in fallback
   const msg = userMessage.toLowerCase();
   const tips = [
     "Break your work into 25-minute focused blocks with 5-minute breaks. Consistency beats intensity.",
@@ -76,7 +97,7 @@ async function getAIReply(
     "One focused hour beats three distracted hours. Close all tabs except what you need right now.",
     "Your brain needs recovery. A proper 5-minute break (walk, stretch, breathe) makes the next session sharper.",
   ];
-  
+
   let reply: string;
   if (msg.includes("distract") || msg.includes("focus")) {
     reply = "Close everything except the one thing you're working on. Set a 25-minute timer and commit fully. Distractions get easier to resist once you start.";
@@ -93,7 +114,7 @@ async function getAIReply(
   } else {
     reply = tips[Math.floor(Date.now() / 1000) % tips.length]!;
   }
-  
+
   return { reply, source: "builtin" };
 }
 
@@ -143,7 +164,7 @@ ${context.length > 0 ? context.join("\n") : "No context available yet."}`;
 
     const history = (conversationHistory ?? []).slice(-8);
     const { reply, source } = await getAIReply(systemPrompt, history, message);
-    
+
     res.json({ reply, fallback: source === "builtin" });
   } catch (err) {
     logger.error({ err }, "coach chat error");

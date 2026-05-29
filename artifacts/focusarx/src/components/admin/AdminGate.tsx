@@ -21,10 +21,15 @@ export function AdminGate() {
         body: JSON.stringify({ password }),
       });
 
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string; hint?: string; ok?: boolean;
+      };
+
       if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as { error?: string; hint?: string };
-        if (data.hint) {
-          setError(`${data.error ?? "Access denied"} — ${data.hint}`);
+        if (res.status === 503) {
+          setError("Admin panel needs ADMIN_PASSWORD set in your environment variables.");
+        } else if (res.status === 403 || res.status === 401) {
+          setError("Wrong password.");
         } else {
           setError(data.error ?? "Access denied");
         }
@@ -34,7 +39,7 @@ export function AdminGate() {
       setLocation("/admin");
       window.location.reload();
     } catch {
-      setError("Could not reach server");
+      setError("Could not reach server — check your connection.");
     } finally {
       setLoading(false);
     }

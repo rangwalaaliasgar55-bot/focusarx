@@ -3,8 +3,6 @@ export type ServerConfig = {
   adminPassword: string | null;
   databaseUrl: string | null;
   isProduction: boolean;
-  googleClientId: string | null;
-  googleClientSecret: string | null;
   appUrl: string | null;
 };
 
@@ -41,13 +39,11 @@ export function getServerConfig(): ServerConfig {
     adminPassword,
     databaseUrl: process.env.DATABASE_URL ?? process.env.POSTGRES_URL ?? null,
     isProduction,
-    googleClientId: process.env.GOOGLE_CLIENT_ID ?? null,
-    googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? null,
     appUrl: process.env.APP_URL ?? (isProduction ? "https://focusarx.vercel.app" : "http://localhost:20925"),
   };
 }
 
-/** Env vars that must be set in production (Vercel) for auth + data routes. */
+/** Env vars that must be set in production for auth + data routes. */
 export function getConfigErrors(): string[] {
   const config = getServerConfig();
   const missing: string[] = [];
