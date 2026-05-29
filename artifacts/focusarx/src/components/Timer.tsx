@@ -350,10 +350,11 @@ export default function Timer() {
 
   return (
     <>
+    <div className="flex w-full flex-col items-center gap-6 md:flex-row md:items-start md:gap-10">
     <motion.section
       layout
       animate={justCompleted ? { scale: [1, 1.02, 1] } : { scale: 1 }}
-      className={`w-full max-w-md rounded-[1.75rem] border border-[var(--card-border)] bg-[var(--card)] p-8 backdrop-blur-2xl sm:p-10 ${isRunning ? "timer-running-glow" : "shadow-[0_24px_80px_-24px_rgba(0,0,0,0.55)]"}`}
+      className={`w-full max-w-md shrink-0 rounded-[1.75rem] border border-[var(--card-border)] bg-[var(--card)] p-8 backdrop-blur-2xl sm:p-10 ${isRunning ? "timer-running-glow" : "shadow-[0_24px_80px_-24px_rgba(0,0,0,0.55)]"}`}
       style={typeTint ? { background: `linear-gradient(135deg, var(--card) 60%, ${typeTint.bg})`, borderColor: `${typeTint.accent}22` } : undefined}
       transition={{ type: "spring", stiffness: 260, damping: 32 }}
     >
@@ -489,7 +490,7 @@ export default function Timer() {
     </motion.section>
 
     {/* ── Upgrade 1: Task Timeline + Overrun ─────────────────────────── */}
-    <div className="mt-14 w-full max-w-md">
+    <div className="w-full max-w-md">
       <TaskTimeline
         tasks={activeTasks.map(t => ({
           id: t.id,
@@ -506,6 +507,7 @@ export default function Timer() {
         }}
       />
     </div>
+    </div>{/* end timer+timeline flex wrapper */}
 
     {/* Ambient Sound Bar — visible when focus session is running */}
     <AmbientSoundBar visible={isRunning && mode === "focus"} />
