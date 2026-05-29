@@ -16,6 +16,7 @@ import { ghostsRouter } from "./ghosts";
 import { consequencesRouter } from "./consequences";
 import { focusWeatherRouter } from "./focusWeather";
 import { sessionReplayRouter } from "./sessionReplay";
+import { roadmapRouter } from "./roadmap";
 
 const router: IRouter = Router();
 
@@ -36,5 +37,6 @@ router.use(ghostsRouter);
 router.use(consequencesRouter);
 router.use(focusWeatherRouter);
 router.use(sessionReplayRouter);
+router.use(roadmapRouter);
 
 export default router;

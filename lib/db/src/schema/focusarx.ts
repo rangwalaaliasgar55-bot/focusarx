@@ -217,3 +217,13 @@ export const passwordResetTokensTable = pgTable("password_reset_tokens", {
 });
 
 export type PasswordResetToken = typeof passwordResetTokensTable.$inferSelect;
+
+export const roadmapsTable = pgTable("roadmaps", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  subject: text("subject").notNull(),
+  data: jsonb("data").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type Roadmap = typeof roadmapsTable.$inferSelect;

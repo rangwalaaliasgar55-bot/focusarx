@@ -72,7 +72,7 @@ function LogoMark({ size = "default" }: { size?: "default" | "small" }) {
     <img
       src="/logo.png"
       alt="FocusArx Shield Crest Logo"
-      className={`${imgSize} rounded-full object-cover drop-shadow-[0_0_8px_rgba(147,51,234,0.5)]`}
+      className={`${imgSize} rounded-full object-cover logo-pulse`}
       loading="lazy"
       width={size === "small" ? 28 : 36}
       height={size === "small" ? 28 : 36}
@@ -126,7 +126,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+        <nav className="nav-scroll-fade flex-1 overflow-y-auto px-3 py-4 space-y-1">
           {NAV_ITEMS.map((item) => (
             <NavItem key={item.href} {...item} active={location === item.href} />
           ))}
@@ -145,8 +145,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           {status === "authenticated" && user ? (
             <>
               <div className="flex items-center gap-3 rounded-xl px-3 py-2">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] text-xs font-bold text-white">
+                <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] text-xs font-bold text-white">
                   {initials}
+                  <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-[rgba(8,12,28,0.97)]" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-medium text-[#E2E8F0]">

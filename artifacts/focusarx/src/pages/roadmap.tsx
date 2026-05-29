@@ -1,14 +1,21 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { aiRoadmapSchema } from "@/lib/validators";
 import { getToken } from "@/lib/auth";
+import { BookmarkPlus, Trash2 } from "lucide-react";
 
 type RoadmapDay = {
   day: number;
   focusSessions: string[];
   tasks: string[];
   estimatedTime: number;
+};
+
+type SavedRoadmap = {
+  id: string;
+  subject: string;
+  createdAt: string;
 };
 
 export default function RoadmapPage() {
@@ -23,8 +30,34 @@ export default function RoadmapPage() {
   const [roadmap, setRoadmap] = useState<RoadmapDay[] | null>(null);
   const [openDay, setOpenDay] = useState<number | null>(1);
   const [checked, setChecked] = useState<Set<string>>(new Set());
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [savedRoadmaps, setSavedRoadmaps] = useState<SavedRoadmap[]>([]);
+  const [loadingList, setLoadingList] = useState(false);
 
   const validPayload = useMemo(() => ({ goal, dailyHours, level, deadline: deadline || undefined, currentProgress: currentProgress || undefined }), [goal, dailyHours, level, deadline, currentProgress]);
+
+  const authHeaders = () => {
+    const token = getToken();
+    return { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+  };
+
+  useEffect(() => {
+    if (authStatus !== "authenticated") return;
+    void fetchSavedList();
+  }, [authStatus]);
+
+  async function fetchSavedList() {
+    setLoadingList(true);
+    try {
+      const r = await fetch("/api/roadmap/list", { headers: authHeaders() });
+      if (r.ok) {
+        const d = await r.json() as { roadmaps: SavedRoadmap[] };
+        setSavedRoadmaps(d.roadmaps ?? []);
+      }
+    } catch { /* ignore */ }
+    setLoadingList(false);
+  }
 
   async function generate() {
     setError(null);
@@ -34,11 +67,11 @@ export default function RoadmapPage() {
       return;
     }
     setLoading(true);
+    setSaved(false);
     try {
-      const token = getToken();
       const res = await fetch("/api/ai/roadmap", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: authHeaders(),
         body: JSON.stringify(parsed.data),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string; roadmap?: RoadmapDay[] };
@@ -54,6 +87,44 @@ export default function RoadmapPage() {
       setChecked(new Set());
     } catch { setError("Network error — is the dev server running?"); }
     finally { setLoading(false); }
+  }
+
+  async function saveRoadmap() {
+    if (!roadmap || saving) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/roadmap/save", {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ subject: goal, data: roadmap }),
+      });
+      if (res.ok) {
+        setSaved(true);
+        await fetchSavedList();
+      }
+    } catch { /* ignore */ }
+    setSaving(false);
+  }
+
+  async function loadRoadmap(id: string) {
+    try {
+      const res = await fetch(`/api/roadmap/${id}`, { headers: authHeaders() });
+      if (res.ok) {
+        const d = await res.json() as { roadmap: { subject: string; data: RoadmapDay[] } };
+        setRoadmap(Array.isArray(d.roadmap.data) ? d.roadmap.data : []);
+        setGoal(d.roadmap.subject);
+        setOpenDay(1);
+        setChecked(new Set());
+        setSaved(true);
+      }
+    } catch { /* ignore */ }
+  }
+
+  async function deleteRoadmap(id: string) {
+    try {
+      await fetch(`/api/roadmap/${id}`, { method: "DELETE", headers: authHeaders() });
+      setSavedRoadmaps(prev => prev.filter(r => r.id !== id));
+    } catch { /* ignore */ }
   }
 
   return (
@@ -100,7 +171,43 @@ export default function RoadmapPage() {
               {loading ? "AI is planning your success…" : "Generate roadmap"}
             </motion.button>
             {error && <p className="mt-3 text-xs text-rose-400" role="alert">{error}</p>}
+
+            {/* Saved roadmaps list */}
+            {authStatus === "authenticated" && savedRoadmaps.length > 0 && (
+              <div className="mt-6 border-t border-zinc-800/60 pt-5">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Saved roadmaps</p>
+                {loadingList ? (
+                  <div className="h-8 animate-pulse rounded-lg bg-zinc-900/50" />
+                ) : (
+                  <ul className="space-y-1">
+                    {savedRoadmaps.map((r) => (
+                      <li key={r.id} className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-zinc-800/40">
+                        <button
+                          type="button"
+                          onClick={() => void loadRoadmap(r.id)}
+                          className="flex-1 text-left text-xs text-zinc-400 hover:text-zinc-100 truncate"
+                        >
+                          {r.subject}
+                          <span className="ml-2 text-[10px] text-zinc-600">
+                            {new Date(r.createdAt).toLocaleDateString()}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void deleteRoadmap(r.id)}
+                          className="shrink-0 text-zinc-700 hover:text-rose-400 transition-colors"
+                          aria-label="Delete roadmap"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
           </motion.aside>
+
           <section className="space-y-4">
             <AnimatePresence mode="wait">
               {loading && (
@@ -112,6 +219,27 @@ export default function RoadmapPage() {
             </AnimatePresence>
             {!loading && roadmap !== null && roadmap.length > 0 && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+                {/* Header with save button */}
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-zinc-500">Generated</p>
+                    <h2 className="text-base font-semibold text-zinc-200">{goal}</h2>
+                  </div>
+                  {authStatus === "authenticated" && (
+                    <motion.button
+                      type="button"
+                      onClick={() => void saveRoadmap()}
+                      disabled={saving || saved}
+                      whileHover={{ scale: 1.04 }}
+                      whileTap={{ scale: 0.96 }}
+                      className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-medium transition-colors ${saved ? "border-emerald-700/40 bg-emerald-950/40 text-emerald-400" : "border-indigo-800/40 bg-indigo-950/40 text-indigo-300 hover:bg-indigo-900/40"} disabled:opacity-60`}
+                    >
+                      <BookmarkPlus size={13} />
+                      {saved ? "Saved" : saving ? "Saving…" : "Save roadmap"}
+                    </motion.button>
+                  )}
+                </div>
+
                 {roadmap.map((day) => {
                   const open = openDay === day.day;
                   return (
@@ -133,7 +261,7 @@ export default function RoadmapPage() {
                             {day.focusSessions.length} sessions
                           </span>
                           <span className="text-xs text-zinc-500">~{day.estimatedTime} min</span>
-                          <span className="text-xs text-zinc-500">{open ? "Hide" : "Expand"}</span>
+                          <span className="text-xs text-zinc-500">{open ? "▲" : "▼"}</span>
                         </div>
                       </button>
                       <AnimatePresence initial={false}>

@@ -196,3 +196,23 @@ input, select, textarea {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.25); border-radius: 2px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(124,58,237,0.45); }
+
+/* Logo pulse glow */
+@keyframes logo-pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(124,58,237,0.35), 0 0 12px rgba(124,58,237,0.2); }
+  50%       { box-shadow: 0 0 0 3px rgba(124,58,237,0.55), 0 0 20px rgba(124,58,237,0.35); }
+}
+.logo-pulse { animation: logo-pulse-glow 3s ease-in-out infinite; }
+
+/* Timer running glow */
+@keyframes timer-glow-pulse {
+  0%, 100% { box-shadow: 0 24px 80px -24px rgba(0,0,0,0.55), 0 0 0 1px rgba(124,58,237,0.0); }
+  50%       { box-shadow: 0 24px 80px -24px rgba(0,0,0,0.55), 0 0 32px 2px rgba(124,58,237,0.22); }
+}
+.timer-running-glow { animation: timer-glow-pulse 2.5s ease-in-out infinite; }
+
+/* Sidebar nav scroll fade */
+.nav-scroll-fade {
+  -webkit-mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+}
