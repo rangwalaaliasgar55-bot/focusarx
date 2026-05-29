@@ -3,8 +3,6 @@ export type ServerConfig = {
   adminPassword: string | null;
   databaseUrl: string | null;
   isProduction: boolean;
-  googleClientId: string | null;
-  googleClientSecret: string | null;
   appUrl: string | null;
 };
 

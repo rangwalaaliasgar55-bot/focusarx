@@ -21,7 +21,7 @@ app.use(
         scriptSrc: ["'self'", "'unsafe-inline'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", "https:"],
+        connectSrc: ["'self'", "https:", "http:"],
         frameSrc: ["'none'"],
         objectSrc: ["'none'"],
         upgradeInsecureRequests: isDev ? null : [],
@@ -51,10 +51,14 @@ app.use(
   }),
 );
 
+// CORS — allow all Vercel preview URLs, Replit domains, and configured APP_URL
 app.use(
   cors({
     origin: (origin, cb) => {
+      // Always allow requests with no origin (server-to-server, curl, Postman)
       if (!origin) { cb(null, true); return; }
+
+      // In development, allow everything
       if (isDev) { cb(null, true); return; }
       if (origin.endsWith(".vercel.app")) { cb(null, true); return; }
       if (origin.endsWith(".replit.dev") || origin.endsWith(".repl.co")) { cb(null, true); return; }
