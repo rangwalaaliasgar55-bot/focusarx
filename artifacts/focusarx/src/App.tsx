@@ -11,6 +11,7 @@ import CommandPalette from "@/components/CommandPalette";
 import NotFound from "@/pages/not-found";
 import LoginPage from "@/pages/login";
 import SignupPage from "@/pages/signup";
+import MobileWelcomePage, { hasDoneMobileWelcome } from "@/pages/mobile-welcome";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
 import AuthCallbackPage from "@/pages/auth-callback";
@@ -38,6 +39,30 @@ import DailyGoal from "@/components/DailyGoal";
 import { useEffect, useState } from "react";
 
 const queryClient = new QueryClient();
+
+function isMobileDevice() {
+  return window.innerWidth < 768 || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+function MobileWelcomeGate({ children }: { children: React.ReactNode }) {
+  const { status } = useAuth();
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (status === "loading") return;
+    if (status === "authenticated") return;
+    if (hasDoneMobileWelcome()) return;
+    if (isMobileDevice()) {
+      const path = window.location.pathname;
+      const skip = ["/welcome", "/login", "/signup", "/forgot-password", "/reset-password", "/auth", "/admin"];
+      if (!skip.some(p => path.startsWith(p))) {
+        setLocation("/welcome");
+      }
+    }
+  }, [status, setLocation]);
+
+  return <>{children}</>;
+}
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { status } = useAuth();
@@ -206,8 +231,12 @@ function AppWithPalette() {
   return (
     <>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      <MobileWelcomeGate>
       <AppShell>
         <Switch>
+          {/* Mobile welcome — no auth required */}
+          <Route path="/welcome" component={MobileWelcomePage} />
+
           {/* Auth routes — no protection needed */}
           <Route path="/login" component={LoginPage} />
           <Route path="/signup" component={SignupPage} />
@@ -236,6 +265,7 @@ function AppWithPalette() {
           <Route component={NotFound} />
         </Switch>
       </AppShell>
+      </MobileWelcomeGate>
     </>
   );
 }

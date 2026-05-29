@@ -23,6 +23,7 @@ import { SoundEngine } from "./SoundEngine";
 import SessionTypePicker, { type SessionType, SESSION_TYPE_TINTS } from "./SessionTypePicker";
 import AmbientSoundBar from "./AmbientSoundBar";
 import { useTasks } from "@/hooks/useTasks";
+import BreakActivityCard from "./BreakActivityCard";
 
 const MODES: TimerMode[] = ["focus", "break", "longBreak"];
 
@@ -488,6 +489,26 @@ export default function Timer() {
 
       </motion.div>
     </motion.section>
+
+    {/* ── Break Activity Card ─────────────────────────────────────────── */}
+    <AnimatePresence>
+      {isRunning && (mode === "break" || mode === "longBreak") && (
+        <motion.div
+          key="break-activity"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.35 }}
+          className="w-full max-w-md"
+        >
+          <BreakActivityCard
+            mode={mode}
+            secondsLeft={secondsLeft}
+            breakDurationSeconds={mode === "longBreak" ? DEFAULT_CONFIG.longBreakDuration : DEFAULT_CONFIG.breakDuration}
+          />
+        </motion.div>
+      )}
+    </AnimatePresence>
 
     {/* ── Upgrade 1: Task Timeline + Overrun ─────────────────────────── */}
     <div className="w-full max-w-md">
