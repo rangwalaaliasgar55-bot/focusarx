@@ -35,6 +35,29 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    sourcemap: false,
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      onwarn(warning, warn) {
+        if (warning.code === "SOURCEMAP_ERROR") return;
+        if (warning.message?.includes("Can't resolve original location")) return;
+        if (warning.message?.includes("Circular chunk")) return;
+        warn(warning);
+      },
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return;
+          const pkg = id.split("node_modules/").pop()?.split("/")[0] ?? "";
+          if (pkg === "react" || pkg === "react-dom" || pkg === "scheduler") return "react-vendor";
+          if (pkg.startsWith("@radix-ui")) return "radix-vendor";
+          if (pkg === "framer-motion" || pkg === "motion") return "framer-vendor";
+          if (pkg.startsWith("@tanstack")) return "tanstack-vendor";
+          if (pkg === "recharts" || pkg.startsWith("d3-") || pkg === "d3") return "charts-vendor";
+          if (pkg === "@mediapipe" || pkg === "react-webcam") return "vision-vendor";
+          return "vendor";
+        },
+      },
+    },
   },
   server: {
     port: Number.isNaN(port) ? 5173 : port,
