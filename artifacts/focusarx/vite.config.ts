@@ -35,29 +35,6 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
-    sourcemap: false,
-    chunkSizeWarningLimit: 600,
-    rollupOptions: {
-      onwarn(warning, warn) {
-        if (warning.code === "SOURCEMAP_ERROR") return;
-        if (warning.message?.includes("Can't resolve original location")) return;
-        if (warning.message?.includes("Circular chunk")) return;
-        warn(warning);
-      },
-      output: {
-        manualChunks(id) {
-          if (id.includes("node_modules")) {
-            if (id.includes("react") || id.includes("react-dom") || id.includes("react-router")) {
-              return "react-vendor";
-            }
-            if (id.includes("framer-motion")) {
-              return "framer-vendor";
-            }
-            return "vendor";
-          }
-        },
-      },
-    },
   },
   server: {
     port: Number.isNaN(port) ? 5173 : port,
