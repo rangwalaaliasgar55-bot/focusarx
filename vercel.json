@@ -6,7 +6,7 @@
   "outputDirectory": "artifacts/focusarx/dist/public",
   "functions": {
     "api/index.mjs": {
-      "includeFiles": "artifacts/api-server/dist/**,node_modules/pg/**,node_modules/drizzle-orm/**,node_modules/bcryptjs/**",
+      "includeFiles": "artifacts/api-server/dist/**",
       "maxDuration": 30
     }
   },
