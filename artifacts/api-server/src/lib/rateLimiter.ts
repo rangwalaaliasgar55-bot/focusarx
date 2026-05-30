@@ -26,3 +26,11 @@ export const generalLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: "Too many requests, slow down." },
 });
+
+export const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: isDev ? 100 : 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many admin requests, please try again later." },
+});

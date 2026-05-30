@@ -24,6 +24,8 @@ import SessionTypePicker, { type SessionType, SESSION_TYPE_TINTS } from "./Sessi
 import AmbientSoundBar from "./AmbientSoundBar";
 import { useTasks } from "@/hooks/useTasks";
 import BreakActivityCard from "./BreakActivityCard";
+import SessionSummaryCard from "./SessionSummaryCard";
+import { getToken } from "@/lib/auth";
 
 const MODES: TimerMode[] = ["focus", "break", "longBreak"];
 
@@ -69,11 +71,14 @@ export default function Timer() {
   const { addSession, focusSessionsToday } = useSessionHistory();
   const { toast } = useToast();
   const { requestMonitorRecovery, monitorEnabled } = useSessionRecovery();
-  const { activeTasks } = useTasks();
+  const { activeTasks, completedTasks, refreshTasks } = useTasks();
   const [storageReady, setStorageReady] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
   const [recoveryReady, setRecoveryReady] = useState(false);
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [showSummary, setShowSummary] = useState(false);
+  const [summaryData, setSummaryData] = useState<{ durationSeconds: number; completedTaskCount: number; focusScore: number | null } | null>(null);
   const [notificationPermission, setNotificationPermission] =
     useState<NotificationPermission | "unsupported">("unsupported");
   const prevStatusRef = useRef<string>("idle");
@@ -104,6 +109,18 @@ export default function Timer() {
 
   useEffect(() => {
     setStorageReady(true);
+  }, []);
+
+  // Fetch current streak on mount
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    fetch("/api/streak", { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then((d: { streak?: { currentStreak?: number } } | null) => {
+        if (d?.streak?.currentStreak) setCurrentStreak(d.streak.currentStreak);
+      })
+      .catch(() => {});
   }, []);
 
   const handleRecovered = useCallback(
@@ -151,20 +168,34 @@ export default function Timer() {
       if (res.offline) {
         toast("Saved locally (offline mode).", "info");
       } else if (res.success) {
-        toast("Session saved.", "success");
         if (session.mode === "focus" && session.sessionInsights?.summary) {
           const insight = session.sessionInsights.summary;
-          setTimeout(() => {
-            toast(insight, "info");
-          }, 600);
+          setTimeout(() => { toast(insight, "info"); }, 600);
         }
         if (res.streakUpdated) {
-          setTimeout(() => {
-            toast("Streak updated! Keep it up 🔥", "success");
-          }, 800);
+          // Re-fetch updated streak
+          const token = getToken();
+          if (token) {
+            fetch("/api/streak", { headers: { Authorization: `Bearer ${token}` } })
+              .then(r => r.ok ? r.json() : null)
+              .then((d: { streak?: { currentStreak?: number } } | null) => {
+                if (d?.streak?.currentStreak) setCurrentStreak(d.streak.currentStreak);
+              })
+              .catch(() => {});
+          }
         }
       } else {
         toast(`Failed to save: ${res.error || "Unknown"}`, "error");
+      }
+
+      // Show end-of-session summary card for focus sessions
+      if (session.mode === "focus" && session.durationSeconds > 0) {
+        setSummaryData({
+          durationSeconds: session.durationSeconds,
+          completedTaskCount: completedTasks.length,
+          focusScore: null,
+        });
+        setShowSummary(true);
       }
 
       if ("Notification" in window && Notification.permission === "granted") {
@@ -419,6 +450,16 @@ export default function Timer() {
             {storageReady ? focusSessionsToday : 0} focus block
             {(storageReady ? focusSessionsToday : 0) !== 1 ? "s" : ""} today
           </p>
+          {currentStreak > 0 && (
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 300, damping: 14, delay: 0.6 }}
+              className="mt-1 flex items-center gap-1 rounded-full border border-orange-500/25 bg-orange-500/10 px-3 py-0.5 text-xs font-semibold text-orange-400"
+            >
+              🔥 {currentStreak} day streak
+            </motion.div>
+          )}
         </motion.div>
 
         <TimerControls
@@ -526,12 +567,13 @@ export default function Timer() {
           setOverrunTask({ text: task.text });
           setOverrunMinutes(mins);
         }}
+        onEstimateChange={() => { void refreshTasks(); }}
       />
     </div>
     </div>{/* end timer+timeline flex wrapper */}
 
-    {/* Ambient Sound Bar — visible when focus session is running */}
-    <AmbientSoundBar visible={isRunning && mode === "focus"} />
+    {/* Ambient Sound Bar — always visible */}
+    <AmbientSoundBar visible={true} />
 
     {/* ── Overlays ────────────────────────────────────────────────────── */}
     <SessionTypePicker
@@ -588,6 +630,16 @@ export default function Timer() {
         />
       )}
     </AnimatePresence>
+
+    <SessionSummaryCard
+      open={showSummary}
+      durationSeconds={summaryData?.durationSeconds ?? 0}
+      completedTaskCount={summaryData?.completedTaskCount ?? 0}
+      focusScore={summaryData?.focusScore ?? null}
+      onStartBreak={() => { setShowSummary(false); skipToNext(); }}
+      onKeepGoing={() => { setShowSummary(false); }}
+      onClose={() => { setShowSummary(false); }}
+    />
   </>
   );
 }

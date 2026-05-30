@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { useMemo } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { formatTime } from "@/lib/timerUtils";
 import type { TimerMode } from "@/types/timer";
 
@@ -47,6 +47,19 @@ export function TimerDisplay({
   const dashOffset = CIRCUMFERENCE * (1 - progress);
   const color = MODE_COLORS[mode];
   const reduceMotion = useReducedMotion();
+
+  // Subtle scale pulse on each second tick when running
+  const prevSecondsRef = useRef(secondsLeft);
+  const [pulsing, setPulsing] = useState(false);
+  useEffect(() => {
+    if (!isRunning || reduceMotion) return;
+    if (prevSecondsRef.current !== secondsLeft) {
+      prevSecondsRef.current = secondsLeft;
+      setPulsing(true);
+      const t = setTimeout(() => setPulsing(false), 300);
+      return () => clearTimeout(t);
+    }
+  }, [secondsLeft, isRunning, reduceMotion]);
 
   const transition = useMemo(
     () =>
@@ -116,7 +129,8 @@ export function TimerDisplay({
       <motion.div
         className="relative flex select-none flex-col items-center"
         initial={false}
-        animate={{ opacity: 1 }}
+        animate={{ opacity: 1, scale: pulsing ? 1.025 : 1 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
       >
         <div className="relative group flex items-center justify-center">
           <span

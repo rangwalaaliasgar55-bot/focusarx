@@ -50,6 +50,9 @@ export function useTasks() {
         createdAt: new Date().toISOString(),
       };
 
+      // Optimistic update — show immediately in UI
+      setTasks((prev) => [...prev, task]);
+
       const token = getToken();
       if (token) {
         try {
@@ -60,16 +63,38 @@ export function useTasks() {
           });
           if (res.ok) {
             const data = await res.json() as { task?: { id: string } };
-            if (data.task?.id) task.id = data.task.id;
+            if (data.task?.id) {
+              // Replace temp local ID with the server-assigned ID
+              setTasks((prev) => prev.map(t => t.id === localId ? { ...t, id: data.task!.id! } : t));
+            }
           }
         } catch { }
       }
 
-      setTasks((prev) => [...prev, task]);
       return task;
     },
     [setTasks]
   );
+
+  const refreshTasks = useCallback(async () => {
+    const token = getToken();
+    if (!token) return;
+    try {
+      const r = await fetch("/api/tasks", { headers: authHeaders() });
+      if (!r.ok) return;
+      const d = await r.json() as { tasks?: Array<{ id: string; text: string; completed: boolean; estimatedMinutes: number | null; order: number }> };
+      if (!d?.tasks) return;
+      const serverTasks: Task[] = d.tasks.map(t => ({
+        id: t.id,
+        title: t.text,
+        estimatedPomodoros: t.estimatedMinutes ? Math.max(1, Math.round(t.estimatedMinutes / 25)) : 1,
+        completedPomodoros: 0,
+        done: t.completed,
+        createdAt: new Date().toISOString(),
+      }));
+      setTasks(serverTasks);
+    } catch { }
+  }, [setTasks]);
 
   const incrementPomodoro = useCallback(
     (taskId: string) => {
@@ -117,5 +142,5 @@ export function useTasks() {
   const activeTasks = tasks.filter((t) => !t.done);
   const completedTasks = tasks.filter((t) => t.done);
 
-  return { tasks, activeTasks, completedTasks, addTask, incrementPomodoro, toggleDone, removeTask };
+  return { tasks, activeTasks, completedTasks, addTask, incrementPomodoro, toggleDone, removeTask, refreshTasks };
 }

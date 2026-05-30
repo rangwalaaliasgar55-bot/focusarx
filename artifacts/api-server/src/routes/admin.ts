@@ -5,6 +5,7 @@ import { eq, gte } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getServerConfig } from "../lib/config";
 import { extractUserId } from "./auth";
+import { adminLimiter } from "../lib/rateLimiter";
 
 const router = Router();
 const ADMIN_COOKIE = "focusarx_admin";
@@ -47,7 +48,7 @@ async function checkAuth(req: { headers: { cookie?: string; authorization?: stri
 
 const SECURE_FLAG = IS_PROD ? "; Secure" : "";
 
-router.post("/admin/auth", async (req, res) => {
+router.post("/admin/auth", adminLimiter, async (req, res) => {
   const password = getServerConfig().adminPassword;
   if (!password) {
     const userId = extractUserId(req);

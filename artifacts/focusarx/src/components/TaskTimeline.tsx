@@ -12,9 +12,10 @@ interface Props {
   elapsedSeconds?: number;
   isRunning?: boolean;
   onOverrun?: (task: Task, overrunMinutes: number) => void;
+  onEstimateChange?: (taskId: string, minutes: number) => void;
 }
 
-export default function TaskTimeline({ tasks: propTasks, elapsedSeconds = 0, isRunning = false, onOverrun }: Props) {
+export default function TaskTimeline({ tasks: propTasks, elapsedSeconds = 0, isRunning = false, onOverrun, onEstimateChange }: Props) {
   const [apiTasks, setApiTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(!propTasks);
   const [overrunShown, setOverrunShown] = useState(false);
@@ -59,6 +60,7 @@ export default function TaskTimeline({ tasks: propTasks, elapsedSeconds = 0, isR
       body: JSON.stringify({ estimatedMinutes: minutes }),
     });
     setApiTasks(ts => ts.map(t => t.id === taskId ? { ...t, estimatedMinutes: minutes } : t));
+    onEstimateChange?.(taskId, minutes);
     setEditingId(null);
   };
 
@@ -199,7 +201,14 @@ export default function TaskTimeline({ tasks: propTasks, elapsedSeconds = 0, isR
           const hasTime = task.estimatedMinutes && task.estimatedMinutes > 0;
           const color = COLORS[i % COLORS.length]!;
           return (
-            <div key={task.id} className="flex items-center gap-2 group">
+            <motion.div
+              key={task.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="flex items-center gap-2 group"
+            >
               <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
               <p className="flex-1 truncate text-xs text-[#94A3B8]">{task.text}</p>
 
@@ -245,7 +254,7 @@ export default function TaskTimeline({ tasks: propTasks, elapsedSeconds = 0, isR
                   )}
                 </button>
               )}
-            </div>
+            </motion.div>
           );
         })}
       </div>
