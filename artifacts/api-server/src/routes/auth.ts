@@ -44,7 +44,7 @@ function jwtSecretOrRespond(res: { status: (code: number) => { json: (body: unkn
 }
 
 function makeToken(userId: string, secret: string): string {
-  return jwt.sign({ sub: userId }, secret, { expiresIn: "30d" });
+  return jwt.sign({ sub: userId }, secret, { expiresIn: "7d" });
 }
 
 function verifyToken(token: string, secret: string): { sub: string } | null {
@@ -236,14 +236,23 @@ router.get("/auth/reset-password/verify", async (req, res) => {
 
 // ── Onboarding ────────────────────────────────────────────────────────────
 
+const onboardingSchema = z.object({
+  goal: z.string().max(200).optional(),
+  level: z.string().max(50).optional(),
+  dailyHours: z.number().min(0).max(24).optional(),
+  preferredSessionLength: z.number().min(5).max(120).optional(),
+}).strict();
+
 router.post("/auth/onboarding", async (req, res) => {
   const userId = extractUserId(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-  const { data } = req.body as { data?: Record<string, unknown> };
+  const { data } = req.body as { data?: unknown };
   if (!data) { res.status(400).json({ error: "Missing onboarding data" }); return; }
+  const parsed = onboardingSchema.safeParse(data);
+  if (!parsed.success) { res.status(400).json({ error: "Invalid onboarding data", details: parsed.error.errors }); return; }
   try {
     await db.update(usersTable)
-      .set({ onboardingCompleted: true, onboardingData: data })
+      .set({ onboardingCompleted: true, onboardingData: parsed.data })
       .where(eq(usersTable.id, userId));
     res.json({ ok: true });
   } catch (err) {

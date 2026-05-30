@@ -46,12 +46,14 @@ export function getServerConfig(): ServerConfig {
     }
   }
 
-  const adminPassword: string | null =
-    process.env.ADMIN_PASSWORD ?? (!isProduction ? "admin123" : null);
-  if (!process.env.ADMIN_PASSWORD && !isProduction && !warnedDevAdmin) {
+  const adminPassword: string | null = process.env.ADMIN_PASSWORD ?? null;
+  if (!adminPassword && isProduction) {
+    throw new Error("ADMIN_PASSWORD must be set in production.");
+  }
+  if (!adminPassword && !isProduction && !warnedDevAdmin) {
     warnedDevAdmin = true;
     console.warn(
-      "[config] ADMIN_PASSWORD is not set — using default dev password 'admin123'.",
+      "[config] ADMIN_PASSWORD is not set — admin password login disabled in dev.",
     );
   }
 

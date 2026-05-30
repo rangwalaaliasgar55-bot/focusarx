@@ -1,0 +1,35 @@
+You are a security engineer. Fix the following vulnerabilities found in the FocusArx codebase. Apply all fixes in one go.
+
+FIX 1 — artifacts/api-server/src/lib/config.ts
+Remove the "admin123" default entirely. If ADMIN_PASSWORD is not set in production, throw a hard error instead of silently falling back:
+tsconst adminPassword: string | null = process.env.ADMIN_PASSWORD ?? null;
+if (!adminPassword && isProduction) {
+  throw new Error("ADMIN_PASSWORD must be set in production.");
+}
+
+FIX 2 — artifacts/api-server/src/routes/admin.ts
+Remove the in-memory adminAuthCache Map entirely. It causes stale admin access after role revocation and is a memory leak in serverless. Replace every adminAuthCache usage with a direct DB check every time. The checkAuth function should just hit the DB directly without caching.
+
+FIX 3 — artifacts/api-server/src/routes/auth.ts (onboarding endpoint)
+The /auth/onboarding endpoint stores raw unvalidated JSON. Add a Zod schema before saving:
+tsconst onboardingSchema = z.object({
+  goal: z.string().max(200).optional(),
+  level: z.string().max(50).optional(),
+  dailyHours: z.number().min(0).max(24).optional(),
+  preferredSessionLength: z.number().min(5).max(120).optional(),
+}).strict();
+Validate req.body.data against this schema. Reject with 400 if it fails.
+
+FIX 4 — artifacts/api-server/src/routes/coach.ts
+The onboarding goal field is injected raw into the Groq AI prompt — this is a prompt injection vulnerability. Sanitize it before use:
+tsconst safeGoal = (od?.goal ?? "")
+  .replace(/[\r\n`"]/g, " ")
+  .trim()
+  .slice(0, 200);
+Use safeGoal in the prompt instead of od.goal.
+
+FIX 5 — artifacts/api-server/src/routes/auth.ts (JWT expiry)
+Change the JWT token expiry from "30d" to "7d" in the makeToken function. This limits the damage window if a token is stolen.
+
+After all fixes, commit with message: security: fix admin default password, cache IDOR, onboarding injection, prompt injection, JWT expiry
+Do not change any other logic, routes, or UI. Only apply these targeted security fixes.

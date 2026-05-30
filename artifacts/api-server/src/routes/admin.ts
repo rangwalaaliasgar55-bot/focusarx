@@ -32,21 +32,14 @@ function isAdminAuthed(req: { headers: { cookie?: string } }): boolean {
   }
 }
 
-const adminAuthCache = new Map<string, number>();
-
 async function checkAuth(req: { headers: { cookie?: string; authorization?: string } }): Promise<boolean> {
   if (isAdminAuthed(req)) return true;
   const userId = extractUserId(req);
   if (!userId) return false;
 
-  const cached = adminAuthCache.get(userId);
-  if (cached && cached > Date.now()) return true;
-
   try {
     const [user] = await db.select({ role: usersTable.role }).from(usersTable).where(eq(usersTable.id, userId));
-    const isAdmin = user?.role?.toLowerCase() === "admin";
-    if (isAdmin) adminAuthCache.set(userId, Date.now() + 5 * 60 * 1000);
-    return isAdmin;
+    return user?.role?.toLowerCase() === "admin";
   } catch {
     return false;
   }

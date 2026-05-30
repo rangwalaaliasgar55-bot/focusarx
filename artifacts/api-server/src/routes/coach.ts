@@ -104,7 +104,13 @@ router.post("/coach/chat", auth, async (req: any, res) => {
     const context: string[] = [];
     if (user?.name) context.push(`User's name: ${user.name}`);
     const od = user?.onboardingData as any;
-    if (od?.goal) context.push(`Focus goal: ${od.goal}`);
+    if (od?.goal) {
+      const safeGoal = (od.goal as string)
+        .replace(/[\r\n`"]/g, " ")
+        .trim()
+        .slice(0, 200);
+      context.push(`Focus goal: ${safeGoal}`);
+    }
     if (readiness) context.push(`Today's readiness: ${readiness.score}/100 (recommended session: ${readiness.sessionLengthRec}min)`);
     if (activeSession?.timerStatus === "running") {
       const minsLeft = Math.floor((activeSession.secondsLeft ?? 0) / 60);
