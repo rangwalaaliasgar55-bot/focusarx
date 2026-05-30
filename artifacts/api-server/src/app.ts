@@ -63,7 +63,13 @@ app.use(
       if (origin.endsWith(".vercel.app")) { cb(null, true); return; }
       if (origin.endsWith(".replit.dev") || origin.endsWith(".repl.co")) { cb(null, true); return; }
       const appUrl = process.env.APP_URL;
-      if (appUrl && origin === appUrl) { cb(null, true); return; }
+      if (appUrl) {
+  const appUrlObj = new URL(appUrl);
+  const originObj = new URL(origin);
+  const baseDomain = appUrlObj.hostname.replace(/^www\./, "");
+  const originDomain = originObj.hostname.replace(/^www\./, "");
+  if (baseDomain === originDomain) { cb(null, true); return; }
+}
       cb(new Error("CORS: origin not allowed"));
     },
     credentials: true,
