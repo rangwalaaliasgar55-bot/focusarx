@@ -6,13 +6,9 @@ import router from "./routes";
 import { logger } from "./lib/logger";
 import { getConfigErrors } from "./lib/config";
 import { generalLimiter } from "./lib/rateLimiter";
-
 const isDev = process.env.NODE_ENV !== "production";
-
 const app: Express = express();
-
 app.set("trust proxy", 1);
-
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -30,7 +26,6 @@ app.use(
     crossOriginEmbedderPolicy: false,
   }),
 );
-
 app.use(
   pinoHttp({
     logger,
@@ -50,15 +45,10 @@ app.use(
     },
   }),
 );
-
-// CORS — allow all Vercel preview URLs, Replit domains, and configured APP_URL
 app.use(
   cors({
     origin: (origin, cb) => {
-      // Always allow requests with no origin (server-to-server, curl, Postman)
       if (!origin) { cb(null, true); return; }
-
-      // In development, allow everything
       if (isDev) { cb(null, true); return; }
       if (origin.endsWith(".vercel.app")) { cb(null, true); return; }
       if (origin.endsWith(".replit.dev") || origin.endsWith(".repl.co")) { cb(null, true); return; }
@@ -75,12 +65,9 @@ app.use(
     credentials: true,
   }),
 );
-
 app.use(express.json({ limit: "100kb" }));
 app.use(express.urlencoded({ extended: true, limit: "100kb" }));
-
 app.use("/api", generalLimiter);
-
 app.use("/api", (req, res, next) => {
   if (req.path === "/healthz" || req.path.startsWith("/healthz/")) {
     next();
@@ -97,9 +84,7 @@ app.use("/api", (req, res, next) => {
   }
   next();
 });
-
 app.use("/api", router);
-
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   if (err.message?.startsWith("CORS")) {
     res.status(403).json({ error: "Forbidden", reason: err.message });
@@ -108,5 +93,4 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   logger.error({ err }, "unhandled error");
   res.status(500).json({ error: "Internal error" });
 });
-
 export default app;
