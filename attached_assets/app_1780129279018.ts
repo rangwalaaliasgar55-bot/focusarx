@@ -62,6 +62,8 @@ app.use(
       if (isDev) { cb(null, true); return; }
       if (origin.endsWith(".vercel.app")) { cb(null, true); return; }
       if (origin.endsWith(".replit.dev") || origin.endsWith(".repl.co")) { cb(null, true); return; }
+
+      // Allow configured APP_URL and its www subdomain variant
       const appUrl = process.env.APP_URL;
       if (appUrl) {
         const appUrlObj = new URL(appUrl);
@@ -70,6 +72,7 @@ app.use(
         const originDomain = originObj.hostname.replace(/^www\./, "");
         if (baseDomain === originDomain) { cb(null, true); return; }
       }
+
       cb(new Error("CORS: origin not allowed"));
     },
     credentials: true,
