@@ -3,11 +3,63 @@ import { useAuth, isAdminUser } from "@/lib/auth";
 import {
   Timer, LayoutDashboard, TrendingUp, Trophy, Star,
   Users, Sparkles, LogOut, LogIn, Menu, X, Shield, BookOpen,
-  Dna, Ghost, Sword, Radio, Wind, UserCircle,
+  Dna, Ghost, Sword, Radio, Wind, UserCircle, Info,
 } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import CoachPanel from "@/components/CoachPanel";
+
+function InfoTooltip() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handle(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative flex items-center">
+      <button
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        onClick={() => setOpen((v) => !v)}
+        aria-label="What is FocusArx?"
+        className="flex items-center justify-center rounded-lg p-1.5 text-[#4B5563] transition-colors hover:bg-[rgba(124,58,237,0.12)] hover:text-[#A78BFA]"
+      >
+        <Info size={14} />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: 4, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 4, scale: 0.97 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className="absolute left-8 top-1/2 -translate-y-1/2 z-[200] w-64 rounded-xl border border-[rgba(124,58,237,0.2)] bg-[#0d0f1c] p-3.5 shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
+            onMouseEnter={() => setOpen(true)}
+            onMouseLeave={() => setOpen(false)}
+          >
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#7C3AED] mb-1.5">
+              What is FocusArx?
+            </p>
+            <p className="text-xs text-[#94A3B8] leading-relaxed">
+              An AI-powered deep-work environment that tracks your attention in real-time,
+              gamifies your focus sessions, and builds lasting study habits.
+            </p>
+            <p className="text-[11px] text-[#4B5563] mt-1.5">
+              Built for students, developers & creators.
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 const NAV_ITEMS = [
   { href: "/",             label: "Timer",         icon: Timer,         shortcut: "1" },
@@ -119,10 +171,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {/* Logo — desktop */}
         <div className="flex items-center gap-2.5 border-b border-[rgba(124,58,237,0.15)] px-5 py-5">
           <LogoMark />
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="text-sm font-bold tracking-tight text-[#E2E8F0]">FocusArx</p>
             <p className="text-[10px] text-[#4B5563]">Study OS</p>
           </div>
+          <InfoTooltip />
         </div>
 
         {/* Nav */}
@@ -178,6 +231,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex items-center gap-2">
           <LogoMark size="small" />
           <span className="text-sm font-bold text-[#E2E8F0]">FocusArx</span>
+          <InfoTooltip />
         </div>
         <button
           onClick={() => setMobileOpen(true)}

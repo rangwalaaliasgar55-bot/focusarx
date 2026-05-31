@@ -37,6 +37,8 @@ import { useTasks } from "@/hooks/useTasks";
 import ReadinessCheckInModal from "@/components/ReadinessCheckInModal";
 import DailyGoal from "@/components/DailyGoal";
 import { useEffect, useState } from "react";
+import WelcomeOverlay from "@/components/WelcomeOverlay";
+import DemoVideoSection from "@/components/DemoVideoSection";
 
 const queryClient = new QueryClient();
 
@@ -202,8 +204,11 @@ function HomePage() {
         <HomeTopBar />
         <div className="flex-1 flex flex-col lg:flex-row gap-4 p-4 sm:p-6 overflow-auto">
           {/* Timer card — center on desktop */}
-          <div className="flex-1 flex items-start justify-center">
-            <Timer />
+          <div className="flex-1 flex flex-col items-center gap-6">
+            <div className="w-full flex justify-center">
+              <Timer />
+            </div>
+            <DemoVideoSection />
           </div>
           {/* Side panel */}
           <SidePanel />
@@ -277,6 +282,7 @@ function App() {
         <ToastProvider>
           <CapacitorNativeBridge />
           <GuestBootstrap />
+          <WelcomeOverlay />
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <AppWithPalette />
           </WouterRouter>
