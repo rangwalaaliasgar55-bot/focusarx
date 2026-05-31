@@ -39,7 +39,9 @@ import ReadinessCheckInModal from "@/components/ReadinessCheckInModal";
 import DailyGoal from "@/components/DailyGoal";
 import { useEffect, useState } from "react";
 import WelcomeOverlay from "@/components/WelcomeOverlay";
-import DemoVideoSection from "@/components/DemoVideoSection";
+import OnboardingModal from "@/components/OnboardingModal";
+import HeroBanner from "@/components/HeroBanner";
+import FeatureSpotlight from "@/components/FeatureSpotlight";
 
 const queryClient = new QueryClient();
 
@@ -113,9 +115,15 @@ function SidePanel() {
           <div className="h-[3px] bg-[#1e2130] rounded-full overflow-hidden">
             <div className="h-full bg-[#6c63ff] rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (focusSessionsToday / 8) * 100)}%` }} />
           </div>
+          {focusSessionsToday === 0 && (
+            <p className="text-[10px] text-[#3a3d4a] italic">You could hit 8 blocks today! 🚀</p>
+          )}
           <div className="flex justify-between items-center">
             <span className="text-xs text-[#5a5f72]">Tasks done</span>
-            <span className="text-xs font-bold text-[#22d387] font-mono">{completedToday}/{tasks.length || 0}</span>
+            {tasks.length === 0
+              ? <span className="text-[10px] text-[#3a3d4a] italic">Add a task below ↓</span>
+              : <span className="text-xs font-bold text-[#22d387] font-mono">{completedToday}/{tasks.length}</span>
+            }
           </div>
           <div className="flex justify-between items-center">
             <span className="text-xs text-[#5a5f72]">Active tasks</span>
@@ -129,7 +137,7 @@ function SidePanel() {
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4a4f62] mb-3">Tasks</p>
         <div className="space-y-1 max-h-40 overflow-y-auto">
           {tasks.length === 0 && (
-            <p className="text-[11px] text-[#3a3d4a] py-1">No tasks yet.</p>
+            <p className="text-[11px] text-[#3a3d4a] py-1 italic">✨ Add tasks to unlock your AI Timeline</p>
           )}
           {tasks.slice(0, 6).map((t) => (
             <button
@@ -198,18 +206,40 @@ function HomeTopBar() {
   );
 }
 
+const MOTIVATIONAL = [
+  "Your future self is counting on this session.",
+  "One block at a time. That's how legends are built.",
+  "The leaderboard is watching. 👀",
+  "Distraction is the enemy. You are the weapon.",
+  "Every expert was once a beginner who didn't quit.",
+  "This session counts. Make it matter.",
+];
+
+function MotivationalLine() {
+  const line = MOTIVATIONAL[Math.floor(Math.random() * MOTIVATIONAL.length)];
+  return (
+    <p className="text-[11px] italic text-[#3a3d4a] text-center mt-1">{line}</p>
+  );
+}
+
 function HomePage() {
+  function handleHeroStart() {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   return (
     <SessionRecoveryProvider>
       <div className="flex flex-col min-h-[100dvh]">
         <HomeTopBar />
         <div className="flex-1 flex flex-col lg:flex-row gap-4 p-4 sm:p-6 overflow-auto">
           {/* Timer card — center on desktop */}
-          <div className="flex-1 flex flex-col items-center gap-6">
-            <div className="w-full flex justify-center">
+          <div className="flex-1 flex flex-col items-center gap-4">
+            <HeroBanner onStart={handleHeroStart} />
+            <div className="w-full flex flex-col items-center">
               <Timer />
+              <MotivationalLine />
             </div>
-            <DemoVideoSection />
+            <FeatureSpotlight />
           </div>
           {/* Side panel */}
           <SidePanel />
@@ -285,6 +315,7 @@ function App() {
           <CapacitorNativeBridge />
           <GuestBootstrap />
           <WelcomeOverlay />
+          <OnboardingModal />
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <AppWithPalette />
           </WouterRouter>

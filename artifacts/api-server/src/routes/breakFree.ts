@@ -6,7 +6,7 @@ import {
   breakFreeMoodsTable,
   breakFreePledgesTable,
 } from "@workspace/db";
-import { eq, desc, gte } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
 
@@ -154,10 +154,6 @@ router.post("/break-free/streak/relapse", auth, async (req: any, res) => {
 // GET /break-free/moods
 router.get("/break-free/moods", auth, async (req: any, res) => {
   try {
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const cutoff = sevenDaysAgo.toISOString().split("T")[0]!;
-
     const moods = await db.select()
       .from(breakFreeMoodsTable)
       .where(eq(breakFreeMoodsTable.userId, req.userId))
@@ -186,10 +182,6 @@ router.post("/break-free/moods", auth, async (req: any, res) => {
   const today = new Date().toISOString().split("T")[0]!;
 
   try {
-    const [existing] = await db.select({ id: breakFreeMoodsTable.id })
-      .from(breakFreeMoodsTable)
-      .where(eq(breakFreeMoodsTable.userId, req.userId));
-
     let entry;
     const todayEntry = await db.select()
       .from(breakFreeMoodsTable)

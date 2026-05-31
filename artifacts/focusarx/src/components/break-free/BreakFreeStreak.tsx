@@ -43,7 +43,7 @@ export default function BreakFreeStreak() {
 
   function handleStart() {
     const today = new Date().toISOString().split("T")[0]!;
-    startMutation.mutate({ startDate: today });
+    startMutation.mutate({ data: { startDate: today } });
   }
 
   if (isLoading) {
@@ -177,7 +177,7 @@ export default function BreakFreeStreak() {
               </p>
               <div className="flex gap-3">
                 <button
-                  onClick={() => relapseMutation.mutate()}
+                  onClick={() => relapseMutation.mutate(undefined)}
                   disabled={relapseMutation.isPending}
                   className="flex-1 rounded-xl bg-teal-700/30 border border-teal-600/30 py-2.5 text-sm font-semibold text-teal-200 hover:bg-teal-700/50 transition-colors disabled:opacity-60"
                 >

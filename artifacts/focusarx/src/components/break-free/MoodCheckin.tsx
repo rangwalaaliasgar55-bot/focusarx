@@ -62,7 +62,7 @@ export default function MoodCheckin() {
                 key={value}
                 whileHover={{ scale: 1.12 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => logMutation.mutate({ mood: value })}
+                onClick={() => logMutation.mutate({ data: { mood: value } })}
                 disabled={logMutation.isPending}
                 className="flex flex-col items-center gap-1 flex-1 rounded-xl border border-teal-900/20 bg-teal-900/10 py-2 hover:border-teal-500/30 hover:bg-teal-900/20 transition-all disabled:opacity-60"
               >

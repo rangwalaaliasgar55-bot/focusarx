@@ -41,11 +41,10 @@ export default function PledgeWall() {
     },
   });
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function handleSubmit() {
     const clean = sanitize(msg.trim()).slice(0, 100);
     if (!clean) return;
-    postMutation.mutate({ message: clean });
+    postMutation.mutate({ data: { message: clean } });
   }
 
   return (
@@ -57,7 +56,7 @@ export default function PledgeWall() {
         </div>
 
         {/* Post form */}
-        <form onSubmit={handleSubmit} className="flex gap-2 p-4 border-b border-teal-900/20">
+        <div className="flex gap-2 p-4 border-b border-teal-900/20">
           <input
             value={msg}
             onChange={(e) => setMsg(e.target.value.slice(0, 100))}
@@ -65,14 +64,14 @@ export default function PledgeWall() {
             className="flex-1 min-w-0 rounded-xl border border-teal-900/30 bg-[#030e0e] px-3 py-2 text-xs text-teal-100 placeholder-[#2a4040] outline-none focus:border-teal-600/50 transition-colors"
           />
           <button
-            type="submit"
+            onClick={handleSubmit}
             disabled={!msg.trim() || postMutation.isPending}
             className="flex items-center gap-1.5 rounded-xl border border-teal-600/30 bg-teal-900/30 px-3 py-2 text-xs font-semibold text-teal-300 hover:bg-teal-900/50 transition-colors disabled:opacity-40"
           >
             <Send size={12} />
             Post
           </button>
-        </form>
+        </div>
         <p className="text-right text-[9px] text-[#1a3030] px-4 py-1">{msg.length}/100</p>
 
         {/* Pledge list */}

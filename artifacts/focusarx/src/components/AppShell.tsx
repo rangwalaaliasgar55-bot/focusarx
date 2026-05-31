@@ -62,22 +62,22 @@ function InfoTooltip() {
 }
 
 const NAV_ITEMS = [
-  { href: "/",             label: "Timer",         icon: Timer,         shortcut: "1" },
-  { href: "/dashboard",    label: "Dashboard",     icon: LayoutDashboard, shortcut: "2" },
-  { href: "/analytics",    label: "Analytics",     icon: TrendingUp,    shortcut: "3" },
-  { href: "/leaderboard",  label: "Leaderboard",   icon: Trophy,        shortcut: "4" },
-  { href: "/achievements", label: "Achievements",  icon: Star,          shortcut: "5" },
-  { href: "/forge",        label: "Forge Room",    icon: Users,         shortcut: "6" },
-  { href: "/roadmap",      label: "AI Roadmap",    icon: Sparkles,      shortcut: "7" },
-  { href: "/breathe",      label: "Breathe",       icon: Wind,          shortcut: "" },
-  { href: "/profile",      label: "Profile",       icon: UserCircle,    shortcut: "" },
-  { href: "/profiles",     label: "Profiles",      icon: Shield,        shortcut: "8" },
-  { href: "/distractions", label: "Focus Journal", icon: BookOpen,      shortcut: "9" },
-  { href: "/focus-dna",    label: "Focus DNA",     icon: Dna,           shortcut: "0" },
-  { href: "/ghosts",       label: "Ghost Mode",    icon: Ghost,         shortcut: "" },
-  { href: "/consequences", label: "Consequences",  icon: Sword,         shortcut: "" },
-  { href: "/replay",       label: "Session Replay",icon: Radio,         shortcut: "" },
-  { href: "/break-free",  label: "Break Free",    icon: Flame,         shortcut: "" },
+  { href: "/dashboard",    label: "Dashboard",     icon: LayoutDashboard, shortcut: "2", aiBadge: false },
+  { href: "/",             label: "Timer",         icon: Timer,           shortcut: "1", aiBadge: false },
+  { href: "/roadmap",      label: "AI Roadmap",    icon: Sparkles,        shortcut: "7", aiBadge: true  },
+  { href: "/forge",        label: "Forge Room",    icon: Users,           shortcut: "6", aiBadge: false },
+  { href: "/analytics",    label: "Analytics",     icon: TrendingUp,      shortcut: "3", aiBadge: false },
+  { href: "/leaderboard",  label: "Leaderboard",   icon: Trophy,          shortcut: "4", aiBadge: false },
+  { href: "/achievements", label: "Achievements",  icon: Star,            shortcut: "5", aiBadge: false },
+  { href: "/break-free",   label: "Break Free",    icon: Flame,           shortcut: "",  aiBadge: false },
+  { href: "/breathe",      label: "Breathe",       icon: Wind,            shortcut: "",  aiBadge: false },
+  { href: "/profile",      label: "Profile",       icon: UserCircle,      shortcut: "",  aiBadge: false },
+  { href: "/profiles",     label: "Profiles",      icon: Shield,          shortcut: "8", aiBadge: false },
+  { href: "/distractions", label: "Focus Journal", icon: BookOpen,        shortcut: "9", aiBadge: false },
+  { href: "/focus-dna",    label: "Focus DNA",     icon: Dna,             shortcut: "0", aiBadge: false },
+  { href: "/ghosts",       label: "Ghost Mode",    icon: Ghost,           shortcut: "",  aiBadge: false },
+  { href: "/consequences", label: "Consequences",  icon: Sword,           shortcut: "",  aiBadge: false },
+  { href: "/replay",       label: "Session Replay",icon: Radio,           shortcut: "",  aiBadge: false },
 ];
 
 const NO_SHELL = ["/login", "/signup", "/forgot-password", "/reset-password", "/admin", "/auth/callback"];
@@ -88,11 +88,12 @@ interface NavItemProps {
   icon: React.ComponentType<{ size?: number; className?: string }>;
   active: boolean;
   shortcut?: string;
+  aiBadge?: boolean;
   onClick?: () => void;
   compact?: boolean;
 }
 
-function NavItem({ href, label, icon: Icon, active, shortcut, onClick, compact }: NavItemProps) {
+function NavItem({ href, label, icon: Icon, active, shortcut, aiBadge, onClick, compact }: NavItemProps) {
   return (
     <motion.div whileHover={{ x: 2 }} transition={{ type: "spring", stiffness: 400, damping: 30 }}>
       <Link
@@ -108,8 +109,11 @@ function NavItem({ href, label, icon: Icon, active, shortcut, onClick, compact }
           <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r bg-[#7C3AED]" />
         )}
         <Icon size={16} className="shrink-0" />
-        {!compact && <span>{label}</span>}
-        {!compact && shortcut && (
+        {!compact && <span className="flex-1">{label}</span>}
+        {!compact && aiBadge && (
+          <span className="rounded-full bg-[rgba(124,58,237,0.25)] border border-[rgba(124,58,237,0.4)] px-1.5 py-0.5 text-[8px] font-bold text-[#A78BFA] uppercase tracking-wider">AI</span>
+        )}
+        {!compact && shortcut && !aiBadge && (
           <span className="ml-auto hidden text-[10px] text-[#4B5563] group-hover:text-[#6B7280] lg:block">
             {shortcut}
           </span>
@@ -174,7 +178,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <LogoMark />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold tracking-tight text-[#E2E8F0]">FocusArx</p>
-            <p className="text-[10px] text-[#4B5563]">Study OS</p>
+            <p className="text-[10px] text-[#4B5563] leading-tight">AI-Powered Study OS</p>
           </div>
           <InfoTooltip />
         </div>

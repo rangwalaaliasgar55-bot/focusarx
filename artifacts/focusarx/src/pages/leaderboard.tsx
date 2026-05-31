@@ -56,7 +56,16 @@ export default function LeaderboardPage() {
       .catch(() => setLoading(false));
   }, []);
 
-  const sorted = [...entries].sort((a, b) =>
+  const DEMO_ENTRIES: LeaderboardEntry[] = [
+    { rank: 1, userId: "d1", name: "Alex R.",   weeklyXp: 420, totalXp: 3200, coins: 80, streak: 12, isCurrentUser: false },
+    { rank: 2, userId: "d2", name: "Priya S.",  weeklyXp: 380, totalXp: 2900, coins: 70, streak: 9,  isCurrentUser: false },
+    { rank: 3, userId: "d3", name: "Kai M.",    weeklyXp: 310, totalXp: 2100, coins: 55, streak: 7,  isCurrentUser: false },
+    { rank: 4, userId: "d4", name: "Jordan T.", weeklyXp: 270, totalXp: 1800, coins: 40, streak: 5,  isCurrentUser: false },
+    { rank: 5, userId: "d5", name: "Sam W.",    weeklyXp: 190, totalXp: 1200, coins: 30, streak: 3,  isCurrentUser: false },
+    { rank: 6, userId: "me", name: "You",       weeklyXp: 0,   totalXp: 0,    coins: 0,  streak: 0,  isCurrentUser: true  },
+  ];
+  const isDemo = entries.length < 3;
+  const sorted = [...(isDemo ? DEMO_ENTRIES : entries)].sort((a, b) =>
     filter === "weekly" ? b.weeklyXp - a.weeklyXp : b.totalXp - a.totalXp
   ).map((e, i) => ({ ...e, rank: i + 1 }));
 
@@ -77,6 +86,14 @@ export default function LeaderboardPage() {
               <Trophy size={24} className="text-[#FFB800]" /> Leaderboard
             </h1>
           </header>
+
+          {/* Demo banner */}
+          {isDemo && (
+            <div className="mb-4 rounded-xl border border-[rgba(124,58,237,0.2)] bg-[rgba(124,58,237,0.07)] px-4 py-2.5 flex items-center gap-2">
+              <span className="text-sm">👥</span>
+              <p className="text-xs text-[#A78BFA]">Complete your first session to appear on the real leaderboard. Showing demo data.</p>
+            </div>
+          )}
 
           {/* Filter tabs */}
           <div className="mb-6 inline-flex rounded-xl bg-[rgba(16,23,50,0.7)] p-1 border border-[var(--forge-border)]">
