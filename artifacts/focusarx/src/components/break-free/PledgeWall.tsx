@@ -35,9 +35,11 @@ export default function PledgeWall() {
   const pledges = data?.pledges ?? [];
 
   const postMutation = usePostBreakFreePledge({
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: getGetBreakFreePledgesQueryKey() });
-      setMsg("");
+    mutation: {
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: getGetBreakFreePledgesQueryKey() });
+        setMsg("");
+      },
     },
   });
 
@@ -49,40 +51,40 @@ export default function PledgeWall() {
 
   return (
     <div className="px-4 py-4">
-      <div className="rounded-2xl border border-teal-900/25 bg-[#061212] overflow-hidden">
-        <div className="px-4 pt-4 pb-3 border-b border-teal-900/20">
-          <p className="text-xs font-semibold text-teal-300">Anonymous Pledge Wall</p>
-          <p className="text-[11px] text-teal-700 mt-0.5">No account needed. Your words help someone else.</p>
+      <div className="rounded-2xl border border-[rgba(124,58,237,0.15)] bg-[#0d0f1c] overflow-hidden">
+        <div className="px-4 pt-4 pb-3 border-b border-[rgba(124,58,237,0.1)]">
+          <p className="text-xs font-semibold text-[#A78BFA]">Anonymous Pledge Wall</p>
+          <p className="text-[11px] text-[#4B5563] mt-0.5">No account needed. Your words help someone else.</p>
         </div>
 
         {/* Post form */}
-        <div className="flex gap-2 p-4 border-b border-teal-900/20">
+        <div className="flex gap-2 p-4 border-b border-[rgba(124,58,237,0.1)]">
           <input
             value={msg}
             onChange={(e) => setMsg(e.target.value.slice(0, 100))}
             placeholder="Write a pledge or message of strength…"
-            className="flex-1 min-w-0 rounded-xl border border-teal-900/30 bg-[#030e0e] px-3 py-2 text-xs text-teal-100 placeholder-[#2a4040] outline-none focus:border-teal-600/50 transition-colors"
+            className="flex-1 min-w-0 rounded-xl border border-[rgba(124,58,237,0.2)] bg-[#070810] px-3 py-2 text-xs text-[#E2E8F0] placeholder-[#4B5563] outline-none focus:border-[rgba(124,58,237,0.5)] transition-colors"
           />
           <button
             onClick={handleSubmit}
             disabled={!msg.trim() || postMutation.isPending}
-            className="flex items-center gap-1.5 rounded-xl border border-teal-600/30 bg-teal-900/30 px-3 py-2 text-xs font-semibold text-teal-300 hover:bg-teal-900/50 transition-colors disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded-xl border border-[rgba(124,58,237,0.3)] bg-[rgba(124,58,237,0.1)] px-3 py-2 text-xs font-semibold text-[#A78BFA] hover:bg-[rgba(124,58,237,0.2)] transition-colors disabled:opacity-40"
           >
             <Send size={12} />
             Post
           </button>
         </div>
-        <p className="text-right text-[9px] text-[#1a3030] px-4 py-1">{msg.length}/100</p>
+        <p className="text-right text-[9px] text-[#3a3d4a] px-4 py-1">{msg.length}/100</p>
 
         {/* Pledge list */}
         <div className="max-h-72 overflow-y-auto px-4 py-3 space-y-2">
           {isLoading && (
             <div className="flex justify-center py-6">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-teal-900 border-t-teal-500" />
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-[rgba(124,58,237,0.2)] border-t-[#7C3AED]" />
             </div>
           )}
           {!isLoading && pledges.length === 0 && (
-            <p className="text-center text-xs text-[#1a3030] py-6">
+            <p className="text-center text-xs text-[#3a3d4a] py-6">
               Be the first to post a pledge. ✨
             </p>
           )}
@@ -94,10 +96,10 @@ export default function PledgeWall() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.25 }}
-                className="rounded-xl border border-teal-900/20 bg-[#030e0e] px-3 py-2.5"
+                className="rounded-xl border border-[rgba(124,58,237,0.1)] bg-[#070810] px-3 py-2.5"
               >
-                <p className="text-xs text-teal-200 leading-relaxed">"{p.message}"</p>
-                <p className="text-[9px] text-[#1a3030] mt-1">{relativeTime(p.postedAt)}</p>
+                <p className="text-xs text-[#E2E8F0] leading-relaxed">"{p.message}"</p>
+                <p className="text-[9px] text-[#3a3d4a] mt-1">{relativeTime(p.postedAt)}</p>
               </motion.div>
             ))}
           </AnimatePresence>

@@ -21,7 +21,7 @@ export default function BreakFreePage() {
   const [tab, setTab] = useState<TabId>("streak");
 
   return (
-    <div className="min-h-[100dvh] flex flex-col" style={{ background: "linear-gradient(160deg, #030e10 0%, #020c0e 60%, #030810 100%)" }}>
+    <div className="min-h-[100dvh] flex flex-col">
       {/* Header */}
       <div className="px-5 pt-6 pb-4">
         <motion.div
@@ -29,13 +29,13 @@ export default function BreakFreePage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-teal-700 mb-0.5">
+          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#7C3AED] mb-0.5">
             Digital Wellness
           </p>
-          <h1 className="text-2xl font-black text-teal-100 leading-tight">
+          <h1 className="text-2xl font-black text-[#E2E8F0] leading-tight">
             Break Free
           </h1>
-          <p className="text-xs text-teal-700 mt-1 leading-relaxed">
+          <p className="text-xs text-[#4B5563] mt-1 leading-relaxed">
             Science-backed. Zero shame. One day at a time.
           </p>
         </motion.div>
@@ -51,8 +51,8 @@ export default function BreakFreePage() {
               onClick={() => setTab(id)}
               className={`flex items-center gap-1.5 shrink-0 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all duration-200 ${
                 active
-                  ? "bg-teal-900/40 border border-teal-500/25 text-teal-200 shadow-[0_0_12px_rgba(45,212,191,0.12)]"
-                  : "border border-transparent text-teal-800 hover:text-teal-600 hover:bg-teal-900/15"
+                  ? "bg-[rgba(124,58,237,0.2)] border border-[rgba(124,58,237,0.3)] text-[#A78BFA] shadow-[0_0_12px_rgba(124,58,237,0.15)]"
+                  : "border border-transparent text-[#4B5563] hover:text-[#94A3B8] hover:bg-[rgba(124,58,237,0.08)]"
               }`}
             >
               <Icon size={12} />

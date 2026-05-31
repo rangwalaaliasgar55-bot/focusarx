@@ -23,16 +23,18 @@ function moodColor(mood: number) {
 
 export default function MoodCheckin() {
   const qc = useQueryClient();
-  const { showToast } = useToast();
+  const { toast } = useToast();
 
   const { data } = useQuery(getGetBreakFreeMoodsQueryOptions());
   const moods = data?.moods ?? [];
   const todayMood = data?.todayMood ?? null;
 
   const logMutation = useLogBreakFreeMood({
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: getGetBreakFreeMoodsQueryKey() });
-      showToast("Mood logged ✓", "success");
+    mutation: {
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: getGetBreakFreeMoodsQueryKey() });
+        toast("Mood logged ✓", "success");
+      },
     },
   });
 
@@ -54,8 +56,8 @@ export default function MoodCheckin() {
     <div className="px-4 py-4">
       {/* Check-in row */}
       {todayMood === null ? (
-        <div className="rounded-2xl border border-teal-900/25 bg-[#061212] p-4 mb-4">
-          <p className="text-xs font-semibold text-teal-300 mb-3">How are you feeling today?</p>
+        <div className="rounded-2xl border border-[rgba(124,58,237,0.15)] bg-[#0d0f1c] p-4 mb-4">
+          <p className="text-xs font-semibold text-[#A78BFA] mb-3">How are you feeling today?</p>
           <div className="flex gap-2 justify-between">
             {EMOJIS.map(({ value, emoji, label }) => (
               <motion.button
@@ -64,36 +66,36 @@ export default function MoodCheckin() {
                 whileTap={{ scale: 0.95 }}
                 onClick={() => logMutation.mutate({ data: { mood: value } })}
                 disabled={logMutation.isPending}
-                className="flex flex-col items-center gap-1 flex-1 rounded-xl border border-teal-900/20 bg-teal-900/10 py-2 hover:border-teal-500/30 hover:bg-teal-900/20 transition-all disabled:opacity-60"
+                className="flex flex-col items-center gap-1 flex-1 rounded-xl border border-[rgba(124,58,237,0.1)] bg-[rgba(124,58,237,0.05)] py-2 hover:border-[rgba(124,58,237,0.3)] hover:bg-[rgba(124,58,237,0.1)] transition-all disabled:opacity-60"
               >
                 <span className="text-xl">{emoji}</span>
-                <span className="text-[9px] text-teal-700">{label}</span>
+                <span className="text-[9px] text-[#4B5563]">{label}</span>
               </motion.button>
             ))}
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl border border-teal-900/25 bg-[#061212] px-4 py-3 mb-4 flex items-center gap-3">
+        <div className="rounded-2xl border border-[rgba(124,58,237,0.15)] bg-[#0d0f1c] px-4 py-3 mb-4 flex items-center gap-3">
           <span className="text-2xl">{EMOJIS.find(e => e.value === todayMood)?.emoji}</span>
           <div>
-            <p className="text-xs font-semibold text-teal-300">Today's mood logged ✓</p>
-            <p className="text-[11px] text-teal-700">{EMOJIS.find(e => e.value === todayMood)?.label}</p>
+            <p className="text-xs font-semibold text-[#A78BFA]">Today's mood logged ✓</p>
+            <p className="text-[11px] text-[#4B5563]">{EMOJIS.find(e => e.value === todayMood)?.label}</p>
           </div>
         </div>
       )}
 
       {/* 7-day chart */}
-      <div className="rounded-2xl border border-teal-900/25 bg-[#061212] p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#2a4040] mb-3">
+      <div className="rounded-2xl border border-[rgba(124,58,237,0.15)] bg-[#0d0f1c] p-4">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#4B5563] mb-3">
           7-day mood
         </p>
         <ResponsiveContainer width="100%" height={80}>
           <BarChart data={last7} barSize={20} margin={{ top: 0, right: 0, bottom: 0, left: -30 }}>
-            <XAxis dataKey="label" tick={{ fontSize: 9, fill: "#2a4040" }} axisLine={false} tickLine={false} />
+            <XAxis dataKey="label" tick={{ fontSize: 9, fill: "#4B5563" }} axisLine={false} tickLine={false} />
             <YAxis domain={[0, 5]} hide />
             <Tooltip
-              contentStyle={{ background: "#061212", border: "1px solid rgba(45,212,191,0.15)", borderRadius: "8px", fontSize: "11px" }}
-              labelStyle={{ color: "#2dd4bf" }}
+              contentStyle={{ background: "#0d0f1c", border: "1px solid rgba(124,58,237,0.15)", borderRadius: "8px", fontSize: "11px" }}
+              labelStyle={{ color: "#A78BFA" }}
               formatter={(v: number) => [EMOJIS.find(e => e.value === v)?.emoji ?? "—", "Mood"]}
             />
             <Bar dataKey="mood" radius={[4, 4, 0, 0]}>
