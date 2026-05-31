@@ -227,3 +227,34 @@ export const roadmapsTable = pgTable("roadmaps", {
 });
 
 export type Roadmap = typeof roadmapsTable.$inferSelect;
+
+export const breakFreeStreaksTable = pgTable("break_free_streaks", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().unique().references(() => usersTable.id, { onDelete: "cascade" }),
+  startDate: text("start_date").notNull(),
+  currentStreak: integer("current_streak").notNull().default(0),
+  longestStreak: integer("longest_streak").notNull().default(0),
+  relapseCount: integer("relapse_count").notNull().default(0),
+  lastRelapseDate: text("last_relapse_date"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type BreakFreeStreak = typeof breakFreeStreaksTable.$inferSelect;
+
+export const breakFreeMoodsTable = pgTable("break_free_moods", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  mood: integer("mood").notNull(),
+  date: text("date").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type BreakFreeMood = typeof breakFreeMoodsTable.$inferSelect;
+
+export const breakFreePledgesTable = pgTable("break_free_pledges", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  message: text("message").notNull(),
+  postedAt: timestamp("posted_at").defaultNow().notNull(),
+});
+
+export type BreakFreePledge = typeof breakFreePledgesTable.$inferSelect;

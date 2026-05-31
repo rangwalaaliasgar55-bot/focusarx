@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface BreakFreeMoodEntry {
+  id: string;
+  userId: string;
+  mood: number;
+  date: string;
+  createdAt: string;
 }

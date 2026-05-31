@@ -31,6 +31,7 @@ import ConsequencesPage from "@/pages/consequences";
 import ReplayPage from "@/pages/replay";
 import BreathePage from "@/pages/breathe";
 import ProfilePage from "@/pages/profile";
+import BreakFreePage from "@/pages/break-free";
 import { FocusCamera } from "@/components/camera/FocusCamera";
 import { useSessionHistory } from "@/hooks/useSessionHistory";
 import { useTasks } from "@/hooks/useTasks";
@@ -267,6 +268,7 @@ function AppWithPalette() {
           <Route path="/replay" component={() => <ProtectedRoute component={ReplayPage} />} />
           <Route path="/breathe" component={BreathePage} />
           <Route path="/profile" component={() => <ProtectedRoute component={ProfilePage} />} />
+          <Route path="/break-free" component={BreakFreePage} />
           <Route component={NotFound} />
         </Switch>
       </AppShell>

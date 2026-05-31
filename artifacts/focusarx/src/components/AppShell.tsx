@@ -3,7 +3,7 @@ import { useAuth, isAdminUser } from "@/lib/auth";
 import {
   Timer, LayoutDashboard, TrendingUp, Trophy, Star,
   Users, Sparkles, LogOut, LogIn, Menu, X, Shield, BookOpen,
-  Dna, Ghost, Sword, Radio, Wind, UserCircle, Info,
+  Dna, Ghost, Sword, Radio, Wind, UserCircle, Info, Flame,
 } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -77,6 +77,7 @@ const NAV_ITEMS = [
   { href: "/ghosts",       label: "Ghost Mode",    icon: Ghost,         shortcut: "" },
   { href: "/consequences", label: "Consequences",  icon: Sword,         shortcut: "" },
   { href: "/replay",       label: "Session Replay",icon: Radio,         shortcut: "" },
+  { href: "/break-free",  label: "Break Free",    icon: Flame,         shortcut: "" },
 ];
 
 const NO_SHELL = ["/login", "/signup", "/forgot-password", "/reset-password", "/admin", "/auth/callback"];

@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface LogMoodBody {
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  mood: number;
 }

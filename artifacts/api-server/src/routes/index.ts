@@ -17,6 +17,7 @@ import { consequencesRouter } from "./consequences";
 import { focusWeatherRouter } from "./focusWeather";
 import { sessionReplayRouter } from "./sessionReplay";
 import { roadmapRouter } from "./roadmap";
+import { breakFreeRouter } from "./breakFree";
 
 const router: IRouter = Router();
 
@@ -38,5 +39,6 @@ router.use(consequencesRouter);
 router.use(focusWeatherRouter);
 router.use(sessionReplayRouter);
 router.use(roadmapRouter);
+router.use(breakFreeRouter);
 
 export default router;
