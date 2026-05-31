@@ -1,5 +1,5 @@
--- Break Free tables (run once if pnpm db:push hasn't been applied)
--- Requires existing public.users table from FocusArx schema.
+-- Run this in Neon SQL Editor if Break Free shows "database may need updating"
+-- https://console.neon.tech → your project → SQL Editor → paste → Run
 
 CREATE TABLE IF NOT EXISTS break_free_streaks (
   id text PRIMARY KEY,
@@ -25,3 +25,7 @@ CREATE TABLE IF NOT EXISTS break_free_pledges (
   message text NOT NULL,
   posted_at timestamp NOT NULL DEFAULT now()
 );
+
+-- Verify (should return 3 rows):
+-- SELECT table_name FROM information_schema.tables
+-- WHERE table_schema = 'public' AND table_name LIKE 'break_free_%';
