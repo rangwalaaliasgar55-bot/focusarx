@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { AdminGate } from "@/components/admin/AdminGate";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
 
@@ -46,7 +47,7 @@ type AdminData = {
   activeCount: number;
 };
 
-type Tab = "overview" | "users";
+type Tab = "overview" | "analytics" | "users";
 
 export default function AdminPage() {
   const { data: session, status: authStatus } = useAuth();
@@ -172,7 +173,7 @@ export default function AdminPage() {
             <p className="mt-1 text-sm text-zinc-500">Platform overview and user management.</p>
           </div>
           <div className="flex gap-1 rounded-xl border border-zinc-800 bg-zinc-900/60 p-1">
-            {(["overview", "users"] as Tab[]).map((t) => (
+            {(["overview", "analytics", "users"] as Tab[]).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -284,6 +285,16 @@ export default function AdminPage() {
                   </button>
                 )}
               </div>
+            </motion.div>
+          ) : tab === "analytics" ? (
+            <motion.div
+              key="analytics"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
+            >
+              <AnalyticsDashboard authHeaders={authHeaders} />
             </motion.div>
           ) : (
             <motion.div

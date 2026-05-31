@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { useToast } from "@/components/Toast";
 import { useAuth } from "@/lib/auth";
+import { trackSiteEvent } from "@/lib/site-analytics";
 
 export default function SignupPage() {
   const [name, setName] = useState("");
@@ -33,6 +34,7 @@ export default function SignupPage() {
         setLocation("/login");
       } else {
         toast("Account created successfully", "success");
+        trackSiteEvent("user_signed_up", { email: email.split("@")[1] ?? "unknown" });
         setLocation("/onboarding");
       }
     } catch {

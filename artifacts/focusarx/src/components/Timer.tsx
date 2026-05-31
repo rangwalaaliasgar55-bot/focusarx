@@ -13,6 +13,7 @@ import { SessionDots } from "./SessionDots";
 import { useToast } from "./Toast";
 import { getModeLabel } from "@/lib/timerUtils";
 import { DEFAULT_CONFIG } from "@/lib/constants";
+import { trackSiteEvent } from "@/lib/site-analytics";
 import type { PersistedActiveSession } from "@/types/session-persistence";
 import type { TimerMode } from "@/types/timer";
 import FocusLockOverlay, { LockModePicker } from "./FocusLockOverlay";
@@ -254,6 +255,7 @@ export default function Timer() {
 
     if (status === "running" && (was === "idle" || was === "paused")) {
       void persistence.onTimerStarted();
+      if (was === "idle") trackSiteEvent("focus_session_started");
     }
   }, [status, recoveryReady, persistence]);
 

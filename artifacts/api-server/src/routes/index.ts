@@ -18,6 +18,8 @@ import { focusWeatherRouter } from "./focusWeather";
 import { sessionReplayRouter } from "./sessionReplay";
 import { roadmapRouter } from "./roadmap";
 import { breakFreeRouter } from "./breakFree";
+import { siteAnalyticsRouter } from "./siteAnalytics";
+import { adminAnalyticsRouter } from "./adminAnalytics";
 
 const router: IRouter = Router();
 
@@ -40,5 +42,7 @@ router.use(focusWeatherRouter);
 router.use(sessionReplayRouter);
 router.use(roadmapRouter);
 router.use(breakFreeRouter);
+router.use(siteAnalyticsRouter);
+router.use(adminAnalyticsRouter);
 
 export default router;

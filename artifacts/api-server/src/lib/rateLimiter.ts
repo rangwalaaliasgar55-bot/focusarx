@@ -27,6 +27,20 @@ export const generalLimiter = rateLimit({
   message: { error: "Too many requests, slow down." },
 });
 
+export const trackLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: isDev ? 300 : 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many tracking requests." },
+  keyGenerator: (req) => {
+    const body = req.body as { visitorId?: string } | undefined;
+    const vid = body?.visitorId;
+    const ip = req.ip ?? "unknown";
+    return vid ? `${vid}:${ip}` : ip;
+  },
+});
+
 export const adminLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: isDev ? 100 : 20,

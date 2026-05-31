@@ -5,6 +5,7 @@ import { useLocalStorage } from "./useLocalStorage";
 import { STORAGE_KEYS } from "@/lib/constants";
 import { generateId } from "@/lib/timerUtils";
 import { getToken } from "@/lib/auth";
+import { trackSiteEvent } from "@/lib/site-analytics";
 import type { Task } from "@/types/timer";
 
 function authHeaders() {
@@ -52,6 +53,7 @@ export function useTasks() {
 
       // Optimistic update — show immediately in UI
       setTasks((prev) => [...prev, task]);
+      trackSiteEvent("task_created", { title: title.slice(0, 80) });
 
       const token = getToken();
       if (token) {

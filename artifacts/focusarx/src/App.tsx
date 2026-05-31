@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from "@/lib/auth";
 import { ToastProvider } from "@/components/Toast";
 import { CapacitorNativeBridge } from "@/components/CapacitorNativeBridge";
 import { GuestBootstrap } from "@/components/GuestBootstrap";
+import { SiteAnalyticsTracker } from "@/components/SiteAnalyticsTracker";
 import { SessionRecoveryProvider } from "@/components/SessionRecoveryContext";
 import Timer from "@/components/Timer";
 import AppShell from "@/components/AppShell";
@@ -330,6 +331,7 @@ function App() {
           <WelcomeOverlay />
           <OnboardingModal />
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <SiteAnalyticsTracker />
             <AppWithPalette />
           </WouterRouter>
         </ToastProvider>

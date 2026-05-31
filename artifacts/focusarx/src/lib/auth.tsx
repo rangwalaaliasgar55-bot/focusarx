@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { linkAnalyticsUser, trackSiteEvent } from "@/lib/site-analytics";
 
 export type AuthUser = {
   id: string;
@@ -76,6 +77,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     void refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    if (status === "authenticated" && data?.user?.id) {
+      linkAnalyticsUser(data.user.id);
+    }
+  }, [status, data?.user?.id]);
+
   const signIn = useCallback(async (
     provider: string,
     opts: Record<string, string>
@@ -98,6 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setToken(json.token);
       await refresh();
+      trackSiteEvent("user_logged_in", { provider });
       return { ok: true };
     } catch {
       return { ok: false, error: "Network error" };

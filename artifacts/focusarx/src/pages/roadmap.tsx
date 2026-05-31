@@ -3,6 +3,7 @@ import { useMemo, useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { aiRoadmapSchema } from "@/lib/validators";
 import { getToken } from "@/lib/auth";
+import { trackSiteEvent } from "@/lib/site-analytics";
 import { BookmarkPlus, Trash2 } from "lucide-react";
 
 type RoadmapDay = {
@@ -85,6 +86,7 @@ export default function RoadmapPage() {
       setRoadmap(days);
       setOpenDay(1);
       setChecked(new Set());
+      trackSiteEvent("roadmap_generated", { days: days.length });
     } catch { setError("Network error — is the dev server running?"); }
     finally { setLoading(false); }
   }
