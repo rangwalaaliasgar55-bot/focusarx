@@ -103,15 +103,18 @@ router.get("/admin/users", async (req, res) => {
     const streakByUser: Record<string, number> = {};
     for (const s of streaks) streakByUser[s.userId] = s.currentStreak;
 
+    const registered = users.filter((u) => !u.isGuest);
+
     res.json({
-      users: users.map((u) => ({
-        id: u.id, name: u.name, email: u.email, isGuest: u.isGuest,
+      users: registered.map((u) => ({
+        id: u.id, name: u.name, email: u.email, isGuest: false,
         role: u.role ?? "user",
         sessionCount: sessionCountByUser[u.id] ?? 0,
         streak: streakByUser[u.id] ?? 0,
         createdAt: u.createdAt,
       })),
       activeCount: active.length,
+      guestCount: users.length - registered.length,
     });
   } catch (err) {
     logger.error({ err }, "admin users error");
@@ -157,21 +160,26 @@ router.get("/admin/stats", async (req, res) => {
     for (const s of allFocusSessions) {
       if (s.mode === "focus") timeByUser[s.userId] = (timeByUser[s.userId] ?? 0) + (s.durationSec ?? 0);
     }
+    const guestIds = new Set(allUsers.filter((u) => u.isGuest).map((u) => u.id));
+    const registeredUsers = allUsers.filter((u) => !u.isGuest);
+
     const topUserIds = Object.entries(timeByUser)
+      .filter(([id]) => !guestIds.has(id))
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([id, secs]) => ({ id, minutes: Math.round(secs / 60) }));
 
     const topUsersData = await Promise.all(topUserIds.map(async ({ id, minutes }) => {
       const [user] = await db.select({ name: usersTable.name, email: usersTable.email, isGuest: usersTable.isGuest }).from(usersTable).where(eq(usersTable.id, id));
-      return { id, name: user?.name ?? "Unknown", email: user?.email ?? "", isGuest: user?.isGuest ?? false, minutes };
+      return { id, name: user?.name ?? "Unknown", email: user?.email ?? "", isGuest: false, minutes };
     }));
 
-    const newUsersThisWeek = allUsers.filter(u => u.createdAt && u.createdAt >= sevenDaysAgo).length;
+    const newUsersThisWeek = registeredUsers.filter((u) => u.createdAt && u.createdAt >= sevenDaysAgo).length;
 
     res.json({
-      totalUsers: allUsers.length,
-      registeredUsers: allUsers.filter(u => !u.isGuest).length,
+      totalUsers: registeredUsers.length,
+      registeredUsers: registeredUsers.length,
+      guestCount: guestIds.size,
       totalFocusHours: Math.round(totalFocusSec / 3600),
       totalSessions: allFocusSessions.filter(s => s.mode === "focus").length,
       activeSessions: active.length,
@@ -199,6 +207,20 @@ router.patch("/admin/users/:id/role", async (req, res) => {
     res.json({ ok: true, id: updated.id, role: updated.role });
   } catch (err) {
     logger.error({ err }, "admin set role error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+router.delete("/admin/users/guests", adminLimiter, async (req, res) => {
+  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  try {
+    const deleted = await db.delete(usersTable)
+      .where(eq(usersTable.isGuest, true))
+      .returning({ id: usersTable.id });
+    logger.info({ count: deleted.length }, "purged guest users");
+    res.json({ ok: true, deletedCount: deleted.length });
+  } catch (err) {
+    logger.error({ err }, "purge guests error");
     res.status(500).json({ error: "Internal error" });
   }
 });

@@ -34,6 +34,7 @@ type TopUser = {
 type AdminStats = {
   totalUsers: number;
   registeredUsers: number;
+  guestCount?: number;
   totalFocusHours: number;
   totalSessions: number;
   activeSessions: number;
@@ -45,6 +46,7 @@ type AdminStats = {
 type AdminData = {
   users: AdminUser[];
   activeCount: number;
+  guestCount?: number;
 };
 
 type Tab = "overview" | "analytics" | "users";
@@ -58,6 +60,7 @@ export default function AdminPage() {
   const [roleLoading, setRoleLoading] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
+  const [purgeLoading, setPurgeLoading] = useState(false);
   const [tab, setTab] = useState<Tab>("overview");
 
   const authHeaders = useCallback((): Record<string, string> => {
@@ -133,6 +136,25 @@ export default function AdminPage() {
     }
   };
 
+  const purgeAllGuests = async () => {
+    const guestCount = stats?.guestCount ?? data?.guestCount ?? 0;
+    if (guestCount === 0) return;
+    if (!window.confirm(`Delete all ${guestCount} guest account(s)? This cannot be undone.`)) return;
+    setPurgeLoading(true);
+    try {
+      const res = await fetch("/api/admin/users/guests", {
+        method: "DELETE",
+        headers: authHeaders(),
+        credentials: "include",
+      });
+      if (res.ok) {
+        await loadData();
+      }
+    } finally {
+      setPurgeLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center">
@@ -167,12 +189,22 @@ export default function AdminPage() {
   return (
     <AdminShell>
       <div className="space-y-8">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Admin Dashboard</h1>
             <p className="mt-1 text-sm text-zinc-500">Platform overview and user management.</p>
           </div>
-          <div className="flex gap-1 rounded-xl border border-zinc-800 bg-zinc-900/60 p-1">
+          <div className="flex items-center gap-2">
+            {(stats?.guestCount ?? data?.guestCount ?? 0) > 0 && (
+              <button
+                onClick={() => void purgeAllGuests()}
+                disabled={purgeLoading}
+                className="rounded-lg border border-amber-900/60 bg-amber-950/40 px-3 py-1.5 text-xs font-medium text-amber-300 hover:bg-amber-950/70 disabled:opacity-50"
+              >
+                {purgeLoading ? "Purging…" : `Purge ${stats?.guestCount ?? data?.guestCount} guest(s)`}
+              </button>
+            )}
+            <div className="flex gap-1 rounded-xl border border-zinc-800 bg-zinc-900/60 p-1">
             {(["overview", "analytics", "users"] as Tab[]).map((t) => (
               <button
                 key={t}
@@ -186,6 +218,7 @@ export default function AdminPage() {
                 {t}
               </button>
             ))}
+            </div>
           </div>
         </div>
 
@@ -200,8 +233,7 @@ export default function AdminPage() {
               className="space-y-6"
             >
               <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                <StatCard label="Total users" value={String(stats?.totalUsers ?? users.length)} />
-                <StatCard label="Registered" value={String(stats?.registeredUsers ?? users.filter(u => !u.isGuest).length)} />
+                <StatCard label="Registered users" value={String(stats?.totalUsers ?? users.length)} />
                 <StatCard label="New this week" value={String(stats?.newUsersThisWeek ?? 0)} accent="sky" />
                 <StatCard label="Active sessions" value={String(stats?.activeSessions ?? data?.activeCount ?? 0)} accent="rose" />
                 <StatCard label="Total focus hrs" value={String(stats?.totalFocusHours ?? 0)} accent="violet" />
@@ -305,11 +337,12 @@ export default function AdminPage() {
               transition={{ duration: 0.18 }}
               className="space-y-4"
             >
-              <div className="grid gap-3 sm:grid-cols-4">
-                <StatCard label="Total users" value={String(users.length)} />
-                <StatCard label="Registered" value={String(users.filter((u) => !u.isGuest).length)} />
-                <StatCard label="Guest accounts" value={String(users.filter((u) => u.isGuest).length)} />
+              <div className="grid gap-3 sm:grid-cols-3">
+                <StatCard label="Registered users" value={String(users.length)} />
                 <StatCard label="Active sessions" value={String(data?.activeCount ?? 0)} accent="rose" />
+                {(data?.guestCount ?? stats?.guestCount ?? 0) > 0 && (
+                  <StatCard label="Guest accounts (DB)" value={String(data?.guestCount ?? stats?.guestCount ?? 0)} accent="violet" />
+                )}
               </div>
 
               <div className="overflow-x-auto rounded-xl border border-zinc-800/80">
