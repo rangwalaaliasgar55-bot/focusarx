@@ -5,6 +5,8 @@ import {
   useLogBreakFreeMood,
 } from "@workspace/api-client-react";
 import { useToast } from "@/components/Toast";
+import { useBreakFreeAuthReady } from "@/hooks/useBreakFreeAuthReady";
+import { breakFreeErrorMessage } from "@/lib/break-free-errors";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { motion } from "framer-motion";
 
@@ -24,8 +26,12 @@ function moodColor(mood: number) {
 export default function MoodCheckin() {
   const qc = useQueryClient();
   const { toast } = useToast();
+  const { ready } = useBreakFreeAuthReady();
 
-  const { data } = useQuery(getGetBreakFreeMoodsQueryOptions());
+  const { data } = useQuery({
+    ...getGetBreakFreeMoodsQueryOptions(),
+    enabled: ready,
+  });
   const moods = data?.moods ?? [];
   const todayMood = data?.todayMood ?? null;
 
@@ -35,8 +41,17 @@ export default function MoodCheckin() {
         qc.invalidateQueries({ queryKey: getGetBreakFreeMoodsQueryKey() });
         toast("Mood logged ✓", "success");
       },
+      onError: (err) => toast(breakFreeErrorMessage(err, "Could not log mood"), "error"),
     },
   });
+
+  function handleMood(value: number) {
+    if (!ready) {
+      toast("Still signing you in — try again in a moment.", "info");
+      return;
+    }
+    logMutation.mutate({ data: { mood: value } });
+  }
 
   // Build last 7 days chart data
   const last7: Array<{ date: string; label: string; mood: number }> = [];
@@ -64,8 +79,8 @@ export default function MoodCheckin() {
                 key={value}
                 whileHover={{ scale: 1.12 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => logMutation.mutate({ data: { mood: value } })}
-                disabled={logMutation.isPending}
+                onClick={() => handleMood(value)}
+                disabled={!ready || logMutation.isPending}
                 className="flex flex-col items-center gap-1 flex-1 rounded-xl border border-[rgba(124,58,237,0.1)] bg-[rgba(124,58,237,0.05)] py-2 hover:border-[rgba(124,58,237,0.3)] hover:bg-[rgba(124,58,237,0.1)] transition-all disabled:opacity-60"
               >
                 <span className="text-xl">{emoji}</span>

@@ -7,6 +7,9 @@ import {
   useStartBreakFreeStreak,
   useReportBreakFreeRelapse,
 } from "@workspace/api-client-react";
+import { useToast } from "@/components/Toast";
+import { useBreakFreeAuthReady } from "@/hooks/useBreakFreeAuthReady";
+import { breakFreeErrorMessage } from "@/lib/break-free-errors";
 
 const MILESTONES = [
   { day: 3,  icon: "🌱", label: "Your brain is already adapting." },
@@ -23,16 +26,25 @@ function getMilestone(days: number) {
 
 export default function BreakFreeStreak() {
   const qc = useQueryClient();
+  const { toast } = useToast();
+  const { ready } = useBreakFreeAuthReady();
   const [relapseDialog, setRelapseDialog] = useState(false);
 
-  const { data, isLoading } = useQuery(getGetBreakFreeStreakQueryOptions());
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    ...getGetBreakFreeStreakQueryOptions(),
+    enabled: ready,
+  });
   const streak = data?.streak ?? null;
   const days = streak?.currentStreak ?? 0;
   const milestone = getMilestone(days);
 
   const startMutation = useStartBreakFreeStreak({
     mutation: {
-      onSuccess: () => qc.invalidateQueries({ queryKey: getGetBreakFreeStreakQueryKey() }),
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: getGetBreakFreeStreakQueryKey() });
+        toast("Journey started — day 1 begins now!", "success");
+      },
+      onError: (err) => toast(breakFreeErrorMessage(err, "Could not start streak"), "error"),
     },
   });
 
@@ -41,19 +53,39 @@ export default function BreakFreeStreak() {
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: getGetBreakFreeStreakQueryKey() });
         setRelapseDialog(false);
+        toast("Day 1 again — you've got this.", "success");
       },
+      onError: (err) => toast(breakFreeErrorMessage(err, "Could not save relapse"), "error"),
     },
   });
 
   function handleStart() {
+    if (!ready) {
+      toast("Still signing you in — try again in a moment.", "info");
+      return;
+    }
     const today = new Date().toISOString().split("T")[0]!;
     startMutation.mutate({ data: { startDate: today } });
   }
 
-  if (isLoading) {
+  if (!ready || isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-[rgba(124,58,237,0.2)] border-t-[#7C3AED]" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center py-16 px-4 text-center gap-3">
+        <p className="text-sm text-[#A78BFA]">{breakFreeErrorMessage(error, "Could not load streak")}</p>
+        <button
+          onClick={() => refetch()}
+          className="rounded-xl border border-[rgba(124,58,237,0.3)] px-4 py-2 text-xs font-semibold text-[#E2E8F0] hover:bg-[rgba(124,58,237,0.1)]"
+        >
+          Retry
+        </button>
       </div>
     );
   }

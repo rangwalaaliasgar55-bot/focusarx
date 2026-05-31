@@ -1,5 +1,6 @@
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ApiError } from "@workspace/api-client-react";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { ToastProvider } from "@/components/Toast";
 import { CapacitorNativeBridge } from "@/components/CapacitorNativeBridge";
@@ -43,7 +44,19 @@ import OnboardingModal from "@/components/OnboardingModal";
 import HeroBanner from "@/components/HeroBanner";
 import FeatureSpotlight from "@/components/FeatureSpotlight";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error) => {
+        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+          return false;
+        }
+        return failureCount < 2;
+      },
+    },
+    mutations: { retry: false },
+  },
+});
 
 function isMobileDevice() {
   return window.innerWidth < 768 || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);

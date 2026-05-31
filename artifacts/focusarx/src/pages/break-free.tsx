@@ -6,6 +6,7 @@ import UrgeSurfing from "@/components/break-free/UrgeSurfing";
 import WhyItMatters from "@/components/break-free/WhyItMatters";
 import MoodCheckin from "@/components/break-free/MoodCheckin";
 import PledgeWall from "@/components/break-free/PledgeWall";
+import { useBreakFreeAuthReady } from "@/hooks/useBreakFreeAuthReady";
 
 const TABS = [
   { id: "streak",  label: "Streak",   icon: Flame },
@@ -19,6 +20,7 @@ type TabId = typeof TABS[number]["id"];
 
 export default function BreakFreePage() {
   const [tab, setTab] = useState<TabId>("streak");
+  const { loading: authLoading } = useBreakFreeAuthReady();
 
   return (
     <div className="min-h-[100dvh] flex flex-col">
@@ -64,6 +66,11 @@ export default function BreakFreePage() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto">
+        {authLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[rgba(124,58,237,0.2)] border-t-[#7C3AED]" />
+          </div>
+        ) : (
         <motion.div
           key={tab}
           initial={{ opacity: 0, y: 8 }}
@@ -76,6 +83,7 @@ export default function BreakFreePage() {
           {tab === "why"     && <WhyItMatters />}
           {tab === "pledges" && <PledgeWall />}
         </motion.div>
+        )}
       </div>
 
       {/* Footer note */}

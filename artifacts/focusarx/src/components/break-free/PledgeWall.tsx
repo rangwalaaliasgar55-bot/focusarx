@@ -7,6 +7,8 @@ import {
 } from "@workspace/api-client-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send } from "lucide-react";
+import { useToast } from "@/components/Toast";
+import { breakFreeErrorMessage } from "@/lib/break-free-errors";
 
 const OFFENSIVE = ["fuck", "shit", "ass", "bitch", "cunt", "nigger", "nigga", "faggot", "retard", "whore", "slut", "dick", "cock", "pussy", "bastard"];
 
@@ -29,9 +31,10 @@ function relativeTime(date: string | Date) {
 
 export default function PledgeWall() {
   const qc = useQueryClient();
+  const { toast } = useToast();
   const [msg, setMsg] = useState("");
 
-  const { data, isLoading } = useQuery(getGetBreakFreePledgesQueryOptions());
+  const { data, isLoading, isError, error, refetch } = useQuery(getGetBreakFreePledgesQueryOptions());
   const pledges = data?.pledges ?? [];
 
   const postMutation = usePostBreakFreePledge({
@@ -39,7 +42,9 @@ export default function PledgeWall() {
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: getGetBreakFreePledgesQueryKey() });
         setMsg("");
+        toast("Pledge posted ✓", "success");
       },
+      onError: (err) => toast(breakFreeErrorMessage(err, "Could not post pledge"), "error"),
     },
   });
 
@@ -83,7 +88,18 @@ export default function PledgeWall() {
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-[rgba(124,58,237,0.2)] border-t-[#7C3AED]" />
             </div>
           )}
-          {!isLoading && pledges.length === 0 && (
+          {isError && !isLoading && (
+            <div className="text-center py-6 space-y-2">
+              <p className="text-xs text-[#A78BFA]">{breakFreeErrorMessage(error, "Could not load pledges")}</p>
+              <button
+                onClick={() => refetch()}
+                className="text-[10px] text-[#7C3AED] underline underline-offset-2"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+          {!isLoading && !isError && pledges.length === 0 && (
             <p className="text-center text-xs text-[#3a3d4a] py-6">
               Be the first to post a pledge. ✨
             </p>
