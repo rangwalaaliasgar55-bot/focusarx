@@ -216,3 +216,109 @@ input, select, textarea {
   -webkit-mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
   mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
 }
+
+/* ═══════════════════════════════════════════════════
+   PREMIUM ANIMATION UTILITIES
+   ═══════════════════════════════════════════════════ */
+
+/* Floating glow orb — use with ::before/::after */
+@keyframes float-orb {
+  0%, 100% { transform: translateY(0) scale(1);   opacity: 0.6; }
+  50%       { transform: translateY(-12px) scale(1.04); opacity: 0.9; }
+}
+.animate-float-orb { animation: float-orb 6s ease-in-out infinite; }
+
+/* Subtle shimmer sweep (badge unlocks, cards) */
+@keyframes shimmer-sweep {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+.animate-shimmer-sweep {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer-sweep 1.8s ease-in-out forwards;
+}
+
+/* Neon border pulse for highlighted cards */
+@keyframes neon-border-pulse {
+  0%, 100% { border-color: rgba(124,58,237,0.22); box-shadow: 0 0 0 0 transparent; }
+  50%       { border-color: rgba(124,58,237,0.55); box-shadow: 0 0 16px 2px rgba(124,58,237,0.18); }
+}
+.neon-border-pulse { animation: neon-border-pulse 2.8s ease-in-out infinite; }
+
+/* XP bar fill animation */
+@keyframes xp-bar-fill {
+  from { width: 0%; }
+  to   { width: var(--xp-pct, 100%); }
+}
+.animate-xp-fill { animation: xp-bar-fill 0.9s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+
+/* Scale-in pop (badge earned, confetti) */
+@keyframes pop-in {
+  0%   { transform: scale(0.6); opacity: 0; }
+  60%  { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.animate-pop-in { animation: pop-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+/* Drift up and fade (coin/XP earn events) */
+@keyframes drift-up-fade {
+  0%   { transform: translateY(0)  scale(1);   opacity: 1; }
+  100% { transform: translateY(-52px) scale(0.85); opacity: 0; }
+}
+.animate-drift-up { animation: drift-up-fade 1s ease-out forwards; }
+
+/* Slow ambient rotation (background rings) */
+@keyframes slow-rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.animate-slow-rotate { animation: slow-rotate 30s linear infinite; }
+.animate-slow-rotate-reverse { animation: slow-rotate 20s linear infinite reverse; }
+
+/* Streak fire flicker */
+@keyframes fire-flicker {
+  0%, 100% { transform: scaleY(1)   rotate(-2deg); filter: brightness(1); }
+  25%       { transform: scaleY(1.1) rotate(2deg);  filter: brightness(1.2); }
+  75%       { transform: scaleY(0.95) rotate(-1deg); filter: brightness(0.9); }
+}
+.animate-fire { animation: fire-flicker 0.7s ease-in-out infinite; }
+
+/* Focus-mode scan line */
+@keyframes scan-line {
+  0%   { transform: translateY(-100%); opacity: 0; }
+  10%  { opacity: 0.6; }
+  90%  { opacity: 0.6; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+.animate-scan { animation: scan-line 3s ease-in-out infinite; }
+
+/* Gradient text shimmer */
+.gradient-text-shimmer {
+  background: linear-gradient(90deg, #A78BFA, #7C3AED, #06D6A0, #A78BFA);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer-sweep 3s linear infinite;
+}
+
+/* Soft entrance for page sections */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: fade-up 0.5s ease-out both; }
+
+/* Stagger helpers (use with inline style animation-delay) */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.10s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.20s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.30s; }
+
+/* Radial glow utility (applied as bg) */
+.radial-glow-violet { background: radial-gradient(circle at center, rgba(124,58,237,0.2) 0%, transparent 70%); }
+.radial-glow-teal   { background: radial-gradient(circle at center, rgba(6,214,160,0.15) 0%, transparent 70%); }
+.radial-glow-gold   { background: radial-gradient(circle at center, rgba(255,184,0,0.15) 0%, transparent 70%); }

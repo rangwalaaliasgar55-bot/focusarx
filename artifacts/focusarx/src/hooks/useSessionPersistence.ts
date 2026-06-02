@@ -1,7 +1,6 @@
 "use client";
 import { useAuth } from "@/lib/auth";
 
-
 import { useCallback, useEffect, useRef } from "react";
 import { getFocusQuality } from "@/lib/focusScoreEngine";
 import {
@@ -20,6 +19,8 @@ import type { PersistedActiveSession } from "@/types/session-persistence";
 import type { TimerMode, TimerStatus } from "@/types/timer";
 
 const AUTOSAVE_MS = 10_000;
+const LS_BACKUP_KEY = "focusarx-active-session-backup";
+const SESSION_TTL_MS = 2 * 60 * 60 * 1000;
 
 export type PomodoroSnapshot = {
   mode: TimerMode;
@@ -35,6 +36,21 @@ type UseSessionPersistenceOptions = {
   onRecovered?: (session: PersistedActiveSession) => void;
   onRecoveryReady?: () => void;
 };
+
+function writeLsBackup(payload: object) {
+  try {
+    localStorage.setItem(LS_BACKUP_KEY, JSON.stringify({ ...payload, _ts: Date.now() }));
+  } catch {}
+}
+
+function clearLsBackup() {
+  try { localStorage.removeItem(LS_BACKUP_KEY); } catch {}
+}
+
+function isSessionStale(updatedAt?: string | null): boolean {
+  if (!updatedAt) return false;
+  return Date.now() - new Date(updatedAt).getTime() > SESSION_TTL_MS;
+}
 
 export function useSessionPersistence(options: UseSessionPersistenceOptions) {
   const { status: authStatus } = useAuth();
@@ -75,6 +91,7 @@ export function useSessionPersistence(options: UseSessionPersistenceOptions) {
   const runSync = useCallback(async () => {
     const payload = buildSyncPayload();
     if (!payload) return false;
+    writeLsBackup(payload);
     return syncActiveSession(payload);
   }, [buildSyncPayload]);
 
@@ -101,6 +118,7 @@ export function useSessionPersistence(options: UseSessionPersistenceOptions) {
 
   const onPhaseCompleted = useCallback(async () => {
     dbSessionIdRef.current = null;
+    clearLsBackup();
     await new Promise<void>((resolve) => queueMicrotask(resolve));
     const timer = optionsRef.current.getTimerSnapshot();
     if (timer.status === "running") {
@@ -116,6 +134,7 @@ export function useSessionPersistence(options: UseSessionPersistenceOptions) {
 
   const clearDbSession = useCallback(() => {
     dbSessionIdRef.current = null;
+    clearLsBackup();
     void abandonActiveSession();
   }, []);
 
@@ -137,30 +156,35 @@ export function useSessionPersistence(options: UseSessionPersistenceOptions) {
         if (cancelled) return;
 
         if (row) {
-          hasRestoredRef.current = true;
-          dbSessionIdRef.current = row.id;
-          const timerStatus = (row.timerStatus ?? "paused") as TimerStatus;
-          const secondsLeft =
-            row.secondsLeft ?? optionsRef.current.getTimerSnapshot().secondsLeft;
+          const rowWithTs = row as typeof row & { updatedAt?: string };
+          if (isSessionStale(rowWithTs.updatedAt)) {
+            void abandonActiveSession();
+          } else {
+            hasRestoredRef.current = true;
+            dbSessionIdRef.current = row.id;
+            const timerStatus = (row.timerStatus ?? "paused") as TimerStatus;
+            const secondsLeft =
+              row.secondsLeft ?? optionsRef.current.getTimerSnapshot().secondsLeft;
 
-          optionsRef.current.restoreTimer({
-            mode: row.mode as TimerMode,
-            status: timerStatus,
-            secondsLeft,
-            activeSeconds: row.activeSeconds,
-          });
+            optionsRef.current.restoreTimer({
+              mode: row.mode as TimerMode,
+              status: timerStatus,
+              secondsLeft,
+              activeSeconds: row.activeSeconds,
+            });
 
-          restoreStudyMonitorFromPersistence({
-            activeSeconds: row.activeSeconds,
-            distractionCount: row.distractionCount,
-            lastSeenFaceAt: row.lastSeenFaceAt,
-            focusTimeline: row.focusTimeline,
-            monitorEnabled: row.monitorEnabled,
-            scoringActive:
-              row.focusTimeline.length > 0 || row.focusState === "focus",
-          });
+            restoreStudyMonitorFromPersistence({
+              activeSeconds: row.activeSeconds,
+              distractionCount: row.distractionCount,
+              lastSeenFaceAt: row.lastSeenFaceAt,
+              focusTimeline: row.focusTimeline,
+              monitorEnabled: row.monitorEnabled,
+              scoringActive:
+                row.focusTimeline.length > 0 || row.focusState === "focus",
+            });
 
-          optionsRef.current.onRecovered?.(row);
+            optionsRef.current.onRecovered?.(row);
+          }
         }
       }
 
@@ -168,9 +192,7 @@ export function useSessionPersistence(options: UseSessionPersistenceOptions) {
     };
 
     void recover();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [authStatus]);
 
   useEffect(() => {
@@ -178,19 +200,45 @@ export function useSessionPersistence(options: UseSessionPersistenceOptions) {
       if (!dbSessionIdRef.current) return;
       void runSync();
     }, AUTOSAVE_MS);
-
     return () => clearInterval(id);
   }, [runSync]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && dbSessionIdRef.current) {
+        void runSync();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [runSync]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const snapshot = optionsRef.current.getTimerSnapshot();
+      if (snapshot.status === "running" && snapshot.activeSeconds > 30) {
+        e.preventDefault();
+        e.returnValue = "You have a focus session in progress. Your progress will be saved.";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
 
   useEffect(() => {
     const flush = () => {
       if (!dbSessionIdRef.current) return;
       const payload = buildSyncPayload();
       if (!payload) return;
+      writeLsBackup(payload);
       const body = JSON.stringify(payload);
+      const token = localStorage.getItem("focusarx-auth-token");
       void fetch("/api/sessions/sync", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...(localStorage.getItem("focusarx-auth-token") ? { Authorization: `Bearer ${localStorage.getItem("focusarx-auth-token")}` } : {}) },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body,
         keepalive: true,
       });

@@ -1,2 +1,7 @@
 - [FocusArx project setup](focusarx-setup.md) — pnpm monorepo; after any changes to lib/api-spec/openapi.yaml must run codegen then restart frontend
 - [Partial session save](partial-session.md) — users stopping mid-session now save to DB if ≥60s elapsed; implemented in Timer.tsx savePartialSessionIfNeeded
+- [Level formula](level-formula.md) — sqrt formula must be used identically in CoinXPBar and profile page
+- [Lazy loading pattern](lazy-loading.md) — all static imports before const lazy(); Suspense wraps Switch; PageLoader defined before AppWithPalette
+- [Session persistence](session-persistence.md) — LS backup key, TTL, visibilitychange, beforeunload guard pattern
+- [Confetti trigger](confetti-trigger.md) — canvas-based confetti fires on focus session complete alongside SessionSummaryCard
+- [App audit phases](app-audit-phases.md) — 11-phase enterprise audit progress tracker

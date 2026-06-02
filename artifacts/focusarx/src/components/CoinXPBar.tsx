@@ -17,6 +17,16 @@ interface FloatItem {
 
 let floatCounter = 0;
 
+function getLevel(totalXp: number) {
+  return Math.floor(Math.sqrt(totalXp / 100)) + 1;
+}
+function xpForLevel(level: number) {
+  return (level - 1) ** 2 * 100;
+}
+function xpForNextLevel(level: number) {
+  return level ** 2 * 100;
+}
+
 export function useCoinXP() {
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [floats, setFloats] = useState<FloatItem[]>([]);
@@ -52,13 +62,13 @@ export default function CoinXPBar() {
 
   if (!wallet) return null;
 
-  const xpForNextLevel = 1000;
-  const currentLevel = Math.floor(wallet.totalXp / xpForNextLevel) + 1;
-  const xpInCurrentLevel = wallet.totalXp % xpForNextLevel;
-  const levelProgress = xpInCurrentLevel / xpForNextLevel;
+  const level = getLevel(wallet.totalXp);
+  const xpStart = xpForLevel(level);
+  const xpEnd = xpForNextLevel(level);
+  const levelProgress = (wallet.totalXp - xpStart) / (xpEnd - xpStart);
 
   return (
-    <div className="relative flex items-center gap-3">
+    <div className="relative flex items-center gap-2.5">
       {/* Float animations */}
       <div className="pointer-events-none absolute -top-8 left-0 right-0">
         <AnimatePresence>
@@ -78,33 +88,43 @@ export default function CoinXPBar() {
       </div>
 
       {/* Coins */}
-      <div className="flex items-center gap-1.5 rounded-full border border-[rgba(255,184,0,0.25)] bg-[rgba(255,184,0,0.08)] px-3 py-1.5">
-        <span className="text-sm">🪙</span>
+      <div
+        className="flex items-center gap-1.5 rounded-full border border-[rgba(255,184,0,0.25)] bg-[rgba(255,184,0,0.08)] px-2.5 py-1.5"
+        title={`${wallet.coins.toLocaleString()} coins`}
+      >
+        <span className="text-sm leading-none" aria-hidden>🪙</span>
         <span className="text-xs font-bold text-[#FFB800]">{wallet.coins.toLocaleString()}</span>
       </div>
 
-      {/* XP + Level */}
-      <div className="flex items-center gap-2">
-        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] text-[10px] font-black text-white shadow-[0_0_8px_rgba(124,58,237,0.5)]">
-          {currentLevel}
+      {/* Level badge + XP bar */}
+      <div className="flex items-center gap-2" title={`Level ${level} — ${wallet.totalXp.toLocaleString()} XP total`}>
+        <div
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] text-[10px] font-black text-white"
+          style={{ boxShadow: "0 0 8px rgba(124,58,237,0.55)" }}
+          aria-label={`Level ${level}`}
+        >
+          {level}
         </div>
         <div className="hidden sm:flex flex-col gap-0.5">
           <div className="h-1.5 w-20 overflow-hidden rounded-full bg-[rgba(124,58,237,0.15)]">
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-[#7C3AED] to-[#A78BFA]"
               style={{ boxShadow: "0 0 6px rgba(124,58,237,0.5)" }}
-              animate={{ width: `${levelProgress * 100}%` }}
-              transition={{ duration: 0.5 }}
+              animate={{ width: `${Math.min(100, levelProgress * 100)}%` }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
             />
           </div>
-          <p className="text-[9px] text-[#4B5563]">{wallet.weeklyXp} XP this week</p>
+          <p className="text-[9px] text-[#4B5563]">{wallet.weeklyXp.toLocaleString()} XP / week</p>
         </div>
       </div>
 
-      {/* Rank */}
+      {/* Rank badge */}
       {wallet.rank && (
-        <div className="hidden sm:flex items-center gap-1 rounded-full border border-[rgba(6,214,160,0.25)] bg-[rgba(6,214,160,0.08)] px-2.5 py-1">
-          <span className="text-[10px] text-[#06D6A0]">#{wallet.rank}</span>
+        <div
+          className="hidden sm:flex items-center gap-1 rounded-full border border-[rgba(6,214,160,0.25)] bg-[rgba(6,214,160,0.08)] px-2.5 py-1"
+          title="Your leaderboard rank this week"
+        >
+          <span className="text-[10px] font-semibold text-[#06D6A0]">#{wallet.rank}</span>
         </div>
       )}
     </div>

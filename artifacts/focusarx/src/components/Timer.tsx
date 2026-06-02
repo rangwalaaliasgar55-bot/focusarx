@@ -26,6 +26,7 @@ import AmbientSoundBar from "./AmbientSoundBar";
 import { useTasks } from "@/hooks/useTasks";
 import BreakActivityCard from "./BreakActivityCard";
 import SessionSummaryCard from "./SessionSummaryCard";
+import ConfettiCelebration from "./ConfettiCelebration";
 import { getToken } from "@/lib/auth";
 
 const MODES: TimerMode[] = ["focus", "break", "longBreak"];
@@ -80,6 +81,7 @@ export default function Timer() {
   const [currentStreak, setCurrentStreak] = useState(0);
   const [showSummary, setShowSummary] = useState(false);
   const [summaryData, setSummaryData] = useState<{ durationSeconds: number; completedTaskCount: number; focusScore: number | null } | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
   const [notificationPermission, setNotificationPermission] =
     useState<NotificationPermission | "unsupported">("unsupported");
   const prevStatusRef = useRef<string>("idle");
@@ -198,6 +200,8 @@ export default function Timer() {
           focusScore: null,
         });
         setShowSummary(true);
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 3500);
       }
 
       if ("Notification" in window && Notification.permission === "granted") {
@@ -670,6 +674,8 @@ export default function Timer() {
       onKeepGoing={() => { setShowSummary(false); }}
       onClose={() => { setShowSummary(false); }}
     />
+
+    <ConfettiCelebration active={showConfetti} count={90} duration={3500} />
   </>
   );
 }

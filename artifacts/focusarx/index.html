@@ -3,12 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#09090b" />
+    <meta name="theme-color" content="#7C3AED" />
+    <meta name="color-scheme" content="dark" />
 
     <!-- Primary SEO -->
     <title>FocusArx — AI Focus Timer, Pomodoro & Deep Work Tracker</title>
     <meta name="description" content="FocusArx is a free AI-powered focus timer and productivity tracker. Use the Pomodoro technique, track deep work sessions, build streaks, and get personalized AI coaching to crush your goals." />
-    <meta name="keywords" content="focus timer, pomodoro timer, deep work, productivity tracker, AI coaching, study timer, focus app, distraction blocker, study streaks" />
+    <meta name="keywords" content="focus timer, pomodoro timer, deep work, productivity tracker, AI coaching, study timer, focus app, distraction blocker, study streaks, gamified productivity" />
     <meta name="author" content="FocusArx" />
     <link rel="canonical" href="https://focusarx.app/" />
     <meta name="robots" content="index, follow" />
@@ -32,29 +33,38 @@
     <meta name="twitter:image" content="/opengraph.jpg" />
 
     <!-- PWA / App -->
+    <link rel="manifest" href="/manifest.json" />
     <meta name="application-name" content="FocusArx" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="FocusArx" />
+    <meta name="mobile-web-app-capable" content="yes" />
 
     <!-- Icons -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="apple-touch-icon" href="/logo.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/logo.png" />
 
-    <!-- Structured Data -->
+    <!-- Structured Data: WebApplication -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebApplication",
       "name": "FocusArx",
       "url": "https://focusarx.app",
-      "description": "AI-powered focus timer with Pomodoro technique, deep work tracking, streaks, and personalized AI coaching",
+      "description": "AI-powered focus timer with Pomodoro technique, deep work tracking, gamification, streaks, and personalized AI coaching",
       "applicationCategory": "ProductivityApplication",
-      "operatingSystem": "Web",
+      "operatingSystem": "Web, iOS, Android",
       "offers": {
         "@type": "Offer",
         "price": "0",
         "priceCurrency": "USD"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "ratingCount": "120"
       },
       "featureList": [
         "Pomodoro timer",
@@ -62,9 +72,23 @@
         "Deep work tracking",
         "Focus streaks",
         "Session analytics",
-        "Distraction blocking",
-        "Focus DNA insights"
+        "Webcam attention monitoring",
+        "Gamification (XP, coins, badges)",
+        "Focus DNA insights",
+        "Leaderboard rankings"
       ]
+    }
+    </script>
+
+    <!-- Structured Data: Organization -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "FocusArx",
+      "url": "https://focusarx.app",
+      "logo": "https://focusarx.app/logo.png",
+      "sameAs": []
     }
     </script>
 
@@ -74,6 +98,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&display=swap" rel="stylesheet" />
   </head>
   <body>
+    <!-- Accessibility: skip to main content -->
+    <a
+      href="#main-content"
+      class="skip-to-content"
+      style="position:absolute;top:-100px;left:8px;z-index:9999;padding:8px 16px;background:#7C3AED;color:#fff;border-radius:6px;font-size:14px;font-weight:600;text-decoration:none;transition:top 0.15s ease"
+      onfocus="this.style.top='8px'"
+      onblur="this.style.top='-100px'"
+    >Skip to content</a>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

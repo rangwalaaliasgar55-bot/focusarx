@@ -1,3 +1,4 @@
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ApiError } from "@workspace/api-client-react";
@@ -7,6 +8,7 @@ import { CapacitorNativeBridge } from "@/components/CapacitorNativeBridge";
 import { GuestBootstrap } from "@/components/GuestBootstrap";
 import { SiteAnalyticsTracker } from "@/components/SiteAnalyticsTracker";
 import { SessionRecoveryProvider } from "@/components/SessionRecoveryContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Timer from "@/components/Timer";
 import AppShell from "@/components/AppShell";
 import CommandPalette from "@/components/CommandPalette";
@@ -17,33 +19,33 @@ import MobileWelcomePage, { hasDoneMobileWelcome } from "@/pages/mobile-welcome"
 import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
 import AuthCallbackPage from "@/pages/auth-callback";
-import OnboardingPage from "@/pages/onboarding";
-import DistractionsPage from "@/pages/distractions";
-import ProfilesPage from "@/pages/profiles";
-import DashboardPage from "@/pages/dashboard";
-import RoadmapPage from "@/pages/roadmap";
 import AdminPage from "@/pages/admin";
-import LeaderboardPage from "@/pages/leaderboard";
-import AchievementsPage from "@/pages/achievements";
-import AnalyticsPage from "@/pages/analytics";
-import ForgePage from "@/pages/forge";
-import FocusDnaPage from "@/pages/focus-dna";
-import GhostsPage from "@/pages/ghosts";
-import ConsequencesPage from "@/pages/consequences";
-import ReplayPage from "@/pages/replay";
-import BreathePage from "@/pages/breathe";
-import ProfilePage from "@/pages/profile";
-import BreakFreePage from "@/pages/break-free";
 import { FocusCamera } from "@/components/camera/FocusCamera";
 import { useSessionHistory } from "@/hooks/useSessionHistory";
 import { useTasks } from "@/hooks/useTasks";
 import ReadinessCheckInModal from "@/components/ReadinessCheckInModal";
 import DailyGoal from "@/components/DailyGoal";
-import { useEffect, useState } from "react";
 import WelcomeOverlay from "@/components/WelcomeOverlay";
 import OnboardingModal from "@/components/OnboardingModal";
 import HeroBanner from "@/components/HeroBanner";
 import FeatureSpotlight from "@/components/FeatureSpotlight";
+
+const OnboardingPage = lazy(() => import("@/pages/onboarding"));
+const DistractionsPage = lazy(() => import("@/pages/distractions"));
+const ProfilesPage = lazy(() => import("@/pages/profiles"));
+const DashboardPage = lazy(() => import("@/pages/dashboard"));
+const RoadmapPage = lazy(() => import("@/pages/roadmap"));
+const LeaderboardPage = lazy(() => import("@/pages/leaderboard"));
+const AchievementsPage = lazy(() => import("@/pages/achievements"));
+const AnalyticsPage = lazy(() => import("@/pages/analytics"));
+const ForgePage = lazy(() => import("@/pages/forge"));
+const FocusDnaPage = lazy(() => import("@/pages/focus-dna"));
+const GhostsPage = lazy(() => import("@/pages/ghosts"));
+const ConsequencesPage = lazy(() => import("@/pages/consequences"));
+const ReplayPage = lazy(() => import("@/pages/replay"));
+const BreathePage = lazy(() => import("@/pages/breathe"));
+const ProfilePage = lazy(() => import("@/pages/profile"));
+const BreakFreePage = lazy(() => import("@/pages/break-free"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -81,6 +83,20 @@ function MobileWelcomeGate({ children }: { children: React.ReactNode }) {
   }, [status, setLocation]);
 
   return <>{children}</>;
+}
+
+function PageLoader() {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center" role="status" aria-label="Loading page">
+      <div className="flex flex-col items-center gap-3">
+        <div className="relative h-10 w-10">
+          <div className="absolute inset-0 animate-spin rounded-full border-2 border-[rgba(124,58,237,0.15)] border-t-[#7C3AED]" />
+          <div className="absolute inset-2 animate-ping rounded-full bg-[rgba(124,58,237,0.25)]" style={{ animationDuration: "1.4s" }} />
+        </div>
+        <p className="text-[11px] font-medium uppercase tracking-widest text-[#374151]">Loading…</p>
+      </div>
+    </div>
+  );
 }
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -283,38 +299,40 @@ function AppWithPalette() {
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <MobileWelcomeGate>
       <AppShell>
-        <Switch>
-          {/* Mobile welcome — no auth required */}
-          <Route path="/welcome" component={MobileWelcomePage} />
+        <Suspense fallback={<PageLoader />}>
+          <Switch>
+            {/* Mobile welcome — no auth required */}
+            <Route path="/welcome" component={MobileWelcomePage} />
 
-          {/* Auth routes — no protection needed */}
-          <Route path="/login" component={LoginPage} />
-          <Route path="/signup" component={SignupPage} />
-          <Route path="/forgot-password" component={ForgotPasswordPage} />
-          <Route path="/reset-password" component={ResetPasswordPage} />
-          <Route path="/auth/callback" component={AuthCallbackPage} />
-          <Route path="/admin" component={AdminPage} />
+            {/* Auth routes — no protection needed */}
+            <Route path="/login" component={LoginPage} />
+            <Route path="/signup" component={SignupPage} />
+            <Route path="/forgot-password" component={ForgotPasswordPage} />
+            <Route path="/reset-password" component={ResetPasswordPage} />
+            <Route path="/auth/callback" component={AuthCallbackPage} />
+            <Route path="/admin" component={AdminPage} />
 
-          {/* Protected routes */}
-          <Route path="/" component={HomePage} />
-          <Route path="/dashboard" component={() => <ProtectedRoute component={DashboardPage} />} />
-          <Route path="/analytics" component={() => <ProtectedRoute component={AnalyticsPage} />} />
-          <Route path="/leaderboard" component={() => <ProtectedRoute component={LeaderboardPage} />} />
-          <Route path="/achievements" component={() => <ProtectedRoute component={AchievementsPage} />} />
-          <Route path="/forge" component={() => <ProtectedRoute component={ForgePage} />} />
-          <Route path="/onboarding" component={() => <ProtectedRoute component={OnboardingPage} />} />
-          <Route path="/distractions" component={() => <ProtectedRoute component={DistractionsPage} />} />
-          <Route path="/profiles" component={() => <ProtectedRoute component={ProfilesPage} />} />
-          <Route path="/roadmap" component={RoadmapPage} />
-          <Route path="/focus-dna" component={() => <ProtectedRoute component={FocusDnaPage} />} />
-          <Route path="/ghosts" component={() => <ProtectedRoute component={GhostsPage} />} />
-          <Route path="/consequences" component={() => <ProtectedRoute component={ConsequencesPage} />} />
-          <Route path="/replay" component={() => <ProtectedRoute component={ReplayPage} />} />
-          <Route path="/breathe" component={BreathePage} />
-          <Route path="/profile" component={() => <ProtectedRoute component={ProfilePage} />} />
-          <Route path="/break-free" component={BreakFreePage} />
-          <Route component={NotFound} />
-        </Switch>
+            {/* Protected routes */}
+            <Route path="/" component={() => <ErrorBoundary><HomePage /></ErrorBoundary>} />
+            <Route path="/dashboard" component={() => <ErrorBoundary><ProtectedRoute component={DashboardPage} /></ErrorBoundary>} />
+            <Route path="/analytics" component={() => <ErrorBoundary><ProtectedRoute component={AnalyticsPage} /></ErrorBoundary>} />
+            <Route path="/leaderboard" component={() => <ErrorBoundary><ProtectedRoute component={LeaderboardPage} /></ErrorBoundary>} />
+            <Route path="/achievements" component={() => <ErrorBoundary><ProtectedRoute component={AchievementsPage} /></ErrorBoundary>} />
+            <Route path="/forge" component={() => <ErrorBoundary><ProtectedRoute component={ForgePage} /></ErrorBoundary>} />
+            <Route path="/onboarding" component={() => <ErrorBoundary><ProtectedRoute component={OnboardingPage} /></ErrorBoundary>} />
+            <Route path="/distractions" component={() => <ErrorBoundary><ProtectedRoute component={DistractionsPage} /></ErrorBoundary>} />
+            <Route path="/profiles" component={() => <ErrorBoundary><ProtectedRoute component={ProfilesPage} /></ErrorBoundary>} />
+            <Route path="/roadmap" component={() => <ErrorBoundary><RoadmapPage /></ErrorBoundary>} />
+            <Route path="/focus-dna" component={() => <ErrorBoundary><ProtectedRoute component={FocusDnaPage} /></ErrorBoundary>} />
+            <Route path="/ghosts" component={() => <ErrorBoundary><ProtectedRoute component={GhostsPage} /></ErrorBoundary>} />
+            <Route path="/consequences" component={() => <ErrorBoundary><ProtectedRoute component={ConsequencesPage} /></ErrorBoundary>} />
+            <Route path="/replay" component={() => <ErrorBoundary><ProtectedRoute component={ReplayPage} /></ErrorBoundary>} />
+            <Route path="/breathe" component={() => <ErrorBoundary><BreathePage /></ErrorBoundary>} />
+            <Route path="/profile" component={() => <ErrorBoundary><ProtectedRoute component={ProfilePage} /></ErrorBoundary>} />
+            <Route path="/break-free" component={() => <ErrorBoundary><BreakFreePage /></ErrorBoundary>} />
+            <Route component={NotFound} />
+          </Switch>
+        </Suspense>
       </AppShell>
       </MobileWelcomeGate>
     </>

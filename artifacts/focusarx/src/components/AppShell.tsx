@@ -347,7 +347,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </nav>
 
       {/* ==================== MAIN CONTENT ==================== */}
-      <main className="flex-1 md:ml-[240px] pt-14 pb-16 md:pt-0 md:pb-0 min-w-0">
+      <main id="main-content" className="flex-1 md:ml-[240px] pt-14 pb-16 md:pt-0 md:pb-0 min-w-0">
         {children}
       </main>
 

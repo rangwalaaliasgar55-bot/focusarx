@@ -1,0 +1,542 @@
+You are a Principal Software Architect, Staff Full-Stack Engineer, Senior Security Engineer, Senior DevOps Engineer, Lead UI/UX Designer, Product Growth Engineer, Technical SEO Specialist, Performance Optimization Expert, QA Automation Engineer, and Production Reliability Auditor.
+
+MISSION:
+Perform a complete enterprise-grade audit, refactor, optimization, redesign, security hardening, bug fixing, scalability enhancement, SEO optimization, accessibility improvement, analytics validation, and production readiness review of the entire application codebase.
+
+NON-NEGOTIABLE RULES:
+
+* DO NOT break, alter, delete, migrate, reset, or modify any existing database schema, tables, collections, relationships, migrations, indexes, records, or production data.
+* Preserve all existing business logic unless it contains bugs, security vulnerabilities, performance bottlenecks, or UX issues.
+* Maintain backward compatibility.
+* Do not remove existing features unless they are completely non-functional and replaced with a superior implementation.
+* All changes must be production-safe and deployment-ready.
+* All code must be optimized for Vercel deployment.
+* All fixes must include proper error handling, logging, loading states, edge-case handling, retry mechanisms, and fallback states.
+* Ensure zero console errors, zero build warnings, and zero TypeScript errors after implementation.
+
+====================================================
+PHASE 1 — COMPLETE CODEBASE AUDIT
+=================================
+
+Perform a deep inspection of:
+
+Frontend
+Backend
+API Routes
+Authentication
+Database Queries
+Middleware
+Caching
+Analytics
+SEO
+Performance
+Accessibility
+State Management
+Session Handling
+Error Handling
+Security
+Rate Limiting
+Image Optimization
+PWA Support
+Build Configuration
+Deployment Configuration
+
+Identify:
+
+* Logic bugs
+* Race conditions
+* Infinite renders
+* Memory leaks
+* Hydration issues
+* API inefficiencies
+* Security vulnerabilities
+* Broken UI states
+* SEO weaknesses
+* Accessibility violations
+* Performance bottlenecks
+* Dead code
+* Duplicate code
+* Unused dependencies
+* Broken imports
+* Missing environment variables
+* Missing loading states
+* Broken navigation flows
+* Poor user retention mechanics
+
+Fix every issue found.
+
+====================================================
+PHASE 2 — SECURITY HARDENING
+============================
+
+CRITICAL:
+
+Search entire codebase for:
+
+Google API Keys
+OpenAI Keys
+Gemini Keys
+Supabase Keys
+Firebase Keys
+Stripe Keys
+JWT Secrets
+Database Credentials
+OAuth Secrets
+
+If exposed anywhere in:
+
+Client Components
+Frontend Code
+Public Variables
+API Calls
+Network Requests
+Source Maps
+
+Immediately:
+
+* Move secrets to backend-only execution.
+* Implement secure server-side API routes.
+* Use environment variables.
+* Add validation for missing environment variables.
+* Add secure error responses.
+* Prevent secret leakage in logs.
+* Prevent secret leakage in browser dev tools.
+
+Implement:
+
+* Rate Limiting
+* Request Validation
+* Input Sanitization
+* XSS Protection
+* CSRF Protection
+* Secure Headers
+* Content Security Policy
+* Helmet Configuration
+* API Abuse Protection
+* Bot Detection Layer
+* Brute Force Protection
+* Origin Validation
+* Secure Cookie Handling
+* JWT Validation
+* Session Verification
+* Replay Attack Prevention
+
+Ensure OWASP Top 10 compliance.
+
+====================================================
+PHASE 3 — SESSION TRACKING PERFECTION
+=====================================
+
+Fix all study-session tracking issues.
+
+Current Requirement:
+
+If a user:
+
+* Closes browser
+* Refreshes page
+* Changes tabs
+* Loses internet
+* Mobile app goes background
+* Device sleeps
+* Browser crashes
+
+The session MUST still be accurately preserved.
+
+Implement:
+
+1. Heartbeat System
+
+* Autosave every 15–30 seconds.
+* Background sync.
+* Retry failed syncs.
+
+2. Visibility Tracking
+
+* visibilitychange
+* pagehide
+* beforeunload
+* unload
+
+3. Offline Support
+
+* localStorage backup
+* IndexedDB backup
+* queued sync recovery
+
+4. Recovery Logic
+
+* restore unfinished sessions
+* recover lost time
+* merge duplicate records
+
+5. Session Accuracy
+
+* prevent double counting
+* prevent negative durations
+* prevent timer drift
+* prevent duplicate writes
+
+Target:
+99.99% session retention accuracy.
+
+====================================================
+PHASE 4 — PROFILE SYSTEM REPAIR
+===============================
+
+Diagnose and repair:
+
+Profile Pages
+User Dashboard
+Statistics
+Achievements
+Streaks
+Analytics
+Settings
+
+Inspect:
+
+API Calls
+Database Queries
+Authorization
+Caching
+State Management
+Data Serialization
+Frontend Rendering
+
+Fix:
+
+* failed fetches
+* loading loops
+* null crashes
+* stale cache
+* hydration issues
+* profile rendering failures
+
+Ensure every profile loads instantly and reliably.
+
+====================================================
+PHASE 5 — COMPLETE UI/UX TRANSFORMATION
+=======================================
+
+Transform application into a premium SaaS-quality experience.
+
+Design Direction:
+
+* Modern
+* Futuristic
+* Clean
+* Minimal
+* High-conversion
+* Productivity-focused
+* Premium dark mode
+* Optional light mode
+
+Implement:
+
+* Glassmorphism
+* Modern gradients
+* Smooth animations
+* Advanced motion design
+* Micro-interactions
+* Hover effects
+* Skeleton loaders
+* Toast notifications
+* Empty states
+* Success states
+* Error states
+* Confetti rewards
+* Interactive dashboards
+
+Upgrade:
+
+Buttons
+Forms
+Inputs
+Cards
+Charts
+Navigation
+Profile Pages
+Analytics
+Leaderboard
+Study Sessions
+
+Create a polished experience comparable to:
+
+Notion
+Linear
+Raycast
+Arc Browser
+Vercel
+Stripe Dashboard
+
+====================================================
+PHASE 6 — GAMIFICATION EXPANSION
+================================
+
+Increase retention and engagement dramatically.
+
+Implement:
+
+XP System
+Level System
+Achievements
+Badges
+Milestones
+Daily Challenges
+Weekly Challenges
+Focus Streaks
+Focus Multipliers
+Progress Rings
+Heatmaps
+Leaderboards
+Rank Tiers
+Study Missions
+Reward Animations
+
+Add:
+
+Daily Login Rewards
+Session Completion Rewards
+Study Goals
+Goal Tracking
+Milestone Celebrations
+
+Optimize for:
+
+Higher DAU
+Higher WAU
+Higher retention
+Longer study sessions
+
+====================================================
+PHASE 7 — SEO DOMINATION
+========================
+
+Optimize every page for maximum discoverability.
+
+Implement:
+
+Dynamic Meta Titles
+Meta Descriptions
+Canonical URLs
+Open Graph Tags
+Twitter Cards
+Robots.txt
+Sitemap.xml
+Structured Data
+JSON-LD
+Breadcrumb Schema
+Organization Schema
+SoftwareApplication Schema
+FAQ Schema
+
+Fix:
+
+Google Logo Visibility
+Brand Recognition
+Search Appearance
+
+Generate production-ready:
+
+Organization Schema
+Website Schema
+SoftwareApplication Schema
+
+Validate for:
+
+Google Rich Results
+Google Search Console
+Bing Webmaster Tools
+
+Target:
+Maximum indexability and organic reach.
+
+====================================================
+PHASE 8 — PERFORMANCE OPTIMIZATION
+==================================
+
+Target Lighthouse Scores:
+
+Performance: 95+
+Accessibility: 100
+Best Practices: 100
+SEO: 100
+
+Optimize:
+
+Images
+Fonts
+Bundles
+Chunks
+Caching
+Lazy Loading
+Server Components
+Code Splitting
+Prefetching
+Preloading
+
+Fix:
+
+CLS
+LCP
+INP
+FCP
+TTFB
+
+Remove:
+
+Unused packages
+Unused CSS
+Unused JS
+Dead code
+
+====================================================
+PHASE 9 — ACCESSIBILITY COMPLIANCE
+==================================
+
+Ensure WCAG 2.2 AA compliance.
+
+Implement:
+
+Keyboard Navigation
+Focus States
+ARIA Labels
+Screen Reader Support
+Semantic HTML
+Color Contrast Compliance
+Accessible Forms
+Accessible Charts
+
+Target:
+100 Accessibility Score.
+
+====================================================
+PHASE 10 — ANALYTICS & MONITORING
+=================================
+
+Verify and repair:
+
+Visitor Tracking
+Session Tracking
+Conversion Tracking
+User Analytics
+Retention Metrics
+
+Implement:
+
+Error Monitoring
+Crash Reporting
+Performance Monitoring
+User Journey Tracking
+Event Tracking
+
+Add:
+
+Admin Analytics Dashboard
+Real-Time Metrics
+User Activity Monitoring
+
+====================================================
+PHASE 11 — PRODUCTION READINESS
+===============================
+
+Verify:
+
+Build Stability
+Deployment Stability
+Environment Variables
+Error Boundaries
+Fallback UI
+Logging
+Monitoring
+Security Headers
+Caching Strategy
+
+Ensure application is:
+
+Production Ready
+Scalable
+Secure
+Maintainable
+Enterprise Grade
+
+====================================================
+REQUIRED OUTPUT FORMAT
+======================
+
+FOR EVERY MODIFIED FILE:
+
+1. FILE NAME
+
+2. CURRENT ISSUE(S)
+
+* Detailed explanation
+
+3. ROOT CAUSE ANALYSIS
+
+* Why issue occurred
+
+4. IMPLEMENTED FIXES
+
+* Detailed breakdown
+
+5. PERFORMANCE IMPROVEMENTS
+
+* Before vs After
+
+6. SECURITY IMPROVEMENTS
+
+* Vulnerabilities resolved
+
+7. UX/UI IMPROVEMENTS
+
+* Design upgrades
+
+8. SEO IMPROVEMENTS
+
+* Metadata & schema enhancements
+
+9. ACCESSIBILITY IMPROVEMENTS
+
+* WCAG compliance fixes
+
+10. FULL PRODUCTION-READY CODE
+
+* Complete code
+* No placeholders
+* Inline comments
+
+11. TESTING CHECKLIST
+
+* Unit tests
+* Integration tests
+* Manual validation steps
+
+12. DEPLOYMENT NOTES
+
+* Vercel compatibility
+* Environment variable requirements
+
+FINAL DELIVERABLE:
+
+After auditing all files, provide:
+
+* Complete Security Report
+* Complete Performance Report
+* Complete SEO Report
+* Complete Accessibility Report
+* Complete Scalability Report
+* Complete Bug Fix Report
+* Complete Production Readiness Report
+* Risk Assessment Report
+* Technical Debt Report
+* Recommended Future Improvements
+
+TECH STACK:
+[INSERT YOUR STACK]
+
+PROJECT FILES:
+[PASTE ENTIRE CODEBASE HERE]
+
+Operate as if this application will serve millions of users and must pass a professional engineering, security, SEO, accessibility, and performance audit before production release.

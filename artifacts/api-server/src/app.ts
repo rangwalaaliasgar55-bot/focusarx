@@ -17,14 +17,33 @@ app.use(
         scriptSrc: ["'self'", "'unsafe-inline'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", "https:", "http:"],
+        connectSrc: isDev
+          ? ["'self'", "http://localhost:*", "ws://localhost:*", "https:"]
+          : ["'self'", "https:"],
+        fontSrc: ["'self'", "data:", "https:"],
+        mediaSrc: ["'self'", "blob:", "data:"],
+        workerSrc: ["'self'", "blob:"],
         frameSrc: ["'none'"],
         objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
         upgradeInsecureRequests: isDev ? null : [],
       },
     },
     crossOriginEmbedderPolicy: false,
-  }),
+    permissionsPolicy: {
+      features: {
+        camera: ["self"],
+        microphone: [],
+        geolocation: [],
+        payment: [],
+        usb: [],
+        accelerometer: [],
+        gyroscope: [],
+        magnetometer: [],
+      },
+    },
+  } as Parameters<typeof helmet>[0]),
 );
 app.use(
   pinoHttp({
