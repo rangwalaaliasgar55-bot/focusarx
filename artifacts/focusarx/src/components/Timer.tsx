@@ -149,6 +149,7 @@ export default function Timer() {
     setCustomDuration,
     getSnapshot,
     restoreFromSnapshot,
+    getActiveSeconds,
   } = usePomodoro({
     onSessionComplete: async (session) => {
       addSession(session);
@@ -333,25 +334,52 @@ export default function Timer() {
     setShowLockPicker(true);
   }, []);
 
+  const savePartialSessionIfNeeded = useCallback(() => {
+    if (mode !== "focus") return;
+    const activeSeconds = getActiveSeconds();
+    if (activeSeconds < 60) return;
+    const dbSessionId = persistenceRef.current?.getDbSessionId() ?? null;
+    void syncFocusSessionToCloud(
+      {
+        id: `partial-${Date.now()}`,
+        mode: "focus",
+        completedAt: new Date().toISOString(),
+        durationSeconds: Math.floor(activeSeconds),
+        focusScore: null,
+        focusQuality: null,
+        focusTimeline: null,
+        stabilityRating: null,
+        sessionInsights: null,
+      },
+      dbSessionId
+    ).then((res) => {
+      if (res.success) {
+        toast(`Saved ${Math.floor(activeSeconds / 60)}m of focus time`, "info");
+      }
+    });
+  }, [mode, getActiveSeconds, toast]);
+
   // Intercept reset: show distraction modal if running a focus session
   const handleReset = useCallback(() => {
     if (status === "running" && mode === "focus") {
       setShowDistractionModal(true);
+      savePartialSessionIfNeeded();
     }
     persistence.clearDbSession();
     reset(false);
     setLockMode("none");
     setExitPhrase("");
-  }, [status, mode, persistence, reset]);
+  }, [status, mode, persistence, reset, savePartialSessionIfNeeded]);
 
   // Exit lock overlay → reset
   const handleLockExit = useCallback(() => {
     setShowDistractionModal(true);
+    savePartialSessionIfNeeded();
     persistence.clearDbSession();
     reset(false);
     setLockMode("none");
     setExitPhrase("");
-  }, [persistence, reset]);
+  }, [persistence, reset, savePartialSessionIfNeeded]);
 
   const handleEditTime = () => {
     if (status !== "idle") return;

@@ -1,0 +1,2 @@
+- [FocusArx project setup](focusarx-setup.md) — pnpm monorepo; after any changes to lib/api-spec/openapi.yaml must run codegen then restart frontend
+- [Partial session save](partial-session.md) — users stopping mid-session now save to DB if ≥60s elapsed; implemented in Timer.tsx savePartialSessionIfNeeded
