@@ -36,9 +36,11 @@ export const trackLimiter = rateLimit({
   keyGenerator: (req) => {
     const body = req.body as { visitorId?: string } | undefined;
     const vid = body?.visitorId;
-    const ip = req.ip ?? "unknown";
+    const rawIp = req.ip ?? "unknown";
+    const ip = rawIp.startsWith("::ffff:") ? rawIp.slice(7) : rawIp;
     return vid ? `${vid}:${ip}` : ip;
   },
+  validate: { xForwardedForHeader: false },
 });
 
 export const adminLimiter = rateLimit({
