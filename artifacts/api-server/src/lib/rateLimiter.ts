@@ -40,7 +40,7 @@ export const trackLimiter = rateLimit({
     const ip = rawIp.startsWith("::ffff:") ? rawIp.slice(7) : rawIp;
     return vid ? `${vid}:${ip}` : ip;
   },
-  validate: { xForwardedForHeader: false },
+  validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false },
 });
 
 export const adminLimiter = rateLimit({
