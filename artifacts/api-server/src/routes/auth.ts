@@ -189,8 +189,10 @@ router.post("/auth/forgot-password", forgotPasswordLimiter, async (req, res) => 
     const resetUrl = `${appUrl}/reset-password?token=${token}`;
     const emailSent = await sendResetEmail(user.email, resetUrl);
 
-    const isDev = process.env.NODE_ENV !== "production";
-    res.json({ ok: true, emailSent, ...(isDev && !emailSent ? { devResetUrl: resetUrl } : {}) });
+    if (process.env.NODE_ENV !== "production" && !emailSent) {
+      logger.info({ devResetUrl: resetUrl }, "dev: password reset URL (not sent by email)");
+    }
+    res.json({ ok: true, emailSent });
   } catch (err) {
     logger.error({ err }, "forgot password error");
     res.status(500).json({ error: "Internal error" });

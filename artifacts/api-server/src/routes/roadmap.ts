@@ -4,6 +4,7 @@ import { eq, desc } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import jwt from "jsonwebtoken";
 import { getServerConfig } from "../lib/config";
+import { aiRoadmapLimiter } from "../lib/rateLimiter";
 
 const router = Router();
 
@@ -19,7 +20,7 @@ function extractUserId(req: any): string | null {
   } catch { return null; }
 }
 
-router.post("/roadmap/save", async (req, res) => {
+router.post("/roadmap/save", aiRoadmapLimiter, async (req, res) => {
   const userId = extractUserId(req);
   if (!userId) { res.status(401).json({ error: "Not authenticated" }); return; }
   const { subject, data } = req.body as { subject?: string; data?: unknown };

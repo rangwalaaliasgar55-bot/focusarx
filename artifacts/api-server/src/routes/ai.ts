@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
+import { aiRoadmapLimiter } from "../lib/rateLimiter";
 
 const router = Router();
 
@@ -152,7 +153,7 @@ function buildRoadmapFallback(
 // Route
 // ---------------------------------------------------------------------------
 
-router.post("/ai/roadmap", authMiddleware, async (req: any, res) => {
+router.post("/ai/roadmap", authMiddleware, aiRoadmapLimiter, async (req: any, res) => {
   const { goal, dailyHours, level, deadline, currentProgress } = req.body as {
     goal?: string;
     dailyHours?: number;

@@ -46,6 +46,13 @@ const ReplayPage = lazy(() => import("@/pages/replay"));
 const BreathePage = lazy(() => import("@/pages/breathe"));
 const ProfilePage = lazy(() => import("@/pages/profile"));
 const BreakFreePage = lazy(() => import("@/pages/break-free"));
+const PrivacyPage = lazy(() => import("@/pages/privacy"));
+const TermsPage = lazy(() => import("@/pages/terms"));
+const CookiePolicyPage = lazy(() => import("@/pages/cookie-policy"));
+const AcceptableUsePage = lazy(() => import("@/pages/acceptable-use"));
+const AiPolicyPage = lazy(() => import("@/pages/ai-policy"));
+const DataDeletionPage = lazy(() => import("@/pages/data-deletion"));
+const PricingPage = lazy(() => import("@/pages/pricing"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -330,6 +337,16 @@ function AppWithPalette() {
             <Route path="/breathe" component={() => <ErrorBoundary><BreathePage /></ErrorBoundary>} />
             <Route path="/profile" component={() => <ErrorBoundary><ProtectedRoute component={ProfilePage} /></ErrorBoundary>} />
             <Route path="/break-free" component={() => <ErrorBoundary><BreakFreePage /></ErrorBoundary>} />
+
+            {/* Legal pages — no auth required */}
+            <Route path="/privacy" component={() => <ErrorBoundary><PrivacyPage /></ErrorBoundary>} />
+            <Route path="/terms" component={() => <ErrorBoundary><TermsPage /></ErrorBoundary>} />
+            <Route path="/cookie-policy" component={() => <ErrorBoundary><CookiePolicyPage /></ErrorBoundary>} />
+            <Route path="/acceptable-use" component={() => <ErrorBoundary><AcceptableUsePage /></ErrorBoundary>} />
+            <Route path="/ai-policy" component={() => <ErrorBoundary><AiPolicyPage /></ErrorBoundary>} />
+            <Route path="/data-deletion" component={() => <ErrorBoundary><DataDeletionPage /></ErrorBoundary>} />
+            <Route path="/pricing" component={() => <ErrorBoundary><PricingPage /></ErrorBoundary>} />
+
             <Route component={NotFound} />
           </Switch>
         </Suspense>

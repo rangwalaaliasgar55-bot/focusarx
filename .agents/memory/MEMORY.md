@@ -4,4 +4,7 @@
 - [Lazy loading pattern](lazy-loading.md) — all static imports before const lazy(); Suspense wraps Switch; PageLoader defined before AppWithPalette
 - [Session persistence](session-persistence.md) — LS backup key, TTL, visibilitychange, beforeunload guard pattern
 - [Confetti trigger](confetti-trigger.md) — canvas-based confetti fires on focus session complete alongside SessionSummaryCard
-- [App audit phases](app-audit-phases.md) — 11-phase enterprise audit progress tracker
+- [App audit phases](app-audit-phases.md) — 8-phase enterprise audit completed: security, legal, performance, engagement, product, SEO, scalability
+- [Security hardening](security-hardening.md) — timing-safe admin password comparison, devResetUrl server-log-only, coach 1000-char cap, rate limiters on AI routes
+- [Legal pages](legal-pages.md) — 6 legal pages + /pricing; all routed in App.tsx; sidebar footer in AppShell with Privacy/Terms/AI Policy/Pricing links
+- [lucide-react icon gaps](lucide-react-icons.md) — Cookie icon does NOT exist in installed version; use Database or Shield instead

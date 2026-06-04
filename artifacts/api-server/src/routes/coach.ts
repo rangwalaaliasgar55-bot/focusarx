@@ -4,6 +4,7 @@ import { usersTable, distractionLogsTable, readinessLogsTable, activeSessionsTab
 import { eq, desc, and } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
+import { aiCoachLimiter } from "../lib/rateLimiter";
 
 const router = Router();
 
@@ -75,12 +76,13 @@ function builtinReply(userMessage: string): string {
   return tips[Math.floor(Date.now() / 1000) % tips.length]!;
 }
 
-router.post("/coach/chat", auth, async (req: any, res) => {
+router.post("/coach/chat", auth, aiCoachLimiter, async (req: any, res) => {
   const { message, conversationHistory } = req.body as {
     message?: string;
     conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>;
   };
   if (!message?.trim()) { res.status(400).json({ error: "message required" }); return; }
+  if (message.length > 1000) { res.status(400).json({ error: "message too long (max 1000 chars)" }); return; }
 
   try {
     const [user] = await db.select({ name: usersTable.name, onboardingData: usersTable.onboardingData })

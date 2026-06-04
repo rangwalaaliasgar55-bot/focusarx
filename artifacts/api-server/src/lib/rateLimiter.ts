@@ -50,3 +50,35 @@ export const adminLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: "Too many admin requests, please try again later." },
 });
+
+export const aiRoadmapLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: isDev ? 50 : 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Roadmap generation limit reached. Please try again in an hour." },
+  keyGenerator: (req) => {
+    const authHeader = (req.headers as Record<string, string | undefined>).authorization;
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7, 50) : null;
+    const rawIp = req.ip ?? "unknown";
+    const ip = rawIp.startsWith("::ffff:") ? rawIp.slice(7) : rawIp;
+    return token ? `roadmap:${token}:${ip}` : `roadmap:${ip}`;
+  },
+  validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false },
+});
+
+export const aiCoachLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: isDev ? 60 : 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Coach message limit reached. Please wait a moment." },
+  keyGenerator: (req) => {
+    const authHeader = (req.headers as Record<string, string | undefined>).authorization;
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7, 50) : null;
+    const rawIp = req.ip ?? "unknown";
+    const ip = rawIp.startsWith("::ffff:") ? rawIp.slice(7) : rawIp;
+    return token ? `coach:${token}:${ip}` : `coach:${ip}`;
+  },
+  validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false },
+});

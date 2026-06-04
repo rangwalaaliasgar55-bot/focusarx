@@ -353,6 +353,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* ==================== AI COACH PANEL ==================== */}
       {status === "authenticated" && <CoachPanel />}
+
+      {/* ==================== LEGAL FOOTER ==================== */}
+      <footer className="hidden md:flex fixed bottom-0 left-0 w-[240px] z-30 items-center justify-center gap-3 border-t border-[rgba(124,58,237,0.1)] bg-[rgba(8,12,28,0.97)] px-3 py-2">
+        <Link href="/privacy" className="text-[9px] text-[#2D3748] hover:text-[#4B5563] transition-colors">Privacy</Link>
+        <span className="text-[9px] text-[#1A202C]">·</span>
+        <Link href="/terms" className="text-[9px] text-[#2D3748] hover:text-[#4B5563] transition-colors">Terms</Link>
+        <span className="text-[9px] text-[#1A202C]">·</span>
+        <Link href="/ai-policy" className="text-[9px] text-[#2D3748] hover:text-[#4B5563] transition-colors">AI Policy</Link>
+        <span className="text-[9px] text-[#1A202C]">·</span>
+        <Link href="/pricing" className="text-[9px] text-[#2D3748] hover:text-[#4B5563] transition-colors">Pricing</Link>
+      </footer>
     </div>
   );
 }

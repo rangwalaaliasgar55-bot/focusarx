@@ -1,7 +1,8 @@
+import crypto from "crypto";
 import { Router } from "express";
 import jwt from "jsonwebtoken";
 import { db, usersTable, focusSessionsTable, studyStreaksTable, activeSessionsTable } from "@workspace/db";
-import { eq, gte } from "drizzle-orm";
+import { eq, gte, inArray } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getServerConfig } from "../lib/config";
 import { extractUserId } from "./auth";
@@ -75,7 +76,17 @@ router.post("/admin/auth", adminLimiter, async (req, res) => {
     return;
   }
   const { password: inputPassword } = req.body as { password?: string };
-  if (!inputPassword || inputPassword !== password) {
+  if (!inputPassword || inputPassword.length > 256) {
+    res.status(403).json({ error: "Access denied" });
+    return;
+  }
+  const a = Buffer.from(inputPassword.slice(0, 256));
+  const b = Buffer.from(password.slice(0, 256));
+  const lengthMatch = a.length === b.length;
+  const padLen = Math.max(a.length, b.length);
+  const aPad = Buffer.concat([a, Buffer.alloc(padLen - a.length)]);
+  const bPad = Buffer.concat([b, Buffer.alloc(padLen - b.length)]);
+  if (!lengthMatch || !crypto.timingSafeEqual(aPad, bPad)) {
     res.status(403).json({ error: "Access denied" });
     return;
   }
@@ -169,10 +180,16 @@ router.get("/admin/stats", async (req, res) => {
       .slice(0, 5)
       .map(([id, secs]) => ({ id, minutes: Math.round(secs / 60) }));
 
-    const topUsersData = await Promise.all(topUserIds.map(async ({ id, minutes }) => {
-      const [user] = await db.select({ name: usersTable.name, email: usersTable.email, isGuest: usersTable.isGuest }).from(usersTable).where(eq(usersTable.id, id));
+    const topIds = topUserIds.map((u) => u.id);
+    const topUserRows = topIds.length > 0
+      ? await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email })
+          .from(usersTable).where(inArray(usersTable.id, topIds))
+      : [];
+    const topUserMap = new Map(topUserRows.map((u) => [u.id, u]));
+    const topUsersData = topUserIds.map(({ id, minutes }) => {
+      const user = topUserMap.get(id);
       return { id, name: user?.name ?? "Unknown", email: user?.email ?? "", isGuest: false, minutes };
-    }));
+    });
 
     const newUsersThisWeek = registeredUsers.filter((u) => u.createdAt && u.createdAt >= sevenDaysAgo).length;
 
