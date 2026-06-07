@@ -5,7 +5,7 @@ import { users } from './focusarx';
 export const conversations = pgTable('conversations', {
   id: text('id').primaryKey(),
   type: text('type').notNull().default('direct'), // direct, group
-  groupId: text('group_id').references(() => 'groups.id' as any),
+  groupId: text('group_id'), // references groups.id (added safely)
   lastMessageAt: timestamp('last_message_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({
