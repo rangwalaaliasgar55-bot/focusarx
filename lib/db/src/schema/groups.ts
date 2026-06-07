@@ -1,11 +1,11 @@
 import { pgTable, text, timestamp, boolean, integer, jsonb, index } from 'drizzle-orm/pg-core';
-import { users } from './focusarx';
+import { usersTable as users } from './focusarx';
 
 export const groups = pgTable('groups', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   description: text('description'),
-  category: text('category').notNull(), // e.g. 'study', 'productivity', 'fitness', 'general'
+  category: text('category').notNull(),
   isPublic: boolean('is_public').default(true).notNull(),
   isInviteOnly: boolean('is_invite_only').default(false).notNull(),
   avatarUrl: text('avatar_url'),
@@ -23,7 +23,7 @@ export const groupMembers = pgTable('group_members', {
   id: text('id').primaryKey(),
   groupId: text('group_id').notNull().references(() => groups.id, { onDelete: 'cascade' }),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  role: text('role').notNull().default('member'), // 'owner', 'admin', 'moderator', 'member'
+  role: text('role').notNull().default('member'),
   joinedAt: timestamp('joined_at').defaultNow().notNull(),
 }, (table) => ({
   groupUserIdx: index('group_members_group_user_idx').on(table.groupId, table.userId),
@@ -33,7 +33,7 @@ export const groupRoles = pgTable('group_roles', {
   id: text('id').primaryKey(),
   groupId: text('group_id').notNull().references(() => groups.id, { onDelete: 'cascade' }),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  role: text('role').notNull(), // owner, admin, moderator, member
+  role: text('role').notNull(),
   assignedBy: text('assigned_by').references(() => users.id),
   assignedAt: timestamp('assigned_at').defaultNow().notNull(),
 }, (table) => ({
@@ -46,7 +46,7 @@ export const groupInvitations = pgTable('group_invitations', {
   inviterId: text('inviter_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   inviteeEmail: text('invitee_email'),
   inviteeId: text('invitee_id').references(() => users.id),
-  status: text('status').notNull().default('pending'), // pending, accepted, declined, expired
+  status: text('status').notNull().default('pending'),
   expiresAt: timestamp('expires_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({
@@ -57,7 +57,7 @@ export const joinRequests = pgTable('join_requests', {
   id: text('id').primaryKey(),
   groupId: text('group_id').notNull().references(() => groups.id, { onDelete: 'cascade' }),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  status: text('status').notNull().default('pending'), // pending, approved, rejected
+  status: text('status').notNull().default('pending'),
   message: text('message'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -82,7 +82,7 @@ export const groupAuditLogs = pgTable('group_audit_logs', {
   id: text('id').primaryKey(),
   groupId: text('group_id').notNull().references(() => groups.id, { onDelete: 'cascade' }),
   actorId: text('actor_id').notNull().references(() => users.id),
-  action: text('action').notNull(), // e.g. 'member_added', 'role_changed', 'announcement_created'
+  action: text('action').notNull(),
   targetId: text('target_id'),
   details: jsonb('details'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
