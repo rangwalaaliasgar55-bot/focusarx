@@ -1,12 +1,13 @@
 import crypto from "crypto";
 import { Router } from "express";
 import jwt from "jsonwebtoken";
-import { db, usersTable, focusSessionsTable, studyStreaksTable, activeSessionsTable } from "@workspace/db";
-import { eq, gte, inArray } from "drizzle-orm";
+import { db, usersTable, focusSessionsTable, studyStreaksTable, activeSessionsTable, userMissionProgressTable } from "@workspace/db";
+import { eq, gte, inArray, and, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getServerConfig } from "../lib/config";
 import { extractUserId } from "./auth";
 import { adminLimiter } from "../lib/rateLimiter";
+import { ALL_MISSIONS } from "./missions";
 
 const router = Router();
 const ADMIN_COOKIE = "focusarx_admin";
@@ -250,6 +251,44 @@ router.delete("/admin/users/:id", async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     logger.error({ err }, "admin delete user error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+router.get("/admin/missions", async (req, res) => {
+  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  try {
+    const completions = await db
+      .select({
+        missionKey: userMissionProgressTable.missionKey,
+        completions: sql<number>`count(case when ${userMissionProgressTable.completed} = true then 1 end)`,
+        claims: sql<number>`count(case when ${userMissionProgressTable.rewardClaimed} = true then 1 end)`,
+        totalAttempts: sql<number>`count(*)`,
+      })
+      .from(userMissionProgressTable)
+      .groupBy(userMissionProgressTable.missionKey);
+
+    const completionMap = new Map(completions.map((c) => [c.missionKey, c]));
+
+    const missionStats = ALL_MISSIONS.map((m) => {
+      const stats = completionMap.get(m.key);
+      return {
+        ...m,
+        completions: Number(stats?.completions ?? 0),
+        claims: Number(stats?.claims ?? 0),
+        totalAttempts: Number(stats?.totalAttempts ?? 0),
+        completionRate: stats?.totalAttempts && Number(stats.totalAttempts) > 0
+          ? Math.round((Number(stats.completions) / Number(stats.totalAttempts)) * 100)
+          : 0,
+      };
+    });
+
+    const totalCompletions = missionStats.reduce((acc, m) => acc + m.completions, 0);
+    const totalClaims = missionStats.reduce((acc, m) => acc + m.claims, 0);
+
+    res.json({ missions: missionStats, totalCompletions, totalClaims });
+  } catch (err) {
+    logger.error({ err }, "admin missions error");
     res.status(500).json({ error: "Internal error" });
   }
 });

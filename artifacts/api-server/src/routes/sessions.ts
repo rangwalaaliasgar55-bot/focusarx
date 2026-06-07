@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { z } from "zod";
-import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, userWalletsTable } from "@workspace/db";
-import { eq, and, desc, gte, lt, sql } from "drizzle-orm";
+import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, userWalletsTable, productivityLogsTable } from "@workspace/db";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
+import { updateMissionProgress } from "./missions";
 
 const sessionSchema = z.object({
   mode: z.enum(["focus", "short_break", "long_break"]).default("focus"),
@@ -16,6 +17,7 @@ const sessionSchema = z.object({
   taskId: z.string().uuid().nullable().optional(),
   clientNonce: z.string().max(64).optional(),
   completedAt: z.string().optional(),
+  category: z.string().max(50).optional(),
 });
 
 const activeSyncSchema = z.object({
@@ -105,28 +107,40 @@ router.delete("/sessions/active", authMiddleware, async (req: any, res) => {
 router.post("/sessions", authMiddleware, async (req: any, res) => {
   const parsed = sessionSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Invalid session data" }); return; }
-  const { mode, durationSec, focusScore, focusQuality, stabilityRating, focusTimeline, sessionInsights } = parsed.data;
+  const { mode, durationSec, focusScore, focusQuality, stabilityRating, focusTimeline, sessionInsights, category } = parsed.data;
   try {
     const [session] = await db.insert(focusSessionsTable).values({
       userId: req.userId, mode: mode ?? "focus", durationSec: durationSec ?? 0,
       completedAt: new Date(), focusScore, focusQuality, stabilityRating: stringOrNullish(stabilityRating),
       focusTimeline: typeof focusTimeline === "string" ? focusTimeline : JSON.stringify(focusTimeline ?? []),
       sessionInsights: typeof sessionInsights === "string" ? sessionInsights : JSON.stringify(sessionInsights ?? null),
+      category: category ?? "General",
     }).returning();
 
     const streakUpdated = await updateStreak(req.userId);
 
-    // Award XP and coins for focus sessions
     let earnedXp = 0;
     let earnedCoins = 0;
     if ((mode ?? "focus") === "focus" && durationSec > 0) {
       const minutes = Math.floor(durationSec / 60);
       earnedXp = minutes * 20;
       earnedCoins = Math.floor(minutes / 5) * 10;
-      if (durationSec >= 1500) earnedCoins += 50; // Pomodoro bonus
+      if (durationSec >= 1500) earnedCoins += 50;
       if (earnedXp > 0 || earnedCoins > 0) {
         await awardGamification(req.userId, earnedXp, earnedCoins);
       }
+
+      // Update mission progress
+      if (minutes > 0) {
+        await updateMissionProgress(req.userId, "sessions", 1);
+        await updateMissionProgress(req.userId, "minutes", minutes);
+        if (focusScore != null) {
+          await updateMissionProgress(req.userId, "score", focusScore, { replace: true });
+        }
+      }
+
+      // Update productivity log
+      await updateProductivityLog(req.userId, minutes, 1, focusScore);
     }
 
     res.json({ session, streakUpdated, earnedXp, earnedCoins });
@@ -135,6 +149,54 @@ router.post("/sessions", authMiddleware, async (req: any, res) => {
     res.status(500).json({ error: "Internal error" });
   }
 });
+
+router.get("/sessions/history", authMiddleware, async (req: any, res) => {
+  try {
+    const limit = Math.min(100, Number(req.query.limit) || 30);
+    const sessions = await db.select().from(focusSessionsTable)
+      .where(eq(focusSessionsTable.userId, req.userId))
+      .orderBy(desc(focusSessionsTable.completedAt))
+      .limit(limit);
+    res.json({ sessions });
+  } catch (err) {
+    logger.error({ err }, "session history error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+async function updateProductivityLog(userId: string, focusMinutes: number, sessionsCompleted: number, avgScore?: number | null) {
+  try {
+    const today = new Date().toISOString().split("T")[0]!;
+    const [existing] = await db.select().from(productivityLogsTable)
+      .where(and(eq(productivityLogsTable.userId, userId), eq(productivityLogsTable.date, today)));
+
+    if (!existing) {
+      const prodScore = avgScore != null ? Math.round((focusMinutes * 0.6) + (avgScore * 0.4)) : focusMinutes;
+      await db.insert(productivityLogsTable).values({
+        userId, date: today, focusMinutes, sessionsCompleted,
+        avgFocusScore: avgScore ?? null,
+        productivityScore: prodScore,
+      });
+    } else {
+      const totalMinutes = existing.focusMinutes + focusMinutes;
+      const totalSessions = existing.sessionsCompleted + sessionsCompleted;
+      const newAvgScore = avgScore != null
+        ? ((existing.avgFocusScore ?? 0) * existing.sessionsCompleted + avgScore) / totalSessions
+        : existing.avgFocusScore;
+      const prodScore = newAvgScore != null
+        ? Math.round((totalMinutes * 0.6) + (newAvgScore * 0.4))
+        : totalMinutes;
+      await db.update(productivityLogsTable).set({
+        focusMinutes: totalMinutes,
+        sessionsCompleted: totalSessions,
+        avgFocusScore: newAvgScore,
+        productivityScore: prodScore,
+      }).where(and(eq(productivityLogsTable.userId, userId), eq(productivityLogsTable.date, today)));
+    }
+  } catch (err) {
+    logger.error({ err }, "productivity log error");
+  }
+}
 
 async function updateStreak(userId: string): Promise<boolean> {
   try {
@@ -151,6 +213,10 @@ async function updateStreak(userId: string): Promise<boolean> {
       currentStreak: newStreak, longestStreak: Math.max(newStreak, existing.longestStreak),
       lastStudyDate: today, updatedAt: new Date(),
     }).where(eq(studyStreaksTable.userId, userId));
+
+    // Update streak mission progress
+    await updateMissionProgress(userId, "days", 1);
+
     return true;
   } catch {
     return false;
@@ -159,7 +225,6 @@ async function updateStreak(userId: string): Promise<boolean> {
 
 async function awardGamification(userId: string, xp: number, coins: number) {
   try {
-    // Check if weekly XP needs resetting (Monday of current week)
     const now = new Date();
     const monday = new Date(now);
     monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
@@ -175,11 +240,15 @@ async function awardGamification(userId: string, xp: number, coins: number) {
     }
 
     const needsReset = wallet.weeklyXpResetAt && wallet.weeklyXpResetAt < monday;
+    const newTotalXp = wallet.totalXp + xp;
+    const newLevel = Math.floor(Math.sqrt(newTotalXp / 100)) + 1;
+
     await db.update(userWalletsTable).set({
       coins: wallet.coins + coins,
-      totalXp: wallet.totalXp + xp,
+      totalXp: newTotalXp,
       weeklyXp: needsReset ? xp : wallet.weeklyXp + xp,
       weeklyXpResetAt: needsReset ? monday : wallet.weeklyXpResetAt,
+      level: newLevel,
       updatedAt: new Date(),
     }).where(eq(userWalletsTable.userId, userId));
   } catch (err) {

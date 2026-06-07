@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Star, Lock, Trophy, Flame, Target, Clock, Zap, CheckCircle2 } from "lucide-react";
+import { Star, Lock, Trophy, Flame, Target, Clock, Zap, CheckCircle2, ListTodo, TrendingUp, Users } from "lucide-react";
 import { getToken } from "@/lib/auth";
 import { PageTransition } from "@/components/PageTransition";
 
@@ -9,7 +9,7 @@ interface Badge {
   name: string;
   description: string;
   tier: "bronze" | "silver" | "gold" | "legendary";
-  category: "time" | "streak" | "sessions" | "quality" | "special";
+  category: "time" | "streak" | "sessions" | "quality" | "special" | "tasks" | "social" | "milestones";
   icon: string;
   threshold: number;
   unit: string;
@@ -29,9 +29,12 @@ interface Stats {
   maxDayMinutes: number;
   nightSessions: number;
   earlySessions: number;
+  totalTasks: number;
+  level: number;
+  totalXp: number;
 }
 
-type CategoryFilter = "all" | "time" | "streak" | "sessions" | "quality" | "special";
+type CategoryFilter = "all" | "time" | "streak" | "sessions" | "quality" | "special" | "tasks" | "social" | "milestones";
 
 const TIER_CONFIG = {
   bronze:    { label: "Bronze",    text: "#CD7F32", bg: "rgba(205,127,50,0.12)",  border: "rgba(205,127,50,0.35)",  glow: "rgba(205,127,50,0.3)"  },
@@ -41,20 +44,23 @@ const TIER_CONFIG = {
 } as const;
 
 const CATEGORY_CONFIG: Record<CategoryFilter, { label: string; icon: React.ReactNode }> = {
-  all:      { label: "All",      icon: <Star size={12} /> },
-  time:     { label: "Time",     icon: <Clock size={12} /> },
-  streak:   { label: "Streaks",  icon: <Flame size={12} /> },
-  sessions: { label: "Sessions", icon: <Target size={12} /> },
-  quality:  { label: "Quality",  icon: <Zap size={12} /> },
-  special:  { label: "Special",  icon: <Trophy size={12} /> },
+  all:        { label: "All",        icon: <Star size={12} />       },
+  time:       { label: "Time",       icon: <Clock size={12} />      },
+  streak:     { label: "Streaks",    icon: <Flame size={12} />      },
+  sessions:   { label: "Sessions",   icon: <Target size={12} />     },
+  quality:    { label: "Quality",    icon: <Zap size={12} />        },
+  special:    { label: "Special",    icon: <Trophy size={12} />     },
+  tasks:      { label: "Tasks",      icon: <ListTodo size={12} />   },
+  social:     { label: "Social",     icon: <Users size={12} />      },
+  milestones: { label: "Milestones", icon: <TrendingUp size={12} /> },
 };
 
 const STAT_ITEMS = (stats: Stats) => [
-  { label: "Total hours",  value: Math.round(stats.totalMinutes / 60),                              suffix: "h"  },
-  { label: "Sessions",     value: stats.sessions,                                                   suffix: ""   },
-  { label: "Best streak",  value: stats.streak,                                                     suffix: "d"  },
-  { label: "Top score",    value: stats.maxScore ? Math.round(stats.maxScore) : "—",                suffix: ""   },
-  { label: "Best day",     value: `${stats.maxDayMinutes}m`,                                        suffix: ""   },
+  { label: "Total hours",  value: Math.round(stats.totalMinutes / 60), suffix: "h"  },
+  { label: "Sessions",     value: stats.sessions,                       suffix: ""   },
+  { label: "Best streak",  value: stats.streak,                         suffix: "d"  },
+  { label: "Top score",    value: stats.maxScore ? Math.round(stats.maxScore) : "—", suffix: "" },
+  { label: "Level",        value: stats.level,                          suffix: ""   },
 ];
 
 function BadgeCard({ badge, isCelebrating }: { badge: Badge; isCelebrating: boolean }) {
@@ -83,33 +89,28 @@ function BadgeCard({ badge, isCelebrating }: { badge: Badge; isCelebrating: bool
       }
       aria-label={`${badge.name} — ${badge.unlocked ? "Unlocked" : `${pct}% complete`}`}
     >
-      {/* Shimmer overlay for celebrating */}
       {isCelebrating && (
         <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
           <div className="shimmer absolute inset-0" />
         </div>
       )}
 
-      {/* Newly unlocked indicator */}
       {badge.newlyUnlocked && (
         <div className="absolute -top-1.5 -right-1.5 z-10 rounded-full bg-[#06D6A0] px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-[#0A0F1E] shadow-lg">
           NEW
         </div>
       )}
 
-      {/* Icon */}
       <div className={`relative mb-2 text-3xl leading-none ${!badge.unlocked ? "opacity-20 grayscale saturate-0" : ""}`}>
         {badge.icon}
       </div>
 
-      {/* Lock overlay for locked badges */}
       {!badge.unlocked && (
         <div className="absolute top-4 flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(0,0,0,0.5)]">
           <Lock size={12} className="text-[#374151]" />
         </div>
       )}
 
-      {/* Tier label */}
       <span
         className="text-[9px] font-bold uppercase tracking-widest"
         style={{ color: badge.unlocked ? tier.text : "#1F2937" }}
@@ -117,7 +118,6 @@ function BadgeCard({ badge, isCelebrating }: { badge: Badge; isCelebrating: bool
         {tier.label}
       </span>
 
-      {/* Name */}
       <p
         className="mt-1 text-xs font-semibold leading-tight"
         style={{ color: badge.unlocked ? "#E2E8F0" : "#374151" }}
@@ -125,7 +125,6 @@ function BadgeCard({ badge, isCelebrating }: { badge: Badge; isCelebrating: bool
         {badge.name}
       </p>
 
-      {/* Description */}
       <p
         className="mt-0.5 text-[10px] leading-snug"
         style={{ color: badge.unlocked ? "#64748B" : "#1F2937" }}
@@ -133,12 +132,11 @@ function BadgeCard({ badge, isCelebrating }: { badge: Badge; isCelebrating: bool
         {badge.description}
       </p>
 
-      {/* Progress bar for locked */}
       {!badge.unlocked && (
         <div className="mt-2.5 w-full">
           <div className="flex items-center justify-between mb-1">
             <span className="text-[9px] text-[#1F2937]">{badge.progress}</span>
-            <span className="text-[9px] text-[#374151]">{badge.threshold} {badge.unit}</span>
+            <span className="text-[9px] text-[#374151]">{badge.threshold}</span>
           </div>
           <div className="h-1 w-full overflow-hidden rounded-full bg-[rgba(255,255,255,0.04)]">
             <div
@@ -150,7 +148,6 @@ function BadgeCard({ badge, isCelebrating }: { badge: Badge; isCelebrating: bool
         </div>
       )}
 
-      {/* Unlock date */}
       {badge.unlocked && badge.unlockedAt && (
         <p className="mt-1.5 flex items-center gap-1 text-[9px]" style={{ color: "#374151" }}>
           <CheckCircle2 size={8} style={{ color: tier.text }} />
@@ -166,6 +163,8 @@ export default function AchievementsPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<CategoryFilter>("all");
+  const [tierFilter, setTierFilter] = useState<string>("all");
+  const [showUnlocked, setShowUnlocked] = useState<"all" | "unlocked" | "locked">("all");
   const [celebratingId, setCelebratingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -174,7 +173,7 @@ export default function AchievementsPage() {
     fetch("/api/gamification/badges", {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((r) => r.json() as Promise<{ badges: Badge[]; stats: Stats }>)
+      .then((r) => r.json() as Promise<{ badges: Badge[]; stats: Stats; unlockedCount: number; totalCount: number; completionPct: number }>)
       .then((d) => {
         setBadges(d.badges ?? []);
         setStats(d.stats ?? null);
@@ -188,7 +187,11 @@ export default function AchievementsPage() {
       .catch(() => setLoading(false));
   }, []);
 
-  const filtered = filter === "all" ? badges : badges.filter((b) => b.category === filter);
+  let filtered = filter === "all" ? badges : badges.filter((b) => b.category === filter);
+  if (tierFilter !== "all") filtered = filtered.filter((b) => b.tier === tierFilter);
+  if (showUnlocked === "unlocked") filtered = filtered.filter((b) => b.unlocked);
+  if (showUnlocked === "locked") filtered = filtered.filter((b) => !b.unlocked);
+
   const unlockedCount = badges.filter((b) => b.unlocked).length;
   const totalCount = badges.length;
   const completionPct = totalCount > 0 ? Math.round((unlockedCount / totalCount) * 100) : 0;
@@ -211,9 +214,11 @@ export default function AchievementsPage() {
             <h1 className="mt-1 flex items-center gap-2.5 text-2xl font-bold text-[#E2E8F0] sm:text-3xl">
               <Star size={26} className="text-[#A78BFA]" aria-hidden />
               Achievements
+              <span className="ml-2 rounded-full bg-[rgba(124,58,237,0.2)] border border-[rgba(124,58,237,0.3)] px-2.5 py-0.5 text-sm font-semibold text-[#A78BFA]">
+                {unlockedCount}/{totalCount}
+              </span>
             </h1>
 
-            {/* Completion bar */}
             <div className="mt-4 space-y-1.5">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-[#94A3B8]">
@@ -264,44 +269,79 @@ export default function AchievementsPage() {
           {stats && (
             <div className="mb-6 grid grid-cols-3 gap-2 sm:grid-cols-5">
               {STAT_ITEMS(stats).map(({ label, value, suffix }) => (
-                <div
-                  key={label}
-                  className="rounded-xl border border-[rgba(124,58,237,0.15)] bg-[rgba(16,23,50,0.5)] p-3 text-center backdrop-blur-xl"
-                >
+                <div key={label} className="rounded-xl border border-[rgba(124,58,237,0.15)] bg-[rgba(16,23,50,0.5)] p-3 text-center backdrop-blur-xl">
                   <p className="text-[9px] font-medium uppercase tracking-wider text-[#4B5563]">{label}</p>
-                  <p className="mt-1 text-sm font-bold text-[#E2E8F0]">
-                    {value}{suffix}
-                  </p>
+                  <p className="mt-1 text-sm font-bold text-[#E2E8F0]">{value}{suffix}</p>
                 </div>
               ))}
             </div>
           )}
 
-          {/* Category filter pills */}
-          <div className="mb-6 flex flex-wrap gap-2" role="group" aria-label="Filter achievements by category">
-            {(Object.keys(CATEGORY_CONFIG) as CategoryFilter[]).map((cat) => {
-              const cfg = CATEGORY_CONFIG[cat];
-              const active = filter === cat;
-              const count = cat === "all" ? badges.length : badges.filter(b => b.category === cat).length;
-              return (
+          {/* Filters row */}
+          <div className="mb-4 flex flex-wrap gap-2 items-center">
+            {/* Category pills */}
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter by category">
+              {(Object.keys(CATEGORY_CONFIG) as CategoryFilter[]).map((cat) => {
+                const cfg = CATEGORY_CONFIG[cat];
+                const active = filter === cat;
+                const count = cat === "all" ? badges.length : badges.filter((b) => b.category === cat).length;
+                if (count === 0 && cat !== "all") return null;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setFilter(cat)}
+                    aria-pressed={active}
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-150 ${
+                      active
+                        ? "bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] text-white shadow-[0_0_12px_rgba(124,58,237,0.3)]"
+                        : "border border-[rgba(124,58,237,0.18)] text-[#64748B] hover:border-[rgba(124,58,237,0.4)] hover:text-[#94A3B8] hover:bg-[rgba(124,58,237,0.06)]"
+                    }`}
+                  >
+                    <span aria-hidden>{cfg.icon}</span>
+                    {cfg.label}
+                    <span className={`ml-0.5 rounded-full px-1 text-[9px] font-bold ${active ? "bg-white/20 text-white" : "bg-[rgba(124,58,237,0.12)] text-[#64748B]"}`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Secondary filters */}
+          <div className="mb-6 flex flex-wrap gap-2 items-center">
+            {/* Tier filter */}
+            <div className="flex gap-1 rounded-xl border border-[rgba(124,58,237,0.15)] bg-[rgba(8,12,28,0.6)] p-1">
+              {(["all", "bronze", "silver", "gold", "legendary"] as const).map((t) => (
                 <button
-                  key={cat}
-                  onClick={() => setFilter(cat)}
-                  aria-pressed={active}
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-150 ${
-                    active
-                      ? "bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] text-white shadow-[0_0_12px_rgba(124,58,237,0.3)]"
-                      : "border border-[rgba(124,58,237,0.18)] text-[#64748B] hover:border-[rgba(124,58,237,0.4)] hover:text-[#94A3B8] hover:bg-[rgba(124,58,237,0.06)]"
+                  key={t}
+                  onClick={() => setTierFilter(t)}
+                  className={`rounded-lg px-2.5 py-1 text-[10px] font-semibold capitalize transition-all ${
+                    tierFilter === t
+                      ? "bg-[rgba(124,58,237,0.3)] text-[#A78BFA]"
+                      : "text-[#4B5563] hover:text-[#6B7280]"
                   }`}
                 >
-                  <span aria-hidden>{cfg.icon}</span>
-                  {cfg.label}
-                  <span className={`ml-0.5 rounded-full px-1 text-[9px] font-bold ${active ? "bg-white/20 text-white" : "bg-[rgba(124,58,237,0.12)] text-[#64748B]"}`}>
-                    {count}
-                  </span>
+                  {t === "all" ? "All Tiers" : t}
                 </button>
-              );
-            })}
+              ))}
+            </div>
+            {/* Locked/unlocked filter */}
+            <div className="flex gap-1 rounded-xl border border-[rgba(124,58,237,0.15)] bg-[rgba(8,12,28,0.6)] p-1">
+              {(["all", "unlocked", "locked"] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setShowUnlocked(s)}
+                  className={`rounded-lg px-2.5 py-1 text-[10px] font-semibold capitalize transition-all ${
+                    showUnlocked === s
+                      ? "bg-[rgba(124,58,237,0.3)] text-[#A78BFA]"
+                      : "text-[#4B5563] hover:text-[#6B7280]"
+                  }`}
+                >
+                  {s === "all" ? "All" : s === "unlocked" ? "✓ Unlocked" : "🔒 Locked"}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Badge grid */}
@@ -316,10 +356,7 @@ export default function AchievementsPage() {
               <p className="mt-1 text-xs text-[#374151]">Keep focusing to unlock them!</p>
             </div>
           ) : (
-            <motion.div
-              layout
-              className="grid grid-cols-2 gap-3 sm:grid-cols-4"
-            >
+            <motion.div layout className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <AnimatePresence mode="popLayout">
                 {filtered.map((badge) => (
                   <BadgeCard
@@ -339,10 +376,7 @@ export default function AchievementsPage() {
               <div className="flex flex-wrap gap-4">
                 {(Object.keys(TIER_CONFIG) as (keyof typeof TIER_CONFIG)[]).map((tier) => (
                   <div key={tier} className="flex items-center gap-1.5">
-                    <div
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{ background: TIER_CONFIG[tier].text, boxShadow: `0 0 6px ${TIER_CONFIG[tier].glow}` }}
-                    />
+                    <div className="h-2.5 w-2.5 rounded-full" style={{ background: TIER_CONFIG[tier].text, boxShadow: `0 0 6px ${TIER_CONFIG[tier].glow}` }} />
                     <span className="text-xs font-medium" style={{ color: TIER_CONFIG[tier].text }}>
                       {TIER_CONFIG[tier].label}
                     </span>

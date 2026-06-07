@@ -1,0 +1,373 @@
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { getToken } from "@/lib/auth";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { PageTransition } from "@/components/PageTransition";
+import { Target, Zap, CheckCircle2, Lock, Trophy, Flame, Clock, ListTodo, Star, ChevronRight, Gift } from "lucide-react";
+
+interface MissionDef {
+  key: string;
+  title: string;
+  description: string;
+  type: "daily" | "weekly";
+  category: string;
+  xpReward: number;
+  coinReward: number;
+  targetValue: number;
+  unit: string;
+  icon: string;
+  difficulty: "easy" | "medium" | "hard" | "epic";
+  currentValue: number;
+  completed: boolean;
+  completedAt: string | null;
+  rewardClaimed: boolean;
+  periodStart: string;
+}
+
+interface MissionsData {
+  daily: MissionDef[];
+  weekly: MissionDef[];
+  stats: {
+    dailyCompleted: number;
+    totalDaily: number;
+    weeklyCompleted: number;
+    totalWeekly: number;
+  };
+}
+
+const DIFFICULTY_CONFIG = {
+  easy:   { label: "Easy",   color: "#22d387", bg: "rgba(34,211,135,0.12)",  border: "rgba(34,211,135,0.3)"  },
+  medium: { label: "Medium", color: "#f59e0b", bg: "rgba(245,158,11,0.12)",  border: "rgba(245,158,11,0.3)"  },
+  hard:   { label: "Hard",   color: "#f87171", bg: "rgba(248,113,113,0.12)", border: "rgba(248,113,113,0.3)" },
+  epic:   { label: "Epic",   color: "#a78bfa", bg: "rgba(167,139,250,0.12)", border: "rgba(167,139,250,0.4)" },
+} as const;
+
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  focus:   <Zap size={12} />,
+  tasks:   <ListTodo size={12} />,
+  streak:  <Flame size={12} />,
+  quality: <Star size={12} />,
+  social:  <Trophy size={12} />,
+  special: <Target size={12} />,
+};
+
+async function fetchMissions(): Promise<MissionsData> {
+  const token = getToken();
+  const res = await fetch("/api/missions", {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error("Failed to fetch missions");
+  return res.json();
+}
+
+async function claimMission(key: string): Promise<{ ok: boolean; xpEarned: number; coinsEarned: number }> {
+  const token = getToken();
+  const res = await fetch(`/api/missions/${key}/claim`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) throw new Error("Failed to claim mission");
+  return res.json();
+}
+
+function ProgressBar({ current, target, completed }: { current: number; target: number; completed: boolean }) {
+  const pct = completed ? 100 : Math.min(99, Math.round((current / Math.max(target, 1)) * 100));
+  return (
+    <div className="h-1.5 w-full rounded-full bg-[#1a1d2e] overflow-hidden">
+      <motion.div
+        className="h-full rounded-full"
+        style={{
+          background: completed
+            ? "linear-gradient(90deg, #22d387, #16a34a)"
+            : "linear-gradient(90deg, #7c3aed, #a78bfa)",
+        }}
+        initial={{ width: 0 }}
+        animate={{ width: `${pct}%` }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+      />
+    </div>
+  );
+}
+
+function MissionCard({ mission, onClaim, claiming }: { mission: MissionDef; onClaim: (key: string) => void; claiming: boolean }) {
+  const diff = DIFFICULTY_CONFIG[mission.difficulty];
+  const pct = mission.completed ? 100 : Math.min(99, Math.round((mission.currentValue / Math.max(mission.targetValue, 1)) * 100));
+  const canClaim = mission.completed && !mission.rewardClaimed;
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      className={`relative rounded-2xl border p-4 transition-all duration-200 ${
+        mission.rewardClaimed
+          ? "border-[#1a1d2e] bg-[#0d0f1a] opacity-60"
+          : mission.completed
+          ? "border-[rgba(34,211,135,0.35)] bg-[rgba(34,211,135,0.05)]"
+          : "border-[#1a1d2e] bg-[#0d0f1a] hover:border-[rgba(124,58,237,0.3)]"
+      }`}
+    >
+      {mission.completed && !mission.rewardClaimed && (
+        <motion.div
+          className="absolute inset-0 rounded-2xl pointer-events-none"
+          animate={{ boxShadow: ["0 0 0 rgba(34,211,135,0)", "0 0 16px rgba(34,211,135,0.2)", "0 0 0 rgba(34,211,135,0)"] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        />
+      )}
+
+      <div className="flex items-start gap-3">
+        <div className="text-2xl leading-none mt-0.5 shrink-0">{mission.icon}</div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+            <span className="text-sm font-semibold text-[#e8eaf0]">{mission.title}</span>
+            <span
+              className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+              style={{ color: diff.color, background: diff.bg, border: `1px solid ${diff.border}` }}
+            >
+              {diff.label}
+            </span>
+            {mission.rewardClaimed && (
+              <span className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#22d387] bg-[rgba(34,211,135,0.12)] border border-[rgba(34,211,135,0.3)]">
+                ✓ Done
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-[#5a5f72] mb-3">{mission.description}</p>
+
+          <ProgressBar current={mission.currentValue} target={mission.targetValue} completed={mission.completed} />
+
+          <div className="flex items-center justify-between mt-2">
+            <span className="text-[10px] text-[#4a4f62]">
+              {mission.completed ? "✓ Complete!" : `${mission.currentValue} / ${mission.targetValue}`}
+            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] text-[#a78bfa] font-semibold">+{mission.xpReward} XP</span>
+              <span className="text-[10px] text-[#f59e0b] font-semibold">+{mission.coinReward} 🪙</span>
+              {canClaim && (
+                <motion.button
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => onClaim(mission.key)}
+                  disabled={claiming}
+                  className="flex items-center gap-1.5 rounded-lg bg-[rgba(34,211,135,0.15)] border border-[rgba(34,211,135,0.4)] px-3 py-1.5 text-[11px] font-bold text-[#22d387] hover:bg-[rgba(34,211,135,0.25)] transition-colors disabled:opacity-50"
+                >
+                  <Gift size={12} />
+                  Claim
+                </motion.button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function StatCard({ label, value, total, icon }: { label: string; value: number; total: number; icon: React.ReactNode }) {
+  const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+  return (
+    <div className="rounded-2xl border border-[#1a1d2e] bg-[#0d0f1a] p-4 flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-[#5a5f72]">{icon}<span className="text-[10px] font-semibold uppercase tracking-[0.12em]">{label}</span></div>
+        <span className="text-sm font-bold text-[#e8eaf0]">{value}/{total}</span>
+      </div>
+      <div className="h-1.5 rounded-full bg-[#1a1d2e] overflow-hidden">
+        <motion.div
+          className="h-full rounded-full bg-gradient-to-r from-[#7c3aed] to-[#a78bfa]"
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 1, ease: "easeOut" }}
+        />
+      </div>
+    </div>
+  );
+}
+
+export default function MissionsPage() {
+  const [tab, setTab] = useState<"daily" | "weekly">("daily");
+  const [claimingKey, setClaimingKey] = useState<string | null>(null);
+  const [claimedReward, setClaimedReward] = useState<{ xp: number; coins: number } | null>(null);
+  const qc = useQueryClient();
+
+  const { data, isLoading, error } = useQuery<MissionsData>({
+    queryKey: ["missions"],
+    queryFn: fetchMissions,
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+
+  const claimMut = useMutation({
+    mutationFn: claimMission,
+    onMutate: (key) => setClaimingKey(key),
+    onSuccess: (result) => {
+      setClaimedReward({ xp: result.xpEarned, coins: result.coinsEarned });
+      qc.invalidateQueries({ queryKey: ["missions"] });
+      qc.invalidateQueries({ queryKey: ["wallet"] });
+      setTimeout(() => setClaimedReward(null), 3000);
+    },
+    onSettled: () => setClaimingKey(null),
+  });
+
+  const missions = tab === "daily" ? (data?.daily ?? []) : (data?.weekly ?? []);
+
+  const completedMissions = missions.filter((m) => m.rewardClaimed);
+  const claimableMissions = missions.filter((m) => m.completed && !m.rewardClaimed);
+  const activeMissions = missions.filter((m) => !m.completed);
+
+  const now = new Date();
+  const endOfDay = new Date(now);
+  endOfDay.setHours(23, 59, 59, 999);
+  const hoursLeft = Math.max(0, Math.round((endOfDay.getTime() - now.getTime()) / 3600000));
+  const dayOfWeek = now.getDay();
+  const daysToMonday = ((8 - dayOfWeek) % 7) || 7;
+
+  return (
+    <PageTransition>
+      <div className="min-h-[100dvh] px-4 py-6 sm:px-6 lg:px-8 max-w-3xl mx-auto">
+
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7c3aed] to-[#a78bfa] shadow-[0_0_20px_rgba(124,58,237,0.4)]">
+              <Target size={20} className="text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-[#e8eaf0] tracking-tight">Daily Missions</h1>
+              <p className="text-xs text-[#5a5f72]">Complete missions to earn XP & coins</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Stat cards */}
+        {data && (
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <StatCard label="Daily" value={data.stats.dailyCompleted} total={data.stats.totalDaily} icon={<Clock size={12} />} />
+            <StatCard label="Weekly" value={data.stats.weeklyCompleted} total={data.stats.totalWeekly} icon={<Trophy size={12} />} />
+          </div>
+        )}
+
+        {/* Tab switcher */}
+        <div className="flex rounded-xl border border-[#1a1d2e] bg-[#080c1c] p-1 mb-5">
+          {(["daily", "weekly"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`flex-1 rounded-lg py-2 text-xs font-semibold uppercase tracking-wider transition-all duration-200 ${
+                tab === t
+                  ? "bg-[rgba(124,58,237,0.2)] text-[#a78bfa] shadow-sm"
+                  : "text-[#4a4f62] hover:text-[#6b7280]"
+              }`}
+            >
+              {t === "daily" ? `⚡ Daily (${hoursLeft}h left)` : `📅 Weekly (${daysToMonday}d left)`}
+            </button>
+          ))}
+        </div>
+
+        {/* Claim reward toast */}
+        <AnimatePresence>
+          {claimedReward && (
+            <motion.div
+              initial={{ opacity: 0, y: -16, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -16, scale: 0.95 }}
+              className="mb-4 rounded-2xl border border-[rgba(34,211,135,0.4)] bg-[rgba(34,211,135,0.1)] p-4 flex items-center gap-3"
+            >
+              <span className="text-2xl">🎉</span>
+              <div>
+                <p className="text-sm font-bold text-[#22d387]">Reward Claimed!</p>
+                <p className="text-xs text-[#5a5f72]">+{claimedReward.xp} XP · +{claimedReward.coins} coins</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {isLoading && (
+          <div className="flex flex-col items-center justify-center py-16 gap-4">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#1a1d2e] border-t-[#7c3aed]" />
+            <p className="text-xs text-[#4a4f62]">Loading missions…</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="rounded-2xl border border-[rgba(248,113,113,0.3)] bg-[rgba(248,113,113,0.08)] p-4 text-xs text-[#f87171]">
+            Failed to load missions. Please refresh.
+          </div>
+        )}
+
+        {!isLoading && !error && (
+          <div className="space-y-3">
+            {/* Claimable */}
+            {claimableMissions.length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#22d387] mb-2 flex items-center gap-1.5">
+                  <Gift size={11} /> Ready to Claim ({claimableMissions.length})
+                </p>
+                <div className="space-y-2">
+                  {claimableMissions.map((m) => (
+                    <MissionCard
+                      key={m.key}
+                      mission={m}
+                      onClaim={(key) => claimMut.mutate(key)}
+                      claiming={claimingKey === m.key}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Active */}
+            {activeMissions.length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#4a4f62] mb-2 mt-4">
+                  In Progress ({activeMissions.length})
+                </p>
+                <div className="space-y-2">
+                  {activeMissions.map((m) => (
+                    <MissionCard
+                      key={m.key}
+                      mission={m}
+                      onClaim={(key) => claimMut.mutate(key)}
+                      claiming={claimingKey === m.key}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Completed */}
+            {completedMissions.length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#2d3748] mb-2 mt-4">
+                  Completed ({completedMissions.length})
+                </p>
+                <div className="space-y-2">
+                  {completedMissions.map((m) => (
+                    <MissionCard
+                      key={m.key}
+                      mission={m}
+                      onClaim={(key) => claimMut.mutate(key)}
+                      claiming={claimingKey === m.key}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {missions.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+                <span className="text-4xl">🎯</span>
+                <p className="text-sm font-semibold text-[#e8eaf0]">No missions found</p>
+                <p className="text-xs text-[#4a4f62]">Start a focus session to unlock missions!</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </PageTransition>
+  );
+}

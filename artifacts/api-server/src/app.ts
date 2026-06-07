@@ -2,13 +2,25 @@ import express, { type Express } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import pinoHttp from "pino-http";
+import compression from "compression";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { getConfigErrors } from "./lib/config";
 import { generalLimiter } from "./lib/rateLimiter";
+
 const isDev = process.env.NODE_ENV !== "production";
 const app: Express = express();
 app.set("trust proxy", 1);
+
+app.use(compression({
+  level: 6,
+  threshold: 1024,
+  filter: (req, res) => {
+    if (req.headers["x-no-compression"]) return false;
+    return compression.filter(req, res);
+  },
+}));
+
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -50,16 +62,10 @@ app.use(
     logger,
     serializers: {
       req(req) {
-        return {
-          id: req.id,
-          method: req.method,
-          url: req.url?.split("?")[0],
-        };
+        return { id: req.id, method: req.method, url: req.url?.split("?")[0] };
       },
       res(res) {
-        return {
-          statusCode: res.statusCode,
-        };
+        return { statusCode: res.statusCode };
       },
     },
   }),
@@ -73,11 +79,13 @@ app.use(
       if (origin.endsWith(".replit.dev") || origin.endsWith(".repl.co")) { cb(null, true); return; }
       const appUrl = process.env.APP_URL;
       if (appUrl) {
-        const appUrlObj = new URL(appUrl);
-        const originObj = new URL(origin);
-        const baseDomain = appUrlObj.hostname.replace(/^www\./, "");
-        const originDomain = originObj.hostname.replace(/^www\./, "");
-        if (baseDomain === originDomain) { cb(null, true); return; }
+        try {
+          const appUrlObj = new URL(appUrl);
+          const originObj = new URL(origin);
+          const baseDomain = appUrlObj.hostname.replace(/^www\./, "");
+          const originDomain = originObj.hostname.replace(/^www\./, "");
+          if (baseDomain === originDomain) { cb(null, true); return; }
+        } catch { /* fall through */ }
       }
       cb(new Error("CORS: origin not allowed"));
     },
@@ -86,6 +94,15 @@ app.use(
 );
 app.use(express.json({ limit: "100kb" }));
 app.use(express.urlencoded({ extended: true, limit: "100kb" }));
+
+// Add security headers for all responses
+app.use((_req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  next();
+});
+
 app.use("/api", generalLimiter);
 app.use("/api", (req, res, next) => {
   if (req.path === "/healthz" || req.path.startsWith("/healthz/")) {

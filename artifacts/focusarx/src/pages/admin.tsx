@@ -49,7 +49,7 @@ type AdminData = {
   guestCount?: number;
 };
 
-type Tab = "overview" | "analytics" | "users";
+type Tab = "overview" | "analytics" | "users" | "missions";
 
 export default function AdminPage() {
   const { data: session, status: authStatus } = useAuth();
@@ -62,6 +62,7 @@ export default function AdminPage() {
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
   const [purgeLoading, setPurgeLoading] = useState(false);
   const [tab, setTab] = useState<Tab>("overview");
+  const [missionData, setMissionData] = useState<{ missions: any[]; totalCompletions: number; totalClaims: number } | null>(null);
 
   const authHeaders = useCallback((): Record<string, string> => {
     const token = localStorage.getItem("focusarx-auth-token");
@@ -71,9 +72,10 @@ export default function AdminPage() {
   const loadData = useCallback(async () => {
     if (authStatus === "loading") return;
     try {
-      const [usersRes, statsRes] = await Promise.all([
+      const [usersRes, statsRes, missionsRes] = await Promise.all([
         fetch("/api/admin/users", { headers: authHeaders(), credentials: "include" }),
         fetch("/api/admin/stats", { headers: authHeaders(), credentials: "include" }),
+        fetch("/api/admin/missions", { headers: authHeaders(), credentials: "include" }),
       ]);
       if (usersRes.status === 401 || usersRes.status === 403) {
         setAuthed(false);
@@ -87,6 +89,10 @@ export default function AdminPage() {
       if (statsRes.ok) {
         const json = await statsRes.json() as AdminStats;
         setStats(json);
+      }
+      if (missionsRes && missionsRes.ok) {
+        const json = await missionsRes.json();
+        setMissionData(json);
       }
     } catch {
       setAuthed(false);
@@ -205,7 +211,7 @@ export default function AdminPage() {
               </button>
             )}
             <div className="flex gap-1 rounded-xl border border-zinc-800 bg-zinc-900/60 p-1">
-            {(["overview", "analytics", "users"] as Tab[]).map((t) => (
+            {(["overview", "analytics", "users", "missions"] as Tab[]).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -327,6 +333,80 @@ export default function AdminPage() {
               transition={{ duration: 0.18 }}
             >
               <AnalyticsDashboard authHeaders={authHeaders} />
+            </motion.div>
+          ) : tab === "missions" ? (
+            <motion.div
+              key="missions"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
+              className="space-y-6"
+            >
+              {/* Mission KPIs */}
+              <div className="grid gap-3 sm:grid-cols-3">
+                <StatCard label="Total completions" value={String(missionData?.totalCompletions ?? 0)} accent="violet" />
+                <StatCard label="Rewards claimed" value={String(missionData?.totalClaims ?? 0)} accent="sky" />
+                <StatCard label="Mission types" value={String(missionData?.missions?.length ?? 0)} />
+              </div>
+
+              {/* Mission breakdown table */}
+              <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/40 overflow-hidden">
+                <div className="px-5 py-3 border-b border-zinc-800 flex items-center justify-between">
+                  <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Mission Performance</p>
+                  <span className="text-xs text-zinc-600">{missionData?.missions?.length ?? 0} missions</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-zinc-900/80 text-xs uppercase tracking-wider text-zinc-500">
+                      <tr>
+                        <th className="px-4 py-2.5 font-medium">Mission</th>
+                        <th className="px-4 py-2.5 font-medium">Type</th>
+                        <th className="px-4 py-2.5 font-medium">Difficulty</th>
+                        <th className="px-4 py-2.5 font-medium">Completions</th>
+                        <th className="px-4 py-2.5 font-medium">Claims</th>
+                        <th className="px-4 py-2.5 font-medium">Rate</th>
+                        <th className="px-4 py-2.5 font-medium">XP/Coins</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800/50">
+                      {(missionData?.missions ?? []).map((m: any) => (
+                        <tr key={m.key} className="hover:bg-zinc-900/30 transition">
+                          <td className="px-4 py-2.5">
+                            <span className="mr-1.5">{m.icon}</span>
+                            <span className="text-zinc-200 text-xs font-medium">{m.title}</span>
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${m.type === "daily" ? "bg-blue-950 text-blue-400" : "bg-purple-950 text-purple-400"}`}>
+                              {m.type}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <span className={`text-xs font-medium ${m.difficulty === "epic" ? "text-purple-400" : m.difficulty === "hard" ? "text-red-400" : m.difficulty === "medium" ? "text-amber-400" : "text-emerald-400"}`}>
+                              {m.difficulty}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2.5 text-zinc-300 text-xs">{m.completions}</td>
+                          <td className="px-4 py-2.5 text-zinc-300 text-xs">{m.claims}</td>
+                          <td className="px-4 py-2.5">
+                            <div className="flex items-center gap-2">
+                              <div className="h-1.5 w-16 rounded-full bg-zinc-800 overflow-hidden">
+                                <div className="h-full rounded-full bg-violet-500/70" style={{ width: `${m.completionRate}%` }} />
+                              </div>
+                              <span className="text-[10px] text-zinc-500">{m.completionRate}%</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <span className="text-[10px] text-violet-400">+{m.xpReward}xp</span>
+                            <span className="text-[10px] text-zinc-600 mx-1">·</span>
+                            <span className="text-[10px] text-amber-400">{m.coinReward}🪙</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </motion.div>
           ) : (
             <motion.div

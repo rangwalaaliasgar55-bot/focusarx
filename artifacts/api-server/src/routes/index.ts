@@ -20,6 +20,8 @@ import { roadmapRouter } from "./roadmap";
 import { breakFreeRouter } from "./breakFree";
 import { siteAnalyticsRouter } from "./siteAnalytics";
 import { adminAnalyticsRouter } from "./adminAnalytics";
+import { missionsRouter } from "./missions";
+import { sitemapRouter } from "./sitemap";
 
 const router: IRouter = Router();
 
@@ -44,5 +46,7 @@ router.use(roadmapRouter);
 router.use(breakFreeRouter);
 router.use(siteAnalyticsRouter);
 router.use(adminAnalyticsRouter);
+router.use(missionsRouter);
+router.use(sitemapRouter);
 
 export default router;

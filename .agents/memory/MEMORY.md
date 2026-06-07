@@ -8,3 +8,6 @@
 - [Security hardening](security-hardening.md) — timing-safe admin password comparison, devResetUrl server-log-only, coach 1000-char cap, rate limiters on AI routes
 - [Legal pages](legal-pages.md) — 6 legal pages + /pricing; all routed in App.tsx; sidebar footer in AppShell with Privacy/Terms/AI Policy/Pricing links
 - [lucide-react icon gaps](lucide-react-icons.md) — Cookie icon does NOT exist in installed version; use Database or Shield instead
+- [Missions system](missions-system.md) — 22 missions (12 daily + 10 weekly), updateMissionProgress() exported from missions.ts, claimed via POST /api/missions/:key/claim
+- [Badge system](badge-system.md) — 65+ badges across 8 categories: time/streak/sessions/quality/special/tasks/social/milestones; computed on-the-fly in /api/gamification/badges
+- [Enterprise V10 schema](enterprise-schema.md) — missions, user_mission_progress, friendships, productivity_logs tables added to lib/db; db push done

@@ -1,4 +1,4 @@
-import { pgTable, text, integer, boolean, timestamp, real, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, boolean, timestamp, real, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -9,9 +9,13 @@ export const usersTable = pgTable("users", {
   hashedPassword: text("hashed_password"),
   guestKey: text("guest_key").unique(),
   isGuest: boolean("is_guest").default(false).notNull(),
-  role: text("role").default("user").notNull(), // "user" | "admin"
+  role: text("role").default("user").notNull(),
   onboardingCompleted: boolean("onboarding_completed").default(false).notNull(),
   onboardingData: jsonb("onboarding_data"),
+  bio: text("bio"),
+  timezone: text("timezone").default("UTC"),
+  productivityScore: real("productivity_score").default(0),
+  totalFocusMinutes: integer("total_focus_minutes").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -30,8 +34,13 @@ export const focusSessionsTable = pgTable("focus_sessions", {
   stabilityRating: text("stability_rating"),
   focusTimeline: text("focus_timeline"),
   sessionInsights: text("session_insights"),
+  category: text("category").default("General"),
+  productivityScore: real("productivity_score"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => [
+  index("focus_sessions_user_id_idx").on(t.userId),
+  index("focus_sessions_completed_at_idx").on(t.completedAt),
+]);
 
 export type FocusSession = typeof focusSessionsTable.$inferSelect;
 
@@ -72,8 +81,16 @@ export const tasksTable = pgTable("tasks", {
   completed: boolean("completed").default(false).notNull(),
   order: integer("order").default(0),
   estimatedMinutes: integer("estimated_minutes"),
+  category: text("category").default("General"),
+  priority: text("priority").default("medium"),
+  tags: jsonb("tags").$type<string[]>().default([]),
+  dueDate: text("due_date"),
+  recurring: text("recurring"),
+  completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => [
+  index("tasks_user_id_idx").on(t.userId),
+]);
 
 export type Task = typeof tasksTable.$inferSelect;
 
@@ -95,6 +112,8 @@ export const userWalletsTable = pgTable("user_wallets", {
   totalXp: integer("total_xp").notNull().default(0),
   weeklyXp: integer("weekly_xp").notNull().default(0),
   weeklyXpResetAt: timestamp("weekly_xp_reset_at").defaultNow(),
+  level: integer("level").notNull().default(1),
+  prestige: integer("prestige").notNull().default(0),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
@@ -108,6 +127,79 @@ export const userBadgesTable = pgTable("user_badges", {
 });
 
 export type UserBadge = typeof userBadgesTable.$inferSelect;
+
+// ─── DAILY/WEEKLY MISSIONS ───────────────────────────────────────────────────
+
+export const missionsTable = pgTable("missions", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  missionKey: text("mission_key").notNull().unique(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  type: text("type").notNull().default("daily"),
+  category: text("category").notNull().default("focus"),
+  xpReward: integer("xp_reward").notNull().default(100),
+  coinReward: integer("coin_reward").notNull().default(50),
+  targetValue: integer("target_value").notNull().default(1),
+  unit: text("unit").notNull().default("sessions"),
+  icon: text("icon").notNull().default("🎯"),
+  difficulty: text("difficulty").notNull().default("easy"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type Mission = typeof missionsTable.$inferSelect;
+
+export const userMissionProgressTable = pgTable("user_mission_progress", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  missionKey: text("mission_key").notNull(),
+  periodStart: text("period_start").notNull(),
+  currentValue: integer("current_value").notNull().default(0),
+  completed: boolean("completed").default(false).notNull(),
+  completedAt: timestamp("completed_at"),
+  rewardClaimed: boolean("reward_claimed").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("mission_progress_user_period_idx").on(t.userId, t.periodStart),
+]);
+
+export type UserMissionProgress = typeof userMissionProgressTable.$inferSelect;
+
+// ─── SOCIAL ───────────────────────────────────────────────────────────────────
+
+export const friendshipsTable = pgTable("friendships", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  requesterId: text("requester_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  addresseeId: text("addressee_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default("pending"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  index("friendships_requester_idx").on(t.requesterId),
+  index("friendships_addressee_idx").on(t.addresseeId),
+]);
+
+export type Friendship = typeof friendshipsTable.$inferSelect;
+
+// ─── PRODUCTIVITY LOGS ────────────────────────────────────────────────────────
+
+export const productivityLogsTable = pgTable("productivity_logs", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  date: text("date").notNull(),
+  focusMinutes: integer("focus_minutes").notNull().default(0),
+  sessionsCompleted: integer("sessions_completed").notNull().default(0),
+  tasksCompleted: integer("tasks_completed").notNull().default(0),
+  avgFocusScore: real("avg_focus_score"),
+  productivityScore: real("productivity_score"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("productivity_logs_user_date_idx").on(t.userId, t.date),
+]);
+
+export type ProductivityLog = typeof productivityLogsTable.$inferSelect;
+
+// ─── EXISTING TABLES (unchanged) ─────────────────────────────────────────────
 
 export const readinessLogsTable = pgTable("readiness_logs", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
+import MissionsWidget from "@/components/MissionsWidget";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ApiError } from "@workspace/api-client-react";
@@ -53,6 +54,7 @@ const AcceptableUsePage = lazy(() => import("@/pages/acceptable-use"));
 const AiPolicyPage = lazy(() => import("@/pages/ai-policy"));
 const DataDeletionPage = lazy(() => import("@/pages/data-deletion"));
 const PricingPage = lazy(() => import("@/pages/pricing"));
+const MissionsPage = lazy(() => import("@/pages/missions"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -206,6 +208,9 @@ function SidePanel() {
       {/* Daily Goal */}
       <DailyGoal />
 
+      {/* Missions widget */}
+      <MissionsWidget />
+
       {/* Camera */}
       <div className="rounded-2xl border border-[#1e2130] bg-[#111318] p-4">
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4a4f62] mb-3">AI Camera</p>
@@ -337,6 +342,7 @@ function AppWithPalette() {
             <Route path="/breathe" component={() => <ErrorBoundary><BreathePage /></ErrorBoundary>} />
             <Route path="/profile" component={() => <ErrorBoundary><ProtectedRoute component={ProfilePage} /></ErrorBoundary>} />
             <Route path="/break-free" component={() => <ErrorBoundary><BreakFreePage /></ErrorBoundary>} />
+            <Route path="/missions" component={() => <ErrorBoundary><ProtectedRoute component={MissionsPage} /></ErrorBoundary>} />
 
             {/* Legal pages — no auth required */}
             <Route path="/privacy" component={() => <ErrorBoundary><PrivacyPage /></ErrorBoundary>} />

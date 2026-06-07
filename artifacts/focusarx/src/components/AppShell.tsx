@@ -3,11 +3,13 @@ import { useAuth, isAdminUser } from "@/lib/auth";
 import {
   Timer, LayoutDashboard, TrendingUp, Trophy, Star,
   Users, Sparkles, LogOut, LogIn, Menu, X, Shield, BookOpen,
-  Dna, Ghost, Sword, Radio, Wind, UserCircle, Info, Flame,
+  Dna, Ghost, Sword, Radio, Wind, UserCircle, Info, Flame, Target,
 } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import CoachPanel from "@/components/CoachPanel";
+import { useQuery } from "@tanstack/react-query";
+import { getToken } from "@/lib/auth";
 
 function InfoTooltip() {
   const [open, setOpen] = useState(false);
@@ -52,7 +54,7 @@ function InfoTooltip() {
               gamifies your focus sessions, and builds lasting study habits.
             </p>
             <p className="text-[11px] text-[#4B5563] mt-1.5">
-              Built for students, developers & creators.
+              Built for students, developers &amp; creators.
             </p>
           </motion.div>
         )}
@@ -61,9 +63,36 @@ function InfoTooltip() {
   );
 }
 
+async function fetchMissionStats() {
+  const token = getToken();
+  const res = await fetch("/api/missions", {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) return null;
+  return res.json();
+}
+
+function MissionsBadge() {
+  const { data } = useQuery({
+    queryKey: ["missions-badge"],
+    queryFn: fetchMissionStats,
+    staleTime: 60_000,
+    refetchInterval: 120_000,
+  });
+  const claimable = (data?.daily ?? []).filter((m: any) => m.completed && !m.rewardClaimed).length
+    + (data?.weekly ?? []).filter((m: any) => m.completed && !m.rewardClaimed).length;
+  if (!claimable) return null;
+  return (
+    <span className="ml-auto flex h-4 w-4 items-center justify-center rounded-full bg-[#22d387] text-[9px] font-bold text-black shrink-0">
+      {claimable}
+    </span>
+  );
+}
+
 const NAV_ITEMS = [
   { href: "/dashboard",    label: "Dashboard",     icon: LayoutDashboard, shortcut: "2", aiBadge: false },
   { href: "/",             label: "Timer",         icon: Timer,           shortcut: "1", aiBadge: false },
+  { href: "/missions",     label: "Missions",      icon: Target,          shortcut: "m", aiBadge: false, badge: "missions" },
   { href: "/roadmap",      label: "AI Roadmap",    icon: Sparkles,        shortcut: "7", aiBadge: true  },
   { href: "/forge",        label: "Forge Room",    icon: Users,           shortcut: "6", aiBadge: false },
   { href: "/analytics",    label: "Analytics",     icon: TrendingUp,      shortcut: "3", aiBadge: false },
@@ -89,11 +118,12 @@ interface NavItemProps {
   active: boolean;
   shortcut?: string;
   aiBadge?: boolean;
+  badge?: string;
   onClick?: () => void;
   compact?: boolean;
 }
 
-function NavItem({ href, label, icon: Icon, active, shortcut, aiBadge, onClick, compact }: NavItemProps) {
+function NavItem({ href, label, icon: Icon, active, shortcut, aiBadge, badge, onClick, compact }: NavItemProps) {
   return (
     <motion.div whileHover={{ x: 2 }} transition={{ type: "spring", stiffness: 400, damping: 30 }}>
       <Link
@@ -110,10 +140,11 @@ function NavItem({ href, label, icon: Icon, active, shortcut, aiBadge, onClick, 
         )}
         <Icon size={16} className="shrink-0" />
         {!compact && <span className="flex-1">{label}</span>}
+        {!compact && badge === "missions" && <MissionsBadge />}
         {!compact && aiBadge && (
           <span className="rounded-full bg-[rgba(124,58,237,0.25)] border border-[rgba(124,58,237,0.4)] px-1.5 py-0.5 text-[8px] font-bold text-[#A78BFA] uppercase tracking-wider">AI</span>
         )}
-        {!compact && shortcut && !aiBadge && (
+        {!compact && !aiBadge && !badge && shortcut && (
           <span className="ml-auto hidden text-[10px] text-[#4B5563] group-hover:text-[#6B7280] lg:block">
             {shortcut}
           </span>
@@ -173,7 +204,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-[100dvh] forge-bg-glow">
       {/* ==================== DESKTOP SIDEBAR ==================== */}
       <aside className="app-sidebar hidden md:flex">
-        {/* Logo — desktop */}
+        {/* Logo */}
         <div className="flex items-center gap-2.5 border-b border-[rgba(124,58,237,0.15)] px-5 py-5">
           <LogoMark />
           <div className="flex-1 min-w-0">
@@ -261,7 +292,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               onClick={() => setMobileOpen(false)}
               aria-label="Close menu"
             />
-
             <motion.aside
               key="mobile-drawer"
               initial={{ x: "-100%" }}
@@ -283,7 +313,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   <X size={18} />
                 </button>
               </div>
-
               <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
                 {NAV_ITEMS.map((item) => (
                   <NavItem
@@ -303,7 +332,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   />
                 )}
               </nav>
-
               <div className="border-t border-[rgba(124,58,237,0.15)] px-3 py-4">
                 {status === "authenticated" && user ? (
                   <button
@@ -329,18 +357,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* ==================== BOTTOM TAB BAR (mobile) ==================== */}
       <nav className="app-bottom-nav flex items-center justify-around md:hidden">
-        {NAV_ITEMS.slice(0, 5).map(({ href, label, icon: Icon }) => {
+        {NAV_ITEMS.slice(0, 5).map(({ href, label, icon: Icon, badge }) => {
           const active = location === href;
           return (
             <Link
               key={href}
               href={href}
-              className={`flex flex-col items-center gap-0.5 px-2 py-1 transition-colors ${
+              className={`relative flex flex-col items-center gap-0.5 px-2 py-1 transition-colors ${
                 active ? "text-[#A78BFA]" : "text-[#4B5563]"
               }`}
             >
               <Icon size={20} />
               <span className="text-[9px] font-medium">{label.split(" ")[0]}</span>
+              {badge === "missions" && (
+                <span className="absolute -top-0.5 right-0 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#22d387] text-[7px] font-bold text-black">!</span>
+              )}
             </Link>
           );
         })}
