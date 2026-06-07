@@ -1,7 +1,7 @@
 {
   "name": "FocusArx – AI-Powered Study OS",
   "short_name": "FocusArx",
-  "description": "Deep focus tracking with AI coaching, Pomodoro timers, gamification, and webcam attention monitoring. Built for students, developers & creators.",
+  "description": "Deep focus tracking with AI coaching, Pomodoro timers, gamification, social study groups, missions, and webcam attention monitoring. Built for students, developers & creators.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -12,43 +12,20 @@
   "lang": "en",
   "dir": "ltr",
   "icons": [
-    {
-      "src": "/logo.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/logo.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    { "src": "/logo.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ],
   "screenshots": [],
   "shortcuts": [
-    {
-      "name": "Start Focus Session",
-      "short_name": "Focus",
-      "description": "Jump straight to the Pomodoro timer",
-      "url": "/",
-      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "View Dashboard",
-      "short_name": "Dashboard",
-      "description": "Check today's focus stats",
-      "url": "/dashboard",
-      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Leaderboard",
-      "short_name": "Rankings",
-      "description": "See where you rank this week",
-      "url": "/leaderboard",
-      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
-    }
+    { "name": "Start Focus Session", "short_name": "Focus", "description": "Jump to the Pomodoro timer", "url": "/", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] },
+    { "name": "Dashboard", "short_name": "Dashboard", "description": "Today's focus stats", "url": "/dashboard", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] },
+    { "name": "Missions", "short_name": "Missions", "description": "Daily & weekly missions", "url": "/missions", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] },
+    { "name": "Social Hub", "short_name": "Social", "description": "Friends & leaderboard", "url": "/social", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] },
+    { "name": "Battle Pass", "short_name": "Pass", "description": "Season battle pass", "url": "/battle-pass", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] },
+    { "name": "AI Insights", "short_name": "Insights", "description": "Your AI weekly report", "url": "/ai-insights", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] },
+    { "name": "Leaderboard", "short_name": "Rankings", "description": "Weekly rankings", "url": "/leaderboard", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] }
   ],
   "related_applications": [],
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "id": "focusarx-app"
 }

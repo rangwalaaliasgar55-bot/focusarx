@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, focusSessionsTable, studyStreaksTable, tasksTable } from "@workspace/db";
+import { db, focusSessionsTable, studyStreaksTable, tasksTable, productivityLogsTable } from "@workspace/db";
 import { eq, and, gte, lt, desc, count, sql } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
@@ -156,6 +156,45 @@ router.get("/analytics", authMiddleware, async (req: any, res) => {
     });
   } catch (err) {
     logger.error({ err }, "analytics error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+router.get("/stats/productivity", authMiddleware, async (req: any, res) => {
+  try {
+    const today = new Date().toISOString().split("T")[0]!;
+    const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().split("T")[0]!;
+    const fourteenDaysAgo = new Date(Date.now() - 14 * 86400000).toISOString().split("T")[0]!;
+
+    const [todayLog] = await db.select().from(productivityLogsTable)
+      .where(and(eq(productivityLogsTable.userId, req.userId), eq(productivityLogsTable.date, today)));
+
+    const thisWeekLogs = await db.select().from(productivityLogsTable)
+      .where(and(eq(productivityLogsTable.userId, req.userId), sql`date >= ${sevenDaysAgo}`));
+
+    const lastWeekLogs = await db.select().from(productivityLogsTable)
+      .where(and(eq(productivityLogsTable.userId, req.userId), sql`date >= ${fourteenDaysAgo}`, sql`date < ${sevenDaysAgo}`));
+
+    const [streak] = await db.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, req.userId));
+
+    const thisWeekAvg = thisWeekLogs.length > 0
+      ? thisWeekLogs.reduce((s: number, l) => s + (l.productivityScore ?? 0), 0) / thisWeekLogs.length
+      : 0;
+    const lastWeekAvg = lastWeekLogs.length > 0
+      ? lastWeekLogs.reduce((s: number, l) => s + (l.productivityScore ?? 0), 0) / lastWeekLogs.length
+      : 0;
+    const trend = Math.round(thisWeekAvg - lastWeekAvg);
+
+    res.json({
+      productivityScore: Math.round(todayLog?.productivityScore ?? thisWeekAvg ?? 0),
+      focusMinutesToday: todayLog?.focusMinutes ?? 0,
+      sessionsToday: todayLog?.sessionsCompleted ?? 0,
+      avgFocusScore: todayLog?.avgFocusScore ?? null,
+      currentStreak: streak?.currentStreak ?? 0,
+      trend,
+    });
+  } catch (err) {
+    logger.error({ err }, "productivity stats error");
     res.status(500).json({ error: "Internal error" });
   }
 });

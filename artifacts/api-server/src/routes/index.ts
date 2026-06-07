@@ -22,6 +22,12 @@ import { siteAnalyticsRouter } from "./siteAnalytics";
 import { adminAnalyticsRouter } from "./adminAnalytics";
 import { missionsRouter } from "./missions";
 import { sitemapRouter } from "./sitemap";
+import { socialRouter } from "./social";
+import { notificationsRouter } from "./notifications";
+import { groupsRouter } from "./groups";
+import { retentionRouter } from "./retention";
+import { publicProfilesRouter } from "./publicProfiles";
+import { aiInsightsRouter } from "./aiInsights";
 
 const router: IRouter = Router();
 
@@ -48,5 +54,11 @@ router.use(siteAnalyticsRouter);
 router.use(adminAnalyticsRouter);
 router.use(missionsRouter);
 router.use(sitemapRouter);
+router.use(socialRouter);
+router.use(notificationsRouter);
+router.use(groupsRouter);
+router.use(retentionRouter);
+router.use(publicProfilesRouter);
+router.use(aiInsightsRouter);
 
 export default router;

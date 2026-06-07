@@ -350,3 +350,107 @@ export const breakFreePledgesTable = pgTable("break_free_pledges", {
 });
 
 export type BreakFreePledge = typeof breakFreePledgesTable.$inferSelect;
+
+// ─── NOTIFICATIONS ─────────────────────────────────────────────────────────────
+
+export const notificationsTable = pgTable("notifications", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  type: text("type").notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  data: jsonb("data"),
+  read: boolean("read").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [index("notifications_user_id_idx").on(t.userId)]);
+
+export type Notification = typeof notificationsTable.$inferSelect;
+
+// ─── LOGIN REWARDS ─────────────────────────────────────────────────────────────
+
+export const loginRewardsTable = pgTable("login_rewards", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().unique().references(() => usersTable.id, { onDelete: "cascade" }),
+  lastClaimedDate: text("last_claimed_date"),
+  claimStreak: integer("claim_streak").notNull().default(0),
+  totalClaimed: integer("total_claimed").notNull().default(0),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type LoginReward = typeof loginRewardsTable.$inferSelect;
+
+// ─── STUDY GROUPS ──────────────────────────────────────────────────────────────
+
+export const studyGroupsTable = pgTable("study_groups", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  description: text("description"),
+  ownerId: text("owner_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  groupXp: integer("group_xp").notNull().default(0),
+  groupLevel: integer("group_level").notNull().default(1),
+  isPublic: boolean("is_public").default(true).notNull(),
+  inviteCode: text("invite_code").notNull().unique(),
+  maxMembers: integer("max_members").notNull().default(20),
+  avatarEmoji: text("avatar_emoji").notNull().default("🎯"),
+  tags: jsonb("tags").$type<string[]>().default([]),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type StudyGroup = typeof studyGroupsTable.$inferSelect;
+
+export const groupMembersTable = pgTable("group_members", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  groupId: text("group_id").notNull().references(() => studyGroupsTable.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  role: text("role").notNull().default("member"),
+  xpContribution: integer("xp_contribution").notNull().default(0),
+  joinedAt: timestamp("joined_at").defaultNow().notNull(),
+}, (t) => [
+  index("group_members_group_idx").on(t.groupId),
+  index("group_members_user_idx").on(t.userId),
+]);
+
+export type GroupMember = typeof groupMembersTable.$inferSelect;
+
+// ─── BATTLE PASS ───────────────────────────────────────────────────────────────
+
+export const battlePassProgressTable = pgTable("battle_pass_progress", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().unique().references(() => usersTable.id, { onDelete: "cascade" }),
+  season: integer("season").notNull().default(1),
+  tier: integer("tier").notNull().default(0),
+  seasonXp: integer("season_xp").notNull().default(0),
+  premiumUnlocked: boolean("premium_unlocked").default(false).notNull(),
+  claimedTiers: jsonb("claimed_tiers").$type<number[]>().default([]),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type BattlePassProgress = typeof battlePassProgressTable.$inferSelect;
+
+// ─── AUDIT LOGS ────────────────────────────────────────────────────────────────
+
+export const auditLogsTable = pgTable("audit_logs", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").references(() => usersTable.id, { onDelete: "set null" }),
+  action: text("action").notNull(),
+  details: jsonb("details"),
+  ip: text("ip"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [index("audit_logs_user_idx").on(t.userId)]);
+
+export type AuditLog = typeof auditLogsTable.$inferSelect;
+
+// ─── FOLLOWS ───────────────────────────────────────────────────────────────────
+
+export const followsTable = pgTable("follows", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  followerId: text("follower_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  followingId: text("following_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("follows_follower_idx").on(t.followerId),
+  index("follows_following_idx").on(t.followingId),
+]);
+
+export type Follow = typeof followsTable.$inferSelect;

@@ -1,10 +1,36 @@
 import { Router } from "express";
 import { z } from "zod";
-import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, userWalletsTable, productivityLogsTable } from "@workspace/db";
+import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, userWalletsTable, productivityLogsTable, battlePassProgressTable } from "@workspace/db";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
 import { updateMissionProgress } from "./missions";
+
+const BATTLE_PASS_XP_PER_TIER = 200;
+const BATTLE_PASS_MAX_TIER = 50;
+
+async function advanceBattlePass(userId: string, xpEarned: number) {
+  try {
+    const [bp] = await db.select().from(battlePassProgressTable).where(eq(battlePassProgressTable.userId, userId));
+    if (bp) {
+      const newSeasonXp = bp.seasonXp + xpEarned;
+      const newTier = Math.min(BATTLE_PASS_MAX_TIER, Math.floor(newSeasonXp / BATTLE_PASS_XP_PER_TIER));
+      await db.update(battlePassProgressTable).set({
+        seasonXp: newSeasonXp,
+        tier: newTier,
+        updatedAt: new Date(),
+      }).where(eq(battlePassProgressTable.userId, userId));
+    } else {
+      const newTier = Math.min(BATTLE_PASS_MAX_TIER, Math.floor(xpEarned / BATTLE_PASS_XP_PER_TIER));
+      await db.insert(battlePassProgressTable).values({
+        userId, season: 1, seasonXp: xpEarned, tier: newTier,
+        premiumUnlocked: false, claimedTiers: [],
+      });
+    }
+  } catch (err) {
+    logger.error({ err }, "advanceBattlePass error");
+  }
+}
 
 const sessionSchema = z.object({
   mode: z.enum(["focus", "short_break", "long_break"]).default("focus"),
@@ -141,6 +167,11 @@ router.post("/sessions", authMiddleware, async (req: any, res) => {
 
       // Update productivity log
       await updateProductivityLog(req.userId, minutes, 1, focusScore);
+
+      // Advance battle pass season XP
+      if (earnedXp > 0) {
+        await advanceBattlePass(req.userId, earnedXp);
+      }
     }
 
     res.json({ session, streakUpdated, earnedXp, earnedCoins });

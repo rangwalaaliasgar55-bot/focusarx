@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { Router } from "express";
 import jwt from "jsonwebtoken";
-import { db, usersTable, focusSessionsTable, studyStreaksTable, activeSessionsTable, userMissionProgressTable } from "@workspace/db";
+import { db, usersTable, focusSessionsTable, studyStreaksTable, activeSessionsTable, userMissionProgressTable, loginRewardsTable, freezeTokensTable, battlePassProgressTable, notificationsTable } from "@workspace/db";
 import { eq, gte, inArray, and, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getServerConfig } from "../lib/config";
@@ -289,6 +289,67 @@ router.get("/admin/missions", async (req, res) => {
     res.json({ missions: missionStats, totalCompletions, totalClaims });
   } catch (err) {
     logger.error({ err }, "admin missions error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+router.get("/admin/retention", async (req, res) => {
+  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  try {
+    const [loginRewardStats] = await db.select({
+      totalClaims: sql<number>`coalesce(sum(${loginRewardsTable.totalClaimed}), 0)::int`,
+      avgStreak: sql<number>`coalesce(avg(${loginRewardsTable.claimStreak}), 0)::float`,
+      usersWithClaims: sql<number>`count(*) filter (where ${loginRewardsTable.totalClaimed} > 0)`,
+    }).from(loginRewardsTable);
+
+    const [freezeStats] = await db.select({
+      totalTokensGiven: sql<number>`coalesce(sum(${freezeTokensTable.tokensAvailable} + ${freezeTokensTable.tokensUsed}), 0)::int`,
+      totalTokensUsed: sql<number>`coalesce(sum(${freezeTokensTable.tokensUsed}), 0)::int`,
+      usersWithTokens: sql<number>`count(*) filter (where ${freezeTokensTable.tokensAvailable} > 0 or ${freezeTokensTable.tokensUsed} > 0)`,
+    }).from(freezeTokensTable);
+
+    const [bpStats] = await db.select({
+      avgTier: sql<number>`coalesce(avg(${battlePassProgressTable.tier}), 0)::float`,
+      avgSeasonXp: sql<number>`coalesce(avg(${battlePassProgressTable.seasonXp}), 0)::float`,
+      premiumCount: sql<number>`count(*) filter (where ${battlePassProgressTable.premiumUnlocked} = true)`,
+      totalUsers: sql<number>`count(*)`,
+    }).from(battlePassProgressTable);
+
+    const bpTierDist = await db.select({
+      tier: battlePassProgressTable.tier,
+      count: sql<number>`count(*)`,
+    }).from(battlePassProgressTable).groupBy(battlePassProgressTable.tier).orderBy(battlePassProgressTable.tier);
+
+    const [notifStats] = await db.select({
+      total: sql<number>`count(*)`,
+      unread: sql<number>`count(*) filter (where ${notificationsTable.read} = false)`,
+    }).from(notificationsTable);
+
+    res.json({
+      loginRewards: {
+        totalClaims: Number(loginRewardStats?.totalClaims ?? 0),
+        avgStreak: Number(Number(loginRewardStats?.avgStreak ?? 0).toFixed(1)),
+        usersWithClaims: Number(loginRewardStats?.usersWithClaims ?? 0),
+      },
+      streakFreeze: {
+        totalTokensGiven: Number(freezeStats?.totalTokensGiven ?? 0),
+        totalTokensUsed: Number(freezeStats?.totalTokensUsed ?? 0),
+        usersWithTokens: Number(freezeStats?.usersWithTokens ?? 0),
+      },
+      battlePass: {
+        avgTier: Number(Number(bpStats?.avgTier ?? 0).toFixed(1)),
+        avgSeasonXp: Math.round(Number(bpStats?.avgSeasonXp ?? 0)),
+        premiumCount: Number(bpStats?.premiumCount ?? 0),
+        totalUsers: Number(bpStats?.totalUsers ?? 0),
+        tierDistribution: bpTierDist.map(r => ({ tier: r.tier, count: Number(r.count) })),
+      },
+      notifications: {
+        total: Number(notifStats?.total ?? 0),
+        unread: Number(notifStats?.unread ?? 0),
+      },
+    });
+  } catch (err) {
+    logger.error({ err }, "admin retention error");
     res.status(500).json({ error: "Internal error" });
   }
 });

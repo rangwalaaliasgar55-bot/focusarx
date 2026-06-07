@@ -1,0 +1,81 @@
+import { Router } from "express";
+import { db } from "@workspace/db";
+import {
+  usersTable, userWalletsTable, studyStreaksTable,
+  userBadgesTable, focusSessionsTable, tasksTable,
+  friendshipsTable,
+} from "@workspace/db";
+import { extractUserId } from "./auth";
+import { eq, and, or, sql, desc } from "drizzle-orm";
+
+function auth(req: any, res: any, next: any) {
+  const userId = extractUserId(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  req.userId = userId;
+  next();
+}
+
+export const publicProfilesRouter = Router();
+
+publicProfilesRouter.get("/api/u/:username", async (req, res) => {
+  const { username } = req.params;
+  const [user] = await db.select().from(usersTable)
+    .where(or(eq(usersTable.email, username), sql`lower(name) = lower(${username})`))
+    .limit(1);
+  if (!user) return res.status(404).json({ error: "User not found" });
+
+  const [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, user.id)).limit(1);
+  const [streak] = await db.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, user.id)).limit(1);
+  const badges = await db.select().from(userBadgesTable).where(eq(userBadgesTable.userId, user.id)).limit(20);
+
+  const [sessionStats] = await db.select({
+    totalSessions: sql<number>`count(*)`,
+    totalMinutes: sql<number>`coalesce(sum(duration_sec)/60, 0)`,
+  }).from(focusSessionsTable).where(and(eq(focusSessionsTable.userId, user.id), sql`completed_at is not null`));
+
+  const [taskStats] = await db.select({ completed: sql<number>`count(*)` }).from(tasksTable)
+    .where(and(eq(tasksTable.userId, user.id), eq(tasksTable.completed, true)));
+
+  const [friendCount] = await db.select({ count: sql<number>`count(*)` }).from(friendshipsTable)
+    .where(and(or(eq(friendshipsTable.requesterId, user.id), eq(friendshipsTable.addresseeId, user.id)), eq(friendshipsTable.status, "accepted")));
+
+  res.json({
+    id: user.id,
+    name: user.name || user.email?.split("@")[0] || "User",
+    bio: user.bio,
+    timezone: user.timezone,
+    joinedAt: user.createdAt,
+    xp: wallet?.totalXp ?? 0,
+    level: wallet?.level ?? 1,
+    coins: wallet?.coins ?? 0,
+    prestige: wallet?.prestige ?? 0,
+    streak: streak?.currentStreak ?? 0,
+    longestStreak: streak?.longestStreak ?? 0,
+    totalSessions: Number(sessionStats?.totalSessions ?? 0),
+    totalFocusHours: Math.round(Number(sessionStats?.totalMinutes ?? 0) / 60 * 10) / 10,
+    tasksCompleted: Number(taskStats?.completed ?? 0),
+    badgeCount: badges.length,
+    recentBadges: badges.slice(0, 6).map(b => b.badgeId),
+    friendCount: Number(friendCount?.count ?? 0),
+  });
+});
+
+publicProfilesRouter.post("/api/u/:username/friend", auth, async (req, res) => {
+  const requesterId = req.userId!;
+  const { username } = req.params;
+  const [target] = await db.select({ id: usersTable.id }).from(usersTable)
+    .where(or(eq(usersTable.email, username), sql`lower(name) = lower(${username})`)).limit(1);
+  if (!target) return res.status(404).json({ error: "User not found" });
+  if (target.id === requesterId) return res.status(400).json({ error: "Cannot add yourself" });
+
+  const existing = await db.select().from(friendshipsTable).where(
+    or(
+      and(eq(friendshipsTable.requesterId, requesterId), eq(friendshipsTable.addresseeId, target.id)),
+      and(eq(friendshipsTable.requesterId, target.id), eq(friendshipsTable.addresseeId, requesterId)),
+    )
+  ).limit(1);
+  if (existing.length) return res.status(409).json({ error: "Request already exists" });
+
+  const [row] = await db.insert(friendshipsTable).values({ requesterId, addresseeId: target.id, status: "pending" }).returning();
+  res.json({ ok: true, friendship: row });
+});

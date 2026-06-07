@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import MissionsWidget from "@/components/MissionsWidget";
+import ProductivityScoreWidget from "@/components/ProductivityScoreWidget";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ApiError } from "@workspace/api-client-react";
@@ -55,14 +56,18 @@ const AiPolicyPage = lazy(() => import("@/pages/ai-policy"));
 const DataDeletionPage = lazy(() => import("@/pages/data-deletion"));
 const PricingPage = lazy(() => import("@/pages/pricing"));
 const MissionsPage = lazy(() => import("@/pages/missions"));
+const SocialPage = lazy(() => import("@/pages/social"));
+const NotificationsPage = lazy(() => import("@/pages/notifications"));
+const GroupsPage = lazy(() => import("@/pages/groups"));
+const BattlePassPage = lazy(() => import("@/pages/battle-pass"));
+const AiInsightsPage = lazy(() => import("@/pages/ai-insights"));
+const UserProfilePage = lazy(() => import("@/pages/user-profile"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: (failureCount, error) => {
-        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-          return false;
-        }
+        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) return false;
         return failureCount < 2;
       },
     },
@@ -77,7 +82,6 @@ function isMobileDevice() {
 function MobileWelcomeGate({ children }: { children: React.ReactNode }) {
   const { status } = useAuth();
   const [, setLocation] = useLocation();
-
   useEffect(() => {
     if (status === "loading") return;
     if (status === "authenticated") return;
@@ -85,12 +89,9 @@ function MobileWelcomeGate({ children }: { children: React.ReactNode }) {
     if (isMobileDevice()) {
       const path = window.location.pathname;
       const skip = ["/welcome", "/login", "/signup", "/forgot-password", "/reset-password", "/auth", "/admin"];
-      if (!skip.some(p => path.startsWith(p))) {
-        setLocation("/welcome");
-      }
+      if (!skip.some(p => path.startsWith(p))) setLocation("/welcome");
     }
   }, [status, setLocation]);
-
   return <>{children}</>;
 }
 
@@ -111,21 +112,14 @@ function PageLoader() {
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { status } = useAuth();
   const [, setLocation] = useLocation();
-
   useEffect(() => {
-    if (status === "unauthenticated") {
-      setLocation("/login");
-    }
+    if (status === "unauthenticated") setLocation("/login");
   }, [status, setLocation]);
-
-  if (status === "loading") {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-[#7C3AED]" />
-      </div>
-    );
-  }
-
+  if (status === "loading") return (
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-[#7C3AED]" />
+    </div>
+  );
   if (status === "unauthenticated") return null;
   return <Component />;
 }
@@ -143,7 +137,6 @@ function SidePanel() {
 
   return (
     <div className="flex flex-col gap-3 w-full lg:w-52 xl:w-56 shrink-0">
-      {/* Stats */}
       <div className="rounded-2xl border border-[#1e2130] bg-[#111318] p-4">
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4a4f62] mb-3">Today's Stats</p>
         <div className="space-y-2.5">
@@ -171,7 +164,6 @@ function SidePanel() {
         </div>
       </div>
 
-      {/* Tasks */}
       <div className="rounded-2xl border border-[#1e2130] bg-[#111318] p-4">
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4a4f62] mb-3">Tasks</p>
         <div className="space-y-1 max-h-40 overflow-y-auto">
@@ -179,39 +171,24 @@ function SidePanel() {
             <p className="text-[11px] text-[#3a3d4a] py-1 italic">✨ Add tasks to unlock your AI Timeline</p>
           )}
           {tasks.slice(0, 6).map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => toggleDone(t.id)}
-              className="flex items-center gap-2 w-full text-left py-1 group"
-            >
+            <button key={t.id} type="button" onClick={() => toggleDone(t.id)} className="flex items-center gap-2 w-full text-left py-1 group">
               <span className={`w-3.5 h-3.5 rounded-full border shrink-0 flex items-center justify-center transition-all ${t.done ? "bg-[#22d387] border-[#22d387]" : "border-[#2a2d3a] group-hover:border-[#6c63ff]"}`}>
-                {t.done && (
-                  <svg width="8" height="8" viewBox="0 0 10 10" fill="none"><path d="M1.5 5L4 7.5L8.5 2.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                )}
+                {t.done && <svg width="8" height="8" viewBox="0 0 10 10" fill="none"><path d="M1.5 5L4 7.5L8.5 2.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
               </span>
               <span className={`text-xs leading-snug ${t.done ? "line-through text-[#3a3d4a]" : "text-[#6b7080] group-hover:text-[#9095a8]"}`}>{t.title}</span>
             </button>
           ))}
         </div>
         <form onSubmit={handleAddTask} className="mt-3 flex gap-1.5">
-          <input
-            value={newTask}
-            onChange={(e) => setNewTask(e.target.value)}
-            placeholder="Add task…"
-            className="flex-1 min-w-0 rounded-lg border border-[#1e2130] bg-[#0d0e14] px-2.5 py-1.5 text-xs text-[#e8eaf0] placeholder-[#3a3d4a] outline-none focus:border-[#6c63ff] transition-colors"
-          />
+          <input value={newTask} onChange={(e) => setNewTask(e.target.value)} placeholder="Add task…" className="flex-1 min-w-0 rounded-lg border border-[#1e2130] bg-[#0d0e14] px-2.5 py-1.5 text-xs text-[#e8eaf0] placeholder-[#3a3d4a] outline-none focus:border-[#6c63ff] transition-colors" />
           <button type="submit" className="rounded-lg border border-[#6c63ff]/50 bg-[#6c63ff]/10 px-2.5 py-1.5 text-xs font-semibold text-[#a5a8ff] hover:bg-[#6c63ff]/20 transition-colors">+</button>
         </form>
       </div>
 
-      {/* Daily Goal */}
       <DailyGoal />
-
-      {/* Missions widget */}
+      <ProductivityScoreWidget />
       <MissionsWidget />
 
-      {/* Camera */}
       <div className="rounded-2xl border border-[#1e2130] bg-[#111318] p-4">
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4a4f62] mb-3">AI Camera</p>
         <FocusCamera />
@@ -225,7 +202,6 @@ function HomeTopBar() {
   const { focusSessionsToday } = useSessionHistory();
   const user = session?.user;
   const initials = user?.name?.slice(0, 1).toUpperCase() || user?.email?.slice(0, 1).toUpperCase() || "?";
-
   return (
     <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-[#1a1d24] shrink-0">
       <div>
@@ -259,22 +235,16 @@ const MOTIVATIONAL = [
 
 function MotivationalLine() {
   const line = MOTIVATIONAL[Math.floor(Math.random() * MOTIVATIONAL.length)];
-  return (
-    <p className="text-[11px] italic text-[#3a3d4a] text-center mt-1">{line}</p>
-  );
+  return <p className="text-[11px] italic text-[#3a3d4a] text-center mt-1">{line}</p>;
 }
 
 function HomePage() {
-  function handleHeroStart() {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
+  function handleHeroStart() { window.scrollTo({ top: 0, behavior: "smooth" }); }
   return (
     <SessionRecoveryProvider>
       <div className="flex flex-col min-h-[100dvh]">
         <HomeTopBar />
         <div className="flex-1 flex flex-col lg:flex-row gap-4 p-4 sm:p-6 overflow-auto">
-          {/* Timer card — center on desktop */}
           <div className="flex-1 flex flex-col items-center gap-4">
             <HeroBanner onStart={handleHeroStart} />
             <div className="w-full flex flex-col items-center">
@@ -283,7 +253,6 @@ function HomePage() {
             </div>
             <FeatureSpotlight />
           </div>
-          {/* Side panel */}
           <SidePanel />
         </div>
         <ReadinessCheckInModal />
@@ -294,13 +263,9 @@ function HomePage() {
 
 function AppWithPalette() {
   const [paletteOpen, setPaletteOpen] = useState(false);
-
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setPaletteOpen((o) => !o);
-      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); setPaletteOpen((o) => !o); }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -310,53 +275,66 @@ function AppWithPalette() {
     <>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <MobileWelcomeGate>
-      <AppShell>
-        <Suspense fallback={<PageLoader />}>
-          <Switch>
-            {/* Mobile welcome — no auth required */}
-            <Route path="/welcome" component={MobileWelcomePage} />
+        <AppShell>
+          <Suspense fallback={<PageLoader />}>
+            <Switch>
+              <Route path="/welcome" component={MobileWelcomePage} />
+              <Route path="/login" component={LoginPage} />
+              <Route path="/signup" component={SignupPage} />
+              <Route path="/forgot-password" component={ForgotPasswordPage} />
+              <Route path="/reset-password" component={ResetPasswordPage} />
+              <Route path="/auth/callback" component={AuthCallbackPage} />
+              <Route path="/admin" component={AdminPage} />
 
-            {/* Auth routes — no protection needed */}
-            <Route path="/login" component={LoginPage} />
-            <Route path="/signup" component={SignupPage} />
-            <Route path="/forgot-password" component={ForgotPasswordPage} />
-            <Route path="/reset-password" component={ResetPasswordPage} />
-            <Route path="/auth/callback" component={AuthCallbackPage} />
-            <Route path="/admin" component={AdminPage} />
+              {/* Public profile — no auth required */}
+              <Route path="/u/:username" component={() => <ErrorBoundary><UserProfilePage /></ErrorBoundary>} />
 
-            {/* Protected routes */}
-            <Route path="/" component={() => <ErrorBoundary><HomePage /></ErrorBoundary>} />
-            <Route path="/dashboard" component={() => <ErrorBoundary><ProtectedRoute component={DashboardPage} /></ErrorBoundary>} />
-            <Route path="/analytics" component={() => <ErrorBoundary><ProtectedRoute component={AnalyticsPage} /></ErrorBoundary>} />
-            <Route path="/leaderboard" component={() => <ErrorBoundary><ProtectedRoute component={LeaderboardPage} /></ErrorBoundary>} />
-            <Route path="/achievements" component={() => <ErrorBoundary><ProtectedRoute component={AchievementsPage} /></ErrorBoundary>} />
-            <Route path="/forge" component={() => <ErrorBoundary><ProtectedRoute component={ForgePage} /></ErrorBoundary>} />
-            <Route path="/onboarding" component={() => <ErrorBoundary><ProtectedRoute component={OnboardingPage} /></ErrorBoundary>} />
-            <Route path="/distractions" component={() => <ErrorBoundary><ProtectedRoute component={DistractionsPage} /></ErrorBoundary>} />
-            <Route path="/profiles" component={() => <ErrorBoundary><ProtectedRoute component={ProfilesPage} /></ErrorBoundary>} />
-            <Route path="/roadmap" component={() => <ErrorBoundary><RoadmapPage /></ErrorBoundary>} />
-            <Route path="/focus-dna" component={() => <ErrorBoundary><ProtectedRoute component={FocusDnaPage} /></ErrorBoundary>} />
-            <Route path="/ghosts" component={() => <ErrorBoundary><ProtectedRoute component={GhostsPage} /></ErrorBoundary>} />
-            <Route path="/consequences" component={() => <ErrorBoundary><ProtectedRoute component={ConsequencesPage} /></ErrorBoundary>} />
-            <Route path="/replay" component={() => <ErrorBoundary><ProtectedRoute component={ReplayPage} /></ErrorBoundary>} />
-            <Route path="/breathe" component={() => <ErrorBoundary><BreathePage /></ErrorBoundary>} />
-            <Route path="/profile" component={() => <ErrorBoundary><ProtectedRoute component={ProfilePage} /></ErrorBoundary>} />
-            <Route path="/break-free" component={() => <ErrorBoundary><BreakFreePage /></ErrorBoundary>} />
-            <Route path="/missions" component={() => <ErrorBoundary><ProtectedRoute component={MissionsPage} /></ErrorBoundary>} />
+              {/* Core */}
+              <Route path="/" component={() => <ErrorBoundary><HomePage /></ErrorBoundary>} />
+              <Route path="/dashboard" component={() => <ErrorBoundary><ProtectedRoute component={DashboardPage} /></ErrorBoundary>} />
+              <Route path="/analytics" component={() => <ErrorBoundary><ProtectedRoute component={AnalyticsPage} /></ErrorBoundary>} />
+              <Route path="/leaderboard" component={() => <ErrorBoundary><ProtectedRoute component={LeaderboardPage} /></ErrorBoundary>} />
+              <Route path="/achievements" component={() => <ErrorBoundary><ProtectedRoute component={AchievementsPage} /></ErrorBoundary>} />
+              <Route path="/missions" component={() => <ErrorBoundary><ProtectedRoute component={MissionsPage} /></ErrorBoundary>} />
 
-            {/* Legal pages — no auth required */}
-            <Route path="/privacy" component={() => <ErrorBoundary><PrivacyPage /></ErrorBoundary>} />
-            <Route path="/terms" component={() => <ErrorBoundary><TermsPage /></ErrorBoundary>} />
-            <Route path="/cookie-policy" component={() => <ErrorBoundary><CookiePolicyPage /></ErrorBoundary>} />
-            <Route path="/acceptable-use" component={() => <ErrorBoundary><AcceptableUsePage /></ErrorBoundary>} />
-            <Route path="/ai-policy" component={() => <ErrorBoundary><AiPolicyPage /></ErrorBoundary>} />
-            <Route path="/data-deletion" component={() => <ErrorBoundary><DataDeletionPage /></ErrorBoundary>} />
-            <Route path="/pricing" component={() => <ErrorBoundary><PricingPage /></ErrorBoundary>} />
+              {/* Social ecosystem */}
+              <Route path="/social" component={() => <ErrorBoundary><ProtectedRoute component={SocialPage} /></ErrorBoundary>} />
+              <Route path="/notifications" component={() => <ErrorBoundary><ProtectedRoute component={NotificationsPage} /></ErrorBoundary>} />
+              <Route path="/groups" component={() => <ErrorBoundary><ProtectedRoute component={GroupsPage} /></ErrorBoundary>} />
 
-            <Route component={NotFound} />
-          </Switch>
-        </Suspense>
-      </AppShell>
+              {/* Retention */}
+              <Route path="/battle-pass" component={() => <ErrorBoundary><ProtectedRoute component={BattlePassPage} /></ErrorBoundary>} />
+
+              {/* AI */}
+              <Route path="/ai-insights" component={() => <ErrorBoundary><ProtectedRoute component={AiInsightsPage} /></ErrorBoundary>} />
+
+              {/* Focus tools */}
+              <Route path="/forge" component={() => <ErrorBoundary><ProtectedRoute component={ForgePage} /></ErrorBoundary>} />
+              <Route path="/onboarding" component={() => <ErrorBoundary><ProtectedRoute component={OnboardingPage} /></ErrorBoundary>} />
+              <Route path="/distractions" component={() => <ErrorBoundary><ProtectedRoute component={DistractionsPage} /></ErrorBoundary>} />
+              <Route path="/profiles" component={() => <ErrorBoundary><ProtectedRoute component={ProfilesPage} /></ErrorBoundary>} />
+              <Route path="/roadmap" component={() => <ErrorBoundary><RoadmapPage /></ErrorBoundary>} />
+              <Route path="/focus-dna" component={() => <ErrorBoundary><ProtectedRoute component={FocusDnaPage} /></ErrorBoundary>} />
+              <Route path="/ghosts" component={() => <ErrorBoundary><ProtectedRoute component={GhostsPage} /></ErrorBoundary>} />
+              <Route path="/consequences" component={() => <ErrorBoundary><ProtectedRoute component={ConsequencesPage} /></ErrorBoundary>} />
+              <Route path="/replay" component={() => <ErrorBoundary><ProtectedRoute component={ReplayPage} /></ErrorBoundary>} />
+              <Route path="/breathe" component={() => <ErrorBoundary><BreathePage /></ErrorBoundary>} />
+              <Route path="/profile" component={() => <ErrorBoundary><ProtectedRoute component={ProfilePage} /></ErrorBoundary>} />
+              <Route path="/break-free" component={() => <ErrorBoundary><BreakFreePage /></ErrorBoundary>} />
+
+              {/* Legal */}
+              <Route path="/privacy" component={() => <ErrorBoundary><PrivacyPage /></ErrorBoundary>} />
+              <Route path="/terms" component={() => <ErrorBoundary><TermsPage /></ErrorBoundary>} />
+              <Route path="/cookie-policy" component={() => <ErrorBoundary><CookiePolicyPage /></ErrorBoundary>} />
+              <Route path="/acceptable-use" component={() => <ErrorBoundary><AcceptableUsePage /></ErrorBoundary>} />
+              <Route path="/ai-policy" component={() => <ErrorBoundary><AiPolicyPage /></ErrorBoundary>} />
+              <Route path="/data-deletion" component={() => <ErrorBoundary><DataDeletionPage /></ErrorBoundary>} />
+              <Route path="/pricing" component={() => <ErrorBoundary><PricingPage /></ErrorBoundary>} />
+
+              <Route component={NotFound} />
+            </Switch>
+          </Suspense>
+        </AppShell>
       </MobileWelcomeGate>
     </>
   );

@@ -49,7 +49,7 @@ type AdminData = {
   guestCount?: number;
 };
 
-type Tab = "overview" | "analytics" | "users" | "missions";
+type Tab = "overview" | "analytics" | "users" | "missions" | "retention";
 
 export default function AdminPage() {
   const { data: session, status: authStatus } = useAuth();
@@ -63,6 +63,7 @@ export default function AdminPage() {
   const [purgeLoading, setPurgeLoading] = useState(false);
   const [tab, setTab] = useState<Tab>("overview");
   const [missionData, setMissionData] = useState<{ missions: any[]; totalCompletions: number; totalClaims: number } | null>(null);
+  const [retentionData, setRetentionData] = useState<any | null>(null);
 
   const authHeaders = useCallback((): Record<string, string> => {
     const token = localStorage.getItem("focusarx-auth-token");
@@ -72,10 +73,11 @@ export default function AdminPage() {
   const loadData = useCallback(async () => {
     if (authStatus === "loading") return;
     try {
-      const [usersRes, statsRes, missionsRes] = await Promise.all([
+      const [usersRes, statsRes, missionsRes, retentionRes] = await Promise.all([
         fetch("/api/admin/users", { headers: authHeaders(), credentials: "include" }),
         fetch("/api/admin/stats", { headers: authHeaders(), credentials: "include" }),
         fetch("/api/admin/missions", { headers: authHeaders(), credentials: "include" }),
+        fetch("/api/admin/retention", { headers: authHeaders(), credentials: "include" }),
       ]);
       if (usersRes.status === 401 || usersRes.status === 403) {
         setAuthed(false);
@@ -93,6 +95,10 @@ export default function AdminPage() {
       if (missionsRes && missionsRes.ok) {
         const json = await missionsRes.json();
         setMissionData(json);
+      }
+      if (retentionRes && retentionRes.ok) {
+        const json = await retentionRes.json();
+        setRetentionData(json);
       }
     } catch {
       setAuthed(false);
@@ -211,7 +217,7 @@ export default function AdminPage() {
               </button>
             )}
             <div className="flex gap-1 rounded-xl border border-zinc-800 bg-zinc-900/60 p-1">
-            {(["overview", "analytics", "users", "missions"] as Tab[]).map((t) => (
+            {(["overview", "analytics", "users", "missions", "retention"] as Tab[]).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -407,6 +413,80 @@ export default function AdminPage() {
                   </table>
                 </div>
               </div>
+            </motion.div>
+          ) : tab === "retention" ? (
+            <motion.div
+              key="retention"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
+              className="space-y-6"
+            >
+              {/* Login Rewards */}
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 mb-3">Daily Login Rewards</p>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <StatCard label="Total claims" value={String(retentionData?.loginRewards?.totalClaims ?? 0)} accent="sky" />
+                  <StatCard label="Avg claim streak" value={`${retentionData?.loginRewards?.avgStreak ?? 0}d`} accent="violet" />
+                  <StatCard label="Users w/ claims" value={String(retentionData?.loginRewards?.usersWithClaims ?? 0)} />
+                </div>
+              </div>
+
+              {/* Streak Freeze */}
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 mb-3">Streak Freeze Tokens</p>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <StatCard label="Tokens issued" value={String(retentionData?.streakFreeze?.totalTokensGiven ?? 0)} />
+                  <StatCard label="Tokens used" value={String(retentionData?.streakFreeze?.totalTokensUsed ?? 0)} accent="rose" />
+                  <StatCard label="Users with tokens" value={String(retentionData?.streakFreeze?.usersWithTokens ?? 0)} accent="sky" />
+                </div>
+              </div>
+
+              {/* Battle Pass */}
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 mb-3">Battle Pass — Season 1</p>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <StatCard label="Users enrolled" value={String(retentionData?.battlePass?.totalUsers ?? 0)} />
+                  <StatCard label="Avg tier" value={`Tier ${retentionData?.battlePass?.avgTier ?? 0}`} accent="violet" />
+                  <StatCard label="Avg season XP" value={String(retentionData?.battlePass?.avgSeasonXp ?? 0)} accent="sky" />
+                  <StatCard label="Premium unlocked" value={String(retentionData?.battlePass?.premiumCount ?? 0)} accent="rose" />
+                </div>
+                {(retentionData?.battlePass?.tierDistribution?.length ?? 0) > 0 && (
+                  <div className="mt-4 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-5">
+                    <p className="text-xs text-zinc-500 mb-3">Tier distribution</p>
+                    <div className="flex items-end gap-1 h-20">
+                      {retentionData.battlePass.tierDistribution.map((d: any) => {
+                        const maxCount = Math.max(1, ...retentionData.battlePass.tierDistribution.map((x: any) => x.count));
+                        return (
+                          <div key={d.tier} className="flex flex-1 flex-col items-center gap-1">
+                            <div
+                              className="w-full rounded-t bg-violet-500/60 hover:bg-violet-400/80 transition-colors"
+                              style={{ height: `${Math.round((d.count / maxCount) * 100)}%`, minHeight: "2px" }}
+                              title={`Tier ${d.tier}: ${d.count} users`}
+                            />
+                            {d.tier % 10 === 0 && <span className="text-[9px] text-zinc-600">{d.tier}</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[10px] text-zinc-600 mt-1">Tier 0–50 · hover for count</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Notifications */}
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 mb-3">Notifications</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <StatCard label="Total sent" value={String(retentionData?.notifications?.total ?? 0)} />
+                  <StatCard label="Unread" value={String(retentionData?.notifications?.unread ?? 0)} accent="rose" />
+                </div>
+              </div>
+
+              {!retentionData && (
+                <div className="text-center py-8 text-zinc-600 text-sm">Loading retention data…</div>
+              )}
             </motion.div>
           ) : (
             <motion.div
