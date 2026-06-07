@@ -11,7 +11,7 @@ export const posts = pgTable('posts', {
   achievementData: jsonb('achievement_data'),
   studyLogData: jsonb('study_log_data'),
   isPublic: boolean('is_public').default(true).notNull(),
-  groupId: text('group_id').references(() => groups.id), // optional group post
+  groupId: text('group_id').references(() => 'groups.id' as any), // string ref to avoid circular import
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
@@ -21,7 +21,7 @@ export const posts = pgTable('posts', {
 
 export const postLikes = pgTable('post_likes', {
   id: text('id').primaryKey(),
-  postId: text('post_id').notNull().references(() => posts.id, { onDelete: 'cascade' }),
+  postId: text('post_id').notNull().references(() => 'posts.id' as any, { onDelete: 'cascade' }),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({
@@ -30,9 +30,9 @@ export const postLikes = pgTable('post_likes', {
 
 export const postComments = pgTable('post_comments', {
   id: text('id').primaryKey(),
-  postId: text('post_id').notNull().references(() => posts.id, { onDelete: 'cascade' }),
+  postId: text('post_id').notNull().references(() => 'posts.id' as any, { onDelete: 'cascade' }),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  parentCommentId: text('parent_comment_id').references(() => postComments.id),
+  parentCommentId: text('parent_comment_id').references(() => 'post_comments.id' as any),
   content: text('content').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({
@@ -41,7 +41,7 @@ export const postComments = pgTable('post_comments', {
 
 export const postSaves = pgTable('post_saves', {
   id: text('id').primaryKey(),
-  postId: text('post_id').notNull().references(() => posts.id, { onDelete: 'cascade' }),
+  postId: text('post_id').notNull().references(() => 'posts.id' as any, { onDelete: 'cascade' }),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({
@@ -59,7 +59,7 @@ export const follows = pgTable('follows', {
   uniqueFollow: index('follows_unique_idx').on(table.followerId, table.followingId),
 }));
 
-export const userFollowers = pgTable('user_followers', { // materialized or view helper
+export const userFollowers = pgTable('user_followers', {
   id: text('id').primaryKey(),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   followerCount: integer('follower_count').default(0).notNull(),
