@@ -11,7 +11,7 @@ export const posts = pgTable('posts', {
   achievementData: jsonb('achievement_data'),
   studyLogData: jsonb('study_log_data'),
   isPublic: boolean('is_public').default(true).notNull(),
-  groupId: text('group_id').references(() => 'groups.id' as any), // string ref to avoid circular import
+  groupId: text('group_id'), // linked to groups.id (Phase 1) - FK reference will be added after successful migration
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
