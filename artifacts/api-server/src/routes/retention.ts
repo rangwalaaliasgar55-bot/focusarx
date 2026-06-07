@@ -28,7 +28,7 @@ const DAILY_REWARDS = [
 
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 
-retentionRouter.get("/api/retention/login-reward", auth, async (req, res) => {
+retentionRouter.get("/retention/login-reward", auth, async (req, res) => {
   const userId = req.userId!;
   const today = todayStr();
   let [record] = await db.select().from(loginRewardsTable).where(eq(loginRewardsTable.userId, userId)).limit(1);
@@ -39,7 +39,7 @@ retentionRouter.get("/api/retention/login-reward", auth, async (req, res) => {
   res.json({ alreadyClaimed, claimStreak: streak, totalClaimed: record?.totalClaimed ?? 0, nextReward: reward, calendar: DAILY_REWARDS });
 });
 
-retentionRouter.post("/api/retention/login-reward/claim", auth, async (req, res) => {
+retentionRouter.post("/retention/login-reward/claim", auth, async (req, res) => {
   const userId = req.userId!;
   const today = todayStr();
   let [record] = await db.select().from(loginRewardsTable).where(eq(loginRewardsTable.userId, userId)).limit(1);
@@ -80,7 +80,7 @@ retentionRouter.post("/api/retention/login-reward/claim", auth, async (req, res)
   res.json({ ok: true, reward, newStreak, coins: reward.coins, xp: reward.xp });
 });
 
-retentionRouter.get("/api/retention/streak-freeze", auth, async (req, res) => {
+retentionRouter.get("/retention/streak-freeze", auth, async (req, res) => {
   const userId = req.userId!;
   let [record] = await db.select().from(freezeTokensTable).where(eq(freezeTokensTable.userId, userId)).limit(1);
   const [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, userId)).limit(1);
@@ -92,7 +92,7 @@ retentionRouter.get("/api/retention/streak-freeze", auth, async (req, res) => {
   });
 });
 
-retentionRouter.post("/api/retention/streak-freeze/buy", auth, async (req, res) => {
+retentionRouter.post("/retention/streak-freeze/buy", auth, async (req, res) => {
   const userId = req.userId!;
   const COST = 500;
   const [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, userId)).limit(1);
@@ -110,7 +110,7 @@ retentionRouter.post("/api/retention/streak-freeze/buy", auth, async (req, res) 
   res.json({ ok: true, coinsSpent: COST });
 });
 
-retentionRouter.post("/api/retention/streak-freeze/use", auth, async (req, res) => {
+retentionRouter.post("/retention/streak-freeze/use", auth, async (req, res) => {
   const userId = req.userId!;
   const [record] = await db.select().from(freezeTokensTable).where(eq(freezeTokensTable.userId, userId)).limit(1);
   if (!record || record.tokensAvailable < 1) return res.status(400).json({ error: "No freeze tokens available" });
@@ -137,7 +137,7 @@ const BATTLE_PASS_TIERS = Array.from({ length: 50 }, (_, i) => ({
   premiumReward: i % 5 === 4 ? { coins: 300, xp: 500, item: "legendary_chest" } : { coins: 75, xp: 150, item: "premium_coins" },
 }));
 
-retentionRouter.get("/api/retention/battle-pass", auth, async (req, res) => {
+retentionRouter.get("/retention/battle-pass", auth, async (req, res) => {
   const userId = req.userId!;
   let [progress] = await db.select().from(battlePassProgressTable).where(eq(battlePassProgressTable.userId, userId)).limit(1);
   if (!progress) {
@@ -156,7 +156,7 @@ retentionRouter.get("/api/retention/battle-pass", auth, async (req, res) => {
   });
 });
 
-retentionRouter.post("/api/retention/battle-pass/claim", auth, async (req, res) => {
+retentionRouter.post("/retention/battle-pass/claim", auth, async (req, res) => {
   const userId = req.userId!;
   const { tier, track } = req.body as { tier: number; track: "free" | "premium" };
 
@@ -181,7 +181,7 @@ retentionRouter.post("/api/retention/battle-pass/claim", auth, async (req, res) 
   res.json({ ok: true, reward });
 });
 
-retentionRouter.post("/api/retention/battle-pass/advance", auth, async (req, res) => {
+retentionRouter.post("/retention/battle-pass/advance", auth, async (req, res) => {
   const userId = req.userId!;
   const { xp } = req.body as { xp: number };
   let [progress] = await db.select().from(battlePassProgressTable).where(eq(battlePassProgressTable.userId, userId)).limit(1);

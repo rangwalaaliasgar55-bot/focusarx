@@ -23,39 +23,59 @@ export async function createNotification(
   await db.insert(notificationsTable).values({ userId, type, title, message, data: data ?? null });
 }
 
-notificationsRouter.get("/api/notifications", auth, async (req, res) => {
+notificationsRouter.get("/notifications", auth, async (req, res) => {
   const userId = req.userId!;
-  const rows = await db.select().from(notificationsTable)
-    .where(eq(notificationsTable.userId, userId))
-    .orderBy(desc(notificationsTable.createdAt))
-    .limit(50);
-  const unreadCount = rows.filter(r => !r.read).length;
-  res.json({ notifications: rows, unreadCount });
+  try {
+    const rows = await db.select().from(notificationsTable)
+      .where(eq(notificationsTable.userId, userId))
+      .orderBy(desc(notificationsTable.createdAt))
+      .limit(50);
+    const unreadCount = rows.filter(r => !r.read).length;
+    res.json({ notifications: rows, unreadCount });
+  } catch (err) {
+    res.status(500).json({ error: "Internal error" });
+  }
 });
 
-notificationsRouter.patch("/api/notifications/:id/read", auth, async (req, res) => {
+notificationsRouter.patch("/notifications/:id/read", auth, async (req, res) => {
   const userId = req.userId!;
-  await db.update(notificationsTable)
-    .set({ read: true })
-    .where(and(eq(notificationsTable.id, req.params.id), eq(notificationsTable.userId, userId)));
-  res.json({ ok: true });
+  try {
+    await db.update(notificationsTable)
+      .set({ read: true })
+      .where(and(eq(notificationsTable.id, req.params.id), eq(notificationsTable.userId, userId)));
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: "Internal error" });
+  }
 });
 
-notificationsRouter.post("/api/notifications/mark-all-read", auth, async (req, res) => {
+notificationsRouter.post("/notifications/mark-all-read", auth, async (req, res) => {
   const userId = req.userId!;
-  await db.update(notificationsTable).set({ read: true }).where(eq(notificationsTable.userId, userId));
-  res.json({ ok: true });
+  try {
+    await db.update(notificationsTable).set({ read: true }).where(eq(notificationsTable.userId, userId));
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: "Internal error" });
+  }
 });
 
-notificationsRouter.delete("/api/notifications/:id", auth, async (req, res) => {
+notificationsRouter.delete("/notifications/:id", auth, async (req, res) => {
   const userId = req.userId!;
-  await db.delete(notificationsTable)
-    .where(and(eq(notificationsTable.id, req.params.id), eq(notificationsTable.userId, userId)));
-  res.json({ ok: true });
+  try {
+    await db.delete(notificationsTable)
+      .where(and(eq(notificationsTable.id, req.params.id), eq(notificationsTable.userId, userId)));
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: "Internal error" });
+  }
 });
 
-notificationsRouter.delete("/api/notifications", auth, async (req, res) => {
+notificationsRouter.delete("/notifications", auth, async (req, res) => {
   const userId = req.userId!;
-  await db.delete(notificationsTable).where(eq(notificationsTable.userId, userId));
-  res.json({ ok: true });
+  try {
+    await db.delete(notificationsTable).where(eq(notificationsTable.userId, userId));
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: "Internal error" });
+  }
 });

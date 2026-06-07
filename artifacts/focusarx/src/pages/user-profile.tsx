@@ -41,8 +41,8 @@ export default function UserProfilePage() {
 
   const sendRequest = useMutation({
     mutationFn: () => apiFetch(`/api/u/${username}/friend`, { method: "POST" }),
-    onSuccess: () => toast({ type: "success", message: "Friend request sent!" }),
-    onError: (e: any) => toast({ type: "error", message: e.message }),
+    onSuccess: () => toast("Friend request sent!", "success"),
+    onError: (e: any) => toast(e.message, "error"),
   });
 
   const levelXpRequired = (level: number) => Math.round(100 * Math.pow(level, 1.5));

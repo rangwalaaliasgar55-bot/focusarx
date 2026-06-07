@@ -5,13 +5,21 @@ export type SyncResult = {
   success: boolean;
   streakUpdated: boolean;
   sessionId?: string;
+  earnedXp?: number;
+  earnedCoins?: number;
   error?: string;
   offline?: boolean;
 };
 
 export async function syncFocusSessionToCloud(
   session: Session,
-  dbSessionId?: string | null
+  dbSessionId?: string | null,
+  earlyCompletionData?: {
+    plannedDurationSec: number;
+    completedEarly: boolean;
+    completionPercentage: number;
+    sessionStatus: "completed" | "completed_early";
+  }
 ): Promise<SyncResult> {
   try {
     const token = getToken();
@@ -33,13 +41,25 @@ export async function syncFocusSessionToCloud(
         stabilityRating: session.stabilityRating,
         sessionInsights: session.sessionInsights,
         taskId: session.taskId,
+        ...(earlyCompletionData ?? {}),
       }),
     });
     if (!res.ok) {
       return { success: false, streakUpdated: false, error: `HTTP ${res.status}` };
     }
-    const data = await res.json() as { session?: { id?: string }; streakUpdated?: boolean };
-    return { success: true, streakUpdated: !!data.streakUpdated, sessionId: data.session?.id };
+    const data = await res.json() as {
+      session?: { id?: string };
+      streakUpdated?: boolean;
+      earnedXp?: number;
+      earnedCoins?: number;
+    };
+    return {
+      success: true,
+      streakUpdated: !!data.streakUpdated,
+      sessionId: data.session?.id,
+      earnedXp: data.earnedXp ?? 0,
+      earnedCoins: data.earnedCoins ?? 0,
+    };
   } catch {
     return { success: false, streakUpdated: false, offline: true };
   }

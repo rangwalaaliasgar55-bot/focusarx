@@ -35,6 +35,10 @@ async function advanceBattlePass(userId: string, xpEarned: number) {
 const sessionSchema = z.object({
   mode: z.enum(["focus", "short_break", "long_break"]).default("focus"),
   durationSec: z.number().int().min(0).max(86400).default(0),
+  plannedDurationSec: z.number().int().min(0).max(86400).nullable().optional(),
+  completedEarly: z.boolean().optional().default(false),
+  completionPercentage: z.number().min(0).max(100).nullable().optional(),
+  sessionStatus: z.enum(["completed", "completed_early", "cancelled"]).optional().default("completed"),
   focusScore: z.number().min(0).max(100).nullable().optional(),
   focusQuality: z.string().max(20).nullable().optional(),
   stabilityRating: z.number().min(0).max(100).nullable().optional(),
@@ -133,11 +137,29 @@ router.delete("/sessions/active", authMiddleware, async (req: any, res) => {
 router.post("/sessions", authMiddleware, async (req: any, res) => {
   const parsed = sessionSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Invalid session data" }); return; }
-  const { mode, durationSec, focusScore, focusQuality, stabilityRating, focusTimeline, sessionInsights, category } = parsed.data;
+  const {
+    mode, durationSec, plannedDurationSec, completedEarly, completionPercentage, sessionStatus,
+    focusScore, focusQuality, stabilityRating, focusTimeline, sessionInsights, category
+  } = parsed.data;
   try {
+    // Compute completion percentage if not provided but we have both durations
+    let computedPct = completionPercentage ?? null;
+    if (computedPct === null && plannedDurationSec && plannedDurationSec > 0 && durationSec > 0) {
+      computedPct = Math.min(100, Math.round((durationSec / plannedDurationSec) * 100));
+    }
+
     const [session] = await db.insert(focusSessionsTable).values({
-      userId: req.userId, mode: mode ?? "focus", durationSec: durationSec ?? 0,
-      completedAt: new Date(), focusScore, focusQuality, stabilityRating: stringOrNullish(stabilityRating),
+      userId: req.userId,
+      mode: mode ?? "focus",
+      durationSec: durationSec ?? 0,
+      plannedDurationSec: plannedDurationSec ?? null,
+      completedEarly: completedEarly ?? false,
+      completionPercentage: computedPct,
+      sessionStatus: sessionStatus ?? "completed",
+      completedAt: new Date(),
+      focusScore,
+      focusQuality,
+      stabilityRating: stringOrNullish(stabilityRating),
       focusTimeline: typeof focusTimeline === "string" ? focusTimeline : JSON.stringify(focusTimeline ?? []),
       sessionInsights: typeof sessionInsights === "string" ? sessionInsights : JSON.stringify(sessionInsights ?? null),
       category: category ?? "General",
@@ -147,16 +169,20 @@ router.post("/sessions", authMiddleware, async (req: any, res) => {
 
     let earnedXp = 0;
     let earnedCoins = 0;
+    // All focus sessions with duration > 0 contribute to analytics — including early completions
     if ((mode ?? "focus") === "focus" && durationSec > 0) {
       const minutes = Math.floor(durationSec / 60);
       earnedXp = minutes * 20;
       earnedCoins = Math.floor(minutes / 5) * 10;
+      // Bonus for completing a full 25-min pomodoro
       if (durationSec >= 1500) earnedCoins += 50;
+      // Small bonus for early completion (you still showed up!)
+      if (completedEarly && durationSec >= 60) earnedCoins += 10;
+
       if (earnedXp > 0 || earnedCoins > 0) {
         await awardGamification(req.userId, earnedXp, earnedCoins);
       }
 
-      // Update mission progress
       if (minutes > 0) {
         await updateMissionProgress(req.userId, "sessions", 1);
         await updateMissionProgress(req.userId, "minutes", minutes);
@@ -165,10 +191,8 @@ router.post("/sessions", authMiddleware, async (req: any, res) => {
         }
       }
 
-      // Update productivity log
       await updateProductivityLog(req.userId, minutes, 1, focusScore);
 
-      // Advance battle pass season XP
       if (earnedXp > 0) {
         await advanceBattlePass(req.userId, earnedXp);
       }
@@ -244,10 +268,7 @@ async function updateStreak(userId: string): Promise<boolean> {
       currentStreak: newStreak, longestStreak: Math.max(newStreak, existing.longestStreak),
       lastStudyDate: today, updatedAt: new Date(),
     }).where(eq(studyStreaksTable.userId, userId));
-
-    // Update streak mission progress
     await updateMissionProgress(userId, "days", 1);
-
     return true;
   } catch {
     return false;

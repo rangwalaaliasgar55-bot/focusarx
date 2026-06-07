@@ -21,6 +21,10 @@ interface Props {
   durationSeconds: number;
   completedTaskCount: number;
   focusScore?: number | null;
+  earnedXp?: number;
+  earnedCoins?: number;
+  completedEarly?: boolean;
+  completionPercentage?: number | null;
   onStartBreak: () => void;
   onKeepGoing: () => void;
   onClose: () => void;
@@ -31,21 +35,48 @@ export default function SessionSummaryCard({
   durationSeconds,
   completedTaskCount,
   focusScore,
+  earnedXp = 0,
+  earnedCoins = 0,
+  completedEarly = false,
+  completionPercentage,
   onStartBreak,
   onKeepGoing,
   onClose,
 }: Props) {
   const [quote] = useState(() => QUOTES[Math.floor(Math.random() * QUOTES.length)]!);
   const [showCheck, setShowCheck] = useState(false);
+  const [animatedXp, setAnimatedXp] = useState(0);
+  const [animatedCoins, setAnimatedCoins] = useState(0);
 
   useEffect(() => {
     if (open) {
       const t = setTimeout(() => setShowCheck(true), 200);
+      // Animate XP and coins count up
+      if (earnedXp > 0) {
+        const step = Math.ceil(earnedXp / 30);
+        let cur = 0;
+        const iv = setInterval(() => {
+          cur = Math.min(cur + step, earnedXp);
+          setAnimatedXp(cur);
+          if (cur >= earnedXp) clearInterval(iv);
+        }, 40);
+      }
+      if (earnedCoins > 0) {
+        const step = Math.ceil(earnedCoins / 30);
+        let cur = 0;
+        const iv = setInterval(() => {
+          cur = Math.min(cur + step, earnedCoins);
+          setAnimatedCoins(cur);
+          if (cur >= earnedCoins) clearInterval(iv);
+        }, 40);
+      }
       return () => clearTimeout(t);
     } else {
       setShowCheck(false);
+      setAnimatedXp(0);
+      setAnimatedCoins(0);
     }
-  }, [open]);
+  }, [open, earnedXp, earnedCoins]);
 
   const mins = Math.floor(durationSeconds / 60);
   const secs = durationSeconds % 60;
@@ -79,39 +110,67 @@ export default function SessionSummaryCard({
                     transition={{ type: "spring", stiffness: 400, damping: 18 }}
                     className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15 ring-2 ring-emerald-500/30"
                   >
-                    <span className="text-3xl">✅</span>
+                    <span className="text-3xl">{completedEarly ? "⚡" : "✅"}</span>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
 
             <p className="mb-1 text-center text-[10px] uppercase tracking-widest text-emerald-400/70">
-              Session Complete
+              {completedEarly ? "Early Completion" : "Session Complete"}
             </p>
-            <h2 className="mb-5 text-center text-lg font-bold text-[#E2E8F0]">
-              Great work! 🎉
+            <h2 className="mb-1 text-center text-lg font-bold text-[#E2E8F0]">
+              {completedEarly ? "Progress saved! ⚡" : "Great work! 🎉"}
             </h2>
+            {completedEarly && completionPercentage != null && (
+              <p className="mb-4 text-center text-xs text-[#4B5563]">
+                Completed {Math.round(completionPercentage)}% of planned session
+              </p>
+            )}
 
             {/* Stats row */}
-            <div className="mb-5 grid grid-cols-3 gap-3">
+            <div className="mb-4 grid grid-cols-3 gap-2">
               <div className="rounded-2xl border border-white/5 bg-white/3 p-3 text-center">
-                <p className="text-lg font-bold text-emerald-400">{timeLabel}</p>
+                <p className="text-base font-bold text-emerald-400">{timeLabel}</p>
                 <p className="mt-0.5 text-[9px] text-[#4B5563]">Focused</p>
               </div>
               <div className="rounded-2xl border border-white/5 bg-white/3 p-3 text-center">
-                <p className="text-lg font-bold text-violet-400">{completedTaskCount}</p>
+                <p className="text-base font-bold text-violet-400">{completedTaskCount}</p>
                 <p className="mt-0.5 text-[9px] text-[#4B5563]">Tasks done</p>
               </div>
               <div className="rounded-2xl border border-white/5 bg-white/3 p-3 text-center">
-                <p className="text-lg font-bold text-sky-400">
+                <p className="text-base font-bold text-sky-400">
                   {focusScore != null ? `${focusScore}%` : "—"}
                 </p>
                 <p className="mt-0.5 text-[9px] text-[#4B5563]">Focus score</p>
               </div>
             </div>
 
+            {/* XP + Coins rewards */}
+            {(earnedXp > 0 || earnedCoins > 0) && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="mb-4 flex gap-2"
+              >
+                {earnedXp > 0 && (
+                  <div className="flex-1 rounded-xl border border-violet-500/20 bg-violet-500/10 px-3 py-2 text-center">
+                    <p className="text-sm font-bold text-violet-400">+{animatedXp}</p>
+                    <p className="text-[9px] text-violet-400/60">XP earned</p>
+                  </div>
+                )}
+                {earnedCoins > 0 && (
+                  <div className="flex-1 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-center">
+                    <p className="text-sm font-bold text-amber-400">+{animatedCoins}</p>
+                    <p className="text-[9px] text-amber-400/60">Coins earned</p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
             {/* Motivational quote */}
-            <p className="mb-6 rounded-xl border border-white/5 bg-white/3 px-4 py-3 text-center text-xs italic leading-relaxed text-[#94A3B8]">
+            <p className="mb-5 rounded-xl border border-white/5 bg-white/3 px-4 py-3 text-center text-xs italic leading-relaxed text-[#94A3B8]">
               "{quote}"
             </p>
 
@@ -121,13 +180,13 @@ export default function SessionSummaryCard({
                 onClick={onStartBreak}
                 className="flex-1 rounded-xl border border-emerald-500/30 bg-emerald-500/10 py-2.5 text-sm font-semibold text-emerald-400 transition-colors hover:bg-emerald-500/20"
               >
-                Start break
+                {completedEarly ? "Take a break" : "Start break"}
               </button>
               <button
                 onClick={onKeepGoing}
                 className="flex-1 rounded-xl border border-violet-500/30 bg-violet-500/10 py-2.5 text-sm font-semibold text-violet-400 transition-colors hover:bg-violet-500/20"
               >
-                Keep going
+                {completedEarly ? "New session" : "Keep going"}
               </button>
             </div>
           </motion.div>

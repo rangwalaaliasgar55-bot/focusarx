@@ -17,7 +17,7 @@ function auth(req: any, res: any, next: any) {
 
 export const publicProfilesRouter = Router();
 
-publicProfilesRouter.get("/api/u/:username", async (req, res) => {
+publicProfilesRouter.get("/u/:username", async (req, res) => {
   const { username } = req.params;
   const [user] = await db.select().from(usersTable)
     .where(or(eq(usersTable.email, username), sql`lower(name) = lower(${username})`))
@@ -60,7 +60,7 @@ publicProfilesRouter.get("/api/u/:username", async (req, res) => {
   });
 });
 
-publicProfilesRouter.post("/api/u/:username/friend", auth, async (req, res) => {
+publicProfilesRouter.post("/u/:username/friend", auth, async (req, res) => {
   const requesterId = req.userId!;
   const { username } = req.params;
   const [target] = await db.select({ id: usersTable.id }).from(usersTable)

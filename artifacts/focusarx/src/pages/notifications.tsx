@@ -50,7 +50,7 @@ export default function NotificationsPage() {
 
   const markAllRead = useMutation({
     mutationFn: () => apiFetch("/api/notifications/mark-all-read", { method: "POST" }),
-    onSuccess: () => { toast({ type: "success", message: "All notifications marked as read" }); qc.invalidateQueries({ queryKey: ["notifications"] }); },
+    onSuccess: () => { toast("All notifications marked as read", "success"); qc.invalidateQueries({ queryKey: ["notifications"] }); },
   });
 
   const deleteNotif = useMutation({
@@ -60,7 +60,7 @@ export default function NotificationsPage() {
 
   const clearAll = useMutation({
     mutationFn: () => apiFetch("/api/notifications", { method: "DELETE" }),
-    onSuccess: () => { toast({ type: "success", message: "All notifications cleared" }); qc.invalidateQueries({ queryKey: ["notifications"] }); },
+    onSuccess: () => { toast("All notifications cleared", "success"); qc.invalidateQueries({ queryKey: ["notifications"] }); },
   });
 
   const notifications = data?.notifications ?? [];

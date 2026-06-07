@@ -11,3 +11,7 @@
 - [Missions system](missions-system.md) — 22 missions (12 daily + 10 weekly), updateMissionProgress() exported from missions.ts, claimed via POST /api/missions/:key/claim
 - [Badge system](badge-system.md) — 65+ badges across 8 categories: time/streak/sessions/quality/special/tasks/social/milestones; computed on-the-fly in /api/gamification/badges
 - [Enterprise V10 schema](enterprise-schema.md) — missions, user_mission_progress, friendships, productivity_logs tables added to lib/db; db push done
+- [Early session completion](early-session-completion.md) — Timer.tsx showExitConfirm dialog (Complete/Continue/Cancel), handleCompleteEarly syncs with earlyCompletionData to /api/sessions
+- [Session summary rewards](session-summary-rewards.md) — SessionSummaryCard accepts earnedXp/earnedCoins/completedEarly/completionPercentage; animates count-up on open
+- [Task active/completed separation](task-separation.md) — SidePanel shows activeTasks and completedTasks separately; completed section is collapsible, collapsed by default
+- [Daily missed task review](missed-task-review.md) — MissedTaskReview + useMissedTaskReview in MissedTaskReview.tsx; fires once/day via LS key; GET/POST /api/tasks/missed-review

@@ -27,7 +27,7 @@ async function getFriendIds(userId: string): Promise<string[]> {
   return rows.map(r => r.requesterId === userId ? r.addresseeId : r.requesterId);
 }
 
-socialRouter.get("/api/social/friends", auth, async (req, res) => {
+socialRouter.get("/social/friends", auth, async (req, res) => {
   const userId = req.userId!;
   const friendIds = await getFriendIds(userId);
   if (!friendIds.length) return res.json([]);
@@ -57,7 +57,7 @@ socialRouter.get("/api/social/friends", auth, async (req, res) => {
   res.json(friends.sort((a, b) => b.xp - a.xp));
 });
 
-socialRouter.get("/api/social/requests", auth, async (req, res) => {
+socialRouter.get("/social/requests", auth, async (req, res) => {
   const userId = req.userId!;
   const incoming = await db.select().from(friendshipsTable)
     .where(and(eq(friendshipsTable.addresseeId, userId), eq(friendshipsTable.status, "pending")));
@@ -76,7 +76,7 @@ socialRouter.get("/api/social/requests", auth, async (req, res) => {
   res.json({ incoming: await enriched(incoming, "incoming"), outgoing: await enriched(outgoing, "outgoing") });
 });
 
-socialRouter.post("/api/social/request", auth, async (req, res) => {
+socialRouter.post("/social/request", auth, async (req, res) => {
   const userId = req.userId!;
   const { targetId, targetUsername } = req.body;
 
@@ -110,7 +110,7 @@ socialRouter.post("/api/social/request", auth, async (req, res) => {
   res.json({ ok: true, friendship: row });
 });
 
-socialRouter.patch("/api/social/request/:id/accept", auth, async (req, res) => {
+socialRouter.patch("/social/request/:id/accept", auth, async (req, res) => {
   const userId = req.userId!;
   const [row] = await db.select().from(friendshipsTable).where(eq(friendshipsTable.id, req.params.id)).limit(1);
   if (!row || row.addresseeId !== userId) return res.status(403).json({ error: "Not authorized" });
@@ -125,7 +125,7 @@ socialRouter.patch("/api/social/request/:id/accept", auth, async (req, res) => {
   res.json({ ok: true, friendship: updated });
 });
 
-socialRouter.patch("/api/social/request/:id/reject", auth, async (req, res) => {
+socialRouter.patch("/social/request/:id/reject", auth, async (req, res) => {
   const userId = req.userId!;
   const [row] = await db.select().from(friendshipsTable).where(eq(friendshipsTable.id, req.params.id)).limit(1);
   if (!row || row.addresseeId !== userId) return res.status(403).json({ error: "Not authorized" });
@@ -133,7 +133,7 @@ socialRouter.patch("/api/social/request/:id/reject", auth, async (req, res) => {
   res.json({ ok: true });
 });
 
-socialRouter.delete("/api/social/request/:id", auth, async (req, res) => {
+socialRouter.delete("/social/request/:id", auth, async (req, res) => {
   const userId = req.userId!;
   const [row] = await db.select().from(friendshipsTable).where(eq(friendshipsTable.id, req.params.id)).limit(1);
   if (!row || (row.requesterId !== userId && row.addresseeId !== userId)) return res.status(403).json({ error: "Not authorized" });
@@ -141,7 +141,7 @@ socialRouter.delete("/api/social/request/:id", auth, async (req, res) => {
   res.json({ ok: true });
 });
 
-socialRouter.get("/api/social/search", auth, async (req, res) => {
+socialRouter.get("/social/search", auth, async (req, res) => {
   const { q } = req.query as { q?: string };
   if (!q || q.length < 2) return res.json([]);
   const users = await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email })
@@ -151,7 +151,7 @@ socialRouter.get("/api/social/search", auth, async (req, res) => {
   res.json(users.filter(u => u.id !== req.userId));
 });
 
-socialRouter.get("/api/social/activity", auth, async (req, res) => {
+socialRouter.get("/social/activity", auth, async (req, res) => {
   const userId = req.userId!;
   const friendIds = await getFriendIds(userId);
   if (!friendIds.length) return res.json([]);
@@ -195,7 +195,7 @@ socialRouter.get("/api/social/activity", auth, async (req, res) => {
 
 const LEADERBOARD_PERIODS = ["daily", "weekly", "monthly", "alltime"] as const;
 
-socialRouter.get("/api/social/leaderboard", auth, async (req, res) => {
+socialRouter.get("/social/leaderboard", auth, async (req, res) => {
   const userId = req.userId!;
   const period = (req.query.period as string) || "weekly";
   const friendIds = await getFriendIds(userId);
@@ -224,7 +224,7 @@ socialRouter.get("/api/social/leaderboard", auth, async (req, res) => {
 
 // ─── FOLLOWS ─────────────────────────────────────────────────────────────────
 
-socialRouter.post("/api/social/follow/:userId", auth, async (req, res) => {
+socialRouter.post("/social/follow/:userId", auth, async (req, res) => {
   const userId = req.userId!;
   const { userId: targetId } = req.params as { userId: string };
   if (userId === targetId) { res.status(400).json({ error: "Cannot follow yourself" }); return; }
@@ -240,7 +240,7 @@ socialRouter.post("/api/social/follow/:userId", auth, async (req, res) => {
   }
 });
 
-socialRouter.delete("/api/social/follow/:userId", auth, async (req, res) => {
+socialRouter.delete("/social/follow/:userId", auth, async (req, res) => {
   const userId = req.userId!;
   const { userId: targetId } = req.params as { userId: string };
   try {
@@ -251,7 +251,7 @@ socialRouter.delete("/api/social/follow/:userId", auth, async (req, res) => {
   }
 });
 
-socialRouter.get("/api/social/following", auth, async (req, res) => {
+socialRouter.get("/social/following", auth, async (req, res) => {
   const userId = req.userId!;
   try {
     const rows = await db.select().from(followsTable).where(eq(followsTable.followerId, userId)).orderBy(desc(followsTable.createdAt));
@@ -268,7 +268,7 @@ socialRouter.get("/api/social/following", auth, async (req, res) => {
   }
 });
 
-socialRouter.get("/api/social/followers", auth, async (req, res) => {
+socialRouter.get("/social/followers", auth, async (req, res) => {
   const userId = req.userId!;
   try {
     const rows = await db.select().from(followsTable).where(eq(followsTable.followingId, userId)).orderBy(desc(followsTable.createdAt));

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { ElementType } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getToken } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
@@ -16,7 +17,7 @@ function Avatar({ name, size = 36 }: { name: string; size?: number }) {
   const colors = ["from-violet-500 to-indigo-600", "from-emerald-500 to-teal-600", "from-amber-500 to-orange-600", "from-rose-500 to-pink-600", "from-blue-500 to-cyan-600"];
   const color = colors[initials.charCodeAt(0) % colors.length];
   return (
-    <div style={{ width: size, height: size }} className={`rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-white font-bold shrink-0`} style={{ width: size, height: size, fontSize: size * 0.35 }}>
+    <div style={{ width: size, height: size, fontSize: size * 0.35 }} className={`rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-white font-bold shrink-0`}>
       {initials}
     </div>
   );
@@ -75,8 +76,8 @@ export default function SocialPage() {
 
   const followUser = useMutation({
     mutationFn: (userId: string) => apiFetch(`/api/social/follow/${userId}`, { method: "POST" }),
-    onSuccess: () => { toast({ type: "success", message: "Now following!" }); qc.invalidateQueries({ queryKey: ["social-following"] }); },
-    onError: (e: any) => toast({ type: "error", message: e.message }),
+    onSuccess: () => { toast("Now following!", "success"); qc.invalidateQueries({ queryKey: ["social-following"] }); },
+    onError: (e: any) => toast(e.message, "error"),
   });
   const unfollowUser = useMutation({
     mutationFn: (userId: string) => apiFetch(`/api/social/follow/${userId}`, { method: "DELETE" }),
@@ -86,13 +87,13 @@ export default function SocialPage() {
 
   const sendRequest = useMutation({
     mutationFn: (targetUsername: string) => apiFetch("/api/social/request", { method: "POST", body: JSON.stringify({ targetUsername }) }),
-    onSuccess: () => { toast({ type: "success", message: "Friend request sent!" }); qc.invalidateQueries({ queryKey: ["social-requests"] }); setAddQ(""); },
-    onError: (e: any) => toast({ type: "error", message: e.message }),
+    onSuccess: () => { toast("Friend request sent!", "success"); qc.invalidateQueries({ queryKey: ["social-requests"] }); setAddQ(""); },
+    onError: (e: any) => toast(e.message, "error"),
   });
 
   const acceptRequest = useMutation({
     mutationFn: (id: string) => apiFetch(`/api/social/request/${id}/accept`, { method: "PATCH" }),
-    onSuccess: () => { toast({ type: "success", message: "Friend added!" }); qc.invalidateQueries({ queryKey: ["social-friends"] }); qc.invalidateQueries({ queryKey: ["social-requests"] }); },
+    onSuccess: () => { toast("Friend added!", "success"); qc.invalidateQueries({ queryKey: ["social-friends"] }); qc.invalidateQueries({ queryKey: ["social-requests"] }); },
   });
 
   const rejectRequest = useMutation({
@@ -107,13 +108,13 @@ export default function SocialPage() {
 
   const incoming = requests?.incoming ?? [];
   const outgoing = requests?.outgoing ?? [];
-  const TABS = [
+  const TABS: Array<{ id: "friends" | "requests" | "leaderboard" | "activity" | "following"; label: string; icon: ElementType; count?: number }> = [
     { id: "friends", label: "Friends", icon: Users, count: friends.length },
     { id: "requests", label: "Requests", icon: UserPlus, count: incoming.length || undefined },
     { id: "leaderboard", label: "Leaderboard", icon: Trophy },
     { id: "activity", label: "Activity", icon: Activity },
-    { id: "following", label: "Follow", icon: Rss, count: followers.length || undefined },
-  ] as const;
+    { id: "following", label: "Follow", icon: Rss, count: (followers as any[]).length || undefined },
+  ];
 
   return (
     <div className="min-h-screen bg-[#0a0c12] text-[#e8eaf0] p-4 sm:p-6 max-w-3xl mx-auto">

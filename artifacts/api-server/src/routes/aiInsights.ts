@@ -110,7 +110,7 @@ function generateFallbackReport(stats: Awaited<ReturnType<typeof gatherUserStats
   return lines.join("\n");
 }
 
-aiInsightsRouter.get("/api/ai/weekly-report", auth, async (req, res) => {
+aiInsightsRouter.get("/ai/weekly-report", auth, async (req, res) => {
   const userId = req.userId!;
   const stats = await gatherUserStats(userId);
 
@@ -126,7 +126,7 @@ aiInsightsRouter.get("/api/ai/weekly-report", auth, async (req, res) => {
   });
 });
 
-aiInsightsRouter.get("/api/ai/performance-insights", auth, async (req, res) => {
+aiInsightsRouter.get("/ai/performance-insights", auth, async (req, res) => {
   const userId = req.userId!;
   const stats = await gatherUserStats(userId);
 
@@ -148,7 +148,7 @@ aiInsightsRouter.get("/api/ai/performance-insights", auth, async (req, res) => {
   res.json({ insights, stats, generatedAt: new Date().toISOString() });
 });
 
-aiInsightsRouter.get("/api/ai/habit-analysis", auth, async (req, res) => {
+aiInsightsRouter.get("/ai/habit-analysis", auth, async (req, res) => {
   const userId = req.userId!;
   const monthAgo = daysAgoStr(30);
   const sessions = await db.select().from(focusSessionsTable)

@@ -80,8 +80,17 @@ export default function Timer() {
   const [recoveryReady, setRecoveryReady] = useState(false);
   const [currentStreak, setCurrentStreak] = useState(0);
   const [showSummary, setShowSummary] = useState(false);
-  const [summaryData, setSummaryData] = useState<{ durationSeconds: number; completedTaskCount: number; focusScore: number | null } | null>(null);
+  const [summaryData, setSummaryData] = useState<{
+    durationSeconds: number;
+    completedTaskCount: number;
+    focusScore: number | null;
+    earnedXp: number;
+    earnedCoins: number;
+    completedEarly: boolean;
+    completionPercentage: number | null;
+  } | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [notificationPermission, setNotificationPermission] =
     useState<NotificationPermission | "unsupported">("unsupported");
   const prevStatusRef = useRef<string>("idle");
@@ -198,6 +207,10 @@ export default function Timer() {
           durationSeconds: session.durationSeconds,
           completedTaskCount: completedTasks.length,
           focusScore: null,
+          earnedXp: res.earnedXp ?? 0,
+          earnedCoins: res.earnedCoins ?? 0,
+          completedEarly: false,
+          completionPercentage: null,
         });
         setShowSummary(true);
         setShowConfetti(true);
@@ -338,6 +351,84 @@ export default function Timer() {
     setShowLockPicker(true);
   }, []);
 
+  // Complete session early — saves all progress to the server and shows summary
+  const handleCompleteEarly = useCallback(async () => {
+    if (mode !== "focus") return;
+    const activeSeconds = getActiveSeconds();
+    if (activeSeconds < 10) {
+      // Not enough time to save — just cancel
+      persistence.clearDbSession();
+      reset(false);
+      setLockMode("none");
+      setExitPhrase("");
+      setShowExitConfirm(false);
+      return;
+    }
+    setShowExitConfirm(false);
+    setIsSaving(true);
+    const plannedSec = totalFocusSec;
+    const actualSec = Math.floor(activeSeconds);
+    const pct = plannedSec > 0 ? Math.min(100, Math.round((actualSec / plannedSec) * 100)) : null;
+    const dbSessionId = persistenceRef.current?.getDbSessionId() ?? null;
+    const res = await syncFocusSessionToCloud(
+      {
+        id: `early-${Date.now()}`,
+        mode: "focus",
+        completedAt: new Date().toISOString(),
+        durationSeconds: actualSec,
+        focusScore: null,
+        focusQuality: null,
+        focusTimeline: null,
+        stabilityRating: null,
+        sessionInsights: null,
+      },
+      dbSessionId,
+      {
+        plannedDurationSec: plannedSec,
+        completedEarly: true,
+        completionPercentage: pct ?? 0,
+        sessionStatus: "completed_early",
+      }
+    );
+    setIsSaving(false);
+
+    persistence.clearDbSession();
+    reset(false);
+    setLockMode("none");
+    setExitPhrase("");
+
+    if (res.success) {
+      toast(`Session saved — ${Math.floor(actualSec / 60)}m of focus recorded!`, "success");
+      if (res.streakUpdated) {
+        const token = getToken();
+        if (token) {
+          fetch("/api/streak", { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.ok ? r.json() : null)
+            .then((d: { streak?: { currentStreak?: number } } | null) => {
+              if (d?.streak?.currentStreak) setCurrentStreak(d.streak.currentStreak);
+            })
+            .catch(() => {});
+        }
+      }
+      setSummaryData({
+        durationSeconds: actualSec,
+        completedTaskCount: completedTasks.length,
+        focusScore: null,
+        earnedXp: res.earnedXp ?? 0,
+        earnedCoins: res.earnedCoins ?? 0,
+        completedEarly: true,
+        completionPercentage: pct,
+      });
+      setShowSummary(true);
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3000);
+    } else if (res.offline) {
+      toast(`Saved ${Math.floor(actualSec / 60)}m locally (offline)`, "info");
+    } else {
+      toast("Failed to save session progress", "error");
+    }
+  }, [mode, getActiveSeconds, totalFocusSec, persistence, reset, toast, completedTasks.length]);
+
   const savePartialSessionIfNeeded = useCallback(() => {
     if (mode !== "focus") return;
     const activeSeconds = getActiveSeconds();
@@ -363,27 +454,32 @@ export default function Timer() {
     });
   }, [mode, getActiveSeconds, toast]);
 
-  // Intercept reset: show distraction modal if running a focus session
+  // Intercept reset: show exit confirmation when running focus session
   const handleReset = useCallback(() => {
     if (status === "running" && mode === "focus") {
-      setShowDistractionModal(true);
-      savePartialSessionIfNeeded();
+      setShowExitConfirm(true);
+      return;
     }
     persistence.clearDbSession();
     reset(false);
     setLockMode("none");
     setExitPhrase("");
-  }, [status, mode, persistence, reset, savePartialSessionIfNeeded]);
+  }, [status, mode, persistence, reset]);
 
-  // Exit lock overlay → reset
-  const handleLockExit = useCallback(() => {
+  // Cancel without saving — used from exit confirm dialog
+  const handleCancelNoSave = useCallback(() => {
+    setShowExitConfirm(false);
     setShowDistractionModal(true);
-    savePartialSessionIfNeeded();
     persistence.clearDbSession();
     reset(false);
     setLockMode("none");
     setExitPhrase("");
-  }, [persistence, reset, savePartialSessionIfNeeded]);
+  }, [persistence, reset]);
+
+  // Exit lock overlay → show exit confirm first
+  const handleLockExit = useCallback(() => {
+    setShowExitConfirm(true);
+  }, []);
 
   const handleEditTime = () => {
     if (status !== "idle") return;
@@ -502,6 +598,27 @@ export default function Timer() {
           onReset={handleReset}
           onSkip={skipToNext}
         />
+
+        {/* Complete Session Early — visible only during active focus sessions */}
+        <AnimatePresence>
+          {isRunning && mode === "focus" && (
+            <motion.button
+              key="complete-early"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setShowExitConfirm(true)}
+              className="mt-3 flex items-center gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/8 px-4 py-2 text-xs font-semibold text-emerald-400 transition-all hover:bg-emerald-500/15 hover:border-emerald-500/40 active:scale-95"
+              type="button"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="shrink-0">
+                <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Complete Session
+            </motion.button>
+          )}
+        </AnimatePresence>
 
         {notificationPermission === "default" && (
           <button
@@ -665,11 +782,72 @@ export default function Timer() {
       )}
     </AnimatePresence>
 
+    {/* ── Exit Confirmation Dialog ─────────────────────────────────── */}
+    <AnimatePresence>
+      {showExitConfirm && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+        >
+          <motion.div
+            initial={{ scale: 0.95, y: 12, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            exit={{ scale: 0.95, y: 8, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 340, damping: 28 }}
+            className="w-full max-w-xs rounded-2xl border border-[#1e2130] bg-[#111318] p-5 shadow-2xl"
+          >
+            <div className="mb-4 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/15 ring-1 ring-amber-500/25">
+                <span className="text-2xl">⚡</span>
+              </div>
+              <h3 className="text-sm font-bold text-[#e8eaf0]">End focus session?</h3>
+              <p className="mt-1 text-xs text-[#5a5f72]">
+                You've focused for{" "}
+                <span className="font-semibold text-emerald-400">
+                  {Math.floor(getActiveSeconds() / 60)}m {Math.floor(getActiveSeconds() % 60)}s
+                </span>
+              </p>
+            </div>
+            <div className="space-y-2">
+              <button
+                onClick={() => void handleCompleteEarly()}
+                disabled={isSaving}
+                className="w-full rounded-xl border border-emerald-500/30 bg-emerald-500/12 px-4 py-3 text-left text-xs transition-all hover:bg-emerald-500/20 disabled:opacity-50"
+              >
+                <p className="font-semibold text-emerald-400">✅ Complete Session & Save Progress</p>
+                <p className="text-[10px] text-emerald-400/60 mt-0.5">Save focus time, earn XP & coins</p>
+              </button>
+              <button
+                onClick={() => setShowExitConfirm(false)}
+                className="w-full rounded-xl border border-[#1e2130] bg-[#1a1d27] px-4 py-3 text-left text-xs transition-all hover:border-[#7C3AED]/30"
+              >
+                <p className="font-semibold text-[#e8eaf0]">▶ Continue Session</p>
+                <p className="text-[10px] text-[#4a4f62] mt-0.5">Keep the timer running</p>
+              </button>
+              <button
+                onClick={handleCancelNoSave}
+                className="w-full rounded-xl border border-red-500/15 bg-red-500/8 px-4 py-3 text-left text-xs transition-all hover:bg-red-500/15"
+              >
+                <p className="font-semibold text-red-400">✕ Cancel Without Saving</p>
+                <p className="text-[10px] text-red-400/60 mt-0.5">Discard this session</p>
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+
     <SessionSummaryCard
       open={showSummary}
       durationSeconds={summaryData?.durationSeconds ?? 0}
       completedTaskCount={summaryData?.completedTaskCount ?? 0}
       focusScore={summaryData?.focusScore ?? null}
+      earnedXp={summaryData?.earnedXp ?? 0}
+      earnedCoins={summaryData?.earnedCoins ?? 0}
+      completedEarly={summaryData?.completedEarly ?? false}
+      completionPercentage={summaryData?.completionPercentage ?? null}
       onStartBreak={() => { setShowSummary(false); skipToNext(); }}
       onKeepGoing={() => { setShowSummary(false); }}
       onClose={() => { setShowSummary(false); }}

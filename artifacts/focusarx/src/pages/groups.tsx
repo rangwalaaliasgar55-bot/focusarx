@@ -110,20 +110,20 @@ export default function GroupsPage() {
 
   const joinGroup = useMutation({
     mutationFn: (id: string) => apiFetch(`/api/groups/${id}/join`, { method: "POST" }),
-    onSuccess: () => { toast({ type: "success", message: "Joined group!" }); qc.invalidateQueries({ queryKey: ["groups-all"] }); qc.invalidateQueries({ queryKey: ["groups-mine"] }); },
-    onError: (e: any) => toast({ type: "error", message: e.message }),
+    onSuccess: () => { toast("Joined group!", "success"); qc.invalidateQueries({ queryKey: ["groups-all"] }); qc.invalidateQueries({ queryKey: ["groups-mine"] }); },
+    onError: (e: any) => toast(e.message, "error"),
   });
 
   const joinInvite = useMutation({
     mutationFn: () => apiFetch("/api/groups/join-invite", { method: "POST", body: JSON.stringify({ inviteCode }) }),
-    onSuccess: () => { toast({ type: "success", message: "Joined group!" }); setInviteCode(""); qc.invalidateQueries({ queryKey: ["groups-mine"] }); },
-    onError: (e: any) => toast({ type: "error", message: e.message }),
+    onSuccess: () => { toast("Joined group!", "success"); setInviteCode(""); qc.invalidateQueries({ queryKey: ["groups-mine"] }); },
+    onError: (e: any) => toast(e.message, "error"),
   });
 
   const createGroup = useMutation({
     mutationFn: (data: any) => apiFetch("/api/groups", { method: "POST", body: JSON.stringify(data) }),
-    onSuccess: () => { toast({ type: "success", message: "Group created!" }); setShowCreate(false); qc.invalidateQueries({ queryKey: ["groups-mine"] }); qc.invalidateQueries({ queryKey: ["groups-all"] }); },
-    onError: (e: any) => toast({ type: "error", message: e.message }),
+    onSuccess: () => { toast("Group created!", "success"); setShowCreate(false); qc.invalidateQueries({ queryKey: ["groups-mine"] }); qc.invalidateQueries({ queryKey: ["groups-all"] }); },
+    onError: (e: any) => toast(e.message, "error"),
   });
 
   const myGroupIds = new Set(myGroups.map((g: any) => g.id));

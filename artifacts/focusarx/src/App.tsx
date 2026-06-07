@@ -27,6 +27,7 @@ import { useSessionHistory } from "@/hooks/useSessionHistory";
 import { useTasks } from "@/hooks/useTasks";
 import ReadinessCheckInModal from "@/components/ReadinessCheckInModal";
 import DailyGoal from "@/components/DailyGoal";
+import MissedTaskReview, { useMissedTaskReview } from "@/components/MissedTaskReview";
 import WelcomeOverlay from "@/components/WelcomeOverlay";
 import OnboardingModal from "@/components/OnboardingModal";
 import HeroBanner from "@/components/HeroBanner";
@@ -126,9 +127,10 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 
 function SidePanel() {
   const { focusSessionsToday } = useSessionHistory();
-  const { tasks, activeTasks, toggleDone, addTask } = useTasks();
+  const { tasks, activeTasks, completedTasks, toggleDone, addTask } = useTasks();
   const [newTask, setNewTask] = useState("");
-  const completedToday = tasks.filter((t) => t.done).length;
+  const [showCompleted, setShowCompleted] = useState(false);
+  const { showReview, missedTasks, dismiss } = useMissedTaskReview();
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,6 +139,9 @@ function SidePanel() {
 
   return (
     <div className="flex flex-col gap-3 w-full lg:w-52 xl:w-56 shrink-0">
+      {/* Missed Task Review modal — fires once per day if there are unreviewed tasks */}
+      <MissedTaskReview open={showReview} tasks={missedTasks} onDone={dismiss} />
+
       <div className="rounded-2xl border border-[#1e2130] bg-[#111318] p-4">
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4a4f62] mb-3">Today's Stats</p>
         <div className="space-y-2.5">
@@ -154,7 +159,7 @@ function SidePanel() {
             <span className="text-xs text-[#5a5f72]">Tasks done</span>
             {tasks.length === 0
               ? <span className="text-[10px] text-[#3a3d4a] italic">Add a task below ↓</span>
-              : <span className="text-xs font-bold text-[#22d387] font-mono">{completedToday}/{tasks.length}</span>
+              : <span className="text-xs font-bold text-[#22d387] font-mono">{completedTasks.length}/{tasks.length}</span>
             }
           </div>
           <div className="flex justify-between items-center">
@@ -165,20 +170,51 @@ function SidePanel() {
       </div>
 
       <div className="rounded-2xl border border-[#1e2130] bg-[#111318] p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4a4f62] mb-3">Tasks</p>
-        <div className="space-y-1 max-h-40 overflow-y-auto">
-          {tasks.length === 0 && (
+        {/* Active Tasks */}
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4a4f62] mb-2">Active Tasks</p>
+        <div className="space-y-1 max-h-36 overflow-y-auto">
+          {activeTasks.length === 0 && (
             <p className="text-[11px] text-[#3a3d4a] py-1 italic">✨ Add tasks to unlock your AI Timeline</p>
           )}
-          {tasks.slice(0, 6).map((t) => (
+          {activeTasks.slice(0, 6).map((t) => (
             <button key={t.id} type="button" onClick={() => toggleDone(t.id)} className="flex items-center gap-2 w-full text-left py-1 group">
-              <span className={`w-3.5 h-3.5 rounded-full border shrink-0 flex items-center justify-center transition-all ${t.done ? "bg-[#22d387] border-[#22d387]" : "border-[#2a2d3a] group-hover:border-[#6c63ff]"}`}>
-                {t.done && <svg width="8" height="8" viewBox="0 0 10 10" fill="none"><path d="M1.5 5L4 7.5L8.5 2.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-              </span>
-              <span className={`text-xs leading-snug ${t.done ? "line-through text-[#3a3d4a]" : "text-[#6b7080] group-hover:text-[#9095a8]"}`}>{t.title}</span>
+              <span className="w-3.5 h-3.5 rounded-full border border-[#2a2d3a] shrink-0 flex items-center justify-center transition-all group-hover:border-[#6c63ff]" />
+              <span className="text-xs leading-snug text-[#6b7080] group-hover:text-[#9095a8]">{t.title}</span>
             </button>
           ))}
+          {activeTasks.length > 6 && (
+            <p className="text-[10px] text-[#3a3d4a] pl-5">+{activeTasks.length - 6} more</p>
+          )}
         </div>
+
+        {/* Completed Tasks — collapsible section */}
+        {completedTasks.length > 0 && (
+          <div className="mt-3 border-t border-[#1a1d27] pt-2">
+            <button
+              type="button"
+              onClick={() => setShowCompleted(v => !v)}
+              className="flex items-center gap-1.5 w-full text-left group"
+            >
+              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#3a3d4a] group-hover:text-[#5a5f72] transition-colors">
+                Completed ({completedTasks.length})
+              </span>
+              <span className={`ml-auto text-[10px] text-[#3a3d4a] transition-transform duration-150 ${showCompleted ? "rotate-180" : ""}`}>▾</span>
+            </button>
+            {showCompleted && (
+              <div className="space-y-1 mt-1.5 max-h-28 overflow-y-auto">
+                {completedTasks.slice(0, 5).map((t) => (
+                  <button key={t.id} type="button" onClick={() => toggleDone(t.id)} className="flex items-center gap-2 w-full text-left py-0.5 group">
+                    <span className="w-3.5 h-3.5 rounded-full border bg-[#22d387] border-[#22d387] shrink-0 flex items-center justify-center">
+                      <svg width="8" height="8" viewBox="0 0 10 10" fill="none"><path d="M1.5 5L4 7.5L8.5 2.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </span>
+                    <span className="text-xs leading-snug line-through text-[#3a3d4a] group-hover:text-[#4a4f62]">{t.title}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         <form onSubmit={handleAddTask} className="mt-3 flex gap-1.5">
           <input value={newTask} onChange={(e) => setNewTask(e.target.value)} placeholder="Add task…" className="flex-1 min-w-0 rounded-lg border border-[#1e2130] bg-[#0d0e14] px-2.5 py-1.5 text-xs text-[#e8eaf0] placeholder-[#3a3d4a] outline-none focus:border-[#6c63ff] transition-colors" />
           <button type="submit" className="rounded-lg border border-[#6c63ff]/50 bg-[#6c63ff]/10 px-2.5 py-1.5 text-xs font-semibold text-[#a5a8ff] hover:bg-[#6c63ff]/20 transition-colors">+</button>
