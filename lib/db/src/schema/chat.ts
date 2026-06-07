@@ -1,11 +1,11 @@
 import { pgTable, text, timestamp, boolean, integer, jsonb, index } from 'drizzle-orm/pg-core';
-import { users } from './focusarx';
+import { usersTable as users } from './focusarx';
 
 // Phase 4: Real-Time Chat Platform
 export const conversations = pgTable('conversations', {
   id: text('id').primaryKey(),
-  type: text('type').notNull().default('direct'), // direct, group
-  groupId: text('group_id'), // references groups.id (added safely)
+  type: text('type').notNull().default('direct'),
+  groupId: text('group_id'),
   lastMessageAt: timestamp('last_message_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({
@@ -27,7 +27,7 @@ export const messages = pgTable('messages', {
   conversationId: text('conversation_id').notNull().references(() => 'conversations.id' as any, { onDelete: 'cascade' }),
   senderId: text('sender_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   content: text('content').notNull(),
-  type: text('type').default('text'), // text, image, system
+  type: text('type').default('text'),
   metadata: jsonb('metadata'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({
@@ -48,7 +48,7 @@ export const messageReads = pgTable('message_reads', {
 export const notifications = pgTable('notifications', {
   id: text('id').primaryKey(),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  type: text('type').notNull(), // new_follower, new_comment, new_like, group_invite, announcement, achievement, battle_pass_reward
+  type: text('type').notNull(),
   title: text('title').notNull(),
   body: text('body'),
   data: jsonb('data'),
