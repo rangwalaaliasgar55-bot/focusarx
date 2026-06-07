@@ -1,17 +1,17 @@
 import { pgTable, text, timestamp, boolean, integer, jsonb, index } from 'drizzle-orm/pg-core';
-import { users } from './focusarx';
+import { usersTable as users } from './focusarx';
 
 // Phase 2: Social Creator Platform + Phase 3: Follow System
 export const posts = pgTable('posts', {
   id: text('id').primaryKey(),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   content: text('content').notNull(),
-  type: text('type').notNull().default('general'), // general, achievement, study_log, journal
+  type: text('type').notNull().default('general'),
   imageUrls: jsonb('image_urls').$type<string[]>().default([]),
   achievementData: jsonb('achievement_data'),
   studyLogData: jsonb('study_log_data'),
   isPublic: boolean('is_public').default(true).notNull(),
-  groupId: text('group_id'), // linked to groups.id (Phase 1) - FK reference will be added after successful migration
+  groupId: text('group_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
