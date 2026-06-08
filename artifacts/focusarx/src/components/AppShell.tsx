@@ -4,7 +4,7 @@ import {
   Timer, LayoutDashboard, TrendingUp, Trophy, Star,
   Users, Sparkles, LogOut, LogIn, Menu, X, Shield, BookOpen,
   Dna, Ghost, Sword, Radio, Wind, UserCircle, Info, Flame, Target,
-  Bell, Users2, Zap, Brain, Network,
+  Bell, Users2, Zap, Brain, Network, CheckSquare, MessageSquare, ShoppingBag, Flag,
 } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -74,10 +74,14 @@ const NAV_ITEMS = [
   { href: "/",              label: "Timer",          icon: Timer,          shortcut: "1", group: "core" },
   { href: "/dashboard",     label: "Dashboard",      icon: LayoutDashboard,shortcut: "2", group: "core" },
   { href: "/missions",      label: "Missions",       icon: Target,         shortcut: "m", badge: "missions", group: "core" },
+  { href: "/habits",        label: "Habits",         icon: CheckSquare,    shortcut: "h", group: "core" },
+  { href: "/goals",         label: "Goals",          icon: Flag,           shortcut: "g", group: "core" },
   { href: "/social",        label: "Social",         icon: Network,        shortcut: "s", group: "social" },
   { href: "/groups",        label: "Study Groups",   icon: Users2,         shortcut: "",  group: "social" },
+  { href: "/messages",      label: "Messages",       icon: MessageSquare,  shortcut: "",  group: "social" },
   { href: "/leaderboard",   label: "Leaderboard",    icon: Trophy,         shortcut: "4", group: "social" },
   { href: "/notifications", label: "Notifications",  icon: Bell,           shortcut: "n", badge: "notif", group: "social" },
+  { href: "/shop",          label: "Coin Shop",      icon: ShoppingBag,    shortcut: "",  group: "engage" },
   { href: "/battle-pass",   label: "Battle Pass",    icon: Zap,            shortcut: "",  group: "engage" },
   { href: "/ai-insights",   label: "AI Insights",    icon: Brain,          shortcut: "",  aiBadge: true, group: "engage" },
   { href: "/roadmap",       label: "AI Roadmap",     icon: Sparkles,       shortcut: "7", aiBadge: true, group: "engage" },

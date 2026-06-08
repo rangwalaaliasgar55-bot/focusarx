@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import type { ElementType } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getToken } from "@/lib/auth";
+import { getToken, useAuth } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
-import { Users, UserPlus, Trophy, Activity, Search, Check, X, Bell, Clock, Rss } from "lucide-react";
+import { Users, UserPlus, Trophy, Activity, Check, X, Bell, Clock, Rss, Heart, MessageCircle, Bookmark, Flame, Plus, Send, MoreHorizontal, Image, Edit3, Newspaper, Trash2 } from "lucide-react";
 
 async function apiFetch(path: string, opts?: RequestInit) {
   const token = getToken();
@@ -59,10 +59,214 @@ function LeaderboardTable({ data }: { data: any[] }) {
   );
 }
 
+const REACTIONS = [
+  { key: "fire", emoji: "🔥", label: "Fire" },
+  { key: "insightful", emoji: "💡", label: "Insightful" },
+  { key: "focused", emoji: "🎯", label: "Focused" },
+  { key: "legendary", emoji: "🏆", label: "Legendary" },
+  { key: "love", emoji: "❤️", label: "Love" },
+];
+
+function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post: any; currentUserId: string; onReacted: () => void; onSaved: () => void; onDeleted: () => void }) {
+  const { toast } = useToast();
+  const [showComments, setShowComments] = useState(false);
+  const [showReactions, setShowReactions] = useState(false);
+  const [commentText, setCommentText] = useState("");
+
+  const react = useMutation({
+    mutationFn: (reaction: string) => apiFetch(`/api/posts/${post.id}/react`, { method: "POST", body: JSON.stringify({ reaction }) }),
+    onSuccess: onReacted,
+    onError: (e: any) => toast(e.message, "error"),
+  });
+
+  const save = useMutation({
+    mutationFn: () => apiFetch(`/api/posts/${post.id}/save`, { method: "POST" }),
+    onSuccess: onSaved,
+  });
+
+  const del = useMutation({
+    mutationFn: () => apiFetch(`/api/posts/${post.id}`, { method: "DELETE" }),
+    onSuccess: onDeleted,
+  });
+
+  const { data: comments = [], refetch: refetchComments } = useQuery({
+    queryKey: ["post-comments", post.id],
+    queryFn: () => apiFetch(`/api/posts/${post.id}/comments`),
+    enabled: showComments,
+    staleTime: 30_000,
+  });
+
+  const addComment = useMutation({
+    mutationFn: () => apiFetch(`/api/posts/${post.id}/comments`, { method: "POST", body: JSON.stringify({ content: commentText }) }),
+    onSuccess: () => { setCommentText(""); refetchComments(); },
+    onError: (e: any) => toast(e.message, "error"),
+  });
+
+  const timeAgo = (date: string) => {
+    const diff = Date.now() - new Date(date).getTime();
+    if (diff < 60000) return "just now";
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    return `${Math.floor(diff / 86400000)}d ago`;
+  };
+
+  const totalReactions = post.totalReactions || 0;
+  const dominantReaction = totalReactions > 0
+    ? REACTIONS.find(r => r.key === Object.entries(post.reactionCounts || {}).sort((a: any, b: any) => b[1] - a[1])[0]?.[0])
+    : null;
+
+  return (
+    <div className="rounded-2xl border border-[#1e2130] bg-[#111318] overflow-hidden hover:border-[#7C3AED]/20 transition-colors">
+      <div className="p-4">
+        <div className="flex items-start gap-3 mb-3">
+          <Avatar name={post.author?.name || "U"} size={38} />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-semibold text-[#e8eaf0]">{post.author?.name || "User"}</p>
+              <span className="text-[10px] font-bold bg-[#7C3AED]/20 text-[#a78bfa] rounded-full px-1.5 py-0.5">Lv.{post.author?.level || 1}</span>
+            </div>
+            <p className="text-xs text-[#4a4f62]">{post.createdAt ? timeAgo(post.createdAt) : ""}</p>
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            {post.userId === currentUserId && (
+              <button onClick={() => { if (confirm("Delete this post?")) del.mutate(); }}
+                className="rounded-lg p-1.5 text-[#4a4f62] hover:text-red-400 hover:bg-red-900/20 transition-colors">
+                <Trash2 size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <p className="text-sm text-[#d4d6e0] leading-relaxed whitespace-pre-wrap">{post.content}</p>
+
+        {post.type === "achievement" && post.metadata && (
+          <div className="mt-3 rounded-xl bg-amber-500/10 border border-amber-500/20 p-3 flex items-center gap-2">
+            <span className="text-2xl">{post.metadata.icon || "🏆"}</span>
+            <div><p className="text-xs font-bold text-amber-400">{post.metadata.title || "Achievement"}</p><p className="text-[11px] text-amber-300/60">{post.metadata.description}</p></div>
+          </div>
+        )}
+      </div>
+
+      <div className="px-4 pb-3 flex items-center gap-1 border-t border-[#1e2130] pt-3">
+        {/* Reaction button */}
+        <div className="relative">
+          <button
+            onMouseEnter={() => setShowReactions(true)}
+            onMouseLeave={() => setShowReactions(false)}
+            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${post.myReaction ? "bg-[#7C3AED]/20 text-[#a78bfa]" : "text-[#4a4f62] hover:bg-[#1e2130] hover:text-[#e8eaf0]"}`}
+          >
+            <span>{dominantReaction?.emoji || "🔥"}</span>
+            <span>{totalReactions > 0 ? totalReactions : ""}</span>
+            {!post.myReaction && <span>React</span>}
+            {post.myReaction && <span>{REACTIONS.find(r => r.key === post.myReaction)?.emoji}</span>}
+          </button>
+          {showReactions && (
+            <div
+              onMouseEnter={() => setShowReactions(true)}
+              onMouseLeave={() => setShowReactions(false)}
+              className="absolute bottom-full left-0 mb-1 z-10 flex gap-1 bg-[#0a0c12] border border-[#1e2130] rounded-xl px-2 py-1.5 shadow-xl"
+            >
+              {REACTIONS.map(r => (
+                <button key={r.key} onClick={() => react.mutate(r.key)} title={r.label}
+                  className={`text-lg hover:scale-125 transition-transform rounded-lg p-0.5 ${post.myReaction === r.key ? "bg-[#7C3AED]/30 ring-1 ring-[#7C3AED]" : ""}`}>
+                  {r.emoji}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <button onClick={() => setShowComments(s => !s)}
+          className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${showComments ? "bg-[#1e2130] text-[#e8eaf0]" : "text-[#4a4f62] hover:bg-[#1e2130] hover:text-[#e8eaf0]"}`}>
+          <MessageCircle size={13} />
+          <span>{post.commentCount > 0 ? post.commentCount : "Comment"}</span>
+        </button>
+
+        <button onClick={() => save.mutate()}
+          className={`ml-auto rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${post.isSaved ? "text-amber-400 bg-amber-500/10" : "text-[#4a4f62] hover:bg-[#1e2130] hover:text-[#e8eaf0]"}`}>
+          <Bookmark size={13} />
+        </button>
+      </div>
+
+      {showComments && (
+        <div className="px-4 pb-4 space-y-3 border-t border-[#1e2130] pt-3">
+          {(comments as any[]).map((c: any) => (
+            <div key={c.id} className="flex gap-2">
+              <Avatar name={c.authorName || "U"} size={24} />
+              <div className="flex-1 bg-[#0a0c12] rounded-xl px-3 py-2">
+                <p className="text-xs font-semibold text-[#a78bfa]">{c.authorName || "User"}</p>
+                <p className="text-xs text-[#d4d6e0] mt-0.5">{c.content}</p>
+              </div>
+            </div>
+          ))}
+          <div className="flex gap-2">
+            <input value={commentText} onChange={e => setCommentText(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && commentText.trim()) { e.preventDefault(); addComment.mutate(); } }}
+              placeholder="Write a comment…"
+              className="flex-1 rounded-xl border border-[#1e2130] bg-[#0a0c12] px-3 py-1.5 text-xs text-[#e8eaf0] placeholder-[#3a3d4a] outline-none focus:border-[#7C3AED]" />
+            <button onClick={() => commentText.trim() && addComment.mutate()} disabled={!commentText.trim()} className="rounded-xl bg-[#7C3AED] px-3 py-1.5 text-white disabled:opacity-50 hover:bg-[#6d31d4]">
+              <Send size={12} />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CreatePostBox({ currentUserId, onCreated }: { currentUserId: string; onCreated: () => void }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [content, setContent] = useState("");
+  const [type, setType] = useState("general");
+
+  const create = useMutation({
+    mutationFn: () => apiFetch("/api/posts", { method: "POST", body: JSON.stringify({ content: content.trim(), type }) }),
+    onSuccess: () => { setContent(""); setOpen(false); toast("Post shared! 🎉", "success"); onCreated(); },
+    onError: (e: any) => toast(e.message, "error"),
+  });
+
+  if (!open) return (
+    <button onClick={() => setOpen(true)} className="w-full flex items-center gap-3 rounded-2xl border border-[#1e2130] bg-[#111318] p-4 text-left hover:border-[#7C3AED]/40 transition-colors mb-4">
+      <div className="h-9 w-9 rounded-full bg-[#7C3AED]/20 border border-[#7C3AED]/30 flex items-center justify-center shrink-0"><Edit3 size={15} className="text-[#a78bfa]" /></div>
+      <span className="text-sm text-[#3a3d4a]">Share your progress, thoughts, or wins…</span>
+    </button>
+  );
+
+  return (
+    <div className="rounded-2xl border border-[#7C3AED]/40 bg-[#111318] p-4 mb-4">
+      <div className="flex gap-2 mb-3">
+        {["general", "study_log", "achievement", "question"].map(t => (
+          <button key={t} onClick={() => setType(t)} className={`rounded-lg px-2.5 py-1 text-xs font-medium capitalize transition-all ${type === t ? "bg-[#7C3AED] text-white" : "bg-[#0a0c12] text-[#4a4f62] hover:text-[#e8eaf0] border border-[#1e2130]"}`}>
+            {t === "study_log" ? "📝 Log" : t === "achievement" ? "🏆 Win" : t === "question" ? "❓ Ask" : "💬 Share"}
+          </button>
+        ))}
+      </div>
+      <textarea value={content} onChange={e => setContent(e.target.value)}
+        placeholder="What's on your mind? Share a study update, win, or question…"
+        rows={3}
+        className="w-full rounded-xl border border-[#1e2130] bg-[#0a0c12] px-3 py-2 text-sm text-[#e8eaf0] placeholder-[#3a3d4a] outline-none focus:border-[#7C3AED] resize-none" />
+      <div className="flex justify-between items-center mt-2">
+        <span className={`text-xs ${content.length > 1800 ? "text-red-400" : "text-[#3a3d4a]"}`}>{content.length}/2000</span>
+        <div className="flex gap-2">
+          <button onClick={() => { setOpen(false); setContent(""); }} className="rounded-lg px-3 py-1.5 text-xs text-[#4a4f62] hover:text-[#e8eaf0]">Cancel</button>
+          <button onClick={() => content.trim() && create.mutate()} disabled={!content.trim() || create.isPending || content.length > 2000}
+            className="rounded-xl bg-[#7C3AED] px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-50 hover:bg-[#6d31d4]">
+            {create.isPending ? "Posting…" : "Post"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SocialPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
-  const [tab, setTab] = useState<"friends" | "requests" | "leaderboard" | "activity" | "following">("friends");
+  const { data: session } = useAuth();
+  const currentUserId = (session as any)?.user?.id ?? "";
+  const [tab, setTab] = useState<"feed" | "friends" | "requests" | "leaderboard" | "activity" | "following">("feed");
+  const [feedType, setFeedType] = useState<"following" | "discover" | "saved">("following");
   const [searchQ, setSearchQ] = useState("");
   const [addQ, setAddQ] = useState("");
   const [period, setPeriod] = useState<"daily" | "weekly" | "monthly" | "alltime">("weekly");
@@ -73,6 +277,7 @@ export default function SocialPage() {
   const { data: activity = [] } = useQuery({ queryKey: ["social-activity"], queryFn: () => apiFetch("/api/social/activity"), staleTime: 60_000, enabled: tab === "activity" });
   const { data: following = [] } = useQuery({ queryKey: ["social-following"], queryFn: () => apiFetch("/api/social/following"), staleTime: 60_000, enabled: tab === "following" });
   const { data: followers = [] } = useQuery({ queryKey: ["social-followers"], queryFn: () => apiFetch("/api/social/followers"), staleTime: 60_000, enabled: tab === "following" });
+  const { data: feed = [], refetch: refetchFeed, isLoading: feedLoading } = useQuery({ queryKey: ["feed", feedType], queryFn: () => apiFetch(`/api/feed?type=${feedType}`), staleTime: 30_000, enabled: tab === "feed" });
 
   const followUser = useMutation({
     mutationFn: (userId: string) => apiFetch(`/api/social/follow/${userId}`, { method: "POST" }),
@@ -108,10 +313,11 @@ export default function SocialPage() {
 
   const incoming = requests?.incoming ?? [];
   const outgoing = requests?.outgoing ?? [];
-  const TABS: Array<{ id: "friends" | "requests" | "leaderboard" | "activity" | "following"; label: string; icon: ElementType; count?: number }> = [
+  const TABS: Array<{ id: "feed" | "friends" | "requests" | "leaderboard" | "activity" | "following"; label: string; icon: ElementType; count?: number }> = [
+    { id: "feed", label: "Feed", icon: Newspaper },
     { id: "friends", label: "Friends", icon: Users, count: friends.length },
     { id: "requests", label: "Requests", icon: UserPlus, count: incoming.length || undefined },
-    { id: "leaderboard", label: "Leaderboard", icon: Trophy },
+    { id: "leaderboard", label: "Board", icon: Trophy },
     { id: "activity", label: "Activity", icon: Activity },
     { id: "following", label: "Follow", icon: Rss, count: (followers as any[]).length || undefined },
   ];
@@ -155,6 +361,41 @@ export default function SocialPage() {
           </button>
         ))}
       </div>
+
+      {tab === "feed" && (
+        <div>
+          <div className="flex gap-1 mb-4">
+            {(["following", "discover", "saved"] as const).map(t => (
+              <button key={t} onClick={() => setFeedType(t)}
+                className={`flex-1 rounded-lg py-1.5 text-xs font-medium capitalize transition-all ${feedType === t ? "bg-[#7C3AED] text-white" : "bg-[#111318] text-[#5a5f72] hover:text-[#e8eaf0] border border-[#1e2130]"}`}>
+                {t === "following" ? "📣 Following" : t === "discover" ? "🔍 Discover" : "🔖 Saved"}
+              </button>
+            ))}
+          </div>
+          <CreatePostBox currentUserId={currentUserId} onCreated={() => qc.invalidateQueries({ queryKey: ["feed"] })} />
+          {feedLoading ? (
+            <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-32 animate-pulse rounded-2xl bg-[#111318]" />)}</div>
+          ) : (feed as any[]).length === 0 ? (
+            <div className="text-center py-16">
+              <p className="text-4xl mb-4">📰</p>
+              <p className="text-lg font-semibold text-[#e8eaf0] mb-2">{feedType === "saved" ? "No saved posts" : feedType === "following" ? "Your feed is empty" : "Nothing here yet"}</p>
+              <p className="text-sm text-[#4a4f62] mb-4">{feedType === "following" ? "Follow people to see their posts here" : "Be the first to post!"}</p>
+              {feedType === "following" && <button onClick={() => setFeedType("discover")} className="rounded-xl bg-[#7C3AED] px-5 py-2 text-sm font-semibold text-white hover:bg-[#6d31d4]">Discover People</button>}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {(feed as any[]).map((p: any) => (
+                <PostCard
+                  key={p.id} post={p} currentUserId={currentUserId}
+                  onReacted={() => qc.invalidateQueries({ queryKey: ["feed", feedType] })}
+                  onSaved={() => qc.invalidateQueries({ queryKey: ["feed", feedType] })}
+                  onDeleted={() => qc.invalidateQueries({ queryKey: ["feed", feedType] })}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {tab === "friends" && (
         <div className="space-y-2">

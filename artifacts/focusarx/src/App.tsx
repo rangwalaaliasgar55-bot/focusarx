@@ -63,6 +63,10 @@ const GroupsPage = lazy(() => import("@/pages/groups"));
 const BattlePassPage = lazy(() => import("@/pages/battle-pass"));
 const AiInsightsPage = lazy(() => import("@/pages/ai-insights"));
 const UserProfilePage = lazy(() => import("@/pages/user-profile"));
+const HabitsPage = lazy(() => import("@/pages/habits"));
+const MessagesPage = lazy(() => import("@/pages/messages"));
+const ShopPage = lazy(() => import("@/pages/shop"));
+const GoalsPage = lazy(() => import("@/pages/goals"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -337,6 +341,10 @@ function AppWithPalette() {
               <Route path="/social" component={() => <ErrorBoundary><ProtectedRoute component={SocialPage} /></ErrorBoundary>} />
               <Route path="/notifications" component={() => <ErrorBoundary><ProtectedRoute component={NotificationsPage} /></ErrorBoundary>} />
               <Route path="/groups" component={() => <ErrorBoundary><ProtectedRoute component={GroupsPage} /></ErrorBoundary>} />
+              <Route path="/habits" component={() => <ErrorBoundary><ProtectedRoute component={HabitsPage} /></ErrorBoundary>} />
+              <Route path="/messages" component={() => <ErrorBoundary><ProtectedRoute component={MessagesPage} /></ErrorBoundary>} />
+              <Route path="/shop" component={() => <ErrorBoundary><ProtectedRoute component={ShopPage} /></ErrorBoundary>} />
+              <Route path="/goals" component={() => <ErrorBoundary><ProtectedRoute component={GoalsPage} /></ErrorBoundary>} />
 
               {/* Retention */}
               <Route path="/battle-pass" component={() => <ErrorBoundary><ProtectedRoute component={BattlePassPage} /></ErrorBoundary>} />

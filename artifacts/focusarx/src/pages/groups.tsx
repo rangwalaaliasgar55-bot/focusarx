@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getToken } from "@/lib/auth";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
-import { Users, Plus, Globe, Lock, Trophy, ArrowRight, X, Crown, Shield, Hash } from "lucide-react";
+import { Users, Plus, Globe, Lock, Trophy, ArrowRight, X, Crown, Shield, Hash, Video, Zap, ChevronRight, Radio } from "lucide-react";
 
 async function apiFetch(path: string, opts?: RequestInit) {
   const token = getToken();
@@ -100,13 +100,16 @@ export default function GroupsPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const { data: session } = useAuth();
-  const [tab, setTab] = useState<"discover" | "mine">("discover");
+  const [tab, setTab] = useState<"discover" | "mine" | "rooms">("discover");
   const [showCreate, setShowCreate] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   const [search, setSearch] = useState("");
 
   const { data: allGroups = [], isLoading } = useQuery({ queryKey: ["groups-all"], queryFn: () => apiFetch("/api/groups"), staleTime: 30_000 });
   const { data: myGroups = [] } = useQuery({ queryKey: ["groups-mine"], queryFn: () => apiFetch("/api/groups/mine"), staleTime: 30_000 });
+  const { data: studyRooms = [], isLoading: roomsLoading, refetch: refetchRooms } = useQuery({ queryKey: ["study-rooms"], queryFn: () => apiFetch("/api/study-rooms"), staleTime: 15_000, enabled: tab === "rooms" });
+  const [showCreateRoom, setShowCreateRoom] = useState(false);
+  const [joinCode, setJoinCode] = useState("");
 
   const joinGroup = useMutation({
     mutationFn: (id: string) => apiFetch(`/api/groups/${id}/join`, { method: "POST" }),
@@ -124,6 +127,29 @@ export default function GroupsPage() {
     mutationFn: (data: any) => apiFetch("/api/groups", { method: "POST", body: JSON.stringify(data) }),
     onSuccess: () => { toast("Group created!", "success"); setShowCreate(false); qc.invalidateQueries({ queryKey: ["groups-mine"] }); qc.invalidateQueries({ queryKey: ["groups-all"] }); },
     onError: (e: any) => toast(e.message, "error"),
+  });
+
+  const createRoom = useMutation({
+    mutationFn: (data: any) => apiFetch("/api/study-rooms", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => { toast("Study room created! 🚀", "success"); qc.invalidateQueries({ queryKey: ["study-rooms"] }); setShowCreateRoom(false); },
+    onError: (e: any) => toast(e.message, "error"),
+  });
+
+  const joinRoom = useMutation({
+    mutationFn: (id: string) => apiFetch(`/api/study-rooms/${id}/join`, { method: "POST" }),
+    onSuccess: () => { toast("Joined room!", "success"); qc.invalidateQueries({ queryKey: ["study-rooms"] }); },
+    onError: (e: any) => toast(e.message, "error"),
+  });
+
+  const joinRoomByCode = useMutation({
+    mutationFn: () => apiFetch("/api/study-rooms/join-code", { method: "POST", body: JSON.stringify({ inviteCode: joinCode }) }),
+    onSuccess: () => { toast("Joined room!", "success"); setJoinCode(""); qc.invalidateQueries({ queryKey: ["study-rooms"] }); },
+    onError: (e: any) => toast(e.message, "error"),
+  });
+
+  const leaveRoom = useMutation({
+    mutationFn: (id: string) => apiFetch(`/api/study-rooms/${id}/leave`, { method: "DELETE" }),
+    onSuccess: () => { toast("Left room", "success"); qc.invalidateQueries({ queryKey: ["study-rooms"] }); },
   });
 
   const myGroupIds = new Set(myGroups.map((g: any) => g.id));
@@ -165,6 +191,9 @@ export default function GroupsPage() {
         <button onClick={() => setTab("mine")} className={`flex-1 rounded-lg py-2 text-xs font-medium transition-all ${tab === "mine" ? "bg-[#7C3AED] text-white" : "text-[#5a5f72] hover:text-[#e8eaf0]"}`}>
           <Users size={12} className="inline mr-1.5" />My Groups {myGroups.length > 0 && `(${myGroups.length})`}
         </button>
+        <button onClick={() => setTab("rooms")} className={`flex-1 rounded-lg py-2 text-xs font-medium transition-all ${tab === "rooms" ? "bg-[#7C3AED] text-white" : "text-[#5a5f72] hover:text-[#e8eaf0]"}`}>
+          <Radio size={12} className="inline mr-1.5" />Study Rooms
+        </button>
       </div>
 
       {tab === "discover" && (
@@ -200,6 +229,75 @@ export default function GroupsPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {tab === "rooms" && (
+        <div>
+          <div className="flex gap-2 mb-4">
+            <div className="relative flex-1">
+              <Hash size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4a4f62]" />
+              <input value={joinCode} onChange={e => setJoinCode(e.target.value.toUpperCase())} placeholder="Join by code…" maxLength={6}
+                className="w-full rounded-xl border border-[#1e2130] bg-[#111318] pl-8 pr-3 py-2 text-sm text-[#e8eaf0] uppercase tracking-widest outline-none focus:border-[#7C3AED]" />
+            </div>
+            <button onClick={() => joinRoomByCode.mutate()} disabled={joinCode.length < 4 || joinRoomByCode.isPending}
+              className="rounded-xl bg-[#7C3AED]/20 border border-[#7C3AED]/30 px-3 py-2 text-sm text-[#a78bfa] disabled:opacity-50 hover:bg-[#7C3AED]/30 font-semibold">
+              Join
+            </button>
+            <button onClick={() => createRoom.mutate({ name: "Quick Study Room", mode: "silent", isPublic: true })}
+              className="flex items-center gap-1.5 rounded-xl bg-[#7C3AED] px-3 py-2 text-sm font-semibold text-white hover:bg-[#6d31d4]">
+              <Plus size={14} /> Create
+            </button>
+          </div>
+
+          {roomsLoading ? (
+            <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-24 animate-pulse rounded-2xl bg-[#111318]" />)}</div>
+          ) : (studyRooms as any[]).length === 0 ? (
+            <div className="text-center py-16">
+              <Radio size={40} className="mx-auto mb-4 text-[#7C3AED] opacity-30" />
+              <p className="text-lg font-semibold text-[#e8eaf0] mb-2">No active rooms</p>
+              <p className="text-sm text-[#4a4f62] mb-5">Start a study room and invite others to join</p>
+              <button onClick={() => createRoom.mutate({ name: "My Study Room", mode: "silent", isPublic: true })}
+                className="rounded-xl bg-[#7C3AED] px-5 py-2 text-sm font-semibold text-white hover:bg-[#6d31d4]">
+                Create a Room
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {(studyRooms as any[]).map((r: any) => (
+                <div key={r.id} className="rounded-2xl border border-[#1e2130] bg-[#111318] p-4 hover:border-[#7C3AED]/30 transition-all">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-[#e8eaf0]">{r.name}</p>
+                        <span className="text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full px-2 py-0.5">LIVE</span>
+                      </div>
+                      <div className="flex items-center gap-3 mt-1">
+                        <span className="text-xs text-[#4a4f62] capitalize">{r.mode?.replace("_", " ")}</span>
+                        <span className="text-xs text-[#4a4f62]">👤 {r.participantCount}/{r.maxParticipants}</span>
+                        <span className="text-xs text-[#4a4f62]">by {r.hostName}</span>
+                      </div>
+                    </div>
+                    <button onClick={() => joinRoom.mutate(r.id)} disabled={joinRoom.isPending}
+                      className="shrink-0 rounded-xl bg-[#7C3AED] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#6d31d4] disabled:opacity-50">
+                      Join
+                    </button>
+                  </div>
+                  {r.participants?.length > 0 && (
+                    <div className="flex gap-1 flex-wrap">
+                      {r.participants.slice(0, 8).map((p: any) => (
+                        <div key={p.userId} className="text-[10px] bg-[#0a0c12] text-[#5a5f72] border border-[#1e2130] rounded-lg px-1.5 py-0.5 flex items-center gap-1">
+                          <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                          {p.name}
+                        </div>
+                      ))}
+                      {r.participants.length > 8 && <span className="text-[10px] text-[#4a4f62]">+{r.participants.length - 8} more</span>}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

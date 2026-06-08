@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
-import { User, Award, Zap, Star, Lock } from "lucide-react";
+import { User, Award, Zap, Lock, Pencil, X, Save, ShoppingBag, Globe, FileText } from "lucide-react";
+import { Link } from "wouter";
 
 type BadgeDef = {
   id: string;
@@ -45,6 +46,15 @@ const TIER_COLORS = {
   gold:      { text: "#F59E0B", bg: "rgba(245,158,11,0.12)",  border: "rgba(245,158,11,0.3)"  },
   legendary: { text: "#A78BFA", bg: "rgba(167,139,250,0.12)", border: "rgba(167,139,250,0.4)" },
 };
+
+const TIMEZONES = [
+  "UTC", "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
+  "America/Toronto", "America/Vancouver", "America/Sao_Paulo", "Europe/London", "Europe/Paris",
+  "Europe/Berlin", "Europe/Madrid", "Europe/Rome", "Europe/Amsterdam", "Europe/Stockholm",
+  "Europe/Helsinki", "Europe/Moscow", "Asia/Dubai", "Asia/Kolkata", "Asia/Bangkok",
+  "Asia/Shanghai", "Asia/Tokyo", "Asia/Seoul", "Asia/Singapore", "Australia/Sydney",
+  "Australia/Melbourne", "Pacific/Auckland",
+];
 
 function getLevel(totalXp: number) {
   return Math.floor(Math.sqrt(totalXp / 100)) + 1;
@@ -142,6 +152,113 @@ function BadgeCard({ badge }: { badge: BadgeDef }) {
   );
 }
 
+type EditFields = { name: string; bio: string; timezone: string };
+
+function EditProfileModal({
+  initial,
+  onClose,
+  onSave,
+}: {
+  initial: EditFields;
+  onClose: () => void;
+  onSave: (f: EditFields) => Promise<void>;
+}) {
+  const [fields, setFields] = useState<EditFields>(initial);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      await onSave(fields);
+      onClose();
+    } catch (err: any) {
+      setError(err.message ?? "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="relative z-10 w-full max-w-md rounded-2xl border border-[rgba(124,58,237,0.25)] bg-[#0f1118] p-6 shadow-2xl"
+      >
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-base font-bold text-[#E2E8F0] flex items-center gap-2">
+            <Pencil size={14} className="text-[#7C3AED]" /> Edit Profile
+          </h2>
+          <button onClick={onClose} className="text-[#4B5563] hover:text-[#94A3B8] transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs text-[#4B5563] mb-1.5">Display Name</label>
+            <input
+              value={fields.name}
+              onChange={e => setFields(f => ({ ...f, name: e.target.value }))}
+              maxLength={60}
+              placeholder="Your name"
+              className="w-full rounded-xl border border-[rgba(124,58,237,0.2)] bg-[rgba(124,58,237,0.06)] px-3 py-2.5 text-sm text-[#E2E8F0] placeholder-[#4B5563] focus:border-[#7C3AED] focus:outline-none transition-colors"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs text-[#4B5563] mb-1.5 flex items-center gap-1.5">
+              <FileText size={11} /> Bio <span className="ml-auto text-[#3a3d4a]">{fields.bio.length}/300</span>
+            </label>
+            <textarea
+              value={fields.bio}
+              onChange={e => setFields(f => ({ ...f, bio: e.target.value }))}
+              maxLength={300}
+              rows={3}
+              placeholder="A short bio about yourself…"
+              className="w-full rounded-xl border border-[rgba(124,58,237,0.2)] bg-[rgba(124,58,237,0.06)] px-3 py-2.5 text-sm text-[#E2E8F0] placeholder-[#4B5563] focus:border-[#7C3AED] focus:outline-none transition-colors resize-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs text-[#4B5563] mb-1.5 flex items-center gap-1.5">
+              <Globe size={11} /> Timezone
+            </label>
+            <select
+              value={fields.timezone}
+              onChange={e => setFields(f => ({ ...f, timezone: e.target.value }))}
+              className="w-full rounded-xl border border-[rgba(124,58,237,0.2)] bg-[#0f1118] px-3 py-2.5 text-sm text-[#E2E8F0] focus:border-[#7C3AED] focus:outline-none transition-colors"
+            >
+              {TIMEZONES.map(tz => (
+                <option key={tz} value={tz}>{tz}</option>
+              ))}
+            </select>
+          </div>
+
+          {error && <p className="text-xs text-red-400">{error}</p>}
+
+          <div className="flex gap-2 pt-1">
+            <button type="button" onClick={onClose}
+              className="flex-1 rounded-xl border border-[rgba(124,58,237,0.2)] py-2.5 text-sm text-[#94A3B8] hover:text-[#E2E8F0] transition-colors">
+              Cancel
+            </button>
+            <button type="submit" disabled={saving}
+              className="flex-1 rounded-xl bg-[#7C3AED] py-2.5 text-sm font-semibold text-white hover:bg-[#6d31d4] disabled:opacity-60 transition-colors flex items-center justify-center gap-2">
+              <Save size={13} />
+              {saving ? "Saving…" : "Save Changes"}
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </div>
+  );
+}
+
 export default function ProfilePage() {
   const { status, data: authData } = useAuth();
   const [wallet, setWallet] = useState<WalletData | null>(null);
@@ -151,6 +268,11 @@ export default function ProfilePage() {
   const [filter, setFilter] = useState<"all" | "unlocked" | "locked">("all");
   const [newlyUnlocked, setNewlyUnlocked] = useState<BadgeDef[]>([]);
   const [showUnlock, setShowUnlock] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [localName, setLocalName] = useState("");
+  const [localBio, setLocalBio] = useState("");
+  const [localTimezone, setLocalTimezone] = useState("UTC");
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -161,8 +283,9 @@ export default function ProfilePage() {
     Promise.all([
       fetch("/api/gamification/wallet", { headers }).then((r) => r.json()),
       fetch("/api/gamification/badges", { headers }).then((r) => r.json()),
+      fetch("/api/auth/session", { headers }).then((r) => r.json()),
     ])
-      .then(([walletData, badgeData]) => {
+      .then(([walletData, badgeData, sessionData]) => {
         setWallet(walletData as WalletData);
         const bd = (badgeData as { badges: BadgeDef[]; stats: UserStats });
         setBadges(bd.badges);
@@ -173,6 +296,10 @@ export default function ProfilePage() {
           setShowUnlock(true);
           setTimeout(() => setShowUnlock(false), 4000);
         }
+        const u = sessionData?.user;
+        setLocalName(u?.name ?? "");
+        setLocalBio(u?.bio ?? "");
+        setLocalTimezone(u?.timezone ?? "UTC");
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -185,6 +312,24 @@ export default function ProfilePage() {
     return true;
   });
   const unlockedCount = badges.filter((b) => b.unlocked).length;
+
+  async function handleSaveProfile(fields: EditFields) {
+    const token = getToken();
+    const res = await fetch("/api/auth/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(fields),
+    });
+    if (!res.ok) {
+      const t = await res.text();
+      throw new Error(t || "Save failed");
+    }
+    setLocalName(fields.name);
+    setLocalBio(fields.bio);
+    setLocalTimezone(fields.timezone);
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 3000);
+  }
 
   return (
     <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow">
@@ -208,15 +353,47 @@ export default function ProfilePage() {
             </div>
           </motion.div>
         )}
+        {saveSuccess && (
+          <motion.div
+            key="save-success"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-3 backdrop-blur-xl shadow-2xl"
+          >
+            <span className="text-xl">✅</span>
+            <p className="text-xs font-bold text-emerald-400">Profile saved!</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit profile modal */}
+      <AnimatePresence>
+        {showEdit && (
+          <EditProfileModal
+            initial={{ name: localName, bio: localBio, timezone: localTimezone }}
+            onClose={() => setShowEdit(false)}
+            onSave={handleSaveProfile}
+          />
+        )}
       </AnimatePresence>
 
       <main className="relative z-10 mx-auto max-w-2xl px-4 py-10">
         <PageTransition>
-          <header className="mb-8">
-            <p className="text-xs font-medium uppercase tracking-[0.22em] text-[#4B5563]">Identity</p>
-            <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold text-[#E2E8F0] sm:text-3xl">
-              <User size={22} className="text-[#A78BFA]" /> Profile
-            </h1>
+          <header className="mb-8 flex items-start justify-between">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.22em] text-[#4B5563]">Identity</p>
+              <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold text-[#E2E8F0] sm:text-3xl">
+                <User size={22} className="text-[#A78BFA]" /> Profile
+              </h1>
+            </div>
+            <Link
+              to="/shop"
+              className="flex items-center gap-1.5 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-400 hover:bg-amber-500/20 transition-colors"
+            >
+              <ShoppingBag size={13} />
+              Coin Shop
+            </Link>
           </header>
 
           {loading && (
@@ -233,26 +410,42 @@ export default function ProfilePage() {
 
           {!loading && status === "authenticated" && wallet && (
             <div className="space-y-6">
-              {/* User info */}
-              <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 flex items-center gap-4 backdrop-blur-xl">
-                <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] flex items-center justify-center text-xl font-black text-white shrink-0">
-                  {(user?.name?.slice(0, 1) || user?.email?.slice(0, 1) || "?").toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-[#E2E8F0] truncate">{user?.name || user?.email?.split("@")[0] || "User"}</p>
-                  <p className="text-xs text-[#4B5563] truncate">{user?.email || ""}</p>
-                </div>
-                <div className="flex gap-4 shrink-0 text-center">
-                  <div>
-                    <p className="text-base font-bold text-[#A78BFA]">{wallet.coins}</p>
-                    <p className="text-[9px] text-[#4B5563]">Coins</p>
+              {/* User info card */}
+              <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
+                <div className="flex items-center gap-4">
+                  <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] flex items-center justify-center text-xl font-black text-white shrink-0">
+                    {(localName?.slice(0, 1) || user?.name?.slice(0, 1) || user?.email?.slice(0, 1) || "?").toUpperCase()}
                   </div>
-                  {wallet.rank && (
-                    <div>
-                      <p className="text-base font-bold text-amber-400">#{wallet.rank}</p>
-                      <p className="text-[9px] text-[#4B5563]">Rank</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-[#E2E8F0] truncate">{localName || user?.name || user?.email?.split("@")[0] || "User"}</p>
+                    <p className="text-xs text-[#4B5563] truncate">{user?.email || ""}</p>
+                    {localBio && <p className="text-xs text-[#6B7280] mt-1 line-clamp-2">{localBio}</p>}
+                    {localTimezone !== "UTC" && (
+                      <p className="text-[10px] text-[#4B5563] mt-0.5 flex items-center gap-1">
+                        <Globe size={9} /> {localTimezone}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end gap-2 shrink-0">
+                    <div className="flex gap-3 text-center">
+                      <div>
+                        <p className="text-base font-bold text-[#A78BFA]">{wallet.coins.toLocaleString()}</p>
+                        <p className="text-[9px] text-[#4B5563]">Coins</p>
+                      </div>
+                      {wallet.rank && (
+                        <div>
+                          <p className="text-base font-bold text-amber-400">#{wallet.rank}</p>
+                          <p className="text-[9px] text-[#4B5563]">Rank</p>
+                        </div>
+                      )}
                     </div>
-                  )}
+                    <button
+                      onClick={() => setShowEdit(true)}
+                      className="flex items-center gap-1.5 rounded-xl border border-[rgba(124,58,237,0.2)] px-2.5 py-1.5 text-[11px] font-medium text-[#7C3AED] hover:bg-[rgba(124,58,237,0.08)] transition-colors"
+                    >
+                      <Pencil size={11} /> Edit
+                    </button>
+                  </div>
                 </div>
               </div>
 

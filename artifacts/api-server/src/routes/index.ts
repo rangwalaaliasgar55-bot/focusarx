@@ -28,6 +28,12 @@ import { groupsRouter } from "./groups";
 import { retentionRouter } from "./retention";
 import { publicProfilesRouter } from "./publicProfiles";
 import { aiInsightsRouter } from "./aiInsights";
+import { habitsRouter } from "./habits";
+import { postsRouter } from "./posts";
+import { studyRoomsRouter } from "./studyRooms";
+import { dmRouter } from "./dm";
+import { shopRouter } from "./shop";
+import { goalsRouter } from "./goals";
 
 const router: IRouter = Router();
 
@@ -60,5 +66,11 @@ router.use(groupsRouter);
 router.use(retentionRouter);
 router.use(publicProfilesRouter);
 router.use(aiInsightsRouter);
+router.use(habitsRouter);
+router.use(postsRouter);
+router.use(studyRoomsRouter);
+router.use(dmRouter);
+router.use(shopRouter);
+router.use(goalsRouter);
 
 export default router;

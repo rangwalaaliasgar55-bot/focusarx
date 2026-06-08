@@ -462,3 +462,157 @@ export const followsTable = pgTable("follows", {
 ]);
 
 export type Follow = typeof followsTable.$inferSelect;
+
+// ─── HABITS ────────────────────────────────────────────────────────────────────
+
+export const habitsTable = pgTable("habits", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  icon: text("icon").notNull().default("⭐"),
+  color: text("color").notNull().default("#7C3AED"),
+  frequency: text("frequency").notNull().default("daily"),
+  targetDays: jsonb("target_days").$type<number[]>().default([0,1,2,3,4,5,6]),
+  currentStreak: integer("current_streak").notNull().default(0),
+  longestStreak: integer("longest_streak").notNull().default(0),
+  totalCompletions: integer("total_completions").notNull().default(0),
+  isArchived: boolean("is_archived").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [index("habits_user_idx").on(t.userId)]);
+
+export type Habit = typeof habitsTable.$inferSelect;
+
+export const habitCompletionsTable = pgTable("habit_completions", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  habitId: text("habit_id").notNull().references(() => habitsTable.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  date: text("date").notNull(),
+  note: text("note"),
+  completedAt: timestamp("completed_at").defaultNow().notNull(),
+}, (t) => [
+  index("habit_completions_habit_idx").on(t.habitId),
+  index("habit_completions_user_date_idx").on(t.userId, t.date),
+]);
+
+export type HabitCompletion = typeof habitCompletionsTable.$inferSelect;
+
+// ─── STUDY ROOMS ───────────────────────────────────────────────────────────────
+
+export const studyRoomsTable = pgTable("study_rooms", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  groupId: text("group_id").references(() => studyGroupsTable.id, { onDelete: "cascade" }),
+  hostId: text("host_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  mode: text("mode").notNull().default("silent"),
+  status: text("status").notNull().default("active"),
+  maxParticipants: integer("max_participants").notNull().default(50),
+  timerDuration: integer("timer_duration").notNull().default(1500),
+  ambiance: text("ambiance").notNull().default("silence"),
+  isPublic: boolean("is_public").default(true).notNull(),
+  inviteCode: text("invite_code").notNull(),
+  scheduledFor: timestamp("scheduled_for"),
+  endedAt: timestamp("ended_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("study_rooms_host_idx").on(t.hostId),
+  index("study_rooms_status_idx").on(t.status),
+]);
+
+export type StudyRoom = typeof studyRoomsTable.$inferSelect;
+
+export const studyRoomMembersTable = pgTable("study_room_members", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  roomId: text("room_id").notNull().references(() => studyRoomsTable.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  joinedAt: timestamp("joined_at").defaultNow().notNull(),
+  leftAt: timestamp("left_at"),
+  focusMinutes: integer("focus_minutes").notNull().default(0),
+  status: text("status").notNull().default("active"),
+}, (t) => [index("study_room_members_room_idx").on(t.roomId)]);
+
+export type StudyRoomMember = typeof studyRoomMembersTable.$inferSelect;
+
+// ─── SOCIAL POSTS (canonical, replacing social.ts posts) ──────────────────────
+
+export const socialPostsTable = pgTable("social_posts", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  type: text("type").notNull().default("general"),
+  imageUrls: jsonb("image_urls").$type<string[]>().default([]),
+  metadata: jsonb("metadata"),
+  groupId: text("group_id").references(() => studyGroupsTable.id, { onDelete: "set null" }),
+  isPublic: boolean("is_public").default(true).notNull(),
+  viewCount: integer("view_count").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  index("social_posts_user_idx").on(t.userId),
+  index("social_posts_created_at_idx").on(t.createdAt),
+]);
+
+export type SocialPost = typeof socialPostsTable.$inferSelect;
+
+export const postReactionsTable = pgTable("post_reactions", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  postId: text("post_id").notNull().references(() => socialPostsTable.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  reaction: text("reaction").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [index("post_reactions_post_idx").on(t.postId)]);
+
+export type PostReaction = typeof postReactionsTable.$inferSelect;
+
+export const postCommentsTable = pgTable("post_comments", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  postId: text("post_id").notNull().references(() => socialPostsTable.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  parentId: text("parent_id"),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [index("post_comments_post_idx").on(t.postId)]);
+
+export type PostComment = typeof postCommentsTable.$inferSelect;
+
+export const postSavesTable = pgTable("post_saves", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  postId: text("post_id").notNull().references(() => socialPostsTable.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [index("post_saves_post_user_idx").on(t.postId, t.userId)]);
+
+export type PostSave = typeof postSavesTable.$inferSelect;
+
+// ─── BUDDY REQUESTS ───────────────────────────────────────────────────────────
+
+export const buddyRequestsTable = pgTable("buddy_requests", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  senderId: text("sender_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  receiverId: text("receiver_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default("pending"),
+  message: text("message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [index("buddy_requests_receiver_idx").on(t.receiverId)]);
+
+export type BuddyRequest = typeof buddyRequestsTable.$inferSelect;
+
+// ─── USER PROFILE EXTRAS ──────────────────────────────────────────────────────
+
+export const userProfileExtrasTable = pgTable("user_profile_extras", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().unique().references(() => usersTable.id, { onDelete: "cascade" }),
+  bannerUrl: text("banner_url"),
+  bannerGradient: text("banner_gradient"),
+  socialLinks: jsonb("social_links").$type<Record<string, string>>().default({}),
+  featuredPostIds: jsonb("featured_post_ids").$type<string[]>().default([]),
+  pinnedBadgeIds: jsonb("pinned_badge_ids").$type<string[]>().default([]),
+  isPrivate: boolean("is_private").default(false).notNull(),
+  customStatus: text("custom_status"),
+  statusEmoji: text("status_emoji"),
+  creatorTier: text("creator_tier").notNull().default("learner"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type UserProfileExtras = typeof userProfileExtrasTable.$inferSelect;

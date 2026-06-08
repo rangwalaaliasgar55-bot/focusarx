@@ -1,6 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
-import { useLink } from "wouter";
 
 const STATS = [
   { value: "2.4M+", label: "focus sessions" },

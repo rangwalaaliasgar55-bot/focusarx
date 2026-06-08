@@ -70,7 +70,7 @@ router.get("/auth/session", async (req, res) => {
   const userId = extractUserId(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
-    const [user] = await db.select({ id: usersTable.id, email: usersTable.email, name: usersTable.name, isGuest: usersTable.isGuest, role: usersTable.role, onboardingCompleted: usersTable.onboardingCompleted }).from(usersTable).where(eq(usersTable.id, userId));
+    const [user] = await db.select({ id: usersTable.id, email: usersTable.email, name: usersTable.name, isGuest: usersTable.isGuest, role: usersTable.role, onboardingCompleted: usersTable.onboardingCompleted, bio: usersTable.bio, timezone: usersTable.timezone }).from(usersTable).where(eq(usersTable.id, userId));
     if (!user) { res.status(401).json({ error: "User not found" }); return; }
     res.json({ user });
   } catch (err) {
@@ -259,6 +259,25 @@ router.post("/auth/onboarding", async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     logger.error({ err }, "onboarding save error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+router.patch("/auth/profile", async (req, res) => {
+  const userId = extractUserId(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const { name, bio, timezone } = req.body as Record<string, unknown>;
+  const updates: Record<string, unknown> = {};
+  if (typeof name === "string" && name.trim()) updates.name = name.trim().slice(0, 60);
+  if (typeof bio === "string") updates.bio = bio.slice(0, 300);
+  if (typeof timezone === "string") updates.timezone = timezone;
+  if (Object.keys(updates).length === 0) { res.status(400).json({ error: "No valid fields to update" }); return; }
+  try {
+    await db.update(usersTable).set(updates).where(eq(usersTable.id, userId));
+    const [user] = await db.select({ id: usersTable.id, email: usersTable.email, name: usersTable.name }).from(usersTable).where(eq(usersTable.id, userId));
+    res.json({ ok: true, user });
+  } catch (err) {
+    logger.error({ err }, "profile update error");
     res.status(500).json({ error: "Internal error" });
   }
 });

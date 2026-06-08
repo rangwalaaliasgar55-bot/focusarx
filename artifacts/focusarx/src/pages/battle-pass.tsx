@@ -71,11 +71,11 @@ export default function BattlePassPage() {
     mutationFn: ({ tier, track }: { tier: number; track: "free" | "premium" }) =>
       apiFetch("/api/retention/battle-pass/claim", { method: "POST", body: JSON.stringify({ tier, track }) }),
     onSuccess: (res) => {
-      toast({ type: "success", message: `Claimed! +${res.reward.coins} coins, +${res.reward.xp} XP` });
+      toast(`Claimed! +${res.reward.coins} coins, +${res.reward.xp} XP`, "success");
       qc.invalidateQueries({ queryKey: ["battle-pass"] });
       qc.invalidateQueries({ queryKey: ["wallet"] });
     },
-    onError: (e: any) => toast({ type: "error", message: e.message }),
+    onError: (e: any) => toast(e.message, "error"),
   });
 
   if (isLoading) return <div className="flex justify-center items-center min-h-screen"><div className="h-10 w-10 animate-spin rounded-full border-2 border-[#1e2130] border-t-[#7C3AED]" /></div>;

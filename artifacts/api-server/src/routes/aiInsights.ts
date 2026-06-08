@@ -31,7 +31,7 @@ async function callGroq(systemPrompt: string, userMessage: string, maxTokens = 4
       }),
     });
     if (!resp.ok) return null;
-    const data = await resp.json();
+    const data = await resp.json() as any;
     return data.choices?.[0]?.message?.content ?? null;
   } catch {
     return null;

@@ -1,12 +1,13 @@
 import { useEffect, useState, useMemo } from "react";
 import { Link } from "wouter";
-import { useAuth } from "@/lib/auth";
+import { useAuth, getToken } from "@/lib/auth";
 import { PageTransition } from "@/components/PageTransition";
 import FocusGarden from "@/components/FocusGarden";
 import ReadinessWidget from "@/components/ReadinessWidget";
 import WeatherWidget from "@/components/WeatherWidget";
-import { LayoutDashboard, Zap, Clock, Target, Flame, CheckCircle } from "lucide-react";
+import { LayoutDashboard, Zap, Clock, Target, Flame, CheckCircle, CheckSquare, Flag, Circle, CheckCircle2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useQuery } from "@tanstack/react-query";
 
 type DashboardStats = {
   totalStudyMinutesToday: number;
@@ -128,6 +129,113 @@ function GoalRing({ sessionsToday, target = 6 }: { sessionsToday: number; target
   );
 }
 
+function DailyHabitsWidget() {
+  const { data: habits = [], isLoading } = useQuery<any[]>({
+    queryKey: ["habits-today"],
+    queryFn: async () => {
+      const token = getToken();
+      const res = await fetch("/api/habits", { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    staleTime: 60_000,
+  });
+
+  const toggle = async (id: string, doneTodayId: string | null) => {
+    const token = getToken();
+    if (doneTodayId) {
+      await fetch(`/api/habits/${id}/uncomplete`, { method: "DELETE", headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+    } else {
+      await fetch(`/api/habits/${id}/complete`, { method: "POST", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({}) });
+    }
+    // refetch handled by staleTime expiry; good enough for a widget
+  };
+
+  if (isLoading) return null;
+  if (!habits.length) return null;
+
+  const done = habits.filter((h: any) => h.doneTodayId).length;
+
+  return (
+    <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <CheckSquare size={15} className="text-[#A78BFA]" />
+          <p className="text-sm font-semibold text-[#E2E8F0]">Today's Habits</p>
+        </div>
+        <span className="text-xs font-bold text-[#A78BFA]">{done}/{habits.length}</span>
+      </div>
+      <div className="space-y-2">
+        {habits.slice(0, 6).map((h: any) => (
+          <button key={h.id} onClick={() => toggle(h.id, h.doneTodayId)}
+            className="w-full flex items-center gap-3 rounded-xl border border-[rgba(255,255,255,0.04)] bg-[rgba(255,255,255,0.02)] px-3 py-2.5 hover:bg-[rgba(124,58,237,0.05)] transition-colors text-left">
+            <span className="text-base leading-none">{h.icon}</span>
+            <span className={`flex-1 text-sm ${h.doneTodayId ? "line-through text-[#4B5563]" : "text-[#E2E8F0]"}`}>{h.name}</span>
+            {h.doneTodayId
+              ? <div className="h-4 w-4 rounded-full bg-[#7C3AED] flex items-center justify-center"><span className="text-[8px] text-white">✓</span></div>
+              : <div className="h-4 w-4 rounded-full border border-[#3a3d4a]" />}
+          </button>
+        ))}
+      </div>
+      {habits.length > 6 && (
+        <p className="mt-2 text-center text-xs text-[#4B5563]">+{habits.length - 6} more habits on <a href="/habits" className="text-[#7C3AED] hover:underline">Habits page</a></p>
+      )}
+      <div className="mt-3 h-1.5 w-full rounded-full bg-[#1a1d2e] overflow-hidden">
+        <div className="h-full rounded-full bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] transition-all" style={{ width: `${habits.length ? (done / habits.length) * 100 : 0}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function GoalsWidget() {
+  const { data, isLoading } = useQuery<{ goals: any[] }>({
+    queryKey: ["goals-widget"],
+    queryFn: async () => {
+      const token = getToken();
+      const res = await fetch("/api/goals", { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    staleTime: 120_000,
+  });
+
+  if (isLoading) return null;
+  const goals: any[] = data?.goals ?? [];
+  if (!goals.length) return null;
+  const active = goals.filter(g => !g.completed);
+  const done = goals.filter(g => g.completed).length;
+  const pct = goals.length > 0 ? Math.round((done / goals.length) * 100) : 0;
+
+  return (
+    <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Flag size={15} className="text-[#7C3AED]" />
+          <p className="text-sm font-semibold text-[#E2E8F0]">Focus Goals</p>
+        </div>
+        <Link to="/goals" className="text-[10px] text-[#7C3AED] hover:underline">{done}/{goals.length} done</Link>
+      </div>
+      <div className="space-y-2 mb-3">
+        {active.slice(0, 4).map((g: any) => (
+          <div key={g.id} className="flex items-center gap-2 text-sm text-[#94A3B8]">
+            <Circle size={12} className="text-[#4B5563] shrink-0" />
+            <span className="truncate">{g.title}</span>
+          </div>
+        ))}
+        {active.length === 0 && (
+          <div className="flex items-center gap-2 text-sm text-emerald-400">
+            <CheckCircle2 size={12} className="shrink-0" />
+            <span>All goals completed!</span>
+          </div>
+        )}
+      </div>
+      <div className="h-1.5 rounded-full bg-[#1a1d2e] overflow-hidden">
+        <div className="h-full rounded-full bg-gradient-to-r from-[#7C3AED] to-[#A78BFA] transition-all" style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
 const SESSION_EMOJIS: Record<string, string> = { focus: "🧠", break: "☕", longBreak: "🌊" };
 
 export default function DashboardPage() {
@@ -197,6 +305,12 @@ export default function DashboardPage() {
 
               {/* Focus Weather */}
               <WeatherWidget />
+
+              {/* Daily Habits Widget */}
+              <DailyHabitsWidget />
+
+              {/* Goals Widget */}
+              <GoalsWidget />
 
               {/* Readiness Widget */}
               <ReadinessWidget />

@@ -5,6 +5,7 @@ import { usersTable as users } from './focusarx';
 export const conversations = pgTable('conversations', {
   id: text('id').primaryKey(),
   type: text('type').notNull().default('direct'),
+  name: text('name'),
   groupId: text('group_id'),
   lastMessageAt: timestamp('last_message_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -14,9 +15,10 @@ export const conversations = pgTable('conversations', {
 
 export const conversationParticipants = pgTable('conversation_participants', {
   id: text('id').primaryKey(),
-  conversationId: text('conversation_id').notNull().references(() => 'conversations.id' as any, { onDelete: 'cascade' }),
+  conversationId: text('conversation_id').notNull(),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   lastReadAt: timestamp('last_read_at'),
+  isAdmin: boolean('is_admin').default(false).notNull(),
   joinedAt: timestamp('joined_at').defaultNow().notNull(),
 }, (table) => ({
   convUserIdx: index('conv_participants_conv_user_idx').on(table.conversationId, table.userId),
@@ -24,10 +26,13 @@ export const conversationParticipants = pgTable('conversation_participants', {
 
 export const messages = pgTable('messages', {
   id: text('id').primaryKey(),
-  conversationId: text('conversation_id').notNull().references(() => 'conversations.id' as any, { onDelete: 'cascade' }),
+  conversationId: text('conversation_id').notNull(),
   senderId: text('sender_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   content: text('content').notNull(),
   type: text('type').default('text'),
+  replyToId: text('reply_to_id'),
+  isEdited: boolean('is_edited').default(false).notNull(),
+  isDeleted: boolean('is_deleted').default(false).notNull(),
   metadata: jsonb('metadata'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({
@@ -35,26 +40,12 @@ export const messages = pgTable('messages', {
   createdAtIdx: index('messages_created_at_idx').on(table.createdAt),
 }));
 
-export const messageReads = pgTable('message_reads', {
+export const messageReactions = pgTable('message_reactions', {
   id: text('id').primaryKey(),
-  messageId: text('message_id').notNull().references(() => 'messages.id' as any, { onDelete: 'cascade' }),
+  messageId: text('message_id').notNull(),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  readAt: timestamp('read_at').defaultNow().notNull(),
-}, (table) => ({
-  messageUserIdx: index('message_reads_message_user_idx').on(table.messageId, table.userId),
-}));
-
-// Phase 5: Notification System
-export const notifications = pgTable('notifications', {
-  id: text('id').primaryKey(),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  type: text('type').notNull(),
-  title: text('title').notNull(),
-  body: text('body'),
-  data: jsonb('data'),
-  isRead: boolean('is_read').default(false).notNull(),
+  emoji: text('emoji').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({
-  userIdx: index('notifications_user_idx').on(table.userId),
-  createdAtIdx: index('notifications_created_at_idx').on(table.createdAt),
+  msgUserIdx: index('message_reactions_msg_user_idx').on(table.messageId, table.userId),
 }));

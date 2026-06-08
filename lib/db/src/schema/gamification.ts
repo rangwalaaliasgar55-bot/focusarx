@@ -1,6 +1,5 @@
 import { pgTable, text, timestamp, boolean, integer, jsonb, index } from 'drizzle-orm/pg-core';
 import { usersTable as users } from './focusarx';
-import { groups } from './groups';
 
 // Phase 6: Battle Pass Rebuild
 export const battlePasses = pgTable('battle_passes', {
@@ -48,7 +47,7 @@ export const studyBuddies = pgTable('study_buddies', {
 
 export const sharedGoals = pgTable('shared_goals', {
   id: text('id').primaryKey(),
-  groupId: text('group_id').references(() => groups.id),
+  groupId: text('group_id'),
   creatorId: text('creator_id').notNull().references(() => users.id),
   title: text('title').notNull(),
   description: text('description'),
@@ -67,7 +66,7 @@ export const leaderboardSnapshots = pgTable('leaderboard_snapshots', {
   period: text('period').notNull(),
   category: text('category').notNull(),
   scope: text('scope').default('global'),
-  groupId: text('group_id').references(() => groups.id),
+  groupId: text('group_id'),
   data: jsonb('data').notNull(),
   generatedAt: timestamp('generated_at').defaultNow().notNull(),
 }, (table) => ({
