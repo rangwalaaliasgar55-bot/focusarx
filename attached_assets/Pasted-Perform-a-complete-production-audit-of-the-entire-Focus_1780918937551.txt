@@ -1,0 +1,177 @@
+Perform a complete production audit of the entire FocusArx codebase.
+
+Current Issues
+
+Frontend loads but multiple API endpoints return 500 errors:
+
+/api/feed
+/api/habits
+/api/habits/stats
+/api/sessions/sync
+
+The project uses:
+
+Neon PostgreSQL
+Drizzle ORM
+Vercel Deployment
+React + Vite Frontend
+Node API Backend
+Task 1: Audit All API Routes
+
+Inspect every route under:
+
+artifacts/api-server
+
+Find:
+
+Unhandled exceptions
+Missing try/catch blocks
+Undefined values
+Invalid database queries
+Authentication failures
+Missing environment variables
+Session/user lookup failures
+
+Add robust error handling:
+
+try {
+  // route logic
+} catch (error) {
+  logger.error(error);
+
+  return res.status(500).json({
+    success: false,
+    error: error instanceof Error ? error.message : "Unknown error"
+  });
+}
+
+No route should crash silently.
+
+Task 2: Verify Neon Database Integration
+
+Audit:
+
+DATABASE_URL
+Drizzle config
+Database client
+Connection pooling
+
+Verify:
+
+Neon connection is successful
+Queries execute correctly
+No schema mismatches
+No missing tables
+No missing columns
+
+Generate a report listing:
+
+Missing tables
+Missing columns
+Broken relations
+Invalid foreign keys
+Task 3: Fix Session Sync
+
+Investigate:
+
+POST /api/sessions/sync
+
+Verify:
+
+Session persistence works
+Session recovery works
+Partial sessions save correctly
+Early completion saves correctly
+
+Required behavior:
+
+When user leaves early:
+
+Save elapsed study time
+Save XP
+Save focus score
+Save distractions
+Save task progress
+Store session in database
+
+before ending session.
+
+Task 4: Task Lifecycle Improvements
+Completed Tasks
+
+When task reaches:
+
+100%
+
+show:
+
+Task completed.
+What would you like to do?
+
+Options:
+
+Archive
+Delete
+Keep Active
+Overdue Tasks
+
+When:
+
+dueDate < currentDate
+completed === false
+
+show:
+
+This task is overdue.
+
+Options:
+
+Reschedule
+Archive
+Delete
+Task 5: Production Logging
+
+Create centralized logger.
+
+Log:
+
+API failures
+Database failures
+Auth failures
+Session sync failures
+Unhandled promise rejections
+
+Add request IDs to logs.
+
+Task 6: Performance Audit
+
+Review:
+
+React rendering
+Query invalidation
+Database queries
+Large bundle size
+
+The current bundle contains a very large chunk.
+
+Implement:
+
+Lazy loading
+Code splitting
+Dynamic imports
+
+where appropriate.
+
+Deliverables
+
+Provide:
+
+Root cause of all 500 errors
+Files changed
+Exact fixes applied
+Database issues found
+Session sync fixes
+Performance improvements
+Production readiness report
+
+Do not stop at identifying issues—apply fixes and verify them.

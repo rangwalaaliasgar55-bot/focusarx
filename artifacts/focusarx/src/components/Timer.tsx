@@ -28,45 +28,44 @@ import BreakActivityCard from "./BreakActivityCard";
 import SessionSummaryCard from "./SessionSummaryCard";
 import ConfettiCelebration from "./ConfettiCelebration";
 import { getToken } from "@/lib/auth";
+import { useCoinXP } from "./CoinXPBar";
 
 const MODES: TimerMode[] = ["focus", "break", "longBreak"];
 
-const modeAccent: Record<TimerMode, string> = {
-  focus: "text-rose-400",
-  break: "text-emerald-400",
-  longBreak: "text-sky-400",
+const MODEUI: Record<TimerMode, { icon: string; label: string; accent: string; pill: string }> = {
+  focus:     { icon: "⚔️", label: "Focus",      accent: "text-rose-400",    pill: "bg-rose-500/15 border-rose-500/30 text-rose-300" },
+  break:     { icon: "☕", label: "Break",      accent: "text-emerald-400", pill: "bg-emerald-500/15 border-emerald-500/30 text-emerald-300" },
+  longBreak: { icon: "🌙", label: "Long Break", accent: "text-violet-400",  pill: "bg-violet-500/15 border-violet-500/30 text-violet-300" },
 };
 
-// Audio notification helper
+const LEVEL_AVATARS = ["🌱","⚡","🔥","💎","🌟","👑","🦅","🚀","🌌","🏆"];
+function getLevelAvatar(level: number) { return LEVEL_AVATARS[Math.min(Math.floor((level - 1) / 5), LEVEL_AVATARS.length - 1)] ?? "🌱"; }
+function getLevel(xp: number) { return Math.floor(Math.sqrt(xp / 100)) + 1; }
+function xpForLevel(level: number) { return (level - 1) ** 2 * 100; }
+function xpForNextLevel(level: number) { return level ** 2 * 100; }
+
 const playSessionNotification = (mode: TimerMode) => {
   try {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     const now = audioContext.currentTime;
     const osc = audioContext.createOscillator();
     const gain = audioContext.createGain();
-    
     osc.connect(gain);
     gain.connect(audioContext.destination);
-    
     if (mode === "focus") {
-      // Completion beep
       osc.frequency.setValueAtTime(800, now);
       osc.frequency.setValueAtTime(600, now + 0.1);
       gain.gain.setValueAtTime(0.3, now);
       gain.gain.setValueAtTime(0, now + 0.2);
     } else {
-      // Break/long break chime
       osc.frequency.setValueAtTime(600, now);
       osc.frequency.setValueAtTime(800, now + 0.1);
       gain.gain.setValueAtTime(0.25, now);
       gain.gain.setValueAtTime(0, now + 0.3);
     }
-    
     osc.start(now);
     osc.stop(now + 0.3);
-  } catch {
-    // Silently ignore if audio context fails
-  }
+  } catch { /* silently ignore */ }
 };
 
 export default function Timer() {
@@ -74,6 +73,8 @@ export default function Timer() {
   const { toast } = useToast();
   const { requestMonitorRecovery, monitorEnabled } = useSessionRecovery();
   const { activeTasks, completedTasks, refreshTasks } = useTasks();
+  const { wallet, refresh: refreshWallet } = useCoinXP();
+
   const [storageReady, setStorageReady] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
@@ -81,49 +82,32 @@ export default function Timer() {
   const [currentStreak, setCurrentStreak] = useState(0);
   const [showSummary, setShowSummary] = useState(false);
   const [summaryData, setSummaryData] = useState<{
-    durationSeconds: number;
-    completedTaskCount: number;
-    focusScore: number | null;
-    earnedXp: number;
-    earnedCoins: number;
-    completedEarly: boolean;
-    completionPercentage: number | null;
+    durationSeconds: number; completedTaskCount: number;
+    focusScore: number | null; earnedXp: number; earnedCoins: number;
+    completedEarly: boolean; completionPercentage: number | null;
   } | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
-  const [notificationPermission, setNotificationPermission] =
-    useState<NotificationPermission | "unsupported">("unsupported");
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">("unsupported");
   const prevStatusRef = useRef<string>("idle");
   const monitorEnabledRef = useRef(false);
-  const persistenceRef = useRef<ReturnType<typeof useSessionPersistence> | null>(
-    null
-  );
+  const persistenceRef = useRef<ReturnType<typeof useSessionPersistence> | null>(null);
 
-  // ── Session type selector ────────────────────────────────────────────────
   const [showSessionTypePicker, setShowSessionTypePicker] = useState(false);
   const [sessionType, setSessionType] = useState<SessionType>("deep_work");
-
-  // ── Upgrade 3: Lock mode ────────────────────────────────────────────────
   const [showLockPicker, setShowLockPicker] = useState(false);
   const [lockMode, setLockMode] = useState<LockMode>("none");
   const [exitPhrase, setExitPhrase] = useState("");
   const [activeTaskName, setActiveTaskName] = useState("");
   const [totalFocusSec, setTotalFocusSec] = useState(0);
-
-  // ── Upgrade 4: Distraction modal ────────────────────────────────────────
   const [showDistractionModal, setShowDistractionModal] = useState(false);
-
-  // ── Upgrade 1: Overrun modal ─────────────────────────────────────────────
   const [overrunTask, setOverrunTask] = useState<{ text: string } | null>(null);
   const [overrunMinutes, setOverrunMinutes] = useState(0);
 
   monitorEnabledRef.current = monitorEnabled;
 
-  useEffect(() => {
-    setStorageReady(true);
-  }, []);
+  useEffect(() => { setStorageReady(true); }, []);
 
-  // Fetch current streak on mount
   useEffect(() => {
     const token = getToken();
     if (!token) return;
@@ -135,58 +119,35 @@ export default function Timer() {
       .catch(() => {});
   }, []);
 
-  const handleRecovered = useCallback(
-    (session: PersistedActiveSession) => {
-      if (session.monitorEnabled) {
-        requestMonitorRecovery();
-      }
-      if (session.timerStatus === "running" || session.timerStatus === "paused") {
-        toast("Session restored — pick up where you left off.", "info");
-      }
-    },
-    [requestMonitorRecovery, toast]
-  );
+  const handleRecovered = useCallback((session: PersistedActiveSession) => {
+    if (session.monitorEnabled) requestMonitorRecovery();
+    if (session.timerStatus === "running" || session.timerStatus === "paused") {
+      toast("Session restored — pick up where you left off.", "info");
+    }
+  }, [requestMonitorRecovery, toast]);
 
   const {
-    mode,
-    status,
-    secondsLeft,
-    progress,
-    completedFocusSessions,
-    toggle,
-    reset,
-    skipToNext,
-    selectMode,
-    setCustomDuration,
-    getSnapshot,
-    restoreFromSnapshot,
-    getActiveSeconds,
+    mode, status, secondsLeft, progress, completedFocusSessions,
+    toggle, reset, skipToNext, selectMode, setCustomDuration,
+    getSnapshot, restoreFromSnapshot, getActiveSeconds,
   } = usePomodoro({
     onSessionComplete: async (session) => {
       addSession(session);
-
-      // Play audio notification
       playSessionNotification(session.mode);
-
       setJustCompleted(true);
       setTimeout(() => setJustCompleted(false), 800);
-
       setIsSaving(true);
       const dbSessionId = persistenceRef.current?.getDbSessionId() ?? null;
       const res = await syncFocusSessionToCloud(session, dbSessionId);
       setIsSaving(false);
-
       await persistenceRef.current?.onPhaseCompleted();
-
       if (res.offline) {
         toast("Saved locally (offline mode).", "info");
       } else if (res.success) {
         if (session.mode === "focus" && session.sessionInsights?.summary) {
-          const insight = session.sessionInsights.summary;
-          setTimeout(() => { toast(insight, "info"); }, 600);
+          setTimeout(() => { toast(session.sessionInsights!.summary, "info"); }, 600);
         }
         if (res.streakUpdated) {
-          // Re-fetch updated streak
           const token = getToken();
           if (token) {
             fetch("/api/streak", { headers: { Authorization: `Bearer ${token}` } })
@@ -197,11 +158,10 @@ export default function Timer() {
               .catch(() => {});
           }
         }
+        void refreshWallet();
       } else {
         toast(`Failed to save: ${res.error || "Unknown"}`, "error");
       }
-
-      // Show end-of-session summary card for focus sessions
       if (session.mode === "focus" && session.durationSeconds > 0) {
         setSummaryData({
           durationSeconds: session.durationSeconds,
@@ -216,25 +176,17 @@ export default function Timer() {
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 3500);
       }
-
       if ("Notification" in window && Notification.permission === "granted") {
-        new Notification(
-          session.mode === "focus"
-            ? "Focus session complete — time for a break."
-            : "Break finished — ready to focus again."
+        new Notification(session.mode === "focus"
+          ? "Focus session complete — time for a break."
+          : "Break finished — ready to focus again."
         );
       }
-
-      // Auto-save ghost when a focus session completes
       if (session.mode === "focus" && session.durationSeconds > 0) {
         const token = localStorage.getItem("focusarx-auth-token");
         if (token) {
-          // Compute longest unbroken focus seconds from timeline
-          let longestUnbroken = 0;
-          let cur = 0;
-          const tl = Array.isArray(session.focusTimeline)
-            ? session.focusTimeline
-            : [];
+          let longestUnbroken = 0, cur = 0;
+          const tl = Array.isArray(session.focusTimeline) ? session.focusTimeline : [];
           for (const ev of tl) {
             if (ev.state === "focus") { cur++; if (cur > longestUnbroken) longestUnbroken = cur; }
             else cur = 0;
@@ -242,12 +194,7 @@ export default function Timer() {
           fetch("/api/ghosts", {
             method: "POST",
             headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-              taskCategory: "General",
-              durationSec: session.durationSeconds,
-              unbrokenSec: longestUnbroken * 10,
-              sessionId: res.sessionId ?? null,
-            }),
+            body: JSON.stringify({ taskCategory: "General", durationSec: session.durationSeconds, unbrokenSec: longestUnbroken * 10, sessionId: res.sessionId ?? null }),
           }).catch(() => {});
         }
       }
@@ -267,10 +214,8 @@ export default function Timer() {
   useEffect(() => {
     if (!recoveryReady) return;
     if (prevStatusRef.current === status) return;
-
     const was = prevStatusRef.current;
     prevStatusRef.current = status;
-
     if (status === "running" && (was === "idle" || was === "paused")) {
       void persistence.onTimerStarted();
       if (was === "idle") trackSiteEvent("focus_session_started");
@@ -278,9 +223,7 @@ export default function Timer() {
   }, [status, recoveryReady, persistence]);
 
   useEffect(() => {
-    setNotificationPermission(
-      "Notification" in window ? Notification.permission : "unsupported"
-    );
+    setNotificationPermission("Notification" in window ? Notification.permission : "unsupported");
   }, []);
 
   const requestNotificationAlerts = useCallback(async () => {
@@ -289,26 +232,17 @@ export default function Timer() {
       toast("This browser does not support notifications.", "error");
       return;
     }
-
     const permission = await Notification.requestPermission();
     setNotificationPermission(permission);
-    if (permission === "granted") {
-      toast("Session alerts enabled.", "success");
-    } else if (permission === "denied") {
-      toast("Notifications are blocked in browser settings.", "error");
-    }
+    if (permission === "granted") toast("Session alerts enabled.", "success");
+    else if (permission === "denied") toast("Notifications are blocked in browser settings.", "error");
   }, [toast]);
 
   useEffect(() => {
-    const m = Math.floor(secondsLeft / 60)
-      .toString()
-      .padStart(2, "0");
+    const m = Math.floor(secondsLeft / 60).toString().padStart(2, "0");
     const s = (secondsLeft % 60).toString().padStart(2, "0");
-    document.title =
-      status === "running" ? `${m}:${s} · FocusArx` : "FocusArx";
-    return () => {
-      document.title = "FocusArx";
-    };
+    document.title = status === "running" ? `${m}:${s} · FocusArx` : "FocusArx";
+    return () => { document.title = "FocusArx"; };
   }, [secondsLeft, status]);
 
   useEffect(() => {
@@ -317,9 +251,7 @@ export default function Timer() {
       const el = e.target as HTMLElement | null;
       if (!el) return;
       const tag = el.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
-        return;
-      }
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
       if (el.isContentEditable) return;
       e.preventDefault();
       toggle();
@@ -330,8 +262,8 @@ export default function Timer() {
 
   const isRunning = status === "running";
   const canPickMode = status !== "running";
+  const activeSeconds = isRunning ? getActiveSeconds() : 0;
 
-  // Intercept toggle: show session type picker first (when idle+focus), then lock picker
   const handleToggle = useCallback(() => {
     if (status === "idle" && mode === "focus") {
       setTotalFocusSec(secondsLeft);
@@ -343,20 +275,14 @@ export default function Timer() {
 
   const handleSessionTypeSelected = useCallback((type: SessionType) => {
     setSessionType(type);
-    if (type === "recharge") {
-      // Recharge: navigate to breathe page instead of starting timer
-      window.location.href = "/breathe";
-      return;
-    }
+    if (type === "recharge") { window.location.href = "/breathe"; return; }
     setShowLockPicker(true);
   }, []);
 
-  // Complete session early — saves all progress to the server and shows summary
   const handleCompleteEarly = useCallback(async () => {
     if (mode !== "focus") return;
     const activeSeconds = getActiveSeconds();
     if (activeSeconds < 10) {
-      // Not enough time to save — just cancel
       persistence.clearDbSession();
       reset(false);
       setLockMode("none");
@@ -371,32 +297,15 @@ export default function Timer() {
     const pct = plannedSec > 0 ? Math.min(100, Math.round((actualSec / plannedSec) * 100)) : null;
     const dbSessionId = persistenceRef.current?.getDbSessionId() ?? null;
     const res = await syncFocusSessionToCloud(
-      {
-        id: `early-${Date.now()}`,
-        mode: "focus",
-        completedAt: new Date().toISOString(),
-        durationSeconds: actualSec,
-        focusScore: null,
-        focusQuality: null,
-        focusTimeline: null,
-        stabilityRating: null,
-        sessionInsights: null,
-      },
+      { id: `early-${Date.now()}`, mode: "focus", completedAt: new Date().toISOString(), durationSeconds: actualSec, focusScore: null, focusQuality: null, focusTimeline: null, stabilityRating: null, sessionInsights: null },
       dbSessionId,
-      {
-        plannedDurationSec: plannedSec,
-        completedEarly: true,
-        completionPercentage: pct ?? 0,
-        sessionStatus: "completed_early",
-      }
+      { plannedDurationSec: plannedSec, completedEarly: true, completionPercentage: pct ?? 0, sessionStatus: "completed_early" }
     );
     setIsSaving(false);
-
     persistence.clearDbSession();
     reset(false);
     setLockMode("none");
     setExitPhrase("");
-
     if (res.success) {
       toast(`Session saved — ${Math.floor(actualSec / 60)}m of focus recorded!`, "success");
       if (res.streakUpdated) {
@@ -410,15 +319,7 @@ export default function Timer() {
             .catch(() => {});
         }
       }
-      setSummaryData({
-        durationSeconds: actualSec,
-        completedTaskCount: completedTasks.length,
-        focusScore: null,
-        earnedXp: res.earnedXp ?? 0,
-        earnedCoins: res.earnedCoins ?? 0,
-        completedEarly: true,
-        completionPercentage: pct,
-      });
+      setSummaryData({ durationSeconds: actualSec, completedTaskCount: completedTasks.length, focusScore: null, earnedXp: res.earnedXp ?? 0, earnedCoins: res.earnedCoins ?? 0, completedEarly: true, completionPercentage: pct });
       setShowSummary(true);
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 3000);
@@ -435,38 +336,21 @@ export default function Timer() {
     if (activeSeconds < 60) return;
     const dbSessionId = persistenceRef.current?.getDbSessionId() ?? null;
     void syncFocusSessionToCloud(
-      {
-        id: `partial-${Date.now()}`,
-        mode: "focus",
-        completedAt: new Date().toISOString(),
-        durationSeconds: Math.floor(activeSeconds),
-        focusScore: null,
-        focusQuality: null,
-        focusTimeline: null,
-        stabilityRating: null,
-        sessionInsights: null,
-      },
+      { id: `partial-${Date.now()}`, mode: "focus", completedAt: new Date().toISOString(), durationSeconds: Math.floor(activeSeconds), focusScore: null, focusQuality: null, focusTimeline: null, stabilityRating: null, sessionInsights: null },
       dbSessionId
     ).then((res) => {
-      if (res.success) {
-        toast(`Saved ${Math.floor(activeSeconds / 60)}m of focus time`, "info");
-      }
+      if (res.success) toast(`Saved ${Math.floor(activeSeconds / 60)}m of focus time`, "info");
     });
   }, [mode, getActiveSeconds, toast]);
 
-  // Intercept reset: show exit confirmation when running focus session
   const handleReset = useCallback(() => {
-    if (status === "running" && mode === "focus") {
-      setShowExitConfirm(true);
-      return;
-    }
+    if (status === "running" && mode === "focus") { setShowExitConfirm(true); return; }
     persistence.clearDbSession();
     reset(false);
     setLockMode("none");
     setExitPhrase("");
   }, [status, mode, persistence, reset]);
 
-  // Cancel without saving — used from exit confirm dialog
   const handleCancelNoSave = useCallback(() => {
     setShowExitConfirm(false);
     setShowDistractionModal(true);
@@ -476,10 +360,7 @@ export default function Timer() {
     setExitPhrase("");
   }, [persistence, reset]);
 
-  // Exit lock overlay → show exit confirm first
-  const handleLockExit = useCallback(() => {
-    setShowExitConfirm(true);
-  }, []);
+  const handleLockExit = useCallback(() => { setShowExitConfirm(true); }, []);
 
   const handleEditTime = () => {
     if (status !== "idle") return;
@@ -487,223 +368,299 @@ export default function Timer() {
     const input = prompt(`Enter custom duration for ${mode} (in minutes):`, currentMins.toString());
     if (input) {
       const val = parseInt(input, 10);
-      if (!isNaN(val) && val > 0 && val <= 180) {
-        setCustomDuration(mode, val * 60);
-      } else {
-        toast("Please enter a valid number of minutes (1-180).", "error");
-      }
+      if (!isNaN(val) && val > 0 && val <= 180) setCustomDuration(mode, val * 60);
+      else toast("Please enter a valid number of minutes (1-180).", "error");
     }
   };
 
   if (!recoveryReady) {
     return (
-      <section className="w-full max-w-md rounded-[1.75rem] border border-[var(--card-border)] bg-[var(--card)] p-8 shadow-[0_24px_80px_-24px_rgba(0,0,0,0.55)] backdrop-blur-2xl sm:p-10">
-        <motion.div
-          animate={{ opacity: [0.4, 0.8, 0.4] }}
-          transition={{ repeat: Infinity, duration: 1.4 }}
-          className="mx-auto h-48 w-48 rounded-full bg-zinc-800/40"
-        />
-        <p className="mt-6 text-center text-sm text-zinc-500">Loading session…</p>
-      </section>
+      <div className="w-full max-w-md">
+        <div className="rounded-[2rem] border border-zinc-800 bg-zinc-900/80 p-8 shadow-2xl">
+          <motion.div animate={{ opacity: [0.3, 0.7, 0.3] }} transition={{ repeat: Infinity, duration: 1.5 }}
+            className="mx-auto h-52 w-52 rounded-full bg-zinc-800/40" />
+          <p className="mt-6 text-center text-sm text-zinc-500">Loading arena…</p>
+        </div>
+      </div>
     );
   }
 
+  // Wallet / level data
+  const totalXp = wallet?.totalXp ?? 0;
+  const coins = wallet?.coins ?? 0;
+  const level = getLevel(totalXp);
+  const xpStart = xpForLevel(level);
+  const xpEnd = xpForNextLevel(level);
+  const xpPct = Math.min(100, Math.round(((totalXp - xpStart) / (xpEnd - xpStart)) * 100));
+  const avatar = getLevelAvatar(level);
   const typeTint = isRunning ? SESSION_TYPE_TINTS[sessionType] : null;
+
+  const modeUi = MODEUI[mode];
 
   return (
     <>
-    <div className="flex w-full flex-col items-center gap-6 md:flex-row md:items-start md:gap-10">
+    <div className="flex w-full flex-col items-center gap-6 md:flex-row md:items-start md:gap-8">
+
+    {/* ── MAIN TIMER CARD ─────────────────────────────────────────────── */}
     <motion.section
       layout
       animate={justCompleted ? { scale: [1, 1.02, 1] } : { scale: 1 }}
-      className={`w-full max-w-md shrink-0 rounded-[1.75rem] border border-[var(--card-border)] bg-[var(--card)] p-8 backdrop-blur-2xl sm:p-10 ${isRunning ? "timer-running-glow" : "shadow-[0_24px_80px_-24px_rgba(0,0,0,0.55)]"}`}
-      style={typeTint ? { background: `linear-gradient(135deg, var(--card) 60%, ${typeTint.bg})`, borderColor: `${typeTint.accent}22` } : undefined}
+      className="w-full max-w-md shrink-0"
       transition={{ type: "spring", stiffness: 260, damping: 32 }}
     >
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative flex rounded-full bg-zinc-950/50 p-1 ring-1 ring-zinc-800/70 dark:bg-black/35"
+      <div
+        className={`relative overflow-hidden rounded-[2rem] border bg-[#0d0f17] ${isRunning ? "border-violet-500/30" : "border-zinc-800/80"} shadow-[0_32px_80px_-24px_rgba(0,0,0,0.7)]`}
+        style={typeTint ? { borderColor: `${typeTint.accent}35` } : undefined}
       >
-        {MODES.map((m) => {
-          const active = mode === m;
-          return (
-            <button
-              key={m}
-              type="button"
-              disabled={!canPickMode}
-              onClick={() => selectMode(m)}
-              className={`relative z-10 flex-1 rounded-full px-3 py-2 text-center text-xs font-medium transition-colors sm:text-sm ${
-                active
-                  ? "text-zinc-50"
-                  : "text-zinc-500 hover:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-50"
-              }`}
-            >
-              {active && (
-                <motion.span
-                  layoutId="mode-pill"
-                  className="absolute inset-0 -z-10 rounded-full bg-zinc-800/95 shadow-inner shadow-black/40 ring-1 ring-white/5"
-                  transition={{ type: "spring", stiffness: 380, damping: 34 }}
-                />
-              )}
-              <span className="relative">{getModeLabel(m)}</span>
-            </button>
-          );
-        })}
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className="mt-10 flex flex-col items-center"
-      >
-        <TimerDisplay
-          secondsLeft={secondsLeft}
-          progress={progress}
-          mode={mode}
-          isRunning={isRunning}
-          onEditClick={status === "idle" ? handleEditTime : undefined}
-        />
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          className="mt-8 flex flex-col items-center gap-2"
-        >
-          <SessionDots
-            completed={completedFocusSessions}
-            total={DEFAULT_CONFIG.sessionsBeforeLongBreak}
+        {/* Animated background orb when running */}
+        {isRunning && (
+          <motion.div
+            className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 h-64 w-64 rounded-full opacity-20 blur-3xl"
+            animate={{ scale: [1, 1.15, 1], opacity: [0.15, 0.25, 0.15] }}
+            transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+            style={{ background: typeTint?.accent ?? "#7C3AED" }}
           />
-          <p className="text-xs text-zinc-500">
-            {storageReady ? focusSessionsToday : 0} focus block
-            {(storageReady ? focusSessionsToday : 0) !== 1 ? "s" : ""} today
-          </p>
-          {currentStreak > 0 && (
-            <motion.div
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 300, damping: 14, delay: 0.6 }}
-              className="mt-1 flex items-center gap-1 rounded-full border border-orange-500/25 bg-orange-500/10 px-3 py-0.5 text-xs font-semibold text-orange-400"
-            >
-              🔥 {currentStreak} day streak
-            </motion.div>
-          )}
-        </motion.div>
-
-        <TimerControls
-          status={status}
-          onToggle={handleToggle}
-          onReset={handleReset}
-          onSkip={skipToNext}
-        />
-
-        {/* Complete Session Early — visible only during active focus sessions */}
-        <AnimatePresence>
-          {isRunning && mode === "focus" && (
-            <motion.button
-              key="complete-early"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 4 }}
-              transition={{ duration: 0.2 }}
-              onClick={() => setShowExitConfirm(true)}
-              className="mt-3 flex items-center gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/8 px-4 py-2 text-xs font-semibold text-emerald-400 transition-all hover:bg-emerald-500/15 hover:border-emerald-500/40 active:scale-95"
-              type="button"
-            >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="shrink-0">
-                <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Complete Session
-            </motion.button>
-          )}
-        </AnimatePresence>
-
-        {notificationPermission === "default" && (
-          <button
-            type="button"
-            onClick={() => void requestNotificationAlerts()}
-            className="mt-4 rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
-          >
-            Enable session alerts
-          </button>
         )}
 
-        {/* Sound Engine */}
-        <div className="mt-3 flex items-center justify-center">
+        {/* ── PLAYER HUD ──────────────────────────────────────────────── */}
+        <div className="relative px-6 pt-5 pb-3 border-b border-zinc-800/60">
+          <div className="flex items-center gap-3">
+            {/* Avatar + level */}
+            <div className="relative flex-shrink-0">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-zinc-800/80 text-2xl border border-zinc-700/50 shadow-inner">
+                {avatar}
+              </div>
+              <div className="absolute -bottom-1 -right-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-violet-600 text-[10px] font-black text-white px-1 border border-[#0d0f17]">
+                {level}
+              </div>
+            </div>
+
+            {/* XP bar + info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-bold text-zinc-300">Level {level}</span>
+                <span className="text-[10px] text-zinc-500">{totalXp.toLocaleString()} XP</span>
+              </div>
+              <div className="h-1.5 w-full rounded-full bg-zinc-800 overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500"
+                  initial={false}
+                  animate={{ width: `${xpPct}%` }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                />
+              </div>
+              <div className="mt-1 flex items-center gap-3 text-[10px] text-zinc-600">
+                <span>{xpEnd - totalXp} XP to level {level + 1}</span>
+              </div>
+            </div>
+
+            {/* Coins */}
+            <div className="flex flex-col items-end gap-1 flex-shrink-0">
+              <div className="flex items-center gap-1 rounded-lg bg-yellow-500/10 border border-yellow-500/20 px-2 py-1">
+                <span className="text-sm">🪙</span>
+                <span className="text-xs font-bold text-yellow-400">{coins.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Streak row */}
+          <div className="mt-3 flex items-center justify-between">
+            {currentStreak > 0 ? (
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 300, damping: 14, delay: 0.3 }}
+                className="flex items-center gap-1.5 rounded-full border border-orange-500/25 bg-orange-500/10 px-3 py-1 text-xs font-bold text-orange-400"
+              >
+                🔥 {currentStreak}-day streak
+              </motion.div>
+            ) : (
+              <div className="text-[11px] text-zinc-600">Start your streak today!</div>
+            )}
+            <div className="text-[11px] text-zinc-600">
+              {storageReady ? focusSessionsToday : 0} block{(storageReady ? focusSessionsToday : 0) !== 1 ? "s" : ""} today
+            </div>
+          </div>
+        </div>
+
+        {/* ── MODE TABS ───────────────────────────────────────────────── */}
+        <div className="relative px-4 pt-4">
+          <div className="flex gap-1.5 rounded-xl bg-zinc-950/60 p-1 ring-1 ring-zinc-800/50">
+            {MODES.map((m) => {
+              const active = mode === m;
+              const ui = MODEUI[m];
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  disabled={!canPickMode}
+                  onClick={() => selectMode(m)}
+                  className={`relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] font-semibold transition-all ${
+                    active ? "text-zinc-50" : "text-zinc-500 hover:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-40"
+                  }`}
+                >
+                  {active && (
+                    <motion.span
+                      layoutId="mode-pill"
+                      className="absolute inset-0 -z-10 rounded-lg bg-zinc-800/90 ring-1 ring-white/5 shadow-inner shadow-black/30"
+                      transition={{ type: "spring", stiffness: 400, damping: 36 }}
+                    />
+                  )}
+                  <span>{ui.icon}</span>
+                  <span className="hidden sm:inline">{ui.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── TIMER DISPLAY ───────────────────────────────────────────── */}
+        <div className="flex flex-col items-center px-6 pb-2">
+          {isRunning && mode === "focus" && (
+            <motion.div
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-3 w-full"
+            >
+              <div className="flex items-center justify-between mb-1 text-[10px] font-bold uppercase tracking-wider">
+                <span className="text-zinc-600">Procrastination HP</span>
+                <span className="text-rose-400">{Math.round((1 - progress) * 100)}% defeated</span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-800">
+                <motion.div
+                  className="h-full rounded-full bg-gradient-to-r from-rose-600 to-rose-400"
+                  initial={false}
+                  animate={{ width: `${(1 - progress) * 100}%` }}
+                  transition={{ duration: 0.9, ease: [0.22, 0.61, 0.36, 1] }}
+                />
+              </div>
+            </motion.div>
+          )}
+
+          <div className="mt-4">
+            <TimerDisplay
+              secondsLeft={secondsLeft}
+              progress={progress}
+              mode={mode}
+              isRunning={isRunning}
+              onEditClick={status === "idle" ? handleEditTime : undefined}
+              sessionType={sessionType}
+              activeSecondsEarned={activeSeconds}
+            />
+          </div>
+
+          {/* Session dots */}
+          <div className="mt-2 flex flex-col items-center gap-1">
+            <SessionDots
+              completed={completedFocusSessions}
+              total={DEFAULT_CONFIG.sessionsBeforeLongBreak}
+            />
+            <p className="text-[10px] text-zinc-600 font-medium">
+              {completedFocusSessions}/{DEFAULT_CONFIG.sessionsBeforeLongBreak} rounds
+            </p>
+          </div>
+
+          {/* Controls */}
+          <TimerControls
+            status={status}
+            mode={mode}
+            onToggle={handleToggle}
+            onReset={handleReset}
+            onSkip={skipToNext}
+          />
+
+          {/* Complete Early */}
+          <AnimatePresence>
+            {isRunning && mode === "focus" && (
+              <motion.button
+                key="complete-early"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.2 }}
+                onClick={() => setShowExitConfirm(true)}
+                className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/8 px-4 py-2.5 text-xs font-bold text-emerald-400 transition-all hover:bg-emerald-500/15 hover:border-emerald-500/45 active:scale-95"
+                type="button"
+              >
+                <svg width="13" height="13" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Complete Session Early
+              </motion.button>
+            )}
+          </AnimatePresence>
+
+          {/* Notification bell */}
+          {notificationPermission === "default" && (
+            <button
+              type="button"
+              onClick={() => void requestNotificationAlerts()}
+              className="mt-3 rounded-lg border border-zinc-800 px-3 py-1.5 text-[11px] text-zinc-500 transition-colors hover:border-zinc-700 hover:text-zinc-300"
+            >
+              🔔 Enable session alerts
+            </button>
+          )}
+        </div>
+
+        {/* ── BOTTOM STRIP ────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between border-t border-zinc-800/60 px-5 py-3">
           <SoundEngine
             sessionActive={isRunning && mode === "focus"}
             sessionMinutesLeft={Math.floor(secondsLeft / 60)}
             sessionTotalMinutes={Math.floor(totalFocusSec / 60)}
           />
-        </div>
-
-        {/* Session type badge when running */}
-        {isRunning && typeTint && (
-          <div className="mt-2 flex justify-center">
-            <span
-              className="rounded-full px-3 py-0.5 text-[10px] font-semibold"
-              style={{ background: `${typeTint.accent}18`, color: typeTint.text, border: `1px solid ${typeTint.accent}30` }}
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={`${mode}-${status}`}
+              initial={{ opacity: 0, x: 8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -4 }}
+              transition={{ duration: 0.2 }}
+              className={`text-xs font-semibold ${modeUi.accent}`}
             >
-              {sessionType.replace("_", " ")}
-            </span>
-          </div>
-        )}
-
-        <AnimatePresence mode="wait">
-          <motion.p
-            key={`${mode}-${status}`}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
-            className={`mt-8 text-center text-sm font-medium ${modeAccent[mode]}`}
-          >
-            {isSaving ? (
-              <span className="flex items-center justify-center gap-2 text-zinc-400">
-                <span className="h-3 w-3 animate-ping rounded-full bg-zinc-400/60" />
-                Saving session...
-              </span>
-            ) : status === "running" ? (
-              <>{getModeLabel(mode)} in progress</>
-            ) : status === "paused" ? (
-              <>Paused · resume when you are ready</>
-            ) : (
-              <>
-                {mode === "focus"
-                  ? "Press play to start a focus block"
-                  : `Ready for your ${getModeLabel(mode).toLowerCase()}`}
-              </>
-            )}
-          </motion.p>
-        </AnimatePresence>
-
-      </motion.div>
+              {isSaving ? (
+                <span className="flex items-center gap-1.5 text-zinc-500">
+                  <span className="h-1.5 w-1.5 animate-ping rounded-full bg-zinc-400/60" />
+                  Saving…
+                </span>
+              ) : status === "running" ? (
+                <>{modeUi.icon} {getModeLabel(mode)} in progress</>
+              ) : status === "paused" ? (
+                <>⏸ Paused</>
+              ) : mode === "focus" ? (
+                <>Press play to enter the arena</>
+              ) : (
+                <>Ready for {getModeLabel(mode).toLowerCase()}</>
+              )}
+            </motion.p>
+          </AnimatePresence>
+        </div>
+      </div>
     </motion.section>
 
-    {/* ── Break Activity Card ─────────────────────────────────────────── */}
-    <AnimatePresence>
-      {isRunning && (mode === "break" || mode === "longBreak") && (
-        <motion.div
-          key="break-activity"
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.35 }}
-          className="w-full max-w-md"
-        >
-          <BreakActivityCard
-            mode={mode}
-            secondsLeft={secondsLeft}
-            breakDurationSeconds={mode === "longBreak" ? DEFAULT_CONFIG.longBreakDuration : DEFAULT_CONFIG.breakDuration}
-          />
-        </motion.div>
-      )}
-    </AnimatePresence>
+    {/* ── RIGHT COLUMN ────────────────────────────────────────────────── */}
+    <div className="flex w-full max-w-md flex-col gap-4">
 
-    {/* ── Upgrade 1: Task Timeline + Overrun ─────────────────────────── */}
-    <div className="w-full max-w-md">
+      {/* Break Activity Card */}
+      <AnimatePresence>
+        {isRunning && (mode === "break" || mode === "longBreak") && (
+          <motion.div
+            key="break-activity"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.35 }}
+          >
+            <BreakActivityCard
+              mode={mode}
+              secondsLeft={secondsLeft}
+              breakDurationSeconds={mode === "longBreak" ? DEFAULT_CONFIG.longBreakDuration : DEFAULT_CONFIG.breakDuration}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Task Timeline */}
       <TaskTimeline
         tasks={activeTasks.map(t => ({
           id: t.id,
@@ -714,19 +671,16 @@ export default function Timer() {
         }))}
         elapsedSeconds={isRunning ? (totalFocusSec - secondsLeft) : 0}
         isRunning={isRunning && mode === "focus"}
-        onOverrun={(task, mins) => {
-          setOverrunTask({ text: task.text });
-          setOverrunMinutes(mins);
-        }}
+        onOverrun={(task, mins) => { setOverrunTask({ text: task.text }); setOverrunMinutes(mins); }}
         onEstimateChange={() => { void refreshTasks(); }}
       />
     </div>
-    </div>{/* end timer+timeline flex wrapper */}
+    </div>
 
-    {/* Ambient Sound Bar — always visible */}
+    {/* Ambient Sound Bar */}
     <AmbientSoundBar visible={true} />
 
-    {/* ── Overlays ────────────────────────────────────────────────────── */}
+    {/* ── OVERLAYS ──────────────────────────────────────────────────── */}
     <SessionTypePicker
       open={showSessionTypePicker}
       onClose={() => setShowSessionTypePicker(false)}
@@ -737,12 +691,7 @@ export default function Timer() {
     <AnimatePresence>
       {showLockPicker && (
         <LockModePicker
-          onConfirm={(m, phrase) => {
-            setLockMode(m);
-            setExitPhrase(phrase);
-            setShowLockPicker(false);
-            toggle();
-          }}
+          onConfirm={(m, phrase) => { setLockMode(m); setExitPhrase(phrase); setShowLockPicker(false); toggle(); }}
           onCancel={() => setShowLockPicker(false)}
         />
       )}
@@ -763,10 +712,7 @@ export default function Timer() {
 
     <AnimatePresence>
       {showDistractionModal && (
-        <DistractionModal
-          onDone={() => setShowDistractionModal(false)}
-          onSkip={() => setShowDistractionModal(false)}
-        />
+        <DistractionModal onDone={() => setShowDistractionModal(false)} onSkip={() => setShowDistractionModal(false)} />
       )}
     </AnimatePresence>
 
@@ -782,30 +728,28 @@ export default function Timer() {
       )}
     </AnimatePresence>
 
-    {/* ── Exit Confirmation Dialog ─────────────────────────────────── */}
+    {/* Exit Confirmation */}
     <AnimatePresence>
       {showExitConfirm && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
         >
           <motion.div
-            initial={{ scale: 0.95, y: 12, opacity: 0 }}
+            initial={{ scale: 0.92, y: 16, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
-            exit={{ scale: 0.95, y: 8, opacity: 0 }}
+            exit={{ scale: 0.92, y: 10, opacity: 0 }}
             transition={{ type: "spring", stiffness: 340, damping: 28 }}
-            className="w-full max-w-xs rounded-2xl border border-[#1e2130] bg-[#111318] p-5 shadow-2xl"
+            className="w-full max-w-xs rounded-2xl border border-zinc-800 bg-[#0d0f17] p-5 shadow-2xl"
           >
-            <div className="mb-4 text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/15 ring-1 ring-amber-500/25">
-                <span className="text-2xl">⚡</span>
-              </div>
-              <h3 className="text-sm font-bold text-[#e8eaf0]">End focus session?</h3>
-              <p className="mt-1 text-xs text-[#5a5f72]">
+            <div className="mb-5 text-center">
+              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/15 ring-1 ring-amber-500/25 text-3xl">⚡</div>
+              <h3 className="text-sm font-black text-zinc-100">End focus session?</h3>
+              <p className="mt-1 text-xs text-zinc-500">
                 You've focused for{" "}
-                <span className="font-semibold text-emerald-400">
+                <span className="font-bold text-emerald-400">
                   {Math.floor(getActiveSeconds() / 60)}m {Math.floor(getActiveSeconds() % 60)}s
                 </span>
               </p>
@@ -814,24 +758,24 @@ export default function Timer() {
               <button
                 onClick={() => void handleCompleteEarly()}
                 disabled={isSaving}
-                className="w-full rounded-xl border border-emerald-500/30 bg-emerald-500/12 px-4 py-3 text-left text-xs transition-all hover:bg-emerald-500/20 disabled:opacity-50"
+                className="w-full rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-left transition-all hover:bg-emerald-500/18 disabled:opacity-50"
               >
-                <p className="font-semibold text-emerald-400">✅ Complete Session & Save Progress</p>
-                <p className="text-[10px] text-emerald-400/60 mt-0.5">Save focus time, earn XP & coins</p>
+                <p className="text-xs font-bold text-emerald-400">✅ Complete & Save Progress</p>
+                <p className="text-[10px] text-emerald-400/60 mt-0.5">Earn XP and coins for time spent</p>
               </button>
               <button
                 onClick={() => setShowExitConfirm(false)}
-                className="w-full rounded-xl border border-[#1e2130] bg-[#1a1d27] px-4 py-3 text-left text-xs transition-all hover:border-[#7C3AED]/30"
+                className="w-full rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-3 text-left transition-all hover:border-violet-500/30"
               >
-                <p className="font-semibold text-[#e8eaf0]">▶ Continue Session</p>
-                <p className="text-[10px] text-[#4a4f62] mt-0.5">Keep the timer running</p>
+                <p className="text-xs font-bold text-zinc-200">▶ Continue Session</p>
+                <p className="text-[10px] text-zinc-600 mt-0.5">Keep the timer running</p>
               </button>
               <button
                 onClick={handleCancelNoSave}
-                className="w-full rounded-xl border border-red-500/15 bg-red-500/8 px-4 py-3 text-left text-xs transition-all hover:bg-red-500/15"
+                className="w-full rounded-xl border border-red-500/15 bg-red-500/8 px-4 py-3 text-left transition-all hover:bg-red-500/15"
               >
-                <p className="font-semibold text-red-400">✕ Cancel Without Saving</p>
-                <p className="text-[10px] text-red-400/60 mt-0.5">Discard this session</p>
+                <p className="text-xs font-bold text-red-400">✕ Abandon Session</p>
+                <p className="text-[10px] text-red-400/60 mt-0.5">Discard all progress</p>
               </button>
             </div>
           </motion.div>
@@ -854,6 +798,6 @@ export default function Timer() {
     />
 
     <ConfettiCelebration active={showConfetti} count={90} duration={3500} />
-  </>
+    </>
   );
 }

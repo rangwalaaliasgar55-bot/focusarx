@@ -1,46 +1,38 @@
 "use client";
 
 import { motion } from "framer-motion";
-import type { TimerStatus } from "@/types/timer";
+import type { TimerMode, TimerStatus } from "@/types/timer";
 
 interface TimerControlsProps {
   status: TimerStatus;
+  mode: TimerMode;
   onToggle: () => void;
   onReset: () => void;
   onSkip: () => void;
 }
 
-const iconBtn =
-  "flex h-11 w-11 items-center justify-center rounded-full border border-zinc-700/50 bg-zinc-900/40 text-zinc-400 shadow-sm backdrop-blur-sm transition-colors hover:border-zinc-600 hover:bg-zinc-800/60 hover:text-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500/70 active:scale-[0.97] dark:border-zinc-700/60 dark:bg-zinc-950/50 dark:hover:bg-zinc-900/80";
+const MODE_COLORS: Record<TimerMode, { from: string; to: string; shadow: string; ring: string }> = {
+  focus:     { from: "#f43f5e", to: "#ec4899", shadow: "rgba(244,63,94,0.45)", ring: "rgba(244,63,94,0.3)" },
+  break:     { from: "#22c55e", to: "#10b981", shadow: "rgba(34,197,94,0.45)",  ring: "rgba(34,197,94,0.3)" },
+  longBreak: { from: "#8b5cf6", to: "#6366f1", shadow: "rgba(139,92,246,0.45)", ring: "rgba(139,92,246,0.3)" },
+};
 
-export function TimerControls({
-  status,
-  onToggle,
-  onReset,
-  onSkip,
-}: TimerControlsProps) {
+export function TimerControls({ status, mode, onToggle, onReset, onSkip }: TimerControlsProps) {
   const isRunning = status === "running";
+  const isPaused = status === "paused";
+  const mc = MODE_COLORS[mode];
 
   return (
-    <div className="mt-10 flex items-center gap-4">
+    <div className="mt-8 flex items-center justify-center gap-5">
       <motion.button
         type="button"
         onClick={onReset}
         aria-label="Reset timer"
-        whileHover={{ scale: 1.04 }}
-        whileTap={{ scale: 0.96 }}
-        className={iconBtn}
+        whileHover={{ scale: 1.08 }}
+        whileTap={{ scale: 0.93 }}
+        className="flex h-12 w-12 items-center justify-center rounded-2xl border border-zinc-700/60 bg-zinc-900/60 text-zinc-400 backdrop-blur-sm transition-all hover:border-zinc-600 hover:bg-zinc-800/70 hover:text-zinc-200"
       >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
           <path d="M3 3v5h5" />
         </svg>
@@ -49,20 +41,31 @@ export function TimerControls({
       <motion.button
         type="button"
         onClick={onToggle}
-        aria-label={isRunning ? "Pause timer" : "Start timer"}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.94 }}
-        className="flex h-[4.25rem] w-[4.25rem] items-center justify-center rounded-full bg-gradient-to-br from-zinc-100 to-zinc-300 text-zinc-900 shadow-lg shadow-black/25 ring-1 ring-white/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500/80 dark:from-zinc-100 dark:to-zinc-400"
+        aria-label={isRunning ? "Pause" : isPaused ? "Resume" : "Start focus session"}
+        whileHover={{ scale: 1.06 }}
+        whileTap={{ scale: 0.93 }}
+        className="relative flex h-20 w-20 items-center justify-center rounded-[1.4rem] font-bold text-white shadow-2xl"
+        style={{
+          background: `linear-gradient(135deg, ${mc.from}, ${mc.to})`,
+          boxShadow: `0 0 0 6px ${mc.ring}, 0 12px 32px ${mc.shadow}`,
+        }}
       >
         {isRunning ? (
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-            <rect x="6" y="4" width="4" height="16" rx="1" />
-            <rect x="14" y="4" width="4" height="16" rx="1" />
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="5" y="3" width="5" height="18" rx="1.5" />
+            <rect x="14" y="3" width="5" height="18" rx="1.5" />
           </svg>
         ) : (
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="ml-0.5">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" className="ml-1">
             <path d="M5 3l14 9-14 9V3z" />
           </svg>
+        )}
+        {isRunning && (
+          <motion.span
+            className="absolute inset-0 rounded-[1.4rem]"
+            animate={{ boxShadow: [`0 0 0 0px ${mc.shadow}`, `0 0 0 12px transparent`] }}
+            transition={{ repeat: Infinity, duration: 1.8, ease: "easeOut" }}
+          />
         )}
       </motion.button>
 
@@ -70,20 +73,11 @@ export function TimerControls({
         type="button"
         onClick={onSkip}
         aria-label="Skip to next session"
-        whileHover={{ scale: 1.04 }}
-        whileTap={{ scale: 0.96 }}
-        className={iconBtn}
+        whileHover={{ scale: 1.08 }}
+        whileTap={{ scale: 0.93 }}
+        className="flex h-12 w-12 items-center justify-center rounded-2xl border border-zinc-700/60 bg-zinc-900/60 text-zinc-400 backdrop-blur-sm transition-all hover:border-zinc-600 hover:bg-zinc-800/70 hover:text-zinc-200"
       >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polygon points="5 4 15 12 5 20 5 4" />
           <line x1="19" y1="5" x2="19" y2="19" />
         </svg>
