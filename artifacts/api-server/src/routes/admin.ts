@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { Router } from "express";
 import jwt from "jsonwebtoken";
-import { db, usersTable, focusSessionsTable, studyStreaksTable, activeSessionsTable, userMissionProgressTable, loginRewardsTable, freezeTokensTable, battlePassProgressTable, notificationsTable } from "@workspace/db";
+import { db, pool, usersTable, focusSessionsTable, studyStreaksTable, activeSessionsTable, userMissionProgressTable, loginRewardsTable, freezeTokensTable, battlePassProgressTable, notificationsTable } from "@workspace/db";
 import { eq, gte, inArray, and, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getServerConfig } from "../lib/config";
@@ -354,4 +354,50 @@ router.get("/admin/retention", async (req, res) => {
   }
 });
 
+// ─── SQL EDITOR (admin only) ──────────────────────────────────────────────────
+
+router.post("/admin/sql", adminLimiter, async (req, res) => {
+  if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
+  const { query } = req.body as { query?: string };
+  if (!query || typeof query !== "string") { res.status(400).json({ error: "query required" }); return; }
+  const trimmed = query.trim().toLowerCase();
+  // Safety: only allow SELECT, SHOW, EXPLAIN, WITH (read-only)
+  const safe = /^(select|show|explain|with\s)/i.test(trimmed);
+  if (!safe) { res.status(400).json({ error: "Only SELECT queries are permitted" }); return; }
+  if (trimmed.length > 4000) { res.status(400).json({ error: "Query too long" }); return; }
+  try {
+    const result = await pool.query(query);
+    res.json({
+      rows: result.rows ?? [],
+      rowCount: result.rowCount ?? 0,
+      fields: (result.fields ?? []).map((f: any) => ({ name: f.name, dataTypeID: f.dataTypeID })),
+    });
+  } catch (err: any) {
+    res.status(400).json({ error: err?.message ?? "Query error" });
+  }
+});
+
+// ─── DB SCHEMA EXPLORER ───────────────────────────────────────────────────────
+
+router.get("/admin/schema", adminLimiter, async (req, res) => {
+  if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
+  try {
+    const result = await pool.query(`
+      SELECT table_name, column_name, data_type, is_nullable, column_default
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+      ORDER BY table_name, ordinal_position
+    `);
+    const tables: Record<string, any[]> = {};
+    for (const row of result.rows) {
+      if (!tables[row.table_name]) tables[row.table_name] = [];
+      tables[row.table_name]!.push({ column: row.column_name, type: row.data_type, nullable: row.is_nullable === "YES", default: row.column_default });
+    }
+    res.json({ tables });
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message });
+  }
+});
+
 export { router as adminRouter };
+

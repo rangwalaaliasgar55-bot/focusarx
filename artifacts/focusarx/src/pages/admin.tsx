@@ -49,7 +49,7 @@ type AdminData = {
   guestCount?: number;
 };
 
-type Tab = "overview" | "analytics" | "users" | "missions" | "retention";
+type Tab = "overview" | "analytics" | "users" | "missions" | "retention" | "sql";
 
 export default function AdminPage() {
   const { data: session, status: authStatus } = useAuth();
@@ -64,6 +64,13 @@ export default function AdminPage() {
   const [tab, setTab] = useState<Tab>("overview");
   const [missionData, setMissionData] = useState<{ missions: any[]; totalCompletions: number; totalClaims: number } | null>(null);
   const [retentionData, setRetentionData] = useState<any | null>(null);
+  const [sqlQuery, setSqlQuery] = useState("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;");
+  const [sqlResults, setSqlResults] = useState<{ rows: any[]; fields: {name: string}[]; rowCount: number } | null>(null);
+  const [sqlError, setSqlError] = useState<string | null>(null);
+  const [sqlLoading, setSqlLoading] = useState(false);
+  const [schemaData, setSchemaData] = useState<Record<string, any[]> | null>(null);
+  const [schemaExpanded, setSchemaExpanded] = useState<Set<string>>(new Set());
+  const [schemaLoading, setSchemaLoading] = useState(false);
 
   const authHeaders = useCallback((): Record<string, string> => {
     const token = localStorage.getItem("focusarx-auth-token");
@@ -148,6 +155,32 @@ export default function AdminPage() {
     }
   };
 
+  const runSqlQuery = async () => {
+    if (!sqlQuery.trim()) return;
+    setSqlLoading(true); setSqlError(null); setSqlResults(null);
+    try {
+      const r = await fetch("/api/admin/sql", {
+        method: "POST",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ query: sqlQuery }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setSqlError(d.error ?? "Query failed"); }
+      else { setSqlResults(d); }
+    } finally { setSqlLoading(false); }
+  };
+
+  const loadSchema = async () => {
+    if (schemaData) return;
+    setSchemaLoading(true);
+    try {
+      const r = await fetch("/api/admin/schema", { headers: authHeaders(), credentials: "include" });
+      const d = await r.json();
+      setSchemaData(d.tables ?? {});
+    } finally { setSchemaLoading(false); }
+  };
+
   const purgeAllGuests = async () => {
     const guestCount = stats?.guestCount ?? data?.guestCount ?? 0;
     if (guestCount === 0) return;
@@ -217,7 +250,7 @@ export default function AdminPage() {
               </button>
             )}
             <div className="flex gap-1 rounded-xl border border-zinc-800 bg-zinc-900/60 p-1">
-            {(["overview", "analytics", "users", "missions", "retention"] as Tab[]).map((t) => (
+            {(["overview", "analytics", "users", "missions", "retention", "sql"] as Tab[]).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -570,6 +603,140 @@ export default function AdminPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </motion.div>
+          )}
+
+          {tab === "sql" && (
+            <motion.div key="sql" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }} className="space-y-4">
+              <div className="flex items-center gap-3 mb-2">
+                <h2 className="text-lg font-semibold text-zinc-100">SQL Database Editor</h2>
+                <span className="rounded-full border border-amber-700/40 bg-amber-950/30 px-2 py-0.5 text-[10px] font-medium text-amber-400 uppercase tracking-wider">Read-only</span>
+              </div>
+              <div className="flex gap-4">
+                {/* Schema sidebar */}
+                <div className="w-52 shrink-0">
+                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-3 h-full">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold text-zinc-400">Tables</span>
+                      <button onClick={() => void loadSchema()} disabled={schemaLoading}
+                        className="text-[10px] text-zinc-500 hover:text-zinc-300 disabled:opacity-40">
+                        {schemaLoading ? "Loading..." : schemaData ? "↺" : "Load"}
+                      </button>
+                    </div>
+                    {schemaData ? (
+                      <div className="space-y-1 max-h-[400px] overflow-y-auto">
+                        {Object.entries(schemaData).map(([table, cols]) => (
+                          <div key={table}>
+                            <button
+                              onClick={() => {
+                                setSchemaExpanded(prev => {
+                                  const n = new Set(prev);
+                                  n.has(table) ? n.delete(table) : n.add(table);
+                                  return n;
+                                });
+                                setSqlQuery(`SELECT * FROM ${table} LIMIT 50;`);
+                              }}
+                              className="w-full text-left text-[11px] text-violet-400 hover:text-violet-300 font-mono py-0.5 truncate"
+                            >{table}</button>
+                            {schemaExpanded.has(table) && (
+                              <div className="pl-2 space-y-0.5">
+                                {cols.map(c => (
+                                  <div key={c.column} className="text-[10px] text-zinc-500 font-mono">
+                                    {c.column} <span className="text-zinc-600">{c.type}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-zinc-600">Click Load to explore tables</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Editor + Results */}
+                <div className="flex-1 space-y-3">
+                  {/* Query input */}
+                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 overflow-hidden">
+                    <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">SQL Query</span>
+                      <div className="flex items-center gap-2">
+                        {sqlResults && <span className="text-[10px] text-zinc-500">{sqlResults.rowCount} row{sqlResults.rowCount !== 1 ? "s" : ""}</span>}
+                        <button
+                          onClick={() => void runSqlQuery()}
+                          disabled={sqlLoading}
+                          className="rounded-lg bg-violet-700 hover:bg-violet-600 px-3 py-1 text-xs font-semibold text-white disabled:opacity-40 flex items-center gap-1.5"
+                        >
+                          {sqlLoading ? "Running..." : "▶ Run"}
+                        </button>
+                      </div>
+                    </div>
+                    <textarea
+                      value={sqlQuery}
+                      onChange={e => setSqlQuery(e.target.value)}
+                      onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); void runSqlQuery(); } }}
+                      className="w-full bg-transparent px-3 py-3 font-mono text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none resize-none"
+                      rows={6}
+                      placeholder="SELECT * FROM users LIMIT 10;"
+                      spellCheck={false}
+                    />
+                    <div className="px-3 py-1.5 border-t border-zinc-800 text-[10px] text-zinc-600">⌘ + Enter to run · Only SELECT allowed</div>
+                  </div>
+
+                  {/* Error */}
+                  {sqlError && (
+                    <div className="rounded-xl border border-red-900/50 bg-red-950/30 p-3 font-mono text-xs text-red-400">{sqlError}</div>
+                  )}
+
+                  {/* Results table */}
+                  {sqlResults && sqlResults.rows.length > 0 && (
+                    <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 overflow-hidden">
+                      <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="border-b border-zinc-800 bg-zinc-900">
+                              {sqlResults.fields.map(f => (
+                                <th key={f.name} className="px-3 py-2 text-left font-semibold text-zinc-400 whitespace-nowrap">{f.name}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sqlResults.rows.map((row, i) => (
+                              <tr key={i} className={`border-b border-zinc-800/50 ${i % 2 === 0 ? "bg-zinc-900/20" : ""} hover:bg-zinc-800/40`}>
+                                {sqlResults.fields.map(f => (
+                                  <td key={f.name} className="px-3 py-2 text-zinc-300 whitespace-nowrap max-w-[200px] truncate font-mono">
+                                    {row[f.name] === null ? <span className="text-zinc-600 italic">null</span> : String(row[f.name])}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                  {sqlResults && sqlResults.rows.length === 0 && !sqlError && (
+                    <div className="rounded-xl border border-zinc-800 bg-zinc-900/20 p-4 text-center text-xs text-zinc-500">Query returned 0 rows.</div>
+                  )}
+
+                  {/* Quick queries */}
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { label: "All users", q: "SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC LIMIT 20;" },
+                      { label: "Recent sessions", q: "SELECT user_id, duration_sec, mode, focus_score, completed_at FROM focus_sessions ORDER BY completed_at DESC LIMIT 20;" },
+                      { label: "Top XP", q: "SELECT u.name, u.email, w.total_xp, w.level, w.coins FROM users u JOIN user_wallets w ON u.id = w.user_id ORDER BY w.total_xp DESC LIMIT 20;" },
+                      { label: "DB size", q: "SELECT schemaname, tablename, pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size FROM pg_tables WHERE schemaname='public' ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;" },
+                    ].map(q => (
+                      <button key={q.label} onClick={() => { setSqlQuery(q.q); setSqlResults(null); setSqlError(null); }}
+                        className="rounded-lg border border-zinc-800 bg-zinc-900/40 px-2.5 py-1 text-[10px] text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition font-mono">
+                        {q.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </motion.div>
           )}

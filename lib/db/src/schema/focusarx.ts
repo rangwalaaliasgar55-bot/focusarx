@@ -451,6 +451,88 @@ export type AuditLog = typeof auditLogsTable.$inferSelect;
 
 // ─── FOLLOWS ───────────────────────────────────────────────────────────────────
 
+// ─── DREAMS SYSTEM ──────────────────────────────────────────────────────────
+
+export const userDreamsTable = pgTable("user_dreams", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().unique().references(() => usersTable.id, { onDelete: "cascade" }),
+  dreamType: text("dream_type").notNull().default("custom"),
+  customGoal: text("custom_goal"),
+  targetDate: text("target_date"),
+  dailyTargetMinutes: integer("daily_target_minutes").default(120),
+  totalMinutesLogged: integer("total_minutes_logged").default(0),
+  startDate: text("start_date"),
+  emoji: text("emoji").default("🎯"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type UserDream = typeof userDreamsTable.$inferSelect;
+
+// ─── PET COMPANIONS ──────────────────────────────────────────────────────────
+
+export const userPetsTable = pgTable("user_pets", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().unique().references(() => usersTable.id, { onDelete: "cascade" }),
+  petType: text("pet_type").notNull().default("owl"),
+  petName: text("pet_name"),
+  petLevel: integer("pet_level").notNull().default(1),
+  petXp: integer("pet_xp").notNull().default(0),
+  evolutionStage: integer("evolution_stage").notNull().default(1),
+  mood: text("mood").default("happy"),
+  accessories: jsonb("accessories").$type<string[]>().default([]),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type UserPet = typeof userPetsTable.$inferSelect;
+
+// ─── MARKETPLACE ─────────────────────────────────────────────────────────────
+
+export const marketplaceItemsTable = pgTable("marketplace_items", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  description: text("description"),
+  type: text("type").notNull().default("avatar"),
+  costCoins: integer("cost_coins").notNull().default(100),
+  rarity: text("rarity").default("common"),
+  emoji: text("emoji").default("🎁"),
+  data: jsonb("data"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type MarketplaceItem = typeof marketplaceItemsTable.$inferSelect;
+
+export const userInventoryTable = pgTable("user_inventory", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  itemId: text("item_id").notNull().references(() => marketplaceItemsTable.id, { onDelete: "cascade" }),
+  acquiredAt: timestamp("acquired_at").defaultNow().notNull(),
+  equipped: boolean("equipped").default(false).notNull(),
+}, (t) => [
+  index("user_inventory_user_idx").on(t.userId),
+]);
+
+export type UserInventory = typeof userInventoryTable.$inferSelect;
+
+// ─── WRAPPED SNAPSHOTS ──────────────────────────────────────────────────────
+
+export const wrappedSnapshotsTable = pgTable("wrapped_snapshots", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  period: text("period").notNull(),
+  periodType: text("period_type").notNull().default("monthly"),
+  data: jsonb("data").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("wrapped_user_period_idx").on(t.userId, t.period),
+]);
+
+export type WrappedSnapshot = typeof wrappedSnapshotsTable.$inferSelect;
+
+// ─── FOLLOWS ───────────────────────────────────────────────────────────────────
+
 export const followsTable = pgTable("follows", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   followerId: text("follower_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
