@@ -35,6 +35,7 @@ import { dmRouter } from "./dm";
 import { shopRouter } from "./shop";
 import { goalsRouter } from "./goals";
 import { pushRouter } from "./pushSubscriptions";
+import { feedbackRouter } from "./feedback";
 
 const router: IRouter = Router();
 
@@ -74,5 +75,6 @@ router.use(dmRouter);
 router.use(shopRouter);
 router.use(goalsRouter);
 router.use(pushRouter);
+router.use(feedbackRouter);
 
 export default router;

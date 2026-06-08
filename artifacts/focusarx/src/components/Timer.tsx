@@ -68,7 +68,7 @@ const playSessionNotification = (mode: TimerMode) => {
   } catch { /* silently ignore */ }
 };
 
-export default function Timer() {
+export default function Timer({ onSessionComplete: onSessionCompleteProp }: { onSessionComplete?: () => void } = {}) {
   const { addSession, focusSessionsToday } = useSessionHistory();
   const { toast } = useToast();
   const { requestMonitorRecovery, monitorEnabled } = useSessionRecovery();
@@ -175,6 +175,7 @@ export default function Timer() {
         setShowSummary(true);
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 3500);
+        onSessionCompleteProp?.();
       }
       if ("Notification" in window && Notification.permission === "granted") {
         new Notification(session.mode === "focus"

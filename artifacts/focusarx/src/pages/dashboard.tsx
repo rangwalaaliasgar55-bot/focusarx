@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { useAuth, getToken } from "@/lib/auth";
 import { PageTransition } from "@/components/PageTransition";
 import FocusGarden from "@/components/FocusGarden";
+import FocusCity from "@/components/FocusCity";
 import ReadinessWidget from "@/components/ReadinessWidget";
 import WeatherWidget from "@/components/WeatherWidget";
 import { LayoutDashboard, Zap, Clock, Target, Flame, CheckCircle, CheckSquare, Flag, Circle, CheckCircle2, Users, Trophy } from "lucide-react";
@@ -422,6 +423,9 @@ export default function DashboardPage() {
 
               {/* Readiness Widget */}
               <ReadinessWidget />
+
+              {/* Focus City */}
+              <FocusCity />
 
               {/* Focus Garden + Stats grid */}
               <div className="grid gap-4 sm:grid-cols-3">

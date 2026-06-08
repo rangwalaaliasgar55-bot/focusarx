@@ -644,3 +644,20 @@ export const pushSubscriptionsTable = pgTable("push_subscriptions", {
   expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [index("push_sub_user_idx").on(t.userId)]);
+
+// ─── APP FEEDBACK ──────────────────────────────────────────────────────────────
+
+export const appFeedbackTable = pgTable("app_feedback", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").references(() => usersTable.id, { onDelete: "set null" }),
+  rating: integer("rating").notNull(),
+  message: text("message"),
+  category: text("category").default("general"),
+  sessionCount: integer("session_count").default(0),
+  userLevel: integer("user_level").default(1),
+  device: text("device"),
+  appVersion: text("app_version").default("1.0"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [index("app_feedback_user_idx").on(t.userId)]);
+
+export type AppFeedback = typeof appFeedbackTable.$inferSelect;

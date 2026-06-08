@@ -501,17 +501,41 @@ export default function SocialPage() {
 
       {tab === "activity" && (
         <div className="space-y-2">
-          {activity.length === 0 && <div className="text-center py-12 text-[#3a3d4a]"><Activity size={40} className="mx-auto mb-3 opacity-30" /><p>No recent activity from friends</p></div>}
-          {activity.map((a: any) => (
-            <div key={a.id} className="flex items-start gap-3 rounded-xl border border-[#1e2130] bg-[#111318] p-3">
-              <span className="text-xl">{a.icon}</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-[#e8eaf0]">{a.userName}</p>
-                <p className="text-xs text-[#5a5f72]">{a.description}</p>
-              </div>
-              <span className="text-[10px] text-[#3a3d4a] shrink-0 flex items-center gap-1"><Clock size={10} />{a.timestamp ? new Date(a.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}</span>
+          {activity.length === 0 && (
+            <div className="text-center py-12 text-[#3a3d4a]">
+              <Activity size={40} className="mx-auto mb-3 opacity-30" />
+              <p className="text-sm">No recent activity from friends</p>
+              <p className="text-xs mt-1 text-[#2a2d3a]">Add friends to see their focus sessions, badges and posts here</p>
             </div>
-          ))}
+          )}
+          {activity.map((a: any) => {
+            const icon = a.type === "session_complete" ? "🎯" : a.type === "badge_unlocked" ? "🏅" : a.type === "mission_claimed" ? "✅" : a.type === "post_created" ? "📝" : "⚡";
+            let description = "";
+            if (a.type === "session_complete") {
+              description = `Completed a ${a.data?.durationMin ?? 0}min focus session${a.data?.focusScore ? ` · ${a.data.focusScore.toFixed(0)}% focus` : ""}${a.data?.category && a.data.category !== "General" ? ` · ${a.data.category}` : ""}`;
+            } else if (a.type === "badge_unlocked") {
+              description = `Unlocked the "${a.data?.badgeId?.replace(/_/g, " ")}" badge`;
+            } else if (a.type === "mission_claimed") {
+              description = `Completed mission: ${a.data?.missionKey?.replace(/_/g, " ")}`;
+            } else if (a.type === "post_created") {
+              description = a.data?.content ?? "Shared a post";
+            }
+            const ts = a.timestamp ? new Date(a.timestamp) : null;
+            const timeLabel = ts ? (Date.now() - ts.getTime() < 3600000 ? `${Math.round((Date.now() - ts.getTime()) / 60000)}m ago` : ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })) : "";
+            return (
+              <div key={a.id} className="flex items-start gap-3 rounded-xl border border-[#1e2130] bg-[#111318] p-3 hover:border-[#2a2d40] transition-colors">
+                <span className="text-xl mt-0.5">{icon}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-semibold text-[#e8eaf0]">{a.isMe ? "You" : a.userName}</p>
+                    {a.userLevel && <span className="text-[10px] rounded-full bg-[#6c63ff]/15 text-[#a5a8ff] px-1.5 py-0.5">Lv {a.userLevel}</span>}
+                  </div>
+                  <p className="text-xs text-[#5a5f72] mt-0.5 truncate">{description}</p>
+                </div>
+                <span className="text-[10px] text-[#3a3d4a] shrink-0 flex items-center gap-1 mt-0.5"><Clock size={10} />{timeLabel}</span>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

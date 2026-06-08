@@ -4,9 +4,10 @@ import {
   friendshipsTable, usersTable, userWalletsTable,
   studyStreaksTable, userBadgesTable, focusSessionsTable,
   tasksTable, notificationsTable, followsTable,
+  userMissionProgressTable, socialPostsTable,
 } from "@workspace/db";
 import { extractUserId } from "./auth";
-import { eq, or, and, desc, ne, ilike, sql } from "drizzle-orm";
+import { eq, or, and, desc, ne, ilike, sql, gte, inArray } from "drizzle-orm";
 
 function auth(req: any, res: any, next: any) {
   const userId = extractUserId(req);
@@ -168,44 +169,83 @@ socialRouter.get("/social/search", auth, async (req, res) => {
 
 socialRouter.get("/social/activity", auth, async (req, res) => {
   const userId = req.userId!;
-  const friendIds = await getFriendIds(userId);
-  if (!friendIds.length) return res.json([]);
+  try {
+    const friendIds = await getFriendIds(userId);
+    const allIds = [...friendIds, userId];
 
-  const sessions = await db.select({
-    id: focusSessionsTable.id,
-    userId: focusSessionsTable.userId,
-    durationSec: focusSessionsTable.durationSec,
-    focusScore: focusSessionsTable.focusScore,
-    completedAt: focusSessionsTable.completedAt,
-  }).from(focusSessionsTable)
-    .where(and(
-      sql`${focusSessionsTable.userId} = ANY(ARRAY[${sql.join(friendIds.map(id => sql`${id}::text`), sql`, `)}])`,
-      sql`completed_at >= now() - interval '7 days'`,
-    ))
-    .orderBy(desc(focusSessionsTable.completedAt))
-    .limit(50);
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-  const userCache: Record<string, { name: string; email?: string }> = {};
-  const activities = await Promise.all(sessions.map(async s => {
-    if (!userCache[s.userId]) {
-      const [u] = await db.select({ name: usersTable.name, email: usersTable.email })
-        .from(usersTable).where(eq(usersTable.id, s.userId)).limit(1);
-      userCache[s.userId] = { name: u?.name || u?.email?.split("@")[0] || "User", email: u?.email };
+    if (!allIds.length) return res.json([]);
+
+    const [sessions, badges, missions, posts] = await Promise.all([
+      db.select({
+        id: focusSessionsTable.id, userId: focusSessionsTable.userId,
+        durationSec: focusSessionsTable.durationSec, focusScore: focusSessionsTable.focusScore,
+        mode: focusSessionsTable.mode, completedAt: focusSessionsTable.completedAt,
+        category: focusSessionsTable.category,
+      }).from(focusSessionsTable)
+        .where(and(inArray(focusSessionsTable.userId, allIds), eq(focusSessionsTable.mode, "focus"), gte(focusSessionsTable.completedAt, since)))
+        .orderBy(desc(focusSessionsTable.completedAt)).limit(30),
+
+      db.select({
+        id: userBadgesTable.id, userId: userBadgesTable.userId,
+        badgeId: userBadgesTable.badgeId, unlockedAt: userBadgesTable.unlockedAt,
+      }).from(userBadgesTable)
+        .where(and(inArray(userBadgesTable.userId, allIds), gte(userBadgesTable.unlockedAt, since)))
+        .orderBy(desc(userBadgesTable.unlockedAt)).limit(20),
+
+      db.select({
+        id: userMissionProgressTable.id, userId: userMissionProgressTable.userId,
+        missionKey: userMissionProgressTable.missionKey, completedAt: userMissionProgressTable.completedAt,
+      }).from(userMissionProgressTable)
+        .where(and(inArray(userMissionProgressTable.userId, allIds), eq(userMissionProgressTable.rewardClaimed, true), gte(userMissionProgressTable.completedAt, since)))
+        .orderBy(desc(userMissionProgressTable.completedAt)).limit(20),
+
+      db.select({
+        id: socialPostsTable.id, userId: socialPostsTable.userId,
+        content: socialPostsTable.content, type: socialPostsTable.type, createdAt: socialPostsTable.createdAt,
+      }).from(socialPostsTable)
+        .where(and(inArray(socialPostsTable.userId, allIds), eq(socialPostsTable.isPublic, true), gte(socialPostsTable.createdAt, since)))
+        .orderBy(desc(socialPostsTable.createdAt)).limit(20),
+    ]);
+
+    // Build user+level cache in one pass
+    const uids = new Set([...sessions.map(s => s.userId), ...badges.map(b => b.userId), ...missions.map(m => m.userId), ...posts.map(p => p.userId)]);
+    const userMap = new Map<string, { name: string; level: number }>();
+    if (uids.size > 0) {
+      const [userRows, walletRows] = await Promise.all([
+        db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email }).from(usersTable).where(inArray(usersTable.id, [...uids])),
+        db.select({ userId: userWalletsTable.userId, level: userWalletsTable.level }).from(userWalletsTable).where(inArray(userWalletsTable.userId, [...uids])),
+      ]);
+      const wmap = new Map(walletRows.map(w => [w.userId, w.level]));
+      for (const u of userRows) userMap.set(u.id, { name: u.name || u.email?.split("@")[0] || "Scholar", level: wmap.get(u.id) ?? 1 });
     }
-    const user = userCache[s.userId];
-    const mins = Math.round((s.durationSec ?? 0) / 60);
-    return {
-      id: s.id,
-      type: "session",
-      userId: s.userId,
-      userName: user.name,
-      description: `Completed a ${mins}min focus session${s.focusScore ? ` with ${s.focusScore.toFixed(0)}% focus` : ""}`,
-      timestamp: s.completedAt,
-      icon: "🎯",
-    };
-  }));
 
-  res.json(activities.sort((a, b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime()));
+    const items: any[] = [];
+    for (const s of sessions) {
+      const u = userMap.get(s.userId);
+      items.push({ id: `session-${s.id}`, type: "session_complete", userId: s.userId, userName: u?.name ?? "Scholar", userLevel: u?.level ?? 1, isMe: s.userId === userId, timestamp: s.completedAt, data: { durationMin: Math.round((s.durationSec ?? 0) / 60), focusScore: s.focusScore, category: s.category ?? "General" } });
+    }
+    for (const b of badges) {
+      const u = userMap.get(b.userId);
+      items.push({ id: `badge-${b.id}`, type: "badge_unlocked", userId: b.userId, userName: u?.name ?? "Scholar", userLevel: u?.level ?? 1, isMe: b.userId === userId, timestamp: b.unlockedAt, data: { badgeId: b.badgeId } });
+    }
+    for (const m of missions) {
+      if (!m.completedAt) continue;
+      const u = userMap.get(m.userId);
+      items.push({ id: `mission-${m.id}`, type: "mission_claimed", userId: m.userId, userName: u?.name ?? "Scholar", userLevel: u?.level ?? 1, isMe: m.userId === userId, timestamp: m.completedAt, data: { missionKey: m.missionKey } });
+    }
+    for (const p of posts) {
+      const u = userMap.get(p.userId);
+      items.push({ id: `post-${p.id}`, type: "post_created", userId: p.userId, userName: u?.name ?? "Scholar", userLevel: u?.level ?? 1, isMe: p.userId === userId, timestamp: p.createdAt, data: { content: p.content.slice(0, 200), postType: p.type } });
+    }
+
+    items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    res.json(items.slice(0, 40));
+  } catch (err) {
+    console.error("GET /social/activity error:", err);
+    res.status(500).json({ error: "Internal error" });
+  }
 });
 
 const LEADERBOARD_PERIODS = ["daily", "weekly", "monthly", "alltime"] as const;
@@ -348,3 +388,4 @@ socialRouter.get("/social/followers", auth, async (req, res) => {
     res.status(500).json({ error: "Internal error" });
   }
 });
+

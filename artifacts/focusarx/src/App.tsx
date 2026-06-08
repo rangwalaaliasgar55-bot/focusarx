@@ -30,6 +30,7 @@ import { useTasks } from "@/hooks/useTasks";
 import ReadinessCheckInModal from "@/components/ReadinessCheckInModal";
 import DailyGoal from "@/components/DailyGoal";
 import MissedTaskReview, { useMissedTaskReview } from "@/components/MissedTaskReview";
+import FeedbackModal, { useFeedbackTrigger } from "@/components/FeedbackModal";
 import WelcomeOverlay from "@/components/WelcomeOverlay";
 import OnboardingModal from "@/components/OnboardingModal";
 import HeroBanner from "@/components/HeroBanner";
@@ -356,6 +357,7 @@ function MotivationalLine() {
 
 function HomePage() {
   function handleHeroStart() { window.scrollTo({ top: 0, behavior: "smooth" }); }
+  const feedback = useFeedbackTrigger();
   return (
     <SessionRecoveryProvider>
       <div className="flex flex-col min-h-[100dvh]">
@@ -364,7 +366,7 @@ function HomePage() {
           <div className="flex-1 flex flex-col items-center gap-4">
             <HeroBanner onStart={handleHeroStart} />
             <div className="w-full flex flex-col items-center">
-              <Timer />
+              <Timer onSessionComplete={feedback.recordSession} />
               <MotivationalLine />
             </div>
             <FeatureSpotlight />
@@ -372,6 +374,7 @@ function HomePage() {
           <SidePanel />
         </div>
         <ReadinessCheckInModal />
+        <FeedbackModal open={feedback.show} onClose={feedback.dismiss} onSubmit={feedback.onSubmit} />
       </div>
     </SessionRecoveryProvider>
   );
