@@ -4,10 +4,11 @@ import {
   Timer, LayoutDashboard, TrendingUp, Trophy, Star,
   Users, Sparkles, LogOut, LogIn, Menu, X, Shield, BookOpen,
   Dna, Ghost, Sword, Radio, Wind, UserCircle, Info, Flame, Target,
-  Bell, Users2, Zap, Brain, Network, CheckSquare, MessageSquare, ShoppingBag, Flag, Gift, Sun, Moon,
+  Bell, BellOff, Users2, Zap, Brain, Network, CheckSquare, MessageSquare, ShoppingBag, Flag, Gift, Sun, Moon,
 } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTheme } from "@/lib/theme";
+import { requestPushPermission, unsubscribePush, isPushSubscribed } from "@/lib/pushNotifications";
 import { motion, AnimatePresence } from "framer-motion";
 import CoachPanel from "@/components/CoachPanel";
 import { useQuery } from "@tanstack/react-query";
@@ -149,6 +150,22 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const { data: session, status, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [theme, setTheme] = useTheme();
+  const [pushEnabled, setPushEnabled] = useState(() => isPushSubscribed());
+  const [pushLoading, setPushLoading] = useState(false);
+
+  const handlePushToggle = async () => {
+    setPushLoading(true);
+    try {
+      if (pushEnabled) {
+        await unsubscribePush();
+        setPushEnabled(false);
+      } else {
+        await requestPushPermission();
+        setPushEnabled(true);
+      }
+    } catch { /* user denied or not supported */ }
+    setPushLoading(false);
+  };
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => { if (e.key === "Escape") setMobileOpen(false); }, []);
   useEffect(() => {
@@ -232,6 +249,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
             {theme === "dark" ? "Light mode" : "Dark mode"}
           </button>
+          {"Notification" in window && (
+            <button
+              onClick={handlePushToggle}
+              disabled={pushLoading}
+              className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs transition-colors ${pushEnabled ? "text-emerald-500 hover:bg-emerald-500/10" : "text-[#6B7280] hover:bg-[rgba(124,58,237,0.1)] hover:text-[#A78BFA]"} disabled:opacity-50`}>
+              {pushEnabled ? <Bell size={14} /> : <BellOff size={14} />}
+              {pushLoading ? "…" : pushEnabled ? "Notifications on" : "Enable notifications"}
+            </button>
+          )}
         </div>
       </aside>
 

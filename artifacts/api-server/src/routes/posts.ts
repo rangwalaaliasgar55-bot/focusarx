@@ -66,6 +66,7 @@ async function enrichPost(post: any, viewerId: string | null) {
 // ─── FEED ─────────────────────────────────────────────────────────────────────
 
 postsRouter.get("/feed", auth, async (req, res) => {
+  try {
   const userId = req.userId!;
   const { type = "following", limit = "20", offset = "0", groupId } = req.query as Record<string, string>;
 
@@ -110,34 +111,42 @@ postsRouter.get("/feed", auth, async (req, res) => {
 
   const enriched = await Promise.all(posts.map(p => enrichPost(p, userId)));
   res.json(enriched);
+  } catch (err) {
+    console.error("GET /feed error:", err);
+    res.status(500).json({ error: "Failed to load feed" });
+  }
 });
 
 // ─── POSTS CRUD ────────────────────────────────────────────────────────────────
 
 postsRouter.post("/posts", auth, async (req, res) => {
-  const userId = req.userId!;
-  const { content, type, imageUrls, metadata, groupId, isPublic } = req.body;
-  if (!content?.trim()) return res.status(400).json({ error: "content required" });
-
-  if (content.length > 2000) return res.status(400).json({ error: "Post too long (max 2000 chars)" });
-
-  const [post] = await db.insert(socialPostsTable).values({
-    userId, content: content.trim(),
-    type: type || "general",
-    imageUrls: imageUrls || [],
-    metadata: metadata || null,
-    groupId: groupId || null,
-    isPublic: isPublic !== false,
-  }).returning();
-
   try {
-    await db.update(userWalletsTable)
-      .set({ totalXp: sql`total_xp + 10`, weeklyXp: sql`weekly_xp + 10` })
-      .where(eq(userWalletsTable.userId, userId));
-  } catch {}
+    const userId = req.userId!;
+    const { content, type, imageUrls, metadata, groupId, isPublic } = req.body;
+    if (!content?.trim()) return res.status(400).json({ error: "content required" });
+    if (content.length > 2000) return res.status(400).json({ error: "Post too long (max 2000 chars)" });
 
-  const enriched = await enrichPost(post, userId);
-  res.status(201).json(enriched);
+    const [post] = await db.insert(socialPostsTable).values({
+      userId, content: content.trim(),
+      type: type || "general",
+      imageUrls: imageUrls || [],
+      metadata: metadata || null,
+      groupId: groupId || null,
+      isPublic: isPublic !== false,
+    }).returning();
+
+    try {
+      await db.update(userWalletsTable)
+        .set({ totalXp: sql`total_xp + 10`, weeklyXp: sql`weekly_xp + 10` })
+        .where(eq(userWalletsTable.userId, userId));
+    } catch {}
+
+    const enriched = await enrichPost(post, userId);
+    res.status(201).json(enriched);
+  } catch (err) {
+    console.error("POST /posts error:", err);
+    res.status(500).json({ error: "Failed to create post" });
+  }
 });
 
 postsRouter.get("/posts/:id", optionalAuth, async (req, res) => {

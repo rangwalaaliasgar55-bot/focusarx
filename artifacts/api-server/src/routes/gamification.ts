@@ -281,7 +281,7 @@ router.get("/gamification/badges", authMiddleware, async (req: any, res) => {
   }
 });
 
-router.get("/wallet/transactions", authMiddleware, async (req: any, res) => {
+router.get("/gamification/wallet/transactions", authMiddleware, async (req: any, res) => {
   try {
     const limit = Math.min(100, Number(req.query.limit) || 50);
     const offset = Number(req.query.offset) || 0;

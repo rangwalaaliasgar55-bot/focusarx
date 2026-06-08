@@ -142,13 +142,28 @@ socialRouter.delete("/social/request/:id", auth, async (req, res) => {
 });
 
 socialRouter.get("/social/search", auth, async (req, res) => {
-  const { q } = req.query as { q?: string };
+  const { q, friendsOnly } = req.query as { q?: string; friendsOnly?: string };
   if (!q || q.length < 2) return res.json([]);
-  const users = await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email })
+  const userId = req.userId!;
+
+  if (friendsOnly === "true") {
+    const friendIds = await getFriendIds(userId);
+    if (!friendIds.length) return res.json([]);
+    const friends = await db.select({ id: usersTable.id, name: usersTable.name })
+      .from(usersTable)
+      .where(and(
+        or(ilike(usersTable.name, `%${q}%`), ilike(usersTable.email, `%${q}%`)),
+        sql`${usersTable.id} = ANY(ARRAY[${sql.join(friendIds.map(id => sql`${id}::text`), sql`, `)}])`,
+      ))
+      .limit(10);
+    return res.json(friends.filter(u => u.id !== userId));
+  }
+
+  const users = await db.select({ id: usersTable.id, name: usersTable.name })
     .from(usersTable)
     .where(or(ilike(usersTable.name, `%${q}%`), ilike(usersTable.email, `%${q}%`)))
     .limit(10);
-  res.json(users.filter(u => u.id !== req.userId));
+  res.json(users.filter(u => u.id !== userId));
 });
 
 socialRouter.get("/social/activity", auth, async (req, res) => {

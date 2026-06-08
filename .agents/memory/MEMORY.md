@@ -18,3 +18,6 @@
 - [Coin Shop](coin-shop.md) — 15 items across boost/theme/title/cosmetic; POST /api/shop/purchase/:itemId deducts coins, grants XP for xp_bonus_* items, inserts notification
 - [Profile settings](profile-settings.md) — PATCH /api/auth/profile updates name/bio/timezone on usersTable; auth/session now returns bio+timezone; EditProfileModal in profile.tsx
 - [Focus Goals](focus-goals.md) — goalsTable was in schema; CRUD at /api/goals; Goals page + GoalsWidget on dashboard; Flag icon in AppShell nav
+- [Habits API shape](habits-api.md) — GET /api/habits returns completedToday:boolean (not doneTodayId); DELETE /api/habits/:id/complete to uncomplete; freezeTokensTable uses tokensAvailable/tokensUsed not tokens/used
+- [Route path conventions](route-paths.md) — gamification routes must use full prefix: /gamification/wallet/transactions not /wallet/transactions; social search accepts ?friendsOnly=true to limit to friends only (no email returned)
+- [Dashboard widgets](dashboard-widgets.md) — dashboard has ActiveMissionsWidget + BuddyActivityWidget added; push notification toggle in AppShell sidebar via requestPushPermission/unsubscribePush from lib/pushNotifications.ts

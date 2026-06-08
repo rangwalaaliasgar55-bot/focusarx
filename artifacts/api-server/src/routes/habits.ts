@@ -37,27 +37,32 @@ function calcStreak(completions: { date: string }[]): number {
 }
 
 habitsRouter.get("/habits", auth, async (req, res) => {
-  const userId = req.userId!;
-  const habits = await db.select().from(habitsTable)
-    .where(and(eq(habitsTable.userId, userId), eq(habitsTable.isArchived, false)))
-    .orderBy(habitsTable.createdAt);
+  try {
+    const userId = req.userId!;
+    const habits = await db.select().from(habitsTable)
+      .where(and(eq(habitsTable.userId, userId), eq(habitsTable.isArchived, false)))
+      .orderBy(habitsTable.createdAt);
 
-  const today = todayStr();
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 90);
-  const since = thirtyDaysAgo.toISOString().split("T")[0]!;
+    const today = todayStr();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 90);
+    const since = thirtyDaysAgo.toISOString().split("T")[0]!;
 
-  const enriched = await Promise.all(habits.map(async h => {
-    const completions = await db.select({ date: habitCompletionsTable.date })
-      .from(habitCompletionsTable)
-      .where(and(eq(habitCompletionsTable.habitId, h.id), gte(habitCompletionsTable.date, since)))
-      .orderBy(desc(habitCompletionsTable.date));
-    const completedToday = completions.some(c => c.date === today);
-    const streak = calcStreak(completions);
-    return { ...h, completedToday, streak, recentDates: completions.map(c => c.date) };
-  }));
+    const enriched = await Promise.all(habits.map(async h => {
+      const completions = await db.select({ date: habitCompletionsTable.date })
+        .from(habitCompletionsTable)
+        .where(and(eq(habitCompletionsTable.habitId, h.id), gte(habitCompletionsTable.date, since)))
+        .orderBy(desc(habitCompletionsTable.date));
+      const completedToday = completions.some(c => c.date === today);
+      const streak = calcStreak(completions);
+      return { ...h, completedToday, streak, recentDates: completions.map(c => c.date) };
+    }));
 
-  res.json(enriched);
+    res.json(enriched);
+  } catch (err) {
+    console.error("GET /habits error:", err);
+    res.status(500).json({ error: "Failed to load habits" });
+  }
 });
 
 habitsRouter.post("/habits", auth, async (req, res) => {
@@ -167,25 +172,30 @@ habitsRouter.get("/habits/:id/history", auth, async (req, res) => {
 });
 
 habitsRouter.get("/habits/stats", auth, async (req, res) => {
-  const userId = req.userId!;
-  const habits = await db.select().from(habitsTable)
-    .where(and(eq(habitsTable.userId, userId), eq(habitsTable.isArchived, false)));
+  try {
+    const userId = req.userId!;
+    const habits = await db.select().from(habitsTable)
+      .where(and(eq(habitsTable.userId, userId), eq(habitsTable.isArchived, false)));
 
-  const today = todayStr();
-  let completedToday = 0;
-  let totalStreak = 0;
-  for (const h of habits) {
-    const c = await db.select().from(habitCompletionsTable)
-      .where(and(eq(habitCompletionsTable.habitId, h.id), eq(habitCompletionsTable.date, today))).limit(1);
-    if (c.length) completedToday++;
-    totalStreak += h.currentStreak;
+    const today = todayStr();
+    let completedToday = 0;
+    let totalStreak = 0;
+    for (const h of habits) {
+      const c = await db.select().from(habitCompletionsTable)
+        .where(and(eq(habitCompletionsTable.habitId, h.id), eq(habitCompletionsTable.date, today))).limit(1);
+      if (c.length) completedToday++;
+      totalStreak += h.currentStreak;
+    }
+
+    res.json({
+      total: habits.length,
+      completedToday,
+      remaining: habits.length - completedToday,
+      avgStreak: habits.length ? Math.round(totalStreak / habits.length) : 0,
+      longestStreak: Math.max(0, ...habits.map(h => h.longestStreak)),
+    });
+  } catch (err) {
+    console.error("GET /habits/stats error:", err);
+    res.status(500).json({ error: "Failed to load habit stats" });
   }
-
-  res.json({
-    total: habits.length,
-    completedToday,
-    remaining: habits.length - completedToday,
-    avgStreak: habits.length ? Math.round(totalStreak / habits.length) : 0,
-    longestStreak: Math.max(0, ...habits.map(h => h.longestStreak)),
-  });
 });

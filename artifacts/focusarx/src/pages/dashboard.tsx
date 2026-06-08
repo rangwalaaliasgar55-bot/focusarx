@@ -5,9 +5,9 @@ import { PageTransition } from "@/components/PageTransition";
 import FocusGarden from "@/components/FocusGarden";
 import ReadinessWidget from "@/components/ReadinessWidget";
 import WeatherWidget from "@/components/WeatherWidget";
-import { LayoutDashboard, Zap, Clock, Target, Flame, CheckCircle, CheckSquare, Flag, Circle, CheckCircle2 } from "lucide-react";
+import { LayoutDashboard, Zap, Clock, Target, Flame, CheckCircle, CheckSquare, Flag, Circle, CheckCircle2, Users, Trophy } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 type DashboardStats = {
   totalStudyMinutesToday: number;
@@ -130,6 +130,7 @@ function GoalRing({ sessionsToday, target = 6 }: { sessionsToday: number; target
 }
 
 function DailyHabitsWidget() {
+  const qc = useQueryClient();
   const { data: habits = [], isLoading } = useQuery<any[]>({
     queryKey: ["habits-today"],
     queryFn: async () => {
@@ -141,20 +142,21 @@ function DailyHabitsWidget() {
     staleTime: 60_000,
   });
 
-  const toggle = async (id: string, doneTodayId: string | null) => {
+  const toggle = async (id: string, completedToday: boolean) => {
     const token = getToken();
-    if (doneTodayId) {
-      await fetch(`/api/habits/${id}/uncomplete`, { method: "DELETE", headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+    const headers: Record<string, string> = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+    if (completedToday) {
+      await fetch(`/api/habits/${id}/complete`, { method: "DELETE", headers });
     } else {
-      await fetch(`/api/habits/${id}/complete`, { method: "POST", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({}) });
+      await fetch(`/api/habits/${id}/complete`, { method: "POST", headers, body: JSON.stringify({}) });
     }
-    // refetch handled by staleTime expiry; good enough for a widget
+    qc.invalidateQueries({ queryKey: ["habits-today"] });
   };
 
   if (isLoading) return null;
   if (!habits.length) return null;
 
-  const done = habits.filter((h: any) => h.doneTodayId).length;
+  const done = habits.filter((h: any) => h.completedToday).length;
 
   return (
     <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
@@ -167,21 +169,121 @@ function DailyHabitsWidget() {
       </div>
       <div className="space-y-2">
         {habits.slice(0, 6).map((h: any) => (
-          <button key={h.id} onClick={() => toggle(h.id, h.doneTodayId)}
+          <button key={h.id} onClick={() => toggle(h.id, h.completedToday)}
             className="w-full flex items-center gap-3 rounded-xl border border-[rgba(255,255,255,0.04)] bg-[rgba(255,255,255,0.02)] px-3 py-2.5 hover:bg-[rgba(124,58,237,0.05)] transition-colors text-left">
             <span className="text-base leading-none">{h.icon}</span>
-            <span className={`flex-1 text-sm ${h.doneTodayId ? "line-through text-[#4B5563]" : "text-[#E2E8F0]"}`}>{h.name}</span>
-            {h.doneTodayId
+            <span className={`flex-1 text-sm ${h.completedToday ? "line-through text-[#4B5563]" : "text-[#E2E8F0]"}`}>{h.name}</span>
+            {h.completedToday
               ? <div className="h-4 w-4 rounded-full bg-[#7C3AED] flex items-center justify-center"><span className="text-[8px] text-white">✓</span></div>
               : <div className="h-4 w-4 rounded-full border border-[#3a3d4a]" />}
           </button>
         ))}
       </div>
       {habits.length > 6 && (
-        <p className="mt-2 text-center text-xs text-[#4B5563]">+{habits.length - 6} more habits on <a href="/habits" className="text-[#7C3AED] hover:underline">Habits page</a></p>
+        <Link to="/habits" className="mt-2 block text-center text-xs text-[#4B5563] hover:text-[#7C3AED]">+{habits.length - 6} more habits →</Link>
       )}
       <div className="mt-3 h-1.5 w-full rounded-full bg-[#1a1d2e] overflow-hidden">
         <div className="h-full rounded-full bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] transition-all" style={{ width: `${habits.length ? (done / habits.length) * 100 : 0}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function ActiveMissionsWidget() {
+  const { data: missionsData, isLoading } = useQuery<any>({
+    queryKey: ["missions-dashboard"],
+    queryFn: async () => {
+      const token = getToken();
+      const res = await fetch("/api/missions", { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    staleTime: 120_000,
+  });
+
+  if (isLoading) return null;
+  const missions: any[] = missionsData?.missions ?? [];
+  const active = missions.filter((m: any) => !m.completed && !m.claimed).slice(0, 4);
+  if (!active.length) return null;
+
+  return (
+    <div className="rounded-2xl border border-[rgba(245,158,11,0.15)] bg-[rgba(245,158,11,0.03)] p-5 backdrop-blur-xl">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Trophy size={15} className="text-amber-400" />
+          <p className="text-sm font-semibold text-[#E2E8F0]">Active Missions</p>
+        </div>
+        <Link to="/missions" className="text-[10px] text-amber-400 hover:underline">See all</Link>
+      </div>
+      <div className="space-y-3">
+        {active.map((m: any) => {
+          const pct = m.target > 0 ? Math.min(100, Math.round((m.progress / m.target) * 100)) : 0;
+          return (
+            <div key={m.key} className="space-y-1">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-[#CBD5E1] truncate flex-1 mr-2">{m.icon} {m.title}</p>
+                <span className="text-[10px] text-[#4B5563] shrink-0">{m.progress}/{m.target}</span>
+              </div>
+              <div className="h-1 w-full rounded-full bg-[#1a1d2e] overflow-hidden">
+                <div className="h-full rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 transition-all" style={{ width: `${pct}%` }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function BuddyActivityWidget() {
+  const { data: activity = [], isLoading } = useQuery<any[]>({
+    queryKey: ["buddy-activity-dashboard"],
+    queryFn: async () => {
+      const token = getToken();
+      const res = await fetch("/api/social/activity", { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    staleTime: 120_000,
+  });
+
+  if (isLoading || !activity.length) return null;
+
+  return (
+    <div className="rounded-2xl border border-[rgba(6,214,160,0.15)] bg-[rgba(6,214,160,0.03)] p-5 backdrop-blur-xl">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Users size={15} className="text-emerald-400" />
+          <p className="text-sm font-semibold text-[#E2E8F0]">Buddy Activity</p>
+        </div>
+        <Link to="/social" className="text-[10px] text-emerald-400 hover:underline">Community</Link>
+      </div>
+      <div className="space-y-2.5">
+        {activity.slice(0, 5).map((item: any, i: number) => {
+          const mins = Math.round(item.durationSec / 60);
+          const when = (() => {
+            const diff = Date.now() - new Date(item.completedAt).getTime();
+            if (diff < 3600_000) return `${Math.round(diff / 60000)}m ago`;
+            if (diff < 86400_000) return `${Math.round(diff / 3600_000)}h ago`;
+            return `${Math.round(diff / 86400_000)}d ago`;
+          })();
+          return (
+            <div key={i} className="flex items-center gap-3">
+              <div className="h-7 w-7 rounded-full bg-gradient-to-br from-emerald-500/30 to-teal-500/30 flex items-center justify-center text-xs font-bold text-emerald-400 shrink-0">
+                {(item.userName || "?").slice(0, 1).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-[#CBD5E1] truncate">
+                  <span className="font-medium">{item.userName || "Someone"}</span>
+                  <span className="text-[#4B5563]"> focused for </span>
+                  <span className="text-emerald-400 font-medium">{mins}m</span>
+                  {item.focusScore != null && <span className="text-[#4B5563]"> · {item.focusScore}%</span>}
+                </p>
+              </div>
+              <span className="text-[9px] text-[#374151] shrink-0">{when}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -309,8 +411,14 @@ export default function DashboardPage() {
               {/* Daily Habits Widget */}
               <DailyHabitsWidget />
 
+              {/* Active Missions */}
+              <ActiveMissionsWidget />
+
               {/* Goals Widget */}
               <GoalsWidget />
+
+              {/* Buddy Activity */}
+              <BuddyActivityWidget />
 
               {/* Readiness Widget */}
               <ReadinessWidget />

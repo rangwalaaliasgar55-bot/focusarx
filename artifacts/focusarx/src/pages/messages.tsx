@@ -148,12 +148,19 @@ function ConversationThread({ conv, currentUserId, onBack }: { conv: any; curren
 
 function NewConversationModal({ onClose, onStart }: { onClose: () => void; onStart: (userId: string) => void }) {
   const [q, setQ] = useState("");
-  const { data: results = [] } = useQuery({
+  const { data: friends = [] } = useQuery({
+    queryKey: ["dm-friends"],
+    queryFn: () => apiFetch("/api/social/friends"),
+    staleTime: 30_000,
+  });
+  const { data: searchResults = [] } = useQuery({
     queryKey: ["user-search-dm", q],
-    queryFn: () => apiFetch(`/api/social/search?q=${encodeURIComponent(q)}`),
+    queryFn: () => apiFetch(`/api/social/search?q=${encodeURIComponent(q)}&friendsOnly=true`),
     enabled: q.length >= 2,
     staleTime: 10_000,
   });
+
+  const displayList = q.length >= 2 ? (searchResults as any[]) : (friends as any[]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
@@ -162,19 +169,25 @@ function NewConversationModal({ onClose, onStart }: { onClose: () => void; onSta
           <h3 className="text-sm font-semibold text-[#e8eaf0]">New Message</h3>
           <button onClick={onClose}><X size={16} className="text-[#4a4f62]" /></button>
         </div>
-        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search users…"
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search friends…"
           className="w-full rounded-xl border border-[#1e2130] bg-[#0a0c12] px-3 py-2 text-sm text-[#e8eaf0] outline-none focus:border-[#7C3AED]"
           autoFocus />
-        <div className="mt-3 space-y-1">
-          {(results as any[]).map((u: any) => (
+        {q.length === 0 && (friends as any[]).length > 0 && (
+          <p className="text-[10px] text-[#3a3d4a] mt-2 mb-1">Your friends</p>
+        )}
+        <div className="mt-1 space-y-1 max-h-56 overflow-y-auto">
+          {displayList.map((u: any) => (
             <button key={u.id} onClick={() => onStart(u.id)}
               className="flex w-full items-center gap-3 rounded-xl p-2 hover:bg-[#1e2130] transition-colors">
-              <Avatar name={u.name || u.email} size={32} />
-              <span className="text-sm text-[#e8eaf0]">{u.name || u.email}</span>
+              <Avatar name={u.name || "?"} size={32} />
+              <span className="text-sm text-[#e8eaf0]">{u.name || "User"}</span>
             </button>
           ))}
-          {q.length >= 2 && (results as any[]).length === 0 && (
-            <p className="text-xs text-center text-[#3a3d4a] py-4">No users found</p>
+          {q.length >= 2 && (searchResults as any[]).length === 0 && (
+            <p className="text-xs text-center text-[#3a3d4a] py-4">No friends found matching "{q}"</p>
+          )}
+          {q.length === 0 && (friends as any[]).length === 0 && (
+            <p className="text-xs text-center text-[#3a3d4a] py-6">Add friends first to send messages</p>
           )}
         </div>
       </div>

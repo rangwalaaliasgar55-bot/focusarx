@@ -44,6 +44,7 @@ async function getOrCreateDm(userA: string, userB: string) {
 }
 
 dmRouter.get("/dm/conversations", auth, async (req, res) => {
+  try {
   const userId = req.userId!;
 
   const myParticipations = await db.select()
@@ -95,22 +96,31 @@ dmRouter.get("/dm/conversations", auth, async (req, res) => {
   res.json(result.filter(Boolean).sort((a: any, b: any) =>
     new Date(b?.lastMessageAt || 0).getTime() - new Date(a?.lastMessageAt || 0).getTime()
   ));
+  } catch (err) {
+    console.error("GET /dm/conversations error:", err);
+    res.status(500).json({ error: "Failed to load conversations" });
+  }
 });
 
 dmRouter.post("/dm/start", auth, async (req, res) => {
-  const userId = req.userId!;
-  const { userId: targetId } = req.body;
-  if (!targetId) return res.status(400).json({ error: "userId required" });
-  if (targetId === userId) return res.status(400).json({ error: "Cannot DM yourself" });
+  try {
+    const userId = req.userId!;
+    const { userId: targetId } = req.body;
+    if (!targetId) return res.status(400).json({ error: "userId required" });
+    if (targetId === userId) return res.status(400).json({ error: "Cannot DM yourself" });
 
-  const [target] = await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email })
-    .from(usersTable).where(eq(usersTable.id, targetId)).limit(1);
-  if (!target) return res.status(404).json({ error: "User not found" });
+    const [target] = await db.select({ id: usersTable.id, name: usersTable.name })
+      .from(usersTable).where(eq(usersTable.id, targetId)).limit(1);
+    if (!target) return res.status(404).json({ error: "User not found" });
 
-  const conv = await getOrCreateDm(userId, targetId);
-  const otherParticipant = { id: target.id, name: target.name || target.email?.split("@")[0] || "User" };
+    const conv = await getOrCreateDm(userId, targetId);
+    const otherParticipant = { id: target.id, name: target.name || "User" };
 
-  res.json({ id: conv.id, type: "direct", otherParticipant, lastMessage: null, unreadCount: 0 });
+    res.json({ id: conv.id, type: "direct", otherParticipant, lastMessage: null, unreadCount: 0 });
+  } catch (err) {
+    console.error("POST /dm/start error:", err);
+    res.status(500).json({ error: "Failed to start conversation" });
+  }
 });
 
 dmRouter.get("/dm/:convId/messages", auth, async (req, res) => {

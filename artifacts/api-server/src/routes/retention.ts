@@ -84,14 +84,14 @@ retentionRouter.post("/retention/login-reward/claim", auth, async (req, res) => 
 retentionRouter.get("/retention/freeze-tokens", auth, async (req, res) => {
   const userId = req.userId!;
   const [record] = await db.select().from(freezeTokensTable).where(eq(freezeTokensTable.userId, userId)).limit(1);
-  res.json({ tokens: record?.tokens ?? 0, used: record?.used ?? 0 });
+  res.json({ tokens: record?.tokensAvailable ?? 0, used: record?.tokensUsed ?? 0 });
 });
 
 retentionRouter.post("/retention/freeze-tokens/use", auth, async (req, res) => {
   const userId = req.userId!;
   const [record] = await db.select().from(freezeTokensTable).where(eq(freezeTokensTable.userId, userId)).limit(1);
-  if (!record || (record.tokens ?? 0) <= 0) return res.status(400).json({ error: "No freeze tokens" });
-  await db.update(freezeTokensTable).set({ tokens: sql`tokens - 1`, used: sql`used + 1`, updatedAt: new Date() }).where(eq(freezeTokensTable.userId, userId));
+  if (!record || (record.tokensAvailable ?? 0) <= 0) return res.status(400).json({ error: "No freeze tokens" });
+  await db.update(freezeTokensTable).set({ tokensAvailable: sql`tokens_available - 1`, tokensUsed: sql`tokens_used + 1`, updatedAt: new Date() }).where(eq(freezeTokensTable.userId, userId));
   res.json({ ok: true });
 });
 
