@@ -6,6 +6,7 @@ import {
 } from "@workspace/db";
 import { extractUserId } from "./auth";
 import { eq, and, desc, sql, or } from "drizzle-orm";
+import { emitToUser } from "../lib/socketManager";
 
 function auth(req: any, res: any, next: any) {
   const userId = extractUserId(req);
@@ -169,24 +170,26 @@ dmRouter.post("/dm/:convId/messages", auth, async (req, res) => {
   await db.update(conversations).set({ lastMessageAt: new Date() })
     .where(eq(conversations.id, req.params.convId));
 
+  const [senderUser] = await db.select({ name: usersTable.name, email: usersTable.email })
+    .from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+
+  const fullMsg = { ...msg, senderName: senderUser?.name || senderUser?.email?.split("@")[0] || "User", reactions: {} };
+
   try {
     const others = await db.select().from(conversationParticipants)
       .where(and(eq(conversationParticipants.conversationId, req.params.convId), sql`user_id != ${userId}`));
-    const [sender] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, userId)).limit(1);
     for (const other of others) {
+      emitToUser(other.userId, "dm:new_message", { conversationId: req.params.convId, message: fullMsg });
       await db.insert(notificationsTable).values({
         userId: other.userId, type: "dm",
-        title: `Message from ${sender?.name || "Someone"}`,
+        title: `Message from ${senderUser?.name || "Someone"}`,
         message: content.trim().slice(0, 100),
         data: { conversationId: req.params.convId, messageId: msg.id },
       });
     }
   } catch {}
 
-  const [senderUser] = await db.select({ name: usersTable.name, email: usersTable.email })
-    .from(usersTable).where(eq(usersTable.id, userId)).limit(1);
-
-  res.status(201).json({ ...msg, senderName: senderUser?.name || senderUser?.email?.split("@")[0] || "User", reactions: {} });
+  res.status(201).json(fullMsg);
 });
 
 dmRouter.post("/dm/messages/:msgId/react", auth, async (req, res) => {

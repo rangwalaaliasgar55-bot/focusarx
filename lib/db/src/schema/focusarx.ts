@@ -632,3 +632,15 @@ export const userProfileExtrasTable = pgTable("user_profile_extras", {
 });
 
 export type UserProfileExtras = typeof userProfileExtrasTable.$inferSelect;
+
+// ─── PUSH SUBSCRIPTIONS ───────────────────────────────────────────────────────
+
+export const pushSubscriptionsTable = pgTable("push_subscriptions", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  endpoint: text("endpoint").notNull(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [index("push_sub_user_idx").on(t.userId)]);

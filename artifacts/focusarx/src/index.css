@@ -40,6 +40,44 @@
   --sidebar-width: 240px;
 }
 
+/* ─── LIGHT MODE ─────────────────────────────────────────────────────────── */
+html.light {
+  --background: #F1F5F9;
+  --foreground: #0F172A;
+  --card: rgba(255, 255, 255, 0.92);
+  --card-border: rgba(124, 58, 237, 0.18);
+  --muted: #475569;
+  --ring-focus: rgba(124, 58, 237, 0.35);
+  --ring-break: rgba(6, 214, 160, 0.35);
+  --ring-long: rgba(59, 130, 246, 0.35);
+  --forge-navy: #F1F5F9;
+  --forge-surface: rgba(255, 255, 255, 0.9);
+  --forge-surface-light: rgba(241, 245, 249, 0.8);
+  --forge-border: rgba(124, 58, 237, 0.18);
+  --forge-border-bright: rgba(124, 58, 237, 0.4);
+}
+
+html.light body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+html.light .app-sidebar,
+html.light .app-bottom-nav,
+html.light .fixed.left-0.right-0.top-0 {
+  background: rgba(248, 250, 252, 0.97) !important;
+  border-color: rgba(124, 58, 237, 0.15) !important;
+}
+
+html.light .forge-bg-glow {
+  background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(124,58,237,0.07), transparent) #F1F5F9;
+}
+
+@keyframes skeleton-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

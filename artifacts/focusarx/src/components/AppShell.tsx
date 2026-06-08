@@ -4,9 +4,10 @@ import {
   Timer, LayoutDashboard, TrendingUp, Trophy, Star,
   Users, Sparkles, LogOut, LogIn, Menu, X, Shield, BookOpen,
   Dna, Ghost, Sword, Radio, Wind, UserCircle, Info, Flame, Target,
-  Bell, Users2, Zap, Brain, Network, CheckSquare, MessageSquare, ShoppingBag, Flag,
+  Bell, Users2, Zap, Brain, Network, CheckSquare, MessageSquare, ShoppingBag, Flag, Gift, Sun, Moon,
 } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useTheme } from "@/lib/theme";
 import { motion, AnimatePresence } from "framer-motion";
 import CoachPanel from "@/components/CoachPanel";
 import { useQuery } from "@tanstack/react-query";
@@ -79,10 +80,12 @@ const NAV_ITEMS = [
   { href: "/social",        label: "Social",         icon: Network,        shortcut: "s", group: "social" },
   { href: "/groups",        label: "Study Groups",   icon: Users2,         shortcut: "",  group: "social" },
   { href: "/messages",      label: "Messages",       icon: MessageSquare,  shortcut: "",  group: "social" },
+  { href: "/study-rooms",   label: "Study Rooms",    icon: Radio,          shortcut: "",  group: "social" },
   { href: "/leaderboard",   label: "Leaderboard",    icon: Trophy,         shortcut: "4", group: "social" },
   { href: "/notifications", label: "Notifications",  icon: Bell,           shortcut: "n", badge: "notif", group: "social" },
   { href: "/shop",          label: "Coin Shop",      icon: ShoppingBag,    shortcut: "",  group: "engage" },
   { href: "/battle-pass",   label: "Battle Pass",    icon: Zap,            shortcut: "",  group: "engage" },
+  { href: "/referral",      label: "Refer Friends",  icon: Gift,           shortcut: "",  group: "engage" },
   { href: "/ai-insights",   label: "AI Insights",    icon: Brain,          shortcut: "",  aiBadge: true, group: "engage" },
   { href: "/roadmap",       label: "AI Roadmap",     icon: Sparkles,       shortcut: "7", aiBadge: true, group: "engage" },
   { href: "/analytics",     label: "Analytics",      icon: TrendingUp,     shortcut: "3", group: "engage" },
@@ -145,6 +148,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { data: session, status, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [theme, setTheme] = useTheme();
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => { if (e.key === "Escape") setMobileOpen(false); }, []);
   useEffect(() => {
@@ -222,6 +226,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <LogIn size={14} /> Sign in
             </Link>
           )}
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs text-[#6B7280] transition-colors hover:bg-[rgba(124,58,237,0.1)] hover:text-[#A78BFA]">
+            {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
+            {theme === "dark" ? "Light mode" : "Dark mode"}
+          </button>
         </div>
       </aside>
 

@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import {
   loginRewardsTable, userWalletsTable, studyStreaksTable,
   freezeTokensTable, notificationsTable, battlePassProgressTable,
+  usersTable,
 } from "@workspace/db";
 import { extractUserId } from "./auth";
 import { eq, sql } from "drizzle-orm";
@@ -80,77 +81,44 @@ retentionRouter.post("/retention/login-reward/claim", auth, async (req, res) => 
   res.json({ ok: true, reward, newStreak, coins: reward.coins, xp: reward.xp });
 });
 
-retentionRouter.get("/retention/streak-freeze", auth, async (req, res) => {
-  const userId = req.userId!;
-  let [record] = await db.select().from(freezeTokensTable).where(eq(freezeTokensTable.userId, userId)).limit(1);
-  const [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, userId)).limit(1);
-  res.json({
-    tokensAvailable: record?.tokensAvailable ?? 0,
-    tokensUsed: record?.tokensUsed ?? 0,
-    freezeCost: 500,
-    coinsBalance: wallet?.coins ?? 0,
-  });
-});
-
-retentionRouter.post("/retention/streak-freeze/buy", auth, async (req, res) => {
-  const userId = req.userId!;
-  const COST = 500;
-  const [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, userId)).limit(1);
-  if (!wallet || wallet.coins < COST) return res.status(400).json({ error: "Not enough coins. Need 500." });
-
-  await db.update(userWalletsTable).set({ coins: sql`coins - ${COST}`, updatedAt: new Date() }).where(eq(userWalletsTable.userId, userId));
-
-  const [existing] = await db.select().from(freezeTokensTable).where(eq(freezeTokensTable.userId, userId)).limit(1);
-  if (existing) {
-    await db.update(freezeTokensTable).set({ tokensAvailable: sql`tokens_available + 1`, updatedAt: new Date() }).where(eq(freezeTokensTable.userId, userId));
-  } else {
-    await db.insert(freezeTokensTable).values({ userId, tokensAvailable: 1, tokensUsed: 0 });
-  }
-
-  res.json({ ok: true, coinsSpent: COST });
-});
-
-retentionRouter.post("/retention/streak-freeze/use", auth, async (req, res) => {
+retentionRouter.get("/retention/freeze-tokens", auth, async (req, res) => {
   const userId = req.userId!;
   const [record] = await db.select().from(freezeTokensTable).where(eq(freezeTokensTable.userId, userId)).limit(1);
-  if (!record || record.tokensAvailable < 1) return res.status(400).json({ error: "No freeze tokens available" });
+  res.json({ tokens: record?.tokens ?? 0, used: record?.used ?? 0 });
+});
 
-  const [streak] = await db.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, userId)).limit(1);
-  if (!streak) return res.status(400).json({ error: "No streak to protect" });
-
-  const today = todayStr();
-  await db.update(studyStreaksTable).set({ lastStudyDate: today, updatedAt: new Date() }).where(eq(studyStreaksTable.userId, userId));
-  await db.update(freezeTokensTable).set({
-    tokensAvailable: sql`tokens_available - 1`,
-    tokensUsed: sql`tokens_used + 1`,
-    updatedAt: new Date(),
-  }).where(eq(freezeTokensTable.userId, userId));
-
-  res.json({ ok: true, streakProtected: streak.currentStreak });
+retentionRouter.post("/retention/freeze-tokens/use", auth, async (req, res) => {
+  const userId = req.userId!;
+  const [record] = await db.select().from(freezeTokensTable).where(eq(freezeTokensTable.userId, userId)).limit(1);
+  if (!record || (record.tokens ?? 0) <= 0) return res.status(400).json({ error: "No freeze tokens" });
+  await db.update(freezeTokensTable).set({ tokens: sql`tokens - 1`, used: sql`used + 1`, updatedAt: new Date() }).where(eq(freezeTokensTable.userId, userId));
+  res.json({ ok: true });
 });
 
 const BATTLE_PASS_CURRENT_SEASON = 1;
-const BATTLE_PASS_TIERS = Array.from({ length: 50 }, (_, i) => ({
-  tier: i + 1,
-  xpRequired: (i + 1) * 200,
-  freeReward: i % 5 === 4 ? { coins: 100, xp: 200, item: "chest" } : { coins: 25, xp: 50, item: "coins" },
-  premiumReward: i % 5 === 4 ? { coins: 300, xp: 500, item: "legendary_chest" } : { coins: 75, xp: 150, item: "premium_coins" },
-}));
+
+const BATTLE_PASS_TIERS = [
+  { tier: 1, xpRequired: 0,    freeReward: { coins: 50,  xp: 0,   label: "50 coins" },        premiumReward: { coins: 100, xp: 200, label: "100 coins + 200 XP" } },
+  { tier: 2, xpRequired: 500,  freeReward: { coins: 75,  xp: 0,   label: "75 coins" },        premiumReward: { coins: 150, xp: 300, label: "150 coins + 300 XP" } },
+  { tier: 3, xpRequired: 1200, freeReward: { coins: 100, xp: 0,   label: "100 coins" },       premiumReward: { coins: 200, xp: 500, label: "200 coins + 500 XP" } },
+  { tier: 4, xpRequired: 2000, freeReward: { coins: 0,   xp: 500, label: "500 XP" },          premiumReward: { coins: 300, xp: 800, label: "300 coins + 800 XP" } },
+  { tier: 5, xpRequired: 3000, freeReward: { coins: 150, xp: 0,   label: "150 coins" },       premiumReward: { coins: 500, xp: 1000, label: "500 coins + 1000 XP" } },
+  { tier: 6, xpRequired: 4500, freeReward: { coins: 0,   xp: 750, label: "750 XP" },          premiumReward: { coins: 400, xp: 1200, label: "400 coins + 1200 XP" } },
+  { tier: 7, xpRequired: 6000, freeReward: { coins: 200, xp: 0,   label: "200 coins" },       premiumReward: { coins: 600, xp: 1500, label: "600 coins + 1500 XP" } },
+  { tier: 8, xpRequired: 8000, freeReward: { coins: 250, xp: 500, label: "250 coins + 500 XP" }, premiumReward: { coins: 1000, xp: 2000, label: "1000 coins + 2000 XP" } },
+];
 
 retentionRouter.get("/retention/battle-pass", auth, async (req, res) => {
   const userId = req.userId!;
   let [progress] = await db.select().from(battlePassProgressTable).where(eq(battlePassProgressTable.userId, userId)).limit(1);
-  if (!progress) {
-    [progress] = await db.insert(battlePassProgressTable).values({ userId, season: BATTLE_PASS_CURRENT_SEASON }).returning();
-  }
-  const currentTier = BATTLE_PASS_TIERS.find(t => t.xpRequired > (progress?.seasonXp ?? 0));
+  const currentTierDef = progress ? BATTLE_PASS_TIERS.find(t => t.tier > (progress?.tier ?? 0)) : BATTLE_PASS_TIERS[0];
   res.json({
-    season: progress?.season,
-    tier: progress?.tier,
+    season: BATTLE_PASS_CURRENT_SEASON,
+    tier: progress?.tier ?? 0,
     seasonXp: progress?.seasonXp,
     premiumUnlocked: progress?.premiumUnlocked,
     claimedTiers: progress?.claimedTiers ?? [],
-    nextTierXp: currentTier?.xpRequired ?? 10000,
+    nextTierXp: currentTierDef?.xpRequired ?? 10000,
     tiers: BATTLE_PASS_TIERS,
     endsAt: "2026-09-30",
   });
@@ -192,4 +160,46 @@ retentionRouter.post("/retention/battle-pass/advance", auth, async (req, res) =>
   const newTier = BATTLE_PASS_TIERS.filter(t => t.xpRequired <= newXp).length;
   await db.update(battlePassProgressTable).set({ seasonXp: newXp, tier: newTier, updatedAt: new Date() }).where(eq(battlePassProgressTable.userId, userId));
   res.json({ ok: true, newTier, newXp });
+});
+
+// ─── REFERRAL SYSTEM ──────────────────────────────────────────────────────────
+
+function makeReferralCode(userId: string): string {
+  const base36 = parseInt(userId.replace(/-/g, "").slice(0, 8), 16).toString(36).toUpperCase();
+  return `FAX-${base36.slice(0, 6)}`;
+}
+
+retentionRouter.get("/referral/my-code", auth, async (req, res) => {
+  const userId = req.userId!;
+  const [user] = await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email })
+    .from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+  if (!user) return res.status(404).json({ error: "User not found" });
+
+  const code = makeReferralCode(userId);
+  const shareUrl = `${process.env["APP_URL"] || "https://focusarx.replit.app"}/?ref=${code}`;
+  res.json({ code, shareUrl, name: user.name || user.email?.split("@")[0] || "You" });
+});
+
+retentionRouter.post("/referral/apply", auth, async (req, res) => {
+  const userId = req.userId!;
+  const { code } = req.body as { code?: string };
+  if (!code?.startsWith("FAX-")) return res.status(400).json({ error: "Invalid referral code" });
+
+  const [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, userId)).limit(1);
+  if (!wallet) return res.status(400).json({ error: "Wallet not found" });
+
+  await db.update(userWalletsTable).set({
+    coins: sql`coins + 200`,
+    totalXp: sql`total_xp + 500`,
+    updatedAt: new Date(),
+  }).where(eq(userWalletsTable.userId, userId));
+
+  await db.insert(notificationsTable).values({
+    userId, type: "referral",
+    title: "Referral bonus applied! 🎉",
+    message: "+200 coins and +500 XP for joining with a friend's code",
+    data: { code },
+  });
+
+  res.json({ ok: true, coins: 200, xp: 500 });
 });

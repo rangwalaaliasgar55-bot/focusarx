@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { connectSocket, disconnectSocket } from "@/lib/socket";
 import MissionsWidget from "@/components/MissionsWidget";
 import ProductivityScoreWidget from "@/components/ProductivityScoreWidget";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
@@ -68,6 +69,8 @@ const HabitsPage = lazy(() => import("@/pages/habits"));
 const MessagesPage = lazy(() => import("@/pages/messages"));
 const ShopPage = lazy(() => import("@/pages/shop"));
 const GoalsPage = lazy(() => import("@/pages/goals"));
+const StudyRoomsPage = lazy(() => import("@/pages/study-rooms"));
+const ReferralPage = lazy(() => import("@/pages/referral"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -76,6 +79,8 @@ const queryClient = new QueryClient({
         if (error instanceof ApiError && (error.status === 401 || error.status === 403)) return false;
         return failureCount < 2;
       },
+      staleTime: 30_000,
+      gcTime: 5 * 60_000,
     },
     mutations: { retry: false },
   },
@@ -372,6 +377,18 @@ function HomePage() {
   );
 }
 
+function SocketInitializer() {
+  const { data: session, status } = useAuth();
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    const token = localStorage.getItem("focusarx-auth-token");
+    if (!token) return;
+    connectSocket(token);
+    return () => { disconnectSocket(); };
+  }, [status, session?.user?.id]);
+  return null;
+}
+
 function AppWithPalette() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   useEffect(() => {
@@ -416,6 +433,8 @@ function AppWithPalette() {
               <Route path="/messages" component={() => <ErrorBoundary><ProtectedRoute component={MessagesPage} /></ErrorBoundary>} />
               <Route path="/shop" component={() => <ErrorBoundary><ProtectedRoute component={ShopPage} /></ErrorBoundary>} />
               <Route path="/goals" component={() => <ErrorBoundary><ProtectedRoute component={GoalsPage} /></ErrorBoundary>} />
+              <Route path="/study-rooms" component={() => <ErrorBoundary><ProtectedRoute component={StudyRoomsPage} /></ErrorBoundary>} />
+              <Route path="/referral" component={() => <ErrorBoundary><ProtectedRoute component={ReferralPage} /></ErrorBoundary>} />
 
               {/* Retention */}
               <Route path="/battle-pass" component={() => <ErrorBoundary><ProtectedRoute component={BattlePassPage} /></ErrorBoundary>} />
@@ -460,6 +479,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ToastProvider>
+          <SocketInitializer />
           <CapacitorNativeBridge />
           <GuestBootstrap />
           <WelcomeOverlay />
