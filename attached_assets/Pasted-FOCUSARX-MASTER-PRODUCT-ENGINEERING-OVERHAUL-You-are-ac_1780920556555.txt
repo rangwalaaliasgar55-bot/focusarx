@@ -1,0 +1,414 @@
+FOCUSARX MASTER PRODUCT + ENGINEERING OVERHAUL
+
+You are acting as:
+
+Senior Full Stack Engineer
+YC Startup Advisor
+Product Designer
+Mobile UX Expert
+Growth Engineer
+Retention Specialist
+Gamification Designer
+
+Do not simply patch bugs.
+
+Think like you are building the next Duolingo, Notion, Discord, and Forest combined.
+
+Your goal is to transform FocusArx into the most addictive, beautiful, and effective focus platform for students and professionals.
+
+PHASE 1 — CRITICAL PRODUCTION AUDIT
+
+Perform a full audit.
+
+Investigate ALL runtime errors.
+
+Current issues:
+
+/api/feed
+/api/habits
+/api/habits/stats
+/api/sessions/sync
+
+returning:
+
+500 Internal Server Error
+
+Find root cause.
+
+Audit:
+
+Environment Variables
+Authentication
+Database
+Neon PostgreSQL
+Drizzle ORM
+Session Management
+Caching
+API Routes
+Middleware
+
+Verify:
+
+DATABASE_URL=
+JWT_SECRET=
+BETTER_AUTH_SECRET=
+NEXTAUTH_SECRET=
+RESEND_API_KEY=
+OPENAI_API_KEY=
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+
+Generate a report:
+
+Missing Variables
+Unused Variables
+Invalid Variables
+Broken Connections
+
+Never assume env variables exist.
+
+Validate them at startup.
+
+Application should fail gracefully.
+
+PHASE 2 — DATABASE HEALTH CHECK
+
+Perform complete Neon audit.
+
+Check:
+
+Missing Tables
+Broken Relations
+Missing Indexes
+Slow Queries
+Missing Foreign Keys
+Schema Drift
+
+Generate migration fixes.
+
+No interactive prompts.
+
+No deployment failures.
+
+PHASE 3 — SESSION SYSTEM 2.0
+
+Current focus session system feels basic.
+
+Transform it into a premium experience.
+
+Session Types
+
+Add:
+
+Deep Work
+Study Sprint
+Exam Mode
+Flow Mode
+Reading Mode
+Coding Mode
+Revision Mode
+Custom Mode
+
+Each mode:
+
+Different sounds
+Different animations
+Different XP rewards
+Different UI themes
+Early Session Completion
+
+If user leaves early:
+
+Save study time
+Save XP
+Save progress
+Save streak
+Save tasks completed
+
+Nothing should be lost.
+
+Session Recovery
+
+If:
+
+Browser closes
+Tab crashes
+Internet disconnects
+App closes
+
+Recover automatically.
+
+PHASE 4 — GAMIFIED AVATAR SYSTEM
+
+Create a complete avatar progression system.
+
+Inspired by:
+
+Duolingo
+Clash Royale
+Discord
+Fortnite
+Avatar Creator
+
+Allow users to customize:
+
+Hair
+Eyes
+Skin Tone
+Outfits
+Accessories
+Glasses
+Headwear
+Background
+Badges
+Pets
+Currency System
+
+Add:
+
+Focus Coins
+Focus Gems
+XP
+
+Earned through:
+
+Study Sessions
+Streaks
+Goals
+Challenges
+Achievements
+Avatar Shop
+
+Users can buy:
+
+Rare outfits
+Legendary outfits
+Pets
+Animations
+Profile effects
+Frames
+Backgrounds
+
+with earned coins.
+
+NO PAY TO WIN.
+
+Everything achievable through studying.
+
+Prestige System
+
+After level milestones:
+
+Level 50
+Level 100
+Level 200
+
+Unlock prestige ranks.
+
+PHASE 5 — RETENTION SYSTEM
+
+Currently users can leave and never come back.
+
+Design systems that make users WANT to return.
+
+Daily Rewards
+
+Reward every login.
+
+Examples:
+
+Coins
+XP
+Avatar Items
+Loot Boxes
+Study Streaks
+
+Create:
+
+7 Day Streak
+30 Day Streak
+100 Day Streak
+365 Day Streak
+
+with unique rewards.
+
+Comeback Rewards
+
+If user returns after:
+
+3 days
+7 days
+14 days
+30 days
+
+Give special bonuses.
+
+Seasonal Events
+
+Examples:
+
+Exam Season
+Summer Grind
+Back To School
+Winter Focus Festival
+
+Exclusive rewards.
+
+PHASE 6 — QUESTS SYSTEM
+
+Create daily missions.
+
+Examples:
+
+Study 30 mins
+Finish 2 tasks
+Complete 1 focus session
+Maintain focus score above 80%
+
+Weekly missions:
+
+Study 10 hours
+Finish 20 tasks
+Maintain streak
+
+Reward:
+
+Coins
+XP
+Cosmetics
+Titles
+PHASE 7 — SOCIAL VIRALITY
+
+Build systems that naturally grow users.
+
+Study Parties
+
+Users join:
+
+Public Rooms
+Private Rooms
+Friend Rooms
+Friend System
+
+Add:
+
+Add Friend
+Follow User
+Profile Viewing
+Achievements
+Avatar Viewing
+Leaderboards
+
+Global:
+
+Most Focus Time
+Longest Streak
+Highest Level
+Most XP
+Guilds / Clans
+
+Users form:
+
+Study Teams
+School Groups
+University Groups
+
+Shared goals.
+
+PHASE 8 — AI FEATURES
+
+Create FocusArx AI Coach.
+
+AI Coach
+
+Analyzes:
+
+Focus patterns
+Study habits
+Distractions
+Performance
+
+Provides recommendations.
+
+AI Reports
+
+Daily:
+
+Focus score
+Best study time
+Weakest study time
+Productivity insights
+AI Goal Planner
+
+Turns:
+
+"I want to crack JEE"
+
+into:
+
+Daily plan
+Weekly plan
+Monthly roadmap
+PHASE 9 — PREMIUM UI/UX
+
+Make UI feel world-class.
+
+Inspired by:
+
+Linear
+Notion
+Discord
+Apple
+Arc Browser
+
+Improve:
+
+Animations
+Transitions
+Loading States
+Skeleton Screens
+Empty States
+Microinteractions
+Achievement Celebrations
+Level-Up Screens
+Reward Popups
+PHASE 10 — PERFORMANCE
+
+Audit:
+
+Bundle Size
+Queries
+Database Calls
+React Re-renders
+Memory Leaks
+Caching
+
+Implement:
+
+Code Splitting
+Lazy Loading
+Optimistic Updates
+Caching
+Image Optimization
+FINAL DELIVERABLE
+
+Provide:
+
+All bugs found
+Root causes
+Missing environment variables
+Database issues
+API fixes
+Features added
+Files modified
+UX improvements
+Retention improvements
+Gamification systems
+Performance improvements
+Production readiness report
+
+Act as if FocusArx is preparing for a YC interview and must impress investors, users, and future hires.
+
+Build for long-term retention, delight, and growth—not just functionality.
+
+One note: before asking Replit to fix the 500 errors, make sure your Vercel project actually has the required environment variables configured. Missing DATABASE_URL, auth secrets, Stripe keys, or AI keys are among the most common causes of "Internal Server Error" immediately after deployment. The audit section above explicitly tells Replit to identify any missing env vars rather than guessing.

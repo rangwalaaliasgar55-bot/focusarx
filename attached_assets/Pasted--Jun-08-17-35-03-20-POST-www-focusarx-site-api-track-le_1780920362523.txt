@@ -1,0 +1,1850 @@
+
+Jun 08 17:35:03.20
+POST
+---
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920303343,"pid":4,"hostname":"169.254.13.41","req":{"id":15,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":18,"msg":"request completed"}
+Jun 08 17:35:03.20
+POST
+---
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920303323,"pid":4,"hostname":"169.254.35.165","req":{"id":11,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":7,"msg":"request completed"}
+Jun 08 17:35:02.91
+GET
+---
+www.focusarx.site
+/api/sessions/active
+{"level":30,"time":1780920303032,"pid":5,"hostname":"169.254.37.197","req":{"id":94,"method":"GET","url":"/api/sessions/active"},"res":{"statusCode":200},"responseTime":5,"msg":"request completed"}
+Jun 08 17:35:02.91
+GET
+---
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780920303037,"pid":4,"hostname":"169.254.35.165","req":{"id":10,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":10,"msg":"request completed"}
+Jun 08 17:35:02.91
+GET
+---
+www.focusarx.site
+/api/streak
+{"level":30,"time":1780920303036,"pid":4,"hostname":"169.254.60.219","req":{"id":20,"method":"GET","url":"/api/streak"},"res":{"statusCode":304},"responseTime":4,"msg":"request completed"}
+Jun 08 17:35:02.91
+GET
+---
+www.focusarx.site
+/api/tasks
+{"level":30,"time":1780920303036,"pid":4,"hostname":"169.254.13.41","req":{"id":14,"method":"GET","url":"/api/tasks"},"res":{"statusCode":304},"responseTime":6,"msg":"request completed"}
+Jun 08 17:35:01.90
+POST
+---
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920302038,"pid":4,"hostname":"169.254.35.165","req":{"id":9,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":26,"msg":"request completed"}
+Jun 08 17:34:59.10
+POST
+---
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920299228,"pid":4,"hostname":"169.254.35.165","req":{"id":8,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":8,"msg":"request completed"}
+Jun 08 17:34:54.93
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780920295064,"pid":4,"hostname":"169.254.35.165","req":{"id":7,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":9,"msg":"request completed"}
+Jun 08 17:34:54.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920295047,"pid":5,"hostname":"169.254.37.197","req":{"id":93,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":6,"msg":"request completed"}
+Jun 08 17:34:54.45
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920294596,"pid":5,"hostname":"169.254.37.197","req":{"id":92,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":24,"msg":"request completed"}
+Jun 08 17:34:50.90
+GET
+304
+www.focusarx.site
+/api/readiness/today
+{"level":30,"time":1780920291025,"pid":5,"hostname":"169.254.37.197","req":{"id":91,"method":"GET","url":"/api/readiness/today"},"res":{"statusCode":304},"responseTime":9,"msg":"request completed"}
+Jun 08 17:34:49.43
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920289563,"pid":5,"hostname":"169.254.37.197","req":{"id":90,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":21,"msg":"request completed"}
+Jun 08 17:34:49.42
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920289557,"pid":4,"hostname":"169.254.35.165","req":{"id":6,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":15,"msg":"request completed"}
+Jun 08 17:34:49.35
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780920289480,"pid":4,"hostname":"169.254.35.165","req":{"id":5,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":20,"msg":"request completed"}
+Jun 08 17:34:49.09
+GET
+304
+www.focusarx.site
+/api/stats/productivity
+{"level":30,"time":1780920289222,"pid":4,"hostname":"169.254.60.219","req":{"id":19,"method":"GET","url":"/api/stats/productivity"},"res":{"statusCode":304},"responseTime":15,"msg":"request completed"}
+Jun 08 17:34:49.09
+GET
+304
+www.focusarx.site
+/api/tasks
+{"level":30,"time":1780920289212,"pid":4,"hostname":"169.254.48.161","req":{"id":60,"method":"GET","url":"/api/tasks"},"res":{"statusCode":304},"responseTime":6,"msg":"request completed"}
+Jun 08 17:34:49.09
+GET
+304
+www.focusarx.site
+/api/streak
+{"level":30,"time":1780920289233,"pid":5,"hostname":"169.254.37.197","req":{"id":89,"method":"GET","url":"/api/streak"},"res":{"statusCode":304},"responseTime":29,"msg":"request completed"}
+Jun 08 17:34:49.09
+GET
+200
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780920289231,"pid":4,"hostname":"169.254.13.41","req":{"id":13,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":200},"responseTime":26,"msg":"request completed"}
+Jun 08 17:34:49.09
+GET
+200
+www.focusarx.site
+/api/sessions/active
+{"level":30,"time":1780920289256,"pid":4,"hostname":"169.254.35.165","req":{"id":4,"method":"GET","url":"/api/sessions/active"},"res":{"statusCode":200},"responseTime":41,"msg":"request completed"}
+Jun 08 17:34:48.90
+GET
+500
+www.focusarx.site
+/api/habits
+2
+GET /habits error: _DrizzleQueryError: Failed query: select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at" params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7,false at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { query: 'select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at"', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7', false ], cause: error: relation "habits" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { length: 106, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '182', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '1449', routine: 'parserOpenTable' } }
+Jun 08 17:34:47.65
+GET
+304
+www.focusarx.site
+/api/readiness/today
+{"level":30,"time":1780920287758,"pid":4,"hostname":"169.254.48.161","req":{"id":59,"method":"GET","url":"/api/readiness/today"},"res":{"statusCode":304},"responseTime":6,"msg":"request completed"}
+Jun 08 17:34:47.65
+GET
+500
+www.focusarx.site
+/api/habits
+2
+GET /habits error: _DrizzleQueryError: Failed query: select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at" params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7,false at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { query: 'select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at"', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7', false ], cause: error: relation "habits" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { length: 106, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '182', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '1449', routine: 'parserOpenTable' } }
+Jun 08 17:34:47.65
+GET
+304
+www.focusarx.site
+/api/focus-weather
+{"level":30,"time":1780920287819,"pid":5,"hostname":"169.254.37.197","req":{"id":87,"method":"GET","url":"/api/focus-weather"},"res":{"statusCode":304},"responseTime":46,"msg":"request completed"}
+Jun 08 17:34:47.62
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920287762,"pid":4,"hostname":"169.254.48.161","req":{"id":58,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":23,"msg":"request completed"}
+Jun 08 17:34:47.34
+GET
+304
+www.focusarx.site
+/api/stats
+{"level":30,"time":1780920287494,"pid":4,"hostname":"169.254.48.161","req":{"id":57,"method":"GET","url":"/api/stats"},"res":{"statusCode":304},"responseTime":46,"msg":"request completed"}
+Jun 08 17:34:45.39
+GET
+500
+www.focusarx.site
+/api/habits
+2
+GET /habits error: _DrizzleQueryError: Failed query: select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at" params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7,false at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { query: 'select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at"', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7', false ], cause: error: relation "habits" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { length: 106, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '182', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '1449', routine: 'parserOpenTable' } }
+Jun 08 17:34:45.39
+GET
+500
+www.focusarx.site
+/api/habits/stats
+2
+GET /habits/stats error: _DrizzleQueryError: Failed query: select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7,false at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110676:20 { query: 'select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2)', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7', false ], cause: error: relation "habits" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110676:20 { length: 106, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '182', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '1449', routine: 'parserOpenTable' } }
+Jun 08 17:34:44.94
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920285061,"pid":5,"hostname":"169.254.37.197","req":{"id":85,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":6,"msg":"request completed"}
+Jun 08 17:34:44.42
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920284585,"pid":5,"hostname":"169.254.37.197","req":{"id":84,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":47,"msg":"request completed"}
+Jun 08 17:34:44.14
+GET
+500
+www.focusarx.site
+/api/habits
+2
+GET /habits error: _DrizzleQueryError: Failed query: select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at" params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7,false at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { query: 'select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at"', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7', false ], cause: error: relation "habits" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { length: 106, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '182', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '1449', routine: 'parserOpenTable' } }
+Jun 08 17:34:44.14
+GET
+500
+www.focusarx.site
+/api/habits/stats
+2
+GET /habits/stats error: _DrizzleQueryError: Failed query: select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7,false at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110676:20 { query: 'select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2)', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7', false ], cause: error: relation "habits" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110676:20 { length: 106, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '182', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '1449', routine: 'parserOpenTable' } }
+Jun 08 17:34:41.21
+GET
+200
+www.focusarx.site
+/api/missions
+{"level":30,"time":1780920281329,"pid":5,"hostname":"169.254.37.197","req":{"id":82,"method":"GET","url":"/api/missions"},"res":{"statusCode":200},"responseTime":7,"msg":"request completed"}
+Jun 08 17:34:40.76
+POST
+200
+www.focusarx.site
+/api/missions/daily_first_session/claim
+{"level":30,"time":1780920280894,"pid":5,"hostname":"169.254.37.197","req":{"id":81,"method":"POST","url":"/api/missions/daily_first_session/claim"},"res":{"statusCode":200},"responseTime":19,"msg":"request completed"}
+Jun 08 17:34:39.30
+GET
+304
+www.focusarx.site
+/api/missions
+{"level":30,"time":1780920279417,"pid":4,"hostname":"169.254.48.161","req":{"id":54,"method":"GET","url":"/api/missions"},"res":{"statusCode":304},"responseTime":5,"msg":"request completed"}
+Jun 08 17:34:39.28
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920279434,"pid":5,"hostname":"169.254.37.197","req":{"id":80,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":43,"msg":"request completed"}
+Jun 08 17:34:39.07
+GET
+500
+www.focusarx.site
+/api/habits
+2
+GET /habits error: _DrizzleQueryError: Failed query: select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at" params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7,false at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { query: 'select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at"', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7', false ], cause: error: relation "habits" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { length: 106, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '182', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '1449', routine: 'parserOpenTable' } }
+Jun 08 17:34:36.69
+GET
+500
+www.focusarx.site
+/api/habits
+2
+GET /habits error: _DrizzleQueryError: Failed query: select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at" params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7,false at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { query: 'select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at"', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7', false ], cause: error: relation "habits" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { length: 106, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '182', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '1449', routine: 'parserOpenTable' } }
+Jun 08 17:34:35.47
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920275615,"pid":5,"hostname":"169.254.37.197","req":{"id":77,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":27,"msg":"request completed"}
+Jun 08 17:34:35.43
+GET
+500
+www.focusarx.site
+/api/habits
+2
+GET /habits error: _DrizzleQueryError: Failed query: select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at" params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7,false at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { query: 'select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at"', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7', false ], cause: error: relation "habits" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { length: 106, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '182', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '1449', routine: 'parserOpenTable' } }
+Jun 08 17:34:35.43
+GET
+304
+www.focusarx.site
+/api/readiness/today
+{"level":30,"time":1780920275608,"pid":4,"hostname":"169.254.48.161","req":{"id":53,"method":"GET","url":"/api/readiness/today"},"res":{"statusCode":304},"responseTime":24,"msg":"request completed"}
+Jun 08 17:34:35.42
+GET
+304
+www.focusarx.site
+/api/focus-weather
+{"level":30,"time":1780920275589,"pid":4,"hostname":"169.254.13.41","req":{"id":11,"method":"GET","url":"/api/focus-weather"},"res":{"statusCode":304},"responseTime":16,"msg":"request completed"}
+Jun 08 17:34:35.42
+GET
+304
+www.focusarx.site
+/api/goals
+{"level":30,"time":1780920275576,"pid":4,"hostname":"169.254.13.41","req":{"id":10,"method":"GET","url":"/api/goals"},"res":{"statusCode":304},"responseTime":34,"msg":"request completed"}
+Jun 08 17:34:35.42
+GET
+304
+www.focusarx.site
+/api/missions
+{"level":30,"time":1780920275547,"pid":5,"hostname":"169.254.37.197","req":{"id":76,"method":"GET","url":"/api/missions"},"res":{"statusCode":304},"responseTime":8,"msg":"request completed"}
+Jun 08 17:34:35.42
+GET
+304
+www.focusarx.site
+/api/social/activity
+{"level":30,"time":1780920275546,"pid":4,"hostname":"169.254.60.219","req":{"id":18,"method":"GET","url":"/api/social/activity"},"res":{"statusCode":304},"responseTime":7,"msg":"request completed"}
+Jun 08 17:34:35.13
+GET
+304
+www.focusarx.site
+/api/notifications
+{"level":30,"time":1780920275264,"pid":4,"hostname":"169.254.48.161","req":{"id":51,"method":"GET","url":"/api/notifications"},"res":{"statusCode":304},"responseTime":5,"msg":"request completed"}
+Jun 08 17:34:35.13
+GET
+304
+www.focusarx.site
+/api/stats
+{"level":30,"time":1780920275271,"pid":5,"hostname":"169.254.37.197","req":{"id":75,"method":"GET","url":"/api/stats"},"res":{"statusCode":304},"responseTime":18,"msg":"request completed"}
+Jun 08 17:34:35.13
+GET
+304
+www.focusarx.site
+/api/missions
+{"level":30,"time":1780920275282,"pid":4,"hostname":"169.254.60.219","req":{"id":17,"method":"GET","url":"/api/missions"},"res":{"statusCode":304},"responseTime":21,"msg":"request completed"}
+Jun 08 17:34:34.92
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920275059,"pid":5,"hostname":"169.254.37.197","req":{"id":74,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":6,"msg":"request completed"}
+Jun 08 17:34:24.94
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780920265085,"pid":5,"hostname":"169.254.37.197","req":{"id":73,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":14,"msg":"request completed"}
+Jun 08 17:34:24.92
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920265064,"pid":4,"hostname":"169.254.48.161","req":{"id":50,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":6,"msg":"request completed"}
+Jun 08 17:34:14.92
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920255057,"pid":4,"hostname":"169.254.48.161","req":{"id":49,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":8,"msg":"request completed"}
+Jun 08 17:34:13.63
+GET
+200
+www.focusarx.site
+/api/admin/analytics/live
+{"level":30,"time":1780920253755,"pid":4,"hostname":"169.254.13.41","req":{"id":9,"method":"GET","url":"/api/admin/analytics/live"},"res":{"statusCode":200},"responseTime":13,"msg":"request completed"}
+Jun 08 17:34:13.62
+GET
+200
+www.focusarx.site
+/api/admin/analytics/charts
+{"level":30,"time":1780920253774,"pid":5,"hostname":"169.254.37.197","req":{"id":72,"method":"GET","url":"/api/admin/analytics/charts"},"res":{"statusCode":200},"responseTime":25,"msg":"request completed"}
+Jun 08 17:34:13.62
+GET
+200
+www.focusarx.site
+/api/admin/analytics/devices
+{"level":30,"time":1780920253764,"pid":4,"hostname":"169.254.60.219","req":{"id":16,"method":"GET","url":"/api/admin/analytics/devices"},"res":{"statusCode":200},"responseTime":14,"msg":"request completed"}
+Jun 08 17:34:13.62
+GET
+200
+www.focusarx.site
+/api/admin/analytics/overview
+{"level":30,"time":1780920253793,"pid":4,"hostname":"169.254.48.161","req":{"id":48,"method":"GET","url":"/api/admin/analytics/overview"},"res":{"statusCode":200},"responseTime":51,"msg":"request completed"}
+Jun 08 17:34:09.77
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920249914,"pid":4,"hostname":"169.254.48.161","req":{"id":47,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":23,"msg":"request completed"}
+Jun 08 17:34:09.47
+GET
+200
+www.focusarx.site
+/api/admin/users
+{"level":30,"time":1780920249622,"pid":4,"hostname":"169.254.60.219","req":{"id":15,"method":"GET","url":"/api/admin/users"},"res":{"statusCode":200},"responseTime":31,"msg":"request completed"}
+Jun 08 17:34:09.47
+GET
+200
+www.focusarx.site
+/api/admin/missions
+{"level":30,"time":1780920249630,"pid":4,"hostname":"169.254.13.41","req":{"id":8,"method":"GET","url":"/api/admin/missions"},"res":{"statusCode":200},"responseTime":35,"msg":"request completed"}
+Jun 08 17:34:09.47
+GET
+200
+www.focusarx.site
+/api/admin/retention
+{"level":30,"time":1780920249617,"pid":5,"hostname":"169.254.37.197","req":{"id":71,"method":"GET","url":"/api/admin/retention"},"res":{"statusCode":200},"responseTime":23,"msg":"request completed"}
+Jun 08 17:34:09.47
+GET
+200
+www.focusarx.site
+/api/admin/stats
+{"level":30,"time":1780920249632,"pid":4,"hostname":"169.254.48.161","req":{"id":46,"method":"GET","url":"/api/admin/stats"},"res":{"statusCode":200},"responseTime":34,"msg":"request completed"}
+Jun 08 17:34:04.95
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920245069,"pid":4,"hostname":"169.254.60.219","req":{"id":14,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":5,"msg":"request completed"}
+Jun 08 17:33:56.74
+GET
+500
+www.focusarx.site
+/api/gamification/wallet/transactions
+2
+{"level":30,"time":1780920236884,"pid":4,"hostname":"169.254.13.41","req":{"id":7,"method":"GET","url":"/api/gamification/wallet/transactions"},"res":{"statusCode":500},"err":{"type":"Error","message":"failed with status code 500","stack":"Error: failed with status code 500\n at onResFinished (file:///var/task/artifacts/api-server/dist/app.mjs:28336:45)\n at ServerResponse.onResponseComplete (file:///var/task/artifacts/api-server/dist/app.mjs:28386:18)\n at ServerResponse.emit (node:events:520:35)\n at /opt/rust/nodejs.js:17:7140\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at /opt/rust/nodejs.js:17:7128\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at Vr.e.emit (/opt/rust/nodejs.js:17:7116)\n at onFinish (node:_http_outgoing:1026:10)\n at callback (node:internal/streams/writable:764:21)"},"responseTime":24,"msg":"request errored"}
+Jun 08 17:33:56.74
+GET
+304
+www.focusarx.site
+/api/auth/session
+{"level":30,"time":1780920236939,"pid":4,"hostname":"169.254.60.219","req":{"id":13,"method":"GET","url":"/api/auth/session"},"res":{"statusCode":304},"responseTime":83,"msg":"request completed"}
+Jun 08 17:33:56.73
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780920236862,"pid":4,"hostname":"169.254.48.161","req":{"id":45,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":7,"msg":"request completed"}
+Jun 08 17:33:56.73
+GET
+200
+www.focusarx.site
+/api/gamification/badges
+{"level":30,"time":1780920236894,"pid":5,"hostname":"169.254.37.197","req":{"id":70,"method":"GET","url":"/api/gamification/badges"},"res":{"statusCode":200},"responseTime":43,"msg":"request completed"}
+Jun 08 17:33:56.41
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920236551,"pid":4,"hostname":"169.254.48.161","req":{"id":44,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":25,"msg":"request completed"}
+Jun 08 17:33:55.06
+GET
+200
+www.focusarx.site
+/api/profiles
+{"level":30,"time":1780920235179,"pid":5,"hostname":"169.254.37.197","req":{"id":69,"method":"GET","url":"/api/profiles"},"res":{"statusCode":200},"responseTime":5,"msg":"request completed"}
+Jun 08 17:33:55.04
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920235202,"pid":4,"hostname":"169.254.48.161","req":{"id":43,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":23,"msg":"request completed"}
+Jun 08 17:33:54.92
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780920235048,"pid":4,"hostname":"169.254.48.161","req":{"id":42,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":7,"msg":"request completed"}
+Jun 08 17:33:54.92
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920235053,"pid":5,"hostname":"169.254.37.197","req":{"id":68,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":6,"msg":"request completed"}
+Jun 08 17:33:54.00
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920234145,"pid":5,"hostname":"169.254.37.197","req":{"id":67,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":24,"msg":"request completed"}
+Jun 08 17:33:52.02
+GET
+200
+www.focusarx.site
+/api/consequences
+{"level":30,"time":1780920232155,"pid":5,"hostname":"169.254.37.197","req":{"id":66,"method":"GET","url":"/api/consequences"},"res":{"statusCode":200},"responseTime":23,"msg":"request completed"}
+Jun 08 17:33:51.91
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920232043,"pid":5,"hostname":"169.254.37.197","req":{"id":65,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":20,"msg":"request completed"}
+Jun 08 17:33:50.60
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920230744,"pid":5,"hostname":"169.254.37.197","req":{"id":64,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":23,"msg":"request completed"}
+Jun 08 17:33:50.60
+GET
+200
+www.focusarx.site
+/api/ghosts
+{"level":30,"time":1780920230727,"pid":4,"hostname":"169.254.48.161","req":{"id":41,"method":"GET","url":"/api/ghosts"},"res":{"statusCode":200},"responseTime":4,"msg":"request completed"}
+Jun 08 17:33:48.62
+GET
+200
+www.focusarx.site
+/api/focus-dna
+{"level":30,"time":1780920228764,"pid":4,"hostname":"169.254.48.161","req":{"id":40,"method":"GET","url":"/api/focus-dna"},"res":{"statusCode":200},"responseTime":33,"msg":"request completed"}
+Jun 08 17:33:48.59
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920228731,"pid":5,"hostname":"169.254.37.197","req":{"id":63,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":26,"msg":"request completed"}
+Jun 08 17:33:47.38
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920227526,"pid":5,"hostname":"169.254.37.197","req":{"id":62,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":29,"msg":"request completed"}
+Jun 08 17:33:45.49
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920225610,"pid":5,"hostname":"169.254.37.197","req":{"id":61,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":7,"msg":"request completed"}
+Jun 08 17:33:44.52
+GET
+200
+www.focusarx.site
+/api/break-free/streak
+{"level":30,"time":1780920224647,"pid":5,"hostname":"169.254.37.197","req":{"id":60,"method":"GET","url":"/api/break-free/streak"},"res":{"statusCode":200},"responseTime":6,"msg":"request completed"}
+Jun 08 17:33:44.13
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920224282,"pid":5,"hostname":"169.254.37.197","req":{"id":59,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":31,"msg":"request completed"}
+Jun 08 17:33:41.72
+GET
+200
+www.focusarx.site
+/api/gamification/badges
+{"level":30,"time":1780920221888,"pid":5,"hostname":"169.254.37.197","req":{"id":58,"method":"GET","url":"/api/gamification/badges"},"res":{"statusCode":200},"responseTime":55,"msg":"request completed"}
+Jun 08 17:33:41.30
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920221455,"pid":5,"hostname":"169.254.37.197","req":{"id":57,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":21,"msg":"request completed"}
+Jun 08 17:33:39.09
+GET
+200
+www.focusarx.site
+/api/analytics
+{"level":30,"time":1780920219240,"pid":5,"hostname":"169.254.37.197","req":{"id":56,"method":"GET","url":"/api/analytics"},"res":{"statusCode":200},"responseTime":28,"msg":"request completed"}
+Jun 08 17:33:38.95
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920219089,"pid":5,"hostname":"169.254.37.197","req":{"id":55,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":30,"msg":"request completed"}
+Jun 08 17:33:37.77
+GET
+200
+www.focusarx.site
+/api/roadmap/list
+{"level":30,"time":1780920217895,"pid":5,"hostname":"169.254.37.197","req":{"id":54,"method":"GET","url":"/api/roadmap/list"},"res":{"statusCode":200},"responseTime":6,"msg":"request completed"}
+Jun 08 17:33:37.10
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920217251,"pid":5,"hostname":"169.254.37.197","req":{"id":53,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":21,"msg":"request completed"}
+Jun 08 17:33:35.40
+GET
+304
+www.focusarx.site
+/api/referral/my-code
+{"level":30,"time":1780920215530,"pid":5,"hostname":"169.254.37.197","req":{"id":52,"method":"GET","url":"/api/referral/my-code"},"res":{"statusCode":304},"responseTime":6,"msg":"request completed"}
+Jun 08 17:33:35.21
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920215353,"pid":5,"hostname":"169.254.37.197","req":{"id":51,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":32,"msg":"request completed"}
+Jun 08 17:33:34.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920215046,"pid":5,"hostname":"169.254.37.197","req":{"id":50,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":7,"msg":"request completed"}
+Jun 08 17:33:25.02
+GET
+200
+www.focusarx.site
+/api/retention/battle-pass
+{"level":30,"time":1780920205158,"pid":5,"hostname":"169.254.37.197","req":{"id":49,"method":"GET","url":"/api/retention/battle-pass"},"res":{"statusCode":200},"responseTime":19,"msg":"request completed"}
+Jun 08 17:33:25.02
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920205157,"pid":4,"hostname":"169.254.48.161","req":{"id":39,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":16,"msg":"request completed"}
+Jun 08 17:33:24.92
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780920205077,"pid":5,"hostname":"169.254.37.197","req":{"id":48,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":31,"msg":"request completed"}
+Jun 08 17:33:24.91
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920205033,"pid":4,"hostname":"169.254.48.161","req":{"id":38,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":4,"msg":"request completed"}
+Jun 08 17:33:21.44
+GET
+304
+www.focusarx.site
+/api/notifications
+{"level":30,"time":1780920201553,"pid":4,"hostname":"169.254.48.161","req":{"id":37,"method":"GET","url":"/api/notifications"},"res":{"statusCode":304},"responseTime":4,"msg":"request completed"}
+Jun 08 17:33:21.39
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920201548,"pid":4,"hostname":"169.254.48.161","req":{"id":36,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":21,"msg":"request completed"}
+Jun 08 17:33:19.60
+GET
+200
+www.focusarx.site
+/api/gamification/leaderboard
+{"level":30,"time":1780920199748,"pid":4,"hostname":"169.254.48.161","req":{"id":35,"method":"GET","url":"/api/gamification/leaderboard"},"res":{"statusCode":200},"responseTime":7,"msg":"request completed"}
+Jun 08 17:33:19.16
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920199336,"pid":4,"hostname":"169.254.48.161","req":{"id":34,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":41,"msg":"request completed"}
+Jun 08 17:33:16.85
+POST
+500
+www.focusarx.site
+/api/study-rooms
+2
+{"level":30,"time":1780920196986,"pid":4,"hostname":"169.254.48.161","req":{"id":33,"method":"POST","url":"/api/study-rooms"},"res":{"statusCode":500},"err":{"type":"Error","message":"failed with status code 500","stack":"Error: failed with status code 500\n at onResFinished (file:///var/task/artifacts/api-server/dist/app.mjs:28336:45)\n at ServerResponse.onResponseComplete (file:///var/task/artifacts/api-server/dist/app.mjs:28386:18)\n at ServerResponse.emit (node:events:520:35)\n at /opt/rust/nodejs.js:17:7140\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at /opt/rust/nodejs.js:17:7128\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at Vr.e.emit (/opt/rust/nodejs.js:17:7116)\n at onFinish (node:_http_outgoing:1026:10)\n at callback (node:internal/streams/writable:764:21)"},"responseTime":5,"msg":"request errored"}
+Jun 08 17:33:14.95
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920195070,"pid":4,"hostname":"169.254.48.161","req":{"id":32,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":5,"msg":"request completed"}
+Jun 08 17:33:14.62
+GET
+304
+www.focusarx.site
+/api/notifications
+{"level":30,"time":1780920194753,"pid":4,"hostname":"169.254.48.161","req":{"id":31,"method":"GET","url":"/api/notifications"},"res":{"statusCode":304},"responseTime":5,"msg":"request completed"}
+Jun 08 17:33:14.44
+GET
+304
+www.focusarx.site
+/api/missions
+{"level":30,"time":1780920194578,"pid":4,"hostname":"169.254.48.161","req":{"id":30,"method":"GET","url":"/api/missions"},"res":{"statusCode":304},"responseTime":23,"msg":"request completed"}
+Jun 08 17:33:13.34
+POST
+500
+www.focusarx.site
+/api/study-rooms
+2
+{"level":30,"time":1780920193522,"pid":4,"hostname":"169.254.48.161","req":{"id":29,"method":"POST","url":"/api/study-rooms"},"res":{"statusCode":500},"err":{"type":"Error","message":"failed with status code 500","stack":"Error: failed with status code 500\n at onResFinished (file:///var/task/artifacts/api-server/dist/app.mjs:28336:45)\n at ServerResponse.onResponseComplete (file:///var/task/artifacts/api-server/dist/app.mjs:28386:18)\n at ServerResponse.emit (node:events:520:35)\n at /opt/rust/nodejs.js:17:7140\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at /opt/rust/nodejs.js:17:7128\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at Vr.e.emit (/opt/rust/nodejs.js:17:7116)\n at onFinish (node:_http_outgoing:1026:10)\n at callback (node:internal/streams/writable:764:21)"},"responseTime":32,"msg":"request errored"}
+Jun 08 17:33:12.93
+POST
+500
+www.focusarx.site
+/api/study-rooms
+2
+{"level":30,"time":1780920193087,"pid":4,"hostname":"169.254.48.161","req":{"id":28,"method":"POST","url":"/api/study-rooms"},"res":{"statusCode":500},"err":{"type":"Error","message":"failed with status code 500","stack":"Error: failed with status code 500\n at onResFinished (file:///var/task/artifacts/api-server/dist/app.mjs:28336:45)\n at ServerResponse.onResponseComplete (file:///var/task/artifacts/api-server/dist/app.mjs:28386:18)\n at ServerResponse.emit (node:events:520:35)\n at /opt/rust/nodejs.js:17:7140\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at /opt/rust/nodejs.js:17:7128\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at Vr.e.emit (/opt/rust/nodejs.js:17:7116)\n at onFinish (node:_http_outgoing:1026:10)\n at callback (node:internal/streams/writable:764:21)"},"responseTime":27,"msg":"request errored"}
+Jun 08 17:33:12.45
+POST
+500
+www.focusarx.site
+/api/study-rooms
+2
+{"level":30,"time":1780920192601,"pid":4,"hostname":"169.254.48.161","req":{"id":27,"method":"POST","url":"/api/study-rooms"},"res":{"statusCode":500},"err":{"type":"Error","message":"failed with status code 500","stack":"Error: failed with status code 500\n at onResFinished (file:///var/task/artifacts/api-server/dist/app.mjs:28336:45)\n at ServerResponse.onResponseComplete (file:///var/task/artifacts/api-server/dist/app.mjs:28386:18)\n at ServerResponse.emit (node:events:520:35)\n at /opt/rust/nodejs.js:17:7140\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at /opt/rust/nodejs.js:17:7128\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at Vr.e.emit (/opt/rust/nodejs.js:17:7116)\n at onFinish (node:_http_outgoing:1026:10)\n at callback (node:internal/streams/writable:764:21)"},"responseTime":27,"msg":"request errored"}
+Jun 08 17:33:12.04
+POST
+500
+www.focusarx.site
+/api/study-rooms
+2
+{"level":30,"time":1780920192232,"pid":4,"hostname":"169.254.48.161","req":{"id":26,"method":"POST","url":"/api/study-rooms"},"res":{"statusCode":500},"err":{"type":"Error","message":"failed with status code 500","stack":"Error: failed with status code 500\n at onResFinished (file:///var/task/artifacts/api-server/dist/app.mjs:28336:45)\n at ServerResponse.onResponseComplete (file:///var/task/artifacts/api-server/dist/app.mjs:28386:18)\n at ServerResponse.emit (node:events:520:35)\n at /opt/rust/nodejs.js:17:7140\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at /opt/rust/nodejs.js:17:7128\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at Vr.e.emit (/opt/rust/nodejs.js:17:7116)\n at onFinish (node:_http_outgoing:1026:10)\n at callback (node:internal/streams/writable:764:21)"},"responseTime":31,"msg":"request errored"}
+Jun 08 17:33:11.19
+POST
+500
+www.focusarx.site
+/api/study-rooms
+2
+{"level":30,"time":1780920191361,"pid":4,"hostname":"169.254.48.161","req":{"id":25,"method":"POST","url":"/api/study-rooms"},"res":{"statusCode":500},"err":{"type":"Error","message":"failed with status code 500","stack":"Error: failed with status code 500\n at onResFinished (file:///var/task/artifacts/api-server/dist/app.mjs:28336:45)\n at ServerResponse.onResponseComplete (file:///var/task/artifacts/api-server/dist/app.mjs:28386:18)\n at ServerResponse.emit (node:events:520:35)\n at /opt/rust/nodejs.js:17:7140\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at /opt/rust/nodejs.js:17:7128\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at Vr.e.emit (/opt/rust/nodejs.js:17:7116)\n at onFinish (node:_http_outgoing:1026:10)\n at callback (node:internal/streams/writable:764:21)"},"responseTime":35,"msg":"request errored"}
+Jun 08 17:33:09.23
+POST
+500
+www.focusarx.site
+/api/study-rooms
+2
+{"level":30,"time":1780920189364,"pid":4,"hostname":"169.254.48.161","req":{"id":24,"method":"POST","url":"/api/study-rooms"},"res":{"statusCode":500},"err":{"type":"Error","message":"failed with status code 500","stack":"Error: failed with status code 500\n at onResFinished (file:///var/task/artifacts/api-server/dist/app.mjs:28336:45)\n at ServerResponse.onResponseComplete (file:///var/task/artifacts/api-server/dist/app.mjs:28386:18)\n at ServerResponse.emit (node:events:520:35)\n at /opt/rust/nodejs.js:17:7140\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at /opt/rust/nodejs.js:17:7128\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at Vr.e.emit (/opt/rust/nodejs.js:17:7116)\n at onFinish (node:_http_outgoing:1026:10)\n at callback (node:internal/streams/writable:764:21)"},"responseTime":5,"msg":"request errored"}
+Jun 08 17:33:04.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920185055,"pid":4,"hostname":"169.254.48.161","req":{"id":23,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":6,"msg":"request completed"}
+Jun 08 17:32:54.93
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780920175087,"pid":4,"hostname":"169.254.48.161","req":{"id":22,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":27,"msg":"request completed"}
+Jun 08 17:32:54.92
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920175061,"pid":5,"hostname":"169.254.37.197","req":{"id":47,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":28,"msg":"request completed"}
+Jun 08 17:32:53.74
+GET
+500
+www.focusarx.site
+/api/study-rooms
+2
+{"level":30,"time":1780920173935,"pid":5,"hostname":"169.254.37.197","req":{"id":46,"method":"GET","url":"/api/study-rooms"},"res":{"statusCode":500},"err":{"type":"Error","message":"failed with status code 500","stack":"Error: failed with status code 500\n at onResFinished (file:///var/task/artifacts/api-server/dist/app.mjs:28336:45)\n at ServerResponse.onResponseComplete (file:///var/task/artifacts/api-server/dist/app.mjs:28386:18)\n at ServerResponse.emit (node:events:520:35)\n at /opt/rust/nodejs.js:17:7140\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at /opt/rust/nodejs.js:17:7128\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at Vr.e.emit (/opt/rust/nodejs.js:17:7116)\n at onFinish (node:_http_outgoing:1026:10)\n at callback (node:internal/streams/writable:764:21)"},"responseTime":28,"msg":"request errored"}
+Jun 08 17:32:51.48
+GET
+500
+www.focusarx.site
+/api/study-rooms
+2
+{"level":30,"time":1780920171610,"pid":5,"hostname":"169.254.37.197","req":{"id":45,"method":"GET","url":"/api/study-rooms"},"res":{"statusCode":500},"err":{"type":"Error","message":"failed with status code 500","stack":"Error: failed with status code 500\n at onResFinished (file:///var/task/artifacts/api-server/dist/app.mjs:28336:45)\n at ServerResponse.onResponseComplete (file:///var/task/artifacts/api-server/dist/app.mjs:28386:18)\n at ServerResponse.emit (node:events:520:35)\n at /opt/rust/nodejs.js:17:7140\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at /opt/rust/nodejs.js:17:7128\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at Vr.e.emit (/opt/rust/nodejs.js:17:7116)\n at onFinish (node:_http_outgoing:1026:10)\n at callback (node:internal/streams/writable:764:21)"},"responseTime":4,"msg":"request errored"}
+Jun 08 17:32:50.19
+GET
+500
+www.focusarx.site
+/api/study-rooms
+2
+{"level":30,"time":1780920170345,"pid":4,"hostname":"169.254.48.161","req":{"id":21,"method":"GET","url":"/api/study-rooms"},"res":{"statusCode":500},"err":{"type":"Error","message":"failed with status code 500","stack":"Error: failed with status code 500\n at onResFinished (file:///var/task/artifacts/api-server/dist/app.mjs:28336:45)\n at ServerResponse.onResponseComplete (file:///var/task/artifacts/api-server/dist/app.mjs:28386:18)\n at ServerResponse.emit (node:events:520:35)\n at /opt/rust/nodejs.js:17:7140\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at /opt/rust/nodejs.js:17:7128\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at Vr.e.emit (/opt/rust/nodejs.js:17:7116)\n at onFinish (node:_http_outgoing:1026:10)\n at callback (node:internal/streams/writable:764:21)"},"responseTime":41,"msg":"request errored"}
+Jun 08 17:32:50.17
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920170346,"pid":5,"hostname":"169.254.37.197","req":{"id":44,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":54,"msg":"request completed"}
+Jun 08 17:32:47.99
+POST
+500
+www.focusarx.site
+/api/dm/start
+2
+POST /dm/start error: _DrizzleQueryError: Failed query: insert into "conversations" ("id", "type", "name", "group_id", "last_message_at", "created_at") values ($1, $2, default, default, default, default) returning "id", "type", "name", "group_id", "last_message_at", "created_at" params: 6aae8756-bdee-4e69-ae4a-d46b916ba3b3,direct at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async getOrCreateDm (file:///var/task/artifacts/api-server/dist/app.mjs:111061:18) at async file:///var/task/artifacts/api-server/dist/app.mjs:111114:18 { query: 'insert into "conversations" ("id", "type", "name", "group_id", "last_message_at", "created_at") values ($1, $2, default, default, default, default) returning "id", "type", "name", "group_id", "last_message_at", "created_at"', params: [ '6aae8756-bdee-4e69-ae4a-d46b916ba3b3', 'direct' ], cause: error: column "name" of relation "conversations" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async getOrCreateDm (file:///var/task/artifacts/api-server/dist/app.mjs:111061:18) at async file:///var/task/artifacts/api-server/dist/app.mjs:111114:18 { length: 130, severity: 'ERROR', code: '42703', detail: undefined, hint: undefined, position: '44', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_target.c', line: '1066', routine: 'checkInsertTargets' } }
+Jun 08 17:32:47.98
+POST
+500
+www.focusarx.site
+/api/dm/start
+2
+POST /dm/start error: _DrizzleQueryError: Failed query: insert into "conversations" ("id", "type", "name", "group_id", "last_message_at", "created_at") values ($1, $2, default, default, default, default) returning "id", "type", "name", "group_id", "last_message_at", "created_at" params: ddef3486-4dfb-471a-9c78-65afb8df915b,direct at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async getOrCreateDm (file:///var/task/artifacts/api-server/dist/app.mjs:111061:18) at async file:///var/task/artifacts/api-server/dist/app.mjs:111114:18 { query: 'insert into "conversations" ("id", "type", "name", "group_id", "last_message_at", "created_at") values ($1, $2, default, default, default, default) returning "id", "type", "name", "group_id", "last_message_at", "created_at"', params: [ 'ddef3486-4dfb-471a-9c78-65afb8df915b', 'direct' ], cause: error: column "name" of relation "conversations" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async getOrCreateDm (file:///var/task/artifacts/api-server/dist/app.mjs:111061:18) at async file:///var/task/artifacts/api-server/dist/app.mjs:111114:18 { length: 130, severity: 'ERROR', code: '42703', detail: undefined, hint: undefined, position: '44', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_target.c', line: '1066', routine: 'checkInsertTargets' } }
+Jun 08 17:32:47.16
+POST
+500
+www.focusarx.site
+/api/dm/start
+2
+POST /dm/start error: _DrizzleQueryError: Failed query: insert into "conversations" ("id", "type", "name", "group_id", "last_message_at", "created_at") values ($1, $2, default, default, default, default) returning "id", "type", "name", "group_id", "last_message_at", "created_at" params: 68f24f53-55f1-472d-a4f8-f6c5d20bcbfe,direct at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async getOrCreateDm (file:///var/task/artifacts/api-server/dist/app.mjs:111061:18) at async file:///var/task/artifacts/api-server/dist/app.mjs:111114:18 { query: 'insert into "conversations" ("id", "type", "name", "group_id", "last_message_at", "created_at") values ($1, $2, default, default, default, default) returning "id", "type", "name", "group_id", "last_message_at", "created_at"', params: [ '68f24f53-55f1-472d-a4f8-f6c5d20bcbfe', 'direct' ], cause: error: column "name" of relation "conversations" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async getOrCreateDm (file:///var/task/artifacts/api-server/dist/app.mjs:111061:18) at async file:///var/task/artifacts/api-server/dist/app.mjs:111114:18 { length: 130, severity: 'ERROR', code: '42703', detail: undefined, hint: undefined, position: '44', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_target.c', line: '1066', routine: 'checkInsertTargets' } }
+Jun 08 17:32:47.14
+POST
+500
+www.focusarx.site
+/api/dm/start
+2
+POST /dm/start error: _DrizzleQueryError: Failed query: insert into "conversations" ("id", "type", "name", "group_id", "last_message_at", "created_at") values ($1, $2, default, default, default, default) returning "id", "type", "name", "group_id", "last_message_at", "created_at" params: 561f8392-ad62-4be9-b51e-70122b073526,direct at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async getOrCreateDm (file:///var/task/artifacts/api-server/dist/app.mjs:111061:18) at async file:///var/task/artifacts/api-server/dist/app.mjs:111114:18 { query: 'insert into "conversations" ("id", "type", "name", "group_id", "last_message_at", "created_at") values ($1, $2, default, default, default, default) returning "id", "type", "name", "group_id", "last_message_at", "created_at"', params: [ '561f8392-ad62-4be9-b51e-70122b073526', 'direct' ], cause: error: column "name" of relation "conversations" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async getOrCreateDm (file:///var/task/artifacts/api-server/dist/app.mjs:111061:18) at async file:///var/task/artifacts/api-server/dist/app.mjs:111114:18 { length: 130, severity: 'ERROR', code: '42703', detail: undefined, hint: undefined, position: '44', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_target.c', line: '1066', routine: 'checkInsertTargets' } }
+Jun 08 17:32:45.92
+POST
+500
+www.focusarx.site
+/api/dm/start
+2
+POST /dm/start error: _DrizzleQueryError: Failed query: insert into "conversations" ("id", "type", "name", "group_id", "last_message_at", "created_at") values ($1, $2, default, default, default, default) returning "id", "type", "name", "group_id", "last_message_at", "created_at" params: f7e4bc7e-7890-491f-a25f-eb0b0c7c1fdd,direct at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async getOrCreateDm (file:///var/task/artifacts/api-server/dist/app.mjs:111061:18) at async file:///var/task/artifacts/api-server/dist/app.mjs:111114:18 { query: 'insert into "conversations" ("id", "type", "name", "group_id", "last_message_at", "created_at") values ($1, $2, default, default, default, default) returning "id", "type", "name", "group_id", "last_message_at", "created_at"', params: [ 'f7e4bc7e-7890-491f-a25f-eb0b0c7c1fdd', 'direct' ], cause: error: column "name" of relation "conversations" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async getOrCreateDm (file:///var/task/artifacts/api-server/dist/app.mjs:111061:18) at async file:///var/task/artifacts/api-server/dist/app.mjs:111114:18 { length: 130, severity: 'ERROR', code: '42703', detail: undefined, hint: undefined, position: '44', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_target.c', line: '1066', routine: 'checkInsertTargets' } }
+Jun 08 17:32:45.87
+POST
+500
+www.focusarx.site
+/api/dm/start
+2
+POST /dm/start error: _DrizzleQueryError: Failed query: insert into "conversations" ("id", "type", "name", "group_id", "last_message_at", "created_at") values ($1, $2, default, default, default, default) returning "id", "type", "name", "group_id", "last_message_at", "created_at" params: 6e2c8655-fef7-47e8-9b84-fcfe52e02c6b,direct at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async getOrCreateDm (file:///var/task/artifacts/api-server/dist/app.mjs:111061:18) at async file:///var/task/artifacts/api-server/dist/app.mjs:111114:18 { query: 'insert into "conversations" ("id", "type", "name", "group_id", "last_message_at", "created_at") values ($1, $2, default, default, default, default) returning "id", "type", "name", "group_id", "last_message_at", "created_at"', params: [ '6e2c8655-fef7-47e8-9b84-fcfe52e02c6b', 'direct' ], cause: error: column "name" of relation "conversations" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async getOrCreateDm (file:///var/task/artifacts/api-server/dist/app.mjs:111061:18) at async file:///var/task/artifacts/api-server/dist/app.mjs:111114:18 { length: 130, severity: 'ERROR', code: '42703', detail: undefined, hint: undefined, position: '44', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_target.c', line: '1066', routine: 'checkInsertTargets' } }
+Jun 08 17:32:44.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920165052,"pid":5,"hostname":"169.254.37.197","req":{"id":39,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":9,"msg":"request completed"}
+Jun 08 17:32:44.57
+GET
+304
+www.focusarx.site
+/api/social/friends
+{"level":30,"time":1780920164745,"pid":5,"hostname":"169.254.37.197","req":{"id":38,"method":"GET","url":"/api/social/friends"},"res":{"statusCode":304},"responseTime":55,"msg":"request completed"}
+Jun 08 17:32:41.55
+GET
+500
+www.focusarx.site
+/api/dm/conversations
+2
+GET /dm/conversations error: _DrizzleQueryError: Failed query: select "id", "conversation_id", "user_id", "last_read_at", "is_admin", "joined_at" from "conversation_participants" where "conversation_participants"."user_id" = $1 params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7 at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:111071:30 { query: 'select "id", "conversation_id", "user_id", "last_read_at", "is_admin", "joined_at" from "conversation_participants" where "conversation_participants"."user_id" = $1', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7' ], cause: error: column "is_admin" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:111071:30 { length: 108, severity: 'ERROR', code: '42703', detail: undefined, hint: undefined, position: '60', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '3722', routine: 'errorMissingColumn' } }
+Jun 08 17:32:39.24
+GET
+500
+www.focusarx.site
+/api/dm/conversations
+2
+GET /dm/conversations error: _DrizzleQueryError: Failed query: select "id", "conversation_id", "user_id", "last_read_at", "is_admin", "joined_at" from "conversation_participants" where "conversation_participants"."user_id" = $1 params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7 at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:111071:30 { query: 'select "id", "conversation_id", "user_id", "last_read_at", "is_admin", "joined_at" from "conversation_participants" where "conversation_participants"."user_id" = $1', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7' ], cause: error: column "is_admin" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:111071:30 { length: 108, severity: 'ERROR', code: '42703', detail: undefined, hint: undefined, position: '60', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '3722', routine: 'errorMissingColumn' } }
+Jun 08 17:32:37.96
+GET
+500
+www.focusarx.site
+/api/dm/conversations
+2
+GET /dm/conversations error: _DrizzleQueryError: Failed query: select "id", "conversation_id", "user_id", "last_read_at", "is_admin", "joined_at" from "conversation_participants" where "conversation_participants"."user_id" = $1 params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7 at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:111071:30 { query: 'select "id", "conversation_id", "user_id", "last_read_at", "is_admin", "joined_at" from "conversation_participants" where "conversation_participants"."user_id" = $1', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7' ], cause: error: column "is_admin" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:111071:30 { length: 108, severity: 'ERROR', code: '42703', detail: undefined, hint: undefined, position: '60', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '3722', routine: 'errorMissingColumn' } }
+Jun 08 17:32:37.49
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920157664,"pid":5,"hostname":"169.254.37.197","req":{"id":34,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":64,"msg":"request completed"}
+Jun 08 17:32:36.21
+GET
+500
+www.focusarx.site
+/api/study-rooms
+2
+{"level":30,"time":1780920156345,"pid":5,"hostname":"169.254.37.197","req":{"id":33,"method":"GET","url":"/api/study-rooms"},"res":{"statusCode":500},"err":{"type":"Error","message":"failed with status code 500","stack":"Error: failed with status code 500\n at onResFinished (file:///var/task/artifacts/api-server/dist/app.mjs:28336:45)\n at ServerResponse.onResponseComplete (file:///var/task/artifacts/api-server/dist/app.mjs:28386:18)\n at ServerResponse.emit (node:events:520:35)\n at /opt/rust/nodejs.js:17:7140\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at /opt/rust/nodejs.js:17:7128\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at Vr.e.emit (/opt/rust/nodejs.js:17:7116)\n at onFinish (node:_http_outgoing:1026:10)\n at callback (node:internal/streams/writable:764:21)"},"responseTime":12,"msg":"request errored"}
+Jun 08 17:32:34.96
+GET
+500
+www.focusarx.site
+/api/study-rooms
+2
+{"level":30,"time":1780920155085,"pid":4,"hostname":"169.254.48.161","req":{"id":18,"method":"GET","url":"/api/study-rooms"},"res":{"statusCode":500},"err":{"type":"Error","message":"failed with status code 500","stack":"Error: failed with status code 500\n at onResFinished (file:///var/task/artifacts/api-server/dist/app.mjs:28336:45)\n at ServerResponse.onResponseComplete (file:///var/task/artifacts/api-server/dist/app.mjs:28386:18)\n at ServerResponse.emit (node:events:520:35)\n at /opt/rust/nodejs.js:17:7140\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at /opt/rust/nodejs.js:17:7128\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at Vr.e.emit (/opt/rust/nodejs.js:17:7116)\n at onFinish (node:_http_outgoing:1026:10)\n at callback (node:internal/streams/writable:764:21)"},"responseTime":8,"msg":"request errored"}
+Jun 08 17:32:34.94
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920155069,"pid":5,"hostname":"169.254.37.197","req":{"id":32,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":11,"msg":"request completed"}
+Jun 08 17:32:32.34
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920152483,"pid":5,"hostname":"169.254.37.197","req":{"id":31,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":24,"msg":"request completed"}
+Jun 08 17:32:27.54
+GET
+304
+www.focusarx.site
+/api/social/activity
+{"level":30,"time":1780920147713,"pid":5,"hostname":"169.254.37.197","req":{"id":30,"method":"GET","url":"/api/social/activity"},"res":{"statusCode":304},"responseTime":49,"msg":"request completed"}
+Jun 08 17:32:26.38
+GET
+500
+www.focusarx.site
+/api/feed
+2
+GET /feed error: _DrizzleQueryError: Failed query: select "id", "user_id", "content", "type", "image_urls", "metadata", "group_id", "is_public", "view_count", "created_at", "updated_at" from "social_posts" where ("social_posts"."user_id" in ($1) and "social_posts"."is_public" = $2) order by "social_posts"."created_at" desc limit $3 params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7,true,20 at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110753:15 { query: 'select "id", "user_id", "content", "type", "image_urls", "metadata", "group_id", "is_public", "view_count", "created_at", "updated_at" from "social_posts" where ("social_posts"."user_id" in ($1) and "social_posts"."is_public" = $2) order by "social_posts"."created_at" desc limit $3', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7', true, 20 ], cause: error: relation "social_posts" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110753:15 { length: 112, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '141', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '1449', routine: 'parserOpenTable' } }
+Jun 08 17:32:25.19
+GET
+200
+www.focusarx.site
+/api/social/leaderboard
+{"level":30,"time":1780920145323,"pid":5,"hostname":"169.254.37.197","req":{"id":28,"method":"GET","url":"/api/social/leaderboard"},"res":{"statusCode":200},"responseTime":12,"msg":"request completed"}
+Jun 08 17:32:24.93
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780920145058,"pid":5,"hostname":"169.254.37.197","req":{"id":26,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":6,"msg":"request completed"}
+Jun 08 17:32:24.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920145130,"pid":5,"hostname":"169.254.37.197","req":{"id":27,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":11,"msg":"request completed"}
+Jun 08 17:32:24.70
+GET
+200
+www.focusarx.site
+/api/social/leaderboard
+{"level":30,"time":1780920144872,"pid":5,"hostname":"169.254.37.197","req":{"id":25,"method":"GET","url":"/api/social/leaderboard"},"res":{"statusCode":200},"responseTime":57,"msg":"request completed"}
+Jun 08 17:32:24.10
+GET
+500
+www.focusarx.site
+/api/feed
+2
+GET /feed error: _DrizzleQueryError: Failed query: select "id", "user_id", "content", "type", "image_urls", "metadata", "group_id", "is_public", "view_count", "created_at", "updated_at" from "social_posts" where ("social_posts"."user_id" in ($1) and "social_posts"."is_public" = $2) order by "social_posts"."created_at" desc limit $3 params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7,true,20 at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110753:15 { query: 'select "id", "user_id", "content", "type", "image_urls", "metadata", "group_id", "is_public", "view_count", "created_at", "updated_at" from "social_posts" where ("social_posts"."user_id" in ($1) and "social_posts"."is_public" = $2) order by "social_posts"."created_at" desc limit $3', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7', true, 20 ], cause: error: relation "social_posts" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110753:15 { length: 112, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '141', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '1449', routine: 'parserOpenTable' } }
+Jun 08 17:32:23.26
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920143423,"pid":5,"hostname":"169.254.37.197","req":{"id":23,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":48,"msg":"request completed"}
+Jun 08 17:32:22.80
+GET
+500
+www.focusarx.site
+/api/feed
+2
+GET /feed error: _DrizzleQueryError: Failed query: select "id", "user_id", "content", "type", "image_urls", "metadata", "group_id", "is_public", "view_count", "created_at", "updated_at" from "social_posts" where ("social_posts"."user_id" in ($1) and "social_posts"."is_public" = $2) order by "social_posts"."created_at" desc limit $3 params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7,true,20 at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110753:15 { query: 'select "id", "user_id", "content", "type", "image_urls", "metadata", "group_id", "is_public", "view_count", "created_at", "updated_at" from "social_posts" where ("social_posts"."user_id" in ($1) and "social_posts"."is_public" = $2) order by "social_posts"."created_at" desc limit $3', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7', true, 20 ], cause: error: relation "social_posts" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110753:15 { length: 112, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '141', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '1449', routine: 'parserOpenTable' } }
+Jun 08 17:32:21.55
+GET
+304
+www.focusarx.site
+/api/groups
+{"level":30,"time":1780920141722,"pid":5,"hostname":"169.254.37.197","req":{"id":21,"method":"GET","url":"/api/groups"},"res":{"statusCode":304},"responseTime":46,"msg":"request completed"}
+Jun 08 17:32:21.55
+GET
+200
+www.focusarx.site
+/api/groups/mine
+{"level":30,"time":1780920141727,"pid":4,"hostname":"169.254.48.161","req":{"id":17,"method":"GET","url":"/api/groups/mine"},"res":{"statusCode":200},"responseTime":60,"msg":"request completed"}
+Jun 08 17:32:21.42
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920141584,"pid":4,"hostname":"169.254.48.161","req":{"id":16,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":51,"msg":"request completed"}
+Jun 08 17:32:19.24
+POST
+500
+www.focusarx.site
+/api/posts
+2
+POST /posts error: _DrizzleQueryError: Failed query: insert into "social_posts" ("id", "user_id", "content", "type", "image_urls", "metadata", "group_id", "is_public", "view_count", "created_at", "updated_at") values ($1, $2, $3, $4, $5, $6, $7, $8, default, default, default) returning "id", "user_id", "content", "type", "image_urls", "metadata", "group_id", "is_public", "view_count", "created_at", "updated_at" params: 6e3241b4-397c-4ef5-b66d-e71f31d4af83,e144af6c-c356-40dc-b0c3-9d7d0a46d2e7,fghgfhfg,general,[],,,true at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110781:20 { query: 'insert into "social_posts" ("id", "user_id", "content", "type", "image_urls", "metadata", "group_id", "is_public", "view_count", "created_at", "updated_at") values ($1, $2, $3, $4, $5, $6, $7, $8, default, default, default) returning "id", "user_id", "content", "type", "image_urls", "metadata", "group_id", "is_public", "view_count", "created_at", "updated_at"', params: [ '6e3241b4-397c-4ef5-b66d-e71f31d4af83', 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7', 'fghgfhfg', 'general', '[]', null, null, true ], cause: error: relation "social_posts" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110781:20 { length: 111, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '13', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '1449', routine: 'parserOpenTable' } }
+Jun 08 17:32:18.01
+GET
+500
+www.focusarx.site
+/api/feed
+2
+GET /feed error: _DrizzleQueryError: Failed query: select "id", "user_id", "content", "type", "image_urls", "metadata", "group_id", "is_public", "view_count", "created_at", "updated_at" from "social_posts" where ("social_posts"."user_id" in ($1) and "social_posts"."is_public" = $2) order by "social_posts"."created_at" desc limit $3 params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7,true,20 at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110753:15 { query: 'select "id", "user_id", "content", "type", "image_urls", "metadata", "group_id", "is_public", "view_count", "created_at", "updated_at" from "social_posts" where ("social_posts"."user_id" in ($1) and "social_posts"."is_public" = $2) order by "social_posts"."created_at" desc limit $3', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7', true, 20 ], cause: error: relation "social_posts" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110753:15 { length: 112, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '141', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '1449', routine: 'parserOpenTable' } }
+Jun 08 17:32:15.72
+GET
+500
+www.focusarx.site
+/api/feed
+2
+GET /feed error: _DrizzleQueryError: Failed query: select "id", "user_id", "content", "type", "image_urls", "metadata", "group_id", "is_public", "view_count", "created_at", "updated_at" from "social_posts" where ("social_posts"."user_id" in ($1) and "social_posts"."is_public" = $2) order by "social_posts"."created_at" desc limit $3 params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7,true,20 at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110753:15 { query: 'select "id", "user_id", "content", "type", "image_urls", "metadata", "group_id", "is_public", "view_count", "created_at", "updated_at" from "social_posts" where ("social_posts"."user_id" in ($1) and "social_posts"."is_public" = $2) order by "social_posts"."created_at" desc limit $3', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7', true, 20 ], cause: error: relation "social_posts" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110753:15 { length: 112, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '141', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '1449', routine: 'parserOpenTable' } }
+Jun 08 17:32:14.92
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920135058,"pid":4,"hostname":"169.254.48.161","req":{"id":12,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":9,"msg":"request completed"}
+Jun 08 17:32:14.35
+GET
+304
+www.focusarx.site
+/api/notifications
+{"level":30,"time":1780920134479,"pid":4,"hostname":"169.254.48.161","req":{"id":11,"method":"GET","url":"/api/notifications"},"res":{"statusCode":304},"responseTime":16,"msg":"request completed"}
+Jun 08 17:32:14.22
+GET
+304
+www.focusarx.site
+/api/social/friends
+{"level":30,"time":1780920134371,"pid":4,"hostname":"169.254.48.161","req":{"id":10,"method":"GET","url":"/api/social/friends"},"res":{"statusCode":304},"responseTime":29,"msg":"request completed"}
+Jun 08 17:32:14.12
+GET
+304
+www.focusarx.site
+/api/social/requests
+{"level":30,"time":1780920134252,"pid":4,"hostname":"169.254.60.219","req":{"id":12,"method":"GET","url":"/api/social/requests"},"res":{"statusCode":304},"responseTime":9,"msg":"request completed"}
+Jun 08 17:32:14.12
+GET
+200
+www.focusarx.site
+/api/social/leaderboard
+{"level":30,"time":1780920134307,"pid":4,"hostname":"169.254.48.161","req":{"id":9,"method":"GET","url":"/api/social/leaderboard"},"res":{"statusCode":200},"responseTime":58,"msg":"request completed"}
+Jun 08 17:32:14.12
+GET
+500
+www.focusarx.site
+/api/feed
+2
+GET /feed error: _DrizzleQueryError: Failed query: select "id", "user_id", "content", "type", "image_urls", "metadata", "group_id", "is_public", "view_count", "created_at", "updated_at" from "social_posts" where ("social_posts"."user_id" in ($1) and "social_posts"."is_public" = $2) order by "social_posts"."created_at" desc limit $3 params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7,true,20 at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110753:15 { query: 'select "id", "user_id", "content", "type", "image_urls", "metadata", "group_id", "is_public", "view_count", "created_at", "updated_at" from "social_posts" where ("social_posts"."user_id" in ($1) and "social_posts"."is_public" = $2) order by "social_posts"."created_at" desc limit $3', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7', true, 20 ], cause: error: relation "social_posts" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110753:15 { length: 112, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '141', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '1449', routine: 'parserOpenTable' } }
+Jun 08 17:32:13.96
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920134123,"pid":5,"hostname":"169.254.37.197","req":{"id":19,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":38,"msg":"request completed"}
+Jun 08 17:32:13.16
+GET
+304
+www.focusarx.site
+/api/goals
+{"level":30,"time":1780920133291,"pid":5,"hostname":"169.254.37.197","req":{"id":18,"method":"GET","url":"/api/goals"},"res":{"statusCode":304},"responseTime":7,"msg":"request completed"}
+Jun 08 17:32:13.01
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920133158,"pid":5,"hostname":"169.254.37.197","req":{"id":17,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":32,"msg":"request completed"}
+Jun 08 17:32:04.97
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920125114,"pid":5,"hostname":"169.254.37.197","req":{"id":16,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":12,"msg":"request completed"}
+Jun 08 17:31:54.92
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780920115070,"pid":5,"hostname":"169.254.37.197","req":{"id":15,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":37,"msg":"request completed"}
+Jun 08 17:31:54.92
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920115065,"pid":4,"hostname":"169.254.60.219","req":{"id":11,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":27,"msg":"request completed"}
+Jun 08 17:31:53.26
+POST
+500
+www.focusarx.site
+/api/habits
+2
+{"level":30,"time":1780920113436,"pid":5,"hostname":"169.254.37.197","req":{"id":14,"method":"POST","url":"/api/habits"},"res":{"statusCode":500},"err":{"type":"Error","message":"failed with status code 500","stack":"Error: failed with status code 500\n at onResFinished (file:///var/task/artifacts/api-server/dist/app.mjs:28336:45)\n at ServerResponse.onResponseComplete (file:///var/task/artifacts/api-server/dist/app.mjs:28386:18)\n at ServerResponse.emit (node:events:520:35)\n at /opt/rust/nodejs.js:17:7140\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at /opt/rust/nodejs.js:17:7128\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at Vr.e.emit (/opt/rust/nodejs.js:17:7116)\n at onFinish (node:_http_outgoing:1026:10)\n at callback (node:internal/streams/writable:764:21)"},"responseTime":40,"msg":"request errored"}
+Jun 08 17:31:44.96
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920105104,"pid":5,"hostname":"169.254.37.197","req":{"id":13,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":28,"msg":"request completed"}
+Jun 08 17:31:43.24
+POST
+500
+www.focusarx.site
+/api/habits
+2
+{"level":30,"time":1780920103463,"pid":5,"hostname":"169.254.37.197","req":{"id":12,"method":"POST","url":"/api/habits"},"res":{"statusCode":500},"err":{"type":"Error","message":"failed with status code 500","stack":"Error: failed with status code 500\n at onResFinished (file:///var/task/artifacts/api-server/dist/app.mjs:28336:45)\n at ServerResponse.onResponseComplete (file:///var/task/artifacts/api-server/dist/app.mjs:28386:18)\n at ServerResponse.emit (node:events:520:35)\n at /opt/rust/nodejs.js:17:7140\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at /opt/rust/nodejs.js:17:7128\n at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:59:14)\n at Vr.e.emit (/opt/rust/nodejs.js:17:7116)\n at onFinish (node:_http_outgoing:1026:10)\n at callback (node:internal/streams/writable:764:21)"},"responseTime":73,"msg":"request errored"}
+Jun 08 17:31:37.65
+GET
+500
+www.focusarx.site
+/api/habits/stats
+2
+GET /habits/stats error: _DrizzleQueryError: Failed query: select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7,false at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110676:20 { query: 'select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2)', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7', false ], cause: error: relation "habits" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110676:20 { length: 106, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '182', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '1449', routine: 'parserOpenTable' } }
+Jun 08 17:31:37.65
+GET
+500
+www.focusarx.site
+/api/habits
+2
+GET /habits error: _DrizzleQueryError: Failed query: select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at" params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7,false at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { query: 'select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at"', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7', false ], cause: error: relation "habits" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { length: 106, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '182', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '1449', routine: 'parserOpenTable' } }
+Jun 08 17:31:35.02
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920095163,"pid":4,"hostname":"169.254.60.219","req":{"id":9,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":23,"msg":"request completed"}
+Jun 08 17:31:34.61
+GET
+500
+www.focusarx.site
+/api/habits/stats
+2
+GET /habits/stats error: _DrizzleQueryError: Failed query: select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7,false at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110676:20 { query: 'select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2)', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7', false ], cause: error: relation "habits" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110676:20 { length: 106, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '182', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '1449', routine: 'parserOpenTable' } }
+Jun 08 17:31:34.54
+GET
+500
+www.focusarx.site
+/api/habits
+2
+GET /habits error: _DrizzleQueryError: Failed query: select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at" params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7,false at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { query: 'select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at"', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7', false ], cause: error: relation "habits" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { length: 106, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '182', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '1449', routine: 'parserOpenTable' } }
+Jun 08 17:31:33.22
+GET
+500
+www.focusarx.site
+/api/habits/stats
+2
+GET /habits/stats error: _DrizzleQueryError: Failed query: select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7,false at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110676:20 { query: 'select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2)', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7', false ], cause: error: relation "habits" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110676:20 { length: 106, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '182', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '1449', routine: 'parserOpenTable' } }
+Jun 08 17:31:33.21
+GET
+500
+www.focusarx.site
+/api/habits
+2
+GET /habits error: _DrizzleQueryError: Failed query: select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at" params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7,false at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { query: 'select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at"', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7', false ], cause: error: relation "habits" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { length: 106, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '182', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '1449', routine: 'parserOpenTable' } }
+Jun 08 17:31:33.21
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920093378,"pid":4,"hostname":"169.254.60.219","req":{"id":6,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":51,"msg":"request completed"}
+Jun 08 17:31:32.49
+GET
+500
+www.focusarx.site
+/api/habits
+2
+GET /habits error: _DrizzleQueryError: Failed query: select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at" params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7,false at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { query: 'select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at"', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7', false ], cause: error: relation "habits" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { length: 106, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '182', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '1449', routine: 'parserOpenTable' } }
+Jun 08 17:31:31.14
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920091278,"pid":4,"hostname":"169.254.60.219","req":{"id":4,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":22,"msg":"request completed"}
+Jun 08 17:31:31.14
+GET
+500
+www.focusarx.site
+/api/habits
+2
+GET /habits error: _DrizzleQueryError: Failed query: select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at" params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7,false at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { query: 'select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at"', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7', false ], cause: error: relation "habits" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { length: 106, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '182', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '1449', routine: 'parserOpenTable' } }
+Jun 08 17:31:31.14
+GET
+304
+www.focusarx.site
+/api/readiness/today
+{"level":30,"time":1780920091269,"pid":4,"hostname":"169.254.48.161","req":{"id":7,"method":"GET","url":"/api/readiness/today"},"res":{"statusCode":304},"responseTime":6,"msg":"request completed"}
+Jun 08 17:31:31.14
+GET
+304
+www.focusarx.site
+/api/focus-weather
+{"level":30,"time":1780920091268,"pid":5,"hostname":"169.254.37.197","req":{"id":9,"method":"GET","url":"/api/focus-weather"},"res":{"statusCode":304},"responseTime":16,"msg":"request completed"}
+Jun 08 17:31:30.80
+GET
+304
+www.focusarx.site
+/api/stats
+{"level":30,"time":1780920090956,"pid":5,"hostname":"169.254.37.197","req":{"id":8,"method":"GET","url":"/api/stats"},"res":{"statusCode":304},"responseTime":43,"msg":"request completed"}
+Jun 08 17:31:28.35
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920088494,"pid":5,"hostname":"169.254.37.197","req":{"id":7,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":31,"msg":"request completed"}
+Jun 08 17:31:24.95
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920085079,"pid":5,"hostname":"169.254.37.197","req":{"id":6,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":8,"msg":"request completed"}
+Jun 08 17:31:24.95
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780920085079,"pid":4,"hostname":"169.254.60.219","req":{"id":3,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":8,"msg":"request completed"}
+Jun 08 17:31:24.87
+GET
+304
+www.focusarx.site
+/api/readiness/today
+{"level":30,"time":1780920084996,"pid":5,"hostname":"169.254.37.197","req":{"id":5,"method":"GET","url":"/api/readiness/today"},"res":{"statusCode":304},"responseTime":9,"msg":"request completed"}
+Jun 08 17:31:24.21
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920084341,"pid":5,"hostname":"169.254.37.197","req":{"id":4,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":8,"msg":"request completed"}
+Jun 08 17:31:23.42
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780920083558,"pid":4,"hostname":"169.254.60.219","req":{"id":2,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":25,"msg":"request completed"}
+Jun 08 17:31:23.41
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920083573,"pid":5,"hostname":"169.254.37.197","req":{"id":3,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":41,"msg":"request completed"}
+Jun 08 17:31:23.35
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920083489,"pid":5,"hostname":"169.254.37.197","req":{"id":2,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":23,"msg":"request completed"}
+Jun 08 17:31:23.14
+GET
+304
+www.focusarx.site
+/api/goals
+{"level":30,"time":1780920083272,"pid":4,"hostname":"169.254.48.161","req":{"id":6,"method":"GET","url":"/api/goals"},"res":{"statusCode":304},"responseTime":9,"msg":"request completed"}
+Jun 08 17:31:23.12
+GET
+200
+www.focusarx.site
+/api/social/activity
+{"level":30,"time":1780920083249,"pid":4,"hostname":"169.254.47.165","req":{"id":23,"method":"GET","url":"/api/social/activity"},"res":{"statusCode":200},"responseTime":8,"msg":"request completed"}
+Jun 08 17:31:23.12
+GET
+200
+www.focusarx.site
+/api/focus-weather
+2
+{"level":30,"time":1780920083402,"pid":5,"hostname":"169.254.37.197","req":{"id":1,"method":"GET","url":"/api/focus-weather"},"res":{"statusCode":200},"responseTime":138,"msg":"request completed"}
+Jun 08 17:31:23.12
+GET
+304
+www.focusarx.site
+/api/missions
+{"level":30,"time":1780920083272,"pid":4,"hostname":"169.254.35.165","req":{"id":3,"method":"GET","url":"/api/missions"},"res":{"statusCode":304},"responseTime":20,"msg":"request completed"}
+Jun 08 17:31:23.12
+GET
+304
+www.focusarx.site
+/api/readiness/today
+{"level":30,"time":1780920083242,"pid":4,"hostname":"169.254.48.161","req":{"id":5,"method":"GET","url":"/api/readiness/today"},"res":{"statusCode":304},"responseTime":8,"msg":"request completed"}
+Jun 08 17:31:23.12
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780920083280,"pid":4,"hostname":"169.254.13.41","req":{"id":5,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":27,"msg":"request completed"}
+Jun 08 17:31:23.12
+GET
+304
+www.focusarx.site
+/api/streak
+{"level":30,"time":1780920083236,"pid":4,"hostname":"169.254.4.1","req":{"id":8,"method":"GET","url":"/api/streak"},"res":{"statusCode":304},"responseTime":5,"msg":"request completed"}
+Jun 08 17:31:23.12
+GET
+500
+www.focusarx.site
+/api/habits
+3
+GET /habits error: _DrizzleQueryError: Failed query: select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at" params: e144af6c-c356-40dc-b0c3-9d7d0a46d2e7,false at NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90561:15) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { query: 'select "id", "user_id", "name", "icon", "color", "frequency", "target_days", "current_streak", "longest_streak", "total_completions", "is_archived", "created_at", "updated_at" from "habits" where ("habits"."user_id" = $1 and "habits"."is_archived" = $2) order by "habits"."created_at"', params: [ 'e144af6c-c356-40dc-b0c3-9d7d0a46d2e7', false ], cause: error: relation "habits" does not exist at file:///var/task/artifacts/api-server/dist/app.mjs:34002:15 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///var/task/artifacts/api-server/dist/app.mjs:90801:18 at async NodePgPreparedQuery.queryWithCache (file:///var/task/artifacts/api-server/dist/app.mjs:90559:16) at async file:///var/task/artifacts/api-server/dist/app.mjs:90794:22 at async file:///var/task/artifacts/api-server/dist/app.mjs:110588:20 { length: 106, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '182', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '1449', routine: 'parserOpenTable' } }
+Jun 08 17:31:23.06
+GET
+200
+www.focusarx.site
+/api/sessions/active
+{"level":30,"time":1780920083194,"pid":4,"hostname":"169.254.48.161","req":{"id":4,"method":"GET","url":"/api/sessions/active"},"res":{"statusCode":200},"responseTime":8,"msg":"request completed"}
+Jun 08 17:31:22.61
+GET
+200
+www.focusarx.site
+/api/stats
+{"level":30,"time":1780920082854,"pid":4,"hostname":"169.254.48.161","req":{"id":3,"method":"GET","url":"/api/stats"},"res":{"statusCode":200},"responseTime":48,"msg":"request completed"}
+Jun 08 17:31:22.57
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920082736,"pid":4,"hostname":"169.254.4.1","req":{"id":7,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":21,"msg":"request completed"}
+Jun 08 17:31:19.89
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920080035,"pid":4,"hostname":"169.254.4.1","req":{"id":6,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":28,"msg":"request completed"}
+Jun 08 17:31:15.78
+GET
+304
+www.focusarx.site
+/api/readiness/today
+{"level":30,"time":1780920075916,"pid":4,"hostname":"169.254.4.1","req":{"id":5,"method":"GET","url":"/api/readiness/today"},"res":{"statusCode":304},"responseTime":6,"msg":"request completed"}
+Jun 08 17:31:15.07
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920075193,"pid":4,"hostname":"169.254.4.1","req":{"id":4,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":9,"msg":"request completed"}
+Jun 08 17:31:14.87
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920075022,"pid":4,"hostname":"169.254.4.1","req":{"id":3,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":19,"msg":"request completed"}
+Jun 08 17:31:14.39
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780920074526,"pid":4,"hostname":"169.254.4.1","req":{"id":2,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":20,"msg":"request completed"}
+Jun 08 17:31:14.39
+GET
+200
+www.focusarx.site
+/api/sessions/active
+{"level":30,"time":1780920074517,"pid":4,"hostname":"169.254.35.165","req":{"id":2,"method":"GET","url":"/api/sessions/active"},"res":{"statusCode":200},"responseTime":6,"msg":"request completed"}
+Jun 08 17:31:14.27
+POST
+200
+www.focusarx.site
+/api/track
+{"level":30,"time":1780920074521,"pid":4,"hostname":"169.254.48.161","req":{"id":2,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":114,"msg":"request completed"}
+Jun 08 17:31:14.03
+GET
+304
+www.focusarx.site
+/api/tasks
+{"level":30,"time":1780920074247,"pid":4,"hostname":"169.254.13.41","req":{"id":4,"method":"GET","url":"/api/tasks"},"res":{"statusCode":304},"responseTime":6,"msg":"request completed"}
+Jun 08 17:31:14.03
+GET
+304
+www.focusarx.site
+/api/auth/session
+{"level":30,"time":1780920074227,"pid":4,"hostname":"169.254.47.165","req":{"id":22,"method":"GET","url":"/api/auth/session"},"res":{"statusCode":304},"responseTime":9,"msg":"request completed"}
+Jun 08 17:31:14.03
+GET
+304
+www.focusarx.site
+/api/stats/productivity
+2
+{"level":30,"time":1780920074269,"pid":4,"hostname":"169.254.35.165","req":{"id":1,"method":"GET","url":"/api/stats/productivity"},"res":{"statusCode":304},"responseTime":70,"msg":"request completed"}
+Jun 08 17:31:14.03
+GET
+304
+www.focusarx.site
+/api/streak
+2
+{"level":30,"time":1780920074321,"pid":4,"hostname":"169.254.48.161","req":{"id":1,"method":"GET","url":"/api/streak"},"res":{"statusCode":304},"responseTime":104,"msg":"request completed"}
+Jun 08 17:31:14.02
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780920074173,"pid":4,"hostname":"169.254.47.165","req":{"id":21,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":7,"msg":"request completed"}
+Jun 08 17:31:14.01
+GET
+304
+www.focusarx.site
+/api/missions
+2
+{"level":30,"time":1780920074281,"pid":4,"hostname":"169.254.4.1","req":{"id":1,"method":"GET","url":"/api/missions"},"res":{"statusCode":304},"responseTime":117,"msg":"request completed"}
+Jun 08 17:31:14.01
+GET
+304
+www.focusarx.site
+/api/notifications
+{"level":30,"time":1780920074225,"pid":4,"hostname":"169.254.13.41","req":{"id":3,"method":"GET","url":"/api/notifications"},"res":{"statusCode":304},"responseTime":82,"msg":"request completed"}
+Jun 08 17:31:04.99
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920065153,"pid":4,"hostname":"169.254.47.165","req":{"id":20,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":30,"msg":"request completed"}
+Jun 08 17:30:54.94
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920055433,"pid":4,"hostname":"169.254.47.165","req":{"id":19,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":7,"msg":"request completed"}
+Jun 08 17:30:54.94
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780920055285,"pid":4,"hostname":"169.254.47.165","req":{"id":18,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":8,"msg":"request completed"}
+Jun 08 17:30:44.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920045067,"pid":4,"hostname":"169.254.47.165","req":{"id":17,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":8,"msg":"request completed"}
+Jun 08 17:30:34.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920035105,"pid":4,"hostname":"169.254.47.165","req":{"id":16,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":21,"msg":"request completed"}
+Jun 08 17:30:25.22
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780920025601,"pid":4,"hostname":"169.254.47.165","req":{"id":15,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":7,"msg":"request completed"}
+Jun 08 17:30:25.22
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920025593,"pid":4,"hostname":"169.254.13.41","req":{"id":2,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":13,"msg":"request completed"}
+Jun 08 17:30:18.59
+GET
+200
+focusarx-9ybqx4gtp-rangwalaaliasgar55-8394s-projects.vercel.app
+/api/sessions/active
+2
+{"level":30,"time":1780920018847,"pid":4,"hostname":"169.254.13.41","req":{"id":1,"method":"GET","url":"/api/sessions/active"},"res":{"statusCode":200},"responseTime":70,"msg":"request completed"}
+Jun 08 17:30:18.59
+GET
+200
+focusarx-9ybqx4gtp-rangwalaaliasgar55-8394s-projects.vercel.app
+/api/gamification/wallet
+{"level":30,"time":1780920018642,"pid":4,"hostname":"169.254.47.165","req":{"id":14,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":200},"responseTime":5,"msg":"request completed"}
+Jun 08 17:30:18.33
+GET
+200
+focusarx-9ybqx4gtp-rangwalaaliasgar55-8394s-projects.vercel.app
+/api/gamification/wallet
+{"level":30,"time":1780920018419,"pid":4,"hostname":"169.254.47.165","req":{"id":13,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":200},"responseTime":6,"msg":"request completed"}
+Jun 08 17:30:18.33
+GET
+200
+focusarx-9ybqx4gtp-rangwalaaliasgar55-8394s-projects.vercel.app
+/api/sessions/active
+{"level":30,"time":1780920018385,"pid":4,"hostname":"169.254.47.165","req":{"id":12,"method":"GET","url":"/api/sessions/active"},"res":{"statusCode":200},"responseTime":4,"msg":"request completed"}
+Jun 08 17:30:18.26
+POST
+200
+focusarx-9ybqx4gtp-rangwalaaliasgar55-8394s-projects.vercel.app
+/api/track
+{"level":30,"time":1780920018327,"pid":4,"hostname":"169.254.47.165","req":{"id":11,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":1,"msg":"request completed"}
+Jun 08 17:30:18.25
+POST
+200
+focusarx-9ybqx4gtp-rangwalaaliasgar55-8394s-projects.vercel.app
+/api/track
+{"level":30,"time":1780920018307,"pid":4,"hostname":"169.254.47.165","req":{"id":10,"method":"POST","url":"/api/track"},"res":{"statusCode":200},"responseTime":3,"msg":"request completed"}
+Jun 08 17:30:18.19
+GET
+200
+focusarx-9ybqx4gtp-rangwalaaliasgar55-8394s-projects.vercel.app
+/api/auth/session
+{"level":30,"time":1780920018247,"pid":4,"hostname":"169.254.47.165","req":{"id":9,"method":"GET","url":"/api/auth/session"},"res":{"statusCode":200},"responseTime":4,"msg":"request completed"}
+Jun 08 17:30:18.12
+GET
+200
+focusarx-9ybqx4gtp-rangwalaaliasgar55-8394s-projects.vercel.app
+/api/auth/session
+{"level":30,"time":1780920018200,"pid":4,"hostname":"169.254.47.165","req":{"id":8,"method":"GET","url":"/api/auth/session"},"res":{"statusCode":200},"responseTime":5,"msg":"request completed"}
+Jun 08 17:30:17.99
+POST
+200
+focusarx-9ybqx4gtp-rangwalaaliasgar55-8394s-projects.vercel.app
+/api/auth/guest
+{"level":30,"time":1780920018079,"pid":4,"hostname":"169.254.47.165","req":{"id":2,"method":"POST","url":"/api/auth/guest"},"res":{"statusCode":200},"responseTime":15,"msg":"request completed"}
+Jun 08 17:30:17.96
+POST
+200
+focusarx-9ybqx4gtp-rangwalaaliasgar55-8394s-projects.vercel.app
+/api/auth/guest
+{"level":30,"time":1780920018099,"pid":4,"hostname":"169.254.47.165","req":{"id":3,"method":"POST","url":"/api/auth/guest"},"res":{"statusCode":200},"responseTime":9,"msg":"request completed"}
+Jun 08 17:30:17.93
+GET
+401
+focusarx-9ybqx4gtp-rangwalaaliasgar55-8394s-projects.vercel.app
+/api/missions
+{"level":30,"time":1780920018141,"pid":4,"hostname":"169.254.47.165","req":{"id":5,"method":"GET","url":"/api/missions"},"res":{"statusCode":401},"responseTime":4,"msg":"request completed"}
+Jun 08 17:30:17.93
+GET
+401
+focusarx-9ybqx4gtp-rangwalaaliasgar55-8394s-projects.vercel.app
+/api/stats/productivity
+{"level":30,"time":1780920018177,"pid":4,"hostname":"169.254.47.165","req":{"id":7,"method":"GET","url":"/api/stats/productivity"},"res":{"statusCode":401},"responseTime":1,"msg":"request completed"}
+Jun 08 17:30:17.92
+GET
+401
+focusarx-9ybqx4gtp-rangwalaaliasgar55-8394s-projects.vercel.app
+/api/stats/productivity
+{"level":30,"time":1780920018113,"pid":4,"hostname":"169.254.47.165","req":{"id":4,"method":"GET","url":"/api/stats/productivity"},"res":{"statusCode":401},"responseTime":2,"msg":"request completed"}
+Jun 08 17:30:17.92
+GET
+401
+focusarx-9ybqx4gtp-rangwalaaliasgar55-8394s-projects.vercel.app
+/api/missions
+{"level":30,"time":1780920018160,"pid":4,"hostname":"169.254.47.165","req":{"id":6,"method":"GET","url":"/api/missions"},"res":{"statusCode":401},"responseTime":2,"msg":"request completed"}
+Jun 08 17:30:14.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+2
+{"level":30,"time":1780920015660,"pid":4,"hostname":"169.254.47.165","req":{"id":1,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":77,"msg":"request completed"}
+Jun 08 17:30:04.94
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780920005064,"pid":4,"hostname":"169.254.34.161","req":{"id":126,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":4,"msg":"request completed"}
+Jun 08 17:29:54.92
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919995080,"pid":4,"hostname":"169.254.34.161","req":{"id":125,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":27,"msg":"request completed"}
+Jun 08 17:29:54.92
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780919995048,"pid":4,"hostname":"169.254.37.251","req":{"id":154,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":5,"msg":"request completed"}
+Jun 08 17:29:45.01
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919985133,"pid":4,"hostname":"169.254.37.251","req":{"id":153,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":6,"msg":"request completed"}
+Jun 08 17:29:34.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919975046,"pid":4,"hostname":"169.254.37.251","req":{"id":152,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":5,"msg":"request completed"}
+Jun 08 17:29:31.80
+GET
+304
+www.focusarx.site
+/api/stats/productivity
+{"level":30,"time":1780919971935,"pid":4,"hostname":"169.254.37.251","req":{"id":151,"method":"GET","url":"/api/stats/productivity"},"res":{"statusCode":304},"responseTime":12,"msg":"request completed"}
+Jun 08 17:29:31.79
+GET
+304
+www.focusarx.site
+/api/notifications
+{"level":30,"time":1780919971919,"pid":4,"hostname":"169.254.34.161","req":{"id":124,"method":"GET","url":"/api/notifications"},"res":{"statusCode":304},"responseTime":5,"msg":"request completed"}
+Jun 08 17:29:31.78
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919971905,"pid":4,"hostname":"169.254.37.251","req":{"id":150,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":4,"msg":"request completed"}
+Jun 08 17:29:31.78
+GET
+304
+www.focusarx.site
+/api/missions
+{"level":30,"time":1780919971905,"pid":4,"hostname":"169.254.34.161","req":{"id":123,"method":"GET","url":"/api/missions"},"res":{"statusCode":304},"responseTime":6,"msg":"request completed"}
+Jun 08 17:29:24.94
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780919965079,"pid":4,"hostname":"169.254.34.161","req":{"id":122,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":20,"msg":"request completed"}
+Jun 08 17:29:24.94
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919965062,"pid":4,"hostname":"169.254.37.251","req":{"id":149,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":4,"msg":"request completed"}
+Jun 08 17:29:14.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919955079,"pid":4,"hostname":"169.254.37.251","req":{"id":148,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":5,"msg":"request completed"}
+Jun 08 17:29:04.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919945058,"pid":4,"hostname":"169.254.37.251","req":{"id":147,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":10,"msg":"request completed"}
+Jun 08 17:28:54.92
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780919935140,"pid":4,"hostname":"169.254.37.251","req":{"id":145,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":8,"msg":"request completed"}
+Jun 08 17:28:54.92
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919935259,"pid":4,"hostname":"169.254.37.251","req":{"id":146,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":5,"msg":"request completed"}
+Jun 08 17:28:44.94
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919925081,"pid":4,"hostname":"169.254.37.251","req":{"id":144,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":5,"msg":"request completed"}
+Jun 08 17:28:34.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919915065,"pid":4,"hostname":"169.254.37.251","req":{"id":143,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":4,"msg":"request completed"}
+Jun 08 17:28:24.92
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780919905059,"pid":4,"hostname":"169.254.37.251","req":{"id":141,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":6,"msg":"request completed"}
+Jun 08 17:28:24.92
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919905083,"pid":4,"hostname":"169.254.37.251","req":{"id":142,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":6,"msg":"request completed"}
+Jun 08 17:28:14.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919895063,"pid":4,"hostname":"169.254.37.251","req":{"id":140,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":5,"msg":"request completed"}
+Jun 08 17:28:04.98
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919885100,"pid":4,"hostname":"169.254.37.251","req":{"id":139,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":5,"msg":"request completed"}
+Jun 08 17:27:54.93
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780919875075,"pid":4,"hostname":"169.254.37.251","req":{"id":138,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":22,"msg":"request completed"}
+Jun 08 17:27:54.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919875055,"pid":4,"hostname":"169.254.34.161","req":{"id":121,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":5,"msg":"request completed"}
+Jun 08 17:27:44.92
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919865058,"pid":4,"hostname":"169.254.34.161","req":{"id":120,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":4,"msg":"request completed"}
+Jun 08 17:27:34.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919855055,"pid":4,"hostname":"169.254.34.161","req":{"id":119,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":5,"msg":"request completed"}
+Jun 08 17:27:25.00
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780919845148,"pid":4,"hostname":"169.254.34.161","req":{"id":118,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":24,"msg":"request completed"}
+Jun 08 17:27:24.99
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919845125,"pid":4,"hostname":"169.254.37.251","req":{"id":137,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":7,"msg":"request completed"}
+Jun 08 17:27:14.97
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919835179,"pid":4,"hostname":"169.254.37.251","req":{"id":136,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":6,"msg":"request completed"}
+Jun 08 17:27:04.92
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919825044,"pid":4,"hostname":"169.254.37.251","req":{"id":135,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":7,"msg":"request completed"}
+Jun 08 17:26:54.94
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780919815093,"pid":4,"hostname":"169.254.37.251","req":{"id":134,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":32,"msg":"request completed"}
+Jun 08 17:26:54.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919815057,"pid":4,"hostname":"169.254.34.161","req":{"id":117,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":6,"msg":"request completed"}
+Jun 08 17:26:44.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919805078,"pid":4,"hostname":"169.254.34.161","req":{"id":116,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":6,"msg":"request completed"}
+Jun 08 17:26:34.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919795057,"pid":4,"hostname":"169.254.34.161","req":{"id":115,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":6,"msg":"request completed"}
+Jun 08 17:26:24.95
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919785110,"pid":4,"hostname":"169.254.34.161","req":{"id":114,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":33,"msg":"request completed"}
+Jun 08 17:26:24.95
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780919785076,"pid":4,"hostname":"169.254.37.251","req":{"id":133,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":9,"msg":"request completed"}
+Jun 08 17:26:14.94
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919775072,"pid":4,"hostname":"169.254.37.251","req":{"id":132,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":7,"msg":"request completed"}
+Jun 08 17:26:04.92
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919765044,"pid":4,"hostname":"169.254.37.251","req":{"id":131,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":7,"msg":"request completed"}
+Jun 08 17:25:54.95
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780919755079,"pid":4,"hostname":"169.254.34.161","req":{"id":113,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":6,"msg":"request completed"}
+Jun 08 17:25:54.94
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919755108,"pid":4,"hostname":"169.254.37.251","req":{"id":130,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":41,"msg":"request completed"}
+Jun 08 17:25:45.74
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919745870,"pid":4,"hostname":"169.254.34.161","req":{"id":112,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":5,"msg":"request completed"}
+Jun 08 17:25:34.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919735057,"pid":4,"hostname":"169.254.34.161","req":{"id":111,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":5,"msg":"request completed"}
+Jun 08 17:25:24.93
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780919725091,"pid":4,"hostname":"169.254.34.161","req":{"id":110,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":34,"msg":"request completed"}
+Jun 08 17:25:24.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919725058,"pid":4,"hostname":"169.254.37.251","req":{"id":129,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":4,"msg":"request completed"}
+Jun 08 17:25:14.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919715059,"pid":4,"hostname":"169.254.37.251","req":{"id":128,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":5,"msg":"request completed"}
+Jun 08 17:25:04.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919705049,"pid":4,"hostname":"169.254.37.251","req":{"id":127,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":5,"msg":"request completed"}
+Jun 08 17:24:54.96
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780919695108,"pid":4,"hostname":"169.254.37.251","req":{"id":126,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":5,"msg":"request completed"}
+Jun 08 17:24:54.94
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919695070,"pid":4,"hostname":"169.254.37.251","req":{"id":125,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":5,"msg":"request completed"}
+Jun 08 17:24:44.96
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919685081,"pid":4,"hostname":"169.254.37.251","req":{"id":124,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":4,"msg":"request completed"}
+Jun 08 17:24:34.94
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919675069,"pid":4,"hostname":"169.254.37.251","req":{"id":123,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":4,"msg":"request completed"}
+Jun 08 17:24:24.99
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919665121,"pid":4,"hostname":"169.254.34.161","req":{"id":109,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":4,"msg":"request completed"}
+Jun 08 17:24:24.99
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780919665146,"pid":4,"hostname":"169.254.37.251","req":{"id":122,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":26,"msg":"request completed"}
+Jun 08 17:24:15.15
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919655281,"pid":4,"hostname":"169.254.34.161","req":{"id":108,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":4,"msg":"request completed"}
+Jun 08 17:24:04.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919645052,"pid":4,"hostname":"169.254.34.161","req":{"id":107,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":5,"msg":"request completed"}
+Jun 08 17:23:54.93
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780919635089,"pid":4,"hostname":"169.254.34.161","req":{"id":106,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":21,"msg":"request completed"}
+Jun 08 17:23:54.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919635067,"pid":4,"hostname":"169.254.37.251","req":{"id":121,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":4,"msg":"request completed"}
+Jun 08 17:23:45.81
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919626126,"pid":4,"hostname":"169.254.37.251","req":{"id":120,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":6,"msg":"request completed"}
+Jun 08 17:23:34.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919615047,"pid":4,"hostname":"169.254.37.251","req":{"id":119,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":4,"msg":"request completed"}
+Jun 08 17:23:24.93
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780919605066,"pid":4,"hostname":"169.254.37.251","req":{"id":118,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":5,"msg":"request completed"}
+Jun 08 17:23:24.92
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919605047,"pid":4,"hostname":"169.254.37.251","req":{"id":117,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":5,"msg":"request completed"}
+Jun 08 17:23:14.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919595057,"pid":4,"hostname":"169.254.37.251","req":{"id":116,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":4,"msg":"request completed"}
+Jun 08 17:23:04.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919585050,"pid":4,"hostname":"169.254.37.251","req":{"id":115,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":5,"msg":"request completed"}
+Jun 08 17:22:54.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919575055,"pid":4,"hostname":"169.254.34.161","req":{"id":105,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":4,"msg":"request completed"}
+Jun 08 17:22:54.93
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780919575079,"pid":4,"hostname":"169.254.37.251","req":{"id":114,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":28,"msg":"request completed"}
+Jun 08 17:22:45.23
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919565354,"pid":4,"hostname":"169.254.34.161","req":{"id":104,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":4,"msg":"request completed"}
+Jun 08 17:22:35.05
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919555172,"pid":4,"hostname":"169.254.34.161","req":{"id":103,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":4,"msg":"request completed"}
+Jun 08 17:22:24.94
+GET
+304
+www.focusarx.site
+/api/gamification/wallet
+{"level":30,"time":1780919545075,"pid":4,"hostname":"169.254.34.161","req":{"id":102,"method":"GET","url":"/api/gamification/wallet"},"res":{"statusCode":304},"responseTime":21,"msg":"request completed"}
+Jun 08 17:22:24.93
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919545052,"pid":4,"hostname":"169.254.37.251","req":{"id":113,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":4,"msg":"request completed"}
+Jun 08 17:22:14.92
+POST
+200
+www.focusarx.site
+/api/sessions/sync
+{"level":30,"time":1780919535057,"pid":4,"hostname":"169.254.37.251","req":{"id":112,"method":"POST","url":"/api/sessions/sync"},"res":{"statusCode":200},"responseTime":5,"msg":"request completed"}
