@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, userWalletsTable, userBadgesTable, usersTable, focusSessionsTable, studyStreaksTable, tasksTable } from "@workspace/db";
+import { db, userWalletsTable, userBadgesTable, usersTable, focusSessionsTable, studyStreaksTable, tasksTable, coinTransactionsTable } from "@workspace/db";
 import { eq, desc, and, sql, gte } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
@@ -277,6 +277,34 @@ router.get("/gamification/badges", authMiddleware, async (req: any, res) => {
     res.json({ badges, stats, unlockedCount, totalCount: BADGE_DEFS.length, completionPct });
   } catch (err) {
     logger.error({ err }, "badges error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+router.get("/wallet/transactions", authMiddleware, async (req: any, res) => {
+  try {
+    const limit = Math.min(100, Number(req.query.limit) || 50);
+    const offset = Number(req.query.offset) || 0;
+
+    const txs = await db.select().from(coinTransactionsTable)
+      .where(eq(coinTransactionsTable.userId, req.userId))
+      .orderBy(desc(coinTransactionsTable.createdAt))
+      .limit(limit).offset(offset);
+
+    const totalEarned = txs.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+    const totalSpent = txs.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+
+    const [wallet] = await db.select({ coins: userWalletsTable.coins }).from(userWalletsTable)
+      .where(eq(userWalletsTable.userId, req.userId));
+
+    res.json({
+      transactions: txs,
+      totalEarned,
+      totalSpent,
+      currentBalance: wallet?.coins ?? 0,
+    });
+  } catch (err) {
+    logger.error({ err }, "wallet transactions error");
     res.status(500).json({ error: "Internal error" });
   }
 });

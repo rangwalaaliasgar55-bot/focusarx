@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { userWalletsTable, usersTable, notificationsTable } from "@workspace/db";
+import { userWalletsTable, usersTable, notificationsTable, coinTransactionsTable } from "@workspace/db";
 import { extractUserId } from "./auth";
 import { eq, sql } from "drizzle-orm";
 
@@ -78,5 +78,14 @@ shopRouter.post("/shop/purchase/:itemId", auth, async (req: any, res) => {
   });
 
   const [updated] = await db.select({ coins: userWalletsTable.coins }).from(userWalletsTable).where(eq(userWalletsTable.userId, userId));
+
+  await db.insert(coinTransactionsTable).values({
+    userId, type: "spend", amount: -item.price,
+    reason: "shop_purchase",
+    description: `Purchased: ${item.name}`,
+    balanceAfter: updated?.coins ?? 0,
+    metadata: { itemId: item.id, itemName: item.name, category: item.category },
+  }).catch(() => {});
+
   res.json({ ok: true, item, coinsRemaining: updated?.coins ?? 0, xpGained: xpGain });
 });

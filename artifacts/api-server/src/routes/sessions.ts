@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, userWalletsTable, productivityLogsTable, battlePassProgressTable } from "@workspace/db";
+import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, userWalletsTable, productivityLogsTable, battlePassProgressTable, coinTransactionsTable } from "@workspace/db";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
@@ -275,7 +275,7 @@ async function updateStreak(userId: string): Promise<boolean> {
   }
 }
 
-async function awardGamification(userId: string, xp: number, coins: number) {
+async function awardGamification(userId: string, xp: number, coins: number, description?: string) {
   try {
     const now = new Date();
     const monday = new Date(now);
@@ -288,21 +288,39 @@ async function awardGamification(userId: string, xp: number, coins: number) {
       await db.insert(userWalletsTable).values({
         userId, coins, totalXp: xp, weeklyXp: xp, weeklyXpResetAt: monday,
       });
+      if (coins > 0) {
+        await db.insert(coinTransactionsTable).values({
+          userId, type: "earn", amount: coins,
+          reason: "session_complete",
+          description: description ?? `Earned ${coins} coins from focus session`,
+          balanceAfter: coins,
+        }).catch(() => {});
+      }
       return;
     }
 
     const needsReset = wallet.weeklyXpResetAt && wallet.weeklyXpResetAt < monday;
     const newTotalXp = wallet.totalXp + xp;
     const newLevel = Math.floor(Math.sqrt(newTotalXp / 100)) + 1;
+    const newBalance = wallet.coins + coins;
 
     await db.update(userWalletsTable).set({
-      coins: wallet.coins + coins,
+      coins: newBalance,
       totalXp: newTotalXp,
       weeklyXp: needsReset ? xp : wallet.weeklyXp + xp,
       weeklyXpResetAt: needsReset ? monday : wallet.weeklyXpResetAt,
       level: newLevel,
       updatedAt: new Date(),
     }).where(eq(userWalletsTable.userId, userId));
+
+    if (coins > 0) {
+      await db.insert(coinTransactionsTable).values({
+        userId, type: "earn", amount: coins,
+        reason: "session_complete",
+        description: description ?? `Earned ${coins} coins from focus session`,
+        balanceAfter: newBalance,
+      }).catch(() => {});
+    }
   } catch (err) {
     logger.error({ err }, "award gamification error");
   }

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import MissionsWidget from "@/components/MissionsWidget";
 import ProductivityScoreWidget from "@/components/ProductivityScoreWidget";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
@@ -237,27 +238,97 @@ function SidePanel() {
   );
 }
 
+function useWalletLive() {
+  const { status } = useAuth();
+  const [wallet, setWallet] = useState<{ coins: number; totalXp: number; level: number; weeklyXp: number } | null>(null);
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    const token = localStorage.getItem("focusarx-auth-token");
+    if (!token) return;
+
+    const fetch_ = () => {
+      fetch("/api/gamification/wallet", { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d) setWallet(d); })
+        .catch(() => {});
+    };
+
+    fetch_();
+    const id = setInterval(fetch_, 30000);
+    return () => clearInterval(id);
+  }, [status]);
+
+  return wallet;
+}
+
+function CoinXPBar({ focusSessionsToday }: { focusSessionsToday: number }) {
+  const wallet = useWalletLive();
+  if (!wallet) return null;
+
+  const level = wallet.level;
+  const xpStart = (level - 1) ** 2 * 100;
+  const xpEnd = level ** 2 * 100;
+  const progress = Math.min(1, (wallet.totalXp - xpStart) / Math.max(1, xpEnd - xpStart));
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex items-center gap-2 sm:gap-3"
+    >
+      {focusSessionsToday > 0 && (
+        <span className="hidden sm:flex items-center gap-1 rounded-full border border-orange-500/20 bg-orange-500/10 px-2.5 py-1 text-[11px] font-semibold text-orange-400">
+          🔥 {focusSessionsToday}
+        </span>
+      )}
+      <div className="flex items-center gap-1.5 rounded-xl border border-[rgba(255,184,0,0.2)] bg-[rgba(255,184,0,0.07)] px-2.5 py-1.5">
+        <span className="text-sm">🪙</span>
+        <span className="text-[12px] font-bold text-amber-400 tabular-nums">{wallet.coins.toLocaleString()}</span>
+      </div>
+      <div className="flex items-center gap-2 rounded-xl border border-[rgba(124,58,237,0.2)] bg-[rgba(124,58,237,0.07)] px-2.5 py-1.5">
+        <div className="flex items-center justify-center h-5 w-5 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] text-[10px] font-black text-white shrink-0">
+          {level}
+        </div>
+        <div className="flex flex-col gap-0.5 min-w-[52px]">
+          <span className="text-[10px] font-semibold text-[#A78BFA] tabular-nums leading-none">{wallet.weeklyXp.toLocaleString()} <span className="text-[#4B5563]">wk XP</span></span>
+          <div className="h-1 w-full rounded-full bg-[rgba(124,58,237,0.15)] overflow-hidden">
+            <motion.div
+              className="h-full rounded-full bg-gradient-to-r from-[#7C3AED] to-[#A78BFA]"
+              animate={{ width: `${Math.round(progress * 100)}%` }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+            />
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 function HomeTopBar() {
   const { data: session } = useAuth();
   const { focusSessionsToday } = useSessionHistory();
   const user = session?.user;
-  const initials = user?.name?.slice(0, 1).toUpperCase() || user?.email?.slice(0, 1).toUpperCase() || "?";
+  const initials = (user?.name?.slice(0, 1) || user?.email?.slice(0, 1) || "?").toUpperCase();
   return (
-    <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-[#1a1d24] shrink-0">
-      <div>
-        <p className="text-[10px] font-mono text-[#4a4f62] uppercase tracking-[0.15em]">Deep Work</p>
-        <p className="text-lg font-bold text-[#e8eaf0] tracking-tight leading-tight">FocusArx</p>
-      </div>
-      <div className="flex items-center gap-2">
+    <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-[#1a1d24] shrink-0 bg-[#080b14]/80 backdrop-blur-xl">
+      <div className="flex items-center gap-3">
+        <div className="flex flex-col">
+          <p className="text-[9px] font-mono text-[#4a4f62] uppercase tracking-[0.18em] leading-none">Deep Work</p>
+          <p className="text-base font-bold text-[#e8eaf0] tracking-tight leading-tight">FocusArx</p>
+        </div>
         {focusSessionsToday > 0 && (
-          <span className="flex items-center gap-1.5 rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-400">
-            🔥 {focusSessionsToday} today
+          <span className="sm:hidden flex items-center gap-1 rounded-full border border-orange-500/20 bg-orange-500/10 px-2 py-0.5 text-[10px] font-semibold text-orange-400">
+            🔥 {focusSessionsToday}
           </span>
         )}
+      </div>
+      <div className="flex items-center gap-2">
+        <CoinXPBar focusSessionsToday={focusSessionsToday} />
         {user && !user.isGuest && (
-          <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#6c63ff] to-[#a78bfa] flex items-center justify-center text-[11px] font-bold text-white">
+          <a href="/profile" className="h-7 w-7 rounded-full bg-gradient-to-br from-[#6c63ff] to-[#a78bfa] flex items-center justify-center text-[11px] font-bold text-white hover:scale-105 transition-transform shrink-0">
             {initials}
-          </div>
+          </a>
         )}
       </div>
     </div>

@@ -268,6 +268,56 @@ socialRouter.get("/social/following", auth, async (req, res) => {
   }
 });
 
+socialRouter.get("/social/friends-activity", auth, async (req, res) => {
+  const userId = req.userId!;
+  try {
+    const followRows = await db.select({ followingId: followsTable.followingId })
+      .from(followsTable).where(eq(followsTable.followerId, userId));
+    const friendIds = await getFriendIds(userId);
+    const allIds = [...new Set([...followRows.map(f => f.followingId), ...friendIds])];
+    if (!allIds.length) return res.json([]);
+
+    const sessions = await db.select({
+      id: focusSessionsTable.id,
+      userId: focusSessionsTable.userId,
+      durationSec: focusSessionsTable.durationSec,
+      focusScore: focusSessionsTable.focusScore,
+      completedAt: focusSessionsTable.completedAt,
+    }).from(focusSessionsTable)
+      .where(and(
+        sql`${focusSessionsTable.userId} = ANY(ARRAY[${sql.join(allIds.map(id => sql`${id}::text`), sql`, `)}])`,
+        sql`completed_at >= now() - interval '24 hours'`,
+      ))
+      .orderBy(desc(focusSessionsTable.completedAt))
+      .limit(20);
+
+    const userCache: Record<string, string> = {};
+    const activities = await Promise.all(sessions.map(async s => {
+      if (!userCache[s.userId]) {
+        const [u] = await db.select({ name: usersTable.name, email: usersTable.email })
+          .from(usersTable).where(eq(usersTable.id, s.userId)).limit(1);
+        userCache[s.userId] = u?.name || u?.email?.split("@")[0] || "User";
+      }
+      const mins = Math.round((s.durationSec ?? 0) / 60);
+      const elapsed = s.completedAt ? Math.round((Date.now() - new Date(s.completedAt).getTime()) / 60000) : 0;
+      const timeAgo = elapsed < 60 ? `${elapsed}m ago` : `${Math.round(elapsed / 60)}h ago`;
+      return {
+        id: s.id,
+        userId: s.userId,
+        userName: userCache[s.userId]!,
+        action: `Completed a ${mins}min focus session${s.focusScore ? ` (${Math.round(s.focusScore)}% focus)` : ""}`,
+        timeAgo,
+        icon: "🎯",
+        timestamp: s.completedAt,
+      };
+    }));
+
+    res.json(activities.slice(0, 5));
+  } catch (err) {
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
 socialRouter.get("/social/followers", auth, async (req, res) => {
   const userId = req.userId!;
   try {

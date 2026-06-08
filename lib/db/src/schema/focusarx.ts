@@ -598,6 +598,22 @@ export const buddyRequestsTable = pgTable("buddy_requests", {
 
 export type BuddyRequest = typeof buddyRequestsTable.$inferSelect;
 
+// ─── COIN TRANSACTIONS ────────────────────────────────────────────────────────
+
+export const coinTransactionsTable = pgTable("coin_transactions", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  type: text("type").notNull(), // "earn" | "spend"
+  amount: integer("amount").notNull(), // positive = earn, negative = spend
+  reason: text("reason").notNull(), // "session_complete" | "habit_complete" | "shop_purchase" | "mission_reward" etc
+  description: text("description").notNull(),
+  balanceAfter: integer("balance_after").notNull().default(0),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [index("coin_tx_user_idx").on(t.userId)]);
+
+export type CoinTransaction = typeof coinTransactionsTable.$inferSelect;
+
 // ─── USER PROFILE EXTRAS ──────────────────────────────────────────────────────
 
 export const userProfileExtrasTable = pgTable("user_profile_extras", {

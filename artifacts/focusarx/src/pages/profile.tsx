@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
-import { User, Award, Zap, Lock, Pencil, X, Save, ShoppingBag, Globe, FileText } from "lucide-react";
+import { User, Award, Zap, Lock, Pencil, X, Save, ShoppingBag, Globe, FileText, TrendingUp, TrendingDown, Wallet, History } from "lucide-react";
 import { Link } from "wouter";
 
 type BadgeDef = {
@@ -38,6 +38,24 @@ type WalletData = {
   totalXp: number;
   weeklyXp: number;
   rank: number | null;
+};
+
+type CoinTx = {
+  id: string;
+  type: "earn" | "spend";
+  amount: number;
+  reason: string;
+  description: string;
+  balanceAfter: number;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+};
+
+type TxHistory = {
+  transactions: CoinTx[];
+  totalEarned: number;
+  totalSpent: number;
+  currentBalance: number;
 };
 
 const TIER_COLORS = {
@@ -273,6 +291,8 @@ export default function ProfilePage() {
   const [localBio, setLocalBio] = useState("");
   const [localTimezone, setLocalTimezone] = useState("UTC");
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [txHistory, setTxHistory] = useState<TxHistory | null>(null);
+  const [txFilter, setTxFilter] = useState<"all" | "earn" | "spend">("all");
 
   useEffect(() => {
     if (status === "loading") return;
@@ -284,8 +304,9 @@ export default function ProfilePage() {
       fetch("/api/gamification/wallet", { headers }).then((r) => r.json()),
       fetch("/api/gamification/badges", { headers }).then((r) => r.json()),
       fetch("/api/auth/session", { headers }).then((r) => r.json()),
+      fetch("/api/gamification/wallet/transactions?limit=50", { headers }).then((r) => r.ok ? r.json() : null).catch(() => null),
     ])
-      .then(([walletData, badgeData, sessionData]) => {
+      .then(([walletData, badgeData, sessionData, txData]) => {
         setWallet(walletData as WalletData);
         const bd = (badgeData as { badges: BadgeDef[]; stats: UserStats });
         setBadges(bd.badges);
@@ -300,6 +321,7 @@ export default function ProfilePage() {
         setLocalName(u?.name ?? "");
         setLocalBio(u?.bio ?? "");
         setLocalTimezone(u?.timezone ?? "UTC");
+        if (txData) setTxHistory(txData as TxHistory);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -476,6 +498,84 @@ export default function ProfilePage() {
                 </div>
                 <span className="text-sm font-bold text-[#A78BFA]">{wallet.weeklyXp.toLocaleString()} XP</span>
               </div>
+
+              {/* Coin Wallet History */}
+              {txHistory && (
+                <div className="rounded-2xl border border-[rgba(255,184,0,0.12)] bg-[rgba(255,184,0,0.03)] p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-sm font-semibold text-[#E2E8F0] flex items-center gap-2">
+                      <Wallet size={14} className="text-amber-400" />
+                      Coin Wallet
+                    </h2>
+                    <div className="flex gap-1">
+                      {(["all", "earn", "spend"] as const).map((f) => (
+                        <button
+                          key={f}
+                          onClick={() => setTxFilter(f)}
+                          className={`rounded-lg px-2.5 py-1 text-[10px] font-medium transition-all capitalize ${txFilter === f ? "bg-amber-500/20 text-amber-400" : "text-[#4B5563] hover:text-[#94A3B8]"}`}
+                        >
+                          {f}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Summary row */}
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    {[
+                      { label: "Balance", value: `🪙 ${txHistory.currentBalance.toLocaleString()}`, color: "#F59E0B" },
+                      { label: "Total earned", value: `+${txHistory.totalEarned.toLocaleString()}`, color: "#06D6A0" },
+                      { label: "Total spent", value: `-${txHistory.totalSpent.toLocaleString()}`, color: "#F87171" },
+                    ].map(({ label, value, color }) => (
+                      <div key={label} className="rounded-xl border border-[var(--forge-border)] bg-[var(--card)] p-3 text-center">
+                        <p className="text-sm font-bold tabular-nums" style={{ color }}>{value}</p>
+                        <p className="text-[9px] text-[#4B5563] mt-0.5">{label}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Transaction list */}
+                  <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1 scrollbar-thin">
+                    {txHistory.transactions
+                      .filter(t => txFilter === "all" || (txFilter === "earn" ? t.amount > 0 : t.amount < 0))
+                      .slice(0, 30)
+                      .map((tx, i) => {
+                        const isEarn = tx.amount > 0;
+                        const date = new Date(tx.createdAt);
+                        const timeStr = date.toLocaleDateString("en-US", { month: "short", day: "numeric" }) + " " + date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+                        return (
+                          <motion.div
+                            key={tx.id}
+                            initial={{ opacity: 0, x: -6 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.02 }}
+                            className="flex items-center gap-3 rounded-xl border border-[rgba(255,255,255,0.04)] bg-[rgba(255,255,255,0.02)] px-3 py-2.5"
+                          >
+                            <div className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 ${isEarn ? "bg-emerald-500/10" : "bg-red-500/10"}`}>
+                              {isEarn ? <TrendingUp size={13} className="text-emerald-400" /> : <TrendingDown size={13} className="text-red-400" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[11px] font-medium text-[#CBD5E1] truncate">{tx.description}</p>
+                              <p className="text-[9px] text-[#4B5563]">{timeStr}</p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className={`text-[12px] font-bold tabular-nums ${isEarn ? "text-emerald-400" : "text-red-400"}`}>
+                                {isEarn ? "+" : ""}{tx.amount.toLocaleString()} 🪙
+                              </p>
+                              <p className="text-[9px] text-[#4B5563]">bal: {tx.balanceAfter.toLocaleString()}</p>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    {txHistory.transactions.filter(t => txFilter === "all" || (txFilter === "earn" ? t.amount > 0 : t.amount < 0)).length === 0 && (
+                      <div className="flex flex-col items-center gap-2 py-8">
+                        <History size={28} className="text-[#2D3748]" />
+                        <p className="text-xs text-[#4B5563]">No transactions yet</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Badges section */}
               <div>
