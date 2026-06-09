@@ -30,10 +30,25 @@ const DEFAULT_ITEMS = [
   { id: "effect-sparkle", name: "Sparkle Aura", description: "Sparkling effects on your sessions", type: "effect", costCoins: 200, rarity: "common", emoji: "✨" },
   { id: "effect-lightning", name: "Lightning Focus", description: "Electric aura during focus", type: "effect", costCoins: 450, rarity: "rare", emoji: "⚡" },
   { id: "effect-aurora", name: "Aurora Effect", description: "Northern lights follow your studies", type: "effect", costCoins: 900, rarity: "legendary", emoji: "🌅" },
-  // Pet Accessories
-  { id: "acc-crown", name: "Royal Crown", description: "A crown fit for a scholar king", type: "accessory", costCoins: 300, rarity: "rare", emoji: "👑" },
-  { id: "acc-glasses", name: "Study Glasses", description: "Bookworm glasses for your pet", type: "accessory", costCoins: 150, rarity: "common", emoji: "🤓" },
-  { id: "acc-cape", name: "Hero Cape", description: "Your pet, the hero", type: "accessory", costCoins: 250, rarity: "uncommon", emoji: "🦸" },
+  // Pet Accessories — Hats
+  { id: "acc-crown",   name: "Royal Crown",       description: "A crown fit for a scholar king",         type: "accessory", costCoins: 300, rarity: "rare",      emoji: "👑" },
+  { id: "acc-hat",     name: "Top Hat",            description: "Dapper style for your companion",        type: "accessory", costCoins: 200, rarity: "uncommon",  emoji: "🎩" },
+  { id: "acc-grad",    name: "Graduation Cap",     description: "Your pet earned a PhD in focus",         type: "accessory", costCoins: 180, rarity: "common",    emoji: "🎓" },
+  { id: "acc-party",   name: "Party Hat",          description: "Every session is a celebration",         type: "accessory", costCoins: 100, rarity: "common",    emoji: "🥳" },
+  { id: "acc-halo",    name: "Angel Halo",         description: "Pure focus energy from above",           type: "accessory", costCoins: 350, rarity: "rare",      emoji: "😇" },
+  { id: "acc-santa",   name: "Santa Hat",          description: "Ho ho, focus time!",                     type: "accessory", costCoins: 150, rarity: "common",    emoji: "🎅" },
+  // Pet Accessories — Glasses
+  { id: "acc-glasses",    name: "Study Glasses",   description: "Bookworm glasses for your scholar pet",  type: "accessory", costCoins: 150, rarity: "common",    emoji: "🤓" },
+  { id: "acc-sunglasses", name: "Cool Shades",     description: "Too cool for distractions",              type: "accessory", costCoins: 200, rarity: "uncommon",  emoji: "😎" },
+  { id: "acc-monocle",    name: "Monocle",         description: "A distinguished scholar look",           type: "accessory", costCoins: 250, rarity: "uncommon",  emoji: "🧐" },
+  // Pet Accessories — Back / Cape
+  { id: "acc-cape",    name: "Hero Cape",          description: "Your pet, the study hero",               type: "accessory", costCoins: 250, rarity: "uncommon",  emoji: "🦸" },
+  { id: "acc-hoodie",  name: "Comfy Hoodie",       description: "Focus in cozy style",                    type: "accessory", costCoins: 180, rarity: "common",    emoji: "🧥" },
+  { id: "acc-scarf",   name: "Lucky Scarf",        description: "Your lucky deep-work scarf",             type: "accessory", costCoins: 120, rarity: "common",    emoji: "🧣" },
+  // Pet Accessories — Wings
+  { id: "acc-wings",      name: "Angel Wings",     description: "Your pet soars above distractions",      type: "accessory", costCoins: 400, rarity: "rare",      emoji: "🪽" },
+  { id: "acc-fire-wings", name: "Fire Wings",      description: "Blazing through every session",          type: "accessory", costCoins: 600, rarity: "epic",      emoji: "🔥" },
+  { id: "acc-butterfly",  name: "Butterfly Wings", description: "Graceful, focused energy",               type: "accessory", costCoins: 350, rarity: "uncommon",  emoji: "🦋" },
   // City Decorations
   { id: "deco-garden", name: "Zen Garden", description: "A peaceful garden for your Focus City", type: "decoration", costCoins: 200, rarity: "common", emoji: "🌸" },
   { id: "deco-fountain", name: "Crystal Fountain", description: "A shimmering fountain in your city", type: "decoration", costCoins: 400, rarity: "rare", emoji: "⛲" },
@@ -45,12 +60,10 @@ const DEFAULT_ITEMS = [
 
 async function ensureDefaultItems() {
   try {
-    const existing = await db.select().from(marketplaceItemsTable).limit(1);
-    if (existing.length === 0) {
-      await db.insert(marketplaceItemsTable).values(DEFAULT_ITEMS.map(item => ({
-        ...item, isActive: true,
-      }))).onConflictDoNothing();
-    }
+    // Always upsert every default item so new items added to code appear in DB
+    await db.insert(marketplaceItemsTable)
+      .values(DEFAULT_ITEMS.map(item => ({ ...item, isActive: true })))
+      .onConflictDoNothing();
   } catch { }
 }
 

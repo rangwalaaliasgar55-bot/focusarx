@@ -1,0 +1,162 @@
+STOP ADDING FEATURES.
+
+We have core infrastructure failures.
+
+Fix these FIRST.
+
+=================================
+PHASE 1 — ROUTE AUDIT
+=====================
+
+The frontend is calling APIs that return 404.
+
+Current failures:
+
+/api/daily-reward/status
+/api/lootboxes/types
+/api/lootboxes/mine
+/api/city
+/api/city/buildings
+/api/quests
+/api/gamification
+
+Tasks:
+
+1. Verify route files exist.
+2. Verify exports exist.
+3. Verify routes are registered.
+4. Verify paths match frontend.
+5. Verify deployment contains latest backend build.
+
+Generate a report:
+
+* Route
+* Exists?
+* Registered?
+* Working?
+
+=================================
+PHASE 2 — BACKEND ERROR AUDIT
+=============================
+
+Investigate:
+
+/api/dm/conversations
+
+Currently returns 500.
+
+Tasks:
+
+1. Find exact exception.
+2. Check missing tables.
+3. Check missing columns.
+4. Check missing foreign keys.
+5. Fix issue completely.
+
+=================================
+PHASE 3 — DATABASE AUDIT
+========================
+
+Verify database contains:
+
+lootboxes
+lootbox_types
+city_buildings
+cities
+quests
+quest_progress
+daily_rewards
+gamification
+pets
+pet_accessories
+marketplace_items
+user_inventory
+
+Check:
+
+* tables exist
+* columns exist
+* indexes exist
+* foreign keys exist
+
+Generate missing SQL if needed.
+
+=================================
+PHASE 4 — FRONTEND/API MISMATCH AUDIT
+=====================================
+
+Check every React page.
+
+Verify:
+
+Loot Boxes page
+City page
+Quest page
+Marketplace page
+Pet page
+Gamification page
+
+All API calls must match backend routes.
+
+=================================
+PHASE 5 — WEBSOCKET FIX
+=======================
+
+Current error:
+
+wss://[www.focusarx.site/socket.io](http://www.focusarx.site/socket.io)
+
+Tasks:
+
+1. Verify Socket.IO server initialization.
+2. Verify deployment supports websockets.
+3. Verify frontend socket URL.
+4. Verify upgrade headers.
+5. Verify production build.
+
+Generate final websocket status report.
+
+=================================
+PHASE 6 — END TO END TESTING
+============================
+
+Test:
+
+Loot Boxes
+Marketplace
+Pets
+Focus City
+Quests
+Premium
+Inventory
+Coin Shop
+Daily Rewards
+DMs
+
+For each feature provide:
+
+PASS
+FAIL
+Reason
+
+=================================
+PHASE 7 — FINAL NEON SQL
+========================
+
+AFTER all fixes:
+
+Generate ONE complete Neon PostgreSQL schema.
+
+Include:
+
+* tables
+* indexes
+* constraints
+* foreign keys
+* enums
+* triggers
+
+Must exactly match production code.
+
+Do not provide partial migrations.
+Provide full schema only.

@@ -662,25 +662,6 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
         )}
       </AnimatePresence>
 
-      {/* Pet Companion — shows during focus sessions */}
-      <AnimatePresence>
-        {mode === "focus" && (
-          <motion.div
-            key="pet-companion"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
-            className="relative flex justify-center"
-          >
-            <PetCompanion
-              isRunning={isRunning}
-              elapsedSeconds={isRunning ? (totalFocusSec - secondsLeft) : 0}
-              mode={mode}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Task Timeline */}
       <TaskTimeline
@@ -698,6 +679,28 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
       />
     </div>
     </div>
+
+    {/* ── PET COMPANION — centered below timer, full-width ────────────── */}
+    <AnimatePresence>
+      {mode === "focus" && (
+        <motion.div
+          key="pet-companion-main"
+          initial={{ opacity: 0, y: 24, scale: 0.88 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 12, scale: 0.92 }}
+          transition={{ duration: 0.45, type: "spring", stiffness: 240, damping: 24 }}
+          className="w-full flex justify-center py-6"
+        >
+          <PetCompanion
+            isRunning={isRunning}
+            elapsedSeconds={isRunning ? (totalFocusSec - secondsLeft) : 0}
+            mode={mode}
+            progress={progress}
+            sessionDurationSeconds={totalFocusSec}
+          />
+        </motion.div>
+      )}
+    </AnimatePresence>
 
     {/* Ambient Sound Bar */}
     <AmbientSoundBar visible={true} />
