@@ -45,6 +45,7 @@ import { dreamsRouter } from "./dreams";
 import { marketplaceRouter } from "./marketplace";
 import { petsRouter } from "./pets";
 import { wrappedRouter } from "./wrapped";
+import { adminCmsRouter } from "./adminCms";
 
 const router: IRouter = Router();
 
@@ -94,5 +95,6 @@ router.use(dreamsRouter);
 router.use(marketplaceRouter);
 router.use(petsRouter);
 router.use(wrappedRouter);
+router.use(adminCmsRouter);
 
 export default router;
