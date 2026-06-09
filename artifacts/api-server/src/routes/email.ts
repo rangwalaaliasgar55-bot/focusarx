@@ -4,7 +4,7 @@ import {
   emailLogsTable,
   usersTable,
   premiumSubscriptionsTable,
-} from "@workspace/db/schema";
+} from "@workspace/db";
 import { eq, and, isNull, lt, sql } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";

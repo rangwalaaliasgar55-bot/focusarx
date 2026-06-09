@@ -139,7 +139,6 @@ export default function StudyRoomsPage() {
     queryKey: ["study-rooms"],
     queryFn: fetchRooms,
     staleTime: 30_000,
-    enabled: status === "authenticated",
   });
 
   const createMut = useMutation({
@@ -160,18 +159,6 @@ export default function StudyRoomsPage() {
     },
   });
 
-  if (status === "unauthenticated") {
-    return (
-      <div className="relative min-h-[100dvh] forge-bg-glow flex items-center justify-center">
-        <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-8 text-center max-w-sm">
-          <Radio size={32} className="text-[#A78BFA] mx-auto mb-4" />
-          <p className="text-[var(--foreground)] font-semibold mb-2">Sign in to join Study Rooms</p>
-          <Link href="/login" className="mt-4 inline-block rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] px-6 py-2 text-sm font-medium text-white">Sign in</Link>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow">
       <main className="relative z-10 mx-auto max-w-3xl px-4 py-10">
@@ -183,10 +170,16 @@ export default function StudyRoomsPage() {
                 <Radio size={22} className="text-[#A78BFA]" /> Study Rooms
               </h1>
             </div>
-            <button onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] px-4 py-2 text-sm font-medium text-white shadow-[0_0_12px_rgba(124,58,237,0.3)] hover:opacity-90">
-              <Plus size={15} /> New Room
-            </button>
+            {status === "authenticated" ? (
+              <button onClick={() => setShowCreate(true)}
+                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] px-4 py-2 text-sm font-medium text-white shadow-[0_0_12px_rgba(124,58,237,0.3)] hover:opacity-90">
+                <Plus size={15} /> New Room
+              </button>
+            ) : (
+              <Link href="/login" className="flex items-center gap-2 rounded-xl border border-[rgba(124,58,237,0.3)] px-4 py-2 text-sm font-medium text-[#A78BFA] hover:bg-[rgba(124,58,237,0.08)]">
+                Sign in to join
+              </Link>
+            )}
           </header>
 
           <AnimatePresence>
@@ -250,17 +243,25 @@ export default function StudyRoomsPage() {
                       </div>
                     </div>
                     <div className="flex gap-2 shrink-0">
-                      {joined && (
-                        <button onClick={() => setActiveRoom(activeRoom?.id === room.id ? null : room)}
-                          className={`rounded-xl px-3 py-1.5 text-xs font-medium border transition-colors ${activeRoom?.id === room.id ? "bg-[rgba(124,58,237,0.2)] border-[rgba(124,58,237,0.4)] text-[#A78BFA]" : "border-[rgba(124,58,237,0.2)] text-[#94A3B8] hover:text-[#A78BFA]"}`}>
-                          <MessageCircle size={12} />
-                        </button>
+                      {status === "authenticated" ? (
+                        <>
+                          {joined && (
+                            <button onClick={() => setActiveRoom(activeRoom?.id === room.id ? null : room)}
+                              className={`rounded-xl px-3 py-1.5 text-xs font-medium border transition-colors ${activeRoom?.id === room.id ? "bg-[rgba(124,58,237,0.2)] border-[rgba(124,58,237,0.4)] text-[#A78BFA]" : "border-[rgba(124,58,237,0.2)] text-[#94A3B8] hover:text-[#A78BFA]"}`}>
+                              <MessageCircle size={12} />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => joined ? leaveMut.mutate(room.id) : joinMut.mutate(room.id)}
+                            className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${joined ? "bg-[rgba(239,68,68,0.1)] text-[#F87171] hover:bg-[rgba(239,68,68,0.2)]" : "bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] text-white hover:opacity-90"}`}>
+                            {joined ? <LogOut size={12} /> : <LogIn size={12} />}
+                          </button>
+                        </>
+                      ) : (
+                        <Link href="/login" className="rounded-xl border border-[rgba(124,58,237,0.25)] px-3 py-1.5 text-xs font-medium text-[#A78BFA] hover:bg-[rgba(124,58,237,0.08)]">
+                          Sign in to join
+                        </Link>
                       )}
-                      <button
-                        onClick={() => joined ? leaveMut.mutate(room.id) : joinMut.mutate(room.id)}
-                        className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${joined ? "bg-[rgba(239,68,68,0.1)] text-[#F87171] hover:bg-[rgba(239,68,68,0.2)]" : "bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] text-white hover:opacity-90"}`}>
-                        {joined ? <LogOut size={12} /> : <LogIn size={12} />}
-                      </button>
                     </div>
                   </div>
                   <AnimatePresence>

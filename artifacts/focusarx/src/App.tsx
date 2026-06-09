@@ -85,6 +85,10 @@ const LootBoxesPage = lazy(() => import("@/pages/lootboxes"));
 const WalletPage = lazy(() => import("@/pages/wallet"));
 const DnaPage = lazy(() => import("@/pages/focus-dna"));
 const QuestsPage = lazy(() => import("@/pages/quests"));
+const FocusGuidePage = lazy(() => import("@/pages/focus-guide"));
+const PomodoroGuidePage = lazy(() => import("@/pages/pomodoro-guide"));
+const StudyTechniquesPage = lazy(() => import("@/pages/study-techniques"));
+const VirtualStudyRoomPage = lazy(() => import("@/pages/virtual-study-room"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -509,7 +513,11 @@ function AppWithPalette() {
               <Route path="/messages" component={() => <ErrorBoundary><ProtectedRoute component={MessagesPage} /></ErrorBoundary>} />
               <Route path="/shop" component={() => <ErrorBoundary><ProtectedRoute component={ShopPage} /></ErrorBoundary>} />
               <Route path="/goals" component={() => <ErrorBoundary><ProtectedRoute component={GoalsPage} /></ErrorBoundary>} />
-              <Route path="/study-rooms" component={() => <ErrorBoundary><ProtectedRoute component={StudyRoomsPage} /></ErrorBoundary>} />
+              <Route path="/study-rooms" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StudyRoomsPage /></Suspense></ErrorBoundary>} />
+              <Route path="/focus-guide" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><FocusGuidePage /></Suspense></ErrorBoundary>} />
+              <Route path="/pomodoro-guide" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><PomodoroGuidePage /></Suspense></ErrorBoundary>} />
+              <Route path="/study-techniques" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StudyTechniquesPage /></Suspense></ErrorBoundary>} />
+              <Route path="/virtual-study-room" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><VirtualStudyRoomPage /></Suspense></ErrorBoundary>} />
               <Route path="/referral" component={() => <ErrorBoundary><ProtectedRoute component={ReferralPage} /></ErrorBoundary>} />
 
               {/* New V12 pages */}

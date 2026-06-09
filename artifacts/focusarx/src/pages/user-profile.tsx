@@ -1,3 +1,4 @@
+import React from "react";
 import { useParams, Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getToken, useAuth } from "@/lib/auth";
@@ -29,6 +30,14 @@ const BADGE_EMOJI: Record<string, string> = {
 export default function UserProfilePage() {
   const { username } = useParams<{ username: string }>();
   const { data: session, status } = useAuth();
+
+  React.useEffect(() => {
+    if (username) {
+      document.title = `${username} — FocusArx Profile`;
+      const meta = document.querySelector('meta[name="description"]');
+      if (meta) meta.setAttribute("content", `View ${username}'s public study profile on FocusArx — stats, badges, streak, and more.`);
+    }
+  }, [username]);
   const { toast } = useToast();
   const qc = useQueryClient();
 

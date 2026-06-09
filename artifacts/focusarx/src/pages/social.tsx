@@ -24,16 +24,38 @@ function Avatar({ name, size = 36 }: { name: string; size?: number }) {
 }
 
 function FriendCard({ friend }: { friend: any }) {
+  const focusMinutes = friend.isStudying && friend.studyStartedAt
+    ? Math.floor((Date.now() - new Date(friend.studyStartedAt).getTime()) / 60000)
+    : (friend.studyingFor ?? 0);
+
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-[#1e2130] bg-[#111318] p-3 hover:border-[#7C3AED]/40 transition-colors">
-      <Avatar name={friend.name} />
+    <div className={`flex items-center gap-3 rounded-xl border p-3 transition-colors ${friend.isStudying ? "border-emerald-500/30 bg-[#0d1a12] hover:border-emerald-500/50" : "border-[#1e2130] bg-[#111318] hover:border-[#7C3AED]/40"}`}>
+      <div className="relative shrink-0">
+        <Avatar name={friend.name} />
+        {friend.isStudying && (
+          <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-400 border-2 border-[#0d1a12] animate-pulse" />
+        )}
+      </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-[#e8eaf0] truncate">{friend.name}</p>
-        <p className="text-xs text-[#4a4f62]">Level {friend.level} · {friend.xp.toLocaleString()} XP</p>
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm font-medium text-[#e8eaf0] truncate">{friend.name}</p>
+          {friend.isStudying && (
+            <span className="shrink-0 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400 uppercase tracking-wide">
+              Focusing
+            </span>
+          )}
+        </div>
+        {friend.isStudying ? (
+          <p className="text-xs text-emerald-400/80 flex items-center gap-1">
+            <Clock size={10} /> {focusMinutes > 0 ? `${focusMinutes} min deep work` : "Just started"}
+          </p>
+        ) : (
+          <p className="text-xs text-[#4a4f62]">Level {friend.level} · {friend.xp.toLocaleString()} XP</p>
+        )}
       </div>
       <div className="text-right shrink-0">
         <p className="text-xs font-bold text-amber-400">🔥 {friend.streak}</p>
-        {friend.sessionsToday > 0 && <p className="text-[10px] text-emerald-400">{friend.sessionsToday} today</p>}
+        {friend.sessionsToday > 0 && !friend.isStudying && <p className="text-[10px] text-[#4a4f62]">{friend.sessionsToday} sessions</p>}
       </div>
     </div>
   );

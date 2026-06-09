@@ -49,7 +49,8 @@ async function enrichRoom(room: any) {
   };
 }
 
-studyRoomsRouter.get("/study-rooms", auth, async (req, res) => {
+studyRoomsRouter.get("/study-rooms", async (req, res) => {
+  (req as any).userId = extractUserId(req) ?? null;
   const { groupId } = req.query as { groupId?: string };
   let rooms;
   if (groupId) {

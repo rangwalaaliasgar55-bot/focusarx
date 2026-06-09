@@ -6,7 +6,7 @@ import {
   usersTable,
   notificationsTable,
   coinTransactionsTable,
-} from "@workspace/db/schema";
+} from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";

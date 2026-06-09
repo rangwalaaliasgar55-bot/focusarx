@@ -23,8 +23,14 @@ const STATIC_PAGES = [
   { url: "/privacy",      changefreq: "yearly",  priority: "0.3" },
   { url: "/terms",        changefreq: "yearly",  priority: "0.3" },
   { url: "/ai-policy",    changefreq: "yearly",  priority: "0.3" },
-  { url: "/login",        changefreq: "monthly", priority: "0.6" },
-  { url: "/signup",       changefreq: "monthly", priority: "0.7" },
+  { url: "/login",               changefreq: "monthly", priority: "0.6" },
+  { url: "/signup",              changefreq: "monthly", priority: "0.7" },
+  { url: "/focus-guide",         changefreq: "monthly", priority: "0.9" },
+  { url: "/pomodoro-guide",      changefreq: "monthly", priority: "0.9" },
+  { url: "/study-techniques",    changefreq: "monthly", priority: "0.8" },
+  { url: "/virtual-study-room",  changefreq: "weekly",  priority: "0.8" },
+  { url: "/study-rooms",         changefreq: "hourly",  priority: "0.7" },
+  { url: "/leaderboard",         changefreq: "hourly",  priority: "0.8" },
 ];
 
 router.get("/sitemap.xml", (_req, res) => {
