@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { extractUserId } from "./auth";
 import { db } from "@workspace/db";
-import { lootBoxTypesTable, userLootBoxesTable, userWalletsTable, notificationsTable } from "@workspace/db/schema";
+import { lootBoxTypesTable, userLootBoxesTable, userWalletsTable, notificationsTable, coinTransactionsTable } from "@workspace/db/schema";
 import { eq, and } from "drizzle-orm";
 
 function auth(req: any, res: any, next: any) {
@@ -67,7 +67,17 @@ lootboxesRouter.post("/api/lootboxes/buy", auth, async (req: any, res) => {
       if (!wallet || wallet.coins < boxType.coinCost) {
         return res.status(400).json({ error: "Insufficient coins" });
       }
-      await db.update(userWalletsTable).set({ coins: wallet.coins - boxType.coinCost }).where(eq(userWalletsTable.userId, req.user.id));
+      const newBalance = wallet.coins - boxType.coinCost;
+      await db.update(userWalletsTable).set({ coins: newBalance }).where(eq(userWalletsTable.userId, req.user.id));
+      await db.insert(coinTransactionsTable).values({
+        userId: req.user.id,
+        type: "spend",
+        amount: -boxType.coinCost,
+        reason: "lootbox_purchase",
+        description: `Purchased ${boxType.name}`,
+        balanceAfter: newBalance,
+        metadata: { boxTypeId: typeId, boxName: boxType.name },
+      }).catch(() => {});
     }
 
     const [box] = await db.insert(userLootBoxesTable).values({
@@ -109,8 +119,19 @@ lootboxesRouter.post("/api/lootboxes/:boxId/open", auth, async (req: any, res) =
     if (picked.type === "coins") {
       const [w] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.user.id)).limit(1);
       if (w) {
-        await db.update(userWalletsTable).set({ coins: w.coins + (picked.value as number) }).where(eq(userWalletsTable.userId, req.user.id));
-        newCoins = w.coins + (picked.value as number);
+        const earned = picked.value as number;
+        const afterBalance = w.coins + earned;
+        await db.update(userWalletsTable).set({ coins: afterBalance }).where(eq(userWalletsTable.userId, req.user.id));
+        await db.insert(coinTransactionsTable).values({
+          userId: req.user.id,
+          type: "earn",
+          amount: earned,
+          reason: "lootbox_reward",
+          description: `Loot box reward: ${earned} coins`,
+          balanceAfter: afterBalance,
+          metadata: { boxId },
+        }).catch(() => {});
+        newCoins = afterBalance;
       }
     } else if (picked.type === "xp") {
       const [w] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.user.id)).limit(1);

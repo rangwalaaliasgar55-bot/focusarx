@@ -46,6 +46,8 @@ import { marketplaceRouter } from "./marketplace";
 import { petsRouter } from "./pets";
 import { wrappedRouter } from "./wrapped";
 import { adminCmsRouter } from "./adminCms";
+import { premiumRouter } from "./premium";
+import { emailRouter } from "./email";
 
 const router: IRouter = Router();
 
@@ -96,5 +98,7 @@ router.use(marketplaceRouter);
 router.use(petsRouter);
 router.use(wrappedRouter);
 router.use(adminCmsRouter);
+router.use(premiumRouter);
+router.use(emailRouter);
 
 export default router;

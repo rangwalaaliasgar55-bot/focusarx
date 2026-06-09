@@ -29,6 +29,7 @@ import SessionSummaryCard from "./SessionSummaryCard";
 import ConfettiCelebration from "./ConfettiCelebration";
 import { getToken } from "@/lib/auth";
 import { useCoinXP } from "./CoinXPBar";
+import PetCompanion from "./PetCompanion";
 
 const MODES: TimerMode[] = ["focus", "break", "longBreak"];
 
@@ -656,6 +657,26 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
               mode={mode}
               secondsLeft={secondsLeft}
               breakDurationSeconds={mode === "longBreak" ? DEFAULT_CONFIG.longBreakDuration : DEFAULT_CONFIG.breakDuration}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Pet Companion — shows during focus sessions */}
+      <AnimatePresence>
+        {mode === "focus" && (
+          <motion.div
+            key="pet-companion"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
+            className="relative flex justify-center"
+          >
+            <PetCompanion
+              isRunning={isRunning}
+              elapsedSeconds={isRunning ? (totalFocusSec - secondsLeft) : 0}
+              mode={mode}
             />
           </motion.div>
         )}

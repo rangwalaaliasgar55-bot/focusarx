@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, BarChart2, Target, Heart,
   Database, ShoppingBag, Star, Gift, Zap, MessageSquare,
   Building2, Sparkles, Shield, ChevronRight, Lock, Settings,
-  Bell, Coins
+  Bell, Coins, Mail, Crown
 } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -20,6 +20,8 @@ const ADMIN_SECTIONS = [
   { id: "battlepass",  label: "Battle Pass",      icon: Zap,             group: "cms" },
   { id: "quests",      label: "Quest Builder",    icon: Sparkles,        group: "cms" },
   { id: "city",        label: "Focus City CMS",   icon: Building2,       group: "cms" },
+  { id: "email",       label: "Email System",     icon: Mail,            group: "tools" },
+  { id: "premium",     label: "Premium Mgmt",     icon: Crown,           group: "tools" },
   { id: "notify",      label: "Notification Blast",icon: Bell,           group: "tools" },
   { id: "coins",       label: "Coin Grants",      icon: Coins,           group: "tools" },
   { id: "sql",         label: "SQL Editor",       icon: Database,        group: "tools" },

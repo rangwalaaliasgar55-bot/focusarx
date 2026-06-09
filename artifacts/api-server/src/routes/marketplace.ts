@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { db, marketplaceItemsTable, userInventoryTable, userWalletsTable } from "@workspace/db";
+import { coinTransactionsTable } from "@workspace/db/schema";
 import { eq, and } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
@@ -108,14 +109,24 @@ router.post("/marketplace/:itemId/purchase", authMiddleware, async (req: any, re
     if (!wallet) { res.status(400).json({ error: "No wallet found" }); return; }
     if (wallet.coins < item.costCoins) { res.status(400).json({ error: "Insufficient coins" }); return; }
 
-    // Deduct coins and add to inventory
+    const newBalance = wallet.coins - item.costCoins;
+    // Deduct coins, add to inventory, log transaction
     await Promise.all([
-      db.update(userWalletsTable).set({ coins: wallet.coins - item.costCoins, updatedAt: new Date() })
+      db.update(userWalletsTable).set({ coins: newBalance, updatedAt: new Date() })
         .where(eq(userWalletsTable.userId, req.userId)),
       db.insert(userInventoryTable).values({ userId: req.userId, itemId }),
+      db.insert(coinTransactionsTable).values({
+        userId: req.userId,
+        type: "spend",
+        amount: -item.costCoins,
+        reason: "marketplace_purchase",
+        description: `Purchased ${item.name}`,
+        balanceAfter: newBalance,
+        metadata: { itemId, itemName: item.name, itemType: item.type },
+      }).catch(() => {}),
     ]);
 
-    res.json({ ok: true, newBalance: wallet.coins - item.costCoins });
+    res.json({ ok: true, newBalance });
   } catch (err) {
     logger.error({ err }, "purchase error");
     res.status(500).json({ error: "Internal error" });

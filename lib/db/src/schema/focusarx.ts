@@ -743,3 +743,42 @@ export const appFeedbackTable = pgTable("app_feedback", {
 }, (t) => [index("app_feedback_user_idx").on(t.userId)]);
 
 export type AppFeedback = typeof appFeedbackTable.$inferSelect;
+
+// ─── PREMIUM SUBSCRIPTIONS ────────────────────────────────────────────────────
+
+export const premiumSubscriptionsTable = pgTable("premium_subscriptions", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().unique().references(() => usersTable.id, { onDelete: "cascade" }),
+  activatedAt: timestamp("activated_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"),
+  coinsCost: integer("coins_cost").default(9000),
+  benefits: jsonb("benefits").$type<string[]>().default(["exclusive_pets","premium_loot_boxes","premium_themes","xp_multiplier","coin_multiplier","premium_analytics","profile_badge","premium_battle_pass"]),
+  isActive: boolean("is_active").notNull().default(true),
+  grantedByAdmin: boolean("granted_by_admin").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [index("premium_subscriptions_user_idx").on(t.userId)]);
+
+export type PremiumSubscription = typeof premiumSubscriptionsTable.$inferSelect;
+
+// ─── EMAIL LOGS ────────────────────────────────────────────────────────────────
+
+export const emailLogsTable = pgTable("email_logs", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  recipientId: text("recipient_id").references(() => usersTable.id, { onDelete: "set null" }),
+  recipientEmail: text("recipient_email").notNull(),
+  template: text("template").notNull(),
+  subject: text("subject").notNull(),
+  status: text("status").notNull().default("pending"),
+  providerId: text("provider_id"),
+  sentAt: timestamp("sent_at"),
+  openedAt: timestamp("opened_at"),
+  clickedAt: timestamp("clicked_at"),
+  bounced: boolean("bounced").default(false),
+  error: text("error"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("email_logs_recipient_idx").on(t.recipientId),
+  index("email_logs_created_at_idx").on(t.createdAt),
+]);
+
+export type EmailLog = typeof emailLogsTable.$inferSelect;

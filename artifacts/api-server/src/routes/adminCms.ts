@@ -9,6 +9,8 @@ import {
   notificationsTable,
   usersTable,
   userWalletsTable,
+  premiumSubscriptionsTable,
+  coinTransactionsTable,
 } from "@workspace/db/schema";
 import { eq, sql, count } from "drizzle-orm";
 import { extractUserId } from "./auth";
@@ -174,7 +176,9 @@ router.post("/admin/cms/quests", async (req, res) => {
     res.status(400).json({ error: "title, type, requirementType, requirementValue required" }); return;
   }
   try {
+    const autoId = `q-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const [quest] = await db.insert(questDefinitionsTable).values({
+      id: autoId,
       title, description: description ?? "", type, requirementType,
       requirementValue: Number(requirementValue),
       xpReward: Number(xpReward ?? 0), coinReward: Number(coinReward ?? 0),
@@ -345,6 +349,119 @@ router.post("/admin/cms/grant-coins", async (req, res) => {
     res.json({ ok: true, newBalance });
   } catch (err) {
     logger.error({ err }, "grant coins error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// ─── PREMIUM ADMIN ────────────────────────────────────────────────────────────
+
+router.get("/admin/cms/premium", async (req, res) => {
+  if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
+  try {
+    const [stats] = await db.select({
+      total: sql<number>`count(*)::int`,
+      active: sql<number>`count(*) filter (where ${premiumSubscriptionsTable.isActive} = true)::int`,
+      adminGranted: sql<number>`count(*) filter (where ${premiumSubscriptionsTable.grantedByAdmin} = true)::int`,
+    }).from(premiumSubscriptionsTable);
+
+    const recent = await db.select({
+      id: premiumSubscriptionsTable.id,
+      userId: premiumSubscriptionsTable.userId,
+      activatedAt: premiumSubscriptionsTable.activatedAt,
+      expiresAt: premiumSubscriptionsTable.expiresAt,
+      isActive: premiumSubscriptionsTable.isActive,
+      grantedByAdmin: premiumSubscriptionsTable.grantedByAdmin,
+      email: usersTable.email,
+      name: usersTable.name,
+    }).from(premiumSubscriptionsTable)
+      .leftJoin(usersTable, eq(usersTable.id, premiumSubscriptionsTable.userId))
+      .orderBy(sql`${premiumSubscriptionsTable.activatedAt} DESC`).limit(50);
+
+    res.json({ stats, recent });
+  } catch (err) {
+    logger.error({ err }, "cms premium get error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+router.post("/admin/cms/premium/grant", async (req, res) => {
+  if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
+  const { userId, durationDays } = req.body as { userId?: string; durationDays?: number };
+  if (!userId) { res.status(400).json({ error: "userId required" }); return; }
+
+  try {
+    const [user] = await db.select({ id: usersTable.id, email: usersTable.email })
+      .from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    const days = durationDays ?? 30;
+    const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+
+    await db.insert(premiumSubscriptionsTable).values({
+      userId,
+      expiresAt,
+      coinsCost: 0,
+      isActive: true,
+      grantedByAdmin: true,
+    }).onConflictDoUpdate({
+      target: [premiumSubscriptionsTable.userId],
+      set: { isActive: true, expiresAt, grantedByAdmin: true, activatedAt: new Date() },
+    });
+
+    await db.insert(notificationsTable).values({
+      userId,
+      type: "premium",
+      title: "Premium Granted! 👑",
+      message: `An admin has granted you ${days} days of Premium access. Enjoy exclusive features!`,
+    }).catch(() => {});
+
+    res.json({ ok: true, expiresAt });
+  } catch (err) {
+    logger.error({ err }, "cms premium grant error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+router.post("/admin/cms/premium/revoke", async (req, res) => {
+  if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
+  const { userId } = req.body as { userId?: string };
+  if (!userId) { res.status(400).json({ error: "userId required" }); return; }
+
+  try {
+    await db.update(premiumSubscriptionsTable)
+      .set({ isActive: false })
+      .where(eq(premiumSubscriptionsTable.userId, userId));
+    res.json({ ok: true });
+  } catch (err) {
+    logger.error({ err }, "cms premium revoke error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// ─── SEED ENDPOINTS ───────────────────────────────────────────────────────────
+
+router.post("/admin/cms/seed/lootboxes", async (req, res) => {
+  if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
+  try {
+    const SEED_BOXES = [
+      { id: "lb-common-1", name: "Focus Box", description: "A basic box for focused students", rarity: "common", coinCost: 100, sessionsRequired: 0, icon: "📦", glowColor: "#6B7280", possibleRewards: [{ type: "coins", value: 50, weight: 40 }, { type: "xp", value: 100, weight: 40 }, { type: "streak_shield", value: 1, weight: 20 }] },
+      { id: "lb-rare-1", name: "Scholar Box", description: "Rare rewards for dedicated scholars", rarity: "rare", coinCost: 300, sessionsRequired: 0, icon: "🎓", glowColor: "#3B82F6", possibleRewards: [{ type: "coins", value: 200, weight: 30 }, { type: "xp", value: 400, weight: 30 }, { type: "xp_boost", value: 1, weight: 25 }, { type: "streak_shield", value: 2, weight: 15 }] },
+      { id: "lb-epic-1", name: "Epic Focus Box", description: "Legendary focus rewards", rarity: "epic", coinCost: 800, sessionsRequired: 0, icon: "🌟", glowColor: "#8B5CF6", possibleRewards: [{ type: "coins", value: 600, weight: 25 }, { type: "xp", value: 1200, weight: 25 }, { type: "marketplace_item", value: "rare", rarity: "rare", weight: 25 }, { type: "xp_boost", value: 2, weight: 15 }, { type: "battle_pass_tiers", value: 2, weight: 10 }] },
+      { id: "lb-legendary-1", name: "Legendary Scholar Box", description: "For the most dedicated scholars", rarity: "legendary", coinCost: 3000, sessionsRequired: 0, icon: "👑", glowColor: "#F59E0B", possibleRewards: [{ type: "coins", value: 2500, weight: 20 }, { type: "xp", value: 5000, weight: 20 }, { type: "marketplace_item", value: "legendary", rarity: "legendary", weight: 25 }, { type: "xp_boost", value: 5, weight: 20 }, { type: "battle_pass_tiers", value: 5, weight: 15 }] },
+      { id: "lb-mythic-1", name: "Mythic Void Box", description: "From beyond reality", rarity: "mythic", coinCost: 15000, sessionsRequired: 0, icon: "⚫", glowColor: "#EC4899", possibleRewards: [{ type: "coins", value: 10000, weight: 15 }, { type: "xp", value: 20000, weight: 15 }, { type: "marketplace_item", value: "legendary", rarity: "legendary", weight: 30 }, { type: "xp_boost", value: 20, weight: 20 }, { type: "battle_pass_tiers", value: 15, weight: 20 }] },
+    ];
+
+    let seeded = 0;
+    for (const box of SEED_BOXES) {
+      const existing = await db.select().from(lootBoxTypesTable).where(eq(lootBoxTypesTable.id, box.id)).limit(1);
+      if (existing.length === 0) {
+        await db.insert(lootBoxTypesTable).values(box).catch(() => {});
+        seeded++;
+      }
+    }
+    res.json({ ok: true, seeded, total: SEED_BOXES.length });
+  } catch (err) {
+    logger.error({ err }, "seed lootboxes error");
     res.status(500).json({ error: "Internal error" });
   }
 });
