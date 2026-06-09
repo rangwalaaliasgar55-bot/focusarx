@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Component, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getToken, useAuth } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
-import { MessageSquare, Send, Plus, Search, X, Users, ArrowLeft, MoreHorizontal, Smile } from "lucide-react";
+import { MessageSquare, Send, Plus, Search, X, Users, ArrowLeft, AlertCircle, RefreshCw } from "lucide-react";
 
 async function apiFetch(path: string, opts?: RequestInit) {
   const token = getToken();
@@ -71,11 +71,12 @@ function ConversationThread({ conv, currentUserId, onBack }: { conv: any; curren
   const [text, setText] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const { data: messages = [], isLoading } = useQuery({
+  const { data: messages = [], isLoading, isError: msgsError } = useQuery({
     queryKey: ["messages", conv.id],
     queryFn: () => apiFetch(`/api/dm/${conv.id}/messages`),
     staleTime: 5_000,
     refetchInterval: 5_000,
+    retry: 2,
   });
 
   useEffect(() => {
@@ -110,6 +111,11 @@ function ConversationThread({ conv, currentUserId, onBack }: { conv: any; curren
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {isLoading ? (
           <div className="flex justify-center py-8"><div className="h-6 w-6 animate-spin rounded-full border-2 border-[#1e2130] border-t-[#7C3AED]" /></div>
+        ) : msgsError ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <AlertCircle size={28} className="text-[#4a4f62] mb-2" />
+            <p className="text-sm text-[#4a4f62]">Couldn't load messages</p>
+          </div>
         ) : (messages as any[]).length === 0 ? (
           <div className="text-center py-12 text-[#3a3d4a]">
             <MessageSquare size={36} className="mx-auto mb-3 opacity-30" />
@@ -195,7 +201,40 @@ function NewConversationModal({ onClose, onStart }: { onClose: () => void; onSta
   );
 }
 
-export default function MessagesPage() {
+class MessagesErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: Error, info: any) {
+    console.error("[MessagesPage] Uncaught error:", error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-[#0a0c12] flex items-center justify-center p-6">
+          <div className="text-center max-w-sm">
+            <AlertCircle size={40} className="text-[#4a4f62] mx-auto mb-4" />
+            <p className="text-base font-semibold text-[#e8eaf0] mb-2">Something went wrong</p>
+            <p className="text-sm text-[#4a4f62] mb-5">The messages page ran into an error. Try reloading.</p>
+            <button
+              onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }}
+              className="flex items-center gap-2 mx-auto rounded-xl bg-[#7C3AED] px-5 py-2 text-sm font-semibold text-white hover:bg-[#6d31d4] transition-colors"
+            >
+              <RefreshCw size={14} /> Reload
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function MessagesPageInner() {
   const { data: session } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -205,11 +244,12 @@ export default function MessagesPage() {
 
   const currentUserId = (session as any)?.user?.id;
 
-  const { data: conversations = [], isLoading } = useQuery({
+  const { data: conversations = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["conversations"],
     queryFn: () => apiFetch("/api/dm/conversations"),
     staleTime: 10_000,
     refetchInterval: 15_000,
+    retry: 2,
   });
 
   const startDm = useMutation({
@@ -248,6 +288,17 @@ export default function MessagesPage() {
           {isLoading ? (
             <div className="space-y-2 p-3">
               {[1,2,3].map(i => <div key={i} className="h-14 animate-pulse rounded-xl bg-[#111318]" />)}
+            </div>
+          ) : isError ? (
+            <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+              <AlertCircle size={28} className="text-[#4a4f62] mb-3 opacity-60" />
+              <p className="text-sm text-[#4a4f62] mb-3">Couldn't load conversations</p>
+              <button
+                onClick={() => refetch()}
+                className="flex items-center gap-1.5 rounded-xl border border-[#1e2130] px-3 py-1.5 text-xs text-[#a78bfa] hover:bg-[#1e2130] transition-colors"
+              >
+                <RefreshCw size={11} /> Try again
+              </button>
             </div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-12 text-[#3a3d4a]">
@@ -297,5 +348,13 @@ export default function MessagesPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function MessagesPage() {
+  return (
+    <MessagesErrorBoundary>
+      <MessagesPageInner />
+    </MessagesErrorBoundary>
   );
 }

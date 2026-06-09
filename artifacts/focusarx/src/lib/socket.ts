@@ -5,18 +5,38 @@ let socket: Socket | null = null;
 
 export function connectSocket(token: string) {
   if (socket?.connected) return socket;
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+  }
   socket = ioClient(window.location.origin, {
     path: "/socket.io/",
     auth: { token },
     transports: ["websocket", "polling"],
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
+    reconnectionDelayMax: 10_000,
+    timeout: 20_000,
   });
+
+  socket.on("connect", () => {
+    console.debug("[socket] connected", socket?.id);
+  });
+
+  socket.on("connect_error", (err) => {
+    console.warn("[socket] connection error:", err.message);
+  });
+
+  socket.on("disconnect", (reason) => {
+    console.debug("[socket] disconnected:", reason);
+  });
+
   return socket;
 }
 
 export function disconnectSocket() {
   if (socket) {
+    socket.off();
     socket.disconnect();
     socket = null;
   }

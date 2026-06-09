@@ -23,10 +23,18 @@ export function initSocket(httpServer: import("http").Server) {
 
   io.use((socket: Socket, next) => {
     const token = socket.handshake.auth?.token as string | undefined;
-    if (!token) { next(new Error("Authentication required")); return; }
+    if (!token) {
+      logger.warn({ socketId: socket.id }, "socket auth rejected: no token");
+      next(new Error("Authentication required"));
+      return;
+    }
     const fakeReq = { headers: { authorization: `Bearer ${token}` } };
     const userId = extractUserId(fakeReq as any);
-    if (!userId) { next(new Error("Invalid token")); return; }
+    if (!userId) {
+      logger.warn({ socketId: socket.id }, "socket auth rejected: invalid token");
+      next(new Error("Invalid token"));
+      return;
+    }
     (socket as any).userId = userId;
     next();
   });
@@ -41,7 +49,7 @@ export function initSocket(httpServer: import("http").Server) {
     onlineUsers.add(userId);
 
     socket.join(`user:${userId}`);
-    logger.debug({ userId, socketId: socket.id }, "socket connected");
+    logger.info({ userId, socketId: socket.id, transport: socket.conn.transport.name }, "socket connected");
 
     socket.on("join:room", (roomId: string) => {
       socket.join(`room:${roomId}`);
@@ -61,7 +69,7 @@ export function initSocket(httpServer: import("http").Server) {
       });
     });
 
-    socket.on("disconnect", () => {
+    socket.on("disconnect", (reason) => {
       const sockets = userSockets.get(userId);
       if (sockets) {
         sockets.delete(socket.id);
@@ -71,6 +79,11 @@ export function initSocket(httpServer: import("http").Server) {
         }
       }
       socketUsers.delete(socket.id);
+      logger.info({ userId, socketId: socket.id, reason }, "socket disconnected");
+    });
+
+    socket.on("error", (err) => {
+      logger.error({ err, userId, socketId: socket.id }, "socket error");
     });
   });
 

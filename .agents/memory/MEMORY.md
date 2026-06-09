@@ -25,3 +25,4 @@
 - [DB route import pattern](db-route-import.md) — all API routes must import tables from "@workspace/db" not "@workspace/db/schema" — the /schema sub-path is not exported; bugs here cause admin/premium black screens
 - [Public SEO pages](seo-pages.md) — /focus-guide, /pomodoro-guide, /study-techniques, /virtual-study-room added as public lazy routes; all in sitemap.xml at priority 0.8-0.9
 - [Study rooms public access](study-rooms-public.md) — study-rooms page is now publicly accessible (no ProtectedRoute); auth required only for join/create; GET /api/study-rooms has no auth middleware
+- [Socket.io dev proxy](socketio-dev-proxy.md) — Vite dev server must proxy /socket.io to API port (ws:true) or WebSocket connections timeout; production reverse proxy handles this automatically
