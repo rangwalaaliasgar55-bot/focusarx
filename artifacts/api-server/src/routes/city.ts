@@ -43,7 +43,7 @@ async function getOrCreateCity(userId: string) {
   return city;
 }
 
-cityRouter.get("/api/city", auth, async (req: any, res) => {
+cityRouter.get("/city", auth, async (req: any, res) => {
   try {
     const city = await getOrCreateCity(req.user.id);
     // Rotate weather every 4h
@@ -59,7 +59,7 @@ cityRouter.get("/api/city", auth, async (req: any, res) => {
   }
 });
 
-cityRouter.get("/api/city/buildings", auth, async (req: any, res) => {
+cityRouter.get("/city/buildings", auth, async (req: any, res) => {
   try {
     const defs = await db.select().from(cityBuildingDefinitionsTable).orderBy(cityBuildingDefinitionsTable.sortOrder);
     res.json(defs);
@@ -68,7 +68,7 @@ cityRouter.get("/api/city/buildings", auth, async (req: any, res) => {
   }
 });
 
-cityRouter.post("/api/city/buildings/:slug/build", auth, async (req: any, res) => {
+cityRouter.post("/city/buildings/:slug/build", auth, async (req: any, res) => {
   const { slug } = req.params;
   try {
     const [building] = await db.select().from(cityBuildingDefinitionsTable)

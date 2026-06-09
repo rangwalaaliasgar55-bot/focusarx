@@ -42,12 +42,12 @@ export default function MarketplacePage() {
     try {
       const [itemsRes, walletRes] = await Promise.all([
         fetch("/api/marketplace", { headers: authHeaders() }),
-        fetch("/api/gamification", { headers: authHeaders() }),
+        fetch("/api/gamification/wallet", { headers: authHeaders() }),
       ]);
       const itemsData = await itemsRes.json();
       const walletData = await walletRes.json();
       setItems(itemsData.items ?? []);
-      setWallet(walletData.wallet ?? null);
+      setWallet(walletData ?? null);
     } finally {
       setLoading(false);
     }

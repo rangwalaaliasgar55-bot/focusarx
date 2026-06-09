@@ -36,7 +36,7 @@ function auth(req: any, res: any, next: any) {
   next();
 }
 
-router.get("/api/premium/status", auth, async (req: any, res) => {
+router.get("/premium/status", auth, async (req: any, res) => {
   try {
     const [sub] = await db.select().from(premiumSubscriptionsTable)
       .where(eq(premiumSubscriptionsTable.userId, req.userId)).limit(1);
@@ -68,7 +68,7 @@ router.get("/api/premium/status", auth, async (req: any, res) => {
   }
 });
 
-router.post("/api/premium/activate", auth, async (req: any, res) => {
+router.post("/premium/activate", auth, async (req: any, res) => {
   try {
     const [existing] = await db.select().from(premiumSubscriptionsTable)
       .where(eq(premiumSubscriptionsTable.userId, req.userId)).limit(1);

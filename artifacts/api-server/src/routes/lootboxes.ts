@@ -35,7 +35,7 @@ function describeReward(r: any): { label: string; description: string; emoji: st
   }
 }
 
-lootboxesRouter.get("/api/lootboxes/types", async (_req, res) => {
+lootboxesRouter.get("/lootboxes/types", async (_req, res) => {
   try {
     const types = await db.select().from(lootBoxTypesTable);
     res.json(types);
@@ -44,7 +44,7 @@ lootboxesRouter.get("/api/lootboxes/types", async (_req, res) => {
   }
 });
 
-lootboxesRouter.get("/api/lootboxes/mine", auth, async (req: any, res) => {
+lootboxesRouter.get("/lootboxes/mine", auth, async (req: any, res) => {
   try {
     const boxes = await db.select().from(userLootBoxesTable)
       .where(eq(userLootBoxesTable.userId, req.user.id));
@@ -54,7 +54,7 @@ lootboxesRouter.get("/api/lootboxes/mine", auth, async (req: any, res) => {
   }
 });
 
-lootboxesRouter.post("/api/lootboxes/buy", auth, async (req: any, res) => {
+lootboxesRouter.post("/lootboxes/buy", auth, async (req: any, res) => {
   const { typeId } = req.body;
   if (!typeId) return res.status(400).json({ error: "Missing typeId" });
 
@@ -94,7 +94,7 @@ lootboxesRouter.post("/api/lootboxes/buy", auth, async (req: any, res) => {
   }
 });
 
-lootboxesRouter.post("/api/lootboxes/:boxId/open", auth, async (req: any, res) => {
+lootboxesRouter.post("/lootboxes/:boxId/open", auth, async (req: any, res) => {
   const { boxId } = req.params;
   try {
     const [box] = await db.select().from(userLootBoxesTable)

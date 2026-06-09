@@ -6,7 +6,7 @@ import { extractUserId } from "./auth";
 
 export const seasonalRouter = Router();
 
-seasonalRouter.get("/api/seasonal/active", async (_req, res) => {
+seasonalRouter.get("/seasonal/active", async (_req, res) => {
   try {
     const now = new Date();
     const events = await db.select().from(seasonalEventsTable)
@@ -19,7 +19,7 @@ seasonalRouter.get("/api/seasonal/active", async (_req, res) => {
   }
 });
 
-seasonalRouter.get("/api/seasonal/all", async (_req, res) => {
+seasonalRouter.get("/seasonal/all", async (_req, res) => {
   try {
     const events = await db.select().from(seasonalEventsTable).orderBy(seasonalEventsTable.startDate);
     res.json(events);
@@ -28,7 +28,7 @@ seasonalRouter.get("/api/seasonal/all", async (_req, res) => {
   }
 });
 
-seasonalRouter.get("/api/seasonal/:eventId/progress", async (req: any, res) => {
+seasonalRouter.get("/seasonal/:eventId/progress", async (req: any, res) => {
   const userId = extractUserId(req);
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
   try {

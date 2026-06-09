@@ -44,7 +44,7 @@ async function assignDailyQuests(userId: string) {
   return existing;
 }
 
-questsRouter.get("/api/quests", auth, async (req: any, res) => {
+questsRouter.get("/quests", auth, async (req: any, res) => {
   try {
     await assignDailyQuests(req.user.id);
     const today = new Date().toISOString().split("T")[0];
@@ -74,7 +74,7 @@ questsRouter.get("/api/quests", auth, async (req: any, res) => {
   }
 });
 
-questsRouter.post("/api/quests/:questId/claim", auth, async (req: any, res) => {
+questsRouter.post("/quests/:questId/claim", auth, async (req: any, res) => {
   const { questId } = req.params;
   try {
     const today = new Date().toISOString().split("T")[0];

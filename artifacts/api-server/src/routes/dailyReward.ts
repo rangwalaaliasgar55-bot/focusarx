@@ -29,7 +29,7 @@ function yesterday() {
   return d.toISOString().split("T")[0];
 }
 
-dailyRewardRouter.get("/api/daily-reward/status", auth, async (req: any, res) => {
+dailyRewardRouter.get("/daily-reward/status", auth, async (req: any, res) => {
   try {
     let [reward] = await db.select().from(loginRewardsTable).where(eq(loginRewardsTable.userId, req.user.id)).limit(1);
     const today = getToday();
@@ -48,7 +48,7 @@ dailyRewardRouter.get("/api/daily-reward/status", auth, async (req: any, res) =>
   }
 });
 
-dailyRewardRouter.post("/api/daily-reward/claim", auth, async (req: any, res) => {
+dailyRewardRouter.post("/daily-reward/claim", auth, async (req: any, res) => {
   try {
     let [reward] = await db.select().from(loginRewardsTable).where(eq(loginRewardsTable.userId, req.user.id)).limit(1);
     const today = getToday();
