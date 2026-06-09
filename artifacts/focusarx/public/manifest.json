@@ -1,7 +1,7 @@
 {
   "name": "FocusArx – AI-Powered Study OS",
   "short_name": "FocusArx",
-  "description": "Deep focus tracking with AI coaching, Pomodoro timers, gamification, social study groups, missions, and webcam attention monitoring. Built for students, developers & creators.",
+  "description": "Deep focus tracking with AI coaching, gamification, loot boxes, a Focus City builder, pet companions, social study groups, and webcam attention monitoring. Built for students, developers & creators.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -20,10 +20,11 @@
     { "name": "Start Focus Session", "short_name": "Focus", "description": "Jump to the Pomodoro timer", "url": "/", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] },
     { "name": "Dashboard", "short_name": "Dashboard", "description": "Today's focus stats", "url": "/dashboard", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] },
     { "name": "Missions", "short_name": "Missions", "description": "Daily & weekly missions", "url": "/missions", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] },
-    { "name": "Social Hub", "short_name": "Social", "description": "Friends & leaderboard", "url": "/social", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] },
+    { "name": "Focus City", "short_name": "City", "description": "Build your academic city", "url": "/city", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] },
+    { "name": "Pet Companion", "short_name": "Pet", "description": "Your study pet", "url": "/pets", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] },
+    { "name": "Loot Boxes", "short_name": "Loot", "description": "Open reward boxes", "url": "/lootboxes", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] },
     { "name": "Battle Pass", "short_name": "Pass", "description": "Season battle pass", "url": "/battle-pass", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] },
-    { "name": "AI Insights", "short_name": "Insights", "description": "Your AI weekly report", "url": "/ai-insights", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] },
-    { "name": "Leaderboard", "short_name": "Rankings", "description": "Weekly rankings", "url": "/leaderboard", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] }
+    { "name": "AI Insights", "short_name": "Insights", "description": "Your AI weekly report", "url": "/ai-insights", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] }
   ],
   "related_applications": [],
   "prefer_related_applications": false,

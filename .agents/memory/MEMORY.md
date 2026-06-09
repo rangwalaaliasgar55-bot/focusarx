@@ -21,3 +21,4 @@
 - [Habits API shape](habits-api.md) — GET /api/habits returns completedToday:boolean (not doneTodayId); DELETE /api/habits/:id/complete to uncomplete; freezeTokensTable uses tokensAvailable/tokensUsed not tokens/used
 - [Route path conventions](route-paths.md) — gamification routes must use full prefix: /gamification/wallet/transactions not /wallet/transactions; social search accepts ?friendsOnly=true to limit to friends only (no email returned)
 - [Dashboard widgets](dashboard-widgets.md) — dashboard has ActiveMissionsWidget + BuddyActivityWidget added; push notification toggle in AppShell sidebar via requestPushPermission/unsubscribePush from lib/pushNotifications.ts
+- [V12 Ultimate build](v12-build.md) — all V12 phases implemented: new DB tables, routes, UI components, delight engine, live activity ticker, RewardToastProvider wired in App.tsx

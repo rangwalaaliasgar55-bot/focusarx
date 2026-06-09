@@ -38,6 +38,36 @@
   --forge-border-bright: rgba(124, 58, 237, 0.5);
 
   --sidebar-width: 240px;
+
+  /* Rank colors */
+  --rank-beginner: #6B7280;
+  --rank-apprentice: #3B82F6;
+  --rank-scholar: #8B5CF6;
+  --rank-expert: #F59E0B;
+  --rank-master: #EF4444;
+  --rank-grandmaster: #EC4899;
+  --rank-legend: #FFD700;
+
+  /* Rarity colors */
+  --rarity-common: #9CA3AF;
+  --rarity-rare: #3B82F6;
+  --rarity-epic: #8B5CF6;
+  --rarity-legendary: #F59E0B;
+
+  /* Session mode colors */
+  --mode-focus: #7C3AED;
+  --mode-deep_work: #1E40AF;
+  --mode-sprint: #DC2626;
+  --mode-exam: #D97706;
+  --mode-flow: #059669;
+  --mode-reading: #7C3AED;
+  --mode-coding: #2563EB;
+  --mode-revision: #9333EA;
+
+  /* Glow effects */
+  --glow-violet: 0 0 20px rgba(124, 58, 237, 0.4);
+  --glow-teal: 0 0 20px rgba(6, 214, 160, 0.4);
+  --glow-gold: 0 0 20px rgba(255, 184, 0, 0.4);
 }
 
 /* ─── LIGHT MODE ─────────────────────────────────────────────────────────── */

@@ -5,6 +5,7 @@ import {
   Users, Sparkles, LogOut, LogIn, Menu, X, Shield, BookOpen,
   Dna, Ghost, Sword, Radio, Wind, UserCircle, Info, Flame, Target,
   Bell, BellOff, Users2, Zap, Brain, Network, CheckSquare, MessageSquare, ShoppingBag, Flag, Gift, Sun, Moon,
+  Building2, Coins, Package,
 } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTheme } from "@/lib/theme";
@@ -76,6 +77,7 @@ const NAV_ITEMS = [
   { href: "/",              label: "Timer",          icon: Timer,          shortcut: "1", group: "core" },
   { href: "/dashboard",     label: "Dashboard",      icon: LayoutDashboard,shortcut: "2", group: "core" },
   { href: "/missions",      label: "Missions",       icon: Target,         shortcut: "m", badge: "missions", group: "core" },
+  { href: "/quests",        label: "Quests",         icon: Sparkles,       shortcut: "q", group: "core" },
   { href: "/habits",        label: "Habits",         icon: CheckSquare,    shortcut: "h", group: "core" },
   { href: "/goals",         label: "Goals",          icon: Flag,           shortcut: "g", group: "core" },
   { href: "/social",        label: "Social",         icon: Network,        shortcut: "s", group: "social" },
@@ -84,6 +86,11 @@ const NAV_ITEMS = [
   { href: "/study-rooms",   label: "Study Rooms",    icon: Radio,          shortcut: "",  group: "social" },
   { href: "/leaderboard",   label: "Leaderboard",    icon: Trophy,         shortcut: "4", group: "social" },
   { href: "/notifications", label: "Notifications",  icon: Bell,           shortcut: "n", badge: "notif", group: "social" },
+  { href: "/pets",          label: "Pet Companion",  icon: Star,           shortcut: "",  group: "engage" },
+  { href: "/city",          label: "Focus City",     icon: Building2,      shortcut: "",  group: "engage" },
+  { href: "/marketplace",   label: "Marketplace",    icon: ShoppingBag,    shortcut: "",  group: "engage" },
+  { href: "/lootboxes",     label: "Loot Boxes",     icon: Gift,           shortcut: "",  group: "engage" },
+  { href: "/wallet",        label: "Wallet & XP",    icon: Coins,          shortcut: "",  group: "engage" },
   { href: "/shop",          label: "Coin Shop",      icon: ShoppingBag,    shortcut: "",  group: "engage" },
   { href: "/battle-pass",   label: "Battle Pass",    icon: Zap,            shortcut: "",  group: "engage" },
   { href: "/referral",      label: "Refer Friends",  icon: Gift,           shortcut: "",  group: "engage" },
@@ -93,6 +100,8 @@ const NAV_ITEMS = [
   { href: "/achievements",  label: "Achievements",   icon: Star,           shortcut: "5", group: "engage" },
   { href: "/break-free",    label: "Break Free",     icon: Flame,          shortcut: "",  group: "tools" },
   { href: "/breathe",       label: "Breathe",        icon: Wind,           shortcut: "",  group: "tools" },
+  { href: "/dreams",        label: "My Dreams",      icon: Star,           shortcut: "",  group: "tools" },
+  { href: "/wrapped",       label: "Wrapped",        icon: Package,        shortcut: "",  group: "tools" },
   { href: "/focus-dna",     label: "Focus DNA",      icon: Dna,            shortcut: "0", group: "tools" },
   { href: "/ghosts",        label: "Ghost Mode",     icon: Ghost,          shortcut: "",  group: "tools" },
   { href: "/consequences",  label: "Consequences",   icon: Sword,          shortcut: "",  group: "tools" },

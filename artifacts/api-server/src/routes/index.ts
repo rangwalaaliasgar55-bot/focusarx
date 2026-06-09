@@ -36,6 +36,15 @@ import { shopRouter } from "./shop";
 import { goalsRouter } from "./goals";
 import { pushRouter } from "./pushSubscriptions";
 import { feedbackRouter } from "./feedback";
+import { cityRouter } from "./city";
+import { lootboxesRouter } from "./lootboxes";
+import { questsRouter } from "./quests";
+import { dailyRewardRouter } from "./dailyReward";
+import { seasonalRouter } from "./seasonal";
+import { dreamsRouter } from "./dreams";
+import { marketplaceRouter } from "./marketplace";
+import { petsRouter } from "./pets";
+import { wrappedRouter } from "./wrapped";
 
 const router: IRouter = Router();
 
@@ -76,5 +85,14 @@ router.use(shopRouter);
 router.use(goalsRouter);
 router.use(pushRouter);
 router.use(feedbackRouter);
+router.use(cityRouter);
+router.use(lootboxesRouter);
+router.use(questsRouter);
+router.use(dailyRewardRouter);
+router.use(seasonalRouter);
+router.use(dreamsRouter);
+router.use(marketplaceRouter);
+router.use(petsRouter);
+router.use(wrappedRouter);
 
 export default router;

@@ -35,6 +35,9 @@ import WelcomeOverlay from "@/components/WelcomeOverlay";
 import OnboardingModal from "@/components/OnboardingModal";
 import HeroBanner from "@/components/HeroBanner";
 import FeatureSpotlight from "@/components/FeatureSpotlight";
+import DailyRewardBanner from "@/components/DailyRewardBanner";
+import { RewardToastProvider } from "@/components/ui/RewardToast";
+import { LiveActivityTicker } from "@/components/LiveActivityTicker";
 
 const OnboardingPage = lazy(() => import("@/pages/onboarding"));
 const DistractionsPage = lazy(() => import("@/pages/distractions"));
@@ -72,6 +75,15 @@ const ShopPage = lazy(() => import("@/pages/shop"));
 const GoalsPage = lazy(() => import("@/pages/goals"));
 const StudyRoomsPage = lazy(() => import("@/pages/study-rooms"));
 const ReferralPage = lazy(() => import("@/pages/referral"));
+const PetsPage = lazy(() => import("@/pages/pets"));
+const CityPage = lazy(() => import("@/pages/city"));
+const MarketplacePage = lazy(() => import("@/pages/marketplace"));
+const WrappedPage = lazy(() => import("@/pages/wrapped"));
+const DreamsPage = lazy(() => import("@/pages/dreams"));
+const LootBoxesPage = lazy(() => import("@/pages/lootboxes"));
+const WalletPage = lazy(() => import("@/pages/wallet"));
+const DnaPage = lazy(() => import("@/pages/focus-dna"));
+const QuestsPage = lazy(() => import("@/pages/quests"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -80,8 +92,9 @@ const queryClient = new QueryClient({
         if (error instanceof ApiError && (error.status === 401 || error.status === 403)) return false;
         return failureCount < 2;
       },
-      staleTime: 30_000,
+      staleTime: 60_000,
       gcTime: 5 * 60_000,
+      refetchOnWindowFocus: true,
     },
     mutations: { retry: false },
   },
@@ -405,6 +418,8 @@ function AppWithPalette() {
   return (
     <>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      <DailyRewardBanner />
+      <LiveActivityTicker />
       <MobileWelcomeGate>
         <AppShell>
           <Suspense fallback={<PageLoader />}>
@@ -438,6 +453,17 @@ function AppWithPalette() {
               <Route path="/goals" component={() => <ErrorBoundary><ProtectedRoute component={GoalsPage} /></ErrorBoundary>} />
               <Route path="/study-rooms" component={() => <ErrorBoundary><ProtectedRoute component={StudyRoomsPage} /></ErrorBoundary>} />
               <Route path="/referral" component={() => <ErrorBoundary><ProtectedRoute component={ReferralPage} /></ErrorBoundary>} />
+
+              {/* New V12 pages */}
+              <Route path="/pets" component={() => <ErrorBoundary><ProtectedRoute component={PetsPage} /></ErrorBoundary>} />
+              <Route path="/city" component={() => <ErrorBoundary><ProtectedRoute component={CityPage} /></ErrorBoundary>} />
+              <Route path="/marketplace" component={() => <ErrorBoundary><ProtectedRoute component={MarketplacePage} /></ErrorBoundary>} />
+              <Route path="/wrapped" component={() => <ErrorBoundary><ProtectedRoute component={WrappedPage} /></ErrorBoundary>} />
+              <Route path="/dreams" component={() => <ErrorBoundary><ProtectedRoute component={DreamsPage} /></ErrorBoundary>} />
+              <Route path="/lootboxes" component={() => <ErrorBoundary><ProtectedRoute component={LootBoxesPage} /></ErrorBoundary>} />
+              <Route path="/wallet" component={() => <ErrorBoundary><ProtectedRoute component={WalletPage} /></ErrorBoundary>} />
+              <Route path="/dna" component={() => <ErrorBoundary><ProtectedRoute component={DnaPage} /></ErrorBoundary>} />
+              <Route path="/quests" component={() => <ErrorBoundary><ProtectedRoute component={QuestsPage} /></ErrorBoundary>} />
 
               {/* Retention */}
               <Route path="/battle-pass" component={() => <ErrorBoundary><ProtectedRoute component={BattlePassPage} /></ErrorBoundary>} />
@@ -481,6 +507,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <RewardToastProvider>
         <ToastProvider>
           <SocketInitializer />
           <CapacitorNativeBridge />
@@ -492,6 +519,7 @@ function App() {
             <AppWithPalette />
           </WouterRouter>
         </ToastProvider>
+        </RewardToastProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

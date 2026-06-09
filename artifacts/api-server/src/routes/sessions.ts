@@ -1,10 +1,48 @@
 import { Router } from "express";
 import { z } from "zod";
-import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, userWalletsTable, productivityLogsTable, battlePassProgressTable, coinTransactionsTable } from "@workspace/db";
+import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, userWalletsTable, productivityLogsTable, battlePassProgressTable, coinTransactionsTable, focusCitiesTable, userLootBoxesTable } from "@workspace/db";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
 import { updateMissionProgress } from "./missions";
+import { runDelightCheck } from "../lib/delightEngine";
+
+async function maybeDropLootBox(userId: string, sessionCount: number): Promise<boolean> {
+  try {
+    const shouldDrop = sessionCount % 10 === 0;
+    if (!shouldDrop) return false;
+    await db.insert(userLootBoxesTable).values({
+      userId,
+      boxTypeId: "lb_common",
+      status: "unopened",
+      earnedReason: `session_${sessionCount}`,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function updateCityProgress(userId: string): Promise<void> {
+  try {
+    const [city] = await db.select().from(focusCitiesTable).where(eq(focusCitiesTable.userId, userId)).limit(1);
+    if (!city) return;
+    const newTotal = (city.totalSessions ?? 0) + 1;
+    let newTier = city.tier;
+    let newTierName = city.tierName;
+    if (newTotal >= 350) { newTier = "civilization"; newTierName = "Enlightened Civilization"; }
+    else if (newTotal >= 175) { newTier = "metropolis"; newTierName = "Wisdom Metropolis"; }
+    else if (newTotal >= 90)  { newTier = "city";       newTierName = "Knowledge City"; }
+    else if (newTotal >= 40)  { newTier = "town";       newTierName = "Learning Town"; }
+    else if (newTotal >= 15)  { newTier = "village";    newTierName = "Focus Village"; }
+    await db.update(focusCitiesTable).set({
+      totalSessions: newTotal,
+      tier: newTier,
+      tierName: newTierName,
+      updatedAt: new Date(),
+    }).where(eq(focusCitiesTable.userId, userId));
+  } catch { /* best effort */ }
+}
 
 const BATTLE_PASS_XP_PER_TIER = 200;
 const BATTLE_PASS_MAX_TIER = 50;
@@ -198,7 +236,21 @@ router.post("/sessions", authMiddleware, async (req: any, res) => {
       }
     }
 
-    res.json({ session, streakUpdated, earnedXp, earnedCoins });
+    // City progress (best-effort, always)
+    void updateCityProgress(req.userId);
+
+    // Count total focus sessions to check loot box drop threshold
+    let lootBoxDropped = false;
+    try {
+      const [{ total }] = await db.select({ total: sql<number>`count(*)::int` })
+        .from(focusSessionsTable)
+        .where(and(eq(focusSessionsTable.userId, req.userId)));
+      lootBoxDropped = await maybeDropLootBox(req.userId, total);
+    } catch { /* best effort */ }
+
+    const delightReward = (mode ?? "focus") === "focus" && durationSec > 0 ? runDelightCheck() : null;
+
+    res.json({ session, streakUpdated, earnedXp, earnedCoins, lootBoxDropped, delightReward });
   } catch (err) {
     logger.error({ err }, "create session error");
     res.status(500).json({ error: "Internal error" });
