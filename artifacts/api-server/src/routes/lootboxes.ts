@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { extractUserId } from "./auth";
 import { db } from "@workspace/db";
-import { lootBoxTypesTable, userLootBoxesTable, userWalletsTable, notificationsTable, coinTransactionsTable } from "@workspace/db/schema";
-import { eq, and } from "drizzle-orm";
+import { lootBoxTypesTable, userLootBoxesTable, userWalletsTable, notificationsTable, coinTransactionsTable, marketplaceItemsTable, userInventoryTable } from "@workspace/db/schema";
+import { eq, and, sql } from "drizzle-orm";
 
 function auth(req: any, res: any, next: any) {
   const userId = extractUserId(req);
@@ -116,6 +116,7 @@ lootboxesRouter.post("/api/lootboxes/:boxId/open", auth, async (req: any, res) =
     }).where(eq(userLootBoxesTable.id, boxId));
 
     let newCoins: number | undefined;
+    let grantedItemId: string | undefined;
     if (picked.type === "coins") {
       const [w] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.user.id)).limit(1);
       if (w) {
@@ -138,6 +139,29 @@ lootboxesRouter.post("/api/lootboxes/:boxId/open", auth, async (req: any, res) =
       if (w) {
         await db.update(userWalletsTable).set({ totalXp: w.totalXp + (picked.value as number) }).where(eq(userWalletsTable.userId, req.user.id));
       }
+    } else if (picked.type === "marketplace_item") {
+      try {
+        const targetRarity = picked.rarity ?? "rare";
+        const candidates = await db.select({ id: marketplaceItemsTable.id, name: marketplaceItemsTable.name })
+          .from(marketplaceItemsTable)
+          .where(eq(marketplaceItemsTable.rarity, targetRarity))
+          .limit(20);
+        if (candidates.length > 0) {
+          const item = candidates[Math.floor(Math.random() * candidates.length)]!;
+          grantedItemId = item.id;
+          const alreadyOwned = await db.select({ id: userInventoryTable.id })
+            .from(userInventoryTable)
+            .where(and(eq(userInventoryTable.userId, req.user.id), eq(userInventoryTable.itemId, item.id)))
+            .limit(1);
+          if (alreadyOwned.length === 0) {
+            await db.insert(userInventoryTable).values({
+              userId: req.user.id,
+              itemId: item.id,
+              equipped: false,
+            }).catch(() => {});
+          }
+        }
+      } catch { /* best effort */ }
     }
 
     const reward = describeReward(picked);
@@ -150,7 +174,7 @@ lootboxesRouter.post("/api/lootboxes/:boxId/open", auth, async (req: any, res) =
     }).catch(() => {});
 
     const [w] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.user.id)).limit(1);
-    res.json({ reward, newCoins: newCoins ?? w?.coins });
+    res.json({ reward, newCoins: newCoins ?? w?.coins, grantedItemId });
   } catch (e: any) {
     res.status(500).json({ error: "Failed to open box" });
   }

@@ -103,6 +103,73 @@ html.light .forge-bg-glow {
   background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(124,58,237,0.07), transparent) #F1F5F9;
 }
 
+/* ── Light Mode Component Overrides ───────────────────────────────────────── */
+
+/* Cards and panels — replace near-black backgrounds with white/light */
+html.light [class*="bg-zinc-900"],
+html.light [class*="bg-zinc-950"],
+html.light [class*="bg-[#0a"],
+html.light [class*="bg-[#09"],
+html.light [class*="bg-[#08"] {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+}
+html.light .rounded-2xl[class*="border"],
+html.light .rounded-xl[class*="border"],
+html.light .rounded-lg[class*="border"] {
+  background-color: rgba(255, 255, 255, 0.88);
+}
+
+/* Text — make dark zinc text readable on light bg */
+html.light .text-zinc-100,
+html.light .text-zinc-200 {
+  color: #0F172A !important;
+}
+html.light .text-zinc-300,
+html.light .text-zinc-400 {
+  color: #475569 !important;
+}
+html.light .text-zinc-500,
+html.light .text-zinc-600 {
+  color: #64748B !important;
+}
+
+/* Borders */
+html.light [class*="border-zinc-700"],
+html.light [class*="border-zinc-800"] {
+  border-color: rgba(124, 58, 237, 0.18) !important;
+}
+
+/* Inputs on light mode */
+html.light input,
+html.light select,
+html.light textarea {
+  background-color: rgba(255,255,255,0.95) !important;
+  color: #0F172A !important;
+  border-color: rgba(124,58,237,0.25) !important;
+}
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #94A3B8 !important;
+}
+
+/* Admin panel inputs */
+html.light .admin-input {
+  background: rgba(255,255,255,0.95) !important;
+  color: #1E293B !important;
+  border-color: rgba(124,58,237,0.2) !important;
+}
+
+/* Table rows */
+html.light thead {
+  background: rgba(241,245,249,0.9) !important;
+}
+html.light tbody tr:hover {
+  background: rgba(124,58,237,0.04) !important;
+}
+html.light .divide-zinc-800\/50 > * + * {
+  border-color: rgba(124,58,237,0.1) !important;
+}
+
 @keyframes skeleton-shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position: 200% 0; }

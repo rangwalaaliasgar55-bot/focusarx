@@ -8,6 +8,13 @@
       "when": 1780920699392,
       "tag": "0000_overrated_corsair",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1781004660121,
+      "tag": "0001_talented_kat_farrell",
+      "breakpoints": true
     }
   ]
 }

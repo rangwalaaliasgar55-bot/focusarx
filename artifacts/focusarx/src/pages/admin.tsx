@@ -43,12 +43,13 @@ type MarketplaceItem = {
 };
 type LootBoxType = {
   id: string; name: string; description: string; coinCost: number;
-  isAvailable: boolean; emoji: string; possibleRewards: any[];
+  rarity: string; icon: string; glowColor: string; sessionsRequired: number;
+  possibleRewards: any[];
 };
 type QuestDef = {
   id: string; title: string; description: string; type: string;
-  requirementType: string; requirementValue: number;
-  xpReward: number; coinReward: number; emoji: string; isActive: boolean;
+  metric: string; target: number;
+  xpReward: number; coinReward: number; icon: string; isActive: boolean; difficulty?: string;
 };
 type BattlePassStats = {
   stats: { totalUsers: number; avgTier: number; avgXp: number; premiumCount: number; maxTier: number } | null;
@@ -959,9 +960,19 @@ export default function AdminPage() {
       <MotionTab>
         <div className="flex items-center justify-between flex-wrap gap-3">
           <SectionHeader title="Loot Box CMS" sub="Edit box types, costs, and availability." />
-          <button onClick={loadLootboxes} className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200 transition">
-            <RefreshCw size={12} className="inline mr-1" />Refresh
-          </button>
+          <div className="flex gap-2 flex-wrap">
+            <button onClick={async () => {
+              const r = await fetch("/api/admin/cms/seed/lootboxes", { method: "POST", headers: authHeaders(), credentials: "include" });
+              const d = await r.json();
+              alert(`Seeded ${d.seeded ?? 0} new boxes (${d.total ?? 0} total)`);
+              loadLootboxes();
+            }} className="rounded-lg bg-emerald-800 hover:bg-emerald-700 px-3 py-1.5 text-xs text-white font-medium flex items-center gap-1">
+              <Plus size={12} /> Seed 50 Boxes
+            </button>
+            <button onClick={loadLootboxes} className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200 transition">
+              <RefreshCw size={12} className="inline mr-1" />Refresh
+            </button>
+          </div>
         </div>
 
         {lootboxLoading
@@ -973,13 +984,10 @@ export default function AdminPage() {
                   <div key={lb.id} className="rounded-xl border border-violet-800/50 bg-violet-950/20 p-5 space-y-3">
                     <div className="grid gap-3 sm:grid-cols-3">
                       <input className="admin-input" placeholder="Name" value={lootboxForm.name ?? lb.name} onChange={e => setLootboxForm(p => ({ ...p, name: e.target.value }))} />
-                      <input className="admin-input" placeholder="Emoji" value={lootboxForm.emoji ?? lb.emoji} onChange={e => setLootboxForm(p => ({ ...p, emoji: e.target.value }))} />
+                      <input className="admin-input" placeholder="Icon emoji" value={lootboxForm.icon ?? lb.icon} onChange={e => setLootboxForm(p => ({ ...p, icon: e.target.value }))} />
                       <input className="admin-input" placeholder="Coin Cost" type="number" value={lootboxForm.coinCost ?? lb.coinCost} onChange={e => setLootboxForm(p => ({ ...p, coinCost: Number(e.target.value) }))} />
                       <input className="admin-input sm:col-span-2" placeholder="Description" value={lootboxForm.description ?? lb.description} onChange={e => setLootboxForm(p => ({ ...p, description: e.target.value }))} />
-                      <label className="flex items-center gap-2 text-zinc-400 text-sm">
-                        <input type="checkbox" checked={lootboxForm.isAvailable ?? lb.isAvailable} onChange={e => setLootboxForm(p => ({ ...p, isAvailable: e.target.checked }))} />
-                        Available
-                      </label>
+                      <input className="admin-input" placeholder="Glow color (#hex)" value={lootboxForm.glowColor ?? lb.glowColor} onChange={e => setLootboxForm(p => ({ ...p, glowColor: e.target.value }))} />
                     </div>
                     <div className="flex gap-2">
                       <button onClick={() => void saveLootbox(lb.id)} className="rounded-lg bg-violet-700 px-3 py-1.5 text-xs text-white flex items-center gap-1"><Save size={10} /> Save</button>
@@ -988,7 +996,7 @@ export default function AdminPage() {
                   </div>
                 ) : (
                   <div key={lb.id} className="flex items-center gap-4 rounded-xl border border-zinc-800/80 bg-zinc-900/40 px-5 py-4">
-                    <span className="text-3xl">{lb.emoji ?? "📦"}</span>
+                    <span className="text-3xl">{lb.icon ?? "📦"}</span>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-zinc-200">{lb.name}</p>
                       <p className="text-xs text-zinc-500">{lb.description}</p>
@@ -997,7 +1005,7 @@ export default function AdminPage() {
                     <div className="flex items-center gap-4 shrink-0">
                       <div className="text-right">
                         <p className="text-sm font-bold text-amber-400">{lb.coinCost.toLocaleString()} 🪙</p>
-                        <Badge label={lb.isAvailable ? "Available" : "Unavailable"} color={lb.isAvailable ? "bg-emerald-950 text-emerald-400" : "bg-zinc-800 text-zinc-500"} />
+                        <Badge label={lb.rarity ?? "common"} color="bg-violet-950 text-violet-400" />
                       </div>
                       <button onClick={() => { setLootboxEditId(lb.id); setLootboxForm({}); }} className="rounded-lg border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-400 hover:text-violet-400 flex items-center gap-1 transition">
                         <Pencil size={11} /> Edit
@@ -1087,7 +1095,7 @@ export default function AdminPage() {
               <RefreshCw size={12} className="inline mr-1" />Refresh
             </button>
             <button
-              onClick={() => { setQuestAddMode(true); setQuestForm({ type: "daily", requirementType: "focus_minutes", isActive: true }); setQuestEditId(null); }}
+              onClick={() => { setQuestAddMode(true); setQuestForm({ type: "daily", metric: "focus_minutes", isActive: true }); setQuestEditId(null); }}
               className="rounded-lg bg-violet-700 hover:bg-violet-600 px-3 py-1.5 text-xs text-white font-medium flex items-center gap-1"
             >
               <Plus size={12} /> New Quest
@@ -1100,14 +1108,14 @@ export default function AdminPage() {
             <p className="text-xs font-semibold text-violet-300 uppercase tracking-wider">New Quest</p>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <input className="admin-input" placeholder="Title" value={questForm.title ?? ""} onChange={e => setQuestForm(p => ({ ...p, title: e.target.value }))} />
-              <input className="admin-input" placeholder="Emoji" value={questForm.emoji ?? ""} onChange={e => setQuestForm(p => ({ ...p, emoji: e.target.value }))} />
+              <input className="admin-input" placeholder="Icon (emoji)" value={questForm.icon ?? ""} onChange={e => setQuestForm(p => ({ ...p, icon: e.target.value }))} />
               <select className="admin-input" value={questForm.type ?? "daily"} onChange={e => setQuestForm(p => ({ ...p, type: e.target.value }))}>
                 {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
-              <select className="admin-input" value={questForm.requirementType ?? "focus_minutes"} onChange={e => setQuestForm(p => ({ ...p, requirementType: e.target.value }))}>
+              <select className="admin-input" value={questForm.metric ?? "focus_minutes"} onChange={e => setQuestForm(p => ({ ...p, metric: e.target.value }))}>
                 {REQ_TYPES.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
-              <input className="admin-input" placeholder="Requirement Value" type="number" value={questForm.requirementValue ?? ""} onChange={e => setQuestForm(p => ({ ...p, requirementValue: Number(e.target.value) }))} />
+              <input className="admin-input" placeholder="Target Value" type="number" value={questForm.target ?? ""} onChange={e => setQuestForm(p => ({ ...p, target: Number(e.target.value) }))} />
               <input className="admin-input" placeholder="XP Reward" type="number" value={questForm.xpReward ?? ""} onChange={e => setQuestForm(p => ({ ...p, xpReward: Number(e.target.value) }))} />
               <input className="admin-input" placeholder="Coin Reward" type="number" value={questForm.coinReward ?? ""} onChange={e => setQuestForm(p => ({ ...p, coinReward: Number(e.target.value) }))} />
               <input className="admin-input lg:col-span-2" placeholder="Description" value={questForm.description ?? ""} onChange={e => setQuestForm(p => ({ ...p, description: e.target.value }))} />
@@ -1142,8 +1150,8 @@ export default function AdminPage() {
                           <td colSpan={6} className="px-4 py-3">
                             <div className="grid gap-2 sm:grid-cols-3">
                               <input className="admin-input" placeholder="Title" value={questForm.title ?? q.title} onChange={e => setQuestForm(p => ({ ...p, title: e.target.value }))} />
-                              <input className="admin-input" placeholder="Emoji" value={questForm.emoji ?? q.emoji} onChange={e => setQuestForm(p => ({ ...p, emoji: e.target.value }))} />
-                              <input className="admin-input" placeholder="Requirement Value" type="number" value={questForm.requirementValue ?? q.requirementValue} onChange={e => setQuestForm(p => ({ ...p, requirementValue: Number(e.target.value) }))} />
+                              <input className="admin-input" placeholder="Icon (emoji)" value={questForm.icon ?? q.icon} onChange={e => setQuestForm(p => ({ ...p, icon: e.target.value }))} />
+                              <input className="admin-input" placeholder="Target Value" type="number" value={questForm.target ?? q.target} onChange={e => setQuestForm(p => ({ ...p, target: Number(e.target.value) }))} />
                               <input className="admin-input" placeholder="XP Reward" type="number" value={questForm.xpReward ?? q.xpReward} onChange={e => setQuestForm(p => ({ ...p, xpReward: Number(e.target.value) }))} />
                               <input className="admin-input" placeholder="Coin Reward" type="number" value={questForm.coinReward ?? q.coinReward} onChange={e => setQuestForm(p => ({ ...p, coinReward: Number(e.target.value) }))} />
                               <label className="flex items-center gap-2 text-zinc-400">
@@ -1160,14 +1168,14 @@ export default function AdminPage() {
                       ) : (
                         <tr key={q.id} className="hover:bg-zinc-900/30 transition">
                           <td className="px-4 py-3">
-                            <span className="mr-1.5">{q.emoji}</span>
+                            <span className="mr-1.5">{q.icon}</span>
                             <span className="text-zinc-200 font-medium">{q.title}</span>
                             {q.description && <p className="text-zinc-600 text-[10px] mt-0.5">{q.description}</p>}
                           </td>
                           <td className="px-4 py-3">
                             <Badge label={q.type} color={q.type === "daily" ? "bg-blue-950 text-blue-400" : "bg-purple-950 text-purple-400"} />
                           </td>
-                          <td className="px-4 py-3 text-zinc-400">{q.requirementType}: <span className="text-zinc-200">{q.requirementValue}</span></td>
+                          <td className="px-4 py-3 text-zinc-400">{q.metric}: <span className="text-zinc-200">{q.target}</span></td>
                           <td className="px-4 py-3">
                             <span className="text-violet-400">+{q.xpReward}xp</span>
                             <span className="text-zinc-600 mx-1">·</span>
@@ -1189,7 +1197,17 @@ export default function AdminPage() {
                 </table>
               </div>
               {quests.length === 0 && (
-                <div className="text-center py-8 text-zinc-500 text-sm">No quests found. Add your first quest above.</div>
+                <div className="text-center py-6 text-zinc-500 text-sm space-y-3">
+                  <p>No quests found.</p>
+                  <button onClick={async () => {
+                    const r = await fetch("/api/admin/cms/seed/quests", { method: "POST", headers: authHeaders(), credentials: "include" });
+                    const d = await r.json();
+                    alert(`Seeded ${d.seeded ?? 0} new quests (${d.total ?? 0} total)`);
+                    loadQuests();
+                  }} className="rounded-lg bg-violet-700 hover:bg-violet-600 px-4 py-2 text-xs text-white font-medium inline-flex items-center gap-1">
+                    <Plus size={12} /> Seed Default Quests
+                  </button>
+                </div>
               )}
             </div>
           )}

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, userWalletsTable, productivityLogsTable, battlePassProgressTable, coinTransactionsTable, focusCitiesTable, userLootBoxesTable } from "@workspace/db";
+import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, userWalletsTable, productivityLogsTable, battlePassProgressTable, coinTransactionsTable, focusCitiesTable, userLootBoxesTable, premiumSubscriptionsTable } from "@workspace/db";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
@@ -11,9 +11,15 @@ async function maybeDropLootBox(userId: string, sessionCount: number): Promise<b
   try {
     const shouldDrop = sessionCount % 10 === 0;
     if (!shouldDrop) return false;
+    // Pick the appropriate tier based on session count
+    let boxTypeId: string;
+    if (sessionCount >= 100) boxTypeId = "lb-e-1";       // Epic at 100+
+    else if (sessionCount >= 50) boxTypeId = "lb-r-1";   // Rare at 50+
+    else if (sessionCount >= 20) boxTypeId = "lb-u-1";   // Uncommon at 20+
+    else boxTypeId = "lb-c-1";                            // Common otherwise
     await db.insert(userLootBoxesTable).values({
       userId,
-      boxTypeId: "lb_common",
+      boxTypeId,
       status: "unopened",
       earnedReason: `session_${sessionCount}`,
     });
@@ -205,6 +211,18 @@ router.post("/sessions", authMiddleware, async (req: any, res) => {
 
     const streakUpdated = await updateStreak(req.userId);
 
+    // Check premium status for multipliers
+    let isPremium = false;
+    try {
+      const [sub] = await db.select({ isActive: premiumSubscriptionsTable.isActive, expiresAt: premiumSubscriptionsTable.expiresAt })
+        .from(premiumSubscriptionsTable)
+        .where(eq(premiumSubscriptionsTable.userId, req.userId))
+        .limit(1);
+      if (sub?.isActive && (!sub.expiresAt || sub.expiresAt > new Date())) {
+        isPremium = true;
+      }
+    } catch { /* best effort */ }
+
     let earnedXp = 0;
     let earnedCoins = 0;
     // All focus sessions with duration > 0 contribute to analytics — including early completions
@@ -216,6 +234,11 @@ router.post("/sessions", authMiddleware, async (req: any, res) => {
       if (durationSec >= 1500) earnedCoins += 50;
       // Small bonus for early completion (you still showed up!)
       if (completedEarly && durationSec >= 60) earnedCoins += 10;
+      // Premium multipliers: 1.5x XP and 1.25x coins
+      if (isPremium) {
+        earnedXp = Math.round(earnedXp * 1.5);
+        earnedCoins = Math.round(earnedCoins * 1.25);
+      }
 
       if (earnedXp > 0 || earnedCoins > 0) {
         await awardGamification(req.userId, earnedXp, earnedCoins);

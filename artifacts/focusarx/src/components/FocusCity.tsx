@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { getToken } from "@/lib/auth";
@@ -254,6 +254,34 @@ function CityBuildings({ totalXp }: { totalXp: number }) {
       {/* Ground road/path */}
       <rect x="0" y={GY + 4} width={W} height="3" fill="#1a2a1a" opacity="0.6" />
       <rect x="0" y={GY + 6} width={W} height="1" fill="#2d4a2d" opacity="0.4" />
+
+      {/* NPC Students — appear once buildings start unlocking */}
+      {totalXp >= 500 && [
+        { cx: 85,  cy: GY - 2, color: "#60A5FA", dir: 1,  delay: 0    },
+        { cx: 160, cy: GY - 2, color: "#A78BFA", dir: -1, delay: 0.8  },
+        { cx: 270, cy: GY - 2, color: "#34D399", dir: 1,  delay: 1.5  },
+        { cx: 360, cy: GY - 2, color: "#F472B6", dir: -1, delay: 2.2  },
+        { cx: 430, cy: GY - 2, color: "#FCD34D", dir: 1,  delay: 0.4  },
+      ].filter((_, i) => i < Math.min(5, Math.floor(totalXp / 2000) + 1)).map((npc, i) => (
+        <g key={i}>
+          {/* Body */}
+          <motion.g
+            animate={{ x: [0, npc.dir * 3, 0] }}
+            transition={{ duration: 2 + i * 0.5, repeat: Infinity, delay: npc.delay, ease: "easeInOut" }}
+          >
+            {/* Head */}
+            <circle cx={npc.cx} cy={npc.cy - 8} r="3" fill={npc.color} opacity="0.9" />
+            {/* Body */}
+            <rect x={npc.cx - 2} y={npc.cy - 5} width="4" height="5" rx="1" fill={npc.color} opacity="0.75" />
+            {/* Legs */}
+            <motion.g animate={{ rotate: [-8, 8, -8] }} style={{ transformOrigin: `${npc.cx}px ${npc.cy}px` }}
+              transition={{ duration: 0.6 + i * 0.1, repeat: Infinity, delay: npc.delay }}>
+              <line x1={npc.cx - 1} y1={npc.cy} x2={npc.cx - 2} y2={npc.cy + 3} stroke={npc.color} strokeWidth="1.5" opacity="0.7" />
+              <line x1={npc.cx + 1} y1={npc.cy} x2={npc.cx + 2} y2={npc.cy + 3} stroke={npc.color} strokeWidth="1.5" opacity="0.7" />
+            </motion.g>
+          </motion.g>
+        </g>
+      ))}
     </svg>
   );
 }
@@ -262,7 +290,22 @@ interface FocusCityProps {
   className?: string;
 }
 
+const MOTIVATIONAL_MESSAGES = [
+  { emoji: "🔥", text: "Your focus builds the city, brick by brick." },
+  { emoji: "⚡", text: "Every session unlocks a new chapter." },
+  { emoji: "🌟", text: "Deep work is your superpower." },
+  { emoji: "🏛️", text: "Rome wasn't built in a day — your city grows with every session." },
+  { emoji: "🎯", text: "Distraction fades. Focus compounds." },
+  { emoji: "🧠", text: "Your attention is the most valuable resource." },
+  { emoji: "📈", text: "Progress, not perfection, builds greatness." },
+  { emoji: "🌙", text: "Late nights and early mornings are your secret weapon." },
+  { emoji: "✨", text: "Each minute of focus is XP for your real life." },
+  { emoji: "🚀", text: "The best time to start was yesterday. Second best is now." },
+];
+
 export default function FocusCity({ className }: FocusCityProps) {
+  const [msgIdx, setMsgIdx] = useState(0);
+
   const { data: wallet } = useQuery({
     queryKey: ["wallet"],
     queryFn: () => apiFetch("/api/gamification/wallet"),
@@ -276,6 +319,12 @@ export default function FocusCity({ className }: FocusCityProps) {
     const idx = BUILDINGS.findIndex(b => totalXp < b.xpRequired);
     return idx > 0 ? BUILDINGS[idx - 1] : BUILDINGS[BUILDINGS.length - 1];
   }, [totalXp]);
+
+  // Rotate motivational message every 8 seconds
+  useEffect(() => {
+    const id = setInterval(() => setMsgIdx(i => (i + 1) % MOTIVATIONAL_MESSAGES.length), 8000);
+    return () => clearInterval(id);
+  }, []);
 
   const progress = nextBuilding
     ? ((totalXp - (prevBuilding?.xpRequired ?? 0)) / (nextBuilding.xpRequired - (prevBuilding?.xpRequired ?? 0))) * 100
@@ -326,12 +375,29 @@ export default function FocusCity({ className }: FocusCityProps) {
       )}
 
       {unlockedCount === BUILDINGS.length && (
-        <div className="px-4 pb-4">
+        <div className="px-4 pb-1">
           <div className="rounded-xl bg-gradient-to-r from-[rgba(129,140,248,0.15)] to-[rgba(167,139,250,0.1)] border border-[rgba(129,140,248,0.2)] px-3 py-2 text-center">
             <p className="text-[11px] font-bold text-[#818CF8]">🏆 Full city unlocked! Legendary status.</p>
           </div>
         </div>
       )}
+
+      {/* Motivational message — rotates every 8s */}
+      <div className="px-4 pb-4 pt-1">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={msgIdx}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.4 }}
+            className="flex items-center gap-2 rounded-lg bg-[rgba(124,58,237,0.06)] border border-[rgba(124,58,237,0.12)] px-3 py-2"
+          >
+            <span className="text-base leading-none flex-shrink-0">{MOTIVATIONAL_MESSAGES[msgIdx]!.emoji}</span>
+            <p className="text-[10px] text-[#94A3B8] leading-tight italic">{MOTIVATIONAL_MESSAGES[msgIdx]!.text}</p>
+          </motion.div>
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

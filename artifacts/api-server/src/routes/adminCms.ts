@@ -139,14 +139,14 @@ router.get("/admin/cms/lootboxes", async (req, res) => {
 router.patch("/admin/cms/lootboxes/:typeId", async (req, res) => {
   if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
   const { typeId } = req.params;
-  const { name, description, coinCost, isAvailable, emoji } = req.body as any;
+  const { name, description, coinCost, icon, glowColor } = req.body as any;
   try {
     const updates: any = {};
     if (name !== undefined) updates.name = name;
     if (description !== undefined) updates.description = description;
     if (coinCost !== undefined) updates.coinCost = Number(coinCost);
-    if (isAvailable !== undefined) updates.isAvailable = isAvailable;
-    if (emoji !== undefined) updates.emoji = emoji;
+    if (icon !== undefined) updates.icon = icon;
+    if (glowColor !== undefined) updates.glowColor = glowColor;
     const [type] = await db.update(lootBoxTypesTable).set(updates)
       .where(eq(lootBoxTypesTable.id, typeId)).returning();
     res.json({ ok: true, type });
@@ -171,18 +171,20 @@ router.get("/admin/cms/quests", async (req, res) => {
 
 router.post("/admin/cms/quests", async (req, res) => {
   if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
-  const { title, description, type, requirementType, requirementValue, xpReward, coinReward, emoji } = req.body as any;
-  if (!title || !type || !requirementType || requirementValue === undefined) {
-    res.status(400).json({ error: "title, type, requirementType, requirementValue required" }); return;
+  const { title, description, type, metric, target, xpReward, coinReward, icon, difficulty } = req.body as any;
+  if (!title || !type || !metric || target === undefined) {
+    res.status(400).json({ error: "title, type, metric, target required" }); return;
   }
   try {
     const autoId = `q-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const [quest] = await db.insert(questDefinitionsTable).values({
       id: autoId,
-      title, description: description ?? "", type, requirementType,
-      requirementValue: Number(requirementValue),
+      title, description: description ?? "", type,
+      metric,
+      target: Number(target),
+      difficulty: difficulty ?? "easy",
       xpReward: Number(xpReward ?? 0), coinReward: Number(coinReward ?? 0),
-      emoji: emoji ?? "⭐", isActive: true,
+      icon: icon ?? "⭐", isActive: true,
     }).returning();
     res.json({ ok: true, quest });
   } catch (err) {
@@ -194,18 +196,19 @@ router.post("/admin/cms/quests", async (req, res) => {
 router.patch("/admin/cms/quests/:questId", async (req, res) => {
   if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
   const { questId } = req.params;
-  const { title, description, type, requirementType, requirementValue, xpReward, coinReward, emoji, isActive } = req.body as any;
+  const { title, description, type, metric, target, xpReward, coinReward, icon, isActive, difficulty } = req.body as any;
   try {
     const updates: any = {};
     if (title !== undefined) updates.title = title;
     if (description !== undefined) updates.description = description;
     if (type !== undefined) updates.type = type;
-    if (requirementType !== undefined) updates.requirementType = requirementType;
-    if (requirementValue !== undefined) updates.requirementValue = Number(requirementValue);
+    if (metric !== undefined) updates.metric = metric;
+    if (target !== undefined) updates.target = Number(target);
     if (xpReward !== undefined) updates.xpReward = Number(xpReward);
     if (coinReward !== undefined) updates.coinReward = Number(coinReward);
-    if (emoji !== undefined) updates.emoji = emoji;
+    if (icon !== undefined) updates.icon = icon;
     if (isActive !== undefined) updates.isActive = isActive;
+    if (difficulty !== undefined) updates.difficulty = difficulty;
     const [quest] = await db.update(questDefinitionsTable).set(updates)
       .where(eq(questDefinitionsTable.id, questId)).returning();
     res.json({ ok: true, quest });
@@ -444,11 +447,67 @@ router.post("/admin/cms/seed/lootboxes", async (req, res) => {
   if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
   try {
     const SEED_BOXES = [
-      { id: "lb-common-1", name: "Focus Box", description: "A basic box for focused students", rarity: "common", coinCost: 100, sessionsRequired: 0, icon: "📦", glowColor: "#6B7280", possibleRewards: [{ type: "coins", value: 50, weight: 40 }, { type: "xp", value: 100, weight: 40 }, { type: "streak_shield", value: 1, weight: 20 }] },
-      { id: "lb-rare-1", name: "Scholar Box", description: "Rare rewards for dedicated scholars", rarity: "rare", coinCost: 300, sessionsRequired: 0, icon: "🎓", glowColor: "#3B82F6", possibleRewards: [{ type: "coins", value: 200, weight: 30 }, { type: "xp", value: 400, weight: 30 }, { type: "xp_boost", value: 1, weight: 25 }, { type: "streak_shield", value: 2, weight: 15 }] },
-      { id: "lb-epic-1", name: "Epic Focus Box", description: "Legendary focus rewards", rarity: "epic", coinCost: 800, sessionsRequired: 0, icon: "🌟", glowColor: "#8B5CF6", possibleRewards: [{ type: "coins", value: 600, weight: 25 }, { type: "xp", value: 1200, weight: 25 }, { type: "marketplace_item", value: "rare", rarity: "rare", weight: 25 }, { type: "xp_boost", value: 2, weight: 15 }, { type: "battle_pass_tiers", value: 2, weight: 10 }] },
-      { id: "lb-legendary-1", name: "Legendary Scholar Box", description: "For the most dedicated scholars", rarity: "legendary", coinCost: 3000, sessionsRequired: 0, icon: "👑", glowColor: "#F59E0B", possibleRewards: [{ type: "coins", value: 2500, weight: 20 }, { type: "xp", value: 5000, weight: 20 }, { type: "marketplace_item", value: "legendary", rarity: "legendary", weight: 25 }, { type: "xp_boost", value: 5, weight: 20 }, { type: "battle_pass_tiers", value: 5, weight: 15 }] },
-      { id: "lb-mythic-1", name: "Mythic Void Box", description: "From beyond reality", rarity: "mythic", coinCost: 15000, sessionsRequired: 0, icon: "⚫", glowColor: "#EC4899", possibleRewards: [{ type: "coins", value: 10000, weight: 15 }, { type: "xp", value: 20000, weight: 15 }, { type: "marketplace_item", value: "legendary", rarity: "legendary", weight: 30 }, { type: "xp_boost", value: 20, weight: 20 }, { type: "battle_pass_tiers", value: 15, weight: 20 }] },
+      // COMMON (10)
+      { id: "lb-c-1", name: "Study Starter Box", description: "Every journey begins somewhere", rarity: "common", coinCost: 100, sessionsRequired: 0, icon: "📦", glowColor: "#6B7280", possibleRewards: [{ type: "coins", value: 50, weight: 40 }, { type: "xp", value: 100, weight: 40 }, { type: "streak_shield", value: 1, weight: 20 }] },
+      { id: "lb-c-2", name: "Beginner's Chest", description: "A chest for new scholars", rarity: "common", coinCost: 80, sessionsRequired: 0, icon: "🗃️", glowColor: "#6B7280", possibleRewards: [{ type: "coins", value: 40, weight: 50 }, { type: "xp", value: 80, weight: 50 }] },
+      { id: "lb-c-3", name: "Daily Reward Box", description: "Claim your daily reward", rarity: "common", coinCost: 0, sessionsRequired: 1, icon: "📬", glowColor: "#6B7280", possibleRewards: [{ type: "coins", value: 60, weight: 45 }, { type: "xp", value: 120, weight: 45 }, { type: "streak_shield", value: 1, weight: 10 }] },
+      { id: "lb-c-4", name: "Focus Drop", description: "A small drop of focus rewards", rarity: "common", coinCost: 120, sessionsRequired: 0, icon: "💧", glowColor: "#6B7280", possibleRewards: [{ type: "coins", value: 70, weight: 45 }, { type: "xp", value: 130, weight: 45 }, { type: "streak_shield", value: 1, weight: 10 }] },
+      { id: "lb-c-5", name: "Pocket Box", description: "Small but reliable", rarity: "common", coinCost: 90, sessionsRequired: 0, icon: "🎒", glowColor: "#6B7280", possibleRewards: [{ type: "coins", value: 55, weight: 50 }, { type: "xp", value: 110, weight: 50 }] },
+      { id: "lb-c-6", name: "Session Chest", description: "Earned through sessions", rarity: "common", coinCost: 0, sessionsRequired: 3, icon: "⏱️", glowColor: "#6B7280", possibleRewards: [{ type: "coins", value: 75, weight: 40 }, { type: "xp", value: 150, weight: 40 }, { type: "streak_shield", value: 1, weight: 20 }] },
+      { id: "lb-c-7", name: "Bronze Crate", description: "Basic but honest rewards", rarity: "common", coinCost: 110, sessionsRequired: 0, icon: "📤", glowColor: "#92400E", possibleRewards: [{ type: "coins", value: 65, weight: 50 }, { type: "xp", value: 125, weight: 50 }] },
+      { id: "lb-c-8", name: "Learner's Pack", description: "Every expert was once a beginner", rarity: "common", coinCost: 95, sessionsRequired: 0, icon: "📚", glowColor: "#6B7280", possibleRewards: [{ type: "coins", value: 60, weight: 45 }, { type: "xp", value: 110, weight: 45 }, { type: "streak_shield", value: 1, weight: 10 }] },
+      { id: "lb-c-9", name: "Sunrise Box", description: "Start your day with rewards", rarity: "common", coinCost: 100, sessionsRequired: 0, icon: "🌅", glowColor: "#F59E0B", possibleRewards: [{ type: "coins", value: 55, weight: 50 }, { type: "xp", value: 120, weight: 50 }] },
+      { id: "lb-c-10", name: "Spark Box", description: "Small sparks start big fires", rarity: "common", coinCost: 85, sessionsRequired: 0, icon: "✨", glowColor: "#FCD34D", possibleRewards: [{ type: "coins", value: 50, weight: 50 }, { type: "xp", value: 100, weight: 50 }] },
+      // UNCOMMON (10)
+      { id: "lb-u-1", name: "Scholar's Cache", description: "For the dedicated student", rarity: "uncommon", coinCost: 200, sessionsRequired: 0, icon: "🎒", glowColor: "#10B981", possibleRewards: [{ type: "coins", value: 150, weight: 35 }, { type: "xp", value: 300, weight: 35 }, { type: "xp_boost", value: 1, weight: 20 }, { type: "streak_shield", value: 2, weight: 10 }] },
+      { id: "lb-u-2", name: "Focus Capsule", description: "Concentrated focus rewards", rarity: "uncommon", coinCost: 250, sessionsRequired: 0, icon: "💊", glowColor: "#10B981", possibleRewards: [{ type: "coins", value: 180, weight: 35 }, { type: "xp", value: 350, weight: 35 }, { type: "xp_boost", value: 1, weight: 20 }, { type: "streak_shield", value: 2, weight: 10 }] },
+      { id: "lb-u-3", name: "Silver Chest", description: "Silver-tier scholar rewards", rarity: "uncommon", coinCost: 220, sessionsRequired: 0, icon: "🪙", glowColor: "#9CA3AF", possibleRewards: [{ type: "coins", value: 160, weight: 40 }, { type: "xp", value: 320, weight: 40 }, { type: "streak_shield", value: 2, weight: 20 }] },
+      { id: "lb-u-4", name: "Study Drop", description: "Rewards from hours of study", rarity: "uncommon", coinCost: 0, sessionsRequired: 5, icon: "📖", glowColor: "#10B981", possibleRewards: [{ type: "coins", value: 200, weight: 30 }, { type: "xp", value: 400, weight: 30 }, { type: "xp_boost", value: 1, weight: 25 }, { type: "streak_shield", value: 2, weight: 15 }] },
+      { id: "lb-u-5", name: "Night Owl Box", description: "For those who study late", rarity: "uncommon", coinCost: 230, sessionsRequired: 0, icon: "🦉", glowColor: "#1D4ED8", possibleRewards: [{ type: "coins", value: 175, weight: 35 }, { type: "xp", value: 340, weight: 35 }, { type: "xp_boost", value: 1, weight: 20 }, { type: "streak_shield", value: 2, weight: 10 }] },
+      { id: "lb-u-6", name: "Streak Box", description: "Keep the streak alive", rarity: "uncommon", coinCost: 200, sessionsRequired: 0, icon: "🔥", glowColor: "#EF4444", possibleRewards: [{ type: "coins", value: 160, weight: 30 }, { type: "xp", value: 300, weight: 30 }, { type: "streak_shield", value: 3, weight: 30 }, { type: "xp_boost", value: 1, weight: 10 }] },
+      { id: "lb-u-7", name: "Jade Chest", description: "Balanced uncommon rewards", rarity: "uncommon", coinCost: 240, sessionsRequired: 0, icon: "🟢", glowColor: "#10B981", possibleRewards: [{ type: "coins", value: 190, weight: 38 }, { type: "xp", value: 360, weight: 38 }, { type: "xp_boost", value: 1, weight: 24 }] },
+      { id: "lb-u-8", name: "Achievement Box", description: "For those pushing their limits", rarity: "uncommon", coinCost: 260, sessionsRequired: 0, icon: "🏅", glowColor: "#D97706", possibleRewards: [{ type: "coins", value: 200, weight: 35 }, { type: "xp", value: 380, weight: 35 }, { type: "xp_boost", value: 1, weight: 20 }, { type: "streak_shield", value: 2, weight: 10 }] },
+      { id: "lb-u-9", name: "Dawn Box", description: "Early risers rewarded", rarity: "uncommon", coinCost: 210, sessionsRequired: 0, icon: "🌄", glowColor: "#F59E0B", possibleRewards: [{ type: "coins", value: 170, weight: 40 }, { type: "xp", value: 330, weight: 40 }, { type: "streak_shield", value: 2, weight: 20 }] },
+      { id: "lb-u-10", name: "Wisdom Cache", description: "Knowledge is power", rarity: "uncommon", coinCost: 215, sessionsRequired: 0, icon: "📜", glowColor: "#10B981", possibleRewards: [{ type: "coins", value: 165, weight: 38 }, { type: "xp", value: 325, weight: 38 }, { type: "xp_boost", value: 1, weight: 24 }] },
+      // RARE (10)
+      { id: "lb-r-1", name: "Scholar Box", description: "Rare rewards for dedicated scholars", rarity: "rare", coinCost: 500, sessionsRequired: 0, icon: "🎓", glowColor: "#3B82F6", possibleRewards: [{ type: "coins", value: 400, weight: 30 }, { type: "xp", value: 800, weight: 30 }, { type: "xp_boost", value: 2, weight: 25 }, { type: "streak_shield", value: 3, weight: 15 }] },
+      { id: "lb-r-2", name: "Blue Crystal Box", description: "Crystalline blue rewards", rarity: "rare", coinCost: 550, sessionsRequired: 0, icon: "💎", glowColor: "#3B82F6", possibleRewards: [{ type: "coins", value: 450, weight: 30 }, { type: "xp", value: 900, weight: 30 }, { type: "marketplace_item", value: "uncommon", rarity: "uncommon", weight: 25 }, { type: "xp_boost", value: 2, weight: 15 }] },
+      { id: "lb-r-3", name: "Focus Elite Box", description: "Elite focus session rewards", rarity: "rare", coinCost: 0, sessionsRequired: 10, icon: "⚡", glowColor: "#F59E0B", possibleRewards: [{ type: "coins", value: 500, weight: 25 }, { type: "xp", value: 1000, weight: 25 }, { type: "xp_boost", value: 2, weight: 25 }, { type: "marketplace_item", value: "rare", rarity: "rare", weight: 25 }] },
+      { id: "lb-r-4", name: "Sapphire Chest", description: "Blue gem rewards", rarity: "rare", coinCost: 520, sessionsRequired: 0, icon: "🔷", glowColor: "#2563EB", possibleRewards: [{ type: "coins", value: 420, weight: 30 }, { type: "xp", value: 850, weight: 30 }, { type: "xp_boost", value: 2, weight: 25 }, { type: "streak_shield", value: 3, weight: 15 }] },
+      { id: "lb-r-5", name: "Storm Box", description: "Charged with electric rewards", rarity: "rare", coinCost: 480, sessionsRequired: 0, icon: "⛈️", glowColor: "#6366F1", possibleRewards: [{ type: "coins", value: 380, weight: 35 }, { type: "xp", value: 760, weight: 35 }, { type: "xp_boost", value: 2, weight: 20 }, { type: "streak_shield", value: 3, weight: 10 }] },
+      { id: "lb-r-6", name: "Quantum Box", description: "Superposition of rewards", rarity: "rare", coinCost: 600, sessionsRequired: 0, icon: "🔬", glowColor: "#06B6D4", possibleRewards: [{ type: "coins", value: 500, weight: 28 }, { type: "xp", value: 1000, weight: 28 }, { type: "marketplace_item", value: "rare", rarity: "rare", weight: 28 }, { type: "xp_boost", value: 2, weight: 16 }] },
+      { id: "lb-r-7", name: "Mind Palace Box", description: "Unlock your mental fortress", rarity: "rare", coinCost: 540, sessionsRequired: 0, icon: "🏰", glowColor: "#3B82F6", possibleRewards: [{ type: "coins", value: 440, weight: 30 }, { type: "xp", value: 880, weight: 30 }, { type: "xp_boost", value: 2, weight: 25 }, { type: "streak_shield", value: 4, weight: 15 }] },
+      { id: "lb-r-8", name: "Aurora Box", description: "Northern lights of rewards", rarity: "rare", coinCost: 560, sessionsRequired: 0, icon: "🌌", glowColor: "#8B5CF6", possibleRewards: [{ type: "coins", value: 460, weight: 30 }, { type: "xp", value: 920, weight: 30 }, { type: "marketplace_item", value: "uncommon", rarity: "uncommon", weight: 25 }, { type: "xp_boost", value: 2, weight: 15 }] },
+      { id: "lb-r-9", name: "Valor Chest", description: "For the courageous scholar", rarity: "rare", coinCost: 510, sessionsRequired: 0, icon: "🛡️", glowColor: "#3B82F6", possibleRewards: [{ type: "coins", value: 410, weight: 32 }, { type: "xp", value: 820, weight: 32 }, { type: "xp_boost", value: 2, weight: 22 }, { type: "streak_shield", value: 3, weight: 14 }] },
+      { id: "lb-r-10", name: "Prism Box", description: "Refracted into pure rewards", rarity: "rare", coinCost: 530, sessionsRequired: 0, icon: "🔆", glowColor: "#06D6A0", possibleRewards: [{ type: "coins", value: 430, weight: 30 }, { type: "xp", value: 860, weight: 30 }, { type: "marketplace_item", value: "rare", rarity: "rare", weight: 25 }, { type: "xp_boost", value: 2, weight: 15 }] },
+      // EPIC (10)
+      { id: "lb-e-1", name: "Epic Focus Box", description: "Epic focus rewards", rarity: "epic", coinCost: 1200, sessionsRequired: 0, icon: "🌟", glowColor: "#8B5CF6", possibleRewards: [{ type: "coins", value: 1000, weight: 25 }, { type: "xp", value: 2000, weight: 25 }, { type: "marketplace_item", value: "rare", rarity: "rare", weight: 25 }, { type: "xp_boost", value: 3, weight: 15 }, { type: "battle_pass_tiers", value: 2, weight: 10 }] },
+      { id: "lb-e-2", name: "Violet Storm Box", description: "Purple lightning rewards", rarity: "epic", coinCost: 1400, sessionsRequired: 0, icon: "💜", glowColor: "#7C3AED", possibleRewards: [{ type: "coins", value: 1200, weight: 22 }, { type: "xp", value: 2400, weight: 22 }, { type: "marketplace_item", value: "epic", rarity: "epic", weight: 28 }, { type: "xp_boost", value: 3, weight: 18 }, { type: "battle_pass_tiers", value: 3, weight: 10 }] },
+      { id: "lb-e-3", name: "Galaxy Box", description: "Rewards from the cosmos", rarity: "epic", coinCost: 0, sessionsRequired: 25, icon: "🌠", glowColor: "#4F46E5", possibleRewards: [{ type: "coins", value: 1500, weight: 20 }, { type: "xp", value: 3000, weight: 20 }, { type: "marketplace_item", value: "epic", rarity: "epic", weight: 30 }, { type: "xp_boost", value: 4, weight: 18 }, { type: "battle_pass_tiers", value: 3, weight: 12 }] },
+      { id: "lb-e-4", name: "Phoenix Crate", description: "Rise from the ashes", rarity: "epic", coinCost: 1300, sessionsRequired: 0, icon: "🔥", glowColor: "#DC2626", possibleRewards: [{ type: "coins", value: 1100, weight: 23 }, { type: "xp", value: 2200, weight: 23 }, { type: "marketplace_item", value: "epic", rarity: "epic", weight: 27 }, { type: "xp_boost", value: 3, weight: 17 }, { type: "battle_pass_tiers", value: 2, weight: 10 }] },
+      { id: "lb-e-5", name: "Arcane Chest", description: "Magical academic rewards", rarity: "epic", coinCost: 1350, sessionsRequired: 0, icon: "🔮", glowColor: "#9333EA", possibleRewards: [{ type: "coins", value: 1150, weight: 22 }, { type: "xp", value: 2300, weight: 22 }, { type: "marketplace_item", value: "epic", rarity: "epic", weight: 28 }, { type: "xp_boost", value: 3, weight: 18 }, { type: "battle_pass_tiers", value: 2, weight: 10 }] },
+      { id: "lb-e-6", name: "Thunder Box", description: "Power of the storm", rarity: "epic", coinCost: 1250, sessionsRequired: 0, icon: "⚡", glowColor: "#B45309", possibleRewards: [{ type: "coins", value: 1050, weight: 25 }, { type: "xp", value: 2100, weight: 25 }, { type: "marketplace_item", value: "rare", rarity: "rare", weight: 25 }, { type: "xp_boost", value: 3, weight: 15 }, { type: "battle_pass_tiers", value: 2, weight: 10 }] },
+      { id: "lb-e-7", name: "Void Fragment", description: "From beyond the veil", rarity: "epic", coinCost: 1500, sessionsRequired: 0, icon: "🌑", glowColor: "#1E1B4B", possibleRewards: [{ type: "coins", value: 1300, weight: 20 }, { type: "xp", value: 2600, weight: 20 }, { type: "marketplace_item", value: "epic", rarity: "epic", weight: 30 }, { type: "xp_boost", value: 4, weight: 20 }, { type: "battle_pass_tiers", value: 3, weight: 10 }] },
+      { id: "lb-e-8", name: "Celestial Box", description: "Rewards from the heavens", rarity: "epic", coinCost: 1450, sessionsRequired: 0, icon: "✨", glowColor: "#7C3AED", possibleRewards: [{ type: "coins", value: 1250, weight: 22 }, { type: "xp", value: 2500, weight: 22 }, { type: "marketplace_item", value: "epic", rarity: "epic", weight: 28 }, { type: "xp_boost", value: 4, weight: 18 }, { type: "battle_pass_tiers", value: 3, weight: 10 }] },
+      { id: "lb-e-9", name: "Titan Chest", description: "Titan-strength rewards", rarity: "epic", coinCost: 1380, sessionsRequired: 0, icon: "🗿", glowColor: "#374151", possibleRewards: [{ type: "coins", value: 1180, weight: 23 }, { type: "xp", value: 2350, weight: 23 }, { type: "marketplace_item", value: "epic", rarity: "epic", weight: 27 }, { type: "xp_boost", value: 3, weight: 17 }, { type: "battle_pass_tiers", value: 2, weight: 10 }] },
+      { id: "lb-e-10", name: "Scholar's Sanctum", description: "Sacred scholar rewards", rarity: "epic", coinCost: 1280, sessionsRequired: 0, icon: "🏛️", glowColor: "#D97706", possibleRewards: [{ type: "coins", value: 1080, weight: 24 }, { type: "xp", value: 2160, weight: 24 }, { type: "marketplace_item", value: "rare", rarity: "rare", weight: 26 }, { type: "xp_boost", value: 3, weight: 16 }, { type: "battle_pass_tiers", value: 2, weight: 10 }] },
+      // LEGENDARY (10)
+      { id: "lb-l-1", name: "Legendary Scholar Box", description: "For the most dedicated scholars", rarity: "legendary", coinCost: 5000, sessionsRequired: 0, icon: "👑", glowColor: "#F59E0B", possibleRewards: [{ type: "coins", value: 4000, weight: 20 }, { type: "xp", value: 8000, weight: 20 }, { type: "marketplace_item", value: "legendary", rarity: "legendary", weight: 25 }, { type: "xp_boost", value: 7, weight: 20 }, { type: "battle_pass_tiers", value: 7, weight: 15 }] },
+      { id: "lb-l-2", name: "Golden Phoenix Box", description: "Born from golden flames", rarity: "legendary", coinCost: 6000, sessionsRequired: 0, icon: "🦅", glowColor: "#F59E0B", possibleRewards: [{ type: "coins", value: 5000, weight: 18 }, { type: "xp", value: 10000, weight: 18 }, { type: "marketplace_item", value: "legendary", rarity: "legendary", weight: 30 }, { type: "xp_boost", value: 10, weight: 20 }, { type: "battle_pass_tiers", value: 10, weight: 14 }] },
+      { id: "lb-l-3", name: "Cosmic Chest", description: "Forged in cosmic fire", rarity: "legendary", coinCost: 0, sessionsRequired: 50, icon: "🌌", glowColor: "#F59E0B", possibleRewards: [{ type: "coins", value: 6000, weight: 16 }, { type: "xp", value: 12000, weight: 16 }, { type: "marketplace_item", value: "legendary", rarity: "legendary", weight: 32 }, { type: "xp_boost", value: 10, weight: 20 }, { type: "battle_pass_tiers", value: 10, weight: 16 }] },
+      { id: "lb-l-4", name: "Sol Box", description: "Power of the sun", rarity: "legendary", coinCost: 5500, sessionsRequired: 0, icon: "☀️", glowColor: "#FCD34D", possibleRewards: [{ type: "coins", value: 4500, weight: 20 }, { type: "xp", value: 9000, weight: 20 }, { type: "marketplace_item", value: "legendary", rarity: "legendary", weight: 28 }, { type: "xp_boost", value: 8, weight: 18 }, { type: "battle_pass_tiers", value: 8, weight: 14 }] },
+      { id: "lb-l-5", name: "Eternity Vault", description: "Open the vault of eternity", rarity: "legendary", coinCost: 7000, sessionsRequired: 0, icon: "🔐", glowColor: "#F59E0B", possibleRewards: [{ type: "coins", value: 6000, weight: 16 }, { type: "xp", value: 12000, weight: 16 }, { type: "marketplace_item", value: "legendary", rarity: "legendary", weight: 32 }, { type: "xp_boost", value: 12, weight: 20 }, { type: "battle_pass_tiers", value: 12, weight: 16 }] },
+      { id: "lb-l-6", name: "Nebula Box", description: "Star nursery of rewards", rarity: "legendary", coinCost: 5200, sessionsRequired: 0, icon: "🌠", glowColor: "#A855F7", possibleRewards: [{ type: "coins", value: 4300, weight: 20 }, { type: "xp", value: 8600, weight: 20 }, { type: "marketplace_item", value: "legendary", rarity: "legendary", weight: 26 }, { type: "xp_boost", value: 8, weight: 20 }, { type: "battle_pass_tiers", value: 7, weight: 14 }] },
+      { id: "lb-l-7", name: "Dragon Hoard", description: "A dragon's collected wisdom", rarity: "legendary", coinCost: 6500, sessionsRequired: 0, icon: "🐲", glowColor: "#DC2626", possibleRewards: [{ type: "coins", value: 5500, weight: 18 }, { type: "xp", value: 11000, weight: 18 }, { type: "marketplace_item", value: "legendary", rarity: "legendary", weight: 30 }, { type: "xp_boost", value: 10, weight: 20 }, { type: "battle_pass_tiers", value: 9, weight: 14 }] },
+      { id: "lb-l-8", name: "Omega Chest", description: "The final form of reward", rarity: "legendary", coinCost: 8000, sessionsRequired: 0, icon: "⚜️", glowColor: "#F59E0B", possibleRewards: [{ type: "coins", value: 7000, weight: 15 }, { type: "xp", value: 14000, weight: 15 }, { type: "marketplace_item", value: "legendary", rarity: "legendary", weight: 35 }, { type: "xp_boost", value: 15, weight: 22 }, { type: "battle_pass_tiers", value: 13, weight: 13 }] },
+      { id: "lb-l-9", name: "Starfall Box", description: "Rewards from falling stars", rarity: "legendary", coinCost: 5800, sessionsRequired: 0, icon: "⭐", glowColor: "#FCD34D", possibleRewards: [{ type: "coins", value: 4800, weight: 19 }, { type: "xp", value: 9600, weight: 19 }, { type: "marketplace_item", value: "legendary", rarity: "legendary", weight: 28 }, { type: "xp_boost", value: 9, weight: 19 }, { type: "battle_pass_tiers", value: 8, weight: 15 }] },
+      { id: "lb-l-10", name: "Mythbreaker Box", description: "Break the limits of legend", rarity: "legendary", coinCost: 9000, sessionsRequired: 0, icon: "🔱", glowColor: "#F59E0B", possibleRewards: [{ type: "coins", value: 8000, weight: 14 }, { type: "xp", value: 16000, weight: 14 }, { type: "marketplace_item", value: "legendary", rarity: "legendary", weight: 36 }, { type: "xp_boost", value: 15, weight: 22 }, { type: "battle_pass_tiers", value: 14, weight: 14 }] },
+      // MYTHIC (5)
+      { id: "lb-m-1", name: "Mythic Void Box", description: "From beyond reality", rarity: "mythic", coinCost: 15000, sessionsRequired: 0, icon: "⚫", glowColor: "#EC4899", possibleRewards: [{ type: "coins", value: 12000, weight: 15 }, { type: "xp", value: 24000, weight: 15 }, { type: "marketplace_item", value: "legendary", rarity: "legendary", weight: 30 }, { type: "xp_boost", value: 20, weight: 20 }, { type: "battle_pass_tiers", value: 15, weight: 20 }] },
+      { id: "lb-m-2", name: "Primordial Chest", description: "From the dawn of time", rarity: "mythic", coinCost: 20000, sessionsRequired: 0, icon: "🌋", glowColor: "#B91C1C", possibleRewards: [{ type: "coins", value: 18000, weight: 13 }, { type: "xp", value: 36000, weight: 13 }, { type: "marketplace_item", value: "legendary", rarity: "legendary", weight: 34 }, { type: "xp_boost", value: 25, weight: 22 }, { type: "battle_pass_tiers", value: 20, weight: 18 }] },
+      { id: "lb-m-3", name: "God Box", description: "Touched by the divine", rarity: "mythic", coinCost: 25000, sessionsRequired: 0, icon: "👁️", glowColor: "#7C3AED", possibleRewards: [{ type: "coins", value: 22000, weight: 12 }, { type: "xp", value: 44000, weight: 12 }, { type: "marketplace_item", value: "legendary", rarity: "legendary", weight: 36 }, { type: "xp_boost", value: 30, weight: 22 }, { type: "battle_pass_tiers", value: 25, weight: 18 }] },
+      { id: "lb-m-4", name: "Singularity Box", description: "Contains a universe of rewards", rarity: "mythic", coinCost: 0, sessionsRequired: 100, icon: "🕳️", glowColor: "#1E1B4B", possibleRewards: [{ type: "coins", value: 25000, weight: 12 }, { type: "xp", value: 50000, weight: 12 }, { type: "marketplace_item", value: "legendary", rarity: "legendary", weight: 36 }, { type: "xp_boost", value: 30, weight: 22 }, { type: "battle_pass_tiers", value: 25, weight: 18 }] },
+      { id: "lb-m-5", name: "Infinity Chest", description: "Infinite potential within", rarity: "mythic", coinCost: 50000, sessionsRequired: 0, icon: "♾️", glowColor: "#EC4899", possibleRewards: [{ type: "coins", value: 40000, weight: 10 }, { type: "xp", value: 80000, weight: 10 }, { type: "marketplace_item", value: "legendary", rarity: "legendary", weight: 40 }, { type: "xp_boost", value: 50, weight: 22 }, { type: "battle_pass_tiers", value: 40, weight: 18 }] },
     ];
 
     let seeded = 0;
@@ -462,6 +521,44 @@ router.post("/admin/cms/seed/lootboxes", async (req, res) => {
     res.json({ ok: true, seeded, total: SEED_BOXES.length });
   } catch (err) {
     logger.error({ err }, "seed lootboxes error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+router.post("/admin/cms/seed/quests", async (req, res) => {
+  if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
+  try {
+    const SEED_QUESTS = [
+      // DAILY QUESTS
+      { id: "q-daily-focus-30", title: "Quick Focus", description: "Complete 30 minutes of focused study", type: "daily", difficulty: "easy", target: 30, metric: "focus_minutes", xpReward: 150, coinReward: 50, icon: "⏱️", rotationWeight: 20 },
+      { id: "q-daily-focus-60", title: "Hour of Power", description: "Complete 60 minutes of focused study", type: "daily", difficulty: "medium", target: 60, metric: "focus_minutes", xpReward: 300, coinReward: 100, icon: "🔥", rotationWeight: 18 },
+      { id: "q-daily-focus-90", title: "Deep Work Block", description: "Complete 90 minutes of focused study", type: "daily", difficulty: "hard", target: 90, metric: "focus_minutes", xpReward: 500, coinReward: 175, icon: "⚡", rotationWeight: 15 },
+      { id: "q-daily-sessions-1", title: "First Session", description: "Complete 1 focus session today", type: "daily", difficulty: "easy", target: 1, metric: "session_count", xpReward: 100, coinReward: 40, icon: "🎯", rotationWeight: 20 },
+      { id: "q-daily-sessions-2", title: "Double Session", description: "Complete 2 focus sessions today", type: "daily", difficulty: "medium", target: 2, metric: "session_count", xpReward: 250, coinReward: 80, icon: "🌟", rotationWeight: 17 },
+      { id: "q-daily-sessions-3", title: "Triple Threat", description: "Complete 3 focus sessions today", type: "daily", difficulty: "hard", target: 3, metric: "session_count", xpReward: 400, coinReward: 130, icon: "🏆", rotationWeight: 14 },
+      { id: "q-daily-tasks-3", title: "Task Trio", description: "Complete 3 tasks today", type: "daily", difficulty: "easy", target: 3, metric: "tasks_completed", xpReward: 200, coinReward: 70, icon: "✅", rotationWeight: 18 },
+      { id: "q-daily-tasks-5", title: "Task Master", description: "Complete 5 tasks today", type: "daily", difficulty: "medium", target: 5, metric: "tasks_completed", xpReward: 350, coinReward: 110, icon: "📝", rotationWeight: 15 },
+      { id: "q-daily-streak-keep", title: "Keep the Streak", description: "Maintain your study streak for 1 more day", type: "daily", difficulty: "easy", target: 1, metric: "streak_days", xpReward: 200, coinReward: 75, icon: "🔥", rotationWeight: 20 },
+      { id: "q-daily-xp-500", title: "XP Rush", description: "Earn 500 XP today", type: "daily", difficulty: "medium", target: 500, metric: "xp_earned", xpReward: 300, coinReward: 100, icon: "⭐", rotationWeight: 16 },
+      // WEEKLY QUESTS
+      { id: "q-weekly-focus-300", title: "5-Hour Focus Week", description: "Accumulate 300 minutes of focus this week", type: "weekly", difficulty: "medium", target: 300, metric: "focus_minutes", xpReward: 1000, coinReward: 350, icon: "📅", rotationWeight: 15 },
+      { id: "q-weekly-focus-600", title: "10-Hour Elite", description: "Accumulate 600 minutes of focus this week", type: "weekly", difficulty: "hard", target: 600, metric: "focus_minutes", xpReward: 2000, coinReward: 700, icon: "🏅", rotationWeight: 12 },
+      { id: "q-weekly-sessions-10", title: "10-Session Champion", description: "Complete 10 focus sessions this week", type: "weekly", difficulty: "medium", target: 10, metric: "session_count", xpReward: 1200, coinReward: 400, icon: "🎯", rotationWeight: 15 },
+      { id: "q-weekly-sessions-20", title: "20-Session Legend", description: "Complete 20 focus sessions this week", type: "weekly", difficulty: "hard", target: 20, metric: "session_count", xpReward: 2500, coinReward: 850, icon: "👑", rotationWeight: 10 },
+      { id: "q-weekly-streak-5", title: "5-Day Streak Week", description: "Maintain a 5-day study streak this week", type: "weekly", difficulty: "hard", target: 5, metric: "streak_days", xpReward: 1500, coinReward: 500, icon: "🔥", rotationWeight: 13 },
+    ];
+
+    let seeded = 0;
+    for (const q of SEED_QUESTS) {
+      const existing = await db.select().from(questDefinitionsTable).where(eq(questDefinitionsTable.id, q.id)).limit(1);
+      if (existing.length === 0) {
+        await db.insert(questDefinitionsTable).values({ ...q, isActive: true }).catch(() => {});
+        seeded++;
+      }
+    }
+    res.json({ ok: true, seeded, total: SEED_QUESTS.length });
+  } catch (err) {
+    logger.error({ err }, "seed quests error");
     res.status(500).json({ error: "Internal error" });
   }
 });
