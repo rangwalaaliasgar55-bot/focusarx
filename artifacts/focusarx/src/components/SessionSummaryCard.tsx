@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
+import { Share2, Check } from "lucide-react";
 
 const QUOTES = [
   "Small steps every day lead to giant leaps over time.",
@@ -47,6 +48,7 @@ export default function SessionSummaryCard({
   const [showCheck, setShowCheck] = useState(false);
   const [animatedXp, setAnimatedXp] = useState(0);
   const [animatedCoins, setAnimatedCoins] = useState(0);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -173,6 +175,26 @@ export default function SessionSummaryCard({
             <p className="mb-5 rounded-xl border border-white/5 bg-white/3 px-4 py-3 text-center text-xs italic leading-relaxed text-[#94A3B8]">
               "{quote}"
             </p>
+
+            {/* Share button */}
+            <button
+              onClick={async () => {
+                const scoreText = focusScore != null ? ` · ${focusScore}% focus score` : "";
+                const xpText = earnedXp > 0 ? ` · +${earnedXp} XP` : "";
+                const text = `🎯 Just completed a ${timeLabel} focus session on FocusArx${scoreText}${xpText} 🔥\nBuilding the deep work habit one block at a time. focusarx.app`;
+                if (navigator.share) {
+                  try { await navigator.share({ text, url: "https://focusarx.app" }); } catch { /* cancelled */ }
+                } else {
+                  await navigator.clipboard.writeText(text);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }
+              }}
+              className="mb-3 w-full flex items-center justify-center gap-2 rounded-xl border border-white/8 bg-white/4 py-2 text-xs font-semibold text-[#64748B] transition-colors hover:border-white/12 hover:text-[#94A3B8]"
+            >
+              {copied ? <Check size={12} className="text-emerald-400" /> : <Share2 size={12} />}
+              {copied ? "Copied to clipboard!" : "Share session"}
+            </button>
 
             {/* Buttons */}
             <div className="flex gap-3">

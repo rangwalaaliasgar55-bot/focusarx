@@ -188,6 +188,7 @@ retentionRouter.post("/referral/apply", auth, async (req, res) => {
   const [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, userId)).limit(1);
   if (!wallet) return res.status(400).json({ error: "Wallet not found" });
 
+  // Reward the person applying the code
   await db.update(userWalletsTable).set({
     coins: sql`coins + 200`,
     totalXp: sql`total_xp + 500`,
@@ -200,6 +201,31 @@ retentionRouter.post("/referral/apply", auth, async (req, res) => {
     message: "+200 coins and +500 XP for joining with a friend's code",
     data: { code },
   });
+
+  // Find and reward the referrer by scanning all users and matching their derived code
+  try {
+    const allUsers = await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email })
+      .from(usersTable).limit(5000);
+    const referrer = allUsers.find(u => u.id !== userId && makeReferralCode(u.id) === code);
+    if (referrer) {
+      const [referrerWallet] = await db.select().from(userWalletsTable)
+        .where(eq(userWalletsTable.userId, referrer.id)).limit(1);
+      if (referrerWallet) {
+        await db.update(userWalletsTable).set({
+          coins: sql`coins + 500`,
+          totalXp: sql`total_xp + 1000`,
+          weeklyXp: sql`weekly_xp + 1000`,
+          updatedAt: new Date(),
+        }).where(eq(userWalletsTable.userId, referrer.id));
+        await db.insert(notificationsTable).values({
+          userId: referrer.id, type: "referral",
+          title: "Someone used your referral code! 🎉",
+          message: "+500 coins and +1000 XP — thanks for spreading the word!",
+          data: { code, newUserId: userId },
+        });
+      }
+    }
+  } catch { /* referrer reward is non-critical */ }
 
   res.json({ ok: true, coins: 200, xp: 500 });
 });

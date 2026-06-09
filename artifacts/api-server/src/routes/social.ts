@@ -4,7 +4,7 @@ import {
   friendshipsTable, usersTable, userWalletsTable,
   studyStreaksTable, userBadgesTable, focusSessionsTable,
   tasksTable, notificationsTable, followsTable,
-  userMissionProgressTable, socialPostsTable,
+  userMissionProgressTable, socialPostsTable, activeSessionsTable,
 } from "@workspace/db";
 import { extractUserId } from "./auth";
 import { eq, or, and, desc, ne, ilike, sql, gte, inArray } from "drizzle-orm";
@@ -40,6 +40,8 @@ socialRouter.get("/social/friends", auth, async (req, res) => {
     const [streak] = await db.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, fid)).limit(1);
     const todaySessions = await db.select({ count: sql<number>`count(*)` }).from(focusSessionsTable)
       .where(and(eq(focusSessionsTable.userId, fid), sql`completed_at >= now() - interval '24 hours'`));
+    const [activeSession] = await db.select({ startedAt: activeSessionsTable.startedAt, plannedMinutes: activeSessionsTable.plannedMinutes })
+      .from(activeSessionsTable).where(eq(activeSessionsTable.userId, fid)).limit(1);
     return {
       id: fid,
       name: user?.name || user?.email?.split("@")[0] || "User",
@@ -51,7 +53,10 @@ socialRouter.get("/social/friends", auth, async (req, res) => {
       streak: streak?.currentStreak ?? 0,
       productivityScore: 0,
       sessionsToday: Number(todaySessions[0]?.count ?? 0),
-      online: false,
+      online: !!activeSession,
+      isStudying: !!activeSession,
+      studyingFor: activeSession ? activeSession.plannedMinutes : null,
+      studyStartedAt: activeSession ? activeSession.startedAt : null,
     };
   }));
 

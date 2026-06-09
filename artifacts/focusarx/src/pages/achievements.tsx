@@ -198,6 +198,10 @@ export default function AchievementsPage() {
 
   const newlyUnlocked = badges.filter((b) => b.newlyUnlocked);
 
+  const nextUnlock = badges
+    .filter((b) => !b.unlocked && b.threshold > 0)
+    .sort((a, b) => (b.progress / b.threshold) - (a.progress / a.threshold))[0] ?? null;
+
   return (
     <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
@@ -218,6 +222,38 @@ export default function AchievementsPage() {
                 {unlockedCount}/{totalCount}
               </span>
             </h1>
+
+            {/* Next Unlock spotlight */}
+            {nextUnlock && (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="mt-5 flex items-center gap-3 rounded-2xl border border-[rgba(124,58,237,0.25)] bg-[rgba(124,58,237,0.07)] px-4 py-3"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[rgba(124,58,237,0.15)] text-xl">
+                  {nextUnlock.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]">Next Unlock</p>
+                    <span className="text-[9px] font-semibold uppercase tracking-wider text-[#4B5563]">{nextUnlock.tier}</span>
+                  </div>
+                  <p className="text-sm font-semibold text-[#E2E8F0] truncate">{nextUnlock.name}</p>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <div className="flex-1 h-1.5 rounded-full bg-[rgba(124,58,237,0.15)] overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-[#7C3AED] to-[#A78BFA] transition-all duration-700"
+                        style={{ width: `${Math.min(99, Math.round((nextUnlock.progress / nextUnlock.threshold) * 100))}%` }}
+                      />
+                    </div>
+                    <span className="shrink-0 text-[10px] font-bold text-[#A78BFA]">
+                      {nextUnlock.threshold - nextUnlock.progress} {nextUnlock.unit} to go
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            )}
 
             <div className="mt-4 space-y-1.5">
               <div className="flex items-center justify-between text-xs">

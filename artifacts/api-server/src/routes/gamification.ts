@@ -13,6 +13,11 @@ function authMiddleware(req: any, res: any, next: any) {
   next();
 }
 
+function optionalAuthMiddleware(req: any, _res: any, next: any) {
+  req.userId = extractUserId(req) ?? null;
+  next();
+}
+
 export interface BadgeDef {
   id: string;
   name: string;
@@ -186,7 +191,7 @@ router.get("/gamification/wallet", authMiddleware, async (req: any, res) => {
   }
 });
 
-router.get("/gamification/leaderboard", authMiddleware, async (req: any, res) => {
+router.get("/gamification/leaderboard", optionalAuthMiddleware, async (req: any, res) => {
   try {
     const wallets = await db
       .select({

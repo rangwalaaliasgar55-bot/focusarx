@@ -135,10 +135,9 @@ export default function LeaderboardPage() {
 
   const loadLeaderboard = useCallback(() => {
     const token = getToken();
-    if (!token) { setLoading(false); return; }
     setLoading(true);
     fetch("/api/gamification/leaderboard", {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then((r) => r.json() as Promise<{ leaderboard: LeaderboardEntry[] }>)
       .then((d) => { setEntries(d.leaderboard ?? []); setLoading(false); })

@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion, motion as m } from "framer-motion";
+import { ClipboardList, X } from "lucide-react";
 import { connectSocket, disconnectSocket } from "@/lib/socket";
 import MissionsWidget from "@/components/MissionsWidget";
 import ProductivityScoreWidget from "@/components/ProductivityScoreWidget";
@@ -368,6 +369,58 @@ function MotivationalLine() {
   return <p className="text-[11px] italic text-[#3a3d4a] text-center mt-1">{line}</p>;
 }
 
+function MobileSidePanelDrawer() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      {/* Floating trigger — mobile only */}
+      <button
+        aria-label="Open tasks & stats"
+        onClick={() => setOpen(true)}
+        className="fixed bottom-5 right-4 z-40 flex items-center gap-2 rounded-full border border-[#2a2d3e] bg-[#181c28] px-4 py-2.5 text-xs font-semibold text-[#a5a8ff] shadow-lg shadow-black/40 transition-colors hover:bg-[#1e2130] lg:hidden"
+      >
+        <ClipboardList size={14} />
+        Tasks & Stats
+      </button>
+
+      {/* Bottom sheet overlay */}
+      <AnimatePresence>
+        {open && (
+          <>
+            <m.div
+              key="mobile-panel-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/70 lg:hidden"
+              onClick={() => setOpen(false)}
+            />
+            <m.div
+              key="mobile-panel-sheet"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 28, stiffness: 300 }}
+              className="fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] rounded-t-2xl border-t border-[#1e2130] bg-[#0d0f14] lg:hidden"
+            >
+              <div className="mx-auto mt-3 h-1.5 w-16 rounded-full bg-[#1e2130]" />
+              <div className="flex items-center justify-between px-5 py-3">
+                <span className="text-sm font-semibold text-[#E2E8F0]">Tasks & Stats</span>
+                <button onClick={() => setOpen(false)} className="text-[#4B5563] hover:text-[#94A3B8]">
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="overflow-y-auto px-4 pb-8">
+                <SidePanel />
+              </div>
+            </m.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
 function HomePage() {
   function handleHeroStart() { window.scrollTo({ top: 0, behavior: "smooth" }); }
   const feedback = useFeedbackTrigger();
@@ -384,8 +437,13 @@ function HomePage() {
             </div>
             <FeatureSpotlight />
           </div>
-          <SidePanel />
+          {/* Desktop sidebar */}
+          <div className="hidden lg:block">
+            <SidePanel />
+          </div>
         </div>
+        {/* Mobile floating drawer trigger */}
+        <MobileSidePanelDrawer />
         <ReadinessCheckInModal />
         <FeedbackModal open={feedback.show} onClose={feedback.dismiss} onSubmit={feedback.onSubmit} />
       </div>
@@ -439,7 +497,7 @@ function AppWithPalette() {
               <Route path="/" component={() => <ErrorBoundary><HomePage /></ErrorBoundary>} />
               <Route path="/dashboard" component={() => <ErrorBoundary><ProtectedRoute component={DashboardPage} /></ErrorBoundary>} />
               <Route path="/analytics" component={() => <ErrorBoundary><ProtectedRoute component={AnalyticsPage} /></ErrorBoundary>} />
-              <Route path="/leaderboard" component={() => <ErrorBoundary><ProtectedRoute component={LeaderboardPage} /></ErrorBoundary>} />
+              <Route path="/leaderboard" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><LeaderboardPage /></Suspense></ErrorBoundary>} />
               <Route path="/achievements" component={() => <ErrorBoundary><ProtectedRoute component={AchievementsPage} /></ErrorBoundary>} />
               <Route path="/missions" component={() => <ErrorBoundary><ProtectedRoute component={MissionsPage} /></ErrorBoundary>} />
 
