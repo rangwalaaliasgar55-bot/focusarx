@@ -93,7 +93,7 @@ function CreateHabitModal({ onClose, onCreate }: { onClose: () => void; onCreate
             <div className="flex gap-2">
               {COLORS.map(c => (
                 <button key={c} onClick={() => setForm(f => ({ ...f, color: c }))}
-                  className={`h-7 w-7 rounded-full transition-all ${form.color === c ? "ring-2 ring-white ring-offset-1 ring-offset-[#111318] scale-110" : ""}`}
+                  className={`h-7 w-7 rounded-full transition-all ${form.color === c ? "ring-2 ring-white ring-offset-1 ring-offset-[rgba(8,9,20,1)] scale-110" : ""}`}
                   style={{ background: c }} />
               ))}
             </div>

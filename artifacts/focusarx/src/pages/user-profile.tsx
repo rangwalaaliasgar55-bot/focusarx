@@ -91,7 +91,7 @@ export default function UserProfilePage() {
       <div className="max-w-2xl mx-auto px-4 sm:px-6">
         {/* Avatar */}
         <div className="flex items-end justify-between -mt-12 mb-4">
-          <div className={`h-24 w-24 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center text-3xl font-black text-white border-4 border-[#0a0c12] shadow-xl`}>
+          <div className={`h-24 w-24 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center text-3xl font-black text-white border-4 border-[rgba(8,9,20,0.8)] shadow-xl`}>
             {initials}
           </div>
           {!isOwnProfile && status === "authenticated" && (

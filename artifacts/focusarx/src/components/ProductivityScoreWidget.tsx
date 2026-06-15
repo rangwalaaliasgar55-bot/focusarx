@@ -31,7 +31,7 @@ export default function ProductivityScoreWidget() {
       <div className="flex items-center gap-4">
         <div className="relative flex items-center justify-center">
           <svg width="72" height="72" viewBox="0 0 72 72" className="-rotate-90">
-            <circle cx="36" cy="36" r="28" fill="none" stroke="#1e2130" strokeWidth="6" />
+            <circle cx="36" cy="36" r="28" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="6" />
             <circle
               cx="36" cy="36" r="28" fill="none"
               stroke={scoreColor}
@@ -65,7 +65,7 @@ export default function ProductivityScoreWidget() {
           { label: "Avg Focus", value: data.avgFocusScore ? `${Math.round(data.avgFocusScore)}%` : "—", suffix: "" },
           { label: "Streak", value: data.currentStreak ?? 0, suffix: "d 🔥" },
         ].map(m => (
-          <div key={m.label} className="rounded-lg bg-[#0d0e14] border border-[#1a1d24] px-2 py-1.5 text-center">
+          <div key={m.label} className="rounded-lg bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.06)] px-2 py-1.5 text-center">
             <p className="text-xs font-bold text-[#E2E8F0]">{m.value}{m.suffix}</p>
             <p className="text-[9px] text-[#4B5563] mt-0.5">{m.label}</p>
           </div>

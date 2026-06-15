@@ -553,11 +553,11 @@ export default function LandingPage() {
           <div className="flex" style={{ animation: "marquee 30s linear infinite" }}>
             {["AI COACH", "POMODORO TIMER", "WEBCAM FOCUS", "GAMIFICATION", "STUDY ROOMS", "LEADERBOARD", "HABIT ENGINE", "DEEP ANALYTICS", "MISSIONS", "FOCUS DNA", "BATTLE PASS", "AI ROADMAP"].flatMap((item, i) => [
               <span key={i} className="inline-flex items-center shrink-0 gap-3 px-8 py-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#3a3f52] whitespace-nowrap">{item}</span>,
-              <span key={`d${i}`} className="text-[#1e2130] shrink-0 self-center">×</span>
+              <span key={`d${i}`} className="text-[rgba(255,255,255,0.12)] shrink-0 self-center">×</span>
             ])}
             {["AI COACH", "POMODORO TIMER", "WEBCAM FOCUS", "GAMIFICATION", "STUDY ROOMS", "LEADERBOARD", "HABIT ENGINE", "DEEP ANALYTICS", "MISSIONS", "FOCUS DNA", "BATTLE PASS", "AI ROADMAP"].flatMap((item, i) => [
               <span key={`b${i}`} className="inline-flex items-center shrink-0 gap-3 px-8 py-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#3a3f52] whitespace-nowrap">{item}</span>,
-              <span key={`bd${i}`} className="text-[#1e2130] shrink-0 self-center">×</span>
+              <span key={`bd${i}`} className="text-[rgba(255,255,255,0.12)] shrink-0 self-center">×</span>
             ])}
           </div>
         </div>
@@ -859,7 +859,7 @@ export default function LandingPage() {
               </ul>
             </div>
           </div>
-          <div className="border-t border-white/[0.04] pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#1e2130]">
+          <div className="border-t border-white/[0.04] pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[rgba(255,255,255,0.12)]">
             <span>Built with ❤️ for learners worldwide</span>
             <div className="flex gap-5">
               {[["/focus-guide","Focus Guide"], ["/pomodoro-guide","Pomodoro Guide"], ["/study-techniques","Study Techniques"]].map(([href, label]) => (

@@ -99,7 +99,7 @@ export default function NotificationsPage() {
 
       {!isLoading && notifications.length === 0 && (
         <div className="text-center py-16">
-          <Bell size={48} className="mx-auto mb-4 text-[#1e2130]" />
+          <Bell size={48} className="mx-auto mb-4 text-[rgba(255,255,255,0.12)]" />
           <p className="text-[#374151] text-sm">You're all caught up!</p>
           <p className="text-[#2a2d3a] text-xs mt-1">Notifications will appear here when you earn badges, complete missions, or get friend activity.</p>
         </div>

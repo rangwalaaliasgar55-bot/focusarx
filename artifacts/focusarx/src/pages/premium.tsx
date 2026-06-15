@@ -72,7 +72,7 @@ export default function PremiumPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-950/30 via-[#0a0b14] to-[#0a0b14] p-8 text-center"
+          className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-950/30 via-[rgba(6,7,18,0.98)] to-[rgba(6,7,18,0.98)] p-8 text-center"
           style={{ boxShadow: "0 0 60px rgba(251,191,36,0.08)" }}
         >
           <div className="absolute inset-0 pointer-events-none">

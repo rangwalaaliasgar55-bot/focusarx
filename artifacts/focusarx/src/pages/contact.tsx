@@ -83,7 +83,7 @@ export default function ContactPage() {
                         required value={form.name}
                         onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                         placeholder="Your name"
-                        className="w-full rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#0d0e14] px-3.5 py-2.5 text-sm text-[#E2E8F0] placeholder-[#2d3148] outline-none focus:border-[#7c3aed] transition-colors"
+                        className="w-full rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.04)] px-3.5 py-2.5 text-sm text-[#E2E8F0] placeholder-[rgba(255,255,255,0.20)] outline-none focus:border-[#7c3aed] transition-colors"
                       />
                     </div>
                     <div>
@@ -92,7 +92,7 @@ export default function ContactPage() {
                         required type="email" value={form.email}
                         onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                         placeholder="you@example.com"
-                        className="w-full rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#0d0e14] px-3.5 py-2.5 text-sm text-[#E2E8F0] placeholder-[#2d3148] outline-none focus:border-[#7c3aed] transition-colors"
+                        className="w-full rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.04)] px-3.5 py-2.5 text-sm text-[#E2E8F0] placeholder-[rgba(255,255,255,0.20)] outline-none focus:border-[#7c3aed] transition-colors"
                       />
                     </div>
                   </div>
@@ -102,7 +102,7 @@ export default function ContactPage() {
                       required value={form.subject}
                       onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
                       placeholder="What's this about?"
-                      className="w-full rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#0d0e14] px-3.5 py-2.5 text-sm text-[#E2E8F0] placeholder-[#2d3148] outline-none focus:border-[#7c3aed] transition-colors"
+                      className="w-full rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.04)] px-3.5 py-2.5 text-sm text-[#E2E8F0] placeholder-[rgba(255,255,255,0.20)] outline-none focus:border-[#7c3aed] transition-colors"
                     />
                   </div>
                   <div>
@@ -111,7 +111,7 @@ export default function ContactPage() {
                       required rows={5} value={form.message}
                       onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
                       placeholder="Tell us everything…"
-                      className="w-full resize-none rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#0d0e14] px-3.5 py-2.5 text-sm text-[#E2E8F0] placeholder-[#2d3148] outline-none focus:border-[#7c3aed] transition-colors"
+                      className="w-full resize-none rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.04)] px-3.5 py-2.5 text-sm text-[#E2E8F0] placeholder-[rgba(255,255,255,0.20)] outline-none focus:border-[#7c3aed] transition-colors"
                     />
                   </div>
                   <motion.button

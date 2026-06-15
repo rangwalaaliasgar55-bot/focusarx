@@ -261,7 +261,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <>
             <button
               onClick={() => onClick ? setMobileMoreExpanded(v => !v) : setMoreExpanded(v => !v)}
-              className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-[#3A4055] hover:bg-[rgba(255,255,255,0.04)] hover:text-[#6B7280] transition-all duration-150"
+              className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-[rgba(255,255,255,0.28)] hover:bg-[rgba(255,255,255,0.04)] hover:text-[#6B7280] transition-all duration-150"
             >
               <MoreHorizontal size={15} className="shrink-0" />
               <span className="flex-1 text-left">More features</span>
@@ -348,7 +348,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-2 mb-1">
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="flex flex-1 items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] text-[#3A4055] hover:bg-[rgba(255,255,255,0.04)] hover:text-[#6B7280] transition-colors"
+                className="flex flex-1 items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] text-[rgba(255,255,255,0.28)] hover:bg-[rgba(255,255,255,0.04)] hover:text-[#6B7280] transition-colors"
               >
                 {theme === "dark" ? <Sun size={13} /> : <Moon size={13} />}
                 {theme === "dark" ? "Light mode" : "Dark mode"}
@@ -357,7 +357,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <button
                   onClick={handlePushToggle}
                   disabled={pushLoading}
-                  className={`flex items-center justify-center rounded-lg p-1.5 transition-colors disabled:opacity-40 ${pushEnabled ? "text-emerald-500" : "text-[#3A4055] hover:text-[#6B7280] hover:bg-[rgba(255,255,255,0.04)]"}`}
+                  className={`flex items-center justify-center rounded-lg p-1.5 transition-colors disabled:opacity-40 ${pushEnabled ? "text-emerald-500" : "text-[rgba(255,255,255,0.28)] hover:text-[#6B7280] hover:bg-[rgba(255,255,255,0.04)]"}`}
                   title={pushEnabled ? "Notifications on" : "Enable notifications"}
                 >
                   {pushEnabled ? <Bell size={13} /> : <BellOff size={13} />}
@@ -392,7 +392,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </>
           ) : (
             <Link href="/login">
-              <div className={`flex items-center rounded-lg py-2 text-[12px] text-[#3A4055] hover:text-[#94A3B8] hover:bg-[rgba(255,255,255,0.04)] transition-colors ${sidebarCollapsed ? "justify-center px-1" : "gap-2 px-2.5"}`}>
+              <div className={`flex items-center rounded-lg py-2 text-[12px] text-[rgba(255,255,255,0.28)] hover:text-[#94A3B8] hover:bg-[rgba(255,255,255,0.04)] transition-colors ${sidebarCollapsed ? "justify-center px-1" : "gap-2 px-2.5"}`}>
                 <LogIn size={13} />
                 {!sidebarCollapsed && "Sign in"}
               </div>
@@ -402,7 +402,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           {!sidebarCollapsed && (
             <div className="flex flex-wrap gap-x-2.5 gap-y-0.5 px-2.5 pt-1">
               {[["Privacy", "/privacy"], ["Terms", "/terms"], ["Support", "/support"]].map(([l, h]) => (
-                <Link key={h} href={h} className="text-[9px] text-[#1E2535] hover:text-[#3A4055] transition-colors">{l}</Link>
+                <Link key={h} href={h} className="text-[9px] text-[rgba(255,255,255,0.18)] hover:text-[rgba(255,255,255,0.28)] transition-colors">{l}</Link>
               ))}
             </div>
           )}
@@ -449,7 +449,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             >
               <div className="flex h-14 items-center justify-between border-b border-[rgba(255,255,255,0.05)] px-4">
                 <div className="flex items-center gap-2.5"><Logo size="sm" /><span className="text-[14px] font-bold text-white">FocusArx</span></div>
-                <button onClick={() => setMobileOpen(false)} className="rounded-lg p-1.5 text-[#3A4055] hover:text-[#94A3B8]" aria-label="Close">
+                <button onClick={() => setMobileOpen(false)} className="rounded-lg p-1.5 text-[rgba(255,255,255,0.28)] hover:text-[#94A3B8]" aria-label="Close">
                   <X size={17} />
                 </button>
               </div>
@@ -472,19 +472,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     </div>
                     <button
                       onClick={() => { void signOut(); setMobileOpen(false); }}
-                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] text-[#3A4055] hover:bg-[rgba(239,68,68,0.06)] hover:text-[#F87171] transition-colors"
+                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] text-[rgba(255,255,255,0.28)] hover:bg-[rgba(239,68,68,0.06)] hover:text-[#F87171] transition-colors"
                     >
                       <LogOut size={12} /> Sign out
                     </button>
                   </>
                 ) : (
-                  <Link href="/login" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12px] text-[#3A4055] hover:text-[#94A3B8] transition-colors">
+                  <Link href="/login" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12px] text-[rgba(255,255,255,0.28)] hover:text-[#94A3B8] transition-colors">
                     <LogIn size={13} /> Sign in
                   </Link>
                 )}
                 <button
                   onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] text-[#3A4055] hover:bg-[rgba(255,255,255,0.04)] hover:text-[#6B7280] transition-colors"
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] text-[rgba(255,255,255,0.28)] hover:bg-[rgba(255,255,255,0.04)] hover:text-[#6B7280] transition-colors"
                 >
                   {theme === "dark" ? <Sun size={12} /> : <Moon size={12} />}
                   {theme === "dark" ? "Light mode" : "Dark mode"}

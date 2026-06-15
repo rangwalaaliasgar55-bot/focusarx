@@ -14,14 +14,14 @@ export default function DemoVideoSection() {
       >
         {/* Section header */}
         <div className="flex items-center gap-3 mb-4">
-          <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent to-[#1e2130]" />
+          <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent to-[rgba(255,255,255,0.04)]" />
           <div className="flex items-center gap-2">
             <Play size={12} className="text-[#7C3AED]" />
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#4B5563]">
               See how it works
             </p>
           </div>
-          <div className="flex-1 h-[1px] bg-gradient-to-l from-transparent to-[#1e2130]" />
+          <div className="flex-1 h-[1px] bg-gradient-to-l from-transparent to-[rgba(255,255,255,0.04)]" />
         </div>
 
         <h3 className="text-center text-base font-bold text-[#E2E8F0] mb-1">
@@ -33,12 +33,12 @@ export default function DemoVideoSection() {
         </p>
 
         {/* Video embed */}
-        <div className="relative rounded-2xl overflow-hidden border border-[rgba(255,255,255,0.06)] bg-[#0d0e14] shadow-[0_0_40px_rgba(124,58,237,0.08)]">
+        <div className="relative rounded-2xl overflow-hidden border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.04)] shadow-[0_0_40px_rgba(124,58,237,0.08)]">
           {!playing ? (
             /* Thumbnail / play gate */
             <div className="relative aspect-video flex items-center justify-center group cursor-pointer" onClick={() => setPlaying(true)}>
               {/* Gradient placeholder thumbnail */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[#0d0e14] via-[#111420] to-[#0a0b14]" />
+              <div className="absolute inset-0 bg-gradient-to-br from-[rgba(8,9,20,0.95)] via-[rgba(12,13,28,0.98)] to-[rgba(6,7,18,0.99)]" />
               <div className="absolute inset-0 opacity-30"
                 style={{
                   backgroundImage: "radial-gradient(ellipse 60% 50% at 50% 50%, rgba(124,58,237,0.35) 0%, transparent 100%)"
