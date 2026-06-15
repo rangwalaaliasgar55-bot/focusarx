@@ -60,6 +60,7 @@ const GhostsPage = lazy(() => import("@/pages/ghosts"));
 const ConsequencesPage = lazy(() => import("@/pages/consequences"));
 const ReplayPage = lazy(() => import("@/pages/replay"));
 const BreathePage = lazy(() => import("@/pages/breathe"));
+const ConstellationsPage = lazy(() => import("@/pages/constellations"));
 const ProfilePage = lazy(() => import("@/pages/profile"));
 const BreakFreePage = lazy(() => import("@/pages/break-free"));
 const PrivacyPage = lazy(() => import("@/pages/privacy"));
@@ -622,6 +623,7 @@ function RoutedContent() {
               <Route path="/ghosts" component={() => <ErrorBoundary><ProtectedRoute component={GhostsPage} /></ErrorBoundary>} />
               <Route path="/consequences" component={() => <ErrorBoundary><ProtectedRoute component={ConsequencesPage} /></ErrorBoundary>} />
               <Route path="/replay" component={() => <ErrorBoundary><ProtectedRoute component={ReplayPage} /></ErrorBoundary>} />
+              <Route path="/constellations" component={() => <ErrorBoundary><ProtectedRoute component={ConstellationsPage} /></ErrorBoundary>} />
               <Route path="/breathe" component={() => <ErrorBoundary><BreathePage /></ErrorBoundary>} />
               <Route path="/profile" component={() => <ErrorBoundary><ProtectedRoute component={ProfilePage} /></ErrorBoundary>} />
               <Route path="/break-free" component={() => <ErrorBoundary><BreakFreePage /></ErrorBoundary>} />
