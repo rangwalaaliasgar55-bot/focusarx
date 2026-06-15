@@ -34,7 +34,6 @@ import { FocusCamera } from "@/components/camera/FocusCamera";
 import { useSessionHistory } from "@/hooks/useSessionHistory";
 import { useTasks } from "@/hooks/useTasks";
 import ReadinessCheckInModal from "@/components/ReadinessCheckInModal";
-import DailyGoal from "@/components/DailyGoal";
 import MissedTaskReview, { useMissedTaskReview } from "@/components/MissedTaskReview";
 import FeedbackModal, { useFeedbackTrigger } from "@/components/FeedbackModal";
 import WelcomeOverlay from "@/components/WelcomeOverlay";
@@ -196,6 +195,12 @@ function SidePanel() {
       {/* Missed Task Review modal — fires once per day if there are unreviewed tasks */}
       <MissedTaskReview open={showReview} tasks={missedTasks} onDone={dismiss} />
 
+      {/* AI Camera — surfaced at the top for visibility */}
+      <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-4">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4a4f62] mb-3">AI Camera</p>
+        <FocusCamera />
+      </div>
+
       <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-4">
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4a4f62] mb-3">Today's Stats</p>
         <div className="space-y-2.5">
@@ -222,6 +227,9 @@ function SidePanel() {
           </div>
         </div>
       </div>
+
+      {/* Daily Missions — surfaced high for engagement */}
+      <MissionsWidget />
 
       <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-4">
         {/* Active Tasks */}
@@ -276,14 +284,7 @@ function SidePanel() {
       </div>
 
       <FocusMoodWidget />
-      <DailyGoal />
       <ProductivityScoreWidget />
-      <MissionsWidget />
-
-      <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4a4f62] mb-3">AI Camera</p>
-        <FocusCamera />
-      </div>
     </div>
   );
 }
@@ -509,7 +510,6 @@ function HomePage() {
               <Timer onSessionComplete={feedback.recordSession} />
               <MotivationalLine />
             </div>
-            <DailyGoal />
           </div>
           {/* Desktop side panel */}
           <div className="hidden lg:flex lg:flex-col lg:w-[300px] xl:w-[320px] shrink-0 border-l border-[rgba(255,255,255,0.04)]">
