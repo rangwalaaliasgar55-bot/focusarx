@@ -1,9 +1,10 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { lazyWithReload } from "@/lib/lazyWithReload";
 import { AnimatePresence, motion, motion as m } from "framer-motion";
 import ThreeBackground from "@/components/ThreeBackground";
 import LoadingScreen from "@/components/LoadingScreen";
 import CursorEffect from "@/components/CursorEffect";
-const LandingPage = lazy(() => import("@/pages/landing"));
+const LandingPage = lazyWithReload(() => import("@/pages/landing"));
 import { ClipboardList, X } from "lucide-react";
 import { connectSocket, disconnectSocket } from "@/lib/socket";
 import MissionsWidget from "@/components/MissionsWidget";
@@ -46,61 +47,61 @@ import { LiveActivityTicker } from "@/components/LiveActivityTicker";
 import { FocusMoodWidget } from "@/components/FocusMoodWidget";
 import { FloatingParticles } from "@/components/FloatingParticles";
 
-const OnboardingPage = lazy(() => import("@/pages/onboarding"));
-const DistractionsPage = lazy(() => import("@/pages/distractions"));
-const ProfilesPage = lazy(() => import("@/pages/profiles"));
-const DashboardPage = lazy(() => import("@/pages/dashboard"));
-const RoadmapPage = lazy(() => import("@/pages/roadmap"));
-const LeaderboardPage = lazy(() => import("@/pages/leaderboard"));
-const AchievementsPage = lazy(() => import("@/pages/achievements"));
-const AnalyticsPage = lazy(() => import("@/pages/analytics"));
-const ForgePage = lazy(() => import("@/pages/forge"));
-const FocusDnaPage = lazy(() => import("@/pages/focus-dna"));
-const GhostsPage = lazy(() => import("@/pages/ghosts"));
-const ConsequencesPage = lazy(() => import("@/pages/consequences"));
-const ReplayPage = lazy(() => import("@/pages/replay"));
-const BreathePage = lazy(() => import("@/pages/breathe"));
-const ConstellationsPage = lazy(() => import("@/pages/constellations"));
-const ProfilePage = lazy(() => import("@/pages/profile"));
-const BreakFreePage = lazy(() => import("@/pages/break-free"));
-const PrivacyPage = lazy(() => import("@/pages/privacy"));
-const TermsPage = lazy(() => import("@/pages/terms"));
-const CookiePolicyPage = lazy(() => import("@/pages/cookie-policy"));
-const AcceptableUsePage = lazy(() => import("@/pages/acceptable-use"));
-const AiPolicyPage = lazy(() => import("@/pages/ai-policy"));
-const DataDeletionPage = lazy(() => import("@/pages/data-deletion"));
-const PricingPage = lazy(() => import("@/pages/pricing"));
-const MissionsPage = lazy(() => import("@/pages/missions"));
-const SocialPage = lazy(() => import("@/pages/social"));
-const NotificationsPage = lazy(() => import("@/pages/notifications"));
-const GroupsPage = lazy(() => import("@/pages/groups"));
-const BattlePassPage = lazy(() => import("@/pages/battle-pass"));
-const AiInsightsPage = lazy(() => import("@/pages/ai-insights"));
-const UserProfilePage = lazy(() => import("@/pages/user-profile"));
-const HabitsPage = lazy(() => import("@/pages/habits"));
-const MessagesPage = lazy(() => import("@/pages/messages"));
-const ShopPage = lazy(() => import("@/pages/shop"));
-const GoalsPage = lazy(() => import("@/pages/goals"));
-const StudyRoomsPage = lazy(() => import("@/pages/study-rooms"));
-const ReferralPage = lazy(() => import("@/pages/referral"));
-const PetsPage = lazy(() => import("@/pages/pets"));
-const CityPage = lazy(() => import("@/pages/city"));
-const MarketplacePage = lazy(() => import("@/pages/marketplace"));
-const WrappedPage = lazy(() => import("@/pages/wrapped"));
-const DreamsPage = lazy(() => import("@/pages/dreams"));
-const LootBoxesPage = lazy(() => import("@/pages/lootboxes"));
-const WalletPage = lazy(() => import("@/pages/wallet"));
-const DnaPage = lazy(() => import("@/pages/focus-dna"));
-const QuestsPage = lazy(() => import("@/pages/quests"));
-const FocusGuidePage = lazy(() => import("@/pages/focus-guide"));
-const PremiumPage = lazy(() => import("@/pages/premium"));
-const RefundPage = lazy(() => import("@/pages/refund"));
-const AboutPage = lazy(() => import("@/pages/about"));
-const ContactPage = lazy(() => import("@/pages/contact"));
-const SupportPage = lazy(() => import("@/pages/support"));
-const PomodoroGuidePage = lazy(() => import("@/pages/pomodoro-guide"));
-const StudyTechniquesPage = lazy(() => import("@/pages/study-techniques"));
-const VirtualStudyRoomPage = lazy(() => import("@/pages/virtual-study-room"));
+const OnboardingPage = lazyWithReload(() => import("@/pages/onboarding"));
+const DistractionsPage = lazyWithReload(() => import("@/pages/distractions"));
+const ProfilesPage = lazyWithReload(() => import("@/pages/profiles"));
+const DashboardPage = lazyWithReload(() => import("@/pages/dashboard"));
+const RoadmapPage = lazyWithReload(() => import("@/pages/roadmap"));
+const LeaderboardPage = lazyWithReload(() => import("@/pages/leaderboard"));
+const AchievementsPage = lazyWithReload(() => import("@/pages/achievements"));
+const AnalyticsPage = lazyWithReload(() => import("@/pages/analytics"));
+const ForgePage = lazyWithReload(() => import("@/pages/forge"));
+const FocusDnaPage = lazyWithReload(() => import("@/pages/focus-dna"));
+const GhostsPage = lazyWithReload(() => import("@/pages/ghosts"));
+const ConsequencesPage = lazyWithReload(() => import("@/pages/consequences"));
+const ReplayPage = lazyWithReload(() => import("@/pages/replay"));
+const BreathePage = lazyWithReload(() => import("@/pages/breathe"));
+const ConstellationsPage = lazyWithReload(() => import("@/pages/constellations"));
+const ProfilePage = lazyWithReload(() => import("@/pages/profile"));
+const BreakFreePage = lazyWithReload(() => import("@/pages/break-free"));
+const PrivacyPage = lazyWithReload(() => import("@/pages/privacy"));
+const TermsPage = lazyWithReload(() => import("@/pages/terms"));
+const CookiePolicyPage = lazyWithReload(() => import("@/pages/cookie-policy"));
+const AcceptableUsePage = lazyWithReload(() => import("@/pages/acceptable-use"));
+const AiPolicyPage = lazyWithReload(() => import("@/pages/ai-policy"));
+const DataDeletionPage = lazyWithReload(() => import("@/pages/data-deletion"));
+const PricingPage = lazyWithReload(() => import("@/pages/pricing"));
+const MissionsPage = lazyWithReload(() => import("@/pages/missions"));
+const SocialPage = lazyWithReload(() => import("@/pages/social"));
+const NotificationsPage = lazyWithReload(() => import("@/pages/notifications"));
+const GroupsPage = lazyWithReload(() => import("@/pages/groups"));
+const BattlePassPage = lazyWithReload(() => import("@/pages/battle-pass"));
+const AiInsightsPage = lazyWithReload(() => import("@/pages/ai-insights"));
+const UserProfilePage = lazyWithReload(() => import("@/pages/user-profile"));
+const HabitsPage = lazyWithReload(() => import("@/pages/habits"));
+const MessagesPage = lazyWithReload(() => import("@/pages/messages"));
+const ShopPage = lazyWithReload(() => import("@/pages/shop"));
+const GoalsPage = lazyWithReload(() => import("@/pages/goals"));
+const StudyRoomsPage = lazyWithReload(() => import("@/pages/study-rooms"));
+const ReferralPage = lazyWithReload(() => import("@/pages/referral"));
+const PetsPage = lazyWithReload(() => import("@/pages/pets"));
+const CityPage = lazyWithReload(() => import("@/pages/city"));
+const MarketplacePage = lazyWithReload(() => import("@/pages/marketplace"));
+const WrappedPage = lazyWithReload(() => import("@/pages/wrapped"));
+const DreamsPage = lazyWithReload(() => import("@/pages/dreams"));
+const LootBoxesPage = lazyWithReload(() => import("@/pages/lootboxes"));
+const WalletPage = lazyWithReload(() => import("@/pages/wallet"));
+const DnaPage = lazyWithReload(() => import("@/pages/focus-dna"));
+const QuestsPage = lazyWithReload(() => import("@/pages/quests"));
+const FocusGuidePage = lazyWithReload(() => import("@/pages/focus-guide"));
+const PremiumPage = lazyWithReload(() => import("@/pages/premium"));
+const RefundPage = lazyWithReload(() => import("@/pages/refund"));
+const AboutPage = lazyWithReload(() => import("@/pages/about"));
+const ContactPage = lazyWithReload(() => import("@/pages/contact"));
+const SupportPage = lazyWithReload(() => import("@/pages/support"));
+const PomodoroGuidePage = lazyWithReload(() => import("@/pages/pomodoro-guide"));
+const StudyTechniquesPage = lazyWithReload(() => import("@/pages/study-techniques"));
+const VirtualStudyRoomPage = lazyWithReload(() => import("@/pages/virtual-study-room"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -550,17 +551,14 @@ function SocketInitializer() {
 
 function RoutedContent() {
   const [location] = useLocation();
+  // Suspense lives OUTSIDE the keyed transition so a lazily-loading page shows
+  // the loader cleanly instead of fighting an exit animation (the previous
+  // AnimatePresence mode="wait" + Suspense combo could leave a stuck/blank
+  // screen and require a second click or refresh). An enter-only CSS fade keyed
+  // by location keeps navigation smooth without any exit coordination.
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <motion.div
-        key={location}
-        initial={{ opacity: 0, y: 14, scale: 0.993, filter: "blur(5px)" }}
-        animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-        exit={{ opacity: 0, y: -8, scale: 0.995, filter: "blur(3px)" }}
-        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-        style={{ willChange: "transform, opacity, filter", height: "100%" }}
-      >
-        <Suspense fallback={<PageLoader />}>
+    <Suspense fallback={<PageLoader />}>
+      <div key={location} className="route-fade-in" style={{ height: "100%" }}>
           <Switch>
               <Route path="/welcome" component={MobileWelcomePage} />
               <Route path="/login" component={LoginPage} />
@@ -644,9 +642,8 @@ function RoutedContent() {
 
               <Route component={NotFound} />
             </Switch>
-          </Suspense>
-      </motion.div>
-    </AnimatePresence>
+      </div>
+    </Suspense>
   );
 }
 

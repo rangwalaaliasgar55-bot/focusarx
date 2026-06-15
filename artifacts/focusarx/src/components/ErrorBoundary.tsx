@@ -1,4 +1,7 @@
 import { Component, type ReactNode, type ErrorInfo } from "react";
+import { isChunkLoadError } from "@/lib/lazyWithReload";
+
+const RELOAD_FLAG = "focusarx:chunk-reloaded";
 
 interface Props {
   children: ReactNode;
@@ -22,6 +25,13 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
+    // A stale chunk after a new deploy can throw synchronously past the lazy
+    // retry — recover with a single hard reload instead of an error screen.
+    if (isChunkLoadError(error) && !sessionStorage.getItem(RELOAD_FLAG)) {
+      sessionStorage.setItem(RELOAD_FLAG, "1");
+      window.location.reload();
+      return;
+    }
     console.error("[ErrorBoundary]", error, info.componentStack);
     this.props.onError?.(error, info);
   }
