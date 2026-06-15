@@ -31,6 +31,7 @@ import { XPBurst } from "./XPBurst";
 import { getToken } from "@/lib/auth";
 import { useCoinXP } from "./CoinXPBar";
 import PetCompanion from "./PetCompanion";
+import DailyGoal from "@/components/DailyGoal";
 
 const MODES: TimerMode[] = ["focus", "break", "longBreak"];
 
@@ -700,6 +701,9 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Daily Goal — sits directly under the Study Dragon */}
+      <DailyGoal />
     </div>
     </div>
 

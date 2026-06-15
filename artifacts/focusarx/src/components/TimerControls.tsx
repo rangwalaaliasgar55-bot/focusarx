@@ -20,7 +20,33 @@ const MODE_COLORS: Record<TimerMode, { from: string; to: string; shadow: string;
 export function TimerControls({ status, mode, onToggle, onReset, onSkip }: TimerControlsProps) {
   const isRunning = status === "running";
   const isPaused = status === "paused";
+  const isIdle = status === "idle";
   const mc = MODE_COLORS[mode];
+
+  // Idle: a single large, low-friction primary CTA.
+  if (isIdle) {
+    return (
+      <div className="mt-8 flex w-full justify-center">
+        <motion.button
+          type="button"
+          onClick={onToggle}
+          aria-label="Start focus session"
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+          className="flex w-full max-w-xs items-center justify-center gap-3 rounded-2xl px-8 py-5 text-base font-extrabold text-white shadow-2xl"
+          style={{
+            background: `linear-gradient(135deg, ${mc.from}, ${mc.to})`,
+            boxShadow: `0 0 0 4px ${mc.ring}, 0 16px 40px ${mc.shadow}`,
+          }}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M5 3l14 9-14 9V3z" />
+          </svg>
+          {mode === "focus" ? "Start Focus" : "Start Break"}
+        </motion.button>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-8 flex items-center justify-center gap-5">
