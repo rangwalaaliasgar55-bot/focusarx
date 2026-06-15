@@ -92,6 +92,7 @@ const WalletPage = lazy(() => import("@/pages/wallet"));
 const DnaPage = lazy(() => import("@/pages/focus-dna"));
 const QuestsPage = lazy(() => import("@/pages/quests"));
 const FocusGuidePage = lazy(() => import("@/pages/focus-guide"));
+const PremiumPage = lazy(() => import("@/pages/premium"));
 const PomodoroGuidePage = lazy(() => import("@/pages/pomodoro-guide"));
 const StudyTechniquesPage = lazy(() => import("@/pages/study-techniques"));
 const VirtualStudyRoomPage = lazy(() => import("@/pages/virtual-study-room"));
@@ -589,6 +590,7 @@ function RoutedContent() {
               <Route path="/ai-policy" component={() => <ErrorBoundary><AiPolicyPage /></ErrorBoundary>} />
               <Route path="/data-deletion" component={() => <ErrorBoundary><DataDeletionPage /></ErrorBoundary>} />
               <Route path="/pricing" component={() => <ErrorBoundary><PricingPage /></ErrorBoundary>} />
+              <Route path="/premium" component={() => <ErrorBoundary><ProtectedRoute component={PremiumPage} /></ErrorBoundary>} />
 
               <Route component={NotFound} />
             </Switch>

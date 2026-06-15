@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { Router } from "express";
 import jwt from "jsonwebtoken";
-import { db, pool, usersTable, focusSessionsTable, studyStreaksTable, activeSessionsTable, userMissionProgressTable, loginRewardsTable, freezeTokensTable, battlePassProgressTable, notificationsTable } from "@workspace/db";
+import { db, pool, usersTable, focusSessionsTable, studyStreaksTable, activeSessionsTable, userMissionProgressTable, loginRewardsTable, freezeTokensTable, battlePassProgressTable, notificationsTable, premiumSubscriptionsTable } from "@workspace/db";
 import { eq, gte, inArray, and, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getServerConfig } from "../lib/config";
@@ -251,6 +251,32 @@ router.delete("/admin/users/:id", async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     logger.error({ err }, "admin delete user error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+router.post("/admin/users/:id/premium", async (req, res) => {
+  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const { id } = req.params;
+  const days = Number(req.body.days ?? 30);
+  try {
+    const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    const [existing] = await db.select().from(premiumSubscriptionsTable)
+      .where(eq(premiumSubscriptionsTable.userId, id)).limit(1);
+    const benefits = ["exclusive_pets","premium_loot_boxes","premium_themes","xp_multiplier","coin_multiplier","premium_analytics","profile_badge","premium_battle_pass"];
+    if (existing) {
+      await db.update(premiumSubscriptionsTable)
+        .set({ isActive: true, activatedAt: new Date(), expiresAt, benefits })
+        .where(eq(premiumSubscriptionsTable.userId, id));
+    } else {
+      await db.insert(premiumSubscriptionsTable).values({
+        userId: id, isActive: true, activatedAt: new Date(), expiresAt,
+        coinsCost: 0, benefits,
+      });
+    }
+    res.json({ ok: true, expiresAt });
+  } catch (err) {
+    logger.error({ err }, "admin grant premium error");
     res.status(500).json({ error: "Internal error" });
   }
 });

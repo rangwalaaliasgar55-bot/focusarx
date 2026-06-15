@@ -27,6 +27,7 @@ import { useTasks } from "@/hooks/useTasks";
 import BreakActivityCard from "./BreakActivityCard";
 import SessionSummaryCard from "./SessionSummaryCard";
 import ConfettiCelebration from "./ConfettiCelebration";
+import { XPBurst } from "./XPBurst";
 import { getToken } from "@/lib/auth";
 import { useCoinXP } from "./CoinXPBar";
 import PetCompanion from "./PetCompanion";
@@ -820,6 +821,12 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
       onStartBreak={() => { setShowSummary(false); skipToNext(); }}
       onKeepGoing={() => { setShowSummary(false); }}
       onClose={() => { setShowSummary(false); }}
+    />
+
+    <XPBurst
+      active={showConfetti}
+      earnedXp={summaryData?.earnedXp ?? 0}
+      earnedCoins={summaryData?.earnedCoins ?? 0}
     />
 
     <ConfettiCelebration active={showConfetti} count={90} duration={3500} />

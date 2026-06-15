@@ -66,7 +66,7 @@ type CmsOverview = {
 type Tab =
   | "overview" | "analytics" | "users" | "missions" | "retention" | "sql"
   | "marketplace" | "pets" | "lootboxes" | "battlepass" | "quests"
-  | "city" | "notify" | "coins";
+  | "city" | "notify" | "coins" | "email" | "premium";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -173,6 +173,25 @@ export default function AdminPage() {
   const [grantResult, setGrantResult] = useState<{ newBalance: number } | null>(null);
   const [grantError, setGrantError] = useState<string | null>(null);
 
+  // Email blast
+  const [emailTemplate, setEmailTemplate] = useState("welcome");
+  const [emailAudience, setEmailAudience] = useState<"all" | "inactive" | "premium" | "selected">("all");
+  const [emailCustomSubject, setEmailCustomSubject] = useState("");
+  const [emailCustomHtml, setEmailCustomHtml] = useState("");
+  const [emailBlasting, setEmailBlasting] = useState(false);
+  const [emailResult, setEmailResult] = useState<{ sent: number; failed: number; total: number } | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailLogs, setEmailLogs] = useState<any[]>([]);
+  const [emailLogsLoading, setEmailLogsLoading] = useState(false);
+  const [emailTemplates, setEmailTemplates] = useState<{ key: string; subject: string }[]>([]);
+
+  // Premium management
+  const [premiumUsers, setPremiumUsers] = useState<any[]>([]);
+  const [premiumLoading, setPremiumLoading] = useState(false);
+  const [premiumGrantId, setPremiumGrantId] = useState("");
+  const [premiumGranting, setPremiumGranting] = useState(false);
+  const [premiumGrantResult, setPremiumGrantResult] = useState<string | null>(null);
+
   const authHeaders = useCallback((): Record<string, string> => {
     const token = localStorage.getItem("focusarx-auth-token");
     return token ? { Authorization: `Bearer ${token}` } : {};
@@ -206,6 +225,8 @@ export default function AdminPage() {
     if (tab === "battlepass" && !bpStats.stats) loadBattlePass();
     if (tab === "pets" && petStats.stats.length === 0) loadPets();
     if (tab === "overview" && !cmsOverview.users) loadCmsOverview();
+    if (tab === "email") { loadEmailLogs(); loadEmailTemplates(); }
+    if (tab === "premium" && premiumUsers.length === 0) loadPremiumUsers();
   }, [tab]);
 
   async function loadMarketplace() {
@@ -251,6 +272,69 @@ export default function AdminPage() {
       const r = await fetch("/api/admin/cms/overview", { headers: authHeaders(), credentials: "include" });
       if (r.ok) setCmsOverview(await r.json());
     } catch { }
+  }
+
+  async function loadEmailLogs() {
+    setEmailLogsLoading(true);
+    try {
+      const r = await fetch("/api/admin/email/logs", { headers: authHeaders(), credentials: "include" });
+      if (r.ok) { const d = await r.json(); setEmailLogs(d.logs ?? []); }
+    } finally { setEmailLogsLoading(false); }
+  }
+
+  async function loadEmailTemplates() {
+    try {
+      const r = await fetch("/api/admin/email/templates", { headers: authHeaders(), credentials: "include" });
+      if (r.ok) { const d = await r.json(); setEmailTemplates(d.templates ?? []); }
+    } catch { }
+  }
+
+  async function sendEmailBlast() {
+    setEmailBlasting(true); setEmailResult(null); setEmailError(null);
+    try {
+      const r = await fetch("/api/admin/email/blast", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        credentials: "include",
+        body: JSON.stringify({
+          template: emailTemplate,
+          audience: emailAudience,
+          customSubject: emailCustomSubject || undefined,
+          customHtml: emailCustomHtml || undefined,
+        }),
+      });
+      const d = await r.json();
+      if (r.ok) { setEmailResult(d); loadEmailLogs(); }
+      else setEmailError(d.error ?? "Failed to send");
+    } catch (e: any) { setEmailError(e.message); }
+    finally { setEmailBlasting(false); }
+  }
+
+  async function loadPremiumUsers() {
+    setPremiumLoading(true);
+    try {
+      const r = await fetch("/api/admin/users", { headers: authHeaders(), credentials: "include" });
+      if (r.ok) {
+        const d = await r.json();
+        setPremiumUsers((d.users ?? []).filter((u: any) => u.role !== "guest"));
+      }
+    } finally { setPremiumLoading(false); }
+  }
+
+  async function adminGrantPremium() {
+    if (!premiumGrantId) return;
+    setPremiumGranting(true); setPremiumGrantResult(null);
+    try {
+      const r = await fetch("/api/admin/users/" + premiumGrantId + "/premium", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ days: 30 }),
+      });
+      if (r.ok) { setPremiumGrantResult("Premium granted for 30 days!"); loadPremiumUsers(); }
+      else { const d = await r.json(); setPremiumGrantResult("Error: " + (d.error ?? "Unknown")); }
+    } catch (e: any) { setPremiumGrantResult("Error: " + e.message); }
+    finally { setPremiumGranting(false); }
   }
 
   const toggleRole = async (user: AdminUser) => {
@@ -1552,6 +1636,232 @@ export default function AdminPage() {
     );
   }
 
+  function renderEmail() {
+    const TEMPLATES = emailTemplates.length > 0 ? emailTemplates : [
+      { key: "welcome", subject: "Welcome to FocusArx 🎯" },
+      { key: "come_back", subject: "We miss you! Come back and focus 🔥" },
+      { key: "streak_reminder", subject: "Don't break your streak! 🔥" },
+      { key: "new_feature", subject: "New Features Available ✨" },
+      { key: "weekly_report", subject: "Your Weekly Focus Report 📊" },
+      { key: "monthly_wrapped", subject: "Your Monthly Focus Wrapped 🎁" },
+      { key: "premium_promo", subject: "Unlock Premium 👑" },
+    ];
+    return (
+      <MotionTab>
+        <SectionHeader title="Email System" sub="Send email blasts to your users. Requires RESEND_API_KEY env var — without it, sends are logged but not delivered." />
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Blast form */}
+          <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-5 space-y-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Send Email Blast</p>
+
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">Template</label>
+              <select className="admin-input" value={emailTemplate} onChange={e => setEmailTemplate(e.target.value)}>
+                {TEMPLATES.map(t => <option key={t.key} value={t.key}>{t.key} — {t.subject}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">Audience</label>
+              <select className="admin-input" value={emailAudience} onChange={e => setEmailAudience(e.target.value as any)}>
+                <option value="all">All registered users</option>
+                <option value="inactive">Inactive users (7+ days)</option>
+                <option value="premium">Premium users only</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">Custom Subject (optional — overrides template)</label>
+              <input className="admin-input" placeholder="Leave blank to use template subject" value={emailCustomSubject} onChange={e => setEmailCustomSubject(e.target.value)} />
+            </div>
+
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">Custom HTML Body (optional)</label>
+              <textarea
+                className="admin-input resize-none font-mono text-xs"
+                rows={4}
+                placeholder="<h1>Hello!</h1><p>Your message here…</p>"
+                value={emailCustomHtml}
+                onChange={e => setEmailCustomHtml(e.target.value)}
+              />
+            </div>
+
+            <button
+              onClick={() => void sendEmailBlast()}
+              disabled={emailBlasting}
+              className="w-full flex items-center justify-center gap-2 rounded-lg bg-sky-700 hover:bg-sky-600 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50 transition"
+            >
+              {emailBlasting ? <><RefreshCw size={14} className="animate-spin" /> Sending…</> : <><Send size={14} /> Send Email Blast</>}
+            </button>
+
+            {emailResult && (
+              <div className="flex items-center gap-2 rounded-lg border border-emerald-800/50 bg-emerald-950/30 px-4 py-3 text-emerald-400 text-sm">
+                <CheckCircle size={14} />
+                Sent to {emailResult.sent}/{emailResult.total} users — {emailResult.failed} failed
+              </div>
+            )}
+            {emailError && (
+              <div className="flex items-center gap-2 rounded-lg border border-red-800/50 bg-red-950/30 px-4 py-3 text-red-400 text-sm">
+                <AlertTriangle size={14} />
+                {emailError}
+              </div>
+            )}
+
+            <div className="rounded-xl border border-amber-800/30 bg-amber-950/10 p-4">
+              <div className="flex items-start gap-2 text-amber-400">
+                <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                <p className="text-[10px] text-amber-500 leading-relaxed">
+                  Emails require <code className="bg-amber-950 px-1 rounded">RESEND_API_KEY</code> to actually deliver. Without it, sends are logged as "sent" but emails are not dispatched. Max 500 recipients per blast.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Email logs */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Recent Logs</p>
+              <button onClick={() => loadEmailLogs()} className="text-[10px] text-zinc-500 hover:text-zinc-300 flex items-center gap-1">
+                <RefreshCw size={10} /> Refresh
+              </button>
+            </div>
+            {emailLogsLoading ? (
+              <div className="text-center py-8 text-zinc-500 text-sm">Loading…</div>
+            ) : emailLogs.length === 0 ? (
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900/20 p-4 text-center text-xs text-zinc-500">No emails sent yet.</div>
+            ) : (
+              <div className="rounded-xl border border-zinc-800/80 overflow-hidden max-h-[500px] overflow-y-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-zinc-900/80 text-zinc-500 uppercase tracking-wider sticky top-0">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Recipient</th>
+                      <th className="px-3 py-2 font-medium">Template</th>
+                      <th className="px-3 py-2 font-medium">Status</th>
+                      <th className="px-3 py-2 font-medium">Sent</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800/50">
+                    {emailLogs.map((log: any) => (
+                      <tr key={log.id} className="hover:bg-zinc-900/30">
+                        <td className="px-3 py-2 text-zinc-300 truncate max-w-[160px]">{log.recipientEmail}</td>
+                        <td className="px-3 py-2 text-zinc-500">{log.template}</td>
+                        <td className="px-3 py-2">
+                          <Badge
+                            label={log.status}
+                            color={log.status === "sent" ? "bg-emerald-950 text-emerald-400" : log.status === "failed" ? "bg-red-950 text-red-400" : "bg-zinc-800 text-zinc-400"}
+                          />
+                        </td>
+                        <td className="px-3 py-2 text-zinc-600 text-[10px]">
+                          {log.sentAt ? new Date(log.sentAt).toLocaleDateString() : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      </MotionTab>
+    );
+  }
+
+  function renderPremiumManagement() {
+    const premiumCount = premiumUsers.filter((u: any) => {
+      const sub = u.premiumUntil;
+      return sub && new Date(sub) > new Date();
+    }).length;
+    return (
+      <MotionTab>
+        <SectionHeader title="Premium Management" sub="View all users and manually grant premium access. Premium is purchased with 9,000 in-app coins." />
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-5 space-y-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Grant Premium (Admin Override)</p>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">User ID</label>
+              <input
+                className="admin-input font-mono"
+                placeholder="paste user UUID…"
+                value={premiumGrantId}
+                onChange={e => setPremiumGrantId(e.target.value)}
+              />
+              <p className="text-[10px] text-zinc-600 mt-1">Grants 30 days of premium without deducting coins. Find user IDs in the Users tab.</p>
+            </div>
+            <button
+              onClick={() => void adminGrantPremium()}
+              disabled={premiumGranting || !premiumGrantId}
+              className="w-full flex items-center justify-center gap-2 rounded-lg bg-amber-600 hover:bg-amber-500 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50 transition"
+            >
+              {premiumGranting ? <><RefreshCw size={14} className="animate-spin" /> Granting…</> : <>👑 Grant 30-day Premium</>}
+            </button>
+            {premiumGrantResult && (
+              <div className={`flex items-center gap-2 rounded-lg border px-4 py-3 text-sm ${premiumGrantResult.startsWith("Error") ? "border-red-800/50 bg-red-950/30 text-red-400" : "border-emerald-800/50 bg-emerald-950/30 text-emerald-400"}`}>
+                {premiumGrantResult.startsWith("Error") ? <AlertTriangle size={14} /> : <CheckCircle size={14} />}
+                {premiumGrantResult}
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <div className="rounded-xl border border-amber-800/30 bg-amber-950/10 px-4 py-3 text-center">
+                <p className="text-xl font-bold text-amber-400">{premiumCount}</p>
+                <p className="text-[10px] text-zinc-500 mt-0.5">Active premium users</p>
+              </div>
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900/20 px-4 py-3 text-center">
+                <p className="text-xl font-bold text-zinc-200">{premiumUsers.length}</p>
+                <p className="text-[10px] text-zinc-500 mt-0.5">Registered users total</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">User List</p>
+              <button onClick={() => void loadPremiumUsers()} className="text-[10px] text-zinc-500 hover:text-zinc-300 flex items-center gap-1"><RefreshCw size={10} /> Refresh</button>
+            </div>
+            {premiumLoading ? (
+              <div className="text-center py-8 text-zinc-500">Loading…</div>
+            ) : (
+              <div className="rounded-xl border border-zinc-800/80 overflow-hidden max-h-[420px] overflow-y-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-zinc-900/80 text-zinc-500 uppercase tracking-wider sticky top-0">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">User</th>
+                      <th className="px-3 py-2 font-medium">Role</th>
+                      <th className="px-3 py-2 font-medium">Quick Grant</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800/50">
+                    {premiumUsers.slice(0, 50).map((u: any) => (
+                      <tr key={u.id} className="hover:bg-zinc-900/30">
+                        <td className="px-3 py-2">
+                          <p className="text-zinc-200 font-medium truncate max-w-[140px]">{u.name || u.email?.split("@")[0]}</p>
+                          <p className="text-zinc-600 text-[10px] font-mono truncate">{u.id.slice(0, 8)}…</p>
+                        </td>
+                        <td className="px-3 py-2">
+                          <Badge label={u.role} color={u.role === "admin" ? "bg-rose-950 text-rose-400" : "bg-zinc-800 text-zinc-400"} />
+                        </td>
+                        <td className="px-3 py-2">
+                          <button
+                            onClick={() => { setPremiumGrantId(u.id); }}
+                            className="rounded px-2 py-0.5 text-[10px] border border-amber-800/50 text-amber-400 hover:bg-amber-950/30 transition"
+                          >
+                            Select
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      </MotionTab>
+    );
+  }
+
   const TAB_RENDER: Record<Tab, () => React.ReactNode> = {
     overview: renderOverview,
     analytics: () => (
@@ -1572,6 +1882,8 @@ export default function AdminPage() {
     city: renderCity,
     notify: renderNotify,
     coins: renderCoins,
+    email: renderEmail,
+    premium: renderPremiumManagement,
   };
 
   return (

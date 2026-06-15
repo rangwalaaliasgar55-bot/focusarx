@@ -549,7 +549,7 @@ input, select, textarea {
 
 /* Sidebar ambient glow */
 .sidebar-ambient {
-  position: relative;
+  /* no position override — app-sidebar is already position:fixed */
 }
 .sidebar-ambient::before {
   content: '';

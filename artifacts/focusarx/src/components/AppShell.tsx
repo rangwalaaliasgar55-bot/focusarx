@@ -90,6 +90,7 @@ const NAV_ITEMS = [
   { href: "/city",          label: "Focus City",     icon: Building2,      shortcut: "",  group: "engage" },
   { href: "/marketplace",   label: "Marketplace",    icon: ShoppingBag,    shortcut: "",  group: "engage" },
   { href: "/lootboxes",     label: "Loot Boxes",     icon: Gift,           shortcut: "",  group: "engage" },
+  { href: "/premium",       label: "Premium",        icon: Zap,            shortcut: "",  group: "engage" },
   { href: "/wallet",        label: "Wallet & XP",    icon: Coins,          shortcut: "",  group: "engage" },
   { href: "/shop",          label: "Coin Shop",      icon: ShoppingBag,    shortcut: "",  group: "engage" },
   { href: "/battle-pass",   label: "Battle Pass",    icon: Zap,            shortcut: "",  group: "engage" },
