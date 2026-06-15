@@ -17,23 +17,23 @@ export default function DemoVideoSection() {
           <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent to-[#1e2130]" />
           <div className="flex items-center gap-2">
             <Play size={12} className="text-[#7C3AED]" />
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#4a4f62]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#4B5563]">
               See how it works
             </p>
           </div>
           <div className="flex-1 h-[1px] bg-gradient-to-l from-transparent to-[#1e2130]" />
         </div>
 
-        <h3 className="text-center text-base font-bold text-[#e8eaf0] mb-1">
+        <h3 className="text-center text-base font-bold text-[#E2E8F0] mb-1">
           Watch a quick demo
         </h3>
-        <p className="text-center text-xs text-[#4a4f62] mb-4 flex items-center justify-center gap-1.5">
+        <p className="text-center text-xs text-[#4B5563] mb-4 flex items-center justify-center gap-1.5">
           <Clock size={11} />
           Under 2 minutes — everything you need to know
         </p>
 
         {/* Video embed */}
-        <div className="relative rounded-2xl overflow-hidden border border-[#1e2130] bg-[#0d0e14] shadow-[0_0_40px_rgba(124,58,237,0.08)]">
+        <div className="relative rounded-2xl overflow-hidden border border-[rgba(255,255,255,0.06)] bg-[#0d0e14] shadow-[0_0_40px_rgba(124,58,237,0.08)]">
           {!playing ? (
             /* Thumbnail / play gate */
             <div className="relative aspect-video flex items-center justify-center group cursor-pointer" onClick={() => setPlaying(true)}>
@@ -64,7 +64,7 @@ export default function DemoVideoSection() {
 
               {/* Label */}
               <div className="absolute bottom-4 left-0 right-0 text-center">
-                <p className="text-xs font-medium text-[#4a4f62]">FocusArx — Feature Walkthrough</p>
+                <p className="text-xs font-medium text-[#4B5563]">FocusArx — Feature Walkthrough</p>
               </div>
             </div>
           ) : (

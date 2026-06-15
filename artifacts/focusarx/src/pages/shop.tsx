@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getToken } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
-import { ShoppingBag, Coins, Zap, Palette, Star, Crown, Flame } from "lucide-react";
+import { ShoppingBag, Zap, Palette, Star, Crown } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 
 async function apiFetch(path: string, opts?: RequestInit) {
   const token = getToken();
@@ -48,19 +49,19 @@ export default function ShopPage() {
   const filtered = activeCategory === "all" ? items : items.filter((i: any) => i.category === activeCategory);
 
   return (
-    <div className="min-h-screen bg-[#0a0c12] text-[#e8eaf0] p-4 sm:p-6 max-w-3xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[#e8eaf0] flex items-center gap-2">
-            <ShoppingBag size={22} className="text-[#7C3AED]" /> Coin Shop
-          </h1>
-          <p className="text-sm text-[#4a4f62] mt-1">Spend your hard-earned coins on boosts and cosmetics</p>
-        </div>
-        <div className="flex items-center gap-1.5 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-2">
-          <span className="text-lg">🪙</span>
-          <span className="text-base font-bold text-amber-400">{coins.toLocaleString()}</span>
-        </div>
-      </div>
+    <div className="min-h-screen forge-bg-glow text-[#E2E8F0] px-4 sm:px-6 py-8 max-w-3xl mx-auto">
+      <PageHeader
+        icon={<ShoppingBag size={18} className="text-amber-400" />}
+        badgeColor="#F59E0B"
+        title="Coin Shop"
+        subtitle="Spend your hard-earned coins on boosts and cosmetics"
+        actions={
+          <div className="flex items-center gap-1.5 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-2">
+            <span className="text-base">🪙</span>
+            <span className="text-sm font-bold text-amber-400">{coins.toLocaleString()}</span>
+          </div>
+        }
+      />
 
       {/* Category filter */}
       <div className="flex gap-1.5 mb-5 flex-wrap">
@@ -69,7 +70,7 @@ export default function ShopPage() {
           const IconComp = meta?.icon;
           return (
             <button key={cat} onClick={() => setActiveCategory(cat)}
-              className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium transition-all border ${activeCategory === cat ? "bg-[#7C3AED] text-white border-[#7C3AED]" : "border-[#1e2130] text-[#5a5f72] hover:text-[#e8eaf0] hover:border-[#7C3AED]/40"}`}>
+              className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium transition-all border ${activeCategory === cat ? "bg-[#7C3AED] text-white border-[#7C3AED]" : "border-[rgba(255,255,255,0.06)] text-[#4B5563] hover:text-[#E2E8F0] hover:border-[#7C3AED]/40"}`}>
               {IconComp && <IconComp size={12} className={meta.color} />}
               {cat === "all" ? "All Items" : meta?.label ?? cat}
             </button>
@@ -79,7 +80,7 @@ export default function ShopPage() {
 
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {[...Array(6)].map((_, i) => <div key={i} className="h-32 animate-pulse rounded-2xl bg-[#111318]" />)}
+          {[...Array(6)].map((_, i) => <div key={i} className="h-32 animate-pulse rounded-2xl bg-[rgba(255,255,255,0.025)]" />)}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -87,25 +88,25 @@ export default function ShopPage() {
             const meta = CATEGORY_META[item.category];
             const canAfford = coins >= item.price;
             return (
-              <div key={item.id} className={`rounded-2xl border p-4 transition-all ${canAfford ? "border-[#1e2130] hover:border-[#7C3AED]/40" : "border-[#1e2130]/50 opacity-60"} bg-[#111318]`}>
+              <div key={item.id} className={`rounded-2xl border p-4 transition-all ${canAfford ? "border-[rgba(255,255,255,0.06)] hover:border-[#7C3AED]/40" : "border-[rgba(255,255,255,0.06)]/50 opacity-60"} bg-[rgba(255,255,255,0.025)]`}>
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex items-center gap-3">
                     <span className="text-3xl">{item.icon}</span>
                     <div>
-                      <p className="text-sm font-bold text-[#e8eaf0]">{item.name}</p>
-                      <span className={`text-[10px] font-semibold uppercase tracking-wider ${meta?.color ?? "text-[#4a4f62]"}`}>{item.category}</span>
+                      <p className="text-sm font-bold text-[#E2E8F0]">{item.name}</p>
+                      <span className={`text-[10px] font-semibold uppercase tracking-wider ${meta?.color ?? "text-[#4B5563]"}`}>{item.category}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <span className="text-base">🪙</span>
-                    <span className={`text-sm font-bold ${canAfford ? "text-amber-400" : "text-[#4a4f62]"}`}>{item.price.toLocaleString()}</span>
+                    <span className={`text-sm font-bold ${canAfford ? "text-amber-400" : "text-[#4B5563]"}`}>{item.price.toLocaleString()}</span>
                   </div>
                 </div>
-                <p className="text-xs text-[#5a5f72] mb-3 leading-relaxed">{item.description}</p>
+                <p className="text-xs text-[#4B5563] mb-3 leading-relaxed">{item.description}</p>
                 <button
                   onClick={() => purchase.mutate(item.id)}
                   disabled={!canAfford || purchase.isPending}
-                  className={`w-full rounded-xl py-2 text-xs font-semibold transition-all ${canAfford ? "bg-[#7C3AED] text-white hover:bg-[#6d31d4]" : "bg-[#1e2130] text-[#3a3d4a] cursor-not-allowed"}`}>
+                  className={`w-full rounded-xl py-2 text-xs font-semibold transition-all ${canAfford ? "bg-[#7C3AED] text-white hover:bg-[#6d31d4]" : "bg-[rgba(255,255,255,0.06)] text-[#374151] cursor-not-allowed"}`}>
                   {purchase.isPending ? "Purchasing…" : canAfford ? "Purchase" : "Not enough coins"}
                 </button>
               </div>
@@ -117,7 +118,7 @@ export default function ShopPage() {
       {!isLoading && filtered.length === 0 && (
         <div className="text-center py-16">
           <ShoppingBag size={40} className="mx-auto mb-4 text-[#7C3AED] opacity-30" />
-          <p className="text-[#4a4f62]">No items in this category yet.</p>
+          <p className="text-[#4B5563]">No items in this category yet.</p>
         </div>
       )}
     </div>

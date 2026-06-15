@@ -49,7 +49,7 @@ export default function OnboardingModal() {
             {/* Step dots */}
             <div className="flex gap-2 mb-6">
               {[1,2,3].map(i => (
-                <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${i <= step ? "bg-[#7C3AED]" : "bg-[#1e2130]"}`} />
+                <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${i <= step ? "bg-[#7C3AED]" : "bg-[rgba(255,255,255,0.06)]"}`} />
               ))}
             </div>
 
@@ -65,7 +65,7 @@ export default function OnboardingModal() {
                       className={`rounded-full px-4 py-2 text-sm font-medium border transition-all ${
                         selected.includes(t)
                           ? "border-[#7C3AED] bg-[rgba(124,58,237,0.2)] text-[#A78BFA]"
-                          : "border-[#1e2130] bg-[#111318] text-[#6B7280] hover:border-[#7C3AED]/50"
+                          : "border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] text-[#6B7280] hover:border-[#7C3AED]/50"
                       }`}
                     >{t}</button>
                   ))}
@@ -74,7 +74,7 @@ export default function OnboardingModal() {
                   value={goal}
                   onChange={e => setGoal(e.target.value)}
                   placeholder="Your main goal this week?"
-                  className="w-full rounded-xl border border-[#1e2130] bg-[#070810] px-4 py-2.5 text-sm text-[#E2E8F0] placeholder-[#3a3d4a] outline-none focus:border-[#7C3AED]/60 mb-5"
+                  className="w-full rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#070810] px-4 py-2.5 text-sm text-[#E2E8F0] placeholder-[#3a3d4a] outline-none focus:border-[#7C3AED]/60 mb-5"
                 />
                 <button
                   onClick={() => setStep(2)}
@@ -97,7 +97,7 @@ export default function OnboardingModal() {
                   className="w-full accent-[#7C3AED] mb-6"
                 />
                 <div className="flex gap-3">
-                  <button onClick={() => setStep(1)} className="flex-1 rounded-xl border border-[#1e2130] py-3 text-sm text-[#6B7280] hover:text-[#E2E8F0]">← Back</button>
+                  <button onClick={() => setStep(1)} className="flex-1 rounded-xl border border-[rgba(255,255,255,0.06)] py-3 text-sm text-[#6B7280] hover:text-[#E2E8F0]">← Back</button>
                   <button onClick={() => setStep(3)} className="flex-1 rounded-xl bg-[#7C3AED] py-3 text-sm font-bold text-white hover:bg-[#6d35d4] transition-colors">Next →</button>
                 </div>
               </motion.div>
@@ -125,7 +125,7 @@ export default function OnboardingModal() {
                   ))}
                 </div>
                 <div className="flex gap-3">
-                  <button onClick={() => setStep(2)} className="flex-1 rounded-xl border border-[#1e2130] py-3 text-sm text-[#6B7280] hover:text-[#E2E8F0]">← Back</button>
+                  <button onClick={() => setStep(2)} className="flex-1 rounded-xl border border-[rgba(255,255,255,0.06)] py-3 text-sm text-[#6B7280] hover:text-[#E2E8F0]">← Back</button>
                   <button
                     onClick={finish}
                     className="flex-1 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] py-3 text-sm font-bold text-white hover:opacity-90 transition-opacity"

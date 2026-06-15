@@ -29,18 +29,18 @@ export default function VirtualStudyRoomPage() {
   const totalStudying = rooms.reduce((acc: number, r: any) => acc + (r.participantCount ?? r.activeCount ?? 0), 0);
 
   return (
-    <div className="min-h-screen bg-[#0a0c12] text-[#e8eaf0]">
+    <div className="min-h-screen bg-[rgba(255,255,255,0.02)] text-[#E2E8F0]">
       <PageSEO {...PAGE_SEO.virtualStudyRoom} />
 
       {/* Hero */}
-      <div className="relative overflow-hidden border-b border-[#1e2130]">
+      <div className="relative overflow-hidden border-b border-[rgba(255,255,255,0.06)]">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,_rgba(124,58,237,0.15),_transparent_70%)]" />
         <div className="relative max-w-3xl mx-auto px-4 sm:px-6 py-20 text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-400 mb-6 animate-pulse">
             <span className="h-2 w-2 rounded-full bg-emerald-400" />
             {totalStudying > 0 ? `${totalStudying} people studying now` : "Open study rooms"}
           </div>
-          <h1 className="text-3xl sm:text-5xl font-black text-[#e8eaf0] mb-4 leading-tight">
+          <h1 className="text-3xl sm:text-5xl font-black text-[#E2E8F0] mb-4 leading-tight">
             Virtual Study Rooms<br />
             <span className="bg-gradient-to-r from-[#7C3AED] to-[#a78bfa] bg-clip-text text-transparent">Study Together, Online</span>
           </h1>
@@ -51,7 +51,7 @@ export default function VirtualStudyRoomPage() {
             <Link href="/study-rooms" className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] px-6 py-3 text-sm font-bold text-white hover:opacity-90 transition-opacity">
               <Radio size={15} /> Browse Live Rooms
             </Link>
-            <Link href="/register" className="flex items-center gap-2 rounded-xl border border-[#1e2130] bg-[#111318] px-6 py-3 text-sm font-medium text-[#a78bfa] hover:border-[#7C3AED]/40 transition-colors">
+            <Link href="/register" className="flex items-center gap-2 rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] px-6 py-3 text-sm font-medium text-[#a78bfa] hover:border-[#7C3AED]/40 transition-colors">
               <Users size={14} /> Create Free Account
             </Link>
           </div>
@@ -59,7 +59,7 @@ export default function VirtualStudyRoomPage() {
       </div>
 
       {/* Stats bar */}
-      <div className="border-b border-[#1e2130] bg-[#0d0f16]">
+      <div className="border-b border-[rgba(255,255,255,0.06)] bg-[#0d0f16]">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-center gap-8 flex-wrap">
           {[
             { icon: Radio, label: `${rooms.length || "—"} live rooms`, color: "#7C3AED" },
@@ -78,28 +78,28 @@ export default function VirtualStudyRoomPage() {
       {/* Live rooms */}
       {rooms.length > 0 && (
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
-          <h2 className="text-xl font-black text-[#e8eaf0] mb-1">Live Rooms Right Now</h2>
+          <h2 className="text-xl font-black text-[#E2E8F0] mb-1">Live Rooms Right Now</h2>
           <p className="text-[#6b7280] text-sm mb-6">Click to preview — sign in to join and chat.</p>
           <div className="space-y-3">
             {rooms.slice(0, 6).map((room: any) => (
-              <Link key={room.id} href="/study-rooms" className="flex items-center gap-4 rounded-2xl border border-[#1e2130] bg-[#111318] p-4 hover:border-[#7C3AED]/40 transition-colors group">
+              <Link key={room.id} href="/study-rooms" className="flex items-center gap-4 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-4 hover:border-[#7C3AED]/40 transition-colors group">
                 <div className="h-10 w-10 shrink-0 rounded-xl bg-[#7C3AED]/10 border border-[#7C3AED]/20 flex items-center justify-center">
                   <Radio size={16} className="text-[#a78bfa]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-[#e8eaf0] truncate">{room.name}</p>
+                  <p className="font-semibold text-[#E2E8F0] truncate">{room.name}</p>
                   {room.description && <p className="text-xs text-[#6b7280] truncate">{room.description}</p>}
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-emerald-400 shrink-0">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   {room.participantCount ?? room.activeCount ?? 0} online
                 </div>
-                <ArrowRight size={14} className="text-[#4a4f62] group-hover:text-[#a78bfa] transition-colors shrink-0" />
+                <ArrowRight size={14} className="text-[#4B5563] group-hover:text-[#a78bfa] transition-colors shrink-0" />
               </Link>
             ))}
           </div>
           {rooms.length > 6 && (
-            <Link href="/study-rooms" className="mt-4 flex items-center justify-center gap-2 rounded-xl border border-[#1e2130] py-2.5 text-sm text-[#a78bfa] hover:border-[#7C3AED]/40 transition-colors">
+            <Link href="/study-rooms" className="mt-4 flex items-center justify-center gap-2 rounded-xl border border-[rgba(255,255,255,0.06)] py-2.5 text-sm text-[#a78bfa] hover:border-[#7C3AED]/40 transition-colors">
               View all {rooms.length} rooms <ArrowRight size={13} />
             </Link>
           )}
@@ -107,16 +107,16 @@ export default function VirtualStudyRoomPage() {
       )}
 
       {/* Featured categories */}
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 border-t border-[#1e2130]">
-        <h2 className="text-xl font-black text-[#e8eaf0] mb-1">Study Room Categories</h2>
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 border-t border-[rgba(255,255,255,0.06)]">
+        <h2 className="text-xl font-black text-[#E2E8F0] mb-1">Study Room Categories</h2>
         <p className="text-[#6b7280] text-sm mb-6">Browse by subject or create your own themed room in seconds.</p>
         <div className="grid sm:grid-cols-2 gap-4">
           {FEATURED_CATEGORIES.map(cat => (
-            <Link key={cat.tag} href="/study-rooms" className="rounded-2xl border border-[#1e2130] bg-[#111318] p-5 hover:border-[#7C3AED]/40 transition-colors group">
+            <Link key={cat.tag} href="/study-rooms" className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-5 hover:border-[#7C3AED]/40 transition-colors group">
               <div className="flex items-start gap-3">
                 <span className="text-2xl">{cat.emoji}</span>
                 <div>
-                  <p className="font-bold text-[#e8eaf0] group-hover:text-[#a78bfa] transition-colors">{cat.name}</p>
+                  <p className="font-bold text-[#E2E8F0] group-hover:text-[#a78bfa] transition-colors">{cat.name}</p>
                   <p className="text-sm text-[#6b7280] mt-0.5">{cat.desc}</p>
                 </div>
               </div>
@@ -126,17 +126,17 @@ export default function VirtualStudyRoomPage() {
       </div>
 
       {/* Why study together */}
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 border-t border-[#1e2130]">
-        <h2 className="text-xl font-black text-[#e8eaf0] mb-2">Why Study with Others?</h2>
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 border-t border-[rgba(255,255,255,0.06)]">
+        <h2 className="text-xl font-black text-[#E2E8F0] mb-2">Why Study with Others?</h2>
         <div className="grid sm:grid-cols-3 gap-4">
           {[
             { icon: Zap, title: "Accountability", body: "Knowing others can see you working makes it far harder to slack. Research shows a 65% increase in goal completion with an accountability partner.", color: "#7C3AED" },
             { icon: Clock, title: "Longer Sessions", body: "People in virtual study rooms report 40% longer average session times compared to studying alone. The group energy is contagious.", color: "#f59e0b" },
             { icon: Users, title: "Instant Help", body: "Stuck on a problem? Ask in the room chat and get help from someone studying the same topic — often in under 2 minutes.", color: "#22d387" },
           ].map(({ icon: Icon, title, body, color }) => (
-            <div key={title} className="rounded-2xl border border-[#1e2130] bg-[#111318] p-5">
+            <div key={title} className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-5">
               <Icon size={18} style={{ color }} className="mb-3" />
-              <p className="font-bold text-[#e8eaf0] mb-2">{title}</p>
+              <p className="font-bold text-[#E2E8F0] mb-2">{title}</p>
               <p className="text-sm text-[#6b7280] leading-relaxed">{body}</p>
             </div>
           ))}
@@ -147,7 +147,7 @@ export default function VirtualStudyRoomPage() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pb-16">
         <div className="rounded-3xl border border-[#7C3AED]/30 bg-gradient-to-br from-[#7C3AED]/10 to-[#4F46E5]/5 p-10 text-center">
           <Radio size={32} className="text-[#7C3AED] mx-auto mb-4" />
-          <h2 className="text-2xl font-black text-[#e8eaf0] mb-3">Ready to study smarter?</h2>
+          <h2 className="text-2xl font-black text-[#E2E8F0] mb-3">Ready to study smarter?</h2>
           <p className="text-[#6b7280] mb-6 max-w-md mx-auto text-sm">Join FocusArx free — Pomodoro timer, gamification, AI coaching, and live study rooms all in one place.</p>
           <Link href="/register" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] px-8 py-3 text-sm font-bold text-white hover:opacity-90 transition-opacity">
             Join Free <ArrowRight size={15} />
@@ -155,7 +155,7 @@ export default function VirtualStudyRoomPage() {
         </div>
       </div>
 
-      <div className="border-t border-[#1e2130] py-6 text-center space-x-4 text-xs text-[#3a3d4a]">
+      <div className="border-t border-[rgba(255,255,255,0.06)] py-6 text-center space-x-4 text-xs text-[#374151]">
         <Link href="/" className="hover:text-[#7C3AED]">Home</Link>
         <Link href="/study-rooms" className="hover:text-[#7C3AED]">Study Rooms</Link>
         <Link href="/focus-guide" className="hover:text-[#7C3AED]">Focus Guide</Link>

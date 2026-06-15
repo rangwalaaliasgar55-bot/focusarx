@@ -1,0 +1,541 @@
+# FOCUSARX CRITICAL FULL-SYSTEM AUDIT & RECOVERY
+
+STOP ADDING NEW FEATURES.
+
+STOP ADDING UI EFFECTS.
+
+STOP ADDING ANIMATIONS.
+
+The platform currently has multiple critical issues that indicate architecture, deployment, database, navigation, and product-structure problems.
+
+Before any new development, perform a complete system audit.
+
+---
+
+# PRIORITY 1 — DATABASE IS BROKEN
+
+Current production logs show schema mismatch failures.
+
+Errors found:
+
+## Missing Tables
+
+email_logs
+
+premium_subscriptions
+
+## Missing Columns
+
+conversation_participants.is_admin
+
+These errors indicate:
+
+Application Code > Database Schema
+
+The deployed code expects tables and columns that do not exist in production.
+
+This means migrations are not being applied correctly.
+
+---
+
+## REQUIRED DATABASE AUDIT
+
+Audit:
+
+* drizzle schema
+* migration files
+* migration history
+* deployment process
+* production database
+
+Generate:
+
+### Expected Tables
+
+### Existing Tables
+
+### Missing Tables
+
+### Missing Columns
+
+### Missing Indexes
+
+### Missing Foreign Keys
+
+### Missing Constraints
+
+### Migration Status
+
+### Failed Migrations
+
+Do not stop after finding current errors.
+
+Audit entire schema.
+
+---
+
+## DATABASE HEALTH CHECK
+
+Verify every table used by:
+
+Users
+
+Profiles
+
+Achievements
+
+Leaderboards
+
+Analytics
+
+Notifications
+
+Messaging
+
+DM System
+
+Community
+
+Challenges
+
+Goals
+
+Tasks
+
+Premium
+
+Email
+
+AI Systems
+
+Focus DNA
+
+Ghosts
+
+Replay
+
+Admin
+
+Settings
+
+All tables must exist.
+
+---
+
+# PRIORITY 2 — SIDEBAR REGRESSION
+
+The old sidebar functionality appears to have disappeared.
+
+Current dashboard shows:
+
+* Timer
+* XP
+* Level
+* Streak
+
+But many previously existing features are inaccessible.
+
+Perform audit.
+
+Determine:
+
+Which navigation items existed before.
+
+Which exist now.
+
+Which are hidden.
+
+Which are unreachable.
+
+Which routes still exist but have no navigation.
+
+Restore all functionality.
+
+---
+
+# PRIORITY 3 — ROUTING AUDIT
+
+Audit every route.
+
+Verify:
+
+Route exists.
+
+Page exists.
+
+Navigation exists.
+
+Permissions work.
+
+Authentication works.
+
+No orphan routes.
+
+No dead routes.
+
+No hidden pages.
+
+Generate route map.
+
+---
+
+# PRIORITY 4 — DASHBOARD ARCHITECTURE
+
+Current dashboard has major UX problems.
+
+Issues:
+
+* Center area wasted
+* Features not discoverable
+* Users cannot understand product scope
+* Important functionality hidden
+* Navigation weak
+* Product feels smaller than it actually is
+
+Redesign dashboard around discoverability.
+
+User should instantly understand:
+
+What FocusArx does.
+
+What they should do next.
+
+What features exist.
+
+What value they are getting.
+
+---
+
+# PRIORITY 5 — FEATURE DISCOVERY
+
+Create feature inventory.
+
+Audit:
+
+Every page.
+
+Every component.
+
+Every feature.
+
+Every module.
+
+Every API endpoint.
+
+Every hidden feature.
+
+Generate report:
+
+Implemented Features
+
+Partially Implemented Features
+
+Broken Features
+
+Hidden Features
+
+Unused Features
+
+Duplicate Features
+
+Then optimize.
+
+---
+
+# PRIORITY 6 — UI/UX AUDIT
+
+Review entire application.
+
+Audit:
+
+Typography
+
+Spacing
+
+Hierarchy
+
+Colors
+
+Accessibility
+
+Animations
+
+Loading states
+
+Empty states
+
+Error states
+
+Forms
+
+Navigation
+
+Consistency
+
+Fix all inconsistencies.
+
+---
+
+# PRIORITY 7 — MOBILE AUDIT
+
+Audit:
+
+iPhone
+
+Android
+
+Tablet
+
+Small screens
+
+Large screens
+
+Foldables
+
+Verify:
+
+No clipping
+
+No overflow
+
+No broken layouts
+
+No inaccessible actions
+
+Create mobile-first improvements.
+
+---
+
+# PRIORITY 8 — PERFORMANCE AUDIT
+
+Measure:
+
+Bundle size
+
+JS execution
+
+Render performance
+
+Animation performance
+
+Memory usage
+
+Database queries
+
+API response times
+
+Targets:
+
+60 FPS
+
+Fast page loads
+
+Efficient rendering
+
+Minimal waste
+
+---
+
+# PRIORITY 9 — SEO AUDIT
+
+Implement:
+
+sitemap.xml
+
+robots.txt
+
+OpenGraph
+
+Twitter Cards
+
+Canonical URLs
+
+Organization Schema
+
+Website Schema
+
+SoftwareApplication Schema
+
+FAQ Schema
+
+Breadcrumb Schema
+
+Metadata on every page.
+
+Optimize brand discovery for:
+
+FocusArx
+
+Focus Arx
+
+FocusArx AI
+
+FocusArx Productivity
+
+---
+
+# PRIORITY 10 — PREMIUM SYSTEM AUDIT
+
+Premium system currently failing.
+
+Endpoints failing:
+
+/api/premium/status
+
+/api/premium/activate
+
+Admin premium grants
+
+Audit:
+
+Database
+
+Backend
+
+Routes
+
+Permissions
+
+Frontend
+
+Fix entire premium architecture.
+
+---
+
+# PRIORITY 11 — EMAIL SYSTEM AUDIT
+
+email_logs table missing.
+
+Audit:
+
+Email infrastructure
+
+Email logging
+
+Templates
+
+Sending
+
+Tracking
+
+Bounce handling
+
+Admin tools
+
+Fix entire system.
+
+---
+
+# PRIORITY 12 — COMMUNITY & DM SYSTEM AUDIT
+
+Current DM system failing.
+
+conversation_participants.is_admin missing.
+
+Audit:
+
+Messaging
+
+Conversations
+
+Participants
+
+Permissions
+
+Unread counts
+
+Notifications
+
+Realtime functionality
+
+Fix all issues.
+
+---
+
+# PRIORITY 13 — CODE QUALITY
+
+Audit:
+
+Dead code
+
+Unused components
+
+Unused routes
+
+Unused APIs
+
+Duplicate logic
+
+Technical debt
+
+Refactor where needed.
+
+---
+
+# PRIORITY 14 — PRODUCT POSITIONING
+
+FocusArx should not feel like:
+
+"A timer app."
+
+It should feel like:
+
+"An AI-powered productivity operating system."
+
+Audit entire product experience and align every screen with this vision.
+
+---
+
+# FINAL EXECUTION
+
+Act as:
+
+Senior Software Architect
+
+Senior Product Manager
+
+Senior UX Designer
+
+Senior UI Designer
+
+Senior Database Engineer
+
+Senior DevOps Engineer
+
+Senior Growth Engineer
+
+Senior SEO Engineer
+
+Perform a complete audit.
+
+Generate findings.
+
+Fix critical issues.
+
+Restore missing functionality.
+
+Synchronize database.
+
+Verify routing.
+
+Verify navigation.
+
+Verify mobile.
+
+Verify SEO.
+
+Verify performance.
+
+Verify accessibility.
+
+Verify premium systems.
+
+Verify community systems.
+
+Verify messaging systems.
+
+Verify every feature.
+
+Only after all critical issues are resolved should new features or visual upgrades be implemented.
+
+The objective is to transform FocusArx into a stable, production-ready, premium platform with no hidden regressions, no broken systems, and a world-class user experience.

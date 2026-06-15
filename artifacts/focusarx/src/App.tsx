@@ -194,14 +194,14 @@ function SidePanel() {
       {/* Missed Task Review modal — fires once per day if there are unreviewed tasks */}
       <MissedTaskReview open={showReview} tasks={missedTasks} onDone={dismiss} />
 
-      <div className="rounded-2xl border border-[#1e2130] bg-[#111318] p-4">
+      <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-4">
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4a4f62] mb-3">Today's Stats</p>
         <div className="space-y-2.5">
           <div className="flex justify-between items-center">
             <span className="text-xs text-[#5a5f72]">Focus blocks</span>
             <span className="text-xs font-bold text-[#e8eaf0] font-mono">{focusSessionsToday}</span>
           </div>
-          <div className="h-[3px] bg-[#1e2130] rounded-full overflow-hidden">
+          <div className="h-[3px] bg-[rgba(255,255,255,0.06)] rounded-full overflow-hidden">
             <div className="h-full bg-[#6c63ff] rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (focusSessionsToday / 8) * 100)}%` }} />
           </div>
           {focusSessionsToday === 0 && (
@@ -221,7 +221,7 @@ function SidePanel() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-[#1e2130] bg-[#111318] p-4">
+      <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-4">
         {/* Active Tasks */}
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4a4f62] mb-2">Active Tasks</p>
         <div className="space-y-1 max-h-36 overflow-y-auto">
@@ -268,7 +268,7 @@ function SidePanel() {
         )}
 
         <form onSubmit={handleAddTask} className="mt-3 flex gap-1.5">
-          <input value={newTask} onChange={(e) => setNewTask(e.target.value)} placeholder="Add task…" className="flex-1 min-w-0 rounded-lg border border-[#1e2130] bg-[#0d0e14] px-2.5 py-1.5 text-xs text-[#e8eaf0] placeholder-[#3a3d4a] outline-none focus:border-[#6c63ff] transition-colors" />
+          <input value={newTask} onChange={(e) => setNewTask(e.target.value)} placeholder="Add task…" className="flex-1 min-w-0 rounded-lg border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.03)] px-2.5 py-1.5 text-xs text-[#E2E8F0] placeholder-[#374151] outline-none focus:border-[#6c63ff] transition-colors" />
           <button type="submit" className="rounded-lg border border-[#6c63ff]/50 bg-[#6c63ff]/10 px-2.5 py-1.5 text-xs font-semibold text-[#a5a8ff] hover:bg-[#6c63ff]/20 transition-colors">+</button>
         </form>
       </div>
@@ -278,7 +278,7 @@ function SidePanel() {
       <ProductivityScoreWidget />
       <MissionsWidget />
 
-      <div className="rounded-2xl border border-[#1e2130] bg-[#111318] p-4">
+      <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-4">
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4a4f62] mb-3">AI Camera</p>
         <FocusCamera />
       </div>
@@ -413,7 +413,7 @@ function MobileSidePanelDrawer() {
       <button
         aria-label="Open tasks & stats"
         onClick={() => setOpen(true)}
-        className="fixed bottom-[76px] md:bottom-5 right-4 z-40 flex items-center gap-2 rounded-full border border-[#2a2d3e] bg-[#181c28] px-4 py-2.5 text-xs font-semibold text-[#a5a8ff] shadow-lg shadow-black/40 transition-colors active:bg-[#1e2130] lg:hidden"
+        className="fixed bottom-[76px] md:bottom-5 right-4 z-40 flex items-center gap-2 rounded-full border border-[rgba(255,255,255,0.1)] bg-[rgba(15,17,30,0.9)] px-4 py-2.5 text-xs font-semibold text-[#A5A8FF] shadow-lg shadow-black/40 backdrop-blur-xl transition-colors active:bg-[rgba(255,255,255,0.08)] lg:hidden"
       >
         <ClipboardList size={14} />
         Tasks & Stats
@@ -437,9 +437,9 @@ function MobileSidePanelDrawer() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 300 }}
-              className="fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] rounded-t-2xl border-t border-[#1e2130] bg-[#0d0f14] lg:hidden"
+              className="fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] rounded-t-2xl border-t border-[rgba(255,255,255,0.08)] bg-[#0d0f1a] backdrop-blur-2xl lg:hidden"
             >
-              <div className="mx-auto mt-3 h-1.5 w-16 rounded-full bg-[#1e2130]" />
+              <div className="mx-auto mt-3 h-1.5 w-16 rounded-full bg-[rgba(255,255,255,0.1)]" />
               <div className="flex items-center justify-between px-5 py-3">
                 <span className="text-sm font-semibold text-[#E2E8F0]">Tasks & Stats</span>
                 <button onClick={() => setOpen(false)} className="text-[#4B5563] active:text-[#94A3B8]">
@@ -472,28 +472,48 @@ function RootPage() {
   return <HomePage />;
 }
 
+function FocusChamberHeader() {
+  const { data: session } = useAuth();
+  const { focusSessionsToday } = useSessionHistory();
+  const user = session?.user;
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const firstName = user?.name?.split(" ")[0] || user?.email?.split("@")[0] || "there";
+  return (
+    <div className="flex items-center justify-between px-5 py-3 border-b border-[rgba(255,255,255,0.04)] shrink-0">
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="text-[13px] font-semibold text-[#E2E8F0] hidden sm:block">{greeting}, <span className="text-[#A78BFA]">{firstName}</span></span>
+        {focusSessionsToday > 0 && (
+          <span className="flex items-center gap-1 rounded-full border border-orange-500/20 bg-orange-500/08 px-2 py-0.5 text-[10px] font-bold text-orange-400">
+            🔥 {focusSessionsToday} {focusSessionsToday === 1 ? "session" : "sessions"} today
+          </span>
+        )}
+      </div>
+      <CoinXPBar focusSessionsToday={focusSessionsToday} />
+    </div>
+  );
+}
+
 function HomePage() {
-  function handleHeroStart() { window.scrollTo({ top: 0, behavior: "smooth" }); }
   const feedback = useFeedbackTrigger();
   return (
     <SessionRecoveryProvider>
-      <div className="flex flex-col min-h-[100dvh]">
-        <HomeTopBar />
-        <div className="flex-1 flex flex-col lg:flex-row gap-4 p-4 sm:p-6 overflow-auto">
-          <div className="flex-1 flex flex-col items-center gap-4">
-            <HeroBanner onStart={handleHeroStart} />
+      <div className="flex flex-col min-h-[100dvh] focus-chamber">
+        <FocusChamberHeader />
+        <div className="flex-1 flex flex-col lg:flex-row gap-0 overflow-auto">
+          {/* Timer area */}
+          <div className="flex-1 flex flex-col items-center justify-start gap-3 px-4 sm:px-6 py-6 lg:py-8">
             <div className="w-full flex flex-col items-center">
               <Timer onSessionComplete={feedback.recordSession} />
               <MotivationalLine />
             </div>
-            <FeatureSpotlight />
+            <DailyGoal />
           </div>
-          {/* Desktop sidebar */}
-          <div className="hidden lg:block">
+          {/* Desktop side panel */}
+          <div className="hidden lg:flex lg:flex-col lg:w-[300px] xl:w-[320px] shrink-0 border-l border-[rgba(255,255,255,0.04)]">
             <SidePanel />
           </div>
         </div>
-        {/* Mobile floating drawer trigger */}
         <MobileSidePanelDrawer />
         <ReadinessCheckInModal />
         <FeedbackModal open={feedback.show} onClose={feedback.dismiss} onSubmit={feedback.onSubmit} />

@@ -191,7 +191,7 @@ function DailyHabitsWidget() {
       {habits.length > 6 && (
         <Link to="/habits" className="mt-2 block text-center text-xs text-[#4B5563] hover:text-[#7C3AED]">+{habits.length - 6} more habits →</Link>
       )}
-      <div className="mt-3 h-1.5 w-full rounded-full bg-[#1a1d2e] overflow-hidden">
+      <div className="mt-3 h-1.5 w-full rounded-full bg-[rgba(255,255,255,0.06)] overflow-hidden">
         <div className="h-full rounded-full bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] transition-all" style={{ width: `${habits.length ? (done / habits.length) * 100 : 0}%` }} />
       </div>
     </div>
@@ -238,7 +238,7 @@ function ActiveMissionsWidget() {
                 <p className="text-xs text-[#CBD5E1] truncate flex-1 mr-2">{m.icon} {m.title}</p>
                 <span className="text-[10px] text-[#4B5563] shrink-0">{m.progress}/{m.target}</span>
               </div>
-              <div className="h-1 w-full rounded-full bg-[#1a1d2e] overflow-hidden">
+              <div className="h-1 w-full rounded-full bg-[rgba(255,255,255,0.06)] overflow-hidden">
                 <div className="h-full rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 transition-all" style={{ width: `${pct}%` }} />
               </div>
             </div>
@@ -350,7 +350,7 @@ function GoalsWidget() {
           </div>
         )}
       </div>
-      <div className="h-1.5 rounded-full bg-[#1a1d2e] overflow-hidden">
+      <div className="h-1.5 rounded-full bg-[rgba(255,255,255,0.06)] overflow-hidden">
         <div className="h-full rounded-full bg-gradient-to-r from-[#7C3AED] to-[#A78BFA] transition-all" style={{ width: `${pct}%` }} />
       </div>
     </div>
@@ -358,6 +358,63 @@ function GoalsWidget() {
 }
 
 const SESSION_EMOJIS: Record<string, string> = { focus: "🧠", break: "☕", longBreak: "🌊" };
+
+function DashboardCommandBar({ stats, loading }: { stats: DashboardStats | null; loading: boolean }) {
+  const { data: session } = useAuth();
+  const user = session?.user;
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const firstName = user?.name?.split(" ")[0] || user?.email?.split("@")[0] || "there";
+
+  return (
+    <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-gradient-to-r from-[rgba(124,58,237,0.08)] via-[rgba(79,70,229,0.05)] to-transparent p-5 mb-6">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#4B5563] mb-1">Command Center</p>
+          <h2 className="text-xl font-bold text-[#E2E8F0]">
+            {greeting}, <span className="text-[#A78BFA]">{firstName}</span>
+          </h2>
+          <p className="text-[12px] text-[#4B5563] mt-1">
+            {loading ? "Loading your stats…" : stats
+              ? stats.sessionsToday === 0
+                ? "No sessions today yet. Start your first block now →"
+                : `${stats.sessionsToday} session${stats.sessionsToday !== 1 ? "s" : ""} completed · ${stats.totalStudyMinutesToday}m focused today`
+              : "Ready to build deep focus habits."}
+          </p>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          <Link href="/" className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] px-4 py-2 text-[12px] font-bold text-white hover:opacity-90 transition-opacity shadow-lg shadow-[rgba(124,58,237,0.2)]">
+            <Zap size={12} /> Start Focus
+          </Link>
+          <Link href="/habits" className="flex items-center gap-1.5 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.03)] px-4 py-2 text-[12px] font-semibold text-[#94A3B8] hover:bg-[rgba(255,255,255,0.06)] transition-colors">
+            <CheckCircle size={12} /> Tasks
+          </Link>
+          <Link href="/goals" className="flex items-center gap-1.5 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.03)] px-4 py-2 text-[12px] font-semibold text-[#94A3B8] hover:bg-[rgba(255,255,255,0.06)] transition-colors">
+            <Flag size={12} /> Goals
+          </Link>
+        </div>
+      </div>
+      {stats && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-[rgba(255,255,255,0.05)]">
+          {[
+            { icon: Flame,        label: "Streak",    value: `${stats.currentStreak}d`,             color: "#F97316" },
+            { icon: Clock,        label: "Today",     value: `${stats.totalStudyMinutesToday}m`,    color: "#A78BFA" },
+            { icon: Target,       label: "Sessions",  value: `${stats.sessionsToday}`,              color: "#FFB800" },
+            { icon: CheckCircle,  label: "Tasks",     value: `${stats.completedTasks}`,             color: "#4ADE80" },
+          ].map(({ icon: Icon, label, value, color }) => (
+            <div key={label} className="flex items-center gap-2.5 rounded-xl border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.02)] px-3 py-2.5">
+              <Icon size={14} style={{ color }} className="shrink-0" />
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-[#374151]">{label}</p>
+                <p className="text-[15px] font-bold tabular-nums" style={{ color }}>{value}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const { status } = useAuth();
@@ -390,14 +447,9 @@ export default function DashboardPage() {
       <div className="pointer-events-none absolute inset-0" aria-hidden>
         <div className="absolute -left-32 top-0 h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.1),transparent_68%)] blur-2xl" />
       </div>
-      <main className="relative z-10 mx-auto max-w-3xl px-4 py-10">
+      <main className="relative z-10 mx-auto max-w-3xl px-4 py-8">
         <PageTransition>
-          <header className="mb-8">
-            <p className="text-xs font-medium uppercase tracking-[0.22em] text-[#4B5563]">Your progress</p>
-            <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold text-[#E2E8F0] sm:text-3xl">
-              <LayoutDashboard size={22} className="text-[#A78BFA]" /> Dashboard
-            </h1>
-          </header>
+          <DashboardCommandBar stats={stats} loading={loading && status !== "unauthenticated"} />
 
           {status === "unauthenticated" && (
             <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-8 text-center backdrop-blur-xl">
@@ -411,7 +463,7 @@ export default function DashboardPage() {
           {loading && status !== "unauthenticated" && (
             <div className="space-y-4">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-24 animate-pulse rounded-2xl bg-zinc-900/50" />
+                <div key={i} className="h-24 animate-pulse rounded-2xl bg-[rgba(255,255,255,0.03)]" />
               ))}
             </div>
           )}

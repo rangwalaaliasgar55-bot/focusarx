@@ -26,8 +26,8 @@ export default function ProductivityScoreWidget() {
   const strokeDashoffset = circumference * (1 - arcProgress);
 
   return (
-    <div className="rounded-2xl border border-[#1e2130] bg-[#111318] p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4a4f62] mb-3">Productivity Score</p>
+    <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-4">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4B5563] mb-3">Productivity Score</p>
       <div className="flex items-center gap-4">
         <div className="relative flex items-center justify-center">
           <svg width="72" height="72" viewBox="0 0 72 72" className="-rotate-90">
@@ -45,7 +45,7 @@ export default function ProductivityScoreWidget() {
           <span className="absolute text-base font-black" style={{ color: scoreColor }}>{Math.round(score)}</span>
         </div>
         <div className="flex-1">
-          <p className="text-xs text-[#5a5f72] mb-1">
+          <p className="text-xs text-[#4B5563] mb-1">
             {score >= 80 ? "🔥 Elite performance" : score >= 60 ? "📈 On track" : "⚠️ Needs focus"}
           </p>
           <div className="flex items-center gap-1.5">
@@ -55,7 +55,7 @@ export default function ProductivityScoreWidget() {
             </span>
           </div>
           {data.focusMinutesToday > 0 && (
-            <p className="text-[10px] text-[#4a4f62] mt-1">{data.focusMinutesToday}m focused today</p>
+            <p className="text-[10px] text-[#4B5563] mt-1">{data.focusMinutesToday}m focused today</p>
           )}
         </div>
       </div>
@@ -66,8 +66,8 @@ export default function ProductivityScoreWidget() {
           { label: "Streak", value: data.currentStreak ?? 0, suffix: "d 🔥" },
         ].map(m => (
           <div key={m.label} className="rounded-lg bg-[#0d0e14] border border-[#1a1d24] px-2 py-1.5 text-center">
-            <p className="text-xs font-bold text-[#e8eaf0]">{m.value}{m.suffix}</p>
-            <p className="text-[9px] text-[#4a4f62] mt-0.5">{m.label}</p>
+            <p className="text-xs font-bold text-[#E2E8F0]">{m.value}{m.suffix}</p>
+            <p className="text-[9px] text-[#4B5563] mt-0.5">{m.label}</p>
           </div>
         ))}
       </div>

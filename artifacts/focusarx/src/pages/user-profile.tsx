@@ -14,10 +14,10 @@ async function apiFetch(path: string, opts?: RequestInit) {
 
 function StatBubble({ icon: Icon, label, value, color = "#7C3AED" }: { icon: React.ComponentType<any>; label: string; value: string | number; color?: string }) {
   return (
-    <div className="flex flex-col items-center rounded-2xl border border-[#1e2130] bg-[#111318] p-4 gap-1">
+    <div className="flex flex-col items-center rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-4 gap-1">
       <Icon size={16} style={{ color }} />
-      <p className="text-xl font-black text-[#e8eaf0]">{value}</p>
-      <p className="text-[10px] text-[#4a4f62] uppercase tracking-wider text-center">{label}</p>
+      <p className="text-xl font-black text-[#E2E8F0]">{value}</p>
+      <p className="text-[10px] text-[#4B5563] uppercase tracking-wider text-center">{label}</p>
     </div>
   );
 }
@@ -61,15 +61,15 @@ export default function UserProfilePage() {
 
   if (isLoading) return (
     <div className="flex justify-center items-center min-h-screen">
-      <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#1e2130] border-t-[#7C3AED]" />
+      <div className="h-10 w-10 animate-spin rounded-full border-2 border-[rgba(255,255,255,0.06)] border-t-[#7C3AED]" />
     </div>
   );
 
   if (error || !profile) return (
-    <div className="min-h-screen bg-[#0a0c12] flex flex-col items-center justify-center text-center p-6">
+    <div className="min-h-screen bg-[rgba(255,255,255,0.02)] flex flex-col items-center justify-center text-center p-6">
       <p className="text-6xl mb-4">👤</p>
-      <h1 className="text-2xl font-bold text-[#e8eaf0] mb-2">Profile not found</h1>
-      <p className="text-[#4a4f62] mb-6">No user with the username "{username}" exists.</p>
+      <h1 className="text-2xl font-bold text-[#E2E8F0] mb-2">Profile not found</h1>
+      <p className="text-[#4B5563] mb-6">No user with the username "{username}" exists.</p>
       <Link href="/" className="rounded-xl bg-[#7C3AED] px-5 py-2.5 text-sm font-semibold text-white">Go Home</Link>
     </div>
   );
@@ -79,11 +79,11 @@ export default function UserProfilePage() {
   const color = colors[initials.charCodeAt(0) % colors.length];
 
   return (
-    <div className="min-h-screen bg-[#0a0c12] text-[#e8eaf0]">
+    <div className="min-h-screen bg-[rgba(255,255,255,0.02)] text-[#E2E8F0]">
       {/* Hero banner */}
-      <div className="relative h-28 sm:h-36 bg-gradient-to-br from-[#7C3AED]/30 to-[#4F46E5]/20 border-b border-[#1e2130]">
+      <div className="relative h-28 sm:h-36 bg-gradient-to-br from-[#7C3AED]/30 to-[#4F46E5]/20 border-b border-[rgba(255,255,255,0.06)]">
         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_30%_50%,_#7C3AED,_transparent_70%)]" />
-        <Link href="/" className="absolute top-4 left-4 flex items-center gap-1.5 text-xs text-[#5a5f72] hover:text-[#e8eaf0] transition-colors">
+        <Link href="/" className="absolute top-4 left-4 flex items-center gap-1.5 text-xs text-[#4B5563] hover:text-[#E2E8F0] transition-colors">
           <ArrowLeft size={13} /> Back
         </Link>
       </div>
@@ -104,11 +104,11 @@ export default function UserProfilePage() {
         {/* Name + bio */}
         <div className="mb-5">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-2xl font-black text-[#e8eaf0]">{profile.name}</h1>
+            <h1 className="text-2xl font-black text-[#E2E8F0]">{profile.name}</h1>
             {profile.prestige > 0 && <span className="flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400 font-bold"><Crown size={10} /> Prestige {profile.prestige}</span>}
           </div>
-          {profile.bio && <p className="text-sm text-[#5a5f72] mt-1.5 leading-relaxed">{profile.bio}</p>}
-          <div className="flex items-center gap-3 mt-2 text-xs text-[#4a4f62]">
+          {profile.bio && <p className="text-sm text-[#4B5563] mt-1.5 leading-relaxed">{profile.bio}</p>}
+          <div className="flex items-center gap-3 mt-2 text-xs text-[#4B5563]">
             <span className="flex items-center gap-1"><Users size={11} /> {profile.friendCount} friends</span>
             <span>·</span>
             <span>Joined {new Date(profile.joinedAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>
@@ -117,12 +117,12 @@ export default function UserProfilePage() {
         </div>
 
         {/* Level bar */}
-        <div className="rounded-2xl border border-[#7C3AED]/30 bg-[#111318] p-4 mb-5">
+        <div className="rounded-2xl border border-[#7C3AED]/30 bg-[rgba(255,255,255,0.025)] p-4 mb-5">
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2"><Zap size={15} className="text-[#7C3AED]" /><span className="text-sm font-bold text-[#e8eaf0]">Level {level}</span>{profile.prestige > 0 && <span className="text-[10px] font-bold text-amber-400">✦ P{profile.prestige}</span>}</div>
-            <span className="text-xs text-[#4a4f62]">{xp.toLocaleString()} XP</span>
+            <div className="flex items-center gap-2"><Zap size={15} className="text-[#7C3AED]" /><span className="text-sm font-bold text-[#E2E8F0]">Level {level}</span>{profile.prestige > 0 && <span className="text-[10px] font-bold text-amber-400">✦ P{profile.prestige}</span>}</div>
+            <span className="text-xs text-[#4B5563]">{xp.toLocaleString()} XP</span>
           </div>
-          <div className="h-2 rounded-full bg-[#1e2130] overflow-hidden">
+          <div className="h-2 rounded-full bg-[rgba(255,255,255,0.06)] overflow-hidden">
             <div className="h-full rounded-full bg-gradient-to-r from-[#7C3AED] to-[#a78bfa] transition-all" style={{ width: `${Math.min(100, (xp / levelXpRequired(level)) * 100)}%` }} />
           </div>
         </div>
@@ -139,13 +139,13 @@ export default function UserProfilePage() {
 
         {/* Recent badges */}
         {profile.recentBadges?.length > 0 && (
-          <div className="rounded-2xl border border-[#1e2130] bg-[#111318] p-4 mb-8">
-            <p className="text-xs font-semibold uppercase tracking-widest text-[#4a4f62] mb-3">Recent Badges</p>
+          <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-4 mb-8">
+            <p className="text-xs font-semibold uppercase tracking-widest text-[#4B5563] mb-3">Recent Badges</p>
             <div className="flex flex-wrap gap-2">
               {profile.recentBadges.map((b: string) => (
-                <div key={b} className="flex items-center gap-1.5 rounded-full border border-[#1e2130] bg-[#0a0c12] px-3 py-1.5 text-sm">
+                <div key={b} className="flex items-center gap-1.5 rounded-full border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] px-3 py-1.5 text-sm">
                   <span>{BADGE_EMOJI[b] ?? "🏆"}</span>
-                  <span className="text-xs text-[#5a5f72] capitalize">{b.replace(/_/g, " ")}</span>
+                  <span className="text-xs text-[#4B5563] capitalize">{b.replace(/_/g, " ")}</span>
                 </div>
               ))}
             </div>

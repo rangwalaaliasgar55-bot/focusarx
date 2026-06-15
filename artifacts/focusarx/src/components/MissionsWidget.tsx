@@ -70,9 +70,9 @@ export default function MissionsWidget() {
     return (
       <div className="rounded-2xl border border-[rgba(124,58,237,0.15)] bg-[rgba(13,15,26,0.6)] p-4 backdrop-blur-xl">
         <div className="animate-pulse space-y-2">
-          <div className="h-3 w-24 rounded bg-[#1a1d2e]" />
-          <div className="h-8 w-full rounded bg-[#1a1d2e]" />
-          <div className="h-8 w-full rounded bg-[#1a1d2e]" />
+          <div className="h-3 w-24 rounded bg-[rgba(255,255,255,0.025)]" />
+          <div className="h-8 w-full rounded bg-[rgba(255,255,255,0.025)]" />
+          <div className="h-8 w-full rounded bg-[rgba(255,255,255,0.025)]" />
         </div>
       </div>
     );
@@ -98,7 +98,7 @@ export default function MissionsWidget() {
             </span>
           )}
         </div>
-        <Link href="/missions" className="flex items-center gap-1 text-[10px] text-[#4a4f62] hover:text-[#A78BFA] transition-colors">
+        <Link href="/missions" className="flex items-center gap-1 text-[10px] text-[#4B5563] hover:text-[#A78BFA] transition-colors">
           View all <ChevronRight size={10} />
         </Link>
       </div>
@@ -106,11 +106,11 @@ export default function MissionsWidget() {
       {/* Progress bar */}
       {stats && (
         <div className="mb-3">
-          <div className="flex justify-between text-[9px] text-[#4a4f62] mb-1">
+          <div className="flex justify-between text-[9px] text-[#4B5563] mb-1">
             <span>{stats.dailyCompleted}/{stats.totalDaily} completed</span>
             <span>{Math.round((stats.dailyCompleted / Math.max(stats.totalDaily, 1)) * 100)}%</span>
           </div>
-          <div className="h-1 rounded-full bg-[#1a1d2e] overflow-hidden">
+          <div className="h-1 rounded-full bg-[rgba(255,255,255,0.025)] overflow-hidden">
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-[#7c3aed] to-[#a78bfa]"
               initial={{ width: 0 }}
@@ -126,7 +126,7 @@ export default function MissionsWidget() {
         {displayMissions.length === 0 ? (
           <div className="text-center py-4">
             <p className="text-2xl mb-1">🎯</p>
-            <p className="text-xs text-[#4a4f62]">All daily missions done!</p>
+            <p className="text-xs text-[#4B5563]">All daily missions done!</p>
             <Link href="/missions" className="text-[10px] text-[#A78BFA] hover:underline">Check weekly missions →</Link>
           </div>
         ) : (
@@ -140,14 +140,14 @@ export default function MissionsWidget() {
                 className={`rounded-xl p-3 border transition-colors ${
                   canClaim
                     ? "border-[rgba(34,211,135,0.3)] bg-[rgba(34,211,135,0.05)]"
-                    : "border-[#1a1d2e] bg-[rgba(255,255,255,0.02)]"
+                    : "border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)]"
                 }`}
               >
                 <div className="flex items-start gap-2.5">
                   <span className="text-lg leading-none mt-0.5 shrink-0">{m.icon}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-medium text-[#e8eaf0] truncate">{m.title}</span>
+                      <span className="text-xs font-medium text-[#E2E8F0] truncate">{m.title}</span>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <span className="text-[9px] text-[#a78bfa] font-semibold">+{m.xpReward}xp</span>
                         {canClaim && (
@@ -163,7 +163,7 @@ export default function MissionsWidget() {
                         )}
                       </div>
                     </div>
-                    <div className="mt-1.5 h-1 w-full rounded-full bg-[#1a1d2e] overflow-hidden">
+                    <div className="mt-1.5 h-1 w-full rounded-full bg-[rgba(255,255,255,0.025)] overflow-hidden">
                       <motion.div
                         className="h-full rounded-full"
                         style={{
@@ -177,7 +177,7 @@ export default function MissionsWidget() {
                       />
                     </div>
                     <div className="flex justify-between mt-0.5">
-                      <span className="text-[9px] text-[#4a4f62]">
+                      <span className="text-[9px] text-[#4B5563]">
                         {m.completed ? "✓ Complete" : `${m.currentValue}/${m.targetValue}`}
                       </span>
                       <span className="text-[9px]" style={{ color: DIFF_COLOR[m.difficulty] ?? "#7c3aed" }}>
@@ -200,7 +200,7 @@ export default function MissionsWidget() {
           className="mt-3 rounded-xl border border-[rgba(34,211,135,0.3)] bg-[rgba(34,211,135,0.06)] p-3 text-center"
         >
           <p className="text-xs font-semibold text-[#22d387]">🏆 All daily missions complete!</p>
-          <Link href="/missions" className="mt-1 block text-[10px] text-[#5a5f72] hover:text-[#22d387] transition-colors">
+          <Link href="/missions" className="mt-1 block text-[10px] text-[#4B5563] hover:text-[#22d387] transition-colors">
             Check weekly missions →
           </Link>
         </motion.div>

@@ -33,3 +33,5 @@
 - [SEO system](seo-system.md) — domain is focusarx.site; PageSEO component in src/components/PageSEO.tsx; PAGE_SEO record has presets for all pages; 6 JSON-LD schemas in index.html; sitemap has 23 URLs (leaderboard removed — it's in robots.txt Disallow)
 - [Googlebot mobile redirect bug](googlebot-redirect.md) — MobileWelcomeGate redirected Googlebot to /welcome; Googlebot mobile UA contains "Android" which isMobileDevice() matched; fix: bot UA check + expanded publicPaths skip list
 - [Pre-GitHub audit fixes](pre-github-audit.md) — adminCms.ts had dual @workspace/db import (consolidated); dashboard widgets used return null on load (replaced with skeletons); social.tsx queries lacked isError extraction (added); leaderboard had silent error catch (now tracks fetchError state with UI badge)
+- [PageHeader component](page-header.md) — reusable src/components/PageHeader.tsx with icon/badge/title/subtitle/breadcrumbs/actions; badgeColor prop controls accent; all inner pages should use it
+- [Design system color tokens](design-color-tokens.md) — hardcoded dark colors (#0a0c12, #111318, #1e2130) replaced app-wide with rgba tokens; never add new hardcoded hex darks

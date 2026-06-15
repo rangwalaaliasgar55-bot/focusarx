@@ -68,9 +68,9 @@ export default function DailyGoal() {
   };
 
   return (
-    <div className="rounded-2xl border border-[#1e2130] bg-[#111318] p-4">
+    <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-4">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4a4f62]">Daily Goal</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4B5563]">Daily Goal</p>
         {!editing && (
           <button
             onClick={startEdit}
@@ -85,7 +85,7 @@ export default function DailyGoal() {
         <div className="relative shrink-0">
           <Ring pct={pct} size={68} stroke={6} color={color} />
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-xs font-black text-[#e8eaf0] leading-none">
+            <span className="text-xs font-black text-[#E2E8F0] leading-none">
               {Math.min(Math.round(pct), 100)}%
             </span>
           </div>
@@ -101,13 +101,13 @@ export default function DailyGoal() {
               Goal smashed! 🎉
             </motion.p>
           ) : (
-            <p className="text-xs font-semibold text-[#e8eaf0]">
+            <p className="text-xs font-semibold text-[#E2E8F0]">
               {fmtTime(focusMinutesToday)}{" "}
-              <span className="font-normal text-[#4a4f62]">of {fmtTime(goalMinutes)}</span>
+              <span className="font-normal text-[#4B5563]">of {fmtTime(goalMinutes)}</span>
             </p>
           )}
           {!isComplete && (
-            <p className="text-[10px] text-[#4a4f62] mt-0.5">
+            <p className="text-[10px] text-[#4B5563] mt-0.5">
               {focusMinutesToday === 0
                 ? "Start your first session!"
                 : `${fmtTime(Math.max(0, goalMinutes - focusMinutesToday))} to go`}
@@ -130,7 +130,7 @@ export default function DailyGoal() {
               <button onClick={commitEdit} className="text-[10px] text-[#7C3AED] hover:text-[#A78BFA]">Save</button>
             </div>
           ) : (
-            <div className="mt-2 h-1.5 rounded-full bg-[#1e2130] overflow-hidden">
+            <div className="mt-2 h-1.5 rounded-full bg-[rgba(255,255,255,0.06)] overflow-hidden">
               <motion.div
                 className="h-full rounded-full"
                 style={{ background: color }}

@@ -8,6 +8,7 @@ import {
 } from "recharts";
 import { getToken } from "@/lib/auth";
 import { PageTransition } from "@/components/PageTransition";
+import PageHeader from "@/components/PageHeader";
 import { format, parseISO } from "date-fns";
 
 interface AnalyticsData {
@@ -117,12 +118,12 @@ export default function AnalyticsPage() {
       </div>
       <main className="relative z-10 mx-auto max-w-4xl px-4 py-10">
         <PageTransition>
-          <header className="mb-8">
-            <p className="text-xs font-medium uppercase tracking-[0.22em] text-[#4B5563]">Insights</p>
-            <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold text-[#E2E8F0] sm:text-3xl">
-              <TrendingUp size={24} className="text-[#06D6A0]" /> Analytics
-            </h1>
-          </header>
+          <PageHeader
+            icon={<TrendingUp size={18} className="text-[#06D6A0]" />}
+            badgeColor="#06D6A0"
+            title="Analytics"
+            subtitle="Your deep focus patterns and performance trends"
+          />
 
           {loading ? (
             <div className="flex h-48 items-center justify-center">

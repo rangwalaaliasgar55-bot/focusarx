@@ -64,17 +64,17 @@ const TECHNIQUES: Technique[] = [
 
 export default function StudyTechniquesPage() {
   return (
-    <div className="min-h-screen bg-[#0a0c12] text-[#e8eaf0]">
+    <div className="min-h-screen bg-[rgba(255,255,255,0.02)] text-[#E2E8F0]">
       <PageSEO {...PAGE_SEO.studyTechniques} />
 
       {/* Hero */}
-      <div className="relative overflow-hidden border-b border-[#1e2130]">
+      <div className="relative overflow-hidden border-b border-[rgba(255,255,255,0.06)]">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,_rgba(34,211,135,0.12),_transparent_70%)]" />
         <div className="relative max-w-3xl mx-auto px-4 sm:px-6 py-20 text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-400 mb-6">
             <BookOpen size={12} /> Evidence-Based Learning
           </div>
-          <h1 className="text-3xl sm:text-5xl font-black text-[#e8eaf0] mb-4 leading-tight">
+          <h1 className="text-3xl sm:text-5xl font-black text-[#E2E8F0] mb-4 leading-tight">
             Study Smarter,<br />
             <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">Not Harder</span>
           </h1>
@@ -89,27 +89,27 @@ export default function StudyTechniquesPage() {
 
       {/* Techniques */}
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 space-y-6">
-        <h2 className="text-xl font-black text-[#e8eaf0] mb-2">The 6 Techniques</h2>
+        <h2 className="text-xl font-black text-[#E2E8F0] mb-2">The 6 Techniques</h2>
         <p className="text-[#6b7280] text-sm mb-8">Ranked roughly by evidence strength. Spaced repetition and active recall consistently outperform all other methods in randomized controlled studies.</p>
         {TECHNIQUES.map((t, i) => (
-          <div key={t.name} className="rounded-2xl border border-[#1e2130] bg-[#111318] p-6 hover:border-[#7C3AED]/30 transition-colors">
+          <div key={t.name} className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-6 hover:border-[#7C3AED]/30 transition-colors">
             <div className="flex items-start gap-4">
               <div className="h-10 w-10 shrink-0 rounded-xl flex items-center justify-center" style={{ background: `${t.color}18`, border: `1px solid ${t.color}30` }}>
                 <t.icon size={18} style={{ color: t.color }} />
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-bold text-[#4a4f62]">#{i + 1}</span>
-                  <h3 className="font-black text-[#e8eaf0] text-lg">{t.name}</h3>
+                  <span className="text-xs font-bold text-[#4B5563]">#{i + 1}</span>
+                  <h3 className="font-black text-[#E2E8F0] text-lg">{t.name}</h3>
                 </div>
                 <p className="text-sm italic text-[#6b7280] mb-4">{t.tagline}</p>
                 <div className="space-y-3">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-[#4a4f62] mb-1">Best for</p>
+                    <p className="text-xs font-bold uppercase tracking-wider text-[#4B5563] mb-1">Best for</p>
                     <p className="text-sm text-[#8b8fa8]">{t.when}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-[#4a4f62] mb-1">How to do it</p>
+                    <p className="text-xs font-bold uppercase tracking-wider text-[#4B5563] mb-1">How to do it</p>
                     <p className="text-sm text-[#8b8fa8] leading-relaxed">{t.how}</p>
                   </div>
                 </div>
@@ -123,20 +123,20 @@ export default function StudyTechniquesPage() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pb-16">
         <div className="rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/8 to-teal-500/5 p-10 text-center">
           <BookOpen size={32} className="text-emerald-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-black text-[#e8eaf0] mb-3">Put these techniques into practice</h2>
+          <h2 className="text-2xl font-black text-[#E2E8F0] mb-3">Put these techniques into practice</h2>
           <p className="text-[#6b7280] mb-6 max-w-md mx-auto text-sm">FocusArx helps you schedule sessions, track focus quality with AI, and stay accountable with friends — all free.</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link href="/register" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-7 py-3 text-sm font-bold text-white hover:opacity-90 transition-opacity">
               Start Free <ArrowRight size={15} />
             </Link>
-            <Link href="/pomodoro-guide" className="inline-flex items-center gap-2 rounded-xl border border-[#1e2130] px-6 py-3 text-sm font-medium text-[#a78bfa] hover:border-[#7C3AED]/40 transition-colors">
+            <Link href="/pomodoro-guide" className="inline-flex items-center gap-2 rounded-xl border border-[rgba(255,255,255,0.06)] px-6 py-3 text-sm font-medium text-[#a78bfa] hover:border-[#7C3AED]/40 transition-colors">
               Pomodoro Technique →
             </Link>
           </div>
         </div>
       </div>
 
-      <div className="border-t border-[#1e2130] py-6 text-center space-x-4 text-xs text-[#3a3d4a]">
+      <div className="border-t border-[rgba(255,255,255,0.06)] py-6 text-center space-x-4 text-xs text-[#374151]">
         <Link href="/" className="hover:text-[#7C3AED]">Home</Link>
         <Link href="/focus-guide" className="hover:text-[#7C3AED]">Focus Guide</Link>
         <Link href="/pomodoro-guide" className="hover:text-[#7C3AED]">Pomodoro Guide</Link>

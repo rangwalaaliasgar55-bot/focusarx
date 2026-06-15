@@ -77,7 +77,7 @@ async function claimMission(key: string): Promise<{ ok: boolean; xpEarned: numbe
 function ProgressBar({ current, target, completed }: { current: number; target: number; completed: boolean }) {
   const pct = completed ? 100 : Math.min(99, Math.round((current / Math.max(target, 1)) * 100));
   return (
-    <div className="h-1.5 w-full rounded-full bg-[#1a1d2e] overflow-hidden">
+    <div className="h-1.5 w-full rounded-full bg-[rgba(255,255,255,0.025)] overflow-hidden">
       <motion.div
         className="h-full rounded-full"
         style={{
@@ -106,10 +106,10 @@ function MissionCard({ mission, onClaim, claiming }: { mission: MissionDef; onCl
       exit={{ opacity: 0, y: -8 }}
       className={`relative rounded-2xl border p-4 transition-all duration-200 ${
         mission.rewardClaimed
-          ? "border-[#1a1d2e] bg-[#0d0f1a] opacity-60"
+          ? "border-[rgba(255,255,255,0.06)] bg-[#0d0f1a] opacity-60"
           : mission.completed
           ? "border-[rgba(34,211,135,0.35)] bg-[rgba(34,211,135,0.05)]"
-          : "border-[#1a1d2e] bg-[#0d0f1a] hover:border-[rgba(124,58,237,0.3)]"
+          : "border-[rgba(255,255,255,0.06)] bg-[#0d0f1a] hover:border-[rgba(124,58,237,0.3)]"
       }`}
     >
       {mission.completed && !mission.rewardClaimed && (
@@ -125,7 +125,7 @@ function MissionCard({ mission, onClaim, claiming }: { mission: MissionDef; onCl
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-            <span className="text-sm font-semibold text-[#e8eaf0]">{mission.title}</span>
+            <span className="text-sm font-semibold text-[#E2E8F0]">{mission.title}</span>
             <span
               className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider"
               style={{ color: diff.color, background: diff.bg, border: `1px solid ${diff.border}` }}
@@ -138,12 +138,12 @@ function MissionCard({ mission, onClaim, claiming }: { mission: MissionDef; onCl
               </span>
             )}
           </div>
-          <p className="text-xs text-[#5a5f72] mb-3">{mission.description}</p>
+          <p className="text-xs text-[#4B5563] mb-3">{mission.description}</p>
 
           <ProgressBar current={mission.currentValue} target={mission.targetValue} completed={mission.completed} />
 
           <div className="flex items-center justify-between mt-2">
-            <span className="text-[10px] text-[#4a4f62]">
+            <span className="text-[10px] text-[#4B5563]">
               {mission.completed ? "✓ Complete!" : `${mission.currentValue} / ${mission.targetValue}`}
             </span>
             <div className="flex items-center gap-3">
@@ -173,18 +173,18 @@ function StatCard({ label, value, total, icon }: { label: string; value: number;
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
   return (
     <TiltCard intensity={8}>
-      <div className="rounded-2xl border border-[#1a1d2e] bg-[#0d0f1a] p-4 flex flex-col gap-2 shadow-3d">
+      <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#0d0f1a] p-4 flex flex-col gap-2 shadow-3d">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-[#5a5f72]">{icon}<span className="text-[10px] font-semibold uppercase tracking-[0.12em]">{label}</span></div>
+          <div className="flex items-center gap-2 text-[#4B5563]">{icon}<span className="text-[10px] font-semibold uppercase tracking-[0.12em]">{label}</span></div>
           <motion.span
-            className="text-sm font-bold text-[#e8eaf0]"
+            className="text-sm font-bold text-[#E2E8F0]"
             key={value}
             initial={{ scale: 1.3, color: "#A78BFA" }}
             animate={{ scale: 1, color: "#e8eaf0" }}
             transition={{ duration: 0.4 }}
           >{value}/{total}</motion.span>
         </div>
-        <div className="h-1.5 rounded-full bg-[#1a1d2e] overflow-hidden">
+        <div className="h-1.5 rounded-full bg-[rgba(255,255,255,0.025)] overflow-hidden">
           <motion.div
             className="h-full rounded-full animate-wave-bar"
             initial={{ width: 0 }}
@@ -240,14 +240,18 @@ export default function MissionsPage() {
       <div className="min-h-[100dvh] px-4 py-6 sm:px-6 lg:px-8 max-w-3xl mx-auto">
 
         {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-1">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7c3aed] to-[#a78bfa] shadow-[0_0_20px_rgba(124,58,237,0.4)]">
-              <Target size={20} className="text-white" />
+        <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#a78bfa] shadow-[0_0_20px_rgba(124,58,237,0.3)]">
+              <Target size={18} className="text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-[#e8eaf0] tracking-tight">Daily Missions</h1>
-              <p className="text-xs text-[#5a5f72]">Complete missions to earn XP & coins</p>
+              <div className="mb-0.5 inline-flex items-center gap-1.5 rounded-full bg-[rgba(124,58,237,0.1)] border border-[rgba(124,58,237,0.2)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-[#A78BFA]">
+                <span className="h-1 w-1 rounded-full bg-[#A78BFA] animate-pulse" />
+                Quests
+              </div>
+              <h1 className="text-2xl font-bold text-[#E2E8F0] tracking-tight leading-none">Missions</h1>
+              <p className="text-[12px] text-[#4B5563] mt-0.5">Complete missions to earn XP & coins</p>
             </div>
           </div>
         </div>
@@ -261,7 +265,7 @@ export default function MissionsPage() {
         )}
 
         {/* Tab switcher */}
-        <div className="flex rounded-xl border border-[#1a1d2e] bg-[#080c1c] p-1 mb-5">
+        <div className="flex rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-1 mb-5">
           {(["daily", "weekly"] as const).map((t) => (
             <button
               key={t}
@@ -269,7 +273,7 @@ export default function MissionsPage() {
               className={`flex-1 rounded-lg py-2 text-xs font-semibold uppercase tracking-wider transition-all duration-200 ${
                 tab === t
                   ? "bg-[rgba(124,58,237,0.2)] text-[#a78bfa] shadow-sm"
-                  : "text-[#4a4f62] hover:text-[#6b7280]"
+                  : "text-[#4B5563] hover:text-[#6b7280]"
               }`}
             >
               {t === "daily" ? `⚡ Daily (${hoursLeft}h left)` : `📅 Weekly (${daysToMonday}d left)`}
@@ -289,7 +293,7 @@ export default function MissionsPage() {
               <span className="text-2xl">🎉</span>
               <div>
                 <p className="text-sm font-bold text-[#22d387]">Reward Claimed!</p>
-                <p className="text-xs text-[#5a5f72]">+{claimedReward.xp} XP · +{claimedReward.coins} coins</p>
+                <p className="text-xs text-[#4B5563]">+{claimedReward.xp} XP · +{claimedReward.coins} coins</p>
               </div>
             </motion.div>
           )}
@@ -297,8 +301,8 @@ export default function MissionsPage() {
 
         {isLoading && (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#1a1d2e] border-t-[#7c3aed]" />
-            <p className="text-xs text-[#4a4f62]">Loading missions…</p>
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[rgba(255,255,255,0.06)] border-t-[#7c3aed]" />
+            <p className="text-xs text-[#4B5563]">Loading missions…</p>
           </div>
         )}
 
@@ -332,7 +336,7 @@ export default function MissionsPage() {
             {/* Active */}
             {activeMissions.length > 0 && (
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#4a4f62] mb-2 mt-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#4B5563] mb-2 mt-4">
                   In Progress ({activeMissions.length})
                 </p>
                 <div className="space-y-2">
@@ -370,8 +374,8 @@ export default function MissionsPage() {
             {missions.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
                 <span className="text-4xl">🎯</span>
-                <p className="text-sm font-semibold text-[#e8eaf0]">No missions found</p>
-                <p className="text-xs text-[#4a4f62]">Start a focus session to unlock missions!</p>
+                <p className="text-sm font-semibold text-[#E2E8F0]">No missions found</p>
+                <p className="text-xs text-[#4B5563]">Start a focus session to unlock missions!</p>
               </div>
             )}
           </div>

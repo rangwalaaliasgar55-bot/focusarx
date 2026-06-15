@@ -20,7 +20,7 @@ interface Props {
 type Action = "keep" | "move_today" | "archive" | "delete";
 
 const ACTIONS: { id: Action; label: string; desc: string; color: string }[] = [
-  { id: "keep", label: "Keep Task", desc: "Stay on active list", color: "bg-[#1e2130] border-[#2a2d3a] text-[#e8eaf0] hover:border-[#7C3AED]/50" },
+  { id: "keep", label: "Keep Task", desc: "Stay on active list", color: "bg-[rgba(255,255,255,0.06)] border-[#2a2d3a] text-[#E2E8F0] hover:border-[#7C3AED]/50" },
   { id: "move_today", label: "Move to Today", desc: "Set due date to today", color: "bg-[#7C3AED]/10 border-[#7C3AED]/30 text-[#a78bfa] hover:bg-[#7C3AED]/20" },
   { id: "archive", label: "Archive", desc: "Store for later reference", color: "bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20" },
   { id: "delete", label: "Delete", desc: "Remove permanently", color: "bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20" },
@@ -69,7 +69,7 @@ export default function MissedTaskReview({ open, tasks, onDone }: Props) {
     if (p === "urgent") return "text-red-400 bg-red-500/10 border-red-500/20";
     if (p === "high") return "text-orange-400 bg-orange-500/10 border-orange-500/20";
     if (p === "medium") return "text-amber-400 bg-amber-500/10 border-amber-500/20";
-    return "text-[#5a5f72] bg-[#1e2130] border-[#2a2d3a]";
+    return "text-[#4B5563] bg-[rgba(255,255,255,0.06)] border-[#2a2d3a]";
   };
 
   return (
@@ -78,25 +78,25 @@ export default function MissedTaskReview({ open, tasks, onDone }: Props) {
         initial={{ opacity: 0, scale: 0.95, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 16 }}
-        className="w-full max-w-md rounded-2xl border border-[#1e2130] bg-[#111318] shadow-2xl overflow-hidden"
+        className="w-full max-w-md rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] shadow-2xl overflow-hidden"
       >
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 border-b border-[#1e2130]">
+        <div className="px-6 pt-6 pb-4 border-b border-[rgba(255,255,255,0.06)]">
           <div className="flex items-center gap-3 mb-1">
             <span className="text-2xl">📋</span>
             <div>
-              <h2 className="text-base font-bold text-[#e8eaf0]">Daily Task Review</h2>
-              <p className="text-xs text-[#4a4f62]">You didn't complete these tasks yesterday</p>
+              <h2 className="text-base font-bold text-[#E2E8F0]">Daily Task Review</h2>
+              <p className="text-xs text-[#4B5563]">You didn't complete these tasks yesterday</p>
             </div>
           </div>
           <div className="flex items-center gap-2 mt-3">
-            <div className="flex-1 h-1.5 bg-[#1e2130] rounded-full overflow-hidden">
+            <div className="flex-1 h-1.5 bg-[rgba(255,255,255,0.06)] rounded-full overflow-hidden">
               <div
                 className="h-full bg-[#7C3AED] rounded-full transition-all duration-500"
                 style={{ width: `${((current) / tasks.length) * 100}%` }}
               />
             </div>
-            <span className="text-xs text-[#4a4f62] font-mono shrink-0">{current + 1}/{tasks.length}</span>
+            <span className="text-xs text-[#4B5563] font-mono shrink-0">{current + 1}/{tasks.length}</span>
           </div>
         </div>
 
@@ -110,19 +110,19 @@ export default function MissedTaskReview({ open, tasks, onDone }: Props) {
             transition={{ duration: 0.2 }}
             className="px-6 py-5"
           >
-            <div className="rounded-xl border border-[#1e2130] bg-[#0a0c12] p-4 mb-4">
+            <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] p-4 mb-4">
               <div className="flex items-start gap-3">
                 <span className="mt-0.5 text-lg">⚠️</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[#e8eaf0] leading-snug">{task?.text}</p>
+                  <p className="text-sm font-medium text-[#E2E8F0] leading-snug">{task?.text}</p>
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
                     {task?.category && task.category !== "General" && (
-                      <span className="rounded-full border border-[#2a2d3a] bg-[#1e2130] px-2 py-0.5 text-[10px] text-[#5a5f72]">{task.category}</span>
+                      <span className="rounded-full border border-[#2a2d3a] bg-[rgba(255,255,255,0.06)] px-2 py-0.5 text-[10px] text-[#4B5563]">{task.category}</span>
                     )}
                     {task?.priority && (
                       <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${priorityColor(task.priority)}`}>{task.priority}</span>
                     )}
-                    <span className="text-[10px] text-[#4a4f62]">
+                    <span className="text-[10px] text-[#4B5563]">
                       Created {new Date(task?.createdAt ?? "").toLocaleDateString()}
                     </span>
                   </div>
@@ -130,7 +130,7 @@ export default function MissedTaskReview({ open, tasks, onDone }: Props) {
               </div>
             </div>
 
-            <p className="text-xs text-[#4a4f62] mb-3 font-medium">What would you like to do?</p>
+            <p className="text-xs text-[#4B5563] mb-3 font-medium">What would you like to do?</p>
             <div className="grid grid-cols-2 gap-2">
               {ACTIONS.map(a => (
                 <button
@@ -149,10 +149,10 @@ export default function MissedTaskReview({ open, tasks, onDone }: Props) {
 
         {/* Footer */}
         <div className="px-6 pb-5 flex items-center justify-between">
-          <p className="text-[10px] text-[#3a3d4a]">{doneCount} resolved · {tasks.length - doneCount} remaining</p>
+          <p className="text-[10px] text-[#374151]">{doneCount} resolved · {tasks.length - doneCount} remaining</p>
           <button
             onClick={onDone}
-            className="text-xs text-[#4a4f62] hover:text-[#6b7080] transition-colors"
+            className="text-xs text-[#4B5563] hover:text-[#6b7080] transition-colors"
           >
             Skip all →
           </button>

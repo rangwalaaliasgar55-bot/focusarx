@@ -8,8 +8,8 @@ function Section({ children, className = "" }: { children: React.ReactNode; clas
 
 function FAQ({ q, a }: { q: string; a: string }) {
   return (
-    <div className="rounded-2xl border border-[#1e2130] bg-[#111318] p-5">
-      <p className="font-semibold text-[#e8eaf0] mb-2">{q}</p>
+    <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-5">
+      <p className="font-semibold text-[#E2E8F0] mb-2">{q}</p>
       <p className="text-sm text-[#6b7280] leading-relaxed">{a}</p>
     </div>
   );
@@ -44,17 +44,17 @@ const FAQS = [
 
 export default function FocusGuidePage() {
   return (
-    <div className="min-h-screen bg-[#0a0c12] text-[#e8eaf0]">
+    <div className="min-h-screen bg-[rgba(255,255,255,0.02)] text-[#E2E8F0]">
       <PageSEO {...PAGE_SEO.focusGuide} />
 
       {/* Hero */}
-      <div className="relative overflow-hidden border-b border-[#1e2130]">
+      <div className="relative overflow-hidden border-b border-[rgba(255,255,255,0.06)]">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,_rgba(124,58,237,0.18),_transparent_70%)]" />
         <Section className="relative py-20 text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-[#7C3AED]/30 bg-[#7C3AED]/10 px-3 py-1.5 text-xs font-semibold text-[#a78bfa] mb-6">
             <Brain size={12} /> Free Guide
           </div>
-          <h1 className="text-3xl sm:text-5xl font-black text-[#e8eaf0] mb-4 leading-tight">
+          <h1 className="text-3xl sm:text-5xl font-black text-[#E2E8F0] mb-4 leading-tight">
             The Ultimate<br />
             <span className="bg-gradient-to-r from-[#7C3AED] to-[#a78bfa] bg-clip-text text-transparent">Focus Guide</span>
           </h1>
@@ -65,7 +65,7 @@ export default function FocusGuidePage() {
             <Link href="/register" className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] px-6 py-3 text-sm font-bold text-white hover:opacity-90 transition-opacity">
               Start Focusing Free <ArrowRight size={15} />
             </Link>
-            <Link href="/leaderboard" className="flex items-center gap-2 rounded-xl border border-[#1e2130] bg-[#111318] px-6 py-3 text-sm font-medium text-[#a78bfa] hover:border-[#7C3AED]/40 transition-colors">
+            <Link href="/leaderboard" className="flex items-center gap-2 rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] px-6 py-3 text-sm font-medium text-[#a78bfa] hover:border-[#7C3AED]/40 transition-colors">
               <Users size={14} /> See Top Students
             </Link>
           </div>
@@ -74,7 +74,7 @@ export default function FocusGuidePage() {
 
       {/* Core principles */}
       <Section className="py-16">
-        <h2 className="text-2xl font-black text-[#e8eaf0] mb-2">The 5 Laws of Deep Focus</h2>
+        <h2 className="text-2xl font-black text-[#E2E8F0] mb-2">The 5 Laws of Deep Focus</h2>
         <p className="text-[#6b7280] mb-8">Science-backed principles used by top performers worldwide.</p>
         <div className="grid sm:grid-cols-2 gap-4">
           {[
@@ -85,10 +85,10 @@ export default function FocusGuidePage() {
             { icon: TrendingUp, title: "Track and Reflect", body: "What gets measured gets managed. Review your weekly session data in FocusArx Analytics to identify your peak hours and best study conditions.", color: "#f87171" },
             { icon: Users, title: "Study with Accountability", body: "People with study buddies are 65% more likely to hit their goals. Join Study Rooms and friend-leaderboards to harness social accountability.", color: "#a78bfa" },
           ].map(({ icon: Icon, title, body, color }) => (
-            <div key={title} className="rounded-2xl border border-[#1e2130] bg-[#111318] p-5 hover:border-[#7C3AED]/30 transition-colors">
+            <div key={title} className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-5 hover:border-[#7C3AED]/30 transition-colors">
               <div className="flex items-center gap-2 mb-3">
                 <Icon size={16} style={{ color }} />
-                <h3 className="font-bold text-[#e8eaf0]">{title}</h3>
+                <h3 className="font-bold text-[#E2E8F0]">{title}</h3>
               </div>
               <p className="text-sm text-[#6b7280] leading-relaxed">{body}</p>
             </div>
@@ -97,8 +97,8 @@ export default function FocusGuidePage() {
       </Section>
 
       {/* Pomodoro step by step */}
-      <Section className="py-12 border-t border-[#1e2130]">
-        <h2 className="text-2xl font-black text-[#e8eaf0] mb-2">How Pomodoro Works</h2>
+      <Section className="py-12 border-t border-[rgba(255,255,255,0.06)]">
+        <h2 className="text-2xl font-black text-[#E2E8F0] mb-2">How Pomodoro Works</h2>
         <p className="text-[#6b7280] mb-8">The world's most popular focus system, step by step.</p>
         <div className="space-y-4">
           {[
@@ -111,7 +111,7 @@ export default function FocusGuidePage() {
             <div key={step} className="flex gap-4 items-start">
               <div className="h-8 w-8 shrink-0 rounded-full bg-[#7C3AED]/20 border border-[#7C3AED]/40 flex items-center justify-center text-sm font-black text-[#a78bfa]">{step}</div>
               <div>
-                <p className="font-bold text-[#e8eaf0] mb-1">{title}</p>
+                <p className="font-bold text-[#E2E8F0] mb-1">{title}</p>
                 <p className="text-sm text-[#6b7280] leading-relaxed">{body}</p>
               </div>
             </div>
@@ -120,8 +120,8 @@ export default function FocusGuidePage() {
       </Section>
 
       {/* FAQ */}
-      <Section className="py-12 border-t border-[#1e2130]">
-        <h2 className="text-2xl font-black text-[#e8eaf0] mb-2">Frequently Asked Questions</h2>
+      <Section className="py-12 border-t border-[rgba(255,255,255,0.06)]">
+        <h2 className="text-2xl font-black text-[#E2E8F0] mb-2">Frequently Asked Questions</h2>
         <p className="text-[#6b7280] mb-8">Everything you need to know about focus and FocusArx.</p>
         <div className="space-y-3">
           {FAQS.map(f => <FAQ key={f.q} {...f} />)}
@@ -129,10 +129,10 @@ export default function FocusGuidePage() {
       </Section>
 
       {/* CTA */}
-      <Section className="py-16 text-center border-t border-[#1e2130]">
+      <Section className="py-16 text-center border-t border-[rgba(255,255,255,0.06)]">
         <div className="rounded-3xl border border-[#7C3AED]/30 bg-gradient-to-br from-[#7C3AED]/10 to-[#4F46E5]/5 p-10">
           <CheckCircle size={32} className="text-[#7C3AED] mx-auto mb-4" />
-          <h2 className="text-2xl font-black text-[#e8eaf0] mb-3">Ready to build your focus habit?</h2>
+          <h2 className="text-2xl font-black text-[#E2E8F0] mb-3">Ready to build your focus habit?</h2>
           <p className="text-[#6b7280] mb-6 max-w-md mx-auto">Start your first Pomodoro session in under 60 seconds. Free forever — no credit card needed.</p>
           <Link href="/register" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] px-8 py-3 text-sm font-bold text-white hover:opacity-90 transition-opacity">
             Create Free Account <ArrowRight size={15} />
@@ -141,7 +141,7 @@ export default function FocusGuidePage() {
       </Section>
 
       {/* Footer links */}
-      <div className="border-t border-[#1e2130] py-6 text-center space-x-4 text-xs text-[#3a3d4a]">
+      <div className="border-t border-[rgba(255,255,255,0.06)] py-6 text-center space-x-4 text-xs text-[#374151]">
         <Link href="/" className="hover:text-[#7C3AED]">Home</Link>
         <Link href="/leaderboard" className="hover:text-[#7C3AED]">Leaderboard</Link>
         <Link href="/study-rooms" className="hover:text-[#7C3AED]">Study Rooms</Link>
