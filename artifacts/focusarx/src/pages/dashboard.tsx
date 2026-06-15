@@ -1,7 +1,10 @@
 import { useEffect, useState, useMemo } from "react";
 import { Link } from "wouter";
+import { motion } from "framer-motion";
 import { useAuth, getToken } from "@/lib/auth";
 import { PageTransition } from "@/components/PageTransition";
+import { TiltCard, StaggerContainer, StaggerItem } from "@/components/TiltCard";
+import { AnimatedCounter } from "@/components/AnimatedCounter";
 import FocusGarden from "@/components/FocusGarden";
 import FocusCity from "@/components/FocusCity";
 import ReadinessWidget from "@/components/ReadinessWidget";
@@ -428,20 +431,32 @@ export default function DashboardPage() {
               <FocusCity />
 
               {/* Focus Garden + Stats grid */}
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="rounded-2xl border border-[rgba(74,222,128,0.2)] bg-[rgba(74,222,128,0.04)] p-5 backdrop-blur-xl flex flex-col items-center">
-                  <FocusGarden minutesToday={stats.totalStudyMinutesToday} />
-                </div>
+              <StaggerContainer className="grid gap-4 sm:grid-cols-3">
+                <StaggerItem>
+                  <div className="rounded-2xl border border-[rgba(74,222,128,0.2)] bg-[rgba(74,222,128,0.04)] p-5 backdrop-blur-xl flex flex-col items-center">
+                    <FocusGarden minutesToday={stats.totalStudyMinutesToday} />
+                  </div>
+                </StaggerItem>
                 <div className="sm:col-span-2 grid grid-cols-3 gap-3">
-                  {overviewCards.map(({ icon: Icon, label, value, color }) => (
-                    <div key={label} className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-3 text-center backdrop-blur-xl hover:-translate-y-0.5 transition-transform">
-                      <Icon size={14} className="mx-auto mb-1" style={{ color }} />
-                      <p className="text-[9px] uppercase tracking-wider text-[#4B5563]">{label}</p>
-                      <p className="mt-0.5 text-base font-bold" style={{ color }}>{value}</p>
-                    </div>
+                  {overviewCards.map(({ icon: Icon, label, value, color }, i) => (
+                    <StaggerItem key={label}>
+                      <TiltCard intensity={8} className="h-full">
+                        <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-3 text-center backdrop-blur-xl shadow-3d-violet h-full">
+                          <motion.div
+                            whileHover={{ scale: 1.15, rotate: 5 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                            className="mx-auto mb-1 inline-flex"
+                          >
+                            <Icon size={14} style={{ color }} />
+                          </motion.div>
+                          <p className="text-[9px] uppercase tracking-wider text-[#4B5563]">{label}</p>
+                          <p className="mt-0.5 text-base font-bold tabular-nums" style={{ color }}>{value}</p>
+                        </div>
+                      </TiltCard>
+                    </StaggerItem>
                   ))}
                 </div>
-              </div>
+              </StaggerContainer>
 
               {/* Bar chart */}
               <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-6 backdrop-blur-xl">

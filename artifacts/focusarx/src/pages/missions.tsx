@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getToken } from "@/lib/auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageTransition } from "@/components/PageTransition";
+import { TiltCard, StaggerContainer, StaggerItem } from "@/components/TiltCard";
 import { Target, Zap, CheckCircle2, Lock, Trophy, Flame, Clock, ListTodo, Star, ChevronRight, Gift } from "lucide-react";
 
 interface MissionDef {
@@ -171,20 +172,28 @@ function MissionCard({ mission, onClaim, claiming }: { mission: MissionDef; onCl
 function StatCard({ label, value, total, icon }: { label: string; value: number; total: number; icon: React.ReactNode }) {
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
   return (
-    <div className="rounded-2xl border border-[#1a1d2e] bg-[#0d0f1a] p-4 flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-[#5a5f72]">{icon}<span className="text-[10px] font-semibold uppercase tracking-[0.12em]">{label}</span></div>
-        <span className="text-sm font-bold text-[#e8eaf0]">{value}/{total}</span>
+    <TiltCard intensity={8}>
+      <div className="rounded-2xl border border-[#1a1d2e] bg-[#0d0f1a] p-4 flex flex-col gap-2 shadow-3d">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-[#5a5f72]">{icon}<span className="text-[10px] font-semibold uppercase tracking-[0.12em]">{label}</span></div>
+          <motion.span
+            className="text-sm font-bold text-[#e8eaf0]"
+            key={value}
+            initial={{ scale: 1.3, color: "#A78BFA" }}
+            animate={{ scale: 1, color: "#e8eaf0" }}
+            transition={{ duration: 0.4 }}
+          >{value}/{total}</motion.span>
+        </div>
+        <div className="h-1.5 rounded-full bg-[#1a1d2e] overflow-hidden">
+          <motion.div
+            className="h-full rounded-full animate-wave-bar"
+            initial={{ width: 0 }}
+            animate={{ width: `${pct}%` }}
+            transition={{ duration: 1, ease: "easeOut" }}
+          />
+        </div>
       </div>
-      <div className="h-1.5 rounded-full bg-[#1a1d2e] overflow-hidden">
-        <motion.div
-          className="h-full rounded-full bg-gradient-to-r from-[#7c3aed] to-[#a78bfa]"
-          initial={{ width: 0 }}
-          animate={{ width: `${pct}%` }}
-          transition={{ duration: 1, ease: "easeOut" }}
-        />
-      </div>
-    </div>
+    </TiltCard>
   );
 }
 

@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { AnimatePresence, motion, motion as m } from "framer-motion";
+import ThreeBackground from "@/components/ThreeBackground";
 import LoadingScreen from "@/components/LoadingScreen";
 import CursorEffect from "@/components/CursorEffect";
 const LandingPage = lazy(() => import("@/pages/landing"));
@@ -42,6 +43,8 @@ import FeatureSpotlight from "@/components/FeatureSpotlight";
 import DailyRewardBanner from "@/components/DailyRewardBanner";
 import { RewardToastProvider } from "@/components/ui/RewardToast";
 import { LiveActivityTicker } from "@/components/LiveActivityTicker";
+import { FocusMoodWidget } from "@/components/FocusMoodWidget";
+import { FloatingParticles } from "@/components/FloatingParticles";
 
 const OnboardingPage = lazy(() => import("@/pages/onboarding"));
 const DistractionsPage = lazy(() => import("@/pages/distractions"));
@@ -253,6 +256,7 @@ function SidePanel() {
         </form>
       </div>
 
+      <FocusMoodWidget />
       <DailyGoal />
       <ProductivityScoreWidget />
       <MissionsWidget />
@@ -504,11 +508,11 @@ function RoutedContent() {
     <AnimatePresence mode="wait" initial={false}>
       <motion.div
         key={location}
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -4 }}
-        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-        style={{ willChange: "transform, opacity", height: "100%" }}
+        initial={{ opacity: 0, y: 14, scale: 0.993, filter: "blur(5px)" }}
+        animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+        exit={{ opacity: 0, y: -8, scale: 0.995, filter: "blur(3px)" }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        style={{ willChange: "transform, opacity, filter", height: "100%" }}
       >
         <Suspense fallback={<PageLoader />}>
           <Switch>
@@ -626,6 +630,8 @@ function App() {
       <AuthProvider>
         <RewardToastProvider>
         <ToastProvider>
+          <ThreeBackground />
+          <FloatingParticles count={14} />
           <LoadingScreen onDone={() => setLoading(false)} />
           {!loading && (
             <>

@@ -280,12 +280,34 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         initial={{ x: -20, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className="app-sidebar hidden md:flex"
+        className="app-sidebar hidden md:flex sidebar-ambient"
         style={{
           background: "linear-gradient(180deg, rgba(8,9,20,0.98) 0%, rgba(5,6,16,0.99) 100%)",
           borderRight: "1px solid rgba(124,58,237,0.15)",
         }}
       >
+        {/* Ambient aurora glow orbs */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-none" aria-hidden>
+          <motion.div
+            className="absolute -top-10 -left-10 h-32 w-32 rounded-full"
+            style={{ background: "radial-gradient(circle, rgba(124,58,237,0.18) 0%, transparent 70%)", filter: "blur(20px)" }}
+            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
+            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div
+            className="absolute bottom-20 -left-8 h-24 w-24 rounded-full"
+            style={{ background: "radial-gradient(circle, rgba(6,214,160,0.1) 0%, transparent 70%)", filter: "blur(18px)" }}
+            animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0.6, 0.3] }}
+            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          />
+          <motion.div
+            className="absolute top-1/2 -right-4 h-16 w-16 rounded-full"
+            style={{ background: "radial-gradient(circle, rgba(79,70,229,0.15) 0%, transparent 70%)", filter: "blur(15px)" }}
+            animate={{ scale: [0.8, 1.2, 0.8], opacity: [0.2, 0.5, 0.2] }}
+            transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 4 }}
+          />
+        </div>
+
         {/* Logo header */}
         <div className="relative flex items-center gap-3 px-4 py-5 border-b border-[rgba(124,58,237,0.12)]">
           <div className="absolute inset-0 bg-gradient-to-b from-[rgba(124,58,237,0.05)] to-transparent" />

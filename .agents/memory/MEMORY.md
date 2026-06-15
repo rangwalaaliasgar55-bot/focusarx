@@ -28,3 +28,5 @@
 - [Socket.io dev proxy](socketio-dev-proxy.md) — Vite dev server must proxy /socket.io to API port (ws:true) or WebSocket connections timeout; production reverse proxy handles this automatically
 - [Landing page & guest disable](landing-guest.md) — "/" in NO_SHELL hides AppShell; GuestBootstrap returns null (no auto-guest); LoadingScreen shown on first mount via App loading state
 - [Page transitions](page-transitions.md) — RoutedContent uses AnimatePresence+motion.div keyed on location; PageTransition component wraps legal/static pages; marquee keyframe in index.css
+- [WebGL sandbox fallback](webgl-fallback.md) — Replit sandbox has no GPU; ThreeBackground sniffs canUseWebGL() in useEffect before rendering Canvas; falls back to CSS Framer Motion orbs
+- [3D animations system](3d-animations.md) — TiltCard/FloatCard/StaggerContainer/StaggerItem in TiltCard.tsx; FloatingParticles/PageAmbientOrbs in FloatingParticles.tsx; FocusMoodWidget energy check-in in SidePanel

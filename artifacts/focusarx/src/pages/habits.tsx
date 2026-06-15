@@ -1,8 +1,10 @@
 import { useState, useMemo } from "react";
+import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getToken } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
 import { Plus, Flame, CheckCircle2, Circle, BarChart2, Archive, X, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { TiltCard } from "@/components/TiltCard";
 
 async function apiFetch(path: string, opts?: RequestInit) {
   const token = getToken();
@@ -125,7 +127,8 @@ function HabitCard({ habit, onComplete, onUncomplete, onDelete }: { habit: any; 
   const [showHeatmap, setShowHeatmap] = useState(false);
 
   return (
-    <div className="rounded-2xl border border-[#1e2130] bg-[#111318] p-4 transition-all hover:border-[#7C3AED]/20">
+    <TiltCard intensity={6}>
+    <div className="rounded-2xl border border-[#1e2130] bg-[#111318] p-4 transition-all hover:border-[#7C3AED]/20 shadow-3d">
       <div className="flex items-center gap-3">
         <button
           onClick={habit.completedToday ? onUncomplete : onComplete}
@@ -173,6 +176,7 @@ function HabitCard({ habit, onComplete, onUncomplete, onDelete }: { habit: any; 
         </div>
       )}
     </div>
+    </TiltCard>
   );
 }
 

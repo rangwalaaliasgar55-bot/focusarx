@@ -4,6 +4,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
 import { ArrowUpRight, ArrowDownLeft, Coins, Zap, TrendingUp, Calendar } from "lucide-react";
 import { PAGE, CARD, STAGGER } from "@/lib/animations";
+import { TiltCard, StaggerContainer, StaggerItem } from "@/components/TiltCard";
 
 function authHeaders() {
   const t = getToken();
@@ -64,36 +65,44 @@ export default function WalletPage() {
 
         {/* Stats row */}
         {wallet && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <motion.div variants={CARD} className="rounded-2xl border border-[rgba(245,158,11,0.2)] bg-[rgba(245,158,11,0.06)] p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xl">🪙</span>
-                <span className="text-[10px] text-[#F59E0B] font-semibold uppercase tracking-wider">Coins</span>
+          <StaggerContainer className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <StaggerItem><TiltCard intensity={10}>
+              <div className="rounded-2xl border border-[rgba(245,158,11,0.2)] bg-[rgba(245,158,11,0.06)] p-4 shadow-3d-violet">
+                <div className="flex items-center gap-2 mb-2">
+                  <motion.span className="text-xl" whileHover={{ scale: 1.3, rotate: 15 }} transition={{ type: "spring", stiffness: 400 }}>🪙</motion.span>
+                  <span className="text-[10px] text-[#F59E0B] font-semibold uppercase tracking-wider">Coins</span>
+                </div>
+                <p className="text-2xl font-bold text-[#F59E0B]">{wallet.coins.toLocaleString()}</p>
               </div>
-              <p className="text-2xl font-bold text-[#F59E0B]">{wallet.coins.toLocaleString()}</p>
-            </motion.div>
-            <motion.div variants={CARD} className="rounded-2xl border border-[rgba(124,58,237,0.2)] bg-[rgba(124,58,237,0.06)] p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Zap size={14} className="text-[#A78BFA]" />
-                <span className="text-[10px] text-[#A78BFA] font-semibold uppercase tracking-wider">Total XP</span>
+            </TiltCard></StaggerItem>
+            <StaggerItem><TiltCard intensity={10}>
+              <div className="rounded-2xl border border-[rgba(124,58,237,0.2)] bg-[rgba(124,58,237,0.06)] p-4 shadow-3d-violet">
+                <div className="flex items-center gap-2 mb-2">
+                  <motion.div whileHover={{ scale: 1.2, rotate: -10 }}><Zap size={14} className="text-[#A78BFA]" /></motion.div>
+                  <span className="text-[10px] text-[#A78BFA] font-semibold uppercase tracking-wider">Total XP</span>
+                </div>
+                <p className="text-2xl font-bold text-[#A78BFA]">{wallet.totalXp.toLocaleString()}</p>
               </div>
-              <p className="text-2xl font-bold text-[#A78BFA]">{wallet.totalXp.toLocaleString()}</p>
-            </motion.div>
-            <motion.div variants={CARD} className="rounded-2xl border border-[rgba(6,214,160,0.2)] bg-[rgba(6,214,160,0.06)] p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp size={14} className="text-[#06D6A0]" />
-                <span className="text-[10px] text-[#06D6A0] font-semibold uppercase tracking-wider">Weekly XP</span>
+            </TiltCard></StaggerItem>
+            <StaggerItem><TiltCard intensity={10}>
+              <div className="rounded-2xl border border-[rgba(6,214,160,0.2)] bg-[rgba(6,214,160,0.06)] p-4 shadow-3d-violet">
+                <div className="flex items-center gap-2 mb-2">
+                  <motion.div whileHover={{ scale: 1.2, y: -2 }}><TrendingUp size={14} className="text-[#06D6A0]" /></motion.div>
+                  <span className="text-[10px] text-[#06D6A0] font-semibold uppercase tracking-wider">Weekly XP</span>
+                </div>
+                <p className="text-2xl font-bold text-[#06D6A0]">{wallet.weeklyXp.toLocaleString()}</p>
               </div>
-              <p className="text-2xl font-bold text-[#06D6A0]">{wallet.weeklyXp.toLocaleString()}</p>
-            </motion.div>
-            <motion.div variants={CARD} className="rounded-2xl border border-[rgba(255,184,0,0.2)] bg-[rgba(255,184,0,0.06)] p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xl">🏅</span>
-                <span className="text-[10px] text-[#FFB800] font-semibold uppercase tracking-wider">Level</span>
+            </TiltCard></StaggerItem>
+            <StaggerItem><TiltCard intensity={10}>
+              <div className="rounded-2xl border border-[rgba(255,184,0,0.2)] bg-[rgba(255,184,0,0.06)] p-4 shadow-3d-violet">
+                <div className="flex items-center gap-2 mb-2">
+                  <motion.span className="text-xl" animate={{ rotate: [0, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}>🏅</motion.span>
+                  <span className="text-[10px] text-[#FFB800] font-semibold uppercase tracking-wider">Level</span>
+                </div>
+                <p className="text-2xl font-bold text-[#FFB800]">{wallet.level}</p>
               </div>
-              <p className="text-2xl font-bold text-[#FFB800]">{wallet.level}</p>
-            </motion.div>
-          </div>
+            </TiltCard></StaggerItem>
+          </StaggerContainer>
         )}
 
         {/* XP bar */}

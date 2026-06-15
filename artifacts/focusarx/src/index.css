@@ -476,6 +476,163 @@ input, select, textarea {
 .radial-glow-teal   { background: radial-gradient(circle at center, rgba(6,214,160,0.15) 0%, transparent 70%); }
 .radial-glow-gold   { background: radial-gradient(circle at center, rgba(255,184,0,0.15) 0%, transparent 70%); }
 
+/* ═══════════════════════════════════════════════════
+   3D PERSPECTIVE & ENHANCED ANIMATION UTILITIES
+   ═══════════════════════════════════════════════════ */
+
+/* Aurora background sweep */
+@keyframes aurora-sweep {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.aurora-bg {
+  background: linear-gradient(-45deg, rgba(124,58,237,0.15), rgba(79,70,229,0.1), rgba(6,214,160,0.08), rgba(124,58,237,0.12));
+  background-size: 400% 400%;
+  animation: aurora-sweep 12s ease infinite;
+}
+
+/* Perspective card hover */
+.perspective-card {
+  perspective: 1000px;
+  transform-style: preserve-3d;
+}
+
+/* Glow border sweep */
+@keyframes border-glow-sweep {
+  0%   { box-shadow: 0 0 0 1px rgba(124,58,237,0.2), -2px 0 12px rgba(124,58,237,0.15); }
+  50%  { box-shadow: 0 0 0 1px rgba(124,58,237,0.5), 2px 0 20px rgba(124,58,237,0.3); }
+  100% { box-shadow: 0 0 0 1px rgba(124,58,237,0.2), -2px 0 12px rgba(124,58,237,0.15); }
+}
+.animate-border-glow { animation: border-glow-sweep 3s ease-in-out infinite; }
+
+/* Pulse once on value change */
+@keyframes pulse-once {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.1); color: #A78BFA; }
+  100% { transform: scale(1); }
+}
+.animate-pulse-once { animation: pulse-once 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+/* Breathing glow for active timer */
+@keyframes breathe-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(124,58,237,0.2), 0 0 60px rgba(124,58,237,0.05); }
+  50%       { box-shadow: 0 0 40px rgba(124,58,237,0.45), 0 0 80px rgba(124,58,237,0.15); }
+}
+.animate-breathe { animation: breathe-glow 4s ease-in-out infinite; }
+
+/* Card entrance with depth */
+@keyframes card-rise {
+  from { opacity: 0; transform: translateY(20px) scale(0.96) rotateX(4deg); filter: blur(4px); }
+  to   { opacity: 1; transform: translateY(0)  scale(1)    rotateX(0deg); filter: blur(0px); }
+}
+.animate-card-rise { animation: card-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Sparkle burst */
+@keyframes sparkle {
+  0%   { transform: scale(0) rotate(0deg);   opacity: 0; }
+  50%  { transform: scale(1.3) rotate(180deg); opacity: 1; }
+  100% { transform: scale(0) rotate(360deg); opacity: 0; }
+}
+.animate-sparkle { animation: sparkle 0.7s ease-in-out forwards; }
+
+/* Wave motion for progress bars */
+@keyframes wave-progress {
+  0%   { background-position: 0% 0; }
+  100% { background-position: 100% 0; }
+}
+.animate-wave-bar {
+  background: linear-gradient(90deg, #7C3AED 0%, #A78BFA 40%, #06D6A0 60%, #7C3AED 100%);
+  background-size: 200% 100%;
+  animation: wave-progress 3s linear infinite;
+}
+
+/* Sidebar ambient glow */
+.sidebar-ambient {
+  position: relative;
+}
+.sidebar-ambient::before {
+  content: '';
+  position: absolute;
+  top: 20%;
+  left: -20px;
+  width: 60px;
+  height: 40%;
+  background: radial-gradient(ellipse, rgba(124,58,237,0.35) 0%, transparent 70%);
+  filter: blur(20px);
+  pointer-events: none;
+  z-index: -1;
+  animation: float-orb 6s ease-in-out infinite;
+}
+
+/* 3D depth shadows for cards */
+.shadow-3d {
+  box-shadow:
+    0 1px 1px rgba(0,0,0,0.2),
+    0 2px 2px rgba(0,0,0,0.18),
+    0 4px 4px rgba(0,0,0,0.15),
+    0 8px 8px rgba(0,0,0,0.1),
+    0 16px 16px rgba(0,0,0,0.06);
+}
+.shadow-3d-violet {
+  box-shadow:
+    0 4px 8px rgba(0,0,0,0.3),
+    0 8px 16px rgba(0,0,0,0.2),
+    0 0 0 1px rgba(124,58,237,0.2),
+    0 0 20px rgba(124,58,237,0.12);
+}
+
+/* Orbiting dot indicator */
+@keyframes orbit {
+  from { transform: rotate(0deg) translateX(14px) rotate(0deg); }
+  to   { transform: rotate(360deg) translateX(14px) rotate(-360deg); }
+}
+.animate-orbit { animation: orbit 4s linear infinite; }
+
+/* Liquid fill animation */
+@keyframes liquid-fill {
+  0%   { height: 0%; }
+  100% { height: var(--fill-pct, 50%); }
+}
+.animate-liquid-fill { animation: liquid-fill 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+
+/* Text type-in cursor blink */
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+.animate-cursor { animation: cursor-blink 1s step-end infinite; }
+
+/* Particle burst keyframes */
+@keyframes particle-burst {
+  0%   { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--tx, 20px), var(--ty, -30px)) scale(0); opacity: 0; }
+}
+.animate-particle { animation: particle-burst 0.8s ease-out forwards; }
+
+/* 3D flip reveal */
+@keyframes flip-reveal {
+  0%   { transform: perspective(800px) rotateY(-90deg); opacity: 0; }
+  100% { transform: perspective(800px) rotateY(0deg);   opacity: 1; }
+}
+.animate-flip-reveal { animation: flip-reveal 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Magnetic hover base */
+.magnetic-hover {
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.2s ease;
+}
+.magnetic-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(124,58,237,0.2);
+}
+
+/* ─── 3D Tilt Perspective Root ───────────────────── */
+[data-tilt] {
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
 /* Admin Panel Input Styles */
 .admin-input {
   width: 100%;

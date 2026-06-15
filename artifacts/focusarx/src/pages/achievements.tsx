@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Star, Lock, Trophy, Flame, Target, Clock, Zap, CheckCircle2, ListTodo, TrendingUp, Users } from "lucide-react";
 import { getToken } from "@/lib/auth";
 import { PageTransition } from "@/components/PageTransition";
+import { TiltCard, StaggerContainer, StaggerItem } from "@/components/TiltCard";
 
 interface Badge {
   id: string;
@@ -303,14 +304,18 @@ export default function AchievementsPage() {
 
           {/* Stats strip */}
           {stats && (
-            <div className="mb-6 grid grid-cols-3 gap-2 sm:grid-cols-5">
+            <StaggerContainer className="mb-6 grid grid-cols-3 gap-2 sm:grid-cols-5">
               {STAT_ITEMS(stats).map(({ label, value, suffix }) => (
-                <div key={label} className="rounded-xl border border-[rgba(124,58,237,0.15)] bg-[rgba(16,23,50,0.5)] p-3 text-center backdrop-blur-xl">
-                  <p className="text-[9px] font-medium uppercase tracking-wider text-[#4B5563]">{label}</p>
-                  <p className="mt-1 text-sm font-bold text-[#E2E8F0]">{value}{suffix}</p>
-                </div>
+                <StaggerItem key={label}>
+                  <TiltCard intensity={10} className="h-full">
+                    <div className="rounded-xl border border-[rgba(124,58,237,0.15)] bg-[rgba(16,23,50,0.5)] p-3 text-center backdrop-blur-xl shadow-3d-violet">
+                      <p className="text-[9px] font-medium uppercase tracking-wider text-[#4B5563]">{label}</p>
+                      <p className="mt-1 text-sm font-bold text-[#E2E8F0]">{value}{suffix}</p>
+                    </div>
+                  </TiltCard>
+                </StaggerItem>
               ))}
-            </div>
+            </StaggerContainer>
           )}
 
           {/* Filters row */}

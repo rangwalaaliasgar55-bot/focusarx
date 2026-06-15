@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, Flame, Crown, Medal, RefreshCw } from "lucide-react";
 import { getToken } from "@/lib/auth";
 import { PageTransition } from "@/components/PageTransition";
+import { TiltCard } from "@/components/TiltCard";
 
 interface LeaderboardEntry {
   rank: number;
@@ -65,11 +66,12 @@ function PodiumCard({ entry, podiumRank, filter }: { entry: LeaderboardEntry; po
   const xp = filter === "weekly" ? entry.weeklyXp : entry.totalXp;
 
   return (
+    <TiltCard intensity={podiumRank === 1 ? 12 : 8}>
     <motion.div
       initial={{ opacity: 0, y: 20 + podiumRank * 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: podiumRank === 1 ? 0 : podiumRank === 2 ? 0.1 : 0.15, type: "spring", stiffness: 300, damping: 28 }}
-      className={`relative flex flex-col items-center rounded-2xl border bg-gradient-to-b p-4 text-center backdrop-blur-xl ${entry.isCurrentUser ? "ring-2 ring-[#7C3AED]" : ""}`}
+      className={`relative flex flex-col items-center rounded-2xl border bg-gradient-to-b p-4 text-center backdrop-blur-xl h-full ${entry.isCurrentUser ? "ring-2 ring-[#7C3AED]" : ""}`}
       style={{
         background: `linear-gradient(to bottom, ${meta.bg.replace("from-", "").replace("to-", "").split("]")[0].trim()})`,
         borderColor: meta.border,
@@ -124,6 +126,7 @@ function PodiumCard({ entry, podiumRank, filter }: { entry: LeaderboardEntry; po
         {entry.streak}d
       </div>
     </motion.div>
+    </TiltCard>
   );
 }
 

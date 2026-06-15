@@ -4,6 +4,7 @@ import { getToken } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
 import { Target, Plus, Trash2, CheckCircle2, Circle, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { TiltCard, StaggerContainer, StaggerItem } from "@/components/TiltCard";
 
 async function apiFetch(path: string, opts?: RequestInit) {
   const token = getToken();
@@ -191,12 +192,13 @@ export default function GoalsPage() {
 
 function GoalCard({ goal, onToggle, onDelete }: { goal: Goal; onToggle: (id: string) => void; onDelete: (id: string) => void }) {
   return (
+    <TiltCard intensity={6}>
     <motion.div
       layout
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      className={`flex items-start gap-3 rounded-2xl border p-4 transition-all ${goal.completed ? "border-emerald-900/30 bg-emerald-900/10 opacity-70" : "border-[#1e2130] bg-[#111318] hover:border-[#7C3AED]/30"}`}
+      className={`flex items-start gap-3 rounded-2xl border p-4 transition-all shadow-3d ${goal.completed ? "border-emerald-900/30 bg-emerald-900/10 opacity-70" : "border-[#1e2130] bg-[#111318] hover:border-[#7C3AED]/30"}`}
     >
       <button onClick={() => onToggle(goal.id)} className="mt-0.5 shrink-0 transition-transform hover:scale-110">
         {goal.completed
@@ -212,5 +214,6 @@ function GoalCard({ goal, onToggle, onDelete }: { goal: Goal; onToggle: (id: str
         <Trash2 size={14} />
       </button>
     </motion.div>
+    </TiltCard>
   );
 }
