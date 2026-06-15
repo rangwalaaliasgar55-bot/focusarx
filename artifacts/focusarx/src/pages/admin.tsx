@@ -191,6 +191,9 @@ export default function AdminPage() {
   const [premiumGrantId, setPremiumGrantId] = useState("");
   const [premiumGranting, setPremiumGranting] = useState(false);
   const [premiumGrantResult, setPremiumGrantResult] = useState<string | null>(null);
+  const [premiumSubs, setPremiumSubs] = useState<any[]>([]);
+  const [premiumStats, setPremiumStats] = useState<{ total: number; active: number; adminGranted: number } | null>(null);
+  const [premiumRevoking, setPremiumRevoking] = useState<string | null>(null);
 
   const authHeaders = useCallback((): Record<string, string> => {
     const token = localStorage.getItem("focusarx-auth-token");
@@ -313,12 +316,35 @@ export default function AdminPage() {
   async function loadPremiumUsers() {
     setPremiumLoading(true);
     try {
-      const r = await fetch("/api/admin/users", { headers: authHeaders(), credentials: "include" });
-      if (r.ok) {
-        const d = await r.json();
+      const [usersRes, subsRes] = await Promise.all([
+        fetch("/api/admin/users", { headers: authHeaders(), credentials: "include" }),
+        fetch("/api/admin/cms/premium", { headers: authHeaders(), credentials: "include" }),
+      ]);
+      if (usersRes.ok) {
+        const d = await usersRes.json();
         setPremiumUsers((d.users ?? []).filter((u: any) => u.role !== "guest"));
       }
+      if (subsRes.ok) {
+        const d = await subsRes.json();
+        setPremiumSubs(d.recent ?? []);
+        setPremiumStats(d.stats ?? null);
+      }
     } finally { setPremiumLoading(false); }
+  }
+
+  async function revokePremium(userId: string) {
+    setPremiumRevoking(userId);
+    try {
+      const r = await fetch("/api/admin/cms/premium/revoke", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ userId }),
+      });
+      if (r.ok) { setPremiumGrantResult("Premium revoked."); loadPremiumUsers(); }
+      else { const d = await r.json(); setPremiumGrantResult("Error: " + (d.error ?? "Unknown")); }
+    } catch (e: any) { setPremiumGrantResult("Error: " + e.message); }
+    finally { setPremiumRevoking(null); }
   }
 
   async function adminGrantPremium() {
@@ -1803,14 +1829,18 @@ export default function AdminPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3 pt-2">
+            <div className="grid grid-cols-3 gap-3 pt-2">
               <div className="rounded-xl border border-amber-800/30 bg-amber-950/10 px-4 py-3 text-center">
-                <p className="text-xl font-bold text-amber-400">{premiumCount}</p>
-                <p className="text-[10px] text-zinc-500 mt-0.5">Active premium users</p>
+                <p className="text-xl font-bold text-amber-400">{premiumStats?.active ?? premiumCount}</p>
+                <p className="text-[10px] text-zinc-500 mt-0.5">Active premium</p>
               </div>
               <div className="rounded-xl border border-zinc-800 bg-zinc-900/20 px-4 py-3 text-center">
-                <p className="text-xl font-bold text-zinc-200">{premiumUsers.length}</p>
-                <p className="text-[10px] text-zinc-500 mt-0.5">Registered users total</p>
+                <p className="text-xl font-bold text-zinc-200">{premiumStats?.adminGranted ?? 0}</p>
+                <p className="text-[10px] text-zinc-500 mt-0.5">Admin granted</p>
+              </div>
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900/20 px-4 py-3 text-center">
+                <p className="text-xl font-bold text-zinc-200">{premiumStats?.total ?? 0}</p>
+                <p className="text-[10px] text-zinc-500 mt-0.5">Total subs</p>
               </div>
             </div>
           </div>
@@ -1856,6 +1886,56 @@ export default function AdminPage() {
                 </table>
               </div>
             )}
+          </div>
+        </div>
+
+        <div className="mt-6 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Active Premium Subscriptions</p>
+            <button onClick={() => void loadPremiumUsers()} className="text-[10px] text-zinc-500 hover:text-zinc-300 flex items-center gap-1"><RefreshCw size={10} /> Refresh</button>
+          </div>
+          <div className="rounded-xl border border-zinc-800/80 overflow-hidden max-h-[420px] overflow-y-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-zinc-900/80 text-zinc-500 uppercase tracking-wider sticky top-0">
+                <tr>
+                  <th className="px-3 py-2 font-medium">User</th>
+                  <th className="px-3 py-2 font-medium">Premium Start</th>
+                  <th className="px-3 py-2 font-medium">Expiry</th>
+                  <th className="px-3 py-2 font-medium">Status</th>
+                  <th className="px-3 py-2 font-medium">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800/50">
+                {premiumSubs.length === 0 && (
+                  <tr><td colSpan={5} className="px-3 py-6 text-center text-zinc-600">No premium subscriptions yet.</td></tr>
+                )}
+                {premiumSubs.map((s: any) => {
+                  const active = s.isActive && (!s.expiresAt || new Date(s.expiresAt) > new Date());
+                  return (
+                    <tr key={s.id} className="hover:bg-zinc-900/30">
+                      <td className="px-3 py-2">
+                        <p className="text-zinc-200 font-medium truncate max-w-[160px]">{s.name || s.email?.split("@")[0] || "—"}</p>
+                        <p className="text-zinc-600 text-[10px] font-mono truncate">{String(s.userId).slice(0, 8)}…{s.grantedByAdmin ? " · admin" : ""}</p>
+                      </td>
+                      <td className="px-3 py-2 text-zinc-400">{s.activatedAt ? new Date(s.activatedAt).toLocaleDateString() : "—"}</td>
+                      <td className="px-3 py-2 text-zinc-400">{s.expiresAt ? new Date(s.expiresAt).toLocaleDateString() : "Never"}</td>
+                      <td className="px-3 py-2">
+                        <Badge label={active ? "Active" : "Inactive"} color={active ? "bg-emerald-950 text-emerald-400" : "bg-zinc-800 text-zinc-500"} />
+                      </td>
+                      <td className="px-3 py-2">
+                        <button
+                          onClick={() => void revokePremium(s.userId)}
+                          disabled={!active || premiumRevoking === s.userId}
+                          className="rounded px-2 py-0.5 text-[10px] border border-red-800/50 text-red-400 hover:bg-red-950/30 transition disabled:opacity-40"
+                        >
+                          {premiumRevoking === s.userId ? "Revoking…" : "Revoke"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       </MotionTab>

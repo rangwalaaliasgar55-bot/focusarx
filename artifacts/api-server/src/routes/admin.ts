@@ -266,12 +266,12 @@ router.post("/admin/users/:id/premium", async (req, res) => {
     const benefits = ["exclusive_pets","premium_loot_boxes","premium_themes","xp_multiplier","coin_multiplier","premium_analytics","profile_badge","premium_battle_pass"];
     if (existing) {
       await db.update(premiumSubscriptionsTable)
-        .set({ isActive: true, activatedAt: new Date(), expiresAt, benefits })
+        .set({ isActive: true, activatedAt: new Date(), expiresAt, benefits, grantedByAdmin: true })
         .where(eq(premiumSubscriptionsTable.userId, id));
     } else {
       await db.insert(premiumSubscriptionsTable).values({
         userId: id, isActive: true, activatedAt: new Date(), expiresAt,
-        coinsCost: 0, benefits,
+        coinsCost: 0, benefits, grantedByAdmin: true,
       });
     }
     res.json({ ok: true, expiresAt });

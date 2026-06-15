@@ -6,6 +6,7 @@ import {
   usersTable,
 } from "@workspace/db";
 import { extractUserId } from "./auth";
+import { isPremiumActive } from "../lib/premium";
 import { eq, sql } from "drizzle-orm";
 
 function auth(req: any, res: any, next: any) {
@@ -112,11 +113,14 @@ retentionRouter.get("/retention/battle-pass", auth, async (req, res) => {
   const userId = req.userId!;
   let [progress] = await db.select().from(battlePassProgressTable).where(eq(battlePassProgressTable.userId, userId)).limit(1);
   const currentTierDef = progress ? BATTLE_PASS_TIERS.find(t => t.tier > (progress?.tier ?? 0)) : BATTLE_PASS_TIERS[0];
+  // Premium battle-pass access is granted by EITHER a direct pass purchase
+  // (progress.premiumUnlocked) OR an active premium subscription.
+  const premiumUnlocked = (progress?.premiumUnlocked ?? false) || await isPremiumActive(userId);
   res.json({
     season: BATTLE_PASS_CURRENT_SEASON,
     tier: progress?.tier ?? 0,
     seasonXp: progress?.seasonXp,
-    premiumUnlocked: progress?.premiumUnlocked,
+    premiumUnlocked,
     claimedTiers: progress?.claimedTiers ?? [],
     nextTierXp: currentTierDef?.xpRequired ?? 10000,
     tiers: BATTLE_PASS_TIERS,
@@ -130,7 +134,8 @@ retentionRouter.post("/retention/battle-pass/claim", auth, async (req, res) => {
 
   let [progress] = await db.select().from(battlePassProgressTable).where(eq(battlePassProgressTable.userId, userId)).limit(1);
   if (!progress) return res.status(400).json({ error: "No battle pass progress" });
-  if (track === "premium" && !progress.premiumUnlocked) return res.status(403).json({ error: "Premium track not unlocked" });
+  const premiumUnlocked = progress.premiumUnlocked || await isPremiumActive(userId);
+  if (track === "premium" && !premiumUnlocked) return res.status(403).json({ error: "Premium track not unlocked" });
 
   const tierDef = BATTLE_PASS_TIERS.find(t => t.tier === tier);
   if (!tierDef) return res.status(400).json({ error: "Invalid tier" });
