@@ -1,12 +1,12 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import nodemailer from "nodemailer";
 import { z } from "zod";
 import { db, usersTable, passwordResetTokensTable } from "@workspace/db";
 import { eq, and, gt, isNull } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getServerConfig } from "../lib/config";
+import { sendEmail } from "../lib/email";
 import { authLimiter, forgotPasswordLimiter } from "../lib/rateLimiter";
 
 const loginSchema = z.object({
@@ -142,28 +142,14 @@ router.post("/auth/guest", async (req, res) => {
 // ── Password reset ────────────────────────────────────────────────────────
 
 async function sendResetEmail(to: string, resetUrl: string): Promise<boolean> {
-  const host = process.env.SMTP_HOST;
-  const port = parseInt(process.env.SMTP_PORT ?? "587");
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  const from = process.env.SMTP_FROM ?? user ?? "noreply@focusarx.app";
-
-  if (!host || !user || !pass) return false;
-
-  try {
-    const transporter = nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } });
-    await transporter.sendMail({
-      from: `"FocusArx" <${from}>`,
-      to,
-      subject: "Reset your FocusArx password",
-      text: `Click the link below to reset your password. It expires in 1 hour.\n\n${resetUrl}\n\nIf you didn't request this, ignore this email.`,
-      html: `<p>Click the link below to reset your password. It expires in 1 hour.</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>If you didn't request this, ignore this email.</p>`,
-    });
-    return true;
-  } catch (err) {
-    logger.warn({ err }, "failed to send reset email");
-    return false;
-  }
+  const result = await sendEmail({
+    to,
+    subject: "Reset your FocusArx password",
+    text: `Click the link below to reset your password. It expires in 1 hour.\n\n${resetUrl}\n\nIf you didn't request this, ignore this email.`,
+    html: `<p>Click the link below to reset your password. It expires in 1 hour.</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>If you didn't request this, ignore this email.</p>`,
+  });
+  if (!result.ok) logger.warn({ error: result.error }, "failed to send reset email");
+  return result.ok;
 }
 
 router.post("/auth/forgot-password", forgotPasswordLimiter, async (req, res) => {
