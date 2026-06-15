@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { extractUserId } from "./auth";
-import { db } from "@workspace/db";
-import { focusCitiesTable, cityBuildingDefinitionsTable, userWalletsTable } from "@workspace/db/schema";
+import { db, focusCitiesTable, cityBuildingDefinitionsTable, userWalletsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
 function auth(req: any, res: any, next: any) {

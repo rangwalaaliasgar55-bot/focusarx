@@ -1,6 +1,5 @@
 import { Router } from "express";
-import { db, marketplaceItemsTable, userInventoryTable, userWalletsTable } from "@workspace/db";
-import { coinTransactionsTable } from "@workspace/db/schema";
+import { db, marketplaceItemsTable, userInventoryTable, userWalletsTable, coinTransactionsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";

@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { extractUserId } from "./auth";
-import { db } from "@workspace/db";
-import { lootBoxTypesTable, userLootBoxesTable, userWalletsTable, notificationsTable, coinTransactionsTable, marketplaceItemsTable, userInventoryTable } from "@workspace/db/schema";
+import { db, lootBoxTypesTable, userLootBoxesTable, userWalletsTable, notificationsTable, coinTransactionsTable, marketplaceItemsTable, userInventoryTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
 
 function auth(req: any, res: any, next: any) {

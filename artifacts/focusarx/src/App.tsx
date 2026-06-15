@@ -127,9 +127,21 @@ function MobileWelcomeGate({ children }: { children: React.ReactNode }) {
     if (status === "loading") return;
     if (status === "authenticated") return;
     if (hasDoneMobileWelcome()) return;
+    // Never redirect web crawlers — Googlebot mobile UA contains "Android"/"Mobile"
+    if (/bot|crawl|spider|Googlebot|bingbot|Slurp|DuckDuck/i.test(navigator.userAgent)) return;
     if (isMobileDevice()) {
       const path = window.location.pathname;
-      const skip = ["/welcome", "/login", "/signup", "/forgot-password", "/reset-password", "/auth", "/admin"];
+      // Auth / admin pages handle their own flow
+      const authPaths = ["/welcome", "/login", "/signup", "/forgot-password", "/reset-password", "/auth", "/admin"];
+      // Public marketing & SEO pages must never redirect — crawlers and direct-link visitors should see content
+      const publicPaths = [
+        "/focus-guide", "/pomodoro-guide", "/study-techniques", "/virtual-study-room",
+        "/study-rooms", "/breathe", "/break-free", "/roadmap", "/leaderboard",
+        "/about", "/contact", "/support", "/pricing", "/refund",
+        "/privacy", "/terms", "/cookie-policy", "/acceptable-use", "/ai-policy",
+        "/data-deletion", "/u/",
+      ];
+      const skip = [...authPaths, ...publicPaths];
       if (!skip.some(p => path.startsWith(p))) setLocation("/welcome");
     }
   }, [status, setLocation]);

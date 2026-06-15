@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { extractUserId } from "./auth";
-import { db } from "@workspace/db";
-import { questDefinitionsTable, userQuestProgressTable, userWalletsTable, notificationsTable } from "@workspace/db/schema";
+import { db, questDefinitionsTable, userQuestProgressTable, userWalletsTable, notificationsTable } from "@workspace/db";
 import { eq, and, inArray } from "drizzle-orm";
 
 function auth(req: any, res: any, next: any) {

@@ -1,6 +1,5 @@
 import { Router } from "express";
-import { db } from "@workspace/db";
-import { seasonalEventsTable, userSeasonalProgressTable } from "@workspace/db/schema";
+import { db, seasonalEventsTable, userSeasonalProgressTable } from "@workspace/db";
 import { eq, and, lte, gte } from "drizzle-orm";
 import { extractUserId } from "./auth";
 
