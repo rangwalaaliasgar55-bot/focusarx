@@ -57,6 +57,8 @@ export default function PremiumPage() {
       setActivateSuccess(true);
       qc.invalidateQueries({ queryKey: ["premium-status"] });
       qc.invalidateQueries({ queryKey: ["wallet"] });
+      // Premium gates the battle-pass premium track; refresh it so it unlocks instantly.
+      qc.invalidateQueries({ queryKey: ["battle-pass"] });
     } catch (e: any) {
       setActivateError(e.message ?? "Failed to activate");
     } finally {
