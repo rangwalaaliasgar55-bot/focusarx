@@ -82,6 +82,7 @@ const MORE_NAV = [
   { href: "/dreams",       label: "My Dreams",      icon: Star },
   { href: "/wrapped",      label: "Wrapped",        icon: Package },
   { href: "/focus-dna",    label: "Focus DNA",      icon: Dna },
+  { href: "/constellations", label: "Constellations", icon: Star },
   { href: "/ghosts",       label: "Ghost Mode",     icon: Ghost },
   { href: "/consequences", label: "Consequences",   icon: Sword },
   { href: "/distractions", label: "Focus Journal",  icon: BookOpen },
