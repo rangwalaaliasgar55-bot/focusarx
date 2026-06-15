@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { ArrowRight, Timer, Brain, Coffee, BarChart2, Smartphone, Globe } from "lucide-react";
+import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 
 function TipCard({ icon: Icon, title, body, color }: { icon: React.ComponentType<any>; title: string; body: string; color: string }) {
   return (
@@ -14,10 +15,7 @@ function TipCard({ icon: Icon, title, body, color }: { icon: React.ComponentType
 export default function PomodoroGuidePage() {
   return (
     <div className="min-h-screen bg-[#0a0c12] text-[#e8eaf0]">
-      <head>
-        <title>Pomodoro Technique Guide — Timer, Tips & Science | FocusArx</title>
-        <meta name="description" content="Master the Pomodoro Technique with our in-depth guide. Learn how the 25-minute timer works, why it boosts productivity, and how to customize it for studying." />
-      </head>
+      <PageSEO {...PAGE_SEO.pomodoroGuide} />
 
       <div className="relative overflow-hidden border-b border-[#1e2130]">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,_rgba(239,68,68,0.12),_transparent_70%)]" />

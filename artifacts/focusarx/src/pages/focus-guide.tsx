@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { ArrowRight, Brain, Clock, Target, Zap, CheckCircle, TrendingUp, Users } from "lucide-react";
+import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 
 function Section({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <section className={`max-w-3xl mx-auto px-4 sm:px-6 ${className}`}>{children}</section>;
@@ -44,10 +45,7 @@ const FAQS = [
 export default function FocusGuidePage() {
   return (
     <div className="min-h-screen bg-[#0a0c12] text-[#e8eaf0]">
-      <head>
-        <title>Ultimate Focus Guide — Deep Work, Pomodoro & Study Habits | FocusArx</title>
-        <meta name="description" content="Learn proven deep-focus techniques, the Pomodoro method, and how to build lasting study habits. Free guide from FocusArx." />
-      </head>
+      <PageSEO {...PAGE_SEO.focusGuide} />
 
       {/* Hero */}
       <div className="relative overflow-hidden border-b border-[#1e2130]">

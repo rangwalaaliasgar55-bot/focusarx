@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { ArrowLeft, Mail, MessageSquare, Twitter, Github } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 
 const CONTACT_OPTIONS = [
   { icon: Mail, title: "Email Support", desc: "For billing, account, or technical issues", contact: "support@focusarx.app", href: "mailto:support@focusarx.app", cta: "Send Email" },
@@ -22,6 +23,7 @@ export default function ContactPage() {
 
   return (
     <div className="relative min-h-[100dvh] forge-bg-glow">
+      <PageSEO {...PAGE_SEO.contact} />
       <main id="main-content" className="relative z-10 mx-auto max-w-5xl px-4 py-10">
         <PageTransition>
           <Link href="/" className="mb-6 inline-flex items-center gap-2 text-xs text-[#4B5563] hover:text-[#A78BFA] transition-colors">

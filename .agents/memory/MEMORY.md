@@ -30,3 +30,4 @@
 - [Page transitions](page-transitions.md) — RoutedContent uses AnimatePresence+motion.div keyed on location; PageTransition component wraps legal/static pages; marquee keyframe in index.css
 - [WebGL sandbox fallback](webgl-fallback.md) — Replit sandbox has no GPU; ThreeBackground sniffs canUseWebGL() in useEffect before rendering Canvas; falls back to CSS Framer Motion orbs
 - [3D animations system](3d-animations.md) — TiltCard/FloatCard/StaggerContainer/StaggerItem in TiltCard.tsx; FloatingParticles/PageAmbientOrbs in FloatingParticles.tsx; FocusMoodWidget energy check-in in SidePanel
+- [SEO system](seo-system.md) — domain is focusarx.site; PageSEO component in src/components/PageSEO.tsx; PAGE_SEO record has presets for all pages; 6 JSON-LD schemas in index.html; 24-URL sitemap

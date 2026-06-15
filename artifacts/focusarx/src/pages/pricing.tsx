@@ -2,6 +2,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { Check, Zap, ArrowLeft, Crown } from "lucide-react";
+import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 
 const FREE_FEATURES = [
   "Unlimited Pomodoro sessions",
@@ -36,6 +37,7 @@ const PRO_EXTRAS = [
 export default function PricingPage() {
   return (
     <div className="relative min-h-[100dvh] forge-bg-glow">
+      <PageSEO {...PAGE_SEO.pricing} />
       <div className="pointer-events-none absolute inset-0" aria-hidden>
         <div className="absolute left-1/2 top-0 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.08),transparent_65%)] blur-3xl" />
       </div>

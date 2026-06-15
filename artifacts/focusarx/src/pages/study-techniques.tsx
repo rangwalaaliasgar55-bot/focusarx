@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { ArrowRight, BookOpen, Repeat, Layers, PenTool, Eye, Cpu } from "lucide-react";
+import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 
 type Technique = {
   icon: React.ComponentType<any>;
@@ -64,10 +65,7 @@ const TECHNIQUES: Technique[] = [
 export default function StudyTechniquesPage() {
   return (
     <div className="min-h-screen bg-[#0a0c12] text-[#e8eaf0]">
-      <head>
-        <title>6 Best Study Techniques — Science-Backed Methods | FocusArx</title>
-        <meta name="description" content="Spaced repetition, active recall, Feynman technique and more. A comprehensive guide to the most effective science-backed study methods for students." />
-      </head>
+      <PageSEO {...PAGE_SEO.studyTechniques} />
 
       {/* Hero */}
       <div className="relative overflow-hidden border-b border-[#1e2130]">

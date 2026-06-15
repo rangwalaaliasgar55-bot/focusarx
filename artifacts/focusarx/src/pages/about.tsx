@@ -2,6 +2,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { Link } from "wouter";
 import { ArrowLeft, Zap, Heart, Globe, Users } from "lucide-react";
 import { motion } from "framer-motion";
+import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 
 const VALUES = [
   { icon: Zap, title: "Deep Work First", desc: "We believe that focused, uninterrupted work is the most powerful skill a person can develop. Every feature we build serves that single purpose." },
@@ -17,6 +18,7 @@ const TEAM = [
 export default function AboutPage() {
   return (
     <div className="relative min-h-[100dvh] forge-bg-glow">
+      <PageSEO {...PAGE_SEO.about} />
       <main id="main-content" className="relative z-10 mx-auto max-w-4xl px-4 py-10">
         <PageTransition>
           <Link href="/" className="mb-6 inline-flex items-center gap-2 text-xs text-[#4B5563] hover:text-[#A78BFA] transition-colors">

@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Radio, Users, Globe, Clock, Zap } from "lucide-react";
+import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 
 async function fetchPublicRooms() {
   const res = await fetch("/api/study-rooms");
@@ -29,10 +30,7 @@ export default function VirtualStudyRoomPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0c12] text-[#e8eaf0]">
-      <head>
-        <title>Virtual Study Room — Study Live with Others Online | FocusArx</title>
-        <meta name="description" content="Join a free virtual study room and study with others in real time. Choose from JEE, NEET, UPSC, Coding, and General rooms. No signup needed to browse." />
-      </head>
+      <PageSEO {...PAGE_SEO.virtualStudyRoom} />
 
       {/* Hero */}
       <div className="relative overflow-hidden border-b border-[#1e2130]">

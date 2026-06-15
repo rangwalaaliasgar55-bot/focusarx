@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { ArrowLeft, HelpCircle, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
+import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 
 const FAQS = [
   {
@@ -74,6 +75,7 @@ export default function SupportPage() {
 
   return (
     <div className="relative min-h-[100dvh] forge-bg-glow">
+      <PageSEO {...PAGE_SEO.support} />
       <main id="main-content" className="relative z-10 mx-auto max-w-4xl px-4 py-10">
         <PageTransition>
           <Link href="/" className="mb-6 inline-flex items-center gap-2 text-xs text-[#4B5563] hover:text-[#A78BFA] transition-colors">

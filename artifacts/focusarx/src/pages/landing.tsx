@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, useScroll, useTransform, useSpring, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
 import { ChevronDown } from "lucide-react";
+import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 
 /* ─── Canvas Orb + Constellation ─────────────────────────────────── */
 function useOrb(canvasRef: React.RefObject<HTMLCanvasElement | null>, mouseRef: React.RefObject<{ x: number; y: number }>) {
@@ -395,6 +396,7 @@ export default function LandingPage() {
       className="relative min-h-screen overflow-x-hidden bg-[#030308] text-white select-none"
       style={{ cursor: "none" }}
     >
+      <PageSEO {...PAGE_SEO.home} />
       {/* Cursor glow */}
       <CursorGlow mouseRef={mouseRef} />
 

@@ -1,6 +1,7 @@
 import { PageTransition } from "@/components/PageTransition";
 import { Link } from "wouter";
 import { ArrowLeft, CreditCard } from "lucide-react";
+import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -14,6 +15,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function RefundPage() {
   return (
     <div className="relative min-h-[100dvh] forge-bg-glow">
+      <PageSEO {...PAGE_SEO.refund} />
       <main id="main-content" className="relative z-10 mx-auto max-w-3xl px-4 py-10">
         <PageTransition>
           <Link href="/" className="mb-6 inline-flex items-center gap-2 text-xs text-[#4B5563] hover:text-[#A78BFA] transition-colors">
