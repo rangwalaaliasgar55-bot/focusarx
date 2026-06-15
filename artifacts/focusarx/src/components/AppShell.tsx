@@ -5,7 +5,7 @@ import {
   Users, Sparkles, LogOut, LogIn, Menu, X, Shield, BookOpen,
   Dna, Ghost, Sword, Radio, Wind, UserCircle, Info, Flame, Target,
   Bell, BellOff, Users2, Zap, Brain, Network, CheckSquare, MessageSquare, ShoppingBag, Flag, Gift, Sun, Moon,
-  Building2, Coins, Package,
+  Building2, Coins, Package, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTheme } from "@/lib/theme";
@@ -58,18 +58,20 @@ async function fetchNotifCount() {
   return res.json();
 }
 
-function MissionsBadge() {
+function MissionsBadge({ compact }: { compact?: boolean }) {
   const { data } = useQuery({ queryKey: ["missions-badge"], queryFn: fetchMissionStats, staleTime: 60_000, refetchInterval: 120_000 });
   const claimable = (data?.daily ?? []).filter((m: any) => m.completed && !m.rewardClaimed).length
     + (data?.weekly ?? []).filter((m: any) => m.completed && !m.rewardClaimed).length;
   if (!claimable) return null;
+  if (compact) return <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-[#22d387] ring-1 ring-[#08090f]" />;
   return <span className="ml-auto flex h-4 w-4 items-center justify-center rounded-full bg-[#22d387] text-[9px] font-bold text-black shrink-0">{claimable}</span>;
 }
 
-function NotifBadge() {
+function NotifBadge({ compact }: { compact?: boolean }) {
   const { data } = useQuery({ queryKey: ["notif-count-nav"], queryFn: fetchNotifCount, staleTime: 30_000, refetchInterval: 60_000 });
   const count = data?.unreadCount ?? 0;
   if (!count) return null;
+  if (compact) return <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500 ring-1 ring-[#08090f]" />;
   return <span className="ml-auto flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shrink-0">{count > 9 ? "9+" : count}</span>;
 }
 
@@ -131,9 +133,50 @@ interface NavItemProps {
   aiBadge?: boolean;
   badge?: string;
   onClick?: () => void;
+  collapsed?: boolean;
 }
 
-function NavItem({ href, label, icon: Icon, active, shortcut, aiBadge, badge, onClick }: NavItemProps) {
+function NavItem({ href, label, icon: Icon, active, shortcut, aiBadge, badge, onClick, collapsed }: NavItemProps) {
+  if (collapsed) {
+    return (
+      <div className="group relative flex justify-center">
+        <Link
+          href={href}
+          onClick={onClick}
+          className={`relative flex items-center justify-center rounded-xl h-10 w-10 transition-all duration-200 ${
+            active
+              ? "bg-gradient-to-r from-[rgba(124,58,237,0.25)] to-[rgba(79,70,229,0.12)] text-[#A78BFA] shadow-[0_0_20px_rgba(124,58,237,0.18),inset_0_0_12px_rgba(124,58,237,0.06)]"
+              : "text-[#94A3B8] hover:bg-[rgba(124,58,237,0.08)] hover:text-[#E2E8F0]"
+          }`}
+        >
+          {active && (
+            <>
+              <motion.span
+                layoutId="nav-pill"
+                className="absolute left-0 top-1/2 h-[60%] w-0.5 -translate-y-1/2 rounded-r bg-gradient-to-b from-[#7C3AED] to-[#a78bfa]"
+                style={{ boxShadow: "0 0 8px rgba(124,58,237,0.6)" }}
+              />
+              <motion.span
+                className="absolute inset-0 rounded-xl opacity-0"
+                animate={{ opacity: [0, 0.06, 0] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                style={{ background: "linear-gradient(90deg, rgba(124,58,237,0.3), transparent)" }}
+              />
+            </>
+          )}
+          <Icon size={16} className={`shrink-0 transition-all duration-200 ${active ? "text-[#a78bfa]" : "text-[#4B5563] group-hover:text-[#7C3AED]"}`} />
+          {badge === "missions" && <MissionsBadge compact />}
+          {badge === "notif" && <NotifBadge compact />}
+        </Link>
+        {/* Hover tooltip */}
+        <div className="pointer-events-none absolute left-full top-1/2 ml-3 -translate-y-1/2 z-[200] whitespace-nowrap rounded-lg border border-[rgba(124,58,237,0.2)] bg-[#0d0f1c] px-2.5 py-1.5 text-xs font-medium text-[#E2E8F0] opacity-0 group-hover:opacity-100 transition-opacity duration-150 shadow-xl">
+          {label}
+          {aiBadge && <span className="ml-1.5 rounded-full bg-[rgba(124,58,237,0.2)] border border-[rgba(124,58,237,0.35)] px-1 py-0.5 text-[8px] font-bold text-[#A78BFA] uppercase">AI</span>}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <motion.div
       whileHover={{ x: 3 }}
@@ -204,6 +247,41 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [pushLoading, setPushLoading] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
+  // ── Sidebar collapse state (desktop only) ──────────────────────────────────
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem("fx-sidebar-collapsed") === "true"; } catch { return false; }
+  });
+
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed(prev => {
+      const next = !prev;
+      try { localStorage.setItem("fx-sidebar-collapsed", String(next)); } catch {}
+      return next;
+    });
+  }, []);
+
+  // Sync CSS variable so main content margin transitions smoothly
+  useEffect(() => {
+    document.documentElement.style.setProperty("--sidebar-width", sidebarCollapsed ? "60px" : "240px");
+  }, [sidebarCollapsed]);
+
+  // Auto-collapse when a focus session is actively running
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    const token = getToken();
+    if (!token) return;
+    fetch("/api/sessions/active", { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then((data: any) => {
+        if (data?.id) {
+          setSidebarCollapsed(true);
+          try { localStorage.setItem("fx-sidebar-collapsed", "true"); } catch {}
+        }
+      })
+      .catch(() => {});
+  }, [location, status]);
+  // ───────────────────────────────────────────────────────────────────────────
+
   const handlePushToggle = async () => {
     setPushLoading(true);
     try {
@@ -230,27 +308,30 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const user = session?.user;
   const initials = user ? (user.name?.slice(0, 2) || user.email?.slice(0, 2) || "?").toUpperCase() : "?";
 
-  const renderNavGroup = (onClick?: () => void) => (
+  const renderNavGroup = (onClick?: () => void, collapsed?: boolean) => (
     <>
       {NAV_GROUPS.map((group, gi) => {
         const items = NAV_ITEMS.filter(i => i.group === group.id);
-        const collapsed = collapsedGroups.has(group.id);
+        const groupCollapsed = collapsedGroups.has(group.id);
         return (
           <div key={group.id}>
             {gi > 0 && <div className="mx-3 my-1.5 h-px bg-gradient-to-r from-transparent via-[rgba(124,58,237,0.15)] to-transparent" />}
-            <button
-              onClick={() => toggleGroup(group.id)}
-              className="group flex w-full items-center justify-between px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.18em] text-[#2D3748] hover:text-[#4B5563] transition-colors"
-            >
-              <span>{group.label}</span>
-              <motion.span
-                animate={{ rotate: collapsed ? -90 : 0 }}
-                transition={{ duration: 0.2 }}
-                className="text-[8px] opacity-50"
-              >▾</motion.span>
-            </button>
+            {!collapsed && (
+              <button
+                onClick={() => toggleGroup(group.id)}
+                className="group flex w-full items-center justify-between px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.18em] text-[#2D3748] hover:text-[#4B5563] transition-colors"
+              >
+                <span>{group.label}</span>
+                <motion.span
+                  animate={{ rotate: groupCollapsed ? -90 : 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="text-[8px] opacity-50"
+                >▾</motion.span>
+              </button>
+            )}
             <AnimatePresence initial={false}>
-              {!collapsed && (
+              {/* In collapsed (icon) mode show all items; in expanded mode respect groupCollapsed */}
+              {(collapsed || !groupCollapsed) && (
                 <motion.div
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
@@ -258,9 +339,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
                   className="overflow-hidden"
                 >
-                  <div className="space-y-0.5">
+                  <div className={`space-y-0.5 ${collapsed ? "flex flex-col items-center px-1" : ""}`}>
                     {items.map((item) => (
-                      <NavItem key={item.href} {...item} active={location === item.href} onClick={onClick} />
+                      <NavItem key={item.href} {...item} active={location === item.href} onClick={onClick} collapsed={collapsed} />
                     ))}
                   </div>
                 </motion.div>
@@ -286,6 +367,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           background: "linear-gradient(180deg, rgba(7,8,18,0.98) 0%, rgba(4,5,14,0.99) 50%, rgba(8,5,18,0.99) 100%)",
           borderRight: "1px solid rgba(124,58,237,0.18)",
           boxShadow: "4px 0 32px rgba(0,0,0,0.5), inset -1px 0 0 rgba(124,58,237,0.08)",
+          width: sidebarCollapsed ? "60px" : "240px",
+          transition: "width 0.3s cubic-bezier(0.22,1,0.36,1)",
+          overflow: "hidden",
         }}
       >
         {/* Ambient glassmorphism glow orbs */}
@@ -314,7 +398,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             animate={{ scale: [1, 1.4, 1], opacity: [0.15, 0.4, 0.15] }}
             transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
           />
-          {/* Glass shimmer line */}
           <motion.div
             className="absolute inset-x-0 h-px"
             style={{ top: "35%", background: "linear-gradient(90deg, transparent, rgba(124,58,237,0.15), rgba(232,121,249,0.1), transparent)" }}
@@ -324,23 +407,34 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Logo header */}
-        <div className="relative flex items-center gap-3 px-4 py-5 border-b border-[rgba(124,58,237,0.12)]">
-          <div className="absolute inset-0 bg-gradient-to-b from-[rgba(124,58,237,0.05)] to-transparent" />
+        <div className={`relative border-b border-[rgba(124,58,237,0.12)] transition-all duration-300 ${sidebarCollapsed ? "flex flex-col items-center gap-2 px-2 py-3" : "flex items-center gap-3 px-4 py-5"}`}>
+          <div className="absolute inset-0 bg-gradient-to-b from-[rgba(124,58,237,0.05)] to-transparent pointer-events-none" />
           <SidebarLogo />
-          <div className="relative flex-1 min-w-0">
-            <p className="text-[14px] font-black tracking-tight text-white leading-none">FocusArx</p>
-            <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-[#4B5563] mt-0.5">AI-Powered Study OS</p>
-          </div>
-          <InfoTooltip />
+          {!sidebarCollapsed && (
+            <div className="relative flex-1 min-w-0 overflow-hidden">
+              <p className="text-[14px] font-black tracking-tight text-white leading-none whitespace-nowrap">FocusArx</p>
+              <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-[#4B5563] mt-0.5 whitespace-nowrap">AI-Powered Study OS</p>
+            </div>
+          )}
+          {!sidebarCollapsed && <InfoTooltip />}
+          {/* Collapse toggle */}
+          <button
+            onClick={toggleSidebar}
+            className="relative z-10 flex items-center justify-center rounded-lg p-1.5 text-[#4B5563] transition-all hover:bg-[rgba(124,58,237,0.12)] hover:text-[#A78BFA]"
+            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {sidebarCollapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
+          </button>
         </div>
 
         {/* Nav */}
         <nav className="nav-scroll-fade flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
-          {renderNavGroup()}
+          {renderNavGroup(undefined, sidebarCollapsed)}
           {isAdminUser(user) && (
             <>
               <div className="mx-3 my-1.5 h-px bg-gradient-to-r from-transparent via-[rgba(124,58,237,0.15)] to-transparent" />
-              <NavItem href="/admin" label="Admin" icon={Shield} active={location === "/admin"} />
+              <NavItem href="/admin" label="Admin" icon={Shield} active={location === "/admin"} collapsed={sidebarCollapsed} />
             </>
           )}
         </nav>
@@ -349,52 +443,88 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="border-t border-[rgba(124,58,237,0.12)] px-2 py-3 space-y-1">
           {status === "authenticated" && user ? (
             <>
-              <Link href="/profile">
+              <Link href="/profile" title={user.name || user.email?.split("@")[0] || "Profile"}>
                 <motion.div
                   whileHover={{ backgroundColor: "rgba(124,58,237,0.08)" }}
-                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 cursor-pointer transition-colors"
+                  className={`flex items-center rounded-xl py-2.5 cursor-pointer transition-colors ${sidebarCollapsed ? "justify-center px-1" : "gap-3 px-3"}`}
                 >
                   <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] text-xs font-bold text-white shadow-lg shadow-purple-900/40">
                     {initials}
                     <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-[#08090f]" />
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-semibold text-[#E2E8F0]">{user.name || user.email?.split("@")[0] || "User"}</p>
-                    <p className="truncate text-[10px] text-[#3D4760]">{user.email ?? "Signed in"}</p>
-                  </div>
+                  {!sidebarCollapsed && (
+                    <div className="min-w-0 flex-1 overflow-hidden">
+                      <p className="truncate text-xs font-semibold text-[#E2E8F0]">{user.name || user.email?.split("@")[0] || "User"}</p>
+                      <p className="truncate text-[10px] text-[#3D4760]">{user.email ?? "Signed in"}</p>
+                    </div>
+                  )}
                 </motion.div>
               </Link>
-              <button onClick={() => void signOut()} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs text-[#6B7280] transition-all hover:bg-[rgba(239,68,68,0.08)] hover:text-[#F87171]">
-                <LogOut size={13} /> Sign out
-              </button>
+
+              {!sidebarCollapsed ? (
+                <button onClick={() => void signOut()} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs text-[#6B7280] transition-all hover:bg-[rgba(239,68,68,0.08)] hover:text-[#F87171]">
+                  <LogOut size={13} /> Sign out
+                </button>
+              ) : (
+                <div title="Sign out">
+                  <button onClick={() => void signOut()} className="flex w-full items-center justify-center rounded-xl px-1 py-2 text-[#6B7280] hover:bg-[rgba(239,68,68,0.08)] hover:text-[#F87171]">
+                    <LogOut size={13} />
+                  </button>
+                </div>
+              )}
             </>
           ) : (
-            <Link href="/login" className="flex items-center gap-3 rounded-xl px-3 py-2 text-xs text-[#6B7280] transition-colors hover:bg-[rgba(124,58,237,0.08)] hover:text-[#A78BFA]">
-              <LogIn size={13} /> Sign in
+            <Link href="/login" title="Sign in" className={`flex items-center rounded-xl px-3 py-2 text-xs text-[#6B7280] transition-colors hover:bg-[rgba(124,58,237,0.08)] hover:text-[#A78BFA] ${sidebarCollapsed ? "justify-center px-1" : "gap-3"}`}>
+              <LogIn size={13} />
+              {!sidebarCollapsed && "Sign in"}
             </Link>
           )}
-          <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs text-[#4B5563] transition-colors hover:bg-[rgba(124,58,237,0.08)] hover:text-[#A78BFA]">
-            {theme === "dark" ? <Sun size={13} /> : <Moon size={13} />}
-            {theme === "dark" ? "Light mode" : "Dark mode"}
-          </button>
-          {"Notification" in window && (
-            <button onClick={handlePushToggle} disabled={pushLoading}
-              className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs transition-colors disabled:opacity-50 ${pushEnabled ? "text-emerald-500 hover:bg-emerald-500/8" : "text-[#4B5563] hover:bg-[rgba(124,58,237,0.08)] hover:text-[#A78BFA]"}`}>
-              {pushEnabled ? <Bell size={13} /> : <BellOff size={13} />}
-              {pushLoading ? "…" : pushEnabled ? "Notifications on" : "Enable notifications"}
-            </button>
+
+          {!sidebarCollapsed ? (
+            <>
+              <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs text-[#4B5563] transition-colors hover:bg-[rgba(124,58,237,0.08)] hover:text-[#A78BFA]">
+                {theme === "dark" ? <Sun size={13} /> : <Moon size={13} />}
+                {theme === "dark" ? "Light mode" : "Dark mode"}
+              </button>
+              {"Notification" in window && (
+                <button onClick={handlePushToggle} disabled={pushLoading}
+                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs transition-colors disabled:opacity-50 ${pushEnabled ? "text-emerald-500 hover:bg-emerald-500/8" : "text-[#4B5563] hover:bg-[rgba(124,58,237,0.08)] hover:text-[#A78BFA]"}`}>
+                  {pushEnabled ? <Bell size={13} /> : <BellOff size={13} />}
+                  {pushLoading ? "…" : pushEnabled ? "Notifications on" : "Enable notifications"}
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              <div title={theme === "dark" ? "Light mode" : "Dark mode"}>
+                <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  className="flex w-full items-center justify-center rounded-xl px-1 py-2 text-[#4B5563] hover:bg-[rgba(124,58,237,0.08)] hover:text-[#A78BFA]">
+                  {theme === "dark" ? <Sun size={13} /> : <Moon size={13} />}
+                </button>
+              </div>
+              {"Notification" in window && (
+                <div title={pushEnabled ? "Notifications on" : "Enable notifications"}>
+                  <button onClick={handlePushToggle} disabled={pushLoading}
+                    className={`flex w-full items-center justify-center rounded-xl px-1 py-2 transition-colors disabled:opacity-50 ${pushEnabled ? "text-emerald-500" : "text-[#4B5563] hover:bg-[rgba(124,58,237,0.08)] hover:text-[#A78BFA]"}`}>
+                    {pushEnabled ? <Bell size={13} /> : <BellOff size={13} />}
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
 
-        {/* Footer links */}
-        <div className="border-t border-[rgba(124,58,237,0.08)] px-3 py-2.5">
-          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-            {[["Privacy", "/privacy"], ["Terms", "/terms"], ["AI Policy", "/ai-policy"], ["Pricing", "/pricing"], ["About", "/about"], ["Support", "/support"]].map(([label, href]) => (
-              <Link key={href} href={href} className="text-[9px] font-medium text-[#1E2740] hover:text-[#4B5563] transition-colors">{label}</Link>
-            ))}
+        {/* Footer links — hidden when collapsed */}
+        {!sidebarCollapsed && (
+          <div className="border-t border-[rgba(124,58,237,0.08)] px-3 py-2.5">
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+              {[["Privacy", "/privacy"], ["Terms", "/terms"], ["AI Policy", "/ai-policy"], ["Pricing", "/pricing"], ["About", "/about"], ["Support", "/support"]].map(([label, href]) => (
+                <Link key={href} href={href} className="text-[9px] font-medium text-[#1E2740] hover:text-[#4B5563] transition-colors">{label}</Link>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </motion.aside>
 
       {/* ── MOBILE HEADER ── */}
@@ -430,7 +560,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             >
               <div className="flex items-center justify-between border-b border-[rgba(124,58,237,0.15)] px-4 py-4">
                 <div className="flex items-center gap-2.5"><SidebarLogo /><span className="text-sm font-black text-white">FocusArx</span></div>
-                <button onClick={() => setMobileOpen(false)} className="rounded-lg p-1.5 text-[#4B5563] hover:bg-[rgba(124,58,237,0.15)] hover:text-[#E2E8F0]"><X size={18} /></button>
+                <button onClick={() => setMobileOpen(false)} className="rounded-lg p-1.5 text-[#4B5563] hover:text-[#A78BFA]" aria-label="Close menu">
+                  <X size={18} />
+                </button>
               </div>
               <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
                 {renderNavGroup(() => setMobileOpen(false))}
@@ -492,7 +624,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </nav>
 
       {/* ── MAIN CONTENT ── */}
-      <main id="main-content" className="flex-1 md:ml-[240px] pt-14 pb-16 md:pt-0 md:pb-0 min-w-0">
+      <main
+        id="main-content"
+        className="flex-1 pt-14 pb-16 md:pt-0 md:pb-0 min-w-0"
+        style={{
+          marginLeft: undefined,
+          transition: "margin-left 0.3s cubic-bezier(0.22,1,0.36,1)",
+        }}
+      >
         {children}
       </main>
 
