@@ -256,6 +256,24 @@ input, select, textarea {
 }
 .coin-float { animation: coinFloat 0.9s ease-out forwards; }
 
+/* Marquee ticker animation */
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* Page transition animations */
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Landing-page mobile overrides */
+@media (max-width: 640px) {
+  .landing-hero-title { font-size: 2.6rem !important; }
+  .landing-hero-sub   { font-size: 0.875rem !important; }
+}
+
 /* Shimmer animation for badges */
 @keyframes shimmer {
   0%   { background-position: -200% 0; }

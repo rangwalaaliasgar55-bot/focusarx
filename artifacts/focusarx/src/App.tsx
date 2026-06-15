@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { AnimatePresence, motion, motion as m } from "framer-motion";
+import LoadingScreen from "@/components/LoadingScreen";
 import CursorEffect from "@/components/CursorEffect";
 const LandingPage = lazy(() => import("@/pages/landing"));
 import { ClipboardList, X } from "lucide-react";
@@ -497,25 +498,20 @@ function SocketInitializer() {
   return null;
 }
 
-function AppWithPalette() {
-  const [paletteOpen, setPaletteOpen] = useState(false);
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); setPaletteOpen((o) => !o); }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
-
+function RoutedContent() {
+  const [location] = useLocation();
   return (
-    <>
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
-      <DailyRewardBanner />
-      <LiveActivityTicker />
-      <MobileWelcomeGate>
-        <AppShell>
-          <Suspense fallback={<PageLoader />}>
-            <Switch>
+    <AnimatePresence mode="wait" initial={false}>
+      <motion.div
+        key={location}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -4 }}
+        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+        style={{ willChange: "transform, opacity", height: "100%" }}
+      >
+        <Suspense fallback={<PageLoader />}>
+          <Switch>
               <Route path="/welcome" component={MobileWelcomePage} />
               <Route path="/login" component={LoginPage} />
               <Route path="/signup" component={SignupPage} />
@@ -593,6 +589,29 @@ function AppWithPalette() {
               <Route component={NotFound} />
             </Switch>
           </Suspense>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+function AppWithPalette() {
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); setPaletteOpen((o) => !o); }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  return (
+    <>
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      <DailyRewardBanner />
+      <LiveActivityTicker />
+      <MobileWelcomeGate>
+        <AppShell>
+          <RoutedContent />
         </AppShell>
       </MobileWelcomeGate>
     </>
@@ -600,20 +619,27 @@ function AppWithPalette() {
 }
 
 function App() {
+  const [loading, setLoading] = useState(true);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <RewardToastProvider>
         <ToastProvider>
-          <CursorEffect />
-          <SocketInitializer />
-          <CapacitorNativeBridge />
-          <GuestBootstrap />
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <SiteAnalyticsTracker />
-            <AuthGatedOverlays />
-            <AppWithPalette />
-          </WouterRouter>
+          <LoadingScreen onDone={() => setLoading(false)} />
+          {!loading && (
+            <>
+              <CursorEffect />
+              <SocketInitializer />
+              <CapacitorNativeBridge />
+              <GuestBootstrap />
+              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                <SiteAnalyticsTracker />
+                <AuthGatedOverlays />
+                <AppWithPalette />
+              </WouterRouter>
+            </>
+          )}
         </ToastProvider>
         </RewardToastProvider>
       </AuthProvider>

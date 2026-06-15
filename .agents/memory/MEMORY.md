@@ -26,3 +26,5 @@
 - [Public SEO pages](seo-pages.md) — /focus-guide, /pomodoro-guide, /study-techniques, /virtual-study-room added as public lazy routes; all in sitemap.xml at priority 0.8-0.9
 - [Study rooms public access](study-rooms-public.md) — study-rooms page is now publicly accessible (no ProtectedRoute); auth required only for join/create; GET /api/study-rooms has no auth middleware
 - [Socket.io dev proxy](socketio-dev-proxy.md) — Vite dev server must proxy /socket.io to API port (ws:true) or WebSocket connections timeout; production reverse proxy handles this automatically
+- [Landing page & guest disable](landing-guest.md) — "/" in NO_SHELL hides AppShell; GuestBootstrap returns null (no auto-guest); LoadingScreen shown on first mount via App loading state
+- [Page transitions](page-transitions.md) — RoutedContent uses AnimatePresence+motion.div keyed on location; PageTransition component wraps legal/static pages; marquee keyframe in index.css
