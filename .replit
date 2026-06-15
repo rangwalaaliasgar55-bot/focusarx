@@ -33,8 +33,8 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "PORT=20925 BASE_PATH=/ pnpm --filter @workspace/focusarx run dev"
-waitForPort = 20925
+args = "PORT=5000 pnpm --filter @workspace/focusarx run dev"
+waitForPort = 5000
 
 [[workflows.workflow]]
 name = "FocusArx API"
@@ -58,16 +58,12 @@ path = "scripts/post-merge.sh"
 timeoutMs = 20000
 
 [[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
 localPort = 8080
 externalPort = 8080
-
-[[ports]]
-localPort = 8081
-externalPort = 8081
-
-[[ports]]
-localPort = 20925
-externalPort = 80
 
 [[ports]]
 localPort = 20926

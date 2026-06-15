@@ -1,5 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { AnimatePresence, motion, motion as m } from "framer-motion";
+import CursorEffect from "@/components/CursorEffect";
+const LandingPage = lazy(() => import("@/pages/landing"));
 import { ClipboardList, X } from "lucide-react";
 import { connectSocket, disconnectSocket } from "@/lib/socket";
 import MissionsWidget from "@/components/MissionsWidget";
@@ -425,6 +427,21 @@ function MobileSidePanelDrawer() {
   );
 }
 
+function RootPage() {
+  const { status } = useAuth();
+  if (status === "loading") return (
+    <div className="flex min-h-screen items-center justify-center bg-[#030308]">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#1a1d27] border-t-[#7C3AED]" />
+    </div>
+  );
+  if (status === "unauthenticated") return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#030308]"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[#1a1d27] border-t-[#7C3AED]" /></div>}>
+      <LandingPage />
+    </Suspense>
+  );
+  return <HomePage />;
+}
+
 function HomePage() {
   function handleHeroStart() { window.scrollTo({ top: 0, behavior: "smooth" }); }
   const feedback = useFeedbackTrigger();
@@ -452,6 +469,19 @@ function HomePage() {
         <FeedbackModal open={feedback.show} onClose={feedback.dismiss} onSubmit={feedback.onSubmit} />
       </div>
     </SessionRecoveryProvider>
+  );
+}
+
+function AuthGatedOverlays() {
+  const { status } = useAuth();
+  const [location] = useLocation();
+  const isLanding = status === "unauthenticated" && location === "/";
+  if (isLanding) return null;
+  return (
+    <>
+      <WelcomeOverlay />
+      <OnboardingModal />
+    </>
   );
 }
 
@@ -497,8 +527,8 @@ function AppWithPalette() {
               {/* Public profile — no auth required */}
               <Route path="/u/:username" component={() => <ErrorBoundary><UserProfilePage /></ErrorBoundary>} />
 
-              {/* Core */}
-              <Route path="/" component={() => <ErrorBoundary><HomePage /></ErrorBoundary>} />
+              {/* Core — Landing page for guests, Home for authenticated */}
+              <Route path="/" component={() => <ErrorBoundary><RootPage /></ErrorBoundary>} />
               <Route path="/dashboard" component={() => <ErrorBoundary><ProtectedRoute component={DashboardPage} /></ErrorBoundary>} />
               <Route path="/analytics" component={() => <ErrorBoundary><ProtectedRoute component={AnalyticsPage} /></ErrorBoundary>} />
               <Route path="/leaderboard" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><LeaderboardPage /></Suspense></ErrorBoundary>} />
@@ -575,13 +605,13 @@ function App() {
       <AuthProvider>
         <RewardToastProvider>
         <ToastProvider>
+          <CursorEffect />
           <SocketInitializer />
           <CapacitorNativeBridge />
           <GuestBootstrap />
-          <WelcomeOverlay />
-          <OnboardingModal />
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <SiteAnalyticsTracker />
+            <AuthGatedOverlays />
             <AppWithPalette />
           </WouterRouter>
         </ToastProvider>

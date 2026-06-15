@@ -5,7 +5,7 @@ import { useLocation } from "wouter";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-const NO_GUEST_PATHS = ["/login", "/signup", "/forgot-password", "/reset-password", "/auth/callback", "/onboarding", "/admin"];
+const NO_GUEST_PATHS = ["/", "/login", "/signup", "/forgot-password", "/reset-password", "/auth/callback", "/onboarding", "/admin"];
 
 export function GuestBootstrap() {
   const { status, refresh } = useAuth();

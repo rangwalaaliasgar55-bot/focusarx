@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronDown, ChevronUp, Zap, Target, Brain, ArrowRight } from "lucide-react";
+import { useLocation } from "wouter";
 
 const OVERLAY_KEY = "focusarx-welcome-seen";
 
@@ -33,13 +34,15 @@ const BENEFITS = [
 export default function WelcomeOverlay() {
   const [visible, setVisible] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [location] = useLocation();
 
   useEffect(() => {
+    if (location === "/") return;
     if (!hasSeenWelcome()) {
       const t = setTimeout(() => setVisible(true), 300);
       return () => clearTimeout(t);
     }
-  }, []);
+  }, [location]);
 
   function dismiss() {
     markWelcomeSeen();
