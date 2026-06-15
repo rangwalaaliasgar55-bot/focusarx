@@ -40,7 +40,7 @@ socialRouter.get("/social/friends", auth, async (req, res) => {
     const [streak] = await db.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, fid)).limit(1);
     const todaySessions = await db.select({ count: sql<number>`count(*)` }).from(focusSessionsTable)
       .where(and(eq(focusSessionsTable.userId, fid), sql`completed_at >= now() - interval '24 hours'`));
-    const [activeSession] = await db.select({ startedAt: activeSessionsTable.startedAt, plannedMinutes: activeSessionsTable.plannedMinutes })
+    const [activeSession] = await db.select({ updatedAt: activeSessionsTable.updatedAt, activeSeconds: activeSessionsTable.activeSeconds })
       .from(activeSessionsTable).where(eq(activeSessionsTable.userId, fid)).limit(1);
     return {
       id: fid,
@@ -55,8 +55,8 @@ socialRouter.get("/social/friends", auth, async (req, res) => {
       sessionsToday: Number(todaySessions[0]?.count ?? 0),
       online: !!activeSession,
       isStudying: !!activeSession,
-      studyingFor: activeSession ? activeSession.plannedMinutes : null,
-      studyStartedAt: activeSession ? activeSession.startedAt : null,
+      studyingFor: activeSession ? Math.round((activeSession.activeSeconds ?? 0) / 60) : null,
+      studyStartedAt: activeSession ? activeSession.updatedAt : null,
     };
   }));
 

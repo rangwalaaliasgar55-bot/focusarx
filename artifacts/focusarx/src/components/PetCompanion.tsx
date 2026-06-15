@@ -143,7 +143,7 @@ function getPhase(progress: number, active: boolean): Phase {
   return "start";
 }
 
-const PHASE_ANIM: Record<Phase, object> = {
+const PHASE_ANIM: Record<Phase, Record<string, number[]>> = {
   idle:     { y: [0, -5, 0],             scale: [1, 1.02, 1] },
   start:    { y: [0, -8, 0],             scale: [1, 1.04, 1] },
   building: { y: [0, -12, 0],            scale: [1, 1.06, 1], x: [-1.5, 1.5, -1, 0] },

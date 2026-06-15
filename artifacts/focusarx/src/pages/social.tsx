@@ -377,7 +377,7 @@ export default function SocialPage() {
       <div className="flex gap-1 mb-4 bg-[#111318] rounded-xl border border-[#1e2130] p-1">
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-medium transition-all ${tab === t.id ? "bg-[#7C3AED] text-white" : "text-[#5a5f72] hover:text-[#e8eaf0]"}`}>
-            <t.icon size={12} />
+            {(() => { const Icon = t.icon as React.FC<{ size?: number }>; return <Icon size={12} />; })()}
             <span className="hidden sm:inline">{t.label}</span>
             {t.count !== undefined && t.count > 0 && <span className="ml-0.5 rounded-full bg-red-500 text-white text-[9px] w-4 h-4 flex items-center justify-center">{t.count}</span>}
           </button>

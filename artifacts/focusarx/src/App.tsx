@@ -93,6 +93,10 @@ const DnaPage = lazy(() => import("@/pages/focus-dna"));
 const QuestsPage = lazy(() => import("@/pages/quests"));
 const FocusGuidePage = lazy(() => import("@/pages/focus-guide"));
 const PremiumPage = lazy(() => import("@/pages/premium"));
+const RefundPage = lazy(() => import("@/pages/refund"));
+const AboutPage = lazy(() => import("@/pages/about"));
+const ContactPage = lazy(() => import("@/pages/contact"));
+const SupportPage = lazy(() => import("@/pages/support"));
 const PomodoroGuidePage = lazy(() => import("@/pages/pomodoro-guide"));
 const StudyTechniquesPage = lazy(() => import("@/pages/study-techniques"));
 const VirtualStudyRoomPage = lazy(() => import("@/pages/virtual-study-room"));
@@ -591,6 +595,10 @@ function RoutedContent() {
               <Route path="/data-deletion" component={() => <ErrorBoundary><DataDeletionPage /></ErrorBoundary>} />
               <Route path="/pricing" component={() => <ErrorBoundary><PricingPage /></ErrorBoundary>} />
               <Route path="/premium" component={() => <ErrorBoundary><ProtectedRoute component={PremiumPage} /></ErrorBoundary>} />
+              <Route path="/refund" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><RefundPage /></Suspense></ErrorBoundary>} />
+              <Route path="/about" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><AboutPage /></Suspense></ErrorBoundary>} />
+              <Route path="/contact" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><ContactPage /></Suspense></ErrorBoundary>} />
+              <Route path="/support" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><SupportPage /></Suspense></ErrorBoundary>} />
 
               <Route component={NotFound} />
             </Switch>

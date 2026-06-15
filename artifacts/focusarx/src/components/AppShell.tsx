@@ -283,29 +283,43 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
         className="app-sidebar hidden md:flex sidebar-ambient"
         style={{
-          background: "linear-gradient(180deg, rgba(8,9,20,0.98) 0%, rgba(5,6,16,0.99) 100%)",
-          borderRight: "1px solid rgba(124,58,237,0.15)",
+          background: "linear-gradient(180deg, rgba(7,8,18,0.98) 0%, rgba(4,5,14,0.99) 50%, rgba(8,5,18,0.99) 100%)",
+          borderRight: "1px solid rgba(124,58,237,0.18)",
+          boxShadow: "4px 0 32px rgba(0,0,0,0.5), inset -1px 0 0 rgba(124,58,237,0.08)",
         }}
       >
-        {/* Ambient aurora glow orbs */}
+        {/* Ambient glassmorphism glow orbs */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-none" aria-hidden>
           <motion.div
-            className="absolute -top-10 -left-10 h-32 w-32 rounded-full"
-            style={{ background: "radial-gradient(circle, rgba(124,58,237,0.18) 0%, transparent 70%)", filter: "blur(20px)" }}
-            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
-            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute -top-16 -left-16 h-48 w-48 rounded-full"
+            style={{ background: "radial-gradient(circle, rgba(124,58,237,0.22) 0%, rgba(79,46,220,0.08) 50%, transparent 70%)", filter: "blur(28px)" }}
+            animate={{ scale: [1, 1.25, 1], opacity: [0.5, 0.9, 0.5] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
           />
           <motion.div
-            className="absolute bottom-20 -left-8 h-24 w-24 rounded-full"
-            style={{ background: "radial-gradient(circle, rgba(6,214,160,0.1) 0%, transparent 70%)", filter: "blur(18px)" }}
-            animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0.6, 0.3] }}
-            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+            className="absolute bottom-16 -left-12 h-36 w-36 rounded-full"
+            style={{ background: "radial-gradient(circle, rgba(6,214,160,0.12) 0%, transparent 70%)", filter: "blur(22px)" }}
+            animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.65, 0.3] }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 2.5 }}
           />
           <motion.div
-            className="absolute top-1/2 -right-4 h-16 w-16 rounded-full"
-            style={{ background: "radial-gradient(circle, rgba(79,70,229,0.15) 0%, transparent 70%)", filter: "blur(15px)" }}
-            animate={{ scale: [0.8, 1.2, 0.8], opacity: [0.2, 0.5, 0.2] }}
-            transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 4 }}
+            className="absolute top-1/2 -right-6 h-28 w-28 rounded-full"
+            style={{ background: "radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 70%)", filter: "blur(20px)" }}
+            animate={{ scale: [0.8, 1.3, 0.8], opacity: [0.2, 0.55, 0.2] }}
+            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 4.5 }}
+          />
+          <motion.div
+            className="absolute top-1/3 left-1/2 h-20 w-20 rounded-full"
+            style={{ background: "radial-gradient(circle, rgba(232,121,249,0.1) 0%, transparent 70%)", filter: "blur(16px)" }}
+            animate={{ scale: [1, 1.4, 1], opacity: [0.15, 0.4, 0.15] }}
+            transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
+          />
+          {/* Glass shimmer line */}
+          <motion.div
+            className="absolute inset-x-0 h-px"
+            style={{ top: "35%", background: "linear-gradient(90deg, transparent, rgba(124,58,237,0.15), rgba(232,121,249,0.1), transparent)" }}
+            animate={{ opacity: [0, 0.8, 0] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 2 }}
           />
         </div>
 
@@ -374,10 +388,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Footer links */}
-        <div className="flex items-center justify-center gap-3 border-t border-[rgba(124,58,237,0.08)] px-3 py-2.5">
-          {[["Privacy", "/privacy"], ["Terms", "/terms"], ["AI Policy", "/ai-policy"], ["Pricing", "/pricing"]].map(([label, href]) => (
-            <Link key={href} href={href} className="text-[9px] font-medium text-[#1E2740] hover:text-[#4B5563] transition-colors">{label}</Link>
-          ))}
+        <div className="border-t border-[rgba(124,58,237,0.08)] px-3 py-2.5">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+            {[["Privacy", "/privacy"], ["Terms", "/terms"], ["AI Policy", "/ai-policy"], ["Pricing", "/pricing"], ["About", "/about"], ["Support", "/support"]].map(([label, href]) => (
+              <Link key={href} href={href} className="text-[9px] font-medium text-[#1E2740] hover:text-[#4B5563] transition-colors">{label}</Link>
+            ))}
+          </div>
         </div>
       </motion.aside>
 
