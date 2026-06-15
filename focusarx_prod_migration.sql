@@ -1104,3 +1104,134 @@ CREATE INDEX IF NOT EXISTS "posts_user_idx" ON "posts" USING btree ("user_id");
 CREATE INDEX IF NOT EXISTS "posts_created_at_idx" ON "posts" USING btree ("created_at");
 
 CREATE INDEX IF NOT EXISTS "post_likes_post_user_idx" ON "post_likes" USING btree ("post_id","user_id");
+
+-- =============================================
+-- MISSING TABLES - Added via Recovery Operation
+-- Run this section if tables don't exist
+-- =============================================
+
+-- MISSING TABLE: premium_subscriptions
+CREATE TABLE IF NOT EXISTS "premium_subscriptions" (
+    "id" text PRIMARY KEY NOT NULL,
+    "user_id" text NOT NULL,
+    "activated_at" timestamp DEFAULT now() NOT NULL,
+    "expires_at" timestamp,
+    "coins_cost" integer DEFAULT 9000,
+    "benefits" jsonb DEFAULT '["exclusive_pets","premium_loot_boxes","premium_themes","xp_multiplier","coin_multiplier","premium_analytics","profile_badge","premium_battle_pass"]'::jsonb,
+    "is_active" boolean DEFAULT true NOT NULL,
+    "granted_by_admin" boolean DEFAULT false NOT NULL,
+    "created_at" timestamp DEFAULT now() NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "premium_subscriptions_user_id_unique" ON "premium_subscriptions" ("user_id");
+CREATE INDEX IF NOT EXISTS "premium_subscriptions_user_idx" ON "premium_subscriptions" ("user_id");
+
+-- MISSING TABLE: email_logs
+CREATE TABLE IF NOT EXISTS "email_logs" (
+    "id" text PRIMARY KEY NOT NULL,
+    "recipient_id" text,
+    "recipient_email" text NOT NULL,
+    "template" text NOT NULL,
+    "subject" text NOT NULL,
+    "status" text DEFAULT 'pending' NOT NULL,
+    "provider_id" text,
+    "sent_at" timestamp,
+    "opened_at" timestamp,
+    "clicked_at" timestamp,
+    "bounced" boolean DEFAULT false,
+    "error" text,
+    "created_at" timestamp DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS "email_logs_recipient_idx" ON "email_logs" ("recipient_id");
+CREATE INDEX IF NOT EXISTS "email_logs_created_at_idx" ON "email_logs" ("created_at");
+
+-- MISSING TABLE: focus_cities
+CREATE TABLE IF NOT EXISTS "focus_cities" (
+    "id" text PRIMARY KEY NOT NULL,
+    "user_id" text NOT NULL,
+    "name" text NOT NULL,
+    "population" integer DEFAULT 0 NOT NULL,
+    "buildings" jsonb DEFAULT '[]'::jsonb,
+    "last_activity" timestamp DEFAULT now() NOT NULL,
+    "created_at" timestamp DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS "focus_cities_user_idx" ON "focus_cities" ("user_id");
+
+-- MISSING TABLE: city_building_definitions
+CREATE TABLE IF NOT EXISTS "city_building_definitions" (
+    "id" text PRIMARY KEY NOT NULL,
+    "type" text NOT NULL,
+    "name" text NOT NULL,
+    "description" text,
+    "level_required" integer DEFAULT 1 NOT NULL,
+    "xp_cost" integer DEFAULT 0 NOT NULL,
+    "coin_cost" integer DEFAULT 0 NOT NULL,
+    "effects" jsonb,
+    "created_at" timestamp DEFAULT now() NOT NULL
+);
+
+-- MISSING TABLE: lootbox_definitions
+CREATE TABLE IF NOT EXISTS "lootbox_definitions" (
+    "id" text PRIMARY KEY NOT NULL,
+    "name" text NOT NULL,
+    "description" text,
+    "rarity" text NOT NULL,
+    "coin_cost" integer DEFAULT 0 NOT NULL,
+    "xp_cost" integer DEFAULT 0 NOT NULL,
+    "is_premium" boolean DEFAULT false NOT NULL,
+    "items" jsonb DEFAULT '[]'::jsonb,
+    "created_at" timestamp DEFAULT now() NOT NULL
+);
+
+-- MISSING TABLE: lootbox_rewards
+CREATE TABLE IF NOT EXISTS "lootbox_rewards" (
+    "id" text PRIMARY KEY NOT NULL,
+    "user_id" text NOT NULL,
+    "lootbox_id" text NOT NULL,
+    "reward_item" jsonb NOT NULL,
+    "opened_at" timestamp DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS "lootbox_rewards_user_idx" ON "lootbox_rewards" ("user_id");
+
+-- MISSING TABLE: quest_definitions
+CREATE TABLE IF NOT EXISTS "quest_definitions" (
+    "id" text PRIMARY KEY NOT NULL,
+    "quest_key" text NOT NULL UNIQUE,
+    "title" text NOT NULL,
+    "description" text NOT NULL,
+    "category" text NOT NULL DEFAULT 'exploration',
+    "xp_reward" integer DEFAULT 100 NOT NULL,
+    "coin_reward" integer DEFAULT 50 NOT NULL,
+    "badge_reward" text,
+    "steps" jsonb DEFAULT '[]'::jsonb,
+    "is_active" boolean DEFAULT true NOT NULL,
+    "created_at" timestamp DEFAULT now() NOT NULL
+);
+
+-- MISSING TABLE: user_quest_progress
+CREATE TABLE IF NOT EXISTS "user_quest_progress" (
+    "id" text PRIMARY KEY NOT NULL,
+    "user_id" text NOT NULL,
+    "quest_key" text NOT NULL,
+    "current_step" integer DEFAULT 0 NOT NULL,
+    "completed" boolean DEFAULT false NOT NULL,
+    "completed_at" timestamp,
+    "created_at" timestamp DEFAULT now() NOT NULL,
+    "updated_at" timestamp DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS "user_quest_progress_user_idx" ON "user_quest_progress" ("user_id");
+CREATE INDEX IF NOT EXISTS "user_quest_progress_quest_idx" ON "user_quest_progress" ("quest_key");
+
+-- MISSING COLUMN FIX: conversation_participants.is_admin
+DO $$ BEGIN
+    ALTER TABLE "conversation_participants" ADD COLUMN IF NOT EXISTS "is_admin" boolean DEFAULT false NOT NULL;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
+
+-- =============================================
+-- RECOVERY COMPLETE
+-- Tables added: premium_subscriptions, email_logs, focus_cities, 
+-- city_building_definitions, lootbox_definitions, lootbox_rewards,
+-- quest_definitions, user_quest_progress
+-- Columns added: conversation_participants.is_admin
+-- =============================================
