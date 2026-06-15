@@ -678,30 +678,30 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
         onOverrun={(task, mins) => { setOverrunTask({ text: task.text }); setOverrunMinutes(mins); }}
         onEstimateChange={() => { void refreshTasks(); }}
       />
-    </div>
-    </div>
 
-    {/* ── PET COMPANION — centered below timer, full-width ────────────── */}
-    <AnimatePresence>
-      {mode === "focus" && (
-        <motion.div
-          key="pet-companion-main"
-          initial={{ opacity: 0, y: 24, scale: 0.88 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 12, scale: 0.92 }}
-          transition={{ duration: 0.45, type: "spring", stiffness: 240, damping: 24 }}
-          className="w-full flex justify-center py-6"
-        >
-          <PetCompanion
-            isRunning={isRunning}
-            elapsedSeconds={isRunning ? (totalFocusSec - secondsLeft) : 0}
-            mode={mode}
-            progress={progress}
-            sessionDurationSeconds={totalFocusSec}
-          />
-        </motion.div>
-      )}
-    </AnimatePresence>
+      {/* ── PET COMPANION — below task timeline in right column ──────── */}
+      <AnimatePresence>
+        {mode === "focus" && (
+          <motion.div
+            key="pet-companion-main"
+            initial={{ opacity: 0, y: 24, scale: 0.88 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.92 }}
+            transition={{ duration: 0.45, type: "spring", stiffness: 240, damping: 24 }}
+            className="flex justify-center py-4"
+          >
+            <PetCompanion
+              isRunning={isRunning}
+              elapsedSeconds={isRunning ? (totalFocusSec - secondsLeft) : 0}
+              mode={mode}
+              progress={progress}
+              sessionDurationSeconds={totalFocusSec}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+    </div>
 
     {/* Ambient Sound Bar */}
     <AmbientSoundBar visible={true} />

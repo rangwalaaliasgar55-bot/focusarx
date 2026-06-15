@@ -69,7 +69,7 @@ export function FocusMoodWidget({ onSelect, compact = false }: FocusMoodWidgetPr
       <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#4B5563] mb-3">Energy Check-in</p>
       <AnimatePresence mode="wait">
         {!submitted ? (
-          <motion.div key="picker" exit={{ opacity: 0, scale: 0.95 }} className="flex items-center justify-between gap-1">
+          <motion.div key="picker" exit={{ opacity: 0, scale: 0.95 }} className="flex items-center justify-around gap-0.5">
             {MOODS.map((m) => (
               <motion.button
                 key={m.value}
@@ -77,10 +77,10 @@ export function FocusMoodWidget({ onSelect, compact = false }: FocusMoodWidgetPr
                 whileTap={{ scale: 0.85 }}
                 transition={{ type: "spring", stiffness: 400, damping: 15 }}
                 onClick={() => handleSelect(m.value)}
-                className="flex flex-col items-center gap-1 flex-1 rounded-xl p-2 hover:bg-[rgba(255,255,255,0.04)] transition-colors"
+                className="flex flex-col items-center gap-1 rounded-xl px-1.5 py-2 min-w-0 hover:bg-[rgba(255,255,255,0.04)] transition-colors"
               >
-                <span className="text-xl">{m.emoji}</span>
-                <span className="text-[8px] text-[#4B5563]">{m.label}</span>
+                <span className="text-xl leading-none">{m.emoji}</span>
+                <span className="text-[8px] text-[#4B5563] whitespace-nowrap">{m.label}</span>
               </motion.button>
             ))}
           </motion.div>
