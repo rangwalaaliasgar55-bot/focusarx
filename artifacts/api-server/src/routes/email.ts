@@ -8,6 +8,7 @@ import {
 import { eq, and, isNull, lt, sql } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
+import { sendEmail, getEmailConfig } from "../lib/email";
 
 const router = Router();
 
@@ -63,39 +64,6 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (name: string) =>
   },
 };
 
-async function sendEmailViaResend(
-  to: string,
-  subject: string,
-  html: string,
-  providerId?: string
-): Promise<{ ok: boolean; id?: string; error?: string }> {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    logger.warn("RESEND_API_KEY not set — email not sent (logged only)");
-    return { ok: true, id: `mock-${Date.now()}` };
-  }
-  try {
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: process.env.EMAIL_FROM ?? "FocusArx <noreply@focusarx.app>",
-        to,
-        subject,
-        html,
-      }),
-    });
-    const data = await response.json() as any;
-    if (!response.ok) return { ok: false, error: data.message ?? "Send failed" };
-    return { ok: true, id: data.id };
-  } catch (err: any) {
-    return { ok: false, error: err.message };
-  }
-}
-
 // ─── GET: email logs ──────────────────────────────────────────────────────────
 
 router.get("/admin/email/logs", async (req, res) => {
@@ -112,15 +80,21 @@ router.get("/admin/email/logs", async (req, res) => {
       createdAt: emailLogsTable.createdAt,
     }).from(emailLogsTable).orderBy(sql`${emailLogsTable.createdAt} DESC`).limit(200);
 
+    const sent = logs.filter(l => l.status === "sent").length;
     const stats = {
       total: logs.length,
-      sent: logs.filter(l => l.status === "sent").length,
+      sent,
+      // SMTP accepts === delivered; open/click tracking needs a provider that
+      // supports it (Gmail SMTP does not), so they surface as not-tracked.
+      delivered: sent,
+      opened: logs.filter(l => l.status === "opened" || l.status === "clicked").length,
+      clicked: logs.filter(l => l.status === "clicked").length,
       pending: logs.filter(l => l.status === "pending").length,
       failed: logs.filter(l => l.status === "failed").length,
       bounced: logs.filter(l => l.bounced).length,
     };
 
-    res.json({ logs, stats });
+    res.json({ logs, stats, provider: getEmailConfig() });
   } catch (err) {
     logger.error({ err }, "email logs error");
     res.status(500).json({ error: "Internal error" });
@@ -190,7 +164,7 @@ router.post("/admin/email/blast", async (req, res) => {
         status: "pending",
       }).catch(() => {});
 
-      const result = await sendEmailViaResend(user.email, subject, html);
+      const result = await sendEmail({ to: user.email, subject, html });
 
       await db.update(emailLogsTable).set({
         status: result.ok ? "sent" : "failed",
@@ -218,6 +192,59 @@ router.get("/admin/email/templates", async (req, res) => {
       subject: EMAIL_TEMPLATES[key]!.subject,
     })),
   });
+});
+
+// ─── GET: email provider diagnostics ──────────────────────────────────────────
+
+router.get("/admin/email/status", async (req, res) => {
+  if (!await checkAdminAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
+  res.json(getEmailConfig());
+});
+
+// ─── POST: send a single test email ───────────────────────────────────────────
+
+router.post("/admin/email/test", async (req, res) => {
+  if (!await checkAdminAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  const { to, template, customSubject, customHtml } = req.body as {
+    to: string;
+    template?: string;
+    customSubject?: string;
+    customHtml?: string;
+  };
+
+  if (!to || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) {
+    res.status(400).json({ error: "Valid recipient email required" }); return;
+  }
+
+  const tmpl = template ? EMAIL_TEMPLATES[template] : undefined;
+  const subject = customSubject ?? tmpl?.subject ?? "FocusArx test email";
+  const html = customHtml ?? tmpl?.html("Scholar") ??
+    `<h1>FocusArx test email ✅</h1><p>If you received this, production email delivery is working.</p>`;
+
+  const logId = crypto.randomUUID();
+  await db.insert(emailLogsTable).values({
+    id: logId,
+    recipientEmail: to,
+    template: template ?? "test",
+    subject,
+    status: "pending",
+  }).catch(() => {});
+
+  const result = await sendEmail({ to, subject, html });
+
+  await db.update(emailLogsTable).set({
+    status: result.ok ? "sent" : "failed",
+    providerId: result.id,
+    sentAt: result.ok ? new Date() : undefined,
+    error: result.error,
+  }).where(eq(emailLogsTable.id, logId)).catch(() => {});
+
+  if (!result.ok) {
+    res.status(502).json({ ok: false, error: result.error, provider: result.provider });
+    return;
+  }
+  res.json({ ok: true, id: result.id, provider: result.provider });
 });
 
 export { router as emailRouter };
