@@ -1,0 +1,1 @@
+CREATE INDEX "message_reactions_msg_idx" ON "message_reactions" USING btree ("message_id");
