@@ -122,7 +122,7 @@ const NAV_GROUPS = [
   { id: "tools",  label: "Tools" },
 ];
 
-const NO_SHELL = ["/", "/login", "/signup", "/forgot-password", "/reset-password", "/admin", "/auth/callback"];
+const NO_SHELL_ALWAYS = ["/login", "/signup", "/forgot-password", "/reset-password", "/admin", "/auth/callback"];
 
 interface NavItemProps {
   href: string;
@@ -179,7 +179,6 @@ function NavItem({ href, label, icon: Icon, active, shortcut, aiBadge, badge, on
 
   return (
     <motion.div
-      whileHover={{ x: 3 }}
       whileTap={{ scale: 0.98 }}
       transition={{ type: "spring", stiffness: 500, damping: 35 }}
     >
@@ -260,9 +259,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  // Sync CSS variable so main content margin transitions smoothly
+  // Sync CSS variables so main content margin transitions smoothly
   useEffect(() => {
-    document.documentElement.style.setProperty("--sidebar-width", sidebarCollapsed ? "60px" : "240px");
+    const update = () => {
+      const w = sidebarCollapsed ? "60px" : "240px";
+      document.documentElement.style.setProperty("--sidebar-width", w);
+      document.documentElement.style.setProperty("--sidebar-ml", window.innerWidth >= 768 ? w : "0px");
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
   }, [sidebarCollapsed]);
 
   // Auto-collapse when a focus session is actively running
@@ -303,7 +309,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, [mobileOpen, handleKeyDown]);
   useEffect(() => { setMobileOpen(false); }, [location]);
 
-  if (NO_SHELL.some((p) => location === p || location.startsWith(p))) return <>{children}</>;
+  if (NO_SHELL_ALWAYS.some((p) => location === p || location.startsWith(p))) return <>{children}</>;
+  // Landing page: skip shell for unauthenticated/loading users
+  if (location === "/" && status !== "authenticated") return <>{children}</>;
 
   const user = session?.user;
   const initials = user ? (user.name?.slice(0, 2) || user.email?.slice(0, 2) || "?").toUpperCase() : "?";
@@ -628,7 +636,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         id="main-content"
         className="flex-1 pt-14 pb-16 md:pt-0 md:pb-0 min-w-0"
         style={{
-          marginLeft: undefined,
+          marginLeft: "var(--sidebar-ml, 0px)",
           transition: "margin-left 0.3s cubic-bezier(0.22,1,0.36,1)",
         }}
       >

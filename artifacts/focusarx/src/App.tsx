@@ -359,7 +359,7 @@ function HomeTopBar() {
   const user = session?.user;
   const initials = (user?.name?.slice(0, 1) || user?.email?.slice(0, 1) || "?").toUpperCase();
   return (
-    <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-[#1a1d24] shrink-0 bg-[#080b14]/80 backdrop-blur-xl">
+    <div className="hidden md:flex items-center justify-between px-4 sm:px-6 py-3 border-b border-[#1a1d24] shrink-0 bg-[#080b14]/80 backdrop-blur-xl">
       <div className="flex items-center gap-3">
         <div className="flex flex-col">
           <p className="text-[9px] font-mono text-[#4a4f62] uppercase tracking-[0.18em] leading-none">Deep Work</p>
@@ -399,13 +399,21 @@ function MotivationalLine() {
 
 function MobileSidePanelDrawer() {
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleScroll = () => setOpen(false);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [open]);
+
   return (
     <>
-      {/* Floating trigger — mobile only */}
+      {/* Floating trigger — mobile only, sits above the bottom tab bar */}
       <button
         aria-label="Open tasks & stats"
         onClick={() => setOpen(true)}
-        className="fixed bottom-5 right-4 z-40 flex items-center gap-2 rounded-full border border-[#2a2d3e] bg-[#181c28] px-4 py-2.5 text-xs font-semibold text-[#a5a8ff] shadow-lg shadow-black/40 transition-colors hover:bg-[#1e2130] lg:hidden"
+        className="fixed bottom-[76px] md:bottom-5 right-4 z-40 flex items-center gap-2 rounded-full border border-[#2a2d3e] bg-[#181c28] px-4 py-2.5 text-xs font-semibold text-[#a5a8ff] shadow-lg shadow-black/40 transition-colors active:bg-[#1e2130] lg:hidden"
       >
         <ClipboardList size={14} />
         Tasks & Stats
@@ -434,7 +442,7 @@ function MobileSidePanelDrawer() {
               <div className="mx-auto mt-3 h-1.5 w-16 rounded-full bg-[#1e2130]" />
               <div className="flex items-center justify-between px-5 py-3">
                 <span className="text-sm font-semibold text-[#E2E8F0]">Tasks & Stats</span>
-                <button onClick={() => setOpen(false)} className="text-[#4B5563] hover:text-[#94A3B8]">
+                <button onClick={() => setOpen(false)} className="text-[#4B5563] active:text-[#94A3B8]">
                   <X size={16} />
                 </button>
               </div>
