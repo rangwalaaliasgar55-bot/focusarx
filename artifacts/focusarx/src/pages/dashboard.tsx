@@ -157,7 +157,12 @@ function DailyHabitsWidget() {
     qc.invalidateQueries({ queryKey: ["habits-today"] });
   };
 
-  if (isLoading) return null;
+  if (isLoading) return (
+    <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 animate-pulse">
+      <div className="h-3.5 w-36 rounded bg-[rgba(255,255,255,0.06)] mb-4" />
+      <div className="space-y-2">{[...Array(3)].map((_, i) => <div key={i} className="h-9 rounded-xl bg-[rgba(255,255,255,0.04)]" />)}</div>
+    </div>
+  );
   if (!habits.length) return null;
 
   const done = habits.filter((h: any) => h.completedToday).length;
@@ -205,7 +210,12 @@ function ActiveMissionsWidget() {
     staleTime: 120_000,
   });
 
-  if (isLoading) return null;
+  if (isLoading) return (
+    <div className="rounded-2xl border border-[rgba(245,158,11,0.15)] bg-[rgba(245,158,11,0.03)] p-5 animate-pulse">
+      <div className="h-3.5 w-40 rounded bg-[rgba(255,255,255,0.06)] mb-4" />
+      <div className="space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="space-y-1.5"><div className="h-3 w-full rounded bg-[rgba(255,255,255,0.04)]" /><div className="h-1.5 rounded-full bg-[rgba(255,255,255,0.04)]" /></div>)}</div>
+    </div>
+  );
   const missions: any[] = missionsData?.missions ?? [];
   const active = missions.filter((m: any) => !m.completed && !m.claimed).slice(0, 4);
   if (!active.length) return null;
@@ -305,7 +315,12 @@ function GoalsWidget() {
     staleTime: 120_000,
   });
 
-  if (isLoading) return null;
+  if (isLoading) return (
+    <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 animate-pulse">
+      <div className="h-3.5 w-28 rounded bg-[rgba(255,255,255,0.06)] mb-4" />
+      <div className="space-y-2">{[...Array(3)].map((_, i) => <div key={i} className="h-5 rounded bg-[rgba(255,255,255,0.04)]" />)}</div>
+    </div>
+  );
   const goals: any[] = data?.goals ?? [];
   if (!goals.length) return null;
   const active = goals.filter(g => !g.completed);

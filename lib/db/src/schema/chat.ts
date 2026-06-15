@@ -48,4 +48,5 @@ export const messageReactions = pgTable('message_reactions', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({
   msgUserIdx: index('message_reactions_msg_user_idx').on(table.messageId, table.userId),
+  msgIdx: index('message_reactions_msg_idx').on(table.messageId),
 }));

@@ -293,13 +293,13 @@ export default function SocialPage() {
   const [addQ, setAddQ] = useState("");
   const [period, setPeriod] = useState<"daily" | "weekly" | "monthly" | "alltime">("weekly");
 
-  const { data: friends = [] } = useQuery({ queryKey: ["social-friends"], queryFn: () => apiFetch("/api/social/friends"), staleTime: 30_000 });
-  const { data: requests } = useQuery({ queryKey: ["social-requests"], queryFn: () => apiFetch("/api/social/requests"), staleTime: 30_000 });
-  const { data: leaderboard = [] } = useQuery({ queryKey: ["social-leaderboard", period], queryFn: () => apiFetch(`/api/social/leaderboard?period=${period}`), staleTime: 60_000 });
-  const { data: activity = [] } = useQuery({ queryKey: ["social-activity"], queryFn: () => apiFetch("/api/social/activity"), staleTime: 60_000, enabled: tab === "activity" });
+  const { data: friends = [], isError: friendsError, isLoading: friendsLoading } = useQuery({ queryKey: ["social-friends"], queryFn: () => apiFetch("/api/social/friends"), staleTime: 30_000 });
+  const { data: requests, isError: requestsError } = useQuery({ queryKey: ["social-requests"], queryFn: () => apiFetch("/api/social/requests"), staleTime: 30_000 });
+  const { data: leaderboard = [], isError: leaderboardError, isLoading: leaderboardLoading } = useQuery({ queryKey: ["social-leaderboard", period], queryFn: () => apiFetch(`/api/social/leaderboard?period=${period}`), staleTime: 60_000 });
+  const { data: activity = [], isError: activityError, isLoading: activityLoading } = useQuery({ queryKey: ["social-activity"], queryFn: () => apiFetch("/api/social/activity"), staleTime: 60_000, enabled: tab === "activity" });
   const { data: following = [] } = useQuery({ queryKey: ["social-following"], queryFn: () => apiFetch("/api/social/following"), staleTime: 60_000, enabled: tab === "following" });
   const { data: followers = [] } = useQuery({ queryKey: ["social-followers"], queryFn: () => apiFetch("/api/social/followers"), staleTime: 60_000, enabled: tab === "following" });
-  const { data: feed = [], refetch: refetchFeed, isLoading: feedLoading } = useQuery({ queryKey: ["feed", feedType], queryFn: () => apiFetch(`/api/feed?type=${feedType}`), staleTime: 30_000, enabled: tab === "feed" });
+  const { data: feed = [], refetch: refetchFeed, isLoading: feedLoading, isError: feedError } = useQuery({ queryKey: ["feed", feedType], queryFn: () => apiFetch(`/api/feed?type=${feedType}`), staleTime: 30_000, enabled: tab === "feed" });
 
   const followUser = useMutation({
     mutationFn: (userId: string) => apiFetch(`/api/social/follow/${userId}`, { method: "POST" }),
@@ -397,6 +397,12 @@ export default function SocialPage() {
           <CreatePostBox currentUserId={currentUserId} onCreated={() => qc.invalidateQueries({ queryKey: ["feed"] })} />
           {feedLoading ? (
             <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-32 animate-pulse rounded-2xl bg-[#111318]" />)}</div>
+          ) : feedError ? (
+            <div className="text-center py-16">
+              <p className="text-4xl mb-4">⚠️</p>
+              <p className="text-sm text-red-400 mb-3">Failed to load feed. Please try again.</p>
+              <button onClick={() => refetchFeed()} className="rounded-xl bg-[#7C3AED] px-4 py-2 text-xs font-semibold text-white hover:bg-[#6d31d4]">Retry</button>
+            </div>
           ) : (feed as any[]).length === 0 ? (
             <div className="text-center py-16">
               <p className="text-4xl mb-4">📰</p>
@@ -421,13 +427,16 @@ export default function SocialPage() {
 
       {tab === "friends" && (
         <div className="space-y-2">
-          {friends.length === 0 && <div className="text-center py-12 text-[#3a3d4a]"><Users size={40} className="mx-auto mb-3 opacity-30" /><p>No friends yet. Send a request above!</p></div>}
-          {friends.map((f: any) => <FriendCard key={f.id} friend={f} />)}
+          {friendsLoading && <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 animate-pulse rounded-xl bg-[#111318]" />)}</div>}
+          {friendsError && <p className="text-center py-6 text-sm text-red-400">Failed to load friends. Please refresh the page.</p>}
+          {!friendsLoading && !friendsError && friends.length === 0 && <div className="text-center py-12 text-[#3a3d4a]"><Users size={40} className="mx-auto mb-3 opacity-30" /><p>No friends yet. Send a request above!</p></div>}
+          {!friendsLoading && !friendsError && friends.map((f: any) => <FriendCard key={f.id} friend={f} />)}
         </div>
       )}
 
       {tab === "requests" && (
         <div className="space-y-4">
+          {requestsError && <p className="text-center py-4 text-sm text-red-400">Failed to load requests. Please refresh the page.</p>}
           {incoming.length > 0 && (
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-[#4a4f62] mb-2">Incoming ({incoming.length})</p>
@@ -468,7 +477,13 @@ export default function SocialPage() {
               <button key={p} onClick={() => setPeriod(p)} className={`flex-1 rounded-lg py-1.5 text-xs font-medium capitalize transition-all ${period === p ? "bg-[#7C3AED] text-white" : "bg-[#111318] text-[#5a5f72] hover:text-[#e8eaf0]"}`}>{p === "alltime" ? "All Time" : p}</button>
             ))}
           </div>
-          <LeaderboardTable data={leaderboard} />
+          {leaderboardLoading ? (
+            <div className="space-y-2">{[1,2,3,4].map(i => <div key={i} className="h-14 animate-pulse rounded-xl bg-[#111318]" />)}</div>
+          ) : leaderboardError ? (
+            <p className="text-center py-8 text-sm text-red-400">Failed to load leaderboard. Please refresh.</p>
+          ) : (
+            <LeaderboardTable data={leaderboard} />
+          )}
         </div>
       )}
 
@@ -523,7 +538,9 @@ export default function SocialPage() {
 
       {tab === "activity" && (
         <div className="space-y-2">
-          {activity.length === 0 && (
+          {activityLoading && <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-14 animate-pulse rounded-xl bg-[#111318]" />)}</div>}
+          {activityError && <p className="text-center py-6 text-sm text-red-400">Failed to load activity. Please refresh.</p>}
+          {!activityLoading && !activityError && activity.length === 0 && (
             <div className="text-center py-12 text-[#3a3d4a]">
               <Activity size={40} className="mx-auto mb-3 opacity-30" />
               <p className="text-sm">No recent activity from friends</p>

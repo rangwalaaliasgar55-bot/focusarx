@@ -133,18 +133,23 @@ function PodiumCard({ entry, podiumRank, filter }: { entry: LeaderboardEntry; po
 export default function LeaderboardPage() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [filter, setFilter] = useState<Filter>("weekly");
   const resetCountdown = useCountdown(getMsUntilMonday());
 
   const loadLeaderboard = useCallback(() => {
     const token = getToken();
     setLoading(true);
+    setFetchError(false);
     fetch("/api/gamification/leaderboard", {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
-      .then((r) => r.json() as Promise<{ leaderboard: LeaderboardEntry[] }>)
+      .then((r) => {
+        if (!r.ok) throw new Error(`${r.status}`);
+        return r.json() as Promise<{ leaderboard: LeaderboardEntry[] }>;
+      })
       .then((d) => { setEntries(d.leaderboard ?? []); setLoading(false); })
-      .catch(() => setLoading(false));
+      .catch(() => { setFetchError(true); setLoading(false); });
   }, []);
 
   useEffect(() => { loadLeaderboard(); }, [loadLeaderboard]);
@@ -210,7 +215,13 @@ export default function LeaderboardPage() {
               <span className="text-[9px] font-semibold uppercase tracking-wider text-[#06D6A0]">Weekly reset</span>
               <span className="text-[10px] font-bold text-[#06D6A0]">{resetCountdown}</span>
             </div>
-            {isDemo && (
+            {fetchError && (
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(239,68,68,0.25)] bg-[rgba(239,68,68,0.06)] px-3 py-1">
+                <Medal size={10} className="text-[#EF4444]" />
+                <p className="text-[10px] text-[#EF4444]">Could not load rankings — showing sample</p>
+              </div>
+            )}
+            {!fetchError && isDemo && (
               <div className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(124,58,237,0.2)] bg-[rgba(124,58,237,0.06)] px-3 py-1">
                 <Medal size={10} className="text-[#A78BFA]" />
                 <p className="text-[10px] text-[#A78BFA]">Demo data — complete a session to appear</p>
