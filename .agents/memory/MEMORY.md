@@ -35,3 +35,6 @@
 - [Pre-GitHub audit fixes](pre-github-audit.md) — adminCms.ts had dual @workspace/db import (consolidated); dashboard widgets used return null on load (replaced with skeletons); social.tsx queries lacked isError extraction (added); leaderboard had silent error catch (now tracks fetchError state with UI badge)
 - [PageHeader component](page-header.md) — reusable src/components/PageHeader.tsx with icon/badge/title/subtitle/breadcrumbs/actions; badgeColor prop controls accent; all inner pages should use it
 - [Design system color tokens](design-color-tokens.md) — hardcoded dark colors (#0a0c12, #111318, #1e2130) replaced app-wide with rgba tokens; never add new hardcoded hex darks
+- [Constellations page routing](constellations-routing.md) — /constellations page existed but had no route; uses /api/sessions/history (not /api/stats/sessions-history); route+nav added in this session
+- [Git push blocked in main agent](git-push-blocked.md) — git write ops (add, commit, fetch, push) blocked in main agent sandbox; use project_tasks for GitHub sync; branches diverged: local has 2 commits, origin/main has 8 from previous task agents
+- [Visitors upsert race condition](visitors-upsert.md) — siteAnalytics.ts check-then-insert pattern caused duplicate key errors; fixed with onConflictDoUpdate targeting visitorId

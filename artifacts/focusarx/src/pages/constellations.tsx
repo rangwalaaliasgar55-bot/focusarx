@@ -115,7 +115,7 @@ export default function ConstellationsPage() {
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
-    fetch("/api/stats/sessions-history?limit=200", { headers: authHeaders() })
+    fetch("/api/sessions/history?limit=200", { headers: authHeaders() })
       .then(r => r.ok ? r.json() : fetch("/api/sessions?limit=200", { headers: authHeaders() }).then(r2 => r2.json()))
       .then(d => {
         const sessionList = d.sessions ?? d ?? [];

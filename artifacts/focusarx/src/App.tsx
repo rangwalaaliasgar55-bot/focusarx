@@ -89,7 +89,6 @@ const WrappedPage = lazy(() => import("@/pages/wrapped"));
 const DreamsPage = lazy(() => import("@/pages/dreams"));
 const LootBoxesPage = lazy(() => import("@/pages/lootboxes"));
 const WalletPage = lazy(() => import("@/pages/wallet"));
-const DnaPage = lazy(() => import("@/pages/focus-dna"));
 const QuestsPage = lazy(() => import("@/pages/quests"));
 const FocusGuidePage = lazy(() => import("@/pages/focus-guide"));
 const PremiumPage = lazy(() => import("@/pages/premium"));
@@ -100,6 +99,7 @@ const SupportPage = lazy(() => import("@/pages/support"));
 const PomodoroGuidePage = lazy(() => import("@/pages/pomodoro-guide"));
 const StudyTechniquesPage = lazy(() => import("@/pages/study-techniques"));
 const VirtualStudyRoomPage = lazy(() => import("@/pages/virtual-study-room"));
+const ConstellationsPage = lazy(() => import("@/pages/constellations"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -507,7 +507,6 @@ function HomePage() {
               <Timer onSessionComplete={feedback.recordSession} />
               <MotivationalLine />
             </div>
-            <DailyGoal />
           </div>
           {/* Desktop side panel */}
           <div className="hidden lg:flex lg:flex-col lg:w-[300px] xl:w-[320px] shrink-0 border-l border-[rgba(255,255,255,0.04)]">
@@ -603,7 +602,7 @@ function RoutedContent() {
               <Route path="/dreams" component={() => <ErrorBoundary><ProtectedRoute component={DreamsPage} /></ErrorBoundary>} />
               <Route path="/lootboxes" component={() => <ErrorBoundary><ProtectedRoute component={LootBoxesPage} /></ErrorBoundary>} />
               <Route path="/wallet" component={() => <ErrorBoundary><ProtectedRoute component={WalletPage} /></ErrorBoundary>} />
-              <Route path="/dna" component={() => <ErrorBoundary><ProtectedRoute component={DnaPage} /></ErrorBoundary>} />
+              <Route path="/dna" component={() => <ErrorBoundary><ProtectedRoute component={FocusDnaPage} /></ErrorBoundary>} />
               <Route path="/quests" component={() => <ErrorBoundary><ProtectedRoute component={QuestsPage} /></ErrorBoundary>} />
 
               {/* Retention */}
@@ -619,6 +618,7 @@ function RoutedContent() {
               <Route path="/profiles" component={() => <ErrorBoundary><ProtectedRoute component={ProfilesPage} /></ErrorBoundary>} />
               <Route path="/roadmap" component={() => <ErrorBoundary><RoadmapPage /></ErrorBoundary>} />
               <Route path="/focus-dna" component={() => <ErrorBoundary><ProtectedRoute component={FocusDnaPage} /></ErrorBoundary>} />
+              <Route path="/constellations" component={() => <ErrorBoundary><ProtectedRoute component={ConstellationsPage} /></ErrorBoundary>} />
               <Route path="/ghosts" component={() => <ErrorBoundary><ProtectedRoute component={GhostsPage} /></ErrorBoundary>} />
               <Route path="/consequences" component={() => <ErrorBoundary><ProtectedRoute component={ConsequencesPage} /></ErrorBoundary>} />
               <Route path="/replay" component={() => <ErrorBoundary><ProtectedRoute component={ReplayPage} /></ErrorBoundary>} />

@@ -191,7 +191,7 @@ export default function AmbientSoundBar({ visible = true }: Props) {
   const ctxRef = useRef<AudioContext | null>(null);
   const activeSoundsRef = useRef<Map<SoundId, { gainNode: GainNode; source: AudioNode }>>(new Map());
   const [activeSounds, setActiveSounds] = useState<ActiveSound[]>([]);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const [initialized, setInitialized] = useState(false);
 
   const getCtx = useCallback(() => {

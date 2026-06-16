@@ -105,35 +105,28 @@ router.post("/track", trackLimiter, async (req, res) => {
   const country = resolveCountry(req);
 
   try {
-    const [existingVisitor] = await db.select()
-      .from(visitorsTable)
-      .where(eq(visitorsTable.visitorId, visitorId));
-
-    if (!existingVisitor) {
-      await db.insert(visitorsTable).values({
-        visitorId,
-        userId: linkedUserId,
-        firstSeen: now,
+    await db.insert(visitorsTable).values({
+      visitorId,
+      userId: linkedUserId,
+      firstSeen: now,
+      lastSeen: now,
+      visitCount: 0,
+      deviceType,
+      browser,
+      os,
+      country,
+      isBot: false,
+    }).onConflictDoUpdate({
+      target: visitorsTable.visitorId,
+      set: {
         lastSeen: now,
-        visitCount: 0,
+        ...(linkedUserId ? { userId: linkedUserId } : {}),
         deviceType,
         browser,
         os,
-        country,
-        isBot: false,
-      });
-    } else {
-      await db.update(visitorsTable)
-        .set({
-          lastSeen: now,
-          ...(linkedUserId ? { userId: linkedUserId } : {}),
-          deviceType,
-          browser,
-          os,
-          ...(country ? { country } : {}),
-        })
-        .where(eq(visitorsTable.visitorId, visitorId));
-    }
+        ...(country ? { country } : {}),
+      },
+    });
 
     const { session, isNew } = await findOrCreateSession(visitorId, clientSessionId, now);
 

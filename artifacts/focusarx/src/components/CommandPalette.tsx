@@ -19,6 +19,7 @@ const COMMANDS = [
   { id: "profiles",     label: "Go to Profiles",       icon: Shield,          href: "/profiles",     shortcut: "8" },
   { id: "distractions", label: "Go to Focus Journal",  icon: BookOpen,        href: "/distractions", shortcut: "9" },
   { id: "focus-dna",    label: "Go to Focus DNA",      icon: Dna,             href: "/focus-dna",    shortcut: "0" },
+  { id: "constellations", label: "Go to Constellations", icon: Star,          href: "/constellations", shortcut: "" },
   { id: "ghosts",       label: "Go to Ghost Mode",     icon: Ghost,           href: "/ghosts",       shortcut: "" },
   { id: "consequences", label: "Go to Consequences",   icon: Sword,           href: "/consequences", shortcut: "" },
   { id: "replay",       label: "Go to Session Replay", icon: Radio,           href: "/replay",       shortcut: "" },
