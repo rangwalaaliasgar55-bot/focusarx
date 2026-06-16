@@ -1,0 +1,487 @@
+# FOCUSARX MASTER RECOVERY & UPGRADE DIRECTIVE
+
+This is now a platform recovery operation.
+
+Do NOT continue random feature development.
+
+Do NOT continue UI tweaks.
+
+Do NOT continue animation work.
+
+Do NOT continue SEO work.
+
+First stabilize the platform.
+
+---
+
+# PHASE 1 — FULL REPOSITORY AUDIT
+
+Audit:
+
+* GitHub repository
+* Main branch
+* Feature branches
+* Pull requests
+* Deployment branch
+* Replit workspace
+* Vercel deployment
+
+Generate report:
+
+Current Deployment Branch
+
+Main Branch Status
+
+Feature Branch Status
+
+Unmerged Changes
+
+Stale Branches
+
+Merge Risks
+
+Repository Health Score
+
+---
+
+# PHASE 2 — DATABASE RECOVERY
+
+Current logs show:
+
+Missing tables:
+
+* email_logs
+* premium_subscriptions
+
+Missing columns:
+
+* conversation_participants.is_admin
+
+Perform complete schema reconciliation.
+
+Compare:
+
+Application Schema
+
+vs
+
+Production Database
+
+Generate:
+
+Missing Tables
+
+Missing Columns
+
+Missing Indexes
+
+Missing Constraints
+
+Missing Foreign Keys
+
+Migration Status
+
+Apply all missing migrations.
+
+Verify every table exists.
+
+Verify every column exists.
+
+Verify every endpoint works.
+
+---
+
+# PHASE 3 — DEPLOYMENT AUDIT
+
+Determine:
+
+What branch is deployed.
+
+What commit is deployed.
+
+Whether migrations execute during deployment.
+
+Whether environment variables are correct.
+
+Whether database connections are correct.
+
+Whether deployment is using stale code.
+
+Generate deployment report.
+
+---
+
+# PHASE 4 — SIDEBAR RECOVERY
+
+Audit old sidebar.
+
+Audit current sidebar.
+
+Identify:
+
+Missing navigation items
+
+Hidden features
+
+Broken routes
+
+Orphan pages
+
+Restore all functionality.
+
+No features should become inaccessible.
+
+---
+
+# PHASE 5 — ROUTING AUDIT
+
+Audit every route.
+
+Verify:
+
+Page exists
+
+Route exists
+
+Navigation exists
+
+Permissions work
+
+Authentication works
+
+Generate route map.
+
+Fix all broken routing.
+
+---
+
+# PHASE 6 — FEATURE INVENTORY
+
+Create complete inventory.
+
+List:
+
+Implemented Features
+
+Hidden Features
+
+Broken Features
+
+Unfinished Features
+
+Unused Features
+
+Duplicate Features
+
+Restore discoverability.
+
+Users should understand what FocusArx offers.
+
+---
+
+# PHASE 7 — PREMIUM SYSTEM RECOVERY
+
+Currently failing.
+
+Audit:
+
+Database
+
+Backend
+
+Frontend
+
+Permissions
+
+Subscriptions
+
+Activation
+
+Admin grants
+
+Verify:
+
+/api/premium/status
+
+/api/premium/activate
+
+Admin premium tools
+
+All function correctly.
+
+---
+
+# PHASE 8 — EMAIL SYSTEM RECOVERY
+
+Currently failing.
+
+Audit:
+
+email_logs
+
+Email sending
+
+Templates
+
+Logging
+
+Admin dashboards
+
+Tracking
+
+Bounce handling
+
+Restore functionality.
+
+---
+
+# PHASE 9 — DM & COMMUNITY SYSTEM RECOVERY
+
+Current DM system failing.
+
+Audit:
+
+Conversations
+
+Participants
+
+Permissions
+
+Unread counts
+
+Notifications
+
+Realtime updates
+
+Fix entire messaging system.
+
+---
+
+# PHASE 10 — DASHBOARD REBUILD
+
+Current dashboard does not showcase product value.
+
+Redesign around:
+
+Today's Mission
+
+AI Recommendations
+
+Focus Score
+
+Momentum Score
+
+Goals
+
+Tasks
+
+Achievements
+
+Analytics
+
+Heatmaps
+
+Forecasts
+
+No wasted space.
+
+No empty layouts.
+
+---
+
+# PHASE 11 — ONBOARDING
+
+New users should:
+
+Understand the platform.
+
+Discover features.
+
+Launch first focus session.
+
+See value immediately.
+
+Build complete onboarding flow.
+
+---
+
+# PHASE 12 — MOBILE AUDIT
+
+Audit:
+
+iPhone
+
+Android
+
+Tablet
+
+Foldables
+
+Fix:
+
+Overflow
+
+Clipping
+
+Navigation
+
+Performance
+
+Responsiveness
+
+---
+
+# PHASE 13 — PERFORMANCE AUDIT
+
+Measure:
+
+Bundle size
+
+Render performance
+
+API performance
+
+Database performance
+
+Memory usage
+
+Target:
+
+60 FPS
+
+Fast loads
+
+Efficient rendering
+
+95+ Lighthouse
+
+---
+
+# PHASE 14 — SEO AUDIT
+
+Implement:
+
+sitemap.xml
+
+robots.txt
+
+OpenGraph
+
+Twitter Cards
+
+Canonical URLs
+
+Structured Data
+
+Organization Schema
+
+SoftwareApplication Schema
+
+Brand optimization for FocusArx.
+
+---
+
+# PHASE 15 — TRUST & CREDIBILITY
+
+Create:
+
+Privacy Policy
+
+Terms
+
+Contact
+
+Support
+
+Help Center
+
+About
+
+Roadmap
+
+Changelog
+
+Status Page
+
+Build production credibility.
+
+---
+
+# PHASE 16 — UI/UX POLISH
+
+After all critical issues are fixed:
+
+Audit:
+
+Typography
+
+Spacing
+
+Hierarchy
+
+Cards
+
+Buttons
+
+Animations
+
+Loading States
+
+Error States
+
+Empty States
+
+Create a consistent premium design system.
+
+---
+
+# PHASE 17 — FINAL VERIFICATION
+
+Before shipping:
+
+Verify every page.
+
+Verify every route.
+
+Verify every feature.
+
+Verify every API.
+
+Verify every database table.
+
+Verify every migration.
+
+Verify every mobile screen.
+
+Verify every SEO element.
+
+Verify every authentication flow.
+
+Verify every premium feature.
+
+Generate final audit report.
+
+No known critical issues should remain.
+
+---
+
+# SUCCESS CRITERIA
+
+FocusArx should be:
+
+* Stable
+* Discoverable
+* Fast
+* Mobile friendly
+* SEO optimized
+* Production ready
+* Premium quality
+
+Do not focus on visual effects first.
+
+Fix architecture, database, routing, navigation, discoverability, and reliability first.
+
+Then improve visuals and experience.
+
+The goal is a world-class productivity platform, not a visually impressive platform with hidden broken systems
+.
