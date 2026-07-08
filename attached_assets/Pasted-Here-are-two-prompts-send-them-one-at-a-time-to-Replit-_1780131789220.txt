@@ -1,0 +1,42 @@
+Here are two prompts — send them one at a time to Replit:
+
+Prompt 1 — Admin rate limiting (send first, wait for it to finish)
+Add rate limiting to all /api/admin/* routes in artifacts/api-server/src/lib/rateLimiter.ts and artifacts/api-server/src/routes/admin.ts.
+Add a new limiter in rateLimiter.ts:
+tsexport const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: isDev ? 100 : 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many admin requests, please try again later." },
+});
+In routes/admin.ts, import adminLimiter and apply it to the POST /admin/auth route specifically:
+tsrouter.post("/admin/auth", adminLimiter, async (req, res) => {
+Commit with message: security: add rate limiting to admin auth endpoint
+
+Prompt 2 — Task live update + student features (send after Prompt 1 is done)
+Make the following improvements to FocusArx. Do NOT rebuild or restructure anything — only add to what exists.
+BUG FIX — Tasks appear in timeline only after reload:
+When a task is added, edited, or completed, immediately update the task list in the UI without requiring a page reload. The task state should be reactive — after a successful API call to create/update/delete a task, re-fetch the task list and re-render the timeline bar in the same function. Find where tasks are mutated and ensure the local state is updated optimistically or the list is refreshed right after.
+NEW FEATURE 1 — Smooth micro-animations:
+Add CSS transitions throughout the app:
+
+Task items: fade + slide in when added (opacity 0→1, translateY 8px→0 over 200ms)
+Timer digits: subtle scale pulse on each second tick (scale 1→1.03→1 over 300ms)
+Progress bar in the timeline: animate width changes with transition: width 400ms ease
+Session complete: a brief celebration animation (confetti burst or a green checkmark scale-in) when a focus session ends
+
+NEW FEATURE 2 — Focus streak motivator:
+On the main timer screen, show a small streak badge (🔥 X day streak) that animates in with a bounce when the page loads. Pull the streak from the existing /api/stats or streak data already in the DB.
+NEW FEATURE 3 — End-of-session summary card:
+After every completed focus session, show a modal/slide-up card with:
+
+Time focused
+Tasks completed this session
+Focus score (if available)
+A motivational one-liner (rotate from a list of 10 student-specific quotes)
+A "Start break" button and a "Keep going" button
+
+NEW FEATURE 4 — Ambient sound toggle:
+Add a small sound button near the timer (🎵 icon). Clicking it cycles through: Off → Lo-fi beats (use a free looping audio URL from https://www.soundhelix.com or similar) → Rain sounds → White noise → Off. Use the Web Audio API or simple <audio> tags with loop. Persist the preference in localStorage.
+Commit with message: feat: live task updates, animations, streak badge, session summary, ambient sounds

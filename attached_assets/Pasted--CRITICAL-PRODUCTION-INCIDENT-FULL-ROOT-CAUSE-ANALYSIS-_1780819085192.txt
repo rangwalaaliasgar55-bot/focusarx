@@ -1,0 +1,360 @@
+# CRITICAL PRODUCTION INCIDENT — FULL ROOT CAUSE ANALYSIS & PERMANENT FIX REQUIRED
+
+You are operating as a Principal Production Engineer, Principal Backend Engineer, Principal Database Architect, Principal DevOps Engineer, Principal SRE (Site Reliability Engineer), and Principal Security Engineer.
+
+This is NOT a development task.
+
+This is a LIVE PRODUCTION INCIDENT.
+
+Your objective is to identify the root cause, apply permanent fixes, validate them, deploy them safely, and verify that the application is fully operational afterward.
+
+Do not stop after applying a possible fix.
+
+Continue investigating until all failures are confirmed resolved.
+
+==================================================
+INCIDENT #1 — POST /api/sessions/sync RETURNS 500
+=================================================
+
+Current Behavior:
+
+The frontend sends synchronization requests every 10 seconds.
+
+Endpoint:
+
+POST /api/sessions/sync
+
+Current Result:
+
+500 Internal Server Error
+
+Application remains functional in some areas but synchronization is failing.
+
+==================================================
+ROOT CAUSE INVESTIGATION REQUIRED
+=================================
+
+Do NOT guess.
+
+Perform actual investigation.
+
+Check:
+
+* Vercel Runtime Logs
+* Vercel Function Logs
+* API Logs
+* Server Logs
+* Database Logs
+* Drizzle Logs
+* PostgreSQL Logs
+* Error Stack Traces
+* Request Payloads
+* Response Payloads
+
+Locate the exact exception causing the failure.
+
+Identify:
+
+* File
+* Function
+* Query
+* Schema
+* Migration
+* Runtime dependency
+
+responsible for the crash.
+
+==================================================
+DATABASE SCHEMA VALIDATION
+==========================
+
+Current deployment uses:
+
+drizzle-kit push
+
+during build.
+
+This may have created schema drift.
+
+Perform:
+
+1. Full schema inspection.
+2. Compare actual production database.
+3. Compare Drizzle schema definitions.
+4. Compare generated migrations.
+5. Compare runtime expectations.
+
+Identify:
+
+* Missing tables
+* Missing columns
+* Incorrect types
+* Broken foreign keys
+* Nullability mismatches
+* Index mismatches
+* Enum mismatches
+
+Verify every table used by:
+
+POST /api/sessions/sync
+
+Fix all mismatches.
+
+==================================================
+PRODUCTION MIGRATION STRATEGY
+=============================
+
+Current strategy:
+
+drizzle-kit push
+
+must be audited.
+
+Evaluate whether schema drift exists.
+
+If drift exists:
+
+1. Generate proper migrations.
+2. Create migration history.
+3. Verify migration ordering.
+4. Verify migration safety.
+5. Apply migrations safely.
+
+Replace ad-hoc production schema changes with a proper migration workflow.
+
+Validate all environments:
+
+* Local
+* Preview
+* Production
+
+==================================================
+ENDPOINT VALIDATION
+===================
+
+Perform complete audit of:
+
+POST /api/sessions/sync
+
+Validate:
+
+* Request body
+* Validation schema
+* Auth middleware
+* Session middleware
+* Database queries
+* Transaction handling
+* Error handling
+* Response generation
+
+Ensure endpoint returns:
+
+200
+
+under all valid conditions.
+
+==================================================
+INCIDENT #2 — GET /api/notifications RETURNS 404
+================================================
+
+Current Behavior:
+
+Client requests:
+
+GET /api/notifications
+
+Response:
+
+404 Not Found
+
+==================================================
+ROUTE AUDIT REQUIRED
+====================
+
+Verify:
+
+* Route file exists
+* Route exported
+* Route registered
+* Route mounted
+* Route reachable
+
+Check:
+
+* Express routing tree
+* Hono routing tree
+* Fastify routing tree
+* Serverless handler registration
+* Vercel routing configuration
+
+Verify endpoint resolves correctly.
+
+==================================================
+VERCEL CONFIGURATION AUDIT
+==========================
+
+Inspect:
+
+vercel.json
+
+Verify:
+
+* Route mappings
+* Rewrites
+* Redirects
+* Function mappings
+* API handler configuration
+
+Ensure:
+
+/api/notifications
+
+maps to the correct runtime handler.
+
+==================================================
+NOTIFICATION SYSTEM AUDIT
+=========================
+
+Verify:
+
+* Notification database tables
+* Notification services
+* Notification repositories
+* Notification API
+* Notification frontend hooks
+
+Create missing implementation if absent.
+
+Remove dead frontend references if feature is incomplete.
+
+==================================================
+INCIDENT #3 — DUPLICATE JSX ATTRIBUTE
+=====================================
+
+Location:
+
+src/pages/social.tsx
+
+==================================================
+REQUIRED ACTIONS
+================
+
+Perform complete source inspection.
+
+Identify:
+
+* Duplicate style props
+* Duplicate className props
+* Duplicate attributes
+* Invalid JSX
+
+Fix issue permanently.
+
+Verify:
+
+* TypeScript passes
+* Build passes
+* Runtime passes
+
+==================================================
+INCIDENT #4 — SSL CONFIGURATION WARNING
+=======================================
+
+Database connection logs indicate SSL configuration warning.
+
+==================================================
+REQUIRED ACTIONS
+================
+
+Inspect:
+
+* DATABASE_URL
+* Connection configuration
+* PostgreSQL client config
+* Drizzle config
+
+Verify SSL behavior.
+
+Implement explicit production SSL configuration.
+
+Ensure compatibility with:
+
+* Vercel
+* Neon
+* Supabase
+* PostgreSQL
+
+Eliminate warning without breaking connectivity.
+
+==================================================
+FULL SYSTEM AUDIT REQUIRED
+==========================
+
+After fixing reported incidents:
+
+Perform complete audit of:
+
+* Authentication
+* Sessions
+* Tasks
+* Missions
+* Leaderboards
+* Social Features
+* Notifications
+* Analytics
+* Admin APIs
+
+Search for:
+
+* Additional 500 errors
+* Additional 404 errors
+* Unhandled promises
+* Missing routes
+* Missing tables
+* Runtime exceptions
+* Failed API calls
+* Schema drift
+
+==================================================
+DEPLOYMENT VALIDATION
+=====================
+
+After fixes:
+
+Run:
+
+* Type checking
+* Linting
+* Build validation
+* API validation
+* Database validation
+* Route validation
+* Runtime validation
+
+Verify:
+
+* No failing endpoints
+* No 404s
+* No 500s
+* No schema mismatches
+* No migration issues
+* No SSL warnings
+
+==================================================
+FINAL REPORT REQUIRED
+=====================
+
+Provide:
+
+1. Root Cause
+2. Affected Files
+3. Database Issues Found
+4. Migration Issues Found
+5. Fixes Applied
+6. Routes Fixed
+7. Runtime Errors Fixed
+8. SSL Fixes Applied
+9. Validation Results
+10. Deployment Verification
+
+Do not stop until the production application is stable, healthy, and all identified failures are resolved and verified.

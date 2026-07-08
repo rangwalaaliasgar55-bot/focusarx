@@ -1,0 +1,69 @@
+Add these features to FocusArx inspired by the best focus apps on the market.
+Do NOT rebuild anything. Add on top of existing codebase.
+Keep Supabase + Vercel Postgres — no new databases.
+
+---
+
+## FROM TIDE — Ambient Sound Library
+Add a built-in sound player to the focus session screen:
+- Free sounds: Rain, Ocean Waves, Forest, Storm, White Noise, Cafe Hum
+- Player sits as a minimal floating bar at the bottom of the session screen
+- Each sound has a volume slider
+- User can layer 2 sounds simultaneously (e.g. Rain + Cafe)
+- Sound choice is remembered per user profile in Supabase
+- Auto-fades out when session ends, fades in when session starts
+
+---
+
+## FROM TIDE — Breathing & Micro-Recovery
+Add a "Recovery Break" screen that activates during breaks:
+- Animated breathing circle: inhale 4s, hold 4s, exhale 4s
+- User can skip it but it appears by default on every break
+- Also accessible as a standalone mode from the sidebar: "Breathe"
+- 3 modes: Box Breathing (4-4-4-4), Deep Calm (4-7-8), Quick Reset (2-2-2)
+
+---
+
+## FROM PLANTIE — Gamification & Rewards
+Add a lightweight reward system:
+- User earns XP for every completed session (base: 10 XP per 25 min)
+- Bonus XP for: no distractions logged (+5), beating personal record (+10),
+  5-day streak (+20)
+- XP fills a level bar — every level up shows a celebratory animation
+- Unlock badges for milestones: "First Session", "7-Day Streak", 
+  "Night Owl" (session after 10pm), "Early Bird" (session before 7am),
+  "100 Hours Club", "Distraction-Free Week"
+- Show badges and current level on a Profile page
+- All XP and badge data stored in Supabase
+
+---
+
+## FROM CLEVEREST — Session Type Selector
+When starting a session, let user pick a mode:
+- 🧠 Deep Work — full focus, all distractions blocked
+- 😌 Light Work — softer mode, some notifications allowed  
+- 👥 Collaboration — social/meeting mode, communication apps whitelisted
+- 😴 Recharge — guided break with breathing + ambient sound, no tasks
+Each mode has slightly different UI tint so user always knows which 
+mode they're in at a glance
+
+---
+
+## FROM POMODORO/TIDE — Productivity Stats Dashboard
+Upgrade the existing stats page with:
+- Weekly bar chart: total focus hours per day
+- Monthly heatmap (like GitHub contribution graph) — 
+  darker color = more focus hours that day
+- All-time totals: total sessions, total hours, longest streak, 
+  best single day
+- "Compared to last week" percentage change card
+- All data pulled from existing Supabase session logs
+
+---
+
+## CRITICAL REMINDERS
+- Match FocusArx existing visual style exactly
+- Supabase + Vercel Postgres only — no new databases
+- Add new sidebar entries for: Breathe, Profile/Badges, Stats
+- Claude API key from existing ANTHROPIC_API_KEY env variable
+- Do not break any existing features

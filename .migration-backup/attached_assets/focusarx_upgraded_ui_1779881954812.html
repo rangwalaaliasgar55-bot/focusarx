@@ -1,0 +1,436 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+
+  .app { display: flex; height: 600px; background: #0d0e14; border-radius: 16px; overflow: hidden; border: 0.5px solid #2a2d3a; }
+
+  /* SIDEBAR */
+  .sidebar { width: 220px; background: #111318; border-right: 0.5px solid #1e2130; display: flex; flex-direction: column; flex-shrink: 0; }
+
+  .logo-area { padding: 18px 14px 14px; border-bottom: 0.5px solid #1e2130; }
+  .logo-row { display: flex; align-items: center; gap: 10px; }
+  .logo-mark { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, #6c63ff 0%, #a78bfa 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0; position: relative; overflow: hidden; }
+  .logo-mark::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%); }
+  .logo-inner { font-size: 16px; font-weight: 800; color: #fff; letter-spacing: -1px; font-family: var(--font-mono); }
+  .logo-text { }
+  .logo-name { font-size: 15px; font-weight: 700; color: #e8eaf0; letter-spacing: -0.03em; line-height: 1; }
+  .logo-sub { font-size: 10px; color: #5a5f72; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
+
+  .nav { flex: 1; padding: 10px 8px; display: flex; flex-direction: column; gap: 1px; overflow-y: auto; }
+  .nav-item { display: flex; align-items: center; justify-content: space-between; padding: 9px 10px; border-radius: 8px; cursor: pointer; transition: background 0.12s; }
+  .nav-item:hover { background: #1a1d24; }
+  .nav-item.active { background: rgba(108,99,255,0.15); }
+  .nav-left { display: flex; align-items: center; gap: 9px; }
+  .nav-icon { font-size: 15px; width: 18px; text-align: center; color: #5a5f72; }
+  .nav-item.active .nav-icon { color: #6c63ff; }
+  .nav-label { font-size: 13px; color: #6b7080; font-weight: 500; }
+  .nav-item.active .nav-label { color: #a5a8ff; }
+  .nav-num { font-size: 11px; color: #3a3d4a; background: #1a1d24; border-radius: 4px; padding: 1px 6px; font-family: var(--font-mono); }
+  .nav-item.active .nav-num { color: #6c63ff; background: rgba(108,99,255,0.12); }
+
+  .sidebar-footer { padding: 10px 8px 14px; border-top: 0.5px solid #1e2130; display: flex; flex-direction: column; gap: 6px; }
+  .theme-row { display: flex; gap: 4px; padding: 2px; background: #0d0e14; border-radius: 8px; border: 0.5px solid #1e2130; }
+  .theme-btn { flex: 1; padding: 5px 0; border-radius: 6px; border: none; background: transparent; color: #5a5f72; font-size: 12px; cursor: pointer; transition: all 0.12s; font-family: var(--font-sans); }
+  .theme-btn.active { background: #1f2330; color: #a5a8ff; }
+  .sign-btn { display: flex; align-items: center; gap: 7px; padding: 8px 10px; border-radius: 8px; background: none; border: none; color: #5a5f72; font-size: 13px; cursor: pointer; font-family: var(--font-sans); transition: all 0.12s; width: 100%; }
+  .sign-btn:hover { background: #1a1d24; color: #9095a8; }
+
+  /* MAIN */
+  .main { flex: 1; display: flex; flex-direction: column; background: #0d0e14; min-width: 0; }
+
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; border-bottom: 0.5px solid #1a1d24; }
+  .page-label { font-size: 10px; color: #4a4f62; letter-spacing: 0.15em; text-transform: uppercase; font-family: var(--font-mono); }
+  .page-title { font-size: 22px; font-weight: 800; color: #e8eaf0; letter-spacing: -0.04em; margin-top: 1px; }
+  .topbar-actions { display: flex; gap: 8px; align-items: center; }
+  .streak-badge { display: flex; align-items: center; gap: 5px; padding: 5px 10px; background: rgba(245,158,11,0.1); border: 0.5px solid rgba(245,158,11,0.25); border-radius: 20px; font-size: 12px; color: #f59e0b; font-weight: 600; }
+  .avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #6c63ff, #a78bfa); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; cursor: pointer; }
+
+  /* TIMER CARD */
+  .timer-zone { flex: 1; display: flex; align-items: center; justify-content: center; gap: 28px; padding: 24px; }
+  .timer-card { background: #111318; border: 0.5px solid #1e2130; border-radius: 20px; padding: 28px 32px; display: flex; flex-direction: column; align-items: center; gap: 20px; min-width: 320px; }
+
+  .mode-tabs { display: flex; background: #0d0e14; border-radius: 10px; padding: 3px; gap: 2px; border: 0.5px solid #1e2130; }
+  .mode-tab { padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 600; border: none; background: transparent; cursor: pointer; color: #5a5f72; font-family: var(--font-sans); transition: all 0.15s; white-space: nowrap; }
+  .mode-tab.active { background: #6c63ff; color: #fff; }
+
+  /* SVG Ring */
+  .ring-wrap { position: relative; width: 180px; height: 180px; }
+  .ring-wrap svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+  .ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+  .time-display { font-size: 36px; font-weight: 800; color: #e8eaf0; letter-spacing: -0.04em; font-family: var(--font-mono); }
+  .time-status { font-size: 10px; color: #4a4f62; letter-spacing: 0.2em; text-transform: uppercase; }
+
+  .controls { display: flex; align-items: center; gap: 12px; }
+  .ctrl-btn { width: 40px; height: 40px; border-radius: 50%; border: 0.5px solid #2a2d3a; background: #1a1d24; color: #6b7080; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; }
+  .ctrl-btn:hover { border-color: #6c63ff; color: #a5a8ff; background: rgba(108,99,255,0.1); }
+  .play-btn { width: 52px; height: 52px; border-radius: 50%; border: none; background: #6c63ff; color: #fff; font-size: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 0 0 6px rgba(108,99,255,0.12); transition: all 0.15s; }
+  .play-btn:hover { background: #7c74ff; }
+
+  .session-dots { display: flex; gap: 6px; align-items: center; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #1e2130; transition: background 0.2s; }
+  .dot.done { background: #6c63ff; }
+  .dot.active { background: #a5a8ff; width: 18px; border-radius: 4px; }
+  .dot-label { font-size: 11px; color: #4a4f62; margin-top: 4px; text-align: center; }
+
+  /* SIDE PANEL */
+  .side-panel { display: flex; flex-direction: column; gap: 12px; width: 200px; }
+  .panel-card { background: #111318; border: 0.5px solid #1e2130; border-radius: 14px; padding: 14px 16px; }
+  .panel-card-title { font-size: 10px; color: #4a4f62; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px; }
+  .stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .stat-label { font-size: 12px; color: #5a5f72; }
+  .stat-val { font-size: 12px; font-weight: 700; color: #e8eaf0; font-family: var(--font-mono); }
+  .stat-val.green { color: #22d387; }
+  .stat-val.purple { color: #a5a8ff; }
+  .mini-bar-wrap { height: 3px; background: #1e2130; border-radius: 2px; margin-bottom: 6px; overflow: hidden; }
+  .mini-bar { height: 100%; border-radius: 2px; background: #6c63ff; }
+
+  .task-item { display: flex; align-items: center; gap: 8px; padding: 5px 0; }
+  .task-check { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid #2a2d3a; flex-shrink: 0; }
+  .task-check.done { background: #22d387; border-color: #22d387; display: flex; align-items: center; justify-content: center; }
+  .task-text { font-size: 12px; color: #6b7080; }
+  .task-text.done { text-decoration: line-through; color: #3a3d4a; }
+
+  .cam-placeholder { border-radius: 8px; background: #0d0e14; border: 0.5px dashed #2a2d3a; height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer; transition: border-color 0.15s; }
+  .cam-placeholder:hover { border-color: #6c63ff; }
+  .cam-icon { font-size: 20px; color: #3a3d4a; }
+  .cam-txt { font-size: 11px; color: #3a3d4a; }
+  .cam-sub { font-size: 10px; color: #2a2d3a; }
+
+  .start-cam-btn { width: 100%; margin-top: 8px; padding: 7px; border-radius: 8px; border: 0.5px solid #6c63ff; background: rgba(108,99,255,0.1); color: #a5a8ff; font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--font-sans); transition: all 0.15s; }
+  .start-cam-btn:hover { background: rgba(108,99,255,0.2); }
+</style>
+
+<h2 class="sr-only">FocusARX upgraded UI mockup — dark theme with enhanced sidebar, timer, and stats panels</h2>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="logo-area">
+      <div class="logo-row">
+        <div class="logo-mark">
+          <span class="logo-inner">Fx</span>
+        </div>
+        <div class="logo-text">
+          <div class="logo-name">FocusArx</div>
+          <div class="logo-sub">Study OS</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-item active">
+        <div class="nav-left">
+          <i class="ti ti-clock nav-icon" aria-hidden="true"></i>
+          <span class="nav-label">Timer</span>
+        </div>
+        <span class="nav-num">1</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-left">
+          <i class="ti ti-layout-dashboard nav-icon" aria-hidden="true"></i>
+          <span class="nav-label">Dashboard</span>
+        </div>
+        <span class="nav-num">2</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-left">
+          <i class="ti ti-chart-bar nav-icon" aria-hidden="true"></i>
+          <span class="nav-label">Analytics</span>
+        </div>
+        <span class="nav-num">3</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-left">
+          <i class="ti ti-trophy nav-icon" aria-hidden="true"></i>
+          <span class="nav-label">Leaderboard</span>
+        </div>
+        <span class="nav-num">4</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-left">
+          <i class="ti ti-star nav-icon" aria-hidden="true"></i>
+          <span class="nav-label">Achievements</span>
+        </div>
+        <span class="nav-num">5</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-left">
+          <i class="ti ti-hammer nav-icon" aria-hidden="true"></i>
+          <span class="nav-label">Forge Room</span>
+        </div>
+        <span class="nav-num">6</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-left">
+          <i class="ti ti-map nav-icon" aria-hidden="true"></i>
+          <span class="nav-label">AI Roadmap</span>
+        </div>
+        <span class="nav-num">7</span>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="theme-row">
+        <button class="theme-btn active">🌙 Dark</button>
+        <button class="theme-btn">☀️ Light</button>
+        <button class="theme-btn">💻 Sys</button>
+      </div>
+      <button class="sign-btn">
+        <i class="ti ti-login" aria-hidden="true" style="font-size:15px;"></i>
+        Sign in
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="page-label">Deep Work</div>
+        <div class="page-title">FocusArx</div>
+      </div>
+      <div class="topbar-actions">
+        <div class="streak-badge">🔥 7 day streak</div>
+        <div class="avatar">A</div>
+      </div>
+    </div>
+
+    <div class="timer-zone">
+      <!-- TIMER CARD -->
+      <div class="timer-card">
+        <div class="mode-tabs">
+          <button class="mode-tab active">Focus</button>
+          <button class="mode-tab">Short Break</button>
+          <button class="mode-tab">Long Break</button>
+        </div>
+
+        <!-- Ring -->
+        <div class="ring-wrap">
+          <svg width="180" height="180" viewBox="0 0 180 180">
+            <circle cx="90" cy="90" r="80" fill="none" stroke="#1e2130" stroke-width="6"/>
+            <circle cx="90" cy="90" r="80" fill="none" stroke="#6c63ff" stroke-width="6"
+              stroke-linecap="round"
+              stroke-dasharray="502.65"
+              stroke-dashoffset="502.65"
+              id="progress-ring"/>
+          </svg>
+          <div class="ring-center">
+            <div class="time-display" id="timer-display">25:00</div>
+            <div class="time-status" id="timer-status">READY</div>
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+          <button class="ctrl-btn" id="btn-reset" title="Reset" aria-label="Reset timer">
+            <i class="ti ti-refresh" aria-hidden="true" style="font-size:15px;"></i>
+          </button>
+          <button class="play-btn" id="btn-play" aria-label="Start timer">
+            <i class="ti ti-player-play" aria-hidden="true" id="play-icon" style="font-size:18px; margin-left:2px;"></i>
+          </button>
+          <button class="ctrl-btn" id="btn-skip" title="Skip" aria-label="Skip session">
+            <i class="ti ti-player-skip-forward" aria-hidden="true" style="font-size:15px;"></i>
+          </button>
+        </div>
+
+        <!-- Session dots -->
+        <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+          <div class="session-dots" id="dots">
+            <div class="dot done"></div>
+            <div class="dot done"></div>
+            <div class="dot active"></div>
+            <div class="dot"></div>
+          </div>
+          <div class="dot-label" id="dots-label">2 of 4 focus blocks today</div>
+        </div>
+      </div>
+
+      <!-- SIDE PANEL -->
+      <div class="side-panel">
+        <!-- Stats -->
+        <div class="panel-card">
+          <div class="panel-card-title">Today</div>
+          <div class="stat-row">
+            <span class="stat-label">Focus time</span>
+            <span class="stat-val purple">50 min</span>
+          </div>
+          <div class="mini-bar-wrap"><div class="mini-bar" style="width:34%"></div></div>
+          <div class="stat-row">
+            <span class="stat-label">Sessions</span>
+            <span class="stat-val">2 / 4</span>
+          </div>
+          <div class="mini-bar-wrap"><div class="mini-bar" style="width:50%"></div></div>
+          <div class="stat-row" style="margin-bottom:0">
+            <span class="stat-label">Focus score</span>
+            <span class="stat-val green">94%</span>
+          </div>
+        </div>
+
+        <!-- Tasks -->
+        <div class="panel-card">
+          <div class="panel-card-title">Tasks</div>
+          <div class="task-item">
+            <div class="task-check done"><i class="ti ti-check" style="font-size:9px; color:#fff;" aria-hidden="true"></i></div>
+            <span class="task-text done">Read ch. 3</span>
+          </div>
+          <div class="task-item">
+            <div class="task-check done"><i class="ti ti-check" style="font-size:9px; color:#fff;" aria-hidden="true"></i></div>
+            <span class="task-text done">Practice problems</span>
+          </div>
+          <div class="task-item">
+            <div class="task-check"></div>
+            <span class="task-text">Write summary</span>
+          </div>
+          <div class="task-item">
+            <div class="task-check"></div>
+            <span class="task-text">Review flashcards</span>
+          </div>
+        </div>
+
+        <!-- Camera -->
+        <div class="panel-card">
+          <div class="panel-card-title">AI Camera</div>
+          <div class="cam-placeholder" id="cam-area">
+            <i class="ti ti-camera cam-icon" aria-hidden="true"></i>
+            <div class="cam-txt">Focus detection</div>
+            <div class="cam-sub">Click to enable</div>
+          </div>
+          <button class="start-cam-btn" id="cam-btn">
+            <i class="ti ti-player-play" aria-hidden="true"></i> Start Camera
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const FOCUS = 25 * 60, SHORT = 5 * 60, LONG = 15 * 60;
+  const MODES = ['Focus', 'Short Break', 'Long Break'];
+  const DURATIONS = [FOCUS, SHORT, LONG];
+  let modeIdx = 0, total = FOCUS, remaining = FOCUS, running = false, interval = null;
+  let sessions = 2;
+
+  const display = document.getElementById('timer-display');
+  const status = document.getElementById('timer-status');
+  const ring = document.getElementById('progress-ring');
+  const playBtn = document.getElementById('btn-play');
+  const playIcon = document.getElementById('play-icon');
+  const dotsLabel = document.getElementById('dots-label');
+  const CIRC = 2 * Math.PI * 80;
+
+  function fmt(s) {
+    return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+  }
+
+  function updateRing() {
+    const pct = 1 - remaining / total;
+    ring.style.strokeDashoffset = (CIRC * (1 - pct)).toFixed(2);
+    const hue = modeIdx === 0 ? '#6c63ff' : modeIdx === 1 ? '#22d387' : '#38bdf8';
+    ring.style.stroke = hue;
+  }
+
+  function render() {
+    display.textContent = fmt(remaining);
+    updateRing();
+    if (running) {
+      status.textContent = modeIdx === 0 ? 'FOCUSING' : 'BREAK';
+      playIcon.className = 'ti ti-player-pause';
+    } else {
+      status.textContent = remaining === total ? 'READY' : 'PAUSED';
+      playIcon.className = 'ti ti-player-play';
+    }
+  }
+
+  function tick() {
+    if (remaining <= 0) {
+      clearInterval(interval); running = false;
+      if (modeIdx === 0) { sessions = Math.min(sessions + 1, 4); updateDots(); }
+      status.textContent = 'DONE';
+      playIcon.className = 'ti ti-player-play';
+      return;
+    }
+    remaining--;
+    render();
+  }
+
+  function updateDots() {
+    const dots = document.querySelectorAll('#dots .dot');
+    dots.forEach((d,i) => {
+      d.className = 'dot';
+      if (i < sessions) d.classList.add('done');
+      else if (i === sessions) d.classList.add('active');
+    });
+    dotsLabel.textContent = sessions + ' of 4 focus blocks today';
+  }
+
+  playBtn.addEventListener('click', () => {
+    if (running) { clearInterval(interval); running = false; }
+    else { running = true; interval = setInterval(tick, 1000); }
+    render();
+  });
+
+  document.getElementById('btn-reset').addEventListener('click', () => {
+    clearInterval(interval); running = false;
+    remaining = total; render();
+  });
+
+  document.getElementById('btn-skip').addEventListener('click', () => {
+    clearInterval(interval); running = false;
+    modeIdx = (modeIdx + 1) % 3;
+    total = DURATIONS[modeIdx]; remaining = total;
+    document.querySelectorAll('.mode-tab').forEach((t,i) => {
+      t.className = 'mode-tab' + (i === modeIdx ? ' active' : '');
+    });
+    render();
+  });
+
+  document.querySelectorAll('.mode-tab').forEach((tab, i) => {
+    tab.addEventListener('click', () => {
+      clearInterval(interval); running = false;
+      modeIdx = i; total = DURATIONS[i]; remaining = total;
+      document.querySelectorAll('.mode-tab').forEach((t,j) => {
+        t.className = 'mode-tab' + (j === i ? ' active' : '');
+      });
+      render();
+    });
+  });
+
+  document.querySelectorAll('.theme-btn').forEach((btn, i) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  let camOn = false;
+  document.getElementById('cam-btn').addEventListener('click', () => {
+    camOn = !camOn;
+    const area = document.getElementById('cam-area');
+    const btn = document.getElementById('cam-btn');
+    if (camOn) {
+      area.innerHTML = '<div style="display:flex;align-items:center;gap:6px;"><div style="width:8px;height:8px;border-radius:50%;background:#22d387;animation:blink 1s infinite;"></div><span style="font-size:11px;color:#22d387;">Live — face detected</span></div>';
+      btn.innerHTML = '<i class="ti ti-player-stop" aria-hidden="true"></i> Stop Camera';
+      btn.style.borderColor = '#ef4444';
+      btn.style.color = '#fca5a5';
+      btn.style.background = 'rgba(239,68,68,0.1)';
+    } else {
+      area.innerHTML = '<i class="ti ti-camera cam-icon" aria-hidden="true"></i><div class="cam-txt">Focus detection</div><div class="cam-sub">Click to enable</div>';
+      btn.innerHTML = '<i class="ti ti-player-play" aria-hidden="true"></i> Start Camera';
+      btn.style.borderColor = '#6c63ff';
+      btn.style.color = '#a5a8ff';
+      btn.style.background = 'rgba(108,99,255,0.1)';
+    }
+  });
+
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      item.classList.add('active');
+    });
+  });
+
+  render();
+</script>
+<style>@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }</style>

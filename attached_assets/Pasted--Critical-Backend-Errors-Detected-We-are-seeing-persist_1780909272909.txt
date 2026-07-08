@@ -1,0 +1,170 @@
+🚨 Critical Backend Errors Detected
+
+We are seeing persistent HTTP 500 Internal Server Errors across multiple endpoints.
+
+Error Logs
+GET /api/habits → 500 Internal Server Error
+GET /api/habits/stats → 500 Internal Server Error
+GET /api/feed?type=following → 500 Internal Server Error
+
+Browser Console:
+
+Failed to load resource:
+the server responded with a status of 500 ()
+
+api/feed?type=following
+api/habits
+api/habits/stats
+
+These errors repeat continuously and appear to be preventing:
+
+Habit creation
+Habit persistence
+Habit statistics loading
+Following feed loading
+Potential profile synchronization
+Coin balance updates
+Required Investigation
+1. Inspect Server Logs
+
+Find the actual exception being thrown.
+
+I need the full stack trace for:
+
+/api/habits
+/api/habits/stats
+/api/feed
+
+Do not only fix the symptom.
+
+Identify the root cause.
+
+2. Verify Database Schema
+
+Check that all required tables exist:
+
+habits
+habit_logs
+users
+profiles
+coin_transactions
+follows
+feed_posts
+
+Verify:
+
+Table names are correct
+Columns exist
+Foreign keys are valid
+Migrations completed successfully
+No missing columns
+3. Verify API Routes
+
+Audit:
+
+GET /api/habits
+POST /api/habits
+GET /api/habits/stats
+GET /api/feed
+
+Check for:
+
+Undefined variables
+Null references
+Authentication failures
+Incorrect SQL
+Missing joins
+Missing user IDs
+Failed database queries
+4. Verify Authentication Context
+
+Confirm that:
+
+req.user
+req.user.id
+session.user.id
+clerk user id
+
+(or whichever auth provider is used)
+
+are correctly available inside:
+
+/api/habits
+/api/habits/stats
+/api/feed
+
+A missing user ID is a common source of repeated 500 errors.
+
+5. Verify Habit Creation Flow
+
+Current issue:
+
+User creates habit
+↓
+Habit appears
+↓
+Refresh page
+↓
+Habit disappears
+
+Investigate:
+
+Database insert failure
+Transaction rollback
+Validation errors
+Missing user relation
+API returning success while DB write fails
+6. Verify Coin System
+
+Investigate:
+
+Coin spent
+↓
+Balance changes temporarily
+↓
+Profile does not update
+
+Audit:
+
+Coin deduction query
+User balance query
+Profile API
+Dashboard API
+Cache invalidation
+React Query/SWR state refresh
+7. Add Debug Logging
+
+Temporarily add detailed logs:
+
+console.error(error);
+console.error(error.stack);
+
+around:
+
+/api/habits
+/api/habits/stats
+/api/feed
+coin transactions
+profile fetches
+
+so the exact failure becomes visible.
+
+Deliverables
+
+Provide:
+
+Full stack traces causing the 500 errors.
+Root cause analysis.
+Files modified.
+Database changes.
+Confirmation that:
+Habits save correctly.
+Habits persist after refresh.
+Habit stats load.
+Feed loads.
+Coin balances update everywhere.
+No remaining 500 errors.
+
+Do a complete audit rather than patching individual symptoms.
+
+The key thing is: 500 errors mean the backend is crashing. Ask Replit for the actual stack traces from the server logs—those will reveal the exact line/file causing the failure.

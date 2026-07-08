@@ -1,0 +1,243 @@
+# TASK SYSTEM + FOCUS SESSION SYSTEM CRITICAL IMPROVEMENTS
+
+Implement the following functionality completely.
+
+==================================================
+TASK COMPLETION WORKFLOW
+========================
+
+Current Problem:
+
+Completed tasks remain visible and create clutter.
+
+Required Behavior:
+
+When a user marks a task as completed:
+
+1. Remove the task from the Active Tasks section immediately.
+2. Move the task into Completed Tasks.
+3. Save:
+
+   * Completion Date
+   * Completion Time
+   * Time Taken
+   * Task Statistics
+4. Update:
+
+   * XP
+   * Credits
+   * Streaks
+   * Leaderboards
+   * Analytics
+
+Completed tasks must never remain inside the Active Tasks list.
+
+==================================================
+DAILY TASK REVIEW SYSTEM
+========================
+
+Every day at midnight:
+
+Check all unfinished tasks.
+
+For each unfinished task:
+
+Show a popup/card:
+
+"You did not complete this task yesterday."
+
+Options:
+
+1. Keep Task
+2. Move To Today
+3. Archive Task
+4. Delete Task
+
+User chooses what happens.
+
+If user does not respond:
+
+Move task into Missed Tasks.
+
+Store:
+
+* Missed Date
+* Original Due Date
+* Miss Count
+
+==================================================
+MISSED TASK MANAGEMENT
+======================
+
+Create:
+
+Missed Tasks Section
+
+Users can:
+
+* Restore Task
+* Delete Task
+* Archive Task
+
+Track:
+
+* Total Missed Tasks
+* Completion Rate
+* Consistency Rate
+
+==================================================
+FOCUS SESSION EARLY COMPLETION
+==============================
+
+Current Problem:
+
+Users cannot properly end a session early.
+
+Required Fix:
+
+Add button:
+
+"Complete Session"
+
+Visible during active focus sessions.
+
+==================================================
+SESSION COMPLETION WORKFLOW
+===========================
+
+Example:
+
+User starts:
+
+30 Minute Session
+
+After:
+
+18 Minutes
+
+User clicks:
+
+Complete Session
+
+System must:
+
+1. Stop timer immediately.
+2. Save actual focus time.
+3. Create completed session record.
+4. Update analytics.
+5. Update XP.
+6. Update credits.
+7. Update streaks.
+8. Update leaderboard.
+
+Store:
+
+Planned Duration:
+30 Minutes
+
+Actual Duration:
+18 Minutes
+
+Completion Percentage:
+60%
+
+Session Status:
+Completed Early
+
+==================================================
+SESSION DATA STORAGE
+====================
+
+Never discard completed work.
+
+If user ends early:
+
+Save all progress.
+
+Example:
+
+Planned:
+60 Minutes
+
+Actual:
+42 Minutes
+
+Database must save:
+
+plannedDuration = 60
+
+actualDuration = 42
+
+completedEarly = true
+
+completionPercentage = 70
+
+==================================================
+SESSION EXIT CONFIRMATION
+=========================
+
+When user attempts to leave:
+
+Show:
+
+You have completed 42 minutes of focus.
+
+Options:
+
+1. Complete Session And Save Progress
+2. Continue Session
+3. Cancel Session Without Saving
+
+==================================================
+ANALYTICS INTEGRATION
+=====================
+
+All early-completed sessions must contribute to:
+
+* Total Focus Time
+* XP
+* Credits
+* Productivity Score
+* Daily Statistics
+* Weekly Statistics
+* Monthly Statistics
+* Leaderboards
+
+No focus time should ever be lost.
+
+==================================================
+RETENTION IMPROVEMENT
+=====================
+
+After session completion show:
+
+* Focus time achieved
+* XP earned
+* Credits earned
+* Streak progress
+* Daily goal progress
+
+Create positive feedback loop.
+
+==================================================
+FINAL REQUIREMENT
+=================
+
+Audit existing task and session code.
+
+Find every location where:
+
+* Completed tasks remain visible
+* Missed tasks are not handled
+* Session progress is discarded
+* Early completion is unsupported
+
+Fix all occurrences.
+
+Implement complete frontend, backend, database, API, analytics, leaderboard, XP, and retention integration.
+
+No placeholders.
+No mock implementations.
+No partial fixes.
+
+Everything must be production ready.

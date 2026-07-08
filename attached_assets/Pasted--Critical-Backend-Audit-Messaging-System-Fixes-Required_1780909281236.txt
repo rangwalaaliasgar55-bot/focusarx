@@ -1,0 +1,272 @@
+# 🚨 Critical Backend Audit & Messaging System Fixes Required
+
+We are seeing multiple API failures across the platform.
+
+## Current Errors
+
+### Habits System
+
+```text
+GET /api/habits → 500
+GET /api/habits/stats → 500
+```
+
+### Social Feed
+
+```text
+GET /api/feed?type=following → 500
+```
+
+### Friend Requests
+
+```text
+POST /api/social/request → 400
+POST /api/social/request → 404
+POST /api/social/request → 409
+```
+
+### Direct Messages
+
+```text
+GET /api/dm/conversations → 500
+POST /api/dm/start → 500
+```
+
+---
+
+# Required Investigation
+
+## 1. Full Server Log Analysis
+
+Find the actual backend exceptions causing:
+
+```text
+/api/habits
+/api/habits/stats
+/api/feed
+/api/social/request
+/api/dm/conversations
+/api/dm/start
+```
+
+Provide complete stack traces.
+
+Do not guess.
+
+Identify the exact file and line number causing each crash.
+
+---
+
+## 2. Database Audit
+
+Verify existence and correctness of:
+
+```sql
+users
+profiles
+habits
+habit_logs
+friend_requests
+friendships
+conversations
+messages
+posts
+follows
+coin_transactions
+```
+
+Check:
+
+* Missing tables
+* Missing columns
+* Incorrect foreign keys
+* Failed migrations
+* Incorrect user references
+
+---
+
+## 3. Messaging System Security Fix
+
+### Current Problem
+
+Users can currently see and attempt to message users they are not friends with.
+
+This is not the intended behavior.
+
+### Required Behavior
+
+A user should ONLY be able to:
+
+* View conversations with accepted friends
+* Start conversations with accepted friends
+* Search/select accepted friends when opening DMs
+
+Users should NOT:
+
+* See every registered user
+* Message random users
+* Create conversations with non-friends
+
+### Required Implementation
+
+When opening DM:
+
+```text
+Current User
+↓
+Fetch accepted friendships
+↓
+Display ONLY friends
+↓
+Allow conversation creation only with friends
+```
+
+Backend validation:
+
+```js
+if (!areFriends(currentUserId, targetUserId)) {
+  return 403;
+}
+```
+
+Never rely only on frontend restrictions.
+
+Enforce this server-side.
+
+---
+
+## 4. Friend Request System Audit
+
+Investigate:
+
+```text
+400 errors
+404 errors
+409 errors
+```
+
+Possible causes:
+
+* Missing users
+* Invalid request payload
+* Duplicate friend requests
+* Broken friendship lookup
+* Missing routes
+
+Verify:
+
+```text
+Send request
+Accept request
+Reject request
+Cancel request
+Remove friend
+```
+
+All flows must work.
+
+---
+
+## 5. Habit System Audit
+
+Current issue:
+
+```text
+Create habit
+↓
+Habit appears
+↓
+Refresh
+↓
+Habit disappears
+```
+
+Verify:
+
+* Insert query succeeds
+* User ID saved correctly
+* Habit retrieval works
+* Habit stats query works
+* No transaction rollback
+* No silent failures
+
+---
+
+## 6. Feed System Audit
+
+Current endpoint:
+
+```text
+/ api/feed?type=following
+```
+
+returns:
+
+```text
+500 Internal Server Error
+```
+
+Investigate:
+
+* Broken joins
+* Missing follow relationships
+* Null user references
+* Pagination bugs
+* Query failures
+
+---
+
+## 7. Direct Messaging Audit
+
+Current endpoints failing:
+
+```text
+/ api/dm/conversations
+/ api/dm/start
+```
+
+Verify:
+
+* Conversation creation
+* Conversation lookup
+* Friend validation
+* Message storage
+* Message retrieval
+* User permissions
+
+No user should access conversations they do not belong to.
+
+---
+
+## 8. Logging
+
+Temporarily add detailed logging:
+
+```js
+console.error(error);
+console.error(error.stack);
+```
+
+around all failing routes.
+
+---
+
+# Final Deliverables
+
+Provide:
+
+1. Root cause of every 500 error.
+2. Root cause of every 400/404/409 error.
+3. Files modified.
+4. Database changes.
+5. Confirmation that:
+
+   * Habits save correctly.
+   * Habit stats load.
+   * Feed loads.
+   * Friend requests work.
+   * DMs work.
+   * Users can only message friends.
+   * Coin balances sync correctly.
+   * No remaining server errors.
+6. Full test results proving fixes.

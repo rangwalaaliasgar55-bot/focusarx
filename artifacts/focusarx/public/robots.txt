@@ -1,0 +1,76 @@
+# ══════════════════════════════════════════════════════════════
+# FocusArx robots.txt — Production
+# Domain: https://focusarx.site
+# ══════════════════════════════════════════════════════════════
+
+# ── Allow all compliant crawlers ──────────────────────────────
+User-agent: *
+Allow: /
+
+# ── Block private / user-specific routes ─────────────────────
+Disallow: /dashboard
+Disallow: /analytics
+Disallow: /profile
+Disallow: /settings
+Disallow: /onboarding
+Disallow: /notifications
+Disallow: /messages
+Disallow: /missions
+Disallow: /achievements
+Disallow: /shop
+Disallow: /wallet
+Disallow: /goals
+Disallow: /habits
+Disallow: /pets
+Disallow: /city
+Disallow: /marketplace
+Disallow: /quests
+Disallow: /dna
+Disallow: /focus-dna
+Disallow: /lootboxes
+Disallow: /battle-pass
+Disallow: /wrapped
+Disallow: /dreams
+Disallow: /ghosts
+Disallow: /consequences
+Disallow: /replay
+Disallow: /forge
+Disallow: /distractions
+Disallow: /profiles
+Disallow: /referral
+Disallow: /ai-insights
+Disallow: /groups
+Disallow: /social
+Disallow: /premium
+Disallow: /leaderboard
+
+# ── Block auth / callback routes ─────────────────────────────
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /auth/callback
+
+# ── Block admin / API routes ─────────────────────────────────
+Disallow: /admin
+Disallow: /api/
+
+# ── Block dev / build artifacts ──────────────────────────────
+Disallow: /*.map$
+Disallow: /src/
+
+# ── Google-specific fine-tuning ───────────────────────────────
+User-agent: Googlebot
+Allow: /
+Allow: /opengraph.jpg
+Allow: /logo.png
+Allow: /manifest.json
+Disallow: /admin
+Disallow: /api/
+
+# ── Bing ──────────────────────────────────────────────────────
+User-agent: Bingbot
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+# ── Sitemap reference ─────────────────────────────────────────
+Sitemap: https://focusarx.site/sitemap.xml

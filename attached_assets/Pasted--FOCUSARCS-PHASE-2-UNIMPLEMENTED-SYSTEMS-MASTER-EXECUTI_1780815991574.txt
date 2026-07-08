@@ -1,0 +1,561 @@
+# FOCUSARCS PHASE 2 — UNIMPLEMENTED SYSTEMS MASTER EXECUTION PROMPT
+
+You have already completed missions, badges, XP, achievements, productivity logs, mission widgets, sitemap generation, robots.txt generation, compression middleware, task enhancements, focus session enhancements, and mission analytics.
+
+DO NOT TOUCH OR REBUILD COMPLETED FEATURES.
+
+Your objective is to implement ONLY the remaining enterprise systems that are not yet present.
+
+Analyze the entire codebase and verify each feature before implementation.
+
+==================================================
+PHASE A — SOCIAL PRODUCTIVITY ECOSYSTEM
+=======================================
+
+Build a complete social productivity platform.
+
+Implement:
+
+Friend Requests
+
+* Send request
+* Accept request
+* Reject request
+* Cancel request
+* Remove friend
+
+Friend Dashboard
+
+* Friends list
+* Online status
+* Last active time
+* Productivity score
+* Streak display
+* XP display
+* Rank display
+
+Friend Activity Feed
+
+Display:
+
+* Completed tasks
+* Focus sessions
+* New achievements
+* New levels
+* Challenge completions
+
+Friend Leaderboards
+
+* Daily
+* Weekly
+* Monthly
+* All Time
+
+Accountability Partners
+
+Allow users to:
+
+* Pair with accountability partners
+* Monitor each other's progress
+* Receive reminders
+* Compare statistics
+
+==================================================
+PHASE B — GROUPS & TEAMS
+========================
+
+Create a complete team ecosystem.
+
+Implement:
+
+Study Groups
+
+Team Creation
+
+Team Management
+
+Team Roles
+
+* Owner
+* Admin
+* Moderator
+* Member
+
+Team Challenges
+
+Team XP
+
+Team Levels
+
+Team Achievements
+
+Team Analytics
+
+Team Leaderboards
+
+Team Activity Feed
+
+Team Statistics
+
+Create complete UI and backend.
+
+==================================================
+PHASE C — PUBLIC USER PROFILES
+==============================
+
+Create fully shareable profiles.
+
+Profile URL Example:
+
+/u/username
+
+Display:
+
+* Profile Picture
+* Bio
+* XP
+* Level
+* Streak
+* Focus Hours
+* Tasks Completed
+* Achievements
+* Badges
+* Friends
+* Groups
+
+Privacy Controls
+
+Profile Sharing
+
+Public Statistics
+
+==================================================
+PHASE D — REAL-TIME ENGINE
+==========================
+
+Implement WebSocket architecture.
+
+Real-Time Features:
+
+* Live leaderboard updates
+* Live mission progress
+* Live XP updates
+* Live streak updates
+* Live notifications
+* Live friend activity
+* Live group activity
+
+Optimize for scalability.
+
+==================================================
+PHASE E — ADVANCED RETENTION SYSTEMS
+====================================
+
+Create retention systems designed to maximize user return rates.
+
+Daily Login Rewards
+
+Reward Calendar
+
+Weekly Rewards
+
+Monthly Rewards
+
+Mystery Rewards
+
+Reward Chests
+
+Streak Protection
+
+Streak Freeze
+
+Streak Repair
+
+Seasonal Events
+
+Limited Time Events
+
+Special Challenges
+
+Event Leaderboards
+
+Event Rewards
+
+Productivity Battle Pass
+
+Battle Pass Levels
+
+Premium Reward Track
+
+Free Reward Track
+
+Season System
+
+Quarterly Seasons
+
+Season Resets
+
+Season Rankings
+
+Season Achievements
+
+==================================================
+PHASE F — ADVANCED ACCOUNTABILITY SYSTEM
+========================================
+
+Implement full accountability economy.
+
+Create:
+
+Credit Wallet
+
+Credit History
+
+Credit Transactions
+
+Daily Goal Penalties
+
+Task Penalties
+
+Missed Session Penalties
+
+Missed Goal Penalties
+
+Automatic Credit Deductions
+
+Penalty Analytics
+
+Accountability Score
+
+Consistency Score
+
+Discipline Score
+
+Productivity Score
+
+==================================================
+PHASE G — NOTIFICATION PLATFORM
+===============================
+
+Build complete notification architecture.
+
+In-App Notifications
+
+Push Notifications
+
+Browser Notifications
+
+Email Notifications
+
+Notification Center
+
+Notification Preferences
+
+Smart Reminders
+
+Task Reminders
+
+Focus Reminders
+
+Challenge Reminders
+
+Friend Activity Alerts
+
+Achievement Alerts
+
+Reward Alerts
+
+==================================================
+PHASE H — AI PRODUCTIVITY SYSTEM
+================================
+
+Build AI-powered productivity features.
+
+AI Productivity Coach
+
+AI Focus Coach
+
+AI Study Coach
+
+AI Weekly Report Generator
+
+AI Performance Insights
+
+AI Goal Planner
+
+AI Habit Analyzer
+
+AI Focus Trend Analyzer
+
+AI Retention Analyzer
+
+AI Personalized Recommendations
+
+AI Productivity Summary
+
+Generate intelligent reports automatically.
+
+==================================================
+PHASE I — ADVANCED ANALYTICS PLATFORM
+=====================================
+
+Create enterprise-grade analytics.
+
+Retention Analytics
+
+Churn Analytics
+
+Cohort Analytics
+
+Growth Analytics
+
+Acquisition Analytics
+
+Conversion Analytics
+
+Behavior Analytics
+
+Engagement Analytics
+
+Productivity Analytics
+
+Mission Analytics
+
+Challenge Analytics
+
+Build dashboards for all metrics.
+
+Create visual reports.
+
+Create exports.
+
+Create filtering.
+
+==================================================
+PHASE J — OWNER CONTROL CENTER
+==============================
+
+Build a complete no-code website operating system.
+
+Visual Page Builder
+
+Visual Component Builder
+
+Drag and Drop Layout Builder
+
+Theme Builder
+
+Theme Editor
+
+Branding Editor
+
+Landing Page Editor
+
+Homepage Editor
+
+Dashboard Editor
+
+Component Library
+
+Reusable Components
+
+Version Control
+
+Rollback System
+
+Draft Mode
+
+Publish Mode
+
+Permanent Save System
+
+Database Persistence
+
+Everything edited by the owner must persist permanently.
+
+==================================================
+PHASE K — CMS PLATFORM
+======================
+
+Create full CMS.
+
+Blog Management
+
+Article Management
+
+SEO Pages
+
+Landing Pages
+
+Knowledge Base
+
+Help Center
+
+Content Categories
+
+Content Tags
+
+Content Scheduling
+
+Content Publishing
+
+Media Library
+
+==================================================
+PHASE L — ADVANCED SEO SYSTEM
+=============================
+
+Implement complete SEO architecture.
+
+Schema Markup
+
+FAQ Schema
+
+Organization Schema
+
+Product Schema
+
+Article Schema
+
+Breadcrumb Schema
+
+Review Schema
+
+Dynamic Meta Generation
+
+Dynamic Open Graph Images
+
+SEO Analysis Engine
+
+Internal Linking Engine
+
+Content SEO Scoring
+
+Keyword Opportunity Tracking
+
+Google Search Console Integration
+
+Bing Webmaster Integration
+
+Index Monitoring
+
+404 Monitoring
+
+Redirect Manager
+
+==================================================
+PHASE M — ADVANCED SECURITY
+===========================
+
+Implement:
+
+2FA
+
+Email Verification
+
+Device Management
+
+Trusted Devices
+
+Login Alerts
+
+Session Monitoring
+
+Security Dashboard
+
+Audit Logging
+
+Rate Limiting
+
+Bot Detection
+
+Anomaly Detection
+
+Account Recovery System
+
+==================================================
+PHASE N — PWA & MOBILE EXPERIENCE
+=================================
+
+Create installable application.
+
+PWA
+
+Offline Support
+
+Offline Focus Sessions
+
+Offline Task Management
+
+Background Sync
+
+Push Notifications
+
+Mobile Performance Optimization
+
+Install Prompts
+
+App-Like Experience
+
+==================================================
+PHASE O — ADMIN V2 PLATFORM
+===========================
+
+Expand admin platform.
+
+User Moderation Center
+
+Fraud Detection
+
+Security Dashboard
+
+Retention Dashboard
+
+Growth Dashboard
+
+SEO Dashboard
+
+Notification Dashboard
+
+Content Dashboard
+
+Team Dashboard
+
+Challenge Dashboard
+
+Reward Dashboard
+
+Mission Dashboard
+
+Audit Dashboard
+
+Activity Dashboard
+
+Export System
+
+==================================================
+FINAL EXECUTION DIRECTIVE
+=========================
+
+Do not stop after implementing one feature.
+
+Continue auditing and implementing until every feature in this document exists in production.
+
+Requirements:
+
+* Production Ready
+* Fully Functional
+* Complete UI
+* Complete Backend
+* Complete Database
+* Complete APIs
+* Complete Analytics
+* Complete Testing
+* Complete Documentation
+
+No placeholders.
+No mocks.
+No TODO comments.
+No partially completed systems.
+
+Implement everything in this document completely.

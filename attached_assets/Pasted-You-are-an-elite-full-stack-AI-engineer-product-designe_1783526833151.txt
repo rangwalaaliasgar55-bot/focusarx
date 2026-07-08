@@ -1,0 +1,369 @@
+You are an elite full‑stack AI engineer, product designer, and growth lead.
+I want you to completely redesign and upgrade my entire web application for FocusArx from scratch, using your full AI design + engineering + product skills, while keeping everything in my current GitHub repo and on Vercel.
+
+Project context
+Website: https://focusarx.site
+
+Repo: https://github.com/rangwalaaliasgar55-bot/focusarx
+
+Role: I am the founder; this is India’s first advanced digital discipline / productivity platform with AI‑powered focus sessions, habit tracking, analytics, and goal systems.
+
+Current stack: It’s a Vercel‑hosted web app (likely Next.js / React + Tailwind / similar). You must NOT migrate hosting from Vercel to Replit.
+
+Core goal: no “vibe‑coded” look
+The current site feels generic, vibe‑coded, and not professional.
+Your job is to make FocusArx feel like a world‑class, serious, AI‑native productivity platform:
+
+Polished, consistent design system (colors, typography, spacing, radii, shadows).
+
+Professional, clear, benefit‑driven copy (not random hype or vague phrases).
+
+Smooth, intentional animations (not random, chaotic, or overdone).
+
+Clean, structured layouts (no clutter, no randomness).
+
+Strong trust signals (privacy, value proposition, simple testimonials).
+
+Fully responsive, accessible, and fast.
+
+Treat this as a maximum effort, founder‑level redesign.
+
+Constraints & rules
+Do NOT migrate from Vercel to Replit.
+Keep Vercel as the host.
+
+Replit is only for editing, generating code, and running dev locally if needed.
+
+
+All dependencies must be installed in my repo, not in Replit’s global codebase.
+Use package.json in the repo root.
+
+All new libs must be added there and installed via npm install (or yarn/pnpm as appropriate).
+
+
+Work directly on the code in https://github.com/rangwalaaliasgar55-bot/focusarx.
+Assume you can read/write to that repo.
+
+If you can’t directly edit it, generate a complete new version of the codebase and tell me exactly how to replace the current repo contents.
+
+
+Do not change the core domain/business:
+FocusArx = AI productivity platform + focus timer + habit builder + analytics + goals.
+
+
+Your mission
+Redesign everything and implement all growth improvements we discussed:
+
+Visual design (layout, typography, color, spacing, icons, imagery)
+
+All animations (micro‑interactions, transitions, entrance/exit animations, scroll effects)
+
+All features and flows (signup, auth, dashboard, focus sessions, habits, analytics, goals, settings, etc.)
+
+Every page and component in the repo (home, landing, auth, user dashboard, admin, etc.)
+
+Performance, accessibility, SEO, and mobile responsiveness
+
+Onboarding flow
+
+AI coach messages & logic
+
+Email templates (welcome, weekly summary, streak reminder)
+
+SEO content (meta tags, headings, 2 blog posts)
+
+Simple pricing & premium features setup (even if not live yet)
+
+Basic analytics tracking plan + helper code comments
+
+The result should feel like a premium, serious, AI‑powered productivity platform that Indian students and professionals would trust for real focus and habit work.
+
+Step 1: Analyze current site and repo
+Inspect https://focusarx.site and the repo structure.
+
+List:
+Current pages and components
+
+Current tech stack (framework, UI libs, animation libs, state management, etc.)
+
+Current design patterns and weaknesses (UX, visual, performance, accessibility, “vibe‑coded” feel).
+
+
+Explicitly describe:
+What makes it look generic/vibe‑coded.
+
+What must change to look professional and polished.
+
+
+Step 2: Define a new product & design vision
+Describe a clear design system:
+Color palette (primary, secondary, accents, background, surface, text)
+
+Typography (font families, sizes, weights, line heights)
+
+Spacing, radii, shadows, borders
+
+Icon style and imagery style
+
+
+Define the vibe:
+Modern, AI‑native, minimal but rich, highly focused, disciplined, calm, and intelligent.
+
+NOT random, NOT chaotic, NOT “vibe‑coded” like generic templates.
+
+
+Explain how this design supports:
+Deep focus
+
+Habit building
+
+Clear analytics
+
+Trust and professionalism
+
+
+Use this core message everywhere:
+> “FocusArx is India’s smartest AI focus app that helps students and professionals build deep work habits, track productivity, and achieve goals without distractions.”
+
+Step 3: Redesign all pages and flows
+For every existing page (and any new ones you think are needed), provide:
+
+A short description of the page’s purpose.
+
+A detailed component layout (what sections, what components, how they’re arranged).
+
+UX details:
+How users interact (buttons, inputs, toggles, sliders, cards, charts).
+
+States: default, loading, error, success, empty.
+
+Animations:
+Entrance/exit animations
+
+Hover, focus, active states
+
+Scroll‑based animations
+
+Micro‑interactions (e.g., timer start/stop, habit check, goal progress)
+
+
+
+Suggest specific animation libraries or techniques (e.g., Framer Motion, Tailwind animate, CSS keyframes, scroll‑driven animations).
+
+Focus especially on:
+
+Landing / Home page: Hero section, value proposition, feature highlights, CTAs, trust signals, testimonials (if any), FAQ.
+
+Auth pages: Sign up, login, forgot password, email verification.
+
+Onboarding flow:
+Step 1: Choose main goal (exam, job prep, skill, habit).
+
+Step 2: Set daily focus time target (slider + preset buttons).
+
+Step 3: Pick 1–3 habits to track (checkbox list).
+
+Step 4: Start first focus session with a timer.
+
+Show immediate win (“You’re on your first streak”).
+
+
+Dashboard:
+Focus sessions (timer, today’s plan, streaks)
+
+Habits (list, check‑ins, progress)
+
+Goals (short/long term, progress bars)
+
+Analytics (charts, trends, insights)
+
+
+Settings / Profile:
+Account, preferences, notifications, integrations.
+
+
+Step 4: Redesign core features with AI flair
+For each major feature, describe:
+
+How AI is exposed to the user (suggestions, insights, coaching, automations).
+
+UI patterns that make AI feel integrated, not gimmicky.
+
+Examples:
+AI focus coach that suggests optimal session lengths.
+
+AI habit planner that auto‑creates daily routines.
+
+AI analytics that summarize trends and give actionable advice.
+
+Smart notifications that are context‑aware and non‑intrusive.
+
+
+Propose 10 AI coach message templates for:
+
+After focus sessions
+
+After habit check‑ins
+
+Weekly summaries
+
+Streak celebrations
+
+Missed day warnings (gentle)
+
+For each:
+
+Trigger condition
+
+Message text (short, friendly, actionable)
+
+Optional CTA button text
+
+Step 5: Implement growth & content
+Implement these as code + copy where possible:
+
+SEO foundation
+Update meta title & description for landing page.
+
+Use structured headings (H1, H2s, H3s) on landing page as per the new design.
+
+Create 2 SEO blog post pages:
+Write full content for 2 articles:
+“How to study 2 hours deeply instead of 12 hours distracted”
+
+“The 2‑hour study method: focused sessions win”
+
+
+Each 800–1000 words, clear, practical, targeting Indian students (JEE, NEET, UPSC, college).
+
+
+
+Email templates
+Create 3 email templates (as HTML or text + placeholders):
+Welcome email (after signup).
+
+Weekly summary email (“You focused X hours this week…”).
+
+Streak reminder email (after 1–2 missed days).
+
+
+Each with:
+Subject line
+
+6–8 short paragraphs or bullet points
+
+1 CTA button text
+
+
+
+Pricing & premium features
+Design a simple 2‑tier pricing model:
+Free
+
+Premium
+
+
+For each tier:
+Name
+
+Price (monthly & yearly, in INR)
+
+5–7 key features
+
+One persuasive description line
+
+
+Add:
+A short “Why premium?” section (3–4 bullets).
+
+A FAQ with 5 questions about pricing and features.
+
+
+Create a pricing page component (even if not live yet).
+
+
+Trust & privacy
+Add:
+3 trust‑signal lines for the landing page.
+
+A short privacy statement (≤60 words) explaining what data FocusArx collects and what it doesn’t.
+
+3 short testimonial placeholders (generic but realistic) to replace later with real quotes.
+
+
+
+Analytics tracking plan
+Define 10 key metrics to track:
+Acquisition, conversion, retention, engagement.
+
+
+For each metric:
+Definition
+
+How to compute it (events/table fields)
+
+Why it matters
+
+
+Add commented code/hooks in relevant components where these events should be tracked.
+
+
+Step 6: Implement the redesign in code
+Provide a complete, updated codebase for the repo:
+Updated package.json with all new dependencies.
+
+New or updated components for every page.
+
+New global styles / Tailwind config / design system config.
+
+Animation implementations (components + utility functions).
+
+Any new routes / pages you add (onboarding, blog, pricing, etc.).
+
+
+Ensure:
+Fully responsive (mobile, tablet, desktop).
+
+Accessible (ARIA, keyboard nav, contrast).
+
+Fast (lazy loading, optimized assets, minimal blockers).
+
+Clean, modular, maintainable code.
+
+No vibe‑coded randomness: everything must look intentional, structured, and professional.
+
+
+Step 7: Instructions for me
+Tell me exactly:
+Which files to replace / create in my repo.
+
+How to install dependencies (npm install command).
+
+How to run the dev server.
+
+How to deploy to Vercel (config, env vars, build command).
+
+
+If you cannot directly edit the GitHub repo, then:
+Output a full folder structure and file contents as code blocks.
+
+Tell me to clone the repo, replace everything with your files, install deps, and deploy.
+
+
+Tone & quality
+Act like a world‑class founder + product leader + engineering lead.
+
+Be extremely concrete and detailed, not vague.
+
+The redesign should feel like a premium, AI‑powered productivity platform that users would trust for serious focus and habit work.
+
+No generic, random, or “vibe‑coded” feel. Everything must be structured, polished, and intentional.
+
+Start by:
+
+Analyzing the current site and repo.
+
+Proposing the new design system and page plans.
+
+Then generating the full redesigned codebase with all growth features integrated.
+

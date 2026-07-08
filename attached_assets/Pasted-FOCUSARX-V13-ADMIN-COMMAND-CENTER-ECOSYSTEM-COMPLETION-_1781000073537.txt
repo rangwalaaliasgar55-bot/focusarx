@@ -1,0 +1,332 @@
+FOCUSARX V13 — ADMIN COMMAND CENTER & ECOSYSTEM COMPLETION
+
+Current Status:
+Most user-facing features exist (Pets, Marketplace, Loot Boxes, Wallet, XP, Coin Shop, Focus City, Wrapped, Battle Pass), but they are not fully connected to an admin management system and many have no content.
+
+Goal:
+Transform FocusArx into a fully operational platform where ALL game mechanics, rewards, products, pets, events, notifications, and economy systems can be managed through the Admin Dashboard without touching the database.
+
+========================
+PHASE 1 — SUPER ADMIN PANEL
+===========================
+
+Create a dedicated Admin Command Center.
+
+Admin Sections:
+
+* Dashboard
+* Users
+* Marketplace
+* Pets
+* Loot Boxes
+* Focus City
+* Coin Shop
+* XP & Economy
+* Battle Pass
+* Quests
+* Events
+* Emails
+* Notifications
+* Analytics
+* Content Management
+* Wrapped Management
+* Feature Toggles
+* System Logs
+
+========================
+PHASE 2 — MARKETPLACE CMS
+=========================
+
+Current Issue:
+Marketplace exists but has no products.
+
+Build:
+
+* Create Product
+* Edit Product
+* Delete Product
+* Product Images
+* Product Categories
+* Product Rarity
+* Product Pricing
+* Featured Products
+* Limited-Time Products
+* Seasonal Products
+* Product Availability Toggle
+
+When admin creates products:
+
+* Products immediately appear in Marketplace
+* Users can purchase with coins
+* Purchases appear in inventory
+* Purchases persist in database
+
+========================
+PHASE 3 — PET COMPANION CMS
+===========================
+
+Current Issue:
+Pets exist but admin cannot create/manage them.
+
+Build:
+
+* Create New Pet
+* Upload Pet Images
+* Pet Animations
+* Pet Levels
+* Pet XP Requirements
+* Pet Evolutions
+* Pet Traits
+* Pet Happiness System
+* Pet Emotes
+
+Admin can:
+
+* Add dog
+* cat
+* panda
+* fox
+* dragon
+* custom pets
+
+Pet Store:
+Admin-created pets appear automatically.
+
+Timer Integration:
+
+Pet MUST appear on focus timer screen.
+
+Pet animations:
+
+* sleeping
+* dancing
+* celebrating
+* cheering
+* waving
+* focus mode
+
+Purchased emotes must be visible.
+
+========================
+PHASE 4 — LOOT BOX CMS
+======================
+
+Current Issue:
+Loot box system exists but contains no rewards.
+
+Build:
+
+Admin can create:
+
+* Common Box
+* Rare Box
+* Epic Box
+* Legendary Box
+
+Admin can configure:
+
+* drop rates
+* rewards
+* coins
+* XP
+* pets
+* emotes
+* cosmetics
+* badges
+
+Opening a loot box must grant real rewards.
+
+========================
+PHASE 5 — COIN SHOP
+===================
+
+Current Issue:
+Purchases do not appear in profile.
+
+Fix entire purchase flow.
+
+Requirements:
+
+When purchasing:
+
+* item is added to inventory
+* transaction saved
+* wallet updated
+* profile updated
+* real-time UI update
+
+Admin can:
+
+* create coin bundles
+* create special offers
+* create flash sales
+
+========================
+PHASE 6 — BATTLE PASS SYSTEM
+============================
+
+Admin can:
+
+* create seasons
+* create rewards
+* create premium rewards
+* create XP milestones
+
+Users should:
+
+* level up
+* unlock rewards
+* claim rewards
+
+Admin dashboard must manage entire battle pass.
+
+========================
+PHASE 7 — EMAIL CENTER
+======================
+
+Create full email marketing system.
+
+Admin can:
+
+* Send to all users
+* Send to inactive users
+* Send to premium users
+* Send to selected users
+
+Templates:
+
+* Welcome Email
+* Comeback Email
+* Streak Reminder
+* New Feature Announcement
+* Weekly Progress Report
+* Monthly Wrapped
+
+Analytics:
+
+* open rate
+* click rate
+* deliveries
+* unsubscribes
+
+========================
+PHASE 8 — PUSH NOTIFICATIONS
+============================
+
+Admin can send:
+
+* global notifications
+* user-specific notifications
+* challenge notifications
+* event notifications
+
+Scheduling support required.
+
+========================
+PHASE 9 — FOCUS CITY CMS
+========================
+
+Admin can:
+
+* create city buildings
+* create city rewards
+* configure unlock levels
+* create global city events
+
+Changes instantly affect all users.
+
+========================
+PHASE 10 — QUEST BUILDER
+========================
+
+Admin can create:
+
+* daily quests
+* weekly quests
+* monthly quests
+* seasonal quests
+
+Configurable:
+
+* rewards
+* XP
+* coins
+* badges
+
+========================
+PHASE 11 — WRAPPED CMS
+======================
+
+Admin can configure:
+
+* Wrapped templates
+* Achievement cards
+* Share cards
+* Annual reports
+
+========================
+PHASE 12 — ANALYTICS
+====================
+
+Admin dashboard should display:
+
+* DAU
+* MAU
+* retention
+* churn
+* session counts
+* marketplace purchases
+* pet purchases
+* battle pass revenue
+* top users
+* top quests
+* top cities
+
+========================
+PHASE 13 — MOBILE FIXES
+=======================
+
+Current Issues:
+
+1. Sign Out button missing on mobile.
+2. Some navigation items missing on mobile.
+3. Mobile menu incomplete.
+4. Several pages overflow on small screens.
+
+Fix all mobile responsiveness.
+
+========================
+PHASE 14 — LIGHT MODE FIX
+=========================
+
+Current Issue:
+Light mode gradients and colors look broken.
+
+Requirements:
+
+* proper light theme palette
+* readable text
+* proper card backgrounds
+* proper button colors
+* proper gradients
+* accessibility compliant
+
+Review every page in light mode.
+
+========================
+PHASE 15 — FINAL AUDIT
+======================
+
+Verify:
+
+* every purchase works
+* every reward works
+* every inventory item persists
+* every admin action affects users
+* every mobile page works
+* every light mode page works
+
+Provide final implementation report.
+
+Do not create placeholder systems.
+Every admin feature must be fully connected to the database, backend APIs, and frontend UI.

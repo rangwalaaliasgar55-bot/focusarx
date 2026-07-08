@@ -1,0 +1,284 @@
+
+# FocusArx — Priority Implementation Sprint
+
+You are working on the FocusArx monorepo. The project structure is:
+- Frontend: artifacts/focusarx/src/ (React + Vite + TypeScript + Tailwind v4 + shadcn/ui)
+- Backend: artifacts/api-server/src/ (Express + TypeScript)
+- DB: Drizzle ORM (schema already has groups, social, chat, gamification, study_buddies tables from transformation plan)
+- CSS theme: dark-first, forge palette (--forge-violet: #7C3AED, --forge-teal: #06D6A0, --forge-gold: #FFB800, --background: #0A0F1E)
+- Routes registered in: artifacts/api-server/src/routes/index.ts
+- Pages registered in: artifacts/focusarx/src/App.tsx (lazy imports + wouter routes)
+
+DO NOT break any existing functionality. DO NOT touch Timer.tsx, usePomodoro.ts, useSessionPersistence.ts, or any auth files unless explicitly told to.
+
+Implement ALL of the following in order. For each, write production-ready code — no TODOs, no stubs, no placeholders.
+
+---
+
+## PRIORITY 1 — WebSocket Server (Socket.io)
+
+Install socket.io in artifacts/api-server/package.json.
+
+In artifacts/api-server/src/index.ts:
+- Wrap the existing Express app with an http.Server
+- Attach Socket.io to it with CORS matching the existing config
+- Export the io instance
+
+Create artifacts/api-server/src/lib/socketManager.ts:
+- Authenticated socket middleware (verify JWT from handshake.auth.token using existing auth pattern from auth.ts)
+- Room management: joinRoom(userId, roomId), leaveRoom(userId, roomId)
+- Presence tracking: Map for online status
+- Emit helpers: emitToUser(userId, event, data), emitToRoom(roomId, event, data), broadcastActivity(event, data)
+
+Emit these events from existing routes (without rewriting the routes, just add io.emit calls at the end of handlers):
+- sessions.ts: on POST /api/sessions (complete) → emit 'session:complete' with {userId, durationMin, subject}
+- gamification.ts: on badge unlock → emit 'achievement:unlock' with {userId, badge}
+- social.ts: on follow → emit 'social:follow' with {followerId, targetId}
+
+In artifacts/focusarx/src/lib/socket.ts — create a singleton socket client:
+- Connect on auth, disconnect on logout
+- Export useSocket() hook that returns the socket instance
+- Export useSocketEvent(event, handler) hook for easy event listening
+
+---
+
+## PRIORITY 2 — Habit Tracker (full feature)
+
+Database: Add to lib/db/src/schema/ a new habits.ts with:
+- habits table: id, userId, name, icon (emoji string), color (hex), frequency ('daily'|'weekly'), targetDays (int), createdAt
+- habit_logs table: id, habitId, userId, completedDate (date string YYYY-MM-DD), createdAt
+- Run pnpm --filter @workspace/db run push after
+
+Backend: Create artifacts/api-server/src/routes/habits.ts with:
+- GET /api/habits — list user's habits with today's completion status and current streak
+- POST /api/habits — create habit (validate: name max 50 chars, icon is single emoji, color is valid hex)
+- PATCH /api/habits/:id — update habit
+- DELETE /api/habits/:id — soft delete
+- POST /api/habits/:id/log — log completion for today (idempotent — no duplicate logs per day)
+- GET /api/habits/:id/stats — return: currentStreak, longestStreak, completionRate (last 30 days), heatmapData (last 90 days as {date, completed} array)
+- Award 25 XP via existing gamification logic on each habit log
+
+Register it in artifacts/api-server/src/routes/index.ts.
+
+Frontend: Create artifacts/focusarx/src/pages/habits.tsx:
+- Header: "Habits" title + "Add Habit" button
+- Habit creation modal: name input, emoji picker (grid of 30 common emojis), color picker (8 preset colors), frequency toggle (daily/weekly)
+- Habit card grid: each card shows icon, name, current streak (🔥 N days), today's check button (large, satisfying tap target), completion ring showing today's status
+- Check-off animation: button morphs from circle to checkmark with scale animation, card gets a success tint
+- Stats drawer: tap a habit card to open a side drawer with streak history, completion rate %, 90-day heatmap (same style as dashboard streak heatmap)
+- Empty state: illustration placeholder + "Add your first habit" CTA
+
+Register: add lazy import and Route path="/habits" in App.tsx.
+Add to AppShell.tsx navItems: { href: "/habits", label: "Habits", icon: CheckSquare, shortcut: "h", group: "core" }
+
+---
+
+## PRIORITY 3 — Push Notifications
+
+The service worker is already at artifacts/focusarx/public/sw.js. Extend it:
+- Add a 'push' event listener that shows a notification with the payload's title, body, icon (/favicon.svg), and data.url for click navigation
+- Add a 'notificationclick' event that opens data.url and focuses the window
+
+Backend: Create artifacts/api-server/src/routes/pushSubscriptions.ts:
+- Install web-push package
+- Generate VAPID keys on first run, store in environment (log them to console on first start so user can copy to .env)
+- POST /api/push/subscribe — save PushSubscription object to a push_subscriptions table (userId, endpoint, p256dh, auth, createdAt) — create this table in DB schema
+- DELETE /api/push/subscribe — remove subscription
+- GET /api/push/vapid-public-key — return the public VAPID key
+
+Create artifacts/api-server/src/lib/pushSender.ts:
+- sendPush(userId, { title, body, url }) — looks up user's subscriptions, sends via web-push, handles expired subscription cleanup
+
+Trigger pushes from:
+- sessions.ts: streak milestone (7, 14, 30, 60, 100 days) → "🔥 {N}-day streak! Keep it up"
+- gamification.ts: badge unlock → "🏆 Achievement unlocked: {badgeName}"
+- Add a scheduled check (setInterval every hour in index.ts) that finds users whose streak is at risk (last session was yesterday, no session today, it's after 8pm user timezone) → send "⚠️ Your streak is at risk! Start a session before midnight."
+
+Frontend: Create artifacts/focusarx/src/lib/pushNotifications.ts:
+- requestPushPermission() — requests browser permission, subscribes to push service using VAPID public key from API, posts subscription to /api/push/subscribe
+- unsubscribePush() — removes subscription
+
+Add to profile.tsx settings section: "Push Notifications" toggle that calls requestPushPermission() / unsubscribePush().
+
+---
+
+## PRIORITY 4 — Light Mode
+
+In artifacts/focusarx/src/index.css:
+Add a complete .light class on :root or html with these mappings:
+- --background: #F8F9FC
+- --foreground: #0F172A
+- --card: rgba(255,255,255,0.92)
+- --card-border: rgba(124,58,237,0.15)
+- --muted: #64748B
+- --forge-surface: rgba(248,249,252,0.95)
+- --forge-surface-light: rgba(241,243,250,0.85)
+- --forge-border: rgba(124,58,237,0.15)
+- --forge-border-bright: rgba(124,58,237,0.35)
+
+Also update: .glass-card backdrop-filter stays, but change background to rgba(255,255,255,0.85) in light mode.
+
+Create artifacts/focusarx/src/lib/theme.ts:
+- getTheme(): 'dark' | 'light' — reads from localStorage key 'focusarx-theme', falls back to system prefers-color-scheme
+- setTheme(theme): sets localStorage + adds/removes 'light' class on document.html
+- useTheme() hook that returns [theme, setTheme] and reacts to changes
+
+In AppShell.tsx: add a theme toggle button (Sun/Moon icon) in the sidebar footer next to the existing Privacy/Terms links. Use the Moon icon when dark, Sun when light. Clicking it calls setTheme().
+
+Apply getTheme() in main.tsx before React mounts so there's no flash of wrong theme.
+
+---
+
+## PRIORITY 5 — Direct Messages
+
+Database: The chat schema (conversations, conversation_participants, messages, message_reads) was defined in the transformation plan. Verify it exists in lib/db/src/schema/chat.ts. If not, create it now with those 4 tables.
+
+Backend: Create artifacts/api-server/src/routes/messages.ts:
+- GET /api/conversations — list user's DM threads, each with: other user's name/avatar, last message preview, unread count, timestamp
+- POST /api/conversations — start or get existing DM with another user (by userId). Idempotent.
+- GET /api/conversations/:id/messages — paginated messages (limit 50, cursor-based)
+- POST /api/conversations/:id/messages — send message (text content, max 2000 chars). After saving, emit 'dm:message' via Socket.io to recipient's socket. Mark as delivered.
+- POST /api/conversations/:id/read — mark all messages in conversation as read. Emit 'dm:read' to sender.
+Register in index.ts.
+
+Frontend: Create artifacts/focusarx/src/pages/messages.tsx:
+- Left panel: conversation list (avatar, name, message preview, timestamp, unread badge)
+- Right panel: selected conversation — message thread with bubble layout (sent right/received left), timestamp groups, message input with send button
+- Real-time: useSocketEvent('dm:message') to append incoming messages. useSocketEvent('dm:read') to update delivery status.
+- Empty state: "No messages yet. Find someone on the leaderboard or social feed and start a conversation."
+- Mobile: full-screen conversation view when one is selected (back button returns to list)
+
+Register: lazy import + Route path="/messages" in App.tsx.
+Add to AppShell navItems in the "social" group: { href: "/messages", label: "Messages", icon: MessageSquare, shortcut: "d", badge: "unread_dms", group: "social" }
+Add unread DM count to the badge system.
+
+---
+
+## PRIORITY 6 — Live Study Rooms
+
+The current /forge page is a goal collaboration board — leave it as-is. Create a separate study rooms feature.
+
+Database: Create study_rooms table: id, name, creatorId, groupId (nullable FK), mode ('silent'|'pomodoro'|'open_chat'), isActive, maxParticipants (default 20), timerDurationMin (default 25), startedAt, endedAt, createdAt.
+Create room_participants table: id, roomId, userId, joinedAt, leftAt (nullable), totalFocusMin.
+
+Backend: Create artifacts/api-server/src/routes/rooms.ts:
+- GET /api/rooms — list active public rooms (with participant count)
+- POST /api/rooms — create room (name, mode, timerDurationMin)
+- POST /api/rooms/:id/join — join room. Emit 'room:user-joined' to room via Socket.io.
+- POST /api/rooms/:id/leave — leave room. Emit 'room:user-left'.
+- POST /api/rooms/:id/start-timer — admin starts synced timer. Emit 'room:timer-start' with {endsAt: timestamp} to all in room.
+- GET /api/rooms/:id — room details with participants list and their session durations
+
+Frontend: Create artifacts/focusarx/src/pages/study-rooms.tsx:
+- Rooms list: cards showing room name, mode badge, live participant avatars (up to 5), "Join" button
+- Create room button: modal with name, mode selector (Silent / Pomodoro / Open Chat), duration
+- Room view (full page on join):
+  - Top: room name, mode badge, participant count
+  - Center: large synced timer display (same style as main timer). Shows time from 'room:timer-start' event.
+  - Sidebar: participant list with each person's focus time this session, mini leaderboard sorted by time
+  - Bottom: room chat (only in 'open_chat' mode) — message input, message list using Socket.io 'room:chat' events
+  - Leave button: records session time, shows personal session summary
+
+Register: lazy import + Route path="/rooms" + Route path="/rooms/:id" in App.tsx.
+Add to AppShell navItems in "social" group: { href: "/rooms", label: "Study Rooms", icon: Video, shortcut: "", group: "social" }
+
+---
+
+## PRIORITY 7 — Dashboard Upgrade
+
+Edit artifacts/focusarx/src/pages/dashboard.tsx. Add these new sections WITHOUT removing existing ones:
+
+1. Top of page: "Quick Start" action strip — 3 buttons side by side: "Start Focus Session" (links to / which has the timer), "Check Off Habit" (links to /habits), "Add Task" (opens a task creation modal). Style: rounded pill buttons with forge-violet bg.
+
+2. Active Quest Card: After the stat cards row, add a card that fetches GET /api/missions (existing endpoint). Display the first incomplete daily mission: mission name, XP reward, progress bar (current/target). A "Start" button that links to the relevant page. If all missions done, show a green "All missions complete!" card.
+
+3. Streak At Risk Banner: Fetch current streak from existing stats. If streak > 0 and user has no session today (sessionsToday === 0) and it's after 6pm (check with new Date().getHours() >= 18), show a full-width amber warning banner at the top: "⚠️ Your {N}-day streak is at risk! You haven't focused yet today." with a "Start Session" button.
+
+4. Buddy Activity Widget: Fetch GET /api/social/friends-activity (create this endpoint — returns last 5 social events from followed users: name, action, timeAgo). Render as a compact activity list with avatars. If no friends, show "Follow people on the leaderboard to see their activity."
+
+5. Today's Habits Strip: A horizontal scrollable row of habit icons. Fetch GET /api/habits. Show each as a small circle with the habit emoji. Tap to check off (POST /api/habits/:id/log). Completed ones show a green ring. Missing /habits data shows a "Set up habits →" link.
+
+---
+
+## PRIORITY 8 — Email Re-engagement (Resend)
+
+Install resend package in artifacts/api-server/package.json.
+Add RESEND_API_KEY to .env.example.
+
+Create artifacts/api-server/src/lib/emailSender.ts:
+- Uses Resend SDK
+- sendEmail(to, subject, html) wrapper with error logging (never throw — email failures are non-fatal)
+- Email templates as functions returning HTML strings:
+  - streakRiskEmail(name, streak) — amber themed, "Your {streak}-day streak is at risk!"
+  - weeklyDigestEmail(name, stats: {totalMin, sessions, tasksCompleted, topSubject, streak}) — summary card layout
+  - welcomeEmail(name) — warm onboarding email with 3 tips
+
+Create artifacts/api-server/src/lib/emailScheduler.ts:
+- runStreakRiskCheck(): query users who have a streak > 2, no session today, it's after 20:00 in their timezone (use UTC+5:30 as default since Indian audience). Send streak risk email. Rate limit: only once per day per user (track with a last_streak_email_sent column on users table).
+- runWeeklyDigest(): every Sunday at 18:00 UTC, fetch each user's last-7-days stats and send weekly digest email.
+- Start both with setInterval checks in index.ts (run every 30 minutes, functions self-guard with time checks).
+
+Add welcome email trigger in auth.ts on new user signup (after DB insert, call sendEmail non-blocking).
+
+---
+
+## PRIORITY 9 — Referral System (Frontend)
+
+The retention.ts route already exists. Verify or add:
+- GET /api/retention/referral-code — returns user's unique referral code (generate if not exists, store on users table as referral_code column)
+- GET /api/retention/referral-stats — returns { referralCode, referralCount, pendingReward, claimedXP }
+- POST /api/retention/claim-referral — claim XP reward for referrals (50 XP per referred user who completes first session)
+
+On signup: if URL has ?ref=CODE param, store the referrer's code and link the new user to the referrer. POST /api/retention/track-referral.
+
+Frontend: Create artifacts/focusarx/src/pages/referral.tsx:
+- Hero: "Invite friends, earn XP together" heading
+- User's referral link: styled input with copy button + share button (navigator.share API on mobile)
+- QR code: use qrcode library to render QR of the referral URL
+- Stats: cards showing Total Referred, XP Earned, Pending Rewards
+- How it works: 3-step list (Invite → They join → Both get 500 XP when they complete first session)
+- Referral leaderboard: top 10 referrers this month from GET /api/retention/referral-leaderboard (create this endpoint)
+
+Register: lazy import + Route path="/referral" in App.tsx.
+Add to AppShell navItems in "engage" group: { href: "/referral", label: "Invite Friends", icon: Gift, shortcut: "", group: "engage" }
+
+---
+
+## PRIORITY 10 — Performance Fixes
+
+1. Logo optimisation:
+- Convert artifacts/focusarx/public/logo.png (1.6MB) to WebP. Use sharp or squoosh-cli in a one-time script. Target: under 120KB. Save as logo.webp.
+- Update all references to logo.png in the codebase to logo.webp with a  fallback.
+
+2. React Query caching:
+In artifacts/focusarx/src/App.tsx, update QueryClient config:
+  staleTime: 60 * 1000 (1 minute for most queries)
+  gcTime: 5 * 60 * 1000 (5 minutes)
+  For leaderboard and achievements queries specifically, set staleTime: 5 * 60 * 1000
+
+3. Skeleton loading states:
+Create artifacts/focusarx/src/components/SkeletonCard.tsx — a reusable skeleton with animated pulse. Props: rows (number of text rows), hasAvatar (boolean), height.
+Add skeletons to: dashboard.tsx, leaderboard.tsx, social page, groups page. Show skeleton while data is loading, replace with real content on success.
+
+4. Virtual list for social feed:
+Install @tanstack/react-virtual in artifacts/focusarx/package.json.
+In the social feed component (within social page), wrap the post list with useVirtualizer from @tanstack/react-virtual. estimateSize: 200px per post.
+
+5. API caching headers:
+In artifacts/api-server/src/routes/stats.ts — add Cache-Control: public, max-age=60 header on GET /api/stats.
+In artifacts/api-server/src/routes/gamification.ts — add Cache-Control: public, max-age=300 on GET /api/gamification/badges and /api/gamification/leaderboard.
+
+---
+
+## DELIVERY REQUIREMENTS
+
+After implementing each priority:
+1. Confirm the file was created or modified (list exact path)
+2. Confirm no TypeScript errors in that file
+3. Confirm the route is registered (if backend) or the page is lazy-imported (if frontend)
+4. Do not move on to the next priority until the current one compiles
+
+Start with Priority 1 (WebSocket) since it unblocks Priorities 5 and 6. Then do Priority 10 (performance) since logo fix is 2 hours of work. Then proceed in order.
+
+Do not simulate. Do not scaffold. Only write code that actually runs.
+my vapid key {"subject": "mailto: <rangwalaaliasgar55@gmail.com>","publicKey": "BJmf_YoSVW_8DtcDBb8a-8c2LRwPErEdnsB9yeI-H82LBACb4m01X8LqGw77z26T10zuAIBkY_mZlSvoZYBdK-Y","privateKey": "8d4OGb0knO9y-lNzEL8peuJ0FfsAwdtw9f5TOzGDKRo"}

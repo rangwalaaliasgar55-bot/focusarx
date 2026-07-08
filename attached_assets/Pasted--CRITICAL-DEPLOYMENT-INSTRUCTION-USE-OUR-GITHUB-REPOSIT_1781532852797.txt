@@ -1,0 +1,70 @@
+# CRITICAL DEPLOYMENT INSTRUCTION – USE OUR GITHUB REPOSITORY ONLY
+
+STOP.
+
+Before making any further changes, verify where all code is being written.
+
+I do NOT want any permanent changes stored only inside Replit's internal workspace or isolated codebase.
+
+All work must be committed and pushed directly to OUR GitHub repository.
+
+Requirements:
+
+1. Verify the currently connected GitHub repository.
+2. Verify the correct branch strategy.
+3. Pull latest changes from GitHub before making modifications.
+4. Make all upgrades inside the repository structure.
+5. Commit changes in logical batches.
+6. Push all completed work back to GitHub.
+7. Ensure every new file is tracked by Git.
+8. Ensure package.json, lockfiles, configs, assets, SEO files, favicon assets, policies, animations, landing pages, authentication changes, and all new features are committed.
+9. Do not leave any work only inside the Replit environment.
+10. Do not create a separate Replit-only version of the application.
+11. The GitHub repository must remain the single source of truth.
+
+## Dependency Installation Rules
+
+Any dependency that is added must be:
+
+* Added to package.json
+* Added to package-lock.json / pnpm-lock.yaml / yarn.lock as applicable
+* Committed to Git
+* Reflected in the repository
+
+Examples:
+
+* three
+* @react-three/fiber
+* @react-three/drei
+* framer-motion
+* gsap
+* react-intersection-observer
+* react-helmet-async
+* next-seo (if applicable)
+* any additional libraries required
+
+Do not install packages only for the local Replit instance.
+
+All dependency updates must be written into the repository configuration and pushed to GitHub.
+
+## Before Continuing Development
+
+Provide a verification report:
+
+* Current GitHub repository connected
+* Current branch
+* Git status
+* Pending changes
+* Untracked files
+* Last successful push
+* Whether automatic GitHub sync is active
+
+Then continue implementation.
+
+## Final Requirement
+
+Every feature, redesign, animation, SEO improvement, landing page, authentication change, privacy policy, favicon update, loading screen, mobile optimization, 3D experience, and dashboard upgrade must exist in the GitHub repository and be pushed successfully.
+
+No Replit-only implementation is acceptable.
+
+GitHub repository = source of truth.

@@ -1,0 +1,32 @@
+{
+  "name": "FocusArx – AI Productivity Platform & Focus Timer",
+  "short_name": "FocusArx",
+  "description": "FocusArx is a free AI-powered focus timer and productivity OS. Pomodoro sessions, deep work tracking, AI coaching, gamification (XP/badges/missions), habit building, and virtual study rooms for students and professionals.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#7C3AED",
+  "background_color": "#0A0F1E",
+  "categories": ["productivity", "education", "utilities"],
+  "lang": "en",
+  "dir": "ltr",
+  "id": "focusarx-app",
+  "icons": [
+    { "src": "/logo.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    { "name": "Start Focus Session", "short_name": "Focus", "description": "Jump to the AI Pomodoro timer", "url": "/", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] },
+    { "name": "Dashboard", "short_name": "Dashboard", "description": "Today's focus stats and analytics", "url": "/dashboard", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] },
+    { "name": "Daily Missions", "short_name": "Missions", "description": "Daily and weekly missions", "url": "/missions", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] },
+    { "name": "Study Rooms", "short_name": "Study", "description": "Co-study online in live focus rooms", "url": "/study-rooms", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] },
+    { "name": "AI Coach", "short_name": "AI", "description": "Your personal AI productivity coach", "url": "/ai-insights", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] },
+    { "name": "Leaderboard", "short_name": "Board", "description": "Compete with the world", "url": "/leaderboard", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] },
+    { "name": "Habits", "short_name": "Habits", "description": "Build powerful daily habits", "url": "/habits", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] },
+    { "name": "Analytics", "short_name": "Analytics", "description": "Deep work analytics and Focus DNA", "url": "/analytics", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

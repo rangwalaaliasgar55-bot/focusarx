@@ -1,0 +1,96 @@
+You are acting as a Principal Software Engineer, Cybersecurity Architect, Senior Product Manager, Senior UX/UI Designer, Technical SEO Expert, DevOps Engineer, and AI Security Specialist.
+Your task is to perform a COMPLETE end-to-end audit, review, improvement plan, and full implementation for FocusArx. Analyze the actual codebase — do NOT give generic advice.
+Think like a Google Security Engineer, Stripe Security Team, OpenAI Infrastructure Team, YC Startup Advisor, Senior Product Designer, and Senior Growth Engineer.
+
+PHASE 1 — SECURITY AUDIT
+Check and fix:
+
+Session hijacking, JWT vulnerabilities, weak password storage, missing rate limiting, account lockouts, broken auth flows, role/privilege escalation
+API key exposure in frontend bundles, hardcoded secrets, env variable leaks
+SQL injection, XSS, CSRF, SSRF, prompt injection, open redirects, clickjacking, path traversal
+AI routes: prompt injection protection, system prompt leakage, token abuse, missing rate limits on /ai/roadmap and /coach/chat
+Admin password plaintext comparison — replace !== with crypto.timingSafeEqual
+Leaderboard API response exposing raw user emails — strip before sending
+devResetUrl leaking password reset links in API responses
+Missing input length validation on /coach/chat message field
+Remove fabricated aggregateRating (4.9 stars, 120 reviews) from structured data
+
+
+PHASE 2 — LEGAL PAGES
+Generate and add to the app:
+
+/privacy — GDPR + CCPA Privacy Policy covering AI features, webcam data, analytics
+/terms — Terms & Conditions
+/cookie-policy — Cookie Policy
+/acceptable-use — Acceptable Use Policy
+/ai-policy — AI Usage Policy
+/data-deletion — Data Deletion Request Policy
+
+
+PHASE 3 — PERFORMANCE
+Analyze and fix:
+
+JS bundle size, lazy loading gaps, unused imports
+N+1 database queries in /admin/stats and leaderboard routes
+Missing caching on expensive read routes
+Vercel serverless cold start optimizations
+Image optimization and preloading
+
+
+PHASE 4 — USER ENGAGEMENT & INTERACTIVITY (CRITICAL)
+The app currently feels static. Users are passive — they just run timers and leave. Fix this by making the app feel alive and social:
+
+Add a persistent AI Coach chat bubble (bottom right corner) that proactively messages users — e.g. "You've been focused for 20 mins, great work! Want a tip?" — and users can reply back in natural conversation
+Make the Coach remember context across the session: what task they're working on, how long they've been going, their readiness score, recent distractions
+Add a live activity feed on the dashboard showing real-time community events: "Alex just completed a 45-min session", "Maya hit a 7-day streak!" — makes users feel part of something
+Add a daily check-in prompt when users first open the app: mood, energy, top goal for today — short and friendly, not a form
+Add session celebrations: confetti, animated XP counter, personalized message from the Coach when a session ends ("That's your longest session this week!")
+Add a weekly recap card every Monday: your stats vs last week, streak status, a personal Coach message
+Add social nudges: "3 people in your timezone are focusing right now — join them"
+Add a Pomodoro room / co-focus mode where users can see anonymous avatars of others currently in a focus session (no chat, just presence awareness)
+Make badges feel exciting when earned — full-screen animation, shareable card
+Add a streak freeze warning the night before a streak would break: push notification or in-app banner
+
+
+PHASE 5 — PRODUCT & GROWTH
+Review and improve:
+
+Onboarding flow: make it conversational, not a form — the Coach should walk new users through setup by asking questions one at a time
+Add a landing/marketing page with social proof, feature highlights, user testimonials
+Add a pricing/upgrade page (even if the app is free, frame a Pro tier)
+Add empty states that are helpful and encouraging, not blank
+Add trust signals: user count, session count, streak records
+
+
+PHASE 6 — UI/UX REDESIGN
+Review every screen and fix:
+
+Mobile responsiveness on all pages
+Accessibility — WCAG 2.1 AA compliance
+Navigation clarity — users should never feel lost
+Visual hierarchy — most important actions must be obvious
+Add micro-animations: timer pulse, XP bar fill, streak fire animation
+Make the dashboard feel like a cockpit, not a report — action-first layout
+Benchmark against: Notion, Linear, Duolingo, ChatGPT, Bereal
+
+
+PHASE 7 — SEO
+Fix:
+
+Meta titles, descriptions, Open Graph tags on every page
+Remove or fix fabricated structured data
+Sitemap completeness including new legal and landing pages
+Core Web Vitals improvements
+
+
+PHASE 8 — SCALABILITY
+Plan for 0 → 100K users:
+
+Database connection pooling and query optimization
+Per-user AI usage caps to control Groq/Gemini API costs
+Rate limiting on all AI endpoints
+Monitoring, alerting, error tracking (Sentry or similar)
+Backup and disaster recovery strategy
+
+
+For every issue: provide severity, exact file + line number, business impact, and the complete fixed code. Do not summarize — implement. This app will be reviewed by YC, VCs, and enterprise security auditors. Miss nothing.

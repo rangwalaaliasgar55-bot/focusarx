@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml"
+>
+
+  <!-- ══════════════════════════════════════════
+       HOMEPAGE — highest priority
+  ═══════════════════════════════════════════════ -->
+  <url>
+    <loc>https://focusarx.site/</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://focusarx.site/opengraph.jpg</image:loc>
+      <image:title>FocusArx — AI Productivity Platform &amp; Focus Timer</image:title>
+    </image:image>
+  </url>
+
+  <!-- ══════════════════════════════════════════
+       AUTH PAGES
+  ═══════════════════════════════════════════════ -->
+  <url>
+    <loc>https://focusarx.site/signup</loc>
+    <lastmod>2025-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://focusarx.site/login</loc>
+    <lastmod>2025-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- ══════════════════════════════════════════
+       COMPANY PAGES
+  ═══════════════════════════════════════════════ -->
+  <url>
+    <loc>https://focusarx.site/about</loc>
+    <lastmod>2025-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://focusarx.site/contact</loc>
+    <lastmod>2025-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://focusarx.site/support</loc>
+    <lastmod>2025-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://focusarx.site/pricing</loc>
+    <lastmod>2025-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://focusarx.site/roadmap</loc>
+    <lastmod>2025-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.70</priority>
+  </url>
+
+  <!-- ══════════════════════════════════════════
+       PUBLIC FEATURE PAGES (high SEO value)
+  ═══════════════════════════════════════════════ -->
+  <url>
+    <loc>https://focusarx.site/focus-guide</loc>
+    <lastmod>2025-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://focusarx.site/deep-study-guide</loc>
+    <lastmod>2026-07-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.92</priority>
+  </url>
+  <url>
+    <loc>https://focusarx.site/two-hour-study-method</loc>
+    <lastmod>2026-07-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.92</priority>
+  </url>
+  <url>
+    <loc>https://focusarx.site/pomodoro-guide</loc>
+    <lastmod>2025-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://focusarx.site/study-techniques</loc>
+    <lastmod>2025-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://focusarx.site/virtual-study-room</loc>
+    <lastmod>2025-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://focusarx.site/study-rooms</loc>
+    <lastmod>2025-06-15</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.80</priority>
+  </url>
+
+  <url>
+    <loc>https://focusarx.site/breathe</loc>
+    <lastmod>2025-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.60</priority>
+  </url>
+  <url>
+    <loc>https://focusarx.site/break-free</loc>
+    <lastmod>2025-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.55</priority>
+  </url>
+
+  <!-- ══════════════════════════════════════════
+       LEGAL PAGES
+  ═══════════════════════════════════════════════ -->
+  <url>
+    <loc>https://focusarx.site/privacy</loc>
+    <lastmod>2025-06-15</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.65</priority>
+  </url>
+  <url>
+    <loc>https://focusarx.site/terms</loc>
+    <lastmod>2025-06-15</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.65</priority>
+  </url>
+  <url>
+    <loc>https://focusarx.site/cookie-policy</loc>
+    <lastmod>2025-06-15</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.50</priority>
+  </url>
+  <url>
+    <loc>https://focusarx.site/acceptable-use</loc>
+    <lastmod>2025-06-15</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.50</priority>
+  </url>
+  <url>
+    <loc>https://focusarx.site/ai-policy</loc>
+    <lastmod>2025-06-15</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.50</priority>
+  </url>
+  <url>
+    <loc>https://focusarx.site/data-deletion</loc>
+    <lastmod>2025-06-15</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.50</priority>
+  </url>
+  <url>
+    <loc>https://focusarx.site/refund</loc>
+    <lastmod>2025-06-15</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.55</priority>
+  </url>
+
+</urlset>

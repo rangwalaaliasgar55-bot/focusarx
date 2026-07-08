@@ -1,0 +1,295 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: break-free
+    description: Break Free wellness module
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /break-free/streak:
+    get:
+      operationId: getBreakFreeStreak
+      tags: [break-free]
+      summary: Get current user streak
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Streak data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BreakFreeStreakResponse"
+        "401":
+          description: Unauthorized
+
+  /break-free/streak/start:
+    post:
+      operationId: startBreakFreeStreak
+      tags: [break-free]
+      summary: Start or reset streak with a start date
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartStreakBody"
+      responses:
+        "200":
+          description: Streak started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BreakFreeStreakResponse"
+        "400":
+          description: Invalid input
+        "401":
+          description: Unauthorized
+
+  /break-free/streak/relapse:
+    post:
+      operationId: reportBreakFreeRelapse
+      tags: [break-free]
+      summary: Record a relapse and reset streak
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Relapse recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BreakFreeStreakResponse"
+        "401":
+          description: Unauthorized
+
+  /break-free/moods:
+    get:
+      operationId: getBreakFreeMoods
+      tags: [break-free]
+      summary: Get last 7 days of moods
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Mood history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BreakFreeMoodsResponse"
+        "401":
+          description: Unauthorized
+    post:
+      operationId: logBreakFreeMood
+      tags: [break-free]
+      summary: Log today's mood
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogMoodBody"
+      responses:
+        "200":
+          description: Mood logged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BreakFreeMoodEntry"
+        "400":
+          description: Invalid input
+        "401":
+          description: Unauthorized
+
+  /break-free/pledges:
+    get:
+      operationId: getBreakFreePledges
+      tags: [break-free]
+      summary: Get latest 20 anonymous pledges
+      responses:
+        "200":
+          description: Pledge list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BreakFreePledgesResponse"
+    post:
+      operationId: postBreakFreePledge
+      tags: [break-free]
+      summary: Post an anonymous pledge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostPledgeBody"
+      responses:
+        "200":
+          description: Pledge posted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BreakFreePledgeEntry"
+        "400":
+          description: Invalid input
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    BreakFreeStreakResponse:
+      type: object
+      properties:
+        streak:
+          $ref: "#/components/schemas/BreakFreeStreakEntry"
+      required:
+        - streak
+
+    BreakFreeStreakEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        startDate:
+          type: string
+        currentStreak:
+          type: integer
+        longestStreak:
+          type: integer
+        relapseCount:
+          type: integer
+        lastRelapseDate:
+          type: string
+          nullable: true
+        updatedAt:
+          type: string
+      required:
+        - id
+        - userId
+        - startDate
+        - currentStreak
+        - longestStreak
+        - relapseCount
+        - updatedAt
+
+    StartStreakBody:
+      type: object
+      properties:
+        startDate:
+          type: string
+      required:
+        - startDate
+
+    BreakFreeMoodsResponse:
+      type: object
+      properties:
+        moods:
+          type: array
+          items:
+            $ref: "#/components/schemas/BreakFreeMoodEntry"
+        todayMood:
+          type: integer
+          nullable: true
+      required:
+        - moods
+
+    BreakFreeMoodEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        mood:
+          type: integer
+        date:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - userId
+        - mood
+        - date
+        - createdAt
+
+    LogMoodBody:
+      type: object
+      properties:
+        mood:
+          type: integer
+          minimum: 1
+          maximum: 5
+      required:
+        - mood
+
+    PostPledgeBody:
+      type: object
+      properties:
+        message:
+          type: string
+          maxLength: 100
+      required:
+        - message
+
+    BreakFreePledgesResponse:
+      type: object
+      properties:
+        pledges:
+          type: array
+          items:
+            $ref: "#/components/schemas/BreakFreePledgeEntry"
+      required:
+        - pledges
+
+    BreakFreePledgeEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        message:
+          type: string
+        postedAt:
+          type: string
+      required:
+        - id
+        - message
+        - postedAt
