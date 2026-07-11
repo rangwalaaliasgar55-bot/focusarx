@@ -1,14 +1,33 @@
-import { Loader2Icon } from "lucide-react"
-
 import { cn } from "@/lib/utils"
 
-function Spinner({ className, ...props }: React.ComponentProps<"svg">) {
+interface SpinnerProps {
+  size?: "xs" | "sm" | "md" | "lg"
+  className?: string
+  label?: string
+}
+
+const sizeMap = {
+  xs: "size-3 border-[1.5px]",
+  sm: "size-4 border-2",
+  md: "size-6 border-2",
+  lg: "size-8 border-2",
+}
+
+/**
+ * Spinner — consistent loading indicator using brand violet.
+ */
+function Spinner({ size = "md", className, label = "Loading" }: SpinnerProps) {
   return (
-    <Loader2Icon
+    <span
       role="status"
-      aria-label="Loading"
-      className={cn("size-4 animate-spin", className)}
-      {...props}
+      aria-label={label}
+      className={cn(
+        "inline-block rounded-full border-solid",
+        "border-[rgba(124,58,237,0.20)] border-t-[var(--brand-violet)]",
+        "animate-spin motion-reduce:animate-none",
+        sizeMap[size],
+        className
+      )}
     />
   )
 }
