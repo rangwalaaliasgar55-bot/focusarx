@@ -1,22 +1,19 @@
-"use client";
+import { motion, useReducedMotion } from "framer-motion";
+import { PAGE, SLIDE_UP, FADE_IN, rm } from "@/lib/animations";
 
-import { motion } from "framer-motion";
-
-const variants = {
-  initial: { opacity: 0, y: 18, scale: 0.992, filter: "blur(4px)" },
-  animate: { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" },
-  exit:    { opacity: 0, y: -10, scale: 0.994, filter: "blur(3px)" },
-};
-
+/**
+ * PageTransition — wraps page content with the shared PAGE variant.
+ * Automatically respects prefers-reduced-motion.
+ */
 export function PageTransition({ children }: { children: React.ReactNode }) {
+  const reduced = useReducedMotion();
   return (
     <motion.div
-      variants={variants}
+      variants={rm(PAGE, reduced)}
       initial="initial"
       animate="animate"
       exit="exit"
-      transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-      style={{ willChange: "transform, opacity, filter" }}
+      style={{ willChange: "transform, opacity" }}
     >
       {children}
     </motion.div>
@@ -24,23 +21,35 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
 }
 
 export function SlideUpTransition({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+  const reduced = useReducedMotion();
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1], delay }}
+      variants={rm(SLIDE_UP, reduced)}
+      initial="initial"
+      animate="animate"
+      transition={{ delay }}
     >
       {children}
     </motion.div>
   );
 }
 
-export function FadeIn({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
+export function FadeIn({
+  children,
+  delay = 0,
+  className = "",
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  className?: string;
+}) {
+  const reduced = useReducedMotion();
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.45, delay }}
+      variants={rm(FADE_IN, reduced)}
+      initial="initial"
+      animate="animate"
+      transition={{ delay }}
       className={className}
     >
       {children}
