@@ -1,21 +1,67 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle } from "lucide-react";
+import { Link } from "wouter";
+import { motion } from "framer-motion";
+import { ArrowLeft, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { PAGE } from "@/lib/animations";
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50">
-      <Card className="w-full max-w-md mx-4">
-        <CardContent className="pt-6">
-          <div className="flex mb-4 gap-2">
-            <AlertCircle className="h-8 w-8 text-red-500" />
-            <h1 className="text-2xl font-bold text-gray-900">404 Page Not Found</h1>
-          </div>
+    <div className="relative min-h-screen overflow-hidden forge-bg-glow flex items-center justify-center px-4">
+      {/* Ambient glows */}
+      <div className="pointer-events-none absolute inset-0 z-0" aria-hidden>
+        <div className="absolute left-1/4 top-1/4 h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.10),transparent_65%)] blur-3xl" />
+        <div className="absolute right-1/4 bottom-1/4 h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle_at_center,rgba(6,214,160,0.06),transparent_65%)] blur-3xl" />
+      </div>
 
-          <p className="mt-4 text-sm text-gray-600">
-            Did you forget to add the page to the router?
-          </p>
-        </CardContent>
-      </Card>
+      <motion.div
+        variants={PAGE}
+        initial="initial"
+        animate="animate"
+        className="relative z-10 text-center max-w-md"
+      >
+        {/* 404 number */}
+        <div className="relative mb-6 inline-block">
+          <span className="font-metric text-[8rem] font-bold leading-none select-none"
+            style={{
+              background: "linear-gradient(135deg, rgba(124,58,237,0.25), rgba(167,139,250,0.15))",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}
+          >
+            404
+          </span>
+          {/* Floating icon overlay */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-[var(--radius-2xl)] bg-gradient-to-br from-[var(--brand-violet)] to-[#4F46E5] shadow-[var(--shadow-violet-lg)]">
+              <Zap size={26} className="text-white" fill="white" />
+            </div>
+          </div>
+        </div>
+
+        <h1 className="text-h2 text-[var(--foreground)] mb-3">Page not found</h1>
+        <p className="text-[var(--foreground-muted)] mb-8 leading-relaxed">
+          The page you're looking for doesn't exist or has been moved.
+          Let's get you back on track.
+        </p>
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link href="/dashboard">
+            <Button size="lg" variant="glow">
+              <Zap className="size-4" />
+              Go to Dashboard
+            </Button>
+          </Link>
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={() => window.history.back()}
+          >
+            <ArrowLeft className="size-4" />
+            Go back
+          </Button>
+        </div>
+      </motion.div>
     </div>
   );
 }
