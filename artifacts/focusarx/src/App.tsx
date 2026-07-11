@@ -102,6 +102,7 @@ const PomodoroGuidePage = lazy(() => import("@/pages/pomodoro-guide"));
 const StudyTechniquesPage = lazy(() => import("@/pages/study-techniques"));
 const VirtualStudyRoomPage = lazy(() => import("@/pages/virtual-study-room"));
 const ConstellationsPage = lazy(() => import("@/pages/constellations"));
+const StyleGuidePage = lazy(() => import("@/pages/style-guide"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -630,6 +631,9 @@ function RoutedContent() {
               <Route path="/breathe" component={() => <ErrorBoundary><BreathePage /></ErrorBoundary>} />
               <Route path="/profile" component={() => <ErrorBoundary><ProtectedRoute component={ProfilePage} /></ErrorBoundary>} />
               <Route path="/break-free" component={() => <ErrorBoundary><BreakFreePage /></ErrorBoundary>} />
+
+              {/* Design system style guide */}
+              <Route path="/style-guide" component={() => <ErrorBoundary><Suspense fallback={null}><StyleGuidePage /></Suspense></ErrorBoundary>} />
 
               {/* Legal */}
               <Route path="/privacy" component={() => <ErrorBoundary><PrivacyPage /></ErrorBoundary>} />
