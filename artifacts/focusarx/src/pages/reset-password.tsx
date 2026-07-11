@@ -1,19 +1,22 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
+import { Lock, AlertCircle, CheckCircle2, AlertTriangle } from "lucide-react";
 import { AuthCard, AuthLink } from "@/components/auth/AuthCard";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function ResetPasswordPage() {
   const [, setLocation] = useLocation();
   const token = new URLSearchParams(window.location.search).get("token") ?? "";
 
   const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [confirm, setConfirm]   = useState("");
+  const [loading, setLoading]   = useState(false);
   const [verifying, setVerifying] = useState(true);
   const [tokenValid, setTokenValid] = useState(false);
-  const [done, setDone] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [done, setDone]         = useState(false);
+  const [error, setError]       = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) { setVerifying(false); return; }
@@ -37,10 +40,7 @@ export default function ResetPasswordPage() {
         body: JSON.stringify({ token, password }),
       });
       const data = await res.json() as { ok?: boolean; error?: string };
-      if (!res.ok || !data.ok) {
-        setError(data.error ?? "Reset failed. The link may have expired.");
-        return;
-      }
+      if (!res.ok || !data.ok) { setError(data.error ?? "Reset failed. The link may have expired."); return; }
       setDone(true);
       setTimeout(() => setLocation("/login"), 2500);
     } catch {
@@ -50,47 +50,52 @@ export default function ResetPasswordPage() {
     }
   };
 
+  // Loading token verification
   if (verifying) {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-rose-400" />
+      <div className="flex min-h-[100dvh] items-center justify-center forge-bg-glow">
+        <div className="size-8 animate-spin rounded-full border-2 border-[var(--brand-violet)] border-t-transparent" />
       </div>
     );
   }
 
+  // Invalid or expired token
   if (!token || !tokenValid) {
     return (
       <AuthCard
         title="Link expired"
-        subtitle=""
-        footer={<p className="text-center text-sm text-zinc-500"><AuthLink href="/forgot-password">Request a new link</AuthLink></p>}
+        footer={<p className="text-center text-sm text-[var(--foreground-subtle)]"><AuthLink href="/forgot-password">Request a new link</AuthLink></p>}
       >
-        <div className="text-center space-y-2">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-zinc-800">
-            <svg className="h-6 w-6 text-rose-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-            </svg>
+        <div className="text-center space-y-4">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[var(--radius-xl)] bg-[rgba(245,158,11,0.10)] border border-[rgba(245,158,11,0.20)]">
+            <AlertTriangle className="size-6 text-[var(--color-warning)]" />
           </div>
-          <p className="text-sm text-zinc-400">This reset link is invalid or has already been used.</p>
+          <p className="text-sm text-[var(--foreground-muted)]">
+            This reset link is invalid or has already been used.
+          </p>
         </div>
       </AuthCard>
     );
   }
 
+  // Success state
   if (done) {
     return (
-      <AuthCard title="Password updated" subtitle="" footer={<p className="text-center text-sm text-zinc-500"><AuthLink href="/login">Sign in</AuthLink></p>}>
+      <AuthCard
+        title="Password updated"
+        footer={<p className="text-center text-sm text-[var(--foreground-subtle)]"><AuthLink href="/login">Sign in</AuthLink></p>}
+      >
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="text-center space-y-3"
+          className="text-center space-y-4"
         >
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-950">
-            <svg className="h-6 w-6 text-emerald-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-            </svg>
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[var(--radius-xl)] bg-[rgba(34,197,94,0.12)] border border-[rgba(34,197,94,0.22)]">
+            <CheckCircle2 className="size-6 text-[var(--color-success)]" />
           </div>
-          <p className="text-sm text-zinc-400">Your password has been updated. Redirecting to sign in…</p>
+          <p className="text-sm text-[var(--foreground-muted)]">
+            Your password has been updated. Redirecting to sign in…
+          </p>
         </motion.div>
       </AuthCard>
     );
@@ -100,14 +105,14 @@ export default function ResetPasswordPage() {
     <AuthCard
       title="Set new password"
       subtitle="Choose a strong password for your account."
-      footer={<p className="text-center text-sm text-zinc-500"><AuthLink href="/login">Back to sign in</AuthLink></p>}
+      footer={<p className="text-center text-sm text-[var(--foreground-subtle)]"><AuthLink href="/login">Back to sign in</AuthLink></p>}
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-400" htmlFor="password">
+        <div className="space-y-1.5">
+          <label className="block text-xs font-medium text-[var(--foreground-muted)]" htmlFor="password">
             New password
           </label>
-          <input
+          <Input
             id="password"
             type="password"
             required
@@ -115,37 +120,41 @@ export default function ResetPasswordPage() {
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-2.5 text-zinc-100 focus:border-rose-400 focus:outline-none focus:ring-1 focus:ring-rose-400"
             placeholder="At least 8 characters"
+            leftSlot={<Lock className="size-4" />}
           />
         </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-400" htmlFor="confirm">
+        <div className="space-y-1.5">
+          <label className="block text-xs font-medium text-[var(--foreground-muted)]" htmlFor="confirm">
             Confirm password
           </label>
-          <input
+          <Input
             id="confirm"
             type="password"
             required
             autoComplete="new-password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-2.5 text-zinc-100 focus:border-rose-400 focus:outline-none focus:ring-1 focus:ring-rose-400"
             placeholder="••••••••"
+            leftSlot={<Lock className="size-4" />}
+            error={!!error && error.includes("match")}
+            success={confirm.length >= 8 && confirm === password}
           />
         </div>
+
         {error && (
-          <p className="rounded-lg bg-rose-950/40 px-3 py-2 text-sm text-rose-400" role="alert">{error}</p>
+          <div
+            className="flex items-center gap-2.5 rounded-[var(--radius-md)] bg-[rgba(239,68,68,0.10)] border border-[rgba(239,68,68,0.22)] px-3 py-2.5"
+            role="alert"
+          >
+            <AlertCircle className="size-4 text-[var(--color-error)] shrink-0" />
+            <span className="text-sm text-[var(--color-error)]">{error}</span>
+          </div>
         )}
-        <motion.button
-          type="submit"
-          disabled={loading}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="mt-1 rounded-xl bg-zinc-100 py-2.5 text-sm font-semibold text-zinc-900 transition-colors hover:bg-zinc-300 disabled:opacity-50"
-        >
+
+        <Button type="submit" size="lg" className="w-full mt-1" loading={loading}>
           {loading ? "Updating…" : "Update password"}
-        </motion.button>
+        </Button>
       </form>
     </AuthCard>
   );

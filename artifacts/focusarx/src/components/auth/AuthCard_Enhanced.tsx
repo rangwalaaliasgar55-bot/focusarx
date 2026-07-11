@@ -1,21 +1,13 @@
-"use client";
-
-import React from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "wouter";
-import { cn } from "@/lib/utils"; // Assuming a standard shadcn-like utility, I'll provide a fallback
-
 /**
- * Enhanced AuthCard Component
- * 
- * Improvements:
- * 1. Added Icon/Logo support
- * 2. Integrated "Back" button for multi-step flows
- * 3. Added Loading state overlay
- * 4. Improved Glassmorphism and animations
- * 5. Better accessibility with ARIA roles
- * 6. Responsive padding and better typography
+ * AuthCard — FocusArx Phase 2 redesign
+ * Used by forgot-password and reset-password.
  */
+import React from "react";
+import { motion } from "framer-motion";
+import { Link } from "wouter";
+import { ArrowLeft, Zap } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { PAGE } from "@/lib/animations";
 
 interface AuthCardProps {
   title: string;
@@ -39,110 +31,62 @@ export function AuthCard({
   className,
 }: AuthCardProps) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-950 p-6 selection:bg-rose-500/30">
-      {/* Decorative background glow */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-[25%] -left-[10%] w-[70%] h-[70%] rounded-full bg-rose-500/10 blur-[120px]" />
-        <div className="absolute -bottom-[25%] -right-[10%] w-[70%] h-[70%] rounded-full bg-blue-500/10 blur-[120px]" />
+    <div className="relative min-h-screen overflow-hidden forge-bg-glow flex items-center justify-center px-4 py-12">
+      {/* Ambient glows */}
+      <div className="pointer-events-none absolute inset-0 z-0" aria-hidden>
+        <div className="absolute -left-40 -top-40 h-[700px] w-[700px] rounded-full bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.12),transparent_65%)] blur-3xl" />
+        <div className="absolute -right-40 bottom-0 h-[600px] w-[600px] rounded-full bg-[radial-gradient(circle_at_center,rgba(79,70,229,0.07),transparent_65%)] blur-3xl" />
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ 
-          duration: 0.5, 
-          ease: [0.16, 1, 0.3, 1],
-          staggerChildren: 0.1 
-        }}
-        className={cn(
-          "relative w-full max-w-[440px] overflow-hidden rounded-[2rem]",
-          "border border-white/10 bg-zinc-900/70 backdrop-blur-xl",
-          "shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)]",
-          className
-        )}
+        variants={PAGE}
+        initial="initial"
+        animate="animate"
+        className="relative z-10 w-full max-w-[420px]"
       >
-        {/* Loading Overlay */}
-        <AnimatePresence>
-          {isLoading && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 z-50 flex items-center justify-center bg-zinc-900/60 backdrop-blur-sm"
+        {/* Logo */}
+        <div className="mb-8 flex flex-col items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-xl)] bg-gradient-to-br from-[var(--brand-violet)] to-[#4F46E5] shadow-[var(--shadow-violet-md)] logo-pulse">
+            {icon ?? <Zap size={22} className="text-white" fill="white" />}
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-bold tracking-tight text-[var(--foreground)]">FocusArx</p>
+          </div>
+        </div>
+
+        {/* Card */}
+        <div className={cn("glass rounded-[var(--radius-2xl)] p-8 shadow-[var(--shadow-xl)]", className)}>
+          {/* Back button */}
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="mb-4 flex items-center gap-1.5 text-xs text-[var(--foreground-muted)] hover:text-[var(--foreground)] transition-colors"
             >
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-rose-500 border-t-transparent" />
-            </motion.div>
+              <ArrowLeft className="size-3.5" />
+              Back
+            </button>
           )}
-        </AnimatePresence>
 
-        <div className="p-8 md:p-10">
-          {/* Header Section */}
-          <div className="relative mb-8 flex flex-col items-center text-center">
-            {onBack && (
-              <button
-                onClick={onBack}
-                className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-zinc-400 transition-all hover:bg-white/10 hover:text-white"
-                aria-label="Go back"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m15 18-6-6 6-6"/>
-                </svg>
-              </button>
-            )}
-
-            {icon && (
-              <motion.div 
-                initial={{ scale: 0.5, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500 to-orange-500 p-0.5 shadow-lg shadow-rose-500/20"
-              >
-                <div className="flex h-full w-full items-center justify-center rounded-[14px] bg-zinc-900 text-white">
-                  {icon}
-                </div>
-              </motion.div>
-            )}
-
-            <motion.h1 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="text-3xl font-bold tracking-tight text-white"
-            >
-              {title}
-            </motion.h1>
-            
+          <div className="mb-6">
+            <h1 className="text-h3 text-[var(--foreground)]">{title}</h1>
             {subtitle && (
-              <motion.p 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 }}
-                className="mt-3 text-balance text-zinc-400"
-              >
-                {subtitle}
-              </motion.p>
+              <p className="mt-1.5 text-sm text-[var(--foreground-muted)] leading-relaxed">{subtitle}</p>
             )}
           </div>
 
-          {/* Main Content */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="space-y-6"
-          >
-            {children}
-          </motion.div>
+          {/* Loading overlay */}
+          {isLoading && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-[var(--radius-2xl)] bg-[var(--surface-3)]/60 backdrop-blur-sm">
+              <div className="size-7 animate-spin rounded-full border-2 border-[var(--brand-violet)] border-t-transparent" />
+            </div>
+          )}
 
-          {/* Footer Section */}
+          <div>{children}</div>
+
           {footer && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="mt-10 border-t border-white/5 pt-8 text-center"
-            >
+            <div className="mt-6 pt-5 border-t border-[var(--border)]">
               {footer}
-            </motion.div>
+            </div>
           )}
         </div>
       </motion.div>
@@ -150,9 +94,6 @@ export function AuthCard({
   );
 }
 
-/**
- * Enhanced AuthLink Component
- */
 export function AuthLink({
   href,
   children,
@@ -166,7 +107,7 @@ export function AuthLink({
     <Link
       href={href}
       className={cn(
-        "font-medium text-rose-500 transition-all hover:text-rose-400 hover:underline underline-offset-4",
+        "font-medium text-[var(--brand-violet-light)] transition-colors hover:text-[var(--brand-violet)] underline-offset-4 hover:underline",
         className
       )}
     >
@@ -174,4 +115,3 @@ export function AuthLink({
     </Link>
   );
 }
-
