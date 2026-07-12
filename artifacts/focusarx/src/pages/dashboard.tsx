@@ -425,11 +425,13 @@ function DashboardCommandBar({ stats, loading }: { stats: DashboardStats | null;
             {greeting}, <span className="text-[#A78BFA]">{firstName}</span>
           </h2>
           <p className="text-[12px] text-[#4B5563] mt-1">
-            {loading ? "Loading your stats…" : stats
-              ? stats.sessionsToday === 0
-                ? "No sessions today yet. Start your first block now →"
-                : `${stats.sessionsToday} session${stats.sessionsToday !== 1 ? "s" : ""} completed · ${stats.totalStudyMinutesToday}m focused today`}
-              : "Ready to build deep focus habits."
+            {loading
+              ? "Loading your stats…"
+              : stats
+                ? stats.sessionsToday === 0
+                  ? "No sessions today yet. Start your first block now →"
+                  : `${stats.sessionsToday} session${stats.sessionsToday !== 1 ? "s" : ""} completed · ${stats.totalStudyMinutesToday}m focused today`
+                : "Ready to build deep focus habits."}
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
