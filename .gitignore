@@ -56,3 +56,4 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+.dyad/
