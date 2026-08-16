@@ -6,10 +6,6 @@ import { appFeedbackTable, userWalletsTable } from "@workspace/db";
 import { extractUserId } from "./auth";
 import { eq, desc, avg, count, sql } from "drizzle-orm";
 
-  req.userId = userId;
-  next();
-}
-
 function adminAuth(req: any, res: any, next: any) {
   const adminCookie = req.cookies?.focusarx_admin;
   if (!adminCookie) { res.status(401).json({ error: "Admin only" }); return; }

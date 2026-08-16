@@ -8,10 +8,6 @@ import { logger } from "../lib/logger";
 
 const router = Router();
 
-   
- 
-}
-
 router.get("/stats", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const now = new Date();

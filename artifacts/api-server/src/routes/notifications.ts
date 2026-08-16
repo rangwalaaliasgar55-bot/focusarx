@@ -6,10 +6,6 @@ import { notificationsTable } from "@workspace/db";
 import { extractUserId } from "./auth";
 import { eq, and, desc, sql } from "drizzle-orm";
 
-  req.userId = userId;
-  next();
-}
-
 export const notificationsRouter = Router();
 
 export async function createNotification(

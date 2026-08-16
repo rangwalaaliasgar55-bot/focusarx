@@ -9,10 +9,6 @@ import { z } from "zod";
 
 const router = Router();
 
-  req.userId = userId;
-  next();
-}
-
 const DREAM_TYPES = [
   { id: "iit", label: "IIT/JEE", emoji: "⚙️", desc: "Crack India's toughest engineering exam", targetMinutes: 360 },
   { id: "neet", label: "NEET/AIIMS", emoji: "🩺", desc: "Become a doctor and heal the world", targetMinutes: 360 },

@@ -10,10 +10,6 @@ import {
 import { extractUserId } from "./auth";
 import { eq, and, or, sql, desc } from "drizzle-orm";
 
-  req.userId = userId;
-  next();
-}
-
 export const publicProfilesRouter = Router();
 
 publicProfilesRouter.get("/u/:username", async (req: AuthRequest, res: Response) => {

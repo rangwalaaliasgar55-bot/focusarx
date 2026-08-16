@@ -8,10 +8,6 @@ import {
 import { extractUserId } from "./auth";
 import { eq, and, desc, sql, gte } from "drizzle-orm";
 
-  req.userId = userId;
-  next();
-}
-
 export const habitsRouter = Router();
 
 const todayStr = () => new Date().toISOString().split("T")[0]!;

@@ -5,10 +5,6 @@ import { extractUserId } from "./auth";
 import { db, loginRewardsTable, userWalletsTable, notificationsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
-  req.user = { id: userId };
-  next();
-}
-
 export const dailyRewardRouter = Router();
 
 const STREAK_REWARDS = [
@@ -29,11 +25,11 @@ function yesterday() {
 
 dailyRewardRouter.get("/daily-reward/status", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    let [reward] = await db.select().from(loginRewardsTable).where(eq(loginRewardsTable.userId, req.user.id)).limit(1);
+    let [reward] = await db.select().from(loginRewardsTable).where(eq(loginRewardsTable.userId, req.userId)).limit(1);
     const today = getToday();
 
     if (!reward) {
-      [reward] = await db.insert(loginRewardsTable).values({ userId: req.user.id }).returning();
+      [reward] = await db.insert(loginRewardsTable).values({ userId: req.userId }).returning();
     }
 
     const alreadyClaimed = reward.lastClaimedDate === today;
@@ -48,11 +44,11 @@ dailyRewardRouter.get("/daily-reward/status", authMiddleware, async (req: AuthRe
 
 dailyRewardRouter.post("/daily-reward/claim", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    let [reward] = await db.select().from(loginRewardsTable).where(eq(loginRewardsTable.userId, req.user.id)).limit(1);
+    let [reward] = await db.select().from(loginRewardsTable).where(eq(loginRewardsTable.userId, req.userId)).limit(1);
     const today = getToday();
 
     if (!reward) {
-      [reward] = await db.insert(loginRewardsTable).values({ userId: req.user.id }).returning();
+      [reward] = await db.insert(loginRewardsTable).values({ userId: req.userId }).returning();
     }
 
     if (reward.lastClaimedDate === today) {
@@ -68,18 +64,18 @@ dailyRewardRouter.post("/daily-reward/claim", authMiddleware, async (req: AuthRe
       claimStreak: newStreak,
       totalClaimed: (reward.totalClaimed ?? 0) + 1,
       updatedAt: new Date(),
-    }).where(eq(loginRewardsTable.userId, req.user.id));
+    }).where(eq(loginRewardsTable.userId, req.userId));
 
-    const [w] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.user.id)).limit(1);
+    const [w] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.userId)).limit(1);
     if (w) {
       await db.update(userWalletsTable).set({
         coins: w.coins + rewardDef.coins,
         totalXp: w.totalXp + rewardDef.xp,
-      }).where(eq(userWalletsTable.userId, req.user.id));
+      }).where(eq(userWalletsTable.userId, req.userId));
     }
 
     await db.insert(notificationsTable).values({
-      userId: req.user.id,
+      userId: req.userId,
       type: "daily_reward",
       title: `Daily Reward — ${rewardDef.label}`,
       message: `You earned ${rewardDef.coins} coins and ${rewardDef.xp} XP! Streak: ${newStreak} days.`,

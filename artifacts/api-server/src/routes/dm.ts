@@ -11,10 +11,6 @@ import { eq, and, desc, sql } from "drizzle-orm";
 import { emitToUser } from "../lib/socketManager";
 import { logger } from "../lib/logger";
 
-  req.userId = userId;
-  next();
-}
-
 export const dmRouter = Router();
 
 async function getOrCreateDm(userA: string, userB: string) {

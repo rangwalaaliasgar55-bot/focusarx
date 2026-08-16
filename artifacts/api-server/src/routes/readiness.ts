@@ -9,10 +9,6 @@ import { logger } from "../lib/logger";
 
 const router = Router();
 
-  req.userId = userId;
-  next();
-}
-
 function calcScore(sleep: number, stress: number, energy: number): number {
   // sleep: 1-5, stress: 1-5 (lower=better), energy: 1-5
   const raw = (sleep + (6 - stress) + energy) / 15;

@@ -5,10 +5,6 @@ import { db, goalsTable } from "@workspace/db";
 import { extractUserId } from "./auth";
 import { eq, and, desc } from "drizzle-orm";
 
-  req.userId = userId;
-  next();
-}
-
 export const goalsRouter = Router();
 
 goalsRouter.get("/goals", authMiddleware, async (req: AuthRequest, res: Response) => {

@@ -10,10 +10,6 @@ import { logger } from "../lib/logger";
 
 const router = Router();
 
-  req.userId = userId;
-  next();
-}
-
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 const ARCHETYPES = [

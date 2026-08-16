@@ -77,11 +77,16 @@ export function getServerConfig(): ServerConfig {
 
 /** Env vars that must be set in production for auth + data routes. */
 export function getConfigErrors(): string[] {
-  const config = getServerConfig();
   const missing: string[] = [];
-  if (!config.databaseUrl) {
+  if (!resolveDatabaseUrl()) {
     missing.push("DATABASE_URL or POSTGRES_URL_NON_POOLING");
   }
-  if (config.isProduction && !config.jwtSecret) missing.push("AUTH_SECRET");
+  const isProduction = process.env.NODE_ENV === "production";
+  if (isProduction && !(process.env.AUTH_SECRET ?? process.env.SESSION_SECRET)) {
+    missing.push("AUTH_SECRET");
+  }
+  if (isProduction && !process.env.ADMIN_PASSWORD) {
+    missing.push("ADMIN_PASSWORD");
+  }
   return missing;
 }

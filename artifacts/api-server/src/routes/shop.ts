@@ -6,10 +6,6 @@ import { userWalletsTable, usersTable, notificationsTable, coinTransactionsTable
 import { extractUserId } from "./auth";
 import { eq, sql } from "drizzle-orm";
 
-  req.userId = userId;
-  next();
-}
-
 export const shopRouter = Router();
 
 type ShopItem = {

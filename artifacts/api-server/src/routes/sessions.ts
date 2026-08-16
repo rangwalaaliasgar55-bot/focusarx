@@ -117,10 +117,6 @@ function stringOrNullish(value: unknown): string | null | undefined {
   return String(value);
 }
 
-  req.userId = String(userId);
-  next();
-}
-
 router.get("/sessions/active", authMiddleware, async (req: AuthRequest, res) => {
   try {
     const [session] = await db.select().from(activeSessionsTable).where(eq(activeSessionsTable.userId, req.userId));
