@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getToken } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
-import { ShoppingBag, Zap, Palette, Star, Crown } from "lucide-react";
+import { ShoppingBag, Zap, Palette, Star, Crown, LucideIcon } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import { ShopItem } from "@/types/gamification";
 
 async function apiFetch(path: string, opts?: RequestInit) {
   const token = getToken();
@@ -12,27 +13,32 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-const CATEGORY_META: Record<string, { label: string; icon: React.ComponentType<any>; color: string }> = {
+const CATEGORY_META: Record<string, { label: string; icon: LucideIcon; color: string }> = {
   boost:    { label: "Boosts",    icon: Zap,         color: "text-amber-400" },
   theme:    { label: "Themes",    icon: Palette,     color: "text-blue-400" },
   title:    { label: "Titles",    icon: Crown,       color: "text-violet-400" },
   cosmetic: { label: "Cosmetics", icon: Star,        color: "text-emerald-400" },
 };
 
+interface PurchaseResponse {
+  xpGained: number;
+  coinsRemaining: number;
+}
+
 export default function ShopPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [activeCategory, setActiveCategory] = useState<string>("all");
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading } = useQuery<{ items: ShopItem[], coins: number }>({
     queryKey: ["shop-items"],
     queryFn: () => apiFetch("/api/shop/items"),
     staleTime: 300_000,
   });
 
-  const purchase = useMutation({
+  const purchase = useMutation<PurchaseResponse, Error, string>({
     mutationFn: (itemId: string) => apiFetch(`/api/shop/purchase/${itemId}`, { method: "POST" }),
-    onSuccess: (res: any) => {
+    onSuccess: (res) => {
       const msg = res.xpGained > 0
         ? `Purchased! +${res.xpGained.toLocaleString()} XP. ${res.coinsRemaining.toLocaleString()} coins left.`
         : `Purchased! ${res.coinsRemaining.toLocaleString()} coins remaining.`;
@@ -40,13 +46,13 @@ export default function ShopPage() {
       qc.invalidateQueries({ queryKey: ["shop-items"] });
       qc.invalidateQueries({ queryKey: ["wallet"] });
     },
-    onError: (e: any) => toast(e.message, "error"),
+    onError: (e) => toast(e.message, "error"),
   });
 
-  const items: any[] = data?.items ?? [];
-  const coins: number = data?.coins ?? 0;
+  const items = data?.items ?? [];
+  const coins = data?.coins ?? 0;
   const categories = ["all", ...Object.keys(CATEGORY_META)];
-  const filtered = activeCategory === "all" ? items : items.filter((i: any) => i.category === activeCategory);
+  const filtered = activeCategory === "all" ? items : items.filter((i) => i.category === activeCategory);
 
   return (
     <div className="min-h-screen forge-bg-glow text-[#E2E8F0] px-4 sm:px-6 py-8 max-w-3xl mx-auto">
@@ -84,7 +90,7 @@ export default function ShopPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {filtered.map((item: any) => {
+          {filtered.map((item) => {
             const meta = CATEGORY_META[item.category];
             const canAfford = coins >= item.price;
             return (

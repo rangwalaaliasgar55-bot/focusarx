@@ -5,25 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageTransition } from "@/components/PageTransition";
 import { TiltCard, StaggerContainer, StaggerItem } from "@/components/TiltCard";
 import { Target, Zap, CheckCircle2, Lock, Trophy, Flame, Clock, ListTodo, Star, ChevronRight, Gift } from "lucide-react";
-
-interface MissionDef {
-  key: string;
-  title: string;
-  description: string;
-  type: "daily" | "weekly";
-  category: string;
-  xpReward: number;
-  coinReward: number;
-  targetValue: number;
-  unit: string;
-  icon: string;
-  difficulty: "easy" | "medium" | "hard" | "epic";
-  currentValue: number;
-  completed: boolean;
-  completedAt: string | null;
-  rewardClaimed: boolean;
-  periodStart: string;
-}
+import { Mission as MissionDef } from "@/types/gamification";
 
 interface MissionsData {
   daily: MissionDef[];
@@ -44,12 +26,12 @@ const DIFFICULTY_CONFIG = {
 } as const;
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-  focus:   <Zap size={12} />,
-  tasks:   <ListTodo size={12} />,
-  streak:  <Flame size={12} />,
-  quality: <Star size={12} />,
-  social:  <Trophy size={12} />,
-  special: <Target size={12} />,
+  focus:   <Zap size={14} className="text-amber-400" />,
+  tasks:   <ListTodo size={14} className="text-blue-400" />,
+  streak:  <Flame size={14} className="text-orange-500" />,
+  quality: <Star size={14} className="text-yellow-400" />,
+  social:  <Trophy size={14} className="text-purple-400" />,
+  special: <Target size={14} className="text-rose-400" />,
 };
 
 async function fetchMissions(): Promise<MissionsData> {
@@ -121,7 +103,10 @@ function MissionCard({ mission, onClaim, claiming }: { mission: MissionDef; onCl
       )}
 
       <div className="flex items-start gap-3">
-        <div className="text-2xl leading-none mt-0.5 shrink-0">{mission.icon}</div>
+        <div className="text-2xl leading-none mt-0.5 shrink-0 flex flex-col items-center gap-2">
+           {mission.icon}
+           <div className="opacity-50">{CATEGORY_ICONS[mission.category]}</div>
+        </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5 flex-wrap">

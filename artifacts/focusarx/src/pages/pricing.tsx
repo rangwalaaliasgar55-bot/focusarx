@@ -35,9 +35,32 @@ const PRO_EXTRAS = [
 ];
 
 export default function PricingPage() {
+  const productSchema = {
+    "@context": "https://schema.org/",
+    "@type": "Product",
+    "name": "FocusArx Premium",
+    "image": "https://focusarx.site/logo.png",
+    "description": "Unlock unlimited AI coaching, Focus DNA insights, and exclusive themes with FocusArx Premium.",
+    "brand": {
+      "@type": "Brand",
+      "name": "FocusArx"
+    },
+    "offers": {
+      "@type": "Offer",
+      "url": "https://focusarx.site/pricing",
+      "priceCurrency": "USD",
+      "price": "8.00",
+      "availability": "https://schema.org/PreOrder",
+      "seller": {
+        "@type": "Organization",
+        "name": "FocusArx"
+      }
+    }
+  };
+
   return (
     <div className="relative min-h-[100dvh] forge-bg-glow">
-      <PageSEO {...PAGE_SEO.pricing} />
+      <PageSEO {...PAGE_SEO.pricing} structuredData={productSchema} />
       <div className="pointer-events-none absolute inset-0" aria-hidden>
         <div className="absolute left-1/2 top-0 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.08),transparent_65%)] blur-3xl" />
       </div>
@@ -109,19 +132,6 @@ export default function PricingPage() {
                 </span>
               </div>
 
-              {/* Particle decoration */}
-              <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
-                {[...Array(5)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    className="absolute h-1 w-1 rounded-full bg-[#7C3AED]"
-                    style={{ left: `${10 + i * 20}%`, top: `${5 + (i % 3) * 20}%` }}
-                    animate={{ opacity: [0.2, 0.7, 0.2], scale: [1, 1.4, 1] }}
-                    transition={{ repeat: Infinity, duration: 2.5 + i * 0.3, delay: i * 0.2 }}
-                  />
-                ))}
-              </div>
-
               <div className="mb-6">
                 <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-[rgba(124,58,237,0.2)]">
                   <Crown size={18} className="text-[#FFB800]" />
@@ -150,50 +160,6 @@ export default function PricingPage() {
                 Launching soon — stay tuned
               </button>
             </motion.div>
-          </div>
-
-          {/* FAQ */}
-          <div className="mt-16 max-w-3xl mx-auto">
-            <h2 className="mb-6 text-center text-lg font-bold text-[#E2E8F0]">Frequently asked questions</h2>
-            <div className="space-y-4">
-              {[
-                {
-                  q: "Is FocusArx really free?",
-                  a: "Yes. The core experience — Pomodoro timer, gamification, leaderboard, AI Coach, AI Roadmap, webcam monitoring, and all analytics — is free with no time limits and no credit card required."
-                },
-                {
-                  q: "What are the AI rate limits on the free plan?",
-                  a: "The AI Coach is limited to 20 messages per minute per user. The AI Roadmap generator allows 10 roadmap saves per hour. These limits are generous for typical use and reset automatically."
-                },
-                {
-                  q: "Do I need an account to use FocusArx?",
-                  a: "No. You can start a guest session immediately with no sign-up. Guest sessions persist via a local key. Creating a free account unlocks leaderboard participation and cross-device sync."
-                },
-                {
-                  q: "When will Pro launch?",
-                  a: "We're building Pro features based on user feedback. Join us and use the free plan — we'll notify registered users when Pro is available."
-                },
-              ].map(({ q, a }) => (
-                <div key={q} className="rounded-2xl border border-[rgba(124,58,237,0.1)] bg-[rgba(16,23,50,0.4)] p-5">
-                  <p className="mb-2 text-sm font-semibold text-[#E2E8F0]">{q}</p>
-                  <p className="text-sm leading-relaxed text-[#64748B]">{a}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Footer links */}
-          <div className="mt-10 flex flex-wrap justify-center gap-4 border-t border-[rgba(124,58,237,0.1)] pt-6">
-            {[
-              { href: "/privacy", label: "Privacy Policy" },
-              { href: "/terms", label: "Terms of Service" },
-              { href: "/ai-policy", label: "AI Policy" },
-              { href: "/cookie-policy", label: "Cookie Policy" },
-            ].map(({ href, label }) => (
-              <Link key={href} href={href} className="text-xs text-[#4B5563] hover:text-[#A78BFA] transition-colors">
-                {label}
-              </Link>
-            ))}
           </div>
         </PageTransition>
       </main>

@@ -1,3 +1,5 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import {
   db, consequenceContractsTable, freezeTokensTable, focusSessionsTable, studyStreaksTable,
@@ -8,9 +10,6 @@ import { logger } from "../lib/logger";
 
 const router = Router();
 
-function auth(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.userId = userId;
   next();
 }
@@ -39,7 +38,7 @@ async function getWeekMinutes(userId: string, weekStart: string): Promise<number
   return Math.floor(Number(row?.total ?? 0) / 60);
 }
 
-router.get("/consequences", auth, async (req: any, res) => {
+router.get("/consequences", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const weekStart = getMondayStr();
     const contracts = await db
@@ -78,7 +77,7 @@ router.get("/consequences", auth, async (req: any, res) => {
   }
 });
 
-router.post("/consequences", auth, async (req: any, res) => {
+router.post("/consequences", authMiddleware, async (req: AuthRequest, res: Response) => {
   const { contractType, targetMinutes, charityName, charityAmount } = req.body as {
     contractType?: string;
     targetMinutes?: number;
@@ -137,7 +136,7 @@ router.post("/consequences", auth, async (req: any, res) => {
   }
 });
 
-router.patch("/consequences/:id/trigger", auth, async (req: any, res) => {
+router.patch("/consequences/:id/trigger", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const [updated] = await db
       .update(consequenceContractsTable)
@@ -154,7 +153,7 @@ router.patch("/consequences/:id/trigger", auth, async (req: any, res) => {
   }
 });
 
-router.post("/consequences/use-freeze", auth, async (req: any, res) => {
+router.post("/consequences/use-freeze", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const [freeze] = await db
       .select()

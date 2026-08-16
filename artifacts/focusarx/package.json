@@ -8,7 +8,8 @@
     "build": "vite build --config vite.config.ts",
     "build:vercel": "vite build --config vite.config.ts",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "seo:audit": "echo 'SEO Auditing...' && grep -r 'PageSEO' src"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.35",

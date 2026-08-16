@@ -71,6 +71,8 @@ const playSessionNotification = (mode: TimerMode) => {
   } catch { /* silently ignore */ }
 };
 
+import { playCoachVoice } from "@/lib/soundEngine";
+
 export default function Timer({ onSessionComplete: onSessionCompleteProp }: { onSessionComplete?: () => void } = {}) {
   const { addSession, focusSessionsToday } = useSessionHistory();
   const { toast } = useToast();
@@ -109,6 +111,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
 
   monitorEnabledRef.current = monitorEnabled;
 
+
   useEffect(() => { setStorageReady(true); }, []);
 
   useEffect(() => {
@@ -137,6 +140,11 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     onSessionComplete: async (session) => {
       addSession(session);
       playSessionNotification(session.mode);
+      if (session.mode === "focus") {
+        playCoachVoice("session_complete");
+      } else {
+        playCoachVoice("break_time");
+      }
       setJustCompleted(true);
       setTimeout(() => setJustCompleted(false), 800);
       // Analytics: track session completion
@@ -170,6 +178,13 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
               .catch(() => {});
           }
         }
+  useEffect(() => {
+    if (status === "running" && mode === "focus") {
+      window.dispatchEvent(new CustomEvent("fx:focus-start"));
+    } else {
+      window.dispatchEvent(new CustomEvent("fx:focus-stop"));
+    }
+  }, [status, mode]);
         void refreshWallet();
       } else {
         toast(`Failed to save: ${res.error || "Unknown"}`, "error");
@@ -289,6 +304,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
   const handleSessionTypeSelected = useCallback((type: SessionType) => {
     setSessionType(type);
     if (type === "recharge") { window.location.href = "/breathe"; return; }
+    playCoachVoice("session_start");
     // Analytics: track session start (fired when user picks session type)
     trackSessionStart(type, totalFocusSec, activeTasks.length > 0);
     setShowLockPicker(true);
@@ -359,7 +375,8 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
   }, [mode, getActiveSeconds, toast]);
 
   const handleReset = useCallback(() => {
-    if (status === "running" && mode === "focus") { setShowExitConfirm(true); return; }
+    const snap = getSnapshot();
+    if (snap.status === "running" && snap.mode === "focus") { setShowExitConfirm(true); return; }
     persistence.clearDbSession();
     reset(false);
     setLockMode("none");

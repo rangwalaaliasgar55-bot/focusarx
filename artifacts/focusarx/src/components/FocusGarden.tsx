@@ -1,4 +1,7 @@
 import { motion } from "framer-motion";
+import { lazy, Suspense } from "react";
+
+const FocusGarden3D = lazy(() => import("./FocusGarden3D"));
 
 interface FocusGardenProps {
   minutesToday: number;
@@ -123,12 +126,11 @@ export default function FocusGarden({ minutesToday, className = "" }: FocusGarde
         initial={{ scale: 0.85, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 280, damping: 26 }}
-        className="relative h-28 w-28 group cursor-default"
-        title={`${STAGE_LABELS[stage]}: ${STAGE_DESCS[stage]}`}
+        className="relative h-32 w-32 group cursor-default"
       >
-        {/* Glow base */}
-        <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_center,rgba(34,197,94,0.18),transparent_65%)] blur-sm" />
-        <PlantComponent />
+        <Suspense fallback={<div className="h-full w-full flex items-center justify-center text-[10px] text-zinc-500">Growing...</div>}>
+          <FocusGarden3D stage={stage} />
+        </Suspense>
         {/* Stage badge */}
         <div className="absolute -top-1 -right-1 rounded-full bg-[rgba(10,15,30,0.9)] px-1.5 py-0.5 text-[9px] font-bold text-[#4ADE80] border border-[rgba(74,222,128,0.3)]">
           Lv.{stage + 1}

@@ -10,7 +10,7 @@ import MissionsWidget from "@/components/MissionsWidget";
 import ProductivityScoreWidget from "@/components/ProductivityScoreWidget";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ApiError } from "@workspace/api-client-react";
+ 
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { ToastProvider } from "@/components/Toast";
 import { CapacitorNativeBridge } from "@/components/CapacitorNativeBridge";
@@ -45,10 +45,10 @@ import { RewardToastProvider } from "@/components/ui/RewardToast";
 import { LiveActivityTicker } from "@/components/LiveActivityTicker";
 import { FocusMoodWidget } from "@/components/FocusMoodWidget";
 import { FloatingParticles } from "@/components/FloatingParticles";
+import { CookieConsent } from "@/components/CookieConsent";
+import { LeadMagnetPopup } from "@/components/LeadMagnetPopup";
 
 const OnboardingPage = lazy(() => import("@/pages/onboarding"));
-const DistractionsPage = lazy(() => import("@/pages/distractions"));
-const ProfilesPage = lazy(() => import("@/pages/profiles"));
 const DashboardPage = lazy(() => import("@/pages/dashboard"));
 const RoadmapPage = lazy(() => import("@/pages/roadmap"));
 const LeaderboardPage = lazy(() => import("@/pages/leaderboard"));
@@ -56,9 +56,7 @@ const AchievementsPage = lazy(() => import("@/pages/achievements"));
 const AnalyticsPage = lazy(() => import("@/pages/analytics"));
 const ForgePage = lazy(() => import("@/pages/forge"));
 const FocusDnaPage = lazy(() => import("@/pages/focus-dna"));
-const GhostsPage = lazy(() => import("@/pages/ghosts"));
 const ConsequencesPage = lazy(() => import("@/pages/consequences"));
-const ReplayPage = lazy(() => import("@/pages/replay"));
 const BreathePage = lazy(() => import("@/pages/breathe"));
 const ProfilePage = lazy(() => import("@/pages/profile"));
 const BreakFreePage = lazy(() => import("@/pages/break-free"));
@@ -85,7 +83,6 @@ const ReferralPage = lazy(() => import("@/pages/referral"));
 const PetsPage = lazy(() => import("@/pages/pets"));
 const CityPage = lazy(() => import("@/pages/city"));
 const MarketplacePage = lazy(() => import("@/pages/marketplace"));
-const WrappedPage = lazy(() => import("@/pages/wrapped"));
 const DreamsPage = lazy(() => import("@/pages/dreams"));
 const LootBoxesPage = lazy(() => import("@/pages/lootboxes"));
 const WalletPage = lazy(() => import("@/pages/wallet"));
@@ -103,12 +100,17 @@ const StudyTechniquesPage = lazy(() => import("@/pages/study-techniques"));
 const VirtualStudyRoomPage = lazy(() => import("@/pages/virtual-study-room"));
 const ConstellationsPage = lazy(() => import("@/pages/constellations"));
 const StyleGuidePage = lazy(() => import("@/pages/style-guide"));
+const ScienceOfDeepWorkPage = lazy(() => import("@/pages/science-of-deep-work"));
+const FeynmanTechniquePage = lazy(() => import("@/pages/feynman-technique"));
+const StudyMethodQuizPage = lazy(() => import("@/pages/study-method-quiz"));
+const ForgeRoomPage = lazy(() => import("@/pages/forge-room"));
+const StudyMethodCalculatorPage = lazy(() => import("@/pages/study-calculator"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: (failureCount, error) => {
-        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) return false;
+        if (error.message && error.message.includes("401") && (error.status === 401 || error.status === 403)) return false;
         return failureCount < 2;
       },
       staleTime: 60_000,
@@ -598,13 +600,17 @@ function RoutedContent() {
               <Route path="/pomodoro-guide" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><PomodoroGuidePage /></Suspense></ErrorBoundary>} />
               <Route path="/study-techniques" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StudyTechniquesPage /></Suspense></ErrorBoundary>} />
               <Route path="/virtual-study-room" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><VirtualStudyRoomPage /></Suspense></ErrorBoundary>} />
+              <Route path="/science-of-deep-work" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><ScienceOfDeepWorkPage /></Suspense></ErrorBoundary>} />
+              <Route path="/feynman-technique" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><FeynmanTechniquePage /></Suspense></ErrorBoundary>} />
+              <Route path="/study-method-quiz" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StudyMethodQuizPage /></Suspense></ErrorBoundary>} />
+              <Route path="/forge-room" component={() => <ErrorBoundary><ProtectedRoute component={ForgeRoomPage} /></ErrorBoundary>} />
+              <Route path="/study-calculator" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StudyMethodCalculatorPage /></Suspense></ErrorBoundary>} />
               <Route path="/referral" component={() => <ErrorBoundary><ProtectedRoute component={ReferralPage} /></ErrorBoundary>} />
 
               {/* New V12 pages */}
               <Route path="/pets" component={() => <ErrorBoundary><ProtectedRoute component={PetsPage} /></ErrorBoundary>} />
               <Route path="/city" component={() => <ErrorBoundary><ProtectedRoute component={CityPage} /></ErrorBoundary>} />
               <Route path="/marketplace" component={() => <ErrorBoundary><ProtectedRoute component={MarketplacePage} /></ErrorBoundary>} />
-              <Route path="/wrapped" component={() => <ErrorBoundary><ProtectedRoute component={WrappedPage} /></ErrorBoundary>} />
               <Route path="/dreams" component={() => <ErrorBoundary><ProtectedRoute component={DreamsPage} /></ErrorBoundary>} />
               <Route path="/lootboxes" component={() => <ErrorBoundary><ProtectedRoute component={LootBoxesPage} /></ErrorBoundary>} />
               <Route path="/wallet" component={() => <ErrorBoundary><ProtectedRoute component={WalletPage} /></ErrorBoundary>} />
@@ -620,14 +626,10 @@ function RoutedContent() {
               {/* Focus tools */}
               <Route path="/forge" component={() => <ErrorBoundary><ProtectedRoute component={ForgePage} /></ErrorBoundary>} />
               <Route path="/onboarding" component={() => <ErrorBoundary><ProtectedRoute component={OnboardingPage} /></ErrorBoundary>} />
-              <Route path="/distractions" component={() => <ErrorBoundary><ProtectedRoute component={DistractionsPage} /></ErrorBoundary>} />
-              <Route path="/profiles" component={() => <ErrorBoundary><ProtectedRoute component={ProfilesPage} /></ErrorBoundary>} />
               <Route path="/roadmap" component={() => <ErrorBoundary><RoadmapPage /></ErrorBoundary>} />
               <Route path="/focus-dna" component={() => <ErrorBoundary><ProtectedRoute component={FocusDnaPage} /></ErrorBoundary>} />
               <Route path="/constellations" component={() => <ErrorBoundary><ProtectedRoute component={ConstellationsPage} /></ErrorBoundary>} />
-              <Route path="/ghosts" component={() => <ErrorBoundary><ProtectedRoute component={GhostsPage} /></ErrorBoundary>} />
               <Route path="/consequences" component={() => <ErrorBoundary><ProtectedRoute component={ConsequencesPage} /></ErrorBoundary>} />
-              <Route path="/replay" component={() => <ErrorBoundary><ProtectedRoute component={ReplayPage} /></ErrorBoundary>} />
               <Route path="/breathe" component={() => <ErrorBoundary><BreathePage /></ErrorBoundary>} />
               <Route path="/profile" component={() => <ErrorBoundary><ProtectedRoute component={ProfilePage} /></ErrorBoundary>} />
               <Route path="/break-free" component={() => <ErrorBoundary><BreakFreePage /></ErrorBoundary>} />
@@ -672,6 +674,8 @@ function AppWithPalette() {
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <DailyRewardBanner />
       <LiveActivityTicker />
+      <CookieConsent />
+      <LeadMagnetPopup />
       <MobileWelcomeGate>
         <AppShell>
           <RoutedContent />
@@ -683,13 +687,25 @@ function AppWithPalette() {
 
 function App() {
   const [loading, setLoading] = useState(true);
+  const [isFocusing, setIsFocusing] = useState(false);
+
+  useEffect(() => {
+    const start = () => setIsFocusing(true);
+    const stop = () => setIsFocusing(false);
+    window.addEventListener("fx:focus-start", start);
+    window.addEventListener("fx:focus-stop", stop);
+    return () => {
+      window.removeEventListener("fx:focus-start", start);
+      window.removeEventListener("fx:focus-stop", stop);
+    };
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <RewardToastProvider>
         <ToastProvider>
-          <ThreeBackground />
+          <ThreeBackground isFocusing={isFocusing} />
           <FloatingParticles count={14} />
           <LoadingScreen onDone={() => setLoading(false)} />
           {!loading && (

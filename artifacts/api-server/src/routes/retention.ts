@@ -1,3 +1,5 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import {
@@ -8,9 +10,6 @@ import {
 import { extractUserId } from "./auth";
 import { eq, sql } from "drizzle-orm";
 
-function auth(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.userId = userId;
   next();
 }
@@ -29,7 +28,7 @@ const DAILY_REWARDS = [
 
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 
-retentionRouter.get("/retention/login-reward", auth, async (req, res) => {
+retentionRouter.get("/retention/login-reward", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const today = todayStr();
   let [record] = await db.select().from(loginRewardsTable).where(eq(loginRewardsTable.userId, userId)).limit(1);
@@ -40,7 +39,7 @@ retentionRouter.get("/retention/login-reward", auth, async (req, res) => {
   res.json({ alreadyClaimed, claimStreak: streak, totalClaimed: record?.totalClaimed ?? 0, nextReward: reward, calendar: DAILY_REWARDS });
 });
 
-retentionRouter.post("/retention/login-reward/claim", auth, async (req, res) => {
+retentionRouter.post("/retention/login-reward/claim", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const today = todayStr();
   let [record] = await db.select().from(loginRewardsTable).where(eq(loginRewardsTable.userId, userId)).limit(1);
@@ -81,13 +80,13 @@ retentionRouter.post("/retention/login-reward/claim", auth, async (req, res) => 
   res.json({ ok: true, reward, newStreak, coins: reward.coins, xp: reward.xp });
 });
 
-retentionRouter.get("/retention/freeze-tokens", auth, async (req, res) => {
+retentionRouter.get("/retention/freeze-tokens", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [record] = await db.select().from(freezeTokensTable).where(eq(freezeTokensTable.userId, userId)).limit(1);
   res.json({ tokens: record?.tokensAvailable ?? 0, used: record?.tokensUsed ?? 0 });
 });
 
-retentionRouter.post("/retention/freeze-tokens/use", auth, async (req, res) => {
+retentionRouter.post("/retention/freeze-tokens/use", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [record] = await db.select().from(freezeTokensTable).where(eq(freezeTokensTable.userId, userId)).limit(1);
   if (!record || (record.tokensAvailable ?? 0) <= 0) return res.status(400).json({ error: "No freeze tokens" });
@@ -108,7 +107,7 @@ const BATTLE_PASS_TIERS = [
   { tier: 8, xpRequired: 8000, freeReward: { coins: 250, xp: 500, label: "250 coins + 500 XP" }, premiumReward: { coins: 1000, xp: 2000, label: "1000 coins + 2000 XP" } },
 ];
 
-retentionRouter.get("/retention/battle-pass", auth, async (req, res) => {
+retentionRouter.get("/retention/battle-pass", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   let [progress] = await db.select().from(battlePassProgressTable).where(eq(battlePassProgressTable.userId, userId)).limit(1);
   const currentTierDef = progress ? BATTLE_PASS_TIERS.find(t => t.tier > (progress?.tier ?? 0)) : BATTLE_PASS_TIERS[0];
@@ -124,7 +123,7 @@ retentionRouter.get("/retention/battle-pass", auth, async (req, res) => {
   });
 });
 
-retentionRouter.post("/retention/battle-pass/claim", auth, async (req, res) => {
+retentionRouter.post("/retention/battle-pass/claim", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const { tier, track } = req.body as { tier: number; track: "free" | "premium" };
 
@@ -149,7 +148,7 @@ retentionRouter.post("/retention/battle-pass/claim", auth, async (req, res) => {
   res.json({ ok: true, reward });
 });
 
-retentionRouter.post("/retention/battle-pass/advance", auth, async (req, res) => {
+retentionRouter.post("/retention/battle-pass/advance", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const { xp } = req.body as { xp: number };
   let [progress] = await db.select().from(battlePassProgressTable).where(eq(battlePassProgressTable.userId, userId)).limit(1);
@@ -169,7 +168,7 @@ function makeReferralCode(userId: string): string {
   return `FAX-${base36.slice(0, 6)}`;
 }
 
-retentionRouter.get("/referral/my-code", auth, async (req, res) => {
+retentionRouter.get("/referral/my-code", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [user] = await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email })
     .from(usersTable).where(eq(usersTable.id, userId)).limit(1);
@@ -180,7 +179,7 @@ retentionRouter.get("/referral/my-code", auth, async (req, res) => {
   res.json({ code, shareUrl, name: user.name || user.email?.split("@")[0] || "You" });
 });
 
-retentionRouter.post("/referral/apply", auth, async (req, res) => {
+retentionRouter.post("/referral/apply", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const { code } = req.body as { code?: string };
   if (!code?.startsWith("FAX-")) return res.status(400).json({ error: "Invalid referral code" });

@@ -10,8 +10,8 @@
   ═══════════════════════════════════════════════ -->
   <url>
     <loc>https://focusarx.site/</loc>
-    <lastmod>2026-06-15</lastmod>
-    <changefreq>weekly</changefreq>
+    <lastmod>2026-08-16</lastmod>
+    <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <image:image>
       <image:loc>https://focusarx.site/opengraph.jpg</image:loc>
@@ -107,6 +107,30 @@
     <lastmod>2025-06-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://focusarx.site/science-of-deep-work</loc>
+    <lastmod>2026-08-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://focusarx.site/feynman-technique</loc>
+    <lastmod>2026-08-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://focusarx.site/study-method-quiz</loc>
+    <lastmod>2026-08-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.98</priority>
+  </url>
+  <url>
+    <loc>https://focusarx.site/study-calculator</loc>
+    <lastmod>2026-08-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.98</priority>
   </url>
   <url>
     <loc>https://focusarx.site/study-rooms</loc>

@@ -1,3 +1,5 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db, tasksTable } from "@workspace/db";
 import { eq, and, asc, isNull } from "drizzle-orm";
@@ -8,9 +10,6 @@ import { z } from "zod";
 
 const router = Router();
 
-function authMiddleware(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.userId = userId;
   next();
 }
@@ -47,7 +46,7 @@ const missedReviewSchema = z.object({
   action: z.enum(["keep", "move_today", "archive", "delete"]),
 });
 
-router.get("/tasks", authMiddleware, async (req: any, res) => {
+router.get("/tasks", authMiddleware, async (req: AuthRequest, res) => {
   try {
     const { category, priority, completed, status } = req.query as Record<string, string>;
     const tasks = await db.select().from(tasksTable)
@@ -68,7 +67,7 @@ router.get("/tasks", authMiddleware, async (req: any, res) => {
   }
 });
 
-router.get("/tasks/stats", authMiddleware, async (req: any, res) => {
+router.get("/tasks/stats", authMiddleware, async (req: AuthRequest, res) => {
   try {
     const tasks = await db.select().from(tasksTable).where(eq(tasksTable.userId, req.userId));
     const total = tasks.length;
@@ -96,7 +95,7 @@ router.get("/tasks/stats", authMiddleware, async (req: any, res) => {
 });
 
 // Get tasks that were not completed yesterday (for daily review)
-router.get("/tasks/missed-review", authMiddleware, async (req: any, res) => {
+router.get("/tasks/missed-review", authMiddleware, async (req: AuthRequest, res) => {
   try {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
@@ -123,7 +122,7 @@ router.get("/tasks/missed-review", authMiddleware, async (req: any, res) => {
 });
 
 // Handle daily review action for a missed task
-router.post("/tasks/missed-review", authMiddleware, async (req: any, res) => {
+router.post("/tasks/missed-review", authMiddleware, async (req: AuthRequest, res) => {
   const parsed = missedReviewSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Invalid payload" }); return; }
   const { taskId, action } = parsed.data;
@@ -159,7 +158,7 @@ router.post("/tasks/missed-review", authMiddleware, async (req: any, res) => {
 });
 
 // Mark tasks as missed (called by client at midnight check)
-router.post("/tasks/mark-missed", authMiddleware, async (req: any, res) => {
+router.post("/tasks/mark-missed", authMiddleware, async (req: AuthRequest, res) => {
   const { taskIds } = req.body as { taskIds?: string[] };
   if (!Array.isArray(taskIds) || taskIds.length === 0) {
     return res.status(400).json({ error: "taskIds array required" });
@@ -180,7 +179,7 @@ router.post("/tasks/mark-missed", authMiddleware, async (req: any, res) => {
   }
 });
 
-router.post("/tasks", authMiddleware, async (req: any, res) => {
+router.post("/tasks", authMiddleware, async (req: AuthRequest, res) => {
   const parsed = createTaskSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Invalid task data" }); return; }
   const { text, title, order, estimatedMinutes, category, priority, tags, dueDate, recurring } = parsed.data;
@@ -200,7 +199,7 @@ router.post("/tasks", authMiddleware, async (req: any, res) => {
   }
 });
 
-async function handleTaskUpdate(req: any, res: any) {
+async function handleTaskUpdate(req: AuthRequest, res: Response) {
   const { id } = req.params as { id: string };
   const parsed = updateTaskSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Invalid task data" }); return; }
@@ -251,7 +250,7 @@ async function handleTaskUpdate(req: any, res: any) {
 router.patch("/tasks/:id", authMiddleware, handleTaskUpdate);
 router.put("/tasks/:id", authMiddleware, handleTaskUpdate);
 
-router.delete("/tasks/:id", authMiddleware, async (req: any, res) => {
+router.delete("/tasks/:id", authMiddleware, async (req: AuthRequest, res) => {
   const { id } = req.params as { id: string };
   try {
     await db.delete(tasksTable).where(and(eq(tasksTable.id, id), eq(tasksTable.userId, req.userId)));
@@ -262,7 +261,7 @@ router.delete("/tasks/:id", authMiddleware, async (req: any, res) => {
   }
 });
 
-router.post("/tasks/reorder", authMiddleware, async (req: any, res) => {
+router.post("/tasks/reorder", authMiddleware, async (req: AuthRequest, res) => {
   const { ids } = req.body as { ids?: string[] };
   if (!Array.isArray(ids)) { res.status(400).json({ error: "ids array required" }); return; }
   try {
@@ -277,7 +276,7 @@ router.post("/tasks/reorder", authMiddleware, async (req: any, res) => {
   }
 });
 
-router.delete("/tasks", authMiddleware, async (req: any, res) => {
+router.delete("/tasks", authMiddleware, async (req: AuthRequest, res) => {
   const { completed, status } = req.query as { completed?: string; status?: string };
   try {
     if (completed === "true") {

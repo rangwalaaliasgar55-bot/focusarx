@@ -71,17 +71,24 @@ type Tab =
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function StatCard({ label, value, accent, sub }: { label: string; value: string; accent?: "rose" | "sky" | "violet" | "amber" | "emerald"; sub?: string }) {
-  const colors: Record<string, string> = {
-    rose: "text-rose-400", sky: "text-sky-400", violet: "text-violet-400",
-    amber: "text-amber-400", emerald: "text-emerald-400",
+  const configs = {
+    rose: { text: "text-rose-400", bg: "bg-rose-500/10", border: "border-rose-500/20" },
+    sky: { text: "text-sky-400", bg: "bg-sky-500/10", border: "border-sky-500/20" },
+    violet: { text: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/20" },
+    amber: { text: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" },
+    emerald: { text: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
   };
-  const color = accent ? (colors[accent] ?? "text-zinc-100") : "text-zinc-100";
+  const config = accent ? configs[accent] : { text: "text-zinc-100", bg: "bg-zinc-800/10", border: "border-zinc-800/40" };
+  
   return (
-    <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/40 px-4 py-4">
-      <p className="text-xs text-zinc-500">{label}</p>
-      <p className={`mt-1 text-2xl font-semibold ${color}`}>{value}</p>
-      {sub && <p className="mt-0.5 text-[10px] text-zinc-600">{sub}</p>}
-    </div>
+    <motion.div 
+      whileHover={{ y: -4 }}
+      className={`rounded-2xl border ${config.border} ${config.bg} p-6 backdrop-blur-xl transition-all shadow-lg`}
+    >
+      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#4B5563] mb-2">{label}</p>
+      <p className={`text-3xl font-black ${config.text} tracking-tight tabular-nums`}>{value}</p>
+      {sub && <p className="mt-2 text-[10px] font-bold text-zinc-500 bg-white/5 inline-block px-2 py-0.5 rounded-full">{sub}</p>}
+    </motion.div>
   );
 }
 
@@ -125,7 +132,7 @@ export default function AdminPage() {
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
   const [purgeLoading, setPurgeLoading] = useState(false);
   const [tab, setTab] = useState<Tab>("overview");
-  const [missionData, setMissionData] = useState<{ missions: any[]; totalCompletions: number; totalClaims: number } | null>(null);
+  const [missionData, setMissionData] = useState<{ missions: { key: string; title: string; completions: number; claims: number; completionRate: number }[]; totalCompletions: number; totalClaims: number } | null>(null);
   const [retentionData, setRetentionData] = useState<any>(null);
   const [sqlQuery, setSqlQuery] = useState("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;");
   const [sqlResults, setSqlResults] = useState<{ rows: any[]; fields: { name: string }[]; rowCount: number } | null>(null);

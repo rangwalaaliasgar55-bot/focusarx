@@ -1,3 +1,5 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import {
@@ -8,16 +10,13 @@ import {
 import { extractUserId } from "./auth";
 import { eq, and, or, sql, desc } from "drizzle-orm";
 
-function auth(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.userId = userId;
   next();
 }
 
 export const publicProfilesRouter = Router();
 
-publicProfilesRouter.get("/u/:username", async (req, res) => {
+publicProfilesRouter.get("/u/:username", async (req: AuthRequest, res: Response) => {
   const { username } = req.params;
   const [user] = await db.select().from(usersTable)
     .where(or(eq(usersTable.email, username), sql`lower(name) = lower(${username})`))
@@ -60,7 +59,7 @@ publicProfilesRouter.get("/u/:username", async (req, res) => {
   });
 });
 
-publicProfilesRouter.post("/u/:username/friend", auth, async (req, res) => {
+publicProfilesRouter.post("/u/:username/friend", authMiddleware, async (req: AuthRequest, res: Response) => {
   const requesterId = req.userId!;
   const { username } = req.params;
   const [target] = await db.select({ id: usersTable.id }).from(usersTable)

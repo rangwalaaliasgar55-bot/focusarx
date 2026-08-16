@@ -3,8 +3,11 @@ import type { ElementType } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getToken, useAuth } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
-import { Users, UserPlus, Trophy, Activity, Check, X, Bell, Clock, Rss, Heart, MessageCircle, Bookmark, Flame, Plus, Send, MoreHorizontal, Image, Edit3, Newspaper, Trash2 } from "lucide-react";
+import { Users, UserPlus, Trophy, Activity, Check, X, Bell, Clock, Rss, Heart, MessageCircle as MessageCircleIcon, Bookmark, Flame, Plus, Send, MoreHorizontal, Image, Edit3, Newspaper, Trash2, ArrowUpRight, Star as StarIcon } from "lucide-react";
+import { PageTransition } from "@/components/PageTransition";
 import PageHeader from "@/components/PageHeader";
+import { motion, AnimatePresence } from "framer-motion";
+import { BLUR_IN, STAGGER, STAGGER_CHILD } from "@/lib/animations";
 
 async function apiFetch(path: string, opts?: RequestInit) {
   const token = getToken();
@@ -13,13 +16,20 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-function Avatar({ name, size = 36 }: { name: string; size?: number }) {
+function Avatar({ name, size = 36, level }: { name: string; size?: number, level?: number }) {
   const initials = (name || "U").slice(0, 2).toUpperCase();
   const colors = ["from-violet-500 to-indigo-600", "from-emerald-500 to-teal-600", "from-amber-500 to-orange-600", "from-rose-500 to-pink-600", "from-blue-500 to-cyan-600"];
   const color = colors[initials.charCodeAt(0) % colors.length];
   return (
-    <div style={{ width: size, height: size, fontSize: size * 0.35 }} className={`rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-white font-bold shrink-0`}>
-      {initials}
+    <div className="relative shrink-0">
+      <div style={{ width: size, height: size, fontSize: size * 0.35 }} className={`rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-white font-bold border-2 border-[#030308] shadow-lg`}>
+        {initials}
+      </div>
+      {level && (
+        <div className="absolute -bottom-1 -right-1 bg-[#030308] rounded-full border border-white/10 px-1 py-0.5">
+           <span className="text-[7px] font-black text-[#A78BFA] leading-none">{level}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -30,35 +40,34 @@ function FriendCard({ friend }: { friend: any }) {
     : (friend.studyingFor ?? 0);
 
   return (
-    <div className={`flex items-center gap-3 rounded-xl border p-3 transition-colors ${friend.isStudying ? "border-emerald-500/30 bg-[#0d1a12] hover:border-emerald-500/50" : "border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] hover:border-[#7C3AED]/40"}`}>
+    <motion.div variants={STAGGER_CHILD} className={`flex items-center gap-3 rounded-2xl border p-4 transition-all glass ${friend.isStudying ? "border-emerald-500/20 bg-emerald-500/5" : "border-white/5 bg-white/[0.01] hover:bg-white/[0.03]"}`}>
       <div className="relative shrink-0">
-        <Avatar name={friend.name} />
+        <Avatar name={friend.name} level={friend.level} />
         {friend.isStudying && (
-          <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-400 border-2 border-[#0d1a12] animate-pulse" />
+          <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-400 border-2 border-[#030308] animate-pulse" />
         )}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <p className="text-sm font-medium text-[#E2E8F0] truncate">{friend.name}</p>
+          <p className="text-sm font-bold text-white truncate">{friend.name}</p>
           {friend.isStudying && (
-            <span className="shrink-0 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400 uppercase tracking-wide">
-              Focusing
+            <span className="shrink-0 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 text-[8px] font-black text-emerald-400 uppercase tracking-widest">
+              Active Flow
             </span>
           )}
         </div>
         {friend.isStudying ? (
-          <p className="text-xs text-emerald-400/80 flex items-center gap-1">
-            <Clock size={10} /> {focusMinutes > 0 ? `${focusMinutes} min deep work` : "Just started"}
+          <p className="text-[10px] text-emerald-400/80 font-bold uppercase tracking-widest flex items-center gap-1">
+             {focusMinutes > 0 ? `${focusMinutes}m In deep work` : "Initializing..."}
           </p>
         ) : (
-          <p className="text-xs text-[#4B5563]">Level {friend.level} · {friend.xp.toLocaleString()} XP</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-[#4B5563]">LV.{friend.level} · {friend.xp.toLocaleString()} XP</p>
         )}
       </div>
       <div className="text-right shrink-0">
-        <p className="text-xs font-bold text-amber-400">🔥 {friend.streak}</p>
-        {friend.sessionsToday > 0 && !friend.isStudying && <p className="text-[10px] text-[#4B5563]">{friend.sessionsToday} sessions</p>}
+        <p className="text-sm font-black text-amber-400 flex items-center gap-1 justify-end">🔥 {friend.streak}</p>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -67,17 +76,24 @@ function LeaderboardTable({ data }: { data: any[] }) {
   return (
     <div className="space-y-2">
       {data.map((e, i) => (
-        <div key={e.userId} className={`flex items-center gap-3 rounded-xl border p-3 transition-colors ${e.isMe ? "border-[#7C3AED]/50 bg-[#7C3AED]/10" : "border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)]"}`}>
-          <span className="w-6 text-center text-sm">{i < 3 ? medals[i] : `${i + 1}`}</span>
-          <Avatar name={e.name} size={32} />
+        <motion.div 
+           key={e.userId} 
+           variants={STAGGER_CHILD}
+           className={`flex items-center gap-4 rounded-2xl border p-4 transition-all ${e.isMe ? "border-[#7C3AED]/30 bg-[#7C3AED]/10" : "border-white/5 bg-white/[0.01]"}`}
+        >
+          <span className={`w-6 text-center text-sm font-black ${i < 3 ? "text-xl" : "text-[#4B5563]"}`}>{i < 3 ? medals[i] : `${i + 1}`}</span>
+          <Avatar name={e.name} size={32} level={e.level} />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-[#E2E8F0] truncate">{e.name}{e.isMe && " (You)"}</p>
-            <p className="text-xs text-[#4B5563]">Level {e.level} · 🔥 {e.streak}</p>
+            <p className="text-sm font-bold text-white truncate">{e.name}{e.isMe && " (You)"}</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-[#4B5563]">LV.{e.level} · {e.streak}d STREAK</p>
           </div>
-          <span className="text-sm font-bold text-[#a5a8ff]">{e.xp.toLocaleString()} XP</span>
-        </div>
+          <div className="text-right">
+             <p className="text-sm font-black text-[#A78BFA] tabular-nums">{e.xp.toLocaleString()}</p>
+             <p className="text-[8px] font-black text-[#4B5563] uppercase tracking-widest">Points</p>
+          </div>
+        </motion.div>
       ))}
-      {!data.length && <p className="text-center text-sm text-[#374151] py-6">Add friends to see them on the leaderboard</p>}
+      {!data.length && <p className="text-center text-xs font-bold text-[#4B5563] py-12 uppercase tracking-[0.2em]">Add friends to sync board</p>}
     </div>
   );
 }
@@ -100,11 +116,6 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post
     mutationFn: (reaction: string) => apiFetch(`/api/posts/${post.id}/react`, { method: "POST", body: JSON.stringify({ reaction }) }),
     onSuccess: onReacted,
     onError: (e: any) => toast(e.message, "error"),
-  });
-
-  const save = useMutation({
-    mutationFn: () => apiFetch(`/api/posts/${post.id}/save`, { method: "POST" }),
-    onSuccess: onSaved,
   });
 
   const del = useMutation({
@@ -139,147 +150,106 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post
     : null;
 
   return (
-    <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] overflow-hidden hover:border-[#7C3AED]/20 transition-colors">
-      <div className="p-4">
-        <div className="flex items-start gap-3 mb-3">
-          <Avatar name={post.author?.name || "U"} size={38} />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-semibold text-[#E2E8F0]">{post.author?.name || "User"}</p>
-              <span className="text-[10px] font-bold bg-[#7C3AED]/20 text-[#a78bfa] rounded-full px-1.5 py-0.5">Lv.{post.author?.level || 1}</span>
-            </div>
-            <p className="text-xs text-[#4B5563]">{post.createdAt ? timeAgo(post.createdAt) : ""}</p>
+    <motion.div variants={STAGGER_CHILD} className="rounded-[32px] border border-white/5 bg-white/[0.01] overflow-hidden hover:border-[#7C3AED]/20 transition-all glass-heavy group">
+      <div className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-4">
+             <Avatar name={post.author?.name || "U"} size={44} level={post.author?.level} />
+             <div>
+                <p className="font-bold text-white leading-none mb-1">{post.author?.name || "User"}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#4B5563]">{post.createdAt ? timeAgo(post.createdAt) : ""}</p>
+             </div>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
-            {post.userId === currentUserId && (
+          {post.userId === currentUserId && (
               <button onClick={() => { if (confirm("Delete this post?")) del.mutate(); }}
-                className="rounded-lg p-1.5 text-[#4B5563] hover:text-red-400 hover:bg-red-900/20 transition-colors">
-                <Trash2 size={14} />
+                className="opacity-0 group-hover:opacity-100 rounded-xl p-2 text-[#4B5563] hover:text-red-400 hover:bg-red-900/20 transition-all">
+                <Trash2 size={16} />
               </button>
-            )}
-          </div>
+          )}
         </div>
 
-        <p className="text-sm text-[#d4d6e0] leading-relaxed whitespace-pre-wrap">{post.content}</p>
+        <p className="text-[15px] text-zinc-200 leading-relaxed whitespace-pre-wrap">{post.content}</p>
 
         {post.type === "achievement" && post.metadata && (
-          <div className="mt-3 rounded-xl bg-amber-500/10 border border-amber-500/20 p-3 flex items-center gap-2">
-            <span className="text-2xl">{post.metadata.icon || "🏆"}</span>
-            <div><p className="text-xs font-bold text-amber-400">{post.metadata.title || "Achievement"}</p><p className="text-[11px] text-amber-300/60">{post.metadata.description}</p></div>
+          <div className="mt-4 rounded-2xl bg-amber-500/5 border border-amber-500/10 p-4 flex items-center gap-4 group/medal">
+            <div className="h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-3xl group-hover/medal:scale-110 transition-transform">{post.metadata.icon || "🏆"}</div>
+            <div>
+               <p className="text-xs font-black uppercase tracking-widest text-amber-400">{post.metadata.title || "Achievement"}</p>
+               <p className="text-xs text-amber-200/60 leading-tight mt-0.5">{post.metadata.description}</p>
+            </div>
           </div>
         )}
       </div>
 
-      <div className="px-4 pb-3 flex items-center gap-1 border-t border-[rgba(255,255,255,0.06)] pt-3">
-        {/* Reaction button */}
-        <div className="relative">
-          <button
-            onMouseEnter={() => setShowReactions(true)}
-            onMouseLeave={() => setShowReactions(false)}
-            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${post.myReaction ? "bg-[#7C3AED]/20 text-[#a78bfa]" : "text-[#4B5563] hover:bg-[rgba(255,255,255,0.06)] hover:text-[#E2E8F0]"}`}
-          >
-            <span>{dominantReaction?.emoji || "🔥"}</span>
-            <span>{totalReactions > 0 ? totalReactions : ""}</span>
-            {!post.myReaction && <span>React</span>}
-            {post.myReaction && <span>{REACTIONS.find(r => r.key === post.myReaction)?.emoji}</span>}
-          </button>
-          {showReactions && (
-            <div
+      <div className="px-6 py-4 flex items-center gap-4 border-t border-white/5 bg-white/[0.01]">
+          <div className="relative">
+            <button
               onMouseEnter={() => setShowReactions(true)}
               onMouseLeave={() => setShowReactions(false)}
-              className="absolute bottom-full left-0 mb-1 z-10 flex gap-1 bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)] rounded-xl px-2 py-1.5 shadow-xl"
+              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${post.myReaction ? "bg-[#7C3AED]/20 text-[#a78bfa]" : "bg-white/5 text-[#4B5563] hover:text-white"}`}
             >
-              {REACTIONS.map(r => (
-                <button key={r.key} onClick={() => react.mutate(r.key)} title={r.label}
-                  className={`text-lg hover:scale-125 transition-transform rounded-lg p-0.5 ${post.myReaction === r.key ? "bg-[#7C3AED]/30 ring-1 ring-[#7C3AED]" : ""}`}>
-                  {r.emoji}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+              <span>{dominantReaction?.emoji || "🔥"}</span>
+              <span>{totalReactions > 0 ? totalReactions : ""}</span>
+              {!post.myReaction && <span>React</span>}
+            </button>
+            <AnimatePresence>
+              {showReactions && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                  onMouseEnter={() => setShowReactions(true)}
+                  onMouseLeave={() => setShowReactions(false)}
+                  className="absolute bottom-full left-0 mb-2 z-20 flex gap-2 glass p-2 rounded-2xl shadow-2xl"
+                >
+                  {REACTIONS.map(r => (
+                    <button key={r.key} onClick={() => react.mutate(r.key)} title={r.label}
+                      className={`text-xl hover:scale-125 transition-transform rounded-xl p-1.5 ${post.myReaction === r.key ? "bg-[#7C3AED]/30" : "hover:bg-white/10"}`}>
+                      {r.emoji}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
-        <button onClick={() => setShowComments(s => !s)}
-          className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${showComments ? "bg-[rgba(255,255,255,0.06)] text-[#E2E8F0]" : "text-[#4B5563] hover:bg-[rgba(255,255,255,0.06)] hover:text-[#E2E8F0]"}`}>
-          <MessageCircle size={13} />
-          <span>{post.commentCount > 0 ? post.commentCount : "Comment"}</span>
-        </button>
-
-        <button onClick={() => save.mutate()}
-          className={`ml-auto rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${post.isSaved ? "text-amber-400 bg-amber-500/10" : "text-[#4B5563] hover:bg-[rgba(255,255,255,0.06)] hover:text-[#E2E8F0]"}`}>
-          <Bookmark size={13} />
-        </button>
+          <button onClick={() => setShowComments(!showComments)}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${showComments ? "bg-white/10 text-white" : "text-[#4B5563] hover:text-white"}`}>
+            <MessageCircleIcon size={14} /> <span>{post.commentCount || ""}</span>
+          </button>
       </div>
 
-      {showComments && (
-        <div className="px-4 pb-4 space-y-3 border-t border-[rgba(255,255,255,0.06)] pt-3">
-          {(comments as any[]).map((c: any) => (
-            <div key={c.id} className="flex gap-2">
-              <Avatar name={c.authorName || "U"} size={24} />
-              <div className="flex-1 bg-[rgba(255,255,255,0.02)] rounded-xl px-3 py-2">
-                <p className="text-xs font-semibold text-[#a78bfa]">{c.authorName || "User"}</p>
-                <p className="text-xs text-[#d4d6e0] mt-0.5">{c.content}</p>
+      <AnimatePresence>
+        {showComments && (
+          <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden bg-white/[0.01] border-t border-white/5">
+            <div className="p-6 space-y-4">
+              <div className="flex gap-2">
+                <input value={commentText} onChange={e => setCommentText(e.target.value)}
+                  placeholder="Share a word of encouragement..."
+                  className="flex-1 bg-white/[0.02] border border-white/5 rounded-xl px-4 py-2 text-sm text-white focus:border-[#7C3AED] outline-none transition-all" />
+                <button disabled={!commentText.trim() || addComment.isPending}
+                  onClick={() => addComment.mutate()}
+                  className="bg-[#7C3AED] text-white p-2 rounded-xl hover:scale-105 active:scale-95 transition-all">
+                  <Send size={16} />
+                </button>
+              </div>
+              <div className="space-y-4 max-h-64 overflow-y-auto pr-2 scrollbar-none">
+                {comments.map((c: any) => (
+                  <div key={c.id} className="flex gap-3">
+                    <Avatar name={c.author?.name || "U"} size={28} />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <p className="text-xs font-bold text-white">{c.author?.name || "User"}</p>
+                        <p className="text-[8px] font-black uppercase tracking-widest text-[#4B5563]">{timeAgo(c.createdAt)}</p>
+                      </div>
+                      <p className="text-xs text-zinc-400 leading-relaxed">{c.content}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
-          <div className="flex gap-2">
-            <input value={commentText} onChange={e => setCommentText(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && commentText.trim()) { e.preventDefault(); addComment.mutate(); } }}
-              placeholder="Write a comment…"
-              className="flex-1 rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] px-3 py-1.5 text-xs text-[#E2E8F0] placeholder-[#3a3d4a] outline-none focus:border-[#7C3AED]" />
-            <button onClick={() => commentText.trim() && addComment.mutate()} disabled={!commentText.trim()} className="rounded-xl bg-[#7C3AED] px-3 py-1.5 text-white disabled:opacity-50 hover:bg-[#6d31d4]">
-              <Send size={12} />
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function CreatePostBox({ currentUserId, onCreated }: { currentUserId: string; onCreated: () => void }) {
-  const { toast } = useToast();
-  const [open, setOpen] = useState(false);
-  const [content, setContent] = useState("");
-  const [type, setType] = useState("general");
-
-  const create = useMutation({
-    mutationFn: () => apiFetch("/api/posts", { method: "POST", body: JSON.stringify({ content: content.trim(), type }) }),
-    onSuccess: () => { setContent(""); setOpen(false); toast("Post shared! 🎉", "success"); onCreated(); },
-    onError: (e: any) => toast(e.message, "error"),
-  });
-
-  if (!open) return (
-    <button onClick={() => setOpen(true)} className="w-full flex items-center gap-3 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-4 text-left hover:border-[#7C3AED]/40 transition-colors mb-4">
-      <div className="h-9 w-9 rounded-full bg-[#7C3AED]/20 border border-[#7C3AED]/30 flex items-center justify-center shrink-0"><Edit3 size={15} className="text-[#a78bfa]" /></div>
-      <span className="text-sm text-[#374151]">Share your progress, thoughts, or wins…</span>
-    </button>
-  );
-
-  return (
-    <div className="rounded-2xl border border-[#7C3AED]/40 bg-[rgba(255,255,255,0.025)] p-4 mb-4">
-      <div className="flex gap-2 mb-3">
-        {["general", "study_log", "achievement", "question"].map(t => (
-          <button key={t} onClick={() => setType(t)} className={`rounded-lg px-2.5 py-1 text-xs font-medium capitalize transition-all ${type === t ? "bg-[#7C3AED] text-white" : "bg-[rgba(255,255,255,0.02)] text-[#4B5563] hover:text-[#E2E8F0] border border-[rgba(255,255,255,0.06)]"}`}>
-            {t === "study_log" ? "📝 Log" : t === "achievement" ? "🏆 Win" : t === "question" ? "❓ Ask" : "💬 Share"}
-          </button>
-        ))}
-      </div>
-      <textarea value={content} onChange={e => setContent(e.target.value)}
-        placeholder="What's on your mind? Share a study update, win, or question…"
-        rows={3}
-        className="w-full rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] px-3 py-2 text-sm text-[#E2E8F0] placeholder-[#3a3d4a] outline-none focus:border-[#7C3AED] resize-none" />
-      <div className="flex justify-between items-center mt-2">
-        <span className={`text-xs ${content.length > 1800 ? "text-red-400" : "text-[#374151]"}`}>{content.length}/2000</span>
-        <div className="flex gap-2">
-          <button onClick={() => { setOpen(false); setContent(""); }} className="rounded-lg px-3 py-1.5 text-xs text-[#4B5563] hover:text-[#E2E8F0]">Cancel</button>
-          <button onClick={() => content.trim() && create.mutate()} disabled={!content.trim() || create.isPending || content.length > 2000}
-            className="rounded-xl bg-[#7C3AED] px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-50 hover:bg-[#6d31d4]">
-            {create.isPending ? "Posting…" : "Post"}
-          </button>
-        </div>
-      </div>
-    </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
 
@@ -287,299 +257,228 @@ export default function SocialPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const { data: session } = useAuth();
-  const currentUserId = (session as any)?.user?.id ?? "";
-  const [tab, setTab] = useState<"feed" | "friends" | "requests" | "leaderboard" | "activity" | "following">("feed");
-  const [feedType, setFeedType] = useState<"following" | "discover" | "saved">("following");
-  const [searchQ, setSearchQ] = useState("");
-  const [addQ, setAddQ] = useState("");
+  const [tab, setTab] = useState<"feed" | "friends" | "requests" | "leaderboard" | "following" | "activity">("feed");
   const [period, setPeriod] = useState<"daily" | "weekly" | "monthly" | "alltime">("weekly");
+  const [search, setSearch] = useState("");
+  const [newPost, setNewPost] = useState("");
 
-  const { data: friends = [], isError: friendsError, isLoading: friendsLoading } = useQuery({ queryKey: ["social-friends"], queryFn: () => apiFetch("/api/social/friends"), staleTime: 30_000 });
-  const { data: requests, isError: requestsError } = useQuery({ queryKey: ["social-requests"], queryFn: () => apiFetch("/api/social/requests"), staleTime: 30_000 });
-  const { data: leaderboard = [], isError: leaderboardError, isLoading: leaderboardLoading } = useQuery({ queryKey: ["social-leaderboard", period], queryFn: () => apiFetch(`/api/social/leaderboard?period=${period}`), staleTime: 60_000 });
-  const { data: activity = [], isError: activityError, isLoading: activityLoading } = useQuery({ queryKey: ["social-activity"], queryFn: () => apiFetch("/api/social/activity"), staleTime: 60_000, enabled: tab === "activity" });
-  const { data: following = [] } = useQuery({ queryKey: ["social-following"], queryFn: () => apiFetch("/api/social/following"), staleTime: 60_000, enabled: tab === "following" });
-  const { data: followers = [] } = useQuery({ queryKey: ["social-followers"], queryFn: () => apiFetch("/api/social/followers"), staleTime: 60_000, enabled: tab === "following" });
-  const { data: feed = [], refetch: refetchFeed, isLoading: feedLoading, isError: feedError } = useQuery({ queryKey: ["feed", feedType], queryFn: () => apiFetch(`/api/feed?type=${feedType}`), staleTime: 30_000, enabled: tab === "feed" });
+  const { data: posts = [], isLoading: postsLoading, refetch: refetchPosts } = useQuery({
+    queryKey: ["posts", tab],
+    queryFn: () => apiFetch(tab === "feed" ? "/api/posts" : "/api/posts/following"),
+    enabled: tab === "feed" || tab === "activity",
+    staleTime: 60_000,
+  });
+
+  const createPost = useMutation({
+    mutationFn: () => apiFetch("/api/posts", { method: "POST", body: JSON.stringify({ content: newPost, type: "status" }) }),
+    onSuccess: () => { setNewPost(""); toast("Post shared!", "success"); refetchPosts(); },
+    onError: (e: any) => toast(e.message, "error"),
+  });
+
+  const { data: searchResults = [] } = useQuery({
+    queryKey: ["user-search", search],
+    queryFn: () => apiFetch(`/api/social/search?q=${encodeURIComponent(search)}`),
+    enabled: search.length > 2,
+  });
+
+  const { data: friends = [], isLoading: friendsLoading, error: friendsError } = useQuery({
+    queryKey: ["friends"], queryFn: () => apiFetch("/api/social/friends"),
+    enabled: tab === "friends" || tab === "feed",
+  });
+
+  const { data: requests = { incoming: [], outgoing: [] } } = useQuery({
+    queryKey: ["friend-requests"], queryFn: () => apiFetch("/api/social/requests"),
+    enabled: tab === "requests",
+  });
+
+  const { data: leaderboard = [], isLoading: leaderboardLoading, error: leaderboardError } = useQuery({
+    queryKey: ["social-leaderboard", period], queryFn: () => apiFetch(`/api/social/leaderboard?period=${period}`),
+    enabled: tab === "leaderboard",
+  });
+
+  const { data: activity = [], isLoading: activityLoading, error: activityError } = useQuery({
+    queryKey: ["friends-activity"], queryFn: () => apiFetch("/api/social/activity"),
+    enabled: tab === "activity",
+  });
+
+  const { data: followingData = { following: [], followers: [] } } = useQuery({
+    queryKey: ["following-data"], queryFn: () => apiFetch("/api/social/following"),
+    enabled: tab === "following",
+  });
+
+  const sendRequest = useMutation({
+    mutationFn: (userId: string) => apiFetch("/api/social/requests", { method: "POST", body: JSON.stringify({ toUserId: userId }) }),
+    onSuccess: () => { toast("Friend request sent", "success"); setSearch(""); qc.invalidateQueries({ queryKey: ["friend-requests"] }); },
+  });
 
   const followUser = useMutation({
     mutationFn: (userId: string) => apiFetch(`/api/social/follow/${userId}`, { method: "POST" }),
-    onSuccess: () => { toast("Now following!", "success"); qc.invalidateQueries({ queryKey: ["social-following"] }); },
-    onError: (e: any) => toast(e.message, "error"),
+    onSuccess: () => { toast("Following user", "success"); qc.invalidateQueries({ queryKey: ["following-data"] }); },
   });
+
   const unfollowUser = useMutation({
     mutationFn: (userId: string) => apiFetch(`/api/social/follow/${userId}`, { method: "DELETE" }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["social-following"] }); },
-  });
-  const { data: searchResults = [] } = useQuery({ queryKey: ["social-search", searchQ], queryFn: () => apiFetch(`/api/social/search?q=${encodeURIComponent(searchQ)}`), enabled: searchQ.length >= 2, staleTime: 10_000 });
-
-  const sendRequest = useMutation({
-    mutationFn: (targetUsername: string) => apiFetch("/api/social/request", { method: "POST", body: JSON.stringify({ targetUsername }) }),
-    onSuccess: () => { toast("Friend request sent!", "success"); qc.invalidateQueries({ queryKey: ["social-requests"] }); setAddQ(""); },
-    onError: (e: any) => toast(e.message, "error"),
+    onSuccess: () => { toast("Unfollowed user", "info"); qc.invalidateQueries({ queryKey: ["following-data"] }); },
   });
 
   const acceptRequest = useMutation({
-    mutationFn: (id: string) => apiFetch(`/api/social/request/${id}/accept`, { method: "PATCH" }),
-    onSuccess: () => { toast("Friend added!", "success"); qc.invalidateQueries({ queryKey: ["social-friends"] }); qc.invalidateQueries({ queryKey: ["social-requests"] }); },
+    mutationFn: (id: string) => apiFetch(`/api/social/requests/${id}/accept`, { method: "POST" }),
+    onSuccess: () => { toast("Request accepted", "success"); qc.invalidateQueries({ queryKey: ["friend-requests"] }); qc.invalidateQueries({ queryKey: ["friends"] }); },
   });
 
   const rejectRequest = useMutation({
-    mutationFn: (id: string) => apiFetch(`/api/social/request/${id}/reject`, { method: "PATCH" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["social-requests"] }),
+    mutationFn: (id: string) => apiFetch(`/api/social/requests/${id}/reject`, { method: "POST" }),
+    onSuccess: () => { toast("Request declined", "info"); qc.invalidateQueries({ queryKey: ["friend-requests"] }); },
   });
 
   const cancelRequest = useMutation({
-    mutationFn: (id: string) => apiFetch(`/api/social/request/${id}`, { method: "DELETE" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["social-requests"] }),
+    mutationFn: (id: string) => apiFetch(`/api/social/requests/${id}`, { method: "DELETE" }),
+    onSuccess: () => { toast("Request cancelled", "info"); qc.invalidateQueries({ queryKey: ["friend-requests"] }); },
   });
 
-  const incoming = requests?.incoming ?? [];
-  const outgoing = requests?.outgoing ?? [];
-  const TABS: Array<{ id: "feed" | "friends" | "requests" | "leaderboard" | "activity" | "following"; label: string; icon: ElementType; count?: number }> = [
-    { id: "feed", label: "Feed", icon: Newspaper },
-    { id: "friends", label: "Friends", icon: Users, count: friends.length },
-    { id: "requests", label: "Requests", icon: UserPlus, count: incoming.length || undefined },
-    { id: "leaderboard", label: "Board", icon: Trophy },
-    { id: "activity", label: "Activity", icon: Activity },
-    { id: "following", label: "Follow", icon: Rss, count: (followers as any[]).length || undefined },
-  ];
+  const incoming = requests.incoming || [];
+  const outgoing = requests.outgoing || [];
+  const followers = followingData.followers || [];
+  const following = followingData.following || [];
 
   return (
-    <div className="min-h-screen forge-bg-glow text-[#E2E8F0] px-4 sm:px-6 py-8 max-w-3xl mx-auto">
-      <PageHeader
-        icon={<Users size={18} className="text-[#06D6A0]" />}
-        badgeColor="#06D6A0"
-        title="Community"
-        subtitle="Connect, compete, and grow together"
-      />
+    <PageTransition>
+      <div className="min-h-screen forge-bg-glow text-[#E2E8F0] px-6 py-12 max-w-4xl mx-auto">
+        <header className="mb-12 flex flex-col items-center text-center">
+            <motion.div variants={BLUR_IN} initial="initial" animate="animate">
+               <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#06D6A0]/10 mb-6">
+                  <Users className="text-[#06D6A0]" />
+               </div>
+               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#4B5563] mb-4">Community Hub</p>
+               <h1 className="text-4xl font-black text-white sm:text-6xl tracking-tight leading-none mb-4">The <span className="text-[#06D6A0]">Social Flow</span></h1>
+               <p className="text-[#94A3B8] leading-relaxed max-w-xl mx-auto">Connect with global deep-workers. Share milestones, compete on boards, and study in sync.</p>
+            </motion.div>
+        </header>
 
-      {/* Add friend */}
-      <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-4 mb-6">
-        <p className="text-xs font-semibold uppercase tracking-widest text-[#4B5563] mb-3">Add a Friend</p>
-        <div className="flex gap-2">
-          <input value={addQ} onChange={e => setAddQ(e.target.value)} placeholder="Enter username or email…" className="flex-1 rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] px-3 py-2 text-sm text-[#E2E8F0] placeholder-[#3a3d4a] outline-none focus:border-[#7C3AED] transition-colors" onKeyDown={e => e.key === "Enter" && addQ.trim() && sendRequest.mutate(addQ.trim())} />
-          <button onClick={() => addQ.trim() && sendRequest.mutate(addQ.trim())} disabled={!addQ.trim() || sendRequest.isPending} className="rounded-xl bg-[#7C3AED] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 hover:bg-[#6d31d4] transition-colors">
-            {sendRequest.isPending ? "…" : "Send"}
-          </button>
-        </div>
-        {searchQ.length >= 2 && searchResults.length > 0 && (
-          <div className="mt-2 space-y-1">
-            {searchResults.map((u: any) => (
-              <div key={u.id} className="flex items-center gap-2 rounded-lg bg-[rgba(255,255,255,0.02)] px-3 py-2">
-                <Avatar name={u.name || u.email} size={28} />
-                <span className="flex-1 text-sm text-[#E2E8F0]">{u.name || u.email}</span>
-                <button onClick={() => sendRequest.mutate(u.email)} className="text-xs text-[#7C3AED] hover:text-[#a78bfa]">Add</button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1 mb-4 bg-[rgba(255,255,255,0.025)] rounded-xl border border-[rgba(255,255,255,0.06)] p-1">
-        {TABS.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-medium transition-all ${tab === t.id ? "bg-[#7C3AED] text-white" : "text-[#4B5563] hover:text-[#E2E8F0]"}`}>
-            {(() => { const Icon = t.icon as React.FC<{ size?: number }>; return <Icon size={12} />; })()}
-            <span className="hidden sm:inline">{t.label}</span>
-            {t.count !== undefined && t.count > 0 && <span className="ml-0.5 rounded-full bg-red-500 text-white text-[9px] w-4 h-4 flex items-center justify-center">{t.count}</span>}
-          </button>
-        ))}
-      </div>
-
-      {tab === "feed" && (
-        <div>
-          <div className="flex gap-1 mb-4">
-            {(["following", "discover", "saved"] as const).map(t => (
-              <button key={t} onClick={() => setFeedType(t)}
-                className={`flex-1 rounded-lg py-1.5 text-xs font-medium capitalize transition-all ${feedType === t ? "bg-[#7C3AED] text-white" : "bg-[rgba(255,255,255,0.025)] text-[#4B5563] hover:text-[#E2E8F0] border border-[rgba(255,255,255,0.06)]"}`}>
-                {t === "following" ? "📣 Following" : t === "discover" ? "🔍 Discover" : "🔖 Saved"}
-              </button>
-            ))}
-          </div>
-          <CreatePostBox currentUserId={currentUserId} onCreated={() => qc.invalidateQueries({ queryKey: ["feed"] })} />
-          {feedLoading ? (
-            <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-32 animate-pulse rounded-2xl bg-[rgba(255,255,255,0.025)]" />)}</div>
-          ) : feedError ? (
-            <div className="text-center py-16">
-              <p className="text-4xl mb-4">⚠️</p>
-              <p className="text-sm text-red-400 mb-3">Failed to load feed. Please try again.</p>
-              <button onClick={() => refetchFeed()} className="rounded-xl bg-[#7C3AED] px-4 py-2 text-xs font-semibold text-white hover:bg-[#6d31d4]">Retry</button>
-            </div>
-          ) : (feed as any[]).length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-4xl mb-4">📰</p>
-              <p className="text-lg font-semibold text-[#E2E8F0] mb-2">{feedType === "saved" ? "No saved posts" : feedType === "following" ? "Your feed is empty" : "Nothing here yet"}</p>
-              <p className="text-sm text-[#4B5563] mb-4">{feedType === "following" ? "Follow people to see their posts here" : "Be the first to post!"}</p>
-              {feedType === "following" && <button onClick={() => setFeedType("discover")} className="rounded-xl bg-[#7C3AED] px-5 py-2 text-sm font-semibold text-white hover:bg-[#6d31d4]">Discover People</button>}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {(feed as any[]).map((p: any) => (
-                <PostCard
-                  key={p.id} post={p} currentUserId={currentUserId}
-                  onReacted={() => qc.invalidateQueries({ queryKey: ["feed", feedType] })}
-                  onSaved={() => qc.invalidateQueries({ queryKey: ["feed", feedType] })}
-                  onDeleted={() => qc.invalidateQueries({ queryKey: ["feed", feedType] })}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {tab === "friends" && (
-        <div className="space-y-2">
-          {friendsLoading && <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 animate-pulse rounded-xl bg-[rgba(255,255,255,0.025)]" />)}</div>}
-          {friendsError && <p className="text-center py-6 text-sm text-red-400">Failed to load friends. Please refresh the page.</p>}
-          {!friendsLoading && !friendsError && friends.length === 0 && <div className="text-center py-12 text-[#374151]"><Users size={40} className="mx-auto mb-3 opacity-30" /><p>No friends yet. Send a request above!</p></div>}
-          {!friendsLoading && !friendsError && friends.map((f: any) => <FriendCard key={f.id} friend={f} />)}
-        </div>
-      )}
-
-      {tab === "requests" && (
-        <div className="space-y-4">
-          {requestsError && <p className="text-center py-4 text-sm text-red-400">Failed to load requests. Please refresh the page.</p>}
-          {incoming.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-[#4B5563] mb-2">Incoming ({incoming.length})</p>
-              <div className="space-y-2">
-                {incoming.map((r: any) => (
-                  <div key={r.id} className="flex items-center gap-3 rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-3">
-                    <Avatar name={r.otherUser?.name || r.otherUser?.email || "U"} size={36} />
-                    <div className="flex-1 min-w-0"><p className="text-sm font-medium text-[#E2E8F0]">{r.otherUser?.name || r.otherUser?.email}</p><p className="text-xs text-[#4B5563]">Wants to be your friend</p></div>
-                    <button onClick={() => acceptRequest.mutate(r.id)} className="rounded-lg bg-emerald-500/20 text-emerald-400 px-3 py-1.5 text-xs font-semibold hover:bg-emerald-500/30 flex items-center gap-1"><Check size={12} /> Accept</button>
-                    <button onClick={() => rejectRequest.mutate(r.id)} className="rounded-lg bg-red-500/10 text-red-400 px-3 py-1.5 text-xs font-semibold hover:bg-red-500/20 flex items-center gap-1"><X size={12} /> Decline</button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {outgoing.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-[#4B5563] mb-2">Sent</p>
-              <div className="space-y-2">
-                {outgoing.map((r: any) => (
-                  <div key={r.id} className="flex items-center gap-3 rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-3">
-                    <Avatar name={r.otherUser?.name || r.otherUser?.email || "U"} size={36} />
-                    <div className="flex-1"><p className="text-sm font-medium text-[#E2E8F0]">{r.otherUser?.name || r.otherUser?.email}</p><p className="text-xs text-amber-400">Pending…</p></div>
-                    <button onClick={() => cancelRequest.mutate(r.id)} className="text-xs text-[#4B5563] hover:text-red-400">Cancel</button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {!incoming.length && !outgoing.length && <div className="text-center py-12 text-[#374151]"><Bell size={40} className="mx-auto mb-3 opacity-30" /><p>No pending friend requests</p></div>}
-        </div>
-      )}
-
-      {tab === "leaderboard" && (
-        <div>
-          <div className="flex gap-1 mb-4">
-            {(["daily", "weekly", "monthly", "alltime"] as const).map(p => (
-              <button key={p} onClick={() => setPeriod(p)} className={`flex-1 rounded-lg py-1.5 text-xs font-medium capitalize transition-all ${period === p ? "bg-[#7C3AED] text-white" : "bg-[rgba(255,255,255,0.025)] text-[#4B5563] hover:text-[#E2E8F0]"}`}>{p === "alltime" ? "All Time" : p}</button>
-            ))}
-          </div>
-          {leaderboardLoading ? (
-            <div className="space-y-2">{[1,2,3,4].map(i => <div key={i} className="h-14 animate-pulse rounded-xl bg-[rgba(255,255,255,0.025)]" />)}</div>
-          ) : leaderboardError ? (
-            <p className="text-center py-8 text-sm text-red-400">Failed to load leaderboard. Please refresh.</p>
-          ) : (
-            <LeaderboardTable data={leaderboard} />
-          )}
-        </div>
-      )}
-
-      {tab === "following" && (
-        <div className="space-y-4">
-          {followers.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-[#4B5563] mb-2">Followers ({followers.length})</p>
-              <div className="space-y-2">
-                {(followers as any[]).map((f: any) => (
-                  <div key={f.id} className="flex items-center gap-3 rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-3">
-                    <Avatar name={f.name} size={36} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-[#E2E8F0]">{f.name}</p>
-                      <p className="text-xs text-[#4B5563]">Level {f.level} · {f.xp?.toLocaleString()} XP</p>
+        <div className="relative mb-12">
+          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-zinc-500"><UserPlus size={18} /></div>
+          <input
+            value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search learners by name or email..."
+            className="w-full bg-white/[0.02] border border-white/5 rounded-3xl py-5 pl-12 pr-6 text-sm text-white focus:border-[#06D6A0] outline-none transition-all shadow-2xl"
+          />
+          <AnimatePresence>
+            {search.length > 2 && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                className="absolute top-full inset-x-0 mt-2 z-30 glass-heavy rounded-3xl overflow-hidden shadow-2xl p-2 border border-white/5">
+                {searchResults.length === 0 ? (
+                  <p className="text-center py-6 text-xs font-black uppercase text-[#4B5563] tracking-widest">No users found</p>
+                ) : (
+                  searchResults.map((u: any) => (
+                    <div key={u.id} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-white/5 transition-all">
+                      <Avatar name={u.name} level={u.level} />
+                      <div className="flex-1 min-w-0"><p className="text-sm font-bold text-white truncate">{u.name}</p><p className="text-[10px] font-black uppercase tracking-widest text-[#4B5563]">LV.{u.level} · {u.streak}d Streak</p></div>
+                      <button onClick={() => sendRequest.mutate(u.id)}
+                        className="rounded-xl bg-white text-black px-4 py-2 text-xs font-black hover:bg-zinc-200 transition-all flex items-center gap-2">
+                         <Plus size={14} /> Connect
+                      </button>
                     </div>
-                    <button
-                      onClick={() => followUser.mutate(f.id)}
-                      className="rounded-lg border border-[#7C3AED]/50 text-[#a78bfa] px-3 py-1.5 text-xs font-semibold hover:bg-[#7C3AED]/10"
-                    >
-                      Follow Back
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-[#4B5563] mb-2">Following ({(following as any[]).length})</p>
-            {(following as any[]).length === 0 && <div className="text-center py-8 text-[#374151]"><Rss size={36} className="mx-auto mb-3 opacity-30" /><p>Not following anyone yet</p><p className="text-xs mt-1">Visit a user's profile to follow them</p></div>}
-            <div className="space-y-2">
-              {(following as any[]).map((f: any) => (
-                <div key={f.id} className="flex items-center gap-3 rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-3">
-                  <Avatar name={f.name} size={36} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[#E2E8F0]">{f.name}</p>
-                    <p className="text-xs text-[#4B5563]">Level {f.level} · 🔥 {f.streak}</p>
-                  </div>
-                  <button
-                    onClick={() => unfollowUser.mutate(f.id)}
-                    disabled={unfollowUser.isPending}
-                    className="rounded-lg border border-[rgba(255,255,255,0.06)] text-[#4B5563] px-3 py-1.5 text-xs hover:border-red-900/50 hover:text-red-400 transition-colors"
-                  >
-                    Unfollow
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
+                  ))
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-      )}
 
-      {tab === "activity" && (
-        <div className="space-y-2">
-          {activityLoading && <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-14 animate-pulse rounded-xl bg-[rgba(255,255,255,0.025)]" />)}</div>}
-          {activityError && <p className="text-center py-6 text-sm text-red-400">Failed to load activity. Please refresh.</p>}
-          {!activityLoading && !activityError && activity.length === 0 && (
-            <div className="text-center py-12 text-[#374151]">
-              <Activity size={40} className="mx-auto mb-3 opacity-30" />
-              <p className="text-sm">No recent activity from friends</p>
-              <p className="text-xs mt-1 text-[#2a2d3a]">Add friends to see their focus sessions, badges and posts here</p>
-            </div>
-          )}
-          {activity.map((a: any) => {
-            const icon = a.type === "session_complete" ? "🎯" : a.type === "badge_unlocked" ? "🏅" : a.type === "mission_claimed" ? "✅" : a.type === "post_created" ? "📝" : "⚡";
-            let description = "";
-            if (a.type === "session_complete") {
-              description = `Completed a ${a.data?.durationMin ?? 0}min focus session${a.data?.focusScore ? ` · ${a.data.focusScore.toFixed(0)}% focus` : ""}${a.data?.category && a.data.category !== "General" ? ` · ${a.data.category}` : ""}`;
-            } else if (a.type === "badge_unlocked") {
-              description = `Unlocked the "${a.data?.badgeId?.replace(/_/g, " ")}" badge`;
-            } else if (a.type === "mission_claimed") {
-              description = `Completed mission: ${a.data?.missionKey?.replace(/_/g, " ")}`;
-            } else if (a.type === "post_created") {
-              description = a.data?.content ?? "Shared a post";
-            }
-            const ts = a.timestamp ? new Date(a.timestamp) : null;
-            const timeLabel = ts ? (Date.now() - ts.getTime() < 3600000 ? `${Math.round((Date.now() - ts.getTime()) / 60000)}m ago` : ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })) : "";
-            return (
-              <div key={a.id} className="flex items-start gap-3 rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-3 hover:border-[#2a2d40] transition-colors">
-                <span className="text-xl mt-0.5">{icon}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-semibold text-[#E2E8F0]">{a.isMe ? "You" : a.userName}</p>
-                    {a.userLevel && <span className="text-[10px] rounded-full bg-[#6c63ff]/15 text-[#a5a8ff] px-1.5 py-0.5">Lv {a.userLevel}</span>}
-                  </div>
-                  <p className="text-xs text-[#4B5563] mt-0.5 truncate">{description}</p>
-                </div>
-                <span className="text-[10px] text-[#374151] shrink-0 flex items-center gap-1 mt-0.5"><Clock size={10} />{timeLabel}</span>
-              </div>
-            );
-          })}
+        <div className="flex flex-wrap rounded-[24px] border border-white/5 bg-white/[0.01] p-1.5 mb-12 gap-1">
+          {[
+            { id: "feed", label: "Public Feed", icon: <Rss size={14} /> },
+            { id: "friends", label: "Protocol Mates", icon: <Users size={14} /> },
+            { id: "leaderboard", label: "World Board", icon: <Trophy size={14} /> },
+            { id: "activity", label: "Live Pulse", icon: <Activity size={14} /> },
+            { id: "following", label: "Network", icon: <Check size={14} /> },
+            { id: "requests", label: "Connects", icon: <Bell size={14} />, badge: incoming.length },
+          ].map(t => (
+            <button key={t.id} onClick={() => setTab(t.id as any)}
+              className={`flex-1 min-w-fit flex items-center justify-center gap-2 rounded-2xl py-3 px-4 text-[10px] font-black uppercase tracking-widest transition-all ${tab === t.id ? "bg-[#06D6A0] text-black shadow-lg shadow-[#06D6A0]/20" : "text-[#4B5563] hover:bg-white/5 hover:text-white"}`}>
+              {t.icon} {t.label}
+              {t.badge > 0 && <span className="rounded-full bg-red-500 text-white w-4 h-4 flex items-center justify-center text-[8px] animate-bounce">{t.badge}</span>}
+            </button>
+          ))}
         </div>
-      )}
-    </div>
+
+        <AnimatePresence mode="wait">
+          {tab === "feed" && (
+            <motion.div key="feed" variants={STAGGER} initial="initial" animate="animate" exit="exit" className="space-y-6">
+               <div className="rounded-[32px] border border-white/5 bg-white/[0.01] p-6 glass-heavy">
+                  <div className="flex gap-4">
+                     <Avatar name={session?.user?.name || "U"} size={44} level={12} />
+                     <div className="flex-1 space-y-4">
+                        <textarea
+                          value={newPost} onChange={e => setNewPost(e.target.value)}
+                          placeholder="What did you learn in your last flow session?"
+                          className="w-full bg-transparent border-none text-white placeholder-[#4B5563] text-lg font-medium outline-none resize-none min-h-[100px]"
+                        />
+                        <div className="flex justify-between items-center pt-4 border-t border-white/5">
+                           <div className="flex gap-2">
+                              <button className="p-2 rounded-xl hover:bg-white/5 text-[#4B5563] transition-colors"><Image size={20} /></button>
+                              <button className="p-2 rounded-xl hover:bg-white/5 text-[#4B5563] transition-colors"><StarIcon size={20} /></button>
+                           </div>
+                           <button 
+                             disabled={!newPost.trim() || createPost.isPending}
+                             onClick={() => createPost.mutate()}
+                             className="rounded-2xl bg-white text-black px-8 py-3 text-sm font-black hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                           >
+                             Share Protocol
+                           </button>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+
+               {postsLoading ? (
+                 <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-48 animate-pulse rounded-[32px] bg-white/[0.01] border border-white/5" />)}</div>
+               ) : (
+                 posts.map((p: any) => <PostCard key={p.id} post={p} currentUserId={session?.user?.id || ""} onReacted={() => {}} onSaved={() => {}} onDeleted={() => refetchPosts()} />)
+               )}
+            </motion.div>
+          )}
+
+          {tab === "friends" && (
+            <motion.div key="friends" variants={STAGGER} initial="initial" animate="animate" className="grid gap-4 sm:grid-cols-2">
+               {friendsLoading ? <div className="col-span-full py-20 flex justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[#06D6A0] border-t-transparent" /></div> : friends.map((f: any) => <FriendCard key={f.id} friend={f} />)}
+               {!friendsLoading && friends.length === 0 && <div className="col-span-full py-32 text-center opacity-30"><Users size={48} className="mx-auto mb-6" /><p className="text-sm font-black uppercase tracking-widest">No Protocol Mates Found</p></div>}
+            </motion.div>
+          )}
+
+          {tab === "leaderboard" && (
+            <motion.div key="leaderboard" variants={STAGGER} initial="initial" animate="animate">
+               <div className="flex gap-2 mb-8 bg-white/[0.01] border border-white/5 p-1 rounded-2xl">
+                  {(["daily", "weekly", "monthly", "alltime"] as const).map(p => (
+                    <button key={p} onClick={() => setPeriod(p)} className={`flex-1 rounded-xl py-3 text-[10px] font-black uppercase tracking-widest transition-all ${period === p ? "bg-white/10 text-white shadow-xl" : "text-[#4B5563] hover:text-zinc-300"}`}>{p === "alltime" ? "Infinity" : p}</button>
+                  ))}
+               </div>
+               <LeaderboardTable data={leaderboard} />
+            </motion.div>
+          )}
+          
+          {tab === "activity" && (
+            <motion.div key="activity" variants={STAGGER} initial="initial" animate="animate" className="space-y-4">
+               {activity.map((a: any) => (
+                  <motion.div variants={STAGGER_CHILD} key={a.id} className="rounded-2xl border border-white/5 bg-white/[0.01] p-5 flex items-center justify-between glass group">
+                     <div className="flex items-center gap-4">
+                        <div className="text-2xl h-12 w-12 rounded-xl bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                           {a.type === "session_complete" ? "🎯" : a.type === "badge_unlocked" ? "🏅" : "⚡"}
+                        </div>
+                        <div>
+                           <p className="text-sm font-bold text-white mb-0.5">{a.userName} <span className="text-[10px] font-black text-[#06D6A0] ml-2">LV.{a.userLevel}</span></p>
+                           <p className="text-xs text-[#4B5563] font-medium leading-tight">
+                              {a.type === "session_complete" ? `Completed ${a.data?.durationMin}m Session` : a.type === "badge_unlocked" ? `Earned ${a.data?.badgeId} Badge` : "Updated Protocol"}
+                           </p>
+                        </div>
+                     </div>
+                     <ArrowUpRight size={14} className="text-[#4B5563] group-hover:text-white transition-colors" />
+                  </motion.div>
+               ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </PageTransition>
   );
 }

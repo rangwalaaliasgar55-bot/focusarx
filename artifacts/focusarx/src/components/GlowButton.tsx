@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { forwardRef } from "react";
 
 interface GlowButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "danger" | "success" | "ghost";
+  variant?: "primary" | "secondary" | "danger" | "success" | "ghost" | "premium";
   size?: "sm" | "md" | "lg";
   glow?: boolean;
   loading?: boolean;
@@ -11,9 +11,9 @@ interface GlowButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> 
 
 const variants = {
   primary: {
-    base: "bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] text-white border-[rgba(124,58,237,0.5)]",
-    glow: "shadow-[0_0_20px_rgba(124,58,237,0.4),0_4px_12px_rgba(0,0,0,0.3)]",
-    hover: "hover:shadow-[0_0_32px_rgba(124,58,237,0.6),0_4px_16px_rgba(0,0,0,0.4)] hover:from-[#8B5CF6] hover:to-[#6366F1]",
+    base: "bg-gradient-to-br from-[#7C3AED] via-[#8B5CF6] to-[#4F46E5] text-white border-transparent",
+    glow: "shadow-[0_0_24px_rgba(124,58,237,0.3),0_4px_12px_rgba(0,0,0,0.3)]",
+    hover: "hover:shadow-[0_0_32px_rgba(124,58,237,0.5),0_4px_16px_rgba(0,0,0,0.4)] hover:brightness-110",
   },
   secondary: {
     base: "bg-[rgba(124,58,237,0.1)] text-[#A78BFA] border-[rgba(124,58,237,0.3)]",
@@ -34,6 +34,11 @@ const variants = {
     base: "bg-transparent text-[#94A3B8] border-[rgba(124,58,237,0.15)]",
     glow: "",
     hover: "hover:bg-[rgba(124,58,237,0.08)] hover:text-[#E2E8F0]",
+  },
+  premium: {
+    base: "bg-gradient-to-br from-[#7C3AED] via-[#F472B6] to-[#3B82F6] text-white border-transparent",
+    glow: "shadow-[0_0_30px_rgba(244,114,182,0.4),0_0_50px_rgba(124,58,237,0.2)]",
+    hover: "hover:scale-[1.04] hover:shadow-[0_0_40px_rgba(244,114,182,0.6)] hover:brightness-110",
   },
 };
 

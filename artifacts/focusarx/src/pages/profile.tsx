@@ -3,8 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
-import { User, Award, Zap, Lock, Pencil, X, Save, ShoppingBag, Globe, FileText, TrendingUp, TrendingDown, Wallet, History } from "lucide-react";
+import { User, Award, Zap, Lock, Pencil, X, Save, ShoppingBag, Globe, FileText, TrendingUp, TrendingDown, Wallet, History, Star } from "lucide-react";
 import { Link } from "wouter";
+import ProductivityResume from "@/components/ProductivityResume";
+import { useQuery } from "@tanstack/react-query";
 
 type BadgeDef = {
   id: string;
@@ -470,6 +472,18 @@ export default function ProfilePage() {
                   </div>
                 </div>
               </div>
+
+              {/* Productivity Resume */}
+              {user && wallet && stats && (
+                <ProductivityResume 
+                   userName={localName || user.name || "Focus User"}
+                   totalFocusHours={Math.round(stats.totalMinutes / 60)}
+                   avgFocusScore={stats.maxScore} // simplified
+                   rank={`Level ${getLevel(wallet.totalXp)}`}
+                   streak={stats.streak}
+                   topMode="Flow"
+                />
+              )}
 
               {/* Level bar */}
               <LevelBar totalXp={wallet.totalXp} />

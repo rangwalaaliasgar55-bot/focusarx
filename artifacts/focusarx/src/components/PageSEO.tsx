@@ -82,10 +82,37 @@ export function PageSEO({
     setMeta("twitter:title", fullTitle, "name");
     setMeta("twitter:description", description, "name");
     setMeta("twitter:image", ogImage, "name");
+    setMeta("twitter:card", "summary_large_image", "name");
+    setMeta("twitter:site", "@focusarx", "name");
+    setMeta("twitter:creator", "@focusarx", "name");
 
     if (structuredData) {
       const arr = Array.isArray(structuredData) ? structuredData : [structuredData];
       arr.forEach((sd, i) => setStructuredData(`page-sd-${i}`, sd));
+    }
+
+    // Add Breadcrumb Schema automatically based on path
+    if (canonical && canonical !== "/") {
+      const parts = canonical.split("/").filter(Boolean);
+      const breadcrumbs = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": BASE_URL
+          },
+          ...parts.map((p, i) => ({
+            "@type": "ListItem",
+            "position": i + 2,
+            "name": p.charAt(0).toUpperCase() + p.slice(1).replace(/-/g, " "),
+            "item": `${BASE_URL}/${parts.slice(0, i + 1).join("/")}`
+          }))
+        ]
+      };
+      setStructuredData("breadcrumb-sd", breadcrumbs);
     }
 
     return () => {
@@ -94,6 +121,7 @@ export function PageSEO({
         const arr = Array.isArray(structuredData) ? structuredData : [structuredData];
         arr.forEach((_sd, i) => removeStructuredData(`page-sd-${i}`));
       }
+      removeStructuredData("breadcrumb-sd");
     };
   }, [title, description, canonical, ogImage, ogType, keywords, noindex, structuredData]);
 
@@ -103,9 +131,15 @@ export function PageSEO({
 export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canonical: string }> = {
   home: {
     canonical: "/",
-    title: "FocusArx | AI Productivity Platform & Focus Timer",
-    description: "FocusArx helps users focus, track productivity, build habits, and achieve goals using AI-powered productivity tools, focus sessions, analytics, and smart insights.",
-    keywords: "FocusArx, AI productivity tool, focus timer, Pomodoro timer, deep work, study timer, habit tracker, AI coach",
+    title: "FocusArx | No. 1 AI Productivity Platform & Focus Timer",
+    description: "Master your focus with FocusArx. AI-powered productivity OS featuring adaptive Pomodoro sessions, real-time coaching, and gamified progress. Join 50,000+ top students.",
+    keywords: "FocusArx, AI productivity tool, best focus timer, Pomodoro timer, deep work app, study timer, habit tracker, AI study coach, productivity platform",
+  },
+  profiles: {
+    canonical: "/profiles",
+    title: "Focus Profiles | Custom Network Blockers | FocusArx",
+    description: "Create custom network focus profiles. Automatically block social media and distracting domains based on your location or task. Precision focus control.",
+    keywords: "website blocker, focus profiles, block reddit, study mode, distraction free browsing",
   },
   about: {
     canonical: "/about",
@@ -127,9 +161,21 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   },
   pricing: {
     canonical: "/pricing",
-    title: "FocusArx Pricing | Free Forever + Premium Plans",
-    description: "FocusArx is free forever with unlimited focus sessions, AI coaching, and gamification. Premium from $7/month adds XP multipliers, exclusive themes, and priority AI.",
-    keywords: "FocusArx pricing, FocusArx premium, FocusArx free, FocusArx plans, FocusArx subscription",
+    title: "FocusArx Pricing | Elite Features for Deep Work",
+    description: "Upgrade your focus. Get unlimited AI coaching, advanced Focus DNA insights, and exclusive themes. 7-day free trial available. Professional productivity credentials.",
+    keywords: "FocusArx pricing, productivity app cost, deep work premium, AI study coach price",
+  },
+  onboarding: {
+    canonical: "/onboarding",
+    title: "Onboarding | Calibrate Your Focus DNA | FocusArx",
+    description: "Initialize your deep work environment. We'll calibrate your focus goals and study style for peak performance.",
+    keywords: "onboarding, focus setup, productivity calibration",
+  },
+  forgeRoom: {
+    canonical: "/forge-room",
+    title: "Forge Room | Live Collective Flow | FocusArx",
+    description: "Study alongside thousands of elite learners in the Forge Room. Real-time group resonance and collective focus multipliers.",
+    keywords: "virtual study room, group study online, focus together, online library",
   },
   privacy: {
     canonical: "/privacy",
@@ -178,5 +224,35 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
     title: "Product Roadmap | What's Next for FocusArx",
     description: "Explore the FocusArx product roadmap. See upcoming features, recent releases, and how we're building the world's best AI productivity platform.",
     keywords: "FocusArx roadmap, FocusArx features, FocusArx upcoming, FocusArx future",
+  },
+  analytics: {
+    canonical: "/analytics",
+    title: "Focus Analytics | Deep Focus Data & Insights",
+    description: "Deep dive into your focus data. Visualize your productivity trends, best focus hours, and performance streaks with FocusArx analytics.",
+    keywords: "focus analytics, productivity data, study patterns, focus trends, FocusArx data",
+  },
+  dashboard: {
+    canonical: "/dashboard",
+    title: "Your Command Center | FocusArx Dashboard",
+    description: "Manage your deep focus sessions, track daily goals, and see your academic city grow in real-time from your FocusArx dashboard.",
+    keywords: "productivity dashboard, focus command center, daily goals, FocusArx home",
+  },
+  city: {
+    canonical: "/city",
+    title: "Focus City | Build Your Academic Civilization",
+    description: "Watch your study hours turn into a thriving digital city. Unlock buildings, increase your population, and evolve your civilization with every focus session.",
+    keywords: "gamified productivity, focus city, study rewards, virtual city, FocusArx gamification",
+  },
+  scienceOfDeepWork: {
+    canonical: "/science-of-deep-work",
+    title: "The Neuro-Science of Deep Work | How Focus Rewires Your Brain",
+    description: "Explore the biological mechanisms behind deep work. Learn about myelin, neurotransmitters, and how FocusArx helps you enter the flow state faster.",
+    keywords: "science of focus, deep work neuroscience, myelin study, flow state biology, FocusArx science",
+  },
+  feynmanTechnique: {
+    canonical: "/feynman-technique",
+    title: "The Feynman Technique | Master Any Subject Faster | FocusArx",
+    description: "Learn the Feynman Technique — the ultimate method for rapid learning. 4 simple steps to understand complex topics by teaching them to others.",
+    keywords: "feynman technique, rapid learning, study methods, richard feynman, how to learn anything",
   },
 };

@@ -1,3 +1,5 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { usersTable, distractionLogsTable, readinessLogsTable, activeSessionsTable } from "@workspace/db";
@@ -8,9 +10,6 @@ import { aiCoachLimiter } from "../lib/rateLimiter";
 
 const router = Router();
 
-function auth(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.userId = userId;
   next();
 }
@@ -76,7 +75,7 @@ function builtinReply(userMessage: string): string {
   return tips[Math.floor(Date.now() / 1000) % tips.length]!;
 }
 
-router.post("/coach/chat", auth, aiCoachLimiter, async (req: any, res) => {
+router.post("/coach/chat", authMiddleware, aiCoachLimiter, async (req: AuthRequest, res: Response) => {
   const { message, conversationHistory } = req.body as {
     message?: string;
     conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>;
@@ -138,7 +137,7 @@ ${context.length > 0 ? context.join("\n") : "No context available yet."}`;
   }
 });
 
-router.get("/coach/session-tip", auth, async (req: any, res) => {
+router.get("/coach/session-tip", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const today = new Date().toISOString().split("T")[0]!;
     const [readiness] = await db.select({ score: readinessLogsTable.score })

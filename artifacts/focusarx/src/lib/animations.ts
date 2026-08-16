@@ -2,15 +2,6 @@
  * FocusArx — Shared Motion System
  *
  * Single source-of-truth for all Framer Motion variants.
- * Rules:
- *  - Spring-based by default (not linear, not bouncy)
- *  - Fast (150–200 ms) for micro-interactions
- *  - Moderate (350–500 ms) for entrances
- *  - All variants should be used with animate="animate" initial="initial"
- *    and exit="exit" to work correctly with AnimatePresence.
- *
- * `reducedMotion` flag is exported — gates complex animations at the
- * call site when paired with Framer's useReducedMotion().
  */
 
 import { type Variants, type Transition } from 'framer-motion';
@@ -21,6 +12,13 @@ const SPRING_SNAPPY: Transition = { type: 'spring', stiffness: 520, damping: 30,
 const SPRING_BOUNCY: Transition = { type: 'spring', stiffness: 480, damping: 22, mass: 0.5 };
 const EASE_OUT:  Transition = { duration: 0.28, ease: [0.16, 1, 0.3, 1] };
 const EASE_FAST: Transition = { duration: 0.16, ease: [0.16, 1, 0.3, 1] };
+
+/* ─── Blur variants ────────────────────────────────────────────────────── */
+export const BLUR_IN: Variants = {
+  initial: { opacity: 0, filter: 'blur(10px)', scale: 0.95 },
+  animate: { opacity: 1, filter: 'blur(0px)', scale: 1, transition: { ...SPRING_SMOOTH, duration: 0.6 } },
+  exit:    { opacity: 0, filter: 'blur(10px)', scale: 0.95, transition: EASE_FAST },
+};
 
 /* ─── Page transitions ─────────────────────────────────────────────────── */
 export const PAGE: Variants = {
@@ -226,7 +224,7 @@ export const DRAWER_LEFT: Variants = {
 /* ─── Reduced-motion helpers ───────────────────────────────────────────── */
 /**
  * Call this to collapse a variant to a simple opacity fade when
- * `useReducedMotion()` returns true.
+ * \`useReducedMotion()\` returns true.
  *
  * Usage:
  *   const prefersReduced = useReducedMotion();

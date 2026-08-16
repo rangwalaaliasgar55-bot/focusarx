@@ -1,12 +1,11 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { appFeedbackTable, userWalletsTable } from "@workspace/db";
 import { extractUserId } from "./auth";
 import { eq, desc, avg, count, sql } from "drizzle-orm";
 
-function auth(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.userId = userId;
   next();
 }
@@ -19,7 +18,7 @@ function adminAuth(req: any, res: any, next: any) {
 
 export const feedbackRouter = Router();
 
-feedbackRouter.post("/feedback", auth, async (req, res) => {
+feedbackRouter.post("/feedback", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   try {
     const { rating, message, category, sessionCount } = req.body as {

@@ -1,12 +1,11 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { notificationsTable } from "@workspace/db";
 import { extractUserId } from "./auth";
 import { eq, and, desc, sql } from "drizzle-orm";
 
-function auth(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.userId = userId;
   next();
 }
@@ -23,7 +22,7 @@ export async function createNotification(
   await db.insert(notificationsTable).values({ userId, type, title, message, data: data ?? null });
 }
 
-notificationsRouter.get("/notifications", auth, async (req, res) => {
+notificationsRouter.get("/notifications", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   try {
     const rows = await db.select().from(notificationsTable)
@@ -37,7 +36,7 @@ notificationsRouter.get("/notifications", auth, async (req, res) => {
   }
 });
 
-notificationsRouter.patch("/notifications/:id/read", auth, async (req, res) => {
+notificationsRouter.patch("/notifications/:id/read", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   try {
     await db.update(notificationsTable)
@@ -49,7 +48,7 @@ notificationsRouter.patch("/notifications/:id/read", auth, async (req, res) => {
   }
 });
 
-notificationsRouter.post("/notifications/mark-all-read", auth, async (req, res) => {
+notificationsRouter.post("/notifications/mark-all-read", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   try {
     await db.update(notificationsTable).set({ read: true }).where(eq(notificationsTable.userId, userId));
@@ -59,7 +58,7 @@ notificationsRouter.post("/notifications/mark-all-read", auth, async (req, res) 
   }
 });
 
-notificationsRouter.delete("/notifications/:id", auth, async (req, res) => {
+notificationsRouter.delete("/notifications/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   try {
     await db.delete(notificationsTable)
@@ -70,7 +69,7 @@ notificationsRouter.delete("/notifications/:id", auth, async (req, res) => {
   }
 });
 
-notificationsRouter.delete("/notifications", auth, async (req, res) => {
+notificationsRouter.delete("/notifications", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   try {
     await db.delete(notificationsTable).where(eq(notificationsTable.userId, userId));

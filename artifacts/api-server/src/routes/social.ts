@@ -1,20 +1,13 @@
-import { Router } from "express";
+import { Request, Response, NextFunction, Router } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { db } from "@workspace/db";
 import {
   friendshipsTable, usersTable, userWalletsTable,
-  studyStreaksTable, userBadgesTable, focusSessionsTable,
-  tasksTable, notificationsTable, followsTable,
-  userMissionProgressTable, socialPostsTable, activeSessionsTable,
+  studyStreaksTable, focusSessionsTable, activeSessionsTable,
+  notificationsTable, followsTable,
+  userMissionProgressTable, socialPostsTable, userBadgesTable,
 } from "@workspace/db";
-import { extractUserId } from "./auth";
-import { eq, or, and, desc, ne, ilike, sql, gte, inArray } from "drizzle-orm";
-
-function auth(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-  req.userId = userId;
-  next();
-}
+import { eq, or, and, desc, ilike, sql, gte, inArray } from "drizzle-orm";
 
 export const socialRouter = Router();
 
@@ -28,7 +21,7 @@ async function getFriendIds(userId: string): Promise<string[]> {
   return rows.map(r => r.requesterId === userId ? r.addresseeId : r.requesterId);
 }
 
-socialRouter.get("/social/friends", auth, async (req, res) => {
+socialRouter.get("/social/friends", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const friendIds = await getFriendIds(userId);
   if (!friendIds.length) return res.json([]);
@@ -63,7 +56,7 @@ socialRouter.get("/social/friends", auth, async (req, res) => {
   res.json(friends.sort((a, b) => b.xp - a.xp));
 });
 
-socialRouter.get("/social/requests", auth, async (req, res) => {
+socialRouter.get("/social/requests", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const incoming = await db.select().from(friendshipsTable)
     .where(and(eq(friendshipsTable.addresseeId, userId), eq(friendshipsTable.status, "pending")));
@@ -82,7 +75,7 @@ socialRouter.get("/social/requests", auth, async (req, res) => {
   res.json({ incoming: await enriched(incoming, "incoming"), outgoing: await enriched(outgoing, "outgoing") });
 });
 
-socialRouter.post("/social/request", auth, async (req, res) => {
+socialRouter.post("/social/request", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const { targetId, targetUsername } = req.body;
 
@@ -116,7 +109,7 @@ socialRouter.post("/social/request", auth, async (req, res) => {
   res.json({ ok: true, friendship: row });
 });
 
-socialRouter.patch("/social/request/:id/accept", auth, async (req, res) => {
+socialRouter.patch("/social/request/:id/accept", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [row] = await db.select().from(friendshipsTable).where(eq(friendshipsTable.id, req.params.id)).limit(1);
   if (!row || row.addresseeId !== userId) return res.status(403).json({ error: "Not authorized" });
@@ -131,7 +124,7 @@ socialRouter.patch("/social/request/:id/accept", auth, async (req, res) => {
   res.json({ ok: true, friendship: updated });
 });
 
-socialRouter.patch("/social/request/:id/reject", auth, async (req, res) => {
+socialRouter.patch("/social/request/:id/reject", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [row] = await db.select().from(friendshipsTable).where(eq(friendshipsTable.id, req.params.id)).limit(1);
   if (!row || row.addresseeId !== userId) return res.status(403).json({ error: "Not authorized" });
@@ -139,7 +132,7 @@ socialRouter.patch("/social/request/:id/reject", auth, async (req, res) => {
   res.json({ ok: true });
 });
 
-socialRouter.delete("/social/request/:id", auth, async (req, res) => {
+socialRouter.delete("/social/request/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [row] = await db.select().from(friendshipsTable).where(eq(friendshipsTable.id, req.params.id)).limit(1);
   if (!row || (row.requesterId !== userId && row.addresseeId !== userId)) return res.status(403).json({ error: "Not authorized" });
@@ -147,7 +140,7 @@ socialRouter.delete("/social/request/:id", auth, async (req, res) => {
   res.json({ ok: true });
 });
 
-socialRouter.get("/social/search", auth, async (req, res) => {
+socialRouter.get("/social/search", authMiddleware, async (req: AuthRequest, res: Response) => {
   const { q, friendsOnly } = req.query as { q?: string; friendsOnly?: string };
   if (!q || q.length < 2) return res.json([]);
   const userId = req.userId!;
@@ -172,7 +165,7 @@ socialRouter.get("/social/search", auth, async (req, res) => {
   res.json(users.filter(u => u.id !== userId));
 });
 
-socialRouter.get("/social/activity", auth, async (req, res) => {
+socialRouter.get("/social/activity", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   try {
     const friendIds = await getFriendIds(userId);
@@ -214,7 +207,6 @@ socialRouter.get("/social/activity", auth, async (req, res) => {
         .orderBy(desc(socialPostsTable.createdAt)).limit(20),
     ]);
 
-    // Build user+level cache in one pass
     const uids = new Set([...sessions.map(s => s.userId), ...badges.map(b => b.userId), ...missions.map(m => m.userId), ...posts.map(p => p.userId)]);
     const userMap = new Map<string, { name: string; level: number }>();
     if (uids.size > 0) {
@@ -226,10 +218,22 @@ socialRouter.get("/social/activity", auth, async (req, res) => {
       for (const u of userRows) userMap.set(u.id, { name: u.name || u.email?.split("@")[0] || "Scholar", level: wmap.get(u.id) ?? 1 });
     }
 
-    const items: any[] = [];
+    const items: {
+      id: string;
+      type: string;
+      userId: string;
+      userName: string;
+      userLevel: number;
+      isMe: boolean;
+      timestamp: Date;
+      data: any;
+    }[] = [];
+
     for (const s of sessions) {
       const u = userMap.get(s.userId);
-      items.push({ id: `session-${s.id}`, type: "session_complete", userId: s.userId, userName: u?.name ?? "Scholar", userLevel: u?.level ?? 1, isMe: s.userId === userId, timestamp: s.completedAt, data: { durationMin: Math.round((s.durationSec ?? 0) / 60), focusScore: s.focusScore, category: s.category ?? "General" } });
+      if (s.completedAt) {
+        items.push({ id: `session-${s.id}`, type: "session_complete", userId: s.userId, userName: u?.name ?? "Scholar", userLevel: u?.level ?? 1, isMe: s.userId === userId, timestamp: s.completedAt, data: { durationMin: Math.round((s.durationSec ?? 0) / 60), focusScore: s.focusScore, category: s.category ?? "General" } });
+      }
     }
     for (const b of badges) {
       const u = userMap.get(b.userId);
@@ -245,7 +249,7 @@ socialRouter.get("/social/activity", auth, async (req, res) => {
       items.push({ id: `post-${p.id}`, type: "post_created", userId: p.userId, userName: u?.name ?? "Scholar", userLevel: u?.level ?? 1, isMe: p.userId === userId, timestamp: p.createdAt, data: { content: p.content.slice(0, 200), postType: p.type } });
     }
 
-    items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    items.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
     res.json(items.slice(0, 40));
   } catch (err) {
     console.error("GET /social/activity error:", err);
@@ -253,9 +257,7 @@ socialRouter.get("/social/activity", auth, async (req, res) => {
   }
 });
 
-const LEADERBOARD_PERIODS = ["daily", "weekly", "monthly", "alltime"] as const;
-
-socialRouter.get("/social/leaderboard", auth, async (req, res) => {
+socialRouter.get("/social/leaderboard", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const period = (req.query.period as string) || "weekly";
   const friendIds = await getFriendIds(userId);
@@ -282,9 +284,7 @@ socialRouter.get("/social/leaderboard", auth, async (req, res) => {
   res.json(entries.sort((a, b) => b.xp - a.xp).map((e, i) => ({ ...e, rank: i + 1 })));
 });
 
-// ─── FOLLOWS ─────────────────────────────────────────────────────────────────
-
-socialRouter.post("/social/follow/:userId", auth, async (req, res) => {
+socialRouter.post("/social/follow/:userId", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const { userId: targetId } = req.params as { userId: string };
   if (userId === targetId) { res.status(400).json({ error: "Cannot follow yourself" }); return; }
@@ -300,7 +300,7 @@ socialRouter.post("/social/follow/:userId", auth, async (req, res) => {
   }
 });
 
-socialRouter.delete("/social/follow/:userId", auth, async (req, res) => {
+socialRouter.delete("/social/follow/:userId", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const { userId: targetId } = req.params as { userId: string };
   try {
@@ -311,7 +311,7 @@ socialRouter.delete("/social/follow/:userId", auth, async (req, res) => {
   }
 });
 
-socialRouter.get("/social/following", auth, async (req, res) => {
+socialRouter.get("/social/following", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   try {
     const rows = await db.select().from(followsTable).where(eq(followsTable.followerId, userId)).orderBy(desc(followsTable.createdAt));
@@ -328,7 +328,7 @@ socialRouter.get("/social/following", auth, async (req, res) => {
   }
 });
 
-socialRouter.get("/social/friends-activity", auth, async (req, res) => {
+socialRouter.get("/social/friends-activity", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   try {
     const followRows = await db.select({ followingId: followsTable.followingId })
@@ -378,7 +378,7 @@ socialRouter.get("/social/friends-activity", auth, async (req, res) => {
   }
 });
 
-socialRouter.get("/social/followers", auth, async (req, res) => {
+socialRouter.get("/social/followers", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   try {
     const rows = await db.select().from(followsTable).where(eq(followsTable.followingId, userId)).orderBy(desc(followsTable.createdAt));
@@ -393,4 +393,3 @@ socialRouter.get("/social/followers", auth, async (req, res) => {
     res.status(500).json({ error: "Internal error" });
   }
 });
-

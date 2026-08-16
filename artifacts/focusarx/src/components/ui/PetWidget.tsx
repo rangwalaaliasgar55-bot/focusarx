@@ -38,8 +38,11 @@ export function PetWidget({ species = "owl", name = "Buddy", level = 1, mood = "
         {emoji}
       </motion.span>
       <span className="text-xs">{moodEmoji}</span>
-      <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap bg-black/80 text-white text-xs px-2 py-1 rounded-md pointer-events-none">
-        {name} · Lv.{level}
+      <div className="w-full h-1 bg-white/5 rounded-full mt-1 overflow-hidden">
+        <div className="h-full bg-emerald-500 w-2/3" />
+      </div>
+      <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap bg-black/80 text-white text-[10px] px-2 py-1 rounded-md pointer-events-none">
+        {name} · Lv.{level} (66% to next level)
       </div>
     </motion.button>
   );

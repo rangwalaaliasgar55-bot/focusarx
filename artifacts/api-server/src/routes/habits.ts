@@ -1,3 +1,5 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import {
@@ -6,9 +8,6 @@ import {
 import { extractUserId } from "./auth";
 import { eq, and, desc, sql, gte } from "drizzle-orm";
 
-function auth(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.userId = userId;
   next();
 }
@@ -36,7 +35,7 @@ function calcStreak(completions: { date: string }[]): number {
   return streak;
 }
 
-habitsRouter.get("/habits", auth, async (req, res) => {
+habitsRouter.get("/habits", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
     const habits = await db.select().from(habitsTable)
@@ -65,7 +64,7 @@ habitsRouter.get("/habits", auth, async (req, res) => {
   }
 });
 
-habitsRouter.post("/habits", auth, async (req, res) => {
+habitsRouter.post("/habits", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const { name, icon, color, frequency, targetDays } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: "name required" });
@@ -80,7 +79,7 @@ habitsRouter.post("/habits", auth, async (req, res) => {
   res.status(201).json(habit);
 });
 
-habitsRouter.patch("/habits/:id", auth, async (req, res) => {
+habitsRouter.patch("/habits/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [habit] = await db.select().from(habitsTable)
     .where(and(eq(habitsTable.id, req.params.id), eq(habitsTable.userId, userId))).limit(1);
@@ -93,14 +92,14 @@ habitsRouter.patch("/habits/:id", auth, async (req, res) => {
   res.json(updated);
 });
 
-habitsRouter.delete("/habits/:id", auth, async (req, res) => {
+habitsRouter.delete("/habits/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   await db.delete(habitsTable)
     .where(and(eq(habitsTable.id, req.params.id), eq(habitsTable.userId, userId)));
   res.json({ ok: true });
 });
 
-habitsRouter.post("/habits/:id/complete", auth, async (req, res) => {
+habitsRouter.post("/habits/:id/complete", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const { date, note } = req.body;
   const completionDate = date || todayStr();
@@ -141,7 +140,7 @@ habitsRouter.post("/habits/:id/complete", auth, async (req, res) => {
   res.json({ ok: true, streak, totalCompletions: habit.totalCompletions + 1 });
 });
 
-habitsRouter.delete("/habits/:id/complete", auth, async (req, res) => {
+habitsRouter.delete("/habits/:id/complete", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const date = (req.query.date as string) || todayStr();
   await db.delete(habitCompletionsTable)
@@ -152,7 +151,7 @@ habitsRouter.delete("/habits/:id/complete", auth, async (req, res) => {
   res.json({ ok: true });
 });
 
-habitsRouter.get("/habits/:id/history", auth, async (req, res) => {
+habitsRouter.get("/habits/:id/history", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [habit] = await db.select().from(habitsTable)
     .where(and(eq(habitsTable.id, req.params.id), eq(habitsTable.userId, userId))).limit(1);
@@ -171,7 +170,7 @@ habitsRouter.get("/habits/:id/history", auth, async (req, res) => {
   res.json({ habit, completions });
 });
 
-habitsRouter.get("/habits/stats", auth, async (req, res) => {
+habitsRouter.get("/habits/stats", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
     const habits = await db.select().from(habitsTable)

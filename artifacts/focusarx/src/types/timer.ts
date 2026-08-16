@@ -31,4 +31,6 @@ export interface Task {
   completedPomodoros: number;
   done: boolean;
   createdAt: string;
+  priority?: "low" | "medium" | "high";
+  category?: string;
 }

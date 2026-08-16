@@ -1,3 +1,5 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import {
   db, focusDnaTable, focusSessionsTable, distractionLogsTable,
@@ -8,9 +10,6 @@ import { logger } from "../lib/logger";
 
 const router = Router();
 
-function auth(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.userId = userId;
   next();
 }
@@ -58,7 +57,7 @@ async function callGroq(systemPrompt: string, userPrompt: string): Promise<strin
   }
 }
 
-router.get("/focus-dna", auth, async (req: any, res) => {
+router.get("/focus-dna", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const [dna] = await db.select().from(focusDnaTable).where(eq(focusDnaTable.userId, req.userId));
     const [{ value: totalSessions }] = await db
@@ -72,7 +71,7 @@ router.get("/focus-dna", auth, async (req: any, res) => {
   }
 });
 
-router.post("/focus-dna/generate", auth, async (req: any, res) => {
+router.post("/focus-dna/generate", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const sessions = await db
       .select()

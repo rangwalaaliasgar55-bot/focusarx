@@ -10,6 +10,7 @@ import { getToken } from "@/lib/auth";
 import { PageTransition } from "@/components/PageTransition";
 import PageHeader from "@/components/PageHeader";
 import { format, parseISO } from "date-fns";
+import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 
 interface AnalyticsData {
   heatmap: Record<string, number>;
@@ -56,7 +57,7 @@ function buildHeatmapGrid(heatmap: Record<string, number> | undefined) {
 
 const HOUR_COLORS = ["#7C3AED", "#A78BFA", "#06D6A0", "#FFB800", "#F97316"];
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: any[]; label?: string }) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-lg border border-[rgba(124,58,237,0.3)] bg-[rgba(12,17,40,0.95)] px-3 py-2 text-xs text-[#E2E8F0] shadow-xl backdrop-blur-xl">
@@ -66,7 +67,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-const BarTooltip = ({ active, payload, label }: any) => {
+const BarTooltip = ({ active, payload, label }: { active?: boolean; payload?: any[]; label?: string }) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-lg border border-[rgba(124,58,237,0.3)] bg-[rgba(12,17,40,0.95)] px-3 py-2 text-xs text-[#E2E8F0] shadow-xl backdrop-blur-xl">
@@ -113,6 +114,7 @@ export default function AnalyticsPage() {
 
   return (
     <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow">
+      <PageSEO {...PAGE_SEO.analytics} />
       <div className="pointer-events-none absolute inset-0" aria-hidden>
         <div className="absolute -left-32 top-1/3 h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle_at_center,rgba(6,214,160,0.06),transparent_65%)] blur-3xl" />
       </div>
@@ -264,7 +266,7 @@ export default function AnalyticsPage() {
                           wrapperStyle={{ fontSize: "10px" }}
                         />
                         <Tooltip
-                          formatter={(v: any) => [`${v}m`, "Focus"]}
+                          formatter={(v: number) => [`${v}m`, "Focus"]}
                           contentStyle={{ background: "rgba(12,17,40,0.95)", border: "1px solid rgba(124,58,237,0.3)", borderRadius: 8, fontSize: 11 }}
                         />
                       </PieChart>

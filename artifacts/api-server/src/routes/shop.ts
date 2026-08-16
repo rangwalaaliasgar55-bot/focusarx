@@ -1,12 +1,11 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { userWalletsTable, usersTable, notificationsTable, coinTransactionsTable } from "@workspace/db";
 import { extractUserId } from "./auth";
 import { eq, sql } from "drizzle-orm";
 
-function auth(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.userId = userId;
   next();
 }
@@ -41,13 +40,13 @@ const SHOP_ITEMS: ShopItem[] = [
   { id: "badge_frame_gold",name: "Gold Badge Frame",        icon: "🖼️", price: 2000,  category: "cosmetic",  description: "Stylish gold frame for your badges." },
 ];
 
-shopRouter.get("/shop/items", auth, async (req: any, res) => {
+shopRouter.get("/shop/items", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [wallet] = await db.select({ coins: userWalletsTable.coins }).from(userWalletsTable).where(eq(userWalletsTable.userId, userId));
   res.json({ items: SHOP_ITEMS, coins: wallet?.coins ?? 0 });
 });
 
-shopRouter.post("/shop/purchase/:itemId", auth, async (req: any, res) => {
+shopRouter.post("/shop/purchase/:itemId", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const { itemId } = req.params;
   const item = SHOP_ITEMS.find(i => i.id === itemId);

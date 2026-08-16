@@ -4,7 +4,9 @@ import { useAuth } from "@/lib/auth";
 import { aiRoadmapSchema } from "@/lib/validators";
 import { getToken } from "@/lib/auth";
 import { trackSiteEvent } from "@/lib/site-analytics";
-import { BookmarkPlus, Trash2 } from "lucide-react";
+import { BookmarkPlus, Trash2, Map, Sparkles, Target, Clock, ArrowRight } from "lucide-react";
+import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
+import { BLUR_IN, STAGGER, STAGGER_CHILD } from "@/lib/animations";
 
 type RoadmapDay = {
   day: number;
@@ -131,190 +133,159 @@ export default function RoadmapPage() {
 
   return (
     <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow">
+      <PageSEO {...PAGE_SEO.roadmap} />
       <div className="pointer-events-none absolute inset-0" aria-hidden>
         <div className="absolute -left-24 top-0 h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.15),transparent_70%)] blur-3xl" />
         <div className="absolute bottom-0 right-0 h-[360px] w-[360px] rounded-full bg-[radial-gradient(circle_at_center,rgba(6,214,160,0.08),transparent_70%)] blur-3xl" />
       </div>
-      <main className="relative z-10 mx-auto max-w-6xl px-4 py-10 sm:py-12">
-        <div className="mb-8">
-          <p className="text-xs font-medium uppercase tracking-[0.22em] text-[#4B5563]">Plan your success</p>
-          <h1 className="mt-1 text-2xl font-bold text-[#E2E8F0] sm:text-3xl">AI Study Roadmap</h1>
-        </div>
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,380px)_1fr]">
-          <motion.aside layout className="h-fit rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-6 shadow-2xl backdrop-blur-2xl">
-            <h2 className="text-sm font-semibold text-zinc-200">Plan inputs</h2>
-            <p className="mt-1 text-xs text-zinc-500">We will shape Pomodoro-sized blocks to match your day.</p>
-            {authStatus === "loading" && (
-              <p className="mt-3 flex items-center gap-2 text-xs text-zinc-500">
-                <span className="h-3 w-3 animate-spin rounded-full border border-zinc-700 border-t-zinc-400" />
-                Connecting…
-              </p>
-            )}
-            <label className="mt-5 block text-xs font-medium text-zinc-400">Goal
-              <textarea value={goal} onChange={(e) => setGoal(e.target.value)} rows={3} className="mt-1.5 w-full resize-none rounded-xl border border-zinc-800/80 bg-zinc-950/40 px-3 py-2 text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-sky-500/40" />
-            </label>
-            <label className="mt-4 block text-xs font-medium text-zinc-400">Daily hours
-              <input type="number" min={0.5} max={12} step={0.25} value={dailyHours} onChange={(e) => setDailyHours(Number(e.target.value))} className="mt-1.5 w-full rounded-xl border border-zinc-800/80 bg-zinc-950/40 px-3 py-2 text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-sky-500/40" />
-            </label>
-            <label className="mt-4 block text-xs font-medium text-zinc-400">Level
-              <select value={level} onChange={(e) => setLevel(e.target.value as typeof level)} className="mt-1.5 w-full rounded-xl border border-zinc-800/80 bg-zinc-950/40 px-3 py-2 text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-sky-500/40">
-                <option value="beginner">Beginner</option>
-                <option value="intermediate">Intermediate</option>
-                <option value="advanced">Advanced</option>
-              </select>
-            </label>
-            <label className="mt-4 block text-xs font-medium text-zinc-400">Deadline (optional)
-              <input value={deadline} onChange={(e) => setDeadline(e.target.value)} placeholder="e.g. June 30" className="mt-1.5 w-full rounded-xl border border-zinc-800/80 bg-zinc-950/40 px-3 py-2 text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-sky-500/40" />
-            </label>
-            <label className="mt-4 block text-xs font-medium text-zinc-400">Current progress
-              <textarea value={currentProgress} onChange={(e) => setCurrentProgress(e.target.value)} rows={2} className="mt-1.5 w-full resize-none rounded-xl border border-zinc-800/80 bg-zinc-950/40 px-3 py-2 text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-sky-500/40" />
-            </label>
-            <motion.button type="button" disabled={loading} onClick={() => void generate()} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="mt-6 flex w-full items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-fuchsia-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-900/30 disabled:cursor-not-allowed disabled:opacity-60">
-              {loading ? "AI is planning your success…" : "Generate roadmap"}
-            </motion.button>
-            {error && <p className="mt-3 text-xs text-rose-400" role="alert">{error}</p>}
+      <main className="relative z-10 mx-auto max-w-7xl px-6 py-12 md:py-20">
+        <header className="mb-16 text-center max-w-2xl mx-auto">
+          <motion.div variants={BLUR_IN} initial="initial" animate="animate">
+             <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#7C3AED]/10 mb-6">
+                <Map className="text-[#A78BFA]" />
+             </div>
+             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#4B5563] mb-4">Strategic Planning</p>
+             <h1 className="text-4xl font-black text-white sm:text-6xl tracking-tight leading-none mb-6">AI Study <span className="text-[#A78BFA]">Roadmap</span></h1>
+             <p className="text-[#94A3B8] leading-relaxed">Turn your goals into daily actionable deep-work protocols using our advanced generation engine.</p>
+          </motion.div>
+        </header>
 
-            {/* Saved roadmaps list */}
-            {authStatus === "authenticated" && savedRoadmaps.length > 0 && (
-              <div className="mt-6 border-t border-zinc-800/60 pt-5">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Saved roadmaps</p>
-                {loadingList ? (
-                  <div className="h-8 animate-pulse rounded-lg bg-zinc-900/50" />
-                ) : (
-                  <ul className="space-y-1">
-                    {savedRoadmaps.map((r) => (
-                      <li key={r.id} className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-zinc-800/40">
-                        <button
-                          type="button"
-                          onClick={() => void loadRoadmap(r.id)}
-                          className="flex-1 text-left text-xs text-zinc-400 hover:text-zinc-100 truncate"
-                        >
-                          {r.subject}
-                          <span className="ml-2 text-[10px] text-zinc-600">
-                            {new Date(r.createdAt).toLocaleDateString()}
-                          </span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void deleteRoadmap(r.id)}
-                          className="shrink-0 text-zinc-700 hover:text-rose-400 transition-colors"
-                          aria-label="Delete roadmap"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
+        <div className="grid gap-12 lg:grid-cols-[400px_1fr]">
+          <motion.aside variants={STAGGER} initial="initial" animate="animate" className="h-fit rounded-[32px] border border-white/5 bg-white/[0.01] p-8 backdrop-blur-2xl shadow-2xl">
+            <div className="space-y-6">
+               <h2 className="text-lg font-black text-white flex items-center gap-2 mb-8">
+                  <Sparkles size={18} className="text-[#A78BFA]" /> Configuration
+               </h2>
+
+               <div>
+                 <label className="block text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-3">Your Goal</label>
+                 <textarea value={goal} onChange={(e) => setGoal(e.target.value)} rows={3} className="w-full rounded-2xl bg-white/[0.02] border border-white/5 p-4 text-sm text-white focus:border-[#A78BFA] outline-none transition-all resize-none" placeholder="e.g. Master React in 30 days" />
+               </div>
+
+               <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-3">Daily Hours</label>
+                    <input type="number" min={0.5} max={12} step={0.25} value={dailyHours} onChange={(e) => setDailyHours(Number(e.target.value))} className="w-full rounded-2xl bg-white/[0.02] border border-white/5 p-4 text-sm text-white focus:border-[#A78BFA] outline-none transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-3">Level</label>
+                    <select value={level} onChange={(e) => setLevel(e.target.value as typeof level)} className="w-full rounded-2xl bg-white/[0.02] border border-white/5 p-4 text-sm text-white focus:border-[#A78BFA] outline-none transition-all">
+                       <option value="beginner">Beginner</option>
+                       <option value="intermediate">Intermediate</option>
+                       <option value="advanced">Advanced</option>
+                    </select>
+                  </div>
+               </div>
+
+               <div>
+                 <label className="block text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-3">Current Progress</label>
+                 <textarea value={currentProgress} onChange={(e) => setCurrentProgress(e.target.value)} rows={2} className="w-full rounded-2xl bg-white/[0.02] border border-white/5 p-4 text-sm text-white focus:border-[#A78BFA] outline-none transition-all resize-none" />
+               </div>
+
+               <button disabled={loading} onClick={() => void generate()} className="w-full h-14 rounded-2xl bg-white text-black font-black text-lg hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                 {loading ? "Generating..." : <>Generate <ArrowRight size={18} /></>}
+               </button>
+               {error && <p className="text-[10px] text-red-400 font-bold uppercase text-center">{error}</p>}
+
+               {authStatus === "authenticated" && savedRoadmaps.length > 0 && (
+                 <div className="pt-8 mt-8 border-t border-white/5">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-4">Saved Protocols</p>
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-2 scrollbar-none">
+                       {savedRoadmaps.map((r) => (
+                         <div key={r.id} className="group flex items-center gap-2 p-3 rounded-xl hover:bg-white/5 transition-all cursor-pointer" onClick={() => void loadRoadmap(r.id)}>
+                            <div className="flex-1 min-w-0">
+                               <p className="text-xs font-bold text-white truncate">{r.subject}</p>
+                               <p className="text-[9px] text-zinc-500 font-bold uppercase mt-1">{new Date(r.createdAt).toLocaleDateString()}</p>
+                            </div>
+                            <button onClick={(e) => { e.stopPropagation(); deleteRoadmap(r.id); }} className="opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-red-400 transition-all p-1">
+                               <Trash2 size={12} />
+                            </button>
+                         </div>
+                       ))}
+                    </div>
+                 </div>
+               )}
+            </div>
           </motion.aside>
 
-          <section className="space-y-4">
+          <section className="space-y-6">
             <AnimatePresence mode="wait">
               {loading && (
-                <motion.div key="loading" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="rounded-2xl border border-dashed border-zinc-700/70 bg-zinc-950/30 px-6 py-10 text-center text-sm text-zinc-400 backdrop-blur-xl">
-                  <div className="mx-auto mb-4 h-9 w-9 animate-spin rounded-full border-2 border-zinc-600 border-t-indigo-400" />
-                  AI is planning your success…
+                <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-32 text-center">
+                   <div className="h-16 w-16 rounded-full border-2 border-white/5 border-t-[#A78BFA] animate-spin mb-8" />
+                   <h3 className="text-2xl font-black text-white mb-2">Assembling Protocol</h3>
+                   <p className="text-[#4B5563] uppercase tracking-widest text-[10px] font-bold">Synchronizing with high-performance datasets</p>
                 </motion.div>
               )}
-            </AnimatePresence>
-            {!loading && roadmap !== null && roadmap.length > 0 && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
-                {/* Header with save button */}
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-zinc-500">Generated</p>
-                    <h2 className="text-base font-semibold text-zinc-200">{goal}</h2>
-                  </div>
-                  {authStatus === "authenticated" && (
-                    <motion.button
-                      type="button"
-                      onClick={() => void saveRoadmap()}
-                      disabled={saving || saved}
-                      whileHover={{ scale: 1.04 }}
-                      whileTap={{ scale: 0.96 }}
-                      className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-medium transition-colors ${saved ? "border-emerald-700/40 bg-emerald-950/40 text-emerald-400" : "border-indigo-800/40 bg-indigo-950/40 text-indigo-300 hover:bg-indigo-900/40"} disabled:opacity-60`}
-                    >
-                      <BookmarkPlus size={13} />
-                      {saved ? "Saved" : saving ? "Saving…" : "Save roadmap"}
-                    </motion.button>
-                  )}
-                </div>
 
-                {roadmap.map((day) => {
-                  const open = openDay === day.day;
-                  return (
-                    <motion.article key={day.day} layout className="overflow-hidden rounded-2xl border border-[var(--card-border)] bg-[var(--card)] shadow-xl backdrop-blur-2xl">
-                      <button type="button" onClick={() => setOpenDay(open ? null : day.day)} className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-white/5">
-                        <div>
-                          <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Day plan</p>
-                          <h3 className="text-lg font-semibold text-zinc-50">
-                            Day {day.day}
-                            {day.focusSessions[0] && (
-                              <span className="ml-2 text-sm font-normal text-zinc-500">
-                                — {day.focusSessions[0].split("—")[0]?.trim()}
-                              </span>
-                            )}
-                          </h3>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="rounded-full bg-indigo-950/60 border border-indigo-800/40 px-2 py-0.5 text-[10px] text-indigo-400">
-                            {day.focusSessions.length} sessions
-                          </span>
-                          <span className="text-xs text-zinc-500">~{day.estimatedTime} min</span>
-                          <span className="text-xs text-zinc-500">{open ? "▲" : "▼"}</span>
-                        </div>
-                      </button>
-                      <AnimatePresence initial={false}>
-                        {open && (
-                          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.28, ease: "easeInOut" }} className="border-t border-zinc-800/60">
-                            <div className="space-y-4 px-5 py-4 text-sm text-zinc-300">
-                              <div>
-                                <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Focus sessions</p>
-                                <ul className="mt-2 list-disc space-y-1 pl-4">{day.focusSessions.map((s) => <li key={s}>{s}</li>)}</ul>
+              {!loading && roadmap && (
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                   <div className="flex items-center justify-between mb-8">
+                      <div className="text-left">
+                         <p className="text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-1">Active Roadmap</p>
+                         <h2 className="text-2xl font-black text-white">{goal}</h2>
+                      </div>
+                      {authStatus === "authenticated" && !saved && (
+                        <button onClick={() => void saveRoadmap()} className="flex items-center gap-2 rounded-xl border border-[#A78BFA]/30 bg-[#A78BFA]/10 px-4 py-2 text-xs font-black text-[#A78BFA] hover:bg-[#A78BFA]/20 transition-all">
+                           <BookmarkPlus size={14} /> Save Protocol
+                        </button>
+                      )}
+                   </div>
+
+                   <div className="grid gap-4">
+                      {roadmap.map((day) => (
+                        <motion.div key={day.day} className="rounded-3xl border border-white/5 bg-white/[0.01] overflow-hidden">
+                           <div className="p-6 flex items-center justify-between border-b border-white/5 bg-white/[0.01]">
+                              <div className="flex items-center gap-4">
+                                 <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center text-xs font-black">D{day.day}</div>
+                                 <h3 className="font-black text-lg text-white">Daily Operations</h3>
                               </div>
+                              <div className="flex items-center gap-6">
+                                 <div className="flex items-center gap-2">
+                                    <Target size={14} className="text-[#A78BFA]" />
+                                    <span className="text-xs font-bold text-zinc-400">{day.focusSessions.length} Blocks</span>
+                                 </div>
+                                 <div className="flex items-center gap-2">
+                                    <Clock size={14} className="text-[#A78BFA]" />
+                                    <span className="text-xs font-bold text-zinc-400">{day.estimatedTime}m</span>
+                                 </div>
+                              </div>
+                           </div>
+                           <div className="p-8 grid gap-8 md:grid-cols-2">
                               <div>
-                                <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Tasks</p>
-                                <ul className="mt-2 space-y-1.5">
-                                  {day.tasks.map((t) => {
-                                    const key = `${day.day}-${t}`;
-                                    const done = checked.has(key);
-                                    return (
-                                      <li
-                                        key={t}
-                                        className="flex items-center gap-2 cursor-pointer"
-                                        onClick={() => {
-                                          setChecked(prev => {
-                                            const next = new Set(prev);
-                                            done ? next.delete(key) : next.add(key);
-                                            return next;
-                                          });
-                                        }}
-                                      >
-                                        <span className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-colors ${done ? "bg-emerald-500 border-emerald-500" : "border-zinc-700"}`}>
-                                          {done && <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1.5 5L4 7.5L8.5 2.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                                        </span>
-                                        <span className={`text-sm ${done ? "line-through text-zinc-600" : "text-zinc-300"}`}>{t}</span>
+                                 <p className="text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-4">Focus Protocol</p>
+                                 <ul className="space-y-3">
+                                    {day.focusSessions.map((s, i) => (
+                                      <li key={i} className="flex gap-3 text-sm text-zinc-200">
+                                         <span className="text-[#A78BFA] font-black">{i+1}.</span> {s}
                                       </li>
-                                    );
-                                  })}
-                                </ul>
+                                    ))}
+                                 </ul>
                               </div>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </motion.article>
-                  );
-                })}
-              </motion.div>
-            )}
-            {!loading && (roadmap === null || roadmap.length === 0) && (
-              <div className="rounded-2xl border border-zinc-800/60 bg-zinc-950/30 px-6 py-12 text-center text-sm text-zinc-500 backdrop-blur-xl">
-                Generate a roadmap to see your week unfold here.
-              </div>
-            )}
+                              <div>
+                                 <p className="text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-4">Tactical Tasks</p>
+                                 <ul className="space-y-3">
+                                    {day.tasks.map((t, i) => (
+                                      <li key={i} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 text-xs text-zinc-400 font-bold">
+                                         <div className="h-2 w-2 rounded-full bg-[#A78BFA]" /> {t}
+                                      </li>
+                                    ))}
+                                 </ul>
+                              </div>
+                           </div>
+                        </motion.div>
+                      ))}
+                   </div>
+                </motion.div>
+              )}
+
+              {!loading && !roadmap && (
+                <div className="flex flex-col items-center justify-center py-32 text-center opacity-30">
+                   <Map size={48} className="mb-6" />
+                   <p className="text-sm font-black uppercase tracking-[0.2em]">Ready for Strategic Mapping</p>
+                </div>
+              )}
+            </AnimatePresence>
           </section>
         </div>
       </main>

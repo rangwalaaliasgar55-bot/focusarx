@@ -1,3 +1,5 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
@@ -12,9 +14,6 @@ import { logger } from "../lib/logger";
 
 const router = Router();
 
-function auth(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.userId = userId;
   next();
 }
@@ -43,7 +42,7 @@ function sanitizeMessage(msg: string): string {
 }
 
 // GET /break-free/streak
-router.get("/break-free/streak", auth, async (req: any, res) => {
+router.get("/break-free/streak", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const [row] = await db.select()
       .from(breakFreeStreaksTable)
@@ -71,7 +70,7 @@ router.get("/break-free/streak", auth, async (req: any, res) => {
 });
 
 // POST /break-free/streak/start
-router.post("/break-free/streak/start", auth, async (req: any, res) => {
+router.post("/break-free/streak/start", authMiddleware, async (req: AuthRequest, res: Response) => {
   const schema = z.object({ startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
@@ -107,7 +106,7 @@ router.post("/break-free/streak/start", auth, async (req: any, res) => {
 });
 
 // POST /break-free/streak/relapse
-router.post("/break-free/streak/relapse", auth, async (req: any, res) => {
+router.post("/break-free/streak/relapse", authMiddleware, async (req: AuthRequest, res: Response) => {
   const today = new Date().toISOString().split("T")[0]!;
 
   try {
@@ -152,7 +151,7 @@ router.post("/break-free/streak/relapse", auth, async (req: any, res) => {
 });
 
 // GET /break-free/moods
-router.get("/break-free/moods", auth, async (req: any, res) => {
+router.get("/break-free/moods", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const moods = await db.select()
       .from(breakFreeMoodsTable)
@@ -171,7 +170,7 @@ router.get("/break-free/moods", auth, async (req: any, res) => {
 });
 
 // POST /break-free/moods
-router.post("/break-free/moods", auth, async (req: any, res) => {
+router.post("/break-free/moods", authMiddleware, async (req: AuthRequest, res: Response) => {
   const schema = z.object({ mood: z.number().int().min(1).max(5) });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
@@ -223,7 +222,7 @@ router.get("/break-free/pledges", async (_req, res) => {
 });
 
 // POST /break-free/pledges (no auth)
-router.post("/break-free/pledges", async (req, res) => {
+router.post("/break-free/pledges", async (req: AuthRequest, res: Response) => {
   const schema = z.object({ message: z.string().min(1).max(100) });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {

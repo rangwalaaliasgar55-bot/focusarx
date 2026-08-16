@@ -4,6 +4,8 @@ import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
 import { Building2, Zap, Users, Star, Lock, ShoppingBag, RefreshCw } from "lucide-react";
 import { PAGE, CARD, STAGGER } from "@/lib/animations";
+import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
+import type { Building, City, Wallet } from "@/types/gamification";
 
 function authHeaders() {
   const t = getToken();
@@ -27,7 +29,7 @@ const WEATHER_EMOJI: Record<string, string> = {
 };
 
 function BuildingCard({ building, owned, onBuy, wallet }: {
-  building: any; owned: boolean; onBuy: (b: any) => void; wallet: any;
+  building: Building; owned: boolean; onBuy: (b: Building) => void; wallet: Wallet | null;
 }) {
   const canAfford = wallet ? wallet.coins >= building.coinCost : false;
   const meetsLevel = wallet ? wallet.level >= building.unlockLevel : false;
@@ -93,9 +95,9 @@ function BuildingCard({ building, owned, onBuy, wallet }: {
 }
 
 export default function CityPage() {
-  const [city, setCity] = useState<any>(null);
-  const [buildings, setBuildings] = useState<any[]>([]);
-  const [wallet, setWallet] = useState<any>(null);
+  const [city, setCity] = useState<City | null>(null);
+  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [wallet, setWallet] = useState<Wallet | null>(null);
   const [loading, setLoading] = useState(true);
   const [building, setBuilding] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
@@ -120,7 +122,7 @@ export default function CityPage() {
     load();
   }, []);
 
-  const handleBuy = async (b: any) => {
+  const handleBuy = async (b: Building) => {
     if (building) return;
     setBuilding(b.slug);
     try {
@@ -131,7 +133,7 @@ export default function CityPage() {
       const data = await res.json();
       if (!res.ok) { setToast(data.error || "Failed to build"); setTimeout(() => setToast(null), 3000); return; }
       setCity(data.city);
-      setWallet((w: any) => w ? { ...w, coins: data.newCoins } : w);
+      setWallet((w) => w ? { ...w, coins: data.newCoins } : w);
       setBuildings(prev => prev.map(x => x.slug === b.slug ? { ...x, _owned: true } : x));
       setToast(`${b.icon} ${b.name} built!`);
       setTimeout(() => setToast(null), 3000);
@@ -153,6 +155,7 @@ export default function CityPage() {
 
   return (
     <PageTransition>
+      <PageSEO {...PAGE_SEO.city} />
       <motion.div variants={PAGE} initial="initial" animate="animate" className="max-w-5xl mx-auto px-4 py-8 space-y-6">
         {/* Hero */}
         <div className="rounded-2xl border border-[rgba(124,58,237,0.2)] bg-gradient-to-br from-[rgba(124,58,237,0.08)] to-[rgba(6,214,160,0.04)] p-6">

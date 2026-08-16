@@ -1,3 +1,5 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import {
@@ -7,9 +9,6 @@ import {
 import { extractUserId } from "./auth";
 import { eq, and, desc, sql, ne } from "drizzle-orm";
 
-function auth(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.userId = userId;
   next();
 }
@@ -49,7 +48,7 @@ async function enrichRoom(room: any) {
   };
 }
 
-studyRoomsRouter.get("/study-rooms", async (req, res) => {
+studyRoomsRouter.get("/study-rooms", async (req: AuthRequest, res: Response) => {
   (req as any).userId = extractUserId(req) ?? null;
   const { groupId } = req.query as { groupId?: string };
   let rooms;
@@ -67,14 +66,14 @@ studyRoomsRouter.get("/study-rooms", async (req, res) => {
   res.json(enriched);
 });
 
-studyRoomsRouter.get("/study-rooms/:id", auth, async (req, res) => {
+studyRoomsRouter.get("/study-rooms/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
   const [room] = await db.select().from(studyRoomsTable)
     .where(eq(studyRoomsTable.id, req.params.id)).limit(1);
   if (!room) return res.status(404).json({ error: "Room not found" });
   res.json(await enrichRoom(room));
 });
 
-studyRoomsRouter.post("/study-rooms", auth, async (req, res) => {
+studyRoomsRouter.post("/study-rooms", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const { name, mode, groupId, isPublic, maxParticipants, timerDuration, ambiance, scheduledFor } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: "name required" });
@@ -100,7 +99,7 @@ studyRoomsRouter.post("/study-rooms", auth, async (req, res) => {
   res.status(201).json(await enrichRoom(room));
 });
 
-studyRoomsRouter.post("/study-rooms/:id/join", auth, async (req, res) => {
+studyRoomsRouter.post("/study-rooms/:id/join", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [room] = await db.select().from(studyRoomsTable)
     .where(eq(studyRoomsTable.id, req.params.id)).limit(1);
@@ -130,7 +129,7 @@ studyRoomsRouter.post("/study-rooms/:id/join", auth, async (req, res) => {
   res.json({ ok: true });
 });
 
-studyRoomsRouter.post("/study-rooms/join-code", auth, async (req, res) => {
+studyRoomsRouter.post("/study-rooms/join-code", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const { inviteCode } = req.body;
   const [room] = await db.select().from(studyRoomsTable)
@@ -151,7 +150,7 @@ studyRoomsRouter.post("/study-rooms/join-code", auth, async (req, res) => {
   res.json({ ok: true, room: await enrichRoom(room) });
 });
 
-studyRoomsRouter.delete("/study-rooms/:id/leave", auth, async (req: any, res) => {
+studyRoomsRouter.delete("/study-rooms/:id/leave", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [member] = await db.select().from(studyRoomMembersTable)
     .where(and(eq(studyRoomMembersTable.roomId, req.params.id), eq(studyRoomMembersTable.userId, userId))).limit(1);
@@ -172,7 +171,7 @@ studyRoomsRouter.delete("/study-rooms/:id/leave", auth, async (req: any, res) =>
   res.json({ ok: true });
 });
 
-studyRoomsRouter.delete("/study-rooms/:id", auth, async (req: any, res) => {
+studyRoomsRouter.delete("/study-rooms/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [room] = await db.select().from(studyRoomsTable)
     .where(and(eq(studyRoomsTable.id, req.params.id), eq(studyRoomsTable.hostId, userId))).limit(1);

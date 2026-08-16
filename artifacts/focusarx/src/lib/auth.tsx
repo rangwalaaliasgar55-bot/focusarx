@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify(opts),
       });
 
-      const json = await res.json() as { token?: string; error?: string };
+      const json = (await res.json()) as { token?: string; error?: string };
 
       if (!res.ok || !json.token) {
         return { ok: false, error: json.error ?? "Authentication failed" };
