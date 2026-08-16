@@ -1,3 +1,5 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import {
@@ -9,9 +11,6 @@ import { eq, and, desc, sql } from "drizzle-orm";
 import { emitToUser } from "../lib/socketManager";
 import { logger } from "../lib/logger";
 
-function auth(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.userId = userId;
   next();
 }
@@ -44,7 +43,7 @@ async function getOrCreateDm(userA: string, userB: string) {
   return conv;
 }
 
-dmRouter.get("/dm/conversations", auth, async (req, res) => {
+dmRouter.get("/dm/conversations", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
 
@@ -103,7 +102,7 @@ dmRouter.get("/dm/conversations", auth, async (req, res) => {
   }
 });
 
-dmRouter.post("/dm/start", auth, async (req, res) => {
+dmRouter.post("/dm/start", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
     const { userId: targetId } = req.body;
@@ -124,7 +123,7 @@ dmRouter.post("/dm/start", auth, async (req, res) => {
   }
 });
 
-dmRouter.get("/dm/:convId/messages", auth, async (req, res) => {
+dmRouter.get("/dm/:convId/messages", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
     const { limit = "50", offset = "0" } = req.query as Record<string, string>;
@@ -165,7 +164,7 @@ dmRouter.get("/dm/:convId/messages", auth, async (req, res) => {
   }
 });
 
-dmRouter.post("/dm/:convId/messages", auth, async (req, res) => {
+dmRouter.post("/dm/:convId/messages", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
     const { content, replyToId } = req.body;
@@ -215,7 +214,7 @@ dmRouter.post("/dm/:convId/messages", auth, async (req, res) => {
   }
 });
 
-dmRouter.post("/dm/messages/:msgId/react", auth, async (req, res) => {
+dmRouter.post("/dm/messages/:msgId/react", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
     const { emoji } = req.body;
@@ -241,7 +240,7 @@ dmRouter.post("/dm/messages/:msgId/react", auth, async (req, res) => {
   }
 });
 
-dmRouter.delete("/dm/messages/:msgId", auth, async (req, res) => {
+dmRouter.delete("/dm/messages/:msgId", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
     await db.update(messages)
@@ -254,7 +253,7 @@ dmRouter.delete("/dm/messages/:msgId", auth, async (req, res) => {
   }
 });
 
-dmRouter.post("/dm/group", auth, async (req, res) => {
+dmRouter.post("/dm/group", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
     const { name, participantIds } = req.body;

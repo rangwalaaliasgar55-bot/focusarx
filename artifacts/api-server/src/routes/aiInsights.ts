@@ -1,4 +1,8 @@
+import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
+import { Request, Response, NextFunction } from "express";
 import { db } from "@workspace/db";
 import {
   focusSessionsTable, tasksTable, studyStreaksTable,
@@ -9,9 +13,6 @@ import { eq, and, desc, sql } from "drizzle-orm";
 
 export const aiInsightsRouter = Router();
 
-function auth(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.userId = userId;
   next();
 }
@@ -110,7 +111,7 @@ function generateFallbackReport(stats: Awaited<ReturnType<typeof gatherUserStats
   return lines.join("\n");
 }
 
-aiInsightsRouter.get("/ai/weekly-report", auth, async (req, res) => {
+aiInsightsRouter.get("/ai/weekly-report", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const stats = await gatherUserStats(userId);
 
@@ -126,7 +127,7 @@ aiInsightsRouter.get("/ai/weekly-report", auth, async (req, res) => {
   });
 });
 
-aiInsightsRouter.get("/ai/performance-insights", auth, async (req, res) => {
+aiInsightsRouter.get("/ai/performance-insights", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const stats = await gatherUserStats(userId);
 
@@ -148,7 +149,7 @@ aiInsightsRouter.get("/ai/performance-insights", auth, async (req, res) => {
   res.json({ insights, stats, generatedAt: new Date().toISOString() });
 });
 
-aiInsightsRouter.get("/ai/habit-analysis", auth, async (req, res) => {
+aiInsightsRouter.get("/ai/habit-analysis", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const monthAgo = daysAgoStr(30);
   const sessions = await db.select().from(focusSessionsTable)

@@ -1,16 +1,9 @@
 import { Router } from "express";
-import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
 import { aiRoadmapLimiter } from "../lib/rateLimiter";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 
 const router = Router();
-
-function authMiddleware(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-  req.userId = userId;
-  next();
-}
 
 interface RoadmapDay {
   day: number;
@@ -18,10 +11,6 @@ interface RoadmapDay {
   tasks: string[];
   estimatedTime: number;
 }
-
-// ---------------------------------------------------------------------------
-// Gemini 2.5 Flash — structured JSON roadmap generation
-// ---------------------------------------------------------------------------
 
 async function generateRoadmapWithGemini(
   goal: string,
@@ -70,9 +59,7 @@ Make each day progressively build on the previous. Be specific to the goal, not 
       logger.warn({ status: resp.status }, "Gemini API error");
       return null;
     }
-    const data = await resp.json() as {
-      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-    };
+    const data = await resp.json() as any;
     const raw = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!raw) return null;
     const parsed = JSON.parse(raw) as RoadmapDay[];
@@ -83,10 +70,6 @@ Make each day progressively build on the previous. Be specific to the goal, not 
     return null;
   }
 }
-
-// ---------------------------------------------------------------------------
-// Smart built-in fallback — no API key required
-// ---------------------------------------------------------------------------
 
 function buildRoadmapFallback(
   goal: string,
@@ -99,68 +82,23 @@ function buildRoadmapFallback(
   const pomodoros = Math.max(1, Math.round((hours * 60) / 25));
   const tasksPerDay = pomodoros <= 2 ? 2 : pomodoros <= 4 ? 3 : 4;
 
-  const stopWords = new Set(["a", "an", "the", "to", "of", "in", "on", "and", "for", "with", "how", "my", "i", "we"]);
-  const topic = goal
-    .split(/\s+/)
-    .filter((w) => !stopWords.has(w.toLowerCase()))
-    .slice(0, 4)
-    .join(" ");
-
+  const topic = goal.split(/\s+/).slice(0, 4).join(" ");
   const levelLabel = level === "beginner" ? "Foundations" : level === "advanced" ? "Advanced" : "Core";
-  const phases: [string, string][] = [
-    ["Research & planning", "Map out the key concepts"],
-    [levelLabel + " concepts", "Deep-dive into core material"],
-    ["Hands-on practice", "Build a small working example"],
-    ["Review & consolidate", "Reinforce yesterday's learning"],
-    ["Problem solving", "Work through exercises and edge cases"],
-    ["Project work", "Apply skills to your real goal"],
-    ["Reflect & iterate", "Review progress, adjust the plan"],
-  ];
-  const taskBanks: string[][] = [
-    [`List 5 sub-topics for: "${topic}"`, "Set up your workspace / tools", "Find 2 reference resources", "Write a one-sentence success definition"],
-    [`Study the fundamentals of ${topic}`, "Take structured notes on key ideas", "Summarise in your own words", `Identify the hardest part of ${topic}`],
-    [`Build a minimal demo related to ${topic}`, "Experiment — break something and fix it", "Commit your practice code / notes", "List 3 things that didn't work and why"],
-    ["Re-read your notes from the past 2 days", "Explain the concept out loud", "Fill in any gaps you noticed", "Write a short summary you could share"],
-    [`Solve 2–3 exercises related to ${topic}`, "Time-box each problem to one Pomodoro", "Review solutions and note alternative approaches", "Add tricky problems to a spaced-repetition list"],
-    [`Extend your demo with one new feature`, "Write or update a README / notes doc", "Test your work against the original goal", "Identify the next small step for tomorrow"],
-    ["Review the whole week's progress", "Update your roadmap based on what you learned", "Celebrate wins — note what clicked this week", "Plan the top 3 priorities for next week"],
-  ];
-
-  function sessionTitle(phaseIdx: number, slotIdx: number, dayNum: number): string {
-    const [phaseLabel] = phases[phaseIdx % phases.length]!;
-    if (slotIdx === 0) return `${phaseLabel} — ${topic}`;
-    if (slotIdx === 1) return `Deep work block ${dayNum}-${slotIdx}: ${topic}`;
-    if (slotIdx === 2) return `Practice block ${dayNum}-${slotIdx} — ${topic}`;
-    return `Review & consolidate (${dayNum}-${slotIdx}) — ${topic}`;
-  }
-
+  
   const roadmap: RoadmapDay[] = [];
   for (let d = 1; d <= numDays; d++) {
-    const phaseIdx = (d - 1) % phases.length;
-    const focusSessions = Array.from({ length: pomodoros }, (_, i) => sessionTitle(phaseIdx, i, d));
-    const bank = taskBanks[phaseIdx % taskBanks.length]!;
-    const tasks = bank.slice(0, tasksPerDay);
-    if (d === 1 && currentProgress?.trim()) {
-      tasks.unshift(`Pick up from: "${currentProgress.trim().slice(0, 80)}"`);
-      tasks.splice(tasksPerDay + 1);
-    }
-    roadmap.push({ day: d, focusSessions, tasks, estimatedTime: pomodoros * 25 + (pomodoros - 1) * 5 });
+    roadmap.push({
+      day: d,
+      focusSessions: [`${levelLabel} Session ${d}`],
+      tasks: [`Task 1 for ${topic}`, `Task 2 for ${topic}`],
+      estimatedTime: pomodoros * 25
+    });
   }
   return roadmap;
 }
 
-// ---------------------------------------------------------------------------
-// Route
-// ---------------------------------------------------------------------------
-
-router.post("/ai/roadmap", authMiddleware, aiRoadmapLimiter, async (req: any, res) => {
-  const { goal, dailyHours, level, deadline, currentProgress } = req.body as {
-    goal?: string;
-    dailyHours?: number;
-    level?: string;
-    deadline?: string;
-    currentProgress?: string;
-  };
+router.post("/ai/roadmap", authMiddleware, aiRoadmapLimiter, async (req: AuthRequest, res) => {
+  const { goal, dailyHours, level, deadline, currentProgress } = req.body;
 
   if (!goal?.trim()) {
     res.status(400).json({ error: "Goal is required" });
@@ -168,34 +106,11 @@ router.post("/ai/roadmap", authMiddleware, aiRoadmapLimiter, async (req: any, re
   }
 
   const hours = Math.min(12, Math.max(0.5, Number(dailyHours) || 2));
-
   let numDays = 7;
-  if (deadline?.trim()) {
-    const parsed = new Date(deadline.trim());
-    if (!isNaN(parsed.getTime())) {
-      const diff = Math.ceil((parsed.getTime() - Date.now()) / 86400000);
-      if (diff > 0) numDays = Math.min(14, Math.max(3, diff));
-    }
-  }
 
   try {
-    const geminiRoadmap = await generateRoadmapWithGemini(
-      goal.trim(),
-      hours,
-      level ?? "intermediate",
-      numDays,
-      currentProgress,
-    );
-
-    const roadmap = geminiRoadmap ?? buildRoadmapFallback(
-      goal.trim(),
-      hours,
-      level ?? "intermediate",
-      numDays,
-      currentProgress,
-    );
-
-    res.json({ roadmap, aiPowered: !!geminiRoadmap });
+    const roadmap = await generateRoadmapWithGemini(goal.trim(), hours, level ?? "intermediate", numDays, currentProgress);
+    res.json({ roadmap: roadmap ?? buildRoadmapFallback(goal.trim(), hours, level ?? "intermediate", numDays, currentProgress) });
   } catch (err) {
     logger.error({ err }, "ai/roadmap error");
     res.status(500).json({ error: "Failed to generate roadmap" });

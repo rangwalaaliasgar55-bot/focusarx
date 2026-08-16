@@ -1,3 +1,5 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import {
@@ -8,9 +10,6 @@ import {
 import { extractUserId } from "./auth";
 import { eq, and, desc, sql, inArray, or } from "drizzle-orm";
 
-function auth(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.userId = userId;
   next();
 }
@@ -65,7 +64,7 @@ async function enrichPost(post: any, viewerId: string | null) {
 
 // ─── FEED ─────────────────────────────────────────────────────────────────────
 
-postsRouter.get("/feed", auth, async (req, res) => {
+postsRouter.get("/feed", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
   const userId = req.userId!;
   const { type = "following", limit = "20", offset = "0", groupId } = req.query as Record<string, string>;
@@ -119,7 +118,7 @@ postsRouter.get("/feed", auth, async (req, res) => {
 
 // ─── POSTS CRUD ────────────────────────────────────────────────────────────────
 
-postsRouter.post("/posts", auth, async (req, res) => {
+postsRouter.post("/posts", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
     const { content, type, imageUrls, metadata, groupId, isPublic } = req.body;
@@ -149,7 +148,7 @@ postsRouter.post("/posts", auth, async (req, res) => {
   }
 });
 
-postsRouter.get("/posts/:id", optionalAuth, async (req, res) => {
+postsRouter.get("/posts/:id", optionalAuth, async (req: AuthRequest, res: Response) => {
   const [post] = await db.select().from(socialPostsTable)
     .where(eq(socialPostsTable.id, req.params.id)).limit(1);
   if (!post) return res.status(404).json({ error: "Post not found" });
@@ -162,7 +161,7 @@ postsRouter.get("/posts/:id", optionalAuth, async (req, res) => {
   res.json(enriched);
 });
 
-postsRouter.delete("/posts/:id", auth, async (req, res) => {
+postsRouter.delete("/posts/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [post] = await db.select().from(socialPostsTable)
     .where(and(eq(socialPostsTable.id, req.params.id), eq(socialPostsTable.userId, userId))).limit(1);
@@ -171,7 +170,7 @@ postsRouter.delete("/posts/:id", auth, async (req, res) => {
   res.json({ ok: true });
 });
 
-postsRouter.get("/users/:userId/posts", optionalAuth, async (req, res) => {
+postsRouter.get("/users/:userId/posts", optionalAuth, async (req: AuthRequest, res: Response) => {
   const { limit = "20", offset = "0" } = req.query as Record<string, string>;
   const posts = await db.select().from(socialPostsTable)
     .where(and(eq(socialPostsTable.userId, req.params.userId), eq(socialPostsTable.isPublic, true)))
@@ -184,7 +183,7 @@ postsRouter.get("/users/:userId/posts", optionalAuth, async (req, res) => {
 
 // ─── REACTIONS ────────────────────────────────────────────────────────────────
 
-postsRouter.post("/posts/:id/react", auth, async (req, res) => {
+postsRouter.post("/posts/:id/react", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const { reaction } = req.body;
   if (!REACTION_TYPES.includes(reaction)) return res.status(400).json({ error: "Invalid reaction" });
@@ -222,7 +221,7 @@ postsRouter.post("/posts/:id/react", auth, async (req, res) => {
 
 // ─── COMMENTS ────────────────────────────────────────────────────────────────
 
-postsRouter.get("/posts/:id/comments", optionalAuth, async (req, res) => {
+postsRouter.get("/posts/:id/comments", optionalAuth, async (req: AuthRequest, res: Response) => {
   const comments = await db.select().from(postCommentsTable)
     .where(eq(postCommentsTable.postId, req.params.id))
     .orderBy(postCommentsTable.createdAt);
@@ -236,7 +235,7 @@ postsRouter.get("/posts/:id/comments", optionalAuth, async (req, res) => {
   res.json(enriched);
 });
 
-postsRouter.post("/posts/:id/comments", auth, async (req, res) => {
+postsRouter.post("/posts/:id/comments", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const { content, parentId } = req.body;
   if (!content?.trim()) return res.status(400).json({ error: "content required" });
@@ -265,7 +264,7 @@ postsRouter.post("/posts/:id/comments", auth, async (req, res) => {
   res.status(201).json({ ...comment, authorName: author?.name || author?.email?.split("@")[0] || "User" });
 });
 
-postsRouter.delete("/posts/:postId/comments/:commentId", auth, async (req, res) => {
+postsRouter.delete("/posts/:postId/comments/:commentId", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   await db.delete(postCommentsTable)
     .where(and(eq(postCommentsTable.id, req.params.commentId), eq(postCommentsTable.userId, userId)));
@@ -274,7 +273,7 @@ postsRouter.delete("/posts/:postId/comments/:commentId", auth, async (req, res) 
 
 // ─── SAVES ───────────────────────────────────────────────────────────────────
 
-postsRouter.post("/posts/:id/save", auth, async (req, res) => {
+postsRouter.post("/posts/:id/save", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [existing] = await db.select().from(postSavesTable)
     .where(and(eq(postSavesTable.postId, req.params.id), eq(postSavesTable.userId, userId))).limit(1);

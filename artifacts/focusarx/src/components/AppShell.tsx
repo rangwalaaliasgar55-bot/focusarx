@@ -7,6 +7,7 @@ import {
   Bell, BellOff, Users2, Zap, Brain, CheckSquare, MessageSquare,
   ShoppingBag, Flag, Gift, Sun, Moon, Building2, Coins, Package,
   ChevronLeft, ChevronRight, ChevronDown, Settings, MoreHorizontal,
+  Home, ChevronRight as ChevronRightIcon
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useTheme } from "@/lib/theme";
@@ -17,7 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 
 async function fetchMissionStats() {
   const token = getToken();
-  const res = await fetch("/api/missions", { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  const res = await fetch("/api/missions", { headers: token ? { Authorization: `Bearer ${token}`} : {} });
   if (!res.ok) return null;
   return res.json();
 }
@@ -25,7 +26,7 @@ async function fetchMissionStats() {
 async function fetchNotifCount() {
   const token = getToken();
   if (!token) return null;
-  const res = await fetch("/api/notifications", { headers: { Authorization: `Bearer ${token}` } });
+  const res = await fetch("/api/notifications", { headers: { Authorization: `Bearer ${token}`} });
   if (!res.ok) return null;
   return res.json();
 }
@@ -50,6 +51,7 @@ function NotifBadge({ dot }: { dot?: boolean }) {
 const PRIMARY_NAV = [
   { href: "/",             label: "Focus",        icon: Timer,         shortcut: "1" },
   { href: "/dashboard",    label: "Dashboard",     icon: LayoutDashboard, shortcut: "2" },
+  { href: "/forge-room",   label: "Forge Room",    icon: Users,         shortcut: "6" },
   { href: "/habits",       label: "Tasks",         icon: CheckSquare,   shortcut: "t" },
   { href: "/goals",        label: "Goals",         icon: Flag,          shortcut: "g" },
   { href: "/ai-insights",  label: "AI Coach",      icon: Brain,         shortcut: "a", aiBadge: true },
@@ -80,14 +82,9 @@ const MORE_NAV = [
   { href: "/break-free",   label: "Break Free",     icon: Flame },
   { href: "/breathe",      label: "Breathe",        icon: Wind },
   { href: "/dreams",       label: "My Dreams",      icon: Star },
-  { href: "/wrapped",      label: "Wrapped",        icon: Package },
   { href: "/focus-dna",    label: "Focus DNA",      icon: Dna },
   { href: "/constellations", label: "Constellations", icon: Star },
-  { href: "/ghosts",       label: "Ghost Mode",     icon: Ghost },
   { href: "/consequences", label: "Consequences",   icon: Sword },
-  { href: "/distractions", label: "Focus Journal",  icon: BookOpen },
-  { href: "/replay",       label: "Session Replay", icon: Radio },
-  { href: "/profiles",     label: "Focus Profiles", icon: Shield },
   { href: "/forge",        label: "Forge Room",     icon: Users },
 ];
 
@@ -115,12 +112,20 @@ interface NavItemProps {
 }
 
 function NavItem({ href, label, icon: Icon, active, aiBadge, badge, onClick, collapsed, small }: NavItemProps) {
+  const [, setLocation] = useLocation();
+
+  const handleNav = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (onClick) onClick();
+    setLocation(href);
+  };
+
   if (collapsed) {
     return (
       <div className="group relative flex justify-center py-0.5">
-        <Link
+        <a
           href={href}
-          onClick={onClick}
+          onClick={handleNav}
           className={`relative flex items-center justify-center rounded-lg h-9 w-9 transition-all duration-150 ${
             active
               ? "bg-[rgba(124,58,237,0.18)] text-[#A78BFA]"
@@ -131,7 +136,7 @@ function NavItem({ href, label, icon: Icon, active, aiBadge, badge, onClick, col
           <Icon size={16} />
           {badge === "missions" && <MissionsBadge dot />}
           {badge === "notif" && <NotifBadge dot />}
-        </Link>
+        </a>
         <div className="pointer-events-none absolute left-full top-1/2 ml-2.5 -translate-y-1/2 z-[200] whitespace-nowrap rounded-md bg-[#0d0f1c] border border-[rgba(255,255,255,0.08)] px-2.5 py-1 text-xs font-medium text-[#E2E8F0] opacity-0 group-hover:opacity-100 transition-opacity duration-100 shadow-xl">
           {label}
           {aiBadge && <span className="ml-1.5 text-[8px] font-bold text-[#A78BFA]">AI</span>}
@@ -141,9 +146,9 @@ function NavItem({ href, label, icon: Icon, active, aiBadge, badge, onClick, col
   }
 
   return (
-    <Link
+    <a
       href={href}
-      onClick={onClick}
+      onClick={handleNav}
       className={`group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-all duration-150 ${
         small ? "text-[11px]" : "text-[13px]"
       } font-medium ${
@@ -158,7 +163,7 @@ function NavItem({ href, label, icon: Icon, active, aiBadge, badge, onClick, col
       {badge === "missions" && <MissionsBadge />}
       {badge === "notif" && <NotifBadge />}
       {aiBadge && !badge && <span className="rounded-sm bg-[rgba(124,58,237,0.25)] px-1 py-0.5 text-[8px] font-bold text-[#A78BFA] uppercase tracking-wider">AI</span>}
-    </Link>
+    </a>
   );
 }
 
@@ -171,6 +176,28 @@ function Logo({ size = "md" }: { size?: "sm" | "md" }) {
         <path d="M13 10V3L4 14h7v7l9-11h-7z" />
       </svg>
     </div>
+  );
+}
+
+function Breadcrumbs() {
+  const [location] = useLocation();
+  const paths = location.split("/").filter(Boolean);
+  if (paths.length === 0 || location === "/") return null;
+
+  return (
+    <nav className="flex items-center gap-1.5 px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+      <Link href="/" className="hover:text-white transition-colors flex items-center gap-1">
+        <Home size={10} /> HOME
+      </Link>
+      {paths.map((p, i) => (
+        <div key={p} className="flex items-center gap-1.5">
+          <ChevronRightIcon size={10} className="text-zinc-700" />
+          <Link href={`/${paths.slice(0, i + 1).join("/")}`} className={i === paths.length - 1 ? "text-[#A78BFA]" : "hover:text-white transition-colors"}>
+            {p.replace(/-/g, " ")}
+          </Link>
+        </div>
+      ))}
+    </nav>
   );
 }
 
@@ -195,32 +222,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       return next;
     });
   }, []);
-
-  useEffect(() => {
-    const update = () => {
-      const w = sidebarCollapsed ? "58px" : "260px";
-      document.documentElement.style.setProperty("--sidebar-width", w);
-      document.documentElement.style.setProperty("--sidebar-ml", window.innerWidth >= 768 ? w : "0px");
-    };
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, [sidebarCollapsed]);
-
-  useEffect(() => {
-    if (status !== "authenticated") return;
-    const token = getToken();
-    if (!token) return;
-    fetch("/api/sessions/active", { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : null)
-      .then((data: any) => {
-        if (data?.id) {
-          setSidebarCollapsed(true);
-          try { localStorage.setItem("fx-sidebar-collapsed", "true"); } catch {}
-        }
-      })
-      .catch(() => {});
-  }, [location, status]);
 
   const handlePushToggle = async () => {
     setPushLoading(true);
@@ -255,7 +256,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         ))}
       </div>
 
-      {/* More section */}
       <div className={`mt-1 ${collapsed ? "px-1" : "px-2"}`}>
         <div className={`h-px bg-gradient-to-r from-transparent via-[rgba(255,255,255,0.06)] to-transparent mb-1`} />
         {!collapsed ? (
@@ -277,10 +277,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: 0.2 }}
                   className="overflow-hidden"
                 >
-                  <div className="space-y-0.5 pt-0.5">
+                  <div className="grid gap-0.5 py-1">
                     {MORE_NAV.map((item) => (
                       <NavItem key={item.href} {...item} active={location === item.href} onClick={onClick} small />
                     ))}
@@ -309,8 +309,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-[100dvh] bg-[#080A14]">
-
-      {/* ── DESKTOP SIDEBAR ── */}
       <aside
         className="app-sidebar hidden md:flex flex-col"
         style={{
@@ -320,7 +318,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           borderRight: "1px solid rgba(255,255,255,0.05)",
         }}
       >
-        {/* Logo */}
         <div className={`flex h-14 shrink-0 items-center border-b border-[rgba(255,255,255,0.05)] ${sidebarCollapsed ? "justify-center px-2" : "gap-3 px-4"}`}>
           <Logo />
           {!sidebarCollapsed && (
@@ -337,13 +334,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             {sidebarCollapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
           </button>
         </div>
-
-        {/* Nav */}
         <nav className="flex-1 overflow-y-auto py-3 space-y-0.5 scrollbar-none">
           {renderNav(undefined, sidebarCollapsed)}
         </nav>
-
-        {/* User section */}
         <div className={`border-t border-[rgba(255,255,255,0.05)] py-3 space-y-1 ${sidebarCollapsed ? "px-1" : "px-2"}`}>
           {!sidebarCollapsed && (
             <div className="flex items-center gap-2 mb-1">
@@ -366,7 +359,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               )}
             </div>
           )}
-
           {status === "authenticated" && user ? (
             <>
               <Link href="/profile">
@@ -399,7 +391,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             </Link>
           )}
-
           {!sidebarCollapsed && (
             <div className="flex flex-wrap gap-x-2.5 gap-y-0.5 px-2.5 pt-1">
               {[["Privacy", "/privacy"], ["Terms", "/terms"], ["Support", "/support"]].map(([l, h]) => (
@@ -410,7 +401,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {/* ── MOBILE HEADER ── */}
       <div className="fixed left-0 right-0 top-0 z-40 flex h-14 items-center justify-between border-b border-[rgba(255,255,255,0.05)] bg-[rgba(8,9,20,0.96)] px-4 backdrop-blur-xl md:hidden">
         <div className="flex items-center gap-2.5">
           <Logo size="sm" />
@@ -431,7 +421,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      {/* ── MOBILE DRAWER ── */}
       <AnimatePresence>
         {mobileOpen && (
           <>
@@ -454,11 +443,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   <X size={17} />
                 </button>
               </div>
-
               <nav className="flex-1 overflow-y-auto py-3 scrollbar-none">
                 {renderNav(() => setMobileOpen(false), false)}
               </nav>
-
               <div className="border-t border-[rgba(255,255,255,0.05)] px-2 py-3 space-y-1">
                 {status === "authenticated" && user ? (
                   <>
@@ -496,7 +483,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         )}
       </AnimatePresence>
 
-      {/* ── MOBILE BOTTOM TAB BAR ── */}
       <nav className="app-bottom-nav flex items-center justify-around md:hidden">
         {MOBILE_BOTTOM.map(({ href, label, icon: Icon }) => {
           const active = location === href;
@@ -521,7 +507,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         })}
       </nav>
 
-      {/* ── MAIN CONTENT ── */}
       <main
         id="main-content"
         className="flex-1 pt-14 pb-16 md:pt-0 md:pb-0 min-w-0 overflow-x-hidden"
@@ -530,6 +515,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           transition: "margin-left 0.25s cubic-bezier(0.22,1,0.36,1)",
         }}
       >
+        <Breadcrumbs />
         {children}
       </main>
 

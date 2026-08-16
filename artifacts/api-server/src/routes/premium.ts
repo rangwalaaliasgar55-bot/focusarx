@@ -1,3 +1,5 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import {
@@ -29,14 +31,11 @@ const PREMIUM_BENEFITS = [
   "exclusive_seasonal_events",
 ];
 
-function auth(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.userId = userId;
   next();
 }
 
-router.get("/premium/status", auth, async (req: any, res) => {
+router.get("/premium/status", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const [sub] = await db.select().from(premiumSubscriptionsTable)
       .where(eq(premiumSubscriptionsTable.userId, req.userId)).limit(1);
@@ -68,7 +67,7 @@ router.get("/premium/status", auth, async (req: any, res) => {
   }
 });
 
-router.post("/premium/activate", auth, async (req: any, res) => {
+router.post("/premium/activate", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const [existing] = await db.select().from(premiumSubscriptionsTable)
       .where(eq(premiumSubscriptionsTable.userId, req.userId)).limit(1);

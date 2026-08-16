@@ -1,3 +1,5 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { pushSubscriptionsTable } from "@workspace/db";
@@ -6,9 +8,6 @@ import { eq, and } from "drizzle-orm";
 import { initVapid, getVapidPublicKey } from "../lib/pushSender";
 import { logger } from "../lib/logger";
 
-function auth(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.userId = userId;
   next();
 }
@@ -22,7 +21,7 @@ pushRouter.get("/push/vapid-public-key", (_req, res) => {
   res.json({ publicKey: key });
 });
 
-pushRouter.post("/push/subscribe", auth, async (req: any, res) => {
+pushRouter.post("/push/subscribe", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const { endpoint, keys, expirationTime } = req.body as {
     endpoint: string;
@@ -56,7 +55,7 @@ pushRouter.post("/push/subscribe", auth, async (req: any, res) => {
   }
 });
 
-pushRouter.delete("/push/subscribe", auth, async (req: any, res) => {
+pushRouter.delete("/push/subscribe", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const { endpoint } = req.body as { endpoint?: string };
   if (endpoint) {

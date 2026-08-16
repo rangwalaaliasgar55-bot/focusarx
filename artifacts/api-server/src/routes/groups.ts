@@ -1,3 +1,5 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import {
@@ -7,9 +9,6 @@ import {
 import { extractUserId } from "./auth";
 import { eq, and, desc, sql, or } from "drizzle-orm";
 
-function auth(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.userId = userId;
   next();
 }
@@ -39,7 +38,7 @@ async function getGroupWithDetails(groupId: string) {
   return { ...group, members: memberDetails, memberCount: members.length };
 }
 
-groupsRouter.get("/groups", auth, async (req, res) => {
+groupsRouter.get("/groups", authMiddleware, async (req: AuthRequest, res: Response) => {
   const { search } = req.query as { search?: string };
   let groups = await db.select().from(studyGroupsTable)
     .where(eq(studyGroupsTable.isPublic, true))
@@ -54,7 +53,7 @@ groupsRouter.get("/groups", auth, async (req, res) => {
   res.json(withCounts);
 });
 
-groupsRouter.get("/groups/mine", auth, async (req, res) => {
+groupsRouter.get("/groups/mine", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const memberships = await db.select({ groupId: groupMembersTable.groupId })
     .from(groupMembersTable).where(eq(groupMembersTable.userId, userId));
@@ -62,13 +61,13 @@ groupsRouter.get("/groups/mine", auth, async (req, res) => {
   res.json(groups.filter(Boolean));
 });
 
-groupsRouter.get("/groups/:id", auth, async (req, res) => {
+groupsRouter.get("/groups/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
   const group = await getGroupWithDetails(req.params.id);
   if (!group) return res.status(404).json({ error: "Group not found" });
   res.json(group);
 });
 
-groupsRouter.post("/groups", auth, async (req, res) => {
+groupsRouter.post("/groups", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const { name, description, isPublic, avatarEmoji, maxMembers, tags } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: "name required" });
@@ -85,7 +84,7 @@ groupsRouter.post("/groups", auth, async (req, res) => {
   res.status(201).json(group);
 });
 
-groupsRouter.patch("/groups/:id", auth, async (req, res) => {
+groupsRouter.patch("/groups/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [member] = await db.select().from(groupMembersTable)
     .where(and(eq(groupMembersTable.groupId, req.params.id), eq(groupMembersTable.userId, userId))).limit(1);
@@ -97,7 +96,7 @@ groupsRouter.patch("/groups/:id", auth, async (req, res) => {
   res.json(updated);
 });
 
-groupsRouter.delete("/groups/:id", auth, async (req, res) => {
+groupsRouter.delete("/groups/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [group] = await db.select().from(studyGroupsTable).where(eq(studyGroupsTable.id, req.params.id)).limit(1);
   if (!group || group.ownerId !== userId) return res.status(403).json({ error: "Not authorized" });
@@ -105,7 +104,7 @@ groupsRouter.delete("/groups/:id", auth, async (req, res) => {
   res.json({ ok: true });
 });
 
-groupsRouter.post("/groups/:id/join", auth, async (req, res) => {
+groupsRouter.post("/groups/:id/join", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [group] = await db.select().from(studyGroupsTable).where(eq(studyGroupsTable.id, req.params.id)).limit(1);
   if (!group) return res.status(404).json({ error: "Group not found" });
@@ -128,7 +127,7 @@ groupsRouter.post("/groups/:id/join", auth, async (req, res) => {
   res.json({ ok: true });
 });
 
-groupsRouter.post("/groups/join-invite", auth, async (req, res) => {
+groupsRouter.post("/groups/join-invite", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const { inviteCode } = req.body;
   const [group] = await db.select().from(studyGroupsTable).where(eq(studyGroupsTable.inviteCode, inviteCode?.toUpperCase())).limit(1);
@@ -142,7 +141,7 @@ groupsRouter.post("/groups/join-invite", auth, async (req, res) => {
   res.json({ ok: true, group });
 });
 
-groupsRouter.delete("/groups/:id/leave", auth, async (req, res) => {
+groupsRouter.delete("/groups/:id/leave", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [group] = await db.select().from(studyGroupsTable).where(eq(studyGroupsTable.id, req.params.id)).limit(1);
   if (group?.ownerId === userId) return res.status(400).json({ error: "Owner cannot leave. Transfer ownership or delete group." });
@@ -151,7 +150,7 @@ groupsRouter.delete("/groups/:id/leave", auth, async (req, res) => {
   res.json({ ok: true });
 });
 
-groupsRouter.patch("/groups/:id/members/:memberId/role", auth, async (req, res) => {
+groupsRouter.patch("/groups/:id/members/:memberId/role", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [group] = await db.select().from(studyGroupsTable).where(eq(studyGroupsTable.id, req.params.id)).limit(1);
   if (!group || group.ownerId !== userId) return res.status(403).json({ error: "Only owner can change roles" });
@@ -162,7 +161,7 @@ groupsRouter.patch("/groups/:id/members/:memberId/role", auth, async (req, res) 
   res.json({ ok: true });
 });
 
-groupsRouter.get("/groups/:id/leaderboard", auth, async (req, res) => {
+groupsRouter.get("/groups/:id/leaderboard", authMiddleware, async (req: AuthRequest, res: Response) => {
   const members = await db.select().from(groupMembersTable).where(eq(groupMembersTable.groupId, req.params.id));
   const entries = await Promise.all(members.map(async m => {
     const [user] = await db.select({ name: usersTable.name, email: usersTable.email })
@@ -180,7 +179,7 @@ groupsRouter.get("/groups/:id/leaderboard", auth, async (req, res) => {
   res.json(entries.sort((a, b) => b.xpContribution - a.xpContribution).map((e, i) => ({ ...e, rank: i + 1 })));
 });
 
-groupsRouter.post("/groups/:id/contribute-xp", auth, async (req, res) => {
+groupsRouter.post("/groups/:id/contribute-xp", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const { xp } = req.body as { xp: number };
   if (!xp || xp <= 0) return res.status(400).json({ error: "xp must be positive" });

@@ -26,7 +26,15 @@ function Ring({ pct, size, stroke, color }: { pct: number; size: number; stroke:
   );
 }
 
+const MOTIVATIONS = [
+  "Consistency is the key to deep mastery.",
+  "Your brain re-wires during rest, not just work.",
+  "Focus is the interest you pay on your future.",
+  "1% better every day leads to exponential growth.",
+];
+
 export default function DailyGoal() {
+  const motivation = useMemo(() => MOTIVATIONS[Math.floor(Date.now() / 86400000) % MOTIVATIONS.length], []);
   const { sessions } = useSessionHistory();
   const [goalStr, setGoalStr] = useState<string>(() => localStorage.getItem(GOAL_KEY) ?? "120");
   const [editing, setEditing] = useState(false);
@@ -141,6 +149,12 @@ export default function DailyGoal() {
             </div>
           )}
         </div>
+      </div>
+      
+      <div className="mt-4 pt-3 border-t border-white/5">
+        <p className="text-[9px] text-[#4B5563] italic leading-tight">
+           <span className="text-[#A78BFA] font-bold">Tip:</span> {motivation}
+        </p>
       </div>
     </div>
   );

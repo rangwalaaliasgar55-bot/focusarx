@@ -234,12 +234,27 @@ export function AnalyticsDashboard({ authHeaders }: { authHeaders: () => Record<
   );
 }
 
-function MetricCard({ label, value, accent }: { label: string; value: number; accent?: "violet" | "sky" | "rose" }) {
+import { ArrowUpRight, TrendingUp, BarChart2, Zap, LayoutDashboard, MousePointer2 } from "lucide-react";
+
+function MetricCard({ label, value, accent, trend }: { label: string; value: number; accent?: "violet" | "sky" | "rose"; trend?: number }) {
   const color = accent === "violet" ? "text-violet-400" : accent === "sky" ? "text-sky-400" : accent === "rose" ? "text-rose-400" : "text-zinc-100";
   return (
-    <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/40 px-4 py-4">
-      <p className="text-xs text-zinc-500">{label}</p>
-      <p className={`mt-1 text-2xl font-semibold ${color}`}>{value.toLocaleString()}</p>
+    <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/40 p-5 relative overflow-hidden group">
+      <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+         <MousePointer2 size={40} className={color} />
+      </div>
+      <div className="relative z-10">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-2">{label}</p>
+        <div className="flex items-end gap-3">
+          <p className={`text-3xl font-black ${color} tracking-tight tabular-nums`}>{value.toLocaleString()}</p>
+          {trend !== undefined && (
+            <div className={`flex items-center gap-0.5 text-[10px] font-bold mb-1 ${trend >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+               <ArrowUpRight size={10} className={trend < 0 ? "rotate-90" : ""} />
+               {Math.abs(trend)}%
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

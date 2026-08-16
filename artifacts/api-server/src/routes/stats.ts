@@ -1,3 +1,5 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db, focusSessionsTable, studyStreaksTable, tasksTable, productivityLogsTable } from "@workspace/db";
 import { eq, and, gte, lt, desc, count, sql } from "drizzle-orm";
@@ -6,14 +8,11 @@ import { logger } from "../lib/logger";
 
 const router = Router();
 
-function authMiddleware(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-  req.userId = userId;
-  next();
+   
+ 
 }
 
-router.get("/stats", authMiddleware, async (req: any, res) => {
+router.get("/stats", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -65,7 +64,7 @@ router.get("/stats", authMiddleware, async (req: any, res) => {
   }
 });
 
-router.get("/analytics", authMiddleware, async (req: any, res) => {
+router.get("/analytics", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const now = new Date();
     const ninetyDaysAgo = new Date(now.getTime() - 90 * 86400000);
@@ -160,7 +159,7 @@ router.get("/analytics", authMiddleware, async (req: any, res) => {
   }
 });
 
-router.get("/stats/productivity", authMiddleware, async (req: any, res) => {
+router.get("/stats/productivity", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const today = new Date().toISOString().split("T")[0]!;
     const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().split("T")[0]!;
@@ -199,7 +198,7 @@ router.get("/stats/productivity", authMiddleware, async (req: any, res) => {
   }
 });
 
-router.get("/streak", authMiddleware, async (req: any, res) => {
+router.get("/streak", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const [streak] = await db.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, req.userId));
     res.json({ streak: streak ?? { currentStreak: 0, longestStreak: 0, lastStudyDate: null } });

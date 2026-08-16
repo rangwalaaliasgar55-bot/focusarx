@@ -6,6 +6,17 @@
 # ── Allow all compliant crawlers ──────────────────────────────
 User-agent: *
 Allow: /
+Allow: /focus-guide
+Allow: /science-of-deep-work
+Allow: /feynman-technique
+Allow: /pomodoro-guide
+Allow: /study-techniques
+Allow: /virtual-study-room
+Allow: /pricing
+Allow: /about
+Allow: /contact
+Allow: /support
+Allow: /roadmap
 
 # ── Block private / user-specific routes ─────────────────────
 Disallow: /dashboard

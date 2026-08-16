@@ -7,11 +7,13 @@ import router from "./routes";
 import { logger } from "./lib/logger";
 import { getConfigErrors } from "./lib/config";
 import { generalLimiter } from "./lib/rateLimiter";
+import { masterSecurityMiddleware } from "./middlewares/security";
 
 const isDev = process.env.NODE_ENV !== "production";
 const app: Express = express();
 app.set("trust proxy", 1);
 
+app.use(masterSecurityMiddleware);
 app.use(compression({
   level: 6,
   threshold: 1024,
@@ -26,13 +28,13 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "https:"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.cookieyes.com"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        imgSrc: ["'self'", "data:", "https:", "https://images.unsplash.com"],
         connectSrc: isDev
           ? ["'self'", "http://localhost:*", "ws://localhost:*", "https:"]
-          : ["'self'", "https:"],
-        fontSrc: ["'self'", "data:", "https:"],
+          : ["'self'", "https:", "wss:"],
+        fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
         mediaSrc: ["'self'", "blob:", "data:"],
         workerSrc: ["'self'", "blob:"],
         frameSrc: ["'none'"],
@@ -73,21 +75,17 @@ app.use(
 app.use(
   cors({
     origin: (origin, cb) => {
-      if (!origin) { cb(null, true); return; }
-      if (isDev) { cb(null, true); return; }
-      if (origin.endsWith(".vercel.app")) { cb(null, true); return; }
-      if (origin.endsWith(".replit.dev") || origin.endsWith(".repl.co")) { cb(null, true); return; }
-      const appUrl = process.env.APP_URL;
-      if (appUrl) {
-        try {
-          const appUrlObj = new URL(appUrl);
-          const originObj = new URL(origin);
-          const baseDomain = appUrlObj.hostname.replace(/^www\./, "");
-          const originDomain = originObj.hostname.replace(/^www\./, "");
-          if (baseDomain === originDomain) { cb(null, true); return; }
-        } catch { /* fall through */ }
+      if (!origin || isDev) { cb(null, true); return; }
+      const allowed = [
+        "https://focusarx.site",
+        "https://focusarx.vercel.app",
+        "https://focusarx-api.vercel.app"
+      ];
+      if (allowed.includes(origin) || origin.endsWith(".vercel.app")) {
+        cb(null, true);
+      } else {
+        cb(new Error("CORS: origin not allowed"));
       }
-      cb(new Error("CORS: origin not allowed"));
     },
     credentials: true,
   }),

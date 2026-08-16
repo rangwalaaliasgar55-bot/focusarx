@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getToken } from "@/lib/auth";
+import { Volume2, VolumeX, MessageSquare, Brain } from "lucide-react";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -19,9 +20,31 @@ const PROACTIVE_MESSAGES = [
   "Hydrate. Seriously. Even mild dehydration tanks cognitive performance by 10-15%.",
 ];
 
+const COACH_AUDIO: Record<string, string> = {
+  session_start: "/audio/coach/session_start.mp3",
+  session_complete: "/audio/coach/session_complete.mp3",
+  break_time: "/audio/coach/break_time.mp3",
+  distraction: "/audio/coach/distraction_detected.mp3",
+  forge: "/audio/coach/forge_welcome.mp3",
+};
+
 export default function CoachPanel() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [voiceEnabled, setVoiceEnabled] = useState(() => {
+    try { return localStorage.getItem("fx-coach-voice") === "true"; } catch { return false; }
+  });
+
+  const playCoachVoice = (key: keyof typeof COACH_AUDIO) => {
+    if (!voiceEnabled) return;
+    const audio = new Audio(COACH_AUDIO[key]);
+    audio.volume = 0.6;
+    audio.play().catch(() => {});
+  };
+
+  useEffect(() => {
+    try { localStorage.setItem("fx-coach-voice", String(voiceEnabled)); } catch {}
+  }, [voiceEnabled]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [isFallback, setIsFallback] = useState(false);
@@ -153,6 +176,13 @@ export default function CoachPanel() {
                 <p className="text-sm font-bold text-[#E2E8F0]">FocusArx Coach</p>
                 <p className="text-[10px] text-[#4B5563]">Productivity & neuroscience</p>
               </div>
+              <button 
+                onClick={() => setVoiceEnabled(!voiceEnabled)}
+                className={`ml-auto p-1.5 rounded-lg border transition-all ${voiceEnabled ? "border-[#A78BFA]/40 bg-[#A78BFA]/10 text-[#A78BFA]" : "border-white/5 text-[#4B5563]"}`}
+                title={voiceEnabled ? "Voice Enabled" : "Voice Disabled"}
+              >
+                <Volume2 size={14} className={voiceEnabled ? "animate-pulse" : ""} />
+              </button>
               {isFallback && (
                 <span className="ml-auto text-[9px] text-zinc-600 border border-zinc-800 rounded px-1.5 py-0.5">Basic</span>
               )}

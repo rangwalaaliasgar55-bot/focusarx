@@ -1,3 +1,5 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db, userPetsTable, userWalletsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
@@ -8,9 +10,6 @@ const router = Router();
 
 const PET_XP_PER_LEVEL = 500;
 
-function authMiddleware(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.userId = userId;
   next();
 }
@@ -28,7 +27,7 @@ router.get("/pets/types", (_req, res) => {
   res.json({ petTypes: PET_TYPES });
 });
 
-router.get("/pets", authMiddleware, async (req: any, res) => {
+router.get("/pets", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const [pet] = await db.select().from(userPetsTable).where(eq(userPetsTable.userId, req.userId));
     if (!pet) { res.json({ pet: null }); return; }
@@ -45,7 +44,7 @@ router.get("/pets", authMiddleware, async (req: any, res) => {
   }
 });
 
-router.post("/pets", authMiddleware, async (req: any, res) => {
+router.post("/pets", authMiddleware, async (req: AuthRequest, res: Response) => {
   const { petType, petName } = req.body as any;
   if (!petType) { res.status(400).json({ error: "petType required" }); return; }
   const validType = PET_TYPES.find(p => p.id === petType);
@@ -74,7 +73,7 @@ router.post("/pets", authMiddleware, async (req: any, res) => {
 });
 
 // Award pet XP (called after sessions)
-router.post("/pets/award-xp", authMiddleware, async (req: any, res) => {
+router.post("/pets/award-xp", authMiddleware, async (req: AuthRequest, res: Response) => {
   const { xpAmount } = req.body as { xpAmount?: number };
   if (!xpAmount || xpAmount <= 0) { res.status(400).json({ error: "xpAmount required" }); return; }
   try {

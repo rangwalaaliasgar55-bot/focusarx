@@ -1,11 +1,10 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { extractUserId } from "./auth";
 import { db, lootBoxTypesTable, userLootBoxesTable, userWalletsTable, notificationsTable, coinTransactionsTable, marketplaceItemsTable, userInventoryTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
 
-function auth(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.user = { id: userId };
   next();
 }
@@ -43,7 +42,7 @@ lootboxesRouter.get("/lootboxes/types", async (_req, res) => {
   }
 });
 
-lootboxesRouter.get("/lootboxes/mine", auth, async (req: any, res) => {
+lootboxesRouter.get("/lootboxes/mine", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const boxes = await db.select().from(userLootBoxesTable)
       .where(eq(userLootBoxesTable.userId, req.user.id));
@@ -53,7 +52,7 @@ lootboxesRouter.get("/lootboxes/mine", auth, async (req: any, res) => {
   }
 });
 
-lootboxesRouter.post("/lootboxes/buy", auth, async (req: any, res) => {
+lootboxesRouter.post("/lootboxes/buy", authMiddleware, async (req: AuthRequest, res: Response) => {
   const { typeId } = req.body;
   if (!typeId) return res.status(400).json({ error: "Missing typeId" });
 
@@ -93,7 +92,7 @@ lootboxesRouter.post("/lootboxes/buy", auth, async (req: any, res) => {
   }
 });
 
-lootboxesRouter.post("/lootboxes/:boxId/open", auth, async (req: any, res) => {
+lootboxesRouter.post("/lootboxes/:boxId/open", authMiddleware, async (req: AuthRequest, res: Response) => {
   const { boxId } = req.params;
   try {
     const [box] = await db.select().from(userLootBoxesTable)

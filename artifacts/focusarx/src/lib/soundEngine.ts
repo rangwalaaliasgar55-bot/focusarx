@@ -65,3 +65,18 @@ export function toggleMute() {
 export function isMuted() {
   return localStorage.getItem("fx_muted") === "1";
 }
+
+const COACH_AUDIO: Record<string, string> = {
+  session_start: "/audio/coach/session_start.mp3",
+  session_complete: "/audio/coach/session_complete.mp3",
+  break_time: "/audio/coach/break_time.mp3",
+  distraction: "/audio/coach/distraction_detected.mp3",
+  forge: "/audio/coach/forge_welcome.mp3",
+};
+
+export const playCoachVoice = (key: keyof typeof COACH_AUDIO) => {
+  if (localStorage.getItem("fx-coach-voice") !== "true") return;
+  const audio = new Audio(COACH_AUDIO[key]);
+  audio.volume = 0.6;
+  audio.play().catch(() => {});
+};

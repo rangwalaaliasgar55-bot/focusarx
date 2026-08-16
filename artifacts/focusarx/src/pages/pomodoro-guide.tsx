@@ -1,113 +1,106 @@
 import { Link } from "wouter";
-import { ArrowRight, Timer, Brain, Coffee, BarChart2, Smartphone, Globe } from "lucide-react";
+import { ArrowRight, Timer, Brain, Coffee, BarChart2, Smartphone, Globe, ShieldCheck } from "lucide-react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 
 function TipCard({ icon: Icon, title, body, color }: { icon: React.ComponentType<any>; title: string; body: string; color: string }) {
   return (
-    <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-5 hover:border-[#7C3AED]/30 transition-colors">
-      <Icon size={18} style={{ color }} className="mb-3" />
-      <h3 className="font-bold text-[#E2E8F0] mb-2">{title}</h3>
-      <p className="text-sm text-[#6b7280] leading-relaxed">{body}</p>
+    <div className="rounded-3xl border border-white/5 bg-white/[0.01] p-8 hover:border-[#F87171]/30 transition-all group">
+      <div className="h-12 w-12 rounded-2xl bg-white/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+        <Icon size={24} style={{ color }} />
+      </div>
+      <h3 className="text-xl font-bold text-white mb-3">{title}</h3>
+      <p className="text-[#64748B] leading-relaxed">{body}</p>
     </div>
   );
 }
 
 export default function PomodoroGuidePage() {
   return (
-    <div className="min-h-screen bg-[rgba(255,255,255,0.02)] text-[#E2E8F0]">
+    <div className="min-h-screen bg-[#030308] text-[#F8FAFC]">
       <PageSEO {...PAGE_SEO.pomodoroGuide} />
 
-      <div className="relative overflow-hidden border-b border-[rgba(255,255,255,0.06)]">
+      <div className="relative overflow-hidden border-b border-white/5">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,_rgba(239,68,68,0.12),_transparent_70%)]" />
-        <div className="relative max-w-3xl mx-auto px-4 sm:px-6 py-20 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 mb-6">
-            <Timer size={12} /> Pomodoro Guide
+        <div className="relative max-w-4xl mx-auto px-6 py-24 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-red-400 mb-8">
+            <Timer size={12} /> Pomodoro System
           </div>
-          <h1 className="text-3xl sm:text-5xl font-black text-[#E2E8F0] mb-4 leading-tight">
+          <h1 className="text-5xl sm:text-8xl font-black text-white mb-6 leading-tight tracking-tight">
             The Pomodoro<br />
             <span className="bg-gradient-to-r from-red-400 to-orange-400 bg-clip-text text-transparent">Technique</span>
           </h1>
-          <p className="text-lg text-[#6b7280] max-w-xl mx-auto mb-8">
-            How a kitchen timer and 25-minute intervals became the world's most popular productivity system — and how to use it for exam prep, coding, and creative work.
+          <p className="text-xl text-[#94A3B8] max-w-2xl mx-auto mb-12 leading-relaxed">
+            The world's most popular study system. We break down the science of 25-minute intervals and how to use them to reach your biggest goals.
           </p>
-          <Link href="/register" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-orange-500 px-6 py-3 text-sm font-bold text-white hover:opacity-90 transition-opacity">
-            Try the Free Pomodoro Timer <ArrowRight size={15} />
+          <Link href="/signup">
+            <button className="h-16 px-10 rounded-2xl bg-gradient-to-r from-red-500 to-orange-500 text-lg font-black shadow-[0_0_40px_rgba(239,68,68,0.3)] hover:scale-105 transition-transform">
+              Try the Free Pomodoro Timer <ArrowRight size={18} className="inline ml-1" />
+            </button>
           </Link>
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 space-y-16">
-
-        {/* Origin */}
-        <section>
-          <h2 className="text-2xl font-black text-[#E2E8F0] mb-4">Origin of the Pomodoro Technique</h2>
-          <div className="prose-dark space-y-4 text-[#8b8fa8] leading-relaxed text-sm">
-            <p>In the late 1980s, a university student named Francesco Cirillo was struggling to focus on his studies. He grabbed a tomato-shaped kitchen timer (<em>pomodoro</em> is Italian for tomato), set it for 25 minutes, and made a pact with himself: work with full concentration until it rang.</p>
-            <p>What followed was a productivity breakthrough. Cirillo refined the system over years and published it in 2006. Today it's used by over 2 million students, developers, and creatives worldwide.</p>
-            <p>The insight is deceptively simple: <strong className="text-[#E2E8F0]">our brains work better in focused bursts with deliberate rest</strong>, not in marathon sessions that drain mental energy without recovery.</p>
-          </div>
-        </section>
+      <div className="max-w-4xl mx-auto px-6 py-24 space-y-32">
 
         {/* The science */}
-        <section className="border-t border-[rgba(255,255,255,0.06)] pt-12">
-          <h2 className="text-2xl font-black text-[#E2E8F0] mb-4">The Science Behind It</h2>
-          <div className="grid sm:grid-cols-3 gap-4 mb-6">
+        <section className="text-center">
+          <h2 className="text-4xl font-black text-white mb-12 tracking-tight">The Bio-Logic of 25 Minutes</h2>
+          <div className="grid sm:grid-cols-3 gap-6 mb-16">
             {[
-              { label: "Minutes", value: "25", note: "Optimal deep-work burst for most people" },
-              { label: "Break", value: "5 min", note: "Short reset between each pomodoro" },
-              { label: "Long break", value: "20–30 min", note: "After every 4 pomodoros" },
+              { label: "High Performance", value: "25m", note: "Peak focus window before the 'restlessness' curve starts." },
+              { label: "Neuro-Recharge", value: "5m", note: "Replenishes glycogen in the prefrontal cortex." },
+              { label: "Consolidation", value: "30m", note: "Long break to move info from short to long-term memory." },
             ].map(s => (
-              <div key={s.label} className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-4 text-center">
-                <p className="text-3xl font-black text-[#E2E8F0] mb-1">{s.value}</p>
-                <p className="text-xs font-bold text-[#a78bfa] mb-1">{s.label}</p>
-                <p className="text-[11px] text-[#4B5563]">{s.note}</p>
+              <div key={s.label} className="rounded-3xl border border-white/5 bg-white/[0.02] p-8 backdrop-blur-xl">
+                <p className="text-5xl font-black text-white mb-4">{s.value}</p>
+                <p className="text-xs font-black uppercase tracking-widest text-red-400 mb-2">{s.label}</p>
+                <p className="text-xs text-[#4B5563] leading-relaxed">{s.note}</p>
               </div>
             ))}
           </div>
-          <div className="text-sm text-[#8b8fa8] leading-relaxed space-y-3">
-            <p>Research in cognitive neuroscience confirms that sustained attention has a natural ebb at around 20–30 minutes. The Pomodoro timer aligns with the brain's <strong className="text-[#E2E8F0]">ultradian rhythm</strong> — 90-minute cycles of high and low alertness.</p>
-            <p>Breaks allow the <strong className="text-[#E2E8F0]">default mode network</strong> to activate, which consolidates learning and creative insight. Skipping breaks doesn't produce more work — it produces worse work.</p>
+          <div className="max-w-2xl mx-auto text-[#94A3B8] leading-relaxed text-lg italic">
+            "Sustained attention has a natural biological ebb at around 30 minutes. The Pomodoro technique isn't just a timer—it's an alignment with your brain's ultradian rhythm."
           </div>
         </section>
 
         {/* Tips */}
-        <section className="border-t border-[rgba(255,255,255,0.06)] pt-12">
-          <h2 className="text-2xl font-black text-[#E2E8F0] mb-2">7 Tips to Supercharge Your Pomodoros</h2>
-          <p className="text-[#6b7280] mb-6 text-sm">Small tweaks that double the effectiveness of the technique.</p>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <TipCard icon={Brain} color="#7C3AED" title="Set a single intention" body="Before starting the timer, write one specific sub-task you'll complete. Vague goals lead to vague focus." />
-            <TipCard icon={Smartphone} color="#f59e0b" title="Phone in another room" body="Not on silent — in another room. Even a face-down phone reduces cognitive capacity by occupying background processing." />
-            <TipCard icon={Coffee} color="#f87171" title="Protect your break" body="Don't check social media on a 5-minute break. Look out a window, stretch, or breathe. Screens during breaks extend cognitive fatigue." />
-            <TipCard icon={BarChart2} color="#22d387" title="Track your velocity" body="Count your pomodoros per day. Pros average 8–12 per day. Build to that gradually — starting with 4 is fine." />
-            <TipCard icon={Globe} color="#60a5fa" title="Use ambient sound" body="Brown noise, lo-fi, or rain sounds mask distracting background noise and signal to your brain 'it's focus time.'" />
-            <TipCard icon={Timer} color="#a78bfa" title="Customize the duration" body="25 minutes isn't sacred. Developers often prefer 50-minute blocks; students cramming for exams do well with 20. FocusArx lets you pick any duration." />
+        <section>
+          <div className="text-center mb-16">
+             <h2 className="text-4xl font-black text-white mb-4">Elite Study Protocols</h2>
+             <p className="text-[#64748B]">Small tweaks that separate top performers from everyone else.</p>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-6">
+            <TipCard icon={Brain} color="#F87171" title="The Single Intent Rule" body="Vague goals lead to vague focus. Write down the EXACT sentence you will produce or topic you will learn before the timer starts." />
+            <TipCard icon={Smartphone} color="#F59E0B" title="Physical Isolation" body="Keep your phone in a DIFFERENT ROOM. Visual proximity to a phone, even if it's off, reduces your effective IQ by 10 points." />
+            <TipCard icon={Coffee} color="#60A5FA" title="Active Rest Only" body="Do NOT check social media on breaks. Look at distance (the horizon), stretch, or drink water. Screens prevent neural recharge." />
+            <TipCard icon={ShieldCheck} color="#10B981" title="The Distraction Log" body="If a task pops into your head, write it down and immediately go back. Don't let your 'Default Mode Network' hijack your flow." />
           </div>
         </section>
 
         {/* CTA */}
-        <section className="border-t border-[rgba(255,255,255,0.06)] pt-12 text-center">
-          <div className="rounded-3xl border border-red-500/20 bg-gradient-to-br from-red-500/8 to-orange-500/5 p-10">
-            <Timer size={32} className="text-red-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-black text-[#E2E8F0] mb-3">Start your first Pomodoro in 10 seconds</h2>
-            <p className="text-[#6b7280] mb-6 max-w-md mx-auto text-sm">FocusArx adds gamification, AI coaching, and accountability on top of the classic technique — free forever.</p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link href="/register" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-orange-500 px-7 py-3 text-sm font-bold text-white hover:opacity-90 transition-opacity">
-                Create Free Account <ArrowRight size={15} />
-              </Link>
-              <Link href="/focus-guide" className="inline-flex items-center gap-2 rounded-xl border border-[rgba(255,255,255,0.06)] px-6 py-3 text-sm font-medium text-[#a78bfa] hover:border-[#7C3AED]/40 transition-colors">
-                Read the Full Focus Guide
+        <section className="text-center">
+          <div className="rounded-[40px] border border-red-500/20 bg-gradient-to-br from-red-500/10 to-orange-500/5 p-16 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-8 opacity-5">
+               <Timer size={200} className="text-red-400" />
+            </div>
+            <h2 className="text-4xl sm:text-6xl font-black text-white mb-6 tracking-tight">Upgrade Your <br />Learning Output</h2>
+            <p className="text-[#94A3B8] mb-12 max-w-xl mx-auto text-lg">FocusArx combines the classic Pomodoro system with AI coaching and immersive 3D metrics. Join 50,000+ elite learners.</p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link href="/signup">
+                <button className="h-16 px-12 rounded-2xl bg-white text-black font-black text-lg hover:scale-105 transition-all">
+                  Initialize Timer
+                </button>
               </Link>
             </div>
           </div>
         </section>
       </div>
 
-      <div className="border-t border-[rgba(255,255,255,0.06)] py-6 text-center space-x-4 text-xs text-[#374151]">
-        <Link href="/" className="hover:text-[#7C3AED]">Home</Link>
-        <Link href="/focus-guide" className="hover:text-[#7C3AED]">Focus Guide</Link>
-        <Link href="/study-techniques" className="hover:text-[#7C3AED]">Study Techniques</Link>
-        <Link href="/leaderboard" className="hover:text-[#7C3AED]">Leaderboard</Link>
-        <Link href="/study-rooms" className="hover:text-[#7C3AED]">Study Rooms</Link>
+      <div className="border-t border-white/5 py-12 text-center flex flex-wrap justify-center gap-8 text-[10px] font-black uppercase tracking-[0.2em] text-[#2A2D3A]">
+        <Link href="/" className="hover:text-white transition-colors">Home</Link>
+        <Link href="/science-of-deep-work" className="hover:text-white transition-colors">Neuro-Science</Link>
+        <Link href="/feynman-technique" className="hover:text-white transition-colors">Feynman Technique</Link>
+        <Link href="/leaderboard" className="hover:text-white transition-colors">World Board</Link>
       </div>
     </div>
   );

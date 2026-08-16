@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "@/lib/auth";
-import { getToken } from "@/lib/auth";
+import { useAuth, getToken } from "@/lib/auth";
+import { Sparkles, Target, Zap, Clock, Rocket, ArrowRight, ArrowLeft } from "lucide-react";
+import { BLUR_IN, STAGGER, STAGGER_CHILD } from "@/lib/animations";
+
+const Hero3D = lazy(() => import("@/components/Hero3D"));
 
 type OnboardingData = {
   goal: string;
@@ -13,53 +16,62 @@ type OnboardingData = {
 };
 
 const GOALS = [
-  { id: "exams", label: "Exam preparation", icon: "📚" },
-  { id: "deepwork", label: "Deep work & research", icon: "🔬" },
-  { id: "coding", label: "Coding & building", icon: "💻" },
-  { id: "creative", label: "Creative projects", icon: "🎨" },
-  { id: "language", label: "Language learning", icon: "🌍" },
-  { id: "other", label: "Something else", icon: "✨" },
+  { id: "exams", label: "Exam Prep", icon: "📚" },
+  { id: "deepwork", label: "Research", icon: "🔬" },
+  { id: "coding", label: "Coding", icon: "💻" },
+  { id: "creative", label: "Creative", icon: "🎨" },
+  { id: "language", label: "Languages", icon: "🌍" },
+  { id: "other", label: "Other", icon: "✨" },
 ];
 
 const CHALLENGES = [
-  { id: "phone", label: "Phone & social media", icon: "📱" },
+  { id: "phone", label: "Distractions", icon: "📱" },
   { id: "procrastination", label: "Procrastination", icon: "⏳" },
-  { id: "time", label: "Losing track of time", icon: "⌛" },
-  { id: "motivation", label: "Staying motivated", icon: "🔋" },
-  { id: "overwhelmed", label: "Too many tasks", icon: "📋" },
-  { id: "environment", label: "Noisy environment", icon: "🔇" },
+  { id: "time", label: "Poor Timing", icon: "⌛" },
+  { id: "motivation", label: "Motivation", icon: "🔋" },
+  { id: "overwhelmed", label: "Overwhelmed", icon: "📋" },
+  { id: "environment", label: "Noise", icon: "🔇" },
 ];
 
 const STYLES = [
-  { id: "sprinter", label: "Sprinter", sub: "Short, intense 25-min bursts", icon: "⚡", duration: 25 },
-  { id: "balanced", label: "Balanced", sub: "Classic 45-min sessions", icon: "⚖️", duration: 45 },
-  { id: "marathoner", label: "Marathoner", sub: "Deep 90-min+ dives", icon: "🏃", duration: 90 },
+  { id: "sprinter", label: "Sprinter", sub: "25-min bursts", icon: "⚡", duration: 25 },
+  { id: "balanced", label: "Balanced", sub: "45-min sessions", icon: "⚖️", duration: 45 },
+  { id: "marathoner", label: "Marathoner", sub: "90-min dives", icon: "🏃", duration: 90 },
 ];
 
 const DAILY_HOURS = [
-  { id: "1h", label: "1 hour", sub: "Light & consistent" },
-  { id: "2h", label: "2 hours", sub: "Solid daily habit" },
-  { id: "4h", label: "4 hours", sub: "Serious focus" },
-  { id: "6h", label: "6+ hours", sub: "Full deep work mode" },
+  { id: "1h", label: "1 hour", sub: "Light" },
+  { id: "2h", label: "2 hours", sub: "Solid" },
+  { id: "4h", label: "4 hours", sub: "Serious" },
+  { id: "6h", label: "6+ hours", sub: "Extreme" },
 ];
 
-const STEPS = ["goal", "challenge", "style", "hours", "ready"] as const;
+const STEPS = ["intro", "goal", "challenge", "style", "hours", "ready"] as const;
 type Step = typeof STEPS[number];
 
 export default function OnboardingPage() {
   const [, setLocation] = useLocation();
   const { refresh } = useAuth();
-  const [step, setStep] = useState<Step>("goal");
+  const [step, setStep] = useState<Step>("intro");
   const [saving, setSaving] = useState(false);
   const [data, setData] = useState<Partial<OnboardingData>>({});
 
   const stepIndex = STEPS.indexOf(step);
   const progress = (stepIndex / (STEPS.length - 1)) * 100;
 
+  const next = () => {
+    const nextStep = STEPS[stepIndex + 1];
+    if (nextStep) setStep(nextStep);
+  };
+
+  const back = () => {
+    const prevStep = STEPS[stepIndex - 1];
+    if (prevStep) setStep(prevStep);
+  };
+
   const pick = (key: keyof OnboardingData, value: string | number) => {
     setData((prev) => ({ ...prev, [key]: value }));
-    const nextStep = STEPS[stepIndex + 1];
-    if (nextStep) setTimeout(() => setStep(nextStep), 220);
+    setTimeout(next, 300);
   };
 
   const finish = async () => {
@@ -72,7 +84,6 @@ export default function OnboardingPage() {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        credentials: "include",
         body: JSON.stringify({ data }),
       });
       await refresh();
@@ -83,139 +94,148 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-zinc-950 px-4 py-8">
-      <div className="w-full max-w-lg">
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">
-              FocusArx Setup
-            </p>
-            <p className="text-xs text-zinc-600">
-              {stepIndex + 1} / {STEPS.length}
-            </p>
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#030308] text-white">
+      {/* 3D Background */}
+      <div className="absolute inset-0 z-0 opacity-40">
+        <Suspense fallback={null}>
+          <Hero3D />
+        </Suspense>
+      </div>
+      
+      <div className="relative z-10 w-full max-w-xl px-6">
+        <div className="mb-12">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-[#A78BFA] animate-pulse" />
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#4B5563]">System Calibration</p>
+            </div>
+            <p className="text-[10px] font-bold text-[#4B5563]">{Math.round(progress)}%</p>
           </div>
-          <div className="h-1 w-full rounded-full bg-zinc-800">
+          <div className="h-1 w-full rounded-full bg-white/5">
             <motion.div
-              className="h-full rounded-full bg-rose-500"
-              initial={{ width: 0 }}
+              className="h-full rounded-full bg-gradient-to-r from-[#7C3AED] to-[#F472B6]"
               animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
+              transition={{ duration: 0.6, ease: "circOut" }}
             />
           </div>
         </div>
 
         <AnimatePresence mode="wait">
+          {step === "intro" && (
+            <motion.div key="intro" variants={BLUR_IN} initial="initial" animate="animate" exit="exit" className="text-center">
+              <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-[#7C3AED] to-[#F472B6] shadow-[0_0_40px_rgba(124,58,237,0.3)]">
+                <Rocket size={32} className="text-white" />
+              </div>
+              <h1 className="text-4xl font-black tracking-tight sm:text-5xl">Initialize Your <br /><span className="text-[#A78BFA]">Focus DNA</span></h1>
+              <p className="mt-6 text-lg text-[#94A3B8]">Before we begin, we need to calibrate the environment to your cognitive patterns.</p>
+              <button onClick={next} className="mt-12 group flex items-center gap-3 mx-auto rounded-2xl bg-white px-8 py-4 text-lg font-bold text-black hover:scale-105 transition-all">
+                Begin Calibration <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+            </motion.div>
+          )}
+
           {step === "goal" && (
-            <StepCard key="goal" title="What's your main focus goal?" sub="We'll personalise your experience around this.">
-              <div className="grid grid-cols-2 gap-2.5">
+            <StepWrapper key="goal" title="Primary Directive" sub="What is your ultimate objective?">
+              <div className="grid grid-cols-2 gap-3">
                 {GOALS.map((g) => (
                   <OptionButton key={g.id} icon={g.icon} label={g.label} selected={data.goal === g.id} onClick={() => pick("goal", g.id)} />
                 ))}
               </div>
-            </StepCard>
+            </StepWrapper>
           )}
 
           {step === "challenge" && (
-            <StepCard key="challenge" title="What's your biggest focus challenge?" sub="Be honest — we've all been there.">
-              <div className="grid grid-cols-2 gap-2.5">
+            <StepWrapper key="challenge" title="Interference Detection" sub="Identify your primary distraction source.">
+              <div className="grid grid-cols-2 gap-3">
                 {CHALLENGES.map((c) => (
                   <OptionButton key={c.id} icon={c.icon} label={c.label} selected={data.challenge === c.id} onClick={() => pick("challenge", c.id)} />
                 ))}
               </div>
-            </StepCard>
+            </StepWrapper>
           )}
 
           {step === "style" && (
-            <StepCard key="style" title="What's your focus style?" sub="This sets your default session length.">
-              <div className="flex flex-col gap-3">
+            <StepWrapper key="style" title="Flow Architecture" sub="Select your preferred study frequency.">
+              <div className="space-y-3">
                 {STYLES.map((s) => (
                   <button
                     key={s.id}
                     onClick={() => {
                       setData((prev) => ({ ...prev, style: s.id, focusDuration: s.duration }));
-                      const nextStep = STEPS[stepIndex + 1];
-                      if (nextStep) setTimeout(() => setStep(nextStep), 220);
+                      setTimeout(next, 300);
                     }}
-                    className={`flex items-center gap-4 rounded-2xl border px-5 py-4 text-left transition-all ${
+                    className={`group relative w-full flex items-center gap-4 rounded-2xl border px-6 py-5 text-left transition-all ${
                       data.style === s.id
-                        ? "border-rose-500/60 bg-rose-950/30 ring-1 ring-rose-500/30"
-                        : "border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 hover:bg-zinc-800/60"
+                        ? "border-[#A78BFA] bg-[#A78BFA]/10"
+                        : "border-white/5 bg-white/[0.02] hover:bg-white/[0.05]"
                     }`}
                   >
-                    <span className="text-2xl">{s.icon}</span>
+                    <span className="text-3xl">{s.icon}</span>
                     <div>
-                      <p className="font-semibold text-zinc-100">{s.label}</p>
-                      <p className="text-sm text-zinc-500">{s.sub}</p>
+                      <p className="font-bold text-white text-lg">{s.label}</p>
+                      <p className="text-sm text-[#4B5563]">{s.sub}</p>
                     </div>
-                    <span className="ml-auto rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400">{s.duration}m</span>
+                    <div className="ml-auto text-right">
+                       <span className="text-xs font-black text-[#A78BFA] uppercase tracking-widest">{s.duration} MIN</span>
+                    </div>
                   </button>
                 ))}
               </div>
-            </StepCard>
+            </StepWrapper>
           )}
 
           {step === "hours" && (
-            <StepCard key="hours" title="How many hours do you want to focus daily?" sub="Set a target you can actually hit.">
-              <div className="grid grid-cols-2 gap-2.5">
+            <StepWrapper key="hours" title="Capacity Target" sub="Define your daily focus threshold.">
+              <div className="grid grid-cols-2 gap-3">
                 {DAILY_HOURS.map((h) => (
                   <button
                     key={h.id}
                     onClick={() => pick("dailyHours", h.id)}
-                    className={`flex flex-col items-start rounded-2xl border px-4 py-4 text-left transition-all ${
+                    className={`flex flex-col items-start rounded-2xl border p-6 text-left transition-all ${
                       data.dailyHours === h.id
-                        ? "border-rose-500/60 bg-rose-950/30 ring-1 ring-rose-500/30"
-                        : "border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 hover:bg-zinc-800/60"
+                        ? "border-[#A78BFA] bg-[#A78BFA]/10"
+                        : "border-white/5 bg-white/[0.02] hover:bg-white/[0.05]"
                     }`}
                   >
-                    <p className="text-lg font-bold text-zinc-100">{h.label}</p>
-                    <p className="text-xs text-zinc-500">{h.sub}</p>
+                    <p className="text-2xl font-black text-white">{h.label}</p>
+                    <p className="text-xs font-bold uppercase tracking-widest text-[#4B5563] mt-1">{h.sub}</p>
                   </button>
                 ))}
               </div>
-            </StepCard>
+            </StepWrapper>
           )}
 
           {step === "ready" && (
-            <StepCard key="ready" title="You're all set." sub="">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex flex-col items-center gap-6 py-4 text-center"
+            <motion.div key="ready" variants={BLUR_IN} initial="initial" animate="animate" className="text-center">
+              <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/20 shadow-[0_0_50px_rgba(16,185,129,0.2)]">
+                <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 2 }}>
+                  <Sparkles size={40} className="text-emerald-400" />
+                </motion.div>
+              </div>
+              <h1 className="text-4xl font-black tracking-tight sm:text-5xl">Calibration <br /><span className="text-emerald-400">Complete</span></h1>
+              <div className="mt-8 flex flex-wrap justify-center gap-2">
+                {data.goal && <CalibrationTag label={GOALS.find(g => g.id === data.goal)?.label ?? data.goal} />}
+                {data.style && <CalibrationTag label={`${data.focusDuration}m Loops`} />}
+                {data.dailyHours && <CalibrationTag label={`${data.dailyHours}/day`} />}
+              </div>
+              <p className="mt-8 text-[#64748B] max-w-sm mx-auto">Systems are synced. Your academic civilization is ready for expansion.</p>
+              <button
+                onClick={() => void finish()}
+                disabled={saving}
+                className="mt-12 w-full rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] py-5 text-lg font-black text-white shadow-xl hover:scale-105 transition-all disabled:opacity-50"
               >
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-rose-950 text-3xl">
-                  🎯
-                </div>
-                <div className="space-y-1">
-                  <p className="text-zinc-300">Here's your setup:</p>
-                  <div className="mt-3 flex flex-wrap justify-center gap-2">
-                    {data.goal && <Tag label={GOALS.find(g => g.id === data.goal)?.label ?? data.goal} />}
-                    {data.style && <Tag label={`${STYLES.find(s => s.id === data.style)?.label ?? ""} · ${data.focusDuration}m sessions`} />}
-                    {data.dailyHours && <Tag label={`${DAILY_HOURS.find(h => h.id === data.dailyHours)?.label ?? ""}/day`} />}
-                  </div>
-                </div>
-                <p className="text-sm text-zinc-500 max-w-xs">
-                  Your timer and goals are ready. You can change these anytime in settings.
-                </p>
-                <motion.button
-                  onClick={() => void finish()}
-                  disabled={saving}
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="w-full rounded-2xl bg-rose-600 py-3.5 text-base font-semibold text-white transition hover:bg-rose-500 disabled:opacity-60"
-                >
-                  {saving ? "Saving…" : "Start focusing →"}
-                </motion.button>
-              </motion.div>
-            </StepCard>
+                {saving ? "Deploying..." : "Enter Command Center"}
+              </button>
+            </motion.div>
           )}
         </AnimatePresence>
 
         {stepIndex > 0 && step !== "ready" && (
           <button
-            onClick={() => setStep(STEPS[stepIndex - 1]!)}
-            className="mx-auto mt-6 flex items-center gap-1.5 text-xs text-zinc-600 hover:text-zinc-400 transition"
+            onClick={back}
+            className="mx-auto mt-10 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#4B5563] hover:text-white transition-colors"
           >
-            ← Back
+            <ArrowLeft size={10} /> Back
           </button>
         )}
       </div>
@@ -223,20 +243,14 @@ export default function OnboardingPage() {
   );
 }
 
-function StepCard({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) {
+function StepWrapper({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 24 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -24 }}
-      transition={{ duration: 0.22, ease: "easeOut" }}
-      className="space-y-6"
-    >
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight text-zinc-100">{title}</h2>
-        {sub && <p className="mt-1.5 text-sm text-zinc-500">{sub}</p>}
-      </div>
-      {children}
+    <motion.div variants={STAGGER} initial="initial" animate="animate" exit="exit" className="space-y-8 text-center">
+      <motion.div variants={STAGGER_CHILD}>
+        <h2 className="text-4xl font-black tracking-tight text-white">{title}</h2>
+        <p className="mt-2 text-[#94A3B8] font-medium">{sub}</p>
+      </motion.div>
+      <motion.div variants={STAGGER_CHILD}>{children}</motion.div>
     </motion.div>
   );
 }
@@ -245,20 +259,22 @@ function OptionButton({ icon, label, selected, onClick }: { icon: string; label:
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-3 rounded-2xl border px-4 py-3.5 text-left transition-all ${
+      className={`flex items-center gap-4 rounded-2xl border p-5 text-left transition-all ${
         selected
-          ? "border-rose-500/60 bg-rose-950/30 ring-1 ring-rose-500/30"
-          : "border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 hover:bg-zinc-800/60"
+          ? "border-[#A78BFA] bg-[#A78BFA]/10 shadow-[0_0_30px_rgba(167,139,250,0.15)]"
+          : "border-white/5 bg-white/[0.02] hover:bg-white/[0.05]"
       }`}
     >
-      <span className="text-xl">{icon}</span>
-      <span className="text-sm font-medium text-zinc-200">{label}</span>
+      <span className="text-2xl">{icon}</span>
+      <span className="text-sm font-bold text-white">{label}</span>
     </button>
   );
 }
 
-function Tag({ label }: { label: string }) {
+function CalibrationTag({ label }: { label: string }) {
   return (
-    <span className="rounded-full bg-zinc-800 px-3 py-1 text-xs text-zinc-300">{label}</span>
+    <span className="rounded-full bg-white/5 border border-white/10 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-[#A78BFA] shadow-lg">
+      {label}
+    </span>
   );
 }

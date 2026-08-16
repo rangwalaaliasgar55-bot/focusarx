@@ -1,11 +1,10 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { extractUserId } from "./auth";
 import { db, loginRewardsTable, userWalletsTable, notificationsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
-function auth(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.user = { id: userId };
   next();
 }
@@ -28,7 +27,7 @@ function yesterday() {
   return d.toISOString().split("T")[0];
 }
 
-dailyRewardRouter.get("/daily-reward/status", auth, async (req: any, res) => {
+dailyRewardRouter.get("/daily-reward/status", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     let [reward] = await db.select().from(loginRewardsTable).where(eq(loginRewardsTable.userId, req.user.id)).limit(1);
     const today = getToday();
@@ -47,7 +46,7 @@ dailyRewardRouter.get("/daily-reward/status", auth, async (req: any, res) => {
   }
 });
 
-dailyRewardRouter.post("/daily-reward/claim", auth, async (req: any, res) => {
+dailyRewardRouter.post("/daily-reward/claim", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     let [reward] = await db.select().from(loginRewardsTable).where(eq(loginRewardsTable.userId, req.user.id)).limit(1);
     const today = getToday();

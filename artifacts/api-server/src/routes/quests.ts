@@ -1,11 +1,10 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { extractUserId } from "./auth";
 import { db, questDefinitionsTable, userQuestProgressTable, userWalletsTable, notificationsTable } from "@workspace/db";
 import { eq, and, inArray } from "drizzle-orm";
 
-function auth(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.user = { id: userId };
   next();
 }
@@ -43,7 +42,7 @@ async function assignDailyQuests(userId: string) {
   return existing;
 }
 
-questsRouter.get("/quests", auth, async (req: any, res) => {
+questsRouter.get("/quests", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     await assignDailyQuests(req.user.id);
     const today = new Date().toISOString().split("T")[0];
@@ -73,7 +72,7 @@ questsRouter.get("/quests", auth, async (req: any, res) => {
   }
 });
 
-questsRouter.post("/quests/:questId/claim", auth, async (req: any, res) => {
+questsRouter.post("/quests/:questId/claim", authMiddleware, async (req: AuthRequest, res: Response) => {
   const { questId } = req.params;
   try {
     const today = new Date().toISOString().split("T")[0];

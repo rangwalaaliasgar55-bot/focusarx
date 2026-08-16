@@ -14,16 +14,16 @@ function authHeaders() {
 }
 
 export function useTasks() {
+  const refreshTasks = async () => {};
   const [tasks, setTasks] = useLocalStorage<Task[]>(STORAGE_KEYS.tasks, []);
   const [synced, setSynced] = useState(false);
 
-  // On mount: if authenticated, load tasks from the server and merge into local state
   useEffect(() => {
     const token = getToken();
     if (!token || synced) return;
     fetch("/api/tasks", { headers: authHeaders() })
       .then(r => r.ok ? r.json() : null)
-      .then((d: { tasks?: Array<{ id: string; text: string; completed: boolean; estimatedMinutes: number | null; order: number }> } | null) => {
+      .then((d: { tasks?: Array<{ id: string; text: string; completed: boolean; estimatedMinutes: number | null; order: number; priority?: any; category?: string }> } | null) => {
         if (!d?.tasks) return;
         const serverTasks: Task[] = d.tasks.map(t => ({
           id: t.id,
@@ -32,6 +32,8 @@ export function useTasks() {
           completedPomodoros: 0,
           done: t.completed,
           createdAt: new Date().toISOString(),
+          priority: t.priority ?? "medium",
+          category: t.category ?? "Default",
         }));
         setTasks(serverTasks);
         setSynced(true);
@@ -40,7 +42,7 @@ export function useTasks() {
   }, [synced, setTasks]);
 
   const addTask = useCallback(
-    async (title: string, estimatedPomodoros = 1) => {
+    async (title: string, estimatedPomodoros = 1, priority: "low" | "medium" | "high" = "medium", category = "Default") => {
       const localId = generateId();
       const task: Task = {
         id: localId,
@@ -49,11 +51,12 @@ export function useTasks() {
         completedPomodoros: 0,
         done: false,
         createdAt: new Date().toISOString(),
+        priority,
+        category,
       };
 
-      // Optimistic update — show immediately in UI
       setTasks((prev) => [...prev, task]);
-      trackSiteEvent("task_created", { title: title.slice(0, 80) });
+      trackSiteEvent("task_created", { title: title.slice(0, 80), priority, category });
 
       const token = getToken();
       if (token) {
@@ -61,12 +64,11 @@ export function useTasks() {
           const res = await fetch("/api/tasks", {
             method: "POST",
             headers: authHeaders(),
-            body: JSON.stringify({ text: title, order: 0 }),
+            body: JSON.stringify({ text: title, order: 0, priority, category }),
           });
           if (res.ok) {
             const data = await res.json() as { task?: { id: string } };
             if (data.task?.id) {
-              // Replace temp local ID with the server-assigned ID
               setTasks((prev) => prev.map(t => t.id === localId ? { ...t, id: data.task!.id! } : t));
             }
           }
@@ -78,25 +80,22 @@ export function useTasks() {
     [setTasks]
   );
 
-  const refreshTasks = useCallback(async () => {
-    const token = getToken();
-    if (!token) return;
-    try {
-      const r = await fetch("/api/tasks", { headers: authHeaders() });
-      if (!r.ok) return;
-      const d = await r.json() as { tasks?: Array<{ id: string; text: string; completed: boolean; estimatedMinutes: number | null; order: number }> };
-      if (!d?.tasks) return;
-      const serverTasks: Task[] = d.tasks.map(t => ({
-        id: t.id,
-        title: t.text,
-        estimatedPomodoros: t.estimatedMinutes ? Math.max(1, Math.round(t.estimatedMinutes / 25)) : 1,
-        completedPomodoros: 0,
-        done: t.completed,
-        createdAt: new Date().toISOString(),
-      }));
-      setTasks(serverTasks);
-    } catch { }
-  }, [setTasks]);
+  const updateTask = useCallback(
+    async (taskId: string, updates: Partial<Task>) => {
+      setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...updates } : t)));
+      const token = getToken();
+      if (token) {
+        try {
+          await fetch(`/api/tasks/${taskId}`, {
+            method: "PATCH",
+            headers: authHeaders(),
+            body: JSON.stringify(updates),
+          });
+        } catch {}
+      }
+    },
+    [setTasks]
+  );
 
   const incrementPomodoro = useCallback(
     (taskId: string) => {
@@ -144,5 +143,5 @@ export function useTasks() {
   const activeTasks = tasks.filter((t) => !t.done);
   const completedTasks = tasks.filter((t) => t.done);
 
-  return { tasks, activeTasks, completedTasks, addTask, incrementPomodoro, toggleDone, removeTask, refreshTasks };
+  return { tasks, activeTasks, completedTasks, addTask, updateTask, incrementPomodoro, toggleDone, removeTask, refreshTasks };
 }

@@ -1,11 +1,10 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { extractUserId } from "./auth";
 import { db, focusCitiesTable, cityBuildingDefinitionsTable, userWalletsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
-function auth(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.user = { id: userId };
   next();
 }
@@ -42,7 +41,7 @@ async function getOrCreateCity(userId: string) {
   return city;
 }
 
-cityRouter.get("/city", auth, async (req: any, res) => {
+cityRouter.get("/city", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const city = await getOrCreateCity(req.user.id);
     // Rotate weather every 4h
@@ -58,7 +57,7 @@ cityRouter.get("/city", auth, async (req: any, res) => {
   }
 });
 
-cityRouter.get("/city/buildings", auth, async (req: any, res) => {
+cityRouter.get("/city/buildings", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const defs = await db.select().from(cityBuildingDefinitionsTable).orderBy(cityBuildingDefinitionsTable.sortOrder);
     res.json(defs);
@@ -67,7 +66,7 @@ cityRouter.get("/city/buildings", auth, async (req: any, res) => {
   }
 });
 
-cityRouter.post("/city/buildings/:slug/build", auth, async (req: any, res) => {
+cityRouter.post("/city/buildings/:slug/build", authMiddleware, async (req: AuthRequest, res: Response) => {
   const { slug } = req.params;
   try {
     const [building] = await db.select().from(cityBuildingDefinitionsTable)

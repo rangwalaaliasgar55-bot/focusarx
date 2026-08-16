@@ -1,17 +1,10 @@
-import { Router } from "express";
+import { Request, Response, NextFunction, Router } from "express";
 import { db, userMissionProgressTable, userWalletsTable, usersTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
-import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 
 const router = Router();
-
-function auth(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-  req.userId = userId;
-  next();
-}
 
 export interface MissionDef {
   key: string;
@@ -67,7 +60,7 @@ function getPeriodStart(type: "daily" | "weekly"): string {
   return monday.toISOString().split("T")[0]!;
 }
 
-router.get("/missions", auth, async (req: any, res) => {
+router.get("/missions", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const today = getPeriodStart("daily");
     const weekStart = getPeriodStart("weekly");
@@ -106,7 +99,7 @@ router.get("/missions", auth, async (req: any, res) => {
   }
 });
 
-router.post("/missions/:key/claim", auth, async (req: any, res) => {
+router.post("/missions/:key/claim", authMiddleware, async (req: AuthRequest, res: Response) => {
   const { key } = req.params as { key: string };
   try {
     const mission = ALL_MISSIONS.find((m) => m.key === key);

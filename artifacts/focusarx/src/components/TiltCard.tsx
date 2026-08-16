@@ -53,7 +53,10 @@ export function TiltCard({ children, className = "", intensity = 12, glare = tru
       transition={{ scale: { type: "spring", stiffness: 300, damping: 25 } }}
       className={`relative ${className}`}
     >
-      <div style={{ transform: "translateZ(0px)" }}>
+      <div 
+        className="glass rounded-[inherit]"
+        style={{ transform: "translateZ(0px)" }}
+      >
         {children}
       </div>
       {glare && isHovered && (

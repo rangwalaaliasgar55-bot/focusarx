@@ -24,15 +24,15 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 :root {
   /* ── Base colors ──────────────────────────────────────────────────────── */
-  --background:        #09091A;
-  --foreground:        #E8EAF0;
+  --background:        #030308;
+  --foreground:        #F8FAFC;
   --foreground-muted:  #94A3B8;
-  --foreground-subtle: #52586B;
+  --foreground-subtle: #4B5563;
 
   /* ── Surface scale ────────────────────────────────────────────────────── */
-  --surface-0:   #09091A;           /* Page background */
-  --surface-1:   rgba(14, 17, 38, 0.96); /* Cards (elevation 1) */
-  --surface-2:   rgba(20, 24, 52, 0.92); /* Popovers (elevation 2) */
+  --surface-0:   #030308;           /* Page background */
+  --surface-1:   rgba(8, 12, 28, 0.96); /* Cards (elevation 1) */
+  --surface-2:   rgba(14, 18, 44, 0.92); /* Popovers (elevation 2) */
   --surface-3:   rgba(26, 31, 65, 0.97); /* Modals / toasts (elevation 3) */
 
   /* ── Semantic color aliases ───────────────────────────────────────────── */
@@ -56,11 +56,13 @@
   --brand-violet:       #7C3AED;
   --brand-violet-light: #A78BFA;
   --brand-violet-dim:   rgba(124, 58, 237, 0.15);
+  --brand-pink:         #F472B6;
+  --brand-blue:         #3B82F6;
   --brand-teal:         #06D6A0;
   --brand-teal-dim:     rgba(6, 214, 160, 0.12);
   --brand-gold:         #FFB800;
   --brand-gold-dim:     rgba(255, 184, 0, 0.12);
-  --brand-navy:         #09091A;
+  --brand-navy:         #030308;
 
   /* Keep --forge-* for backward compatibility */
   --forge-violet:        var(--brand-violet);
@@ -155,6 +157,43 @@
 
   /* ── Layout ───────────────────────────────────────────────────────────── */
   --sidebar-width: 240px;
+}
+
+/* ── Custom Scrollbar (Master Polish) ──────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.1);
+  border-radius: 10px;
+  transition: background 0.3s;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.3);
+}
+
+/* ── Global Utilities ────────────────────────────────────────────────── */
+.glass {
+  background: rgba(8, 12, 28, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.glass-heavy {
+  background: rgba(3, 3, 8, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(124, 58, 237, 0.15);
+}
+
+.text-gradient {
+  background: linear-gradient(to right, #A78BFA, #F472B6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -710,10 +749,15 @@ html.light .glass-subtle {
   animation: aurora-sweep 12s ease infinite;
 }
 
+/* flip reveal etc above ... */
+
 /* Marquee ticker */
 @keyframes marquee {
   0%   { transform: translateX(0); }
   100% { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 40s linear infinite;
 }
 
 /* Flip reveal */

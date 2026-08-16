@@ -1,3 +1,5 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db, userDreamsTable, focusSessionsTable, userWalletsTable } from "@workspace/db";
 import { eq, and, gte, sum } from "drizzle-orm";
@@ -7,9 +9,6 @@ import { z } from "zod";
 
 const router = Router();
 
-function authMiddleware(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.userId = userId;
   next();
 }
@@ -33,7 +32,7 @@ router.get("/dreams/types", (_req, res) => {
   res.json({ dreamTypes: DREAM_TYPES });
 });
 
-router.get("/dreams", authMiddleware, async (req: any, res) => {
+router.get("/dreams", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const [dream] = await db.select().from(userDreamsTable).where(eq(userDreamsTable.userId, req.userId));
     if (!dream) { res.json({ dream: null }); return; }
@@ -76,7 +75,7 @@ router.get("/dreams", authMiddleware, async (req: any, res) => {
   }
 });
 
-router.post("/dreams", authMiddleware, async (req: any, res) => {
+router.post("/dreams", authMiddleware, async (req: AuthRequest, res: Response) => {
   const { dreamType, customGoal, targetDate, dailyTargetMinutes, emoji } = req.body as any;
   if (!dreamType) { res.status(400).json({ error: "dreamType required" }); return; }
   try {

@@ -1,3 +1,5 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { readinessLogsTable } from "@workspace/db";
@@ -7,9 +9,6 @@ import { logger } from "../lib/logger";
 
 const router = Router();
 
-function auth(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.userId = userId;
   next();
 }
@@ -26,7 +25,7 @@ function recLength(score: number): number {
   return 25;
 }
 
-router.get("/readiness/today", auth, async (req: any, res) => {
+router.get("/readiness/today", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const today = new Date().toISOString().split("T")[0]!;
     const [log] = await db.select().from(readinessLogsTable)
@@ -38,7 +37,7 @@ router.get("/readiness/today", auth, async (req: any, res) => {
   }
 });
 
-router.get("/readiness/history", auth, async (req: any, res) => {
+router.get("/readiness/history", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const logs = await db.select().from(readinessLogsTable)
       .where(eq(readinessLogsTable.userId, req.userId))
@@ -53,7 +52,7 @@ router.get("/readiness/history", auth, async (req: any, res) => {
   }
 });
 
-router.post("/readiness", auth, async (req: any, res) => {
+router.post("/readiness", authMiddleware, async (req: AuthRequest, res: Response) => {
   const { sleep, stress, energy, hrv } = req.body as { sleep?: number; stress?: number; energy?: number; hrv?: number };
   if (!sleep || !stress || !energy) {
     res.status(400).json({ error: "sleep, stress and energy are required (1-5)" });

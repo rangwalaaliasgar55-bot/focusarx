@@ -1,203 +1,22 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, Suspense, lazy } from "react";
 import { motion, useScroll, useTransform, useSpring, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Sparkles, Target, Zap, Shield, Trophy, Users, BarChart3, Rocket, MessageSquare, CheckCircle2, Star, ArrowRight, ShieldCheck, Lock, Award, RefreshCw } from "lucide-react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
+const Hero3D = lazy(() => import("@/components/Hero3D"));
+import ProductivityResume from "@/components/ProductivityResume";
 
-/* ─── Canvas Orb + Constellation ─────────────────────────────────── */
-function useOrb(canvasRef: React.RefObject<HTMLCanvasElement | null>, mouseRef: React.RefObject<{ x: number; y: number }>) {
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    let raf: number;
-    let t = 0;
-    const nodes: { x: number; y: number; vx: number; vy: number }[] = [];
-
-    const resize = () => {
-      canvas.width = canvas.offsetWidth * devicePixelRatio;
-      canvas.height = canvas.offsetHeight * devicePixelRatio;
-      ctx.scale(devicePixelRatio, devicePixelRatio);
-    };
-    resize();
-    window.addEventListener("resize", resize);
-
-    for (let i = 0; i < 80; i++) {
-      nodes.push({
-        x: Math.random() * canvas.offsetWidth,
-        y: Math.random() * canvas.offsetHeight,
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: (Math.random() - 0.5) * 0.3,
-      });
-    }
-
-    const draw = () => {
-      const W = canvas.offsetWidth;
-      const H = canvas.offsetHeight;
-      ctx.clearRect(0, 0, W, H);
-      t += 0.008;
-
-      const mx = (mouseRef.current?.x ?? 0.5) * W;
-      const my = (mouseRef.current?.y ?? 0.5) * H;
-
-      for (const n of nodes) {
-        n.x += n.vx;
-        n.y += n.vy;
-        if (n.x < 0 || n.x > W) n.vx *= -1;
-        if (n.y < 0 || n.y > H) n.vy *= -1;
-      }
-
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          const dx = nodes[i].x - nodes[j].x;
-          const dy = nodes[i].y - nodes[j].y;
-          const d = Math.sqrt(dx * dx + dy * dy);
-          if (d < 130) {
-            ctx.beginPath();
-            ctx.strokeStyle = `rgba(124,58,237,${0.2 * (1 - d / 130)})`;
-            ctx.lineWidth = 0.8;
-            ctx.moveTo(nodes[i].x, nodes[i].y);
-            ctx.lineTo(nodes[j].x, nodes[j].y);
-            ctx.stroke();
-          }
-        }
-        const dx = nodes[i].x - mx;
-        const dy = nodes[i].y - my;
-        const distToMouse = Math.sqrt(dx * dx + dy * dy);
-        const bright = distToMouse < 180 ? 0.9 : 0.35;
-        ctx.beginPath();
-        ctx.arc(nodes[i].x, nodes[i].y, distToMouse < 180 ? 2.2 : 1.2, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(167,139,250,${bright})`;
-        ctx.fill();
-      }
-
-      const cx = W * 0.62 + Math.sin(t * 0.8) * 18 + (mx - W * 0.5) * 0.04;
-      const cy = H * 0.5 + Math.cos(t * 0.6) * 12 + (my - H * 0.5) * 0.03;
-      const r = Math.min(W, H) * 0.2 + Math.sin(t * 1.2) * 8;
-
-      for (const [rMult, alpha] of [[3.2, 0.025], [2.4, 0.05], [1.7, 0.09], [1.2, 0.16]] as [number, number][]) {
-        const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * rMult);
-        g.addColorStop(0, `rgba(124,58,237,${alpha})`);
-        g.addColorStop(0.5, `rgba(167,139,250,${alpha * 0.4})`);
-        g.addColorStop(1, "rgba(124,58,237,0)");
-        ctx.beginPath();
-        ctx.arc(cx, cy, r * rMult, 0, Math.PI * 2);
-        ctx.fillStyle = g;
-        ctx.fill();
-      }
-
-      const coreGrad = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, 0, cx, cy, r);
-      coreGrad.addColorStop(0, "rgba(220,190,255,0.97)");
-      coreGrad.addColorStop(0.3, "rgba(139,92,246,0.92)");
-      coreGrad.addColorStop(0.65, "rgba(109,40,217,0.85)");
-      coreGrad.addColorStop(1, "rgba(67,20,180,0.78)");
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.fillStyle = coreGrad;
-      ctx.fill();
-
-      for (let ring = 0; ring < 4; ring++) {
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(t * (0.25 + ring * 0.08) + ring * 0.7);
-        ctx.scale(1, Math.sin((ring / 4) * Math.PI + t * 0.18) * 0.4 + 0.12);
-        ctx.beginPath();
-        ctx.arc(0, 0, r * (0.88 + ring * 0.14), 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(167,139,250,${0.16 - ring * 0.03})`;
-        ctx.lineWidth = 1.2;
-        ctx.stroke();
-        ctx.restore();
-      }
-
-      const hl = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.35, 0, cx - r * 0.2, cy - r * 0.2, r * 0.5);
-      hl.addColorStop(0, "rgba(255,255,255,0.28)");
-      hl.addColorStop(1, "rgba(255,255,255,0)");
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.fillStyle = hl;
-      ctx.fill();
-
-      raf = requestAnimationFrame(draw);
-    };
-    raf = requestAnimationFrame(draw);
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("resize", resize);
-    };
-  }, [canvasRef, mouseRef]);
-}
-
-/* ─── Floating particles background ───────────────────────────────── */
-function ParticlesBg() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    let raf: number;
-    const particles: { x: number; y: number; r: number; alpha: number; speed: number; hue: number }[] = [];
-    const resize = () => {
-      canvas.width = canvas.offsetWidth * devicePixelRatio;
-      canvas.height = canvas.offsetHeight * devicePixelRatio;
-    };
-    resize();
-    window.addEventListener("resize", resize);
-    for (let i = 0; i < 130; i++) {
-      particles.push({
-        x: Math.random() * 100,
-        y: Math.random() * 100,
-        r: Math.random() * 1.8 + 0.3,
-        alpha: Math.random() * 0.55 + 0.1,
-        speed: Math.random() * 0.014 + 0.003,
-        hue: Math.random() > 0.6 ? 280 : Math.random() > 0.5 ? 240 : 300,
-      });
-    }
-    let t = 0;
-    const draw = () => {
-      t += 1;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const W = canvas.width / devicePixelRatio;
-      const H = canvas.height / devicePixelRatio;
-      for (const p of particles) {
-        p.y -= p.speed;
-        if (p.y < -1) p.y = 101;
-        const px = (p.x / 100) * W;
-        const py = (p.y / 100) * H;
-        const alpha = p.alpha * (0.65 + 0.35 * Math.sin(t * 0.02 + p.x));
-        ctx.beginPath();
-        ctx.arc(px, py, p.r * devicePixelRatio, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${p.hue},70%,75%,${alpha})`;
-        ctx.fill();
-      }
-      raf = requestAnimationFrame(draw);
-    };
-    raf = requestAnimationFrame(draw);
-    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", resize); };
-  }, []);
-  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />;
-}
-
-/* ─── Feature card ────────────────────────────────────────────────── */
+/* ─── Feature Card ────────────────────────────────────────────────── */
 const FEATURES = [
-  { icon: "⏱", title: "AI-Powered Timer", desc: "Pomodoro sessions that adapt to your flow state. Beat distractions, build habits, track every second.", from: "#7c3aed22", border: "rgba(124,58,237,0.28)", glow: "rgba(124,58,237,0.18)" },
-  { icon: "🧠", title: "AI Coach", desc: "Your personal productivity coach. Get real-time tips, AI roadmaps, and motivational coaching when you need it most.", from: "#e879f922", border: "rgba(232,121,249,0.28)", glow: "rgba(232,121,249,0.18)" },
-  { icon: "📸", title: "Webcam Attention", desc: "MediaPipe tracks your focus live. The app detects when you drift — and brings you back before you lose momentum.", from: "#06b6d422", border: "rgba(6,182,212,0.28)", glow: "rgba(6,182,212,0.18)" },
-  { icon: "🏆", title: "Gamification", desc: "XP, coins, badges, daily missions, and leaderboards. Turn every study session into an epic quest.", from: "#f59e0b22", border: "rgba(245,158,11,0.28)", glow: "rgba(245,158,11,0.18)" },
-  { icon: "📊", title: "Deep Analytics", desc: "Session history, Focus DNA, productivity scores, streak graphs and AI-powered weekly insights.", from: "#10b98122", border: "rgba(16,185,129,0.28)", glow: "rgba(16,185,129,0.18)" },
-  { icon: "🌐", title: "Study Rooms", desc: "Live collaborative focus sessions. Study alongside thousands of learners worldwide in real time.", from: "#f43f5e22", border: "rgba(244,63,94,0.28)", glow: "rgba(244,63,94,0.18)" },
-  { icon: "🎯", title: "Daily Missions", desc: "22 rotating daily and weekly missions that push you just beyond your comfort zone — every single day.", from: "#8b5cf622", border: "rgba(139,92,246,0.28)", glow: "rgba(139,92,246,0.18)" },
-  { icon: "🌱", title: "Focus Pet", desc: "A virtual companion that grows with your consistency. Miss sessions — your pet suffers. Stay focused — it thrives.", from: "#22d38722", border: "rgba(34,211,135,0.28)", glow: "rgba(34,211,135,0.18)" },
-  { icon: "🔥", title: "Habit Engine", desc: "Build and track focus habits with streak tracking, freeze tokens, and a powerful daily review system.", from: "#f9731622", border: "rgba(249,115,22,0.28)", glow: "rgba(249,115,22,0.18)" },
+  { icon: <Target className="text-purple-400" />, title: "Precision Timer", desc: "Adaptive Pomodoro sessions that sync with your brain's natural rhythms.", from: "#7c3aed22", border: "rgba(124,58,237,0.28)", glow: "rgba(124,58,237,0.18)" },
+  { icon: <Zap className="text-emerald-400" />, title: "AI Coaching", desc: "Personalized focus tips and productivity roadmaps generated in real-time.", from: "#10b98122", border: "rgba(16,185,129,0.28)", glow: "rgba(16,185,129,0.18)" },
+  { icon: <BarChart3 className="text-blue-400" />, title: "Deep Analytics", desc: "Visualize your Focus DNA and stability scores with lab-grade precision.", from: "#60a5fa22", border: "rgba(96,165,250,0.28)", glow: "rgba(96,165,250,0.18)" },
 ];
 
 const STATS = [
   { value: "50K+", label: "Active Learners" },
-  { value: "2.4M", label: "Sessions Completed" },
-  { value: "98%", label: "Focus Improvement" },
-  { value: "4.9★", label: "User Rating" },
+  { value: "2.4M", label: "Focus Hours" },
+  { value: "98%", label: "Satisfaction" },
 ];
 
 const WORDS = ["Focus", "Flow", "Mastery", "Depth", "Success"];
@@ -224,660 +43,6 @@ function RotatingWord() {
   );
 }
 
-function FeatureCard({ feat, index }: { feat: typeof FEATURES[0]; index: number }) {
-  const [hovered, setHovered] = useState(false);
-  const [rot, setRot] = useState({ x: 0, y: 0 });
-  const ref = useRef<HTMLDivElement>(null);
-
-  const onMove = useCallback((e: React.MouseEvent) => {
-    const r = ref.current?.getBoundingClientRect();
-    if (!r) return;
-    setRot({
-      x: ((e.clientY - r.top - r.height / 2) / (r.height / 2)) * 8,
-      y: -((e.clientX - r.left - r.width / 2) / (r.width / 2)) * 8,
-    });
-  }, []);
-
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 44 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-50px" }}
-      transition={{ duration: 0.65, delay: index * 0.06, ease: [0.22, 1, 0.36, 1] }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseMove={onMove}
-      onMouseLeave={() => { setHovered(false); setRot({ x: 0, y: 0 }); }}
-      style={{
-        transform: hovered
-          ? `perspective(700px) rotateX(${rot.x}deg) rotateY(${rot.y}deg) scale(1.04) translateZ(12px)`
-          : "perspective(700px) rotateX(0) rotateY(0) scale(1) translateZ(0)",
-        transition: hovered ? "transform 0.07s ease-out" : "transform 0.45s ease-out",
-        boxShadow: hovered ? `0 24px 64px ${feat.glow}, 0 0 0 1px ${feat.border}` : "none",
-      }}
-      className="relative overflow-hidden rounded-2xl p-6 backdrop-blur-sm cursor-pointer"
-      data-cursor-hover
-    >
-      <div className="absolute inset-0 rounded-2xl" style={{ background: feat.from, border: `1px solid ${feat.border}` }} />
-      {hovered && (
-        <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-70"
-          style={{ background: `radial-gradient(circle at 40% 30%, ${feat.glow}, transparent 65%)` }} />
-      )}
-      <div className="relative z-10">
-        <div className="mb-3 text-3xl">{feat.icon}</div>
-        <h3 className="mb-2 text-[15px] font-bold text-white">{feat.title}</h3>
-        <p className="text-[13px] leading-relaxed text-[#6b7280]">{feat.desc}</p>
-        <motion.div
-          className="mt-4 h-[2px] rounded-full"
-          style={{ background: `linear-gradient(90deg, ${feat.border}, transparent)` }}
-          animate={{ width: hovered ? "100%" : "0%" }}
-          transition={{ duration: 0.4 }}
-        />
-      </div>
-    </motion.div>
-  );
-}
-
-/* ─── Testimonials ─────────────────────────────────────────────────── */
-const TESTIMONIALS = [
-  { name: "Alex K.", role: "Computer Science Student", avatar: "AK", text: "FocusArx completely changed how I study. The Focus Score keeps me honest — I can't fake a good session anymore. My GPA went up a full point in one semester.", stars: 5, gradient: "from-violet-600 to-purple-700" },
-  { name: "Sarah M.", role: "Indie Developer", avatar: "SM", text: "I've tried every Pomodoro app out there. Nothing comes close to FocusArx. The gamification actually works — I get excited to sit down and code every morning.", stars: 5, gradient: "from-pink-600 to-rose-700" },
-  { name: "James L.", role: "Medical Student", avatar: "JL", text: "The AI Coach is genuinely helpful, not just filler text. It noticed my focus drops after 3pm and now I schedule hard content in the morning. Game changer.", stars: 5, gradient: "from-blue-600 to-indigo-700" },
-  { name: "Priya N.", role: "UX Designer", avatar: "PN", text: "Study Rooms feature is incredible. I have a virtual study group of 20 people and we all hold each other accountable. It feels like a library but better.", stars: 5, gradient: "from-emerald-600 to-teal-700" },
-  { name: "Marcus T.", role: "PhD Researcher", avatar: "MT", text: "The analytics are insane — I can literally see my focus patterns over 6 months. Found out I'm most productive on Wednesday mornings. Optimised my entire schedule around it.", stars: 5, gradient: "from-amber-600 to-orange-700" },
-  { name: "Yuki H.", role: "High School Student", avatar: "YH", text: "My friends thought I was exaggerating when I said an app changed my life. Then they tried it. We now compete on the leaderboard every day — studying has never been this fun.", stars: 5, gradient: "from-cyan-600 to-sky-700" },
-];
-
-function TestimonialCard({ t, index }: { t: typeof TESTIMONIALS[0]; index: number }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.55, delay: index * 0.07 }}
-      whileHover={{ y: -4, boxShadow: "0 20px 60px rgba(124,58,237,0.15)" }}
-      className="flex flex-col gap-4 rounded-2xl border border-[rgba(255,255,255,0.07)] bg-[rgba(255,255,255,0.03)] p-6 backdrop-blur-sm"
-    >
-      <div className="flex items-center gap-3">
-        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${t.gradient} text-xs font-bold text-white shadow-lg`}>
-          {t.avatar}
-        </div>
-        <div>
-          <p className="text-sm font-bold text-[#E2E8F0]">{t.name}</p>
-          <p className="text-xs text-[#4b5563]">{t.role}</p>
-        </div>
-        <div className="ml-auto flex gap-0.5">
-          {Array.from({ length: t.stars }).map((_, i) => (
-            <span key={i} className="text-amber-400 text-sm">★</span>
-          ))}
-        </div>
-      </div>
-      <p className="text-[13px] leading-relaxed text-[#6b7280] italic">"{t.text}"</p>
-    </motion.div>
-  );
-}
-
-/* ─── FAQ ──────────────────────────────────────────────────────────── */
-const FAQ_ITEMS = [
-  { q: "Is FocusArx really free?", a: "Yes — completely free to use. Core features including the timer, missions, gamification, AI coaching, analytics, study rooms, and habit tracking cost nothing. Premium is an optional upgrade for power users who want XP multipliers and exclusive content." },
-  { q: "Do I need a webcam to use FocusArx?", a: "No. The webcam attention feature is entirely optional and never stores any video. If you enable it, MediaPipe runs entirely on-device. You'll get a great experience with or without webcam tracking." },
-  { q: "How does the Focus Score work?", a: "Your Focus Score (0–100) is calculated after each session based on session completion, attention consistency (if webcam is on), distraction events, and lock mode. It's the truest measure of real deep work quality — not just time logged." },
-  { q: "Can I use FocusArx on mobile?", a: "Yes! FocusArx is a Progressive Web App (PWA) that works on all mobile browsers. Add it to your home screen for a native-like experience. All features — timer, missions, social, AI coach — work on mobile." },
-  { q: "How does the AI Coach work?", a: "The AI Coach is powered by large language models (with local fallbacks when offline). It analyses your session data, study patterns, and goals to provide personalised advice, generate study roadmaps, and offer real-time motivational support." },
-  { q: "Is my data private and secure?", a: "Your data is encrypted in transit and at rest. Webcam data never leaves your device. You can delete your account and all associated data at any time from your profile settings. See our Privacy Policy for full details." },
-  { q: "What happens to my streaks if I miss a day?", a: "Your streak resets but your total XP, level, and session history are preserved. Freeze Tokens (earnable via missions) let you protect streaks across up to 3 days of absence. Consistency matters more than perfection." },
-];
-
-function FaqAccordion({ items }: { items: typeof FAQ_ITEMS }) {
-  const [open, setOpen] = useState<number | null>(null);
-  return (
-    <div className="space-y-2">
-      {items.map((item, i) => (
-        <div key={i} className="rounded-2xl border border-[rgba(124,58,237,0.15)] bg-[rgba(255,255,255,0.02)] overflow-hidden">
-          <button
-            onClick={() => setOpen(open === i ? null : i)}
-            className="flex w-full items-center justify-between px-5 py-4 text-left gap-4 group"
-          >
-            <span className={`text-sm font-semibold transition-colors ${open === i ? "text-[#A78BFA]" : "text-[#E2E8F0] group-hover:text-[#A78BFA]"}`}>{item.q}</span>
-            <motion.div animate={{ rotate: open === i ? 180 : 0 }} transition={{ duration: 0.22 }}>
-              <ChevronDown size={16} className="shrink-0 text-[#4B5563]" />
-            </motion.div>
-          </button>
-          <AnimatePresence initial={false}>
-            {open === i && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                className="overflow-hidden"
-              >
-                <p className="px-5 pb-5 text-sm leading-relaxed text-[#94A3B8]">{item.a}</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/* ─── Main Landing Page ─────────────────────────────────────────────── */
-export default function LandingPage() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mouseRef = useRef({ x: 0.6, y: 0.5 });
-
-  const { scrollYProgress } = useScroll({ target: containerRef });
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.22], [1, 0]);
-  const heroY = useTransform(scrollYProgress, [0, 0.22], [0, -60]);
-  const springY = useSpring(heroY, { stiffness: 80, damping: 25 });
-
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  const onMouseMove = useCallback((e: React.MouseEvent) => {
-    mouseRef.current = {
-      x: e.clientX / window.innerWidth,
-      y: e.clientY / window.innerHeight,
-    };
-  }, []);
-
-  useOrb(canvasRef, mouseRef);
-
-  return (
-    <div
-      ref={containerRef}
-      onMouseMove={onMouseMove}
-      className="relative min-h-screen overflow-x-hidden bg-[#030308] text-white select-none"
-      style={{ cursor: "none" }}
-    >
-      <PageSEO {...PAGE_SEO.home} />
-      {/* Cursor glow */}
-      <CursorGlow mouseRef={mouseRef} />
-
-      {/* ── NAV ── */}
-      <motion.nav
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6 }}
-        className={`fixed top-0 inset-x-0 z-50 flex items-center justify-between px-6 sm:px-10 py-4 transition-all duration-300 ${scrolled ? "border-b border-white/5 bg-[#030308]/85 backdrop-blur-2xl" : ""}`}
-      >
-        <div className="flex items-center gap-2.5">
-          <div className="relative flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#e879f9] shadow-lg shadow-purple-900/40">
-            <svg viewBox="0 0 24 24" fill="white" className="h-4 w-4"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#e879f9] opacity-60 blur-md" />
-          </div>
-          <span className="text-[15px] font-bold tracking-tight">FocusArx</span>
-        </div>
-        <div className="hidden sm:flex items-center gap-6 text-sm text-[#6b7280]">
-          {[["#features", "Features"], ["#testimonials", "Reviews"], ["#faq", "FAQ"], ["/pricing", "Pricing"]].map(([href, label]) => (
-            href.startsWith("/") ? (
-              <Link key={label} href={href} className="transition-colors hover:text-white">{label}</Link>
-            ) : (
-              <a key={label} href={href} className="transition-colors hover:text-white">{label}</a>
-            )
-          ))}
-        </div>
-        <div className="flex items-center gap-3">
-          <Link href="/login">
-            <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/10">
-              Sign In
-            </motion.button>
-          </Link>
-          <Link href="/signup">
-            <motion.button
-              whileHover={{ scale: 1.05, boxShadow: "0 0 30px 8px rgba(124,58,237,0.4)" }}
-              whileTap={{ scale: 0.97 }}
-              className="rounded-xl bg-gradient-to-r from-[#7c3aed] to-[#e879f9] px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-purple-900/30">
-              Get Started Free
-            </motion.button>
-          </Link>
-        </div>
-      </motion.nav>
-
-      {/* ── HERO ── */}
-      <section className="relative flex min-h-screen items-center overflow-hidden pt-16">
-        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
-
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-r from-[#030308] via-[#030308]/60 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#030308]/40 via-transparent to-[#030308]" />
-        </div>
-
-        <motion.div
-          style={{ opacity: heroOpacity, y: springY }}
-          className="relative z-10 ml-6 sm:ml-14 lg:ml-24 max-w-xl"
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.85 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.15 }}
-            className="mb-5 inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-purple-300 backdrop-blur-sm"
-          >
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-purple-400" />
-            AI-Powered Deep Work OS
-          </motion.div>
-
-          <motion.h1
-            initial={{ opacity: 0, y: 32 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.85, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="mb-5 text-5xl sm:text-6xl lg:text-7xl font-black leading-[1.04] tracking-tight"
-          >
-            Build Deep
-            <br />
-            <RotatingWord />
-            <br />
-            <span className="text-white/90 text-4xl sm:text-5xl lg:text-6xl">Like Never Before</span>
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 22 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.36 }}
-            className="mb-8 text-base leading-relaxed text-[#6b7280]"
-          >
-            FocusArx combines Pomodoro timers, webcam attention tracking, AI coaching,
-            and gamification to turn every study session into a superpower.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.52 }}
-            className="flex flex-wrap gap-4"
-          >
-            <Link href="/signup">
-              <motion.button
-                whileHover={{ scale: 1.06, boxShadow: "0 0 55px 14px rgba(124,58,237,0.48)" }}
-                whileTap={{ scale: 0.97 }}
-                className="group relative flex items-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-[#7c3aed] to-[#e879f9] px-8 py-3.5 text-[15px] font-bold text-white shadow-2xl shadow-purple-900/50"
-                data-cursor-hover
-              >
-                <span className="relative z-10">→ Start Focusing Free</span>
-                <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-              </motion.button>
-            </Link>
-            <a href="#features">
-              <motion.button
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.97 }}
-                className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-8 py-3.5 text-[15px] font-semibold text-[#a78bfa] backdrop-blur-sm"
-                data-cursor-hover
-              >
-                See Features ↓
-              </motion.button>
-            </a>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.9 }}
-            className="mt-8 flex items-center gap-4"
-          >
-            <div className="flex -space-x-2">
-              {["AK","SM","JL","PN","MT"].map((init, i) => (
-                <div key={i} className={`flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#030308] text-[10px] font-bold text-white ${["bg-violet-600","bg-pink-600","bg-blue-600","bg-emerald-600","bg-amber-600"][i]}`}>{init}</div>
-              ))}
-            </div>
-            <p className="text-xs text-[#4b5563]"><span className="font-bold text-[#94A3B8]">50,000+</span> learners already building deep focus</p>
-          </motion.div>
-        </motion.div>
-
-        {/* Scroll indicator */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2"
-        >
-          <span className="text-[9px] font-bold uppercase tracking-[0.25em] text-[#2a2d3a]">Scroll</span>
-          <div className="h-10 w-px overflow-hidden rounded-full bg-[#13161e]">
-            <motion.div
-              className="h-4 w-full rounded-full bg-gradient-to-b from-[#7c3aed] to-transparent"
-              animate={{ y: ["-100%", "300%"] }}
-              transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-            />
-          </div>
-        </motion.div>
-
-        {/* Feature ticker */}
-        <div className="absolute bottom-0 inset-x-0 z-10 border-t border-white/[0.04] bg-black/50 backdrop-blur-xl overflow-hidden">
-          <div className="flex" style={{ animation: "marquee 30s linear infinite" }}>
-            {["AI COACH", "POMODORO TIMER", "WEBCAM FOCUS", "GAMIFICATION", "STUDY ROOMS", "LEADERBOARD", "HABIT ENGINE", "DEEP ANALYTICS", "MISSIONS", "FOCUS DNA", "BATTLE PASS", "AI ROADMAP"].flatMap((item, i) => [
-              <span key={i} className="inline-flex items-center shrink-0 gap-3 px-8 py-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#3a3f52] whitespace-nowrap">{item}</span>,
-              <span key={`d${i}`} className="text-[rgba(255,255,255,0.12)] shrink-0 self-center">×</span>
-            ])}
-            {["AI COACH", "POMODORO TIMER", "WEBCAM FOCUS", "GAMIFICATION", "STUDY ROOMS", "LEADERBOARD", "HABIT ENGINE", "DEEP ANALYTICS", "MISSIONS", "FOCUS DNA", "BATTLE PASS", "AI ROADMAP"].flatMap((item, i) => [
-              <span key={`b${i}`} className="inline-flex items-center shrink-0 gap-3 px-8 py-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#3a3f52] whitespace-nowrap">{item}</span>,
-              <span key={`bd${i}`} className="text-[rgba(255,255,255,0.12)] shrink-0 self-center">×</span>
-            ])}
-          </div>
-        </div>
-      </section>
-
-      {/* ── STATS ── */}
-      <section id="stats" className="relative z-10 py-20">
-        <ParticlesBg />
-        <div className="relative mx-auto max-w-5xl px-6">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
-            {STATS.map((s, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, scale: 0.82 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-                whileHover={{ scale: 1.05, boxShadow: "0 0 40px 4px rgba(124,58,237,0.22)" }}
-                className="flex flex-col items-center gap-2 rounded-2xl border border-white/[0.07] bg-white/[0.03] p-6 text-center backdrop-blur-sm"
-                data-cursor-hover
-              >
-                <span className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-[#a78bfa] to-[#e879f9] bg-clip-text text-transparent">{s.value}</span>
-                <span className="text-[11px] text-[#4b5563] font-semibold uppercase tracking-wider">{s.label}</span>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── FEATURES ── */}
-      <section id="features" className="relative z-10 py-16 pb-24">
-        <div className="mx-auto max-w-6xl px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 32 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7 }}
-            className="mb-14 text-center"
-          >
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-purple-300">
-              Everything you need
-            </div>
-            <h2 className="text-3xl sm:text-5xl font-black tracking-tight">
-              Your complete{" "}
-              <span className="bg-gradient-to-r from-[#a78bfa] to-[#e879f9] bg-clip-text text-transparent">Focus OS</span>
-            </h2>
-            <p className="mt-3 text-sm text-[#4b5563] max-w-lg mx-auto">Nine powerful tools working together to build your deepest focus habit.</p>
-          </motion.div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {FEATURES.map((feat, i) => <FeatureCard key={i} feat={feat} index={i} />)}
-          </div>
-        </div>
-      </section>
-
-      {/* ── HOW IT WORKS ── */}
-      <section className="relative z-10 py-20">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[500px] rounded-full" style={{ background: "radial-gradient(circle, rgba(124,58,237,0.08), transparent 70%)", filter: "blur(80px)" }} />
-        </div>
-        <div className="relative mx-auto max-w-5xl px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 28 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7 }}
-            className="mb-14 text-center"
-          >
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-purple-300">
-              Simple to start
-            </div>
-            <h2 className="text-3xl sm:text-5xl font-black tracking-tight">How FocusArx Works</h2>
-          </motion.div>
-          <div className="grid sm:grid-cols-3 gap-6">
-            {[
-              { step: "01", title: "Create your account", desc: "Sign up free in 30 seconds. No credit card, no commitments. Start your first session immediately.", emoji: "⚡" },
-              { step: "02", title: "Start a focus session", desc: "Choose your session type, set a task, and hit start. The timer tracks your deep work in real time.", emoji: "🎯" },
-              { step: "03", title: "Level up & build habits", desc: "Earn XP, unlock badges, build streaks. Let gamification make deep work your default mode.", emoji: "🚀" },
-            ].map((step, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 32 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.55, delay: i * 0.12 }}
-                className="relative rounded-2xl border border-[rgba(124,58,237,0.15)] bg-[rgba(255,255,255,0.02)] p-6"
-              >
-                <div className="mb-4 text-3xl">{step.emoji}</div>
-                <div className="mb-1 text-[10px] font-black uppercase tracking-widest text-[#4B5563]">Step {step.step}</div>
-                <h3 className="mb-2 font-bold text-[#E2E8F0]">{step.title}</h3>
-                <p className="text-sm leading-relaxed text-[#6b7280]">{step.desc}</p>
-                {i < 2 && (
-                  <div className="absolute -right-3 top-1/2 -translate-y-1/2 hidden sm:flex h-6 w-6 items-center justify-center rounded-full border border-[rgba(124,58,237,0.3)] bg-[rgba(124,58,237,0.1)] text-[10px] font-bold text-[#a78bfa] z-10">→</div>
-                )}
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── TESTIMONIALS ── */}
-      <section id="testimonials" className="relative z-10 py-20">
-        <ParticlesBg />
-        <div className="relative mx-auto max-w-6xl px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 28 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7 }}
-            className="mb-14 text-center"
-          >
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-amber-300">
-              ★★★★★ Loved by learners
-            </div>
-            <h2 className="text-3xl sm:text-5xl font-black tracking-tight">
-              Real people,{" "}
-              <span className="bg-gradient-to-r from-[#fbbf24] to-[#f59e0b] bg-clip-text text-transparent">real results</span>
-            </h2>
-            <p className="mt-3 text-sm text-[#4b5563] max-w-lg mx-auto">Over 50,000 students, developers and researchers have built their focus habit with FocusArx.</p>
-          </motion.div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {TESTIMONIALS.map((t, i) => <TestimonialCard key={i} t={t} index={i} />)}
-          </div>
-        </div>
-      </section>
-
-      {/* ── PRICING TEASER ── */}
-      <section className="relative z-10 py-20">
-        <div className="mx-auto max-w-5xl px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 28 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7 }}
-            className="mb-12 text-center"
-          >
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-purple-300">
-              Simple Pricing
-            </div>
-            <h2 className="text-3xl sm:text-5xl font-black tracking-tight">Start free. <span className="bg-gradient-to-r from-[#a78bfa] to-[#e879f9] bg-clip-text text-transparent">Go premium when ready.</span></h2>
-          </motion.div>
-          <div className="grid sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
-            {[
-              {
-                name: "Free", price: "$0", period: "forever", tag: null,
-                features: ["Unlimited focus sessions", "Full gamification (XP, badges, missions)", "AI Coach", "Study Rooms", "Analytics dashboard", "Habit tracking", "Leaderboard"],
-                cta: "Get Started Free", href: "/signup", accent: "border-[rgba(124,58,237,0.25)]", btn: "bg-[rgba(124,58,237,0.2)] text-[#A78BFA] hover:bg-[rgba(124,58,237,0.35)]"
-              },
-              {
-                name: "Premium", price: "$7", period: "per month", tag: "Most Popular",
-                features: ["Everything in Free", "2× XP multiplier", "Exclusive premium themes", "Priority AI coaching", "Advanced analytics", "Streak freeze upgrades", "Early access to new features"],
-                cta: "Start Premium Trial", href: "/pricing", accent: "border-[rgba(232,121,249,0.4)] bg-gradient-to-br from-[rgba(124,58,237,0.1)] to-[rgba(232,121,249,0.05)]", btn: "bg-gradient-to-r from-[#7c3aed] to-[#e879f9] text-white shadow-lg"
-              }
-            ].map((plan, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-                whileHover={{ y: -4 }}
-                className={`relative rounded-2xl border p-6 ${plan.accent}`}
-              >
-                {plan.tag && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#e879f9] px-3 py-1 text-[10px] font-bold text-white">{plan.tag}</div>
-                )}
-                <div className="mb-4">
-                  <p className="text-xs font-bold uppercase tracking-widest text-[#4B5563] mb-1">{plan.name}</p>
-                  <div className="flex items-end gap-1">
-                    <span className="text-4xl font-black text-[#E2E8F0]">{plan.price}</span>
-                    <span className="text-sm text-[#4b5563] mb-1">/{plan.period}</span>
-                  </div>
-                </div>
-                <ul className="mb-6 space-y-2">
-                  {plan.features.map((f, fi) => (
-                    <li key={fi} className="flex items-center gap-2 text-sm text-[#94A3B8]">
-                      <span className="text-emerald-400 text-xs">✓</span> {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link href={plan.href}>
-                  <motion.button
-                    whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                    className={`w-full rounded-xl py-2.5 text-sm font-bold transition-all ${plan.btn}`}
-                  >
-                    {plan.cta}
-                  </motion.button>
-                </Link>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── FAQ ── */}
-      <section id="faq" className="relative z-10 py-20">
-        <div className="mx-auto max-w-3xl px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 28 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7 }}
-            className="mb-12 text-center"
-          >
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-purple-300">
-              FAQ
-            </div>
-            <h2 className="text-3xl sm:text-5xl font-black tracking-tight">Frequently asked questions</h2>
-            <p className="mt-3 text-sm text-[#4b5563]">Everything you need to know before getting started.</p>
-          </motion.div>
-          <FaqAccordion items={FAQ_ITEMS} />
-          <div className="mt-8 text-center">
-            <p className="text-sm text-[#4b5563] mb-3">Still have questions?</p>
-            <Link href="/support">
-              <motion.button
-                whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-                className="rounded-xl border border-[rgba(124,58,237,0.3)] bg-[rgba(124,58,237,0.1)] px-6 py-2.5 text-sm font-semibold text-[#A78BFA]"
-              >
-                Visit Support Center →
-              </motion.button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA ── */}
-      <section className="relative z-10 py-28 overflow-hidden">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[700px] w-[700px] rounded-full" style={{ background: "radial-gradient(circle, rgba(124,58,237,0.18), transparent 70%)", filter: "blur(70px)" }} />
-          <div className="absolute left-1/3 top-1/2 -translate-y-1/2 h-[400px] w-[400px] rounded-full" style={{ background: "radial-gradient(circle, rgba(232,121,249,0.1), transparent 70%)", filter: "blur(50px)" }} />
-        </div>
-        <motion.div
-          initial={{ opacity: 0, y: 42 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.85 }}
-          className="mx-auto max-w-2xl px-6 text-center"
-        >
-          <h2 className="mb-5 text-4xl sm:text-6xl font-black tracking-tight">
-            Ready to enter
-            <br />
-            <span className="bg-gradient-to-r from-[#7c3aed] via-[#a78bfa] to-[#e879f9] bg-clip-text text-transparent">deep focus?</span>
-          </h2>
-          <p className="mb-10 text-[#4b5563] text-base">Join over 50,000 learners already mastering their craft with FocusArx.</p>
-          <Link href="/signup">
-            <motion.button
-              whileHover={{ scale: 1.06, boxShadow: "0 0 75px 16px rgba(124,58,237,0.52)" }}
-              whileTap={{ scale: 0.97 }}
-              className="group relative inline-flex items-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-[#7c3aed] to-[#e879f9] px-10 py-4 text-lg font-bold text-white shadow-2xl shadow-purple-900/50"
-              data-cursor-hover
-            >
-              <span className="relative z-10">→ Create Free Account</span>
-              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-            </motion.button>
-          </Link>
-          <p className="mt-4 text-xs text-[#2a2d3a]">No credit card required · Free forever · Cancel anytime</p>
-        </motion.div>
-      </section>
-
-      {/* ── FOOTER ── */}
-      <footer className="relative z-10 border-t border-white/[0.05] bg-[#030308]/80 backdrop-blur-xl">
-        <div className="mx-auto max-w-6xl px-6 py-12">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
-            {/* Brand */}
-            <div>
-              <div className="flex items-center gap-2.5 mb-4">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[#7c3aed] to-[#e879f9]">
-                  <svg viewBox="0 0 24 24" fill="white" className="h-4 w-4"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                </div>
-                <span className="font-bold text-[#E2E8F0]">FocusArx</span>
-              </div>
-              <p className="text-xs leading-relaxed text-[#374151]">An AI-powered deep work OS that turns every study session into measurable progress.</p>
-              <p className="mt-3 text-xs text-[#2a2d3a]">© 2025 FocusArx. All rights reserved.</p>
-            </div>
-            {/* Product */}
-            <div>
-              <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.18em] text-[#374151]">Product</p>
-              <ul className="space-y-2.5">
-                {[["/","Timer"], ["/dashboard","Dashboard"], ["/missions","Missions"], ["/leaderboard","Leaderboard"], ["/pricing","Pricing"]].map(([href, label]) => (
-                  <li key={href}><Link href={href} className="text-xs text-[#2d3448] hover:text-[#a78bfa] transition-colors">{label}</Link></li>
-                ))}
-              </ul>
-            </div>
-            {/* Company */}
-            <div>
-              <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.18em] text-[#374151]">Company</p>
-              <ul className="space-y-2.5">
-                {[["/about","About Us"], ["/contact","Contact"], ["/support","Support"], ["/refund","Refund Policy"]].map(([href, label]) => (
-                  <li key={href}><Link href={href} className="text-xs text-[#2d3448] hover:text-[#a78bfa] transition-colors">{label}</Link></li>
-                ))}
-              </ul>
-            </div>
-            {/* Legal */}
-            <div>
-              <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.18em] text-[#374151]">Legal</p>
-              <ul className="space-y-2.5">
-                {[["/privacy","Privacy Policy"], ["/terms","Terms of Service"], ["/cookie-policy","Cookie Policy"], ["/ai-policy","AI Policy"], ["/acceptable-use","Acceptable Use"], ["/data-deletion","Data Deletion"]].map(([href, label]) => (
-                  <li key={href}><Link href={href} className="text-xs text-[#2d3448] hover:text-[#a78bfa] transition-colors">{label}</Link></li>
-                ))}
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-white/[0.04] pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[rgba(255,255,255,0.12)]">
-            <span>Built with ❤️ for learners worldwide</span>
-            <div className="flex gap-5">
-              {[["/focus-guide","Focus Guide"], ["/pomodoro-guide","Pomodoro Guide"], ["/study-techniques","Study Techniques"]].map(([href, label]) => (
-                <Link key={href} href={href} className="hover:text-[#4b5563] transition-colors">{label}</Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      </footer>
-
-      <style>{`
-        @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-      `}</style>
-    </div>
-  );
-}
-
-/* ─── Cursor glow effect ───────────────────────────────────────────── */
 function CursorGlow({ mouseRef }: { mouseRef: React.RefObject<{ x: number; y: number }> }) {
   const [pos, setPos] = useState({ x: -100, y: -100 });
   useEffect(() => {
@@ -898,5 +63,560 @@ function CursorGlow({ mouseRef }: { mouseRef: React.RefObject<{ x: number; y: nu
         transition: "left 0.04s linear, top 0.04s linear",
       }}
     />
+  );
+}
+
+export default function LandingPage() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mouseRef = useRef({ x: 0.6, y: 0.5 });
+  const { scrollYProgress } = useScroll({ target: containerRef });
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const onMouseMove = useCallback((e: React.MouseEvent) => {
+    mouseRef.current = {
+      x: e.clientX / window.innerWidth,
+      y: e.clientY / window.innerHeight,
+    };
+  }, []);
+
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "FocusArx",
+    "operatingSystem": "Web, Android, iOS",
+    "applicationCategory": "ProductivityApplication",
+    "description": "FocusArx is an AI-powered deep work OS that helps you master your focus through adaptive Pomodoro sessions, real-time AI coaching, and gamified progress.",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.9",
+      "ratingCount": "50000"
+    }
+  };
+
+  const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "FocusArx",
+    "url": "https://focusarx.site",
+    "logo": "https://focusarx.site/logo.png",
+    "sameAs": [
+      "https://twitter.com/focusarx",
+      "https://github.com/focusarx",
+      "https://linkedin.com/company/focusarx"
+    ]
+  };
+
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is the best study method?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The best study method depends on your brain type. Common effective techniques include the Pomodoro Technique (25 min work / 5 min break), Flowtime (working until focus dips), and monistic Deep Work (90+ min blocks)."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is AI coaching safe for students?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, FocusArx AI coaching is built to be a safe, private productivity companion. All vision data is processed locally, and AI insights are focused purely on academic and professional output."
+        }
+      }
+    ]
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      onMouseMove={onMouseMove}
+      className="relative min-h-screen overflow-x-hidden bg-[#030308] text-white select-none"
+      style={{ cursor: "none" }}
+    >
+      <PageSEO {...PAGE_SEO.home} structuredData={[structuredData, organizationSchema, faqSchema]} />
+      <CursorGlow mouseRef={mouseRef} />
+
+      {/* ── NAV ── */}
+      <nav className={`fixed top-0 inset-x-0 z-50 flex items-center justify-between px-6 sm:px-10 py-4 transition-all duration-300 ${scrolled ? "border-b border-white/5 bg-[#030308]/85 backdrop-blur-2xl" : ""}`}>
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#e879f9] flex items-center justify-center">
+            <Rocket size={16} />
+          </div>
+          <span className="text-[15px] font-bold tracking-tight">FocusArx</span>
+        </div>
+        <div className="hidden sm:flex items-center gap-8 text-sm font-medium text-[#94A3B8]">
+          <div className="relative group">
+             <button className="flex items-center gap-1 hover:text-white transition-colors">Methods <ChevronDown size={12} /></button>
+             <div className="absolute top-full -left-4 mt-2 w-64 p-2 rounded-2xl border border-white/5 bg-zinc-950 shadow-2xl opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all">
+                {[
+                  { href: "/pomodoro-guide", title: "Pomodoro", desc: "Short, intense bursts." },
+                  { href: "/science-of-deep-work", title: "Deep Work", desc: "Monastic focus blocks." },
+                  { href: "/feynman-technique", title: "Feynman", desc: "Learning by teaching." },
+                ].map(m => (
+                  <Link key={m.title} href={m.href}>
+                    <a className="block p-3 rounded-xl hover:bg-white/5 transition-colors">
+                      <p className="text-xs font-bold text-white">{m.title}</p>
+                      <p className="text-[10px] text-zinc-500 mt-0.5">{m.desc}</p>
+                    </a>
+                  </Link>
+                ))}
+             </div>
+          </div>
+          <Link href="/study-method-quiz" className="text-[#A78BFA] hover:brightness-110 transition-all font-bold">Free Quiz</Link>
+          <Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="hidden lg:block text-[10px] font-black uppercase tracking-[0.2em] text-[#4B5563] mr-4 border-r border-white/5 pr-4">
+             Support: +1 (800) 362-8729
+          </div>
+          <Link href="/login" className="text-sm font-bold text-[#94A3B8] hover:text-white transition-colors">Login</Link>
+          <Link href="/signup">
+            <button className="rounded-xl bg-white px-5 py-2 text-sm font-bold text-black hover:bg-zinc-200 transition-colors">Join Now</button>
+          </Link>
+        </div>
+      </nav>
+
+      {/* ── HERO ── */}
+      <section className="relative flex min-h-screen items-center justify-center overflow-hidden pt-20">
+        <Suspense fallback={null}>
+          <Hero3D />
+        </Suspense>
+
+        <div className="relative z-10 text-center px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-purple-300"
+          >
+            <Sparkles size={12} className="animate-pulse" />
+            #1 AI Productivity Platform 2026
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="max-w-5xl text-6xl font-black tracking-tight sm:text-8xl lg:text-9xl"
+          >
+            Master Your <br />
+            <RotatingWord />
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="mx-auto mt-8 max-w-2xl text-lg text-[#94A3B8] sm:text-xl"
+          >
+            Turn every study session into measurable progress. Build your digital civilization through the power of deep work.
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row"
+          >
+            <Link href="/signup">
+              <button className="h-14 rounded-2xl bg-gradient-to-r from-[#7C3AED] via-[#F472B6] to-[#4F46E5] px-10 text-lg font-bold shadow-[0_0_24px_rgba(244,114,182,0.4)] hover:scale-105 transition-transform">
+                Start Focusing Free
+              </button>
+            </Link>
+            <Link href="/dashboard">
+              <button className="h-14 rounded-2xl border border-white/10 bg-white/5 px-10 text-lg font-bold backdrop-blur-md hover:bg-white/10 transition-colors">
+                Explore Dashboard
+              </button>
+            </Link>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="mt-20 grid grid-cols-3 gap-8 border-t border-white/5 pt-12"
+          >
+            {STATS.map((s, idx) => (
+              <div key={idx}>
+                <p className="text-3xl font-black text-[#E2E8F0]">{s.value}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[#4B5563]">{s.label}</p>
+              </div>
+            ))}
+          </motion.div>
+          
+          <div className="mt-8 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-emerald-400">
+             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
+             2,842 Users focusing live right now
+          </div>
+        </div>
+      </section>
+
+      {/* ── TRUST SIGNALS ── */}
+      <section className="relative z-10 py-16 bg-white/[0.01]">
+        <div className="mx-auto max-w-7xl px-6">
+          <p className="text-center text-[10px] font-bold uppercase tracking-[0.3em] text-[#4B5563] mb-10">Trusted by researchers from</p>
+          <div className="flex flex-wrap justify-center gap-12 md:gap-24 opacity-30 grayscale contrast-200">
+             {/* Simulated Logos with Text */}
+             <div className="text-2xl font-black tracking-tighter text-white">STANFORD</div>
+             <div className="text-2xl font-black tracking-tighter text-white">MIT</div>
+             <div className="text-2xl font-black tracking-tighter text-white">HARVARD</div>
+             <div className="text-2xl font-black tracking-tighter text-white">OXFORD</div>
+          </div>
+          <div className="mt-12 flex flex-wrap justify-center gap-10 opacity-15 grayscale">
+             <div className="text-sm font-black italic text-white">TechCrunch</div>
+             <div className="text-sm font-black italic text-white">WIRED</div>
+             <div className="text-sm font-black italic text-white">The Verge</div>
+             <div className="text-sm font-black italic text-white">Forbes</div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── LOGO MARQUEE ── */}
+      <div className="relative z-10 w-full overflow-hidden border-y border-white/5 bg-white/[0.01] py-8">
+        <div className="flex animate-marquee whitespace-nowrap opacity-20 grayscale">
+          {[...Array(2)].map((_, i) => (
+            <div key={i} className="flex gap-20 px-10 items-center text-lg font-black tracking-tighter">
+              <span className="text-white">STANFORD</span>
+              <span className="text-white">MIT</span>
+              <span className="text-white">HARVARD</span>
+              <span className="text-white">OXFORD</span>
+              <span className="text-white">CAMBRIDGE</span>
+              <span className="text-white">BERKELEY</span>
+              <span className="text-white">YALE</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── FEATURES ── */}
+      <section id="features" className="relative py-32 px-6">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-20 text-center">
+            <h2 className="text-4xl font-black sm:text-6xl">Built for <span className="text-[#A78BFA]">Maximum Output</span></h2>
+            <p className="mt-4 text-[#94A3B8]">Scientific precision meets gamified engagement.</p>
+          </div>
+
+          <div className="grid gap-8 md:grid-cols-3">
+            {FEATURES.map((f, i) => (
+              <motion.div
+                key={i}
+                whileHover={{ y: -8, boxShadow: "0 20px 40px rgba(0,0,0,0.4)" }}
+                className="rounded-3xl border border-white/5 bg-white/[0.02] p-8 backdrop-blur-sm transition-all"
+              >
+                <div className="mb-6 h-12 w-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10">
+                  {f.icon}
+                </div>
+                <h3 className="mb-3 text-xl font-bold">{f.title}</h3>
+                <p className="text-sm leading-relaxed text-[#64748B]">{f.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── TESTIMONIALS ── */}
+      <section id="reviews" className="relative py-32 px-6 border-y border-white/5">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-20 text-center">
+             <h2 className="text-3xl font-black sm:text-5xl">Voices of <span className="text-emerald-400">Success</span></h2>
+             <p className="mt-4 text-[#94A3B8]">Join thousands of learners who upgraded their minds.</p>
+          </div>
+          
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {[
+              { name: "Dr. Aris Thorne", role: "Neuroscience Researcher", text: "The attention monitoring algorithm is surprisingly accurate. It correctly identifies gaze shifts and provides a genuine cognitive anchor for deep work.", stars: 5, expert: true },
+              { name: "James R.", role: "Computer Science @ MIT", text: "The AI coach caught my attention drifting before I even realized it. My focus depth has doubled.", stars: 5 },
+              { name: "Sarah L.", role: "Med Student @ Oxford", text: "Finally, a Pomodoro app that doesn't feel like a toy. The analytics are lab-grade.", stars: 5 },
+            ].map((t, i) => (
+              <div key={i} className={`rounded-2xl border p-6 ${t.expert ? "border-purple-500/30 bg-purple-500/5 shadow-[0_0_30px_rgba(124,58,237,0.1)]" : "border-white/5 bg-white/[0.01]"}`}>
+                {t.expert && <div className="mb-4 inline-block rounded-full bg-purple-500 px-2 py-0.5 text-[8px] font-black uppercase tracking-widest text-white">Expert Endorsement</div>}
+                <div className="flex gap-1 mb-4">
+                  {[...Array(t.stars)].map((_, j) => <Star key={j} size={12} className="fill-yellow-500 text-yellow-500" />)}
+                </div>
+                <p className="text-sm text-[#94A3B8] mb-6 italic">"{t.text}"</p>
+                <div>
+                  <p className="text-sm font-bold text-white">{t.name}</p>
+                  <p className="text-[10px] uppercase tracking-widest text-[#4B5563]">{t.role}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── PRODUCTIVITY RESUME PREVIEW ── */}
+      <section className="relative py-32 px-6 overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl opacity-20 pointer-events-none">
+           <div className="h-96 w-96 rounded-full bg-blue-500/20 blur-3xl animate-pulse" />
+        </div>
+        <div className="mx-auto max-w-7xl">
+           <div className="grid gap-16 lg:grid-cols-2 items-center">
+              <div>
+                 <h2 className="text-4xl font-black sm:text-6xl mb-6">Build Your <span className="text-blue-400">Proof of Work</span></h2>
+                 <p className="text-lg text-[#94A3B8] leading-relaxed mb-8">
+                    Your focus hours aren't just numbers—they're credentials. Export a professional FocusArx Certificate to prove your discipline to universities and employers.
+                 </p>
+                 <Link href="/signup">
+                    <button className="flex items-center gap-2 text-[#A78BFA] font-black uppercase tracking-widest hover:translate-x-2 transition-transform">
+                       Start Building Your Profile <ArrowRight size={18} />
+                    </button>
+                 </Link>
+              </div>
+              <div className="relative group">
+                 <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-blue-500 to-purple-600 opacity-25 blur transition duration-1000 group-hover:opacity-50" />
+                 <div className="relative">
+                    <ProductivityResume 
+                      userName="Alex Rivers"
+                      totalFocusHours={1240}
+                      avgFocusScore={94}
+                      rank="Grandmaster"
+                      streak={42}
+                      topMode="Deep Work"
+                    />
+                 </div>
+              </div>
+           </div>
+        </div>
+      </section>
+
+      {/* ── HOW IT WORKS ── */}
+      <section id="how-it-works" className="relative py-32 px-6 bg-white/[0.01]">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-20 text-center">
+            <h2 className="text-4xl font-black sm:text-6xl">Your Journey to <span className="text-[#A78BFA]">Mastery</span></h2>
+            <p className="mt-4 text-[#94A3B8]">Three steps to total cognitive control.</p>
+          </div>
+
+          <div className="grid gap-12 lg:grid-cols-3">
+            {[
+              { step: "01", title: "Set Your Intent", desc: "Choose your focus mode—Deep, Social, or Flow—and define your session goals.", icon: <Target className="text-purple-400" /> },
+              { step: "02", title: "Enter the Void", desc: "Our AI monitor detects distractions in real-time, gently guiding you back into state.", icon: <Shield className="text-emerald-400" /> },
+              { step: "03", title: "Evolve Your City", desc: "Every minute of focus rewards you with XP and coins to build your academic civilization.", icon: <Trophy className="text-blue-400" /> },
+            ].map((s, i) => (
+              <div key={i} className="relative">
+                <div className="mb-8 text-8xl font-black text-white/[0.03] absolute -top-12 -left-4 select-none">{s.step}</div>
+                <div className="relative z-10">
+                  <div className="mb-6 h-14 w-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 shadow-2xl">
+                    {s.icon}
+                  </div>
+                  <h3 className="mb-4 text-2xl font-bold">{s.title}</h3>
+                  <p className="text-[#64748B] leading-relaxed">{s.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── PRICING ── */}
+      <section id="pricing" className="relative py-32 px-6">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-20 text-center">
+            <h2 className="text-3xl font-black sm:text-5xl">Pick Your <span className="text-[#F472B6]">Pace</span></h2>
+            <p className="mt-4 text-[#94A3B8]">Join for free, upgrade when you're ready to go pro.</p>
+          </div>
+
+          <div className="grid gap-8 md:grid-cols-2 max-w-4xl mx-auto">
+            {/* Free */}
+            <div className="rounded-3xl border border-white/5 bg-white/[0.01] p-10 backdrop-blur-sm relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/0 to-white/[0.02] opacity-0 group-hover:opacity-100 transition-opacity" />
+              <h3 className="text-xl font-bold mb-2">Free</h3>
+              <div className="flex items-baseline gap-1 mb-6">
+                <span className="text-5xl font-black text-white">$0</span>
+                <span className="text-xs text-[#4B5563]">/ month</span>
+              </div>
+              <ul className="space-y-4 mb-10 text-sm text-[#94A3B8]">
+                <li className="flex items-center gap-2 text-white"><CheckCircle2 size={14} className="text-emerald-500" /> Unlimited Timer Sessions</li>
+                <li className="flex items-center gap-2 text-white"><CheckCircle2 size={14} className="text-emerald-500" /> Basic AI Coaching</li>
+                <li className="flex items-center gap-2 text-white"><CheckCircle2 size={14} className="text-emerald-500" /> Progress Heatmaps</li>
+              </ul>
+              <Link href="/signup">
+                <button className="w-full py-5 rounded-2xl border border-white/10 font-black text-white hover:bg-white hover:text-black transition-all">Get Started Free</button>
+              </Link>
+            </div>
+            {/* Pro */}
+            <div className="relative rounded-3xl border border-purple-500/30 bg-purple-500/[0.03] p-10 backdrop-blur-sm shadow-[0_0_50px_rgba(124,58,237,0.15)] group">
+              <div className="absolute -top-3 right-8 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-white shadow-xl animate-pulse">Most Popular</div>
+              <h3 className="text-xl font-bold mb-2 text-white">Pro</h3>
+              <div className="flex items-baseline gap-1 mb-6">
+                <span className="text-5xl font-black text-white">$8</span>
+                <span className="text-xs text-[#4B5563]">/ month</span>
+              </div>
+              <ul className="space-y-4 mb-10 text-sm text-[#E2E8F0]">
+                <li className="flex items-center gap-2"><Zap size={14} className="text-purple-400" /> Unlimited AI Coaching</li>
+                <li className="flex items-center gap-2"><Zap size={14} className="text-purple-400" /> Advanced Focus DNA</li>
+                <li className="flex items-center gap-2"><Zap size={14} className="text-purple-400" /> Exclusive Themes & Pets</li>
+                <li className="flex items-center gap-2"><Zap size={14} className="text-purple-400" /> Priority Feature Access</li>
+              </ul>
+              <Link href="/signup">
+                <button className="w-full py-5 rounded-2xl bg-gradient-to-r from-purple-500 to-blue-500 font-black text-white hover:scale-105 transition-transform shadow-[0_20px_40px_rgba(124,58,237,0.3)]">Join FocusArx Pro</button>
+              </Link>
+              <p className="mt-4 text-center text-[10px] font-bold text-purple-400/60 uppercase tracking-widest">7-Day Free Trial Available</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── FAQ ── */}
+      <section id="faq" className="relative py-32 px-6 bg-white/[0.01]">
+        <div className="mx-auto max-w-3xl">
+          <h2 className="text-3xl font-black text-center mb-16 sm:text-5xl">Questions? <span className="text-purple-400">Answers.</span></h2>
+          <div className="space-y-4">
+            {[
+              { q: "How does the AI Coach work?", a: "Our proprietary algorithm analyzes your focus patterns, distraction frequency, and session quality in real-time to provide context-aware interventions and productivity roadmaps." },
+              { q: "Is my webcam data private?", a: "Absolutely. All vision processing (MediaPipe) happens locally in your browser. No video or image data is ever transmitted to our servers." },
+              { q: "Can I use it for free?", a: "Yes, our core features including the Pomodoro timer, gamification, and basic analytics are free forever. Pro unlocks unlimited AI and advanced data export." },
+              { q: "Does it work on mobile?", a: "FocusArx is a progressive web app (PWA) that works flawlessly on desktop, tablet, and mobile devices." },
+            ].map((item, i) => (
+              <div key={i} className="rounded-2xl border border-white/5 bg-white/[0.02] p-6">
+                <h3 className="text-lg font-bold mb-3 flex items-center gap-3">
+                  <span className="h-6 w-6 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-400 text-xs font-black">?</span>
+                  {item.q}
+                </h3>
+                <p className="text-[#64748B] text-sm leading-relaxed pl-9">{item.a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FINAL CTA ── */}
+      <section className="relative py-40 px-6 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#7C3AED]/5 to-transparent pointer-events-none" />
+        <div className="relative z-10 mx-auto max-w-4xl text-center">
+          <h2 className="text-4xl font-black sm:text-7xl mb-8">Ready to achieve <br /><span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Total Focus?</span></h2>
+          <p className="text-lg text-[#94A3B8] mb-12 max-w-2xl mx-auto">Join 50,000+ top-tier students and professionals. No credit card required. Cancel anytime.</p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link href="/signup">
+              <button className="h-16 px-12 rounded-2xl bg-white text-black font-black text-lg hover:scale-105 transition-transform shadow-[0_20px_50px_rgba(255,255,255,0.15)]">
+                Start Your Journey
+              </button>
+            </Link>
+          </div>
+          <p className="mt-8 text-[10px] uppercase tracking-[0.2em] text-[#4B5563]">Trusted by the world's most ambitious learners</p>
+        </div>
+      </section>
+
+      {/* ── LEAD MAGNET ── */}
+      <section className="relative py-24 px-6 bg-[#7C3AED]/5 border-y border-[#7C3AED]/10">
+        <div className="mx-auto max-w-4xl text-center">
+           <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 mb-6">
+              <Star className="text-[#A78BFA]" />
+           </div>
+           <h2 className="text-3xl font-black sm:text-5xl mb-6">Get the "Deep Work" Manifesto</h2>
+           <p className="text-lg text-[#94A3B8] mb-10 max-w-2xl mx-auto">
+              Learn the exact routines used by the top 1% of earners to reclaim 4 hours of focus every day. Join 12,000+ subscribers.
+           </p>
+           <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto" onSubmit={(e) => e.preventDefault()}>
+              <input 
+                type="email" 
+                placeholder="Enter your email" 
+                className="flex-1 px-6 py-4 rounded-2xl bg-[#030308] border border-white/10 focus:border-[#A78BFA] outline-none transition-all"
+              />
+              <button className="px-8 py-4 rounded-2xl bg-white text-black font-black hover:bg-zinc-200 transition-all">
+                 Join Free
+              </button>
+           </form>
+           <p className="mt-4 text-[10px] text-[#4B5563] uppercase tracking-widest">No spam. Only high-performance research.</p>
+        </div>
+      </section>
+
+      {/* ── FOOTER ── */}
+      <footer className="border-t border-white/5 bg-[#030308] py-20 px-6">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <div className="flex items-center gap-2.5 mb-6">
+                <div className="h-6 w-6 rounded-lg bg-gradient-to-br from-[#7c3aed] to-[#e879f9] flex items-center justify-center">
+                  <Rocket size={12} />
+                </div>
+                <span className="font-bold tracking-tight text-white">FocusArx</span>
+              </div>
+              <p className="text-xs text-[#4B5563] leading-relaxed">
+                The AI-powered OS for deep work. Join 50,000+ learners mastering their craft.
+              </p>
+            </div>
+            <div>
+              <h4 className="mb-6 text-[10px] font-bold uppercase tracking-widest text-white">Product</h4>
+              <ul className="space-y-4 text-xs text-[#4B5563]">
+                <li><Link href="/dashboard" className="hover:text-white">Dashboard</Link></li>
+                <li><Link href="/pricing" className="hover:text-white">Pricing</Link></li>
+                <li><Link href="/roadmap" className="hover:text-white">Roadmap</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="mb-6 text-[10px] font-bold uppercase tracking-widest text-white">Resources</h4>
+              <ul className="space-y-4 text-xs text-[#4B5563]">
+                <li><Link href="/study-method-quiz" className="hover:text-[#A78BFA] transition-colors font-bold text-white/40">Study Method Quiz</Link></li>
+                <li><Link href="/study-calculator" className="hover:text-white transition-colors">Study Calculator</Link></li>
+                <li><Link href="/science-of-deep-work" className="hover:text-white">Science of Focus</Link></li>
+                <li><Link href="/feynman-technique" className="hover:text-white">Feynman Technique</Link></li>
+                <li><Link href="/focus-guide" className="hover:text-white">Focus Guide</Link></li>
+                <li><Link href="/pomodoro-guide" className="hover:text-white">Pomodoro Guide</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="mb-6 text-[10px] font-bold uppercase tracking-widest text-white">Company</h4>
+              <ul className="space-y-4 text-xs text-[#4B5563]">
+                <li><Link href="/about" className="hover:text-white">About</Link></li>
+                <li><Link href="/contact" className="hover:text-white">Contact</Link></li>
+                <li><Link href="/support" className="hover:text-white">Support</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="mb-6 text-[10px] font-bold uppercase tracking-widest text-white">Legal</h4>
+              <ul className="space-y-4 text-xs text-[#4B5563]">
+                <li><Link href="/privacy" className="hover:text-white">Privacy Policy</Link></li>
+                <li><Link href="/terms" className="hover:text-white">Terms of Service</Link></li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Product Disclaimer */}
+          <div className="max-w-3xl mx-auto mt-16 px-6 py-6 rounded-2xl border border-white/5 bg-white/[0.01] text-center">
+             <p className="text-[10px] leading-relaxed text-zinc-600 uppercase tracking-widest">
+               *FocusArx is a productivity engine. Our AI Coach provides general optimization guidance and is not a substitute for medical or psychological advice. Deep work results depend on individual consistency.
+             </p>
+          </div>
+
+          {/* Trust Badges */}
+          <div className="mt-16 flex flex-wrap justify-center gap-8 opacity-40 grayscale filter">
+             <div className="flex flex-col items-center gap-2">
+                <ShieldCheck size={24} className="text-white" />
+                <span className="text-[8px] font-bold uppercase tracking-widest text-white">SSL Secure</span>
+             </div>
+             <div className="flex flex-col items-center gap-2">
+                <Lock size={24} className="text-white" />
+                <span className="text-[8px] font-bold uppercase tracking-widest text-white">PCI Compliant</span>
+             </div>
+             <div className="flex flex-col items-center gap-2">
+                <Award size={24} className="text-white" />
+                <span className="text-[8px] font-bold uppercase tracking-widest text-white">ISO 27001</span>
+             </div>
+             <div className="flex flex-col items-center gap-2">
+                <RefreshCw size={24} className="text-white" />
+                <span className="text-[8px] font-bold uppercase tracking-widest text-white">30-Day Guarantee</span>
+             </div>
+          </div>
+
+          <div className="mt-20 border-t border-white/5 pt-8 text-center text-[10px] text-[#2A2D3A]">
+            © 2026 FocusArx. Built for the modern learner.
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }

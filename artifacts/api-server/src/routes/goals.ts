@@ -1,25 +1,24 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db, goalsTable } from "@workspace/db";
 import { extractUserId } from "./auth";
 import { eq, and, desc } from "drizzle-orm";
 
-function auth(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.userId = userId;
   next();
 }
 
 export const goalsRouter = Router();
 
-goalsRouter.get("/goals", auth, async (req: any, res) => {
+goalsRouter.get("/goals", authMiddleware, async (req: AuthRequest, res: Response) => {
   const rows = await db.select().from(goalsTable)
     .where(eq(goalsTable.userId, req.userId))
     .orderBy(desc(goalsTable.createdAt));
   res.json({ goals: rows });
 });
 
-goalsRouter.post("/goals", auth, async (req: any, res) => {
+goalsRouter.post("/goals", authMiddleware, async (req: AuthRequest, res: Response) => {
   const { title, description } = req.body as { title?: string; description?: string };
   if (!title?.trim()) return res.status(400).json({ error: "Title required" });
   const [goal] = await db.insert(goalsTable).values({
@@ -31,7 +30,7 @@ goalsRouter.post("/goals", auth, async (req: any, res) => {
   res.status(201).json({ goal });
 });
 
-goalsRouter.patch("/goals/:id/complete", auth, async (req: any, res) => {
+goalsRouter.patch("/goals/:id/complete", authMiddleware, async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
   const { completed } = req.body as { completed?: boolean };
   const [goal] = await db.update(goalsTable)
@@ -42,7 +41,7 @@ goalsRouter.patch("/goals/:id/complete", auth, async (req: any, res) => {
   res.json({ goal });
 });
 
-goalsRouter.delete("/goals/:id", auth, async (req: any, res) => {
+goalsRouter.delete("/goals/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
   await db.delete(goalsTable)
     .where(and(eq(goalsTable.id, id), eq(goalsTable.userId, req.userId)));

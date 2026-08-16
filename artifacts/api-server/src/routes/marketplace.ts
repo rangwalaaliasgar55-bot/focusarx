@@ -1,3 +1,5 @@
+import { Request, Response, NextFunction } from "express";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db, marketplaceItemsTable, userInventoryTable, userWalletsTable, coinTransactionsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
@@ -6,9 +8,6 @@ import { logger } from "../lib/logger";
 
 const router = Router();
 
-function authMiddleware(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.userId = userId;
   next();
 }
@@ -66,7 +65,7 @@ async function ensureDefaultItems() {
   } catch { }
 }
 
-router.get("/marketplace", authMiddleware, async (req: any, res) => {
+router.get("/marketplace", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     await ensureDefaultItems();
     const [items, inventory] = await Promise.all([
@@ -82,7 +81,7 @@ router.get("/marketplace", authMiddleware, async (req: any, res) => {
   }
 });
 
-router.get("/marketplace/inventory", authMiddleware, async (req: any, res) => {
+router.get("/marketplace/inventory", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const inventory = await db.select({
       id: userInventoryTable.id,
@@ -103,7 +102,7 @@ router.get("/marketplace/inventory", authMiddleware, async (req: any, res) => {
   }
 });
 
-router.post("/marketplace/:itemId/purchase", authMiddleware, async (req: any, res) => {
+router.post("/marketplace/:itemId/purchase", authMiddleware, async (req: AuthRequest, res: Response) => {
   const { itemId } = req.params as { itemId: string };
   try {
     // Check item exists
@@ -145,7 +144,7 @@ router.post("/marketplace/:itemId/purchase", authMiddleware, async (req: any, re
   }
 });
 
-router.post("/marketplace/inventory/:invId/equip", authMiddleware, async (req: any, res) => {
+router.post("/marketplace/inventory/:invId/equip", authMiddleware, async (req: AuthRequest, res: Response) => {
   const { invId } = req.params as { invId: string };
   try {
     const [inv] = await db.select().from(userInventoryTable)

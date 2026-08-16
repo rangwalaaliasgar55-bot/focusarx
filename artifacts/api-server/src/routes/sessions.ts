@@ -1,3 +1,4 @@
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { z } from "zod";
 import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, userWalletsTable, productivityLogsTable, battlePassProgressTable, coinTransactionsTable, focusCitiesTable, userLootBoxesTable, premiumSubscriptionsTable } from "@workspace/db";
@@ -116,14 +117,11 @@ function stringOrNullish(value: unknown): string | null | undefined {
   return String(value);
 }
 
-function authMiddleware(req: any, res: any, next: any) {
-  const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   req.userId = String(userId);
   next();
 }
 
-router.get("/sessions/active", authMiddleware, async (req: any, res) => {
+router.get("/sessions/active", authMiddleware, async (req: AuthRequest, res) => {
   try {
     const [session] = await db.select().from(activeSessionsTable).where(eq(activeSessionsTable.userId, req.userId));
     res.json({ session: session ?? null });
@@ -133,7 +131,7 @@ router.get("/sessions/active", authMiddleware, async (req: any, res) => {
   }
 });
 
-router.post("/sessions/active", authMiddleware, async (req: any, res) => {
+router.post("/sessions/active", authMiddleware, async (req: AuthRequest, res) => {
   const { mode, secondsLeft, timerStatus, monitorEnabled } = req.body as any;
   try {
     await db.delete(activeSessionsTable).where(eq(activeSessionsTable.userId, req.userId));
@@ -149,7 +147,7 @@ router.post("/sessions/active", authMiddleware, async (req: any, res) => {
   }
 });
 
-router.post("/sessions/sync", authMiddleware, async (req: any, res) => {
+router.post("/sessions/sync", authMiddleware, async (req: AuthRequest, res) => {
   const parsed = activeSyncSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Invalid sync payload" }); return; }
   const { sessionId, activeSeconds, secondsLeft, timerStatus, mode, focusScore, focusQuality, focusState, distractionCount, lastSeenFaceAt, focusTimeline, monitorEnabled } = parsed.data;
@@ -168,7 +166,7 @@ router.post("/sessions/sync", authMiddleware, async (req: any, res) => {
   }
 });
 
-router.delete("/sessions/active", authMiddleware, async (req: any, res) => {
+router.delete("/sessions/active", authMiddleware, async (req: AuthRequest, res) => {
   try {
     await db.delete(activeSessionsTable).where(eq(activeSessionsTable.userId, req.userId));
     res.json({ ok: true });
@@ -178,7 +176,7 @@ router.delete("/sessions/active", authMiddleware, async (req: any, res) => {
   }
 });
 
-router.post("/sessions", authMiddleware, async (req: any, res) => {
+router.post("/sessions", authMiddleware, async (req: AuthRequest, res) => {
   const parsed = sessionSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Invalid session data" }); return; }
   const {
@@ -280,7 +278,7 @@ router.post("/sessions", authMiddleware, async (req: any, res) => {
   }
 });
 
-router.get("/sessions/history", authMiddleware, async (req: any, res) => {
+router.get("/sessions/history", authMiddleware, async (req: AuthRequest, res) => {
   try {
     const limit = Math.min(100, Number(req.query.limit) || 30);
     const sessions = await db.select().from(focusSessionsTable)

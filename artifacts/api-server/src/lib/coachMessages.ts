@@ -75,6 +75,16 @@ export const COACH_MESSAGES: CoachMessageTemplate[] = [
     message: "Low energy today — that's data, not failure. Reduce your session target by 25%. A mediocre session is infinitely better than no session, and often turns into a great one.",
     cta: "Start a Shorter Session",
   },
+  {
+    id: "neuro_fact",
+    trigger: "Random neurological insight",
+    message: "Neuroscience tip: Your brain uses 20% of your body's energy. Deep focus is metabolically expensive—make sure you're hydrating and taking those 5-minute breaks to let your neurons recharge.",
+  },
+  {
+    id: "dopamine_loop",
+    trigger: "Dopamine focus loop",
+    message: "Flow state is reached when the challenge matches your skill. If you're bored, increase the intensity. If you're anxious, break the task into smaller chunks. Dial it in.",
+  },
 ];
 
 /** Resolve {{VARIABLE}} placeholders in message templates */
