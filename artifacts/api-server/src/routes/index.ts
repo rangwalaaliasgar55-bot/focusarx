@@ -43,6 +43,11 @@ import { petsRouter } from "./pets";
 import { adminCmsRouter } from "./adminCms";
 import { premiumRouter } from "./premium";
 import { emailRouter } from "./email";
+import { distractionsRouter } from "./distractions";
+import { ghostsRouter } from "./ghosts";
+import { profilesRouter } from "./profiles";
+import { sessionReplayRouter } from "./sessionReplay";
+import { wrappedRouter } from "./wrapped";
 
 const router: IRouter = Router();
 
@@ -90,5 +95,10 @@ router.use(petsRouter);
 router.use(adminCmsRouter);
 router.use(premiumRouter);
 router.use(emailRouter);
+router.use(distractionsRouter);
+router.use(ghostsRouter);
+router.use(profilesRouter);
+router.use(sessionReplayRouter);
+router.use(wrappedRouter);
 
 export default router;
