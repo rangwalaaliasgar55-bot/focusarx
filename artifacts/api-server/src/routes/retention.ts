@@ -10,10 +10,6 @@ import {
 import { extractUserId } from "./auth";
 import { eq, sql } from "drizzle-orm";
 
-  req.userId = userId;
-  next();
-}
-
 export const retentionRouter = Router();
 
 const DAILY_REWARDS = [

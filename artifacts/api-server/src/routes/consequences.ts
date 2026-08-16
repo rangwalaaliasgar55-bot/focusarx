@@ -10,10 +10,6 @@ import { logger } from "../lib/logger";
 
 const router = Router();
 
-  req.userId = userId;
-  next();
-}
-
 function getMondayStr(date: Date = new Date()): string {
   const d = new Date(date);
   const day = d.getDay();

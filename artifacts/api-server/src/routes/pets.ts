@@ -10,10 +10,6 @@ const router = Router();
 
 const PET_XP_PER_LEVEL = 500;
 
-  req.userId = userId;
-  next();
-}
-
 export const PET_TYPES = [
   { id: "owl", name: "Sage Owl", emoji: "🦉", desc: "Wise and calm. Perfect for deep study sessions.", evolutions: ["Owlet", "Wise Owl", "Elder Sage", "Celestial Owl"] },
   { id: "fox", name: "Focus Fox", emoji: "🦊", desc: "Sharp and cunning. Thrives on consistency.", evolutions: ["Fox Kit", "Quick Fox", "Silver Fox", "Phantom Fox"] },

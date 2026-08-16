@@ -8,10 +8,6 @@ import { logger } from "../lib/logger";
 
 const router = Router();
 
-  req.userId = userId;
-  next();
-}
-
 // Seed default marketplace items if none exist
 const DEFAULT_ITEMS = [
   // Profile Frames

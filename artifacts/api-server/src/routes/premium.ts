@@ -31,10 +31,6 @@ const PREMIUM_BENEFITS = [
   "exclusive_seasonal_events",
 ];
 
-  req.userId = userId;
-  next();
-}
-
 router.get("/premium/status", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const [sub] = await db.select().from(premiumSubscriptionsTable)

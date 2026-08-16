@@ -9,10 +9,6 @@ import {
 import { extractUserId } from "./auth";
 import { eq, and, desc, sql, ne } from "drizzle-orm";
 
-  req.userId = userId;
-  next();
-}
-
 export const studyRoomsRouter = Router();
 
 function genCode() {

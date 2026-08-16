@@ -5,10 +5,6 @@ import { extractUserId } from "./auth";
 import { db, focusCitiesTable, cityBuildingDefinitionsTable, userWalletsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
-  req.user = { id: userId };
-  next();
-}
-
 export const cityRouter = Router();
 
 const WEATHER_TYPES = ["clear", "clear", "clear", "cloudy", "cloudy", "rain", "wind", "rainbow"];
@@ -43,7 +39,7 @@ async function getOrCreateCity(userId: string) {
 
 cityRouter.get("/city", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const city = await getOrCreateCity(req.user.id);
+    const city = await getOrCreateCity(req.userId);
     // Rotate weather every 4h
     const weatherAge = Date.now() - new Date(city.weatherUpdatedAt ?? 0).getTime();
     if (weatherAge > 4 * 60 * 60 * 1000) {
@@ -73,16 +69,16 @@ cityRouter.post("/city/buildings/:slug/build", authMiddleware, async (req: AuthR
       .where(eq(cityBuildingDefinitionsTable.slug, slug)).limit(1);
     if (!building) return res.status(404).json({ error: "Building not found" });
 
-    const city = await getOrCreateCity(req.user.id);
+    const city = await getOrCreateCity(req.userId);
     const owned = city.buildings as Record<string, boolean> ?? {};
     if (owned[slug]) return res.status(400).json({ error: "Already built" });
 
     if (building.coinCost > 0) {
-      const [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.user.id)).limit(1);
+      const [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.userId)).limit(1);
       if (!wallet || wallet.coins < building.coinCost) {
         return res.status(400).json({ error: "Insufficient coins" });
       }
-      await db.update(userWalletsTable).set({ coins: wallet.coins - building.coinCost }).where(eq(userWalletsTable.userId, req.user.id));
+      await db.update(userWalletsTable).set({ coins: wallet.coins - building.coinCost }).where(eq(userWalletsTable.userId, req.userId));
     }
 
     const newBuildings = { ...owned, [slug]: true };
@@ -99,7 +95,7 @@ cityRouter.post("/city/buildings/:slug/build", authMiddleware, async (req: AuthR
       updatedAt: new Date(),
     }).where(eq(focusCitiesTable.id, city.id)).returning();
 
-    const [w] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.user.id)).limit(1);
+    const [w] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.userId)).limit(1);
     res.json({ city: updated, newCoins: w?.coins ?? 0 });
   } catch (e: any) {
     res.status(500).json({ error: "Failed to build" });

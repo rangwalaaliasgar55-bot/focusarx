@@ -10,10 +10,6 @@ import { aiCoachLimiter } from "../lib/rateLimiter";
 
 const router = Router();
 
-  req.userId = userId;
-  next();
-}
-
 // Groq API — Llama 3.1 8B Instant (feels near-instant for users)
 async function callGroq(
   systemPrompt: string,

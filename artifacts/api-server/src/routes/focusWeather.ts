@@ -8,10 +8,6 @@ import { logger } from "../lib/logger";
 
 const router = Router();
 
-  req.userId = userId;
-  next();
-}
-
 type WeatherState =
   | "clear_skies"
   | "flow_state_incoming"

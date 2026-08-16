@@ -10,10 +10,6 @@ import { z } from "zod";
 
 const router = Router();
 
-  req.userId = userId;
-  next();
-}
-
 const createTaskSchema = z.object({
   text: z.string().max(500).optional(),
   title: z.string().max(500).optional(),

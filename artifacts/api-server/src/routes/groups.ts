@@ -9,10 +9,6 @@ import {
 import { extractUserId } from "./auth";
 import { eq, and, desc, sql, or } from "drizzle-orm";
 
-  req.userId = userId;
-  next();
-}
-
 export const groupsRouter = Router();
 
 function genInviteCode() {

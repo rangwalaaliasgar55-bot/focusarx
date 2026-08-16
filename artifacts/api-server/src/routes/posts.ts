@@ -10,10 +10,6 @@ import {
 import { extractUserId } from "./auth";
 import { eq, and, desc, sql, inArray, or } from "drizzle-orm";
 
-  req.userId = userId;
-  next();
-}
-
 function optionalAuth(req: any, res: any, next: any) {
   const userId = extractUserId(req);
   req.userId = userId;

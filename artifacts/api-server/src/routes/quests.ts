@@ -5,10 +5,6 @@ import { extractUserId } from "./auth";
 import { db, questDefinitionsTable, userQuestProgressTable, userWalletsTable, notificationsTable } from "@workspace/db";
 import { eq, and, inArray } from "drizzle-orm";
 
-  req.user = { id: userId };
-  next();
-}
-
 export const questsRouter = Router();
 
 function getPeriod(type: string): string {
@@ -44,7 +40,7 @@ async function assignDailyQuests(userId: string) {
 
 questsRouter.get("/quests", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    await assignDailyQuests(req.user.id);
+    await assignDailyQuests(req.userId);
     const today = new Date().toISOString().split("T")[0];
     const dayOfWeek = new Date().getDay();
     const monday = new Date();
@@ -52,8 +48,8 @@ questsRouter.get("/quests", authMiddleware, async (req: AuthRequest, res: Respon
     const weekPeriod = `week-${monday.toISOString().split("T")[0]}`;
 
     const [daily, weekly] = await Promise.all([
-      db.select().from(userQuestProgressTable).where(and(eq(userQuestProgressTable.userId, req.user.id), eq(userQuestProgressTable.period, today))),
-      db.select().from(userQuestProgressTable).where(and(eq(userQuestProgressTable.userId, req.user.id), eq(userQuestProgressTable.period, weekPeriod))),
+      db.select().from(userQuestProgressTable).where(and(eq(userQuestProgressTable.userId, req.userId), eq(userQuestProgressTable.period, today))),
+      db.select().from(userQuestProgressTable).where(and(eq(userQuestProgressTable.userId, req.userId), eq(userQuestProgressTable.period, weekPeriod))),
     ]);
 
     const questIds = [...daily, ...weekly].map(p => p.questId);
@@ -82,7 +78,7 @@ questsRouter.post("/quests/:questId/claim", authMiddleware, async (req: AuthRequ
     const weekPeriod = `week-${monday.toISOString().split("T")[0]}`;
 
     const [prog] = await db.select().from(userQuestProgressTable)
-      .where(and(eq(userQuestProgressTable.userId, req.user.id), eq(userQuestProgressTable.questId, questId)))
+      .where(and(eq(userQuestProgressTable.userId, req.userId), eq(userQuestProgressTable.questId, questId)))
       .limit(1);
 
     if (!prog || !prog.completed) return res.status(400).json({ error: "Quest not completed" });
@@ -94,12 +90,12 @@ questsRouter.post("/quests/:questId/claim", authMiddleware, async (req: AuthRequ
     await db.update(userQuestProgressTable).set({ claimedAt: new Date() }).where(eq(userQuestProgressTable.id, prog.id));
 
     if (def.xpReward || def.coinReward) {
-      const [w] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.user.id)).limit(1);
+      const [w] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.userId)).limit(1);
       if (w) {
         await db.update(userWalletsTable).set({
           totalXp: w.totalXp + (def.xpReward ?? 0),
           coins: w.coins + (def.coinReward ?? 0),
-        }).where(eq(userWalletsTable.userId, req.user.id));
+        }).where(eq(userWalletsTable.userId, req.userId));
       }
     }
 

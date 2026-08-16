@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { Request, Response, NextFunction } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
-import { Request, Response, NextFunction } from "express";
 import { db } from "@workspace/db";
 import {
   focusSessionsTable, tasksTable, studyStreaksTable,
@@ -12,10 +10,6 @@ import { extractUserId } from "./auth";
 import { eq, and, desc, sql } from "drizzle-orm";
 
 export const aiInsightsRouter = Router();
-
-  req.userId = userId;
-  next();
-}
 
 async function callGroq(systemPrompt: string, userMessage: string, maxTokens = 400): Promise<string | null> {
   const apiKey = process.env.GROQ_API_KEY;

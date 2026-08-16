@@ -14,10 +14,6 @@ import { logger } from "../lib/logger";
 
 const router = Router();
 
-  req.userId = userId;
-  next();
-}
-
 function calcCurrentStreak(startDate: string): number {
   const start = new Date(startDate);
   const now = new Date();

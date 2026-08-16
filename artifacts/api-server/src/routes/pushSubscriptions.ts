@@ -8,10 +8,6 @@ import { eq, and } from "drizzle-orm";
 import { initVapid, getVapidPublicKey } from "../lib/pushSender";
 import { logger } from "../lib/logger";
 
-  req.userId = userId;
-  next();
-}
-
 export const pushRouter = Router();
 
 initVapid();
