@@ -61,7 +61,7 @@ export default function WalletPage() {
   return (
     <PageTransition>
       <motion.div variants={PAGE} initial="initial" animate="animate" className="max-w-3xl mx-auto px-4 py-8 space-y-6">
-        <h1 className="text-2xl font-bold text-[#E2E8F0]">Wallet & XP</h1>
+        <h1 className="text-2xl font-bold text-[var(--foreground)]">Wallet & XP</h1>
 
         {/* Stats row */}
         {wallet && (
@@ -110,7 +110,7 @@ export default function WalletPage() {
           <div className="rounded-2xl border border-[rgba(124,58,237,0.15)] bg-[rgba(255,255,255,0.02)] p-4">
             <div className="flex justify-between items-center mb-2">
               <span className="text-xs font-semibold text-[#A78BFA]">Level {level} → {level + 1}</span>
-              <span className="text-xs text-[#4B5563]">{wallet.totalXp - xpStart} / {xpEnd - xpStart} XP</span>
+              <span className="text-xs text-[var(--foreground-subtle)]">{wallet.totalXp - xpStart} / {xpEnd - xpStart} XP</span>
             </div>
             <div className="h-2 rounded-full bg-[rgba(124,58,237,0.12)] overflow-hidden">
               <motion.div
@@ -125,7 +125,7 @@ export default function WalletPage() {
 
         {/* Transactions */}
         <div>
-          <h2 className="text-sm font-semibold text-[#94A3B8] uppercase tracking-wider mb-3 flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-[var(--foreground-muted)] uppercase tracking-wider mb-3 flex items-center gap-2">
             <Calendar size={13} /> Transaction History
           </h2>
           {loading && page === 1 ? (
@@ -135,7 +135,7 @@ export default function WalletPage() {
           ) : txs.length === 0 ? (
             <div className="py-12 flex flex-col items-center gap-3 text-center">
               <Coins size={32} className="text-[#2D3748]" />
-              <p className="text-sm text-[#4B5563]">No transactions yet. Complete sessions to earn coins!</p>
+              <p className="text-sm text-[var(--foreground-subtle)]">No transactions yet. Complete sessions to earn coins!</p>
             </div>
           ) : (
             <motion.div variants={STAGGER} initial="initial" animate="animate" className="space-y-2">
@@ -146,8 +146,8 @@ export default function WalletPage() {
                     {txIcon(tx.type ?? "")}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-[#E2E8F0] truncate">{tx.description ?? tx.type ?? "Transaction"}</p>
-                    <p className="text-[10px] text-[#4B5563]">{tx.createdAt ? new Date(tx.createdAt).toLocaleDateString() : ""}</p>
+                    <p className="text-xs font-medium text-[var(--foreground)] truncate">{tx.description ?? tx.type ?? "Transaction"}</p>
+                    <p className="text-[10px] text-[var(--foreground-subtle)]">{tx.createdAt ? new Date(tx.createdAt).toLocaleDateString() : ""}</p>
                   </div>
                   <span className={`text-sm font-bold tabular-nums ${txColor(tx.type ?? "")}`}>
                     {tx.amount > 0 ? "+" : ""}{tx.amount} 🪙
@@ -156,7 +156,7 @@ export default function WalletPage() {
               ))}
               {hasMore && (
                 <button onClick={() => setPage(p => p + 1)}
-                  className="w-full rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] py-2.5 text-xs text-[#64748B] hover:text-[#94A3B8] transition-colors">
+                  className="w-full rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] py-2.5 text-xs text-[var(--muted-fg)] hover:text-[var(--foreground-muted)] transition-colors">
                   Load more…
                 </button>
               )}

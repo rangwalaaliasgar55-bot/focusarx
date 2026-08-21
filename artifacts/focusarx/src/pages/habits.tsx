@@ -63,22 +63,22 @@ function CreateHabitModal({ onClose, onCreate }: { onClose: () => void; onCreate
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div className="w-full max-w-md rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-6">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-bold text-[#E2E8F0]">New Habit</h2>
-          <button onClick={onClose}><X size={18} className="text-[#4B5563]" /></button>
+          <h2 className="text-lg font-bold text-[var(--foreground)]">New Habit</h2>
+          <button onClick={onClose}><X size={18} className="text-[var(--foreground-subtle)]" /></button>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-semibold uppercase tracking-widest text-[#4B5563] block mb-1.5">Name *</label>
+            <label className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] block mb-1.5">Name *</label>
             <input
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               placeholder="e.g. Read for 30 minutes…"
-              className="w-full rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] px-3 py-2 text-sm text-[#E2E8F0] outline-none focus:border-[#7C3AED]"
+              className="w-full rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[#7C3AED]"
               autoFocus
             />
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-widest text-[#4B5563] block mb-1.5">Icon</label>
+            <label className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] block mb-1.5">Icon</label>
             <div className="flex flex-wrap gap-1.5">
               {ICONS.map(ic => (
                 <button key={ic} onClick={() => setForm(f => ({ ...f, icon: ic }))}
@@ -89,7 +89,7 @@ function CreateHabitModal({ onClose, onCreate }: { onClose: () => void; onCreate
             </div>
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-widest text-[#4B5563] block mb-1.5">Color</label>
+            <label className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] block mb-1.5">Color</label>
             <div className="flex gap-2">
               {COLORS.map(c => (
                 <button key={c} onClick={() => setForm(f => ({ ...f, color: c }))}
@@ -99,18 +99,18 @@ function CreateHabitModal({ onClose, onCreate }: { onClose: () => void; onCreate
             </div>
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-widest text-[#4B5563] block mb-1.5">Frequency</label>
+            <label className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] block mb-1.5">Frequency</label>
             <div className="flex gap-2">
               {["daily", "weekdays", "weekends"].map(f => (
                 <button key={f} onClick={() => setForm(fr => ({ ...fr, frequency: f }))}
-                  className={`flex-1 rounded-lg py-1.5 text-xs capitalize transition-all ${form.frequency === f ? "bg-[#7C3AED] text-white" : "bg-[rgba(255,255,255,0.02)] text-[#4B5563] hover:text-[#E2E8F0] border border-[rgba(255,255,255,0.06)]"}`}>
+                  className={`flex-1 rounded-lg py-1.5 text-xs capitalize transition-all ${form.frequency === f ? "bg-[#7C3AED] text-white" : "bg-[rgba(255,255,255,0.02)] text-[var(--foreground-subtle)] hover:text-[var(--foreground)] border border-[rgba(255,255,255,0.06)]"}`}>
                   {f}
                 </button>
               ))}
             </div>
           </div>
           <div className="flex gap-2 pt-2">
-            <button onClick={onClose} className="flex-1 rounded-xl border border-[rgba(255,255,255,0.06)] py-2 text-sm text-[#4B5563] hover:text-[#E2E8F0]">Cancel</button>
+            <button onClick={onClose} className="flex-1 rounded-xl border border-[rgba(255,255,255,0.06)] py-2 text-sm text-[var(--foreground-subtle)] hover:text-[var(--foreground)]">Cancel</button>
             <button
               onClick={() => { if (form.name.trim()) onCreate(form); }}
               disabled={!form.name.trim()}
@@ -150,21 +150,21 @@ function HabitCard({ habit, onComplete, onUncomplete, onDelete }: { habit: any; 
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <p className={`text-sm font-semibold truncate ${habit.completedToday ? "line-through text-[#4B5563]" : "text-[#E2E8F0]"}`}>{habit.name}</p>
+            <p className={`text-sm font-semibold truncate ${habit.completedToday ? "line-through text-[var(--foreground-subtle)]" : "text-[var(--foreground)]"}`}>{habit.name}</p>
             {habit.completedToday && <span className="shrink-0 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5">Done!</span>}
           </div>
           <div className="flex items-center gap-3 mt-0.5">
             <span className="text-xs text-amber-400 flex items-center gap-1"><Flame size={10} /> {habit.streak}d streak</span>
-            <span className="text-xs text-[#4B5563]">{habit.totalCompletions} total</span>
+            <span className="text-xs text-[var(--foreground-subtle)]">{habit.totalCompletions} total</span>
             <span className="text-xs capitalize text-[#374151]">{habit.frequency}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
-          <button onClick={() => setShowHeatmap(s => !s)} className="rounded-lg p-1.5 text-[#4B5563] hover:text-[#E2E8F0] hover:bg-[rgba(255,255,255,0.04)] transition-colors">
+          <button onClick={() => setShowHeatmap(s => !s)} className="rounded-lg p-1.5 text-[var(--foreground-subtle)] hover:text-[var(--foreground)] hover:bg-[rgba(255,255,255,0.04)] transition-colors">
             {showHeatmap ? <ChevronUp size={14} /> : <BarChart2 size={14} />}
           </button>
-          <button onClick={onDelete} className="rounded-lg p-1.5 text-[#4B5563] hover:text-red-400 hover:bg-red-900/20 transition-colors">
+          <button onClick={onDelete} className="rounded-lg p-1.5 text-[var(--foreground-subtle)] hover:text-red-400 hover:bg-red-900/20 transition-colors">
             <Trash2 size={14} />
           </button>
         </div>
@@ -226,7 +226,7 @@ export default function HabitsPage() {
   const completionPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   return (
-    <div className="min-h-screen forge-bg-glow text-[#E2E8F0] px-4 sm:px-6 py-8 max-w-2xl mx-auto">
+    <div className="min-h-screen forge-bg-glow text-[var(--foreground)] px-4 sm:px-6 py-8 max-w-2xl mx-auto">
       {showCreate && <CreateHabitModal onClose={() => setShowCreate(false)} onCreate={d => createHabit.mutate(d)} />}
 
       <PageHeader
@@ -246,11 +246,11 @@ export default function HabitsPage() {
         <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-5 mb-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-[#4B5563]">Today's Progress</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">Today's Progress</p>
               <p className="mt-1 text-3xl font-black" style={{ color: completionPct === 100 ? "#4ade80" : "#7C3AED" }}>
-                {completedCount}<span className="text-lg text-[#4B5563] font-normal">/{totalCount}</span>
+                {completedCount}<span className="text-lg text-[var(--foreground-subtle)] font-normal">/{totalCount}</span>
               </p>
-              <p className="text-sm text-[#4B5563]">{completionPct === 100 ? "🎉 All done for today!" : `${totalCount - completedCount} remaining`}</p>
+              <p className="text-sm text-[var(--foreground-subtle)]">{completionPct === 100 ? "🎉 All done for today!" : `${totalCount - completedCount} remaining`}</p>
             </div>
             <div className="relative">
               <svg width={80} height={80} className="-rotate-90">
@@ -266,7 +266,7 @@ export default function HabitsPage() {
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-base font-bold text-[#E2E8F0]">{completionPct}%</span>
+                <span className="text-base font-bold text-[var(--foreground)]">{completionPct}%</span>
               </div>
             </div>
           </div>
@@ -275,15 +275,15 @@ export default function HabitsPage() {
             <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-[rgba(255,255,255,0.06)]">
               <div className="text-center">
                 <p className="text-lg font-bold text-amber-400">{stats.longestStreak}</p>
-                <p className="text-[10px] text-[#4B5563] uppercase tracking-wider">Best Streak</p>
+                <p className="text-[10px] text-[var(--foreground-subtle)] uppercase tracking-wider">Best Streak</p>
               </div>
               <div className="text-center">
                 <p className="text-lg font-bold text-[#a78bfa]">{stats.avgStreak}</p>
-                <p className="text-[10px] text-[#4B5563] uppercase tracking-wider">Avg Streak</p>
+                <p className="text-[10px] text-[var(--foreground-subtle)] uppercase tracking-wider">Avg Streak</p>
               </div>
               <div className="text-center">
                 <p className="text-lg font-bold text-emerald-400">{stats.total}</p>
-                <p className="text-[10px] text-[#4B5563] uppercase tracking-wider">Active Habits</p>
+                <p className="text-[10px] text-[var(--foreground-subtle)] uppercase tracking-wider">Active Habits</p>
               </div>
             </div>
           )}
@@ -298,8 +298,8 @@ export default function HabitsPage() {
       ) : (habits as any[]).length === 0 ? (
         <div className="text-center py-16">
           <p className="text-5xl mb-4">🌱</p>
-          <p className="text-lg font-semibold text-[#E2E8F0] mb-2">No habits yet</p>
-          <p className="text-sm text-[#4B5563] mb-6">Start building your first habit and track your consistency</p>
+          <p className="text-lg font-semibold text-[var(--foreground)] mb-2">No habits yet</p>
+          <p className="text-sm text-[var(--foreground-subtle)] mb-6">Start building your first habit and track your consistency</p>
           <button onClick={() => setShowCreate(true)} className="rounded-xl bg-[#7C3AED] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#6d31d4]">
             Create your first habit
           </button>
