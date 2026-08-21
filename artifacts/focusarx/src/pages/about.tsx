@@ -7,7 +7,7 @@ import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 const VALUES = [
   { icon: Zap, title: "Deep Work First", desc: "We believe that focused, uninterrupted work is the most powerful skill a person can develop. Every feature we build serves that single purpose." },
   { icon: Heart, title: "Built for Humans", desc: "Productivity tools should reduce stress, not add to it. FocusArx is designed to feel like a supportive partner, not a demanding taskmaster." },
-  { icon: Globe, title: "Accessible to Everyone", desc: "Great focus tools shouldn't require a subscription. Our core features are free forever — premium is for those who want to go further." },
+  { icon: Globe, title: "Accessible to Everyone", desc: "Great focus tools shouldn't cost money. Our core features are free forever — premium perks are earned with coins, not cash." },
   { icon: Users, title: "Community Driven", desc: "Our users shape FocusArx. We read every piece of feedback, build features users actually ask for, and ship fast." },
 ];
 

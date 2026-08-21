@@ -53,7 +53,7 @@ export default function HeroBanner({ onStart }: { onStart: () => void }) {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(124,58,237,0.4)] bg-[rgba(124,58,237,0.12)] px-3 py-1 mb-2">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-[#a78bfa]">Free · No credit card</span>
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-[#a78bfa]">Free forever</span>
             </div>
             <h2 className="text-xl font-black text-[#E2E8F0] leading-tight">
               Don't just study harder.<br />
