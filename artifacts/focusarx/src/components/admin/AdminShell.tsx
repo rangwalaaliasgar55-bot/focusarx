@@ -26,6 +26,7 @@ const ADMIN_SECTIONS = [
   { id: "notify",      label: "Notification Blast",icon: Bell,           group: "tools" },
   { id: "coins",       label: "Coin Grants",      icon: Coins,           group: "tools" },
   { id: "sql",         label: "SQL Editor",       icon: Database,        group: "tools" },
+  { id: "site",        label: "Site Settings",    icon: Settings,        group: "tools" },
 ];
 
 const GROUPS = [
