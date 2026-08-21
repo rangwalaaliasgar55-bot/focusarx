@@ -97,10 +97,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify(opts),
       });
 
-      const json = (await res.json()) as { token?: string; error?: string };
+      // Tolerate non-JSON responses (e.g. a proxy/edge error page) so we can
+      // surface a clean message instead of throwing during JSON parsing.
+      let json: { token?: string; error?: string } = {};
+      try {
+        json = (await res.json()) as { token?: string; error?: string };
+      } catch {
+        json = {};
+      }
 
       if (!res.ok || !json.token) {
-        return { ok: false, error: json.error ?? "Authentication failed" };
+        return {
+          ok: false,
+          error: json.error ?? (res.status === 429
+            ? "Too many attempts. Please wait a moment and try again."
+            : "Authentication failed. Please try again."),
+        };
       }
 
       setToken(json.token);

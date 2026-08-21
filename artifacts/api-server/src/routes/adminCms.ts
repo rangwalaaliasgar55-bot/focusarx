@@ -71,7 +71,7 @@ router.post("/admin/cms/marketplace", async (req, res) => {
 
 router.patch("/admin/cms/marketplace/:itemId", async (req, res) => {
   if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
-  const { itemId } = req.params;
+  const { itemId } = req.params as { itemId: string };
   const { name, description, type, costCoins, rarity, emoji, isActive } = req.body as any;
   try {
     const updates: any = {};
@@ -93,7 +93,7 @@ router.patch("/admin/cms/marketplace/:itemId", async (req, res) => {
 
 router.delete("/admin/cms/marketplace/:itemId", async (req, res) => {
   if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
-  const { itemId } = req.params;
+  const { itemId } = req.params as { itemId: string };
   try {
     await db.delete(marketplaceItemsTable).where(eq(marketplaceItemsTable.id, itemId));
     res.json({ ok: true });
@@ -138,7 +138,7 @@ router.get("/admin/cms/lootboxes", async (req, res) => {
 
 router.patch("/admin/cms/lootboxes/:typeId", async (req, res) => {
   if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
-  const { typeId } = req.params;
+  const { typeId } = req.params as { typeId: string };
   const { name, description, coinCost, icon, glowColor } = req.body as any;
   try {
     const updates: any = {};
@@ -195,7 +195,7 @@ router.post("/admin/cms/quests", async (req, res) => {
 
 router.patch("/admin/cms/quests/:questId", async (req, res) => {
   if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
-  const { questId } = req.params;
+  const { questId } = req.params as { questId: string };
   const { title, description, type, metric, target, xpReward, coinReward, icon, isActive, difficulty } = req.body as any;
   try {
     const updates: any = {};
@@ -220,7 +220,7 @@ router.patch("/admin/cms/quests/:questId", async (req, res) => {
 
 router.delete("/admin/cms/quests/:questId", async (req, res) => {
   if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
-  const { questId } = req.params;
+  const { questId } = req.params as { questId: string };
   try {
     await db.update(questDefinitionsTable).set({ isActive: false }).where(eq(questDefinitionsTable.id, questId));
     res.json({ ok: true });

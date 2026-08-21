@@ -110,7 +110,9 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: (failureCount, error) => {
-        if (error.message && error.message.includes("401") && (error.status === 401 || error.status === 403)) return false;
+        const err = error as { status?: number; message?: string } | null;
+        if (err?.status === 401 || err?.status === 403) return false;
+        if (err?.message?.includes("401") || err?.message?.includes("403")) return false;
         return failureCount < 2;
       },
       staleTime: 60_000,

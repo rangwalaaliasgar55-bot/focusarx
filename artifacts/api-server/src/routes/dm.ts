@@ -125,11 +125,11 @@ dmRouter.get("/dm/:convId/messages", authMiddleware, async (req: AuthRequest, re
     const { limit = "50", offset = "0" } = req.query as Record<string, string>;
 
     const [participant] = await db.select().from(conversationParticipants)
-      .where(and(eq(conversationParticipants.conversationId, req.params.convId), eq(conversationParticipants.userId, userId))).limit(1);
+      .where(and(eq(conversationParticipants.conversationId, req.params.convId as string), eq(conversationParticipants.userId, userId))).limit(1);
     if (!participant) return res.status(403).json({ error: "Not in this conversation" });
 
     const msgs = await db.select().from(messages)
-      .where(eq(messages.conversationId, req.params.convId))
+      .where(eq(messages.conversationId, req.params.convId as string))
       .orderBy(messages.createdAt)
       .limit(parseInt(limit)).offset(parseInt(offset));
 
@@ -151,11 +151,11 @@ dmRouter.get("/dm/:convId/messages", authMiddleware, async (req: AuthRequest, re
 
     await db.update(conversationParticipants)
       .set({ lastReadAt: new Date() })
-      .where(and(eq(conversationParticipants.conversationId, req.params.convId), eq(conversationParticipants.userId, userId)));
+      .where(and(eq(conversationParticipants.conversationId, req.params.convId as string), eq(conversationParticipants.userId, userId)));
 
     res.json(enriched);
   } catch (err) {
-    logger.error({ err, userId: req.userId, convId: req.params.convId, route: "GET /dm/:convId/messages" }, "Failed to load messages");
+    logger.error({ err, userId: req.userId, convId: req.params.convId as string, route: "GET /dm/:convId/messages" }, "Failed to load messages");
     res.status(500).json({ error: "Failed to load messages" });
   }
 });
@@ -168,19 +168,19 @@ dmRouter.post("/dm/:convId/messages", authMiddleware, async (req: AuthRequest, r
     if (content.length > 4000) return res.status(400).json({ error: "Message too long" });
 
     const [participant] = await db.select().from(conversationParticipants)
-      .where(and(eq(conversationParticipants.conversationId, req.params.convId), eq(conversationParticipants.userId, userId))).limit(1);
+      .where(and(eq(conversationParticipants.conversationId, req.params.convId as string), eq(conversationParticipants.userId, userId))).limit(1);
     if (!participant) return res.status(403).json({ error: "Not in this conversation" });
 
     const [msg] = await db.insert(messages).values({
       id: crypto.randomUUID(),
-      conversationId: req.params.convId,
+      conversationId: req.params.convId as string,
       senderId: userId,
       content: content.trim(),
       replyToId: replyToId || null,
     }).returning();
 
     await db.update(conversations).set({ lastMessageAt: new Date() })
-      .where(eq(conversations.id, req.params.convId));
+      .where(eq(conversations.id, req.params.convId as string));
 
     const [senderUser] = await db.select({ name: usersTable.name, email: usersTable.email })
       .from(usersTable).where(eq(usersTable.id, userId)).limit(1);
@@ -189,14 +189,14 @@ dmRouter.post("/dm/:convId/messages", authMiddleware, async (req: AuthRequest, r
 
     try {
       const others = await db.select().from(conversationParticipants)
-        .where(and(eq(conversationParticipants.conversationId, req.params.convId), sql`user_id != ${userId}`));
+        .where(and(eq(conversationParticipants.conversationId, req.params.convId as string), sql`user_id != ${userId}`));
       for (const other of others) {
-        emitToUser(other.userId, "dm:new_message", { conversationId: req.params.convId, message: fullMsg });
+        emitToUser(other.userId, "dm:new_message", { conversationId: req.params.convId as string, message: fullMsg });
         await db.insert(notificationsTable).values({
           userId: other.userId, type: "dm",
           title: `Message from ${senderUser?.name || "Someone"}`,
           message: content.trim().slice(0, 100),
-          data: { conversationId: req.params.convId, messageId: msg.id },
+          data: { conversationId: req.params.convId as string, messageId: msg.id },
         });
       }
     } catch (notifyErr) {
@@ -205,7 +205,7 @@ dmRouter.post("/dm/:convId/messages", authMiddleware, async (req: AuthRequest, r
 
     res.status(201).json(fullMsg);
   } catch (err) {
-    logger.error({ err, userId: req.userId, convId: req.params.convId, route: "POST /dm/:convId/messages" }, "Failed to send message");
+    logger.error({ err, userId: req.userId, convId: req.params.convId as string, route: "POST /dm/:convId/messages" }, "Failed to send message");
     res.status(500).json({ error: "Failed to send message" });
   }
 });
@@ -217,7 +217,7 @@ dmRouter.post("/dm/messages/:msgId/react", authMiddleware, async (req: AuthReque
     if (!emoji) return res.status(400).json({ error: "emoji required" });
 
     const [existing] = await db.select().from(messageReactions)
-      .where(and(eq(messageReactions.messageId, req.params.msgId), eq(messageReactions.userId, userId))).limit(1);
+      .where(and(eq(messageReactions.messageId, req.params.msgId as string), eq(messageReactions.userId, userId))).limit(1);
 
     if (existing) {
       if (existing.emoji === emoji) {
@@ -228,10 +228,10 @@ dmRouter.post("/dm/messages/:msgId/react", authMiddleware, async (req: AuthReque
       return res.json({ ok: true, action: "changed" });
     }
 
-    await db.insert(messageReactions).values({ id: crypto.randomUUID(), messageId: req.params.msgId, userId, emoji });
+    await db.insert(messageReactions).values({ id: crypto.randomUUID(), messageId: req.params.msgId as string, userId, emoji });
     res.json({ ok: true, action: "added" });
   } catch (err) {
-    logger.error({ err, userId: req.userId, msgId: req.params.msgId, route: "POST /dm/messages/:msgId/react" }, "Failed to react to message");
+    logger.error({ err, userId: req.userId, msgId: req.params.msgId as string, route: "POST /dm/messages/:msgId/react" }, "Failed to react to message");
     res.status(500).json({ error: "Failed to react to message" });
   }
 });
@@ -241,10 +241,10 @@ dmRouter.delete("/dm/messages/:msgId", authMiddleware, async (req: AuthRequest, 
     const userId = req.userId!;
     await db.update(messages)
       .set({ isDeleted: true, content: "" })
-      .where(and(eq(messages.id, req.params.msgId), eq(messages.senderId, userId)));
+      .where(and(eq(messages.id, req.params.msgId as string), eq(messages.senderId, userId)));
     res.json({ ok: true });
   } catch (err) {
-    logger.error({ err, userId: req.userId, msgId: req.params.msgId, route: "DELETE /dm/messages/:msgId" }, "Failed to delete message");
+    logger.error({ err, userId: req.userId, msgId: req.params.msgId as string, route: "DELETE /dm/messages/:msgId" }, "Failed to delete message");
     res.status(500).json({ error: "Failed to delete message" });
   }
 });

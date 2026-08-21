@@ -44,7 +44,7 @@ shopRouter.get("/shop/items", authMiddleware, async (req: AuthRequest, res: Resp
 
 shopRouter.post("/shop/purchase/:itemId", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
-  const { itemId } = req.params;
+  const { itemId } = req.params as { itemId: string };
   const item = SHOP_ITEMS.find(i => i.id === itemId);
   if (!item) return res.status(404).json({ error: "Item not found" });
 

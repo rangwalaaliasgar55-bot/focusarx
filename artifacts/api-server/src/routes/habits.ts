@@ -78,20 +78,20 @@ habitsRouter.post("/habits", authMiddleware, async (req: AuthRequest, res: Respo
 habitsRouter.patch("/habits/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [habit] = await db.select().from(habitsTable)
-    .where(and(eq(habitsTable.id, req.params.id), eq(habitsTable.userId, userId))).limit(1);
+    .where(and(eq(habitsTable.id, req.params.id as string), eq(habitsTable.userId, userId))).limit(1);
   if (!habit) return res.status(404).json({ error: "Habit not found" });
 
   const { name, icon, color, frequency, targetDays, isArchived } = req.body;
   const [updated] = await db.update(habitsTable)
     .set({ name, icon, color, frequency, targetDays, isArchived, updatedAt: new Date() })
-    .where(eq(habitsTable.id, req.params.id)).returning();
+    .where(eq(habitsTable.id, req.params.id as string)).returning();
   res.json(updated);
 });
 
 habitsRouter.delete("/habits/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   await db.delete(habitsTable)
-    .where(and(eq(habitsTable.id, req.params.id), eq(habitsTable.userId, userId)));
+    .where(and(eq(habitsTable.id, req.params.id as string), eq(habitsTable.userId, userId)));
   res.json({ ok: true });
 });
 
@@ -101,21 +101,21 @@ habitsRouter.post("/habits/:id/complete", authMiddleware, async (req: AuthReques
   const completionDate = date || todayStr();
 
   const [habit] = await db.select().from(habitsTable)
-    .where(and(eq(habitsTable.id, req.params.id), eq(habitsTable.userId, userId))).limit(1);
+    .where(and(eq(habitsTable.id, req.params.id as string), eq(habitsTable.userId, userId))).limit(1);
   if (!habit) return res.status(404).json({ error: "Habit not found" });
 
   const existing = await db.select().from(habitCompletionsTable)
-    .where(and(eq(habitCompletionsTable.habitId, req.params.id), eq(habitCompletionsTable.date, completionDate))).limit(1);
+    .where(and(eq(habitCompletionsTable.habitId, req.params.id as string), eq(habitCompletionsTable.date, completionDate))).limit(1);
   if (existing.length) return res.status(409).json({ error: "Already completed today" });
 
-  await db.insert(habitCompletionsTable).values({ habitId: req.params.id, userId, date: completionDate, note });
+  await db.insert(habitCompletionsTable).values({ habitId: req.params.id as string, userId, date: completionDate, note });
 
   await db.update(habitsTable)
     .set({ totalCompletions: sql`total_completions + 1`, updatedAt: new Date() })
-    .where(eq(habitsTable.id, req.params.id));
+    .where(eq(habitsTable.id, req.params.id as string));
 
   const allCompletions = await db.select({ date: habitCompletionsTable.date })
-    .from(habitCompletionsTable).where(eq(habitCompletionsTable.habitId, req.params.id))
+    .from(habitCompletionsTable).where(eq(habitCompletionsTable.habitId, req.params.id as string))
     .orderBy(desc(habitCompletionsTable.date));
   const streak = calcStreak(allCompletions);
 
@@ -125,7 +125,7 @@ habitsRouter.post("/habits/:id/complete", authMiddleware, async (req: AuthReques
       longestStreak: sql`GREATEST(longest_streak, ${streak})`,
       updatedAt: new Date(),
     })
-    .where(eq(habitsTable.id, req.params.id));
+    .where(eq(habitsTable.id, req.params.id as string));
 
   try {
     await db.update(userWalletsTable)
@@ -140,17 +140,17 @@ habitsRouter.delete("/habits/:id/complete", authMiddleware, async (req: AuthRequ
   const userId = req.userId!;
   const date = (req.query.date as string) || todayStr();
   await db.delete(habitCompletionsTable)
-    .where(and(eq(habitCompletionsTable.habitId, req.params.id), eq(habitCompletionsTable.userId, userId), eq(habitCompletionsTable.date, date)));
+    .where(and(eq(habitCompletionsTable.habitId, req.params.id as string), eq(habitCompletionsTable.userId, userId), eq(habitCompletionsTable.date, date)));
   await db.update(habitsTable)
     .set({ totalCompletions: sql`GREATEST(0, total_completions - 1)`, updatedAt: new Date() })
-    .where(eq(habitsTable.id, req.params.id));
+    .where(eq(habitsTable.id, req.params.id as string));
   res.json({ ok: true });
 });
 
 habitsRouter.get("/habits/:id/history", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [habit] = await db.select().from(habitsTable)
-    .where(and(eq(habitsTable.id, req.params.id), eq(habitsTable.userId, userId))).limit(1);
+    .where(and(eq(habitsTable.id, req.params.id as string), eq(habitsTable.userId, userId))).limit(1);
   if (!habit) return res.status(404).json({ error: "Habit not found" });
 
   const days = parseInt((req.query.days as string) || "90");
@@ -160,7 +160,7 @@ habitsRouter.get("/habits/:id/history", authMiddleware, async (req: AuthRequest,
 
   const completions = await db.select()
     .from(habitCompletionsTable)
-    .where(and(eq(habitCompletionsTable.habitId, req.params.id), gte(habitCompletionsTable.date, sinceStr)))
+    .where(and(eq(habitCompletionsTable.habitId, req.params.id as string), gte(habitCompletionsTable.date, sinceStr)))
     .orderBy(desc(habitCompletionsTable.date));
 
   res.json({ habit, completions });

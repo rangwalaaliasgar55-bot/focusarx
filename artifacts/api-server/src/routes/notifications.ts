@@ -37,7 +37,7 @@ notificationsRouter.patch("/notifications/:id/read", authMiddleware, async (req:
   try {
     await db.update(notificationsTable)
       .set({ read: true })
-      .where(and(eq(notificationsTable.id, req.params.id), eq(notificationsTable.userId, userId)));
+      .where(and(eq(notificationsTable.id, req.params.id as string), eq(notificationsTable.userId, userId)));
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: "Internal error" });
@@ -58,7 +58,7 @@ notificationsRouter.delete("/notifications/:id", authMiddleware, async (req: Aut
   const userId = req.userId!;
   try {
     await db.delete(notificationsTable)
-      .where(and(eq(notificationsTable.id, req.params.id), eq(notificationsTable.userId, userId)));
+      .where(and(eq(notificationsTable.id, req.params.id as string), eq(notificationsTable.userId, userId)));
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: "Internal error" });

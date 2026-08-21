@@ -146,12 +146,12 @@ postsRouter.post("/posts", authMiddleware, async (req: AuthRequest, res: Respons
 
 postsRouter.get("/posts/:id", optionalAuth, async (req: AuthRequest, res: Response) => {
   const [post] = await db.select().from(socialPostsTable)
-    .where(eq(socialPostsTable.id, req.params.id)).limit(1);
+    .where(eq(socialPostsTable.id, req.params.id as string)).limit(1);
   if (!post) return res.status(404).json({ error: "Post not found" });
 
   await db.update(socialPostsTable)
     .set({ viewCount: sql`view_count + 1` })
-    .where(eq(socialPostsTable.id, req.params.id));
+    .where(eq(socialPostsTable.id, req.params.id as string));
 
   const enriched = await enrichPost(post, req.userId ?? null);
   res.json(enriched);
@@ -160,16 +160,16 @@ postsRouter.get("/posts/:id", optionalAuth, async (req: AuthRequest, res: Respon
 postsRouter.delete("/posts/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [post] = await db.select().from(socialPostsTable)
-    .where(and(eq(socialPostsTable.id, req.params.id), eq(socialPostsTable.userId, userId))).limit(1);
+    .where(and(eq(socialPostsTable.id, req.params.id as string), eq(socialPostsTable.userId, userId))).limit(1);
   if (!post) return res.status(404).json({ error: "Post not found or not authorized" });
-  await db.delete(socialPostsTable).where(eq(socialPostsTable.id, req.params.id));
+  await db.delete(socialPostsTable).where(eq(socialPostsTable.id, req.params.id as string));
   res.json({ ok: true });
 });
 
 postsRouter.get("/users/:userId/posts", optionalAuth, async (req: AuthRequest, res: Response) => {
   const { limit = "20", offset = "0" } = req.query as Record<string, string>;
   const posts = await db.select().from(socialPostsTable)
-    .where(and(eq(socialPostsTable.userId, req.params.userId), eq(socialPostsTable.isPublic, true)))
+    .where(and(eq(socialPostsTable.userId, req.params.userId as string), eq(socialPostsTable.isPublic, true)))
     .orderBy(desc(socialPostsTable.createdAt))
     .limit(parseInt(limit)).offset(parseInt(offset));
 
@@ -185,7 +185,7 @@ postsRouter.post("/posts/:id/react", authMiddleware, async (req: AuthRequest, re
   if (!REACTION_TYPES.includes(reaction)) return res.status(400).json({ error: "Invalid reaction" });
 
   const [existing] = await db.select().from(postReactionsTable)
-    .where(and(eq(postReactionsTable.postId, req.params.id), eq(postReactionsTable.userId, userId))).limit(1);
+    .where(and(eq(postReactionsTable.postId, req.params.id as string), eq(postReactionsTable.userId, userId))).limit(1);
 
   if (existing) {
     if (existing.reaction === reaction) {
@@ -196,18 +196,18 @@ postsRouter.post("/posts/:id/react", authMiddleware, async (req: AuthRequest, re
     return res.json({ ok: true, action: "changed", reaction });
   }
 
-  await db.insert(postReactionsTable).values({ postId: req.params.id, userId, reaction });
+  await db.insert(postReactionsTable).values({ postId: req.params.id as string, userId, reaction });
 
   try {
     const [post] = await db.select({ userId: socialPostsTable.userId }).from(socialPostsTable)
-      .where(eq(socialPostsTable.id, req.params.id)).limit(1);
+      .where(eq(socialPostsTable.id, req.params.id as string)).limit(1);
     if (post && post.userId !== userId) {
       const emojiMap: Record<string, string> = { fire: "🔥", insightful: "💡", focused: "🎯", legendary: "🏆", love: "❤️" };
       await db.insert(notificationsTable).values({
         userId: post.userId, type: "post_reaction",
         title: "Someone reacted to your post",
         message: `${emojiMap[reaction] || reaction} reaction on your post`,
-        data: { postId: req.params.id, reaction },
+        data: { postId: req.params.id as string, reaction },
       });
     }
   } catch {}
@@ -219,7 +219,7 @@ postsRouter.post("/posts/:id/react", authMiddleware, async (req: AuthRequest, re
 
 postsRouter.get("/posts/:id/comments", optionalAuth, async (req: AuthRequest, res: Response) => {
   const comments = await db.select().from(postCommentsTable)
-    .where(eq(postCommentsTable.postId, req.params.id))
+    .where(eq(postCommentsTable.postId, req.params.id as string))
     .orderBy(postCommentsTable.createdAt);
 
   const enriched = await Promise.all(comments.map(async c => {
@@ -237,19 +237,19 @@ postsRouter.post("/posts/:id/comments", authMiddleware, async (req: AuthRequest,
   if (!content?.trim()) return res.status(400).json({ error: "content required" });
 
   const [comment] = await db.insert(postCommentsTable).values({
-    postId: req.params.id, userId, content: content.trim(),
+    postId: req.params.id as string, userId, content: content.trim(),
     parentId: parentId || null,
   }).returning();
 
   try {
     const [post] = await db.select({ userId: socialPostsTable.userId }).from(socialPostsTable)
-      .where(eq(socialPostsTable.id, req.params.id)).limit(1);
+      .where(eq(socialPostsTable.id, req.params.id as string)).limit(1);
     if (post && post.userId !== userId) {
       await db.insert(notificationsTable).values({
         userId: post.userId, type: "post_comment",
         title: "New comment on your post",
         message: content.trim().slice(0, 100),
-        data: { postId: req.params.id, commentId: comment.id },
+        data: { postId: req.params.id as string, commentId: comment.id },
       });
     }
   } catch {}
@@ -263,7 +263,7 @@ postsRouter.post("/posts/:id/comments", authMiddleware, async (req: AuthRequest,
 postsRouter.delete("/posts/:postId/comments/:commentId", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   await db.delete(postCommentsTable)
-    .where(and(eq(postCommentsTable.id, req.params.commentId), eq(postCommentsTable.userId, userId)));
+    .where(and(eq(postCommentsTable.id, req.params.commentId as string), eq(postCommentsTable.userId, userId)));
   res.json({ ok: true });
 });
 
@@ -272,12 +272,12 @@ postsRouter.delete("/posts/:postId/comments/:commentId", authMiddleware, async (
 postsRouter.post("/posts/:id/save", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [existing] = await db.select().from(postSavesTable)
-    .where(and(eq(postSavesTable.postId, req.params.id), eq(postSavesTable.userId, userId))).limit(1);
+    .where(and(eq(postSavesTable.postId, req.params.id as string), eq(postSavesTable.userId, userId))).limit(1);
 
   if (existing) {
     await db.delete(postSavesTable).where(eq(postSavesTable.id, existing.id));
     return res.json({ ok: true, saved: false });
   }
-  await db.insert(postSavesTable).values({ postId: req.params.id, userId });
+  await db.insert(postSavesTable).values({ postId: req.params.id as string, userId });
   res.json({ ok: true, saved: true });
 });
