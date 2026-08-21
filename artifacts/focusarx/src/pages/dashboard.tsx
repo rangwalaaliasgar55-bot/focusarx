@@ -68,7 +68,7 @@ interface TooltipPayload {
 const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: TooltipPayload[]; label?: string }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-[rgba(124,58,237,0.3)] bg-[rgba(12,17,40,0.95)] px-3 py-2 text-xs text-[#E2E8F0] shadow-xl backdrop-blur-xl">
+    <div className="rounded-lg border border-[rgba(124,58,237,0.3)] bg-[rgba(12,17,40,0.95)] px-3 py-2 text-xs text-[var(--foreground)] shadow-xl backdrop-blur-xl">
       <p className="font-semibold">{label}</p>
       <p className="text-[#A78BFA]">{payload[0]?.value}m</p>
     </div>
@@ -95,14 +95,14 @@ function StreakHeatmap({ chartData, streak }: { chartData: DashboardStats["chart
     <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-[#4B5563]">Study Streak</p>
-          <p className="mt-0.5 flex items-center gap-1.5 text-2xl font-bold text-[#E2E8F0]">
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--foreground-subtle)]">Study Streak</p>
+          <p className="mt-0.5 flex items-center gap-1.5 text-2xl font-bold text-[var(--foreground)]">
             🔥 <span>{streak}</span>
-            <span className="text-sm font-normal text-[#4B5563]">days</span>
+            <span className="text-sm font-normal text-[var(--foreground-subtle)]">days</span>
           </p>
         </div>
         <div className="text-right">
-          <p className="text-[10px] uppercase tracking-wider text-[#4B5563]">Last 30 days</p>
+          <p className="text-[10px] uppercase tracking-wider text-[var(--foreground-subtle)]">Last 30 days</p>
           <p className="text-xs text-[#6B7280]">{cells.filter((c) => c.minutes > 0).length} active</p>
         </div>
       </div>
@@ -136,7 +136,7 @@ function GoalRing({ sessionsToday, target = 6 }: { sessionsToday: number; target
 
   return (
     <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl flex flex-col items-center justify-center gap-2">
-      <p className="text-xs font-medium uppercase tracking-[0.18em] text-[#4B5563]">Today's Goal</p>
+      <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--foreground-subtle)]">Today's Goal</p>
       <div className="relative">
         <svg width={88} height={88} className="-rotate-90">
           <circle cx={44} cy={44} r={r} fill="none" stroke="rgba(124,58,237,0.1)" strokeWidth={7} />
@@ -157,8 +157,8 @@ function GoalRing({ sessionsToday, target = 6 }: { sessionsToday: number; target
           </defs>
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-lg font-bold text-[#E2E8F0]">{sessionsToday}</span>
-          <span className="text-[10px] text-[#4B5563]">of {target}</span>
+          <span className="text-lg font-bold text-[var(--foreground)]">{sessionsToday}</span>
+          <span className="text-[10px] text-[var(--foreground-subtle)]">of {target}</span>
         </div>
       </div>
       <p className="text-xs text-[#6B7280]">
@@ -218,7 +218,7 @@ function DailyHabitsWidget() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <CheckSquare size={15} className="text-[#A78BFA]" />
-          <p className="text-sm font-semibold text-[#E2E8F0]">Today's Habits</p>
+          <p className="text-sm font-semibold text-[var(--foreground)]">Today's Habits</p>
         </div>
         <span className="text-xs font-bold text-[#A78BFA]">{done}/{habits.length}</span>
       </div>
@@ -230,7 +230,7 @@ function DailyHabitsWidget() {
             className="w-full flex items-center gap-3 rounded-xl border border-[rgba(255,255,255,0.04)] bg-[rgba(255,255,255,0.02)] px-3 py-2.5 hover:bg-[rgba(124,58,237,0.05)] transition-colors text-left"
           >
             <span className="text-base leading-none">{h.icon}</span>
-            <span className={`flex-1 text-sm ${h.completedToday ? "line-through text-[#4B5563]" : "text-[#E2E8F0]"}`}>{h.name}</span>
+            <span className={`flex-1 text-sm ${h.completedToday ? "line-through text-[var(--foreground-subtle)]" : "text-[var(--foreground)]"}`}>{h.name}</span>
             {h.completedToday ? (
               <div className="h-4 w-4 rounded-full bg-[#7C3AED] flex items-center justify-center">
                 <span className="text-[8px] text-white">✓</span>
@@ -242,7 +242,7 @@ function DailyHabitsWidget() {
         ))}
       </div>
       {habits.length > 6 && (
-        <Link href="/habits" className="mt-2 block text-center text-xs text-[#4B5563] hover:text-[#7C3AED]">
+        <Link href="/habits" className="mt-2 block text-center text-xs text-[var(--foreground-subtle)] hover:text-[#7C3AED]">
           +{habits.length - 6} more habits →
         </Link>
       )}
@@ -290,10 +290,10 @@ function PetCard() {
   const pet = data?.pet;
 
   return (
-    <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5 backdrop-blur-xl relative overflow-hidden group">
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-5 backdrop-blur-xl relative overflow-hidden group">
       <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
       <div className="relative z-10 flex flex-col items-center text-center">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#4B5563] mb-3">Focus Companion</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--foreground-subtle)] mb-3">Focus Companion</p>
 
         {isLoading ? (
           <div className="h-16 w-16 animate-pulse rounded-full bg-white/5" />
@@ -311,7 +311,7 @@ function PetCard() {
 
         {pet ? (
           <>
-            <h4 className="text-sm font-bold text-white">{pet.petName || pet.evolutionName}</h4>
+            <h4 className="text-sm font-bold text-[var(--foreground)]">{pet.petName || pet.evolutionName}</h4>
             <p className="text-[10px] text-[#A78BFA] font-medium">Level {pet.petLevel} · {pet.mood}</p>
             <div className="mt-3 w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
               <motion.div
@@ -321,7 +321,7 @@ function PetCard() {
                 transition={{ duration: 0.6 }}
               />
             </div>
-            <p className="mt-1 text-[9px] text-[#4B5563]">{pet.petXp} XP · {pet.xpToNextLevel} to level {pet.petLevel + 1}</p>
+            <p className="mt-1 text-[9px] text-[var(--foreground-subtle)]">{pet.petXp} XP · {pet.xpToNextLevel} to level {pet.petLevel + 1}</p>
             <Link href="/pets" className="mt-3 text-[10px] font-bold text-[#A78BFA] hover:underline uppercase tracking-widest">
               Visit my pet →
             </Link>
@@ -329,8 +329,8 @@ function PetCard() {
         ) : (
           !isLoading && (
             <>
-              <h4 className="text-sm font-bold text-white">Adopt a Companion</h4>
-              <p className="mt-1 text-[10px] text-[#4B5563] leading-relaxed">
+              <h4 className="text-sm font-bold text-[var(--foreground)]">Adopt a Companion</h4>
+              <p className="mt-1 text-[10px] text-[var(--foreground-subtle)] leading-relaxed">
                 Hatch a pet that grows with every focus session.
               </p>
               <Link href="/pets" className="mt-3 inline-block rounded-lg bg-[#7C3AED]/15 px-3 py-1.5 text-[10px] font-bold text-[#A78BFA] hover:bg-[#7C3AED]/25 transition-colors">
@@ -361,7 +361,7 @@ function GettingStarted({ sessionsToday, completedTasks }: { sessionsToday: numb
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <span className="text-lg">🚀</span>
-          <h2 className="text-sm font-bold text-[#E2E8F0]">Getting Started</h2>
+          <h2 className="text-sm font-bold text-[var(--foreground)]">Getting Started</h2>
         </div>
         <span className="rounded-full bg-[#7C3AED]/15 px-2.5 py-0.5 text-[10px] font-bold text-[#A78BFA]">
           {remaining} step{remaining !== 1 ? "s" : ""} left
@@ -375,13 +375,13 @@ function GettingStarted({ sessionsToday, completedTasks }: { sessionsToday: numb
             className={`flex items-start gap-3 rounded-xl border p-3 transition-colors ${
               s.done
                 ? "border-emerald-500/20 bg-emerald-500/5"
-                : "border-white/5 bg-white/[0.02] hover:border-[#7C3AED]/40 hover:bg-[#7C3AED]/5"
+                : "border-[var(--border)] bg-[var(--muted)] hover:border-[#7C3AED]/40 hover:bg-[#7C3AED]/5"
             }`}
           >
             <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-sm ${s.done ? "bg-emerald-500/15" : "bg-white/5"}`}>
               {s.done ? "✓" : s.icon}
             </span>
-            <span className={`text-xs leading-snug ${s.done ? "text-[#4B5563] line-through" : "text-[#94A3B8]"}`}>
+            <span className={`text-xs leading-snug ${s.done ? "text-[var(--foreground-subtle)] line-through" : "text-[var(--foreground-muted)]"}`}>
               {s.label}
             </span>
           </Link>
@@ -417,12 +417,12 @@ function CoachTipCard() {
     <div className="rounded-2xl border border-[rgba(124,58,237,0.2)] bg-gradient-to-br from-[rgba(124,58,237,0.1)] to-transparent p-5 backdrop-blur-xl">
       <div className="flex items-center gap-2 mb-3">
         <Sparkles size={16} className="text-[#A78BFA]" />
-        <h3 className="text-sm font-bold text-white">AI Coach Tip</h3>
+        <h3 className="text-sm font-bold text-[var(--foreground)]">AI Coach Tip</h3>
         {isLoading && (
           <span className="ml-auto h-2 w-2 rounded-full bg-[#A78BFA] animate-pulse" />
         )}
       </div>
-      <p className="text-xs leading-relaxed text-[#94A3B8]">
+      <p className="text-xs leading-relaxed text-[var(--foreground-muted)]">
         "{tip}"
       </p>
       <Link href="/ai-insights">
@@ -481,17 +481,17 @@ const DashboardPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#030308] pb-20 md:pb-10">
+    <div className="min-h-screen bg-[var(--background)] pb-20 md:pb-10">
       <PageSEO {...PAGE_SEO.dashboard} />
       <main className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
         <PageTransition>
           <header className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <motion.div variants={SLIDE_DOWN} initial="initial" animate="animate">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-[#4B5563]">{dateLabel}</p>
-              <h1 className="mt-1 text-2xl font-black tracking-tight text-[#E2E8F0] sm:text-3xl">
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--foreground-subtle)]">{dateLabel}</p>
+              <h1 className="mt-1 text-2xl font-black tracking-tight text-[var(--foreground)] sm:text-3xl">
                 {greeting}, <span className="text-[#A78BFA]">{firstName}</span> 👋
               </h1>
-              <p className="mt-1 text-sm text-[#4B5563]">Here's your mission briefing for today, Commander.</p>
+              <p className="mt-1 text-sm text-[var(--foreground-subtle)]">Here's your mission briefing for today, Commander.</p>
             </motion.div>
             <div className="flex items-center gap-3">
               <WeatherWidget />
@@ -526,7 +526,7 @@ const DashboardPage = () => {
                   </StaggerItem>
                   <StaggerItem>
                     <div className="rounded-2xl border border-[rgba(124,58,237,0.2)] bg-[rgba(124,58,237,0.04)] p-5 backdrop-blur-xl flex flex-col items-center justify-center h-full min-h-[160px]">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#4B5563] mb-2">Stability</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--foreground-subtle)] mb-2">Stability</p>
                       <Suspense fallback={null}>
                         <StabilityOrb3D stability={stats.avgFocusScore ?? 0} />
                       </Suspense>
@@ -545,7 +545,7 @@ const DashboardPage = () => {
                             >
                               <Icon size={14} style={{ color }} />
                             </motion.div>
-                            <p className="text-[9px] uppercase tracking-wider text-[#4B5563]">{label}</p>
+                            <p className="text-[9px] uppercase tracking-wider text-[var(--foreground-subtle)]">{label}</p>
                             <p className="mt-0.5 text-base font-bold tabular-nums" style={{ color }}>{value}</p>
                           </div>
                         </TiltCard>
@@ -561,7 +561,7 @@ const DashboardPage = () => {
                   </div>
                   
                   <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-6 backdrop-blur-xl">
-                    <h2 className="mb-5 text-sm font-semibold text-[#E2E8F0]">Weekly focus (minutes)</h2>
+                    <h2 className="mb-5 text-sm font-semibold text-[var(--foreground)]">Weekly focus (minutes)</h2>
                     <ResponsiveContainer width="100%" height={200}>
                       <BarChart data={stats.chartData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(124,58,237,0.08)" />
@@ -588,12 +588,12 @@ const DashboardPage = () => {
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-bold text-[#E2E8F0]">Recent Activity</h2>
-                  <Link href="/analytics" className="text-xs text-[#4B5563] hover:text-[#A78BFA]">View all history →</Link>
+                  <h2 className="text-lg font-bold text-[var(--foreground)]">Recent Activity</h2>
+                  <Link href="/analytics" className="text-xs text-[var(--foreground-subtle)] hover:text-[#A78BFA]">View all history →</Link>
                 </div>
                 <div className="overflow-hidden rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] backdrop-blur-xl">
                   <table className="w-full text-xs text-left">
-                    <thead className="border-b border-zinc-800/60 bg-zinc-900/20 text-[#4B5563]">
+                    <thead className="border-b border-zinc-800/60 bg-zinc-900/20 text-[var(--foreground-subtle)]">
                       <tr>
                         <th className="px-6 py-4 font-semibold uppercase tracking-wider">Mode</th>
                         <th className="px-6 py-4 font-semibold uppercase tracking-wider">Duration</th>
@@ -610,7 +610,7 @@ const DashboardPage = () => {
                               <span className="font-medium text-[#A78BFA] capitalize">{s.mode}</span>
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-[#94A3B8]">{Math.round(s.durationSec / 60)}m</td>
+                          <td className="px-6 py-4 text-[var(--foreground-muted)]">{Math.round(s.durationSec / 60)}m</td>
                           <td className="px-6 py-4 hidden sm:table-cell">
                             {s.focusScore ? (
                               <div className="flex items-center gap-2">
@@ -621,7 +621,7 @@ const DashboardPage = () => {
                               </div>
                             ) : "—"}
                           </td>
-                          <td className="px-6 py-4 text-[#4B5563]">
+                          <td className="px-6 py-4 text-[var(--foreground-subtle)]">
                             {new Date(s.completedAt).toLocaleDateString()}
                           </td>
                         </tr>

@@ -23,6 +23,9 @@
    DARK MODE (default)
    ═══════════════════════════════════════════════════════════════════════════ */
 :root {
+  /* Native controls (scrollbars, form fields, date pickers) follow the theme. */
+  color-scheme: dark;
+
   /* ── Base colors ──────────────────────────────────────────────────────── */
   --background:        #030308;
   --foreground:        #F8FAFC;
@@ -200,6 +203,8 @@
    LIGHT MODE
    ═══════════════════════════════════════════════════════════════════════════ */
 html.light {
+  color-scheme: light;
+
   --background:        #F5F7FA;
   --foreground:        #0F172A;
   --foreground-muted:  #475569;
