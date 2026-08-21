@@ -254,6 +254,96 @@ const SESSION_EMOJIS: Record<string, string> = {
   focus: "⏱", break: "☕", longBreak: "🛋", deep: "🧠", social: "🌐", exam: "📖", flow: "🌊"
 };
 
+const PET_EMOJIS: Record<string, string> = {
+  owl: "🦉", fox: "🦊", dragon: "🐲", robot: "🤖", cat: "🐱", phoenix: "🦅",
+};
+
+type DashboardPet = {
+  petType: string;
+  petName: string | null;
+  petLevel: number;
+  petXp: number;
+  mood: string;
+  xpToNextLevel: number;
+  evolutionName: string;
+};
+
+/** Live pet companion pulled from the real `/api/pets` endpoint, replacing the
+ *  previously hardcoded "Sage the Owl" placeholder. Falls back to a friendly
+ *  "adopt your companion" CTA when the user hasn't created a pet yet. */
+function PetCard() {
+  const { status } = useAuth();
+  const { data, isLoading } = useQuery<{ pet: DashboardPet | null }>({
+    queryKey: ["pet"],
+    queryFn: async () => {
+      const token = getToken();
+      const res = await fetch("/api/pets", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error("Failed to fetch pet");
+      return res.json();
+    },
+    staleTime: 60_000,
+    enabled: status === "authenticated",
+  });
+
+  const pet = data?.pet;
+
+  return (
+    <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5 backdrop-blur-xl relative overflow-hidden group">
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="relative z-10 flex flex-col items-center text-center">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#4B5563] mb-3">Focus Companion</p>
+
+        {isLoading ? (
+          <div className="h-16 w-16 animate-pulse rounded-full bg-white/5" />
+        ) : pet ? (
+          <motion.div
+            animate={{ y: [0, -8, 0], scale: [1, 1.05, 1] }}
+            transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+            className="text-6xl mb-2 select-none drop-shadow-[0_0_20px_rgba(167,139,250,0.3)]"
+          >
+            {PET_EMOJIS[pet.petType] ?? "🦉"}
+          </motion.div>
+        ) : (
+          <div className="text-6xl mb-2 select-none opacity-60 grayscale">🥚</div>
+        )}
+
+        {pet ? (
+          <>
+            <h4 className="text-sm font-bold text-white">{pet.petName || pet.evolutionName}</h4>
+            <p className="text-[10px] text-[#A78BFA] font-medium">Level {pet.petLevel} · {pet.mood}</p>
+            <div className="mt-3 w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-gradient-to-r from-purple-500 to-blue-500"
+                initial={false}
+                animate={{ width: `${Math.min(100, Math.round((pet.petXp / Math.max(1, pet.petXp + pet.xpToNextLevel)) * 100))}%` }}
+                transition={{ duration: 0.6 }}
+              />
+            </div>
+            <p className="mt-1 text-[9px] text-[#4B5563]">{pet.petXp} XP · {pet.xpToNextLevel} to level {pet.petLevel + 1}</p>
+            <Link href="/pets" className="mt-3 text-[10px] font-bold text-[#A78BFA] hover:underline uppercase tracking-widest">
+              Visit my pet →
+            </Link>
+          </>
+        ) : (
+          !isLoading && (
+            <>
+              <h4 className="text-sm font-bold text-white">Adopt a Companion</h4>
+              <p className="mt-1 text-[10px] text-[#4B5563] leading-relaxed">
+                Hatch a pet that grows with every focus session.
+              </p>
+              <Link href="/pets" className="mt-3 inline-block rounded-lg bg-[#7C3AED]/15 px-3 py-1.5 text-[10px] font-bold text-[#A78BFA] hover:bg-[#7C3AED]/25 transition-colors">
+                Choose your pet
+              </Link>
+            </>
+          )
+        )}
+      </div>
+    </div>
+  );
+}
+
 const FALLBACK_TIP = "Start your timer and close every other tab — the hardest part is always the first two minutes.";
 
 /** Live AI coach tip pulled from the real `/api/coach/session-tip` endpoint,
@@ -439,29 +529,8 @@ const DashboardPage = () => {
                 </div>
 
                 <div className="space-y-6">
-                  {/* AI Focus Buddy */}
-                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5 backdrop-blur-xl relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="relative z-10 flex flex-col items-center text-center">
-                       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#4B5563] mb-4">Focus Companion</p>
-                       <motion.div 
-                         animate={{ y: [0, -8, 0], scale: [1, 1.05, 1] }}
-                         transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                         className="text-6xl mb-4 select-none drop-shadow-[0_0_20px_rgba(167,139,250,0.3)]"
-                       >
-                         🦉
-                       </motion.div>
-                       <h4 className="text-sm font-bold text-white">Sage the Owl</h4>
-                       <p className="text-[10px] text-[#A78BFA] font-medium">Monitoring Flow State...</p>
-                       <div className="mt-4 w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                          <motion.div 
-                            className="h-full bg-gradient-to-r from-purple-500 to-blue-500"
-                            animate={{ width: ["20%", "80%", "20%"] }}
-                            transition={{ repeat: Infinity, duration: 8 }}
-                          />
-                       </div>
-                    </div>
-                  </div>
+                  {/* Live Focus Companion */}
+                  <PetCard />
 
                   <ReadinessWidget />
                   <DailyHabitsWidget />

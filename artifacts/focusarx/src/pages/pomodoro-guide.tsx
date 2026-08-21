@@ -84,7 +84,7 @@ export default function PomodoroGuidePage() {
                <Timer size={200} className="text-red-400" />
             </div>
             <h2 className="text-4xl sm:text-6xl font-black text-white mb-6 tracking-tight">Upgrade Your <br />Learning Output</h2>
-            <p className="text-[#94A3B8] mb-12 max-w-xl mx-auto text-lg">FocusArx combines the classic Pomodoro system with AI coaching and immersive 3D metrics. Join 50,000+ elite learners.</p>
+            <p className="text-[#94A3B8] mb-12 max-w-xl mx-auto text-lg">FocusArx combines the classic Pomodoro system with AI coaching and immersive 3D metrics.</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href="/signup">
                 <button className="h-16 px-12 rounded-2xl bg-white text-black font-black text-lg hover:scale-105 transition-all">

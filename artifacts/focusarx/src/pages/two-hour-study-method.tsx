@@ -327,7 +327,7 @@ export default function TwoHourStudyMethodPage() {
               Start Free — No Credit Card <ArrowRight size={16} />
             </motion.button>
           </Link>
-          <p className="mt-3 text-xs text-[#4B5563]">Join 50,000+ students already building deep focus habits</p>
+          <p className="mt-3 text-xs text-[#4B5563]">Free forever · No credit card required</p>
         </motion.div>
 
         {/* Related */}

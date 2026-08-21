@@ -31,11 +31,10 @@ const FAQS = [
     ]
   },
   {
-    cat: "Billing & Premium",
+    cat: "Premium",
     items: [
-      { q: "How does the Premium subscription work?", a: "Premium is a monthly subscription that unlocks XP multipliers, exclusive themes, priority AI coaching, and removal of any soft limits. You can cancel any time from your account settings." },
-      { q: "Can I get a refund?", a: "Yes — within 7 days of purchase if you haven't heavily used premium features. See our Refund Policy for full details." },
-      { q: "My payment failed — what do I do?", a: "Please email billing@focusarx.app with your account email and the error you received. We'll resolve it within one business day." },
+      { q: "How does Premium work?", a: "Premium is unlocked with 9,000 in-app coins, which you earn by completing focus sessions and missions. It adds XP and coin multipliers, exclusive themes and pets, premium loot boxes, and unlimited AI coaching." },
+      { q: "Do I need a credit card?", a: "No. FocusArx core is free forever, and Premium is activated with coins you earn in the app — no payment required." },
     ]
   },
 ];
