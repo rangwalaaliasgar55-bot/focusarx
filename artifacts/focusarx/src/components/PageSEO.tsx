@@ -205,19 +205,19 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   },
   focusGuide: {
     canonical: "/focus-guide",
-    title: "Ultimate Focus Guide 2025 | How to Build Deep Focus Habits | FocusArx",
+    title: "Ultimate Focus Guide 2026 | How to Build Deep Focus Habits | FocusArx",
     description: "Learn how to build powerful deep focus habits with FocusArx. Science-backed techniques, Pomodoro method, flow state, and AI coaching to maximize your productivity.",
     keywords: "focus guide, how to focus, deep focus techniques, focus habits, improve focus, concentration tips, focus app guide, FocusArx focus guide",
   },
   pomodoroGuide: {
     canonical: "/pomodoro-guide",
-    title: "Pomodoro Technique Guide 2025 | Best Pomodoro Timer App | FocusArx",
+    title: "Pomodoro Technique Guide 2026 | Best Pomodoro Timer App | FocusArx",
     description: "Complete guide to the Pomodoro Technique. Learn how to use the Pomodoro method with FocusArx — the best free AI-powered Pomodoro timer app for students and professionals.",
     keywords: "Pomodoro technique, Pomodoro timer, Pomodoro method, best Pomodoro app, Pomodoro guide, FocusArx Pomodoro, study Pomodoro",
   },
   studyTechniques: {
     canonical: "/study-techniques",
-    title: "Best Study Techniques 2025 | Science-Backed Study Methods | FocusArx",
+    title: "Best Study Techniques 2026 | Science-Backed Study Methods | FocusArx",
     description: "Discover the most effective study techniques — active recall, spaced repetition, Feynman technique, and more. Learn how FocusArx supercharges every method with AI.",
     keywords: "study techniques, best study methods, active recall, spaced repetition, effective studying, study tips, student productivity techniques, FocusArx study",
   },
