@@ -49,12 +49,32 @@ const DAILY_HOURS = [
 const STEPS = ["intro", "goal", "challenge", "style", "hours", "ready"] as const;
 type Step = typeof STEPS[number];
 
+// Read answers the user may already have given in the mobile welcome flow
+// (`focusarx-welcome-prefs`) so onboarding pre-fills and skips those steps.
+function readWelcomePrefs(): { goal?: string; challenge?: string; style?: string; focusDuration?: number } {
+  try {
+    const raw = localStorage.getItem("focusarx-welcome-prefs");
+    if (!raw) return {};
+    const prefs = JSON.parse(raw) as { goal?: string; challenge?: string; style?: string };
+    const style = STYLES.find((s) => s.id === prefs.style);
+    return {
+      goal: prefs.goal,
+      challenge: prefs.challenge,
+      style: prefs.style,
+      focusDuration: style?.duration,
+    };
+  } catch {
+    return {};
+  }
+}
+
 export default function OnboardingPage() {
   const [, setLocation] = useLocation();
   const { refresh } = useAuth();
-  const [step, setStep] = useState<Step>("intro");
+  const prefs = readWelcomePrefs();
+  const [step, setStep] = useState<Step>(() => (prefs.goal && prefs.challenge && prefs.style ? "hours" : "intro"));
   const [saving, setSaving] = useState(false);
-  const [data, setData] = useState<Partial<OnboardingData>>({});
+  const [data, setData] = useState<Partial<OnboardingData>>(() => ({ ...prefs }));
 
   const stepIndex = STEPS.indexOf(step);
   const progress = (stepIndex / (STEPS.length - 1)) * 100;
@@ -88,6 +108,7 @@ export default function OnboardingPage() {
       });
       await refresh();
       localStorage.setItem("onboardingComplete", "true");
+      localStorage.removeItem("focusarx-welcome-prefs");
       setLocation("/dashboard");
     } catch {
       setLocation("/dashboard");

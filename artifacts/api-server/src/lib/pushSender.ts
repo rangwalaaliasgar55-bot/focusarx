@@ -10,7 +10,7 @@ export function initVapid() {
   if (vapidInitialized) return;
   const pubKey = process.env["VAPID_PUBLIC_KEY"];
   const privKey = process.env["VAPID_PRIVATE_KEY"];
-  const email = process.env["VAPID_EMAIL"] || "mailto:admin@focusarx.app";
+  const email = process.env["VAPID_EMAIL"] || "mailto:focusarx@gmail.com";
 
   if (pubKey && privKey) {
     webpush.setVapidDetails(email, pubKey, privKey);
@@ -20,7 +20,7 @@ export function initVapid() {
 
   const keys = webpush.generateVAPIDKeys();
   logger.info(
-    `\n[VAPID] Keys not set. Add these to your .env:\nVAPID_PUBLIC_KEY=${keys.publicKey}\nVAPID_PRIVATE_KEY=${keys.privateKey}\nVAPID_EMAIL=mailto:admin@focusarx.app`
+    `\n[VAPID] Keys not set. Add these to your .env:\nVAPID_PUBLIC_KEY=${keys.publicKey}\nVAPID_PRIVATE_KEY=${keys.privateKey}\nVAPID_EMAIL=mailto:focusarx@gmail.com`
   );
   webpush.setVapidDetails(email, keys.publicKey, keys.privateKey);
   vapidInitialized = true;

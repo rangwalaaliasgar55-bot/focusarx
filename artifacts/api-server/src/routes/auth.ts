@@ -146,7 +146,7 @@ async function sendResetEmail(to: string, resetUrl: string): Promise<boolean> {
   const port = parseInt(process.env.SMTP_PORT ?? "587");
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
-  const from = process.env.SMTP_FROM ?? user ?? "noreply@focusarx.app";
+  const from = process.env.SMTP_FROM ?? user ?? "focusarx@gmail.com";
 
   if (!host || !user || !pass) return false;
 

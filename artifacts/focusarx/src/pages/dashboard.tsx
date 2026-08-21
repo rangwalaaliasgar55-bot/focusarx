@@ -344,6 +344,53 @@ function PetCard() {
   );
 }
 
+/** Shown to brand-new users (zero sessions) as a friendly guided checklist. */
+function GettingStarted({ sessionsToday, completedTasks }: { sessionsToday: number; completedTasks: number }) {
+  const steps = [
+    { done: sessionsToday > 0, icon: "⏱", label: "Complete your first focus session", href: "/" },
+    { done: completedTasks > 0, icon: "✅", label: "Add and finish a task", href: "/dashboard" },
+    { done: false, icon: "🔁", label: "Start a streak (focus 2 days in a row)", href: "/" },
+    { done: false, icon: "🐣", label: "Adopt your focus companion", href: "/pets" },
+  ];
+  if (steps.every((s) => s.done)) return null;
+
+  const remaining = steps.filter((s) => !s.done).length;
+
+  return (
+    <div className="rounded-2xl border border-[rgba(124,58,237,0.2)] bg-gradient-to-br from-[rgba(124,58,237,0.08)] to-transparent p-6 backdrop-blur-xl">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">🚀</span>
+          <h2 className="text-sm font-bold text-[#E2E8F0]">Getting Started</h2>
+        </div>
+        <span className="rounded-full bg-[#7C3AED]/15 px-2.5 py-0.5 text-[10px] font-bold text-[#A78BFA]">
+          {remaining} step{remaining !== 1 ? "s" : ""} left
+        </span>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        {steps.map((s) => (
+          <Link
+            key={s.label}
+            href={s.href}
+            className={`flex items-start gap-3 rounded-xl border p-3 transition-colors ${
+              s.done
+                ? "border-emerald-500/20 bg-emerald-500/5"
+                : "border-white/5 bg-white/[0.02] hover:border-[#7C3AED]/40 hover:bg-[#7C3AED]/5"
+            }`}
+          >
+            <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-sm ${s.done ? "bg-emerald-500/15" : "bg-white/5"}`}>
+              {s.done ? "✓" : s.icon}
+            </span>
+            <span className={`text-xs leading-snug ${s.done ? "text-[#4B5563] line-through" : "text-[#94A3B8]"}`}>
+              {s.label}
+            </span>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const FALLBACK_TIP = "Start your timer and close every other tab — the hardest part is always the first two minutes.";
 
 /** Live AI coach tip pulled from the real `/api/coach/session-tip` endpoint,
@@ -469,6 +516,7 @@ const DashboardPage = () => {
 
           {!loading && stats && (
             <div className="space-y-6">
+              <GettingStarted sessionsToday={stats.sessionsToday} completedTasks={stats.completedTasks} />
               <div className="grid gap-6 lg:grid-cols-4">
                 <StaggerContainer className="grid gap-4 sm:grid-cols-4 lg:col-span-4">
                   <StaggerItem>

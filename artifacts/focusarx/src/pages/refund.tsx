@@ -40,28 +40,27 @@ export default function RefundPage() {
               <p>FocusArx's core features are completely free — no credit card required. There is nothing to refund for free accounts. You may delete your account at any time via your profile settings or by contacting us.</p>
             </Section>
 
-            <Section title="2. Premium Subscriptions">
-              <p>If you purchase a FocusArx Premium subscription, you may request a full refund within <strong className="text-[#E2E8F0]">7 days</strong> of your initial purchase, provided you have not heavily utilised premium-only features during that period.</p>
-              <p>After 7 days, refunds are evaluated on a case-by-case basis. Refunds will not be issued for partial billing periods.</p>
+            <Section title="2. Premium (Coin-Based)">
+              <p>FocusArx Premium is not a paid subscription. It is unlocked with <strong className="text-[#E2E8F0]">9,000 in-app coins</strong>, which you earn by completing focus sessions and missions. Because no real money changes hands, there are no monetary refunds for Premium activation.</p>
+              <p>If Premium was activated in error (for example, by accidental coin spending), contact us and we will review your case and may restore your coins at our discretion.</p>
             </Section>
 
-            <Section title="3. In-App Purchases (Coins & Items)">
-              <p>Purchases of virtual currency (Forge Coins) and in-app items (themes, titles, boosts) are <strong className="text-[#E2E8F0]">non-refundable</strong> once the items have been delivered to your account, except where required by applicable law.</p>
-              <p>If you believe a charge was made in error or without your authorisation, please contact us immediately.</p>
+            <Section title="3. Virtual Items & Coins">
+              <p>Virtual currency (coins) and in-app items (themes, pets, boosts) earned or unlocked through the app are <strong className="text-[#E2E8F0]">non-refundable</strong> once delivered to your account, except where required by applicable law.</p>
             </Section>
 
-            <Section title="4. How to Request a Refund">
-              <p>To request a refund, email us at <a href="mailto:support@focusarx.app" className="text-[#A78BFA] hover:underline">support@focusarx.app</a> with:</p>
+            <Section title="4. How to Request Help">
+              <p>If you believe coins were spent or lost in error, email us at <a href="mailto:focusarx@gmail.com" className="text-[#A78BFA] hover:underline">focusarx@gmail.com</a> with:</p>
               <ul className="list-disc pl-5 space-y-1">
                 <li>Your registered email address</li>
-                <li>Date of purchase</li>
-                <li>Reason for refund request</li>
+                <li>Date and time of the issue</li>
+                <li>A short description of what happened</li>
               </ul>
               <p>We aim to respond within 3 business days.</p>
             </Section>
 
-            <Section title="5. Chargebacks">
-              <p>If you initiate a chargeback with your bank or payment provider without first contacting FocusArx support, we reserve the right to suspend your account pending resolution of the dispute.</p>
+            <Section title="5. Future Paid Features">
+              <p>If FocusArx ever introduces paid features in the future, this policy will be updated and a clear refund window will be published before any purchase is made.</p>
             </Section>
 
             <Section title="6. Legal Rights">
@@ -69,7 +68,7 @@ export default function RefundPage() {
             </Section>
 
             <Section title="7. Contact">
-              <p>Questions about this policy? Reach us at <a href="mailto:support@focusarx.app" className="text-[#A78BFA] hover:underline">support@focusarx.app</a> or visit our <Link href="/support" className="text-[#A78BFA] hover:underline">Support page</Link>.</p>
+              <p>Questions about this policy? Reach us at <a href="mailto:focusarx@gmail.com" className="text-[#A78BFA] hover:underline">focusarx@gmail.com</a> or visit our <Link href="/support" className="text-[#A78BFA] hover:underline">Support page</Link>.</p>
             </Section>
           </div>
 

@@ -61,7 +61,7 @@ export default function TermsPage() {
             </Section>
 
             <Section title="8. Disclaimers & Limitation of Liability">
-              <p>FocusArx is provided without warranty of any kind. We are not liable for any indirect, incidental, or consequential damages arising from your use of the service. Our maximum liability to you shall not exceed the amount you paid us in the 12 months prior to the claim.</p>
+              <p>FocusArx is provided "as is" without warranty of any kind. We are not liable for any indirect, incidental, or consequential damages arising from your use of the service. FocusArx core is free, and Premium is unlocked with in-app coins — no monetary payments are collected — so our aggregate liability is limited to the fullest extent permitted by law.</p>
             </Section>
 
             <Section title="9. Termination">
@@ -77,7 +77,7 @@ export default function TermsPage() {
             </Section>
 
             <Section title="12. Contact">
-              <p>Questions? Email <span className="text-[#A78BFA]">legal@focusarx.app</span></p>
+              <p>Questions? Email <a href="mailto:focusarx@gmail.com" className="text-[#A78BFA] hover:underline">focusarx@gmail.com</a> or call <a href="tel:+917725004639" className="text-[#A78BFA] hover:underline">+91 77250 04639</a>.</p>
             </Section>
           </div>
 

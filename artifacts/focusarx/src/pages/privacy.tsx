@@ -64,7 +64,7 @@ export default function PrivacyPage() {
             </Section>
 
             <Section title="8. Contact">
-              <p>Questions about this policy? Reach us at <span className="text-[#A78BFA]">privacy@focusarx.app</span></p>
+              <p>Questions about this policy? Reach us at <span className="text-[#A78BFA]">focusarx@gmail.com</span></p>
             </Section>
           </div>
 
