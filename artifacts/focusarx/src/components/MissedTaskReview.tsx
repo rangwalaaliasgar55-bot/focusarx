@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getToken } from "@/lib/auth";
+import { isOnboarded, tryAcquireModal, releaseModal } from "@/lib/onboarding";
 
 interface MissedTask {
   id: string;
@@ -170,6 +171,7 @@ export function useMissedTaskReview() {
   useEffect(() => {
     const token = getToken();
     if (!token) return;
+    if (!isOnboarded()) return;
 
     const STORAGE_KEY = "focusarx-last-review-date";
     const today = new Date().toISOString().slice(0, 10);
@@ -181,7 +183,7 @@ export function useMissedTaskReview() {
       fetch("/api/tasks/missed-review", { headers: authHeaders() })
         .then(r => r.ok ? r.json() : null)
         .then((d: { tasks?: MissedTask[] } | null) => {
-          if (d?.tasks && d.tasks.length > 0) {
+          if (d?.tasks && d.tasks.length > 0 && tryAcquireModal()) {
             setMissedTasks(d.tasks);
             setShowReview(true);
           }
@@ -196,6 +198,7 @@ export function useMissedTaskReview() {
   const dismiss = () => {
     setShowReview(false);
     setMissedTasks([]);
+    releaseModal();
   };
 
   return { showReview, missedTasks, dismiss };

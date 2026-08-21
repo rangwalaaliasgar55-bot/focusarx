@@ -254,9 +254,58 @@ const SESSION_EMOJIS: Record<string, string> = {
   focus: "⏱", break: "☕", longBreak: "🛋", deep: "🧠", social: "🌐", exam: "📖", flow: "🌊"
 };
 
-const DashboardPage = () => {
+const FALLBACK_TIP = "Start your timer and close every other tab — the hardest part is always the first two minutes.";
+
+/** Live AI coach tip pulled from the real `/api/coach/session-tip` endpoint,
+ *  with a graceful fallback so the card never looks broken offline. */
+function CoachTipCard() {
   const { status } = useAuth();
+  const { data, isLoading } = useQuery<{ tip: string }>({
+    queryKey: ["coach-tip"],
+    queryFn: async () => {
+      const token = getToken();
+      const res = await fetch("/api/coach/session-tip", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error("Failed to fetch coach tip");
+      return res.json();
+    },
+    staleTime: 5 * 60_000,
+    enabled: status === "authenticated",
+  });
+
+  const tip = data?.tip?.trim() || FALLBACK_TIP;
+
+  return (
+    <div className="rounded-2xl border border-[rgba(124,58,237,0.2)] bg-gradient-to-br from-[rgba(124,58,237,0.1)] to-transparent p-5 backdrop-blur-xl">
+      <div className="flex items-center gap-2 mb-3">
+        <Sparkles size={16} className="text-[#A78BFA]" />
+        <h3 className="text-sm font-bold text-white">AI Coach Tip</h3>
+        {isLoading && (
+          <span className="ml-auto h-2 w-2 rounded-full bg-[#A78BFA] animate-pulse" />
+        )}
+      </div>
+      <p className="text-xs leading-relaxed text-[#94A3B8]">
+        "{tip}"
+      </p>
+      <Link href="/ai-insights">
+        <button className="mt-4 text-[10px] font-bold text-[#A78BFA] hover:underline uppercase tracking-widest">
+          Full Insights →
+        </button>
+      </Link>
+    </div>
+  );
+}
+
+const DashboardPage = () => {
+  const { status, data: session } = useAuth();
   const [, setLocation] = useLocation();
+
+  const now = new Date();
+  const hour = now.getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const firstName = session?.user?.name?.split(" ")[0] || session?.user?.email?.split("@")[0] || "there";
+  const dateLabel = now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
 
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["dashboard-stats"],
@@ -301,19 +350,20 @@ const DashboardPage = () => {
         <PageTransition>
           <header className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <motion.div variants={SLIDE_DOWN} initial="initial" animate="animate">
-              <h1 className="text-2xl font-black tracking-tight text-[#E2E8F0] sm:text-3xl">
-                System <span className="text-[#A78BFA]">Dashboard</span>
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-[#4B5563]">{dateLabel}</p>
+              <h1 className="mt-1 text-2xl font-black tracking-tight text-[#E2E8F0] sm:text-3xl">
+                {greeting}, <span className="text-[#A78BFA]">{firstName}</span> 👋
               </h1>
-              <p className="mt-1 text-sm text-[#4B5563]">Welcome back to your deep focus command center.</p>
+              <p className="mt-1 text-sm text-[#4B5563]">Here's your focus command center for today.</p>
             </motion.div>
             <div className="flex items-center gap-3">
               <WeatherWidget />
               <Link href="/">
                 <motion.button
                   whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                  className="rounded-xl bg-[rgba(124,58,237,0.12)] px-4 py-2 text-xs font-bold text-[#A78BFA] transition-all hover:bg-[rgba(124,58,237,0.18)]"
+                  className="rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] px-4 py-2 text-xs font-bold text-white shadow-[0_4px_20px_rgba(124,58,237,0.35)] transition-all hover:brightness-110"
                 >
-                  Start New Session
+                  ▶ Start New Session
                 </motion.button>
               </Link>
             </div>
@@ -415,20 +465,7 @@ const DashboardPage = () => {
 
                   <ReadinessWidget />
                   <DailyHabitsWidget />
-                  <div className="rounded-2xl border border-[rgba(124,58,237,0.2)] bg-gradient-to-br from-[rgba(124,58,237,0.1)] to-transparent p-5 backdrop-blur-xl">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Sparkles size={16} className="text-[#A78BFA]" />
-                      <h3 className="text-sm font-bold text-white">AI Coach Tip</h3>
-                    </div>
-                    <p className="text-xs leading-relaxed text-[#94A3B8]">
-                      "Based on your last 3 sessions, your focus peaks around 11 AM. Try scheduling your most cognitively demanding tasks then."
-                    </p>
-                    <Link href="/ai-insights">
-                      <button className="mt-4 text-[10px] font-bold text-[#A78BFA] hover:underline uppercase tracking-widest">
-                        Full Insights →
-                      </button>
-                    </Link>
-                  </div>
+                  <CoachTipCard />
                 </div>
               </div>
 

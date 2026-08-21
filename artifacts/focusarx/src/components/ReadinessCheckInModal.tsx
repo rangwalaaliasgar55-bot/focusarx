@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { getToken } from "@/lib/auth";
+import { isOnboarded, tryAcquireModal, releaseModal } from "@/lib/onboarding";
 
 const SKIP_KEY = () => `focusarx-readiness-skipped-${new Date().toISOString().split("T")[0]}`;
 
@@ -53,6 +54,7 @@ export default function ReadinessCheckInModal() {
 
   useEffect(() => {
     if (localStorage.getItem(SKIP_KEY())) return;
+    if (!isOnboarded()) return;
 
     const token = getToken();
     if (!token) return;
@@ -63,7 +65,9 @@ export default function ReadinessCheckInModal() {
       })
         .then(r => r.ok ? r.json() : null)
         .then((d: { log?: ReadinessLog | null } | null) => {
-          if (!d?.log) setVisible(true);
+          // Respect the shared modal lock so this never stacks on top of
+          // another full-screen dialog (e.g. missed-task review).
+          if (!d?.log && tryAcquireModal()) setVisible(true);
         })
         .catch(() => {});
     }, 1800);
@@ -74,6 +78,7 @@ export default function ReadinessCheckInModal() {
   const dismiss = () => {
     localStorage.setItem(SKIP_KEY(), "1");
     setVisible(false);
+    releaseModal();
   };
 
   const handleSave = async () => {
@@ -92,7 +97,7 @@ export default function ReadinessCheckInModal() {
       if (d.log) {
         setResult(d.log);
         setDone(true);
-        setTimeout(() => setVisible(false), 2800);
+        setTimeout(() => { setVisible(false); releaseModal(); }, 2800);
       }
     } finally {
       setSaving(false);
