@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback, Suspense, lazy } from "react";
 import { motion, useScroll, useTransform, useSpring, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
-import { ChevronDown, Sparkles, Target, Zap, Shield, Trophy, Users, BarChart3, Rocket, MessageSquare, CheckCircle2, Star, ArrowRight, ShieldCheck, Lock, Award, RefreshCw } from "lucide-react";
+import { ChevronDown, Sparkles, Target, Zap, Shield, Trophy, Users, BarChart3, Rocket, MessageSquare, CheckCircle2, Star, ArrowRight, ShieldCheck, Lock, RefreshCw } from "lucide-react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 const Hero3D = lazy(() => import("@/components/Hero3D"));
 import ProductivityResume from "@/components/ProductivityResume";
@@ -14,9 +14,9 @@ const FEATURES = [
 ];
 
 const STATS = [
-  { value: "50K+", label: "Active Learners" },
-  { value: "2.4M", label: "Focus Hours" },
-  { value: "98%", label: "Satisfaction" },
+  { value: "4", label: "Focus Session Types" },
+  { value: "21", label: "Daily & Weekly Missions" },
+  { value: "100%", label: "On-Device Privacy" },
 ];
 
 const WORDS = ["Focus", "Flow", "Mastery", "Depth", "Success"];
@@ -96,11 +96,6 @@ export default function LandingPage() {
       "@type": "Offer",
       "price": "0",
       "priceCurrency": "USD"
-    },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.9",
-      "ratingCount": "50000"
     }
   };
 
@@ -183,9 +178,6 @@ export default function LandingPage() {
           <Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link>
         </div>
         <div className="flex items-center gap-4">
-          <div className="hidden lg:block text-[10px] font-black uppercase tracking-[0.2em] text-[#4B5563] mr-4 border-r border-white/5 pr-4">
-             Support: +1 (800) 362-8729
-          </div>
           <Link href="/login" className="text-sm font-bold text-[#94A3B8] hover:text-white transition-colors">Login</Link>
           <Link href="/signup">
             <button className="rounded-xl bg-white px-5 py-2 text-sm font-bold text-black hover:bg-zinc-200 transition-colors">Join Now</button>
@@ -207,7 +199,7 @@ export default function LandingPage() {
             className="mb-6 inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-purple-300"
           >
             <Sparkles size={12} className="animate-pulse" />
-            #1 AI Productivity Platform 2026
+            AI-Powered Deep Work OS
           </motion.div>
 
           <motion.h1
@@ -262,48 +254,40 @@ export default function LandingPage() {
           </motion.div>
           
           <div className="mt-8 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-emerald-400">
-             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
-             2,842 Users focusing live right now
+             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+             Free forever · No credit card required
           </div>
         </div>
       </section>
 
-      {/* ── TRUST SIGNALS ── */}
+      {/* ── VALUE PROPS ── */}
       <section className="relative z-10 py-16 bg-white/[0.01]">
         <div className="mx-auto max-w-7xl px-6">
-          <p className="text-center text-[10px] font-bold uppercase tracking-[0.3em] text-[#4B5563] mb-10">Trusted by researchers from</p>
-          <div className="flex flex-wrap justify-center gap-12 md:gap-24 opacity-30 grayscale contrast-200">
-             {/* Simulated Logos with Text */}
-             <div className="text-2xl font-black tracking-tighter text-white">STANFORD</div>
-             <div className="text-2xl font-black tracking-tighter text-white">MIT</div>
-             <div className="text-2xl font-black tracking-tighter text-white">HARVARD</div>
-             <div className="text-2xl font-black tracking-tighter text-white">OXFORD</div>
-          </div>
-          <div className="mt-12 flex flex-wrap justify-center gap-10 opacity-15 grayscale">
-             <div className="text-sm font-black italic text-white">TechCrunch</div>
-             <div className="text-sm font-black italic text-white">WIRED</div>
-             <div className="text-sm font-black italic text-white">The Verge</div>
-             <div className="text-sm font-black italic text-white">Forbes</div>
+          <p className="text-center text-[10px] font-bold uppercase tracking-[0.3em] text-[#4B5563] mb-10">Built around how you actually work</p>
+          <div className="flex flex-wrap justify-center gap-8 md:gap-16">
+             <div className="text-center">
+               <div className="text-2xl">🔒</div>
+               <div className="mt-2 text-xs font-bold text-white">Local-First Privacy</div>
+               <p className="text-[10px] text-[#4B5563]">Webcam never leaves your device</p>
+             </div>
+             <div className="text-center">
+               <div className="text-2xl">🧠</div>
+               <div className="mt-2 text-xs font-bold text-white">Science-Backed</div>
+               <p className="text-[10px] text-[#4B5563]">Pomodoro, deep work & flow</p>
+             </div>
+             <div className="text-center">
+               <div className="text-2xl">🎮</div>
+               <div className="mt-2 text-xs font-bold text-white">Gamified Progress</div>
+               <p className="text-[10px] text-[#4B5563]">XP, streaks & a growing city</p>
+             </div>
+             <div className="text-center">
+               <div className="text-2xl">🤖</div>
+               <div className="mt-2 text-xs font-bold text-white">AI Coaching</div>
+               <p className="text-[10px] text-[#4B5563]">Personalized, real-time</p>
+             </div>
           </div>
         </div>
       </section>
-
-      {/* ── LOGO MARQUEE ── */}
-      <div className="relative z-10 w-full overflow-hidden border-y border-white/5 bg-white/[0.01] py-8">
-        <div className="flex animate-marquee whitespace-nowrap opacity-20 grayscale">
-          {[...Array(2)].map((_, i) => (
-            <div key={i} className="flex gap-20 px-10 items-center text-lg font-black tracking-tighter">
-              <span className="text-white">STANFORD</span>
-              <span className="text-white">MIT</span>
-              <span className="text-white">HARVARD</span>
-              <span className="text-white">OXFORD</span>
-              <span className="text-white">CAMBRIDGE</span>
-              <span className="text-white">BERKELEY</span>
-              <span className="text-white">YALE</span>
-            </div>
-          ))}
-        </div>
-      </div>
 
       {/* ── FEATURES ── */}
       <section id="features" className="relative py-32 px-6">
@@ -331,30 +315,29 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── TESTIMONIALS ── */}
+      {/* ── WHY FOCUSARX ── */}
       <section id="reviews" className="relative py-32 px-6 border-y border-white/5">
         <div className="mx-auto max-w-7xl">
           <div className="mb-20 text-center">
-             <h2 className="text-3xl font-black sm:text-5xl">Voices of <span className="text-emerald-400">Success</span></h2>
-             <p className="mt-4 text-[#94A3B8]">Join thousands of learners who upgraded their minds.</p>
+             <h2 className="text-3xl font-black sm:text-5xl">Everything in <span className="text-emerald-400">one place</span></h2>
+             <p className="mt-4 text-[#94A3B8]">A complete focus system — no more juggling five different tools.</p>
           </div>
           
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {[
-              { name: "Dr. Aris Thorne", role: "Neuroscience Researcher", text: "The attention monitoring algorithm is surprisingly accurate. It correctly identifies gaze shifts and provides a genuine cognitive anchor for deep work.", stars: 5, expert: true },
-              { name: "James R.", role: "Computer Science @ MIT", text: "The AI coach caught my attention drifting before I even realized it. My focus depth has doubled.", stars: 5 },
-              { name: "Sarah L.", role: "Med Student @ Oxford", text: "Finally, a Pomodoro app that doesn't feel like a toy. The analytics are lab-grade.", stars: 5 },
+              { icon: <Target className="text-purple-400" />, title: "Adaptive Timer", text: "Pomodoro, deep-work and flow sessions that adapt to your energy and focus style." },
+              { icon: <BarChart3 className="text-emerald-400" />, title: "Real Analytics", text: "A genuine Focus Score built from completion rate, attention and distraction events — not just time logged." },
+              { icon: <Shield className="text-blue-400" />, title: "Private by Design", text: "Attention tracking runs entirely on-device with MediaPipe. No video ever leaves your browser." },
+              { icon: <Trophy className="text-amber-400" />, title: "Gamified Growth", text: "Earn XP and coins, hatch a pet, and watch your Focus City expand with every session." },
+              { icon: <Users className="text-pink-400" />, title: "Study Together", text: "Join live study rooms and ride group resonance to stay accountable with others." },
+              { icon: <MessageSquare className="text-cyan-400" />, title: "AI Coach", text: "Context-aware coaching tips and a study roadmap that grows with your data." },
             ].map((t, i) => (
-              <div key={i} className={`rounded-2xl border p-6 ${t.expert ? "border-purple-500/30 bg-purple-500/5 shadow-[0_0_30px_rgba(124,58,237,0.1)]" : "border-white/5 bg-white/[0.01]"}`}>
-                {t.expert && <div className="mb-4 inline-block rounded-full bg-purple-500 px-2 py-0.5 text-[8px] font-black uppercase tracking-widest text-white">Expert Endorsement</div>}
-                <div className="flex gap-1 mb-4">
-                  {[...Array(t.stars)].map((_, j) => <Star key={j} size={12} className="fill-yellow-500 text-yellow-500" />)}
+              <div key={i} className="rounded-2xl border border-white/5 bg-white/[0.01] p-6">
+                <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 border border-white/10">
+                  {t.icon}
                 </div>
-                <p className="text-sm text-[#94A3B8] mb-6 italic">"{t.text}"</p>
-                <div>
-                  <p className="text-sm font-bold text-white">{t.name}</p>
-                  <p className="text-[10px] uppercase tracking-widest text-[#4B5563]">{t.role}</p>
-                </div>
+                <h3 className="mb-2 text-base font-bold text-white">{t.title}</h3>
+                <p className="text-sm text-[#94A3B8] leading-relaxed">{t.text}</p>
               </div>
             ))}
           </div>
@@ -429,8 +412,8 @@ export default function LandingPage() {
       <section id="pricing" className="relative py-32 px-6">
         <div className="mx-auto max-w-7xl">
           <div className="mb-20 text-center">
-            <h2 className="text-3xl font-black sm:text-5xl">Pick Your <span className="text-[#F472B6]">Pace</span></h2>
-            <p className="mt-4 text-[#94A3B8]">Join for free, upgrade when you're ready to go pro.</p>
+            <h2 className="text-3xl font-black sm:text-5xl">Free to <span className="text-[#F472B6]">Focus</span></h2>
+            <p className="mt-4 text-[#94A3B8]">Everything you need is free. Premium unlocks with coins you earn from focusing.</p>
           </div>
 
           <div className="grid gap-8 md:grid-cols-2 max-w-4xl mx-auto">
@@ -440,35 +423,36 @@ export default function LandingPage() {
               <h3 className="text-xl font-bold mb-2">Free</h3>
               <div className="flex items-baseline gap-1 mb-6">
                 <span className="text-5xl font-black text-white">$0</span>
-                <span className="text-xs text-[#4B5563]">/ month</span>
+                <span className="text-xs text-[#4B5563]">/ forever</span>
               </div>
               <ul className="space-y-4 mb-10 text-sm text-[#94A3B8]">
                 <li className="flex items-center gap-2 text-white"><CheckCircle2 size={14} className="text-emerald-500" /> Unlimited Timer Sessions</li>
-                <li className="flex items-center gap-2 text-white"><CheckCircle2 size={14} className="text-emerald-500" /> Basic AI Coaching</li>
-                <li className="flex items-center gap-2 text-white"><CheckCircle2 size={14} className="text-emerald-500" /> Progress Heatmaps</li>
+                <li className="flex items-center gap-2 text-white"><CheckCircle2 size={14} className="text-emerald-500" /> AI Coaching</li>
+                <li className="flex items-center gap-2 text-white"><CheckCircle2 size={14} className="text-emerald-500" /> Gamification, Pets & City</li>
+                <li className="flex items-center gap-2 text-white"><CheckCircle2 size={14} className="text-emerald-500" /> Analytics & Streaks</li>
               </ul>
               <Link href="/signup">
                 <button className="w-full py-5 rounded-2xl border border-white/10 font-black text-white hover:bg-white hover:text-black transition-all">Get Started Free</button>
               </Link>
             </div>
-            {/* Pro */}
+            {/* Premium */}
             <div className="relative rounded-3xl border border-purple-500/30 bg-purple-500/[0.03] p-10 backdrop-blur-sm shadow-[0_0_50px_rgba(124,58,237,0.15)] group">
-              <div className="absolute -top-3 right-8 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-white shadow-xl animate-pulse">Most Popular</div>
-              <h3 className="text-xl font-bold mb-2 text-white">Pro</h3>
+              <div className="absolute -top-3 right-8 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-white shadow-xl">Earn It</div>
+              <h3 className="text-xl font-bold mb-2 text-white">Premium</h3>
               <div className="flex items-baseline gap-1 mb-6">
-                <span className="text-5xl font-black text-white">$8</span>
-                <span className="text-xs text-[#4B5563]">/ month</span>
+                <span className="text-5xl font-black text-white">9,000</span>
+                <span className="text-xs text-[#4B5563]">coins</span>
               </div>
+              <p className="mb-6 text-xs text-[#94A3B8]">Unlocked with coins you earn from completed sessions — no credit card.</p>
               <ul className="space-y-4 mb-10 text-sm text-[#E2E8F0]">
                 <li className="flex items-center gap-2"><Zap size={14} className="text-purple-400" /> Unlimited AI Coaching</li>
-                <li className="flex items-center gap-2"><Zap size={14} className="text-purple-400" /> Advanced Focus DNA</li>
+                <li className="flex items-center gap-2"><Zap size={14} className="text-purple-400" /> XP & Coin Multipliers</li>
                 <li className="flex items-center gap-2"><Zap size={14} className="text-purple-400" /> Exclusive Themes & Pets</li>
-                <li className="flex items-center gap-2"><Zap size={14} className="text-purple-400" /> Priority Feature Access</li>
+                <li className="flex items-center gap-2"><Zap size={14} className="text-purple-400" /> Premium Analytics</li>
               </ul>
               <Link href="/signup">
-                <button className="w-full py-5 rounded-2xl bg-gradient-to-r from-purple-500 to-blue-500 font-black text-white hover:scale-105 transition-transform shadow-[0_20px_40px_rgba(124,58,237,0.3)]">Join FocusArx Pro</button>
+                <button className="w-full py-5 rounded-2xl bg-gradient-to-r from-purple-500 to-blue-500 font-black text-white hover:scale-105 transition-transform shadow-[0_20px_40px_rgba(124,58,237,0.3)]">Start Earning Coins</button>
               </Link>
-              <p className="mt-4 text-center text-[10px] font-bold text-purple-400/60 uppercase tracking-widest">7-Day Free Trial Available</p>
             </div>
           </div>
         </div>
@@ -482,7 +466,7 @@ export default function LandingPage() {
             {[
               { q: "How does the AI Coach work?", a: "Our proprietary algorithm analyzes your focus patterns, distraction frequency, and session quality in real-time to provide context-aware interventions and productivity roadmaps." },
               { q: "Is my webcam data private?", a: "Absolutely. All vision processing (MediaPipe) happens locally in your browser. No video or image data is ever transmitted to our servers." },
-              { q: "Can I use it for free?", a: "Yes, our core features including the Pomodoro timer, gamification, and basic analytics are free forever. Pro unlocks unlimited AI and advanced data export." },
+              { q: "Can I use it for free?", a: "Yes — the Pomodoro timer, gamification, AI coaching, and analytics are free forever. Premium adds unlimited AI and multipliers, and it's unlocked with coins you earn from focusing." },
               { q: "Does it work on mobile?", a: "FocusArx is a progressive web app (PWA) that works flawlessly on desktop, tablet, and mobile devices." },
             ].map((item, i) => (
               <div key={i} className="rounded-2xl border border-white/5 bg-white/[0.02] p-6">
@@ -502,7 +486,7 @@ export default function LandingPage() {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#7C3AED]/5 to-transparent pointer-events-none" />
         <div className="relative z-10 mx-auto max-w-4xl text-center">
           <h2 className="text-4xl font-black sm:text-7xl mb-8">Ready to achieve <br /><span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Total Focus?</span></h2>
-          <p className="text-lg text-[#94A3B8] mb-12 max-w-2xl mx-auto">Join 50,000+ top-tier students and professionals. No credit card required. Cancel anytime.</p>
+          <p className="text-lg text-[#94A3B8] mb-12 max-w-2xl mx-auto">Join ambitious students and professionals. No credit card required. Cancel anytime.</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/signup">
               <button className="h-16 px-12 rounded-2xl bg-white text-black font-black text-lg hover:scale-105 transition-transform shadow-[0_20px_50px_rgba(255,255,255,0.15)]">
@@ -510,7 +494,7 @@ export default function LandingPage() {
               </button>
             </Link>
           </div>
-          <p className="mt-8 text-[10px] uppercase tracking-[0.2em] text-[#4B5563]">Trusted by the world's most ambitious learners</p>
+          <p className="mt-8 text-[10px] uppercase tracking-[0.2em] text-[#4B5563]">Built for people who take their focus seriously</p>
         </div>
       </section>
 
@@ -522,7 +506,7 @@ export default function LandingPage() {
            </div>
            <h2 className="text-3xl font-black sm:text-5xl mb-6">Get the "Deep Work" Manifesto</h2>
            <p className="text-lg text-[#94A3B8] mb-10 max-w-2xl mx-auto">
-              Learn the exact routines used by the top 1% of earners to reclaim 4 hours of focus every day. Join 12,000+ subscribers.
+              Practical, science-backed routines to reclaim deep-focus hours every day. Free, no spam, unsubscribe anytime.
            </p>
            <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto" onSubmit={(e) => e.preventDefault()}>
               <input 
@@ -551,7 +535,7 @@ export default function LandingPage() {
                 <span className="font-bold tracking-tight text-white">FocusArx</span>
               </div>
               <p className="text-xs text-[#4B5563] leading-relaxed">
-                The AI-powered OS for deep work. Join 50,000+ learners mastering their craft.
+                The AI-powered OS for deep work. Build focus habits that actually stick.
               </p>
             </div>
             <div>
@@ -598,22 +582,22 @@ export default function LandingPage() {
           </div>
 
           {/* Trust Badges */}
-          <div className="mt-16 flex flex-wrap justify-center gap-8 opacity-40 grayscale filter">
+          <div className="mt-16 flex flex-wrap justify-center gap-8 opacity-60">
              <div className="flex flex-col items-center gap-2">
-                <ShieldCheck size={24} className="text-white" />
-                <span className="text-[8px] font-bold uppercase tracking-widest text-white">SSL Secure</span>
+                <Lock size={20} className="text-white" />
+                <span className="text-[8px] font-bold uppercase tracking-widest text-white">Encrypted in Transit</span>
              </div>
              <div className="flex flex-col items-center gap-2">
-                <Lock size={24} className="text-white" />
-                <span className="text-[8px] font-bold uppercase tracking-widest text-white">PCI Compliant</span>
+                <ShieldCheck size={20} className="text-white" />
+                <span className="text-[8px] font-bold uppercase tracking-widest text-white">On-Device Vision</span>
              </div>
              <div className="flex flex-col items-center gap-2">
-                <Award size={24} className="text-white" />
-                <span className="text-[8px] font-bold uppercase tracking-widest text-white">ISO 27001</span>
+                <RefreshCw size={20} className="text-white" />
+                <span className="text-[8px] font-bold uppercase tracking-widest text-white">Free Core Forever</span>
              </div>
              <div className="flex flex-col items-center gap-2">
-                <RefreshCw size={24} className="text-white" />
-                <span className="text-[8px] font-bold uppercase tracking-widest text-white">30-Day Guarantee</span>
+                <Shield size={20} className="text-white" />
+                <span className="text-[8px] font-bold uppercase tracking-widest text-white">We Never Sell Data</span>
              </div>
           </div>
 

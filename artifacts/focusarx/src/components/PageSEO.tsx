@@ -139,8 +139,8 @@ export function PageSEO({
 export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canonical: string }> = {
   home: {
     canonical: "/",
-    title: "FocusArx | No. 1 AI Productivity Platform & Focus Timer",
-    description: "Master your focus with FocusArx. AI-powered productivity OS featuring adaptive Pomodoro sessions, real-time coaching, and gamified progress. Join 50,000+ top students.",
+    title: "FocusArx | AI Productivity Platform & Focus Timer",
+    description: "Master your focus with FocusArx. An AI-powered deep-work OS with adaptive Pomodoro sessions, real-time AI coaching, gamified progress, and on-device privacy.",
     keywords: "FocusArx, AI productivity tool, best focus timer, Pomodoro timer, deep work app, study timer, habit tracker, AI study coach, productivity platform",
   },
   profiles: {
@@ -152,7 +152,7 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   about: {
     canonical: "/about",
     title: "About FocusArx | AI Productivity Platform Mission & Story",
-    description: "Learn about FocusArx — the AI productivity platform built to help 50,000+ students and professionals build deep focus habits. Our mission, values, and team.",
+    description: "Learn about FocusArx — the AI productivity platform built to help students and professionals build deep focus habits. Our mission, values, and team.",
     keywords: "about FocusArx, FocusArx mission, FocusArx team, FocusArx story, AI productivity company",
   },
   contact: {
@@ -170,7 +170,7 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   pricing: {
     canonical: "/pricing",
     title: "FocusArx Pricing | Elite Features for Deep Work",
-    description: "Upgrade your focus. Get unlimited AI coaching, advanced Focus DNA insights, and exclusive themes. 7-day free trial available. Professional productivity credentials.",
+    description: "FocusArx is free to use. Unlock unlimited AI coaching, advanced Focus DNA insights, and exclusive themes with Premium — activated using coins you earn by focusing.",
     keywords: "FocusArx pricing, productivity app cost, deep work premium, AI study coach price",
   },
   onboarding: {
