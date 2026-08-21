@@ -13,7 +13,7 @@ import { eq, and, or, sql, desc } from "drizzle-orm";
 export const publicProfilesRouter = Router();
 
 publicProfilesRouter.get("/u/:username", async (req: AuthRequest, res: Response) => {
-  const { username } = req.params;
+  const { username } = req.params as { username: string };
   const [user] = await db.select().from(usersTable)
     .where(or(eq(usersTable.email, username), sql`lower(name) = lower(${username})`))
     .limit(1);
@@ -57,7 +57,7 @@ publicProfilesRouter.get("/u/:username", async (req: AuthRequest, res: Response)
 
 publicProfilesRouter.post("/u/:username/friend", authMiddleware, async (req: AuthRequest, res: Response) => {
   const requesterId = req.userId!;
-  const { username } = req.params;
+  const { username } = req.params as { username: string };
   const [target] = await db.select({ id: usersTable.id }).from(usersTable)
     .where(or(eq(usersTable.email, username), sql`lower(name) = lower(${username})`)).limit(1);
   if (!target) return res.status(404).json({ error: "User not found" });

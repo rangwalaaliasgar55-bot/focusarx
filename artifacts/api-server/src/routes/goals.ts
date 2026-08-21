@@ -27,7 +27,7 @@ goalsRouter.post("/goals", authMiddleware, async (req: AuthRequest, res: Respons
 });
 
 goalsRouter.patch("/goals/:id/complete", authMiddleware, async (req: AuthRequest, res: Response) => {
-  const { id } = req.params;
+  const { id } = req.params as { id: string };
   const { completed } = req.body as { completed?: boolean };
   const [goal] = await db.update(goalsTable)
     .set({ completed: completed ?? true })
@@ -38,7 +38,7 @@ goalsRouter.patch("/goals/:id/complete", authMiddleware, async (req: AuthRequest
 });
 
 goalsRouter.delete("/goals/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
-  const { id } = req.params;
+  const { id } = req.params as { id: string };
   await db.delete(goalsTable)
     .where(and(eq(goalsTable.id, id), eq(goalsTable.userId, req.userId)));
   res.json({ ok: true });

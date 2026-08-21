@@ -63,7 +63,7 @@ cityRouter.get("/city/buildings", authMiddleware, async (req: AuthRequest, res: 
 });
 
 cityRouter.post("/city/buildings/:slug/build", authMiddleware, async (req: AuthRequest, res: Response) => {
-  const { slug } = req.params;
+  const { slug } = req.params as { slug: string };
   try {
     const [building] = await db.select().from(cityBuildingDefinitionsTable)
       .where(eq(cityBuildingDefinitionsTable.slug, slug)).limit(1);

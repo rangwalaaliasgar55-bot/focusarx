@@ -213,7 +213,7 @@ router.get("/admin/stats", async (req, res) => {
 
 router.patch("/admin/users/:id/role", async (req, res) => {
   if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
-  const { id } = req.params;
+  const { id } = req.params as { id: string };
   const { role } = req.body as { role?: string };
   if (!role || !["admin", "user"].includes(role)) {
     res.status(400).json({ error: "role must be 'admin' or 'user'" });
@@ -245,7 +245,7 @@ router.delete("/admin/users/guests", adminLimiter, async (req, res) => {
 
 router.delete("/admin/users/:id", async (req, res) => {
   if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
-  const { id } = req.params;
+  const { id } = req.params as { id: string };
   try {
     await db.delete(usersTable).where(eq(usersTable.id, id));
     res.json({ ok: true });
@@ -257,7 +257,7 @@ router.delete("/admin/users/:id", async (req, res) => {
 
 router.post("/admin/users/:id/premium", async (req, res) => {
   if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
-  const { id } = req.params;
+  const { id } = req.params as { id: string };
   const days = Number(req.body.days ?? 30);
   try {
     const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);

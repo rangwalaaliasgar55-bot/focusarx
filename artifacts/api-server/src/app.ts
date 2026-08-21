@@ -75,15 +75,44 @@ app.use(
 app.use(
   cors({
     origin: (origin, cb) => {
+      // No Origin header (curl, server-to-server, same-origin GET) — allow.
       if (!origin || isDev) { cb(null, true); return; }
-      const allowed = [
-        "https://focusarx.site",
-        "https://focusarx.vercel.app",
-        "https://focusarx-api.vercel.app"
-      ];
-      if (allowed.includes(origin) || origin.endsWith(".vercel.app")) {
+
+      // Build the allowlist dynamically so the API keeps working no matter
+      // where the frontend is hosted (Vercel, Replit, localhost, custom domain).
+      const configured = [
+        process.env.APP_URL,
+        process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+        process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null,
+      ].filter((v): v is string => Boolean(v));
+
+      // Normalize a URL to a bare `https://host` origin for comparison.
+      const toOrigin = (url: string): string => {
+        try {
+          const u = new URL(url);
+          return `${u.protocol}//${u.host}`;
+        } catch {
+          return url.replace(/\/+$/, "");
+        }
+      };
+
+      const allowedOrigins = configured.map(toOrigin);
+      const bareHost = origin.replace(/^https?:\/\//, "").replace(/:\d+$/, "");
+
+      const isAllowed =
+        allowedOrigins.includes(origin) ||
+        bareHost.endsWith(".vercel.app") ||
+        bareHost.endsWith(".replit.dev") ||
+        bareHost.endsWith(".replit.app") ||
+        bareHost.endsWith(".e2b.app") ||
+        bareHost === "localhost" ||
+        bareHost === "127.0.0.1";
+
+      if (isAllowed) {
         cb(null, true);
       } else {
+        // Log the rejected origin so misconfigurations are easy to diagnose.
+        logger.warn({ origin, allowedOrigins }, "CORS origin rejected");
         cb(new Error("CORS: origin not allowed"));
       }
     },

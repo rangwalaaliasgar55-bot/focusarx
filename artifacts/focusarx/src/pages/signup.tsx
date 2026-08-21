@@ -34,6 +34,13 @@ export default function SignupPage() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+
+    // Friendly client-side validation before hitting the API.
+    if (password.length < 8) {
+      setFormError("Password must be at least 8 characters.");
+      return;
+    }
+
     setIsLoading(true);
     try {
       const res = await fetch("/api/auth/register", {
@@ -41,9 +48,14 @@ export default function SignupPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
       });
-      const data = await res.json() as { error?: string };
+      let data: { error?: string } = {};
+      try {
+        data = await res.json() as { error?: string };
+      } catch {
+        data = {};
+      }
       if (!res.ok) {
-        setFormError(data.error ?? "Failed to create account");
+        setFormError(data.error ?? "Failed to create account. Please try again.");
         setIsLoading(false);
         return;
       }
@@ -153,6 +165,7 @@ export default function SignupPage() {
                 id="email"
                 type="email"
                 required
+                autoFocus
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"

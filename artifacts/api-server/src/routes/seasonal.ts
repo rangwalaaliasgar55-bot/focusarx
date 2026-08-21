@@ -32,7 +32,7 @@ seasonalRouter.get("/seasonal/:eventId/progress", async (req: any, res) => {
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
   try {
     const [prog] = await db.select().from(userSeasonalProgressTable)
-      .where(and(eq(userSeasonalProgressTable.userId, userId), eq(userSeasonalProgressTable.eventId, req.params.eventId)))
+      .where(and(eq(userSeasonalProgressTable.userId, userId), eq(userSeasonalProgressTable.eventId, req.params.eventId as string)))
       .limit(1);
     res.json(prog ?? { points: 0, completedMissions: [], rewardsClaimed: [] });
   } catch {

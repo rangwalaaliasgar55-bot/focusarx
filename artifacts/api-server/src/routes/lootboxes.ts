@@ -89,7 +89,7 @@ lootboxesRouter.post("/lootboxes/buy", authMiddleware, async (req: AuthRequest, 
 });
 
 lootboxesRouter.post("/lootboxes/:boxId/open", authMiddleware, async (req: AuthRequest, res: Response) => {
-  const { boxId } = req.params;
+  const { boxId } = req.params as { boxId: string };
   try {
     const [box] = await db.select().from(userLootBoxesTable)
       .where(and(eq(userLootBoxesTable.id, boxId), eq(userLootBoxesTable.userId, req.userId))).limit(1);

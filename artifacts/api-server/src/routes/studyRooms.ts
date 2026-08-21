@@ -64,7 +64,7 @@ studyRoomsRouter.get("/study-rooms", async (req: AuthRequest, res: Response) => 
 
 studyRoomsRouter.get("/study-rooms/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
   const [room] = await db.select().from(studyRoomsTable)
-    .where(eq(studyRoomsTable.id, req.params.id)).limit(1);
+    .where(eq(studyRoomsTable.id, req.params.id as string)).limit(1);
   if (!room) return res.status(404).json({ error: "Room not found" });
   res.json(await enrichRoom(room));
 });
@@ -98,7 +98,7 @@ studyRoomsRouter.post("/study-rooms", authMiddleware, async (req: AuthRequest, r
 studyRoomsRouter.post("/study-rooms/:id/join", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [room] = await db.select().from(studyRoomsTable)
-    .where(eq(studyRoomsTable.id, req.params.id)).limit(1);
+    .where(eq(studyRoomsTable.id, req.params.id as string)).limit(1);
   if (!room) return res.status(404).json({ error: "Room not found" });
   if (room.status !== "active") return res.status(400).json({ error: "Room is not active" });
 
@@ -149,7 +149,7 @@ studyRoomsRouter.post("/study-rooms/join-code", authMiddleware, async (req: Auth
 studyRoomsRouter.delete("/study-rooms/:id/leave", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [member] = await db.select().from(studyRoomMembersTable)
-    .where(and(eq(studyRoomMembersTable.roomId, req.params.id), eq(studyRoomMembersTable.userId, userId))).limit(1);
+    .where(and(eq(studyRoomMembersTable.roomId, req.params.id as string), eq(studyRoomMembersTable.userId, userId))).limit(1);
 
   if (member) {
     const mins = Math.round((Date.now() - new Date(member.joinedAt).getTime()) / 60000);
@@ -158,10 +158,10 @@ studyRoomsRouter.delete("/study-rooms/:id/leave", authMiddleware, async (req: Au
       .where(eq(studyRoomMembersTable.id, member.id));
   }
 
-  const [room] = await db.select().from(studyRoomsTable).where(eq(studyRoomsTable.id, req.params.id)).limit(1);
+  const [room] = await db.select().from(studyRoomsTable).where(eq(studyRoomsTable.id, req.params.id as string)).limit(1);
   if (room?.hostId === userId) {
     await db.update(studyRoomsTable).set({ status: "ended", endedAt: new Date() })
-      .where(eq(studyRoomsTable.id, req.params.id));
+      .where(eq(studyRoomsTable.id, req.params.id as string));
   }
 
   res.json({ ok: true });
@@ -170,9 +170,9 @@ studyRoomsRouter.delete("/study-rooms/:id/leave", authMiddleware, async (req: Au
 studyRoomsRouter.delete("/study-rooms/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const [room] = await db.select().from(studyRoomsTable)
-    .where(and(eq(studyRoomsTable.id, req.params.id), eq(studyRoomsTable.hostId, userId))).limit(1);
+    .where(and(eq(studyRoomsTable.id, req.params.id as string), eq(studyRoomsTable.hostId, userId))).limit(1);
   if (!room) return res.status(403).json({ error: "Not authorized" });
   await db.update(studyRoomsTable).set({ status: "ended", endedAt: new Date() })
-    .where(eq(studyRoomsTable.id, req.params.id));
+    .where(eq(studyRoomsTable.id, req.params.id as string));
   res.json({ ok: true });
 });

@@ -33,6 +33,26 @@ export default function LoginPage() {
     }
   };
 
+  const handleGuest = async () => {
+    setFieldError(null);
+    setIsLoading(true);
+    // Reuse a persistent guest key so a returning visitor keeps their data.
+    let guestKey = localStorage.getItem("focusarx-guest-key");
+    if (!guestKey) {
+      guestKey = `g_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+      localStorage.setItem("focusarx-guest-key", guestKey);
+    }
+    const res = await signIn("guest", { guestKey });
+    setIsLoading(false);
+    if (!res.ok) {
+      setFieldError(res.error ?? "Could not start a guest session. Please try again.");
+    } else {
+      toast("Welcome to FocusArx!", "success");
+      const params = new URLSearchParams(window.location.search);
+      setLocation(params.get("redirect") ?? "/dashboard");
+    }
+  };
+
   return (
     <div className="relative min-h-screen overflow-hidden forge-bg-glow flex items-center justify-center px-4 py-12">
       {/* Ambient glows */}
@@ -97,6 +117,7 @@ export default function LoginPage() {
                 id="email"
                 type="email"
                 required
+                autoFocus
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
@@ -158,11 +179,16 @@ export default function LoginPage() {
             <div className="h-px flex-1 bg-[var(--border)]" />
           </div>
 
-          <Link href="/">
-            <Button variant="outline" className="w-full mt-4" size="lg">
-              Continue as guest
-            </Button>
-          </Link>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full mt-4"
+            size="lg"
+            loading={isLoading}
+            onClick={handleGuest}
+          >
+            Continue as guest
+          </Button>
         </motion.div>
 
         <motion.p

@@ -69,7 +69,7 @@ questsRouter.get("/quests", authMiddleware, async (req: AuthRequest, res: Respon
 });
 
 questsRouter.post("/quests/:questId/claim", authMiddleware, async (req: AuthRequest, res: Response) => {
-  const { questId } = req.params;
+  const { questId } = req.params as { questId: string };
   try {
     const today = new Date().toISOString().split("T")[0];
     const dayOfWeek = new Date().getDay();

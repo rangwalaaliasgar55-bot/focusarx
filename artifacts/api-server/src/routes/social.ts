@@ -111,10 +111,10 @@ socialRouter.post("/social/request", authMiddleware, async (req: AuthRequest, re
 
 socialRouter.patch("/social/request/:id/accept", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
-  const [row] = await db.select().from(friendshipsTable).where(eq(friendshipsTable.id, req.params.id)).limit(1);
+  const [row] = await db.select().from(friendshipsTable).where(eq(friendshipsTable.id, req.params.id as string)).limit(1);
   if (!row || row.addresseeId !== userId) return res.status(403).json({ error: "Not authorized" });
   const [updated] = await db.update(friendshipsTable).set({ status: "accepted", updatedAt: new Date() })
-    .where(eq(friendshipsTable.id, req.params.id)).returning();
+    .where(eq(friendshipsTable.id, req.params.id as string)).returning();
   await db.insert(notificationsTable).values({
     userId: row.requesterId, type: "friend_accepted",
     title: "Friend request accepted",
@@ -126,17 +126,17 @@ socialRouter.patch("/social/request/:id/accept", authMiddleware, async (req: Aut
 
 socialRouter.patch("/social/request/:id/reject", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
-  const [row] = await db.select().from(friendshipsTable).where(eq(friendshipsTable.id, req.params.id)).limit(1);
+  const [row] = await db.select().from(friendshipsTable).where(eq(friendshipsTable.id, req.params.id as string)).limit(1);
   if (!row || row.addresseeId !== userId) return res.status(403).json({ error: "Not authorized" });
-  await db.delete(friendshipsTable).where(eq(friendshipsTable.id, req.params.id));
+  await db.delete(friendshipsTable).where(eq(friendshipsTable.id, req.params.id as string));
   res.json({ ok: true });
 });
 
 socialRouter.delete("/social/request/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
-  const [row] = await db.select().from(friendshipsTable).where(eq(friendshipsTable.id, req.params.id)).limit(1);
+  const [row] = await db.select().from(friendshipsTable).where(eq(friendshipsTable.id, req.params.id as string)).limit(1);
   if (!row || (row.requesterId !== userId && row.addresseeId !== userId)) return res.status(403).json({ error: "Not authorized" });
-  await db.delete(friendshipsTable).where(eq(friendshipsTable.id, req.params.id));
+  await db.delete(friendshipsTable).where(eq(friendshipsTable.id, req.params.id as string));
   res.json({ ok: true });
 });
 

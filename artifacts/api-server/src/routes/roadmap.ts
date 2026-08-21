@@ -56,7 +56,7 @@ router.get("/roadmap/list", async (req, res) => {
 router.get("/roadmap/:id", async (req, res) => {
   const userId = extractUserId(req);
   if (!userId) { res.status(401).json({ error: "Not authenticated" }); return; }
-  const { id } = req.params;
+  const { id } = req.params as { id: string };
   try {
     const [row] = await db.select().from(roadmapsTable)
       .where(eq(roadmapsTable.id, id));
@@ -71,7 +71,7 @@ router.get("/roadmap/:id", async (req, res) => {
 router.delete("/roadmap/:id", async (req, res) => {
   const userId = extractUserId(req);
   if (!userId) { res.status(401).json({ error: "Not authenticated" }); return; }
-  const { id } = req.params;
+  const { id } = req.params as { id: string };
   try {
     const [row] = await db.select({ userId: roadmapsTable.userId }).from(roadmapsTable).where(eq(roadmapsTable.id, id));
     if (!row || row.userId !== userId) { res.status(404).json({ error: "Not found" }); return; }
