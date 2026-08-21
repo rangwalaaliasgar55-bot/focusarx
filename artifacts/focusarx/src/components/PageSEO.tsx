@@ -199,9 +199,9 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   },
   focusGuide: {
     canonical: "/focus-guide",
-    title: "Ultimate Focus Guide 2026 | How to Build Deep Focus Habits | FocusArx",
-    description: "Learn how to build powerful deep focus habits with FocusArx. Science-backed techniques, Pomodoro method, flow state, and AI coaching to maximize your productivity.",
-    keywords: "focus guide, how to focus, deep focus techniques, focus habits, improve focus, concentration tips, focus app guide, FocusArx focus guide",
+    title: "How to Focus: The Complete Science-Based Guide (2026) | FocusArx",
+    description: "Learn how to focus and master deep work. Science-backed methods — Pomodoro technique, time blocking, flow state — plus a practical system to build unbreakable focus habits.",
+    keywords: "how to focus, improve focus, deep work, how to concentrate, focus guide, build focus habits, Pomodoro method, flow state, FocusArx focus guide",
   },
   pomodoroGuide: {
     canonical: "/pomodoro-guide",

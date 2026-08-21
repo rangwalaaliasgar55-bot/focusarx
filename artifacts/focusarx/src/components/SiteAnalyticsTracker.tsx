@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { initSiteAnalytics, trackPageView } from "@/lib/site-analytics";
+import { initGtag, trackPageView as trackGAPageView, isGAConfigured } from "@/lib/gtag";
 
 /** Background page-view tracker — mounts once inside the router. */
 export function SiteAnalyticsTracker() {
@@ -11,16 +12,25 @@ export function SiteAnalyticsTracker() {
     if (!initialized.current) {
       initialized.current = true;
       if (typeof requestIdleCallback !== "undefined") {
-        requestIdleCallback(() => initSiteAnalytics());
+        requestIdleCallback(() => {
+          initSiteAnalytics();
+          if (isGAConfigured()) initGtag();
+        });
       } else {
-        setTimeout(() => initSiteAnalytics(), 0);
+        setTimeout(() => {
+          initSiteAnalytics();
+          if (isGAConfigured()) initGtag();
+        }, 0);
       }
     }
   }, []);
 
   useEffect(() => {
     const path = location || "/";
-    const t = setTimeout(() => trackPageView(path), 300);
+    const t = setTimeout(() => {
+      trackPageView(path);
+      trackGAPageView(path);
+    }, 300);
     return () => clearTimeout(t);
   }, [location]);
 
