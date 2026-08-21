@@ -838,3 +838,39 @@ html.light .glass-subtle {
   .landing-hero-title { font-size: 2.6rem !important; }
   .landing-hero-sub   { font-size: 0.875rem !important; }
 }
+
+/* ── Cockpit HUD reticle ─────────────────────────────────────────────────── */
+.hud-reticle {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.hud-corner {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border: 2px solid rgba(167, 139, 250, 0.35);
+  opacity: 0.5;
+}
+.hud-corner.tl { top: 12px; left: 12px; border-right: 0; border-bottom: 0; border-top-left-radius: 6px; }
+.hud-corner.tr { top: 12px; right: 12px; border-left: 0; border-bottom: 0; border-top-right-radius: 6px; }
+.hud-corner.bl { bottom: 12px; left: 12px; border-right: 0; border-top: 0; border-bottom-left-radius: 6px; }
+.hud-corner.br { bottom: 12px; right: 12px; border-left: 0; border-top: 0; border-bottom-right-radius: 6px; }
+
+/* Subtle cockpit scanline sweep across the hero */
+@keyframes hud-scan {
+  0%   { top: -10%; opacity: 0; }
+  10%  { opacity: 0.5; }
+  90%  { opacity: 0.5; }
+  100% { top: 110%; opacity: 0; }
+}
+.hud-scanline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(167, 139, 250, 0.5), transparent);
+  animation: hud-scan 7s linear infinite;
+  pointer-events: none;
+}

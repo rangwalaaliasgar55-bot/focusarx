@@ -192,6 +192,15 @@ export default function LandingPage() {
           <Hero3D />
         </Suspense>
 
+        {/* Cockpit HUD reticle */}
+        <div className="hud-reticle hidden md:block" aria-hidden>
+          <span className="hud-corner tl" />
+          <span className="hud-corner tr" />
+          <span className="hud-corner bl" />
+          <span className="hud-corner br" />
+          <span className="hud-scanline" />
+        </div>
+
         <div className="relative z-10 text-center px-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -199,7 +208,7 @@ export default function LandingPage() {
             className="mb-6 inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-purple-300"
           >
             <Sparkles size={12} className="animate-pulse" />
-            AI-Powered Deep Work OS
+            Mission Control · Deep Work OS
           </motion.div>
 
           <motion.h1
@@ -218,7 +227,7 @@ export default function LandingPage() {
             transition={{ delay: 0.2 }}
             className="mx-auto mt-8 max-w-2xl text-lg text-[#94A3B8] sm:text-xl"
           >
-            Turn every study session into measurable progress. Build your digital civilization through the power of deep work.
+            Strap in, Commander. Every focus session fires your thrusters and builds your civilization — one deep-work orbit at a time.
           </motion.p>
 
           <motion.div
@@ -229,12 +238,12 @@ export default function LandingPage() {
           >
             <Link href="/signup">
               <button className="h-14 rounded-2xl bg-gradient-to-r from-[#7C3AED] via-[#F472B6] to-[#4F46E5] px-10 text-lg font-bold shadow-[0_0_24px_rgba(244,114,182,0.4)] hover:scale-105 transition-transform">
-                Start Focusing Free
+                🚀 Begin Launch Sequence
               </button>
             </Link>
             <Link href="/dashboard">
               <button className="h-14 rounded-2xl border border-white/10 bg-white/5 px-10 text-lg font-bold backdrop-blur-md hover:bg-white/10 transition-colors">
-                Explore Dashboard
+                Enter the Cockpit
               </button>
             </Link>
           </motion.div>
@@ -384,14 +393,14 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl">
           <div className="mb-20 text-center">
             <h2 className="text-4xl font-black sm:text-6xl">Your Journey to <span className="text-[#A78BFA]">Mastery</span></h2>
-            <p className="mt-4 text-[#94A3B8]">Three steps to total cognitive control.</p>
+            <p className="mt-4 text-[#94A3B8]">Three steps from the hangar to deep-work orbit.</p>
           </div>
 
           <div className="grid gap-12 lg:grid-cols-3">
             {[
-              { step: "01", title: "Set Your Intent", desc: "Choose your focus mode—Deep, Social, or Flow—and define your session goals.", icon: <Target className="text-purple-400" /> },
-              { step: "02", title: "Enter the Void", desc: "Our AI monitor detects distractions in real-time, gently guiding you back into state.", icon: <Shield className="text-emerald-400" /> },
-              { step: "03", title: "Evolve Your City", desc: "Every minute of focus rewards you with XP and coins to build your academic civilization.", icon: <Trophy className="text-blue-400" /> },
+              { step: "01", title: "Set Your Course", desc: "Plot your trajectory — choose your focus mode and define your mission objectives.", icon: <Target className="text-purple-400" /> },
+              { step: "02", title: "Enter the Void", desc: "Engage autopilot. Our AI monitor detects distractions in real-time and keeps you on course.", icon: <Shield className="text-emerald-400" /> },
+              { step: "03", title: "Expand Your Civilization", desc: "Every minute of focus powers your engines — earn XP and coins to grow your city among the stars.", icon: <Trophy className="text-blue-400" /> },
             ].map((s, i) => (
               <div key={i} className="relative">
                 <div className="mb-8 text-8xl font-black text-white/[0.03] absolute -top-12 -left-4 select-none">{s.step}</div>
@@ -485,8 +494,8 @@ export default function LandingPage() {
       <section className="relative py-40 px-6 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#7C3AED]/5 to-transparent pointer-events-none" />
         <div className="relative z-10 mx-auto max-w-4xl text-center">
-          <h2 className="text-4xl font-black sm:text-7xl mb-8">Ready to achieve <br /><span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Total Focus?</span></h2>
-          <p className="text-lg text-[#94A3B8] mb-12 max-w-2xl mx-auto">Join ambitious students and professionals. No credit card required. Cancel anytime.</p>
+          <h2 className="text-4xl font-black sm:text-7xl mb-8">Ready to take <br /><span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">the helm?</span></h2>
+          <p className="text-lg text-[#94A3B8] mb-12 max-w-2xl mx-auto">Join ambitious students and professionals. Free forever — no credit card, ever.</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/signup">
               <button className="h-16 px-12 rounded-2xl bg-white text-black font-black text-lg hover:scale-105 transition-transform shadow-[0_20px_50px_rgba(255,255,255,0.15)]">

@@ -11,7 +11,7 @@ const FAQS = [
     items: [
       { q: "How do I start a focus session?", a: "On the main timer page, click the play button to start a Pomodoro focus session. The default duration is 25 minutes. You can customise this in the timer settings." },
       { q: "Do I need to create an account?", a: "Yes — accounts let us save your sessions, XP, streaks, and settings securely. Sign up takes under 30 seconds with just an email and password." },
-      { q: "Is FocusArx free to use?", a: "Yes! The core app — timer, tasks, streaks, missions, gamification, AI coaching, and analytics — is completely free. Premium features (XP multipliers, exclusive themes, etc.) are available for a small subscription." },
+      { q: "Is FocusArx free to use?", a: "Yes! The core app — timer, tasks, streaks, missions, gamification, AI coaching, and analytics — is completely free. Premium perks (XP multipliers, exclusive themes, etc.) are unlocked with coins you earn from focusing, not money." },
     ]
   },
   {
@@ -178,7 +178,7 @@ export default function SupportPage() {
           </div>
 
           <div className="mt-8 flex flex-wrap gap-3 border-t border-[rgba(124,58,237,0.1)] pt-6 text-xs text-[#374151]">
-            {[["/contact","Contact"], ["/about","About"], ["/privacy","Privacy"], ["/refund","Refund Policy"]].map(([href, label]) => (
+            {[["/contact","Contact"], ["/about","About"], ["/privacy","Privacy"]].map(([href, label]) => (
               <Link key={href} href={href} className="hover:text-[#A78BFA] transition-colors">{label}</Link>
             ))}
           </div>

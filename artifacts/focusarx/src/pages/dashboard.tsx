@@ -491,7 +491,7 @@ const DashboardPage = () => {
               <h1 className="mt-1 text-2xl font-black tracking-tight text-[#E2E8F0] sm:text-3xl">
                 {greeting}, <span className="text-[#A78BFA]">{firstName}</span> 👋
               </h1>
-              <p className="mt-1 text-sm text-[#4B5563]">Here's your focus command center for today.</p>
+              <p className="mt-1 text-sm text-[#4B5563]">Here's your mission briefing for today, Commander.</p>
             </motion.div>
             <div className="flex items-center gap-3">
               <WeatherWidget />

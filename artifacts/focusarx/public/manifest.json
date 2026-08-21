@@ -16,7 +16,15 @@
     { "src": "/logo.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
     { "src": "/logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ],
-  "screenshots": [],
+  "screenshots": [
+    {
+      "src": "/opengraph.jpg",
+      "sizes": "1200x630",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "FocusArx — AI Deep Work OS"
+    }
+  ],
   "shortcuts": [
     { "name": "Start Focus Session", "short_name": "Focus", "description": "Jump to the AI Pomodoro timer", "url": "/", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] },
     { "name": "Dashboard", "short_name": "Dashboard", "description": "Today's focus stats and analytics", "url": "/dashboard", "icons": [{ "src": "/logo.png", "sizes": "192x192" }] },

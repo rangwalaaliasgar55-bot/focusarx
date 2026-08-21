@@ -106,6 +106,31 @@ function NebulaCloud({ position, color, scale }: { position: [number, number, nu
   );
 }
 
+/** A distant ringed planet that slowly drifts — reinforces the "in space" feel. */
+function RingedPlanet({ position, color, size }: { position: [number, number, number]; color: string; size: number }) {
+  const groupRef = useRef<THREE.Group>(null!);
+  const ringRef = useRef<THREE.Mesh>(null!);
+
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime();
+    groupRef.current.rotation.y = t * 0.02;
+    if (ringRef.current) ringRef.current.rotation.z = Math.sin(t * 0.08) * 0.05;
+  });
+
+  return (
+    <group ref={groupRef} position={position} scale={size}>
+      <mesh>
+        <sphereGeometry args={[1, 48, 48]} />
+        <meshStandardMaterial color={color} roughness={0.9} metalness={0.1} emissive={color} emissiveIntensity={0.15} />
+      </mesh>
+      <mesh ref={ringRef} rotation={[Math.PI / 2.3, 0, 0]}>
+        <torusGeometry args={[1.7, 0.28, 12, 96]} />
+        <meshStandardMaterial color={color} roughness={0.7} metalness={0.3} emissive={color} emissiveIntensity={0.3} transparent opacity={0.55} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
+
 function SceneContent({ isFocusing = false }: { isFocusing?: boolean }) {
   const { mouse, camera } = useThree();
   const targetCameraPos = useRef(new THREE.Vector3(0, 0, 15));
@@ -130,6 +155,8 @@ function SceneContent({ isFocusing = false }: { isFocusing?: boolean }) {
       <Stars count={isFocusing ? 3000 : 2000} />
       <NebulaCloud position={[-8, 4, -10]} color="#7C3AED" scale={isFocusing ? 7 : 6} />
       <NebulaCloud position={[8, -4, -12]} color="#4F46E5" scale={isFocusing ? 9 : 8} />
+      <RingedPlanet position={[14, 5, -18]} color="#3B82F6" size={isFocusing ? 3.4 : 3} />
+      <RingedPlanet position={[-16, -6, -20]} color="#06D6A0" size={isFocusing ? 2.6 : 2.2} />
     </>
   );
 }

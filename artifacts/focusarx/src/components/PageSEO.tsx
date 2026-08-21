@@ -164,14 +164,14 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   support: {
     canonical: "/support",
     title: "FocusArx Help Center | FAQ & Support",
-    description: "Find answers to common questions about FocusArx — Pomodoro timer, focus sessions, AI coaching, billing, account, and more. Get help fast.",
+    description: "Find answers to common questions about FocusArx — Pomodoro timer, focus sessions, AI coaching, account, and more. Get help fast.",
     keywords: "FocusArx help, FocusArx FAQ, FocusArx support center, FocusArx questions, how to use FocusArx",
   },
   pricing: {
     canonical: "/pricing",
-    title: "FocusArx Pricing | Elite Features for Deep Work",
-    description: "FocusArx is free to use. Unlock unlimited AI coaching, advanced Focus DNA insights, and exclusive themes with Premium — activated using coins you earn by focusing.",
-    keywords: "FocusArx pricing, productivity app cost, deep work premium, AI study coach price",
+    title: "FocusArx — Free Forever | Deep Work Features",
+    description: "FocusArx is completely free. Unlock unlimited AI coaching, advanced Focus DNA insights, and exclusive themes with Premium — activated using coins you earn by focusing.",
+    keywords: "FocusArx free, free focus timer, free study app, deep work features, FocusArx premium coins",
   },
   onboarding: {
     canonical: "/onboarding",
@@ -196,12 +196,6 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
     title: "Terms of Service | FocusArx",
     description: "FocusArx Terms of Service. Read the full terms governing your use of the FocusArx AI productivity platform.",
     keywords: "FocusArx terms of service, FocusArx terms, FocusArx conditions",
-  },
-  refund: {
-    canonical: "/refund",
-    title: "Refund Policy | FocusArx",
-    description: "FocusArx Refund Policy. 7-day full refund on Premium subscriptions. Free tier is always free. Read our complete refund policy.",
-    keywords: "FocusArx refund policy, FocusArx refund, FocusArx money back guarantee",
   },
   focusGuide: {
     canonical: "/focus-guide",
