@@ -43,6 +43,8 @@ import { LiveActivityTicker } from "@/components/LiveActivityTicker";
 import { FocusMoodWidget } from "@/components/FocusMoodWidget";
 import { FloatingParticles } from "@/components/FloatingParticles";
 import { CookieConsent } from "@/components/CookieConsent";
+import { MaintenanceGate } from "@/components/MaintenanceGate";
+import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 
 const OnboardingPage = lazy(() => import("@/pages/onboarding"));
 const DashboardPage = lazy(() => import("@/pages/dashboard"));
@@ -669,14 +671,17 @@ function AppWithPalette() {
   return (
     <>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      <AnnouncementBanner />
       <DailyRewardBanner />
       <LiveActivityTicker />
       <CookieConsent />
-      <MobileWelcomeGate>
-        <AppShell>
-          <RoutedContent />
-        </AppShell>
-      </MobileWelcomeGate>
+      <MaintenanceGate>
+        <MobileWelcomeGate>
+          <AppShell>
+            <RoutedContent />
+          </AppShell>
+        </MobileWelcomeGate>
+      </MaintenanceGate>
     </>
   );
 }

@@ -11,6 +11,8 @@ import { extractUserId } from "./auth";
 import { eq, and, desc, sql, inArray, or } from "drizzle-orm";
 import { moderateText } from "../lib/moderation";
 
+const REPEAT_OFFENDER_THRESHOLD = 3;
+
 function optionalAuth(req: any, res: any, next: any) {
   const userId = extractUserId(req);
   req.userId = userId;
@@ -136,7 +138,21 @@ postsRouter.post("/posts", authMiddleware, async (req: AuthRequest, res: Respons
     if (content.length > 2000) return res.status(400).json({ error: "Post too long (max 2000 chars)" });
 
     // Automated moderation — reject clear violations, flag borderline ones.
-    const moderation = await moderateText(content);
+    let moderation = await moderateText(content);
+
+    // Repeat-offender automation: if this author has been rejected repeatedly
+    // before, escalate borderline ("flagged") content to an automatic reject.
+    if (moderation.status === "flagged") {
+      try {
+        const [rejectedCount] = await db.select({ c: sql<number>`count(*)` })
+          .from(socialPostsTable)
+          .where(and(eq(socialPostsTable.userId, userId), eq(socialPostsTable.moderationStatus, "rejected")));
+        if (Number(rejectedCount?.c ?? 0) >= REPEAT_OFFENDER_THRESHOLD) {
+          moderation = { ...moderation, status: "rejected", reason: "Repeat offender (escalated)" };
+        }
+      } catch { /* ignore — fall through with the keyword/AI verdict */ }
+    }
+
     if (moderation.status === "rejected") {
       return res.status(400).json({
         error: `This post was blocked by our community filter (${moderation.reason}). Please keep it positive.`,

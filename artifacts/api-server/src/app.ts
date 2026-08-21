@@ -8,6 +8,7 @@ import { logger } from "./lib/logger";
 import { getConfigErrors } from "./lib/config";
 import { generalLimiter } from "./lib/rateLimiter";
 import { masterSecurityMiddleware } from "./middlewares/security";
+import { isMaintenanceMode } from "./lib/siteSettings";
 
 const isDev = process.env.NODE_ENV !== "production";
 const app: Express = express();
@@ -144,6 +145,32 @@ app.use("/api", (req, res, next) => {
       hint: "Add these in your environment variables: " + missing.join(", "),
     });
     return;
+  }
+  next();
+});
+// Maintenance-mode gate: when enabled, block everything except the public
+// settings endpoint (so the frontend can render the maintenance screen), the
+// admin panel (so an admin can turn it off), auth (so the admin can log in),
+// and health checks.
+app.use("/api", async (req, res, next) => {
+  const p = req.path;
+  const isExempt =
+    p === "/site/settings" ||
+    p.startsWith("/admin/") ||
+    p.startsWith("/auth/") ||
+    p === "/healthz" ||
+    p.startsWith("/healthz/");
+  if (isExempt) { next(); return; }
+  try {
+    if (await isMaintenanceMode()) {
+      res.status(503).json({
+        error: "FocusArx is temporarily in maintenance mode",
+        hint: "We're making things better — please check back in a few minutes.",
+      });
+      return;
+    }
+  } catch (err) {
+    logger.warn({ err }, "maintenance check failed — allowing request");
   }
   next();
 });

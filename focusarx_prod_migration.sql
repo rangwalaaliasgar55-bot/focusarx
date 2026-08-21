@@ -1111,3 +1111,17 @@ CREATE INDEX IF NOT EXISTS "posts_user_idx" ON "posts" USING btree ("user_id");
 CREATE INDEX IF NOT EXISTS "posts_created_at_idx" ON "posts" USING btree ("created_at");
 
 CREATE INDEX IF NOT EXISTS "post_likes_post_user_idx" ON "post_likes" USING btree ("post_id","user_id");
+
+-- ─── Site settings (maintenance mode, announcements, branding) ──────────────
+CREATE TABLE IF NOT EXISTS "site_settings" (
+	"id" text PRIMARY KEY NOT NULL,
+	"maintenance_mode" boolean DEFAULT false NOT NULL,
+	"maintenance_message" text,
+	"announcement_enabled" boolean DEFAULT false NOT NULL,
+	"announcement_title" text,
+	"announcement_text" text,
+	"announcement_emoji" text,
+	"branding_name" text DEFAULT 'FocusArx' NOT NULL,
+	"branding_tagline" text,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);

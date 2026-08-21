@@ -66,7 +66,7 @@ type CmsOverview = {
 type Tab =
   | "overview" | "analytics" | "users" | "moderation" | "missions" | "retention" | "sql"
   | "marketplace" | "pets" | "lootboxes" | "battlepass" | "quests"
-  | "city" | "notify" | "coins" | "email" | "premium";
+  | "city" | "notify" | "coins" | "email" | "premium" | "site";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -205,6 +205,20 @@ export default function AdminPage() {
   const [moderationLoading, setModerationLoading] = useState(false);
   const [moderationActionId, setModerationActionId] = useState<string | null>(null);
 
+  // Site settings state (maintenance mode, announcement, branding)
+  const [siteSettings, setSiteSettings] = useState<{
+    maintenanceMode: boolean;
+    maintenanceMessage: string;
+    announcementEnabled: boolean;
+    announcementTitle: string;
+    announcementText: string;
+    announcementEmoji: string;
+    brandingName: string;
+    brandingTagline: string;
+  } | null>(null);
+  const [siteSettingsSaving, setSiteSettingsSaving] = useState(false);
+  const [siteSettingsResult, setSiteSettingsResult] = useState<string | null>(null);
+
   const authHeaders = useCallback((): Record<string, string> => {
     const token = localStorage.getItem("focusarx-auth-token");
     return token ? { Authorization: `Bearer ${token}` } : {};
@@ -241,6 +255,7 @@ export default function AdminPage() {
     if (tab === "email") { loadEmailLogs(); loadEmailTemplates(); }
     if (tab === "premium" && premiumUsers.length === 0) loadPremiumUsers();
     if (tab === "moderation") loadModerationQueue();
+    if (tab === "site") loadSiteSettings();
   }, [tab]);
 
   async function loadMarketplace() {
@@ -361,6 +376,51 @@ export default function AdminPage() {
         setModerationCount(d.flaggedCount ?? 0);
       }
     } finally { setModerationLoading(false); }
+  }
+
+  async function loadSiteSettings() {
+    try {
+      const r = await fetch("/api/admin/site/settings", { headers: authHeaders(), credentials: "include" });
+      if (r.ok) {
+        const d = await r.json();
+        setSiteSettings({
+          maintenanceMode: d.maintenanceMode ?? false,
+          maintenanceMessage: d.maintenanceMessage ?? "We're making FocusArx even better. Check back in a few minutes.",
+          announcementEnabled: d.announcementEnabled ?? false,
+          announcementTitle: d.announcementTitle ?? "",
+          announcementText: d.announcementText ?? "",
+          announcementEmoji: d.announcementEmoji ?? "",
+          brandingName: d.brandingName ?? "FocusArx",
+          brandingTagline: d.brandingTagline ?? "",
+        });
+      }
+    } catch { /* ignore */ }
+  }
+
+  async function saveSiteSettings() {
+    if (!siteSettings) return;
+    setSiteSettingsSaving(true);
+    setSiteSettingsResult(null);
+    try {
+      const r = await fetch("/api/admin/site/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        credentials: "include",
+        body: JSON.stringify({
+          maintenanceMode: siteSettings.maintenanceMode,
+          maintenanceMessage: siteSettings.maintenanceMessage,
+          announcementEnabled: siteSettings.announcementEnabled,
+          announcementTitle: siteSettings.announcementTitle || null,
+          announcementText: siteSettings.announcementText || null,
+          announcementEmoji: siteSettings.announcementEmoji || null,
+          brandingName: siteSettings.brandingName,
+          brandingTagline: siteSettings.brandingTagline || null,
+        }),
+      });
+      if (r.ok) setSiteSettingsResult("Settings saved! Changes are live site-wide.");
+      else { const d = await r.json().catch(() => ({})); setSiteSettingsResult("Error: " + (d.error ?? "Failed to save")); }
+    } catch (e: any) { setSiteSettingsResult("Error: " + e.message); }
+    finally { setSiteSettingsSaving(false); }
   }
 
   async function moderatePost(postId: string, action: "approve" | "reject") {
@@ -1981,6 +2041,128 @@ export default function AdminPage() {
     );
   }
 
+  function renderSiteSettings() {
+    if (!siteSettings) {
+      return (
+        <MotionTab>
+          <SectionHeader title="Site Settings" sub="Maintenance mode, announcements, and branding." />
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-8 text-center text-sm text-zinc-500">Loading…</div>
+        </MotionTab>
+      );
+    }
+
+    const set = (patch: Partial<typeof siteSettings>) => setSiteSettings((s) => (s ? { ...s, ...patch } : s));
+
+    return (
+      <MotionTab>
+        <SectionHeader
+          title="Site Settings"
+          sub="Control the entire site from here — put it in maintenance mode, publish announcements, and edit branding. Changes are live instantly."
+        />
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          {/* Maintenance mode */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-zinc-100">🛠 Maintenance Mode</h3>
+                <p className="mt-0.5 text-xs text-zinc-500">Show a maintenance screen to everyone except admins.</p>
+              </div>
+              <button
+                onClick={() => set({ maintenanceMode: !siteSettings.maintenanceMode })}
+                className={`relative h-6 w-11 rounded-full transition-colors ${siteSettings.maintenanceMode ? "bg-amber-600" : "bg-zinc-700"}`}
+              >
+                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${siteSettings.maintenanceMode ? "translate-x-5" : "translate-x-0.5"}`} />
+              </button>
+            </div>
+            <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Maintenance message</label>
+            <textarea
+              rows={3}
+              value={siteSettings.maintenanceMessage}
+              onChange={(e) => set({ maintenanceMessage: e.target.value })}
+              className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 outline-none focus:border-amber-500 resize-none"
+            />
+          </div>
+
+          {/* Announcement */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-zinc-100">📣 Site Announcement</h3>
+                <p className="mt-0.5 text-xs text-zinc-500">Publish a banner across the whole app.</p>
+              </div>
+              <button
+                onClick={() => set({ announcementEnabled: !siteSettings.announcementEnabled })}
+                className={`relative h-6 w-11 rounded-full transition-colors ${siteSettings.announcementEnabled ? "bg-emerald-600" : "bg-zinc-700"}`}
+              >
+                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${siteSettings.announcementEnabled ? "translate-x-5" : "translate-x-0.5"}`} />
+              </button>
+            </div>
+            <div className="space-y-2">
+              <input
+                placeholder="Emoji (e.g. 🎉)"
+                value={siteSettings.announcementEmoji}
+                onChange={(e) => set({ announcementEmoji: e.target.value })}
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 outline-none focus:border-emerald-500"
+              />
+              <input
+                placeholder="Title"
+                value={siteSettings.announcementTitle}
+                onChange={(e) => set({ announcementTitle: e.target.value })}
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 outline-none focus:border-emerald-500"
+              />
+              <input
+                placeholder="Message"
+                value={siteSettings.announcementText}
+                onChange={(e) => set({ announcementText: e.target.value })}
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 outline-none focus:border-emerald-500"
+              />
+            </div>
+          </div>
+
+          {/* Branding */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5 lg:col-span-2">
+            <h3 className="text-sm font-semibold text-zinc-100 mb-1">🎨 Branding</h3>
+            <p className="mb-4 text-xs text-zinc-500">Edit the app name and tagline shown across the product.</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-500">App name</label>
+                <input
+                  value={siteSettings.brandingName}
+                  onChange={(e) => set({ brandingName: e.target.value })}
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 outline-none focus:border-violet-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Tagline</label>
+                <input
+                  value={siteSettings.brandingTagline}
+                  onChange={(e) => set({ brandingTagline: e.target.value })}
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 outline-none focus:border-violet-500"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-5 flex items-center gap-3">
+          <button
+            onClick={() => void saveSiteSettings()}
+            disabled={siteSettingsSaving}
+            className="rounded-lg bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-violet-500 disabled:opacity-50 transition"
+          >
+            {siteSettingsSaving ? "Saving…" : "Save Settings"}
+          </button>
+          {siteSettingsResult && (
+            <span className={`text-xs ${siteSettingsResult.startsWith("Error") ? "text-rose-400" : "text-emerald-400"}`}>
+              {siteSettingsResult}
+            </span>
+          )}
+        </div>
+      </MotionTab>
+    );
+  }
+
   const TAB_RENDER: Record<Tab, () => React.ReactNode> = {
     overview: renderOverview,
     analytics: () => (
@@ -2004,6 +2186,7 @@ export default function AdminPage() {
     coins: renderCoins,
     email: renderEmail,
     premium: renderPremiumManagement,
+    site: renderSiteSettings,
   };
 
   return (
