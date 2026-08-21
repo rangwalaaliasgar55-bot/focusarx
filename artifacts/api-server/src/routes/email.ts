@@ -274,7 +274,7 @@ async function sendEmailViaResend(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: process.env.EMAIL_FROM ?? "FocusArx <noreply@focusarx.app>",
+        from: process.env.EMAIL_FROM ?? "FocusArx <focusarx@gmail.com>",
         to,
         subject,
         html,

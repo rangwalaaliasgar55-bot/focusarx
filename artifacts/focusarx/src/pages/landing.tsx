@@ -537,6 +537,10 @@ export default function LandingPage() {
               <p className="text-xs text-[#4B5563] leading-relaxed">
                 The AI-powered OS for deep work. Build focus habits that actually stick.
               </p>
+              <div className="mt-4 space-y-1.5 text-xs text-[#4B5563]">
+                <a href="mailto:focusarx@gmail.com" className="block hover:text-[#A78BFA] transition-colors">✉️ focusarx@gmail.com</a>
+                <a href="tel:+917725004639" className="block hover:text-[#A78BFA] transition-colors">📞 +91 77250 04639</a>
+              </div>
             </div>
             <div>
               <h4 className="mb-6 text-[10px] font-bold uppercase tracking-widest text-white">Product</h4>

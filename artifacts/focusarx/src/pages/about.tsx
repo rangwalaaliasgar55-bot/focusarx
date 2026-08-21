@@ -78,19 +78,19 @@ export default function AboutPage() {
                    <div className="grid sm:grid-cols-2 gap-10">
                       <div className="space-y-6">
                          <div className="flex items-start gap-4">
-                            <MapPin className="text-[#A78BFA] mt-1" size={18} />
+                            <Globe className="text-[#A78BFA] mt-1" size={18} />
                             <div>
-                               <p className="text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-1">Headquarters</p>
-                               <p className="text-sm text-zinc-300">101 Innovation Drive</p>
-                               <p className="text-sm text-zinc-500">Suite 500, San Jose, CA 95134</p>
+                               <p className="text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-1">Based In</p>
+                               <p className="text-sm text-zinc-300">India</p>
+                               <p className="text-sm text-zinc-500">Serving learners worldwide</p>
                             </div>
                          </div>
                          <div className="flex items-start gap-4">
                             <ShieldCheck className="text-[#A78BFA] mt-1" size={18} />
                             <div>
-                               <p className="text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-1">Accreditation</p>
-                               <p className="text-sm text-zinc-300">Registration: #FX-2024-99812</p>
-                               <p className="text-sm text-zinc-500">Global Productivity Standard Certified</p>
+                               <p className="text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-1">Privacy</p>
+                               <p className="text-sm text-zinc-300">On-device vision processing</p>
+                               <p className="text-sm text-zinc-500">No video ever leaves your browser</p>
                             </div>
                          </div>
                       </div>
@@ -99,16 +99,16 @@ export default function AboutPage() {
                             <Mail className="text-[#A78BFA] mt-1" size={18} />
                             <div>
                                <p className="text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-1">Email</p>
-                               <p className="text-sm text-zinc-300">support@focusarx.site</p>
-                               <p className="text-sm text-zinc-500">24/7 Priority Support</p>
+                               <a href="mailto:focusarx@gmail.com" className="text-sm text-zinc-300 hover:text-[#A78BFA] transition-colors">focusarx@gmail.com</a>
+                               <p className="text-sm text-zinc-500">We reply fast</p>
                             </div>
                          </div>
                          <div className="flex items-start gap-4">
                             <Phone className="text-[#A78BFA] mt-1" size={18} />
                             <div>
-                               <p className="text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-1">Phone</p>
-                               <p className="text-sm text-zinc-300">+1 (800) 362-8729</p>
-                               <p className="text-sm text-zinc-500">Mon-Fri: 9am - 6pm PST</p>
+                               <p className="text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-1">Phone / WhatsApp</p>
+                               <a href="tel:+917725004639" className="text-sm text-zinc-300 hover:text-[#A78BFA] transition-colors">+91 77250 04639</a>
+                               <p className="text-sm text-zinc-500">Mon–Sat · 9am–7pm IST</p>
                             </div>
                          </div>
                       </div>
@@ -129,7 +129,7 @@ export default function AboutPage() {
 
           <div className="px-6 py-12 border-t border-white/5 text-center">
              <p className="text-[10px] text-zinc-700 leading-relaxed uppercase tracking-[0.2em] max-w-3xl mx-auto">
-               *FocusArx Technologies Ltd. is a research-driven software entity. All AI-generated protocols are for educational and professional enhancement purposes. Focus responsibly.
+               *FocusArx is a productivity app built by an independent team. AI-generated coaching is for educational and motivational purposes only — it is not professional advice. Focus responsibly.
              </p>
           </div>
         </PageTransition>

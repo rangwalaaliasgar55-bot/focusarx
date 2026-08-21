@@ -25,9 +25,9 @@ const FAQS = [
   {
     cat: "Account & Data",
     items: [
-      { q: "How do I delete my account?", a: "Visit your Profile page, scroll to the bottom, and click 'Delete Account'. You can also email support@focusarx.app and we will permanently delete your data within 7 days." },
+      { q: "How do I delete my account?", a: "Visit your Profile page, scroll to the bottom, and click 'Delete Account'. You can also email focusarx@gmail.com and we will permanently delete your data within 7 days." },
       { q: "Is my webcam data stored?", a: "No. Webcam data is processed entirely on-device using MediaPipe. No video frames are ever sent to our servers. Only the derived focus score is saved." },
-      { q: "Can I export my data?", a: "We're building a data export feature. In the meantime, contact support@focusarx.app and we'll send you a CSV of your session history." },
+      { q: "Can I export my data?", a: "We're building a data export feature. In the meantime, contact focusarx@gmail.com and we'll send you a CSV of your session history." },
     ]
   },
   {
@@ -110,11 +110,12 @@ export default function SupportPage() {
           </header>
 
           {/* Quick links */}
-          <div className="mb-10 grid sm:grid-cols-3 gap-4">
+          <div className="mb-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { emoji: "✉️", title: "Email Us", desc: "support@focusarx.app", href: "mailto:support@focusarx.app" },
-              { emoji: "📖", title: "Guides", desc: "Pomodoro & study techniques", href: "/pomodoro-guide" },
+              { emoji: "✉️", title: "Email Us", desc: "focusarx@gmail.com", href: "mailto:focusarx@gmail.com" },
+              { emoji: "📞", title: "Call Us", desc: "+91 77250 04639", href: "tel:+917725004639" },
               { emoji: "💬", title: "Contact Form", desc: "Send a detailed message", href: "/contact" },
+              { emoji: "📖", title: "Guides", desc: "Pomodoro & study techniques", href: "/pomodoro-guide" },
             ].map((c, i) => (
               <motion.a
                 key={i} href={c.href}

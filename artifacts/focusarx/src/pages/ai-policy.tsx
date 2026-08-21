@@ -67,7 +67,7 @@ export default function AiPolicyPage() {
             </Section>
 
             <Section title="Contact">
-              <p>Questions about our AI usage? Contact <span className="text-[#A78BFA]">ai@focusarx.app</span></p>
+              <p>Questions about our AI usage? Contact <span className="text-[#A78BFA]">focusarx@gmail.com</span></p>
             </Section>
           </div>
 

@@ -60,7 +60,7 @@ export default function AcceptableUsePage() {
             </Section>
 
             <Section title="Reporting Violations">
-              <p>If you observe a violation of this policy, contact us at <span className="text-[#A78BFA]">abuse@focusarx.app</span></p>
+              <p>If you observe a violation of this policy, contact us at <span className="text-[#A78BFA]">focusarx@gmail.com</span></p>
             </Section>
           </div>
 

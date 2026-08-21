@@ -68,7 +68,7 @@ export default function DataDeletionPage() {
 
                 <div className="rounded-xl border border-[rgba(124,58,237,0.15)] bg-[rgba(124,58,237,0.05)] p-4">
                   <p className="mb-1 font-medium text-[#E2E8F0]">Option 1 — Email request (recommended)</p>
-                  <p>Send an email to <span className="text-[#A78BFA]">privacy@focusarx.app</span> with the subject line "Data Deletion Request" and your registered email address. We will process your request within 30 days and send a confirmation.</p>
+                  <p>Send an email to <span className="text-[#A78BFA]">focusarx@gmail.com</span> with the subject line "Data Deletion Request" and your registered email address. We will process your request within 30 days and send a confirmation.</p>
                 </div>
 
                 <div className="rounded-xl border border-[rgba(239,68,68,0.15)] bg-[rgba(239,68,68,0.04)] p-4">
@@ -116,7 +116,7 @@ export default function DataDeletionPage() {
                   )}
 
                   {step === "error" && (
-                    <p className="text-sm text-[#F87171]">Something went wrong. Please email us directly at privacy@focusarx.app</p>
+                    <p className="text-sm text-[#F87171]">Something went wrong. Please email us directly at focusarx@gmail.com</p>
                   )}
                 </div>
               </div>

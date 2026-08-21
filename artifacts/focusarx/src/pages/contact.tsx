@@ -1,24 +1,66 @@
 import { PageTransition } from "@/components/PageTransition";
 import { Link } from "wouter";
-import { ArrowLeft, Mail, MessageSquare, Twitter, Github } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MessageCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
+import { CONTACT_EMAIL, CONTACT_PHONE_DISPLAY, CONTACT_PHONE_TEL, whatsApp } from "@/lib/contact";
 
 const CONTACT_OPTIONS = [
-  { icon: Mail, title: "Email Support", desc: "For billing, account, or technical issues", contact: "support@focusarx.app", href: "mailto:support@focusarx.app", cta: "Send Email" },
-  { icon: MessageSquare, title: "Feature Requests", desc: "Tell us what you'd like to see built next", contact: "feedback@focusarx.app", href: "mailto:feedback@focusarx.app", cta: "Send Feedback" },
-  { icon: Twitter, title: "Twitter / X", desc: "Follow us for updates and tips", contact: "@focusarx", href: "https://twitter.com/focusarx", cta: "Follow Us" },
-  { icon: Github, title: "Bug Reports", desc: "Found a bug? Let us know directly", contact: "bugs@focusarx.app", href: "mailto:bugs@focusarx.app", cta: "Report Bug" },
+  {
+    icon: Mail,
+    title: "Email Support",
+    desc: "For account, feedback, or technical issues",
+    contact: CONTACT_EMAIL,
+    href: `mailto:${CONTACT_EMAIL}`,
+    cta: "Send Email",
+    external: false,
+  },
+  {
+    icon: Phone,
+    title: "Call Us",
+    desc: "Mon–Sat, 9am–7pm IST",
+    contact: CONTACT_PHONE_DISPLAY,
+    href: `tel:${CONTACT_PHONE_TEL}`,
+    cta: "Call Now",
+    external: false,
+  },
+  {
+    icon: MessageCircle,
+    title: "WhatsApp",
+    desc: "Fastest way to reach the team",
+    contact: CONTACT_PHONE_DISPLAY,
+    href: whatsApp("Hi FocusArx! I'd like to get in touch."),
+    cta: "Chat on WhatsApp",
+    external: true,
+  },
 ];
 
 export default function ContactPage() {
-  const [submitted, setSubmitted] = useState(false);
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [error, setError] = useState("");
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setStatus("sending");
+    setError("");
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(data.error ?? "Failed to send message");
+      }
+      setStatus("sent");
+      setForm({ name: "", email: "", subject: "", message: "" });
+    } catch (err) {
+      setStatus("error");
+      setError(err instanceof Error ? err.message : "Failed to send message. Please email us directly.");
+    }
   };
 
   return (
@@ -53,7 +95,7 @@ export default function ContactPage() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="text-sm text-[#6b7280]"
             >
-              Whether you have a question, a bug report, or just want to say hi — we read every message.
+              A question, a bug report, or a feature idea — we read every message.
             </motion.p>
           </header>
 
@@ -61,7 +103,7 @@ export default function ContactPage() {
             {/* Contact form */}
             <div className="rounded-2xl border border-[rgba(124,58,237,0.2)] bg-[rgba(12,14,28,0.8)] p-6 backdrop-blur-sm">
               <h2 className="mb-5 text-base font-bold text-[#E2E8F0]">Send a Message</h2>
-              {submitted ? (
+              {status === "sent" ? (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -71,8 +113,8 @@ export default function ContactPage() {
                     <span className="text-2xl">✓</span>
                   </div>
                   <p className="font-semibold text-[#E2E8F0]">Message sent!</p>
-                  <p className="text-sm text-[#6b7280]">We'll get back to you within 1–2 business days.</p>
-                  <button onClick={() => setSubmitted(false)} className="text-xs text-[#A78BFA] hover:underline">Send another message</button>
+                  <p className="text-sm text-[#6b7280]">We'll get back to you soon.</p>
+                  <button onClick={() => setStatus("idle")} className="text-xs text-[#A78BFA] hover:underline">Send another message</button>
                 </motion.div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -114,13 +156,17 @@ export default function ContactPage() {
                       className="w-full resize-none rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.04)] px-3.5 py-2.5 text-sm text-[#E2E8F0] placeholder-[rgba(255,255,255,0.20)] outline-none focus:border-[#7c3aed] transition-colors"
                     />
                   </div>
+                  {status === "error" && (
+                    <p className="text-xs text-red-400">{error}</p>
+                  )}
                   <motion.button
                     type="submit"
+                    disabled={status === "sending"}
                     whileHover={{ scale: 1.02, boxShadow: "0 0 30px 6px rgba(124,58,237,0.3)" }}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full rounded-xl bg-gradient-to-r from-[#7c3aed] to-[#e879f9] py-3 text-sm font-bold text-white"
+                    className="w-full rounded-xl bg-gradient-to-r from-[#7c3aed] to-[#e879f9] py-3 text-sm font-bold text-white disabled:opacity-60"
                   >
-                    Send Message →
+                    {status === "sending" ? "Sending…" : "Send Message →"}
                   </motion.button>
                 </form>
               )}
@@ -132,8 +178,8 @@ export default function ContactPage() {
                 <motion.a
                   key={i}
                   href={opt.href}
-                  target={opt.href.startsWith("http") ? "_blank" : undefined}
-                  rel={opt.href.startsWith("http") ? "noopener noreferrer" : undefined}
+                  target={opt.external ? "_blank" : undefined}
+                  rel={opt.external ? "noopener noreferrer" : undefined}
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.4, delay: i * 0.08 }}
@@ -156,7 +202,7 @@ export default function ContactPage() {
                 <p className="text-sm font-semibold text-[#E2E8F0] mb-1.5">Response Times</p>
                 <ul className="space-y-1 text-xs text-[#6b7280]">
                   <li>🟢 General enquiries — within 24 hours</li>
-                  <li>🟡 Billing & account issues — within 12 hours</li>
+                  <li>🟡 Account issues — within 12 hours</li>
                   <li>🔴 Security concerns — within 4 hours</li>
                 </ul>
               </div>
