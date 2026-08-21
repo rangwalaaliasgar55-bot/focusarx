@@ -102,12 +102,12 @@ function LevelBar({ totalXp }: { totalXp: number }) {
             <span className="text-lg font-black text-white">{level}</span>
           </div>
           <div>
-            <p className="text-base font-bold text-[#E2E8F0]">Level {level}</p>
-            <p className="text-xs text-[#4B5563]">{totalXp.toLocaleString()} total XP</p>
+            <p className="text-base font-bold text-[var(--foreground)]">Level {level}</p>
+            <p className="text-xs text-[var(--foreground-subtle)]">{totalXp.toLocaleString()} total XP</p>
           </div>
         </div>
         <div className="text-right">
-          <p className="text-xs text-[#4B5563]">Next level</p>
+          <p className="text-xs text-[var(--foreground-subtle)]">Next level</p>
           <p className="text-sm font-semibold text-[#A78BFA]">{xpInLevel} / {xpNeeded} XP</p>
         </div>
       </div>
@@ -119,7 +119,7 @@ function LevelBar({ totalXp }: { totalXp: number }) {
           transition={{ duration: 1.2, ease: "easeOut" }}
         />
       </div>
-      <p className="mt-2 text-[10px] text-[#4B5563]">{xpNeeded - xpInLevel} XP to level {level + 1}</p>
+      <p className="mt-2 text-[10px] text-[var(--foreground-subtle)]">{xpNeeded - xpInLevel} XP to level {level + 1}</p>
     </div>
   );
 }
@@ -142,7 +142,7 @@ function BadgeCard({ badge }: { badge: BadgeDef }) {
         <div className="flex items-center gap-2">
           <span className={`text-2xl ${!badge.unlocked ? "grayscale" : ""}`}>{badge.icon}</span>
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-[#E2E8F0] leading-tight truncate">{badge.name}</p>
+            <p className="text-xs font-semibold text-[var(--foreground)] leading-tight truncate">{badge.name}</p>
             <p
               className="text-[9px] font-semibold uppercase tracking-wider"
               style={{ color: badge.unlocked ? colors.text : "#4B5563" }}
@@ -151,9 +151,9 @@ function BadgeCard({ badge }: { badge: BadgeDef }) {
             </p>
           </div>
         </div>
-        {!badge.unlocked && <Lock size={11} className="text-[#4B5563] shrink-0 mt-0.5" />}
+        {!badge.unlocked && <Lock size={11} className="text-[var(--foreground-subtle)] shrink-0 mt-0.5" />}
       </div>
-      <p className="text-[10px] text-[#4B5563] leading-snug">{badge.description}</p>
+      <p className="text-[10px] text-[var(--foreground-subtle)] leading-snug">{badge.description}</p>
       {!badge.unlocked && (
         <div>
           <div className="h-1 rounded-full bg-[rgba(124,58,237,0.1)] overflow-hidden">
@@ -162,11 +162,11 @@ function BadgeCard({ badge }: { badge: BadgeDef }) {
               style={{ width: `${pct}%`, background: colors.text }}
             />
           </div>
-          <p className="text-[9px] text-[#4B5563] mt-0.5">{badge.progress}/{badge.threshold}</p>
+          <p className="text-[9px] text-[var(--foreground-subtle)] mt-0.5">{badge.progress}/{badge.threshold}</p>
         </div>
       )}
       {badge.unlocked && badge.unlockedAt && (
-        <p className="text-[9px] text-[#4B5563]">{new Date(badge.unlockedAt).toLocaleDateString()}</p>
+        <p className="text-[9px] text-[var(--foreground-subtle)]">{new Date(badge.unlockedAt).toLocaleDateString()}</p>
       )}
     </motion.div>
   );
@@ -211,28 +211,28 @@ function EditProfileModal({
         className="relative z-10 w-full max-w-md rounded-2xl border border-[rgba(124,58,237,0.25)] bg-[#0f1118] p-6 shadow-2xl"
       >
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-bold text-[#E2E8F0] flex items-center gap-2">
+          <h2 className="text-base font-bold text-[var(--foreground)] flex items-center gap-2">
             <Pencil size={14} className="text-[#7C3AED]" /> Edit Profile
           </h2>
-          <button onClick={onClose} className="text-[#4B5563] hover:text-[#94A3B8] transition-colors">
+          <button onClick={onClose} className="text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)] transition-colors">
             <X size={16} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs text-[#4B5563] mb-1.5">Display Name</label>
+            <label className="block text-xs text-[var(--foreground-subtle)] mb-1.5">Display Name</label>
             <input
               value={fields.name}
               onChange={e => setFields(f => ({ ...f, name: e.target.value }))}
               maxLength={60}
               placeholder="Your name"
-              className="w-full rounded-xl border border-[rgba(124,58,237,0.2)] bg-[rgba(124,58,237,0.06)] px-3 py-2.5 text-sm text-[#E2E8F0] placeholder-[#4B5563] focus:border-[#7C3AED] focus:outline-none transition-colors"
+              className="w-full rounded-xl border border-[rgba(124,58,237,0.2)] bg-[rgba(124,58,237,0.06)] px-3 py-2.5 text-sm text-[var(--foreground)] placeholder-[#4B5563] focus:border-[#7C3AED] focus:outline-none transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-[#4B5563] mb-1.5 flex items-center gap-1.5">
+            <label className="block text-xs text-[var(--foreground-subtle)] mb-1.5 flex items-center gap-1.5">
               <FileText size={11} /> Bio <span className="ml-auto text-[#3a3d4a]">{fields.bio.length}/300</span>
             </label>
             <textarea
@@ -241,18 +241,18 @@ function EditProfileModal({
               maxLength={300}
               rows={3}
               placeholder="A short bio about yourself…"
-              className="w-full rounded-xl border border-[rgba(124,58,237,0.2)] bg-[rgba(124,58,237,0.06)] px-3 py-2.5 text-sm text-[#E2E8F0] placeholder-[#4B5563] focus:border-[#7C3AED] focus:outline-none transition-colors resize-none"
+              className="w-full rounded-xl border border-[rgba(124,58,237,0.2)] bg-[rgba(124,58,237,0.06)] px-3 py-2.5 text-sm text-[var(--foreground)] placeholder-[#4B5563] focus:border-[#7C3AED] focus:outline-none transition-colors resize-none"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-[#4B5563] mb-1.5 flex items-center gap-1.5">
+            <label className="block text-xs text-[var(--foreground-subtle)] mb-1.5 flex items-center gap-1.5">
               <Globe size={11} /> Timezone
             </label>
             <select
               value={fields.timezone}
               onChange={e => setFields(f => ({ ...f, timezone: e.target.value }))}
-              className="w-full rounded-xl border border-[rgba(124,58,237,0.2)] bg-[#0f1118] px-3 py-2.5 text-sm text-[#E2E8F0] focus:border-[#7C3AED] focus:outline-none transition-colors"
+              className="w-full rounded-xl border border-[rgba(124,58,237,0.2)] bg-[#0f1118] px-3 py-2.5 text-sm text-[var(--foreground)] focus:border-[#7C3AED] focus:outline-none transition-colors"
             >
               {TIMEZONES.map(tz => (
                 <option key={tz} value={tz}>{tz}</option>
@@ -264,7 +264,7 @@ function EditProfileModal({
 
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={onClose}
-              className="flex-1 rounded-xl border border-[rgba(124,58,237,0.2)] py-2.5 text-sm text-[#94A3B8] hover:text-[#E2E8F0] transition-colors">
+              className="flex-1 rounded-xl border border-[rgba(124,58,237,0.2)] py-2.5 text-sm text-[var(--foreground-muted)] hover:text-[var(--foreground)] transition-colors">
               Cancel
             </button>
             <button type="submit" disabled={saving}
@@ -373,7 +373,7 @@ export default function ProfilePage() {
             <span className="text-xl">{newlyUnlocked[0]?.icon}</span>
             <div>
               <p className="text-xs font-bold text-amber-400">Badge Unlocked!</p>
-              <p className="text-[11px] text-[#94A3B8]">{newlyUnlocked[0]?.name}</p>
+              <p className="text-[11px] text-[var(--foreground-muted)]">{newlyUnlocked[0]?.name}</p>
             </div>
           </motion.div>
         )}
@@ -406,8 +406,8 @@ export default function ProfilePage() {
         <PageTransition>
           <header className="mb-8 flex items-start justify-between">
             <div>
-              <p className="text-xs font-medium uppercase tracking-[0.22em] text-[#4B5563]">Identity</p>
-              <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold text-[#E2E8F0] sm:text-3xl">
+              <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--foreground-subtle)]">Identity</p>
+              <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold text-[var(--foreground)] sm:text-3xl">
                 <User size={22} className="text-[#A78BFA]" /> Profile
               </h1>
             </div>
@@ -428,7 +428,7 @@ export default function ProfilePage() {
 
           {!loading && status === "unauthenticated" && (
             <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-8 text-center">
-              <p className="text-[#94A3B8] text-sm">Sign in to see your profile.</p>
+              <p className="text-[var(--foreground-muted)] text-sm">Sign in to see your profile.</p>
             </div>
           )}
 
@@ -441,11 +441,11 @@ export default function ProfilePage() {
                     {(localName?.slice(0, 1) || user?.name?.slice(0, 1) || user?.email?.slice(0, 1) || "?").toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-[#E2E8F0] truncate">{localName || user?.name || user?.email?.split("@")[0] || "User"}</p>
-                    <p className="text-xs text-[#4B5563] truncate">{user?.email || ""}</p>
+                    <p className="font-bold text-[var(--foreground)] truncate">{localName || user?.name || user?.email?.split("@")[0] || "User"}</p>
+                    <p className="text-xs text-[var(--foreground-subtle)] truncate">{user?.email || ""}</p>
                     {localBio && <p className="text-xs text-[#6B7280] mt-1 line-clamp-2">{localBio}</p>}
                     {localTimezone !== "UTC" && (
-                      <p className="text-[10px] text-[#4B5563] mt-0.5 flex items-center gap-1">
+                      <p className="text-[10px] text-[var(--foreground-subtle)] mt-0.5 flex items-center gap-1">
                         <Globe size={9} /> {localTimezone}
                       </p>
                     )}
@@ -454,12 +454,12 @@ export default function ProfilePage() {
                     <div className="flex gap-3 text-center">
                       <div>
                         <p className="text-base font-bold text-[#A78BFA]">{wallet.coins.toLocaleString()}</p>
-                        <p className="text-[9px] text-[#4B5563]">Coins</p>
+                        <p className="text-[9px] text-[var(--foreground-subtle)]">Coins</p>
                       </div>
                       {wallet.rank && (
                         <div>
                           <p className="text-base font-bold text-amber-400">#{wallet.rank}</p>
-                          <p className="text-[9px] text-[#4B5563]">Rank</p>
+                          <p className="text-[9px] text-[var(--foreground-subtle)]">Rank</p>
                         </div>
                       )}
                     </div>
@@ -498,7 +498,7 @@ export default function ProfilePage() {
                   ].map(({ label, value, color }) => (
                     <div key={label} className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-3 text-center backdrop-blur-xl">
                       <p className="text-base font-bold" style={{ color }}>{value}</p>
-                      <p className="text-[10px] text-[#4B5563]">{label}</p>
+                      <p className="text-[10px] text-[var(--foreground-subtle)]">{label}</p>
                     </div>
                   ))}
                 </div>
@@ -508,7 +508,7 @@ export default function ProfilePage() {
               <div className="rounded-2xl border border-[rgba(124,58,237,0.15)] bg-[rgba(124,58,237,0.04)] p-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Zap size={16} className="text-[#A78BFA]" />
-                  <span className="text-sm text-[#94A3B8]">Weekly XP</span>
+                  <span className="text-sm text-[var(--foreground-muted)]">Weekly XP</span>
                 </div>
                 <span className="text-sm font-bold text-[#A78BFA]">{wallet.weeklyXp.toLocaleString()} XP</span>
               </div>
@@ -517,7 +517,7 @@ export default function ProfilePage() {
               {txHistory && (
                 <div className="rounded-2xl border border-[rgba(255,184,0,0.12)] bg-[rgba(255,184,0,0.03)] p-5">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-sm font-semibold text-[#E2E8F0] flex items-center gap-2">
+                    <h2 className="text-sm font-semibold text-[var(--foreground)] flex items-center gap-2">
                       <Wallet size={14} className="text-amber-400" />
                       Coin Wallet
                     </h2>
@@ -526,7 +526,7 @@ export default function ProfilePage() {
                         <button
                           key={f}
                           onClick={() => setTxFilter(f)}
-                          className={`rounded-lg px-2.5 py-1 text-[10px] font-medium transition-all capitalize ${txFilter === f ? "bg-amber-500/20 text-amber-400" : "text-[#4B5563] hover:text-[#94A3B8]"}`}
+                          className={`rounded-lg px-2.5 py-1 text-[10px] font-medium transition-all capitalize ${txFilter === f ? "bg-amber-500/20 text-amber-400" : "text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]"}`}
                         >
                           {f}
                         </button>
@@ -543,7 +543,7 @@ export default function ProfilePage() {
                     ].map(({ label, value, color }) => (
                       <div key={label} className="rounded-xl border border-[var(--forge-border)] bg-[var(--card)] p-3 text-center">
                         <p className="text-sm font-bold tabular-nums" style={{ color }}>{value}</p>
-                        <p className="text-[9px] text-[#4B5563] mt-0.5">{label}</p>
+                        <p className="text-[9px] text-[var(--foreground-subtle)] mt-0.5">{label}</p>
                       </div>
                     ))}
                   </div>
@@ -570,13 +570,13 @@ export default function ProfilePage() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-[11px] font-medium text-[#CBD5E1] truncate">{tx.description}</p>
-                              <p className="text-[9px] text-[#4B5563]">{timeStr}</p>
+                              <p className="text-[9px] text-[var(--foreground-subtle)]">{timeStr}</p>
                             </div>
                             <div className="text-right shrink-0">
                               <p className={`text-[12px] font-bold tabular-nums ${isEarn ? "text-emerald-400" : "text-red-400"}`}>
                                 {isEarn ? "+" : ""}{tx.amount.toLocaleString()} 🪙
                               </p>
-                              <p className="text-[9px] text-[#4B5563]">bal: {tx.balanceAfter.toLocaleString()}</p>
+                              <p className="text-[9px] text-[var(--foreground-subtle)]">bal: {tx.balanceAfter.toLocaleString()}</p>
                             </div>
                           </motion.div>
                         );
@@ -584,7 +584,7 @@ export default function ProfilePage() {
                     {txHistory.transactions.filter(t => txFilter === "all" || (txFilter === "earn" ? t.amount > 0 : t.amount < 0)).length === 0 && (
                       <div className="flex flex-col items-center gap-2 py-8">
                         <History size={28} className="text-[#2D3748]" />
-                        <p className="text-xs text-[#4B5563]">No transactions yet</p>
+                        <p className="text-xs text-[var(--foreground-subtle)]">No transactions yet</p>
                       </div>
                     )}
                   </div>
@@ -594,7 +594,7 @@ export default function ProfilePage() {
               {/* Badges section */}
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-sm font-semibold text-[#E2E8F0] flex items-center gap-2">
+                  <h2 className="text-sm font-semibold text-[var(--foreground)] flex items-center gap-2">
                     <Award size={14} className="text-amber-400" />
                     Badges
                     <span className="rounded-full bg-[rgba(124,58,237,0.15)] px-2 py-0.5 text-[10px] text-[#A78BFA]">
@@ -606,7 +606,7 @@ export default function ProfilePage() {
                       <button
                         key={f}
                         onClick={() => setFilter(f)}
-                        className={`rounded-lg px-2.5 py-1 text-[10px] font-medium transition-all ${filter === f ? "bg-[rgba(124,58,237,0.2)] text-[#A78BFA]" : "text-[#4B5563] hover:text-[#94A3B8]"}`}
+                        className={`rounded-lg px-2.5 py-1 text-[10px] font-medium transition-all ${filter === f ? "bg-[rgba(124,58,237,0.2)] text-[#A78BFA]" : "text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]"}`}
                       >
                         {f.charAt(0).toUpperCase() + f.slice(1)}
                       </button>

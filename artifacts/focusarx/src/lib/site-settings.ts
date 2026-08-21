@@ -10,6 +10,9 @@ export interface SiteSettings {
   announcementEmoji: string | null;
   brandingName: string;
   brandingTagline: string | null;
+  heroTitle: string | null;
+  heroSubtitle: string | null;
+  heroCtaText: string | null;
 }
 
 const DEFAULTS: SiteSettings = {
@@ -21,6 +24,9 @@ const DEFAULTS: SiteSettings = {
   announcementEmoji: null,
   brandingName: "FocusArx",
   brandingTagline: null,
+  heroTitle: null,
+  heroSubtitle: null,
+  heroCtaText: null,
 };
 
 /**

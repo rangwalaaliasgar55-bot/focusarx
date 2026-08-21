@@ -8,8 +8,9 @@ export function getTheme(): Theme {
   try {
     const stored = localStorage.getItem(LS_KEY) as Theme | null;
     if (stored === "dark" || stored === "light") return stored;
-    if (window.matchMedia?.("(prefers-color-scheme: light)").matches) return "light";
   } catch {}
+  // Dark is always the default — new visitors get the signature dark theme
+  // regardless of their OS preference. Users can switch to light manually.
   return "dark";
 }
 

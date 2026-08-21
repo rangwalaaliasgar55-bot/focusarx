@@ -102,6 +102,7 @@ const FeynmanTechniquePage = lazy(() => import("@/pages/feynman-technique"));
 const StudyMethodQuizPage = lazy(() => import("@/pages/study-method-quiz"));
 const ForgeRoomPage = lazy(() => import("@/pages/forge-room"));
 const StudyMethodCalculatorPage = lazy(() => import("@/pages/study-calculator"));
+const FlashcardsPage = lazy(() => import("@/pages/flashcards"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -590,6 +591,7 @@ function RoutedContent() {
               <Route path="/notifications" component={() => <ErrorBoundary><ProtectedRoute component={NotificationsPage} /></ErrorBoundary>} />
               <Route path="/groups" component={() => <ErrorBoundary><ProtectedRoute component={GroupsPage} /></ErrorBoundary>} />
               <Route path="/habits" component={() => <ErrorBoundary><ProtectedRoute component={HabitsPage} /></ErrorBoundary>} />
+              <Route path="/flashcards" component={() => <ErrorBoundary><ProtectedRoute component={FlashcardsPage} /></ErrorBoundary>} />
               <Route path="/messages" component={() => <ErrorBoundary><ProtectedRoute component={MessagesPage} /></ErrorBoundary>} />
               <Route path="/shop" component={() => <ErrorBoundary><ProtectedRoute component={ShopPage} /></ErrorBoundary>} />
               <Route path="/goals" component={() => <ErrorBoundary><ProtectedRoute component={GoalsPage} /></ErrorBoundary>} />

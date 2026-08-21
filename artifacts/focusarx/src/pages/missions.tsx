@@ -110,7 +110,7 @@ function MissionCard({ mission, onClaim, claiming }: { mission: MissionDef; onCl
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-            <span className="text-sm font-semibold text-[#E2E8F0]">{mission.title}</span>
+            <span className="text-sm font-semibold text-[var(--foreground)]">{mission.title}</span>
             <span
               className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider"
               style={{ color: diff.color, background: diff.bg, border: `1px solid ${diff.border}` }}
@@ -123,12 +123,12 @@ function MissionCard({ mission, onClaim, claiming }: { mission: MissionDef; onCl
               </span>
             )}
           </div>
-          <p className="text-xs text-[#4B5563] mb-3">{mission.description}</p>
+          <p className="text-xs text-[var(--foreground-subtle)] mb-3">{mission.description}</p>
 
           <ProgressBar current={mission.currentValue} target={mission.targetValue} completed={mission.completed} />
 
           <div className="flex items-center justify-between mt-2">
-            <span className="text-[10px] text-[#4B5563]">
+            <span className="text-[10px] text-[var(--foreground-subtle)]">
               {mission.completed ? "✓ Complete!" : `${mission.currentValue} / ${mission.targetValue}`}
             </span>
             <div className="flex items-center gap-3">
@@ -160,9 +160,9 @@ function StatCard({ label, value, total, icon }: { label: string; value: number;
     <TiltCard intensity={8}>
       <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#0d0f1a] p-4 flex flex-col gap-2 shadow-3d">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-[#4B5563]">{icon}<span className="text-[10px] font-semibold uppercase tracking-[0.12em]">{label}</span></div>
+          <div className="flex items-center gap-2 text-[var(--foreground-subtle)]">{icon}<span className="text-[10px] font-semibold uppercase tracking-[0.12em]">{label}</span></div>
           <motion.span
-            className="text-sm font-bold text-[#E2E8F0]"
+            className="text-sm font-bold text-[var(--foreground)]"
             key={value}
             initial={{ scale: 1.3, color: "#A78BFA" }}
             animate={{ scale: 1, color: "#e8eaf0" }}
@@ -235,8 +235,8 @@ export default function MissionsPage() {
                 <span className="h-1 w-1 rounded-full bg-[#A78BFA] animate-pulse" />
                 Quests
               </div>
-              <h1 className="text-2xl font-bold text-[#E2E8F0] tracking-tight leading-none">Missions</h1>
-              <p className="text-[12px] text-[#4B5563] mt-0.5">Complete missions to earn XP & coins</p>
+              <h1 className="text-2xl font-bold text-[var(--foreground)] tracking-tight leading-none">Missions</h1>
+              <p className="text-[12px] text-[var(--foreground-subtle)] mt-0.5">Complete missions to earn XP & coins</p>
             </div>
           </div>
         </div>
@@ -258,7 +258,7 @@ export default function MissionsPage() {
               className={`flex-1 rounded-lg py-2 text-xs font-semibold uppercase tracking-wider transition-all duration-200 ${
                 tab === t
                   ? "bg-[rgba(124,58,237,0.2)] text-[#a78bfa] shadow-sm"
-                  : "text-[#4B5563] hover:text-[#6b7280]"
+                  : "text-[var(--foreground-subtle)] hover:text-[#6b7280]"
               }`}
             >
               {t === "daily" ? `⚡ Daily (${hoursLeft}h left)` : `📅 Weekly (${daysToMonday}d left)`}
@@ -278,7 +278,7 @@ export default function MissionsPage() {
               <span className="text-2xl">🎉</span>
               <div>
                 <p className="text-sm font-bold text-[#22d387]">Reward Claimed!</p>
-                <p className="text-xs text-[#4B5563]">+{claimedReward.xp} XP · +{claimedReward.coins} coins</p>
+                <p className="text-xs text-[var(--foreground-subtle)]">+{claimedReward.xp} XP · +{claimedReward.coins} coins</p>
               </div>
             </motion.div>
           )}
@@ -287,7 +287,7 @@ export default function MissionsPage() {
         {isLoading && (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-[rgba(255,255,255,0.06)] border-t-[#7c3aed]" />
-            <p className="text-xs text-[#4B5563]">Loading missions…</p>
+            <p className="text-xs text-[var(--foreground-subtle)]">Loading missions…</p>
           </div>
         )}
 
@@ -321,7 +321,7 @@ export default function MissionsPage() {
             {/* Active */}
             {activeMissions.length > 0 && (
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#4B5563] mb-2 mt-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--foreground-subtle)] mb-2 mt-4">
                   In Progress ({activeMissions.length})
                 </p>
                 <div className="space-y-2">
@@ -359,8 +359,8 @@ export default function MissionsPage() {
             {missions.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
                 <span className="text-4xl">🎯</span>
-                <p className="text-sm font-semibold text-[#E2E8F0]">No missions found</p>
-                <p className="text-xs text-[#4B5563]">Start a focus session to unlock missions!</p>
+                <p className="text-sm font-semibold text-[var(--foreground)]">No missions found</p>
+                <p className="text-xs text-[var(--foreground-subtle)]">Start a focus session to unlock missions!</p>
               </div>
             )}
           </div>

@@ -7,7 +7,7 @@ import {
   Bell, BellOff, Users2, Zap, Brain, CheckSquare, MessageSquare,
   ShoppingBag, Flag, Gift, Sun, Moon, Building2, Coins, Package,
   ChevronLeft, ChevronRight, ChevronDown, Settings, MoreHorizontal,
-  Home, ChevronRight as ChevronRightIcon
+  Home, ChevronRight as ChevronRightIcon, Layers
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useTheme } from "@/lib/theme";
@@ -53,6 +53,7 @@ const PRIMARY_NAV = [
   { href: "/dashboard",    label: "Dashboard",     icon: LayoutDashboard, shortcut: "2" },
   { href: "/forge-room",   label: "Forge Room",    icon: Users,         shortcut: "6" },
   { href: "/habits",       label: "Tasks",         icon: CheckSquare,   shortcut: "t" },
+  { href: "/flashcards",   label: "Flashcards",    icon: Layers,        shortcut: "f" },
   { href: "/goals",        label: "Goals",         icon: Flag,          shortcut: "g" },
   { href: "/ai-insights",  label: "AI Coach",      icon: Brain,         shortcut: "a", aiBadge: true },
   { href: "/analytics",    label: "Analytics",     icon: TrendingUp,    shortcut: "3" },
@@ -64,6 +65,9 @@ const PRIMARY_NAV = [
 const MORE_NAV = [
   { href: "/missions",     label: "Missions",       icon: Target,       badge: "missions" as const },
   { href: "/quests",       label: "Quests",         icon: Sparkles },
+  { href: "/flashcards",   label: "Flashcards",     icon: Layers },
+  { href: "/study-method-quiz", label: "Study Method Quiz", icon: Brain },
+  { href: "/study-calculator", label: "Study Calculator", icon: BookOpen },
   { href: "/roadmap",      label: "AI Roadmap",     icon: Sparkles,     aiBadge: true },
   { href: "/leaderboard",  label: "Leaderboard",    icon: Trophy },
   { href: "/groups",       label: "Study Groups",   icon: Users2 },

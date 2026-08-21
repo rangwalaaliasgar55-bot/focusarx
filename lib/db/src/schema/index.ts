@@ -9,3 +9,4 @@ export * from "./lootboxes";
 export * from "./quests";
 export * from "./seasonal";
 export * from "./site";
+export * from "./flashcards";

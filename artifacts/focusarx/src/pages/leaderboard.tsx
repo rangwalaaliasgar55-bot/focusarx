@@ -111,13 +111,13 @@ function PodiumCard({ entry, podiumRank, filter }: { entry: LeaderboardEntry; po
       </div>
 
       {/* Name */}
-      <p className="max-w-[80px] truncate text-xs font-bold text-[#E2E8F0]">{entry.name}</p>
+      <p className="max-w-[80px] truncate text-xs font-bold text-[var(--foreground)]">{entry.name}</p>
       {entry.isCurrentUser && <span className="text-[9px] text-[#A78BFA]">(you)</span>}
 
       {/* XP */}
       <p className="mt-1.5 text-base font-black" style={{ color: "#A78BFA" }}>
         {xp.toLocaleString()}
-        <span className="ml-0.5 text-[9px] font-normal text-[#4B5563]">XP</span>
+        <span className="ml-0.5 text-[9px] font-normal text-[var(--foreground-subtle)]">XP</span>
       </p>
 
       {/* Streak */}
@@ -193,8 +193,8 @@ export default function LeaderboardPage() {
           {/* Header */}
           <header className="mb-6 flex items-start justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#4B5563]">Rankings</p>
-              <h1 className="mt-1 flex items-center gap-2.5 text-2xl font-bold text-[#E2E8F0] sm:text-3xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--foreground-subtle)]">Rankings</p>
+              <h1 className="mt-1 flex items-center gap-2.5 text-2xl font-bold text-[var(--foreground)] sm:text-3xl">
                 <Trophy size={26} className="text-[#FFB800]" aria-hidden />
                 Leaderboard
               </h1>
@@ -203,7 +203,7 @@ export default function LeaderboardPage() {
               onClick={loadLeaderboard}
               disabled={loading}
               aria-label="Refresh leaderboard"
-              className="mt-1 rounded-xl border border-[rgba(124,58,237,0.2)] bg-[rgba(124,58,237,0.07)] p-2 text-[#64748B] transition-all hover:border-[rgba(124,58,237,0.4)] hover:text-[#A78BFA] disabled:opacity-50"
+              className="mt-1 rounded-xl border border-[rgba(124,58,237,0.2)] bg-[rgba(124,58,237,0.07)] p-2 text-[var(--muted-fg)] transition-all hover:border-[rgba(124,58,237,0.4)] hover:text-[#A78BFA] disabled:opacity-50"
             >
               <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
             </button>
@@ -239,7 +239,7 @@ export default function LeaderboardPage() {
                 className={`rounded-lg px-5 py-1.5 text-xs font-semibold capitalize transition-all duration-150 ${
                   filter === f
                     ? "bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] text-white shadow-[0_0_14px_rgba(124,58,237,0.35)]"
-                    : "text-[#4B5563] hover:text-[#94A3B8]"
+                    : "text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]"
                 }`}
               >
                 {f === "weekly" ? "🗓 This Week" : "🏆 All Time"}
@@ -254,7 +254,7 @@ export default function LeaderboardPage() {
           ) : sorted.length === 0 ? (
             <div className="rounded-2xl border border-[rgba(124,58,237,0.15)] bg-[rgba(16,23,50,0.5)] p-14 text-center">
               <Trophy size={40} className="mx-auto mb-3 text-[#2D3748]" />
-              <p className="text-sm text-[#64748B]">No one's on the board yet.</p>
+              <p className="text-sm text-[var(--muted-fg)]">No one's on the board yet.</p>
               <p className="mt-1 text-xs text-[#374151]">Complete a focus session to earn XP and claim a rank!</p>
             </div>
           ) : (
@@ -296,7 +296,7 @@ export default function LeaderboardPage() {
                         {entry.name.slice(0, 2).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="truncate text-sm font-semibold text-[#E2E8F0]">
+                        <p className="truncate text-sm font-semibold text-[var(--foreground)]">
                           {entry.name}
                           {entry.isCurrentUser && <span className="ml-1.5 text-[9px] font-normal text-[#A78BFA]">(you)</span>}
                         </p>
@@ -330,7 +330,7 @@ export default function LeaderboardPage() {
                     <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br ${getAvatarGradient(myRow.name)} text-xs font-bold text-white`}>
                       {myRow.name.slice(0, 2).toUpperCase()}
                     </div>
-                    <p className="flex-1 text-sm font-semibold text-[#E2E8F0]">You</p>
+                    <p className="flex-1 text-sm font-semibold text-[var(--foreground)]">You</p>
                     <p className="text-sm font-bold text-[#A78BFA]">
                       {(filter === "weekly" ? myRow.weeklyXp : myRow.totalXp).toLocaleString()} XP
                     </p>

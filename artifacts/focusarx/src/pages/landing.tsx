@@ -4,6 +4,7 @@ import { Link } from "wouter";
 import { ChevronDown, Sparkles, Target, Zap, Shield, Trophy, Users, BarChart3, Rocket, MessageSquare, CheckCircle2, Star, ArrowRight, ShieldCheck, Lock, RefreshCw } from "lucide-react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 import { TiltCard } from "@/components/TiltCard";
+import { useSiteSettings } from "@/lib/site-settings";
 const Hero3D = lazy(() => import("@/components/Hero3D"));
 import ProductivityResume from "@/components/ProductivityResume";
 
@@ -47,6 +48,7 @@ function RotatingWord() {
 export default function LandingPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
+  const siteSettings = useSiteSettings();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -194,7 +196,7 @@ export default function LandingPage() {
             transition={{ delay: 0.2 }}
             className="mx-auto mt-8 max-w-2xl text-lg text-[#94A3B8] sm:text-xl"
           >
-            Strap in, Commander. Every focus session fires your thrusters and builds your civilization — one deep-work orbit at a time.
+            {siteSettings.heroSubtitle ?? "Strap in, Commander. Every focus session fires your thrusters and builds your civilization — one deep-work orbit at a time."}
           </motion.p>
 
           <motion.div
@@ -205,7 +207,7 @@ export default function LandingPage() {
           >
             <Link href="/signup">
               <button className="h-14 rounded-2xl bg-gradient-to-r from-[#7C3AED] via-[#F472B6] to-[#4F46E5] px-10 text-lg font-bold shadow-[0_0_24px_rgba(244,114,182,0.4)] hover:scale-105 transition-transform">
-                🚀 Begin Launch Sequence
+                {siteSettings.heroCtaText ?? "🚀 Begin Launch Sequence"}
               </button>
             </Link>
             <Link href="/dashboard">

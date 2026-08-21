@@ -60,7 +60,7 @@ const HOUR_COLORS = ["#7C3AED", "#A78BFA", "#06D6A0", "#FFB800", "#F97316"];
 const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: any[]; label?: string }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-[rgba(124,58,237,0.3)] bg-[rgba(12,17,40,0.95)] px-3 py-2 text-xs text-[#E2E8F0] shadow-xl backdrop-blur-xl">
+    <div className="rounded-lg border border-[rgba(124,58,237,0.3)] bg-[rgba(12,17,40,0.95)] px-3 py-2 text-xs text-[var(--foreground)] shadow-xl backdrop-blur-xl">
       <p className="font-semibold">{label}</p>
       <p className="text-[#A78BFA]">{payload[0]?.value}m focused</p>
     </div>
@@ -70,7 +70,7 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
 const BarTooltip = ({ active, payload, label }: { active?: boolean; payload?: any[]; label?: string }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-[rgba(124,58,237,0.3)] bg-[rgba(12,17,40,0.95)] px-3 py-2 text-xs text-[#E2E8F0] shadow-xl backdrop-blur-xl">
+    <div className="rounded-lg border border-[rgba(124,58,237,0.3)] bg-[rgba(12,17,40,0.95)] px-3 py-2 text-xs text-[var(--foreground)] shadow-xl backdrop-blur-xl">
       <p className="font-semibold">{label}</p>
       <p className="text-[#06D6A0]">{payload[0]?.value}m</p>
     </div>
@@ -133,8 +133,8 @@ export default function AnalyticsPage() {
             </div>
           ) : !data ? (
             <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-12 text-center backdrop-blur-xl">
-              <TrendingUp size={40} className="mx-auto mb-3 text-[#4B5563]" />
-              <p className="text-sm text-[#94A3B8]">Complete sessions to see your analytics.</p>
+              <TrendingUp size={40} className="mx-auto mb-3 text-[var(--foreground-subtle)]" />
+              <p className="text-sm text-[var(--foreground-muted)]">Complete sessions to see your analytics.</p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -154,7 +154,7 @@ export default function AnalyticsPage() {
                     className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4 text-center backdrop-blur-xl"
                   >
                     <Icon size={16} className="mx-auto mb-1.5" style={{ color }} />
-                    <p className="text-[10px] text-[#4B5563]">{label}</p>
+                    <p className="text-[10px] text-[var(--foreground-subtle)]">{label}</p>
                     <p className="mt-0.5 text-lg font-bold" style={{ color }}>{value}</p>
                   </motion.div>
                 ))}
@@ -166,7 +166,7 @@ export default function AnalyticsPage() {
                   <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
                     <div className="flex items-start justify-between mb-3">
                       <div>
-                        <p className="text-xs text-[#4B5563]">Compared to last week</p>
+                        <p className="text-xs text-[var(--foreground-subtle)]">Compared to last week</p>
                         <div className="mt-1 flex items-center gap-2">
                           {wc.changePercent > 0 ? (
                             <div className="flex items-center gap-1 text-emerald-400">
@@ -179,7 +179,7 @@ export default function AnalyticsPage() {
                               <span className="text-lg font-bold">{wc.changePercent}%</span>
                             </div>
                           ) : (
-                            <div className="flex items-center gap-1 text-[#94A3B8]">
+                            <div className="flex items-center gap-1 text-[var(--foreground-muted)]">
                               <Minus size={14} />
                               <span className="text-lg font-bold">0%</span>
                             </div>
@@ -187,9 +187,9 @@ export default function AnalyticsPage() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-[10px] text-[#4B5563]">This week</p>
-                        <p className="text-sm font-bold text-[#E2E8F0]">{Math.round(wc.thisWeekMinutes / 60)}h {wc.thisWeekMinutes % 60}m</p>
-                        <p className="text-[10px] text-[#4B5563] mt-1">Last week</p>
+                        <p className="text-[10px] text-[var(--foreground-subtle)]">This week</p>
+                        <p className="text-sm font-bold text-[var(--foreground)]">{Math.round(wc.thisWeekMinutes / 60)}h {wc.thisWeekMinutes % 60}m</p>
+                        <p className="text-[10px] text-[var(--foreground-subtle)] mt-1">Last week</p>
                         <p className="text-sm font-bold text-[#6B7280]">{Math.round(wc.lastWeekMinutes / 60)}h {wc.lastWeekMinutes % 60}m</p>
                       </div>
                     </div>
@@ -198,7 +198,7 @@ export default function AnalyticsPage() {
                   {/* Weekly bar chart */}
                   {weekBar.length > 0 && (
                     <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
-                      <p className="text-xs font-semibold text-[#E2E8F0] mb-3">This week — daily focus</p>
+                      <p className="text-xs font-semibold text-[var(--foreground)] mb-3">This week — daily focus</p>
                       <ResponsiveContainer width="100%" height={100}>
                         <BarChart data={weekBar} margin={{ top: 2, right: 0, bottom: 0, left: -24 }}>
                           <XAxis dataKey="day" tick={{ fill: "#4B5563", fontSize: 9 }} axisLine={false} tickLine={false} />
@@ -214,7 +214,7 @@ export default function AnalyticsPage() {
 
               {/* 14-day focus chart */}
               <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-6 backdrop-blur-xl">
-                <h2 className="mb-5 text-sm font-semibold text-[#E2E8F0]">Focus time — last 14 days</h2>
+                <h2 className="mb-5 text-sm font-semibold text-[var(--foreground)]">Focus time — last 14 days</h2>
                 <ResponsiveContainer width="100%" height={200}>
                   <AreaChart data={chart14} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
                     <defs>
@@ -245,7 +245,7 @@ export default function AnalyticsPage() {
                 {/* Productive hours */}
                 {topHours.length > 0 && (
                   <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-6 backdrop-blur-xl">
-                    <h2 className="mb-5 text-sm font-semibold text-[#E2E8F0]">Most productive hours</h2>
+                    <h2 className="mb-5 text-sm font-semibold text-[var(--foreground)]">Most productive hours</h2>
                     <ResponsiveContainer width="100%" height={180}>
                       <PieChart>
                         <Pie
@@ -262,7 +262,7 @@ export default function AnalyticsPage() {
                           ))}
                         </Pie>
                         <Legend
-                          formatter={(value) => <span className="text-[10px] text-[#94A3B8]">{value}</span>}
+                          formatter={(value) => <span className="text-[10px] text-[var(--foreground-muted)]">{value}</span>}
                           wrapperStyle={{ fontSize: "10px" }}
                         />
                         <Tooltip
@@ -276,8 +276,8 @@ export default function AnalyticsPage() {
 
                 {/* Activity heatmap — 91 days */}
                 <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-6 backdrop-blur-xl">
-                  <h2 className="mb-4 text-sm font-semibold text-[#E2E8F0]">Activity — last 91 days</h2>
-                  <div className="flex gap-1 mb-2 text-[9px] text-[#4B5563]">
+                  <h2 className="mb-4 text-sm font-semibold text-[var(--foreground)]">Activity — last 91 days</h2>
+                  <div className="flex gap-1 mb-2 text-[9px] text-[var(--foreground-subtle)]">
                     {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d) => (
                       <div key={d} className="flex-1 text-center">{d[0]}</div>
                     ))}
@@ -291,7 +291,7 @@ export default function AnalyticsPage() {
                       )
                     )}
                   </div>
-                  <div className="mt-3 flex items-center gap-1.5 text-[9px] text-[#4B5563]">
+                  <div className="mt-3 flex items-center gap-1.5 text-[9px] text-[var(--foreground-subtle)]">
                     <span>Less</span>
                     {[0.08, 0.3, 0.55, 0.8, 0.95].map((a) => (
                       <div key={a} className="h-2.5 w-2.5 rounded-sm" style={{ background: `rgba(124,58,237,${a})` }} />
