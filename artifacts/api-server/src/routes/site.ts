@@ -57,6 +57,9 @@ const updateSchema = z.object({
   announcementEmoji: z.string().max(8).optional(),
   brandingName: z.string().max(60).optional(),
   brandingTagline: z.string().max(200).optional(),
+  heroTitle: z.string().max(120).optional().nullable(),
+  heroSubtitle: z.string().max(300).optional().nullable(),
+  heroCtaText: z.string().max(60).optional().nullable(),
 });
 
 /** Admin — read full settings. */

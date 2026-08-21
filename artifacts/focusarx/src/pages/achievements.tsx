@@ -215,8 +215,8 @@ export default function AchievementsPage() {
 
           {/* Header */}
           <header className="mb-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#4B5563]">Achievement Vault</p>
-            <h1 className="mt-1 flex items-center gap-2.5 text-2xl font-bold text-[#E2E8F0] sm:text-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--foreground-subtle)]">Achievement Vault</p>
+            <h1 className="mt-1 flex items-center gap-2.5 text-2xl font-bold text-[var(--foreground)] sm:text-3xl">
               <Star size={26} className="text-[#A78BFA]" aria-hidden />
               Achievements
               <span className="ml-2 rounded-full bg-[rgba(124,58,237,0.2)] border border-[rgba(124,58,237,0.3)] px-2.5 py-0.5 text-sm font-semibold text-[#A78BFA]">
@@ -238,9 +238,9 @@ export default function AchievementsPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]">Next Unlock</p>
-                    <span className="text-[9px] font-semibold uppercase tracking-wider text-[#4B5563]">{nextUnlock.tier}</span>
+                    <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">{nextUnlock.tier}</span>
                   </div>
-                  <p className="text-sm font-semibold text-[#E2E8F0] truncate">{nextUnlock.name}</p>
+                  <p className="text-sm font-semibold text-[var(--foreground)] truncate">{nextUnlock.name}</p>
                   <div className="mt-1.5 flex items-center gap-2">
                     <div className="flex-1 h-1.5 rounded-full bg-[rgba(124,58,237,0.15)] overflow-hidden">
                       <div
@@ -258,9 +258,9 @@ export default function AchievementsPage() {
 
             <div className="mt-4 space-y-1.5">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-[#94A3B8]">
+                <span className="text-[var(--foreground-muted)]">
                   <span className="font-bold text-[#A78BFA]">{unlockedCount}</span>
-                  <span className="text-[#4B5563]"> / {totalCount} unlocked</span>
+                  <span className="text-[var(--foreground-subtle)]"> / {totalCount} unlocked</span>
                 </span>
                 <span className="font-bold text-[#A78BFA]">{completionPct}%</span>
               </div>
@@ -309,8 +309,8 @@ export default function AchievementsPage() {
                 <StaggerItem key={label}>
                   <TiltCard intensity={10} className="h-full">
                     <div className="rounded-xl border border-[rgba(124,58,237,0.15)] bg-[rgba(16,23,50,0.5)] p-3 text-center backdrop-blur-xl shadow-3d-violet">
-                      <p className="text-[9px] font-medium uppercase tracking-wider text-[#4B5563]">{label}</p>
-                      <p className="mt-1 text-sm font-bold text-[#E2E8F0]">{value}{suffix}</p>
+                      <p className="text-[9px] font-medium uppercase tracking-wider text-[var(--foreground-subtle)]">{label}</p>
+                      <p className="mt-1 text-sm font-bold text-[var(--foreground)]">{value}{suffix}</p>
                     </div>
                   </TiltCard>
                 </StaggerItem>
@@ -335,12 +335,12 @@ export default function AchievementsPage() {
                     className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-150 ${
                       active
                         ? "bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] text-white shadow-[0_0_12px_rgba(124,58,237,0.3)]"
-                        : "border border-[rgba(124,58,237,0.18)] text-[#64748B] hover:border-[rgba(124,58,237,0.4)] hover:text-[#94A3B8] hover:bg-[rgba(124,58,237,0.06)]"
+                        : "border border-[rgba(124,58,237,0.18)] text-[var(--muted-fg)] hover:border-[rgba(124,58,237,0.4)] hover:text-[var(--foreground-muted)] hover:bg-[rgba(124,58,237,0.06)]"
                     }`}
                   >
                     <span aria-hidden>{cfg.icon}</span>
                     {cfg.label}
-                    <span className={`ml-0.5 rounded-full px-1 text-[9px] font-bold ${active ? "bg-white/20 text-white" : "bg-[rgba(124,58,237,0.12)] text-[#64748B]"}`}>
+                    <span className={`ml-0.5 rounded-full px-1 text-[9px] font-bold ${active ? "bg-white/20 text-white" : "bg-[rgba(124,58,237,0.12)] text-[var(--muted-fg)]"}`}>
                       {count}
                     </span>
                   </button>
@@ -360,7 +360,7 @@ export default function AchievementsPage() {
                   className={`rounded-lg px-2.5 py-1 text-[10px] font-semibold capitalize transition-all ${
                     tierFilter === t
                       ? "bg-[rgba(124,58,237,0.3)] text-[#A78BFA]"
-                      : "text-[#4B5563] hover:text-[#6B7280]"
+                      : "text-[var(--foreground-subtle)] hover:text-[#6B7280]"
                   }`}
                 >
                   {t === "all" ? "All Tiers" : t}
@@ -376,7 +376,7 @@ export default function AchievementsPage() {
                   className={`rounded-lg px-2.5 py-1 text-[10px] font-semibold capitalize transition-all ${
                     showUnlocked === s
                       ? "bg-[rgba(124,58,237,0.3)] text-[#A78BFA]"
-                      : "text-[#4B5563] hover:text-[#6B7280]"
+                      : "text-[var(--foreground-subtle)] hover:text-[#6B7280]"
                   }`}
                 >
                   {s === "all" ? "All" : s === "unlocked" ? "✓ Unlocked" : "🔒 Locked"}
@@ -393,7 +393,7 @@ export default function AchievementsPage() {
           ) : filtered.length === 0 ? (
             <div className="rounded-2xl border border-[rgba(124,58,237,0.15)] bg-[rgba(16,23,50,0.5)] p-12 text-center">
               <Star size={36} className="mx-auto mb-3 text-[#2D3748]" />
-              <p className="text-sm text-[#4B5563]">No achievements in this category yet.</p>
+              <p className="text-sm text-[var(--foreground-subtle)]">No achievements in this category yet.</p>
               <p className="mt-1 text-xs text-[#374151]">Keep focusing to unlock them!</p>
             </div>
           ) : (
@@ -413,7 +413,7 @@ export default function AchievementsPage() {
           {/* Tier legend */}
           {!loading && filtered.length > 0 && (
             <div className="mt-8 rounded-xl border border-[rgba(124,58,237,0.1)] bg-[rgba(16,23,50,0.4)] p-4">
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-[#4B5563]">Tier Legend</p>
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">Tier Legend</p>
               <div className="flex flex-wrap gap-4">
                 {(Object.keys(TIER_CONFIG) as (keyof typeof TIER_CONFIG)[]).map((tier) => (
                   <div key={tier} className="flex items-center gap-1.5">

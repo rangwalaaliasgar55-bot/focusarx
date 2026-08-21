@@ -1123,5 +1123,12 @@ CREATE TABLE IF NOT EXISTS "site_settings" (
 	"announcement_emoji" text,
 	"branding_name" text DEFAULT 'FocusArx' NOT NULL,
 	"branding_tagline" text,
+	"hero_title" text,
+	"hero_subtitle" text,
+	"hero_cta_text" text,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
+
+ALTER TABLE "site_settings" ADD COLUMN IF NOT EXISTS "hero_title" text;
+ALTER TABLE "site_settings" ADD COLUMN IF NOT EXISTS "hero_subtitle" text;
+ALTER TABLE "site_settings" ADD COLUMN IF NOT EXISTS "hero_cta_text" text;

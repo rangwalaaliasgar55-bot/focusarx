@@ -21,6 +21,9 @@ export const siteSettingsTable = pgTable("site_settings", {
   announcementEmoji: text("announcement_emoji"),
   brandingName: text("branding_name").default("FocusArx").notNull(),
   brandingTagline: text("branding_tagline"),
+  heroTitle: text("hero_title"),
+  heroSubtitle: text("hero_subtitle"),
+  heroCtaText: text("hero_cta_text"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 

@@ -10,6 +10,9 @@ export interface PublicSiteSettings {
   announcementEmoji: string | null;
   brandingName: string;
   brandingTagline: string | null;
+  heroTitle: string | null;
+  heroSubtitle: string | null;
+  heroCtaText: string | null;
 }
 
 /** In-memory cache with a short TTL so the maintenance/announcement toggles
@@ -39,6 +42,9 @@ export async function getSiteSettings(): Promise<PublicSiteSettings> {
       announcementEmoji: row?.announcementEmoji ?? null,
       brandingName: row?.brandingName ?? "FocusArx",
       brandingTagline: row?.brandingTagline ?? null,
+      heroTitle: row?.heroTitle ?? null,
+      heroSubtitle: row?.heroSubtitle ?? null,
+      heroCtaText: row?.heroCtaText ?? null,
     };
     cache = settings;
     cacheAt = now;
@@ -54,6 +60,9 @@ export async function getSiteSettings(): Promise<PublicSiteSettings> {
       announcementEmoji: null,
       brandingName: "FocusArx",
       brandingTagline: null,
+      heroTitle: null,
+      heroSubtitle: null,
+      heroCtaText: null,
     };
   }
 }
