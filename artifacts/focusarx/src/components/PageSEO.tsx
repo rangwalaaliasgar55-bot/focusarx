@@ -11,7 +11,10 @@ interface PageSEOProps {
   structuredData?: object | object[];
 }
 
-const BASE_URL = "https://focusarx.site";
+// Single source of truth for the canonical origin. Defaults to the production
+// domain but can be overridden per deployment via VITE_APP_URL so canonical /
+// og:url / og:image URLs never drift out of sync with where the app is hosted.
+const BASE_URL = (import.meta.env.VITE_APP_URL || "https://focusarx.site").replace(/\/+$/, "");
 const DEFAULT_OG_IMAGE = `${BASE_URL}/opengraph.jpg`;
 
 function setMeta(name: string, content: string, attr: "name" | "property" = "name") {
@@ -77,7 +80,12 @@ export function PageSEO({
     setMeta("og:description", description, "property");
     setMeta("og:url", canonicalUrl, "property");
     setMeta("og:image", ogImage, "property");
+    setMeta("og:image:width", "1200", "property");
+    setMeta("og:image:height", "630", "property");
+    setMeta("og:image:alt", fullTitle, "property");
     setMeta("og:type", ogType, "property");
+    setMeta("og:site_name", "FocusArx", "property");
+    setMeta("og:locale", "en_US", "property");
 
     setMeta("twitter:title", fullTitle, "name");
     setMeta("twitter:description", description, "name");

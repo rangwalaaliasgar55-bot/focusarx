@@ -1,6 +1,8 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { AnimatePresence, motion, motion as m } from "framer-motion";
-import ThreeBackground from "@/components/ThreeBackground";
+// Lazy-loaded so the WebGL stack (three.js + react-three-fiber + drei) is split
+// out of the initial bundle — the landing page never needs it on the critical path.
+const ThreeBackground = lazy(() => import("@/components/ThreeBackground"));
 import LoadingScreen from "@/components/LoadingScreen";
 import CursorEffect from "@/components/CursorEffect";
 const LandingPage = lazy(() => import("@/pages/landing"));
@@ -542,6 +544,20 @@ function AuthGatedOverlays() {
   );
 }
 
+function GlobalBackground({ isFocusing }: { isFocusing: boolean }) {
+  const { status } = useAuth();
+  const [location] = useLocation();
+  // The landing page renders its own full-bleed 3D hero (Hero3D); skip the
+  // global WebGL backdrop there so we never run two GPU contexts at once.
+  const skip = location === "/" && status === "unauthenticated";
+  if (skip) return null;
+  return (
+    <Suspense fallback={null}>
+      <ThreeBackground isFocusing={isFocusing} />
+    </Suspense>
+  );
+}
+
 function SocketInitializer() {
   const { data: session, status } = useAuth();
   useEffect(() => {
@@ -707,7 +723,6 @@ function App() {
       <AuthProvider>
         <RewardToastProvider>
         <ToastProvider>
-          <ThreeBackground isFocusing={isFocusing} />
           <FloatingParticles count={14} />
           <LoadingScreen onDone={() => setLoading(false)} />
           {!loading && (
@@ -717,6 +732,7 @@ function App() {
               <CapacitorNativeBridge />
               <GuestBootstrap />
               <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                <GlobalBackground isFocusing={isFocusing} />
                 <SiteAnalyticsTracker />
                 <AuthGatedOverlays />
                 <AppWithPalette />
