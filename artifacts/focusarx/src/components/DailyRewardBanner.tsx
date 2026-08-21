@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getToken } from "@/lib/auth";
+import { isOnboarded } from "@/lib/onboarding";
 import { Gift, X, Star, CheckCircle } from "lucide-react";
 
 function authHeaders() {
@@ -25,6 +26,8 @@ export default function DailyRewardBanner() {
   useEffect(() => {
     const token = getToken();
     if (!token) return;
+    // Don't interrupt the first-run onboarding flow with reward popups.
+    if (!isOnboarded()) return;
     const dismissed = localStorage.getItem(LS_KEY);
     if (dismissed === getTodayKey()) return;
 

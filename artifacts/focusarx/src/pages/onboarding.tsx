@@ -87,6 +87,7 @@ export default function OnboardingPage() {
         body: JSON.stringify({ data }),
       });
       await refresh();
+      localStorage.setItem("onboardingComplete", "true");
       setLocation("/dashboard");
     } catch {
       setLocation("/dashboard");

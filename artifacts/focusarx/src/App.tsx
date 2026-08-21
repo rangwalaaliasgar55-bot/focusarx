@@ -38,17 +38,12 @@ import ReadinessCheckInModal from "@/components/ReadinessCheckInModal";
 import DailyGoal from "@/components/DailyGoal";
 import MissedTaskReview, { useMissedTaskReview } from "@/components/MissedTaskReview";
 import FeedbackModal, { useFeedbackTrigger } from "@/components/FeedbackModal";
-import WelcomeOverlay from "@/components/WelcomeOverlay";
-import OnboardingModal from "@/components/OnboardingModal";
-import HeroBanner from "@/components/HeroBanner";
-import FeatureSpotlight from "@/components/FeatureSpotlight";
 import DailyRewardBanner from "@/components/DailyRewardBanner";
 import { RewardToastProvider } from "@/components/ui/RewardToast";
 import { LiveActivityTicker } from "@/components/LiveActivityTicker";
 import { FocusMoodWidget } from "@/components/FocusMoodWidget";
 import { FloatingParticles } from "@/components/FloatingParticles";
 import { CookieConsent } from "@/components/CookieConsent";
-import { LeadMagnetPopup } from "@/components/LeadMagnetPopup";
 
 const OnboardingPage = lazy(() => import("@/pages/onboarding"));
 const DashboardPage = lazy(() => import("@/pages/dashboard"));
@@ -531,19 +526,6 @@ function HomePage() {
   );
 }
 
-function AuthGatedOverlays() {
-  const { status } = useAuth();
-  const [location] = useLocation();
-  const isLanding = status === "unauthenticated" && location === "/";
-  if (isLanding) return null;
-  return (
-    <>
-      <WelcomeOverlay />
-      <OnboardingModal />
-    </>
-  );
-}
-
 function GlobalBackground({ isFocusing }: { isFocusing: boolean }) {
   const { status } = useAuth();
   const [location] = useLocation();
@@ -693,7 +675,6 @@ function AppWithPalette() {
       <DailyRewardBanner />
       <LiveActivityTicker />
       <CookieConsent />
-      <LeadMagnetPopup />
       <MobileWelcomeGate>
         <AppShell>
           <RoutedContent />
@@ -734,7 +715,6 @@ function App() {
               <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
                 <GlobalBackground isFocusing={isFocusing} />
                 <SiteAnalyticsTracker />
-                <AuthGatedOverlays />
                 <AppWithPalette />
               </WouterRouter>
             </>

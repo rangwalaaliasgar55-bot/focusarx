@@ -56,6 +56,11 @@ async function fetchSession(): Promise<AuthSession> {
       return null;
     }
     const data = await res.json() as { user: AuthUser };
+    // Keep the local onboarding flag in sync with the server so onboarding
+    // completion is respected even for accounts created before the flag existed.
+    if (data.user?.onboardingCompleted) {
+      localStorage.setItem("onboardingComplete", "true");
+    }
     return { user: data.user };
   } catch {
     return null;
