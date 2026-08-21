@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { linkAnalyticsUser, trackSiteEvent } from "@/lib/site-analytics";
+import { trackEvent as trackGAEvent } from "@/lib/gtag";
 
 export type AuthUser = {
   id: string;
@@ -123,6 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(json.token);
       await refresh();
       trackSiteEvent("user_logged_in", { provider });
+      trackGAEvent("login", { method: provider });
       return { ok: true };
     } catch {
       return { ok: false, error: "Network error" };

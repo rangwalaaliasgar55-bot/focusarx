@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useToast } from "@/components/Toast";
 import { useAuth } from "@/lib/auth";
 import { trackSiteEvent } from "@/lib/site-analytics";
+import { trackEvent as trackGAEvent } from "@/lib/gtag";
 import { Eye, EyeOff, Zap, Check, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,6 +67,7 @@ export default function SignupPage() {
       } else {
         toast("Welcome to FocusArx! 🎉", "success");
         trackSiteEvent("user_signed_up", { email: email.split("@")[1] ?? "unknown" });
+        trackGAEvent("sign_up", { method: "email" });
         setLocation("/onboarding");
       }
     } catch {
