@@ -627,11 +627,17 @@ export const socialPostsTable = pgTable("social_posts", {
   groupId: text("group_id").references(() => studyGroupsTable.id, { onDelete: "set null" }),
   isPublic: boolean("is_public").default(true).notNull(),
   viewCount: integer("view_count").notNull().default(0),
+  // Automated moderation: "approved" | "flagged" (needs review) | "rejected".
+  // Set by the AI/keyword moderator on create; admins can override from the
+  // moderation queue. Only "approved" posts appear in public feeds.
+  moderationStatus: text("moderation_status").default("approved").notNull(),
+  moderationReason: text("moderation_reason"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => [
   index("social_posts_user_idx").on(t.userId),
   index("social_posts_created_at_idx").on(t.createdAt),
+  index("social_posts_moderation_idx").on(t.moderationStatus),
 ]);
 
 export type SocialPost = typeof socialPostsTable.$inferSelect;

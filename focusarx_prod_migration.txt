@@ -452,9 +452,16 @@ CREATE TABLE IF NOT EXISTS "social_posts" (
 	"group_id" text,
 	"is_public" boolean DEFAULT true NOT NULL,
 	"view_count" integer DEFAULT 0 NOT NULL,
+	"moderation_status" text DEFAULT 'approved' NOT NULL,
+	"moderation_reason" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
+
+-- Moderation columns (idempotent ALTERs for existing databases)
+ALTER TABLE "social_posts" ADD COLUMN IF NOT EXISTS "moderation_status" text DEFAULT 'approved' NOT NULL;
+ALTER TABLE "social_posts" ADD COLUMN IF NOT EXISTS "moderation_reason" text;
+CREATE INDEX IF NOT EXISTS "social_posts_moderation_idx" ON "social_posts" USING btree ("moderation_status");
 
 CREATE TABLE IF NOT EXISTS "study_groups" (
 	"id" text PRIMARY KEY NOT NULL,

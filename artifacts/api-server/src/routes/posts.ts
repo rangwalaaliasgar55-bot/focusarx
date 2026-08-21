@@ -9,6 +9,7 @@ import {
 } from "@workspace/db";
 import { extractUserId } from "./auth";
 import { eq, and, desc, sql, inArray, or } from "drizzle-orm";
+import { moderateText } from "../lib/moderation";
 
 function optionalAuth(req: any, res: any, next: any) {
   const userId = extractUserId(req);
@@ -76,17 +77,24 @@ postsRouter.get("/feed", authMiddleware, async (req: AuthRequest, res: Response)
       .where(and(
         inArray(socialPostsTable.userId, followIds),
         eq(socialPostsTable.isPublic, true),
+        eq(socialPostsTable.moderationStatus, "approved"),
       ))
       .orderBy(desc(socialPostsTable.createdAt))
       .limit(parseInt(limit)).offset(parseInt(offset));
   } else if (type === "discover") {
     posts = await db.select().from(socialPostsTable)
-      .where(eq(socialPostsTable.isPublic, true))
+      .where(and(
+        eq(socialPostsTable.isPublic, true),
+        eq(socialPostsTable.moderationStatus, "approved"),
+      ))
       .orderBy(desc(socialPostsTable.createdAt))
       .limit(parseInt(limit)).offset(parseInt(offset));
   } else if (type === "group" && groupId) {
     posts = await db.select().from(socialPostsTable)
-      .where(eq(socialPostsTable.groupId, groupId))
+      .where(and(
+        eq(socialPostsTable.groupId, groupId),
+        eq(socialPostsTable.moderationStatus, "approved"),
+      ))
       .orderBy(desc(socialPostsTable.createdAt))
       .limit(parseInt(limit)).offset(parseInt(offset));
   } else if (type === "saved") {
@@ -94,12 +102,18 @@ postsRouter.get("/feed", authMiddleware, async (req: AuthRequest, res: Response)
       .from(postSavesTable).where(eq(postSavesTable.userId, userId));
     if (!saved.length) return res.json([]);
     posts = await db.select().from(socialPostsTable)
-      .where(inArray(socialPostsTable.id, saved.map(s => s.postId)))
+      .where(and(
+        inArray(socialPostsTable.id, saved.map(s => s.postId)),
+        eq(socialPostsTable.moderationStatus, "approved"),
+      ))
       .orderBy(desc(socialPostsTable.createdAt))
       .limit(parseInt(limit)).offset(parseInt(offset));
   } else {
     posts = await db.select().from(socialPostsTable)
-      .where(eq(socialPostsTable.isPublic, true))
+      .where(and(
+        eq(socialPostsTable.isPublic, true),
+        eq(socialPostsTable.moderationStatus, "approved"),
+      ))
       .orderBy(desc(socialPostsTable.createdAt))
       .limit(parseInt(limit)).offset(parseInt(offset));
   }
@@ -121,6 +135,15 @@ postsRouter.post("/posts", authMiddleware, async (req: AuthRequest, res: Respons
     if (!content?.trim()) return res.status(400).json({ error: "content required" });
     if (content.length > 2000) return res.status(400).json({ error: "Post too long (max 2000 chars)" });
 
+    // Automated moderation — reject clear violations, flag borderline ones.
+    const moderation = await moderateText(content);
+    if (moderation.status === "rejected") {
+      return res.status(400).json({
+        error: `This post was blocked by our community filter (${moderation.reason}). Please keep it positive.`,
+        moderation: { status: moderation.status, reason: moderation.reason },
+      });
+    }
+
     const [post] = await db.insert(socialPostsTable).values({
       userId, content: content.trim(),
       type: type || "general",
@@ -128,6 +151,8 @@ postsRouter.post("/posts", authMiddleware, async (req: AuthRequest, res: Respons
       metadata: metadata || null,
       groupId: groupId || null,
       isPublic: isPublic !== false,
+      moderationStatus: moderation.status,
+      moderationReason: moderation.status === "flagged" ? moderation.reason : null,
     }).returning();
 
     try {
@@ -137,7 +162,10 @@ postsRouter.post("/posts", authMiddleware, async (req: AuthRequest, res: Respons
     } catch {}
 
     const enriched = await enrichPost(post, userId);
-    res.status(201).json(enriched);
+    res.status(201).json({
+      ...enriched,
+      moderation: { status: moderation.status, reason: moderation.reason },
+    });
   } catch (err) {
     console.error("POST /posts error:", err);
     res.status(500).json({ error: "Failed to create post" });
@@ -169,7 +197,11 @@ postsRouter.delete("/posts/:id", authMiddleware, async (req: AuthRequest, res: R
 postsRouter.get("/users/:userId/posts", optionalAuth, async (req: AuthRequest, res: Response) => {
   const { limit = "20", offset = "0" } = req.query as Record<string, string>;
   const posts = await db.select().from(socialPostsTable)
-    .where(and(eq(socialPostsTable.userId, req.params.userId as string), eq(socialPostsTable.isPublic, true)))
+    .where(and(
+      eq(socialPostsTable.userId, req.params.userId as string),
+      eq(socialPostsTable.isPublic, true),
+      eq(socialPostsTable.moderationStatus, "approved"),
+    ))
     .orderBy(desc(socialPostsTable.createdAt))
     .limit(parseInt(limit)).offset(parseInt(offset));
 
@@ -235,6 +267,15 @@ postsRouter.post("/posts/:id/comments", authMiddleware, async (req: AuthRequest,
   const userId = req.userId!;
   const { content, parentId } = req.body;
   if (!content?.trim()) return res.status(400).json({ error: "content required" });
+
+  // Automated moderation on comments too.
+  const moderation = await moderateText(content);
+  if (moderation.status === "rejected") {
+    return res.status(400).json({
+      error: `This comment was blocked by our community filter (${moderation.reason}).`,
+      moderation: { status: moderation.status, reason: moderation.reason },
+    });
+  }
 
   const [comment] = await db.insert(postCommentsTable).values({
     postId: req.params.id as string, userId, content: content.trim(),
