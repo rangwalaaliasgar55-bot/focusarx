@@ -21,7 +21,7 @@ export default function AiPolicyPage() {
                 <h1 className="text-2xl font-bold text-[#E2E8F0]">AI Usage Policy</h1>
               </div>
             </div>
-            <p className="text-xs text-[#4B5563]">Last updated: June 2025</p>
+            <p className="text-xs text-[#4B5563]">Last updated: August 2026</p>
           </header>
 
           <div className="space-y-8">
