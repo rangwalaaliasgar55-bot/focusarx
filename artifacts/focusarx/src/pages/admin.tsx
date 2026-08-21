@@ -204,6 +204,13 @@ export default function AdminPage() {
   const [moderationCount, setModerationCount] = useState(0);
   const [moderationLoading, setModerationLoading] = useState(false);
   const [moderationActionId, setModerationActionId] = useState<string | null>(null);
+  const [digestSending, setDigestSending] = useState(false);
+  const [digestResult, setDigestResult] = useState<string | null>(null);
+
+  // Bulk user actions
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkResult, setBulkResult] = useState<string | null>(null);
 
   // Site settings state (maintenance mode, announcement, branding)
   const [siteSettings, setSiteSettings] = useState<{
@@ -430,6 +437,71 @@ export default function AdminPage() {
       else { const d = await r.json().catch(() => ({})); setSiteSettingsResult("Error: " + (d.error ?? "Failed to save")); }
     } catch (e: any) { setSiteSettingsResult("Error: " + e.message); }
     finally { setSiteSettingsSaving(false); }
+  }
+
+  async function sendModerationDigest() {
+    setDigestSending(true);
+    setDigestResult(null);
+    try {
+      const r = await fetch("/api/admin/moderation/digest", { method: "POST", headers: authHeaders(), credentials: "include" });
+      const d = await r.json();
+      if (r.ok) setDigestResult(d.sent ? `Digest emailed with ${d.flaggedCount} flagged post(s).` : (d.reason ?? "Nothing to send."));
+      else setDigestResult("Error: " + (d.error ?? "Failed"));
+    } catch (e: any) { setDigestResult("Error: " + e.message); }
+    finally { setDigestSending(false); }
+  }
+
+  function toggleUserSelect(id: string) {
+    setSelectedUsers((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function clearSelection() {
+    setSelectedUsers(new Set());
+    setBulkResult(null);
+  }
+
+  async function bulkGrantCoins() {
+    const ids = [...selectedUsers];
+    const amt = prompt(`Grant how many coins to ${ids.length} selected user(s)?`, "100");
+    if (!amt || !Number(amt) || Number(amt) <= 0) return;
+    setBulkLoading(true);
+    setBulkResult(null);
+    try {
+      const r = await fetch("/api/admin/cms/grant-coins/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ userIds: ids, amount: Number(amt), reason: "Bulk grant" }),
+      });
+      const d = await r.json();
+      setBulkResult(r.ok ? `Granted ${amt} coins to ${d.granted}/${d.attempted} users.` : ("Error: " + (d.error ?? "Failed")));
+      if (r.ok) { clearSelection(); loadData(); }
+    } catch (e: any) { setBulkResult("Error: " + e.message); }
+    finally { setBulkLoading(false); }
+  }
+
+  async function bulkDeleteUsers() {
+    const ids = [...selectedUsers];
+    if (!confirm(`Delete ${ids.length} selected user(s)? This cannot be undone.`)) return;
+    setBulkLoading(true);
+    setBulkResult(null);
+    try {
+      const r = await fetch("/api/admin/users/bulk-delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ userIds: ids }),
+      });
+      const d = await r.json();
+      setBulkResult(r.ok ? `Deleted ${d.deleted}/${d.attempted} users (admins skipped).` : ("Error: " + (d.error ?? "Failed")));
+      if (r.ok) { clearSelection(); loadData(); }
+    } catch (e: any) { setBulkResult("Error: " + e.message); }
+    finally { setBulkLoading(false); }
   }
 
   async function moderatePost(postId: string, action: "approve" | "reject") {
@@ -767,10 +839,24 @@ export default function AdminPage() {
           )}
         </div>
 
+        {/* Bulk actions bar */}
+        {selectedUsers.size > 0 && (
+          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-violet-800/60 bg-violet-950/30 p-3">
+            <span className="text-xs font-semibold text-violet-300">{selectedUsers.size} selected</span>
+            <button onClick={() => void bulkGrantCoins()} disabled={bulkLoading} className="rounded-lg border border-amber-800 px-3 py-1.5 text-xs font-medium text-amber-300 hover:bg-amber-950 disabled:opacity-50">🪙 Grant coins</button>
+            <button onClick={() => void bulkDeleteUsers()} disabled={bulkLoading} className="rounded-lg border border-rose-800 px-3 py-1.5 text-xs font-medium text-rose-400 hover:bg-rose-950 disabled:opacity-50">🗑 Delete</button>
+            <button onClick={clearSelection} className="rounded-lg px-3 py-1.5 text-xs text-zinc-500 hover:text-zinc-300">Clear</button>
+            {bulkResult && <span className={`text-xs ${bulkResult.startsWith("Error") ? "text-rose-400" : "text-emerald-400"}`}>{bulkResult}</span>}
+          </div>
+        )}
+
         <div className="overflow-x-auto rounded-xl border border-zinc-800/80">
           <table className="w-full text-left text-sm">
             <thead className="bg-zinc-900/80 text-xs uppercase tracking-wider text-zinc-500">
               <tr>
+                <th className="w-10 px-3 py-3 font-medium">
+                  <input type="checkbox" checked={selectedUsers.size === users.length && users.length > 0} onChange={() => selectedUsers.size === users.length ? setSelectedUsers(new Set()) : setSelectedUsers(new Set(users.map((u) => u.id)))} className="accent-violet-600" />
+                </th>
                 <th className="px-4 py-3 font-medium">User</th>
                 <th className="px-4 py-3 font-medium">Type</th>
                 <th className="px-4 py-3 font-medium">Role</th>
@@ -783,6 +869,9 @@ export default function AdminPage() {
             <tbody>
               {users.map(user => (
                 <tr key={user.id} className="border-t border-zinc-800/60 hover:bg-zinc-900/40 transition">
+                  <td className="px-3 py-3">
+                    <input type="checkbox" checked={selectedUsers.has(user.id)} onChange={() => toggleUserSelect(user.id)} className="accent-violet-600" />
+                  </td>
                   <td className="px-4 py-3">
                     <p className="font-medium text-zinc-200">{user.name ?? "Unnamed"}</p>
                     <p className="text-xs text-zinc-500">{maskEmail(user.email)}</p>
@@ -1981,13 +2070,21 @@ export default function AdminPage() {
           title="Content Moderation"
           sub={`${moderationCount} post${moderationCount !== 1 ? "s" : ""} awaiting review. AI flags suspicious content automatically; approve or remove here.`}
         />
-        <div className="mb-4 flex items-center gap-3">
+        <div className="mb-4 flex flex-wrap items-center gap-3">
           <button
             onClick={() => void loadModerationQueue()}
             className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200 transition"
           >
             ↻ Refresh queue
           </button>
+          <button
+            onClick={() => void sendModerationDigest()}
+            disabled={digestSending}
+            className="rounded-lg border border-violet-700 px-3 py-1.5 text-xs text-violet-300 hover:bg-violet-950 disabled:opacity-50 transition"
+          >
+            {digestSending ? "Sending…" : "📧 Email digest"}
+          </button>
+          {digestResult && <span className="text-xs text-zinc-400">{digestResult}</span>}
           <span className="text-[10px] text-zinc-600">
             AI moderation (Grok/Llama + keyword filter) runs automatically on every new post and comment.
           </span>

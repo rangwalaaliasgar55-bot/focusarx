@@ -356,6 +356,63 @@ router.post("/admin/cms/grant-coins", async (req, res) => {
   }
 });
 
+// ─── BULK USER ACTIONS (admin tool) ──────────────────────────────────────────
+
+// Bulk grant coins to many users at once (e.g. contest winners, compensation).
+router.post("/admin/cms/grant-coins/bulk", async (req, res) => {
+  if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
+  const { userIds, amount, reason } = req.body as { userIds?: string[]; amount?: number; reason?: string };
+  if (!Array.isArray(userIds) || userIds.length === 0 || !amount || amount <= 0) {
+    res.status(400).json({ error: "userIds (non-empty array) and positive amount required" }); return;
+  }
+  const ids = userIds.filter((id) => typeof id === "string").slice(0, 500);
+  const amt = Number(amount);
+  try {
+    let granted = 0;
+    for (const id of ids) {
+      try {
+        const [wallet] = await db.select({ coins: userWalletsTable.coins }).from(userWalletsTable).where(eq(userWalletsTable.userId, id)).limit(1);
+        if (!wallet) continue;
+        await db.update(userWalletsTable).set({ coins: wallet.coins + amt }).where(eq(userWalletsTable.userId, id));
+        await db.insert(notificationsTable).values({
+          userId: id, type: "system", read: false,
+          title: "Admin Coin Grant",
+          message: `An admin granted you ${amt.toLocaleString()} coins. ${reason ? `Reason: ${reason}` : ""}`,
+        });
+        granted++;
+      } catch { /* skip individual failures */ }
+    }
+    res.json({ ok: true, granted, attempted: ids.length });
+  } catch (err) {
+    logger.error({ err }, "bulk grant coins error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// Bulk delete users.
+router.post("/admin/users/bulk-delete", async (req, res) => {
+  if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
+  const { userIds } = req.body as { userIds?: string[] };
+  if (!Array.isArray(userIds) || userIds.length === 0) {
+    res.status(400).json({ error: "userIds required" }); return;
+  }
+  const ids = userIds.filter((id) => typeof id === "string").slice(0, 500);
+  try {
+    let deleted = 0;
+    for (const id of ids) {
+      // Never allow deleting an admin via bulk action.
+      const [u] = await db.select({ role: usersTable.role }).from(usersTable).where(eq(usersTable.id, id)).limit(1);
+      if (!u || u.role === "admin") continue;
+      await db.delete(usersTable).where(eq(usersTable.id, id));
+      deleted++;
+    }
+    res.json({ ok: true, deleted, attempted: ids.length });
+  } catch (err) {
+    logger.error({ err }, "bulk delete users error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
 // ─── PREMIUM ADMIN ────────────────────────────────────────────────────────────
 
 router.get("/admin/cms/premium", async (req, res) => {

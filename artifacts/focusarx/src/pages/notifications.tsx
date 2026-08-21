@@ -67,19 +67,19 @@ export default function NotificationsPage() {
   const unread = notifications.filter((n: any) => !n.read).length;
 
   return (
-    <div className="min-h-screen bg-[rgba(255,255,255,0.02)] text-[#E2E8F0] p-4 sm:p-6 max-w-2xl mx-auto">
+    <div className="min-h-screen bg-[rgba(255,255,255,0.02)] text-[var(--foreground)] p-4 sm:p-6 max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[#E2E8F0] flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-[var(--foreground)] flex items-center gap-2">
             <Bell size={22} className="text-[#7C3AED]" />
             Notifications
             {unread > 0 && <span className="ml-1 rounded-full bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center">{unread}</span>}
           </h1>
-          <p className="text-sm text-[#4B5563] mt-1">{notifications.length} total</p>
+          <p className="text-sm text-[var(--foreground-subtle)] mt-1">{notifications.length} total</p>
         </div>
         <div className="flex gap-2">
           {unread > 0 && (
-            <button onClick={() => markAllRead.mutate()} className="flex items-center gap-1.5 rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] px-3 py-2 text-xs font-medium text-[#4B5563] hover:text-[#E2E8F0] transition-colors">
+            <button onClick={() => markAllRead.mutate()} className="flex items-center gap-1.5 rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] px-3 py-2 text-xs font-medium text-[var(--foreground-subtle)] hover:text-[var(--foreground)] transition-colors">
               <CheckCheck size={13} /> Mark all read
             </button>
           )}
@@ -115,8 +115,8 @@ export default function NotificationsPage() {
             {!n.read && <span className="absolute top-3 left-2 w-1.5 h-1.5 rounded-full bg-[#7C3AED]" />}
             <span className="text-xl shrink-0 mt-0.5">{TYPE_ICONS[n.type] ?? "🔔"}</span>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-[#E2E8F0]">{n.title}</p>
-              <p className="text-xs text-[#4B5563] mt-0.5">{n.message}</p>
+              <p className="text-sm font-semibold text-[var(--foreground)]">{n.title}</p>
+              <p className="text-xs text-[var(--foreground-subtle)] mt-0.5">{n.message}</p>
               <p className="text-[10px] text-[#374151] mt-1">{new Date(n.createdAt).toLocaleString()}</p>
             </div>
             <button onClick={e => { e.stopPropagation(); deleteNotif.mutate(n.id); }} className="shrink-0 rounded-lg p-1 text-[#374151] hover:text-red-400 hover:bg-red-500/10 transition-colors">

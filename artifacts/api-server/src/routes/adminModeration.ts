@@ -96,6 +96,56 @@ router.post("/admin/moderation/:id/approve", adminLimiter, async (req, res) => {
   }
 });
 
+/**
+ * POST /admin/moderation/digest — email the admin a summary of flagged content.
+ * Uses Resend (RESEND_API_KEY). This makes moderation work *easy*: admins get
+ * a digest in their inbox instead of having to check the queue manually.
+ */
+router.post("/admin/moderation/digest", adminLimiter, async (req, res) => {
+  if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
+  const adminEmail = process.env.CONTACT_EMAIL ?? "focusarx@gmail.com";
+  try {
+    const posts = await db.select().from(socialPostsTable)
+      .where(eq(socialPostsTable.moderationStatus, "flagged"))
+      .orderBy(desc(socialPostsTable.createdAt))
+      .limit(20);
+
+    if (posts.length === 0) {
+      res.json({ ok: true, sent: false, reason: "No flagged content" });
+      return;
+    }
+
+    const rows = posts.map((p, i) => `${i + 1}. "${p.content.slice(0, 120)}" — ${p.moderationReason ?? "flagged"}`).join("\n");
+
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      logger.warn("RESEND_API_KEY not set — moderation digest not emailed");
+      res.json({ ok: true, sent: false, reason: "RESEND_API_KEY not configured", flaggedCount: posts.length });
+      return;
+    }
+
+    const resp = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: process.env.EMAIL_FROM ?? "FocusArx <focusarx@gmail.com>",
+        to: [adminEmail],
+        subject: `FocusArx moderation digest — ${posts.length} flagged post(s)`,
+        text: `You have ${posts.length} post(s) awaiting moderation:\n\n${rows}\n\nReview them in the admin panel: /admin (Moderation tab).`,
+      }),
+    });
+    if (!resp.ok) {
+      logger.warn({ status: resp.status }, "moderation digest email failed");
+      res.json({ ok: false, error: "Email send failed", flaggedCount: posts.length });
+      return;
+    }
+    res.json({ ok: true, sent: true, flaggedCount: posts.length });
+  } catch (err) {
+    logger.error({ err }, "moderation digest error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
 /** POST /admin/moderation/:id/reject — hide (reject) a post. */
 router.post("/admin/moderation/:id/reject", adminLimiter, async (req, res) => {
   if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
