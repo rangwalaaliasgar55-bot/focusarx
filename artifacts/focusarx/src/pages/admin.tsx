@@ -64,7 +64,7 @@ type CmsOverview = {
 };
 
 type Tab =
-  | "overview" | "analytics" | "users" | "missions" | "retention" | "sql"
+  | "overview" | "analytics" | "users" | "moderation" | "missions" | "retention" | "sql"
   | "marketplace" | "pets" | "lootboxes" | "battlepass" | "quests"
   | "city" | "notify" | "coins" | "email" | "premium";
 
@@ -199,6 +199,12 @@ export default function AdminPage() {
   const [premiumGranting, setPremiumGranting] = useState(false);
   const [premiumGrantResult, setPremiumGrantResult] = useState<string | null>(null);
 
+  // Moderation queue state
+  const [moderationPosts, setModerationPosts] = useState<any[]>([]);
+  const [moderationCount, setModerationCount] = useState(0);
+  const [moderationLoading, setModerationLoading] = useState(false);
+  const [moderationActionId, setModerationActionId] = useState<string | null>(null);
+
   const authHeaders = useCallback((): Record<string, string> => {
     const token = localStorage.getItem("focusarx-auth-token");
     return token ? { Authorization: `Bearer ${token}` } : {};
@@ -234,6 +240,7 @@ export default function AdminPage() {
     if (tab === "overview" && !cmsOverview.users) loadCmsOverview();
     if (tab === "email") { loadEmailLogs(); loadEmailTemplates(); }
     if (tab === "premium" && premiumUsers.length === 0) loadPremiumUsers();
+    if (tab === "moderation") loadModerationQueue();
   }, [tab]);
 
   async function loadMarketplace() {
@@ -342,6 +349,35 @@ export default function AdminPage() {
       else { const d = await r.json(); setPremiumGrantResult("Error: " + (d.error ?? "Unknown")); }
     } catch (e: any) { setPremiumGrantResult("Error: " + e.message); }
     finally { setPremiumGranting(false); }
+  }
+
+  async function loadModerationQueue() {
+    setModerationLoading(true);
+    try {
+      const r = await fetch("/api/admin/moderation/queue", { headers: authHeaders(), credentials: "include" });
+      if (r.ok) {
+        const d = await r.json();
+        setModerationPosts(d.posts ?? []);
+        setModerationCount(d.flaggedCount ?? 0);
+      }
+    } finally { setModerationLoading(false); }
+  }
+
+  async function moderatePost(postId: string, action: "approve" | "reject") {
+    setModerationActionId(postId);
+    try {
+      const r = await fetch(`/api/admin/moderation/${postId}/${action}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ reason: "Removed by admin" }),
+      });
+      if (r.ok) {
+        // Optimistically remove from queue.
+        setModerationPosts((prev) => prev.filter((p) => p.id !== postId));
+        setModerationCount((c) => Math.max(0, c - 1));
+      }
+    } finally { setModerationActionId(null); }
   }
 
   const toggleRole = async (user: AdminUser) => {
@@ -1869,6 +1905,82 @@ export default function AdminPage() {
     );
   }
 
+  function renderModeration() {
+    return (
+      <MotionTab>
+        <SectionHeader
+          title="Content Moderation"
+          sub={`${moderationCount} post${moderationCount !== 1 ? "s" : ""} awaiting review. AI flags suspicious content automatically; approve or remove here.`}
+        />
+        <div className="mb-4 flex items-center gap-3">
+          <button
+            onClick={() => void loadModerationQueue()}
+            className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200 transition"
+          >
+            ↻ Refresh queue
+          </button>
+          <span className="text-[10px] text-zinc-600">
+            AI moderation (Grok/Llama + keyword filter) runs automatically on every new post and comment.
+          </span>
+        </div>
+
+        {moderationLoading ? (
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-8 text-center text-sm text-zinc-500">
+            Loading moderation queue…
+          </div>
+        ) : moderationPosts.length === 0 ? (
+          <div className="rounded-xl border border-emerald-800/60 bg-emerald-900/20 p-10 text-center">
+            <p className="text-lg">✅</p>
+            <p className="mt-2 text-sm font-medium text-emerald-300">All clear — no flagged content.</p>
+            <p className="mt-1 text-xs text-zinc-500">New posts are auto-moderated as they come in.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {moderationPosts.map((p) => (
+              <div key={p.id} className="rounded-xl border border-amber-700/40 bg-zinc-900/40 p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                      <span className="rounded-full bg-amber-950 px-2 py-0.5 text-[10px] font-medium text-amber-400">
+                        ⚠ {p.moderationStatus}
+                      </span>
+                      <span className="text-[10px] text-zinc-500">
+                        {p.author?.name || p.author?.email || "Unknown"} · {p.type}
+                      </span>
+                      <span className="text-[10px] text-zinc-600">
+                        {new Date(p.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-sm text-zinc-200 whitespace-pre-wrap break-words">{p.content}</p>
+                    {p.moderationReason && (
+                      <p className="mt-2 text-xs text-amber-500/80">Reason: {p.moderationReason}</p>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 flex-col gap-2">
+                    <button
+                      onClick={() => void moderatePost(p.id, "approve")}
+                      disabled={moderationActionId === p.id}
+                      className="rounded-lg border border-emerald-700 px-3 py-1.5 text-xs font-medium text-emerald-400 hover:bg-emerald-950 disabled:opacity-50 transition"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => void moderatePost(p.id, "reject")}
+                      disabled={moderationActionId === p.id}
+                      className="rounded-lg border border-rose-800 px-3 py-1.5 text-xs font-medium text-rose-400 hover:bg-rose-950 disabled:opacity-50 transition"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </MotionTab>
+    );
+  }
+
   const TAB_RENDER: Record<Tab, () => React.ReactNode> = {
     overview: renderOverview,
     analytics: () => (
@@ -1878,6 +1990,7 @@ export default function AdminPage() {
       </MotionTab>
     ),
     users: renderUsers,
+    moderation: renderModeration,
     missions: renderMissions,
     retention: renderRetention,
     sql: renderSql,

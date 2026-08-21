@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, Users, BarChart2, Target, Heart,
   Database, ShoppingBag, Star, Gift, Zap, MessageSquare,
-  Building2, Sparkles, Shield, ChevronRight, Lock, Settings,
+  Building2, Sparkles, Shield, ShieldCheck, ChevronRight, Lock, Settings,
   Bell, Coins, Mail, Crown
 } from "lucide-react";
 import { useState } from "react";
@@ -12,6 +12,7 @@ const ADMIN_SECTIONS = [
   { id: "overview",     label: "Overview",        icon: LayoutDashboard, group: "core" },
   { id: "analytics",   label: "Analytics",        icon: BarChart2,       group: "core" },
   { id: "users",       label: "User Management",  icon: Users,           group: "core" },
+  { id: "moderation",  label: "Moderation",       icon: ShieldCheck,     group: "core" },
   { id: "missions",    label: "Missions",         icon: Target,          group: "core" },
   { id: "retention",   label: "Retention",        icon: Heart,           group: "core" },
   { id: "marketplace", label: "Marketplace CMS",  icon: ShoppingBag,     group: "cms" },
@@ -107,11 +108,9 @@ export function AdminShell({ children, activeTab, onTabChange }: AdminShellProps
 
         {/* Footer */}
         <div className="border-t border-zinc-800/80 px-2 py-3 space-y-1">
-          <Link href="/dashboard">
-            <a className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-xs text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition">
-              <LayoutDashboard size={13} className="shrink-0" />
-              {sidebarOpen && <span>Back to App</span>}
-            </a>
+          <Link href="/dashboard" className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-xs text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition">
+            <LayoutDashboard size={13} className="shrink-0" />
+            {sidebarOpen && <span>Back to App</span>}
           </Link>
           <button
             onClick={() => void logout()}
