@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, useCallback, Suspense, lazy } from "react";
-import { motion, useScroll, useTransform, useSpring, AnimatePresence } from "framer-motion";
+import { useEffect, useRef, useState, Suspense, lazy } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
 import { ChevronDown, Sparkles, Target, Zap, Shield, Trophy, Users, BarChart3, Rocket, MessageSquare, CheckCircle2, Star, ArrowRight, ShieldCheck, Lock, RefreshCw } from "lucide-react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
+import { TiltCard } from "@/components/TiltCard";
 const Hero3D = lazy(() => import("@/components/Hero3D"));
 import ProductivityResume from "@/components/ProductivityResume";
 
@@ -43,46 +44,14 @@ function RotatingWord() {
   );
 }
 
-function CursorGlow({ mouseRef }: { mouseRef: React.RefObject<{ x: number; y: number }> }) {
-  const [pos, setPos] = useState({ x: -100, y: -100 });
-  useEffect(() => {
-    const id = setInterval(() => {
-      if (mouseRef.current) {
-        setPos({ x: mouseRef.current.x * window.innerWidth, y: mouseRef.current.y * window.innerHeight });
-      }
-    }, 16);
-    return () => clearInterval(id);
-  }, [mouseRef]);
-  return (
-    <div
-      className="pointer-events-none fixed z-[9999] mix-blend-screen"
-      style={{
-        left: pos.x - 12, top: pos.y - 12, width: 24, height: 24,
-        background: "radial-gradient(circle, rgba(167,139,250,0.9), transparent 70%)",
-        borderRadius: "50%",
-        transition: "left 0.04s linear, top 0.04s linear",
-      }}
-    />
-  );
-}
-
 export default function LandingPage() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mouseRef = useRef({ x: 0.6, y: 0.5 });
-  const { scrollYProgress } = useScroll({ target: containerRef });
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  const onMouseMove = useCallback((e: React.MouseEvent) => {
-    mouseRef.current = {
-      x: e.clientX / window.innerWidth,
-      y: e.clientY / window.innerHeight,
-    };
   }, []);
 
   const structuredData = {
@@ -144,11 +113,9 @@ export default function LandingPage() {
   return (
     <div
       ref={containerRef}
-      onMouseMove={onMouseMove}
       className="relative min-h-screen overflow-x-hidden bg-[#030308] text-white"
     >
       <PageSEO {...PAGE_SEO.home} structuredData={[structuredData, faqSchema, itemListSchema]} />
-      <CursorGlow mouseRef={mouseRef} />
 
       {/* ── NAV ── */}
       <nav className={`fixed top-0 inset-x-0 z-50 flex items-center justify-between px-6 sm:px-10 py-4 transition-all duration-300 ${scrolled ? "border-b border-white/5 bg-[#030308]/85 backdrop-blur-2xl" : ""}`}>
@@ -306,19 +273,17 @@ export default function LandingPage() {
             <p className="mt-4 text-[#94A3B8]">Scientific precision meets gamified engagement.</p>
           </div>
 
-          <div className="grid gap-8 md:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-3 [perspective:1200px]">
             {FEATURES.map((f, i) => (
-              <motion.div
-                key={i}
-                whileHover={{ y: -8, boxShadow: "0 20px 40px rgba(0,0,0,0.4)" }}
-                className="rounded-3xl border border-white/5 bg-white/[0.02] p-8 backdrop-blur-sm transition-all"
-              >
-                <div className="mb-6 h-12 w-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10">
-                  {f.icon}
+              <TiltCard key={i} intensity={7} scale={1.02} className="rounded-3xl">
+                <div className="rounded-3xl border border-white/5 bg-white/[0.02] p-8 backdrop-blur-sm">
+                  <div className="mb-6 h-12 w-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10">
+                    {f.icon}
+                  </div>
+                  <h3 className="mb-3 text-xl font-bold">{f.title}</h3>
+                  <p className="text-sm leading-relaxed text-[#64748B]">{f.desc}</p>
                 </div>
-                <h3 className="mb-3 text-xl font-bold">{f.title}</h3>
-                <p className="text-sm leading-relaxed text-[#64748B]">{f.desc}</p>
-              </motion.div>
+              </TiltCard>
             ))}
           </div>
         </div>
@@ -332,7 +297,7 @@ export default function LandingPage() {
              <p className="mt-4 text-[#94A3B8]">A complete focus system — no more juggling five different tools.</p>
           </div>
           
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 [perspective:1200px]">
             {[
               { icon: <Target className="text-purple-400" />, title: "Adaptive Timer", text: "Pomodoro, deep-work and flow sessions that adapt to your energy and focus style." },
               { icon: <BarChart3 className="text-emerald-400" />, title: "Real Analytics", text: "A genuine Focus Score built from completion rate, attention and distraction events — not just time logged." },
@@ -341,13 +306,15 @@ export default function LandingPage() {
               { icon: <Users className="text-pink-400" />, title: "Study Together", text: "Join live study rooms and ride group resonance to stay accountable with others." },
               { icon: <MessageSquare className="text-cyan-400" />, title: "AI Coach", text: "Context-aware coaching tips and a study roadmap that grows with your data." },
             ].map((t, i) => (
-              <div key={i} className="rounded-2xl border border-white/5 bg-white/[0.01] p-6">
-                <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 border border-white/10">
-                  {t.icon}
+              <TiltCard key={i} intensity={6} scale={1.015} className="rounded-2xl">
+                <div className="rounded-2xl border border-white/5 bg-white/[0.01] p-6">
+                  <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 border border-white/10">
+                    {t.icon}
+                  </div>
+                  <h3 className="mb-2 text-base font-bold text-white">{t.title}</h3>
+                  <p className="text-sm text-[#94A3B8] leading-relaxed">{t.text}</p>
                 </div>
-                <h3 className="mb-2 text-base font-bold text-white">{t.title}</h3>
-                <p className="text-sm text-[#94A3B8] leading-relaxed">{t.text}</p>
-              </div>
+              </TiltCard>
             ))}
           </div>
         </div>

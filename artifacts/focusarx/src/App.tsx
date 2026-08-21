@@ -4,7 +4,6 @@ import { AnimatePresence, motion, motion as m } from "framer-motion";
 // out of the initial bundle — the landing page never needs it on the critical path.
 const ThreeBackground = lazy(() => import("@/components/ThreeBackground"));
 import LoadingScreen from "@/components/LoadingScreen";
-import CursorEffect from "@/components/CursorEffect";
 const LandingPage = lazy(() => import("@/pages/landing"));
 import { ClipboardList, X } from "lucide-react";
 import { connectSocket, disconnectSocket } from "@/lib/socket";
@@ -706,7 +705,6 @@ function App() {
           <LoadingScreen onDone={() => setLoading(false)} />
           {!loading && (
             <>
-              <CursorEffect />
               <SocketInitializer />
               <CapacitorNativeBridge />
               <GuestBootstrap />
