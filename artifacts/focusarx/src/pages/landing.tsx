@@ -104,19 +104,25 @@ export default function LandingPage() {
     }
   };
 
-  const organizationSchema = {
+  const itemListSchema = {
     "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": "FocusArx",
-    "url": "https://focusarx.site",
-    "logo": "https://focusarx.site/logo.png",
-    "sameAs": [
-      "https://twitter.com/focusarx",
-      "https://github.com/focusarx",
-      "https://linkedin.com/company/focusarx"
+    "@type": "ItemList",
+    "name": "FocusArx Product Features",
+    "description": "Complete feature list of the FocusArx AI productivity platform",
+    "numberOfItems": 6,
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "AI Pomodoro Focus Timer", "url": "https://focusarx.site/" },
+      { "@type": "ListItem", "position": 2, "name": "Deep Work Tracking with Focus Score", "url": "https://focusarx.site/" },
+      { "@type": "ListItem", "position": 3, "name": "AI Productivity Coach and Study Roadmap", "url": "https://focusarx.site/" },
+      { "@type": "ListItem", "position": 4, "name": "Virtual Study Rooms", "url": "https://focusarx.site/study-rooms" },
+      { "@type": "ListItem", "position": 5, "name": "Habit Tracker with Streaks", "url": "https://focusarx.site/" },
+      { "@type": "ListItem", "position": 6, "name": "Focus DNA Analytics", "url": "https://focusarx.site/" }
     ]
   };
 
+  // Note: Organization + WebSite schema are already injected site-wide via
+  // index.html, so we only add homepage-specific structured data here to
+  // avoid duplicate JSON-LD blocks on every route.
   const faqSchema = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -144,10 +150,9 @@ export default function LandingPage() {
     <div
       ref={containerRef}
       onMouseMove={onMouseMove}
-      className="relative min-h-screen overflow-x-hidden bg-[#030308] text-white select-none"
-      style={{ cursor: "none" }}
+      className="relative min-h-screen overflow-x-hidden bg-[#030308] text-white"
     >
-      <PageSEO {...PAGE_SEO.home} structuredData={[structuredData, organizationSchema, faqSchema]} />
+      <PageSEO {...PAGE_SEO.home} structuredData={[structuredData, faqSchema, itemListSchema]} />
       <CursorGlow mouseRef={mouseRef} />
 
       {/* ── NAV ── */}
@@ -167,11 +172,9 @@ export default function LandingPage() {
                   { href: "/science-of-deep-work", title: "Deep Work", desc: "Monastic focus blocks." },
                   { href: "/feynman-technique", title: "Feynman", desc: "Learning by teaching." },
                 ].map(m => (
-                  <Link key={m.title} href={m.href}>
-                    <a className="block p-3 rounded-xl hover:bg-white/5 transition-colors">
-                      <p className="text-xs font-bold text-white">{m.title}</p>
-                      <p className="text-[10px] text-zinc-500 mt-0.5">{m.desc}</p>
-                    </a>
+                  <Link key={m.title} href={m.href} className="block p-3 rounded-xl hover:bg-white/5 transition-colors">
+                    <p className="text-xs font-bold text-white">{m.title}</p>
+                    <p className="text-[10px] text-zinc-500 mt-0.5">{m.desc}</p>
                   </Link>
                 ))}
              </div>
@@ -191,6 +194,7 @@ export default function LandingPage() {
       </nav>
 
       {/* ── HERO ── */}
+      <main id="main-content">
       <section className="relative flex min-h-screen items-center justify-center overflow-hidden pt-20">
         <Suspense fallback={null}>
           <Hero3D />
@@ -533,6 +537,7 @@ export default function LandingPage() {
            <p className="mt-4 text-[10px] text-[#4B5563] uppercase tracking-widest">No spam. Only high-performance research.</p>
         </div>
       </section>
+      </main>
 
       {/* ── FOOTER ── */}
       <footer className="border-t border-white/5 bg-[#030308] py-20 px-6">
