@@ -391,11 +391,78 @@ function GettingStarted({ sessionsToday, completedTasks }: { sessionsToday: numb
   );
 }
 
+/**
+ * "Today's Pulse" — a personalized, emotionally connective line that reflects
+ * the user's *actual* progress back at them. Every message is derived from real
+ * data (streak, sessions, minutes, level) so it always feels true and personal,
+ * never generic. This is the emotional anchor of the dashboard.
+ */
+function PersonalPulse({ stats, level }: { stats: DashboardStats; level: number }) {
+  const { sessionsToday, totalStudyMinutesToday, currentStreak } = stats;
+  const GOAL = 6;
+
+  let emoji: string;
+  let headline: string;
+  let sub: string;
+
+  if (currentStreak >= 30) {
+    emoji = "🏆";
+    headline = `A ${currentStreak}-day streak. Most people never get here.`;
+    sub = "You've shown up for yourself for a full month. That's not luck — that's who you are now.";
+  } else if (sessionsToday >= GOAL) {
+    emoji = "🎉";
+    headline = "Daily goal complete. You did the thing.";
+    sub = `${totalStudyMinutesToday} minutes of real focus today. Tomorrow you, but slightly sharper.`;
+  } else if (sessionsToday >= 1) {
+    emoji = "⚡";
+    headline = `You've already put in ${totalStudyMinutesToday} minute${totalStudyMinutesToday === 1 ? "" : "s"} today.`;
+    sub = `Momentum is on your side — ${GOAL - sessionsToday} more block${GOAL - sessionsToday === 1 ? "" : "s"} and you've hit your goal.`;
+  } else if (currentStreak >= 1) {
+    emoji = "🔥";
+    headline = `You're on a ${currentStreak}-day streak. Keep it alive.`;
+    sub = "One session today protects everything you've built. I believe in you — let's go.";
+  } else {
+    emoji = "🌱";
+    headline = "Day one of something that compounds.";
+    sub = "The first session is the one that matters most. Start small — 25 minutes is enough.";
+  }
+
+  return (
+    <motion.div
+      variants={SLIDE_UP}
+      initial="initial"
+      animate="animate"
+      className="rounded-2xl border border-[rgba(124,58,237,0.25)] bg-gradient-to-r from-[rgba(124,58,237,0.12)] via-[rgba(79,70,229,0.08)] to-[rgba(6,214,160,0.06)] p-5 backdrop-blur-xl"
+    >
+      <div className="flex items-start gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[rgba(124,58,237,0.18)] text-2xl">
+          {emoji}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-base font-bold text-[var(--foreground)] leading-snug">{headline}</h2>
+          <p className="mt-1 text-sm text-[var(--foreground-muted)] leading-relaxed">{sub}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-semibold">
+            <span className="inline-flex items-center gap-1 rounded-full bg-[rgba(124,58,237,0.15)] px-2.5 py-1 text-[#A78BFA]">
+              ⚡ Level {level}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-[rgba(245,158,11,0.15)] px-2.5 py-1 text-amber-400">
+              🔥 {currentStreak}-day streak
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-[rgba(6,214,160,0.15)] px-2.5 py-1 text-emerald-400">
+              🎯 {sessionsToday}/{GOAL} today
+            </span>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 const FALLBACK_TIP = "Start your timer and close every other tab — the hardest part is always the first two minutes.";
 
 /** Live AI coach tip pulled from the real `/api/coach/session-tip` endpoint,
  *  with a graceful fallback so the card never looks broken offline. */
-function CoachTipCard() {
+function CoachTipCard({ currentStreak }: { currentStreak?: number }) {
   const { status } = useAuth();
   const { data, isLoading } = useQuery<{ tip: string }>({
     queryKey: ["coach-tip"],
@@ -411,7 +478,14 @@ function CoachTipCard() {
     enabled: status === "authenticated",
   });
 
-  const tip = data?.tip?.trim() || FALLBACK_TIP;
+  // Personalize the fallback with the user's real streak so even the offline
+  // message feels tailored to them rather than generic.
+  const fallback =
+    currentStreak && currentStreak > 0
+      ? `You're on a ${currentStreak}-day streak — start your timer and keep it going. One focused block today is all it takes.`
+      : FALLBACK_TIP;
+
+  const tip = data?.tip?.trim() || fallback;
 
   return (
     <div className="rounded-2xl border border-[rgba(124,58,237,0.2)] bg-gradient-to-br from-[rgba(124,58,237,0.1)] to-transparent p-5 backdrop-blur-xl">
@@ -516,6 +590,7 @@ const DashboardPage = () => {
 
           {!loading && stats && (
             <div className="space-y-6">
+              <PersonalPulse stats={stats} level={wallet?.level ?? 1} />
               <GettingStarted sessionsToday={stats.sessionsToday} completedTasks={stats.completedTasks} />
               <div className="grid gap-6 lg:grid-cols-4">
                 <StaggerContainer className="grid gap-4 sm:grid-cols-4 lg:col-span-4">
@@ -582,7 +657,7 @@ const DashboardPage = () => {
 
                   <ReadinessWidget />
                   <DailyHabitsWidget />
-                  <CoachTipCard />
+                  <CoachTipCard currentStreak={stats.currentStreak} />
                 </div>
               </div>
 
