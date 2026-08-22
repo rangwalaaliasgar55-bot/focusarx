@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
+import { apiJson } from "@/lib/api";
 import { User, Award, Zap, Lock, Pencil, X, Save, ShoppingBag, Globe, FileText, TrendingUp, TrendingDown, Wallet, History, Star } from "lucide-react";
 import { Link } from "wouter";
 import ProductivityResume from "@/components/ProductivityResume";
@@ -76,8 +77,11 @@ const TIMEZONES = [
   "Australia/Melbourne", "Pacific/Auckland",
 ];
 
-function getLevel(totalXp: number) {
-  return Math.floor(Math.sqrt(totalXp / 100)) + 1;
+const numberText = (value: unknown) => Number(value ?? 0).toLocaleString();
+const safeNumber = (value: unknown) => Number(value ?? 0);
+
+function getLevel(totalXp: number | null | undefined) {
+  return Math.floor(Math.sqrt(safeNumber(totalXp) / 100)) + 1;
 }
 function xpForLevel(level: number) {
   return (level - 1) ** 2 * 100;
@@ -86,7 +90,8 @@ function xpForNextLevel(level: number) {
   return level ** 2 * 100;
 }
 
-function LevelBar({ totalXp }: { totalXp: number }) {
+function LevelBar({ totalXp }: { totalXp: number | null | undefined }) {
+  totalXp = safeNumber(totalXp);
   const level = getLevel(totalXp);
   const xpStart = xpForLevel(level);
   const xpEnd = xpForNextLevel(level);
@@ -103,7 +108,7 @@ function LevelBar({ totalXp }: { totalXp: number }) {
           </div>
           <div>
             <p className="text-base font-bold text-[var(--foreground)]">Level {level}</p>
-            <p className="text-xs text-[var(--foreground-subtle)]">{totalXp.toLocaleString()} total XP</p>
+            <p className="text-xs text-[var(--foreground-subtle)]">{numberText(totalXp)} total XP</p>
           </div>
         </div>
         <div className="text-right">
@@ -285,6 +290,8 @@ export default function ProfilePage() {
   const [badges, setBadges] = useState<BadgeDef[]>([]);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
   const [filter, setFilter] = useState<"all" | "unlocked" | "locked">("all");
   const [newlyUnlocked, setNewlyUnlocked] = useState<BadgeDef[]>([]);
   const [showUnlock, setShowUnlock] = useState(false);
@@ -299,14 +306,11 @@ export default function ProfilePage() {
   useEffect(() => {
     if (status === "loading") return;
     if (status === "unauthenticated") { setLoading(false); return; }
-    const token = getToken();
-    const headers = { Authorization: `Bearer ${token}` };
-
     Promise.all([
-      fetch("/api/gamification/wallet", { headers }).then((r) => r.json()),
-      fetch("/api/gamification/badges", { headers }).then((r) => r.json()),
-      fetch("/api/auth/session", { headers }).then((r) => r.json()),
-      fetch("/api/gamification/wallet/transactions?limit=50", { headers }).then((r) => r.ok ? r.json() : null).catch(() => null),
+      apiJson<WalletData>("/api/gamification/wallet"),
+      apiJson<{ badges: BadgeDef[]; stats: UserStats }>("/api/gamification/badges"),
+      apiJson<{ user?: { name?: string; bio?: string; timezone?: string } }>("/api/auth/session"),
+      apiJson<TxHistory>("/api/gamification/wallet/transactions?limit=50").catch(() => null),
     ])
       .then(([walletData, badgeData, sessionData, txData]) => {
         setWallet(walletData as WalletData);
@@ -325,9 +329,9 @@ export default function ProfilePage() {
         setLocalTimezone(u?.timezone ?? "UTC");
         if (txData) setTxHistory(txData as TxHistory);
       })
-      .catch(() => {})
+      .catch(() => setLoadError("We couldn't load your profile right now."))
       .finally(() => setLoading(false));
-  }, [status]);
+  }, [status, retryKey]);
 
   const user = authData?.user;
   const filteredBadges = badges.filter((b) => {
@@ -426,13 +430,21 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {!loading && status === "unauthenticated" && (
+          {!loading && loadError && (
+            <div className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-8 text-center">
+              <p className="text-sm font-semibold text-[var(--foreground)]">{loadError}</p>
+              <p className="mt-1 text-xs text-[var(--foreground-subtle)]">Nothing was changed. Please retry.</p>
+              <button onClick={() => { setLoading(true); setLoadError(null); setRetryKey(k => k + 1); }} className="mt-4 rounded-xl bg-[#7C3AED] px-4 py-2 text-xs font-bold text-white">Retry</button>
+            </div>
+          )}
+
+          {!loading && !loadError && status === "unauthenticated" && (
             <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-8 text-center">
               <p className="text-[var(--foreground-muted)] text-sm">Sign in to see your profile.</p>
             </div>
           )}
 
-          {!loading && status === "authenticated" && wallet && (
+          {!loading && !loadError && status === "authenticated" && wallet && (
             <div className="space-y-6">
               {/* User info card */}
               <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
@@ -453,7 +465,7 @@ export default function ProfilePage() {
                   <div className="flex flex-col items-end gap-2 shrink-0">
                     <div className="flex gap-3 text-center">
                       <div>
-                        <p className="text-base font-bold text-[#A78BFA]">{wallet.coins.toLocaleString()}</p>
+                        <p className="text-base font-bold text-[#A78BFA]">{numberText(wallet.coins)}</p>
                         <p className="text-[9px] text-[var(--foreground-subtle)]">Coins</p>
                       </div>
                       {wallet.rank && (
@@ -510,7 +522,7 @@ export default function ProfilePage() {
                   <Zap size={16} className="text-[#A78BFA]" />
                   <span className="text-sm text-[var(--foreground-muted)]">Weekly XP</span>
                 </div>
-                <span className="text-sm font-bold text-[#A78BFA]">{wallet.weeklyXp.toLocaleString()} XP</span>
+                <span className="text-sm font-bold text-[#A78BFA]">{numberText(wallet.weeklyXp)} XP</span>
               </div>
 
               {/* Coin Wallet History */}
@@ -537,9 +549,9 @@ export default function ProfilePage() {
                   {/* Summary row */}
                   <div className="grid grid-cols-3 gap-3 mb-4">
                     {[
-                      { label: "Balance", value: `🪙 ${txHistory.currentBalance.toLocaleString()}`, color: "#F59E0B" },
-                      { label: "Total earned", value: `+${txHistory.totalEarned.toLocaleString()}`, color: "#06D6A0" },
-                      { label: "Total spent", value: `-${txHistory.totalSpent.toLocaleString()}`, color: "#F87171" },
+                      { label: "Balance", value: `🪙 ${numberText(txHistory.currentBalance)}`, color: "#F59E0B" },
+                      { label: "Total earned", value: `+${numberText(txHistory.totalEarned)}`, color: "#06D6A0" },
+                      { label: "Total spent", value: `-${numberText(txHistory.totalSpent)}`, color: "#F87171" },
                     ].map(({ label, value, color }) => (
                       <div key={label} className="rounded-xl border border-[var(--forge-border)] bg-[var(--card)] p-3 text-center">
                         <p className="text-sm font-bold tabular-nums" style={{ color }}>{value}</p>
@@ -574,9 +586,9 @@ export default function ProfilePage() {
                             </div>
                             <div className="text-right shrink-0">
                               <p className={`text-[12px] font-bold tabular-nums ${isEarn ? "text-emerald-400" : "text-red-400"}`}>
-                                {isEarn ? "+" : ""}{tx.amount.toLocaleString()} 🪙
+                                {isEarn ? "+" : ""}{numberText(tx.amount)} 🪙
                               </p>
-                              <p className="text-[9px] text-[var(--foreground-subtle)]">bal: {tx.balanceAfter.toLocaleString()}</p>
+                              <p className="text-[9px] text-[var(--foreground-subtle)]">bal: {numberText(tx.balanceAfter)}</p>
                             </div>
                           </motion.div>
                         );

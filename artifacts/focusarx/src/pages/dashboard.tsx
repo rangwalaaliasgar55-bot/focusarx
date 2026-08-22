@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, lazy, Suspense } from "react";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { useAuth, getToken } from "@/lib/auth";
+import { apiJson } from "@/lib/api";
 import { PageTransition } from "@/components/PageTransition";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 import { TiltCard, StaggerContainer, StaggerItem } from "@/components/TiltCard";
@@ -518,30 +519,16 @@ const DashboardPage = () => {
   const firstName = session?.user?.name?.split(" ")[0] || session?.user?.email?.split("@")[0] || "there";
   const dateLabel = now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
 
-  const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
+  const { data: stats, isLoading: statsLoading, isError: statsError, refetch: retryStats } = useQuery<DashboardStats>({
     queryKey: ["dashboard-stats"],
-    queryFn: async () => {
-      const token = getToken();
-      const res = await fetch("/api/analytics/dashboard", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!res.ok) throw new Error("Failed to fetch dashboard stats");
-      return res.json();
-    },
+    queryFn: () => apiJson<DashboardStats>("/api/analytics/dashboard"),
     staleTime: 60_000,
     enabled: status === "authenticated",
   });
 
   const { data: wallet } = useQuery<Wallet>({
     queryKey: ["wallet"],
-    queryFn: async () => {
-      const token = getToken();
-      const res = await fetch("/api/gamification/wallet", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!res.ok) throw new Error("Failed to fetch wallet");
-      return res.json();
-    },
+    queryFn: () => apiJson<Wallet>("/api/gamification/wallet"),
     staleTime: 60_000,
     enabled: status === "authenticated",
   });
@@ -588,7 +575,15 @@ const DashboardPage = () => {
             </div>
           )}
 
-          {!loading && stats && (
+          {!loading && statsError && (
+            <section className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-8 text-center">
+              <p className="text-sm font-semibold text-[var(--foreground)]">Your dashboard could not be loaded.</p>
+              <p className="mt-1 text-xs text-[var(--foreground-subtle)]">Your data is safe. Check your connection and try again.</p>
+              <button onClick={() => void retryStats()} className="mt-4 rounded-xl bg-[#7C3AED] px-4 py-2 text-xs font-bold text-white">Retry dashboard</button>
+            </section>
+          )}
+
+          {!loading && !statsError && stats && (
             <div className="space-y-6">
               <PersonalPulse stats={stats} level={wallet?.level ?? 1} />
               <GettingStarted sessionsToday={stats.sessionsToday} completedTasks={stats.completedTasks} />

@@ -77,6 +77,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  useEffect(() => {
+    const onApiError = (event: Event) => {
+      const detail = (event as CustomEvent<{ message?: string }>).detail;
+      toast(detail?.message || "We couldn't refresh this data. Please try again.", "error");
+    };
+    window.addEventListener("focusarx:api-error", onApiError);
+    return () => window.removeEventListener("focusarx:api-error", onApiError);
+  }, [toast]);
+
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}

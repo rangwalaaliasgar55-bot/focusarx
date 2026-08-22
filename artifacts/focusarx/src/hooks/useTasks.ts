@@ -1,147 +1,56 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useLocalStorage } from "./useLocalStorage";
-import { STORAGE_KEYS } from "@/lib/constants";
+import { useCallback } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { generateId } from "@/lib/timerUtils";
-import { getToken } from "@/lib/auth";
+import { apiJson, apiFetch } from "@/lib/api";
 import { trackSiteEvent } from "@/lib/site-analytics";
 import type { Task } from "@/types/timer";
 
-function authHeaders() {
-  const token = getToken();
-  return { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+type ServerTask = { id: string; text: string; completed: boolean; estimatedMinutes: number | null; priority?: Task["priority"]; category?: string; createdAt?: string };
+const key = ["tasks"] as const;
+const toTask = (task: ServerTask): Task => ({ id: task.id, title: task.text, done: task.completed, estimatedPomodoros: task.estimatedMinutes ? Math.max(1, Math.round(task.estimatedMinutes / 25)) : 1, completedPomodoros: 0, createdAt: task.createdAt ?? new Date().toISOString(), priority: task.priority ?? "medium", category: task.category ?? "Default" });
+const refreshEvery = typeof document === "undefined" || document.visibilityState === "visible" ? 20_000 : false;
 
+/** Shared task cache: every screen observes the same optimistic task state. */
 export function useTasks() {
-  const refreshTasks = async () => {};
-  const [tasks, setTasks] = useLocalStorage<Task[]>(STORAGE_KEYS.tasks, []);
-  const [synced, setSynced] = useState(false);
+  const qc = useQueryClient();
+  const query = useQuery({
+    queryKey: key,
+    queryFn: async () => (await apiJson<{ tasks: ServerTask[] }>("/api/tasks")).tasks.map(toTask),
+    refetchInterval: refreshEvery,
+  });
+  const tasks = query.data ?? [];
+  const invalidateRelated = useCallback(() => {
+    void qc.invalidateQueries({ queryKey: key });
+    void qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
+    void qc.invalidateQueries({ queryKey: ["analytics"] });
+    void qc.invalidateQueries({ queryKey: ["wallet"] });
+  }, [qc]);
 
-  useEffect(() => {
-    const token = getToken();
-    if (!token || synced) return;
-    fetch("/api/tasks", { headers: authHeaders() })
-      .then(r => r.ok ? r.json() : null)
-      .then((d: { tasks?: Array<{ id: string; text: string; completed: boolean; estimatedMinutes: number | null; order: number; priority?: any; category?: string }> } | null) => {
-        if (!d?.tasks) return;
-        const serverTasks: Task[] = d.tasks.map(t => ({
-          id: t.id,
-          title: t.text,
-          estimatedPomodoros: t.estimatedMinutes ? Math.max(1, Math.round(t.estimatedMinutes / 25)) : 1,
-          completedPomodoros: 0,
-          done: t.completed,
-          createdAt: new Date().toISOString(),
-          priority: t.priority ?? "medium",
-          category: t.category ?? "Default",
-        }));
-        setTasks(serverTasks);
-        setSynced(true);
-      })
-      .catch(() => { setSynced(true); });
-  }, [synced, setTasks]);
-
-  const addTask = useCallback(
-    async (title: string, estimatedPomodoros = 1, priority: "low" | "medium" | "high" = "medium", category = "Default") => {
-      const localId = generateId();
-      const task: Task = {
-        id: localId,
-        title,
-        estimatedPomodoros,
-        completedPomodoros: 0,
-        done: false,
-        createdAt: new Date().toISOString(),
-        priority,
-        category,
-      };
-
-      setTasks((prev) => [...prev, task]);
-      trackSiteEvent("task_created", { title: title.slice(0, 80), priority, category });
-
-      const token = getToken();
-      if (token) {
-        try {
-          const res = await fetch("/api/tasks", {
-            method: "POST",
-            headers: authHeaders(),
-            body: JSON.stringify({ text: title, order: 0, priority, category }),
-          });
-          if (res.ok) {
-            const data = await res.json() as { task?: { id: string } };
-            if (data.task?.id) {
-              setTasks((prev) => prev.map(t => t.id === localId ? { ...t, id: data.task!.id! } : t));
-            }
-          }
-        } catch { }
-      }
-
-      return task;
+  const add = useMutation({
+    mutationFn: ({ title, priority, category }: { title: string; priority: Task["priority"]; category: string }) => apiJson<{ task: ServerTask }>("/api/tasks", { method: "POST", body: JSON.stringify({ text: title, order: 0, priority, category }) }),
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: key }); const previous = qc.getQueryData<Task[]>(key) ?? [];
+      const optimistic: Task = { id: `pending-${generateId()}`, title: input.title, done: false, estimatedPomodoros: 1, completedPomodoros: 0, createdAt: new Date().toISOString(), priority: input.priority, category: input.category };
+      qc.setQueryData<Task[]>(key, [...previous, optimistic]); return { previous, optimistic };
     },
-    [setTasks]
-  );
-
-  const updateTask = useCallback(
-    async (taskId: string, updates: Partial<Task>) => {
-      setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...updates } : t)));
-      const token = getToken();
-      if (token) {
-        try {
-          await fetch(`/api/tasks/${taskId}`, {
-            method: "PATCH",
-            headers: authHeaders(),
-            body: JSON.stringify(updates),
-          });
-        } catch {}
-      }
-    },
-    [setTasks]
-  );
-
-  const incrementPomodoro = useCallback(
-    (taskId: string) => {
-      setTasks((prev) =>
-        prev.map((t) =>
-          t.id === taskId
-            ? { ...t, completedPomodoros: t.completedPomodoros + 1 }
-            : t
-        )
-      );
-    },
-    [setTasks]
-  );
-
-  const toggleDone = useCallback(
-    (taskId: string) => {
-      setTasks((prev) => {
-        const updated = prev.map((t) => (t.id === taskId ? { ...t, done: !t.done } : t));
-        const task = updated.find(t => t.id === taskId);
-        const token = getToken();
-        if (token && task) {
-          fetch(`/api/tasks/${taskId}`, {
-            method: "PATCH",
-            headers: authHeaders(),
-            body: JSON.stringify({ completed: task.done }),
-          }).catch(() => {});
-        }
-        return updated;
-      });
-    },
-    [setTasks]
-  );
-
-  const removeTask = useCallback(
-    (taskId: string) => {
-      setTasks((prev) => prev.filter((t) => t.id !== taskId));
-      const token = getToken();
-      if (token) {
-        fetch(`/api/tasks/${taskId}`, { method: "DELETE", headers: authHeaders() }).catch(() => {});
-      }
-    },
-    [setTasks]
-  );
-
-  const activeTasks = tasks.filter((t) => !t.done);
-  const completedTasks = tasks.filter((t) => t.done);
-
-  return { tasks, activeTasks, completedTasks, addTask, updateTask, incrementPomodoro, toggleDone, removeTask, refreshTasks };
+    onError: (_e, _v, context) => qc.setQueryData(key, context?.previous),
+    onSuccess: (data, _v, context) => qc.setQueryData<Task[]>(key, old => (old ?? []).map(task => task.id === context?.optimistic.id ? toTask(data.task) : task)),
+    onSettled: invalidateRelated,
+  });
+  const change = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Task> }) => apiFetch(`/api/tasks/${id}`, { method: "PATCH", body: JSON.stringify(updates) }),
+    onMutate: async ({ id, updates }) => { await qc.cancelQueries({ queryKey: key }); const previous = qc.getQueryData<Task[]>(key) ?? []; qc.setQueryData<Task[]>(key, old => (old ?? []).map(task => task.id === id ? { ...task, ...updates } : task)); return { previous }; },
+    onError: (_e, _v, context) => qc.setQueryData(key, context?.previous), onSettled: invalidateRelated,
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) => apiFetch(`/api/tasks/${id}`, { method: "DELETE" }),
+    onMutate: async id => { await qc.cancelQueries({ queryKey: key }); const previous = qc.getQueryData<Task[]>(key) ?? []; qc.setQueryData<Task[]>(key, old => (old ?? []).filter(task => task.id !== id)); return { previous }; },
+    onError: (_e, _v, context) => qc.setQueryData(key, context?.previous), onSettled: invalidateRelated,
+  });
+  const addTask = useCallback(async (title: string, _estimate = 1, priority: Task["priority"] = "medium", category = "Default") => { trackSiteEvent("task_created", { title: title.slice(0, 80), priority, category }); return add.mutateAsync({ title, priority, category }); }, [add]);
+  const updateTask = useCallback(async (id: string, updates: Partial<Task>) => change.mutateAsync({ id, updates }), [change]);
+  const toggleDone = useCallback((id: string) => { const task = tasks.find(t => t.id === id); if (task) change.mutate({ id, updates: { done: !task.done, completed: !task.done } }); }, [tasks, change]);
+  return { tasks, activeTasks: tasks.filter(t => !t.done), completedTasks: tasks.filter(t => t.done), addTask, updateTask, incrementPomodoro: (id: string) => change.mutate({ id, updates: { completedPomodoros: (tasks.find(t => t.id === id)?.completedPomodoros ?? 0) + 1 } }), toggleDone, removeTask: (id: string) => remove.mutate(id), refreshTasks: query.refetch, isLoading: query.isLoading, isError: query.isError };
 }

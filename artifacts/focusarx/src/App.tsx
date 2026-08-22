@@ -1,8 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { AnimatePresence, motion, motion as m } from "framer-motion";
-// Lazy-loaded so the WebGL stack (three.js + react-three-fiber + drei) is split
-// out of the initial bundle — the landing page never needs it on the critical path.
-const ThreeBackground = lazy(() => import("@/components/ThreeBackground"));
+import PageBackground from "@/components/PageBackground";
+import "@/components/page-background.css";
 import LoadingScreen from "@/components/LoadingScreen";
 const LandingPage = lazy(() => import("@/pages/landing"));
 import { ClipboardList, X } from "lucide-react";
@@ -10,7 +9,7 @@ import { connectSocket, disconnectSocket } from "@/lib/socket";
 import MissionsWidget from "@/components/MissionsWidget";
 import ProductivityScoreWidget from "@/components/ProductivityScoreWidget";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from "@tanstack/react-query";
  
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { ToastProvider } from "@/components/Toast";
@@ -105,6 +104,12 @@ const StudyMethodCalculatorPage = lazy(() => import("@/pages/study-calculator"))
 const FlashcardsPage = lazy(() => import("@/pages/flashcards"));
 
 const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error) => window.dispatchEvent(new CustomEvent("focusarx:api-error", { detail: { message: error instanceof Error ? error.message : "Unable to load data." } })),
+  }),
+  mutationCache: new MutationCache({
+    onError: (error) => window.dispatchEvent(new CustomEvent("focusarx:api-error", { detail: { message: error instanceof Error ? error.message : "Unable to save your changes." } })),
+  }),
   defaultOptions: {
     queries: {
       retry: (failureCount, error) => {
@@ -534,11 +539,7 @@ function GlobalBackground({ isFocusing }: { isFocusing: boolean }) {
   // global WebGL backdrop there so we never run two GPU contexts at once.
   const skip = location === "/" && status === "unauthenticated";
   if (skip) return null;
-  return (
-    <Suspense fallback={null}>
-      <ThreeBackground isFocusing={isFocusing} />
-    </Suspense>
-  );
+  return <PageBackground isFocusing={isFocusing} />;
 }
 
 function SocketInitializer() {
