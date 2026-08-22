@@ -7,12 +7,13 @@ interface ProgressProps extends React.ComponentPropsWithoutRef<typeof ProgressPr
 }
 
 const Progress = React.forwardRef<React.ElementRef<typeof ProgressPrimitive.Root>, ProgressProps>(
-  ({ className, value = 0, indicatorClassName, ...props }, ref) => {
+  ({ className, value = 0, indicatorClassName, "aria-label": ariaLabel = "Progress", ...props }, ref) => {
     const normalized = Math.min(100, Math.max(0, value ?? 0));
     return (
       <ProgressPrimitive.Root
         ref={ref}
         value={normalized}
+        aria-label={ariaLabel}
         className={cn("relative h-2 w-full overflow-hidden rounded-full bg-[var(--brand-soft)]", className)}
         {...props}
       >

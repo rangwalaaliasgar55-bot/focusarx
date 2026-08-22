@@ -539,7 +539,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
                   type="button"
                   disabled={!canPickMode}
                   onClick={() => selectMode(m)}
-                  className={`relative z-[var(--z-content)] flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] font-semibold transition-all ${
+                  className={`relative z-[var(--z-content)] flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] font-semibold transition-all ${
                     active ? "text-[var(--palette-zinc-50)]" : "text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)] disabled:cursor-not-allowed disabled:opacity-40"
                   }`}
                 >

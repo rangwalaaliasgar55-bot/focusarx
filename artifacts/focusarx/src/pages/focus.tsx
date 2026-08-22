@@ -251,7 +251,7 @@ function MobileSidePanelDrawer() {
       <button
         aria-label="Open tasks & stats"
         onClick={() => setOpen(true)}
-        className="fixed bottom-[76px] md:bottom-5 right-4 z-[var(--z-nav)] flex items-center gap-2 rounded-full border border-[var(--rgba-255-255-255-0_1)] bg-[var(--rgba-15-17-30-0_9)] px-4 py-2.5 text-xs font-semibold text-[var(--palette-a5a8ff)] shadow-lg shadow-[var(--palette-black)]/40 backdrop-blur-xl transition-colors active:bg-[var(--rgba-255-255-255-0_08)] lg:hidden"
+        className="fixed bottom-[76px] md:bottom-5 right-4 z-[var(--z-nav)] flex min-h-11 items-center gap-2 rounded-full border border-[var(--rgba-255-255-255-0_1)] bg-[var(--rgba-15-17-30-0_9)] px-4 py-2.5 text-xs font-semibold text-[var(--palette-a5a8ff)] shadow-lg shadow-[var(--palette-black)]/40 backdrop-blur-xl transition-colors active:bg-[var(--rgba-255-255-255-0_08)] lg:hidden"
       >
         <ClipboardList size={14} />
         Tasks & Stats

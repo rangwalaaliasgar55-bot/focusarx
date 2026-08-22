@@ -327,9 +327,11 @@ export function TimerDisplay({
             </motion.span>
             {onEditClick && (
               <button
+                type="button"
                 onClick={onEditClick}
-                className="absolute -right-7 opacity-0 group-hover:opacity-100 transition-opacity text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)]"
+                className="absolute -right-12 grid h-11 w-11 place-items-center rounded-[var(--radius-md)] text-[var(--palette-zinc-500)] opacity-0 transition-opacity hover:text-[var(--palette-zinc-300)] group-hover:opacity-100 focus-visible:opacity-100"
                 title="Edit time"
+                aria-label="Edit timer duration"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />

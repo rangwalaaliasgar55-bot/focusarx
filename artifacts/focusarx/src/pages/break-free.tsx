@@ -35,16 +35,18 @@ export default function BreakFreePage() {
       <div className="rounded-[var(--radius-2xl)] border border-[color-mix(in_srgb,var(--brand-teal)_20%,transparent)] bg-[color-mix(in_srgb,var(--brand-teal)_4%,var(--surface))] p-2 shadow-[var(--shadow-sm)] sm:p-4">
         <Tabs defaultValue="streak">
           <TabsList className="grid h-auto w-full grid-cols-2 gap-1 bg-[var(--surface-hover)] p-1 sm:grid-cols-5" aria-label="Break Free tools">
-            {TABS.map(({ id, label, icon: Icon }) => <TabsTrigger key={id} value={id} className="min-h-11 gap-2 rounded-[var(--radius-md)] data-[state=active]:bg-[var(--surface-raised)] data-[state=active]:text-[var(--brand-teal)]"><Icon size={15} /> <span>{label}</span></TabsTrigger>)}
+            {TABS.map(({ id, label, icon: Icon }) => <TabsTrigger key={id} id={`break-free-tab-${id}`} aria-controls={`break-free-panel-${id}`} value={id} className="min-h-11 gap-2 rounded-[var(--radius-md)] data-[state=active]:bg-[var(--surface-raised)] data-[state=active]:text-[var(--brand-teal)]"><Icon size={15} /> <span>{label}</span></TabsTrigger>)}
           </TabsList>
 
-          {loading ? (
-            <div className="space-y-4 p-4 sm:p-8" role="status" aria-label="Loading Break Free tools"><Skeleton className="h-10 w-48" /><Skeleton className="h-56" /><Skeleton className="h-24" /></div>
-          ) : TABS.map(({ id, component: Component }) => (
-            <TabsContent key={id} value={id} className="mt-2 focus-visible:outline-none">
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, ease: "easeOut" }}>
-                <Component />
-              </motion.div>
+          {TABS.map(({ id, component: Component }) => (
+            <TabsContent key={id} id={`break-free-panel-${id}`} aria-labelledby={`break-free-tab-${id}`} value={id} className="mt-2 focus-visible:outline-none">
+              {loading ? (
+                <div className="space-y-4 p-4 sm:p-8" role="status" aria-label="Loading Break Free tools"><Skeleton className="h-10 w-48" /><Skeleton className="h-56" /><Skeleton className="h-24" /></div>
+              ) : (
+                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, ease: "easeOut" }}>
+                  <Component />
+                </motion.div>
+              )}
             </TabsContent>
           ))}
         </Tabs>

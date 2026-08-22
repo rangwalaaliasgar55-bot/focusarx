@@ -1,5 +1,6 @@
-/* ─── Modern type pair: Manrope display + Geist body ───────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&family=Manrope:wght@500;600;700;800&display=swap');
+/* ─── Self-hosted modern type pair: Manrope display + Geist body ───────── */
+@import "@fontsource-variable/geist/wght.css";
+@import "@fontsource-variable/manrope/wght.css";
 
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -27,9 +28,9 @@
   --color-popover-foreground: var(--foreground);
   --color-destructive:       var(--danger);
   --color-destructive-foreground: var(--neutral-0);
-  --font-sans:               var(--font-geist-sans, 'Geist', system-ui, sans-serif);
-  --font-display:            var(--font-manrope, 'Manrope', 'Geist', system-ui, sans-serif);
-  --font-mono:               var(--font-geist-mono, 'Geist Mono', monospace);
+  --font-sans:               'Geist Variable', system-ui, sans-serif;
+  --font-display:            'Manrope Variable', 'Geist Variable', system-ui, sans-serif;
+  --font-mono:               ui-monospace, 'SFMono-Regular', Consolas, monospace;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -42,8 +43,8 @@
   /* ── Base colors ──────────────────────────────────────────────────────── */
   --background:        #030308;
   --foreground:        #F8FAFC;
-  --foreground-muted:  #94A3B8;
-  --foreground-subtle: #4B5563;
+  --foreground-muted:  #A8B3C5;
+  --foreground-subtle: #7C879A;
 
   /* ── Surface scale ────────────────────────────────────────────────────── */
   --surface-0:   #030308;           /* Page background */
@@ -307,7 +308,7 @@ html.light {
   --background:        #F5F7FA;
   --foreground:        #0F172A;
   --foreground-muted:  #475569;
-  --foreground-subtle: #94A3B8;
+  --foreground-subtle: #64748B;
 
   --surface-0:   #F5F7FA;
   --surface-1:   rgba(255, 255, 255, 0.95);
@@ -433,7 +434,7 @@ body {
   touch-action: manipulation;
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Geist', var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-size: var(--text-base);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -445,7 +446,7 @@ body {
 .font-metric,
 .tabular-nums {
   font-variant-numeric: tabular-nums;
-  font-family: 'Geist Mono', var(--font-geist-mono), monospace;
+  font-family: var(--font-mono);
   letter-spacing: -0.01em;
 }
 
@@ -1831,6 +1832,13 @@ html.light .glass-subtle {
   --palette-zinc-700: oklch(37% 0.013 285.805);
   --palette-zinc-800: oklch(27.4% 0.006 286.033);
   --palette-zinc-900: oklch(21% 0.006 285.885);
+}
+
+html:not(.light) .admin-shell,
+html:not(.light) .focus-chamber {
+  /* Legacy compact screens retain their visual hierarchy at AA contrast. */
+  --palette-zinc-500: var(--foreground-muted);
+  --palette-zinc-600: var(--foreground-subtle);
 }
 
 html.light {
