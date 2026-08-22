@@ -316,8 +316,10 @@ export default function AmbientSoundBar({ visible = true }: Props) {
               </button>
             )}
             <button
+              type="button"
               onClick={() => setExpanded((e) => !e)}
-              className="rounded-lg p-1 text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)] transition-colors"
+              aria-label={expanded ? "Collapse ambient sounds" : "Expand ambient sounds"}
+              className="grid h-11 w-11 place-items-center rounded-[var(--radius-md)] text-[var(--foreground-subtle)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground-muted)]"
             >
               {expanded ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
             </button>

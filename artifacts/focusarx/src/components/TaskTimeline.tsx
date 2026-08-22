@@ -240,7 +240,7 @@ export default function TaskTimeline({ tasks: propTasks, elapsedSeconds = 0, isR
               ) : (
                 <button
                   onClick={() => { setEditingId(task.id); setEditVal(task.estimatedMinutes?.toString() ?? ""); }}
-                  className={`flex items-center gap-1 text-[10px] transition-colors rounded-md px-1.5 py-0.5 ${
+                  className={`flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-[var(--radius-md)] px-1.5 py-0.5 text-[10px] transition-colors ${
                     hasTime
                       ? "font-semibold opacity-100"
                       : "opacity-0 group-hover:opacity-100 text-[var(--foreground-subtle)] hover:text-[var(--brand-400)]"

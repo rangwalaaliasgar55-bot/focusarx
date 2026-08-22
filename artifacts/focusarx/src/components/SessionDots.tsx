@@ -16,6 +16,7 @@ export function SessionDots({ completed, total }: SessionDotsProps) {
   return (
     <div
       className="flex items-center gap-2"
+      role="img"
       aria-label={`${completed} focus sessions completed in total`}
     >
       {Array.from({ length: total }).map((_, i) => {

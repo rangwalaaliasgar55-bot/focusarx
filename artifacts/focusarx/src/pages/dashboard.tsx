@@ -174,7 +174,7 @@ function RecentActivity({ sessions }: { sessions: DashboardStats["recentSessions
         <Button asChild variant="ghost" size="sm"><Link href="/analytics">View analytics <ArrowRight /></Link></Button>
       </CardHeader>
       {sessions.length ? (
-        <div className="mt-5 overflow-x-auto">
+        <div className="mt-5 overflow-x-auto" role="region" aria-label="Recent focus activity" tabIndex={0}>
           <table className="w-full min-w-[36rem] text-left text-sm">
             <thead className="bg-[var(--surface-raised)] text-xs uppercase tracking-wider text-[var(--foreground-subtle)]">
               <tr><th className="px-6 py-3 font-semibold">Session</th><th className="px-6 py-3 font-semibold">Duration</th><th className="px-6 py-3 font-semibold">Focus score</th><th className="px-6 py-3 font-semibold">Completed</th></tr>

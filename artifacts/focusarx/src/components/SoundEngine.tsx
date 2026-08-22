@@ -289,8 +289,9 @@ export function SoundEngine({ sessionActive, sessionMinutesLeft, sessionTotalMin
     <div className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[11px] font-medium transition-all ${enabled ? "border-[var(--rgba-124-58-237-0_4)] bg-[var(--rgba-124-58-237-0_1)] text-[var(--brand-400)]" : "border-[var(--rgba-124-58-237-0_15)] text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]"}`}
+        className={`flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[11px] font-medium transition-all ${enabled ? "border-[var(--rgba-124-58-237-0_4)] bg-[var(--rgba-124-58-237-0_1)] text-[var(--brand-400)]" : "border-[var(--rgba-124-58-237-0_15)] text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]"}`}
         title="Sound Engine"
+        aria-label="Sound engine"
       >
         {enabled ? <Volume2 size={12} /> : <VolumeX size={12} />}
         <span className="hidden sm:inline">{enabled ? ENVS.find((e) => e.id === env)?.emoji : "Sound"}</span>

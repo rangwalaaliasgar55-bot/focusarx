@@ -44,7 +44,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       <div className={cn("relative flex items-center rounded-[var(--radius-md)] border bg-[var(--input-bg)]", stateClasses(error, success), className)}>
         {leftSlot && <span className="pointer-events-none absolute left-3 text-[var(--foreground-subtle)] [&_svg]:size-4">{leftSlot}</span>}
         {field}
-        {rightSlot && <span className="absolute right-2 flex min-h-9 min-w-9 items-center justify-center text-[var(--foreground-muted)] [&_button]:min-h-9 [&_button]:min-w-9 [&_svg]:size-4">{rightSlot}</span>}
+        {rightSlot && <span className="absolute right-0 flex min-h-11 min-w-11 items-center justify-center text-[var(--foreground-muted)] [&_button]:min-h-11 [&_button]:min-w-11 [&_svg]:size-4">{rightSlot}</span>}
       </div>
     );
   },

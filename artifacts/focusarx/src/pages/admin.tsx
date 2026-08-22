@@ -774,8 +774,8 @@ export default function AdminPage() {
             <div className="mt-4 flex items-end gap-1.5 h-32">
               {(stats?.dailyChart ?? Array.from({ length: 7 }, (_, i) => ({
                 day: ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][i] ?? "?", date: "", sessions: 0, minutes: 0,
-              }))).map(d => (
-                <div key={d.date || d.day} className="flex flex-1 flex-col items-center gap-1">
+              }))).map((d, index) => (
+                <div key={`${d.date || d.day}-${index}`} className="flex flex-1 flex-col items-center gap-1">
                   <div
                     className="w-full rounded-t-md bg-[var(--palette-rose-500)]/70 hover:bg-[var(--palette-rose-400)]/90 transition-all"
                     style={{ height: `${Math.round((d.sessions / maxSessions) * 100)}%`, minHeight: d.sessions > 0 ? "4px" : "2px" }}

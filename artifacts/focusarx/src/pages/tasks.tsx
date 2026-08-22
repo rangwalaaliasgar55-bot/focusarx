@@ -67,7 +67,7 @@ function TaskRow({
       tabIndex={0}
     >
       <label className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center" aria-label={`Select ${task.title}`}>
-        <Checkbox checked={selected} onCheckedChange={onSelect} />
+        <Checkbox checked={selected} onCheckedChange={onSelect} aria-label={`Select ${task.title}`} />
       </label>
       <button type="button" onClick={onToggle} className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[var(--foreground-subtle)] hover:bg-[var(--surface-hover)] hover:text-[var(--brand-strong)]" aria-label={task.done ? `Mark ${task.title} active` : `Complete ${task.title}`}>
         <span className={cn("grid h-6 w-6 place-items-center rounded-full border-2 border-[var(--border-strong)]", task.done && "border-[var(--success)] bg-[var(--success)] text-[var(--neutral-0)]")}>
@@ -184,7 +184,7 @@ export default function TasksPage() {
                 role="tab"
                 aria-selected={filter === item.id}
                 onClick={() => { setFilter(item.id); setSelected(new Set()); }}
-                className={cn("min-h-9 shrink-0 rounded-[var(--radius-sm)] px-3 text-xs font-semibold text-[var(--foreground-muted)] transition-colors", filter === item.id && "bg-[var(--surface-raised)] text-[var(--foreground)] shadow-[var(--shadow-xs)]")}
+                className={cn("min-h-11 min-w-11 shrink-0 rounded-[var(--radius-sm)] px-3 text-xs font-semibold text-[var(--foreground-muted)] transition-colors", filter === item.id && "bg-[var(--surface-raised)] text-[var(--foreground)] shadow-[var(--shadow-xs)]")}
               >
                 {item.label}
               </button>
