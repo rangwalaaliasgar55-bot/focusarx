@@ -42,8 +42,8 @@ export default function AuthCallbackPage() {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <p className="text-lg text-red-400">{error}</p>
-          <a href="/login" className="mt-4 inline-block text-rose-400 hover:underline">
+          <p className="text-lg text-[var(--palette-red-400)]">{error}</p>
+          <a href="/login" className="mt-4 inline-block text-[var(--palette-rose-400)] hover:underline">
             Back to login
           </a>
         </div>
@@ -53,7 +53,7 @@ export default function AuthCallbackPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-rose-400" />
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--palette-zinc-700)] border-t-[var(--palette-rose-400)]" />
     </div>
   );
 }

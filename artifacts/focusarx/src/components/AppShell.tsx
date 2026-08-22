@@ -1,528 +1,400 @@
-import { useLocation, Link } from "wouter";
-import { useAuth, isAdminUser, getToken } from "@/lib/auth";
+import { useCallback, useEffect, useState } from "react";
+import { Link, useLocation } from "wouter";
+import { motion } from "framer-motion";
 import {
-  Timer, LayoutDashboard, TrendingUp, Trophy, Star,
-  Users, Sparkles, LogOut, LogIn, Menu, X, Shield, BookOpen,
-  Dna, Ghost, Sword, Radio, Wind, UserCircle, Flame, Target,
-  Bell, BellOff, Users2, Zap, Brain, CheckSquare, MessageSquare,
-  ShoppingBag, Flag, Gift, Sun, Moon, Building2, Coins, Package,
-  ChevronLeft, ChevronRight, ChevronDown, Settings, MoreHorizontal,
-  Home, ChevronRight as ChevronRightIcon, Layers
+  BarChart3,
+  Bell,
+  BookOpen,
+  Brain,
+  CheckSquare2,
+  ChevronDown,
+  Flame,
+  Gift,
+  Goal,
+  GraduationCap,
+  LayoutDashboard,
+  Library,
+  LogIn,
+  LogOut,
+  Menu,
+  MessageCircle,
+  Moon,
+  Search,
+  Settings,
+  Shield,
+  Sparkles,
+  Sun,
+  Target,
+  Timer,
+  Trophy,
+  UserRound,
+  Users,
+  WalletCards,
+  X,
+  Zap,
 } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
-import { useTheme } from "@/lib/theme";
-import { requestPushPermission, unsubscribePush, isPushSubscribed } from "@/lib/pushNotifications";
-import { motion, AnimatePresence } from "framer-motion";
-import CoachPanel from "@/components/CoachPanel";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth, getToken, isAdminUser } from "@/lib/auth";
+import { useTheme } from "@/lib/theme";
+import { useSessionHistory } from "@/hooks/useSessionHistory";
+import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import CoachPanel from "@/components/CoachPanel";
 
-async function fetchMissionStats() {
-  const token = getToken();
-  const res = await fetch("/api/missions", { headers: token ? { Authorization: `Bearer ${token}`} : {} });
-  if (!res.ok) return null;
-  return res.json();
-}
-
-async function fetchNotifCount() {
-  const token = getToken();
-  if (!token) return null;
-  const res = await fetch("/api/notifications", { headers: { Authorization: `Bearer ${token}`} });
-  if (!res.ok) return null;
-  return res.json();
-}
-
-function MissionsBadge({ dot }: { dot?: boolean }) {
-  const { data } = useQuery({ queryKey: ["missions-badge"], queryFn: fetchMissionStats, staleTime: 60_000, refetchInterval: 120_000 });
-  const claimable = (data?.daily ?? []).filter((m: any) => m.completed && !m.rewardClaimed).length
-    + (data?.weekly ?? []).filter((m: any) => m.completed && !m.rewardClaimed).length;
-  if (!claimable) return null;
-  if (dot) return <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-emerald-400 ring-1 ring-[#08090f]" />;
-  return <span className="ml-auto flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[8px] font-bold text-black">{claimable}</span>;
-}
-
-function NotifBadge({ dot }: { dot?: boolean }) {
-  const { data } = useQuery({ queryKey: ["notif-count-nav"], queryFn: fetchNotifCount, staleTime: 30_000, refetchInterval: 60_000 });
-  const count = data?.unreadCount ?? 0;
-  if (!count) return null;
-  if (dot) return <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-red-500 ring-1 ring-[#08090f]" />;
-  return <span className="ml-auto flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white">{count > 9 ? "9+" : count}</span>;
-}
-
-const PRIMARY_NAV = [
-  { href: "/",             label: "Focus",        icon: Timer,         shortcut: "1" },
-  { href: "/dashboard",    label: "Dashboard",     icon: LayoutDashboard, shortcut: "2" },
-  { href: "/forge-room",   label: "Forge Room",    icon: Users,         shortcut: "6" },
-  { href: "/habits",       label: "Tasks",         icon: CheckSquare,   shortcut: "t" },
-  { href: "/flashcards",   label: "Flashcards",    icon: Layers,        shortcut: "f" },
-  { href: "/goals",        label: "Goals",         icon: Flag,          shortcut: "g" },
-  { href: "/ai-insights",  label: "AI Coach",      icon: Brain,         shortcut: "a", aiBadge: true },
-  { href: "/analytics",    label: "Analytics",     icon: TrendingUp,    shortcut: "3" },
-  { href: "/achievements", label: "Achievements",  icon: Star,          shortcut: "5" },
-  { href: "/social",       label: "Community",     icon: Users,         shortcut: "s" },
-  { href: "/profile",      label: "Profile",       icon: UserCircle,    shortcut: "p" },
-];
-
-const MORE_NAV = [
-  { href: "/missions",     label: "Missions",       icon: Target,       badge: "missions" as const },
-  { href: "/quests",       label: "Quests",         icon: Sparkles },
-  { href: "/flashcards",   label: "Flashcards",     icon: Layers },
-  { href: "/study-method-quiz", label: "Study Method Quiz", icon: Brain },
-  { href: "/study-calculator", label: "Study Calculator", icon: BookOpen },
-  { href: "/roadmap",      label: "AI Roadmap",     icon: Sparkles,     aiBadge: true },
-  { href: "/leaderboard",  label: "Leaderboard",    icon: Trophy },
-  { href: "/groups",       label: "Study Groups",   icon: Users2 },
-  { href: "/messages",     label: "Messages",       icon: MessageSquare },
-  { href: "/study-rooms",  label: "Study Rooms",    icon: Radio },
-  { href: "/notifications",label: "Notifications",  icon: Bell,         badge: "notif" as const },
-  { href: "/wallet",       label: "Wallet & XP",    icon: Coins },
-  { href: "/shop",         label: "Coin Shop",      icon: ShoppingBag },
-  { href: "/marketplace",  label: "Marketplace",    icon: ShoppingBag },
-  { href: "/lootboxes",    label: "Loot Boxes",     icon: Gift },
-  { href: "/battle-pass",  label: "Battle Pass",    icon: Zap },
-  { href: "/referral",     label: "Refer Friends",  icon: Gift },
-  { href: "/premium",      label: "Premium",        icon: Zap },
-  { href: "/pets",         label: "Pet Companion",  icon: Star },
-  { href: "/city",         label: "Focus City",     icon: Building2 },
-  { href: "/break-free",   label: "Break Free",     icon: Flame },
-  { href: "/breathe",      label: "Breathe",        icon: Wind },
-  { href: "/dreams",       label: "My Dreams",      icon: Star },
-  { href: "/focus-dna",    label: "Focus DNA",      icon: Dna },
-  { href: "/constellations", label: "Constellations", icon: Star },
-  { href: "/consequences", label: "Consequences",   icon: Sword },
-  { href: "/forge",        label: "Forge Room",     icon: Users },
-];
-
-const MOBILE_BOTTOM = [
-  { href: "/",             label: "Focus",       icon: Timer },
-  { href: "/dashboard",    label: "Home",        icon: LayoutDashboard },
-  { href: "/habits",       label: "Tasks",       icon: CheckSquare },
-  { href: "/achievements", label: "Wins",        icon: Star },
-  { href: "/profile",      label: "Me",          icon: UserCircle },
-];
-
-const NO_SHELL_ALWAYS = ["/login", "/signup", "/forgot-password", "/reset-password", "/admin", "/auth/callback"];
-
-interface NavItemProps {
+interface NavEntry {
   href: string;
   label: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  active: boolean;
-  shortcut?: string;
-  aiBadge?: boolean;
-  badge?: "missions" | "notif";
-  onClick?: () => void;
-  collapsed?: boolean;
-  small?: boolean;
+  icon: React.ComponentType<{ className?: string; size?: number }>;
+  badge?: "missions" | "notifications";
+  admin?: boolean;
 }
 
-function NavItem({ href, label, icon: Icon, active, aiBadge, badge, onClick, collapsed, small }: NavItemProps) {
-  const [, setLocation] = useLocation();
+interface NavGroup {
+  label: string;
+  entries: NavEntry[];
+}
 
-  const handleNav = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (onClick) onClick();
-    setLocation(href);
-  };
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: "Workspace",
+    entries: [
+      { href: "/", label: "Focus", icon: Timer },
+      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/tasks", label: "Tasks", icon: CheckSquare2 },
+      { href: "/goals", label: "Goals", icon: Goal },
+    ],
+  },
+  {
+    label: "Learn",
+    entries: [
+      { href: "/flashcards", label: "Flashcards", icon: Library },
+      { href: "/forge-room", label: "Study room", icon: GraduationCap },
+      { href: "/ai-insights", label: "AI coach", icon: Brain },
+      { href: "/analytics", label: "Analytics", icon: BarChart3 },
+    ],
+  },
+  {
+    label: "Momentum",
+    entries: [
+      { href: "/missions", label: "Missions", icon: Target, badge: "missions" },
+      { href: "/achievements", label: "Achievements", icon: Trophy },
+      { href: "/break-free", label: "Break Free", icon: Flame },
+      { href: "/social", label: "Community", icon: Users },
+    ],
+  },
+  {
+    label: "More",
+    entries: [
+      { href: "/habits", label: "Habits", icon: Sparkles },
+      { href: "/messages", label: "Messages", icon: MessageCircle },
+      { href: "/wallet", label: "Wallet & XP", icon: WalletCards },
+      { href: "/shop", label: "Rewards", icon: Gift },
+      { href: "/focus-guide", label: "Focus guides", icon: BookOpen },
+      { href: "/admin", label: "Admin", icon: Shield, admin: true },
+    ],
+  },
+];
 
-  if (collapsed) {
+const MOBILE_TABS = [
+  { href: "/dashboard", label: "Home", icon: LayoutDashboard },
+  { href: "/tasks", label: "Tasks", icon: CheckSquare2 },
+  { href: "/", label: "Focus", icon: Timer, primary: true },
+  { href: "/flashcards", label: "Study", icon: Library },
+  { href: "/profile", label: "You", icon: UserRound },
+];
+
+const NO_SHELL = [
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+  "/auth/callback",
+  "/admin",
+  "/welcome",
+];
+
+async function fetchMissionCount() {
+  const token = getToken();
+  const response = await fetch("/api/missions", {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) return 0;
+  const data = await response.json();
+  return [...(data?.daily ?? []), ...(data?.weekly ?? [])].filter(
+    (mission: { completed?: boolean; rewardClaimed?: boolean }) => mission.completed && !mission.rewardClaimed,
+  ).length;
+}
+
+async function fetchNotificationCount() {
+  const token = getToken();
+  if (!token) return 0;
+  const response = await fetch("/api/notifications", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) return 0;
+  return (await response.json())?.unreadCount ?? 0;
+}
+
+function Brand({ compact = false }: { compact?: boolean }) {
+  return (
+    <Link href="/dashboard" className="flex min-w-0 items-center gap-3" aria-label="FocusArx dashboard">
+      <span className="brand-mark" aria-hidden="true">
+        <Zap size={compact ? 16 : 18} fill="currentColor" />
+      </span>
+      {!compact && (
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-semibold tracking-tight text-[var(--foreground)]">FocusArx</span>
+          <span className="block truncate text-[0.6875rem] font-medium text-[var(--foreground-subtle)]">Deep work, made clear</span>
+        </span>
+      )}
+    </Link>
+  );
+}
+
+function CountBadge({ count }: { count: number }) {
+  if (!count) return null;
+  return (
+    <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--brand-soft)] px-1.5 py-0.5 text-[0.625rem] font-bold tabular-nums text-[var(--brand-strong)]">
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
+function Navigation({ onNavigate }: { onNavigate?: () => void }) {
+  const [location] = useLocation();
+  const { data: user } = useAuth();
+  const { data: missionCount = 0 } = useQuery({
+    queryKey: ["missions-badge"],
+    queryFn: fetchMissionCount,
+    staleTime: 60_000,
+    refetchInterval: 120_000,
+  });
+
+  return (
+    <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5" aria-label="Primary navigation">
+      {NAV_GROUPS.map((group) => {
+        const entries = group.entries.filter((entry) => !entry.admin || isAdminUser(user?.user));
+        if (!entries.length) return null;
+        return (
+          <section key={group.label} aria-labelledby={`nav-${group.label.toLowerCase()}`}>
+            <h2
+              id={`nav-${group.label.toLowerCase()}`}
+              className="mb-2 px-3 text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-[var(--foreground-subtle)]"
+            >
+              {group.label}
+            </h2>
+            <div className="space-y-1">
+              {entries.map((entry) => {
+                const Icon = entry.icon;
+                const active = location === entry.href;
+                return (
+                  <Link
+                    key={entry.href}
+                    href={entry.href}
+                    onClick={onNavigate}
+                    aria-current={active ? "page" : undefined}
+                    className={cn("nav-item", active && "nav-item-active")}
+                  >
+                    <Icon size={18} aria-hidden="true" />
+                    <span className="truncate">{entry.label}</span>
+                    {entry.badge === "missions" && <CountBadge count={missionCount} />}
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
+    </nav>
+  );
+}
+
+function UserMenu({ compact = false }: { compact?: boolean }) {
+  const { data, status, signOut } = useAuth();
+  const [theme, setTheme] = useTheme();
+  const user = data?.user;
+  const label = user?.name || user?.email?.split("@")[0] || "Account";
+  const initials = (user?.name || user?.email || "FA")
+    .split(/\s|@/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+
+  if (status !== "authenticated") {
     return (
-      <div className="group relative flex justify-center py-0.5">
-        <a
-          href={href}
-          onClick={handleNav}
-          className={`relative flex items-center justify-center rounded-lg h-9 w-9 transition-all duration-150 ${
-            active
-              ? "bg-[rgba(124,58,237,0.18)] text-[#A78BFA]"
-              : "text-[#4B5563] hover:bg-[rgba(255,255,255,0.05)] hover:text-[#94A3B8]"
-          }`}
-        >
-          {active && <span className="absolute left-0 top-1/2 h-[55%] w-0.5 -translate-y-1/2 rounded-r bg-[#7C3AED]" />}
-          <Icon size={16} />
-          {badge === "missions" && <MissionsBadge dot />}
-          {badge === "notif" && <NotifBadge dot />}
-        </a>
-        <div className="pointer-events-none absolute left-full top-1/2 ml-2.5 -translate-y-1/2 z-[200] whitespace-nowrap rounded-md bg-[#0d0f1c] border border-[rgba(255,255,255,0.08)] px-2.5 py-1 text-xs font-medium text-[#E2E8F0] opacity-0 group-hover:opacity-100 transition-opacity duration-100 shadow-xl">
-          {label}
-          {aiBadge && <span className="ml-1.5 text-[8px] font-bold text-[#A78BFA]">AI</span>}
-        </div>
-      </div>
+      <Button asChild variant="outline" className={cn(compact && "w-11 px-0")}>
+        <Link href="/login" aria-label="Sign in">
+          <LogIn /> {!compact && "Sign in"}
+        </Link>
+      </Button>
     );
   }
 
   return (
-    <a
-      href={href}
-      onClick={handleNav}
-      className={`group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-all duration-150 ${
-        small ? "text-[11px]" : "text-[13px]"
-      } font-medium ${
-        active
-          ? "bg-[rgba(124,58,237,0.15)] text-[#C4B5FD]"
-          : "text-[#52586B] hover:bg-[rgba(255,255,255,0.04)] hover:text-[#94A3B8]"
-      }`}
-    >
-      {active && <span className="absolute left-0 top-1/2 h-[55%] w-0.5 -translate-y-1/2 rounded-r bg-[#7C3AED]" />}
-      <Icon size={small ? 14 : 15} className={`shrink-0 ${active ? "text-[#A78BFA]" : "text-[#374151] group-hover:text-[#6B7280]"}`} />
-      <span className="flex-1 truncate leading-none">{label}</span>
-      {badge === "missions" && <MissionsBadge />}
-      {badge === "notif" && <NotifBadge />}
-      {aiBadge && !badge && <span className="rounded-sm bg-[rgba(124,58,237,0.25)] px-1 py-0.5 text-[8px] font-bold text-[#A78BFA] uppercase tracking-wider">AI</span>}
-    </a>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className={cn("h-11 justify-start px-2", compact ? "w-11" : "w-full")} aria-label="Open user menu">
+          <Avatar className="h-8 w-8 border border-[var(--border-strong)]">
+            <AvatarFallback className="bg-[var(--brand-soft)] text-xs font-bold text-[var(--brand-strong)]">{initials}</AvatarFallback>
+          </Avatar>
+          {!compact && (
+            <>
+              <span className="min-w-0 flex-1 text-left">
+                <span className="block truncate text-sm font-medium text-[var(--foreground)]">{label}</span>
+                <span className="block truncate text-xs font-normal text-[var(--foreground-subtle)]">View profile</span>
+              </span>
+              <ChevronDown size={15} />
+            </>
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" sideOffset={8} className="w-56">
+        <DropdownMenuLabel>
+          <span className="block truncate">{label}</span>
+          <span className="block truncate text-xs font-normal text-[var(--foreground-subtle)]">{user?.email}</span>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild><Link href="/profile"><UserRound /> Profile</Link></DropdownMenuItem>
+        <DropdownMenuItem asChild><Link href="/notifications"><Bell /> Notifications</Link></DropdownMenuItem>
+        <DropdownMenuItem asChild><Link href="/profile"><Settings /> Settings</Link></DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => setTheme(theme === "dark" ? "light" : "dark")}>
+          {theme === "dark" ? <Sun /> : <Moon />} {theme === "dark" ? "Light mode" : "Dark mode"}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="text-[var(--danger)]" onSelect={() => void signOut()}>
+          <LogOut /> Sign out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
-function Logo({ size = "md" }: { size?: "sm" | "md" }) {
-  const s = size === "sm" ? 7 : 8;
-  return (
-    <div className={`relative flex h-${s} w-${s} shrink-0 items-center justify-center rounded-xl overflow-hidden`}>
-      <div className="absolute inset-0 bg-gradient-to-br from-[#7c3aed] to-[#4f46e5]" />
-      <svg viewBox="0 0 24 24" fill="white" className="relative z-10 h-4 w-4">
-        <path d="M13 10V3L4 14h7v7l9-11h-7z" />
-      </svg>
-    </div>
-  );
-}
+function Topbar({ onMenu }: { onMenu: () => void }) {
+  const { focusSessionsToday } = useSessionHistory();
+  const { data: notificationCount = 0 } = useQuery({
+    queryKey: ["notif-count-nav"],
+    queryFn: fetchNotificationCount,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
 
-function Breadcrumbs() {
-  const [location] = useLocation();
-  const paths = location.split("/").filter(Boolean);
-  if (paths.length === 0 || location === "/") return null;
+  const openPalette = useCallback(() => {
+    window.dispatchEvent(new CustomEvent("focusarx:open-command"));
+  }, []);
 
   return (
-    <nav className="flex items-center gap-1.5 px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-      <Link href="/" className="hover:text-white transition-colors flex items-center gap-1">
-        <Home size={10} /> HOME
-      </Link>
-      {paths.map((p, i) => (
-        <div key={p} className="flex items-center gap-1.5">
-          <ChevronRightIcon size={10} className="text-zinc-700" />
-          <Link href={`/${paths.slice(0, i + 1).join("/")}`} className={i === paths.length - 1 ? "text-[#A78BFA]" : "hover:text-white transition-colors"}>
-            {p.replace(/-/g, " ")}
-          </Link>
+    <header className="app-topbar">
+      <div className="flex items-center gap-2 md:hidden">
+        <Button variant="ghost" size="icon" onClick={onMenu} aria-label="Open navigation">
+          <Menu />
+        </Button>
+        <Brand compact />
+      </div>
+
+      <button type="button" onClick={openPalette} className="global-search" aria-label="Open global search">
+        <Search size={17} aria-hidden="true" />
+        <span className="hidden sm:inline">Search FocusArx</span>
+        <kbd className="ml-auto hidden rounded-md border border-[var(--border)] bg-[var(--surface-raised)] px-2 py-0.5 text-[0.6875rem] text-[var(--foreground-subtle)] sm:inline">Ctrl K</kbd>
+      </button>
+
+      <div className="ml-auto flex items-center gap-1 sm:gap-2">
+        <div className="streak-pill" aria-label={`${focusSessionsToday} focus sessions today`}>
+          <Flame size={16} aria-hidden="true" />
+          <span className="tabular-nums">{focusSessionsToday}</span>
+          <span className="hidden lg:inline">today</span>
         </div>
-      ))}
+        <Button asChild variant="ghost" size="icon" className="relative" aria-label="Notifications">
+          <Link href="/notifications">
+            <Bell />
+            {!!notificationCount && <span className="notification-dot" aria-label={`${notificationCount} unread`} />}
+          </Link>
+        </Button>
+        <div className="hidden sm:block"><UserMenu compact /></div>
+      </div>
+    </header>
+  );
+}
+
+function MobileTabs() {
+  const [location] = useLocation();
+  return (
+    <nav className="app-bottom-nav md:hidden" aria-label="Mobile navigation">
+      {MOBILE_TABS.map((tab) => {
+        const Icon = tab.icon;
+        const active = location === tab.href;
+        return (
+          <Link key={tab.href} href={tab.href} className={cn("mobile-tab", active && "mobile-tab-active", tab.primary && "mobile-tab-primary")} aria-current={active ? "page" : undefined}>
+            {active && <motion.span layoutId="mobile-nav-active" className="mobile-tab-indicator" />}
+            <span className="mobile-tab-icon"><Icon size={tab.primary ? 21 : 19} /></span>
+            <span>{tab.label}</span>
+          </Link>
+        );
+      })}
     </nav>
   );
 }
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const { data: session, status, signOut } = useAuth();
+  const { status } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [theme, setTheme] = useTheme();
-  const [pushEnabled, setPushEnabled] = useState(() => isPushSubscribed());
-  const [pushLoading, setPushLoading] = useState(false);
-  const [moreExpanded, setMoreExpanded] = useState(false);
-  const [mobileMoreExpanded, setMobileMoreExpanded] = useState(false);
 
-  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
-    try { return localStorage.getItem("fx-sidebar-collapsed") === "true"; } catch { return false; }
-  });
+  useEffect(() => setMobileOpen(false), [location]);
 
-  const toggleSidebar = useCallback(() => {
-    setSidebarCollapsed(prev => {
-      const next = !prev;
-      try { localStorage.setItem("fx-sidebar-collapsed", String(next)); } catch {}
-      return next;
-    });
-  }, []);
-
-  const handlePushToggle = async () => {
-    setPushLoading(true);
-    try {
-      if (pushEnabled) { await unsubscribePush(); setPushEnabled(false); }
-      else { await requestPushPermission(); setPushEnabled(true); }
-    } catch { /* user denied */ }
-    setPushLoading(false);
-  };
-
-  const handleKeyDown = useCallback((e: KeyboardEvent) => { if (e.key === "Escape") setMobileOpen(false); }, []);
-  useEffect(() => {
-    if (!mobileOpen) return;
-    document.addEventListener("keydown", handleKeyDown);
-    document.body.style.overflow = "hidden";
-    return () => { document.removeEventListener("keydown", handleKeyDown); document.body.style.overflow = ""; };
-  }, [mobileOpen, handleKeyDown]);
-  useEffect(() => { setMobileOpen(false); }, [location]);
-
-  if (NO_SHELL_ALWAYS.some((p) => location === p || location.startsWith(p))) return <>{children}</>;
+  if (NO_SHELL.some((path) => location === path || location.startsWith(`${path}/`))) return <>{children}</>;
   if (location === "/" && status !== "authenticated") return <>{children}</>;
 
-  const user = session?.user;
-  const initials = user ? (user.name?.slice(0, 2) || user.email?.slice(0, 2) || "??").toUpperCase() : "??";
-  const userName = user?.name || user?.email?.split("@")[0] || "User";
-
-  const renderNav = (onClick?: () => void, collapsed?: boolean) => (
-    <>
-      <div className={`space-y-0.5 ${collapsed ? "flex flex-col items-center px-1" : "px-2"}`}>
-        {PRIMARY_NAV.map((item) => (
-          <NavItem key={item.href} {...item} active={location === item.href} onClick={onClick} collapsed={collapsed} />
-        ))}
-      </div>
-
-      <div className={`mt-1 ${collapsed ? "px-1" : "px-2"}`}>
-        <div className={`h-px bg-gradient-to-r from-transparent via-[rgba(255,255,255,0.06)] to-transparent mb-1`} />
-        {!collapsed ? (
-          <>
-            <button
-              onClick={() => onClick ? setMobileMoreExpanded(v => !v) : setMoreExpanded(v => !v)}
-              className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-[rgba(255,255,255,0.28)] hover:bg-[rgba(255,255,255,0.04)] hover:text-[#6B7280] transition-all duration-150"
-            >
-              <MoreHorizontal size={15} className="shrink-0" />
-              <span className="flex-1 text-left">More features</span>
-              <ChevronDown
-                size={12}
-                className={`transition-transform duration-200 ${(onClick ? mobileMoreExpanded : moreExpanded) ? "rotate-180" : ""}`}
-              />
-            </button>
-            <AnimatePresence initial={false}>
-              {(onClick ? mobileMoreExpanded : moreExpanded) && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden"
-                >
-                  <div className="grid gap-0.5 py-1">
-                    {MORE_NAV.map((item) => (
-                      <NavItem key={item.href} {...item} active={location === item.href} onClick={onClick} small />
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </>
-        ) : (
-          <div className="flex flex-col items-center gap-0.5">
-            {MORE_NAV.slice(0, 8).map((item) => (
-              <NavItem key={item.href} {...item} active={location === item.href} onClick={onClick} collapsed />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {isAdminUser(user) && (
-        <div className={`mt-1 ${collapsed ? "px-1" : "px-2"}`}>
-          <div className="h-px bg-gradient-to-r from-transparent via-[rgba(255,255,255,0.06)] to-transparent mb-1" />
-          <NavItem href="/admin" label="Admin" icon={Shield} active={location === "/admin"} onClick={onClick} collapsed={collapsed} />
-        </div>
-      )}
-    </>
-  );
-
   return (
-    <div className="flex min-h-[100dvh] bg-[#080A14]">
-      <aside
-        className="app-sidebar hidden md:flex flex-col"
-        style={{
-          width: sidebarCollapsed ? "58px" : "260px",
-          transition: "width 0.25s cubic-bezier(0.22,1,0.36,1)",
-          background: "linear-gradient(180deg, #09091A 0%, #07080F 100%)",
-          borderRight: "1px solid rgba(255,255,255,0.05)",
-        }}
-      >
-        <div className={`flex h-14 shrink-0 items-center border-b border-[rgba(255,255,255,0.05)] ${sidebarCollapsed ? "justify-center px-2" : "gap-3 px-4"}`}>
-          <Logo />
-          {!sidebarCollapsed && (
-            <div className="flex-1 min-w-0">
-              <p className="text-[14px] font-bold tracking-tight text-white leading-none">FocusArx</p>
-              <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[#2D3748] mt-0.5">Productivity OS</p>
-            </div>
-          )}
-          <button
-            onClick={toggleSidebar}
-            className="flex items-center justify-center rounded-lg p-1.5 text-[#2D3748] transition-colors hover:bg-[rgba(255,255,255,0.05)] hover:text-[#6B7280]"
-            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {sidebarCollapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
-          </button>
+    <div className="app-frame">
+      <aside className="app-sidebar hidden md:flex" aria-label="Application sidebar">
+        <div className="flex h-[4.5rem] shrink-0 items-center border-b border-[var(--border)] px-5">
+          <Brand />
         </div>
-        <nav className="flex-1 overflow-y-auto py-3 space-y-0.5 scrollbar-none">
-          {renderNav(undefined, sidebarCollapsed)}
-        </nav>
-        <div className={`border-t border-[rgba(255,255,255,0.05)] py-3 space-y-1 ${sidebarCollapsed ? "px-1" : "px-2"}`}>
-          {!sidebarCollapsed && (
-            <div className="flex items-center gap-2 mb-1">
-              <button
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="flex flex-1 items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] text-[rgba(255,255,255,0.28)] hover:bg-[rgba(255,255,255,0.04)] hover:text-[#6B7280] transition-colors"
-              >
-                {theme === "dark" ? <Sun size={13} /> : <Moon size={13} />}
-                {theme === "dark" ? "Light mode" : "Dark mode"}
-              </button>
-              {"Notification" in window && (
-                <button
-                  onClick={handlePushToggle}
-                  disabled={pushLoading}
-                  className={`flex items-center justify-center rounded-lg p-1.5 transition-colors disabled:opacity-40 ${pushEnabled ? "text-emerald-500" : "text-[rgba(255,255,255,0.28)] hover:text-[#6B7280] hover:bg-[rgba(255,255,255,0.04)]"}`}
-                  title={pushEnabled ? "Notifications on" : "Enable notifications"}
-                >
-                  {pushEnabled ? <Bell size={13} /> : <BellOff size={13} />}
-                </button>
-              )}
-            </div>
-          )}
-          {status === "authenticated" && user ? (
-            <>
-              <Link href="/profile">
-                <div className={`flex items-center rounded-lg cursor-pointer transition-colors hover:bg-[rgba(255,255,255,0.04)] py-2 ${sidebarCollapsed ? "justify-center px-1" : "gap-2.5 px-2.5"}`}>
-                  <div className="relative h-7 w-7 shrink-0 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] flex items-center justify-center text-[10px] font-bold text-white">
-                    {initials}
-                    <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-400 ring-1 ring-[#09091A]" />
-                  </div>
-                  {!sidebarCollapsed && (
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[12px] font-semibold text-[#94A3B8]">{userName}</p>
-                    </div>
-                  )}
-                </div>
-              </Link>
-              <button
-                onClick={() => void signOut()}
-                className={`flex w-full items-center rounded-lg py-1.5 text-[12px] text-[#2D3748] transition-colors hover:bg-[rgba(239,68,68,0.06)] hover:text-[#F87171] ${sidebarCollapsed ? "justify-center px-1" : "gap-2 px-2.5"}`}
-                title="Sign out"
-              >
-                <LogOut size={12} />
-                {!sidebarCollapsed && "Sign out"}
-              </button>
-            </>
-          ) : (
-            <Link href="/login">
-              <div className={`flex items-center rounded-lg py-2 text-[12px] text-[rgba(255,255,255,0.28)] hover:text-[#94A3B8] hover:bg-[rgba(255,255,255,0.04)] transition-colors ${sidebarCollapsed ? "justify-center px-1" : "gap-2 px-2.5"}`}>
-                <LogIn size={13} />
-                {!sidebarCollapsed && "Sign in"}
-              </div>
-            </Link>
-          )}
-          {!sidebarCollapsed && (
-            <div className="flex flex-wrap gap-x-2.5 gap-y-0.5 px-2.5 pt-1">
-              {[["Privacy", "/privacy"], ["Terms", "/terms"], ["Support", "/support"]].map(([l, h]) => (
-                <Link key={h} href={h} className="text-[9px] text-[rgba(255,255,255,0.18)] hover:text-[rgba(255,255,255,0.28)] transition-colors">{l}</Link>
-              ))}
-            </div>
-          )}
+        <Navigation />
+        <div className="border-t border-[var(--border)] p-3">
+          <UserMenu />
+          <div className="mt-2 flex gap-3 px-2 text-[0.6875rem] text-[var(--foreground-subtle)]">
+            <Link href="/support" className="hover:text-[var(--foreground)]">Help</Link>
+            <Link href="/privacy" className="hover:text-[var(--foreground)]">Privacy</Link>
+          </div>
         </div>
       </aside>
 
-      <div className="fixed left-0 right-0 top-0 z-40 flex h-14 items-center justify-between border-b border-[rgba(255,255,255,0.05)] bg-[rgba(8,9,20,0.96)] px-4 backdrop-blur-xl md:hidden">
-        <div className="flex items-center gap-2.5">
-          <Logo size="sm" />
-          <span className="text-[14px] font-bold text-white tracking-tight">FocusArx</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Link href="/notifications" className="relative rounded-lg p-2 text-[#4B5563]">
-            <Bell size={17} />
-            <NotifBadge dot />
-          </Link>
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="rounded-lg p-2 text-[#4B5563] hover:bg-[rgba(255,255,255,0.06)] hover:text-[#94A3B8]"
-            aria-label="Open menu"
-          >
-            <Menu size={18} />
-          </button>
-        </div>
+      <div className="app-workspace">
+        <Topbar onMenu={() => setMobileOpen(true)} />
+        <main id="main-content" className="app-main" tabIndex={-1}>{children}</main>
       </div>
 
-      <AnimatePresence>
-        {mobileOpen && (
-          <>
-            <motion.div
-              key="bd"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm md:hidden"
-              onClick={() => setMobileOpen(false)}
-            />
-            <motion.aside
-              key="drawer"
-              initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col md:hidden"
-              style={{ background: "linear-gradient(180deg, #09091A 0%, #07080F 100%)", borderRight: "1px solid rgba(255,255,255,0.05)" }}
-            >
-              <div className="flex h-14 items-center justify-between border-b border-[rgba(255,255,255,0.05)] px-4">
-                <div className="flex items-center gap-2.5"><Logo size="sm" /><span className="text-[14px] font-bold text-white">FocusArx</span></div>
-                <button onClick={() => setMobileOpen(false)} className="rounded-lg p-1.5 text-[rgba(255,255,255,0.28)] hover:text-[#94A3B8]" aria-label="Close">
-                  <X size={17} />
-                </button>
-              </div>
-              <nav className="flex-1 overflow-y-auto py-3 scrollbar-none">
-                {renderNav(() => setMobileOpen(false), false)}
-              </nav>
-              <div className="border-t border-[rgba(255,255,255,0.05)] px-2 py-3 space-y-1">
-                {status === "authenticated" && user ? (
-                  <>
-                    <div className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 mb-1">
-                      <div className="h-7 w-7 shrink-0 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] flex items-center justify-center text-[10px] font-bold text-white">
-                        {initials}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[12px] font-semibold text-[#94A3B8]">{userName}</p>
-                        <p className="truncate text-[10px] text-[#2D3748]">{user.email}</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => { void signOut(); setMobileOpen(false); }}
-                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] text-[rgba(255,255,255,0.28)] hover:bg-[rgba(239,68,68,0.06)] hover:text-[#F87171] transition-colors"
-                    >
-                      <LogOut size={12} /> Sign out
-                    </button>
-                  </>
-                ) : (
-                  <Link href="/login" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12px] text-[rgba(255,255,255,0.28)] hover:text-[#94A3B8] transition-colors">
-                    <LogIn size={13} /> Sign in
-                  </Link>
-                )}
-                <button
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] text-[rgba(255,255,255,0.28)] hover:bg-[rgba(255,255,255,0.04)] hover:text-[#6B7280] transition-colors"
-                >
-                  {theme === "dark" ? <Sun size={12} /> : <Moon size={12} />}
-                  {theme === "dark" ? "Light mode" : "Dark mode"}
-                </button>
-              </div>
-            </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent side="left" className="flex w-[min(90vw,22rem)] flex-col p-0">
+          <SheetHeader className="border-b border-[var(--border)] px-5 py-4 text-left">
+            <SheetTitle><Brand /></SheetTitle>
+            <SheetDescription className="sr-only">Navigate FocusArx</SheetDescription>
+          </SheetHeader>
+          <Navigation onNavigate={() => setMobileOpen(false)} />
+          <div className="border-t border-[var(--border)] p-3"><UserMenu /></div>
+        </SheetContent>
+      </Sheet>
 
-      <nav className="app-bottom-nav flex items-center justify-around md:hidden">
-        {MOBILE_BOTTOM.map(({ href, label, icon: Icon }) => {
-          const active = location === href;
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`relative flex flex-col items-center gap-1 px-4 py-2 transition-colors ${active ? "text-[#A78BFA]" : "text-[#2D3748]"}`}
-            >
-              {active && (
-                <motion.div
-                  layoutId="mobile-tab-indicator"
-                  className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-6 rounded-full bg-[#7C3AED]"
-                />
-              )}
-              <motion.div whileTap={{ scale: 0.85 }} transition={{ type: "spring", stiffness: 500 }}>
-                <Icon size={20} />
-              </motion.div>
-              <span className="text-[9px] font-semibold tracking-wide">{label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      <main
-        id="main-content"
-        className="flex-1 pt-14 pb-16 md:pt-0 md:pb-0 min-w-0 overflow-x-hidden"
-        style={{
-          marginLeft: "var(--sidebar-ml, 0px)",
-          transition: "margin-left 0.25s cubic-bezier(0.22,1,0.36,1)",
-        }}
-      >
-        <Breadcrumbs />
-        {children}
-      </main>
-
+      <MobileTabs />
       {status === "authenticated" && <CoachPanel />}
     </div>
   );

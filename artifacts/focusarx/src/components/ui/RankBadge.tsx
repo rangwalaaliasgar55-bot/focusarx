@@ -27,8 +27,8 @@ export function RankBadge({ rank, showLabel = false, size = "md", animated = fal
   return (
     <motion.span
       className={cn("inline-flex items-center rounded-full font-semibold border", sizeClasses[size], className)}
-      style={{ color: cfg.color, borderColor: cfg.color, backgroundColor: `${cfg.color}15` }}
-      animate={animated ? { boxShadow: [`0 0 0px ${cfg.color}`, `0 0 12px ${cfg.color}60`, `0 0 0px ${cfg.color}`] } : {}}
+      style={{ color: cfg.color, borderColor: cfg.color, backgroundColor: `color-mix(in srgb, ${cfg.color} 8%, transparent)` }}
+      animate={animated ? { boxShadow: [`0 0 0px ${cfg.color}`, `0 0 12px color-mix(in srgb, ${cfg.color} 38%, transparent)`, `0 0 0px ${cfg.color}`] } : {}}
       transition={animated ? { duration: 2, repeat: Infinity } : {}}
     >
       <span className={iconSizes[size]}>{cfg.icon}</span>

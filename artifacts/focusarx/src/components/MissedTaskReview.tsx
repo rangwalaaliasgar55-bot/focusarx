@@ -21,10 +21,10 @@ interface Props {
 type Action = "keep" | "move_today" | "archive" | "delete";
 
 const ACTIONS: { id: Action; label: string; desc: string; color: string }[] = [
-  { id: "keep", label: "Keep Task", desc: "Stay on active list", color: "bg-[rgba(255,255,255,0.06)] border-[#2a2d3a] text-[#E2E8F0] hover:border-[#7C3AED]/50" },
-  { id: "move_today", label: "Move to Today", desc: "Set due date to today", color: "bg-[#7C3AED]/10 border-[#7C3AED]/30 text-[#a78bfa] hover:bg-[#7C3AED]/20" },
-  { id: "archive", label: "Archive", desc: "Store for later reference", color: "bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20" },
-  { id: "delete", label: "Delete", desc: "Remove permanently", color: "bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20" },
+  { id: "keep", label: "Keep Task", desc: "Stay on active list", color: "bg-[var(--rgba-255-255-255-0_06)] border-[var(--palette-2a2d3a)] text-[var(--foreground)] hover:border-[var(--brand-600)]/50" },
+  { id: "move_today", label: "Move to Today", desc: "Set due date to today", color: "bg-[var(--brand-600)]/10 border-[var(--brand-600)]/30 text-[var(--brand-400)] hover:bg-[var(--brand-600)]/20" },
+  { id: "archive", label: "Archive", desc: "Store for later reference", color: "bg-[var(--palette-amber-500)]/10 border-[var(--palette-amber-500)]/20 text-[var(--palette-amber-400)] hover:bg-[var(--palette-amber-500)]/20" },
+  { id: "delete", label: "Delete", desc: "Remove permanently", color: "bg-[var(--palette-red-500)]/10 border-[var(--palette-red-500)]/20 text-[var(--palette-red-400)] hover:bg-[var(--palette-red-500)]/20" },
 ];
 
 function authHeaders() {
@@ -67,37 +67,37 @@ export default function MissedTaskReview({ open, tasks, onDone }: Props) {
   };
 
   const priorityColor = (p: string | null | undefined) => {
-    if (p === "urgent") return "text-red-400 bg-red-500/10 border-red-500/20";
-    if (p === "high") return "text-orange-400 bg-orange-500/10 border-orange-500/20";
-    if (p === "medium") return "text-amber-400 bg-amber-500/10 border-amber-500/20";
-    return "text-[#4B5563] bg-[rgba(255,255,255,0.06)] border-[#2a2d3a]";
+    if (p === "urgent") return "text-[var(--palette-red-400)] bg-[var(--palette-red-500)]/10 border-[var(--palette-red-500)]/20";
+    if (p === "high") return "text-[var(--palette-orange-400)] bg-[var(--palette-orange-500)]/10 border-[var(--palette-orange-500)]/20";
+    if (p === "medium") return "text-[var(--palette-amber-400)] bg-[var(--palette-amber-500)]/10 border-[var(--palette-amber-500)]/20";
+    return "text-[var(--foreground-subtle)] bg-[var(--rgba-255-255-255-0_06)] border-[var(--palette-2a2d3a)]";
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-[var(--palette-black)]/70 backdrop-blur-sm p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 16 }}
-        className="w-full max-w-md rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] shadow-2xl overflow-hidden"
+        className="w-full max-w-md rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] shadow-2xl overflow-hidden"
       >
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 border-b border-[rgba(255,255,255,0.06)]">
+        <div className="px-6 pt-6 pb-4 border-b border-[var(--rgba-255-255-255-0_06)]">
           <div className="flex items-center gap-3 mb-1">
             <span className="text-2xl">📋</span>
             <div>
-              <h2 className="text-base font-bold text-[#E2E8F0]">Daily Task Review</h2>
-              <p className="text-xs text-[#4B5563]">You didn't complete these tasks yesterday</p>
+              <h2 className="text-base font-bold text-[var(--foreground)]">Daily Task Review</h2>
+              <p className="text-xs text-[var(--foreground-subtle)]">You didn't complete these tasks yesterday</p>
             </div>
           </div>
           <div className="flex items-center gap-2 mt-3">
-            <div className="flex-1 h-1.5 bg-[rgba(255,255,255,0.06)] rounded-full overflow-hidden">
+            <div className="flex-1 h-1.5 bg-[var(--rgba-255-255-255-0_06)] rounded-full overflow-hidden">
               <div
-                className="h-full bg-[#7C3AED] rounded-full transition-all duration-500"
+                className="h-full bg-[var(--brand-600)] rounded-full transition-all duration-[var(--duration-slow)]"
                 style={{ width: `${((current) / tasks.length) * 100}%` }}
               />
             </div>
-            <span className="text-xs text-[#4B5563] font-mono shrink-0">{current + 1}/{tasks.length}</span>
+            <span className="text-xs text-[var(--foreground-subtle)] font-mono shrink-0">{current + 1}/{tasks.length}</span>
           </div>
         </div>
 
@@ -108,22 +108,22 @@ export default function MissedTaskReview({ open, tasks, onDone }: Props) {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.15 }}
             className="px-6 py-5"
           >
-            <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] p-4 mb-4">
+            <div className="rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] p-4 mb-4">
               <div className="flex items-start gap-3">
                 <span className="mt-0.5 text-lg">⚠️</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[#E2E8F0] leading-snug">{task?.text}</p>
+                  <p className="text-sm font-medium text-[var(--foreground)] leading-snug">{task?.text}</p>
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
                     {task?.category && task.category !== "General" && (
-                      <span className="rounded-full border border-[#2a2d3a] bg-[rgba(255,255,255,0.06)] px-2 py-0.5 text-[10px] text-[#4B5563]">{task.category}</span>
+                      <span className="rounded-full border border-[var(--palette-2a2d3a)] bg-[var(--rgba-255-255-255-0_06)] px-2 py-0.5 text-[10px] text-[var(--foreground-subtle)]">{task.category}</span>
                     )}
                     {task?.priority && (
                       <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${priorityColor(task.priority)}`}>{task.priority}</span>
                     )}
-                    <span className="text-[10px] text-[#4B5563]">
+                    <span className="text-[10px] text-[var(--foreground-subtle)]">
                       Created {new Date(task?.createdAt ?? "").toLocaleDateString()}
                     </span>
                   </div>
@@ -131,7 +131,7 @@ export default function MissedTaskReview({ open, tasks, onDone }: Props) {
               </div>
             </div>
 
-            <p className="text-xs text-[#4B5563] mb-3 font-medium">What would you like to do?</p>
+            <p className="text-xs text-[var(--foreground-subtle)] mb-3 font-medium">What would you like to do?</p>
             <div className="grid grid-cols-2 gap-2">
               {ACTIONS.map(a => (
                 <button
@@ -150,10 +150,10 @@ export default function MissedTaskReview({ open, tasks, onDone }: Props) {
 
         {/* Footer */}
         <div className="px-6 pb-5 flex items-center justify-between">
-          <p className="text-[10px] text-[#374151]">{doneCount} resolved · {tasks.length - doneCount} remaining</p>
+          <p className="text-[10px] text-[var(--foreground-subtle)]">{doneCount} resolved · {tasks.length - doneCount} remaining</p>
           <button
             onClick={onDone}
-            className="text-xs text-[#4B5563] hover:text-[#6b7080] transition-colors"
+            className="text-xs text-[var(--foreground-subtle)] hover:text-[var(--palette-6b7080)] transition-colors"
           >
             Skip all →
           </button>

@@ -14,8 +14,8 @@ interface ConfettiParticle {
 }
 
 const COLORS = [
-  "#7C3AED", "#A78BFA", "#06D6A0", "#FFB800",
-  "#F472B6", "#60A5FA", "#34D399", "#FBBF24",
+  "var(--brand-600)", "var(--brand-400)", "var(--brand-teal)", "var(--brand-gold)",
+  "var(--brand-pink)", "var(--info)", "var(--success)", "var(--warning)",
 ];
 
 function createParticles(count: number, origin: { x: number; y: number }): ConfettiParticle[] {
@@ -127,7 +127,7 @@ export default function ConfettiCelebration({
   return (
     <canvas
       ref={canvasRef}
-      className="pointer-events-none fixed inset-0 z-[999]"
+      className="pointer-events-none fixed inset-0 z-[var(--z-modal)]"
       aria-hidden
     />
   );

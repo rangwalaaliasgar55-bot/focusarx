@@ -12,9 +12,9 @@ interface TimerControlsProps {
 }
 
 const MODE_COLORS: Record<TimerMode, { from: string; to: string; shadow: string; ring: string }> = {
-  focus:     { from: "#f43f5e", to: "#ec4899", shadow: "rgba(244,63,94,0.45)", ring: "rgba(244,63,94,0.3)" },
-  break:     { from: "#22c55e", to: "#10b981", shadow: "rgba(34,197,94,0.45)",  ring: "rgba(34,197,94,0.3)" },
-  longBreak: { from: "#8b5cf6", to: "#6366f1", shadow: "rgba(139,92,246,0.45)", ring: "rgba(139,92,246,0.3)" },
+  focus:     { from: "var(--palette-f43f5e)", to: "var(--palette-ec4899)", shadow: "var(--rgba-244-63-94-0_45)", ring: "var(--rgba-244-63-94-0_3)" },
+  break:     { from: "var(--color-success)", to: "var(--palette-10b981)", shadow: "var(--rgba-34-197-94-0_45)",  ring: "var(--rgba-34-197-94-0_3)" },
+  longBreak: { from: "var(--brand-500)", to: "var(--palette-6366f1)", shadow: "var(--rgba-139-92-246-0_45)", ring: "var(--rgba-139-92-246-0_3)" },
 };
 
 export function TimerControls({ status, mode, onToggle, onReset, onSkip }: TimerControlsProps) {
@@ -30,7 +30,7 @@ export function TimerControls({ status, mode, onToggle, onReset, onSkip }: Timer
         aria-label="Reset timer"
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.93 }}
-        className="flex h-12 w-12 items-center justify-center rounded-2xl border border-zinc-700/60 bg-zinc-900/60 text-zinc-400 backdrop-blur-sm transition-all hover:border-zinc-600 hover:bg-zinc-800/70 hover:text-zinc-200"
+        className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--palette-zinc-700)]/60 bg-[var(--palette-zinc-900)]/60 text-[var(--palette-zinc-400)] backdrop-blur-sm transition-all hover:border-[var(--palette-zinc-600)] hover:bg-[var(--palette-zinc-800)]/70 hover:text-[var(--palette-zinc-200)]"
       >
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
@@ -44,7 +44,7 @@ export function TimerControls({ status, mode, onToggle, onReset, onSkip }: Timer
         aria-label={isRunning ? "Pause" : isPaused ? "Resume" : "Start focus session"}
         whileHover={{ scale: 1.06 }}
         whileTap={{ scale: 0.93 }}
-        className="relative flex h-20 w-20 items-center justify-center rounded-[1.4rem] font-bold text-white shadow-2xl"
+        className="relative flex h-20 w-20 items-center justify-center rounded-[1.4rem] font-bold text-[var(--palette-white)] shadow-2xl"
         style={{
           background: `linear-gradient(135deg, ${mc.from}, ${mc.to})`,
           boxShadow: `0 0 0 6px ${mc.ring}, 0 12px 32px ${mc.shadow}`,
@@ -75,7 +75,7 @@ export function TimerControls({ status, mode, onToggle, onReset, onSkip }: Timer
         aria-label="Skip to next session"
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.93 }}
-        className="flex h-12 w-12 items-center justify-center rounded-2xl border border-zinc-700/60 bg-zinc-900/60 text-zinc-400 backdrop-blur-sm transition-all hover:border-zinc-600 hover:bg-zinc-800/70 hover:text-zinc-200"
+        className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--palette-zinc-700)]/60 bg-[var(--palette-zinc-900)]/60 text-[var(--palette-zinc-400)] backdrop-blur-sm transition-all hover:border-[var(--palette-zinc-600)] hover:bg-[var(--palette-zinc-800)]/70 hover:text-[var(--palette-zinc-200)]"
       >
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polygon points="5 4 15 12 5 20 5 4" />

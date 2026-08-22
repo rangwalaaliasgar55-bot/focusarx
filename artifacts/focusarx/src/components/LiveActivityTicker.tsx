@@ -50,7 +50,7 @@ export function LiveActivityTicker() {
   if (items.length === 0) return null;
 
   return (
-    <div className="fixed bottom-6 right-4 z-50 flex flex-col gap-2 items-end pointer-events-none">
+    <div className="fixed bottom-6 right-4 z-[var(--z-modal)] flex flex-col gap-2 items-end pointer-events-none">
       <AnimatePresence>
         {items.map(item => (
           <motion.div
@@ -58,8 +58,8 @@ export function LiveActivityTicker() {
             initial={{ opacity: 0, x: 80, scale: 0.9 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 40, scale: 0.95 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-            className="flex items-center gap-2 bg-slate-900/90 backdrop-blur-sm border border-white/10 rounded-xl px-3 py-2 shadow-lg text-sm text-white max-w-xs"
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="flex items-center gap-2 bg-[var(--palette-slate-900)]/90 backdrop-blur-sm border border-[var(--palette-white)]/10 rounded-xl px-3 py-2 shadow-lg text-sm text-[var(--palette-white)] max-w-xs"
           >
             <span>{item.emoji}</span>
             <span className="truncate">{item.message}</span>

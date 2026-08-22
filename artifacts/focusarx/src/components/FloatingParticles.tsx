@@ -13,11 +13,11 @@ interface Particle {
 }
 
 const COLORS = [
-  "rgba(124,58,237,0.6)",
-  "rgba(167,139,250,0.5)",
-  "rgba(79,70,229,0.5)",
-  "rgba(6,214,160,0.4)",
-  "rgba(255,184,0,0.35)",
+  "var(--rgba-124-58-237-0_6)",
+  "var(--rgba-167-139-250-0_5)",
+  "var(--rgba-79-70-229-0_5)",
+  "var(--rgba-6-214-160-0_4)",
+  "var(--rgba-255-184-0-0_35)",
 ];
 
 export function FloatingParticles({ count = 18 }: { count?: number }) {
@@ -70,13 +70,13 @@ export function PageAmbientOrbs() {
     <div className="pointer-events-none fixed inset-0 overflow-hidden" style={{ zIndex: 0 }} aria-hidden>
       <motion.div
         className="absolute -top-20 -left-20 h-72 w-72 rounded-full"
-        style={{ background: "radial-gradient(circle, rgba(124,58,237,0.07) 0%, transparent 70%)", filter: "blur(80px)" }}
+        style={{ background: "radial-gradient(circle, var(--rgba-124-58-237-0_07) 0%, transparent 70%)", filter: "blur(80px)" }}
         animate={{ scale: [1, 1.1, 1], opacity: [0.25, 0.4, 0.25] }}
         transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
         className="absolute -bottom-20 -right-20 h-64 w-64 rounded-full"
-        style={{ background: "radial-gradient(circle, rgba(6,214,160,0.05) 0%, transparent 70%)", filter: "blur(80px)" }}
+        style={{ background: "radial-gradient(circle, var(--rgba-6-214-160-0_05) 0%, transparent 70%)", filter: "blur(80px)" }}
         animate={{ scale: [1, 1.15, 1], opacity: [0.2, 0.35, 0.2] }}
         transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 4 }}
       />

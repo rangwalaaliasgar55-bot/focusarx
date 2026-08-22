@@ -23,7 +23,7 @@ function Spinner({ size = "md", className, label = "Loading" }: SpinnerProps) {
       aria-label={label}
       className={cn(
         "inline-block rounded-full border-solid",
-        "border-[rgba(124,58,237,0.20)] border-t-[var(--brand-violet)]",
+        "border-[var(--rgba-124-58-237-0_20)] border-t-[var(--brand-violet)]",
         "animate-spin motion-reduce:animate-none",
         sizeMap[size],
         className

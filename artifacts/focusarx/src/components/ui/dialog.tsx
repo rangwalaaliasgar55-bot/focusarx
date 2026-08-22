@@ -16,11 +16,11 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50",
-      "bg-black/60 backdrop-blur-[4px]",
+      "fixed inset-0 z-[var(--z-modal)]",
+      "bg-[var(--palette-black)]/60 backdrop-blur-[4px]",
       "data-[state=open]:animate-in   data-[state=closed]:animate-out",
       "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-      "duration-200",
+      "duration-[var(--duration-fast)]",
       className
     )}
     {...props}
@@ -39,12 +39,12 @@ const DialogContent = React.forwardRef<
       ref={ref}
       className={cn(
         // Positioning
-        "fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2",
+        "fixed left-1/2 top-1/2 z-[var(--z-modal)] -translate-x-1/2 -translate-y-1/2",
         "w-full max-w-lg",
 
         // Appearance
         "bg-[var(--surface-3)]",
-        "border border-[rgba(124,58,237,0.20)]",
+        "border border-[var(--rgba-124-58-237-0_20)]",
         "rounded-[var(--radius-xl)]",
         "shadow-[var(--shadow-xl),var(--shadow-violet-sm)]",
         "p-0 overflow-hidden",
@@ -55,7 +55,7 @@ const DialogContent = React.forwardRef<
         "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
         "data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%]",
         "data-[state=open]:slide-in-from-left-1/2   data-[state=open]:slide-in-from-top-[48%]",
-        "duration-200",
+        "duration-[var(--duration-fast)]",
 
         className
       )}
@@ -66,15 +66,15 @@ const DialogContent = React.forwardRef<
       {/* Close button */}
       <DialogPrimitive.Close
         className={cn(
-          "absolute right-4 top-4 z-10",
-          "rounded-[var(--radius-md)] p-1.5",
+          "absolute right-4 top-4 z-[var(--z-content)]",
+          "grid h-11 w-11 place-items-center rounded-[var(--radius-md)]",
           "text-[var(--foreground-muted)]",
           "bg-transparent border border-transparent",
-          "opacity-70 transition-all duration-[120ms]",
-          "hover:opacity-100 hover:bg-[rgba(255,255,255,0.07)] hover:border-[rgba(255,255,255,0.08)]",
+          "opacity-70 transition-all duration-[var(--duration-fast)]",
+          "hover:opacity-100 hover:bg-[var(--rgba-255-255-255-0_07)] hover:border-[var(--rgba-255-255-255-0_08)]",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-violet)] focus-visible:ring-offset-2",
           "disabled:pointer-events-none",
-          "data-[state=open]:bg-[rgba(255,255,255,0.05)] data-[state=open]:text-[var(--foreground)]"
+          "data-[state=open]:bg-[var(--rgba-255-255-255-0_05)] data-[state=open]:text-[var(--foreground)]"
         )}
       >
         <X className="h-4 w-4" />

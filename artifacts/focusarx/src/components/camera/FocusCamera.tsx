@@ -126,22 +126,22 @@ export function FocusCamera({ className = "" }: FocusCameraProps) {
 
   const scoreColor =
     tracking.focusScore >= 75
-      ? "text-emerald-400"
+      ? "text-[var(--palette-emerald-400)]"
       : tracking.focusScore >= 50
-        ? "text-amber-400"
-        : "text-rose-400";
+        ? "text-[var(--palette-amber-400)]"
+        : "text-[var(--palette-rose-400)]";
 
   return (
     <motion.div
       layout
-      className={`w-full rounded-2xl border-2 border-zinc-700/60 bg-gradient-to-br from-zinc-950/60 to-zinc-900/40 backdrop-blur-sm p-4 shadow-lg ${className}`}
+      className={`w-full rounded-2xl border-2 border-[var(--palette-zinc-700)]/60 bg-gradient-to-br from-[var(--palette-zinc-950)]/60 to-[var(--palette-zinc-900)]/40 backdrop-blur-sm p-4 shadow-lg ${className}`}
     >
       <div className="flex items-center justify-between gap-2">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+          <p className="text-xs font-bold uppercase tracking-wider text-[var(--palette-zinc-400)]">
             🎥 AI Focus Monitor
           </p>
-          <p className="text-[11px] text-zinc-500 mt-0.5">
+          <p className="text-[11px] text-[var(--palette-zinc-500)] mt-0.5">
             Face detection · Real-time focus tracking
           </p>
         </div>
@@ -151,7 +151,7 @@ export function FocusCamera({ className = "" }: FocusCameraProps) {
             whileTap={{ scale: 0.95 }}
             type="button"
             onClick={handleDisable}
-            className="rounded-lg border border-rose-500/50 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-400 hover:bg-rose-500/20 transition-all"
+            className="rounded-lg border border-[var(--palette-rose-500)]/50 bg-[var(--palette-rose-500)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--palette-rose-400)] hover:bg-[var(--palette-rose-500)]/20 transition-all"
           >
             Stop Camera
           </motion.button>
@@ -162,7 +162,7 @@ export function FocusCamera({ className = "" }: FocusCameraProps) {
             type="button"
             onClick={() => void handleEnable()}
             disabled={!modelsReady}
-            className="rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 px-3 py-1.5 text-xs font-semibold text-white hover:shadow-lg hover:shadow-emerald-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="rounded-lg bg-gradient-to-r from-[var(--palette-emerald-500)] to-[var(--palette-teal-500)] px-3 py-1.5 text-xs font-semibold text-[var(--palette-white)] hover:shadow-lg hover:shadow-[var(--palette-emerald-500)]/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             {modelsReady ? "Start Camera" : "Loading…"}
           </motion.button>
@@ -179,16 +179,16 @@ export function FocusCamera({ className = "" }: FocusCameraProps) {
             className="mt-4 space-y-3 overflow-hidden"
           >
             <div
-              className={`relative aspect-video overflow-hidden rounded-xl bg-black ring-2 ${
+              className={`relative aspect-video overflow-hidden rounded-xl bg-[var(--palette-black)] ring-2 ${
                 tracking.isFocused
-                  ? "ring-emerald-500/50"
+                  ? "ring-[var(--palette-emerald-500)]/50"
                   : tracking.warnings.length > 0
-                    ? "ring-rose-500/50"
-                    : "ring-zinc-700/50"
+                    ? "ring-[var(--palette-rose-500)]/50"
+                    : "ring-[var(--palette-zinc-700)]/50"
               }`}
             >
               {hasPermission === false ? (
-                <p className="flex h-full items-center justify-center text-sm text-zinc-500">
+                <p className="flex h-full items-center justify-center text-sm text-[var(--palette-zinc-500)]">
                   Camera unavailable
                 </p>
               ) : (
@@ -212,7 +212,7 @@ export function FocusCamera({ className = "" }: FocusCameraProps) {
 
             <div className="flex items-end justify-between gap-3">
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-zinc-500">
+                <p className="text-[10px] uppercase tracking-wider text-[var(--palette-zinc-500)]">
                   Focus score
                 </p>
                 <p className={`text-3xl font-semibold tabular-nums ${scoreColor}`}>
@@ -250,9 +250,9 @@ function Badge({
   tone: "ok" | "warn" | "muted";
 }) {
   const styles = {
-    ok: "border-emerald-500/40 bg-emerald-500/10 text-emerald-400",
-    warn: "border-rose-500/40 bg-rose-500/10 text-rose-400",
-    muted: "border-zinc-600 bg-zinc-800/50 text-zinc-400",
+    ok: "border-[var(--palette-emerald-500)]/40 bg-[var(--palette-emerald-500)]/10 text-[var(--palette-emerald-400)]",
+    warn: "border-[var(--palette-rose-500)]/40 bg-[var(--palette-rose-500)]/10 text-[var(--palette-rose-400)]",
+    muted: "border-[var(--palette-zinc-600)] bg-[var(--palette-zinc-800)]/50 text-[var(--palette-zinc-400)]",
   };
   return (
     <span

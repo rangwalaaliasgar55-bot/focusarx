@@ -136,11 +136,11 @@ export default function CoachPanel() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.9 }}
             onClick={() => { setOpen(true); setHasProactive(false); }}
-            className="fixed bottom-44 right-4 z-40 max-w-[220px] rounded-2xl border border-[rgba(124,58,237,0.35)] bg-[rgba(8,12,28,0.96)] px-4 py-3 text-left shadow-[0_4px_20px_rgba(124,58,237,0.25)] backdrop-blur-2xl md:bottom-28 md:right-20"
+            className="fixed bottom-44 right-4 z-[var(--z-nav)] max-w-[220px] rounded-2xl border border-[var(--rgba-124-58-237-0_35)] bg-[var(--rgba-8-12-28-0_96)] px-4 py-3 text-left shadow-[0_4px_20px_var(--rgba-124-58-237-0_25)] backdrop-blur-2xl md:bottom-28 md:right-20"
           >
-            <p className="text-[11px] font-semibold text-[#A78BFA] mb-1">Coach tip 🧠</p>
-            <p className="text-[11px] leading-relaxed text-[#94A3B8]">{proactiveMsg}</p>
-            <p className="mt-2 text-[10px] text-[#4B5563]">Tap to reply →</p>
+            <p className="text-[11px] font-semibold text-[var(--brand-400)] mb-1">Coach tip 🧠</p>
+            <p className="text-[11px] leading-relaxed text-[var(--foreground-muted)]">{proactiveMsg}</p>
+            <p className="mt-2 text-[10px] text-[var(--foreground-subtle)]">Tap to reply →</p>
           </motion.button>
         )}
       </AnimatePresence>
@@ -149,13 +149,13 @@ export default function CoachPanel() {
         onClick={() => { setOpen(o => !o); setHasProactive(false); }}
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.93 }}
-        className="fixed bottom-28 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] shadow-[0_4px_20px_rgba(124,58,237,0.5)] md:bottom-10 md:right-6"
+        className="fixed bottom-28 right-4 z-[var(--z-nav)] flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[var(--brand-600)] to-[var(--palette-4f46e5)] shadow-[0_4px_20px_var(--rgba-124-58-237-0_5)] md:bottom-10 md:right-6"
         title="FocusArx Coach"
         aria-label={open ? "Close coach" : "Open coach"}
       >
         {/* Unread dot */}
         {hasProactive && !open && (
-          <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-[#F97316] ring-2 ring-[rgba(8,12,28,0.97)]" />
+          <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-[var(--palette-f97316)] ring-2 ring-[var(--rgba-8-12-28-0_97)]" />
         )}
         <span className="text-xl">{open ? "✕" : "🧠"}</span>
       </motion.button>
@@ -167,24 +167,24 @@ export default function CoachPanel() {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 40, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed bottom-44 right-4 z-40 flex w-[340px] max-sm:w-[calc(100vw-2rem)] max-h-[480px] flex-col rounded-2xl border border-[rgba(124,58,237,0.3)] bg-[rgba(8,12,28,0.92)] shadow-2xl backdrop-blur-2xl md:bottom-28 md:right-6"
+            className="fixed bottom-44 right-4 z-[var(--z-nav)] flex w-[340px] max-sm:w-[calc(100vw-2rem)] max-h-[480px] flex-col rounded-2xl border border-[var(--rgba-124-58-237-0_3)] bg-[var(--rgba-8-12-28-0_92)] shadow-2xl backdrop-blur-2xl md:bottom-28 md:right-6"
           >
             {/* Header */}
-            <div className="flex items-center gap-3 border-b border-[rgba(124,58,237,0.15)] px-4 py-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] text-sm">🧠</div>
+            <div className="flex items-center gap-3 border-b border-[var(--rgba-124-58-237-0_15)] px-4 py-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[var(--brand-600)] to-[var(--palette-4f46e5)] text-sm">🧠</div>
               <div>
-                <p className="text-sm font-bold text-[#E2E8F0]">FocusArx Coach</p>
-                <p className="text-[10px] text-[#4B5563]">Productivity & neuroscience</p>
+                <p className="text-sm font-bold text-[var(--foreground)]">FocusArx Coach</p>
+                <p className="text-[10px] text-[var(--foreground-subtle)]">Productivity & neuroscience</p>
               </div>
-              <button 
+              <button
                 onClick={() => setVoiceEnabled(!voiceEnabled)}
-                className={`ml-auto p-1.5 rounded-lg border transition-all ${voiceEnabled ? "border-[#A78BFA]/40 bg-[#A78BFA]/10 text-[#A78BFA]" : "border-white/5 text-[#4B5563]"}`}
+                className={`ml-auto p-1.5 rounded-lg border transition-all ${voiceEnabled ? "border-[var(--brand-400)]/40 bg-[var(--brand-400)]/10 text-[var(--brand-400)]" : "border-[var(--palette-white)]/5 text-[var(--foreground-subtle)]"}`}
                 title={voiceEnabled ? "Voice Enabled" : "Voice Disabled"}
               >
                 <Volume2 size={14} className={voiceEnabled ? "animate-pulse" : ""} />
               </button>
               {isFallback && (
-                <span className="ml-auto text-[9px] text-zinc-600 border border-zinc-800 rounded px-1.5 py-0.5">Basic</span>
+                <span className="ml-auto text-[9px] text-[var(--palette-zinc-600)] border border-[var(--palette-zinc-800)] rounded px-1.5 py-0.5">Basic</span>
               )}
             </div>
 
@@ -200,8 +200,8 @@ export default function CoachPanel() {
                   >
                     <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                       msg.role === "user"
-                        ? "rounded-br-sm bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] text-white"
-                        : "rounded-bl-sm bg-[rgba(124,58,237,0.1)] text-[#E2E8F0]"
+                        ? "rounded-br-sm bg-gradient-to-br from-[var(--brand-600)] to-[var(--palette-4f46e5)] text-[var(--palette-white)]"
+                        : "rounded-bl-sm bg-[var(--rgba-124-58-237-0_1)] text-[var(--foreground)]"
                     }`}>
                       {msg.content}
                     </div>
@@ -209,12 +209,12 @@ export default function CoachPanel() {
                 ))}
                 {loading && (
                   <div className="flex justify-start">
-                    <div className="rounded-2xl rounded-bl-sm bg-[rgba(124,58,237,0.1)] px-4 py-3">
+                    <div className="rounded-2xl rounded-bl-sm bg-[var(--rgba-124-58-237-0_1)] px-4 py-3">
                       <div className="flex gap-1">
                         {[0, 0.2, 0.4].map((d, i) => (
-                          <motion.div key={i} className="h-1.5 w-1.5 rounded-full bg-[#A78BFA]"
+                          <motion.div key={i} className="h-1.5 w-1.5 rounded-full bg-[var(--brand-400)]"
                             animate={{ opacity: [0.3, 1, 0.3] }}
-                            transition={{ repeat: Infinity, duration: 1, delay: d }}
+                            transition={{ repeat: Infinity, duration: 0.4, delay: d }}
                           />
                         ))}
                       </div>
@@ -231,7 +231,7 @@ export default function CoachPanel() {
                     <button
                       key={p}
                       onClick={() => { setInput(p); setTimeout(() => inputRef.current?.focus(), 0); }}
-                      className="rounded-full border border-[rgba(124,58,237,0.2)] bg-[rgba(124,58,237,0.06)] px-3 py-1 text-[10px] font-medium text-[#64748B] transition-all hover:border-[rgba(124,58,237,0.4)] hover:text-[#A78BFA]"
+                      className="rounded-full border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-124-58-237-0_06)] px-3 py-1 text-[10px] font-medium text-[var(--muted-fg)] transition-all hover:border-[var(--rgba-124-58-237-0_4)] hover:text-[var(--brand-400)]"
                     >
                       {p}
                     </button>
@@ -240,7 +240,7 @@ export default function CoachPanel() {
               )}
 
               {/* Input */}
-              <div className="border-t border-[rgba(124,58,237,0.15)] p-3">
+              <div className="border-t border-[var(--rgba-124-58-237-0_15)] p-3">
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <input
@@ -251,16 +251,16 @@ export default function CoachPanel() {
                       onKeyDown={e => e.key === "Enter" && void send()}
                       placeholder="Ask your coach…"
                       maxLength={1000}
-                      className="w-full rounded-xl border border-[rgba(124,58,237,0.2)] bg-[rgba(124,58,237,0.05)] px-3 py-2 text-sm text-[#E2E8F0] placeholder-[#4B5563] focus:border-[#7C3AED] focus:outline-none"
+                      className="w-full rounded-xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-124-58-237-0_05)] px-3 py-2 text-sm text-[var(--foreground)] placeholder-[var(--foreground-subtle)] focus:border-[var(--brand-600)] focus:outline-none"
                     />
                     {input.length > 800 && (
-                      <span className="absolute bottom-1 right-2 text-[9px] text-[#EF4444]">{1000 - input.length}</span>
+                      <span className="absolute bottom-1 right-2 text-[9px] text-[var(--color-error)]">{1000 - input.length}</span>
                     )}
                   </div>
                   <button
                     onClick={() => void send()}
                     disabled={!input.trim() || loading}
-                    className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#7C3AED] text-white transition hover:bg-[#6D28D9] disabled:opacity-40"
+                    className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--brand-600)] text-[var(--palette-white)] transition hover:bg-[var(--brand-700)] disabled:opacity-40"
                     aria-label="Send message"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z" /></svg>

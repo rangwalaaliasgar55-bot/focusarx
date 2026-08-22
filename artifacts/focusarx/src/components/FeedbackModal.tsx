@@ -101,34 +101,34 @@ export default function FeedbackModal({ open, onClose, onSubmit }: FeedbackModal
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4"
+          className="fixed inset-0 z-[var(--z-toast)] flex items-end sm:items-center justify-center p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
           <motion.div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-[var(--palette-black)]/60 backdrop-blur-sm"
             onClick={onClose}
           />
           <motion.div
-            className="relative w-full max-w-md rounded-2xl border border-[rgba(124,58,237,0.3)] bg-[#0e0c1a] shadow-2xl overflow-hidden"
+            className="relative w-full max-w-md rounded-2xl border border-[var(--rgba-124-58-237-0_3)] bg-[var(--palette-0e0c1a)] shadow-2xl overflow-hidden"
             initial={{ y: 40, opacity: 0, scale: 0.96 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 40, opacity: 0, scale: 0.96 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
           >
             {/* Gradient header */}
-            <div className="bg-gradient-to-r from-[#7C3AED]/20 to-[#4F46E5]/10 border-b border-[rgba(124,58,237,0.2)] px-6 pt-6 pb-5">
-              <button onClick={onClose} className="absolute top-4 right-4 rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-800 hover:text-white transition-colors">
+            <div className="bg-gradient-to-r from-[var(--brand-600)]/20 to-[var(--palette-4f46e5)]/10 border-b border-[var(--rgba-124-58-237-0_2)] px-6 pt-6 pb-5">
+              <button onClick={onClose} className="absolute top-4 right-4 rounded-lg p-1.5 text-[var(--palette-zinc-500)] hover:bg-[var(--palette-zinc-800)] hover:text-[var(--palette-white)] transition-colors">
                 <X size={16} />
               </button>
               <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-[rgba(124,58,237,0.2)] p-2.5">
-                  <Heart size={20} className="text-[#A78BFA]" />
+                <div className="rounded-xl bg-[var(--rgba-124-58-237-0_2)] p-2.5">
+                  <Heart size={20} className="text-[var(--brand-400)]" />
                 </div>
                 <div>
-                  <p className="font-bold text-[#E2E8F0]">Enjoying FocusArx?</p>
-                  <p className="text-[11px] text-zinc-500 mt-0.5">Help us build something unforgettable</p>
+                  <p className="font-bold text-[var(--foreground)]">Enjoying FocusArx?</p>
+                  <p className="text-[11px] text-[var(--palette-zinc-500)] mt-0.5">Help us build something unforgettable</p>
                 </div>
               </div>
             </div>
@@ -142,18 +142,18 @@ export default function FeedbackModal({ open, onClose, onSubmit }: FeedbackModal
                 <motion.div
                   className="text-5xl mb-4"
                   animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }}
-                  transition={{ duration: 0.6 }}
+                  transition={{ duration: 0.4 }}
                 >
                   🎉
                 </motion.div>
-                <p className="text-lg font-bold text-[#E2E8F0] mb-1">Thank you!</p>
-                <p className="text-sm text-zinc-500 text-center">Your feedback shapes the future of FocusArx.</p>
+                <p className="text-lg font-bold text-[var(--foreground)] mb-1">Thank you!</p>
+                <p className="text-sm text-[var(--palette-zinc-500)] text-center">Your feedback shapes the future of FocusArx.</p>
               </motion.div>
             ) : (
               <div className="px-6 py-5 space-y-5">
                 {/* Star rating */}
                 <div className="text-center">
-                  <p className="text-xs text-zinc-500 mb-3 uppercase tracking-wider">How would you rate FocusArx?</p>
+                  <p className="text-xs text-[var(--palette-zinc-500)] mb-3 uppercase tracking-wider">How would you rate FocusArx?</p>
                   <div className="flex justify-center gap-2">
                     {stars.map((s) => (
                       <button
@@ -165,7 +165,7 @@ export default function FeedbackModal({ open, onClose, onSubmit }: FeedbackModal
                       >
                         <Star
                           size={32}
-                          className={`transition-colors duration-150 ${s <= activeRating ? "fill-amber-400 text-amber-400" : "text-zinc-700"}`}
+                          className={`transition-colors duration-[var(--duration-fast)] ${s <= activeRating ? "fill-[var(--palette-amber-400)] text-[var(--palette-amber-400)]" : "text-[var(--palette-zinc-700)]"}`}
                         />
                       </button>
                     ))}
@@ -173,7 +173,7 @@ export default function FeedbackModal({ open, onClose, onSubmit }: FeedbackModal
                   <AnimatePresence mode="wait">
                     <motion.p
                       key={activeRating}
-                      className="text-xs font-medium mt-2 text-amber-400 h-4"
+                      className="text-xs font-medium mt-2 text-[var(--palette-amber-400)] h-4"
                       initial={{ opacity: 0, y: 4 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -4 }}
@@ -186,7 +186,7 @@ export default function FeedbackModal({ open, onClose, onSubmit }: FeedbackModal
 
                 {/* Category */}
                 <div>
-                  <p className="text-[11px] text-zinc-500 mb-2 uppercase tracking-wider">Category</p>
+                  <p className="text-[11px] text-[var(--palette-zinc-500)] mb-2 uppercase tracking-wider">Category</p>
                   <div className="flex flex-wrap gap-2">
                     {CATEGORIES.map(c => (
                       <button
@@ -194,8 +194,8 @@ export default function FeedbackModal({ open, onClose, onSubmit }: FeedbackModal
                         onClick={() => setCategory(c.id)}
                         className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all border ${
                           category === c.id
-                            ? "border-[#7C3AED] bg-[rgba(124,58,237,0.2)] text-[#A78BFA]"
-                            : "border-zinc-800 bg-zinc-900/50 text-zinc-500 hover:border-zinc-700"
+                            ? "border-[var(--brand-600)] bg-[var(--rgba-124-58-237-0_2)] text-[var(--brand-400)]"
+                            : "border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/50 text-[var(--palette-zinc-500)] hover:border-[var(--palette-zinc-700)]"
                         }`}
                       >
                         {c.emoji} {c.label}
@@ -206,26 +206,26 @@ export default function FeedbackModal({ open, onClose, onSubmit }: FeedbackModal
 
                 {/* Message */}
                 <div>
-                  <p className="text-[11px] text-zinc-500 mb-2 uppercase tracking-wider">Your thoughts (optional)</p>
+                  <p className="text-[11px] text-[var(--palette-zinc-500)] mb-2 uppercase tracking-wider">Your thoughts (optional)</p>
                   <textarea
                     value={message}
                     onChange={e => setMessage(e.target.value.slice(0, 500))}
                     placeholder={rating <= 2 ? "What should we improve?" : rating >= 4 ? "What do you love?" : "What's on your mind?"}
                     rows={3}
-                    className="w-full rounded-xl border border-zinc-800 bg-zinc-900/60 px-3 py-2.5 text-sm text-[#E2E8F0] placeholder:text-zinc-600 focus:border-[#7C3AED]/50 focus:outline-none resize-none transition-colors"
+                    className="w-full rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/60 px-3 py-2.5 text-sm text-[var(--foreground)] placeholder:text-[var(--palette-zinc-600)] focus:border-[var(--brand-600)]/50 focus:outline-none resize-none transition-colors"
                   />
-                  <p className="text-[10px] text-zinc-700 text-right mt-0.5">{message.length}/500</p>
+                  <p className="text-[10px] text-[var(--palette-zinc-700)] text-right mt-0.5">{message.length}/500</p>
                 </div>
 
                 {/* Submit */}
                 <div className="flex gap-3 pt-1">
-                  <button onClick={onClose} className="flex-1 rounded-xl border border-zinc-800 py-2.5 text-sm text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-300 transition-colors">
+                  <button onClick={onClose} className="flex-1 rounded-xl border border-[var(--palette-zinc-800)] py-2.5 text-sm text-[var(--palette-zinc-500)] hover:bg-[var(--palette-zinc-800)]/50 hover:text-[var(--palette-zinc-300)] transition-colors">
                     Not now
                   </button>
                   <button
                     onClick={handleSubmit}
                     disabled={rating === 0 || submitting}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] py-2.5 text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
+                    className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] py-2.5 text-sm font-semibold text-[var(--palette-white)] disabled:opacity-40 hover:opacity-90 transition-opacity"
                   >
                     <Send size={14} />
                     {submitting ? "Sending…" : "Send feedback"}

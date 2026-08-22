@@ -10,7 +10,7 @@ function Ring({ pct, size, stroke, color }: { pct: number; size: number; stroke:
   const offset = circ - (Math.min(pct, 100) / 100) * circ;
   return (
     <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(124,58,237,0.1)" strokeWidth={stroke} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--rgba-124-58-237-0_1)" strokeWidth={stroke} />
       <motion.circle
         cx={size / 2} cy={size / 2} r={r}
         fill="none"
@@ -20,7 +20,7 @@ function Ring({ pct, size, stroke, color }: { pct: number; size: number; stroke:
         strokeDasharray={circ}
         initial={{ strokeDashoffset: circ }}
         animate={{ strokeDashoffset: offset }}
-        transition={{ duration: 1, ease: "easeOut" }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
       />
     </svg>
   );
@@ -52,7 +52,7 @@ export default function DailyGoal() {
   const pct = goalMinutes > 0 ? (focusMinutesToday / goalMinutes) * 100 : 0;
   const isComplete = pct >= 100;
 
-  const color = isComplete ? "#4ADE80" : pct >= 60 ? "#F59E0B" : "#7C3AED";
+  const color = isComplete ? "var(--palette-4ade80)" : pct >= 60 ? "var(--color-warning)" : "var(--brand-600)";
 
   const startEdit = () => {
     setDraft(goalStr);
@@ -76,13 +76,13 @@ export default function DailyGoal() {
   };
 
   return (
-    <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-4">
+    <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-4">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4B5563]">Daily Goal</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--foreground-subtle)]">Daily Goal</p>
         {!editing && (
           <button
             onClick={startEdit}
-            className="text-[10px] text-[#4B5563] hover:text-[#A78BFA] transition-colors"
+            className="text-[10px] text-[var(--foreground-subtle)] hover:text-[var(--brand-400)] transition-colors"
           >
             {isComplete ? "🎉 done" : "edit"}
           </button>
@@ -93,7 +93,7 @@ export default function DailyGoal() {
         <div className="relative shrink-0">
           <Ring pct={pct} size={68} stroke={6} color={color} />
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-xs font-black text-[#E2E8F0] leading-none">
+            <span className="text-xs font-black text-[var(--foreground)] leading-none">
               {Math.min(Math.round(pct), 100)}%
             </span>
           </div>
@@ -104,18 +104,18 @@ export default function DailyGoal() {
             <motion.p
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-xs font-bold text-[#4ADE80]"
+              className="text-xs font-bold text-[var(--palette-4ade80)]"
             >
               Goal smashed! 🎉
             </motion.p>
           ) : (
-            <p className="text-xs font-semibold text-[#E2E8F0]">
+            <p className="text-xs font-semibold text-[var(--foreground)]">
               {fmtTime(focusMinutesToday)}{" "}
-              <span className="font-normal text-[#4B5563]">of {fmtTime(goalMinutes)}</span>
+              <span className="font-normal text-[var(--foreground-subtle)]">of {fmtTime(goalMinutes)}</span>
             </p>
           )}
           {!isComplete && (
-            <p className="text-[10px] text-[#4B5563] mt-0.5">
+            <p className="text-[10px] text-[var(--foreground-subtle)] mt-0.5">
               {focusMinutesToday === 0
                 ? "Start your first session!"
                 : `${fmtTime(Math.max(0, goalMinutes - focusMinutesToday))} to go`}
@@ -132,28 +132,28 @@ export default function DailyGoal() {
                 onBlur={commitEdit}
                 onKeyDown={e => { if (e.key === "Enter") commitEdit(); if (e.key === "Escape") setEditing(false); }}
                 placeholder="minutes"
-                className="w-20 rounded-lg border border-[rgba(124,58,237,0.3)] bg-transparent px-2 py-1 text-xs text-[#A78BFA] focus:outline-none"
+                className="w-20 rounded-lg border border-[var(--rgba-124-58-237-0_3)] bg-transparent px-2 py-1 text-xs text-[var(--brand-400)] focus:outline-none"
               />
-              <span className="text-[10px] text-[#4B5563]">min</span>
-              <button onClick={commitEdit} className="text-[10px] text-[#7C3AED] hover:text-[#A78BFA]">Save</button>
+              <span className="text-[10px] text-[var(--foreground-subtle)]">min</span>
+              <button onClick={commitEdit} className="text-[10px] text-[var(--brand-600)] hover:text-[var(--brand-400)]">Save</button>
             </div>
           ) : (
-            <div className="mt-2 h-1.5 rounded-full bg-[rgba(255,255,255,0.06)] overflow-hidden">
+            <div className="mt-2 h-1.5 rounded-full bg-[var(--rgba-255-255-255-0_06)] overflow-hidden">
               <motion.div
                 className="h-full rounded-full"
                 style={{ background: color }}
                 initial={{ width: 0 }}
                 animate={{ width: `${Math.min(pct, 100)}%` }}
-                transition={{ duration: 1, ease: "easeOut" }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
               />
             </div>
           )}
         </div>
       </div>
-      
-      <div className="mt-4 pt-3 border-t border-white/5">
-        <p className="text-[9px] text-[#4B5563] italic leading-tight">
-           <span className="text-[#A78BFA] font-bold">Tip:</span> {motivation}
+
+      <div className="mt-4 pt-3 border-t border-[var(--palette-white)]/5">
+        <p className="text-[9px] text-[var(--foreground-subtle)] italic leading-tight">
+           <span className="text-[var(--brand-400)] font-bold">Tip:</span> {motivation}
         </p>
       </div>
     </div>

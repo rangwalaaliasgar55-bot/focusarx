@@ -1,98 +1,56 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
-import { Flame, Wind, BookOpen, SmilePlus, MessageSquare } from "lucide-react";
+import { Link } from "wouter";
+import { ArrowLeft, BookOpen, Flame, HeartHandshake, MessageSquare, SmilePlus, Wind } from "lucide-react";
 import BreakFreeStreak from "@/components/break-free/BreakFreeStreak";
-import UrgeSurfing from "@/components/break-free/UrgeSurfing";
-import WhyItMatters from "@/components/break-free/WhyItMatters";
 import MoodCheckin from "@/components/break-free/MoodCheckin";
 import PledgeWall from "@/components/break-free/PledgeWall";
+import UrgeSurfing from "@/components/break-free/UrgeSurfing";
+import WhyItMatters from "@/components/break-free/WhyItMatters";
+import PageHeader from "@/components/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useBreakFreeAuthReady } from "@/hooks/useBreakFreeAuthReady";
 
 const TABS = [
-  { id: "streak",  label: "Streak",   icon: Flame },
-  { id: "urge",    label: "Urge Tool", icon: Wind },
-  { id: "mood",    label: "Mood",      icon: SmilePlus },
-  { id: "why",     label: "Science",   icon: BookOpen },
-  { id: "pledges", label: "Pledges",   icon: MessageSquare },
-] as const;
-
-type TabId = typeof TABS[number]["id"];
+  { id: "streak", label: "Progress", icon: Flame, component: BreakFreeStreak },
+  { id: "urge", label: "Urge surfing", icon: Wind, component: UrgeSurfing },
+  { id: "mood", label: "Mood check-in", icon: SmilePlus, component: MoodCheckin },
+  { id: "why", label: "Why it matters", icon: BookOpen, component: WhyItMatters },
+  { id: "pledges", label: "Pledge wall", icon: MessageSquare, component: PledgeWall },
+];
 
 export default function BreakFreePage() {
-  const [tab, setTab] = useState<TabId>("streak");
-  const { loading: authLoading } = useBreakFreeAuthReady();
-
+  const { loading } = useBreakFreeAuthReady();
   return (
-    <div className="min-h-[100dvh] flex flex-col">
-      {/* Header */}
-      <div className="px-5 pt-6 pb-4">
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-        >
-          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#7C3AED] mb-0.5">
-            Digital Wellness
-          </p>
-          <h1 className="text-2xl font-black text-[#E2E8F0] leading-tight">
-            Break Free
-          </h1>
-          <p className="text-xs text-[#4B5563] mt-1 leading-relaxed">
-            Science-backed. Zero shame. One day at a time.
-          </p>
-        </motion.div>
+    <div className="page-container break-free-suite">
+      <PageHeader
+        eyebrow="Digital wellbeing"
+        title="Break Free"
+        subtitle="A private, shame-free space to notice patterns, ride out urges, and keep one promise at a time."
+        icon={<HeartHandshake />}
+        actions={<Button asChild variant="ghost"><Link href="/dashboard"><ArrowLeft /> Back to dashboard</Link></Button>}
+      />
+
+      <div className="rounded-[var(--radius-2xl)] border border-[color-mix(in_srgb,var(--brand-teal)_20%,transparent)] bg-[color-mix(in_srgb,var(--brand-teal)_4%,var(--surface))] p-2 shadow-[var(--shadow-sm)] sm:p-4">
+        <Tabs defaultValue="streak">
+          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 bg-[var(--surface-hover)] p-1 sm:grid-cols-5" aria-label="Break Free tools">
+            {TABS.map(({ id, label, icon: Icon }) => <TabsTrigger key={id} value={id} className="min-h-11 gap-2 rounded-[var(--radius-md)] data-[state=active]:bg-[var(--surface-raised)] data-[state=active]:text-[var(--brand-teal)]"><Icon size={15} /> <span>{label}</span></TabsTrigger>)}
+          </TabsList>
+
+          {loading ? (
+            <div className="space-y-4 p-4 sm:p-8" role="status" aria-label="Loading Break Free tools"><Skeleton className="h-10 w-48" /><Skeleton className="h-56" /><Skeleton className="h-24" /></div>
+          ) : TABS.map(({ id, component: Component }) => (
+            <TabsContent key={id} value={id} className="mt-2 focus-visible:outline-none">
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, ease: "easeOut" }}>
+                <Component />
+              </motion.div>
+            </TabsContent>
+          ))}
+        </Tabs>
       </div>
 
-      {/* Tab bar */}
-      <div className="flex gap-1.5 px-4 pb-3 overflow-x-auto scrollbar-none" style={{ scrollbarWidth: "none" }}>
-        {TABS.map(({ id, label, icon: Icon }) => {
-          const active = tab === id;
-          return (
-            <button
-              key={id}
-              onClick={() => setTab(id)}
-              className={`flex items-center gap-1.5 shrink-0 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all duration-200 ${
-                active
-                  ? "bg-[rgba(124,58,237,0.2)] border border-[rgba(124,58,237,0.3)] text-[#A78BFA] shadow-[0_0_12px_rgba(124,58,237,0.15)]"
-                  : "border border-transparent text-[#4B5563] hover:text-[#94A3B8] hover:bg-[rgba(124,58,237,0.08)]"
-              }`}
-            >
-              <Icon size={12} />
-              {label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-auto">
-        {authLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[rgba(124,58,237,0.2)] border-t-[#7C3AED]" />
-          </div>
-        ) : (
-        <motion.div
-          key={tab}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
-        >
-          {tab === "streak"  && <BreakFreeStreak />}
-          {tab === "urge"    && <UrgeSurfing />}
-          {tab === "mood"    && <MoodCheckin />}
-          {tab === "why"     && <WhyItMatters />}
-          {tab === "pledges" && <PledgeWall />}
-        </motion.div>
-        )}
-      </div>
-
-      {/* Footer note */}
-      <div className="px-4 py-4 text-center">
-        <p className="text-[10px] text-[#0e2020] leading-relaxed">
-          All data is private and stored securely. Camera processing used elsewhere in FocusArx
-          is completely separate from this module.
-        </p>
-      </div>
+      <p className="mx-auto mt-5 max-w-2xl text-center text-xs leading-relaxed text-[var(--foreground-subtle)]">Your wellbeing data stays private. Camera processing elsewhere in FocusArx is completely separate from this suite.</p>
     </div>
   );
 }

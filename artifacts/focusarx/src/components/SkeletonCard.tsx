@@ -8,8 +8,8 @@ interface SkeletonCardProps {
 function SkeletonPulse({ className = "" }: { className?: string }) {
   return (
     <div
-      className={`animate-pulse rounded bg-[rgba(124,58,237,0.08)] ${className}`}
-      style={{ background: "linear-gradient(90deg, rgba(124,58,237,0.06) 25%, rgba(124,58,237,0.12) 50%, rgba(124,58,237,0.06) 75%)", backgroundSize: "200% 100%", animation: "skeleton-shimmer 1.5s infinite" }}
+      className={`animate-pulse rounded bg-[var(--rgba-124-58-237-0_08)] ${className}`}
+      style={{ background: "linear-gradient(90deg, var(--rgba-124-58-237-0_06) 25%, var(--rgba-124-58-237-0_12) 50%, var(--rgba-124-58-237-0_06) 75%)", backgroundSize: "200% 100%", animation: "skeleton-shimmer 1.5s infinite" }}
     />
   );
 }
@@ -17,7 +17,7 @@ function SkeletonPulse({ className = "" }: { className?: string }) {
 export default function SkeletonCard({ rows = 3, hasAvatar = false, height, className = "" }: SkeletonCardProps) {
   return (
     <div
-      className={`rounded-2xl border border-[rgba(124,58,237,0.12)] bg-[rgba(10,15,30,0.6)] p-4 ${className}`}
+      className={`rounded-2xl border border-[var(--rgba-124-58-237-0_12)] bg-[var(--rgba-10-15-30-0_6)] p-4 ${className}`}
       style={height ? { height } : undefined}
     >
       {hasAvatar && (

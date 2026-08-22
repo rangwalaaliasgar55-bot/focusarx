@@ -11,22 +11,22 @@ function Section({ id, children, className = "" }: { id?: string; children: Reac
 }
 
 function H2({ children }: { children: React.ReactNode }) {
-  return <h2 className="text-2xl sm:text-3xl font-black text-[#E2E8F0] mt-14 mb-4 leading-tight">{children}</h2>;
+  return <h2 className="text-2xl sm:text-3xl font-black text-[var(--foreground)] mt-14 mb-4 leading-tight">{children}</h2>;
 }
 
 function H3({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-xl font-bold text-[#E2E8F0] mt-8 mb-3">{children}</h3>;
+  return <h3 className="text-xl font-bold text-[var(--foreground)] mt-8 mb-3">{children}</h3>;
 }
 
 function P({ children }: { children: React.ReactNode }) {
-  return <p className="text-[15px] leading-relaxed text-[#94A3B8] mb-4">{children}</p>;
+  return <p className="text-[15px] leading-relaxed text-[var(--foreground-muted)] mb-4">{children}</p>;
 }
 
 function FAQ({ q, a }: { q: string; a: string }) {
   return (
-    <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-5">
-      <p className="font-semibold text-[#E2E8F0] mb-2">{q}</p>
-      <p className="text-sm text-[#6b7280] leading-relaxed">{a}</p>
+    <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-5">
+      <p className="font-semibold text-[var(--foreground)] mb-2">{q}</p>
+      <p className="text-sm text-[var(--palette-6b7280)] leading-relaxed">{a}</p>
     </div>
   );
 }
@@ -75,21 +75,21 @@ const articleSchema = {
 
 export default function FocusGuidePage() {
   return (
-    <div className="min-h-screen bg-[rgba(255,255,255,0.02)] text-[#E2E8F0]">
+    <div className="min-h-screen bg-[var(--rgba-255-255-255-0_02)] text-[var(--foreground)]">
       <PageSEO {...PAGE_SEO.focusGuide} structuredData={articleSchema} />
 
       {/* Hero */}
-      <div className="relative overflow-hidden border-b border-[rgba(255,255,255,0.06)]">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,_rgba(124,58,237,0.18),_transparent_70%)]" />
+      <div className="relative overflow-hidden border-b border-[var(--rgba-255-255-255-0_06)]">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,_var(--rgba-124-58-237-0_18),_transparent_70%)]" />
         <Section className="relative py-20 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#7C3AED]/30 bg-[#7C3AED]/10 px-3 py-1.5 text-xs font-semibold text-[#a78bfa] mb-6">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--brand-600)]/30 bg-[var(--brand-600)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--brand-400)] mb-6">
             <Brain size={12} /> Free Guide · Updated 2026
           </div>
-          <h1 className="text-3xl sm:text-5xl font-black text-[#E2E8F0] mb-4 leading-tight">
+          <h1 className="text-3xl sm:text-5xl font-black text-[var(--foreground)] mb-4 leading-tight">
             How to Focus: The Complete<br />
-            <span className="bg-gradient-to-r from-[#7C3AED] to-[#a78bfa] bg-clip-text text-transparent">Science-Based Guide</span>
+            <span className="bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)] bg-clip-text text-transparent">Science-Based Guide</span>
           </h1>
-          <p className="max-w-2xl mx-auto text-[#94A3B8] text-base sm:text-lg">
+          <p className="max-w-2xl mx-auto text-[var(--foreground-muted)] text-base sm:text-lg">
             Attention is the most valuable resource you own — and the one most under attack. This guide explains why focus is hard, the science behind it, and a practical system to master deep work.
           </p>
         </Section>
@@ -97,9 +97,9 @@ export default function FocusGuidePage() {
 
       {/* Table of contents */}
       <Section className="py-8">
-        <nav aria-label="Table of contents" className="rounded-2xl border border-[rgba(124,58,237,0.15)] bg-[rgba(124,58,237,0.04)] p-6">
-          <p className="text-xs font-bold uppercase tracking-widest text-[#a78bfa] mb-3 flex items-center gap-2"><ListChecks size={14} /> In this guide</p>
-          <ol className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-[#94A3B8]">
+        <nav aria-label="Table of contents" className="rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-124-58-237-0_04)] p-6">
+          <p className="text-xs font-bold uppercase tracking-widest text-[var(--brand-400)] mb-3 flex items-center gap-2"><ListChecks size={14} /> In this guide</p>
+          <ol className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-[var(--foreground-muted)]">
             {[
               ["#why-focus-is-hard", "1. Why focus is so hard"],
               ["#science-of-focus", "2. The science of attention"],
@@ -112,7 +112,7 @@ export default function FocusGuidePage() {
               ["#focusarx", "9. How FocusArx helps"],
               ["#faq", "10. FAQ"],
             ].map(([href, label]) => (
-              <li key={href}><a href={href} className="hover:text-[#a78bfa] transition-colors">{label}</a></li>
+              <li key={href}><a href={href} className="hover:text-[var(--brand-400)] transition-colors">{label}</a></li>
             ))}
           </ol>
         </nav>
@@ -122,7 +122,7 @@ export default function FocusGuidePage() {
       <Section id="why-focus-is-hard">
         <H2>Why focus is so hard in the modern world</H2>
         <P>
-          If you feel like you can't concentrate the way you used to, it's not a personal failing — it's a predictable consequence of how modern technology is engineered. The average knowledge worker now checks email and messaging apps constantly, and every notification is a small dopamine hit designed to pull you back. The result is what psychologist Dr. Sophie Leroy calls <strong className="text-[#E2E8F0]">attention residue</strong>: when you switch from one task to another, part of your attention stays stuck on the previous task, degrading your performance on the next one.
+          If you feel like you can't concentrate the way you used to, it's not a personal failing — it's a predictable consequence of how modern technology is engineered. The average knowledge worker now checks email and messaging apps constantly, and every notification is a small dopamine hit designed to pull you back. The result is what psychologist Dr. Sophie Leroy calls <strong className="text-[var(--foreground)]">attention residue</strong>: when you switch from one task to another, part of your attention stays stuck on the previous task, degrading your performance on the next one.
         </P>
         <P>
           Every time you glance at your phone during a work block, you don't just lose the seconds you spent looking — you lose the minutes it takes your brain to fully re-engage. Research on task-switching shows that even brief interruptions can measurably increase error rates and slow you down. This is why "I'll just check this one thing" is the single most expensive sentence in productivity.
@@ -137,14 +137,14 @@ export default function FocusGuidePage() {
         <H2>The science of attention</H2>
         <H3>Your brain's two attention systems</H3>
         <P>
-          Cognitive scientists describe attention as having two complementary modes. The <strong className="text-[#E2E8F0]">top-down (goal-directed) system</strong> is what you use when you deliberately decide to read, write, or solve a problem. The <strong className="text-[#E2E8F0]">bottom-up (stimulus-driven) system</strong> is what yanks your eyes toward a notification, a moving object, or a loud noise. Deep work is simply the state where your top-down system stays in control for an extended period.
+          Cognitive scientists describe attention as having two complementary modes. The <strong className="text-[var(--foreground)]">top-down (goal-directed) system</strong> is what you use when you deliberately decide to read, write, or solve a problem. The <strong className="text-[var(--foreground)]">bottom-up (stimulus-driven) system</strong> is what yanks your eyes toward a notification, a moving object, or a loud noise. Deep work is simply the state where your top-down system stays in control for an extended period.
         </P>
         <P>
           Distraction isn't the enemy of focus — <em>the switch between systems</em> is. Each time your bottom-up system interrupts, your brain pays a "re-focus tax." The goal of every focus technique is the same: reduce the number of times that switch happens.
         </P>
         <H3>Ultradian rhythms and energy cycles</H3>
         <P>
-          Your alertness naturally rises and falls in roughly 90-minute cycles called <strong className="text-[#E2E8F0]">ultradian rhythms</strong>. Trying to grind through eight straight hours of "productivity" fights your biology. The most effective deep workers ride these waves — working hard during the peak of a cycle and recovering during the trough — rather than maintaining a flat, exhausted pace all day.
+          Your alertness naturally rises and falls in roughly 90-minute cycles called <strong className="text-[var(--foreground)]">ultradian rhythms</strong>. Trying to grind through eight straight hours of "productivity" fights your biology. The most effective deep workers ride these waves — working hard during the peak of a cycle and recovering during the trough — rather than maintaining a flat, exhausted pace all day.
         </P>
         <H3>The role of dopamine</H3>
         <P>
@@ -158,12 +158,12 @@ export default function FocusGuidePage() {
 
         <H3>The Pomodoro Technique</H3>
         <P>
-          Developed by Francesco Cirillo in the late 1980s, Pomodoro breaks work into 25-minute sprints ("pomodoros") separated by 5-minute breaks, with a longer 15–30 minute break after every four. Its power is psychological: a 25-minute commitment feels achievable, which lowers the activation energy to start. For deep, creative work, many people extend the work interval to 45–52 minutes. See our full <Link href="/pomodoro-guide" className="text-[#a78bfa] hover:underline">Pomodoro guide</Link>.
+          Developed by Francesco Cirillo in the late 1980s, Pomodoro breaks work into 25-minute sprints ("pomodoros") separated by 5-minute breaks, with a longer 15–30 minute break after every four. Its power is psychological: a 25-minute commitment feels achievable, which lowers the activation energy to start. For deep, creative work, many people extend the work interval to 45–52 minutes. See our full <Link href="/pomodoro-guide" className="text-[var(--brand-400)] hover:underline">Pomodoro guide</Link>.
         </P>
 
         <H3>Deep Work (Cal Newport)</H3>
         <P>
-          Author Cal Newport defines <em>deep work</em> as "professional activities performed in a state of distraction-free concentration that push your cognitive capabilities to their limit." His core argument: in an economy that rewards rare, valuable skills, the ability to focus intensely is a superpower that's becoming rarer precisely because it's hard. Newport recommends scheduling dedicated deep-work blocks, embracing boredom (resisting the urge to fill every idle moment with stimulation), and quitting shallow work. Read our <Link href="/science-of-deep-work" className="text-[#a78bfa] hover:underline">science of deep work</Link> explainer.
+          Author Cal Newport defines <em>deep work</em> as "professional activities performed in a state of distraction-free concentration that push your cognitive capabilities to their limit." His core argument: in an economy that rewards rare, valuable skills, the ability to focus intensely is a superpower that's becoming rarer precisely because it's hard. Newport recommends scheduling dedicated deep-work blocks, embracing boredom (resisting the urge to fill every idle moment with stimulation), and quitting shallow work. Read our <Link href="/science-of-deep-work" className="text-[var(--brand-400)] hover:underline">science of deep work</Link> explainer.
         </P>
 
         <H3>Time blocking</H3>
@@ -178,12 +178,12 @@ export default function FocusGuidePage() {
 
         <H3>The 2-hour study method</H3>
         <P>
-          For exam prep and deep learning, a structured two-hour block (warm-up → intense focused study → retrieval practice → review) outperforms scattered, unfocused hours. We break it down in our <Link href="/two-hour-study-method" className="text-[#a78bfa] hover:underline">2-hour study method</Link> guide.
+          For exam prep and deep learning, a structured two-hour block (warm-up → intense focused study → retrieval practice → review) outperforms scattered, unfocused hours. We break it down in our <Link href="/two-hour-study-method" className="text-[var(--brand-400)] hover:underline">2-hour study method</Link> guide.
         </P>
 
         <H3>Spaced repetition & the Feynman technique</H3>
         <P>
-          Focus isn't just about staying seated — it's about how you encode information. <strong className="text-[#E2E8F0]">Spaced repetition</strong> (reviewing material at increasing intervals) exploits the forgetting curve, while the <strong className="text-[#E2E8F0]">Feynman technique</strong> (explain a concept in plain language, find the gaps, fill them) turns passive reading into active understanding. Learn more in our <Link href="/feynman-technique" className="text-[#a78bfa] hover:underline">Feynman technique</Link> and <Link href="/study-techniques" className="text-[#a78bfa] hover:underline">study techniques</Link> guides.
+          Focus isn't just about staying seated — it's about how you encode information. <strong className="text-[var(--foreground)]">Spaced repetition</strong> (reviewing material at increasing intervals) exploits the forgetting curve, while the <strong className="text-[var(--foreground)]">Feynman technique</strong> (explain a concept in plain language, find the gaps, fill them) turns passive reading into active understanding. Learn more in our <Link href="/feynman-technique" className="text-[var(--brand-400)] hover:underline">Feynman technique</Link> and <Link href="/study-techniques" className="text-[var(--brand-400)] hover:underline">study techniques</Link> guides.
         </P>
       </Section>
 
@@ -192,27 +192,27 @@ export default function FocusGuidePage() {
         <H2>Building your focus system</H2>
         <P>Techniques only work inside a system. Here's the foundation that makes everything else stick.</P>
 
-        <H3><span className="flex items-center gap-2"><Moon size={18} className="text-[#a78bfa]" /> 1. Protect your sleep</span></H3>
+        <H3><span className="flex items-center gap-2"><Moon size={18} className="text-[var(--brand-400)]" /> 1. Protect your sleep</span></H3>
         <P>
           Sleep is the bedrock of attention. Sleep deprivation measurably impairs working memory, reaction time, and the prefrontal cortex — the exact regions responsible for sustained focus. One night of poor sleep degrades next-day concentration; chronic poor sleep compounds it. Aim for consistent sleep and wake times, not just "enough hours."
         </P>
 
-        <H3><span className="flex items-center gap-2"><Dumbbell size={18} className="text-[#a78bfa]" /> 2. Move your body</span></H3>
+        <H3><span className="flex items-center gap-2"><Dumbbell size={18} className="text-[var(--brand-400)]" /> 2. Move your body</span></H3>
         <P>
           Aerobic exercise increases blood flow to the brain and stimulates the release of BDNF (brain-derived neurotrophic factor), a protein that supports learning and neuroplasticity. Even a 20-minute walk improves focus for hours afterward. Think of exercise as a cognitive performance enhancer, not just a health chore.
         </P>
 
-        <H3><span className="flex items-center gap-2"><ShieldCheck size={18} className="text-[#a78bfa]" /> 3. Design a distraction-proof environment</span></H3>
+        <H3><span className="flex items-center gap-2"><ShieldCheck size={18} className="text-[var(--brand-400)]" /> 3. Design a distraction-proof environment</span></H3>
         <P>
           Your environment is a bigger factor than your willpower. Put your phone in another room (research shows its mere presence — even face-down and silenced — reduces available working memory). Close unrelated browser tabs. Use noise-canceling headphones or ambient sound. The goal is to make focus the path of least resistance, not an act of daily heroism.
         </P>
 
-        <H3><span className="flex items-center gap-2"><Clock size={18} className="text-[#a78bfa]" /> 4. Anchor to a routine</span></H3>
+        <H3><span className="flex items-center gap-2"><Clock size={18} className="text-[var(--brand-400)]" /> 4. Anchor to a routine</span></H3>
         <P>
           Habits form when a behavior is triggered by a consistent cue. Anchor your first session to something you already do every day — "after my first coffee" or "right after lunch." Once the cue fires, start a session immediately; don't negotiate. Over weeks, the friction of starting drops toward zero.
         </P>
 
-        <H3><span className="flex items-center gap-2"><Zap size={18} className="text-[#a78bfa]" /> 5. Start embarrassingly small</span></H3>
+        <H3><span className="flex items-center gap-2"><Zap size={18} className="text-[var(--brand-400)]" /> 5. Start embarrassingly small</span></H3>
         <P>
           The biggest mistake is trying to go from zero to four-hour deep-work days. Start with a single 25-minute session daily. Consistency matters more than duration — a 25-minute daily habit is worth far more than a heroic once-a-week marathon, because it builds the identity of "someone who focuses."
         </P>
@@ -259,11 +259,11 @@ export default function FocusGuidePage() {
         <H2>Focus strategies for different goals</H2>
         <H3>For students</H3>
         <P>
-          Students face a unique challenge: large volumes of information that must be both understood and retained. Pair deep-work blocks with <strong className="text-[#E2E8F0]">active recall</strong> (test yourself instead of re-reading) and <strong className="text-[#E2E8F0]">spaced repetition</strong>. A proven structure is the 2-hour study method: warm-up, focused study, retrieval practice, and review — which we detail in our <Link href="/two-hour-study-method" className="text-[#a78bfa] hover:underline">2-hour study method</Link> guide. Exam season rewards the student who has built consistent focus weeks earlier, not the one cramming.
+          Students face a unique challenge: large volumes of information that must be both understood and retained. Pair deep-work blocks with <strong className="text-[var(--foreground)]">active recall</strong> (test yourself instead of re-reading) and <strong className="text-[var(--foreground)]">spaced repetition</strong>. A proven structure is the 2-hour study method: warm-up, focused study, retrieval practice, and review — which we detail in our <Link href="/two-hour-study-method" className="text-[var(--brand-400)] hover:underline">2-hour study method</Link> guide. Exam season rewards the student who has built consistent focus weeks earlier, not the one cramming.
         </P>
         <H3>For professionals & developers</H3>
         <P>
-          Knowledge workers fight an inbox and a calendar. The single highest-leverage habit is <strong className="text-[#E2E8F0]">batching communication</strong> — check email and messages at set times (e.g. 11:00 and 16:00) instead of continuously. Protect your mornings for deep work, and let your team know when you're in a focus block. For developers, a distraction-free focus session with the phone in another room can mean the difference between shipping in an afternoon and wrestling one bug all week.
+          Knowledge workers fight an inbox and a calendar. The single highest-leverage habit is <strong className="text-[var(--foreground)]">batching communication</strong> — check email and messages at set times (e.g. 11:00 and 16:00) instead of continuously. Protect your mornings for deep work, and let your team know when you're in a focus block. For developers, a distraction-free focus session with the phone in another room can mean the difference between shipping in an afternoon and wrestling one bug all week.
         </P>
         <H3>For creatives</H3>
         <P>
@@ -275,7 +275,7 @@ export default function FocusGuidePage() {
       <Section id="sample-day">
         <H2>A sample deep-work day</H2>
         <P>Here's a realistic template you can adapt. The exact times matter less than the structure: protect your peak hours, batch shallow work, and recharge deliberately.</P>
-        <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-6 space-y-3 font-mono text-sm">
+        <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-6 space-y-3 font-mono text-sm">
           {[
             ["07:30", "Wake, hydrate, move (20-min walk or stretch)"],
             ["08:30", "Deep-work block #1 — your hardest task (90 min)"],
@@ -289,8 +289,8 @@ export default function FocusGuidePage() {
             ["21:00", "Wind down — no screens in bed"],
           ].map(([t, a]) => (
             <div key={t} className="flex gap-4">
-              <span className="text-[#a78bfa] font-bold shrink-0 w-14">{t}</span>
-              <span className="text-[#94A3B8]">{a}</span>
+              <span className="text-[var(--brand-400)] font-bold shrink-0 w-14">{t}</span>
+              <span className="text-[var(--foreground-muted)]">{a}</span>
             </div>
           ))}
         </div>
@@ -303,10 +303,10 @@ export default function FocusGuidePage() {
       <Section id="measure">
         <H2>Measuring real progress</H2>
         <P>
-          "Hours worked" is a vanity metric. Two people can sit at a desk for the same time with wildly different output. What matters is <strong className="text-[#E2E8F0]">depth</strong>: how long you stayed genuinely engaged, how few distractions interrupted you, and how consistently you showed up.
+          "Hours worked" is a vanity metric. Two people can sit at a desk for the same time with wildly different output. What matters is <strong className="text-[var(--foreground)]">depth</strong>: how long you stayed genuinely engaged, how few distractions interrupted you, and how consistently you showed up.
         </P>
         <P>
-          FocusArx turns this into a measurable <strong className="text-[#E2E8F0]">Focus Score</strong> (0–100) derived from session completion, attention consistency, and distraction events — so you can see whether you're actually getting deeper, not just busier. Track streaks, review your weekly chart, and use your Focus DNA to find the hours when your brain is sharpest. What gets measured gets improved.
+          FocusArx turns this into a measurable <strong className="text-[var(--foreground)]">Focus Score</strong> (0–100) derived from session completion, attention consistency, and distraction events — so you can see whether you're actually getting deeper, not just busier. Track streaks, review your weekly chart, and use your Focus DNA to find the hours when your brain is sharpest. What gets measured gets improved.
         </P>
       </Section>
 
@@ -315,25 +315,25 @@ export default function FocusGuidePage() {
         <H2>How FocusArx helps you focus</H2>
         <div className="grid sm:grid-cols-2 gap-4 mt-6">
           {[
-            { icon: <Target className="text-purple-400" />, t: "Adaptive timer", d: "Pomodoro, deep-work, and flow sessions tuned to your energy." },
-            { icon: <Zap className="text-emerald-400" />, t: "AI coach", d: "Context-aware tips and a personalized study roadmap." },
-            { icon: <ShieldCheck className="text-blue-400" />, t: "Private attention tracking", d: "On-device MediaPipe vision — no video ever leaves your browser." },
-            { icon: <TrendingUp className="text-amber-400" />, t: "Real analytics", d: "Focus Score, streaks, and Focus DNA to measure depth." },
-            { icon: <Users className="text-pink-400" />, t: "Study together", d: "Live study rooms and leaderboards for accountability." },
-            { icon: <CheckCircle className="text-cyan-400" />, t: "Gamified growth", d: "XP, coins, a pet companion, and a city that grows as you do." },
+            { icon: <Target className="text-[var(--palette-purple-400)]" />, t: "Adaptive timer", d: "Pomodoro, deep-work, and flow sessions tuned to your energy." },
+            { icon: <Zap className="text-[var(--palette-emerald-400)]" />, t: "AI coach", d: "Context-aware tips and a personalized study roadmap." },
+            { icon: <ShieldCheck className="text-[var(--palette-blue-400)]" />, t: "Private attention tracking", d: "On-device MediaPipe vision — no video ever leaves your browser." },
+            { icon: <TrendingUp className="text-[var(--palette-amber-400)]" />, t: "Real analytics", d: "Focus Score, streaks, and Focus DNA to measure depth." },
+            { icon: <Users className="text-[var(--palette-pink-400)]" />, t: "Study together", d: "Live study rooms and leaderboards for accountability." },
+            { icon: <CheckCircle className="text-[var(--palette-cyan-400)]" />, t: "Gamified growth", d: "XP, coins, a pet companion, and a city that grows as you do." },
           ].map((f) => (
-            <div key={f.t} className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-5">
-              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 border border-white/10">{f.icon}</div>
-              <p className="font-bold text-[#E2E8F0] mb-1">{f.t}</p>
-              <p className="text-sm text-[#6b7280] leading-relaxed">{f.d}</p>
+            <div key={f.t} className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-5">
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--palette-white)]/5 border border-[var(--palette-white)]/10">{f.icon}</div>
+              <p className="font-bold text-[var(--foreground)] mb-1">{f.t}</p>
+              <p className="text-sm text-[var(--palette-6b7280)] leading-relaxed">{f.d}</p>
             </div>
           ))}
         </div>
 
-        <div className="mt-8 rounded-2xl border border-[#7C3AED]/30 bg-gradient-to-br from-[#7C3AED]/10 to-transparent p-8 text-center">
-          <h3 className="text-xl font-black text-[#E2E8F0] mb-2">Start your first deep-work session today</h3>
-          <p className="text-sm text-[#94A3B8] mb-6">Free forever. No credit card. One 25-minute session is all it takes to begin.</p>
-          <Link href="/signup" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] px-6 py-3 text-sm font-bold text-white hover:brightness-110 transition-all">
+        <div className="mt-8 rounded-2xl border border-[var(--brand-600)]/30 bg-gradient-to-br from-[var(--brand-600)]/10 to-transparent p-8 text-center">
+          <h3 className="text-xl font-black text-[var(--foreground)] mb-2">Start your first deep-work session today</h3>
+          <p className="text-sm text-[var(--foreground-muted)] mb-6">Free forever. No credit card. One 25-minute session is all it takes to begin.</p>
+          <Link href="/signup" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] px-6 py-3 text-sm font-bold text-[var(--palette-white)] hover:brightness-110 transition-all">
             Begin Launch Sequence <ArrowRight size={16} />
           </Link>
         </div>

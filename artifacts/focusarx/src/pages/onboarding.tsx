@@ -116,28 +116,28 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#030308] text-white">
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[var(--background)] text-[var(--palette-white)]">
       {/* 3D Background */}
-      <div className="absolute inset-0 z-0 opacity-40">
+      <div className="absolute inset-0 z-[var(--z-base)] opacity-40">
         <Suspense fallback={null}>
           <Hero3D />
         </Suspense>
       </div>
-      
-      <div className="relative z-10 w-full max-w-xl px-6">
+
+      <div className="relative z-[var(--z-content)] w-full max-w-xl px-6">
         <div className="mb-12">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-[#A78BFA] animate-pulse" />
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#4B5563]">System Calibration</p>
+              <div className="h-2 w-2 rounded-full bg-[var(--brand-400)] animate-pulse" />
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">System Calibration</p>
             </div>
-            <p className="text-[10px] font-bold text-[#4B5563]">{Math.round(progress)}%</p>
+            <p className="text-[10px] font-bold text-[var(--foreground-subtle)]">{Math.round(progress)}%</p>
           </div>
-          <div className="h-1 w-full rounded-full bg-white/5">
+          <div className="h-1 w-full rounded-full bg-[var(--palette-white)]/5">
             <motion.div
-              className="h-full rounded-full bg-gradient-to-r from-[#7C3AED] to-[#F472B6]"
+              className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-pink)]"
               animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.6, ease: "circOut" }}
+              transition={{ duration: 0.4, ease: "circOut" }}
             />
           </div>
         </div>
@@ -145,12 +145,12 @@ export default function OnboardingPage() {
         <AnimatePresence mode="wait">
           {step === "intro" && (
             <motion.div key="intro" variants={BLUR_IN} initial="initial" animate="animate" exit="exit" className="text-center">
-              <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-[#7C3AED] to-[#F472B6] shadow-[0_0_40px_rgba(124,58,237,0.3)]">
-                <Rocket size={32} className="text-white" />
+              <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-[var(--brand-600)] to-[var(--brand-pink)] shadow-[0_0_40px_var(--rgba-124-58-237-0_3)]">
+                <Rocket size={32} className="text-[var(--palette-white)]" />
               </div>
-              <h1 className="text-4xl font-black tracking-tight sm:text-5xl">Initialize Your <br /><span className="text-[#A78BFA]">Focus DNA</span></h1>
-              <p className="mt-6 text-lg text-[#94A3B8]">Before we begin, we need to calibrate the environment to your cognitive patterns.</p>
-              <button onClick={next} className="mt-12 group flex items-center gap-3 mx-auto rounded-2xl bg-white px-8 py-4 text-lg font-bold text-black hover:scale-105 transition-all">
+              <h1 className="text-4xl font-black tracking-tight sm:text-5xl">Initialize Your <br /><span className="text-[var(--brand-400)]">Focus DNA</span></h1>
+              <p className="mt-6 text-lg text-[var(--foreground-muted)]">Before we begin, we need to calibrate the environment to your cognitive patterns.</p>
+              <button onClick={next} className="mt-12 group flex items-center gap-3 mx-auto rounded-2xl bg-[var(--palette-white)] px-8 py-4 text-lg font-bold text-[var(--palette-black)] hover:scale-105 transition-all">
                 Begin Calibration <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </button>
             </motion.div>
@@ -188,17 +188,17 @@ export default function OnboardingPage() {
                     }}
                     className={`group relative w-full flex items-center gap-4 rounded-2xl border px-6 py-5 text-left transition-all ${
                       data.style === s.id
-                        ? "border-[#A78BFA] bg-[#A78BFA]/10"
-                        : "border-white/5 bg-white/[0.02] hover:bg-white/[0.05]"
+                        ? "border-[var(--brand-400)] bg-[var(--brand-400)]/10"
+                        : "border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] hover:bg-[var(--palette-white)]/[0.05]"
                     }`}
                   >
                     <span className="text-3xl">{s.icon}</span>
                     <div>
-                      <p className="font-bold text-white text-lg">{s.label}</p>
-                      <p className="text-sm text-[#4B5563]">{s.sub}</p>
+                      <p className="font-bold text-[var(--palette-white)] text-lg">{s.label}</p>
+                      <p className="text-sm text-[var(--foreground-subtle)]">{s.sub}</p>
                     </div>
                     <div className="ml-auto text-right">
-                       <span className="text-xs font-black text-[#A78BFA] uppercase tracking-widest">{s.duration} MIN</span>
+                       <span className="text-xs font-black text-[var(--brand-400)] uppercase tracking-widest">{s.duration} MIN</span>
                     </div>
                   </button>
                 ))}
@@ -215,12 +215,12 @@ export default function OnboardingPage() {
                     onClick={() => pick("dailyHours", h.id)}
                     className={`flex flex-col items-start rounded-2xl border p-6 text-left transition-all ${
                       data.dailyHours === h.id
-                        ? "border-[#A78BFA] bg-[#A78BFA]/10"
-                        : "border-white/5 bg-white/[0.02] hover:bg-white/[0.05]"
+                        ? "border-[var(--brand-400)] bg-[var(--brand-400)]/10"
+                        : "border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] hover:bg-[var(--palette-white)]/[0.05]"
                     }`}
                   >
-                    <p className="text-2xl font-black text-white">{h.label}</p>
-                    <p className="text-xs font-bold uppercase tracking-widest text-[#4B5563] mt-1">{h.sub}</p>
+                    <p className="text-2xl font-black text-[var(--palette-white)]">{h.label}</p>
+                    <p className="text-xs font-bold uppercase tracking-widest text-[var(--foreground-subtle)] mt-1">{h.sub}</p>
                   </button>
                 ))}
               </div>
@@ -229,22 +229,22 @@ export default function OnboardingPage() {
 
           {step === "ready" && (
             <motion.div key="ready" variants={BLUR_IN} initial="initial" animate="animate" className="text-center">
-              <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/20 shadow-[0_0_50px_rgba(16,185,129,0.2)]">
+              <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-[var(--palette-emerald-500)]/10 border border-[var(--palette-emerald-500)]/20 shadow-[0_0_50px_var(--rgba-16-185-129-0_2)]">
                 <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 2 }}>
-                  <Sparkles size={40} className="text-emerald-400" />
+                  <Sparkles size={40} className="text-[var(--palette-emerald-400)]" />
                 </motion.div>
               </div>
-              <h1 className="text-4xl font-black tracking-tight sm:text-5xl">Calibration <br /><span className="text-emerald-400">Complete</span></h1>
+              <h1 className="text-4xl font-black tracking-tight sm:text-5xl">Calibration <br /><span className="text-[var(--palette-emerald-400)]">Complete</span></h1>
               <div className="mt-8 flex flex-wrap justify-center gap-2">
                 {data.goal && <CalibrationTag label={GOALS.find(g => g.id === data.goal)?.label ?? data.goal} />}
                 {data.style && <CalibrationTag label={`${data.focusDuration}m Loops`} />}
                 {data.dailyHours && <CalibrationTag label={`${data.dailyHours}/day`} />}
               </div>
-              <p className="mt-8 text-[#64748B] max-w-sm mx-auto">Systems are synced. Your academic civilization is ready for expansion.</p>
+              <p className="mt-8 text-[var(--muted-fg)] max-w-sm mx-auto">Systems are synced. Your academic civilization is ready for expansion.</p>
               <button
                 onClick={() => void finish()}
                 disabled={saving}
-                className="mt-12 w-full rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] py-5 text-lg font-black text-white shadow-xl hover:scale-105 transition-all disabled:opacity-50"
+                className="mt-12 w-full rounded-2xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] py-5 text-lg font-black text-[var(--palette-white)] shadow-xl hover:scale-105 transition-all disabled:opacity-50"
               >
                 {saving ? "Deploying..." : "Enter Command Center"}
               </button>
@@ -255,7 +255,7 @@ export default function OnboardingPage() {
         {stepIndex > 0 && step !== "ready" && (
           <button
             onClick={back}
-            className="mx-auto mt-10 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#4B5563] hover:text-white transition-colors"
+            className="mx-auto mt-10 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--foreground-subtle)] hover:text-[var(--palette-white)] transition-colors"
           >
             <ArrowLeft size={10} /> Back
           </button>
@@ -269,8 +269,8 @@ function StepWrapper({ title, sub, children }: { title: string; sub: string; chi
   return (
     <motion.div variants={STAGGER} initial="initial" animate="animate" exit="exit" className="space-y-8 text-center">
       <motion.div variants={STAGGER_CHILD}>
-        <h2 className="text-4xl font-black tracking-tight text-white">{title}</h2>
-        <p className="mt-2 text-[#94A3B8] font-medium">{sub}</p>
+        <h2 className="text-4xl font-black tracking-tight text-[var(--palette-white)]">{title}</h2>
+        <p className="mt-2 text-[var(--foreground-muted)] font-medium">{sub}</p>
       </motion.div>
       <motion.div variants={STAGGER_CHILD}>{children}</motion.div>
     </motion.div>
@@ -283,19 +283,19 @@ function OptionButton({ icon, label, selected, onClick }: { icon: string; label:
       onClick={onClick}
       className={`flex items-center gap-4 rounded-2xl border p-5 text-left transition-all ${
         selected
-          ? "border-[#A78BFA] bg-[#A78BFA]/10 shadow-[0_0_30px_rgba(167,139,250,0.15)]"
-          : "border-white/5 bg-white/[0.02] hover:bg-white/[0.05]"
+          ? "border-[var(--brand-400)] bg-[var(--brand-400)]/10 shadow-[0_0_30px_var(--rgba-167-139-250-0_15)]"
+          : "border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] hover:bg-[var(--palette-white)]/[0.05]"
       }`}
     >
       <span className="text-2xl">{icon}</span>
-      <span className="text-sm font-bold text-white">{label}</span>
+      <span className="text-sm font-bold text-[var(--palette-white)]">{label}</span>
     </button>
   );
 }
 
 function CalibrationTag({ label }: { label: string }) {
   return (
-    <span className="rounded-full bg-white/5 border border-white/10 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-[#A78BFA] shadow-lg">
+    <span className="rounded-full bg-[var(--palette-white)]/5 border border-[var(--palette-white)]/10 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-[var(--brand-400)] shadow-lg">
       {label}
     </span>
   );

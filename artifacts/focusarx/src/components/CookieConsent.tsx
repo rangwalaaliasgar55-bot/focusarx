@@ -26,32 +26,32 @@ export function CookieConsent() {
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
-          className="fixed bottom-6 left-6 right-6 z-[9999] mx-auto max-w-4xl"
+          className="fixed bottom-6 left-6 right-6 z-[var(--z-max)] mx-auto max-w-4xl"
         >
-          <div className="rounded-2xl border border-white/10 bg-zinc-950/90 p-6 shadow-2xl backdrop-blur-xl md:flex md:items-center md:justify-between md:gap-8">
+          <div className="rounded-2xl border border-[var(--palette-white)]/10 bg-[var(--palette-zinc-950)]/90 p-6 shadow-2xl backdrop-blur-xl md:flex md:items-center md:justify-between md:gap-8">
             <div className="flex items-start gap-4 md:items-center">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-purple-500/10">
-                <ShieldCheck className="text-purple-400" size={24} />
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--palette-purple-500)]/10">
+                <ShieldCheck className="text-[var(--palette-purple-400)]" size={24} />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white">We value your focus (and your privacy)</h3>
-                <p className="mt-1 text-xs leading-relaxed text-zinc-400">
-                  FocusArx uses cookies to enhance your experience and analyze platform performance. 
-                  Vision data for attention tracking never leaves your browser. 
-                  By continuing, you agree to our <Link href="/cookie-policy" className="text-purple-400 hover:underline">Cookie Policy</Link>.
+                <h3 className="text-sm font-bold text-[var(--palette-white)]">We value your focus (and your privacy)</h3>
+                <p className="mt-1 text-xs leading-relaxed text-[var(--palette-zinc-400)]">
+                  FocusArx uses cookies to enhance your experience and analyze platform performance.
+                  Vision data for attention tracking never leaves your browser.
+                  By continuing, you agree to our <Link href="/cookie-policy" className="text-[var(--palette-purple-400)] hover:underline">Cookie Policy</Link>.
                 </p>
               </div>
             </div>
             <div className="mt-6 flex shrink-0 gap-3 md:mt-0">
               <button
                 onClick={accept}
-                className="flex-1 rounded-xl bg-white px-6 py-2.5 text-xs font-bold text-black hover:bg-zinc-200 transition-colors md:flex-none"
+                className="flex-1 rounded-xl bg-[var(--palette-white)] px-6 py-2.5 text-xs font-bold text-[var(--palette-black)] hover:bg-[var(--palette-zinc-200)] transition-colors md:flex-none"
               >
                 Accept All
               </button>
               <button
                 onClick={() => setShow(false)}
-                className="rounded-xl border border-white/10 bg-white/5 p-2.5 text-zinc-400 hover:text-white transition-colors"
+                className="rounded-xl border border-[var(--palette-white)]/10 bg-[var(--palette-white)]/5 p-2.5 text-[var(--palette-zinc-400)] hover:text-[var(--palette-white)] transition-colors"
               >
                 <X size={18} />
               </button>

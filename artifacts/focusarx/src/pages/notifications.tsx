@@ -22,14 +22,14 @@ const TYPE_ICONS: Record<string, string> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  friend_request: "border-blue-500/30 bg-blue-500/5",
-  friend_accepted: "border-emerald-500/30 bg-emerald-500/5",
-  badge: "border-amber-500/30 bg-amber-500/5",
-  mission: "border-violet-500/30 bg-violet-500/5",
-  daily_reward: "border-emerald-500/30 bg-emerald-500/5",
-  level_up: "border-amber-500/30 bg-amber-500/5",
-  group_join: "border-blue-500/30 bg-blue-500/5",
-  system: "border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)]",
+  friend_request: "border-[var(--palette-blue-500)]/30 bg-[var(--palette-blue-500)]/5",
+  friend_accepted: "border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/5",
+  badge: "border-[var(--palette-amber-500)]/30 bg-[var(--palette-amber-500)]/5",
+  mission: "border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/5",
+  daily_reward: "border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/5",
+  level_up: "border-[var(--palette-amber-500)]/30 bg-[var(--palette-amber-500)]/5",
+  group_join: "border-[var(--palette-blue-500)]/30 bg-[var(--palette-blue-500)]/5",
+  system: "border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)]",
 };
 
 export default function NotificationsPage() {
@@ -67,24 +67,24 @@ export default function NotificationsPage() {
   const unread = notifications.filter((n: any) => !n.read).length;
 
   return (
-    <div className="min-h-screen bg-[rgba(255,255,255,0.02)] text-[var(--foreground)] p-4 sm:p-6 max-w-2xl mx-auto">
+    <div className="min-h-screen bg-[var(--rgba-255-255-255-0_02)] text-[var(--foreground)] p-4 sm:p-6 max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-[var(--foreground)] flex items-center gap-2">
-            <Bell size={22} className="text-[#7C3AED]" />
+            <Bell size={22} className="text-[var(--brand-600)]" />
             Notifications
-            {unread > 0 && <span className="ml-1 rounded-full bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center">{unread}</span>}
+            {unread > 0 && <span className="ml-1 rounded-full bg-[var(--palette-red-500)] text-[var(--palette-white)] text-xs font-bold w-5 h-5 flex items-center justify-center">{unread}</span>}
           </h1>
           <p className="text-sm text-[var(--foreground-subtle)] mt-1">{notifications.length} total</p>
         </div>
         <div className="flex gap-2">
           {unread > 0 && (
-            <button onClick={() => markAllRead.mutate()} className="flex items-center gap-1.5 rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] px-3 py-2 text-xs font-medium text-[var(--foreground-subtle)] hover:text-[var(--foreground)] transition-colors">
+            <button onClick={() => markAllRead.mutate()} className="flex items-center gap-1.5 rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] px-3 py-2 text-xs font-medium text-[var(--foreground-subtle)] hover:text-[var(--foreground)] transition-colors">
               <CheckCheck size={13} /> Mark all read
             </button>
           )}
           {notifications.length > 0 && (
-            <button onClick={() => clearAll.mutate()} className="flex items-center gap-1.5 rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs font-medium text-red-400 hover:bg-red-500/10 transition-colors">
+            <button onClick={() => clearAll.mutate()} className="flex items-center gap-1.5 rounded-xl border border-[var(--palette-red-500)]/20 bg-[var(--palette-red-500)]/5 px-3 py-2 text-xs font-medium text-[var(--palette-red-400)] hover:bg-[var(--palette-red-500)]/10 transition-colors">
               <Trash2 size={13} /> Clear all
             </button>
           )}
@@ -93,15 +93,15 @@ export default function NotificationsPage() {
 
       {isLoading && (
         <div className="flex justify-center py-16">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[rgba(255,255,255,0.06)] border-t-[#7C3AED]" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--rgba-255-255-255-0_06)] border-t-[var(--brand-600)]" />
         </div>
       )}
 
       {!isLoading && notifications.length === 0 && (
         <div className="text-center py-16">
-          <Bell size={48} className="mx-auto mb-4 text-[rgba(255,255,255,0.12)]" />
-          <p className="text-[#374151] text-sm">You're all caught up!</p>
-          <p className="text-[#2a2d3a] text-xs mt-1">Notifications will appear here when you earn badges, complete missions, or get friend activity.</p>
+          <Bell size={48} className="mx-auto mb-4 text-[var(--rgba-255-255-255-0_12)]" />
+          <p className="text-[var(--foreground-subtle)] text-sm">You're all caught up!</p>
+          <p className="text-[var(--palette-2a2d3a)] text-xs mt-1">Notifications will appear here when you earn badges, complete missions, or get friend activity.</p>
         </div>
       )}
 
@@ -109,17 +109,17 @@ export default function NotificationsPage() {
         {notifications.map((n: any) => (
           <div
             key={n.id}
-            className={`relative flex items-start gap-3 rounded-xl border p-3.5 transition-all cursor-pointer hover:brightness-110 ${TYPE_COLORS[n.type] ?? "border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)]"} ${!n.read ? "opacity-100" : "opacity-60"}`}
+            className={`relative flex items-start gap-3 rounded-xl border p-3.5 transition-all cursor-pointer hover:brightness-110 ${TYPE_COLORS[n.type] ?? "border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)]"} ${!n.read ? "opacity-100" : "opacity-60"}`}
             onClick={() => !n.read && markRead.mutate(n.id)}
           >
-            {!n.read && <span className="absolute top-3 left-2 w-1.5 h-1.5 rounded-full bg-[#7C3AED]" />}
+            {!n.read && <span className="absolute top-3 left-2 w-1.5 h-1.5 rounded-full bg-[var(--brand-600)]" />}
             <span className="text-xl shrink-0 mt-0.5">{TYPE_ICONS[n.type] ?? "🔔"}</span>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-[var(--foreground)]">{n.title}</p>
               <p className="text-xs text-[var(--foreground-subtle)] mt-0.5">{n.message}</p>
-              <p className="text-[10px] text-[#374151] mt-1">{new Date(n.createdAt).toLocaleString()}</p>
+              <p className="text-[10px] text-[var(--foreground-subtle)] mt-1">{new Date(n.createdAt).toLocaleString()}</p>
             </div>
-            <button onClick={e => { e.stopPropagation(); deleteNotif.mutate(n.id); }} className="shrink-0 rounded-lg p-1 text-[#374151] hover:text-red-400 hover:bg-red-500/10 transition-colors">
+            <button onClick={e => { e.stopPropagation(); deleteNotif.mutate(n.id); }} className="shrink-0 rounded-lg p-1 text-[var(--foreground-subtle)] hover:text-[var(--palette-red-400)] hover:bg-[var(--palette-red-500)]/10 transition-colors">
               <X size={13} />
             </button>
           </div>

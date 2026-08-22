@@ -30,7 +30,7 @@ export function SessionDots({ completed, total }: SessionDotsProps) {
             }}
             transition={{ type: "spring", stiffness: 420, damping: 28 }}
             className={`h-2 w-2 rounded-full ${
-              filled ? "bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.45)]" : "bg-zinc-600/80"
+              filled ? "bg-[var(--palette-rose-500)] shadow-[0_0_12px_var(--rgba-244-63-94-0_45)]" : "bg-[var(--palette-zinc-600)]/80"
             }`}
           />
         );

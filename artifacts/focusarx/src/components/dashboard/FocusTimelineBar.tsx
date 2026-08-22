@@ -5,8 +5,8 @@ import type { FocusTimelinePoint } from "@/types/focus";
 export function FocusTimelineBar({ timeline }: { timeline: FocusTimelinePoint[] }) {
   if (!timeline.length) {
     return (
-      <div className="flex h-3 gap-0.5 overflow-hidden rounded-full bg-zinc-800/50">
-        <div className="h-full flex-1 bg-zinc-700/40" title="No timeline data" />
+      <div className="flex h-3 gap-0.5 overflow-hidden rounded-full bg-[var(--palette-zinc-800)]/50">
+        <div className="h-full flex-1 bg-[var(--palette-zinc-700)]/40" title="No timeline data" />
       </div>
     );
   }
@@ -25,14 +25,14 @@ export function FocusTimelineBar({ timeline }: { timeline: FocusTimelinePoint[] 
 
   return (
     <div
-      className="flex h-3 gap-0.5 overflow-hidden rounded-full bg-zinc-800/50"
+      className="flex h-3 gap-0.5 overflow-hidden rounded-full bg-[var(--palette-zinc-800)]/50"
       title="Focus timeline: green = focused, dim = distracted"
     >
       {bars.map((state, i) => (
         <div
           key={i}
           className={`h-full min-w-[4px] flex-1 rounded-sm ${
-            state === "focus" ? "bg-emerald-400/90" : "bg-zinc-600/80"
+            state === "focus" ? "bg-[var(--palette-emerald-400)]/90" : "bg-[var(--palette-zinc-600)]/80"
           }`}
         />
       ))}

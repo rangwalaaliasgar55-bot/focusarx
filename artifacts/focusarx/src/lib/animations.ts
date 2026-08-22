@@ -146,9 +146,9 @@ export const FLOAT = {
 export const GLOW_PULSE = {
   animate: {
     boxShadow: [
-      '0 0 0px rgba(124,58,237,0)',
-      '0 0 24px rgba(124,58,237,0.55)',
-      '0 0 0px rgba(124,58,237,0)',
+      '0 0 0px var(--rgba-124-58-237-0)',
+      '0 0 24px var(--rgba-124-58-237-0_55)',
+      '0 0 0px var(--rgba-124-58-237-0)',
     ],
     transition: { duration: 2.2, repeat: Infinity, ease: 'easeInOut' },
   },
@@ -158,7 +158,7 @@ export const GLOW_PULSE = {
 /** Standard hover: lift + subtle shadow */
 export const hoverLift = {
   y: -2,
-  boxShadow: '0 8px 24px rgba(124,58,237,0.18)',
+  boxShadow: '0 8px 24px var(--rgba-124-58-237-0_18)',
   transition: SPRING_SNAPPY,
 };
 
@@ -171,7 +171,7 @@ export const tapPress = {
 /** Card hover: lift with violet shadow */
 export const cardHover = {
   y: -3,
-  boxShadow: '0 12px 32px rgba(124,58,237,0.22), 0 0 0 1px rgba(124,58,237,0.16)',
+  boxShadow: '0 12px 32px var(--rgba-124-58-237-0_22), 0 0 0 1px var(--rgba-124-58-237-0_16)',
   transition: SPRING_SMOOTH,
 };
 

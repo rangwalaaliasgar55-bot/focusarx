@@ -53,7 +53,7 @@ export function TiltCard({ children, className = "", intensity = 12, glare = tru
       transition={{ scale: { type: "spring", stiffness: 300, damping: 25 } }}
       className={`relative ${className}`}
     >
-      <div 
+      <div
         className="glass rounded-[inherit]"
         style={{ transform: "translateZ(0px)" }}
       >
@@ -63,13 +63,13 @@ export function TiltCard({ children, className = "", intensity = 12, glare = tru
         <motion.div
           className="pointer-events-none absolute inset-0 rounded-[inherit] overflow-hidden"
           style={{
-            background: `radial-gradient(circle at ${glareX.get()} ${glareY.get()}, rgba(255,255,255,0.08) 0%, transparent 65%)`,
+            background: `radial-gradient(circle at ${glareX.get()} ${glareY.get()}, var(--rgba-255-255-255-0_08) 0%, transparent 65%)`,
             zIndex: 10,
           }}
           animate={{
             background: [
-              `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.07) 0%, transparent 65%)`,
-              `radial-gradient(circle at 70% 70%, rgba(255,255,255,0.07) 0%, transparent 65%)`,
+              `radial-gradient(circle at 30% 30%, var(--rgba-255-255-255-0_07) 0%, transparent 65%)`,
+              `radial-gradient(circle at 70% 70%, var(--rgba-255-255-255-0_07) 0%, transparent 65%)`,
             ],
           }}
           transition={{ duration: 0.15 }}
@@ -84,7 +84,7 @@ export function FloatCard({ children, className = "", delay = 0 }: { children: R
     <motion.div
       initial={{ opacity: 0, y: 20, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1], delay }}
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1], delay }}
       className={className}
     >
       {children}

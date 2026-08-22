@@ -135,41 +135,41 @@ export default function RoadmapPage() {
     <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow">
       <PageSEO {...PAGE_SEO.roadmap} />
       <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <div className="absolute -left-24 top-0 h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.15),transparent_70%)] blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-[360px] w-[360px] rounded-full bg-[radial-gradient(circle_at_center,rgba(6,214,160,0.08),transparent_70%)] blur-3xl" />
+        <div className="absolute -left-24 top-0 h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle_at_center,var(--rgba-124-58-237-0_15),transparent_70%)] blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-[360px] w-[360px] rounded-full bg-[radial-gradient(circle_at_center,var(--rgba-6-214-160-0_08),transparent_70%)] blur-3xl" />
       </div>
-      <main className="relative z-10 mx-auto max-w-7xl px-6 py-12 md:py-20">
+      <main className="relative z-[var(--z-content)] mx-auto max-w-7xl px-6 py-12 md:py-20">
         <header className="mb-16 text-center max-w-2xl mx-auto">
           <motion.div variants={BLUR_IN} initial="initial" animate="animate">
-             <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#7C3AED]/10 mb-6">
-                <Map className="text-[#A78BFA]" />
+             <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-600)]/10 mb-6">
+                <Map className="text-[var(--brand-400)]" />
              </div>
-             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#4B5563] mb-4">Strategic Planning</p>
-             <h1 className="text-4xl font-black text-white sm:text-6xl tracking-tight leading-none mb-6">AI Study <span className="text-[#A78BFA]">Roadmap</span></h1>
-             <p className="text-[#94A3B8] leading-relaxed">Turn your goals into daily actionable deep-work protocols using our advanced generation engine.</p>
+             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--foreground-subtle)] mb-4">Strategic Planning</p>
+             <h1 className="text-4xl font-black text-[var(--palette-white)] sm:text-6xl tracking-tight leading-none mb-6">AI Study <span className="text-[var(--brand-400)]">Roadmap</span></h1>
+             <p className="text-[var(--foreground-muted)] leading-relaxed">Turn your goals into daily actionable deep-work protocols using our advanced generation engine.</p>
           </motion.div>
         </header>
 
         <div className="grid gap-12 lg:grid-cols-[400px_1fr]">
-          <motion.aside variants={STAGGER} initial="initial" animate="animate" className="h-fit rounded-[32px] border border-white/5 bg-white/[0.01] p-8 backdrop-blur-2xl shadow-2xl">
+          <motion.aside variants={STAGGER} initial="initial" animate="animate" className="h-fit rounded-[32px] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] p-8 backdrop-blur-2xl shadow-2xl">
             <div className="space-y-6">
-               <h2 className="text-lg font-black text-white flex items-center gap-2 mb-8">
-                  <Sparkles size={18} className="text-[#A78BFA]" /> Configuration
+               <h2 className="text-lg font-black text-[var(--palette-white)] flex items-center gap-2 mb-8">
+                  <Sparkles size={18} className="text-[var(--brand-400)]" /> Configuration
                </h2>
 
                <div>
-                 <label className="block text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-3">Your Goal</label>
-                 <textarea value={goal} onChange={(e) => setGoal(e.target.value)} rows={3} className="w-full rounded-2xl bg-white/[0.02] border border-white/5 p-4 text-sm text-white focus:border-[#A78BFA] outline-none transition-all resize-none" placeholder="e.g. Master React in 30 days" />
+                 <label className="block text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)] mb-3">Your Goal</label>
+                 <textarea value={goal} onChange={(e) => setGoal(e.target.value)} rows={3} className="w-full rounded-2xl bg-[var(--palette-white)]/[0.02] border border-[var(--palette-white)]/5 p-4 text-sm text-[var(--palette-white)] focus:border-[var(--brand-400)] outline-none transition-all resize-none" placeholder="e.g. Master React in 30 days" />
                </div>
 
                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-3">Daily Hours</label>
-                    <input type="number" min={0.5} max={12} step={0.25} value={dailyHours} onChange={(e) => setDailyHours(Number(e.target.value))} className="w-full rounded-2xl bg-white/[0.02] border border-white/5 p-4 text-sm text-white focus:border-[#A78BFA] outline-none transition-all" />
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)] mb-3">Daily Hours</label>
+                    <input type="number" min={0.5} max={12} step={0.25} value={dailyHours} onChange={(e) => setDailyHours(Number(e.target.value))} className="w-full rounded-2xl bg-[var(--palette-white)]/[0.02] border border-[var(--palette-white)]/5 p-4 text-sm text-[var(--palette-white)] focus:border-[var(--brand-400)] outline-none transition-all" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-3">Level</label>
-                    <select value={level} onChange={(e) => setLevel(e.target.value as typeof level)} className="w-full rounded-2xl bg-white/[0.02] border border-white/5 p-4 text-sm text-white focus:border-[#A78BFA] outline-none transition-all">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)] mb-3">Level</label>
+                    <select value={level} onChange={(e) => setLevel(e.target.value as typeof level)} className="w-full rounded-2xl bg-[var(--palette-white)]/[0.02] border border-[var(--palette-white)]/5 p-4 text-sm text-[var(--palette-white)] focus:border-[var(--brand-400)] outline-none transition-all">
                        <option value="beginner">Beginner</option>
                        <option value="intermediate">Intermediate</option>
                        <option value="advanced">Advanced</option>
@@ -178,26 +178,26 @@ export default function RoadmapPage() {
                </div>
 
                <div>
-                 <label className="block text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-3">Current Progress</label>
-                 <textarea value={currentProgress} onChange={(e) => setCurrentProgress(e.target.value)} rows={2} className="w-full rounded-2xl bg-white/[0.02] border border-white/5 p-4 text-sm text-white focus:border-[#A78BFA] outline-none transition-all resize-none" />
+                 <label className="block text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)] mb-3">Current Progress</label>
+                 <textarea value={currentProgress} onChange={(e) => setCurrentProgress(e.target.value)} rows={2} className="w-full rounded-2xl bg-[var(--palette-white)]/[0.02] border border-[var(--palette-white)]/5 p-4 text-sm text-[var(--palette-white)] focus:border-[var(--brand-400)] outline-none transition-all resize-none" />
                </div>
 
-               <button disabled={loading} onClick={() => void generate()} className="w-full h-14 rounded-2xl bg-white text-black font-black text-lg hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+               <button disabled={loading} onClick={() => void generate()} className="w-full h-14 rounded-2xl bg-[var(--palette-white)] text-[var(--palette-black)] font-black text-lg hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2">
                  {loading ? "Generating..." : <>Generate <ArrowRight size={18} /></>}
                </button>
-               {error && <p className="text-[10px] text-red-400 font-bold uppercase text-center">{error}</p>}
+               {error && <p className="text-[10px] text-[var(--palette-red-400)] font-bold uppercase text-center">{error}</p>}
 
                {authStatus === "authenticated" && savedRoadmaps.length > 0 && (
-                 <div className="pt-8 mt-8 border-t border-white/5">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-4">Saved Protocols</p>
+                 <div className="pt-8 mt-8 border-t border-[var(--palette-white)]/5">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)] mb-4">Saved Protocols</p>
                     <div className="space-y-2 max-h-48 overflow-y-auto pr-2 scrollbar-none">
                        {savedRoadmaps.map((r) => (
-                         <div key={r.id} className="group flex items-center gap-2 p-3 rounded-xl hover:bg-white/5 transition-all cursor-pointer" onClick={() => void loadRoadmap(r.id)}>
+                         <div key={r.id} className="group flex items-center gap-2 p-3 rounded-xl hover:bg-[var(--palette-white)]/5 transition-all cursor-pointer" onClick={() => void loadRoadmap(r.id)}>
                             <div className="flex-1 min-w-0">
-                               <p className="text-xs font-bold text-white truncate">{r.subject}</p>
-                               <p className="text-[9px] text-zinc-500 font-bold uppercase mt-1">{new Date(r.createdAt).toLocaleDateString()}</p>
+                               <p className="text-xs font-bold text-[var(--palette-white)] truncate">{r.subject}</p>
+                               <p className="text-[9px] text-[var(--palette-zinc-500)] font-bold uppercase mt-1">{new Date(r.createdAt).toLocaleDateString()}</p>
                             </div>
-                            <button onClick={(e) => { e.stopPropagation(); deleteRoadmap(r.id); }} className="opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-red-400 transition-all p-1">
+                            <button onClick={(e) => { e.stopPropagation(); deleteRoadmap(r.id); }} className="opacity-0 group-hover:opacity-100 text-[var(--palette-zinc-500)] hover:text-[var(--palette-red-400)] transition-all p-1">
                                <Trash2 size={12} />
                             </button>
                          </div>
@@ -212,9 +212,9 @@ export default function RoadmapPage() {
             <AnimatePresence mode="wait">
               {loading && (
                 <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-32 text-center">
-                   <div className="h-16 w-16 rounded-full border-2 border-white/5 border-t-[#A78BFA] animate-spin mb-8" />
-                   <h3 className="text-2xl font-black text-white mb-2">Assembling Protocol</h3>
-                   <p className="text-[#4B5563] uppercase tracking-widest text-[10px] font-bold">Synchronizing with high-performance datasets</p>
+                   <div className="h-16 w-16 rounded-full border-2 border-[var(--palette-white)]/5 border-t-[var(--brand-400)] animate-spin mb-8" />
+                   <h3 className="text-2xl font-black text-[var(--palette-white)] mb-2">Assembling Protocol</h3>
+                   <p className="text-[var(--foreground-subtle)] uppercase tracking-widest text-[10px] font-bold">Synchronizing with high-performance datasets</p>
                 </motion.div>
               )}
 
@@ -222,11 +222,11 @@ export default function RoadmapPage() {
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
                    <div className="flex items-center justify-between mb-8">
                       <div className="text-left">
-                         <p className="text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-1">Active Roadmap</p>
-                         <h2 className="text-2xl font-black text-white">{goal}</h2>
+                         <p className="text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Active Roadmap</p>
+                         <h2 className="text-2xl font-black text-[var(--palette-white)]">{goal}</h2>
                       </div>
                       {authStatus === "authenticated" && !saved && (
-                        <button onClick={() => void saveRoadmap()} className="flex items-center gap-2 rounded-xl border border-[#A78BFA]/30 bg-[#A78BFA]/10 px-4 py-2 text-xs font-black text-[#A78BFA] hover:bg-[#A78BFA]/20 transition-all">
+                        <button onClick={() => void saveRoadmap()} className="flex items-center gap-2 rounded-xl border border-[var(--brand-400)]/30 bg-[var(--brand-400)]/10 px-4 py-2 text-xs font-black text-[var(--brand-400)] hover:bg-[var(--brand-400)]/20 transition-all">
                            <BookmarkPlus size={14} /> Save Protocol
                         </button>
                       )}
@@ -234,40 +234,40 @@ export default function RoadmapPage() {
 
                    <div className="grid gap-4">
                       {roadmap.map((day) => (
-                        <motion.div key={day.day} className="rounded-3xl border border-white/5 bg-white/[0.01] overflow-hidden">
-                           <div className="p-6 flex items-center justify-between border-b border-white/5 bg-white/[0.01]">
+                        <motion.div key={day.day} className="rounded-3xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] overflow-hidden">
+                           <div className="p-6 flex items-center justify-between border-b border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01]">
                               <div className="flex items-center gap-4">
-                                 <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center text-xs font-black">D{day.day}</div>
-                                 <h3 className="font-black text-lg text-white">Daily Operations</h3>
+                                 <div className="h-10 w-10 rounded-xl bg-[var(--palette-white)]/5 flex items-center justify-center text-xs font-black">D{day.day}</div>
+                                 <h3 className="font-black text-lg text-[var(--palette-white)]">Daily Operations</h3>
                               </div>
                               <div className="flex items-center gap-6">
                                  <div className="flex items-center gap-2">
-                                    <Target size={14} className="text-[#A78BFA]" />
-                                    <span className="text-xs font-bold text-zinc-400">{day.focusSessions.length} Blocks</span>
+                                    <Target size={14} className="text-[var(--brand-400)]" />
+                                    <span className="text-xs font-bold text-[var(--palette-zinc-400)]">{day.focusSessions.length} Blocks</span>
                                  </div>
                                  <div className="flex items-center gap-2">
-                                    <Clock size={14} className="text-[#A78BFA]" />
-                                    <span className="text-xs font-bold text-zinc-400">{day.estimatedTime}m</span>
+                                    <Clock size={14} className="text-[var(--brand-400)]" />
+                                    <span className="text-xs font-bold text-[var(--palette-zinc-400)]">{day.estimatedTime}m</span>
                                  </div>
                               </div>
                            </div>
                            <div className="p-8 grid gap-8 md:grid-cols-2">
                               <div>
-                                 <p className="text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-4">Focus Protocol</p>
+                                 <p className="text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)] mb-4">Focus Protocol</p>
                                  <ul className="space-y-3">
                                     {day.focusSessions.map((s, i) => (
-                                      <li key={i} className="flex gap-3 text-sm text-zinc-200">
-                                         <span className="text-[#A78BFA] font-black">{i+1}.</span> {s}
+                                      <li key={i} className="flex gap-3 text-sm text-[var(--palette-zinc-200)]">
+                                         <span className="text-[var(--brand-400)] font-black">{i+1}.</span> {s}
                                       </li>
                                     ))}
                                  </ul>
                               </div>
                               <div>
-                                 <p className="text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-4">Tactical Tasks</p>
+                                 <p className="text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)] mb-4">Tactical Tasks</p>
                                  <ul className="space-y-3">
                                     {day.tasks.map((t, i) => (
-                                      <li key={i} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 text-xs text-zinc-400 font-bold">
-                                         <div className="h-2 w-2 rounded-full bg-[#A78BFA]" /> {t}
+                                      <li key={i} className="flex items-center gap-3 p-3 rounded-xl bg-[var(--palette-white)]/[0.02] border border-[var(--palette-white)]/5 text-xs text-[var(--palette-zinc-400)] font-bold">
+                                         <div className="h-2 w-2 rounded-full bg-[var(--brand-400)]" /> {t}
                                       </li>
                                     ))}
                                  </ul>

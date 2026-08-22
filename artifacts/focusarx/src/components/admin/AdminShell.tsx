@@ -1,38 +1,53 @@
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import {
-  LayoutDashboard, Users, BarChart2, Target, Heart,
-  Database, ShoppingBag, Star, Gift, Zap, MessageSquare,
-  Building2, Sparkles, Shield, ShieldCheck, ChevronRight, Lock, Settings,
-  Bell, Coins, Mail, Crown
+  BarChart2,
+  Bell,
+  Building2,
+  Coins,
+  Crown,
+  Database,
+  Gift,
+  Heart,
+  LayoutDashboard,
+  Lock,
+  Mail,
+  Menu,
+  Settings,
+  Shield,
+  ShieldCheck,
+  ShoppingBag,
+  Sparkles,
+  Star,
+  Target,
+  Users,
+  X,
+  Zap,
 } from "lucide-react";
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
 
 const ADMIN_SECTIONS = [
-  { id: "overview",     label: "Overview",        icon: LayoutDashboard, group: "core" },
-  { id: "analytics",   label: "Analytics",        icon: BarChart2,       group: "core" },
-  { id: "users",       label: "User Management",  icon: Users,           group: "core" },
-  { id: "moderation",  label: "Moderation",       icon: ShieldCheck,     group: "core" },
-  { id: "missions",    label: "Missions",         icon: Target,          group: "core" },
-  { id: "retention",   label: "Retention",        icon: Heart,           group: "core" },
-  { id: "marketplace", label: "Marketplace CMS",  icon: ShoppingBag,     group: "cms" },
-  { id: "pets",        label: "Pet CMS",          icon: Star,            group: "cms" },
-  { id: "lootboxes",   label: "Loot Box CMS",     icon: Gift,            group: "cms" },
-  { id: "battlepass",  label: "Battle Pass",      icon: Zap,             group: "cms" },
-  { id: "quests",      label: "Quest Builder",    icon: Sparkles,        group: "cms" },
-  { id: "city",        label: "Focus City CMS",   icon: Building2,       group: "cms" },
-  { id: "email",       label: "Email System",     icon: Mail,            group: "tools" },
-  { id: "premium",     label: "Premium Mgmt",     icon: Crown,           group: "tools" },
-  { id: "notify",      label: "Notification Blast",icon: Bell,           group: "tools" },
-  { id: "coins",       label: "Coin Grants",      icon: Coins,           group: "tools" },
-  { id: "sql",         label: "SQL Editor",       icon: Database,        group: "tools" },
-  { id: "site",        label: "Site Settings",    icon: Settings,        group: "tools" },
-];
-
-const GROUPS = [
-  { id: "core", label: "Platform" },
-  { id: "cms",  label: "Content Management" },
-  { id: "tools", label: "Admin Tools" },
+  { id: "overview", label: "Overview", icon: LayoutDashboard, group: "Platform" },
+  { id: "analytics", label: "Analytics", icon: BarChart2, group: "Platform" },
+  { id: "users", label: "Users", icon: Users, group: "Platform" },
+  { id: "moderation", label: "Moderation", icon: ShieldCheck, group: "Platform" },
+  { id: "missions", label: "Missions", icon: Target, group: "Platform" },
+  { id: "retention", label: "Retention", icon: Heart, group: "Platform" },
+  { id: "marketplace", label: "Marketplace", icon: ShoppingBag, group: "Content" },
+  { id: "pets", label: "Pets", icon: Star, group: "Content" },
+  { id: "lootboxes", label: "Loot boxes", icon: Gift, group: "Content" },
+  { id: "battlepass", label: "Battle pass", icon: Zap, group: "Content" },
+  { id: "quests", label: "Quests", icon: Sparkles, group: "Content" },
+  { id: "city", label: "Focus City", icon: Building2, group: "Content" },
+  { id: "email", label: "Email", icon: Mail, group: "Operations" },
+  { id: "premium", label: "Premium", icon: Crown, group: "Operations" },
+  { id: "notify", label: "Notifications", icon: Bell, group: "Operations" },
+  { id: "coins", label: "Coin grants", icon: Coins, group: "Operations" },
+  { id: "sql", label: "SQL editor", icon: Database, group: "Operations" },
+  { id: "site", label: "Site settings", icon: Settings, group: "Operations" },
 ];
 
 interface AdminShellProps {
@@ -41,8 +56,27 @@ interface AdminShellProps {
   onTabChange?: (tab: string) => void;
 }
 
+function AdminNavigation({ activeTab, onTabChange, onNavigate }: Pick<AdminShellProps, "activeTab" | "onTabChange"> & { onNavigate?: () => void }) {
+  return (
+    <nav className="flex-1 overflow-y-auto p-3" aria-label="Admin navigation">
+      {["Platform", "Content", "Operations"].map((group) => (
+        <section key={group} className="mb-6">
+          <h2 className="mb-2 px-3 text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-[var(--foreground-subtle)]">{group}</h2>
+          <div className="space-y-1">
+            {ADMIN_SECTIONS.filter((section) => section.group === group).map((section) => {
+              const Icon = section.icon;
+              return <button key={section.id} onClick={() => { onTabChange?.(section.id); onNavigate?.(); }} className={cn("nav-item w-full", activeTab === section.id && "nav-item-active")} aria-current={activeTab === section.id ? "page" : undefined}><Icon /><span>{section.label}</span></button>;
+            })}
+          </div>
+        </section>
+      ))}
+    </nav>
+  );
+}
+
 export function AdminShell({ children, activeTab, onTabChange }: AdminShellProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const active = ADMIN_SECTIONS.find((section) => section.id === activeTab);
 
   const logout = async () => {
     await fetch("/api/admin/auth", { method: "DELETE", credentials: "include" });
@@ -50,96 +84,30 @@ export function AdminShell({ children, activeTab, onTabChange }: AdminShellProps
   };
 
   return (
-    <div className="min-h-[100dvh] bg-zinc-950 text-zinc-100 flex">
-      {/* Sidebar */}
-      <aside className={`${sidebarOpen ? "w-56" : "w-14"} shrink-0 flex flex-col border-r border-zinc-800/80 bg-zinc-950 transition-all duration-200 sticky top-0 h-[100dvh]`}>
-        {/* Header */}
-        <div className="flex items-center gap-2 px-3 py-4 border-b border-zinc-800/80">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-rose-500/20 border border-rose-500/30">
-            <Shield size={14} className="text-rose-400" />
-          </div>
-          {sidebarOpen && (
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-zinc-100 truncate">Admin Panel</p>
-              <p className="text-[9px] text-zinc-500 truncate">FocusArx Command</p>
-            </div>
-          )}
-          <button
-            onClick={() => setSidebarOpen(v => !v)}
-            className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition"
-          >
-            <ChevronRight size={12} className={`transition-transform ${sidebarOpen ? "rotate-180" : ""}`} />
-          </button>
-        </div>
-
-        {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-4">
-          {GROUPS.map(group => {
-            const items = ADMIN_SECTIONS.filter(s => s.group === group.id);
-            return (
-              <div key={group.id}>
-                {sidebarOpen && (
-                  <p className="px-2 mb-1 text-[9px] font-bold uppercase tracking-widest text-zinc-600">{group.label}</p>
-                )}
-                <div className="space-y-0.5">
-                  {items.map(item => {
-                    const Icon = item.icon;
-                    const isActive = activeTab === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => onTabChange?.(item.id)}
-                        title={!sidebarOpen ? item.label : undefined}
-                        className={`w-full flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-xs transition ${
-                          isActive
-                            ? "bg-rose-500/15 text-rose-400 border border-rose-500/20"
-                            : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60"
-                        }`}
-                      >
-                        <Icon size={13} className="shrink-0" />
-                        {sidebarOpen && <span className="truncate font-medium">{item.label}</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </nav>
-
-        {/* Footer */}
-        <div className="border-t border-zinc-800/80 px-2 py-3 space-y-1">
-          <Link href="/dashboard" className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-xs text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition">
-            <LayoutDashboard size={13} className="shrink-0" />
-            {sidebarOpen && <span>Back to App</span>}
-          </Link>
-          <button
-            onClick={() => void logout()}
-            className="w-full flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-xs text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition"
-          >
-            <Lock size={13} className="shrink-0" />
-            {sidebarOpen && <span>Lock Admin</span>}
-          </button>
-        </div>
+    <div className="admin-shell flex min-h-[100dvh] bg-[var(--background)] text-[var(--foreground)]">
+      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r border-[var(--border-subtle)] bg-[var(--surface)] lg:flex">
+        <div className="flex min-h-[4.5rem] items-center gap-3 border-b border-[var(--border-subtle)] px-5"><span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--danger-soft)] text-[var(--danger)]"><Shield /></span><div><p className="text-sm font-semibold">FocusArx Admin</p><p className="text-xs text-[var(--foreground-subtle)]">Command center</p></div></div>
+        <AdminNavigation activeTab={activeTab} onTabChange={onTabChange} />
+        <div className="space-y-1 border-t border-[var(--border-subtle)] p-3"><Button asChild variant="ghost" className="w-full justify-start"><Link href="/dashboard"><LayoutDashboard /> Back to app</Link></Button><Button variant="ghost" className="w-full justify-start text-[var(--danger)]" onClick={() => void logout()}><Lock /> Lock admin</Button></div>
       </aside>
 
-      {/* Main content */}
-      <div className="flex-1 min-w-0 flex flex-col">
-        <header className="sticky top-0 z-30 border-b border-zinc-800/80 bg-zinc-950/95 backdrop-blur-xl px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Shield size={16} className="text-rose-400" />
-            <h1 className="text-sm font-bold text-zinc-100">
-              FocusArx <span className="text-rose-400">Command Center</span>
-            </h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-emerald-500/15 border border-emerald-500/25 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
-              ● Admin
-            </span>
-          </div>
+      <div className="min-w-0 flex-1 lg:ml-64">
+        <header className="sticky top-0 z-[var(--z-sticky)] flex min-h-[4.5rem] items-center gap-3 border-b border-[var(--border-subtle)] bg-[var(--backdrop)] px-4 backdrop-blur-xl sm:px-6">
+          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Open admin navigation"><Menu /></Button>
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--danger-soft)] text-[var(--danger)]"><Shield size={17} /></span>
+          <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{active?.label ?? "Command center"}</p><p className="hidden text-xs text-[var(--foreground-subtle)] sm:block">Manage FocusArx operations and content</p></div>
+          <Badge variant="success">Admin active</Badge>
         </header>
-        <main className="flex-1 overflow-auto px-6 py-6">{children}</main>
+        <main className="min-w-0 overflow-x-hidden p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
+
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent side="left" className="flex w-[min(90vw,22rem)] flex-col p-0">
+          <SheetHeader className="border-b border-[var(--border-subtle)] p-5 text-left"><SheetTitle className="flex items-center gap-2"><Shield className="text-[var(--danger)]" /> FocusArx Admin</SheetTitle><SheetDescription>Command center navigation</SheetDescription></SheetHeader>
+          <AdminNavigation activeTab={activeTab} onTabChange={onTabChange} onNavigate={() => setMobileOpen(false)} />
+          <div className="border-t border-[var(--border-subtle)] p-3"><Button asChild variant="ghost" className="w-full justify-start"><Link href="/dashboard"><LayoutDashboard /> Back to app</Link></Button><Button variant="ghost" className="w-full justify-start text-[var(--danger)]" onClick={() => void logout()}><Lock /> Lock admin</Button></div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

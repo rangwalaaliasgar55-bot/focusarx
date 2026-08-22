@@ -15,12 +15,20 @@ interface TrackDef {
 }
 
 const TRACKS: TrackDef[] = [
-  { id: "whitenoise", name: "White Noise",    description: "Pure focus frequency",   icon: "〰️", color: "#94A3B8" },
-  { id: "binaural",   name: "Deep Focus",     description: "Binaural beats 40Hz",    icon: "🧠", color: "#A78BFA" },
-  { id: "rain",       name: "Rain & Thunder", description: "Calming rain ambience",   icon: "🌧️", color: "#60A5FA" },
-  { id: "lofi",       name: "Lo-Fi Static",   description: "Warm analog texture",    icon: "🎵", color: "#F59E0B" },
-  { id: "forest",     name: "Forest",         description: "Nature sounds & birds",   icon: "🌿", color: "#4ADE80" },
-  { id: "coffee",     name: "Coffee Shop",    description: "Ambient café noise",     icon: "☕", color: "#D97706" },
+  { id: "whitenoise", name: "White Noise",    description: "Pure focus frequency",   icon: "〰️", color: "var(--foreground-muted)" },
+  { id: "binaural",   name: "Deep Focus",     description: "Binaural beats 40Hz",    icon: "🧠", color: "var(--brand-400)" },
+  { id: "rain",       name: "Rain & Thunder", description: "Calming rain ambience",   icon: "🌧️", color: "var(--info)" },
+  { id: "lofi",       name: "Lo-Fi Static",   description: "Warm analog texture",    icon: "🎵", color: "var(--color-warning)" },
+  { id: "forest",     name: "Forest",         description: "Nature sounds & birds",   icon: "🌿", color: "var(--palette-4ade80)" },
+  { id: "coffee",     name: "Coffee Shop",    description: "Ambient café noise",     icon: "☕", color: "var(--palette-d97706)" },
+];
+
+const USER_AVATAR_COLORS = [
+  "var(--brand-600)",
+  "var(--info)",
+  "var(--success)",
+  "var(--warning)",
+  "var(--brand-pink)",
 ];
 
 class SoundEngine {
@@ -254,7 +262,7 @@ const ROOMS = [
     name: "Deep Work Dungeon",
     theme: "No distractions. Pure focus.",
     icon: "⚔️",
-    color: "#7C3AED",
+    color: "var(--brand-600)",
     occupancy: 23,
     track: "binaural" as AudioTrackId,
     users: ["Alex", "Maria", "Jin", "Sam", "Priya"],
@@ -264,7 +272,7 @@ const ROOMS = [
     name: "Chill Library",
     theme: "Quiet and calm. Steady progress.",
     icon: "📚",
-    color: "#06D6A0",
+    color: "var(--brand-teal)",
     occupancy: 41,
     track: "lofi" as AudioTrackId,
     users: ["Taylor", "Lena", "Omar", "Chloe"],
@@ -274,7 +282,7 @@ const ROOMS = [
     name: "Exam Grind",
     theme: "Crunch mode. High intensity.",
     icon: "📝",
-    color: "#F97316",
+    color: "var(--palette-f97316)",
     occupancy: 18,
     track: "whitenoise" as AudioTrackId,
     users: ["Ravi", "Emma", "Noah", "Zara", "Leo", "Mia"],
@@ -284,7 +292,7 @@ const ROOMS = [
     name: "Creative Flow",
     theme: "Ideas, music, and making.",
     icon: "🎨",
-    color: "#EC4899",
+    color: "var(--palette-ec4899)",
     occupancy: 12,
     track: "forest" as AudioTrackId,
     users: ["Felix", "Isla", "Kai"],
@@ -338,21 +346,21 @@ export default function ForgePage() {
   return (
     <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <div className="absolute right-0 bottom-1/4 h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle_at_center,rgba(236,72,153,0.06),transparent_65%)] blur-3xl" />
+        <div className="absolute right-0 bottom-1/4 h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle_at_center,var(--rgba-236-72-153-0_06),transparent_65%)] blur-3xl" />
       </div>
-      <main className="relative z-10 mx-auto max-w-4xl px-4 py-10">
+      <main className="relative z-[var(--z-content)] mx-auto max-w-4xl px-4 py-10">
         <PageTransition>
           <header className="mb-8">
-            <p className="text-xs font-medium uppercase tracking-[0.22em] text-[#4B5563]">Co-working</p>
-            <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold text-[#E2E8F0] sm:text-3xl">
-              <Users size={24} className="text-[#EC4899]" /> The Forge Room
+            <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--foreground-subtle)]">Co-working</p>
+            <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold text-[var(--foreground)] sm:text-3xl">
+              <Users size={24} className="text-[var(--palette-ec4899)]" /> The Forge Room
             </h1>
           </header>
 
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Study Rooms */}
             <section>
-              <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-[#94A3B8]">
+              <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-[var(--foreground-muted)]">
                 <Users size={14} /> Virtual Study Rooms
               </h2>
               <div className="space-y-3">
@@ -363,20 +371,20 @@ export default function ForgePage() {
                       key={room.id}
                       className={`rounded-2xl border p-4 backdrop-blur-xl transition-all ${
                         joined
-                          ? "border-[rgba(124,58,237,0.5)] bg-[rgba(124,58,237,0.12)] shadow-[0_0_20px_rgba(124,58,237,0.15)]"
-                          : "border-[var(--forge-border)] bg-[var(--card)] hover:border-[rgba(124,58,237,0.3)]"
+                          ? "border-[var(--rgba-124-58-237-0_5)] bg-[var(--rgba-124-58-237-0_12)] shadow-[0_0_20px_var(--rgba-124-58-237-0_15)]"
+                          : "border-[var(--forge-border)] bg-[var(--card)] hover:border-[var(--rgba-124-58-237-0_3)]"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3">
                           <span className="text-2xl">{room.icon}</span>
                           <div>
-                            <p className="text-sm font-semibold text-[#E2E8F0]">{room.name}</p>
-                            <p className="text-[11px] text-[#4B5563]">{room.theme}</p>
+                            <p className="text-sm font-semibold text-[var(--foreground)]">{room.name}</p>
+                            <p className="text-[11px] text-[var(--foreground-subtle)]">{room.theme}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1.5 rounded-full border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] px-2.5 py-1 text-[10px] text-[#94A3B8]">
-                          <span className="h-1.5 w-1.5 rounded-full bg-[#4ADE80] animate-pulse" />
+                        <div className="flex items-center gap-1.5 rounded-full border border-[var(--rgba-255-255-255-0_08)] bg-[var(--rgba-255-255-255-0_04)] px-2.5 py-1 text-[10px] text-[var(--foreground-muted)]">
+                          <span className="h-1.5 w-1.5 rounded-full bg-[var(--palette-4ade80)] animate-pulse" />
                           {room.occupancy}
                         </div>
                       </div>
@@ -386,15 +394,15 @@ export default function ForgePage() {
                         {room.users.map((u) => (
                           <div
                             key={u}
-                            className="flex h-6 w-6 items-center justify-center rounded-full text-[9px] font-bold text-white"
-                            style={{ background: `hsl(${u.charCodeAt(0) * 37 % 360},65%,55%)` }}
+                            className="flex h-6 w-6 items-center justify-center rounded-full text-[9px] font-bold text-[var(--palette-white)]"
+                            style={{ background: USER_AVATAR_COLORS[u.charCodeAt(0) % USER_AVATAR_COLORS.length] }}
                             title={u}
                           >
                             {u[0]}
                           </div>
                         ))}
                         {room.occupancy > room.users.length && (
-                          <div className="flex h-6 items-center rounded-full bg-[rgba(255,255,255,0.05)] px-1.5 text-[9px] text-[#4B5563]">
+                          <div className="flex h-6 items-center rounded-full bg-[var(--rgba-255-255-255-0_05)] px-1.5 text-[9px] text-[var(--foreground-subtle)]">
                             +{room.occupancy - room.users.length}
                           </div>
                         )}
@@ -404,20 +412,20 @@ export default function ForgePage() {
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
-                          className="mt-3 rounded-xl bg-[rgba(124,58,237,0.1)] p-3"
+                          className="mt-3 rounded-xl bg-[var(--rgba-124-58-237-0_1)] p-3"
                         >
                           <div className="flex items-center justify-between">
                             <div>
-                              <p className="text-[10px] text-[#A78BFA]">You are studying</p>
-                              <p className="text-lg font-mono font-bold text-[#E2E8F0]">{formatTime(presenceTimer)}</p>
+                              <p className="text-[10px] text-[var(--brand-400)]">You are studying</p>
+                              <p className="text-lg font-mono font-bold text-[var(--foreground)]">{formatTime(presenceTimer)}</p>
                             </div>
                             <div className="flex gap-1">
                               {SUBJECTS.slice(0, 3).map((s) => (
-                                <span key={s} className="rounded-full bg-[rgba(124,58,237,0.2)] px-2 py-0.5 text-[9px] text-[#A78BFA]">{s}</span>
+                                <span key={s} className="rounded-full bg-[var(--rgba-124-58-237-0_2)] px-2 py-0.5 text-[9px] text-[var(--brand-400)]">{s}</span>
                               ))}
                             </div>
                           </div>
-                          <p className="mt-1 text-[9px] text-[#4B5563]">👁 Focus mode: others can see you're here</p>
+                          <p className="mt-1 text-[9px] text-[var(--foreground-subtle)]">👁 Focus mode: others can see you're here</p>
                         </motion.div>
                       )}
 
@@ -437,8 +445,8 @@ export default function ForgePage() {
                           }}
                           className={`flex-1 rounded-xl py-1.5 text-xs font-semibold transition-all ${
                             joined
-                              ? "bg-[rgba(239,68,68,0.15)] text-[#F87171] hover:bg-[rgba(239,68,68,0.25)]"
-                              : "bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] text-white shadow-[0_0_10px_rgba(124,58,237,0.3)] hover:opacity-90"
+                              ? "bg-[var(--rgba-239-68-68-0_15)] text-[var(--palette-f87171)] hover:bg-[var(--rgba-239-68-68-0_25)]"
+                              : "bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] text-[var(--palette-white)] shadow-[0_0_10px_var(--rgba-124-58-237-0_3)] hover:opacity-90"
                           }`}
                         >
                           {joined ? "Leave Room" : "Join Room"}
@@ -452,7 +460,7 @@ export default function ForgePage() {
 
             {/* Soundscape */}
             <section>
-              <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-[#94A3B8]">
+              <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-[var(--foreground-muted)]">
                 <Headphones size={14} /> Soundscape Studio
               </h2>
               <div className="space-y-3">
@@ -464,13 +472,13 @@ export default function ForgePage() {
                       key={track.id}
                       className={`rounded-2xl border p-4 backdrop-blur-xl transition-all ${
                         isPlaying
-                          ? "border-[var(--forge-border-bright)] bg-[rgba(124,58,237,0.08)]"
+                          ? "border-[var(--forge-border-bright)] bg-[var(--rgba-124-58-237-0_08)]"
                           : "border-[var(--forge-border)] bg-[var(--card)]"
                       }`}
                     >
                       <div className="flex items-center gap-3">
                         {/* Animated waveform when playing */}
-                        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: `${track.color}18` }}>
+                        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: `color-mix(in srgb, ${track.color} 9%, transparent)` }}>
                           <span className="text-xl">{track.icon}</span>
                           {isPlaying && (
                             <div className="absolute inset-0 flex items-end justify-center gap-0.5 overflow-hidden rounded-xl pb-1.5">
@@ -480,22 +488,22 @@ export default function ForgePage() {
                                   className="w-0.5 rounded-full"
                                   style={{ background: track.color }}
                                   animate={{ height: [4, 10 + i * 2, 4] }}
-                                  transition={{ repeat: Infinity, duration: 0.6 + i * 0.1, delay: i * 0.1 }}
+                                  transition={{ repeat: Infinity, duration: 0.4 + i * 0.1, delay: i * 0.1 }}
                                 />
                               ))}
                             </div>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-[#E2E8F0]">{track.name}</p>
-                          <p className="text-[10px] text-[#4B5563]">{track.description}</p>
+                          <p className="text-xs font-semibold text-[var(--foreground)]">{track.name}</p>
+                          <p className="text-[10px] text-[var(--foreground-subtle)]">{track.description}</p>
                         </div>
                         <button
                           onClick={() => toggleTrack(track.id)}
                           className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-all ${
                             isPlaying
-                              ? "bg-[rgba(239,68,68,0.15)] text-[#F87171]"
-                              : "bg-[rgba(124,58,237,0.15)] text-[#A78BFA] hover:bg-[rgba(124,58,237,0.25)]"
+                              ? "bg-[var(--rgba-239-68-68-0_15)] text-[var(--palette-f87171)]"
+                              : "bg-[var(--rgba-124-58-237-0_15)] text-[var(--brand-400)] hover:bg-[var(--rgba-124-58-237-0_25)]"
                           }`}
                         >
                           {isPlaying ? <Square size={10} fill="currentColor" /> : <Play size={10} fill="currentColor" />}
@@ -509,7 +517,7 @@ export default function ForgePage() {
                           animate={{ opacity: 1, height: "auto" }}
                           className="mt-3 flex items-center gap-2"
                         >
-                          <VolumeX size={11} className="shrink-0 text-[#4B5563]" />
+                          <VolumeX size={11} className="shrink-0 text-[var(--foreground-subtle)]" />
                           <input
                             type="range"
                             min="0"
@@ -517,10 +525,10 @@ export default function ForgePage() {
                             step="0.01"
                             value={vol}
                             onChange={(e) => handleVolume(track.id, parseFloat(e.target.value))}
-                            className="h-1 flex-1 appearance-none rounded-full bg-[rgba(124,58,237,0.2)] outline-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#A78BFA] cursor-pointer"
+                            className="h-1 flex-1 appearance-none rounded-full bg-[var(--rgba-124-58-237-0_2)] outline-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[var(--brand-400)] cursor-pointer"
                             style={{ accentColor: track.color }}
                           />
-                          <Volume2 size={11} className="shrink-0 text-[#4B5563]" />
+                          <Volume2 size={11} className="shrink-0 text-[var(--foreground-subtle)]" />
                         </motion.div>
                       )}
                     </div>
@@ -529,7 +537,7 @@ export default function ForgePage() {
               </div>
 
               {playing.size >= 2 && (
-                <p className="mt-2 text-center text-[10px] text-[#A78BFA]">
+                <p className="mt-2 text-center text-[10px] text-[var(--brand-400)]">
                   🎛 Mix mode active — {playing.size} tracks playing
                 </p>
               )}

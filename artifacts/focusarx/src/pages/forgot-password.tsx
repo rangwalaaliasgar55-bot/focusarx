@@ -46,7 +46,7 @@ export default function ForgotPasswordPage() {
           className="space-y-4 text-center"
         >
           {/* Icon */}
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[var(--radius-xl)] bg-[rgba(124,58,237,0.12)] border border-[rgba(124,58,237,0.20)]">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[var(--radius-xl)] bg-[var(--rgba-124-58-237-0_12)] border border-[var(--rgba-124-58-237-0_20)]">
             <Mail className="size-6 text-[var(--brand-violet-light)]" />
           </div>
           <p className="text-sm text-[var(--foreground-muted)]">
@@ -57,7 +57,7 @@ export default function ForgotPasswordPage() {
           <p className="text-xs text-[var(--foreground-subtle)]">The link expires in 1 hour.</p>
 
           {devResetUrl && (
-            <div className="rounded-[var(--radius-md)] border border-[rgba(245,158,11,0.30)] bg-[rgba(245,158,11,0.08)] p-4 text-left">
+            <div className="rounded-[var(--radius-md)] border border-[var(--rgba-245-158-11-0_30)] bg-[var(--rgba-245-158-11-0_08)] p-4 text-left">
               <p className="text-xs font-semibold text-[var(--color-warning)] mb-1.5">Dev mode — email not configured</p>
               <p className="text-xs text-[var(--foreground-muted)] mb-2">No SMTP credentials set. Use this link directly:</p>
               <a href={devResetUrl} className="block break-all text-xs text-[var(--brand-violet-light)] hover:underline">
@@ -104,7 +104,7 @@ export default function ForgotPasswordPage() {
 
         {error && (
           <div
-            className="flex items-center gap-2.5 rounded-[var(--radius-md)] bg-[rgba(239,68,68,0.10)] border border-[rgba(239,68,68,0.22)] px-3 py-2.5"
+            className="flex items-center gap-2.5 rounded-[var(--radius-md)] bg-[var(--rgba-239-68-68-0_10)] border border-[var(--rgba-239-68-68-0_22)] px-3 py-2.5"
             role="alert"
           >
             <AlertCircle className="size-4 text-[var(--color-error)] shrink-0" />

@@ -25,7 +25,7 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
   const [mode, setMode] = useState<TimerMode>("focus");
   const [status, setStatus] = useState<TimerStatus>("idle");
   const [customConfigs, setCustomConfigs] = useState<Partial<TimerConfig>>({});
-  
+
   const getDuration = useCallback(
     (m: TimerMode) => {
       if (m === "focus") return customConfigs.focusDuration ?? config.focusDuration;

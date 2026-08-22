@@ -91,7 +91,7 @@ export default function SessionSummaryCard({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 px-4 pb-6 backdrop-blur-sm sm:items-center sm:pb-0"
+          className="fixed inset-0 z-[var(--z-modal)] flex items-end justify-center bg-[var(--palette-black)]/60 px-4 pb-6 backdrop-blur-sm sm:items-center sm:pb-0"
           onClick={onClose}
         >
           <motion.div
@@ -99,7 +99,7 @@ export default function SessionSummaryCard({
             animate={{ y: 0, scale: 1, opacity: 1 }}
             exit={{ y: 40, scale: 0.96, opacity: 0 }}
             transition={{ type: "spring", stiffness: 320, damping: 28 }}
-            className="w-full max-w-sm rounded-3xl border border-emerald-500/20 bg-[rgba(8,12,28,0.98)] p-6 shadow-2xl"
+            className="w-full max-w-sm rounded-3xl border border-[var(--palette-emerald-500)]/20 bg-[var(--rgba-8-12-28-0_98)] p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Celebration checkmark */}
@@ -110,7 +110,7 @@ export default function SessionSummaryCard({
                     initial={{ scale: 0, rotate: -20 }}
                     animate={{ scale: 1, rotate: 0 }}
                     transition={{ type: "spring", stiffness: 400, damping: 18 }}
-                    className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15 ring-2 ring-emerald-500/30"
+                    className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--palette-emerald-500)]/15 ring-2 ring-[var(--palette-emerald-500)]/30"
                   >
                     <span className="text-3xl">{completedEarly ? "⚡" : "✅"}</span>
                   </motion.div>
@@ -118,33 +118,33 @@ export default function SessionSummaryCard({
               </AnimatePresence>
             </div>
 
-            <p className="mb-1 text-center text-[10px] uppercase tracking-widest text-emerald-400/70">
+            <p className="mb-1 text-center text-[10px] uppercase tracking-widest text-[var(--palette-emerald-400)]/70">
               {completedEarly ? "Early Completion" : "Session Complete"}
             </p>
-            <h2 className="mb-1 text-center text-lg font-bold text-[#E2E8F0]">
+            <h2 className="mb-1 text-center text-lg font-bold text-[var(--foreground)]">
               {completedEarly ? "Progress saved! ⚡" : "Great work! 🎉"}
             </h2>
             {completedEarly && completionPercentage != null && (
-              <p className="mb-4 text-center text-xs text-[#4B5563]">
+              <p className="mb-4 text-center text-xs text-[var(--foreground-subtle)]">
                 Completed {Math.round(completionPercentage)}% of planned session
               </p>
             )}
 
             {/* Stats row */}
             <div className="mb-4 grid grid-cols-3 gap-2">
-              <div className="rounded-2xl border border-white/5 bg-white/3 p-3 text-center">
-                <p className="text-base font-bold text-emerald-400">{timeLabel}</p>
-                <p className="mt-0.5 text-[9px] text-[#4B5563]">Focused</p>
+              <div className="rounded-2xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/3 p-3 text-center">
+                <p className="text-base font-bold text-[var(--palette-emerald-400)]">{timeLabel}</p>
+                <p className="mt-0.5 text-[9px] text-[var(--foreground-subtle)]">Focused</p>
               </div>
-              <div className="rounded-2xl border border-white/5 bg-white/3 p-3 text-center">
-                <p className="text-base font-bold text-violet-400">{completedTaskCount}</p>
-                <p className="mt-0.5 text-[9px] text-[#4B5563]">Tasks done</p>
+              <div className="rounded-2xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/3 p-3 text-center">
+                <p className="text-base font-bold text-[var(--palette-violet-400)]">{completedTaskCount}</p>
+                <p className="mt-0.5 text-[9px] text-[var(--foreground-subtle)]">Tasks done</p>
               </div>
-              <div className="rounded-2xl border border-white/5 bg-white/3 p-3 text-center">
-                <p className="text-base font-bold text-sky-400">
+              <div className="rounded-2xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/3 p-3 text-center">
+                <p className="text-base font-bold text-[var(--palette-sky-400)]">
                   {focusScore != null ? `${focusScore}%` : "—"}
                 </p>
-                <p className="mt-0.5 text-[9px] text-[#4B5563]">Focus score</p>
+                <p className="mt-0.5 text-[9px] text-[var(--foreground-subtle)]">Focus score</p>
               </div>
             </div>
 
@@ -157,22 +157,22 @@ export default function SessionSummaryCard({
                 className="mb-4 flex gap-2"
               >
                 {earnedXp > 0 && (
-                  <div className="flex-1 rounded-xl border border-violet-500/20 bg-violet-500/10 px-3 py-2 text-center">
-                    <p className="text-sm font-bold text-violet-400">+{animatedXp}</p>
-                    <p className="text-[9px] text-violet-400/60">XP earned</p>
+                  <div className="flex-1 rounded-xl border border-[var(--palette-violet-500)]/20 bg-[var(--palette-violet-500)]/10 px-3 py-2 text-center">
+                    <p className="text-sm font-bold text-[var(--palette-violet-400)]">+{animatedXp}</p>
+                    <p className="text-[9px] text-[var(--palette-violet-400)]/60">XP earned</p>
                   </div>
                 )}
                 {earnedCoins > 0 && (
-                  <div className="flex-1 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-center">
-                    <p className="text-sm font-bold text-amber-400">+{animatedCoins}</p>
-                    <p className="text-[9px] text-amber-400/60">Coins earned</p>
+                  <div className="flex-1 rounded-xl border border-[var(--palette-amber-500)]/20 bg-[var(--palette-amber-500)]/10 px-3 py-2 text-center">
+                    <p className="text-sm font-bold text-[var(--palette-amber-400)]">+{animatedCoins}</p>
+                    <p className="text-[9px] text-[var(--palette-amber-400)]/60">Coins earned</p>
                   </div>
                 )}
               </motion.div>
             )}
 
             {/* Motivational quote */}
-            <p className="mb-5 rounded-xl border border-white/5 bg-white/3 px-4 py-3 text-center text-xs italic leading-relaxed text-[#94A3B8]">
+            <p className="mb-5 rounded-xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/3 px-4 py-3 text-center text-xs italic leading-relaxed text-[var(--foreground-muted)]">
               "{quote}"
             </p>
 
@@ -190,9 +190,9 @@ export default function SessionSummaryCard({
                   setTimeout(() => setCopied(false), 2000);
                 }
               }}
-              className="mb-3 w-full flex items-center justify-center gap-2 rounded-xl border border-white/8 bg-white/4 py-2 text-xs font-semibold text-[#64748B] transition-colors hover:border-white/12 hover:text-[#94A3B8]"
+              className="mb-3 w-full flex items-center justify-center gap-2 rounded-xl border border-[var(--palette-white)]/8 bg-[var(--palette-white)]/4 py-2 text-xs font-semibold text-[var(--muted-fg)] transition-colors hover:border-[var(--palette-white)]/12 hover:text-[var(--foreground-muted)]"
             >
-              {copied ? <Check size={12} className="text-emerald-400" /> : <Share2 size={12} />}
+              {copied ? <Check size={12} className="text-[var(--palette-emerald-400)]" /> : <Share2 size={12} />}
               {copied ? "Copied to clipboard!" : "Share session"}
             </button>
 
@@ -200,13 +200,13 @@ export default function SessionSummaryCard({
             <div className="flex gap-3">
               <button
                 onClick={onStartBreak}
-                className="flex-1 rounded-xl border border-emerald-500/30 bg-emerald-500/10 py-2.5 text-sm font-semibold text-emerald-400 transition-colors hover:bg-emerald-500/20"
+                className="flex-1 rounded-xl border border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/10 py-2.5 text-sm font-semibold text-[var(--palette-emerald-400)] transition-colors hover:bg-[var(--palette-emerald-500)]/20"
               >
                 {completedEarly ? "Take a break" : "Start break"}
               </button>
               <button
                 onClick={onKeepGoing}
-                className="flex-1 rounded-xl border border-violet-500/30 bg-violet-500/10 py-2.5 text-sm font-semibold text-violet-400 transition-colors hover:bg-violet-500/20"
+                className="flex-1 rounded-xl border border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/10 py-2.5 text-sm font-semibold text-[var(--palette-violet-400)] transition-colors hover:bg-[var(--palette-violet-500)]/20"
               >
                 {completedEarly ? "New session" : "Keep going"}
               </button>

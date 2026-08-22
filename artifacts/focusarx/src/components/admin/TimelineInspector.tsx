@@ -13,7 +13,7 @@ export function TimelineInspector({ timeline, durationSec }: Props) {
 
   if (points.length === 0) {
     return (
-      <p className="text-sm text-zinc-500">No timeline points recorded for this session.</p>
+      <p className="text-sm text-[var(--palette-zinc-500)]">No timeline points recorded for this session.</p>
     );
   }
 
@@ -21,12 +21,12 @@ export function TimelineInspector({ timeline, durationSec }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex h-8 overflow-hidden rounded-lg border border-zinc-800">
+      <div className="flex h-8 overflow-hidden rounded-lg border border-[var(--palette-zinc-800)]">
         {buildSegments(points, maxT).map((seg, i) => (
           <div
             key={`${seg.state}-${seg.start}-${i}`}
             title={`${seg.state} · ${seg.start}s–${seg.end}s`}
-            className={`h-full ${seg.state === "focus" ? "bg-emerald-500/80" : "bg-rose-500/70"}`}
+            className={`h-full ${seg.state === "focus" ? "bg-[var(--palette-emerald-500)]/80" : "bg-[var(--palette-rose-500)]/70"}`}
             style={{ width: `${((seg.end - seg.start) / maxT) * 100}%` }}
           />
         ))}
@@ -41,9 +41,9 @@ export function TimelineInspector({ timeline, durationSec }: Props) {
         <Stat label="Duration" value={`${durationSec}s`} />
       </div>
 
-      <div className="max-h-48 overflow-auto rounded-lg border border-zinc-800/80">
+      <div className="max-h-48 overflow-auto rounded-lg border border-[var(--palette-zinc-800)]/80">
         <table className="w-full text-left text-xs">
-          <thead className="sticky top-0 bg-zinc-900 text-zinc-500">
+          <thead className="sticky top-0 bg-[var(--palette-zinc-900)] text-[var(--palette-zinc-500)]">
             <tr>
               <th className="px-3 py-2 font-medium">t (sec)</th>
               <th className="px-3 py-2 font-medium">state</th>
@@ -51,14 +51,14 @@ export function TimelineInspector({ timeline, durationSec }: Props) {
           </thead>
           <tbody>
             {points.map((p, i) => (
-              <tr key={`${p.t}-${i}`} className="border-t border-zinc-800/60">
-                <td className="px-3 py-2 font-mono text-zinc-300">{p.t}</td>
+              <tr key={`${p.t}-${i}`} className="border-t border-[var(--palette-zinc-800)]/60">
+                <td className="px-3 py-2 font-mono text-[var(--palette-zinc-300)]">{p.t}</td>
                 <td className="px-3 py-2">
                   <span
                     className={
                       p.state === "focus"
-                        ? "text-emerald-400"
-                        : "text-rose-400"
+                        ? "text-[var(--palette-emerald-400)]"
+                        : "text-[var(--palette-rose-400)]"
                     }
                   >
                     {p.state}
@@ -75,9 +75,9 @@ export function TimelineInspector({ timeline, durationSec }: Props) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg bg-zinc-900/60 px-2 py-2 ring-1 ring-zinc-800/80">
-      <p className="text-zinc-500">{label}</p>
-      <p className="mt-0.5 font-semibold text-zinc-200">{value}</p>
+    <div className="rounded-lg bg-[var(--palette-zinc-900)]/60 px-2 py-2 ring-1 ring-[var(--palette-zinc-800)]/80">
+      <p className="text-[var(--palette-zinc-500)]">{label}</p>
+      <p className="mt-0.5 font-semibold text-[var(--palette-zinc-200)]">{value}</p>
     </div>
   );
 }

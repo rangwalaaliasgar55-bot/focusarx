@@ -20,10 +20,10 @@ interface MissionDef {
 }
 
 const DIFF_COLOR: Record<string, string> = {
-  easy:   "#22d387",
-  medium: "#f59e0b",
-  hard:   "#f87171",
-  epic:   "#a78bfa",
+  easy:   "var(--palette-22d387)",
+  medium: "var(--color-warning)",
+  hard:   "var(--palette-f87171)",
+  epic:   "var(--brand-400)",
 };
 
 async function fetchMissions(): Promise<{ daily: MissionDef[]; weekly: MissionDef[]; stats: any }> {
@@ -68,11 +68,11 @@ export default function MissionsWidget() {
 
   if (isLoading) {
     return (
-      <div className="rounded-2xl border border-[rgba(124,58,237,0.15)] bg-[rgba(13,15,26,0.6)] p-4 backdrop-blur-xl">
+      <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-13-15-26-0_6)] p-4 backdrop-blur-xl">
         <div className="animate-pulse space-y-2">
-          <div className="h-3 w-24 rounded bg-[rgba(255,255,255,0.025)]" />
-          <div className="h-8 w-full rounded bg-[rgba(255,255,255,0.025)]" />
-          <div className="h-8 w-full rounded bg-[rgba(255,255,255,0.025)]" />
+          <div className="h-3 w-24 rounded bg-[var(--rgba-255-255-255-0_025)]" />
+          <div className="h-8 w-full rounded bg-[var(--rgba-255-255-255-0_025)]" />
+          <div className="h-8 w-full rounded bg-[var(--rgba-255-255-255-0_025)]" />
         </div>
       </div>
     );
@@ -86,19 +86,19 @@ export default function MissionsWidget() {
   const displayMissions = claimable.length > 0 ? claimable.slice(0, 2) : active.slice(0, 3);
 
   return (
-    <div className="rounded-2xl border border-[rgba(124,58,237,0.15)] bg-[rgba(13,15,26,0.6)] p-4 backdrop-blur-xl">
+    <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-13-15-26-0_6)] p-4 backdrop-blur-xl">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Target size={14} className="text-[#A78BFA]" />
-          <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#A78BFA]">Daily Missions</span>
+          <Target size={14} className="text-[var(--brand-400)]" />
+          <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-400)]">Daily Missions</span>
           {claimable.length > 0 && (
-            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#22d387] text-[9px] font-bold text-black">
+            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--palette-22d387)] text-[9px] font-bold text-[var(--palette-black)]">
               {claimable.length}
             </span>
           )}
         </div>
-        <Link href="/missions" className="flex items-center gap-1 text-[10px] text-[#4B5563] hover:text-[#A78BFA] transition-colors">
+        <Link href="/missions" className="flex items-center gap-1 text-[10px] text-[var(--foreground-subtle)] hover:text-[var(--brand-400)] transition-colors">
           View all <ChevronRight size={10} />
         </Link>
       </div>
@@ -106,16 +106,16 @@ export default function MissionsWidget() {
       {/* Progress bar */}
       {stats && (
         <div className="mb-3">
-          <div className="flex justify-between text-[9px] text-[#4B5563] mb-1">
+          <div className="flex justify-between text-[9px] text-[var(--foreground-subtle)] mb-1">
             <span>{stats.dailyCompleted}/{stats.totalDaily} completed</span>
             <span>{Math.round((stats.dailyCompleted / Math.max(stats.totalDaily, 1)) * 100)}%</span>
           </div>
-          <div className="h-1 rounded-full bg-[rgba(255,255,255,0.025)] overflow-hidden">
+          <div className="h-1 rounded-full bg-[var(--rgba-255-255-255-0_025)] overflow-hidden">
             <motion.div
-              className="h-full rounded-full bg-gradient-to-r from-[#7c3aed] to-[#a78bfa]"
+              className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)]"
               initial={{ width: 0 }}
               animate={{ width: `${(stats.dailyCompleted / Math.max(stats.totalDaily, 1)) * 100}%` }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
             />
           </div>
         </div>
@@ -126,8 +126,8 @@ export default function MissionsWidget() {
         {displayMissions.length === 0 ? (
           <div className="text-center py-4">
             <p className="text-2xl mb-1">🎯</p>
-            <p className="text-xs text-[#4B5563]">All daily missions done!</p>
-            <Link href="/missions" className="text-[10px] text-[#A78BFA] hover:underline">Check weekly missions →</Link>
+            <p className="text-xs text-[var(--foreground-subtle)]">All daily missions done!</p>
+            <Link href="/missions" className="text-[10px] text-[var(--brand-400)] hover:underline">Check weekly missions →</Link>
           </div>
         ) : (
           displayMissions.map((m) => {
@@ -139,48 +139,48 @@ export default function MissionsWidget() {
                 key={m.key}
                 className={`rounded-xl p-3 border transition-colors ${
                   canClaim
-                    ? "border-[rgba(34,211,135,0.3)] bg-[rgba(34,211,135,0.05)]"
-                    : "border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)]"
+                    ? "border-[var(--rgba-34-211-135-0_3)] bg-[var(--rgba-34-211-135-0_05)]"
+                    : "border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)]"
                 }`}
               >
                 <div className="flex items-start gap-2.5">
                   <span className="text-lg leading-none mt-0.5 shrink-0">{m.icon}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-medium text-[#E2E8F0] truncate">{m.title}</span>
+                      <span className="text-xs font-medium text-[var(--foreground)] truncate">{m.title}</span>
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[9px] text-[#a78bfa] font-semibold">+{m.xpReward}xp</span>
+                        <span className="text-[9px] text-[var(--brand-400)] font-semibold">+{m.xpReward}xp</span>
                         {canClaim && (
                           <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => claimMut.mutate(m.key)}
                             disabled={claimMut.isPending}
-                            className="flex items-center gap-1 rounded-lg bg-[rgba(34,211,135,0.2)] border border-[rgba(34,211,135,0.4)] px-2 py-0.5 text-[9px] font-bold text-[#22d387] hover:bg-[rgba(34,211,135,0.3)] transition-colors disabled:opacity-50"
+                            className="flex items-center gap-1 rounded-lg bg-[var(--rgba-34-211-135-0_2)] border border-[var(--rgba-34-211-135-0_4)] px-2 py-0.5 text-[9px] font-bold text-[var(--palette-22d387)] hover:bg-[var(--rgba-34-211-135-0_3)] transition-colors disabled:opacity-50"
                           >
                             <Gift size={9} /> Claim
                           </motion.button>
                         )}
                       </div>
                     </div>
-                    <div className="mt-1.5 h-1 w-full rounded-full bg-[rgba(255,255,255,0.025)] overflow-hidden">
+                    <div className="mt-1.5 h-1 w-full rounded-full bg-[var(--rgba-255-255-255-0_025)] overflow-hidden">
                       <motion.div
                         className="h-full rounded-full"
                         style={{
                           background: canClaim
-                            ? "linear-gradient(90deg, #22d387, #16a34a)"
-                            : `linear-gradient(90deg, ${DIFF_COLOR[m.difficulty] ?? "#7c3aed"}, rgba(124,58,237,0.5))`,
+                            ? "linear-gradient(90deg, var(--palette-22d387), var(--palette-16a34a))"
+                            : `linear-gradient(90deg, ${DIFF_COLOR[m.difficulty] ?? "var(--brand-600)"}, var(--rgba-124-58-237-0_5))`,
                         }}
                         initial={{ width: 0 }}
                         animate={{ width: `${pct}%` }}
-                        transition={{ duration: 0.6, ease: "easeOut" }}
+                        transition={{ duration: 0.4, ease: "easeOut" }}
                       />
                     </div>
                     <div className="flex justify-between mt-0.5">
-                      <span className="text-[9px] text-[#4B5563]">
+                      <span className="text-[9px] text-[var(--foreground-subtle)]">
                         {m.completed ? "✓ Complete" : `${m.currentValue}/${m.targetValue}`}
                       </span>
-                      <span className="text-[9px]" style={{ color: DIFF_COLOR[m.difficulty] ?? "#7c3aed" }}>
+                      <span className="text-[9px]" style={{ color: DIFF_COLOR[m.difficulty] ?? "var(--brand-600)" }}>
                         {m.difficulty}
                       </span>
                     </div>
@@ -197,10 +197,10 @@ export default function MissionsWidget() {
         <motion.div
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mt-3 rounded-xl border border-[rgba(34,211,135,0.3)] bg-[rgba(34,211,135,0.06)] p-3 text-center"
+          className="mt-3 rounded-xl border border-[var(--rgba-34-211-135-0_3)] bg-[var(--rgba-34-211-135-0_06)] p-3 text-center"
         >
-          <p className="text-xs font-semibold text-[#22d387]">🏆 All daily missions complete!</p>
-          <Link href="/missions" className="mt-1 block text-[10px] text-[#4B5563] hover:text-[#22d387] transition-colors">
+          <p className="text-xs font-semibold text-[var(--palette-22d387)]">🏆 All daily missions complete!</p>
+          <Link href="/missions" className="mt-1 block text-[10px] text-[var(--foreground-subtle)] hover:text-[var(--palette-22d387)] transition-colors">
             Check weekly missions →
           </Link>
         </motion.div>

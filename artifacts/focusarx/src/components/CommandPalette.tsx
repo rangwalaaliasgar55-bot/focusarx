@@ -1,24 +1,50 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
-import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search, Timer, LayoutDashboard, TrendingUp, Trophy, Star, Users, Sparkles, X,
-  Wind, UserCircle, Shield, Dna, Sword, Radio, Calculator
+  BarChart3,
+  Brain,
+  CheckSquare2,
+  Flame,
+  Goal,
+  LayoutDashboard,
+  Library,
+  Plus,
+  Search,
+  Settings,
+  Sparkles,
+  Timer,
+  Trophy,
+  UserRound,
+  Users,
 } from "lucide-react";
+import { useTasks } from "@/hooks/useTasks";
+import { useToast } from "@/components/Toast";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+  CommandShortcut,
+} from "@/components/ui/command";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
-const COMMANDS = [
-  { id: "timer",        label: "Go to Timer",          icon: Timer,           href: "/",             shortcut: "1" },
-  { id: "dashboard",    label: "Go to Dashboard",      icon: LayoutDashboard, href: "/dashboard",    shortcut: "2" },
-  { id: "analytics",    label: "Go to Analytics",      icon: TrendingUp,      href: "/analytics",    shortcut: "3" },
-  { id: "leaderboard",  label: "Go to Leaderboard",    icon: Trophy,          href: "/leaderboard",  shortcut: "4" },
-  { id: "forge-room",    label: "Go to Forge Room",     icon: Users,           href: "/forge-room",   shortcut: "6" },
-  { id: "achievements", label: "Go to Achievements",   icon: Star,            href: "/achievements", shortcut: "5" },
-  { id: "roadmap",      label: "Go to AI Roadmap",     icon: Sparkles,        href: "/roadmap",      shortcut: "7" },
-  { id: "study-calculator", label: "Study Calculator", icon: Calculator,      href: "/study-calculator", shortcut: "" },
-  { id: "breathe",      label: "Go to Breathe",        icon: Wind,            href: "/breathe",      shortcut: "" },
-  { id: "profile",      label: "Go to Profile",        icon: UserCircle,      href: "/profile",      shortcut: "" },
-  { id: "focus-dna",    label: "Go to Focus DNA",      icon: Dna,             href: "/focus-dna",    shortcut: "0" },
-  { id: "consequences", label: "Go to Consequences",   icon: Sword,           href: "/consequences", shortcut: "" },
+const DESTINATIONS = [
+  { label: "Focus timer", href: "/", icon: Timer, keywords: "start session pomodoro" },
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, keywords: "home overview" },
+  { label: "Tasks", href: "/tasks", icon: CheckSquare2, keywords: "todo work" },
+  { label: "Goals", href: "/goals", icon: Goal, keywords: "targets planning" },
+  { label: "Flashcards", href: "/flashcards", icon: Library, keywords: "decks study leitner" },
+  { label: "AI coach", href: "/ai-insights", icon: Brain, keywords: "insights advice" },
+  { label: "Analytics", href: "/analytics", icon: BarChart3, keywords: "reports stats" },
+  { label: "Achievements", href: "/achievements", icon: Trophy, keywords: "badges rewards" },
+  { label: "Missions", href: "/missions", icon: Sparkles, keywords: "quests challenges" },
+  { label: "Community", href: "/social", icon: Users, keywords: "friends groups" },
+  { label: "Break Free", href: "/break-free", icon: Flame, keywords: "wellbeing mood pledge" },
+  { label: "Profile", href: "/profile", icon: UserRound, keywords: "account xp settings" },
+  { label: "Settings", href: "/profile", icon: Settings, keywords: "preferences theme account" },
 ];
 
 interface CommandPaletteProps {
@@ -27,105 +53,76 @@ interface CommandPaletteProps {
 }
 
 export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
-  const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState(0);
   const [, navigate] = useLocation();
+  const [query, setQuery] = useState("");
+  const [creating, setCreating] = useState(false);
+  const { addTask } = useTasks();
+  const { toast } = useToast();
 
-  const filtered = COMMANDS.filter((c) =>
-    c.label.toLowerCase().includes(query.toLowerCase())
-  );
-
-  const execute = useCallback((href: string) => {
-    navigate(href);
-    onClose();
+  const close = () => {
     setQuery("");
-    setSelected(0);
-  }, [navigate, onClose]);
+    onClose();
+  };
 
-  useEffect(() => {
-    if (!open) { setQuery(""); setSelected(0); }
-  }, [open]);
+  const go = (href: string) => {
+    navigate(href);
+    close();
+  };
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (!open) return;
-      if (e.key === "Escape") { onClose(); return; }
-      if (e.key === "ArrowDown") { e.preventDefault(); setSelected((s) => Math.min(s + 1, filtered.length - 1)); }
-      if (e.key === "ArrowUp") { e.preventDefault(); setSelected((s) => Math.max(s - 1, 0)); }
-      if (e.key === "Enter") { const cmd = filtered[selected]; if (cmd) execute(cmd.href); }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [open, filtered, selected, execute, onClose]);
+  const startFocus = () => {
+    navigate("/");
+    close();
+    window.setTimeout(() => window.dispatchEvent(new CustomEvent("focusarx:start-focus")), 120);
+  };
+
+  const createTask = async () => {
+    const title = query.trim();
+    if (!title || creating) return;
+    setCreating(true);
+    try {
+      await addTask(title);
+      toast(`Task added: ${title}`, "success");
+      close();
+    } catch {
+      toast("The task could not be added. Try again.", "danger");
+    } finally {
+      setCreating(false);
+    }
+  };
 
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: -16 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -16 }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className="fixed left-1/2 top-[20vh] z-[101] w-full max-w-lg -translate-x-1/2 overflow-hidden rounded-2xl border border-[rgba(124,58,237,0.3)] bg-[rgba(12,17,40,0.98)] shadow-[0_32px_64px_rgba(0,0,0,0.6),0_0_0_1px_rgba(124,58,237,0.1)] backdrop-blur-2xl"
-          >
-            {/* Search input */}
-            <div className="flex items-center gap-3 border-b border-[rgba(124,58,237,0.15)] px-4 py-3.5">
-              <Search size={16} className="shrink-0 text-[#4B5563]" />
-              <input
-                autoFocus
-                value={query}
-                onChange={(e) => { setQuery(e.target.value); setSelected(0); }}
-                placeholder="Search commands…"
-                className="flex-1 bg-transparent text-sm text-[#E2E8F0] placeholder-[#4B5563] outline-none"
-              />
-              <button onClick={onClose} className="p-1 text-[#4B5563] hover:text-[#94A3B8]">
-                <X size={14} />
-              </button>
-            </div>
-
-            {/* Results */}
-            <div className="max-h-72 overflow-y-auto py-2">
-              {filtered.length === 0 ? (
-                <p className="px-4 py-8 text-center text-sm text-[#4B5563]">No commands found.</p>
-              ) : (
-                filtered.map((cmd, idx) => {
-                  const Icon = cmd.icon;
-                  return (
-                    <button
-                      key={cmd.id}
-                      onClick={() => execute(cmd.href)}
-                      onMouseEnter={() => setSelected(idx)}
-                      className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors ${
-                        idx === selected
-                          ? "bg-[rgba(124,58,237,0.15)] text-[#E2E8F0]"
-                          : "text-[#94A3B8] hover:bg-[rgba(124,58,237,0.08)]"
-                      }`}
-                    >
-                      <Icon size={15} className={idx === selected ? "text-[#A78BFA]" : "text-[#4B5563]"} />
-                      <span className="flex-1">{cmd.label}</span>
-                      <kbd className="rounded bg-[rgba(255,255,255,0.05)] px-1.5 py-0.5 text-[10px] text-[#4B5563]">{cmd.shortcut}</kbd>
-                    </button>
-                  );
-                })
+    <Dialog open={open} onOpenChange={(next) => !next && close()}>
+      <DialogContent className="top-[16vh] w-[min(calc(100vw-2rem),38rem)] max-w-none translate-y-0 p-0" aria-describedby="command-description">
+        <DialogTitle className="sr-only">Search FocusArx</DialogTitle>
+        <DialogDescription id="command-description" className="sr-only">Navigate to a page, add a task, or start a focus session.</DialogDescription>
+        <Command shouldFilter>
+          <CommandInput value={query} onValueChange={setQuery} placeholder="Search pages or type a new task…" />
+          <CommandList className="max-h-[min(26rem,60vh)] p-2">
+            <CommandEmpty>No matching page. You can create this as a task below.</CommandEmpty>
+            <CommandGroup heading="Quick actions">
+              <CommandItem value="start focus session timer" onSelect={startFocus} className="min-h-11 rounded-[var(--radius-md)]">
+                <Timer /> <span>Start focus session</span><CommandShortcut>Enter</CommandShortcut>
+              </CommandItem>
+              {query.trim() && (
+                <CommandItem value={`create task ${query}`} onSelect={() => void createTask()} disabled={creating} className="min-h-11 rounded-[var(--radius-md)]">
+                  <Plus /> <span className="truncate">Create task “{query.trim()}”</span><CommandShortcut>↵</CommandShortcut>
+                </CommandItem>
               )}
-            </div>
-
-            {/* Footer */}
-            <div className="flex items-center justify-between border-t border-[rgba(124,58,237,0.1)] px-4 py-2 text-[10px] text-[#4B5563]">
-              <span>↑↓ Navigate &nbsp;↵ Select &nbsp;Esc Close</span>
-              <span>⌘K to open</span>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+            </CommandGroup>
+            <CommandSeparator className="my-2" />
+            <CommandGroup heading="Go to">
+              {DESTINATIONS.map(({ label, href, icon: Icon, keywords }) => (
+                <CommandItem key={`${label}-${href}`} value={`${label} ${keywords}`} onSelect={() => go(href)} className="min-h-11 rounded-[var(--radius-md)]">
+                  <Icon /> <span>{label}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+          <div className="flex items-center gap-4 border-t border-[var(--border-subtle)] px-4 py-2.5 text-[0.6875rem] text-[var(--foreground-subtle)]">
+            <span><kbd>↑↓</kbd> navigate</span><span><kbd>↵</kbd> select</span><span><kbd>esc</kbd> close</span>
+          </div>
+        </Command>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -12,9 +12,9 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-function StatCard({ label, value, icon: Icon, color = "#7C3AED" }: { label: string; value: string | number; icon: React.ComponentType<any>; color?: string }) {
+function StatCard({ label, value, icon: Icon, color = "var(--brand-600)" }: { label: string; value: string | number; icon: React.ComponentType<any>; color?: string }) {
   return (
-    <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-4">
+    <div className="rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-4">
       <div className="flex items-center gap-2 mb-2">
         <Icon size={14} style={{ color }} />
         <span className="text-[10px] text-[var(--foreground-subtle)] uppercase tracking-[0.14em] font-semibold">{label}</span>
@@ -32,8 +32,8 @@ function HabitBar({ label, value, max }: { label: string; value: number; max: nu
         <span className="text-[var(--foreground-subtle)]">{label}</span>
         <span className="text-[var(--foreground)] font-medium">{value}</span>
       </div>
-      <div className="h-1.5 rounded-full bg-[rgba(255,255,255,0.05)] overflow-hidden">
-        <div className="h-full rounded-full bg-gradient-to-r from-[#7C3AED] to-[#A78BFA] transition-all" style={{ width: `${pct}%` }} />
+      <div className="h-1.5 rounded-full bg-[var(--rgba-255-255-255-0_05)] overflow-hidden">
+        <div className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)] transition-all" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
@@ -43,7 +43,7 @@ function LoadingSpinner() {
   return (
     <div className="flex flex-col items-center justify-center py-16 gap-3">
       <div className="relative h-12 w-12">
-        <Sparkles size={32} className="text-[#7C3AED] animate-pulse" />
+        <Sparkles size={32} className="text-[var(--brand-600)] animate-pulse" />
       </div>
       <p className="text-[13px] text-[var(--foreground-subtle)]">Analyzing your productivity data…</p>
     </div>
@@ -85,30 +85,30 @@ export default function AiInsightsPage() {
     peak_time: Clock, focus_score: Brain, streak: Flame, task_rate: Target, level: TrendingUp,
   };
   const COLOR_MAP: Record<string, string> = {
-    peak_time: "#F59E0B", focus_score: "#7C3AED", streak: "#F97316", task_rate: "#22D387", level: "#60A5FA",
+    peak_time: "var(--color-warning)", focus_score: "var(--brand-600)", streak: "var(--palette-f97316)", task_rate: "var(--palette-22d387)", level: "var(--info)",
   };
 
   return (
     <div className="min-h-screen forge-bg-glow">
-      <div className="relative z-10 mx-auto max-w-3xl px-4 py-8">
+      <div className="relative z-[var(--z-content)] mx-auto max-w-3xl px-4 py-8">
         <PageTransition>
           <PageHeader
-            icon={<Brain size={18} className="text-[#A78BFA]" />}
+            icon={<Brain size={18} className="text-[var(--brand-400)]" />}
             badge="AI-Powered"
-            badgeColor="#7C3AED"
+            badgeColor="var(--brand-600)"
             title="AI Coach"
             subtitle="Deep insights powered by your real productivity data"
           />
 
           {/* Tab bar */}
-          <div className="flex gap-1 mb-6 rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-1">
+          <div className="flex gap-1 mb-6 rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-1">
             {TABS.map((t) => (
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
-                className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2.5 text-[12px] font-semibold transition-all duration-150 ${
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2.5 text-[12px] font-semibold transition-all duration-[var(--duration-fast)] ${
                   tab === t.id
-                    ? "bg-[#7C3AED] text-white shadow-[0_2px_8px_rgba(124,58,237,0.3)]"
+                    ? "bg-[var(--brand-600)] text-[var(--palette-white)] shadow-[0_2px_8px_var(--rgba-124-58-237-0_3)]"
                     : "text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]"
                 }`}
               >
@@ -126,20 +126,20 @@ export default function AiInsightsPage() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     {(insights.stats ? [
-                      { label: "Sessions (7d)", value: insights.stats.totalSessions,        icon: Target, color: "#7C3AED" },
-                      { label: "Focus Minutes", value: insights.stats.totalMinutes,          icon: Clock,  color: "#F59E0B" },
-                      { label: "Avg Score",     value: `${insights.stats.avgFocusScore}%`,  icon: Brain,  color: "#22D387" },
-                      { label: "Streak",        value: `${insights.stats.currentStreak}d`,  icon: Flame,  color: "#F97316" },
+                      { label: "Sessions (7d)", value: insights.stats.totalSessions,        icon: Target, color: "var(--brand-600)" },
+                      { label: "Focus Minutes", value: insights.stats.totalMinutes,          icon: Clock,  color: "var(--color-warning)" },
+                      { label: "Avg Score",     value: `${insights.stats.avgFocusScore}%`,  icon: Brain,  color: "var(--palette-22d387)" },
+                      { label: "Streak",        value: `${insights.stats.currentStreak}d`,  icon: Flame,  color: "var(--palette-f97316)" },
                     ] : []).map((s) => <StatCard key={s.label} {...s} />)}
                   </div>
                   <div className="space-y-3">
                     {(insights.insights ?? []).map((ins: any) => {
                       const Icon = ICON_MAP[ins.type] ?? Brain;
-                      const color = COLOR_MAP[ins.type] ?? "#7C3AED";
+                      const color = COLOR_MAP[ins.type] ?? "var(--brand-600)";
                       return (
-                        <div key={ins.type} className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-4">
+                        <div key={ins.type} className="rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-4">
                           <div className="flex items-start gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl" style={{ background: `${color}15`, border: `1px solid ${color}25` }}>
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl" style={{ background: `color-mix(in srgb, ${color} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${color} 15%, transparent)` }}>
                               {ins.icon}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -155,10 +155,10 @@ export default function AiInsightsPage() {
                     })}
                   </div>
                   {!insights?.insights?.length && !insightsLoading && (
-                    <div className="rounded-2xl border border-dashed border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)] p-10 text-center">
-                      <Zap size={28} className="mx-auto mb-3 text-[#2D3748]" />
+                    <div className="rounded-2xl border border-dashed border-[var(--rgba-255-255-255-0_08)] bg-[var(--rgba-255-255-255-0_02)] p-10 text-center">
+                      <Zap size={28} className="mx-auto mb-3 text-[var(--foreground-subtle)]" />
                       <p className="text-sm font-medium text-[var(--foreground-subtle)]">Complete more focus sessions to unlock insights</p>
-                      <p className="text-[12px] text-[#2D3748] mt-1">AI needs data to analyze. Start a session now.</p>
+                      <p className="text-[12px] text-[var(--foreground-subtle)] mt-1">AI needs data to analyze. Start a session now.</p>
                     </div>
                   )}
                 </div>
@@ -174,7 +174,7 @@ export default function AiInsightsPage() {
                 <button
                   onClick={() => { setReportKey((k) => k + 1); refetchReport(); }}
                   disabled={reportLoading}
-                  className="flex items-center gap-1.5 rounded-xl border border-[rgba(255,255,255,0.07)] bg-[rgba(255,255,255,0.025)] px-3 py-1.5 text-[12px] font-medium text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)] disabled:opacity-50 transition-colors"
+                  className="flex items-center gap-1.5 rounded-xl border border-[var(--rgba-255-255-255-0_07)] bg-[var(--rgba-255-255-255-0_025)] px-3 py-1.5 text-[12px] font-medium text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)] disabled:opacity-50 transition-colors"
                 >
                   <RefreshCw size={11} className={reportLoading ? "animate-spin" : ""} />
                   Regenerate
@@ -182,25 +182,25 @@ export default function AiInsightsPage() {
               </div>
               {reportLoading && <LoadingSpinner />}
               {report && !reportLoading && (
-                <div className="rounded-2xl border border-[rgba(124,58,237,0.2)] bg-gradient-to-br from-[rgba(124,58,237,0.06)] to-[rgba(79,70,229,0.03)] p-5">
+                <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_2)] bg-gradient-to-br from-[var(--rgba-124-58-237-0_06)] to-[var(--rgba-79-70-229-0_03)] p-5">
                   {report.aiPowered && (
-                    <div className="flex items-center gap-2 mb-4 text-[10px] text-[#7C3AED] font-bold uppercase tracking-[0.14em]">
+                    <div className="flex items-center gap-2 mb-4 text-[10px] text-[var(--brand-600)] font-bold uppercase tracking-[0.14em]">
                       <Sparkles size={11} /> AI-powered report
                     </div>
                   )}
                   <div className="prose prose-invert max-w-none text-[13px] text-[var(--foreground-muted)] leading-relaxed whitespace-pre-wrap">
                     {report.report}
                   </div>
-                  <p className="text-[10px] text-[#2D3748] mt-4">
+                  <p className="text-[10px] text-[var(--foreground-subtle)] mt-4">
                     Generated {report.generatedAt ? new Date(report.generatedAt).toLocaleString() : "now"}
                   </p>
                 </div>
               )}
               {!report && !reportLoading && (
-                <div className="rounded-2xl border border-dashed border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)] p-10 text-center">
-                  <Sparkles size={28} className="mx-auto mb-3 text-[#2D3748]" />
+                <div className="rounded-2xl border border-dashed border-[var(--rgba-255-255-255-0_08)] bg-[var(--rgba-255-255-255-0_02)] p-10 text-center">
+                  <Sparkles size={28} className="mx-auto mb-3 text-[var(--foreground-subtle)]" />
                   <p className="text-sm font-medium text-[var(--foreground-subtle)]">No report generated yet</p>
-                  <p className="text-[12px] text-[#2D3748] mt-1">Click Regenerate to create your first AI report</p>
+                  <p className="text-[12px] text-[var(--foreground-subtle)] mt-1">Click Regenerate to create your first AI report</p>
                 </div>
               )}
             </div>
@@ -213,12 +213,12 @@ export default function AiInsightsPage() {
               {habits && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
-                    <StatCard label="Active Days (30d)" value={habits.activeDaysLast30}          icon={TrendingUp} color="#22D387" />
-                    <StatCard label="Consistency"       value={`${habits.consistencyScore}%`}    icon={Target}     color="#7C3AED" />
-                    <StatCard label="Avg Daily Min"     value={habits.avgDailyMinutes}            icon={Clock}      color="#F59E0B" />
-                    <StatCard label="Longest Session"   value={`${habits.longestSessionMinutes}m`} icon={Brain}    color="#60A5FA" />
+                    <StatCard label="Active Days (30d)" value={habits.activeDaysLast30}          icon={TrendingUp} color="var(--palette-22d387)" />
+                    <StatCard label="Consistency"       value={`${habits.consistencyScore}%`}    icon={Target}     color="var(--brand-600)" />
+                    <StatCard label="Avg Daily Min"     value={habits.avgDailyMinutes}            icon={Clock}      color="var(--color-warning)" />
+                    <StatCard label="Longest Session"   value={`${habits.longestSessionMinutes}m`} icon={Brain}    color="var(--info)" />
                   </div>
-                  <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-4">
+                  <div className="rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-4">
                     <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--foreground-subtle)] mb-3">Day of Week Distribution</p>
                     <div className="space-y-2.5">
                       {Object.entries(habits.weekdayDistribution ?? {}).map(([day, count]) => (
@@ -226,15 +226,15 @@ export default function AiInsightsPage() {
                       ))}
                     </div>
                   </div>
-                  <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-4">
+                  <div className="rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-4">
                     <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--foreground-subtle)] mb-3">Monthly Goal</p>
                     <div className="flex justify-between text-[12px] mb-2">
                       <span className="text-[var(--foreground-subtle)]">20 active days target</span>
                       <span className="text-[var(--foreground)] font-bold">{habits.activeDaysLast30}/20</span>
                     </div>
-                    <div className="h-2.5 rounded-full bg-[rgba(255,255,255,0.05)] overflow-hidden">
+                    <div className="h-2.5 rounded-full bg-[var(--rgba-255-255-255-0_05)] overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-[#7C3AED] to-[#22D387] transition-all duration-700"
+                        className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-22d387)] transition-all duration-[var(--duration-slow)]"
                         style={{ width: `${Math.min(100, habits.monthlyGoalProgress ?? 0)}%` }}
                       />
                     </div>

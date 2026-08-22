@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { useMemo, useRef, useState, useEffect } from "react";
 import { formatTime } from "@/lib/timerUtils";
 import type { TimerMode } from "@/types/timer";
+import { colorWithAlpha, resolveColorToken } from "@/lib/color-tokens";
 
 interface TimerDisplayProps {
   secondsLeft: number;
@@ -29,14 +30,14 @@ const RING2_SIZE = SIZE + 68;
 const RING2_STROKE = 1;
 const RING2_RADIUS = (RING2_SIZE - RING2_STROKE * 2) / 2;
 
-const MODE_CONFIG: Record<TimerMode, { label: string; icon: string; color: string; glow: string; gradient: [string, string]; particleColor: string }> = {
-  focus:     { label: "FOCUS",      icon: "⚔️", color: "#f43f5e", glow: "rgba(244,63,94,0.6)",    gradient: ["#f43f5e", "#ec4899"], particleColor: "rgba(244,63,94," },
-  break:     { label: "BREAK",      icon: "☕", color: "#22c55e", glow: "rgba(34,197,94,0.6)",    gradient: ["#22c55e", "#10b981"], particleColor: "rgba(34,197,94," },
-  longBreak: { label: "LONG BREAK", icon: "🌙", color: "#8b5cf6", glow: "rgba(139,92,246,0.6)",   gradient: ["#8b5cf6", "#6366f1"], particleColor: "rgba(139,92,246," },
+const MODE_CONFIG: Record<TimerMode, { label: string; icon: string; color: string; glow: string; gradient: [string, string]; particleColor: `--${string}` }> = {
+  focus:     { label: "FOCUS",      icon: "⚔️", color: "var(--palette-f43f5e)", glow: "var(--rgba-244-63-94-0_6)",    gradient: ["var(--palette-f43f5e)", "var(--palette-ec4899)"], particleColor: "--palette-f43f5e" },
+  break:     { label: "BREAK",      icon: "☕", color: "var(--color-success)", glow: "var(--rgba-34-197-94-0_6)",    gradient: ["var(--color-success)", "var(--palette-10b981)"], particleColor: "--color-success" },
+  longBreak: { label: "LONG BREAK", icon: "🌙", color: "var(--brand-500)", glow: "var(--rgba-139-92-246-0_6)",   gradient: ["var(--brand-500)", "var(--palette-6366f1)"], particleColor: "--brand-500" },
 };
 
 /* ─── Energy Particle Canvas ────────────────────────────────────── */
-function EnergyParticles({ color, active, size }: { color: string; active: boolean; size: number }) {
+function EnergyParticles({ color, active, size }: { color: `--${string}`; active: boolean; size: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -51,6 +52,7 @@ function EnergyParticles({ color, active, size }: { color: string; active: boole
     if (!active) { ctx.clearRect(0, 0, size, size); return; }
 
     const cx = size / 2, cy = size / 2;
+    const resolvedColor = resolveColorToken(color);
     const particles: { angle: number; radius: number; speed: number; size: number; alpha: number; drift: number }[] = [];
     for (let i = 0; i < 22; i++) {
       particles.push({
@@ -75,7 +77,7 @@ function EnergyParticles({ color, active, size }: { color: string; active: boole
         const alpha = p.alpha * (0.5 + 0.5 * Math.sin(t * 2 + p.angle));
         ctx.beginPath();
         ctx.arc(px, py, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = `${color}${alpha.toFixed(2)})`;
+        ctx.fillStyle = colorWithAlpha(resolvedColor, alpha);
         ctx.fill();
         // Trail
         const trailLen = 4;
@@ -84,7 +86,7 @@ function EnergyParticles({ color, active, size }: { color: string; active: boole
           const tp = { x: cx + Math.cos(ta) * p.radius, y: cy + Math.sin(ta) * p.radius };
           ctx.beginPath();
           ctx.arc(tp.x, tp.y, p.size * (1 - j / trailLen) * 0.6, 0, Math.PI * 2);
-          ctx.fillStyle = `${color}${(alpha * (1 - j / trailLen) * 0.4).toFixed(2)})`;
+          ctx.fillStyle = colorWithAlpha(resolvedColor, alpha * (1 - j / trailLen) * 0.4);
           ctx.fill();
         }
       }
@@ -244,7 +246,7 @@ export function TimerDisplay({
             cy={SIZE / 2}
             r={RADIUS}
             fill="none"
-            stroke="rgba(255,255,255,0.04)"
+            stroke="var(--rgba-255-255-255-0_04)"
             strokeWidth={STROKE}
           />
           {/* Progress arc */}
@@ -271,7 +273,7 @@ export function TimerDisplay({
             style={{
               width: SIZE * 0.65,
               height: SIZE * 0.65,
-              background: `radial-gradient(circle, ${cfg.color}22 0%, ${cfg.color}0a 50%, transparent 70%)`,
+              background: `radial-gradient(circle, color-mix(in srgb, ${cfg.color} 13%, transparent) 0%, color-mix(in srgb, ${cfg.color} 4%, transparent) 50%, transparent 70%)`,
               filter: `blur(${SIZE * 0.08}px)`,
             }}
             animate={{
@@ -284,17 +286,17 @@ export function TimerDisplay({
 
         {/* Timer content */}
         <motion.div
-          className="relative flex flex-col items-center justify-center gap-1 z-10"
+          className="relative flex flex-col items-center justify-center gap-1 z-[var(--z-content)]"
           initial={false}
           animate={{ scale: pulsing ? 1.035 : 1 }}
-          transition={{ duration: 0.28, ease: "easeOut" }}
+          transition={{ duration: 0.25, ease: "easeOut" }}
         >
           {isRunning && (
             <motion.div
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               className="mb-1 flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm"
-              style={{ background: `${cfg.color}18`, color: cfg.color, border: `1px solid ${cfg.color}35` }}
+              style={{ background: `color-mix(in srgb, ${cfg.color} 9%, transparent)`, color: cfg.color, border: `1px solid color-mix(in srgb, ${cfg.color} 21%, transparent)` }}
             >
               <motion.span
                 className="h-1.5 w-1.5 rounded-full"
@@ -310,7 +312,7 @@ export function TimerDisplay({
             <motion.span
               className={`font-mono text-[3.6rem] font-black tabular-nums leading-none tracking-tight select-none ${onEditClick ? "cursor-pointer" : ""}`}
               style={{
-                backgroundImage: `linear-gradient(135deg, #ffffff, ${cfg.gradient[0]} 40%, ${cfg.gradient[1]})`,
+                backgroundImage: `linear-gradient(135deg, var(--neutral-0), ${cfg.gradient[0]} 40%, ${cfg.gradient[1]})`,
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",
@@ -326,7 +328,7 @@ export function TimerDisplay({
             {onEditClick && (
               <button
                 onClick={onEditClick}
-                className="absolute -right-7 opacity-0 group-hover:opacity-100 transition-opacity text-zinc-500 hover:text-zinc-300"
+                className="absolute -right-7 opacity-0 group-hover:opacity-100 transition-opacity text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)]"
                 title="Edit time"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -352,8 +354,8 @@ export function TimerDisplay({
               animate={{ opacity: 1, y: 0 }}
               className="mt-1.5 flex items-center gap-2.5 text-[10px] font-bold"
             >
-              <span className="text-violet-400">+{xpEarned} XP</span>
-              <span className="text-yellow-400">+{coinsEarned} 🪙</span>
+              <span className="text-[var(--palette-violet-400)]">+{xpEarned} XP</span>
+              <span className="text-[var(--palette-yellow-400)]">+{coinsEarned} 🪙</span>
             </motion.div>
           )}
         </motion.div>

@@ -23,6 +23,12 @@ export function applyTheme(theme: Theme) {
     root.classList.remove("light");
     root.classList.add("dark");
   }
+
+  const themeColor = getComputedStyle(root).getPropertyValue("--brand-600").trim();
+  if (themeColor) {
+    document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.setAttribute("content", themeColor);
+    document.querySelector<HTMLMetaElement>('meta[name="msapplication-TileColor"]')?.setAttribute("content", themeColor);
+  }
 }
 
 export function setTheme(theme: Theme) {
