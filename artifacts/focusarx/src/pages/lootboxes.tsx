@@ -13,11 +13,11 @@ function authHeaders() {
 }
 
 const RARITY_STYLES: Record<string, { border: string; bg: string; glow: string; label: string; color: string }> = {
-  common:    { border: "rgba(148,163,184,0.2)", bg: "rgba(148,163,184,0.05)", glow: "0 0 0 transparent",              label: "Common",    color: "#94A3B8" },
-  uncommon:  { border: "rgba(16,185,129,0.25)",  bg: "rgba(16,185,129,0.06)",  glow: "0 0 12px rgba(16,185,129,0.12)",  label: "Uncommon",  color: "#10B981" },
-  rare:      { border: "rgba(59,130,246,0.3)",   bg: "rgba(59,130,246,0.06)",  glow: "0 0 16px rgba(59,130,246,0.15)",  label: "Rare",      color: "#3B82F6" },
-  epic:      { border: "rgba(139,92,246,0.35)",  bg: "rgba(139,92,246,0.08)",  glow: "0 0 20px rgba(139,92,246,0.2)",   label: "Epic",      color: "#8B5CF6" },
-  legendary: { border: "rgba(245,158,11,0.4)",   bg: "rgba(245,158,11,0.08)",  glow: "0 0 28px rgba(245,158,11,0.25)",  label: "Legendary", color: "#F59E0B" },
+  common:    { border: "var(--rgba-148-163-184-0_2)", bg: "var(--rgba-148-163-184-0_05)", glow: "0 0 0 transparent",              label: "Common",    color: "var(--foreground-muted)" },
+  uncommon:  { border: "var(--rgba-16-185-129-0_25)",  bg: "var(--rgba-16-185-129-0_06)",  glow: "0 0 12px var(--rgba-16-185-129-0_12)",  label: "Uncommon",  color: "var(--palette-10b981)" },
+  rare:      { border: "var(--rgba-59-130-246-0_3)",   bg: "var(--rgba-59-130-246-0_06)",  glow: "0 0 16px var(--rgba-59-130-246-0_15)",  label: "Rare",      color: "var(--color-info)" },
+  epic:      { border: "var(--rgba-139-92-246-0_35)",  bg: "var(--rgba-139-92-246-0_08)",  glow: "0 0 20px var(--rgba-139-92-246-0_2)",   label: "Epic",      color: "var(--brand-500)" },
+  legendary: { border: "var(--rgba-245-158-11-0_4)",   bg: "var(--rgba-245-158-11-0_08)",  glow: "0 0 28px var(--rgba-245-158-11-0_25)",  label: "Legendary", color: "var(--color-warning)" },
 };
 
 function BoxTypeCard({ boxType, myBoxes, wallet, onBuy, onOpen }: {
@@ -40,26 +40,26 @@ function BoxTypeCard({ boxType, myBoxes, wallet, onBuy, onOpen }: {
         >
           {boxType.icon}
         </motion.div>
-        <h3 className="text-sm font-bold text-[#E2E8F0]">{boxType.name}</h3>
+        <h3 className="text-sm font-bold text-[var(--foreground)]">{boxType.name}</h3>
         <span className="inline-block mt-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase" style={{ background: style.bg, color: style.color, border: `1px solid ${style.border}` }}>
           {style.label}
         </span>
       </div>
 
-      <p className="text-[10px] text-[#4B5563] text-center mb-4 leading-relaxed">{boxType.description}</p>
+      <p className="text-[10px] text-[var(--foreground-subtle)] text-center mb-4 leading-relaxed">{boxType.description}</p>
 
       {owned.length > 0 && (
-        <div className="mb-3 flex items-center justify-center gap-2 rounded-xl bg-[rgba(6,214,160,0.08)] border border-[rgba(6,214,160,0.2)] py-2">
-          <Package size={12} className="text-[#06D6A0]" />
-          <span className="text-xs font-semibold text-[#06D6A0]">You own {owned.length}</span>
+        <div className="mb-3 flex items-center justify-center gap-2 rounded-xl bg-[var(--rgba-6-214-160-0_08)] border border-[var(--rgba-6-214-160-0_2)] py-2">
+          <Package size={12} className="text-[var(--brand-teal)]" />
+          <span className="text-xs font-semibold text-[var(--brand-teal)]">You own {owned.length}</span>
         </div>
       )}
 
       <div className="space-y-2">
         {owned.length > 0 && (
           <button onClick={() => onOpen(owned[0].id)}
-            className="w-full rounded-xl py-2 text-xs font-bold text-white transition-all"
-            style={{ background: `linear-gradient(135deg, ${style.color}aa, ${style.color}66)` }}>
+            className="w-full rounded-xl py-2 text-xs font-bold text-[var(--palette-white)] transition-all"
+            style={{ background: `linear-gradient(135deg, color-mix(in srgb, ${style.color} 67%, transparent), color-mix(in srgb, ${style.color} 40%, transparent))` }}>
             ✨ Open Now!
           </button>
         )}
@@ -72,7 +72,7 @@ function BoxTypeCard({ boxType, myBoxes, wallet, onBuy, onOpen }: {
           </button>
         )}
         {boxType.sessionsRequired > 0 && boxType.coinCost === 0 && (
-          <div className="flex items-center justify-center gap-1 text-[10px] text-[#4B5563]">
+          <div className="flex items-center justify-center gap-1 text-[10px] text-[var(--foreground-subtle)]">
             <Star size={10} /> Earn by completing {boxType.sessionsRequired} sessions
           </div>
         )}
@@ -87,27 +87,27 @@ function OpeningAnimation({ reward, onClose }: { reward: any; onClose: () => voi
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-[var(--palette-black)]/80 backdrop-blur-sm"
       onClick={onClose}
     >
       <motion.div
         variants={POP}
         initial="initial"
         animate="animate"
-        className="rounded-3xl border border-[rgba(124,58,237,0.4)] bg-[#0d0f1c] p-8 text-center max-w-sm w-full mx-4"
+        className="rounded-3xl border border-[var(--rgba-124-58-237-0_4)] bg-[var(--palette-0d0f1c)] p-8 text-center max-w-sm w-full mx-4"
         onClick={e => e.stopPropagation()}
       >
         <motion.div
           animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.4 }}
           className="text-7xl mb-4"
         >
           {reward.emoji ?? "🎁"}
         </motion.div>
-        <h2 className="text-xl font-bold text-[#E2E8F0] mb-2">You got a reward!</h2>
-        <p className="text-[#A78BFA] font-semibold mb-1">{reward.label}</p>
-        <p className="text-sm text-[#4B5563] mb-6">{reward.description}</p>
-        <button onClick={onClose} className="w-full rounded-xl bg-[rgba(124,58,237,0.2)] border border-[rgba(124,58,237,0.3)] py-2.5 text-sm font-semibold text-[#A78BFA]">
+        <h2 className="text-xl font-bold text-[var(--foreground)] mb-2">You got a reward!</h2>
+        <p className="text-[var(--brand-400)] font-semibold mb-1">{reward.label}</p>
+        <p className="text-sm text-[var(--foreground-subtle)] mb-6">{reward.description}</p>
+        <button onClick={onClose} className="w-full rounded-xl bg-[var(--rgba-124-58-237-0_2)] border border-[var(--rgba-124-58-237-0_3)] py-2.5 text-sm font-semibold text-[var(--brand-400)]">
           Claim
         </button>
       </motion.div>
@@ -184,7 +184,7 @@ export default function LootBoxesPage() {
 
   if (loading) return (
     <div className="flex min-h-screen items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-[#7C3AED]" />
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--palette-zinc-700)] border-t-[var(--brand-600)]" />
     </div>
   );
 
@@ -193,11 +193,11 @@ export default function LootBoxesPage() {
       <motion.div variants={PAGE} initial="initial" animate="animate" className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-[#E2E8F0] mb-2">Loot Boxes <span className="text-[#F59E0B]">📦</span></h1>
-          <p className="text-sm text-[#4B5563]">Earn boxes from sessions, open them for exciting rewards</p>
+          <h1 className="text-3xl font-bold text-[var(--foreground)] mb-2">Loot Boxes <span className="text-[var(--color-warning)]">📦</span></h1>
+          <p className="text-sm text-[var(--foreground-subtle)]">Earn boxes from sessions, open them for exciting rewards</p>
           {totalOwned > 0 && (
             <motion.div variants={POP} initial="initial" animate="animate"
-              className="inline-flex items-center gap-2 mt-3 rounded-full border border-[rgba(6,214,160,0.3)] bg-[rgba(6,214,160,0.08)] px-4 py-1.5 text-sm text-[#06D6A0]">
+              className="inline-flex items-center gap-2 mt-3 rounded-full border border-[var(--rgba-6-214-160-0_3)] bg-[var(--rgba-6-214-160-0_08)] px-4 py-1.5 text-sm text-[var(--brand-teal)]">
               <Package size={14} /> {totalOwned} unopened box{totalOwned !== 1 ? "es" : ""}
             </motion.div>
           )}
@@ -205,9 +205,9 @@ export default function LootBoxesPage() {
 
         {wallet && (
           <div className="flex justify-center">
-            <div className="flex items-center gap-2 rounded-xl border border-[rgba(245,158,11,0.2)] bg-[rgba(245,158,11,0.07)] px-4 py-2">
+            <div className="flex items-center gap-2 rounded-xl border border-[var(--rgba-245-158-11-0_2)] bg-[var(--rgba-245-158-11-0_07)] px-4 py-2">
               <span className="text-lg">🪙</span>
-              <span className="text-sm font-bold text-[#F59E0B]">{wallet.coins.toLocaleString()} coins</span>
+              <span className="text-sm font-bold text-[var(--color-warning)]">{wallet.coins.toLocaleString()} coins</span>
             </div>
           </div>
         )}
@@ -221,8 +221,8 @@ export default function LootBoxesPage() {
 
         {boxTypes.length === 0 && (
           <div className="py-16 text-center">
-            <Gift size={40} className="mx-auto mb-3 text-[#2D3748]" />
-            <p className="text-sm text-[#4B5563]">Loot boxes coming soon!</p>
+            <Gift size={40} className="mx-auto mb-3 text-[var(--foreground-subtle)]" />
+            <p className="text-sm text-[var(--foreground-subtle)]">Loot boxes coming soon!</p>
           </div>
         )}
 
@@ -235,7 +235,7 @@ export default function LootBoxesPage() {
         <AnimatePresence>
           {toast && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-              className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 rounded-2xl border border-[rgba(124,58,237,0.3)] bg-[#0d0f1c] px-5 py-3 text-sm font-semibold text-[#A78BFA] shadow-lg">
+              className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[var(--z-modal)] rounded-2xl border border-[var(--rgba-124-58-237-0_3)] bg-[var(--palette-0d0f1c)] px-5 py-3 text-sm font-semibold text-[var(--brand-400)] shadow-lg">
               {toast}
             </motion.div>
           )}

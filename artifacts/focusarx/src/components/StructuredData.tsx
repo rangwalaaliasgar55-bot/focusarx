@@ -11,7 +11,7 @@ export function StructuredData({ data }: StructuredDataProps) {
     script.text = JSON.stringify(data);
     script.setAttribute("data-sd", "dynamic");
     document.head.appendChild(script);
-    
+
     return () => {
       document.head.removeChild(script);
     };

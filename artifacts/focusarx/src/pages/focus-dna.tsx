@@ -39,32 +39,32 @@ function CardFace({
       className="absolute inset-0 rounded-3xl overflow-hidden"
       style={{ backfaceVisibility: "hidden" }}
       animate={{ rotateY: flipped ? 0 : 180 }}
-      transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
+      transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
     >
       {/* Gradient background */}
       <div
         className="absolute inset-0"
         style={{
-          background: `linear-gradient(135deg, ${dna.colorPrimary}22 0%, ${dna.colorSecondary}11 100%)`,
-          border: `1.5px solid ${dna.colorPrimary}44`,
+          background: `linear-gradient(135deg, color-mix(in srgb, ${dna.colorPrimary} 13%, transparent) 0%, color-mix(in srgb, ${dna.colorSecondary} 7%, transparent) 100%)`,
+          border: `1.5px solid color-mix(in srgb, ${dna.colorPrimary} 27%, transparent)`,
         }}
       />
       {/* Shimmer overlay */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.06),transparent_60%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--rgba-255-255-255-0_06),transparent_60%)]" />
 
-      <div className="relative z-10 flex flex-col h-full p-7">
+      <div className="relative z-[var(--z-content)] flex flex-col h-full p-7">
         <div className="flex items-start justify-between mb-6">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.25em]" style={{ color: dna.colorSecondary }}>
               Focus DNA
             </p>
-            <p className="text-[10px] text-[#4B5563] mt-0.5">
+            <p className="text-[10px] text-[var(--foreground-subtle)] mt-0.5">
               After {dna.sessionCountAtGeneration} sessions
             </p>
           </div>
           <div
             className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl"
-            style={{ background: `${dna.colorPrimary}22`, border: `1px solid ${dna.colorPrimary}44` }}
+            style={{ background: `color-mix(in srgb, ${dna.colorPrimary} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${dna.colorPrimary} 27%, transparent)` }}
           >
             {dna.icon}
           </div>
@@ -74,27 +74,27 @@ function CardFace({
           <h2 className="text-3xl font-black tracking-tight leading-tight" style={{ color: dna.colorSecondary }}>
             {dna.archetype}
           </h2>
-          <p className="mt-2 text-sm text-[#94A3B8] leading-relaxed">{dna.description}</p>
+          <p className="mt-2 text-sm text-[var(--foreground-muted)] leading-relaxed">{dna.description}</p>
         </div>
 
         <div className="mt-auto grid grid-cols-2 gap-3">
-          <div className="rounded-xl p-3" style={{ background: `${dna.colorPrimary}12`, border: `1px solid ${dna.colorPrimary}22` }}>
+          <div className="rounded-xl p-3" style={{ background: `color-mix(in srgb, ${dna.colorPrimary} 7%, transparent)`, border: `1px solid color-mix(in srgb, ${dna.colorPrimary} 13%, transparent)` }}>
             <div className="flex items-center gap-1.5 mb-1">
               <Clock size={11} style={{ color: dna.colorSecondary }} />
-              <span className="text-[9px] uppercase tracking-wider text-[#4B5563]">Peak Hour</span>
+              <span className="text-[9px] uppercase tracking-wider text-[var(--foreground-subtle)]">Peak Hour</span>
             </div>
             <p className="text-base font-bold" style={{ color: dna.colorSecondary }}>{formatHour(dna.topFocusHour)}</p>
           </div>
-          <div className="rounded-xl p-3" style={{ background: `${dna.colorPrimary}12`, border: `1px solid ${dna.colorPrimary}22` }}>
+          <div className="rounded-xl p-3" style={{ background: `color-mix(in srgb, ${dna.colorPrimary} 7%, transparent)`, border: `1px solid color-mix(in srgb, ${dna.colorPrimary} 13%, transparent)` }}>
             <div className="flex items-center gap-1.5 mb-1">
               <Zap size={11} style={{ color: dna.colorSecondary }} />
-              <span className="text-[9px] uppercase tracking-wider text-[#4B5563]">Avg Session</span>
+              <span className="text-[9px] uppercase tracking-wider text-[var(--foreground-subtle)]">Avg Session</span>
             </div>
             <p className="text-base font-bold" style={{ color: dna.colorSecondary }}>{dna.avgSessionMin ?? "—"}m</p>
           </div>
         </div>
 
-        <p className="mt-4 text-[9px] text-[#4B5563] text-center">
+        <p className="mt-4 text-[9px] text-[var(--foreground-subtle)] text-center">
           Updated {new Date(dna.generatedAt).toLocaleDateString()}
         </p>
       </div>
@@ -160,38 +160,38 @@ export default function FocusDnaPage() {
 
   return (
     <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow">
-      <main className="relative z-10 mx-auto max-w-2xl px-4 py-10">
+      <main className="relative z-[var(--z-content)] mx-auto max-w-2xl px-4 py-10">
         <PageTransition>
           <header className="mb-8">
-            <p className="text-xs font-medium uppercase tracking-[0.22em] text-[#4B5563]">Identity</p>
-            <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold text-[#E2E8F0] sm:text-3xl">
-              <Dna size={22} className="text-[#A78BFA]" /> Focus DNA
+            <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--foreground-subtle)]">Identity</p>
+            <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold text-[var(--foreground)] sm:text-3xl">
+              <Dna size={22} className="text-[var(--brand-400)]" /> Focus DNA
             </h1>
           </header>
 
           {loading ? (
-            <div className="flex h-48 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[rgba(124,58,237,0.3)] border-t-[#7C3AED]" /></div>
+            <div className="flex h-48 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--rgba-124-58-237-0_3)] border-t-[var(--brand-600)]" /></div>
           ) : status === "authenticated" && dna ? (
             <div className="flex flex-col items-center gap-6">
               <div className="relative w-full max-w-sm" style={{ height: 400, perspective: 1200 }}>
                 <CardFace dna={dna} flipped={flipped} />
               </div>
               <div className="flex gap-3">
-                <button onClick={shareToX} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-bold text-white hover:bg-white/10">
+                <button onClick={shareToX} className="flex items-center gap-2 rounded-xl border border-[var(--palette-white)]/10 bg-[var(--palette-white)]/5 px-6 py-3 text-sm font-bold text-[var(--palette-white)] hover:bg-[var(--palette-white)]/10">
                   <Share2 size={16} /> Share Archetype
                 </button>
-                <button onClick={generate} disabled={generating} className="flex items-center gap-2 rounded-xl border border-[rgba(124,58,237,0.4)] bg-[rgba(124,58,237,0.08)] px-6 py-3 text-sm font-bold text-[#A78BFA] hover:bg-[rgba(124,58,237,0.15)] disabled:opacity-50">
+                <button onClick={generate} disabled={generating} className="flex items-center gap-2 rounded-xl border border-[var(--rgba-124-58-237-0_4)] bg-[var(--rgba-124-58-237-0_08)] px-6 py-3 text-sm font-bold text-[var(--brand-400)] hover:bg-[var(--rgba-124-58-237-0_15)] disabled:opacity-50">
                   <RefreshCw size={14} className={generating ? "animate-spin" : ""} />
                   {generating ? "Analyzing..." : "Re-analyze"}
                 </button>
               </div>
             </div>
           ) : (
-            <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/20 p-12 text-center">
-               <Dna size={40} className="mx-auto mb-4 text-[#4B5563]" />
-               <p className="text-[#94A3B8]">{sessionsNeeded > 0 ? `Complete ${sessionsNeeded} more sessions to unlock.` : "Your DNA is ready to be analyzed."}</p>
+            <div className="rounded-2xl border border-dashed border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/20 p-12 text-center">
+               <Dna size={40} className="mx-auto mb-4 text-[var(--foreground-subtle)]" />
+               <p className="text-[var(--foreground-muted)]">{sessionsNeeded > 0 ? `Complete ${sessionsNeeded} more sessions to unlock.` : "Your DNA is ready to be analyzed."}</p>
                {sessionsNeeded === 0 && (
-                 <button onClick={generate} disabled={generating} className="mt-6 rounded-xl bg-[#7C3AED] px-6 py-3 font-bold text-white">Generate DNA</button>
+                 <button onClick={generate} disabled={generating} className="mt-6 rounded-xl bg-[var(--brand-600)] px-6 py-3 font-bold text-[var(--palette-white)]">Generate DNA</button>
                )}
             </div>
           )}

@@ -32,7 +32,7 @@ export default function FeatureSpotlight() {
 
   return (
     <div className="w-full mt-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#4B5563] mb-3">Explore AI Features</p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--foreground-subtle)] mb-3">Explore AI Features</p>
       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
         {cards.map((card, i) => (
           <motion.div
@@ -40,16 +40,16 @@ export default function FeatureSpotlight() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="flex-shrink-0 w-52 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.025)] p-4 flex flex-col gap-3"
+            className="flex-shrink-0 w-52 rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-4 flex flex-col gap-3"
           >
             <span className="text-2xl">{card.icon}</span>
             <div className="flex-1">
-              <p className="text-xs font-bold text-[#E2E8F0] mb-1 leading-snug">{card.title}</p>
-              <p className="text-[11px] text-[#4B5563] leading-relaxed">{card.body}</p>
+              <p className="text-xs font-bold text-[var(--foreground)] mb-1 leading-snug">{card.title}</p>
+              <p className="text-[11px] text-[var(--foreground-subtle)] leading-relaxed">{card.body}</p>
             </div>
             <button
               onClick={card.action}
-              className="rounded-lg border border-[rgba(124,58,237,0.3)] bg-[rgba(124,58,237,0.1)] px-3 py-1.5 text-[11px] font-semibold text-[#A78BFA] hover:bg-[rgba(124,58,237,0.2)] transition-colors"
+              className="rounded-lg border border-[var(--rgba-124-58-237-0_3)] bg-[var(--rgba-124-58-237-0_1)] px-3 py-1.5 text-[11px] font-semibold text-[var(--brand-400)] hover:bg-[var(--rgba-124-58-237-0_2)] transition-colors"
             >{card.btn}</button>
           </motion.div>
         ))}

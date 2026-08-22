@@ -75,7 +75,7 @@ export default function StyleGuidePage() {
       {/* Header */}
       <motion.div variants={FADE_UP} className="space-y-2">
         <div className="flex items-center gap-3 mb-2">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[rgba(124,58,237,0.12)] border border-[rgba(124,58,237,0.22)] text-[var(--brand-violet-light)] text-xs font-semibold">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--rgba-124-58-237-0_12)] border border-[var(--rgba-124-58-237-0_22)] text-[var(--brand-violet-light)] text-xs font-semibold">
             <Sparkles className="size-3" />
             Phase 1 — Design System
           </span>
@@ -97,14 +97,14 @@ export default function StyleGuidePage() {
         <Section title="Color Tokens" description="Brand palette, surfaces, and semantic colors.">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: "--brand-violet",       bg: "#7C3AED", text: "white" },
-              { label: "--brand-violet-light", bg: "#A78BFA", text: "white" },
-              { label: "--brand-teal",         bg: "#06D6A0", text: "#09091A" },
-              { label: "--brand-gold",         bg: "#FFB800", text: "#09091A" },
-              { label: "--color-success",      bg: "#22C55E", text: "white" },
-              { label: "--color-warning",      bg: "#F59E0B", text: "white" },
-              { label: "--color-error",        bg: "#EF4444", text: "white" },
-              { label: "--color-info",         bg: "#3B82F6", text: "white" },
+              { label: "--brand-violet",       bg: "var(--brand-600)", text: "var(--palette-white)" },
+              { label: "--brand-violet-light", bg: "var(--brand-400)", text: "var(--palette-white)" },
+              { label: "--brand-teal",         bg: "var(--brand-teal)", text: "var(--palette-09091a)" },
+              { label: "--brand-gold",         bg: "var(--brand-gold)", text: "var(--palette-09091a)" },
+              { label: "--color-success",      bg: "var(--color-success)", text: "var(--palette-white)" },
+              { label: "--color-warning",      bg: "var(--color-warning)", text: "var(--palette-white)" },
+              { label: "--color-error",        bg: "var(--color-error)", text: "var(--palette-white)" },
+              { label: "--color-info",         bg: "var(--color-info)", text: "var(--palette-white)" },
             ].map(({ label, bg, text }) => (
               <div key={label} className="space-y-1.5">
                 <div
@@ -157,7 +157,7 @@ export default function StyleGuidePage() {
             ))}
           </div>
 
-          <div className="mt-6 p-4 rounded-[var(--radius-lg)] bg-[rgba(255,255,255,0.025)] border border-[var(--border)]">
+          <div className="mt-6 p-4 rounded-[var(--radius-lg)] bg-[var(--rgba-255-255-255-0_025)] border border-[var(--border)]">
             <p className="text-xs text-[var(--foreground-subtle)] mb-3 font-mono uppercase tracking-widest">Monospace (metrics / timer)</p>
             <div className="flex gap-8 flex-wrap">
               <span className="font-metric text-5xl font-bold text-[var(--foreground)]">24:59</span>
@@ -296,14 +296,14 @@ export default function StyleGuidePage() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-red-400 uppercase tracking-wider">Error state</label>
+              <label className="text-xs font-medium text-[var(--palette-red-400)] uppercase tracking-wider">Error state</label>
               <Input placeholder="Invalid input" error defaultValue="bad@email" />
-              <p className="text-xs text-red-400 flex items-center gap-1"><AlertCircle className="size-3" /> Please enter a valid email address.</p>
+              <p className="text-xs text-[var(--palette-red-400)] flex items-center gap-1"><AlertCircle className="size-3" /> Please enter a valid email address.</p>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-emerald-400 uppercase tracking-wider">Success state</label>
+              <label className="text-xs font-medium text-[var(--palette-emerald-400)] uppercase tracking-wider">Success state</label>
               <Input placeholder="Valid input" success defaultValue="ali@focusarx.com" />
-              <p className="text-xs text-emerald-400 flex items-center gap-1"><CheckCircle2 className="size-3" /> Looks good!</p>
+              <p className="text-xs text-[var(--palette-emerald-400)] flex items-center gap-1"><CheckCircle2 className="size-3" /> Looks good!</p>
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-[var(--foreground-subtle)] uppercase tracking-wider">Disabled</label>
@@ -400,7 +400,7 @@ export default function StyleGuidePage() {
                 <DialogBody>
                   <Card elevation="flat" className="p-4">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-[var(--radius-md)] bg-[rgba(124,58,237,0.12)]">
+                      <div className="p-2 rounded-[var(--radius-md)] bg-[var(--rgba-124-58-237-0_12)]">
                         <Zap className="size-4 text-[var(--brand-violet-light)]" />
                       </div>
                       <div>
@@ -442,7 +442,7 @@ export default function StyleGuidePage() {
                 key={name}
                 whileHover={{ y: -2, scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
-                className="cursor-pointer p-4 rounded-[var(--radius-lg)] bg-[rgba(124,58,237,0.06)] border border-[rgba(124,58,237,0.14)] hover:border-[rgba(124,58,237,0.30)] transition-colors"
+                className="cursor-pointer p-4 rounded-[var(--radius-lg)] bg-[var(--rgba-124-58-237-0_06)] border border-[var(--rgba-124-58-237-0_14)] hover:border-[var(--rgba-124-58-237-0_30)] transition-colors"
               >
                 <p className="text-sm font-mono font-semibold text-[var(--brand-violet-light)] mb-1">{name}</p>
                 <p className="text-xs text-[var(--foreground-muted)] leading-relaxed">{desc}</p>
@@ -465,7 +465,7 @@ export default function StyleGuidePage() {
             ].map(({ token, px }) => (
               <div key={token} className="text-center space-y-2">
                 <div
-                  className="w-16 h-16 bg-[rgba(124,58,237,0.20)] border border-[rgba(124,58,237,0.30)]"
+                  className="w-16 h-16 bg-[var(--rgba-124-58-237-0_20)] border border-[var(--rgba-124-58-237-0_30)]"
                   style={{ borderRadius: `var(--radius-${token})` }}
                 />
                 <p className="text-[10px] font-mono text-[var(--foreground-muted)]">--radius-{token}</p>

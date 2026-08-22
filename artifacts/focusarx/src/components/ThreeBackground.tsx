@@ -1,3 +1,4 @@
+import { resolveColorToken } from "@/lib/color-tokens";
 import { useFrame, useThree, Canvas } from "@react-three/fiber";
 import { useRef, useMemo, Suspense, useState, useEffect } from "react";
 import { motion } from "framer-motion";
@@ -17,13 +18,13 @@ function CssFallbackBackground() {
     <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 0 }} aria-hidden="true">
       <motion.div
         className="absolute -top-40 -left-40 h-[600px] w-[600px] rounded-full"
-        style={{ background: "radial-gradient(circle, rgba(124,58,237,0.15) 0%, transparent 70%)", filter: "blur(80px)" }}
+        style={{ background: "radial-gradient(circle, var(--rgba-124-58-237-0_15) 0%, transparent 70%)", filter: "blur(80px)" }}
         animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.7, 0.4] }}
         transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
         className="absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full"
-        style={{ background: "radial-gradient(circle, rgba(79,70,229,0.12) 0%, transparent 70%)", filter: "blur(90px)" }}
+        style={{ background: "radial-gradient(circle, var(--rgba-79-70-229-0_12) 0%, transparent 70%)", filter: "blur(90px)" }}
         animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
         transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 2 }}
       />
@@ -36,17 +37,17 @@ function Stars({ count = 1200 }) {
   const [positions, colors] = useMemo(() => {
     const positions = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
-    const colorOptions = [new THREE.Color("#7C3AED"), new THREE.Color("#A78BFA"), new THREE.Color("#ffffff"), new THREE.Color("#4F46E5")];
+    const colorOptions = [new THREE.Color(resolveColorToken("--brand-600")), new THREE.Color(resolveColorToken("--brand-400")), new THREE.Color(resolveColorToken("--neutral-0")), new THREE.Color(resolveColorToken("--palette-4f46e5"))];
 
     for (let i = 0; i < count; i++) {
       const r = 25 + Math.random() * 25;
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
-      
+
       positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
       positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
       positions[i * 3 + 2] = r * Math.cos(phi);
-      
+
       const c = colorOptions[Math.floor(Math.random() * colorOptions.length)]!;
       colors[i * 3] = c.r;
       colors[i * 3 + 1] = c.g;
@@ -138,11 +139,11 @@ function SceneContent({ isFocusing = false }: { isFocusing?: boolean }) {
   useFrame((state) => {
     const targetZ = isFocusing ? 12 : 15;
     const lerpFactor = isFocusing ? 0.02 : 0.05;
-    
+
     targetCameraPos.current.x = mouse.x * (isFocusing ? 0.5 : 2);
     targetCameraPos.current.y = mouse.y * (isFocusing ? 0.5 : 2);
     targetCameraPos.current.z = targetZ;
-    
+
     camera.position.lerp(targetCameraPos.current, lerpFactor);
     camera.lookAt(0, 0, 0);
   });
@@ -150,13 +151,13 @@ function SceneContent({ isFocusing = false }: { isFocusing?: boolean }) {
   return (
     <>
       <ambientLight intensity={isFocusing ? 0.2 : 0.4} />
-      <pointLight position={[10, 10, 10]} intensity={isFocusing ? 2 : 1.5} color="#7C3AED" />
-      <pointLight position={[-10, -10, -10]} intensity={1} color="#4F46E5" />
+      <pointLight position={[10, 10, 10]} intensity={isFocusing ? 2 : 1.5} color={resolveColorToken("--brand-600")} />
+      <pointLight position={[-10, -10, -10]} intensity={1} color={resolveColorToken("--palette-4f46e5")} />
       <Stars count={isFocusing ? 3000 : 2000} />
-      <NebulaCloud position={[-8, 4, -10]} color="#7C3AED" scale={isFocusing ? 7 : 6} />
-      <NebulaCloud position={[8, -4, -12]} color="#4F46E5" scale={isFocusing ? 9 : 8} />
-      <RingedPlanet position={[14, 5, -18]} color="#3B82F6" size={isFocusing ? 3.4 : 3} />
-      <RingedPlanet position={[-16, -6, -20]} color="#06D6A0" size={isFocusing ? 2.6 : 2.2} />
+      <NebulaCloud position={[-8, 4, -10]} color={resolveColorToken("--brand-600")} scale={isFocusing ? 7 : 6} />
+      <NebulaCloud position={[8, -4, -12]} color={resolveColorToken("--palette-4f46e5")} scale={isFocusing ? 9 : 8} />
+      <RingedPlanet position={[14, 5, -18]} color={resolveColorToken("--color-info")} size={isFocusing ? 3.4 : 3} />
+      <RingedPlanet position={[-16, -6, -20]} color={resolveColorToken("--brand-teal")} size={isFocusing ? 2.6 : 2.2} />
     </>
   );
 }
@@ -182,8 +183,8 @@ export default function ThreeBackground({ isFocusing }: { isFocusing?: boolean }
           <SceneContent isFocusing={isFocusing} />
         </Suspense>
       </Canvas>
-      <div className="absolute inset-0 bg-[#030308]/40 pointer-events-none transition-opacity duration-1000" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(3,3,8,0.4)_100%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[var(--background)]/40 pointer-events-none transition-opacity duration-[var(--duration-slow)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,var(--rgba-3-3-8-0_4)_100%)] pointer-events-none" />
     </div>
   );
 }

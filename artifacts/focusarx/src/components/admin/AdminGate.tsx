@@ -1,97 +1,45 @@
-import { motion } from "framer-motion";
-import { useLocation } from "wouter";
 import { useState } from "react";
+import { useLocation } from "wouter";
+import { AlertCircle, LockKeyhole, Shield } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
-type AdminGateProps = {
-  onUnlocked?: () => void;
-};
-
-export function AdminGate({ onUnlocked }: AdminGateProps) {
-  const [, setLocation] = useLocation();
+export function AdminGate({ onUnlocked }: { onUnlocked?: () => void }) {
+  const [, navigate] = useLocation();
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault(); setError(null); setLoading(true);
     try {
-      const res = await fetch("/api/admin/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ password }),
-      });
-
-      const data = (await res.json().catch(() => ({}))) as {
-        error?: string; hint?: string; ok?: boolean;
-      };
-
-      if (!res.ok) {
-        if (res.status === 503) {
-          setError("Admin panel needs ADMIN_PASSWORD set in your environment variables.");
-        } else if (res.status === 403 || res.status === 401) {
-          setError("Wrong password.");
-        } else {
-          setError(data.error ?? "Access denied");
-        }
+      const response = await fetch("/api/admin/auth", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ password }) });
+      const data = await response.json().catch(() => ({})) as { error?: string };
+      if (!response.ok) {
+        setError(response.status === 503 ? "Set ADMIN_PASSWORD in the environment before opening admin." : response.status === 401 || response.status === 403 ? "That password is not valid." : data.error ?? "Admin access was denied.");
         return;
       }
-
-      if (onUnlocked) {
-        onUnlocked();
-      } else {
-        setLocation("/admin");
-        window.location.reload();
-      }
-    } catch {
-      setError("Could not reach server — check your connection.");
-    } finally {
-      setLoading(false);
-    }
+      if (onUnlocked) onUnlocked();
+      else { navigate("/admin"); window.location.reload(); }
+    } catch { setError("FocusArx could not reach the admin service. Check the connection and try again."); }
+    finally { setLoading(false); }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex min-h-[100dvh] items-center justify-center px-4"
-    >
-      <form
-        onSubmit={submit}
-        className="w-full max-w-sm rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-8 shadow-2xl backdrop-blur-xl"
-      >
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">FocusArx</p>
-        <h1 className="mt-2 text-xl font-semibold text-zinc-100">Admin access</h1>
-        <p className="mt-2 text-sm text-zinc-500">Enter the admin password to open the control panel.</p>
-        <label className="mt-6 block text-xs font-medium text-zinc-400">
-          Password
-          <input
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-1.5 w-full rounded-xl border border-zinc-700/80 bg-zinc-950/60 px-3 py-2.5 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20"
-            placeholder="••••••••"
-            required
-          />
-        </label>
-        {error && <p className="mt-3 text-sm text-rose-400" role="alert">{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-6 w-full rounded-xl bg-rose-600 py-2.5 text-sm font-medium text-white transition hover:bg-rose-500 disabled:opacity-60"
-        >
-          {loading ? "Verifying…" : "Unlock admin"}
-        </button>
-        {process.env.NODE_ENV !== "production" && (
-          <p className="mt-4 text-center text-xs text-zinc-700">
-            Dev default: <code className="text-zinc-600">admin123</code> (set ADMIN_PASSWORD to change)
-          </p>
-        )}
-      </form>
-    </motion.div>
+    <main className="grid min-h-[100dvh] place-items-center bg-[var(--background)] px-4 py-12">
+      <Card elevation="elevated" className="w-full max-w-md">
+        <CardContent className="p-7 sm:p-8">
+          <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] bg-[var(--danger-soft)] text-[var(--danger)]"><Shield /></span>
+          <p className="page-eyebrow mt-6">Restricted area</p><h1 className="text-2xl font-semibold tracking-tight">Admin access</h1><p className="mt-2 text-sm leading-relaxed text-[var(--foreground-muted)]">Enter the admin password to open the FocusArx command center.</p>
+          <form onSubmit={submit} className="mt-6">
+            {error && <p className="mb-4 flex gap-2 rounded-lg bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]" role="alert"><AlertCircle className="mt-0.5 shrink-0" size={16} />{error}</p>}
+            <label htmlFor="admin-password" className="mb-2 block text-sm font-medium">Password</label>
+            <Input id="admin-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" leftSlot={<LockKeyhole />} error={!!error} autoFocus required />
+            <Button type="submit" className="mt-5 w-full" size="lg" loading={loading}>Unlock admin</Button>
+          </form>
+        </CardContent>
+      </Card>
+    </main>
   );
 }

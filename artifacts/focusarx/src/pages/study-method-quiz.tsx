@@ -39,20 +39,20 @@ const RESULTS = {
   pomodoro: {
     title: "The Classic Pomodoro",
     desc: "You thrive in high-intensity bursts. The 25/5 rhythm will prevent mental fatigue and keep your momentum high.",
-    icon: <Clock className="text-orange-400" size={40} />,
-    color: "text-orange-400",
+    icon: <Clock className="text-[var(--palette-orange-400)]" size={40} />,
+    color: "text-[var(--palette-orange-400)]",
   },
   flowtime: {
     title: "The Flowtime Method",
     desc: "You have a natural ability to enter deep states. Don't let a timer break your concentration—work until your focus naturally dips.",
-    icon: <Zap className="text-blue-400" size={40} />,
-    color: "text-blue-400",
+    icon: <Zap className="text-[var(--palette-blue-400)]" size={40} />,
+    color: "text-[var(--palette-blue-400)]",
   },
   deepwork: {
     title: "Monastic Deep Work",
     desc: "You are a marathoner. You need long, uninterrupted blocks (90-120 min) to produce your best work. Eliminate all noise.",
-    icon: <Brain className="text-purple-400" size={40} />,
-    color: "text-purple-400",
+    icon: <Brain className="text-[var(--palette-purple-400)]" size={40} />,
+    color: "text-[var(--palette-purple-400)]",
   },
 };
 
@@ -92,8 +92,8 @@ export default function StudyMethodQuiz() {
   };
 
   return (
-    <div className="min-h-screen bg-[#030308] text-[#E2E8F0]">
-      <PageSEO 
+    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
+      <PageSEO
         title="Study Method Quiz | Find Your Perfect Productivity System | FocusArx"
         description="Take our 60-second quiz to discover if you should use Pomodoro, Flowtime, or Deep Work blocks. Science-backed study method recommendation."
         canonical="/study-method-quiz"
@@ -106,29 +106,29 @@ export default function StudyMethodQuiz() {
           {!result ? (
             <motion.div key="quiz" variants={STAGGER} initial="initial" animate="animate" exit="exit" className="space-y-12">
               <header className="text-center">
-                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#4B5563] mb-4">Assessment Engine</p>
-                 <h1 className="text-4xl sm:text-6xl font-black tracking-tight">Which Method <br /><span className="text-[#A78BFA]">Fits You?</span></h1>
-                 <p className="mt-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center justify-center gap-2">
-                    <ShieldCheck size={12} className="text-emerald-500" /> Based on cognitive load theory
+                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--foreground-subtle)] mb-4">Assessment Engine</p>
+                 <h1 className="text-4xl sm:text-6xl font-black tracking-tight">Which Method <br /><span className="text-[var(--brand-400)]">Fits You?</span></h1>
+                 <p className="mt-4 text-[10px] font-bold text-[var(--palette-zinc-500)] uppercase tracking-widest flex items-center justify-center gap-2">
+                    <ShieldCheck size={12} className="text-[var(--palette-emerald-500)]" /> Based on cognitive load theory
                  </p>
                  <div className="mt-8 flex justify-center gap-2">
                     {QUESTIONS.map((_, i) => (
-                      <div key={i} className={`h-1 w-12 rounded-full transition-colors ${i === currentQuestion ? "bg-[#A78BFA]" : i < currentQuestion ? "bg-[#A78BFA]/40" : "bg-white/5"}`} />
+                      <div key={i} className={`h-1 w-12 rounded-full transition-colors ${i === currentQuestion ? "bg-[var(--brand-400)]" : i < currentQuestion ? "bg-[var(--brand-400)]/40" : "bg-[var(--palette-white)]/5"}`} />
                     ))}
                  </div>
               </header>
 
-              <motion.div variants={STAGGER_CHILD} className="rounded-3xl border border-white/5 bg-white/[0.02] p-8 md:p-12 backdrop-blur-xl">
+              <motion.div variants={STAGGER_CHILD} className="rounded-3xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] p-8 md:p-12 backdrop-blur-xl">
                  <h2 className="text-2xl font-bold mb-8 text-center">{QUESTIONS[currentQuestion].text}</h2>
                  <div className="space-y-4">
                     {QUESTIONS[currentQuestion].options.map((opt, i) => (
                       <button
                         key={i}
                         onClick={() => handleAnswer(opt.points)}
-                        className="w-full flex items-center justify-between group p-6 rounded-2xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.04] hover:border-[#A78BFA]/30 transition-all text-left"
+                        className="w-full flex items-center justify-between group p-6 rounded-2xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] hover:bg-[var(--palette-white)]/[0.04] hover:border-[var(--brand-400)]/30 transition-all text-left"
                       >
                          <span className="font-bold text-lg">{opt.label}</span>
-                         <ChevronRight className="text-[#4B5563] group-hover:text-[#A78BFA] group-hover:translate-x-1 transition-all" size={20} />
+                         <ChevronRight className="text-[var(--foreground-subtle)] group-hover:text-[var(--brand-400)] group-hover:translate-x-1 transition-all" size={20} />
                       </button>
                     ))}
                  </div>
@@ -136,32 +136,32 @@ export default function StudyMethodQuiz() {
             </motion.div>
           ) : (
             <motion.div key="result" variants={BLUR_IN} initial="initial" animate="animate" className="text-center py-12">
-               <div className="mx-auto mb-8 h-24 w-24 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center shadow-2xl">
+               <div className="mx-auto mb-8 h-24 w-24 rounded-3xl bg-[var(--palette-white)]/5 border border-[var(--palette-white)]/10 flex items-center justify-center shadow-2xl">
                   {RESULTS[result].icon}
                </div>
-               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#4B5563] mb-2">The Verdict</p>
+               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--foreground-subtle)] mb-2">The Verdict</p>
                <h2 className={`text-4xl sm:text-6xl font-black mb-6 ${RESULTS[result].color}`}>{RESULTS[result].title}</h2>
-               <p className="text-lg text-[#94A3B8] leading-relaxed max-w-xl mx-auto mb-12">
+               <p className="text-lg text-[var(--foreground-muted)] leading-relaxed max-w-xl mx-auto mb-12">
                   {RESULTS[result].desc}
                </p>
 
                <div className="grid gap-4 sm:grid-cols-2">
                   <Link href="/signup">
-                    <button className="w-full h-16 rounded-2xl bg-gradient-to-r from-purple-500 to-blue-500 font-black text-lg shadow-xl hover:scale-105 transition-all">
+                    <button className="w-full h-16 rounded-2xl bg-gradient-to-r from-[var(--palette-purple-500)] to-[var(--palette-blue-500)] font-black text-lg shadow-xl hover:scale-105 transition-all">
                        Start with {RESULTS[result].title.split(' ')[2] || 'Flow'}
                     </button>
                   </Link>
-                  <button onClick={restart} className="flex items-center justify-center gap-2 w-full h-16 rounded-2xl border border-white/10 bg-white/5 font-black text-lg hover:bg-white/10 transition-all">
+                  <button onClick={restart} className="flex items-center justify-center gap-2 w-full h-16 rounded-2xl border border-[var(--palette-white)]/10 bg-[var(--palette-white)]/5 font-black text-lg hover:bg-[var(--palette-white)]/10 transition-all">
                      <RefreshCw size={18} /> Retake Quiz
                   </button>
                </div>
 
-               <div className="mt-20 pt-12 border-t border-white/5">
-                  <p className="text-sm text-[#4B5563] mb-6">Learn more about other systems:</p>
+               <div className="mt-20 pt-12 border-t border-[var(--palette-white)]/5">
+                  <p className="text-sm text-[var(--foreground-subtle)] mb-6">Learn more about other systems:</p>
                   <div className="flex flex-wrap justify-center gap-4">
-                     <Link href="/pomodoro-guide" className="text-xs font-bold text-[#94A3B8] hover:text-white uppercase tracking-widest">Pomodoro</Link>
-                     <Link href="/science-of-deep-work" className="text-xs font-bold text-[#94A3B8] hover:text-white uppercase tracking-widest">Deep Work</Link>
-                     <Link href="/feynman-technique" className="text-xs font-bold text-[#94A3B8] hover:text-white uppercase tracking-widest">Feynman</Link>
+                     <Link href="/pomodoro-guide" className="text-xs font-bold text-[var(--foreground-muted)] hover:text-[var(--palette-white)] uppercase tracking-widest">Pomodoro</Link>
+                     <Link href="/science-of-deep-work" className="text-xs font-bold text-[var(--foreground-muted)] hover:text-[var(--palette-white)] uppercase tracking-widest">Deep Work</Link>
+                     <Link href="/feynman-technique" className="text-xs font-bold text-[var(--foreground-muted)] hover:text-[var(--palette-white)] uppercase tracking-widest">Feynman</Link>
                   </div>
                </div>
             </motion.div>

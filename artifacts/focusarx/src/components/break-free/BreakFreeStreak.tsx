@@ -71,7 +71,7 @@ export default function BreakFreeStreak() {
   if (!ready || isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[rgba(124,58,237,0.2)] border-t-[#7C3AED]" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--rgba-124-58-237-0_2)] border-t-[var(--brand-600)]" />
       </div>
     );
   }
@@ -79,10 +79,10 @@ export default function BreakFreeStreak() {
   if (isError) {
     return (
       <div className="flex flex-col items-center py-16 px-4 text-center gap-3">
-        <p className="text-sm text-[#A78BFA]">{breakFreeErrorMessage(error, "Could not load streak")}</p>
+        <p className="text-sm text-[var(--brand-400)]">{breakFreeErrorMessage(error, "Could not load streak")}</p>
         <button
           onClick={() => refetch()}
-          className="rounded-xl border border-[rgba(124,58,237,0.3)] px-4 py-2 text-xs font-semibold text-[#E2E8F0] hover:bg-[rgba(124,58,237,0.1)]"
+          className="rounded-xl border border-[var(--rgba-124-58-237-0_3)] px-4 py-2 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--rgba-124-58-237-0_1)]"
         >
           Retry
         </button>
@@ -103,15 +103,15 @@ export default function BreakFreeStreak() {
         <div
           className="text-[88px] font-black leading-none tabular-nums"
           style={{
-            background: "linear-gradient(135deg, #A78BFA 0%, #7C3AED 50%, #4F46E5 100%)",
+            background: "linear-gradient(135deg, var(--brand-400) 0%, var(--brand-600) 50%, var(--palette-4f46e5) 100%)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
-            filter: "drop-shadow(0 0 24px rgba(124,58,237,0.35))",
+            filter: "drop-shadow(0 0 24px var(--rgba-124-58-237-0_35))",
           }}
         >
           {days}
         </div>
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#7C3AED] mt-1">
+        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[var(--brand-600)] mt-1">
           {days === 1 ? "day free" : "days free"}
         </p>
       </motion.div>
@@ -125,10 +125,10 @@ export default function BreakFreeStreak() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.4 }}
-            className="flex items-center gap-2.5 rounded-2xl border border-[rgba(124,58,237,0.2)] bg-[rgba(124,58,237,0.1)] px-5 py-3 mb-8 shadow-[0_0_24px_rgba(124,58,237,0.15)]"
+            className="flex items-center gap-2.5 rounded-2xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-124-58-237-0_1)] px-5 py-3 mb-8 shadow-[0_0_24px_var(--rgba-124-58-237-0_15)]"
           >
             <span className="text-2xl">{milestone.icon}</span>
-            <p className="text-sm text-[#E2E8F0] font-medium">{milestone.label}</p>
+            <p className="text-sm text-[var(--foreground)] font-medium">{milestone.label}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -140,15 +140,15 @@ export default function BreakFreeStreak() {
           return (
             <div key={m.day} className="flex flex-col items-center gap-1">
               <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center text-lg border transition-all duration-500 ${
+                className={`w-9 h-9 rounded-full flex items-center justify-center text-lg border transition-all duration-[var(--duration-slow)] ${
                   reached
-                    ? "border-[rgba(124,58,237,0.4)] bg-[rgba(124,58,237,0.15)] shadow-[0_0_12px_rgba(124,58,237,0.3)]"
-                    : "border-[#1e2a2a] bg-[#0d1515] opacity-40"
+                    ? "border-[var(--rgba-124-58-237-0_4)] bg-[var(--rgba-124-58-237-0_15)] shadow-[0_0_12px_var(--rgba-124-58-237-0_3)]"
+                    : "border-[var(--palette-1e2a2a)] bg-[var(--palette-0d1515)] opacity-40"
                 }`}
               >
                 {m.icon}
               </div>
-              <span className={`text-[9px] font-mono ${reached ? "text-[#7C3AED]" : "text-[#2a3a3a]"}`}>
+              <span className={`text-[9px] font-mono ${reached ? "text-[var(--brand-600)]" : "text-[var(--palette-2a3a3a)]"}`}>
                 D{m.day}
               </span>
             </div>
@@ -161,19 +161,19 @@ export default function BreakFreeStreak() {
         <button
           onClick={handleStart}
           disabled={startMutation.isPending}
-          className="rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-[rgba(124,58,237,0.4)] hover:opacity-90 transition-opacity disabled:opacity-60"
+          className="rounded-2xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] px-8 py-3.5 text-sm font-bold text-[var(--palette-white)] shadow-lg shadow-[var(--rgba-124-58-237-0_4)] hover:opacity-90 transition-opacity disabled:opacity-60"
         >
           {startMutation.isPending ? "Starting…" : "Start My Journey"}
         </button>
       ) : (
         <div className="flex gap-4 text-center mb-4">
-          <div className="rounded-xl border border-[rgba(124,58,237,0.2)] bg-[#0d0f1c] px-5 py-3">
-            <p className="text-lg font-bold text-[#A78BFA]">{streak.longestStreak}</p>
-            <p className="text-[10px] text-[#4B5563] uppercase tracking-wider">Longest</p>
+          <div className="rounded-xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--palette-0d0f1c)] px-5 py-3">
+            <p className="text-lg font-bold text-[var(--brand-400)]">{streak.longestStreak}</p>
+            <p className="text-[10px] text-[var(--foreground-subtle)] uppercase tracking-wider">Longest</p>
           </div>
-          <div className="rounded-xl border border-[rgba(124,58,237,0.2)] bg-[#0d0f1c] px-5 py-3">
-            <p className="text-lg font-bold text-[#A78BFA]">{streak.relapseCount}</p>
-            <p className="text-[10px] text-[#4B5563] uppercase tracking-wider">Restarts</p>
+          <div className="rounded-xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--palette-0d0f1c)] px-5 py-3">
+            <p className="text-lg font-bold text-[var(--brand-400)]">{streak.relapseCount}</p>
+            <p className="text-[10px] text-[var(--foreground-subtle)] uppercase tracking-wider">Restarts</p>
           </div>
         </div>
       )}
@@ -182,7 +182,7 @@ export default function BreakFreeStreak() {
       {streak && (
         <button
           onClick={() => setRelapseDialog(true)}
-          className="mt-6 text-xs text-[#4B5563] hover:text-[#A78BFA] transition-colors underline underline-offset-2"
+          className="mt-6 text-xs text-[var(--foreground-subtle)] hover:text-[var(--brand-400)] transition-colors underline underline-offset-2"
         >
           I relapsed
         </button>
@@ -195,7 +195,7 @@ export default function BreakFreeStreak() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-[var(--z-toast)] flex items-center justify-center p-4 bg-[var(--palette-black)]/60 backdrop-blur-sm"
             onClick={() => setRelapseDialog(false)}
           >
             <motion.div
@@ -203,11 +203,11 @@ export default function BreakFreeStreak() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 28 }}
-              className="w-full max-w-sm rounded-2xl border border-[rgba(124,58,237,0.2)] bg-[#0d0f1c] p-6 shadow-2xl"
+              className="w-full max-w-sm rounded-2xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--palette-0d0f1c)] p-6 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <p className="text-xl font-bold text-[#E2E8F0] mb-2">That's okay. 💙</p>
-              <p className="text-sm text-[#A78BFA] leading-relaxed mb-6">
+              <p className="text-xl font-bold text-[var(--foreground)] mb-2">That's okay. 💙</p>
+              <p className="text-sm text-[var(--brand-400)] leading-relaxed mb-6">
                 Every restart is strength. Day 1 again — you've got this. Most people restart
                 several times before it sticks. What matters is that you came back.
               </p>
@@ -215,13 +215,13 @@ export default function BreakFreeStreak() {
                 <button
                   onClick={() => relapseMutation.mutate(undefined)}
                   disabled={relapseMutation.isPending}
-                  className="flex-1 rounded-xl bg-[rgba(124,58,237,0.15)] border border-[rgba(124,58,237,0.3)] py-2.5 text-sm font-semibold text-[#E2E8F0] hover:bg-[rgba(124,58,237,0.25)] transition-colors disabled:opacity-60"
+                  className="flex-1 rounded-xl bg-[var(--rgba-124-58-237-0_15)] border border-[var(--rgba-124-58-237-0_3)] py-2.5 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--rgba-124-58-237-0_25)] transition-colors disabled:opacity-60"
                 >
                   {relapseMutation.isPending ? "Saving…" : "Start Day 1 again"}
                 </button>
                 <button
                   onClick={() => setRelapseDialog(false)}
-                  className="rounded-xl border border-[#1e2a2a] px-4 py-2.5 text-sm text-[#4B5563] hover:text-[#A78BFA] transition-colors"
+                  className="rounded-xl border border-[var(--palette-1e2a2a)] px-4 py-2.5 text-sm text-[var(--foreground-subtle)] hover:text-[var(--brand-400)] transition-colors"
                 >
                   Cancel
                 </button>

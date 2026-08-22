@@ -15,9 +15,9 @@ export default function AboutPage() {
   return (
     <div className="relative min-h-[100dvh] forge-bg-glow">
       <PageSEO {...PAGE_SEO.about} />
-      <main id="main-content" className="relative z-10 mx-auto max-w-5xl px-4 py-10 md:py-20">
+      <main id="main-content" className="relative z-[var(--z-content)] mx-auto max-w-5xl px-4 py-10 md:py-20">
         <PageTransition>
-          <Link href="/" className="mb-10 inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#4B5563] hover:text-[#A78BFA] transition-colors">
+          <Link href="/" className="mb-10 inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[var(--foreground-subtle)] hover:text-[var(--brand-400)] transition-colors">
             <ArrowLeft size={13} /> Back to Hub
           </Link>
 
@@ -26,16 +26,16 @@ export default function AboutPage() {
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5 }}
-              className="mb-6 inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.3em] text-purple-300"
+              transition={{ duration: 0.4 }}
+              className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--palette-purple-500)]/30 bg-[var(--palette-purple-500)]/10 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.3em] text-[var(--palette-purple-300)]"
             >
               Our Mission
             </motion.div>
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="mb-8 text-5xl sm:text-7xl font-black tracking-tight text-white leading-[0.9]"
+              transition={{ duration: 0.4, delay: 0.1 }}
+              className="mb-8 text-5xl sm:text-7xl font-black tracking-tight text-[var(--palette-white)] leading-[0.9]"
             >
               Restoring the world's <br />
               <span className="text-gradient">Attention Span.</span>
@@ -43,8 +43,8 @@ export default function AboutPage() {
             <motion.p
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="mx-auto max-w-2xl text-lg leading-relaxed text-[#94A3B8]"
+              transition={{ duration: 0.4, delay: 0.2 }}
+              className="mx-auto max-w-2xl text-lg leading-relaxed text-[var(--foreground-muted)]"
             >
               FocusArx was born in 2024 from a simple realization: in an era of infinite distraction, the ability to focus is the ultimate competitive advantage. We build tools that help you reclaim your time and achieve true mastery.
             </motion.p>
@@ -58,14 +58,14 @@ export default function AboutPage() {
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-                className="rounded-[32px] border border-white/5 bg-white/[0.01] p-8 backdrop-blur-xl glass-heavy"
+                transition={{ duration: 0.4, delay: i * 0.1 }}
+                className="rounded-[32px] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] p-8 backdrop-blur-xl glass-heavy"
               >
-                <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#7C3AED]/10 border border-[#7C3AED]/20">
-                  <v.icon size={20} className="text-[#A78BFA]" />
+                <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-600)]/10 border border-[var(--brand-600)]/20">
+                  <v.icon size={20} className="text-[var(--brand-400)]" />
                 </div>
-                <h3 className="mb-3 text-xl font-bold text-white">{v.title}</h3>
-                <p className="text-sm leading-relaxed text-[#64748B]">{v.desc}</p>
+                <h3 className="mb-3 text-xl font-bold text-[var(--palette-white)]">{v.title}</h3>
+                <p className="text-sm leading-relaxed text-[var(--muted-fg)]">{v.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -73,62 +73,62 @@ export default function AboutPage() {
           {/* Contact & Legal Details */}
           <div className="mb-24 grid gap-8 lg:grid-cols-3">
              <div className="lg:col-span-2 space-y-8">
-                <div className="rounded-[32px] border border-white/5 bg-white/[0.01] p-10 glass">
-                   <h2 className="text-2xl font-black text-white mb-6">Verified Information</h2>
+                <div className="rounded-[32px] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] p-10 glass">
+                   <h2 className="text-2xl font-black text-[var(--palette-white)] mb-6">Verified Information</h2>
                    <div className="grid sm:grid-cols-2 gap-10">
                       <div className="space-y-6">
                          <div className="flex items-start gap-4">
-                            <Globe className="text-[#A78BFA] mt-1" size={18} />
+                            <Globe className="text-[var(--brand-400)] mt-1" size={18} />
                             <div>
-                               <p className="text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-1">Based In</p>
-                               <p className="text-sm text-zinc-300">India</p>
-                               <p className="text-sm text-zinc-500">Serving learners worldwide</p>
+                               <p className="text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Based In</p>
+                               <p className="text-sm text-[var(--palette-zinc-300)]">India</p>
+                               <p className="text-sm text-[var(--palette-zinc-500)]">Serving learners worldwide</p>
                             </div>
                          </div>
                          <div className="flex items-start gap-4">
-                            <ShieldCheck className="text-[#A78BFA] mt-1" size={18} />
+                            <ShieldCheck className="text-[var(--brand-400)] mt-1" size={18} />
                             <div>
-                               <p className="text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-1">Privacy</p>
-                               <p className="text-sm text-zinc-300">On-device vision processing</p>
-                               <p className="text-sm text-zinc-500">No video ever leaves your browser</p>
+                               <p className="text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Privacy</p>
+                               <p className="text-sm text-[var(--palette-zinc-300)]">On-device vision processing</p>
+                               <p className="text-sm text-[var(--palette-zinc-500)]">No video ever leaves your browser</p>
                             </div>
                          </div>
                       </div>
                       <div className="space-y-6">
                          <div className="flex items-start gap-4">
-                            <Mail className="text-[#A78BFA] mt-1" size={18} />
+                            <Mail className="text-[var(--brand-400)] mt-1" size={18} />
                             <div>
-                               <p className="text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-1">Email</p>
-                               <a href="mailto:focusarx@gmail.com" className="text-sm text-zinc-300 hover:text-[#A78BFA] transition-colors">focusarx@gmail.com</a>
-                               <p className="text-sm text-zinc-500">We reply fast</p>
+                               <p className="text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Email</p>
+                               <a href="mailto:focusarx@gmail.com" className="text-sm text-[var(--palette-zinc-300)] hover:text-[var(--brand-400)] transition-colors">focusarx@gmail.com</a>
+                               <p className="text-sm text-[var(--palette-zinc-500)]">We reply fast</p>
                             </div>
                          </div>
                          <div className="flex items-start gap-4">
-                            <Phone className="text-[#A78BFA] mt-1" size={18} />
+                            <Phone className="text-[var(--brand-400)] mt-1" size={18} />
                             <div>
-                               <p className="text-[10px] font-black uppercase tracking-widest text-[#4B5563] mb-1">Phone / WhatsApp</p>
-                               <a href="tel:+917725004639" className="text-sm text-zinc-300 hover:text-[#A78BFA] transition-colors">+91 77250 04639</a>
-                               <p className="text-sm text-zinc-500">Mon–Sat · 9am–7pm IST</p>
+                               <p className="text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Phone / WhatsApp</p>
+                               <a href="tel:+917725004639" className="text-sm text-[var(--palette-zinc-300)] hover:text-[var(--brand-400)] transition-colors">+91 77250 04639</a>
+                               <p className="text-sm text-[var(--palette-zinc-500)]">Mon–Sat · 9am–7pm IST</p>
                             </div>
                          </div>
                       </div>
                    </div>
                 </div>
              </div>
-             
-             <div className="rounded-[32px] border border-white/5 bg-gradient-to-br from-[#7C3AED]/10 to-[#F472B6]/5 p-10 flex flex-col justify-center text-center">
-                <h3 className="text-2xl font-black text-white mb-4 italic">Join the Elite.</h3>
-                <p className="text-sm text-[#94A3B8] mb-8">Ready to transform your cognitive output? Start your first session today.</p>
+
+             <div className="rounded-[32px] border border-[var(--palette-white)]/5 bg-gradient-to-br from-[var(--brand-600)]/10 to-[var(--brand-pink)]/5 p-10 flex flex-col justify-center text-center">
+                <h3 className="text-2xl font-black text-[var(--palette-white)] mb-4 italic">Join the Elite.</h3>
+                <p className="text-sm text-[var(--foreground-muted)] mb-8">Ready to transform your cognitive output? Start your first session today.</p>
                 <Link href="/signup">
-                  <button className="w-full py-4 rounded-2xl bg-white text-black font-black hover:scale-105 transition-all shadow-xl shadow-purple-950/20">
+                  <button className="w-full py-4 rounded-2xl bg-[var(--palette-white)] text-[var(--palette-black)] font-black hover:scale-105 transition-all shadow-xl shadow-[var(--palette-purple-950)]/20">
                     Get Started Free
                   </button>
                 </Link>
              </div>
           </div>
 
-          <div className="px-6 py-12 border-t border-white/5 text-center">
-             <p className="text-[10px] text-zinc-700 leading-relaxed uppercase tracking-[0.2em] max-w-3xl mx-auto">
+          <div className="px-6 py-12 border-t border-[var(--palette-white)]/5 text-center">
+             <p className="text-[10px] text-[var(--palette-zinc-700)] leading-relaxed uppercase tracking-[0.2em] max-w-3xl mx-auto">
                *FocusArx is a productivity app built by an independent team. AI-generated coaching is for educational and motivational purposes only — it is not professional advice. Focus responsibly.
              </p>
           </div>

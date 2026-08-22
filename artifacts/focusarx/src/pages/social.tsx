@@ -18,16 +18,16 @@ async function apiFetch(path: string, opts?: RequestInit) {
 
 function Avatar({ name, size = 36, level }: { name: string; size?: number, level?: number }) {
   const initials = (name || "U").slice(0, 2).toUpperCase();
-  const colors = ["from-violet-500 to-indigo-600", "from-emerald-500 to-teal-600", "from-amber-500 to-orange-600", "from-rose-500 to-pink-600", "from-blue-500 to-cyan-600"];
+  const colors = ["from-[var(--palette-violet-500)] to-[var(--palette-indigo-600)]", "from-[var(--palette-emerald-500)] to-[var(--palette-teal-600)]", "from-[var(--palette-amber-500)] to-[var(--palette-orange-600)]", "from-[var(--palette-rose-500)] to-[var(--palette-pink-600)]", "from-[var(--palette-blue-500)] to-[var(--palette-cyan-600)]"];
   const color = colors[initials.charCodeAt(0) % colors.length];
   return (
     <div className="relative shrink-0">
-      <div style={{ width: size, height: size, fontSize: size * 0.35 }} className={`rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-white font-bold border-2 border-[#030308] shadow-lg`}>
+      <div style={{ width: size, height: size, fontSize: size * 0.35 }} className={`rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-[var(--palette-white)] font-bold border-2 border-[var(--background)] shadow-lg`}>
         {initials}
       </div>
       {level && (
-        <div className="absolute -bottom-1 -right-1 bg-[var(--background)] rounded-full border border-white/10 px-1 py-0.5">
-           <span className="text-[7px] font-black text-[#A78BFA] leading-none">{level}</span>
+        <div className="absolute -bottom-1 -right-1 bg-[var(--background)] rounded-full border border-[var(--palette-white)]/10 px-1 py-0.5">
+           <span className="text-[7px] font-black text-[var(--brand-400)] leading-none">{level}</span>
         </div>
       )}
     </div>
@@ -40,24 +40,24 @@ function FriendCard({ friend }: { friend: any }) {
     : (friend.studyingFor ?? 0);
 
   return (
-    <motion.div variants={STAGGER_CHILD} className={`flex items-center gap-3 rounded-2xl border p-4 transition-all glass ${friend.isStudying ? "border-emerald-500/20 bg-emerald-500/5" : "border-[var(--border)] bg-white/[0.01] hover:bg-white/[0.03]"}`}>
+    <motion.div variants={STAGGER_CHILD} className={`flex items-center gap-3 rounded-2xl border p-4 transition-all glass ${friend.isStudying ? "border-[var(--palette-emerald-500)]/20 bg-[var(--palette-emerald-500)]/5" : "border-[var(--border)] bg-[var(--palette-white)]/[0.01] hover:bg-[var(--palette-white)]/[0.03]"}`}>
       <div className="relative shrink-0">
         <Avatar name={friend.name} level={friend.level} />
         {friend.isStudying && (
-          <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-400 border-2 border-[#030308] animate-pulse" />
+          <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-[var(--palette-emerald-400)] border-2 border-[var(--background)] animate-pulse" />
         )}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <p className="text-sm font-bold text-white truncate">{friend.name}</p>
+          <p className="text-sm font-bold text-[var(--palette-white)] truncate">{friend.name}</p>
           {friend.isStudying && (
-            <span className="shrink-0 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 text-[8px] font-black text-emerald-400 uppercase tracking-widest">
+            <span className="shrink-0 rounded-full bg-[var(--palette-emerald-500)]/10 border border-[var(--palette-emerald-500)]/20 px-1.5 py-0.5 text-[8px] font-black text-[var(--palette-emerald-400)] uppercase tracking-widest">
               Active Flow
             </span>
           )}
         </div>
         {friend.isStudying ? (
-          <p className="text-[10px] text-emerald-400/80 font-bold uppercase tracking-widest flex items-center gap-1">
+          <p className="text-[10px] text-[var(--palette-emerald-400)]/80 font-bold uppercase tracking-widest flex items-center gap-1">
              {focusMinutes > 0 ? `${focusMinutes}m In deep work` : "Initializing..."}
           </p>
         ) : (
@@ -65,7 +65,7 @@ function FriendCard({ friend }: { friend: any }) {
         )}
       </div>
       <div className="text-right shrink-0">
-        <p className="text-sm font-black text-amber-400 flex items-center gap-1 justify-end">🔥 {friend.streak}</p>
+        <p className="text-sm font-black text-[var(--palette-amber-400)] flex items-center gap-1 justify-end">🔥 {friend.streak}</p>
       </div>
     </motion.div>
   );
@@ -76,19 +76,19 @@ function LeaderboardTable({ data }: { data: any[] }) {
   return (
     <div className="space-y-2">
       {data.map((e, i) => (
-        <motion.div 
-           key={e.userId} 
+        <motion.div
+           key={e.userId}
            variants={STAGGER_CHILD}
-           className={`flex items-center gap-4 rounded-2xl border p-4 transition-all ${e.isMe ? "border-[#7C3AED]/30 bg-[#7C3AED]/10" : "border-[var(--border)] bg-white/[0.01]"}`}
+           className={`flex items-center gap-4 rounded-2xl border p-4 transition-all ${e.isMe ? "border-[var(--brand-600)]/30 bg-[var(--brand-600)]/10" : "border-[var(--border)] bg-[var(--palette-white)]/[0.01]"}`}
         >
           <span className={`w-6 text-center text-sm font-black ${i < 3 ? "text-xl" : "text-[var(--foreground-subtle)]"}`}>{i < 3 ? medals[i] : `${i + 1}`}</span>
           <Avatar name={e.name} size={32} level={e.level} />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-white truncate">{e.name}{e.isMe && " (You)"}</p>
+            <p className="text-sm font-bold text-[var(--palette-white)] truncate">{e.name}{e.isMe && " (You)"}</p>
             <p className="text-[9px] font-black uppercase tracking-widest text-[var(--foreground-subtle)]">LV.{e.level} · {e.streak}d STREAK</p>
           </div>
           <div className="text-right">
-             <p className="text-sm font-black text-[#A78BFA] tabular-nums">{e.xp.toLocaleString()}</p>
+             <p className="text-sm font-black text-[var(--brand-400)] tabular-nums">{e.xp.toLocaleString()}</p>
              <p className="text-[8px] font-black text-[var(--foreground-subtle)] uppercase tracking-widest">Points</p>
           </div>
         </motion.div>
@@ -150,43 +150,43 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post
     : null;
 
   return (
-    <motion.div variants={STAGGER_CHILD} className="rounded-[32px] border border-[var(--border)] bg-white/[0.01] overflow-hidden hover:border-[#7C3AED]/20 transition-all glass-heavy group">
+    <motion.div variants={STAGGER_CHILD} className="rounded-[32px] border border-[var(--border)] bg-[var(--palette-white)]/[0.01] overflow-hidden hover:border-[var(--brand-600)]/20 transition-all glass-heavy group">
       <div className="p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-4">
              <Avatar name={post.author?.name || "U"} size={44} level={post.author?.level} />
              <div>
-                <p className="font-bold text-white leading-none mb-1">{post.author?.name || "User"}</p>
+                <p className="font-bold text-[var(--palette-white)] leading-none mb-1">{post.author?.name || "User"}</p>
                 <p className="text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)]">{post.createdAt ? timeAgo(post.createdAt) : ""}</p>
              </div>
           </div>
           {post.userId === currentUserId && (
               <button onClick={() => { if (confirm("Delete this post?")) del.mutate(); }}
-                className="opacity-0 group-hover:opacity-100 rounded-xl p-2 text-[var(--foreground-subtle)] hover:text-red-400 hover:bg-red-900/20 transition-all">
+                className="opacity-0 group-hover:opacity-100 rounded-xl p-2 text-[var(--foreground-subtle)] hover:text-[var(--palette-red-400)] hover:bg-[var(--palette-red-900)]/20 transition-all">
                 <Trash2 size={16} />
               </button>
           )}
         </div>
 
-        <p className="text-[15px] text-zinc-200 leading-relaxed whitespace-pre-wrap">{post.content}</p>
+        <p className="text-[15px] text-[var(--palette-zinc-200)] leading-relaxed whitespace-pre-wrap">{post.content}</p>
 
         {post.type === "achievement" && post.metadata && (
-          <div className="mt-4 rounded-2xl bg-amber-500/5 border border-amber-500/10 p-4 flex items-center gap-4 group/medal">
-            <div className="h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-3xl group-hover/medal:scale-110 transition-transform">{post.metadata.icon || "🏆"}</div>
+          <div className="mt-4 rounded-2xl bg-[var(--palette-amber-500)]/5 border border-[var(--palette-amber-500)]/10 p-4 flex items-center gap-4 group/medal">
+            <div className="h-12 w-12 rounded-xl bg-[var(--palette-amber-500)]/10 flex items-center justify-center text-3xl group-hover/medal:scale-110 transition-transform">{post.metadata.icon || "🏆"}</div>
             <div>
-               <p className="text-xs font-black uppercase tracking-widest text-amber-400">{post.metadata.title || "Achievement"}</p>
-               <p className="text-xs text-amber-200/60 leading-tight mt-0.5">{post.metadata.description}</p>
+               <p className="text-xs font-black uppercase tracking-widest text-[var(--palette-amber-400)]">{post.metadata.title || "Achievement"}</p>
+               <p className="text-xs text-[var(--palette-amber-200)]/60 leading-tight mt-0.5">{post.metadata.description}</p>
             </div>
           </div>
         )}
       </div>
 
-      <div className="px-6 py-4 flex items-center gap-4 border-t border-[var(--border)] bg-white/[0.01]">
+      <div className="px-6 py-4 flex items-center gap-4 border-t border-[var(--border)] bg-[var(--palette-white)]/[0.01]">
           <div className="relative">
             <button
               onMouseEnter={() => setShowReactions(true)}
               onMouseLeave={() => setShowReactions(false)}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${post.myReaction ? "bg-[#7C3AED]/20 text-[#a78bfa]" : "bg-white/5 text-[var(--foreground-subtle)] hover:text-white"}`}
+              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${post.myReaction ? "bg-[var(--brand-600)]/20 text-[var(--brand-400)]" : "bg-[var(--palette-white)]/5 text-[var(--foreground-subtle)] hover:text-[var(--palette-white)]"}`}
             >
               <span>{dominantReaction?.emoji || "🔥"}</span>
               <span>{totalReactions > 0 ? totalReactions : ""}</span>
@@ -198,11 +198,11 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post
                   initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
                   onMouseEnter={() => setShowReactions(true)}
                   onMouseLeave={() => setShowReactions(false)}
-                  className="absolute bottom-full left-0 mb-2 z-20 flex gap-2 glass p-2 rounded-2xl shadow-2xl"
+                  className="absolute bottom-full left-0 mb-2 z-[var(--z-sticky)] flex gap-2 glass p-2 rounded-2xl shadow-2xl"
                 >
                   {REACTIONS.map(r => (
                     <button key={r.key} onClick={() => react.mutate(r.key)} title={r.label}
-                      className={`text-xl hover:scale-125 transition-transform rounded-xl p-1.5 ${post.myReaction === r.key ? "bg-[#7C3AED]/30" : "hover:bg-white/10"}`}>
+                      className={`text-xl hover:scale-125 transition-transform rounded-xl p-1.5 ${post.myReaction === r.key ? "bg-[var(--brand-600)]/30" : "hover:bg-[var(--palette-white)]/10"}`}>
                       {r.emoji}
                     </button>
                   ))}
@@ -212,22 +212,22 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post
           </div>
 
           <button onClick={() => setShowComments(!showComments)}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${showComments ? "bg-white/10 text-white" : "text-[var(--foreground-subtle)] hover:text-white"}`}>
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${showComments ? "bg-[var(--palette-white)]/10 text-[var(--palette-white)]" : "text-[var(--foreground-subtle)] hover:text-[var(--palette-white)]"}`}>
             <MessageCircleIcon size={14} /> <span>{post.commentCount || ""}</span>
           </button>
       </div>
 
       <AnimatePresence>
         {showComments && (
-          <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden bg-white/[0.01] border-t border-[var(--border)]">
+          <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden bg-[var(--palette-white)]/[0.01] border-t border-[var(--border)]">
             <div className="p-6 space-y-4">
               <div className="flex gap-2">
                 <input value={commentText} onChange={e => setCommentText(e.target.value)}
                   placeholder="Share a word of encouragement..."
-                  className="flex-1 bg-[var(--muted)] border border-[var(--border)] rounded-xl px-4 py-2 text-sm text-white focus:border-[#7C3AED] outline-none transition-all" />
+                  className="flex-1 bg-[var(--muted)] border border-[var(--border)] rounded-xl px-4 py-2 text-sm text-[var(--palette-white)] focus:border-[var(--brand-600)] outline-none transition-all" />
                 <button disabled={!commentText.trim() || addComment.isPending}
                   onClick={() => addComment.mutate()}
-                  className="bg-[#7C3AED] text-white p-2 rounded-xl hover:scale-105 active:scale-95 transition-all">
+                  className="bg-[var(--brand-600)] text-[var(--palette-white)] p-2 rounded-xl hover:scale-105 active:scale-95 transition-all">
                   <Send size={16} />
                 </button>
               </div>
@@ -237,10 +237,10 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post
                     <Avatar name={c.author?.name || "U"} size={28} />
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <p className="text-xs font-bold text-white">{c.author?.name || "User"}</p>
+                        <p className="text-xs font-bold text-[var(--palette-white)]">{c.author?.name || "User"}</p>
                         <p className="text-[8px] font-black uppercase tracking-widest text-[var(--foreground-subtle)]">{timeAgo(c.createdAt)}</p>
                       </div>
-                      <p className="text-xs text-zinc-400 leading-relaxed">{c.content}</p>
+                      <p className="text-xs text-[var(--palette-zinc-400)] leading-relaxed">{c.content}</p>
                     </div>
                   </div>
                 ))}
@@ -346,35 +346,35 @@ export default function SocialPage() {
       <div className="min-h-screen forge-bg-glow text-[var(--foreground)] px-6 py-12 max-w-4xl mx-auto">
         <header className="mb-12 flex flex-col items-center text-center">
             <motion.div variants={BLUR_IN} initial="initial" animate="animate">
-               <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#06D6A0]/10 mb-6">
-                  <Users className="text-[#06D6A0]" />
+               <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-teal)]/10 mb-6">
+                  <Users className="text-[var(--brand-teal)]" />
                </div>
                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--foreground-subtle)] mb-4">Community Hub</p>
-               <h1 className="text-4xl font-black text-white sm:text-6xl tracking-tight leading-none mb-4">The <span className="text-[#06D6A0]">Social Flow</span></h1>
+               <h1 className="text-4xl font-black text-[var(--palette-white)] sm:text-6xl tracking-tight leading-none mb-4">The <span className="text-[var(--brand-teal)]">Social Flow</span></h1>
                <p className="text-[var(--foreground-muted)] leading-relaxed max-w-xl mx-auto">Connect with global deep-workers. Share milestones, compete on boards, and study in sync.</p>
             </motion.div>
         </header>
 
         <div className="relative mb-12">
-          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-zinc-500"><UserPlus size={18} /></div>
+          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-[var(--palette-zinc-500)]"><UserPlus size={18} /></div>
           <input
             value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search learners by name or email..."
-            className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-3xl py-5 pl-12 pr-6 text-sm text-white focus:border-[#06D6A0] outline-none transition-all shadow-2xl"
+            className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-3xl py-5 pl-12 pr-6 text-sm text-[var(--palette-white)] focus:border-[var(--brand-teal)] outline-none transition-all shadow-2xl"
           />
           <AnimatePresence>
             {search.length > 2 && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-                className="absolute top-full inset-x-0 mt-2 z-30 glass-heavy rounded-3xl overflow-hidden shadow-2xl p-2 border border-[var(--border)]">
+                className="absolute top-full inset-x-0 mt-2 z-[var(--z-float)] glass-heavy rounded-3xl overflow-hidden shadow-2xl p-2 border border-[var(--border)]">
                 {searchResults.length === 0 ? (
                   <p className="text-center py-6 text-xs font-black uppercase text-[var(--foreground-subtle)] tracking-widest">No users found</p>
                 ) : (
                   searchResults.map((u: any) => (
-                    <div key={u.id} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-white/5 transition-all">
+                    <div key={u.id} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-[var(--palette-white)]/5 transition-all">
                       <Avatar name={u.name} level={u.level} />
-                      <div className="flex-1 min-w-0"><p className="text-sm font-bold text-white truncate">{u.name}</p><p className="text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)]">LV.{u.level} · {u.streak}d Streak</p></div>
+                      <div className="flex-1 min-w-0"><p className="text-sm font-bold text-[var(--palette-white)] truncate">{u.name}</p><p className="text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)]">LV.{u.level} · {u.streak}d Streak</p></div>
                       <button onClick={() => sendRequest.mutate(u.id)}
-                        className="rounded-xl bg-white text-black px-4 py-2 text-xs font-black hover:bg-zinc-200 transition-all flex items-center gap-2">
+                        className="rounded-xl bg-[var(--palette-white)] text-[var(--palette-black)] px-4 py-2 text-xs font-black hover:bg-[var(--palette-zinc-200)] transition-all flex items-center gap-2">
                          <Plus size={14} /> Connect
                       </button>
                     </div>
@@ -385,7 +385,7 @@ export default function SocialPage() {
           </AnimatePresence>
         </div>
 
-        <div className="flex flex-wrap rounded-[24px] border border-[var(--border)] bg-white/[0.01] p-1.5 mb-12 gap-1">
+        <div className="flex flex-wrap rounded-[24px] border border-[var(--border)] bg-[var(--palette-white)]/[0.01] p-1.5 mb-12 gap-1">
           {[
             { id: "feed", label: "Public Feed", icon: <Rss size={14} /> },
             { id: "friends", label: "Protocol Mates", icon: <Users size={14} /> },
@@ -395,9 +395,9 @@ export default function SocialPage() {
             { id: "requests", label: "Connects", icon: <Bell size={14} />, badge: incoming.length },
           ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id as any)}
-              className={`flex-1 min-w-fit flex items-center justify-center gap-2 rounded-2xl py-3 px-4 text-[10px] font-black uppercase tracking-widest transition-all ${tab === t.id ? "bg-[#06D6A0] text-black shadow-lg shadow-[#06D6A0]/20" : "text-[var(--foreground-subtle)] hover:bg-white/5 hover:text-white"}`}>
+              className={`flex-1 min-w-fit flex items-center justify-center gap-2 rounded-2xl py-3 px-4 text-[10px] font-black uppercase tracking-widest transition-all ${tab === t.id ? "bg-[var(--brand-teal)] text-[var(--palette-black)] shadow-lg shadow-[var(--brand-teal)]/20" : "text-[var(--foreground-subtle)] hover:bg-[var(--palette-white)]/5 hover:text-[var(--palette-white)]"}`}>
               {t.icon} {t.label}
-              {t.badge > 0 && <span className="rounded-full bg-red-500 text-white w-4 h-4 flex items-center justify-center text-[8px] animate-bounce">{t.badge}</span>}
+              {t.badge > 0 && <span className="rounded-full bg-[var(--palette-red-500)] text-[var(--palette-white)] w-4 h-4 flex items-center justify-center text-[8px] animate-bounce">{t.badge}</span>}
             </button>
           ))}
         </div>
@@ -405,24 +405,24 @@ export default function SocialPage() {
         <AnimatePresence mode="wait">
           {tab === "feed" && (
             <motion.div key="feed" variants={STAGGER} initial="initial" animate="animate" exit="exit" className="space-y-6">
-               <div className="rounded-[32px] border border-[var(--border)] bg-white/[0.01] p-6 glass-heavy">
+               <div className="rounded-[32px] border border-[var(--border)] bg-[var(--palette-white)]/[0.01] p-6 glass-heavy">
                   <div className="flex gap-4">
                      <Avatar name={session?.user?.name || "U"} size={44} level={12} />
                      <div className="flex-1 space-y-4">
                         <textarea
                           value={newPost} onChange={e => setNewPost(e.target.value)}
                           placeholder="What did you learn in your last flow session?"
-                          className="w-full bg-transparent border-none text-white placeholder-[#4B5563] text-lg font-medium outline-none resize-none min-h-[100px]"
+                          className="w-full bg-transparent border-none text-[var(--palette-white)] placeholder-[var(--foreground-subtle)] text-lg font-medium outline-none resize-none min-h-[100px]"
                         />
                         <div className="flex justify-between items-center pt-4 border-t border-[var(--border)]">
                            <div className="flex gap-2">
-                              <button className="p-2 rounded-xl hover:bg-white/5 text-[var(--foreground-subtle)] transition-colors"><Image size={20} /></button>
-                              <button className="p-2 rounded-xl hover:bg-white/5 text-[var(--foreground-subtle)] transition-colors"><StarIcon size={20} /></button>
+                              <button className="p-2 rounded-xl hover:bg-[var(--palette-white)]/5 text-[var(--foreground-subtle)] transition-colors"><Image size={20} /></button>
+                              <button className="p-2 rounded-xl hover:bg-[var(--palette-white)]/5 text-[var(--foreground-subtle)] transition-colors"><StarIcon size={20} /></button>
                            </div>
-                           <button 
+                           <button
                              disabled={!newPost.trim() || createPost.isPending}
                              onClick={() => createPost.mutate()}
-                             className="rounded-2xl bg-white text-black px-8 py-3 text-sm font-black hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                             className="rounded-2xl bg-[var(--palette-white)] text-[var(--palette-black)] px-8 py-3 text-sm font-black hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
                            >
                              Share Protocol
                            </button>
@@ -432,7 +432,7 @@ export default function SocialPage() {
                </div>
 
                {postsLoading ? (
-                 <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-48 animate-pulse rounded-[32px] bg-white/[0.01] border border-[var(--border)]" />)}</div>
+                 <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-48 animate-pulse rounded-[32px] bg-[var(--palette-white)]/[0.01] border border-[var(--border)]" />)}</div>
                ) : (
                  posts.map((p: any) => <PostCard key={p.id} post={p} currentUserId={session?.user?.id || ""} onReacted={() => {}} onSaved={() => {}} onDeleted={() => refetchPosts()} />)
                )}
@@ -441,38 +441,38 @@ export default function SocialPage() {
 
           {tab === "friends" && (
             <motion.div key="friends" variants={STAGGER} initial="initial" animate="animate" className="grid gap-4 sm:grid-cols-2">
-               {friendsLoading ? <div className="col-span-full py-20 flex justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[#06D6A0] border-t-transparent" /></div> : friends.map((f: any) => <FriendCard key={f.id} friend={f} />)}
+               {friendsLoading ? <div className="col-span-full py-20 flex justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--brand-teal)] border-t-transparent" /></div> : friends.map((f: any) => <FriendCard key={f.id} friend={f} />)}
                {!friendsLoading && friends.length === 0 && <div className="col-span-full py-32 text-center opacity-30"><Users size={48} className="mx-auto mb-6" /><p className="text-sm font-black uppercase tracking-widest">No Protocol Mates Found</p></div>}
             </motion.div>
           )}
 
           {tab === "leaderboard" && (
             <motion.div key="leaderboard" variants={STAGGER} initial="initial" animate="animate">
-               <div className="flex gap-2 mb-8 bg-white/[0.01] border border-[var(--border)] p-1 rounded-2xl">
+               <div className="flex gap-2 mb-8 bg-[var(--palette-white)]/[0.01] border border-[var(--border)] p-1 rounded-2xl">
                   {(["daily", "weekly", "monthly", "alltime"] as const).map(p => (
-                    <button key={p} onClick={() => setPeriod(p)} className={`flex-1 rounded-xl py-3 text-[10px] font-black uppercase tracking-widest transition-all ${period === p ? "bg-white/10 text-white shadow-xl" : "text-[var(--foreground-subtle)] hover:text-zinc-300"}`}>{p === "alltime" ? "Infinity" : p}</button>
+                    <button key={p} onClick={() => setPeriod(p)} className={`flex-1 rounded-xl py-3 text-[10px] font-black uppercase tracking-widest transition-all ${period === p ? "bg-[var(--palette-white)]/10 text-[var(--palette-white)] shadow-xl" : "text-[var(--foreground-subtle)] hover:text-[var(--palette-zinc-300)]"}`}>{p === "alltime" ? "Infinity" : p}</button>
                   ))}
                </div>
                <LeaderboardTable data={leaderboard} />
             </motion.div>
           )}
-          
+
           {tab === "activity" && (
             <motion.div key="activity" variants={STAGGER} initial="initial" animate="animate" className="space-y-4">
                {activity.map((a: any) => (
-                  <motion.div variants={STAGGER_CHILD} key={a.id} className="rounded-2xl border border-[var(--border)] bg-white/[0.01] p-5 flex items-center justify-between glass group">
+                  <motion.div variants={STAGGER_CHILD} key={a.id} className="rounded-2xl border border-[var(--border)] bg-[var(--palette-white)]/[0.01] p-5 flex items-center justify-between glass group">
                      <div className="flex items-center gap-4">
-                        <div className="text-2xl h-12 w-12 rounded-xl bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <div className="text-2xl h-12 w-12 rounded-xl bg-[var(--palette-white)]/5 flex items-center justify-center group-hover:scale-110 transition-transform">
                            {a.type === "session_complete" ? "🎯" : a.type === "badge_unlocked" ? "🏅" : "⚡"}
                         </div>
                         <div>
-                           <p className="text-sm font-bold text-white mb-0.5">{a.userName} <span className="text-[10px] font-black text-[#06D6A0] ml-2">LV.{a.userLevel}</span></p>
+                           <p className="text-sm font-bold text-[var(--palette-white)] mb-0.5">{a.userName} <span className="text-[10px] font-black text-[var(--brand-teal)] ml-2">LV.{a.userLevel}</span></p>
                            <p className="text-xs text-[var(--foreground-subtle)] font-medium leading-tight">
                               {a.type === "session_complete" ? `Completed ${a.data?.durationMin}m Session` : a.type === "badge_unlocked" ? `Earned ${a.data?.badgeId} Badge` : "Updated Protocol"}
                            </p>
                         </div>
                      </div>
-                     <ArrowUpRight size={14} className="text-[var(--foreground-subtle)] group-hover:text-white transition-colors" />
+                     <ArrowUpRight size={14} className="text-[var(--foreground-subtle)] group-hover:text-[var(--palette-white)] transition-colors" />
                   </motion.div>
                ))}
             </motion.div>

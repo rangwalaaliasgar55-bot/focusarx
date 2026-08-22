@@ -1,4 +1,6 @@
-import { Component, type ReactNode, type ErrorInfo } from "react";
+import { Component, type ErrorInfo, type ReactNode } from "react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   children: ReactNode;
@@ -12,10 +14,7 @@ interface State {
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
+  state: State = { hasError: false, error: null };
 
   static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
@@ -26,32 +25,26 @@ export class ErrorBoundary extends Component<Props, State> {
     this.props.onError?.(error, info);
   }
 
-  handleReset = () => {
-    this.setState({ hasError: false, error: null });
-  };
+  private handleRetry = () => this.setState({ hasError: false, error: null });
 
   render() {
-    if (this.state.hasError) {
-      if (this.props.fallback) return this.props.fallback;
+    if (!this.state.hasError) return this.props.children;
+    if (this.props.fallback) return this.props.fallback;
 
-      return (
-        <div className="flex min-h-[200px] flex-col items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/5 p-8 text-center">
-          <div className="mb-3 text-3xl">⚠️</div>
-          <p className="mb-1 text-sm font-semibold text-[#E2E8F0]">Something went wrong</p>
-          <p className="mb-4 max-w-xs text-xs text-[#94A3B8]">
-            {this.state.error?.message ?? "An unexpected error occurred."}
+    return (
+      <section className="page-container" role="alert">
+        <div className="mx-auto flex min-h-[24rem] max-w-xl flex-col items-center justify-center rounded-[var(--radius-2xl)] border border-[color-mix(in_srgb,var(--danger)_24%,transparent)] bg-[var(--danger-soft)] p-8 text-center">
+          <span className="grid h-14 w-14 place-items-center rounded-[var(--radius-xl)] bg-[var(--surface)] text-[var(--danger)] shadow-[var(--shadow-sm)]">
+            <AlertTriangle size={24} aria-hidden="true" />
+          </span>
+          <h1 className="mt-5 text-xl font-semibold text-[var(--foreground)]">This view hit a snag</h1>
+          <p className="mt-2 max-w-sm text-sm leading-relaxed text-[var(--foreground-muted)]">
+            {this.state.error?.message || "We couldn't render this page. Your data is safe; try loading the view again."}
           </p>
-          <button
-            onClick={this.handleReset}
-            className="rounded-xl bg-[rgba(124,58,237,0.2)] border border-[rgba(124,58,237,0.3)] px-4 py-2 text-xs font-semibold text-[#A78BFA] transition-colors hover:bg-[rgba(124,58,237,0.3)]"
-          >
-            Try again
-          </button>
+          <Button className="mt-6" onClick={this.handleRetry}><RefreshCw /> Retry</Button>
         </div>
-      );
-    }
-
-    return this.props.children;
+      </section>
+    );
   }
 }
 

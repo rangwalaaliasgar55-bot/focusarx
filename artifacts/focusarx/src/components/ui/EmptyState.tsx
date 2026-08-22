@@ -1,45 +1,35 @@
 import { motion } from "framer-motion";
+import { Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
-import { FADE_UP } from "@/lib/animations";
 
 interface EmptyStateProps {
-  icon: string;
+  icon?: React.ReactNode;
   title: string;
   description: string;
   action?: { label: string; onClick: () => void };
+  secondaryAction?: { label: string; onClick: () => void };
   className?: string;
 }
 
-/**
- * EmptyState — shown when a data-driven view has no content.
- * Uses FADE_UP entrance and design-token typography.
- */
-export function EmptyState({ icon, title, description, action, className }: EmptyStateProps) {
+export function EmptyState({ icon, title, description, action, secondaryAction, className }: EmptyStateProps) {
   return (
     <motion.div
-      variants={FADE_UP}
-      initial="initial"
-      animate="animate"
-      className={cn(
-        "flex flex-col items-center justify-center gap-4 py-16 px-6 text-center",
-        className
-      )}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+      className={cn("flex flex-col items-center justify-center px-6 py-16 text-center", className)}
     >
-      {/* Icon */}
-      <div className="flex h-16 w-16 items-center justify-center rounded-[var(--radius-2xl)] bg-[rgba(124,58,237,0.08)] border border-[rgba(124,58,237,0.14)]">
-        <span className="text-3xl select-none" role="img" aria-hidden>{icon}</span>
+      <div className="mb-5 grid h-14 w-14 place-items-center rounded-[var(--radius-xl)] border border-[var(--card-border)] bg-[var(--brand-soft)] text-[var(--brand-strong)] [&_svg]:size-6">
+        {icon ?? <Inbox aria-hidden="true" />}
       </div>
-
-      <div className="space-y-1.5 max-w-xs">
-        <h3 className="text-base font-semibold text-[var(--foreground)]">{title}</h3>
-        <p className="text-sm text-[var(--foreground-muted)] leading-relaxed">{description}</p>
-      </div>
-
-      {action && (
-        <Button variant="outline" onClick={action.onClick} className="mt-2">
-          {action.label}
-        </Button>
+      <h3 className="text-base font-semibold text-[var(--foreground)]">{title}</h3>
+      <p className="mt-2 max-w-sm text-sm leading-relaxed text-[var(--foreground-muted)]">{description}</p>
+      {(action || secondaryAction) && (
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+          {action && <Button onClick={action.onClick}>{action.label}</Button>}
+          {secondaryAction && <Button variant="outline" onClick={secondaryAction.onClick}>{secondaryAction.label}</Button>}
+        </div>
       )}
     </motion.div>
   );

@@ -135,9 +135,9 @@ function WeatherCanvas({ state, color }: { state: WeatherState; color: string })
       for (const p of particlesRef.current) {
         ctx.globalAlpha = p.opacity;
         ctx.fillStyle =
-          state === "storm_warning" ? "#60A5FA" :
+          state === "storm_warning" ? "var(--info)" :
           state === "flow_state_incoming" ? color :
-          state === "clear_skies" ? "#FCD34D" : "#94A3B8";
+          state === "clear_skies" ? "var(--palette-fcd34d)" : "var(--foreground-muted)";
         if (state === "fog") {
           ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
         } else if (state === "storm_warning") {
@@ -187,13 +187,13 @@ function LocationPrompt({ onSave, onGeolocate, geoLoading }: {
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-[rgba(124,58,237,0.2)] bg-[var(--card)] p-5"
+      className="rounded-2xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--card)] p-5"
     >
       <div className="flex items-center gap-2 mb-3">
-        <MapPin size={14} className="text-[#7C3AED]" />
-        <p className="text-xs font-semibold text-[#E2E8F0]">Where are you located?</p>
+        <MapPin size={14} className="text-[var(--brand-600)]" />
+        <p className="text-xs font-semibold text-[var(--foreground)]">Where are you located?</p>
       </div>
-      <p className="text-[11px] text-[#4B5563] mb-4">
+      <p className="text-[11px] text-[var(--foreground-subtle)] mb-4">
         Share your location for real weather alongside your focus forecast.
       </p>
 
@@ -202,10 +202,10 @@ function LocationPrompt({ onSave, onGeolocate, geoLoading }: {
         type="button"
         onClick={onGeolocate}
         disabled={geoLoading}
-        className="w-full mb-3 flex items-center justify-center gap-2 rounded-xl border border-[rgba(124,58,237,0.35)] bg-[rgba(124,58,237,0.1)] px-4 py-2.5 text-xs font-semibold text-[#A78BFA] hover:bg-[rgba(124,58,237,0.18)] transition-colors disabled:opacity-60"
+        className="w-full mb-3 flex items-center justify-center gap-2 rounded-xl border border-[var(--rgba-124-58-237-0_35)] bg-[var(--rgba-124-58-237-0_1)] px-4 py-2.5 text-xs font-semibold text-[var(--brand-400)] hover:bg-[var(--rgba-124-58-237-0_18)] transition-colors disabled:opacity-60"
       >
         {geoLoading ? (
-          <span className="h-3.5 w-3.5 animate-spin rounded-full border border-[#A78BFA]/40 border-t-[#A78BFA]" />
+          <span className="h-3.5 w-3.5 animate-spin rounded-full border border-[var(--brand-400)]/40 border-t-[var(--brand-400)]" />
         ) : (
           <Locate size={13} />
         )}
@@ -213,9 +213,9 @@ function LocationPrompt({ onSave, onGeolocate, geoLoading }: {
       </button>
 
       <div className="flex items-center gap-2 mb-3">
-        <div className="h-px flex-1 bg-zinc-800" />
-        <span className="text-[10px] text-zinc-600">or type a city</span>
-        <div className="h-px flex-1 bg-zinc-800" />
+        <div className="h-px flex-1 bg-[var(--palette-zinc-800)]" />
+        <span className="text-[10px] text-[var(--palette-zinc-600)]">or type a city</span>
+        <div className="h-px flex-1 bg-[var(--palette-zinc-800)]" />
       </div>
 
       <form onSubmit={handleSubmit} className="flex gap-2">
@@ -223,16 +223,16 @@ function LocationPrompt({ onSave, onGeolocate, geoLoading }: {
           value={value}
           onChange={e => { setValue(e.target.value); setError(""); }}
           placeholder="e.g. London, New York, Mumbai…"
-          className="flex-1 rounded-xl border border-[rgba(124,58,237,0.25)] bg-[rgba(124,58,237,0.05)] px-3 py-2 text-xs text-[#E2E8F0] placeholder-[#3a3d4a] outline-none focus:border-[#7C3AED] transition-colors"
+          className="flex-1 rounded-xl border border-[var(--rgba-124-58-237-0_25)] bg-[var(--rgba-124-58-237-0_05)] px-3 py-2 text-xs text-[var(--foreground)] placeholder-[var(--palette-3a3d4a)] outline-none focus:border-[var(--brand-600)] transition-colors"
         />
         <button
           type="submit"
-          className="rounded-xl bg-[#7C3AED] px-4 py-2 text-xs font-semibold text-white hover:bg-[#6D28D9] transition-colors"
+          className="rounded-xl bg-[var(--brand-600)] px-4 py-2 text-xs font-semibold text-[var(--palette-white)] hover:bg-[var(--brand-700)] transition-colors"
         >
           Save
         </button>
       </form>
-      {error && <p className="mt-2 text-[10px] text-rose-400">{error}</p>}
+      {error && <p className="mt-2 text-[10px] text-[var(--palette-rose-400)]">{error}</p>}
     </motion.div>
   );
 }
@@ -339,18 +339,18 @@ export default function WeatherWidget() {
       <div className="space-y-3">
         {editingCity && (
           <div className="flex justify-end">
-            <button onClick={() => setEditingCity(false)} className="text-[10px] text-[#4B5563] hover:text-[#94A3B8] flex items-center gap-1">
+            <button onClick={() => setEditingCity(false)} className="text-[10px] text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)] flex items-center gap-1">
               <X size={10} /> Cancel
             </button>
           </div>
         )}
         <LocationPrompt onSave={handleSaveCity} onGeolocate={handleGeolocate} geoLoading={geoLoading} />
         {geoError && (
-          <p className="text-[11px] text-rose-400 px-1">{geoError}</p>
+          <p className="text-[11px] text-[var(--palette-rose-400)] px-1">{geoError}</p>
         )}
         {!editingCity && loadingFocus && (
           <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 h-[80px] flex items-center justify-center">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-[rgba(124,58,237,0.3)] border-t-[#7C3AED]" />
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--rgba-124-58-237-0_3)] border-t-[var(--brand-600)]" />
           </div>
         )}
       </div>
@@ -360,7 +360,7 @@ export default function WeatherWidget() {
   if (loadingFocus) {
     return (
       <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 h-[160px] flex items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[rgba(124,58,237,0.3)] border-t-[#7C3AED]" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--rgba-124-58-237-0_3)] border-t-[var(--brand-600)]" />
       </div>
     );
   }
@@ -380,31 +380,31 @@ export default function WeatherWidget() {
       animate={{ opacity: 1, y: 0 }}
       className="relative rounded-2xl border overflow-hidden"
       style={{
-        borderColor: `${forecast.color}33`,
-        background: `linear-gradient(135deg, ${forecast.color}0D 0%, transparent 60%)`,
+        borderColor: `color-mix(in srgb, ${forecast.color} 20%, transparent)`,
+        background: `linear-gradient(135deg, color-mix(in srgb, ${forecast.color} 5%, transparent) 0%, transparent 60%)`,
         minHeight: 160,
       }}
     >
       <WeatherCanvas state={canvasState} color={forecast.color} />
 
-      <div className="relative z-10 p-5 space-y-3">
+      <div className="relative z-[var(--z-content)] p-5 space-y-3">
         {/* Focus Forecast row */}
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-2xl">{forecast.emoji}</span>
               <div>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-[#4B5563]">Focus Forecast</p>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">Focus Forecast</p>
                 <p className="text-base font-bold" style={{ color: forecast.color }}>{forecast.label}</p>
               </div>
             </div>
-            <p className="text-xs text-[#94A3B8]">{forecast.tagline}</p>
+            <p className="text-xs text-[var(--foreground-muted)]">{forecast.tagline}</p>
             <div className="flex gap-3 mt-1.5">
-              <span className="text-[10px] text-[#4B5563]">
-                Rec: <span className="font-semibold text-[#E2E8F0]">{forecast.recommendedSessionMin}m blocks</span>
+              <span className="text-[10px] text-[var(--foreground-subtle)]">
+                Rec: <span className="font-semibold text-[var(--foreground)]">{forecast.recommendedSessionMin}m blocks</span>
               </span>
-              <span className="text-[10px] text-[#4B5563]">
-                × <span className="font-semibold text-[#E2E8F0]">{forecast.recommendedBlocks}</span>
+              <span className="text-[10px] text-[var(--foreground-subtle)]">
+                × <span className="font-semibold text-[var(--foreground)]">{forecast.recommendedBlocks}</span>
               </span>
             </div>
           </div>
@@ -412,19 +412,19 @@ export default function WeatherWidget() {
           <div className="flex flex-col items-end gap-2 shrink-0">
             <div
               className="rounded-xl px-3 py-1 text-xs font-bold"
-              style={{ background: `${forecast.color}1A`, color: forecast.color }}
+              style={{ background: `color-mix(in srgb, ${forecast.color} 10%, transparent)`, color: forecast.color }}
             >
               Score {focusData.score}
             </div>
             <div className="flex items-center gap-1">
-              <span className="text-[9px] text-[#4B5563]">Meetings:</span>
+              <span className="text-[9px] text-[var(--foreground-subtle)]">Meetings:</span>
               <div className="flex gap-1">
                 {[0, 1, 2, 3, 4].map((n) => (
                   <button
                     key={n}
                     onClick={() => { setMeetings(n); loadFocus(n); }}
-                    className={`w-5 h-5 rounded text-[9px] font-bold transition-all ${meetings === n ? "text-white" : "text-[#4B5563]"}`}
-                    style={meetings === n ? { background: forecast.color } : { background: "rgba(124,58,237,0.08)" }}
+                    className={`w-5 h-5 rounded text-[9px] font-bold transition-all ${meetings === n ? "text-[var(--palette-white)]" : "text-[var(--foreground-subtle)]"}`}
+                    style={meetings === n ? { background: forecast.color } : { background: "var(--rgba-124-58-237-0_08)" }}
                   >
                     {n}
                   </button>
@@ -435,28 +435,28 @@ export default function WeatherWidget() {
         </div>
 
         {/* Divider */}
-        <div className="h-px bg-white/5" />
+        <div className="h-px bg-[var(--palette-white)]/5" />
 
         {/* Real weather row */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <MapPin size={10} className="text-[#4B5563] shrink-0" />
-            <span className="text-[10px] text-[#4B5563]">{realWeather?.city ?? city}</span>
+            <MapPin size={10} className="text-[var(--foreground-subtle)] shrink-0" />
+            <span className="text-[10px] text-[var(--foreground-subtle)]">{realWeather?.city ?? city}</span>
           </div>
 
           <div className="flex items-center gap-3">
             {loadingWeather && (
-              <div className="h-4 w-4 animate-spin rounded-full border border-[rgba(124,58,237,0.3)] border-t-[#7C3AED]" />
+              <div className="h-4 w-4 animate-spin rounded-full border border-[var(--rgba-124-58-237-0_3)] border-t-[var(--brand-600)]" />
             )}
             {!loadingWeather && weatherError && (
-              <span className="text-[10px] text-rose-400">City not found</span>
+              <span className="text-[10px] text-[var(--palette-rose-400)]">City not found</span>
             )}
             {!loadingWeather && realWeather && (
               <div className="flex items-center gap-2">
                 <span className="text-base leading-none">{realWeather.icon}</span>
                 <div className="text-right">
-                  <p className="text-sm font-bold text-[#E2E8F0]">{realWeather.temp}°C</p>
-                  <p className="text-[9px] text-[#4B5563]">{realWeather.condition}</p>
+                  <p className="text-sm font-bold text-[var(--foreground)]">{realWeather.temp}°C</p>
+                  <p className="text-[9px] text-[var(--foreground-subtle)]">{realWeather.condition}</p>
                 </div>
               </div>
             )}
@@ -464,21 +464,21 @@ export default function WeatherWidget() {
               <button
                 onClick={handleGeolocate}
                 disabled={geoLoading}
-                className="rounded-lg p-1 text-[#4B5563] hover:text-[#A78BFA] transition-colors disabled:opacity-50"
+                className="rounded-lg p-1 text-[var(--foreground-subtle)] hover:text-[var(--brand-400)] transition-colors disabled:opacity-50"
                 title="Detect my location"
               >
                 <Locate size={10} />
               </button>
               <button
                 onClick={() => city && loadWeather(city)}
-                className="rounded-lg p-1 text-[#4B5563] hover:text-[#94A3B8] transition-colors"
+                className="rounded-lg p-1 text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)] transition-colors"
                 title="Refresh weather"
               >
                 <RefreshCw size={10} />
               </button>
               <button
                 onClick={() => setEditingCity(true)}
-                className="text-[9px] text-[#4B5563] hover:text-[#A78BFA] transition-colors underline underline-offset-2"
+                className="text-[9px] text-[var(--foreground-subtle)] hover:text-[var(--brand-400)] transition-colors underline underline-offset-2"
               >
                 Change
               </button>

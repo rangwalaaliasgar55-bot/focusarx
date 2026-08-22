@@ -30,8 +30,8 @@ const PET_EMOJIS: Record<string, string> = {
 };
 
 const PET_COLORS: Record<string, string> = {
-  owl: "#F59E0B", fox: "#EF4444", dragon: "#8B5CF6",
-  robot: "#06B6D4", cat: "#EC4899", phoenix: "#F97316",
+  owl: "var(--color-warning)", fox: "var(--color-error)", dragon: "var(--brand-500)",
+  robot: "var(--palette-06b6d4)", cat: "var(--palette-ec4899)", phoenix: "var(--palette-f97316)",
 };
 
 // ── Accessory system ───────────────────────────────────────────────────────────
@@ -67,14 +67,14 @@ const ACCESSORY_DEFS: Record<string, AccessoryDef> = {
   "acc-fire-wings": { slot: "wings",   emoji: "🔥", label: "Fire Wings" },
   "acc-butterfly":  { slot: "wings",   emoji: "🦋", label: "Butterfly Wings" },
   // Frames
-  "frame-gold":     { slot: "frame",   emoji: "🏆", label: "Gold Frame",    frameColor: "#FFB800" },
-  "frame-diamond":  { slot: "frame",   emoji: "💎", label: "Diamond Frame", frameColor: "#A5F3FC" },
-  "frame-fire":     { slot: "frame",   emoji: "🔥", label: "Fire Ring",     frameColor: "#F97316" },
+  "frame-gold":     { slot: "frame",   emoji: "🏆", label: "Gold Frame",    frameColor: "var(--brand-gold)" },
+  "frame-diamond":  { slot: "frame",   emoji: "💎", label: "Diamond Frame", frameColor: "var(--palette-a5f3fc)" },
+  "frame-fire":     { slot: "frame",   emoji: "🔥", label: "Fire Ring",     frameColor: "var(--palette-f97316)" },
   // Background effects
-  "frame-nebula":    { slot: "bg", emoji: "🌌", label: "Nebula Aura",    bgColor: "rgba(139,92,246,0.22)" },
-  "effect-sparkle":  { slot: "bg", emoji: "✨", label: "Sparkle Aura",   bgColor: "rgba(167,139,250,0.18)" },
-  "effect-lightning":{ slot: "bg", emoji: "⚡", label: "Lightning Aura", bgColor: "rgba(250,204,21,0.15)" },
-  "effect-aurora":   { slot: "bg", emoji: "🌅", label: "Aurora Effect",  bgColor: "rgba(6,214,160,0.15)" },
+  "frame-nebula":    { slot: "bg", emoji: "🌌", label: "Nebula Aura",    bgColor: "var(--rgba-139-92-246-0_22)" },
+  "effect-sparkle":  { slot: "bg", emoji: "✨", label: "Sparkle Aura",   bgColor: "var(--rgba-167-139-250-0_18)" },
+  "effect-lightning":{ slot: "bg", emoji: "⚡", label: "Lightning Aura", bgColor: "var(--rgba-250-204-21-0_15)" },
+  "effect-aurora":   { slot: "bg", emoji: "🌅", label: "Aurora Effect",  bgColor: "var(--rgba-6-214-160-0_15)" },
 };
 
 function resolveAccessories(inventory: { itemId: string; equipped: boolean }[]) {
@@ -88,7 +88,7 @@ function resolveAccessories(inventory: { itemId: string; equipped: boolean }[]) 
 }
 
 // ── Confetti ───────────────────────────────────────────────────────────────────
-const CONFETTI_COLORS = ["#7C3AED","#A78BFA","#06D6A0","#FFB800","#F97316","#EC4899","#3B82F6","#FFFFFF","#FDE047"];
+const CONFETTI_COLORS = ["var(--brand-600)","var(--brand-400)","var(--brand-teal)","var(--brand-gold)","var(--palette-f97316)","var(--palette-ec4899)","var(--color-info)","var(--neutral-0)","var(--palette-fde047)"];
 
 function ConfettiEffect() {
   const particles = Array.from({ length: 32 }, (_, i) => ({
@@ -102,7 +102,7 @@ function ConfettiEffect() {
     rot: Math.random() * 360,
   }));
   return (
-    <div className="pointer-events-none absolute inset-x-[-20%] -top-12 h-[200%] overflow-hidden z-50">
+    <div className="pointer-events-none absolute inset-x-[-20%] -top-12 h-[200%] overflow-hidden z-[var(--z-modal)]">
       {particles.map(p => (
         <motion.div
           key={p.id}
@@ -123,8 +123,8 @@ function XpReward({ amount }: { amount: number }) {
       initial={{ opacity: 0, y: 0, scale: 0.7 }}
       animate={{ opacity: [0, 1, 1, 0], y: [0, -70], scale: [0.7, 1.3, 1.1] }}
       transition={{ duration: 2.2, ease: "easeOut" }}
-      className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 z-50 whitespace-nowrap text-xl font-black text-yellow-300"
-      style={{ textShadow: "0 0 16px rgba(251,191,36,0.9), 0 0 4px rgba(0,0,0,0.8)" }}
+      className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 z-[var(--z-modal)] whitespace-nowrap text-xl font-black text-[var(--palette-yellow-300)]"
+      style={{ textShadow: "0 0 16px var(--rgba-251-191-36-0_9), 0 0 4px var(--rgba-0-0-0-0_8)" }}
     >
       +{amount} Pet XP ⚡
     </motion.div>
@@ -272,7 +272,7 @@ export default function PetCompanion({
   if (!pet) return null;
 
   const petEmoji  = PET_EMOJIS[pet.petType] ?? "🦉";
-  const petColor  = PET_COLORS[pet.petType] ?? "#7C3AED";
+  const petColor  = PET_COLORS[pet.petType] ?? "var(--brand-600)";
   const accs      = resolveAccessories(inventory);
   const anim      = PHASE_ANIM[phase];
   const dur       = PHASE_DUR[phase];
@@ -295,13 +295,13 @@ export default function PetCompanion({
               initial={{ opacity: 0, y: 8, scale: 0.88 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.92 }}
-              transition={{ duration: 0.22 }}
-              className="relative rounded-2xl border border-[rgba(124,58,237,0.38)] bg-[rgba(10,12,24,0.97)] px-4 py-2 text-sm font-bold text-[#A78BFA] shadow-2xl backdrop-blur-md whitespace-nowrap max-w-[90vw] text-center"
-              style={{ textShadow: "0 0 10px rgba(167,139,250,0.5)" }}
+              transition={{ duration: 0.25 }}
+              className="relative rounded-2xl border border-[var(--rgba-124-58-237-0_38)] bg-[var(--rgba-10-12-24-0_97)] px-4 py-2 text-sm font-bold text-[var(--brand-400)] shadow-2xl backdrop-blur-md whitespace-nowrap max-w-[90vw] text-center"
+              style={{ textShadow: "0 0 10px var(--rgba-167-139-250-0_5)" }}
             >
               {message}
               {/* bubble tail */}
-              <div className="absolute -bottom-[7px] left-1/2 -translate-x-1/2 w-3.5 h-3.5 rotate-45 bg-[rgba(10,12,24,0.97)] border-b border-r border-[rgba(124,58,237,0.38)]" />
+              <div className="absolute -bottom-[7px] left-1/2 -translate-x-1/2 w-3.5 h-3.5 rotate-45 bg-[var(--rgba-10-12-24-0_97)] border-b border-r border-[var(--rgba-124-58-237-0_38)]" />
             </motion.div>
           )}
         </AnimatePresence>
@@ -327,7 +327,7 @@ export default function PetCompanion({
             inset: "-30%",
             background: bgColor
               ? `radial-gradient(circle, ${bgColor}, transparent 70%)`
-              : `radial-gradient(circle, ${petColor}28, transparent 70%)`,
+              : `radial-gradient(circle, color-mix(in srgb, ${petColor} 16%, transparent), transparent 70%)`,
           }}
           animate={{ opacity: phase === "complete" ? [0.7, 1, 0.7] : [0.4, 0.7, 0.4], scale: [1, 1.12, 1] }}
           transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
@@ -340,12 +340,12 @@ export default function PetCompanion({
             style={{
               inset: "-8%",
               border: `3px solid ${frameColor}`,
-              boxShadow: `0 0 18px ${frameColor}70, inset 0 0 8px ${frameColor}30`,
+              boxShadow: `0 0 18px color-mix(in srgb, ${frameColor} 44%, transparent), inset 0 0 8px color-mix(in srgb, ${frameColor} 19%, transparent)`,
             }}
           />
         )}
 
-        {/* Wings (behind pet, z-0) */}
+        {/* Wings (behind pet, z-[var(--z-base)]) */}
         {accs.wings && (
           <div className="absolute inset-0 flex items-center justify-between pointer-events-none" style={{ left: "-45%", right: "-45%", width: "190%", margin: "0 auto" }}>
             <motion.span
@@ -366,7 +366,7 @@ export default function PetCompanion({
         )}
 
         {/* ── Main pet emoji ─────────────────────────────────────────────── */}
-        <div className="relative z-10 flex items-center justify-center">
+        <div className="relative z-[var(--z-content)] flex items-center justify-center">
           {/* Breathing layer wraps blink key */}
           <motion.div
             animate={{ scale: [1, 1.035, 1] }}
@@ -376,7 +376,7 @@ export default function PetCompanion({
             <motion.div
               key={blinkKey}
               animate={{ scaleY: [1, 0.08, 1] }}
-              transition={{ duration: 0.1, times: [0, 0.5, 1] }}
+              transition={{ duration: 0.15, times: [0, 0.5, 1] }}
               style={{ transformOrigin: "center" }}
             >
               {/* Phase bounce layer */}
@@ -390,7 +390,7 @@ export default function PetCompanion({
                   msgIndexRef.current++;
                 }}
                 whileHover={{ scale: 1.1, transition: { duration: 0.15 } }}
-                whileTap={{ scale: 0.88, transition: { duration: 0.1 } }}
+                whileTap={{ scale: 0.88, transition: { duration: 0.15 } }}
                 title="Click your companion!"
               >
                 {petEmoji}
@@ -445,11 +445,11 @@ export default function PetCompanion({
       <div className="flex items-center gap-2 mt-1 flex-wrap justify-center">
         <span
           className="rounded-full px-2.5 py-0.5 text-[10px] font-black border"
-          style={{ color: petColor, borderColor: `${petColor}45`, background: `${petColor}18` }}
+          style={{ color: petColor, borderColor: `color-mix(in srgb, ${petColor} 27%, transparent)`, background: `color-mix(in srgb, ${petColor} 9%, transparent)` }}
         >
           LVL {pet.petLevel}
         </span>
-        <p className="text-xs font-semibold text-[#94A3B8]">
+        <p className="text-xs font-semibold text-[var(--foreground-muted)]">
           {pet.petName || pet.petType}
         </p>
         <AnimatePresence mode="wait">
@@ -462,9 +462,9 @@ export default function PetCompanion({
               transition={{ duration: 0.25 }}
               className="rounded-full px-2 py-0.5 text-[10px] font-bold"
               style={{
-                background: phase === "complete" ? "rgba(6,214,160,0.15)" : "rgba(124,58,237,0.12)",
-                color:      phase === "complete" ? "#06D6A0" : "#A78BFA",
-                border:     `1px solid ${phase === "complete" ? "rgba(6,214,160,0.3)" : "rgba(124,58,237,0.2)"}`,
+                background: phase === "complete" ? "var(--rgba-6-214-160-0_15)" : "var(--rgba-124-58-237-0_12)",
+                color:      phase === "complete" ? "var(--brand-teal)" : "var(--brand-400)",
+                border:     `1px solid ${phase === "complete" ? "var(--rgba-6-214-160-0_3)" : "var(--rgba-124-58-237-0_2)"}`,
               }}
             >
               {phaseLabel}

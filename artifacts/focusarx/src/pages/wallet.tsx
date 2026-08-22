@@ -14,15 +14,15 @@ function authHeaders() {
 }
 
 function txIcon(type: string) {
-  if (type.includes("earn") || type.includes("reward") || type.includes("bonus")) return <ArrowDownLeft size={14} className="text-[#10B981]" />;
-  if (type.includes("spend") || type.includes("purchase") || type.includes("shop")) return <ArrowUpRight size={14} className="text-[#EF4444]" />;
-  return <ArrowDownLeft size={14} className="text-[#A78BFA]" />;
+  if (type.includes("earn") || type.includes("reward") || type.includes("bonus")) return <ArrowDownLeft size={14} className="text-[var(--palette-10b981)]" />;
+  if (type.includes("spend") || type.includes("purchase") || type.includes("shop")) return <ArrowUpRight size={14} className="text-[var(--color-error)]" />;
+  return <ArrowDownLeft size={14} className="text-[var(--brand-400)]" />;
 }
 
 function txColor(type: string) {
-  if (type.includes("earn") || type.includes("reward") || type.includes("bonus")) return "text-[#10B981]";
-  if (type.includes("spend") || type.includes("purchase") || type.includes("shop")) return "text-[#EF4444]";
-  return "text-[#A78BFA]";
+  if (type.includes("earn") || type.includes("reward") || type.includes("bonus")) return "text-[var(--palette-10b981)]";
+  if (type.includes("spend") || type.includes("purchase") || type.includes("shop")) return "text-[var(--color-error)]";
+  return "text-[var(--brand-400)]";
 }
 
 export default function WalletPage() {
@@ -67,39 +67,39 @@ export default function WalletPage() {
         {wallet && (
           <StaggerContainer className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <StaggerItem><TiltCard intensity={10}>
-              <div className="rounded-2xl border border-[rgba(245,158,11,0.2)] bg-[rgba(245,158,11,0.06)] p-4 shadow-3d-violet">
+              <div className="rounded-2xl border border-[var(--rgba-245-158-11-0_2)] bg-[var(--rgba-245-158-11-0_06)] p-4 shadow-3d-violet">
                 <div className="flex items-center gap-2 mb-2">
                   <motion.span className="text-xl" whileHover={{ scale: 1.3, rotate: 15 }} transition={{ type: "spring", stiffness: 400 }}>🪙</motion.span>
-                  <span className="text-[10px] text-[#F59E0B] font-semibold uppercase tracking-wider">Coins</span>
+                  <span className="text-[10px] text-[var(--color-warning)] font-semibold uppercase tracking-wider">Coins</span>
                 </div>
-                <p className="text-2xl font-bold text-[#F59E0B]">{wallet.coins.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-[var(--color-warning)]">{wallet.coins.toLocaleString()}</p>
               </div>
             </TiltCard></StaggerItem>
             <StaggerItem><TiltCard intensity={10}>
-              <div className="rounded-2xl border border-[rgba(124,58,237,0.2)] bg-[rgba(124,58,237,0.06)] p-4 shadow-3d-violet">
+              <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-124-58-237-0_06)] p-4 shadow-3d-violet">
                 <div className="flex items-center gap-2 mb-2">
-                  <motion.div whileHover={{ scale: 1.2, rotate: -10 }}><Zap size={14} className="text-[#A78BFA]" /></motion.div>
-                  <span className="text-[10px] text-[#A78BFA] font-semibold uppercase tracking-wider">Total XP</span>
+                  <motion.div whileHover={{ scale: 1.2, rotate: -10 }}><Zap size={14} className="text-[var(--brand-400)]" /></motion.div>
+                  <span className="text-[10px] text-[var(--brand-400)] font-semibold uppercase tracking-wider">Total XP</span>
                 </div>
-                <p className="text-2xl font-bold text-[#A78BFA]">{wallet.totalXp.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-[var(--brand-400)]">{wallet.totalXp.toLocaleString()}</p>
               </div>
             </TiltCard></StaggerItem>
             <StaggerItem><TiltCard intensity={10}>
-              <div className="rounded-2xl border border-[rgba(6,214,160,0.2)] bg-[rgba(6,214,160,0.06)] p-4 shadow-3d-violet">
+              <div className="rounded-2xl border border-[var(--rgba-6-214-160-0_2)] bg-[var(--rgba-6-214-160-0_06)] p-4 shadow-3d-violet">
                 <div className="flex items-center gap-2 mb-2">
-                  <motion.div whileHover={{ scale: 1.2, y: -2 }}><TrendingUp size={14} className="text-[#06D6A0]" /></motion.div>
-                  <span className="text-[10px] text-[#06D6A0] font-semibold uppercase tracking-wider">Weekly XP</span>
+                  <motion.div whileHover={{ scale: 1.2, y: -2 }}><TrendingUp size={14} className="text-[var(--brand-teal)]" /></motion.div>
+                  <span className="text-[10px] text-[var(--brand-teal)] font-semibold uppercase tracking-wider">Weekly XP</span>
                 </div>
-                <p className="text-2xl font-bold text-[#06D6A0]">{wallet.weeklyXp.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-[var(--brand-teal)]">{wallet.weeklyXp.toLocaleString()}</p>
               </div>
             </TiltCard></StaggerItem>
             <StaggerItem><TiltCard intensity={10}>
-              <div className="rounded-2xl border border-[rgba(255,184,0,0.2)] bg-[rgba(255,184,0,0.06)] p-4 shadow-3d-violet">
+              <div className="rounded-2xl border border-[var(--rgba-255-184-0-0_2)] bg-[var(--rgba-255-184-0-0_06)] p-4 shadow-3d-violet">
                 <div className="flex items-center gap-2 mb-2">
                   <motion.span className="text-xl" animate={{ rotate: [0, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}>🏅</motion.span>
-                  <span className="text-[10px] text-[#FFB800] font-semibold uppercase tracking-wider">Level</span>
+                  <span className="text-[10px] text-[var(--brand-gold)] font-semibold uppercase tracking-wider">Level</span>
                 </div>
-                <p className="text-2xl font-bold text-[#FFB800]">{wallet.level}</p>
+                <p className="text-2xl font-bold text-[var(--brand-gold)]">{wallet.level}</p>
               </div>
             </TiltCard></StaggerItem>
           </StaggerContainer>
@@ -107,17 +107,17 @@ export default function WalletPage() {
 
         {/* XP bar */}
         {wallet && (
-          <div className="rounded-2xl border border-[rgba(124,58,237,0.15)] bg-[rgba(255,255,255,0.02)] p-4">
+          <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-255-255-255-0_02)] p-4">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-xs font-semibold text-[#A78BFA]">Level {level} → {level + 1}</span>
+              <span className="text-xs font-semibold text-[var(--brand-400)]">Level {level} → {level + 1}</span>
               <span className="text-xs text-[var(--foreground-subtle)]">{wallet.totalXp - xpStart} / {xpEnd - xpStart} XP</span>
             </div>
-            <div className="h-2 rounded-full bg-[rgba(124,58,237,0.12)] overflow-hidden">
+            <div className="h-2 rounded-full bg-[var(--rgba-124-58-237-0_12)] overflow-hidden">
               <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-[#7C3AED] to-[#A78BFA]"
+                className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)]"
                 initial={{ width: 0 }}
                 animate={{ width: `${Math.round(xpProgress * 100)}%` }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
               />
             </div>
           </div>
@@ -130,19 +130,19 @@ export default function WalletPage() {
           </h2>
           {loading && page === 1 ? (
             <div className="py-8 flex justify-center">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-700 border-t-[#7C3AED]" />
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--palette-zinc-700)] border-t-[var(--brand-600)]" />
             </div>
           ) : txs.length === 0 ? (
             <div className="py-12 flex flex-col items-center gap-3 text-center">
-              <Coins size={32} className="text-[#2D3748]" />
+              <Coins size={32} className="text-[var(--foreground-subtle)]" />
               <p className="text-sm text-[var(--foreground-subtle)]">No transactions yet. Complete sessions to earn coins!</p>
             </div>
           ) : (
             <motion.div variants={STAGGER} initial="initial" animate="animate" className="space-y-2">
               {txs.map((tx: any, i: number) => (
                 <motion.div key={tx.id ?? i} variants={CARD}
-                  className="flex items-center gap-3 rounded-xl border border-[rgba(255,255,255,0.04)] bg-[rgba(255,255,255,0.02)] px-4 py-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(255,255,255,0.04)]">
+                  className="flex items-center gap-3 rounded-xl border border-[var(--rgba-255-255-255-0_04)] bg-[var(--rgba-255-255-255-0_02)] px-4 py-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--rgba-255-255-255-0_04)]">
                     {txIcon(tx.type ?? "")}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -156,7 +156,7 @@ export default function WalletPage() {
               ))}
               {hasMore && (
                 <button onClick={() => setPage(p => p + 1)}
-                  className="w-full rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] py-2.5 text-xs text-[var(--muted-fg)] hover:text-[var(--foreground-muted)] transition-colors">
+                  className="w-full rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] py-2.5 text-xs text-[var(--muted-fg)] hover:text-[var(--foreground-muted)] transition-colors">
                   Load more…
                 </button>
               )}

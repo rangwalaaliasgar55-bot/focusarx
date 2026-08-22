@@ -1,3 +1,4 @@
+import { resolveColorToken } from "@/lib/color-tokens";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useRef, useMemo, Suspense, useState, useEffect } from "react";
 import * as THREE from "three";
@@ -12,7 +13,7 @@ function canUseWebGL(): boolean {
   }
 }
 
-const ORBITER_COLORS = ["#A78BFA", "#06D6A0", "#EC4899", "#F59E0B", "#38BDF8"];
+const ORBITER_COLORS = [resolveColorToken("--brand-400"), resolveColorToken("--brand-teal"), resolveColorToken("--palette-ec4899"), resolveColorToken("--color-warning"), resolveColorToken("--palette-38bdf8")];
 
 /**
  * A "planet" focal object — a distorted, glowing core wrapped in an orbital
@@ -56,11 +57,11 @@ function GeometricHero() {
       <Float speed={2} rotationIntensity={1.5} floatIntensity={2}>
         <Sphere args={[1, 96, 96]} scale={1.65}>
           <MeshDistortMaterial
-            color="#7C3AED"
+            color={resolveColorToken("--brand-600")}
             speed={2.4}
             distort={0.42}
             radius={1}
-            emissive="#4F46E5"
+            emissive={resolveColorToken("--palette-4f46e5")}
             emissiveIntensity={0.55}
             metalness={0.85}
             roughness={0.18}
@@ -72,8 +73,8 @@ function GeometricHero() {
       <mesh ref={ringRef} rotation={[Math.PI / 2.15, 0, 0]}>
         <torusGeometry args={[2.55, 0.05, 16, 160]} />
         <meshStandardMaterial
-          color="#A78BFA"
-          emissive="#7C3AED"
+          color={resolveColorToken("--brand-400")}
+          emissive={resolveColorToken("--brand-600")}
           emissiveIntensity={0.9}
           metalness={0.6}
           roughness={0.3}
@@ -83,7 +84,7 @@ function GeometricHero() {
       {/* Secondary halo ring */}
       <mesh rotation={[Math.PI / 1.9, 0.4, 0]}>
         <torusGeometry args={[3.05, 0.015, 12, 160]} />
-        <meshBasicMaterial color="#E879F9" transparent opacity={0.55} />
+        <meshBasicMaterial color={resolveColorToken("--palette-e879f9")} transparent opacity={0.55} />
       </mesh>
 
       {/* Orbiting satellites */}
@@ -117,21 +118,21 @@ export default function Hero3D() {
 
   if (webglOk === false) {
     return (
-      <div className="absolute inset-0 z-0 flex items-center justify-center opacity-20">
-        <div className="h-[300px] w-[300px] rounded-full bg-gradient-to-r from-purple-500 to-blue-500 blur-3xl animate-pulse" />
+      <div className="absolute inset-0 z-[var(--z-base)] flex items-center justify-center opacity-20">
+        <div className="h-[300px] w-[300px] rounded-full bg-gradient-to-r from-[var(--palette-purple-500)] to-[var(--palette-blue-500)] blur-3xl animate-pulse" />
       </div>
     );
   }
   if (webglOk === null) return null;
 
   return (
-    <div className="absolute inset-0 z-0 opacity-70">
+    <div className="absolute inset-0 z-[var(--z-base)] opacity-70">
       <Canvas shadows dpr={[1, 1.75]} gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}>
         <PerspectiveCamera makeDefault position={[0, 0, 8]} fov={50} />
         <ambientLight intensity={0.45} />
-        <pointLight position={[10, 10, 10]} intensity={1.2} color="#7C3AED" />
-        <spotLight position={[-10, 8, 10]} angle={0.2} penumbra={1} intensity={1.4} color="#E879F9" />
-        <pointLight position={[0, -8, -6]} intensity={0.6} color="#06D6A0" />
+        <pointLight position={[10, 10, 10]} intensity={1.2} color={resolveColorToken("--brand-600")} />
+        <spotLight position={[-10, 8, 10]} angle={0.2} penumbra={1} intensity={1.4} color={resolveColorToken("--palette-e879f9")} />
+        <pointLight position={[0, -8, -6]} intensity={0.6} color={resolveColorToken("--brand-teal")} />
         <Suspense fallback={null}>
           <Stars radius={80} depth={40} count={1800} factor={3.5} saturation={0.2} fade speed={0.6} />
           <GeometricHero />

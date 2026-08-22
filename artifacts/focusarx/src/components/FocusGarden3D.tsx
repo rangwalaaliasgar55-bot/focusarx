@@ -1,3 +1,4 @@
+import { resolveColorToken } from "@/lib/color-tokens";
 import { useFrame } from "@react-three/fiber";
 import { useRef, Suspense } from "react";
 import * as THREE from "three";
@@ -16,13 +17,13 @@ function Plant({ stage }: { stage: number }) {
       {/* Soil */}
       <mesh position={[0, -0.9, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[1.5, 32]} />
-        <meshStandardMaterial color="#402905" roughness={1} />
+        <meshStandardMaterial color={resolveColorToken("--palette-402905")} roughness={1} />
       </mesh>
 
       {/* Trunk/Stem */}
       <mesh position={[0, stage * 0.5 - 0.5, 0]}>
         <cylinderGeometry args={[0.1 + stage * 0.05, 0.2 + stage * 0.05, 1 + stage * 1, 16]} />
-        <meshStandardMaterial color={stage === 3 ? "#5D4037" : "#4ADE80"} />
+        <meshStandardMaterial color={stage === 3 ? resolveColorToken("--palette-5d4037") : resolveColorToken("--palette-4ade80")} />
       </mesh>
 
       {/* Leaves/Canopy */}
@@ -30,7 +31,7 @@ function Plant({ stage }: { stage: number }) {
         <Float key={i} speed={2} rotationIntensity={0.5} floatIntensity={0.5} >
           <mesh position={[0, i * 0.8 + 0.5, 0]}>
             <coneGeometry args={[0.5 + i * 0.5, 1, 16]} />
-            <meshStandardMaterial color={["#4ADE80", "#22C55E", "#16A34A", "#15803D"][i % 4]} />
+            <meshStandardMaterial color={[resolveColorToken("--palette-4ade80"), resolveColorToken("--color-success"), resolveColorToken("--palette-16a34a"), resolveColorToken("--palette-15803d")][i % 4]} />
           </mesh>
         </Float>
       ))}
@@ -39,7 +40,7 @@ function Plant({ stage }: { stage: number }) {
       {stage >= 2 && (
         <mesh position={[0, stage * 0.8 + 1.2, 0]}>
           <sphereGeometry args={[0.2, 16, 16]} />
-          <meshStandardMaterial color="#F472B6" emissive="#F472B6" emissiveIntensity={0.5} />
+          <meshStandardMaterial color={resolveColorToken("--brand-pink")} emissive={resolveColorToken("--brand-pink")} emissiveIntensity={0.5} />
         </mesh>
       )}
     </group>

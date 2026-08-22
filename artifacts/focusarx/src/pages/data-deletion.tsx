@@ -25,29 +25,29 @@ export default function DataDeletionPage() {
 
   return (
     <div className="relative min-h-[100dvh] forge-bg-glow">
-      <main id="main-content" className="relative z-10 mx-auto max-w-3xl px-4 py-10">
+      <main id="main-content" className="relative z-[var(--z-content)] mx-auto max-w-3xl px-4 py-10">
         <PageTransition>
-          <Link href="/" className="mb-6 inline-flex items-center gap-2 text-xs text-[#4B5563] hover:text-[#A78BFA] transition-colors">
+          <Link href="/" className="mb-6 inline-flex items-center gap-2 text-xs text-[var(--foreground-subtle)] hover:text-[var(--brand-400)] transition-colors">
             <ArrowLeft size={13} /> Back to FocusArx
           </Link>
 
           <header className="mb-8">
             <div className="mb-3 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[rgba(239,68,68,0.12)]">
-                <Trash2 size={20} className="text-[#F87171]" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--rgba-239-68-68-0_12)]">
+                <Trash2 size={20} className="text-[var(--palette-f87171)]" />
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#4B5563]">Legal</p>
-                <h1 className="text-2xl font-bold text-[#E2E8F0]">Data Deletion Request</h1>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">Legal</p>
+                <h1 className="text-2xl font-bold text-[var(--foreground)]">Data Deletion Request</h1>
               </div>
             </div>
-            <p className="text-xs text-[#4B5563]">Your right to be forgotten, explained clearly.</p>
+            <p className="text-xs text-[var(--foreground-subtle)]">Your right to be forgotten, explained clearly.</p>
           </header>
 
           <div className="space-y-6">
-            <div className="rounded-2xl border border-[rgba(124,58,237,0.1)] bg-[rgba(16,23,50,0.4)] p-6">
-              <h2 className="mb-3 text-base font-semibold text-[#E2E8F0]">What data we hold</h2>
-              <div className="space-y-2 text-sm text-[#94A3B8]">
+            <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_1)] bg-[var(--rgba-16-23-50-0_4)] p-6">
+              <h2 className="mb-3 text-base font-semibold text-[var(--foreground)]">What data we hold</h2>
+              <div className="space-y-2 text-sm text-[var(--foreground-muted)]">
                 <p>Your FocusArx account includes:</p>
                 <ul className="list-disc pl-5 space-y-1">
                   <li>Account details (name, email, hashed password)</li>
@@ -61,24 +61,24 @@ export default function DataDeletionPage() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[rgba(124,58,237,0.1)] bg-[rgba(16,23,50,0.4)] p-6">
-              <h2 className="mb-3 text-base font-semibold text-[#E2E8F0]">How to delete your data</h2>
-              <div className="space-y-4 text-sm text-[#94A3B8]">
+            <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_1)] bg-[var(--rgba-16-23-50-0_4)] p-6">
+              <h2 className="mb-3 text-base font-semibold text-[var(--foreground)]">How to delete your data</h2>
+              <div className="space-y-4 text-sm text-[var(--foreground-muted)]">
                 <p>You have two options:</p>
 
-                <div className="rounded-xl border border-[rgba(124,58,237,0.15)] bg-[rgba(124,58,237,0.05)] p-4">
-                  <p className="mb-1 font-medium text-[#E2E8F0]">Option 1 — Email request (recommended)</p>
-                  <p>Send an email to <span className="text-[#A78BFA]">focusarx@gmail.com</span> with the subject line "Data Deletion Request" and your registered email address. We will process your request within 30 days and send a confirmation.</p>
+                <div className="rounded-xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-124-58-237-0_05)] p-4">
+                  <p className="mb-1 font-medium text-[var(--foreground)]">Option 1 — Email request (recommended)</p>
+                  <p>Send an email to <span className="text-[var(--brand-400)]">focusarx@gmail.com</span> with the subject line "Data Deletion Request" and your registered email address. We will process your request within 30 days and send a confirmation.</p>
                 </div>
 
-                <div className="rounded-xl border border-[rgba(239,68,68,0.15)] bg-[rgba(239,68,68,0.04)] p-4">
-                  <p className="mb-2 font-medium text-[#E2E8F0]">Option 2 — Self-service deletion</p>
-                  <p className="mb-4">If you are signed in, you can initiate immediate deletion below. <strong className="text-[#F87171]">This action is irreversible.</strong> All your data will be permanently removed.</p>
+                <div className="rounded-xl border border-[var(--rgba-239-68-68-0_15)] bg-[var(--rgba-239-68-68-0_04)] p-4">
+                  <p className="mb-2 font-medium text-[var(--foreground)]">Option 2 — Self-service deletion</p>
+                  <p className="mb-4">If you are signed in, you can initiate immediate deletion below. <strong className="text-[var(--palette-f87171)]">This action is irreversible.</strong> All your data will be permanently removed.</p>
 
                   {step === "idle" && (
                     <button
                       onClick={() => setStep("confirm")}
-                      className="rounded-xl border border-[rgba(239,68,68,0.3)] bg-[rgba(239,68,68,0.1)] px-5 py-2.5 text-sm font-semibold text-[#F87171] transition-all hover:bg-[rgba(239,68,68,0.2)]"
+                      className="rounded-xl border border-[var(--rgba-239-68-68-0_3)] bg-[var(--rgba-239-68-68-0_1)] px-5 py-2.5 text-sm font-semibold text-[var(--palette-f87171)] transition-all hover:bg-[var(--rgba-239-68-68-0_2)]"
                     >
                       Request account deletion
                     </button>
@@ -86,18 +86,18 @@ export default function DataDeletionPage() {
 
                   {step === "confirm" && (
                     <div className="space-y-3">
-                      <p className="text-sm font-semibold text-[#F87171]">⚠️ Are you absolutely sure? This cannot be undone.</p>
+                      <p className="text-sm font-semibold text-[var(--palette-f87171)]">⚠️ Are you absolutely sure? This cannot be undone.</p>
                       <div className="flex gap-3">
                         <button
                           onClick={handleDelete}
                           disabled={loading}
-                          className="rounded-xl bg-[#EF4444] px-5 py-2.5 text-sm font-bold text-white transition-all hover:bg-[#DC2626] disabled:opacity-50"
+                          className="rounded-xl bg-[var(--color-error)] px-5 py-2.5 text-sm font-bold text-[var(--palette-white)] transition-all hover:bg-[var(--palette-dc2626)] disabled:opacity-50"
                         >
                           {loading ? "Processing…" : "Yes, delete everything"}
                         </button>
                         <button
                           onClick={() => setStep("idle")}
-                          className="rounded-xl border border-[rgba(124,58,237,0.2)] px-5 py-2.5 text-sm text-[#94A3B8] transition-all hover:text-[#E2E8F0]"
+                          className="rounded-xl border border-[var(--rgba-124-58-237-0_2)] px-5 py-2.5 text-sm text-[var(--foreground-muted)] transition-all hover:text-[var(--foreground)]"
                         >
                           Cancel
                         </button>
@@ -106,25 +106,25 @@ export default function DataDeletionPage() {
                   )}
 
                   {step === "done" && (
-                    <div className="flex items-center gap-3 rounded-xl border border-[rgba(74,222,128,0.2)] bg-[rgba(74,222,128,0.08)] p-4">
-                      <CheckCircle size={18} className="text-[#4ADE80]" />
+                    <div className="flex items-center gap-3 rounded-xl border border-[var(--rgba-74-222-128-0_2)] bg-[var(--rgba-74-222-128-0_08)] p-4">
+                      <CheckCircle size={18} className="text-[var(--palette-4ade80)]" />
                       <div>
-                        <p className="text-sm font-semibold text-[#4ADE80]">Deletion request received</p>
-                        <p className="text-xs text-[#94A3B8]">We'll process and confirm by email within 30 days.</p>
+                        <p className="text-sm font-semibold text-[var(--palette-4ade80)]">Deletion request received</p>
+                        <p className="text-xs text-[var(--foreground-muted)]">We'll process and confirm by email within 30 days.</p>
                       </div>
                     </div>
                   )}
 
                   {step === "error" && (
-                    <p className="text-sm text-[#F87171]">Something went wrong. Please email us directly at focusarx@gmail.com</p>
+                    <p className="text-sm text-[var(--palette-f87171)]">Something went wrong. Please email us directly at focusarx@gmail.com</p>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[rgba(124,58,237,0.1)] bg-[rgba(16,23,50,0.4)] p-6">
-              <h2 className="mb-3 text-base font-semibold text-[#E2E8F0]">After deletion</h2>
-              <div className="space-y-2 text-sm text-[#94A3B8]">
+            <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_1)] bg-[var(--rgba-16-23-50-0_4)] p-6">
+              <h2 className="mb-3 text-base font-semibold text-[var(--foreground)]">After deletion</h2>
+              <div className="space-y-2 text-sm text-[var(--foreground-muted)]">
                 <p>Once processed, all personal data associated with your account is permanently deleted from our databases. Anonymised, aggregated data (e.g. "X total focus hours were logged on this day across all users") may be retained for product analytics, as it cannot be linked back to you.</p>
                 <p>Backups are purged on a rolling 30-day cycle.</p>
               </div>
@@ -148,9 +148,9 @@ function LegalFooter() {
     { href: "/data-deletion", label: "Data Deletion" },
   ];
   return (
-    <div className="mt-10 flex flex-wrap gap-3 border-t border-[rgba(124,58,237,0.1)] pt-6">
+    <div className="mt-10 flex flex-wrap gap-3 border-t border-[var(--rgba-124-58-237-0_1)] pt-6">
       {links.map(({ href, label }) => (
-        <Link key={href} href={href} className="text-xs text-[#4B5563] hover:text-[#A78BFA] transition-colors">
+        <Link key={href} href={href} className="text-xs text-[var(--foreground-subtle)] hover:text-[var(--brand-400)] transition-colors">
           {label}
         </Link>
       ))}

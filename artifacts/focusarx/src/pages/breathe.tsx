@@ -16,10 +16,10 @@ const MODES: BreathMode[] = [
     label: "Box Breathing",
     description: "4-4-4-4 — Balance stress response",
     phases: [
-      { label: "Inhale",  seconds: 4, color: "#7C3AED" },
-      { label: "Hold",    seconds: 4, color: "#A78BFA" },
-      { label: "Exhale",  seconds: 4, color: "#4F46E5" },
-      { label: "Hold",    seconds: 4, color: "#6366F1" },
+      { label: "Inhale",  seconds: 4, color: "var(--brand-600)" },
+      { label: "Hold",    seconds: 4, color: "var(--brand-400)" },
+      { label: "Exhale",  seconds: 4, color: "var(--palette-4f46e5)" },
+      { label: "Hold",    seconds: 4, color: "var(--palette-6366f1)" },
     ],
   },
   {
@@ -27,9 +27,9 @@ const MODES: BreathMode[] = [
     label: "Deep Calm",
     description: "4-7-8 — Activate the relaxation response",
     phases: [
-      { label: "Inhale",  seconds: 4, color: "#0EA5E9" },
-      { label: "Hold",    seconds: 7, color: "#38BDF8" },
-      { label: "Exhale",  seconds: 8, color: "#0284C7" },
+      { label: "Inhale",  seconds: 4, color: "var(--palette-0ea5e9)" },
+      { label: "Hold",    seconds: 7, color: "var(--palette-38bdf8)" },
+      { label: "Exhale",  seconds: 8, color: "var(--palette-0284c7)" },
     ],
   },
   {
@@ -37,9 +37,9 @@ const MODES: BreathMode[] = [
     label: "Quick Reset",
     description: "2-2-2 — Fast energize before a session",
     phases: [
-      { label: "Inhale",  seconds: 2, color: "#10B981" },
-      { label: "Hold",    seconds: 2, color: "#34D399" },
-      { label: "Exhale",  seconds: 2, color: "#059669" },
+      { label: "Inhale",  seconds: 2, color: "var(--palette-10b981)" },
+      { label: "Hold",    seconds: 2, color: "var(--success)" },
+      { label: "Exhale",  seconds: 2, color: "var(--palette-059669)" },
     ],
   },
 ];
@@ -67,7 +67,7 @@ function BreathingCircle({
           cy={140}
           r={130}
           fill="none"
-          stroke={`${phase.color}18`}
+          stroke={`color-mix(in srgb, ${phase.color} 9%, transparent)`}
           strokeWidth={2}
         />
         <circle
@@ -93,13 +93,13 @@ function BreathingCircle({
         style={{
           width: 180,
           height: 180,
-          background: `radial-gradient(circle at 40% 35%, ${phase.color}40, ${phase.color}18)`,
-          border: `1.5px solid ${phase.color}44`,
-          boxShadow: `0 0 40px ${phase.color}22, 0 0 80px ${phase.color}11`,
+          background: `radial-gradient(circle at 40% 35%, color-mix(in srgb, ${phase.color} 25%, transparent), color-mix(in srgb, ${phase.color} 9%, transparent))`,
+          border: `1.5px solid color-mix(in srgb, ${phase.color} 27%, transparent)`,
+          boxShadow: `0 0 40px color-mix(in srgb, ${phase.color} 13%, transparent), 0 0 80px color-mix(in srgb, ${phase.color} 7%, transparent)`,
         }}
       >
         <div className="text-center">
-          <p className="text-3xl font-bold text-white">{secondsLeft}</p>
+          <p className="text-3xl font-bold text-[var(--palette-white)]">{secondsLeft}</p>
           <p className="text-sm font-medium" style={{ color: phase.color }}>{phase.label}</p>
         </div>
       </motion.div>
@@ -156,17 +156,17 @@ export default function BreathePage() {
   return (
     <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow flex flex-col">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.06),transparent_68%)] blur-3xl" />
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-[radial-gradient(circle_at_center,var(--rgba-124-58-237-0_06),transparent_68%)] blur-3xl" />
       </div>
 
-      <main className="relative z-10 mx-auto max-w-xl px-4 py-10 flex-1 flex flex-col">
+      <main className="relative z-[var(--z-content)] mx-auto max-w-xl px-4 py-10 flex-1 flex flex-col">
         <PageTransition>
           <header className="mb-8">
-            <p className="text-xs font-medium uppercase tracking-[0.22em] text-[#4B5563]">Recovery</p>
-            <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold text-[#E2E8F0] sm:text-3xl">
-              <Wind size={22} className="text-[#A78BFA]" /> Breathe
+            <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--foreground-subtle)]">Recovery</p>
+            <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold text-[var(--foreground)] sm:text-3xl">
+              <Wind size={22} className="text-[var(--brand-400)]" /> Breathe
             </h1>
-            <p className="mt-1 text-sm text-[#4B5563]">Micro-recovery between sessions. Activate your rest response.</p>
+            <p className="mt-1 text-sm text-[var(--foreground-subtle)]">Micro-recovery between sessions. Activate your rest response.</p>
           </header>
 
           {/* Mode selector */}
@@ -175,10 +175,10 @@ export default function BreathePage() {
               <button
                 key={m.id}
                 onClick={() => switchMode(m)}
-                className={`rounded-xl p-3 text-left border transition-all ${selectedMode.id === m.id ? "border-[rgba(124,58,237,0.5)] bg-[rgba(124,58,237,0.12)]" : "border-[rgba(124,58,237,0.12)] bg-[rgba(124,58,237,0.04)] hover:bg-[rgba(124,58,237,0.08)]"}`}
+                className={`rounded-xl p-3 text-left border transition-all ${selectedMode.id === m.id ? "border-[var(--rgba-124-58-237-0_5)] bg-[var(--rgba-124-58-237-0_12)]" : "border-[var(--rgba-124-58-237-0_12)] bg-[var(--rgba-124-58-237-0_04)] hover:bg-[var(--rgba-124-58-237-0_08)]"}`}
               >
-                <p className="text-xs font-semibold text-[#E2E8F0] leading-tight">{m.label}</p>
-                <p className="text-[9px] text-[#4B5563] mt-0.5">{m.description.split("—")[0]}</p>
+                <p className="text-xs font-semibold text-[var(--foreground)] leading-tight">{m.label}</p>
+                <p className="text-[9px] text-[var(--foreground-subtle)] mt-0.5">{m.description.split("—")[0]}</p>
               </button>
             ))}
           </div>
@@ -188,7 +188,7 @@ export default function BreathePage() {
             <BreathingCircle phase={phase} progress={progress} totalSeconds={phase.seconds} />
 
             {cycles > 0 && (
-              <p className="text-xs text-[#4B5563]">
+              <p className="text-xs text-[var(--foreground-subtle)]">
                 {cycles} cycle{cycles !== 1 ? "s" : ""} complete
               </p>
             )}
@@ -196,14 +196,14 @@ export default function BreathePage() {
             <div className="flex gap-3 mt-2">
               <button
                 onClick={() => running ? stop() : setRunning(true)}
-                className="rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] px-8 py-3 text-sm font-semibold text-white shadow-[0_0_20px_rgba(124,58,237,0.3)] transition-all hover:shadow-[0_0_30px_rgba(124,58,237,0.5)]"
+                className="rounded-xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] px-8 py-3 text-sm font-semibold text-[var(--palette-white)] shadow-[0_0_20px_var(--rgba-124-58-237-0_3)] transition-all hover:shadow-[0_0_30px_var(--rgba-124-58-237-0_5)]"
               >
                 {running ? "Stop" : "Start"}
               </button>
               {running && (
                 <button
                   onClick={stop}
-                  className="rounded-xl border border-[rgba(124,58,237,0.2)] px-5 py-3 text-sm text-[#6B7280] hover:text-[#94A3B8]"
+                  className="rounded-xl border border-[var(--rgba-124-58-237-0_2)] px-5 py-3 text-sm text-[var(--palette-6b7280)] hover:text-[var(--foreground-muted)]"
                 >
                   Reset
                 </button>
@@ -218,18 +218,18 @@ export default function BreathePage() {
                     className="h-1.5 rounded-full transition-all"
                     style={{
                       width: p.seconds * 8,
-                      background: (phaseIdx % selectedMode.phases.length) === i && running ? p.color : `${p.color}30`,
+                      background: (phaseIdx % selectedMode.phases.length) === i && running ? p.color : `color-mix(in srgb, ${p.color} 19%, transparent)`,
                     }}
                   />
-                  <span className="text-[9px] text-[#4B5563]">{p.label} {p.seconds}s</span>
+                  <span className="text-[9px] text-[var(--foreground-subtle)]">{p.label} {p.seconds}s</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Description */}
-          <div className="mt-8 rounded-2xl border border-[rgba(124,58,237,0.12)] bg-[rgba(124,58,237,0.04)] p-4 text-center">
-            <p className="text-xs text-[#94A3B8]">{selectedMode.description}</p>
+          <div className="mt-8 rounded-2xl border border-[var(--rgba-124-58-237-0_12)] bg-[var(--rgba-124-58-237-0_04)] p-4 text-center">
+            <p className="text-xs text-[var(--foreground-muted)]">{selectedMode.description}</p>
           </div>
         </PageTransition>
       </main>

@@ -289,7 +289,7 @@ export function SoundEngine({ sessionActive, sessionMinutesLeft, sessionTotalMin
     <div className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[11px] font-medium transition-all ${enabled ? "border-[rgba(124,58,237,0.4)] bg-[rgba(124,58,237,0.1)] text-[#A78BFA]" : "border-[rgba(124,58,237,0.15)] text-[#4B5563] hover:text-[#94A3B8]"}`}
+        className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[11px] font-medium transition-all ${enabled ? "border-[var(--rgba-124-58-237-0_4)] bg-[var(--rgba-124-58-237-0_1)] text-[var(--brand-400)]" : "border-[var(--rgba-124-58-237-0_15)] text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]"}`}
         title="Sound Engine"
       >
         {enabled ? <Volume2 size={12} /> : <VolumeX size={12} />}
@@ -297,12 +297,12 @@ export function SoundEngine({ sessionActive, sessionMinutesLeft, sessionTotalMin
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 z-50 w-56 rounded-2xl border border-[rgba(124,58,237,0.25)] bg-[rgba(8,12,28,0.97)] p-3 shadow-2xl backdrop-blur-xl">
+        <div className="absolute right-0 top-full mt-2 z-[var(--z-modal)] w-56 rounded-2xl border border-[var(--rgba-124-58-237-0_25)] bg-[var(--rgba-8-12-28-0_97)] p-3 shadow-2xl backdrop-blur-xl">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-[10px] uppercase tracking-wider text-[#4B5563]">Sound Engine</p>
+            <p className="text-[10px] uppercase tracking-wider text-[var(--foreground-subtle)]">Sound Engine</p>
             <button
               onClick={() => setEnabled((v) => !v)}
-              className={`rounded-lg px-2 py-0.5 text-[10px] font-semibold transition-colors ${enabled ? "bg-[rgba(124,58,237,0.2)] text-[#A78BFA]" : "bg-[rgba(74,222,128,0.1)] text-[#4ADE80]"}`}
+              className={`rounded-lg px-2 py-0.5 text-[10px] font-semibold transition-colors ${enabled ? "bg-[var(--rgba-124-58-237-0_2)] text-[var(--brand-400)]" : "bg-[var(--rgba-74-222-128-0_1)] text-[var(--palette-4ade80)]"}`}
             >
               {enabled ? "On" : "Off"}
             </button>
@@ -312,11 +312,11 @@ export function SoundEngine({ sessionActive, sessionMinutesLeft, sessionTotalMin
               <button
                 key={e.id}
                 onClick={() => { setEnv(e.id); if (!enabled) setEnabled(true); setOpen(false); }}
-                className={`w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs transition-all ${env === e.id && enabled ? "bg-[rgba(124,58,237,0.15)] text-[#A78BFA]" : "text-[#94A3B8] hover:bg-[rgba(124,58,237,0.08)]"}`}
+                className={`w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs transition-all ${env === e.id && enabled ? "bg-[var(--rgba-124-58-237-0_15)] text-[var(--brand-400)]" : "text-[var(--foreground-muted)] hover:bg-[var(--rgba-124-58-237-0_08)]"}`}
               >
                 <span>{e.emoji}</span>
                 <span>{e.label}</span>
-                {env === e.id && enabled && <span className="ml-auto text-[9px] text-[#7C3AED]">● LIVE</span>}
+                {env === e.id && enabled && <span className="ml-auto text-[9px] text-[var(--brand-600)]">● LIVE</span>}
               </button>
             ))}
           </div>

@@ -40,12 +40,12 @@ function statusFromState(
 }
 
 const borderByStatus: Record<WidgetStatus, string> = {
-  idle: "ring-zinc-600/80",
+  idle: "ring-[var(--palette-zinc-600)]/80",
   focused:
-    "ring-emerald-400/90 shadow-[0_0_24px_rgba(52,211,153,0.35)]",
+    "ring-[var(--palette-emerald-400)]/90 shadow-[0_0_24px_var(--rgba-52-211-153-0_35)]",
   distracted:
-    "ring-rose-500/90 shadow-[0_0_24px_rgba(244,63,94,0.4)] animate-pulse",
-  unknown: "ring-zinc-500/70",
+    "ring-[var(--palette-rose-500)]/90 shadow-[0_0_24px_var(--rgba-244-63-94-0_4)] animate-pulse",
+  unknown: "ring-[var(--palette-zinc-500)]/70",
 };
 
 const statusLabel: Record<WidgetStatus, string> = {
@@ -286,7 +286,7 @@ const dragOffset = useRef<{ x: number; y: number }>({
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={handleEnable}
-        className="relative rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg hover:shadow-emerald-500/40 transition-all duration-300"
+        className="relative rounded-full bg-gradient-to-r from-[var(--palette-emerald-500)] to-[var(--palette-teal-500)] px-6 py-2.5 text-sm font-semibold text-[var(--palette-white)] shadow-lg hover:shadow-[var(--palette-emerald-500)]/40 transition-all duration-[var(--duration-normal)]"
       >
         <span className="flex items-center gap-2">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
@@ -299,15 +299,15 @@ const dragOffset = useRef<{ x: number; y: number }>({
   return (
     <motion.div
       style={{ left: position.x, top: position.y }}
-      className="fixed z-50 touch-none select-none"
+      className="fixed z-[var(--z-modal)] touch-none select-none"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
     >
-      <motion.div 
-        className={`rounded-2xl bg-black/80 backdrop-blur-sm border-2 ${borderByStatus[widgetStatus]} p-2 shadow-2xl transition-all duration-300`}
-        whileHover={{ boxShadow: "0 0 32px rgba(0,0,0,0.5)" }}
+      <motion.div
+        className={`rounded-2xl bg-[var(--palette-black)]/80 backdrop-blur-sm border-2 ${borderByStatus[widgetStatus]} p-2 shadow-2xl transition-all duration-[var(--duration-normal)]`}
+        whileHover={{ boxShadow: "0 0 32px var(--rgba-0-0-0-0_5)" }}
       >
         <div className="overflow-hidden rounded-lg">
           <Webcam
@@ -328,19 +328,19 @@ const dragOffset = useRef<{ x: number; y: number }>({
 
         <div className="mt-2 flex items-center justify-between px-1">
           <div className="flex items-center gap-1.5">
-            <div className={`h-2.5 w-2.5 rounded-full transition-all duration-300 ${
-              widgetStatus === "focused" ? "bg-emerald-400 shadow-lg shadow-emerald-400/50" :
-              widgetStatus === "distracted" ? "bg-rose-500 shadow-lg shadow-rose-500/50 animate-pulse" :
-              widgetStatus === "unknown" ? "bg-zinc-500 animate-pulse" :
-              "bg-zinc-600"
+            <div className={`h-2.5 w-2.5 rounded-full transition-all duration-[var(--duration-normal)] ${
+              widgetStatus === "focused" ? "bg-[var(--palette-emerald-400)] shadow-lg shadow-[var(--palette-emerald-400)]/50" :
+              widgetStatus === "distracted" ? "bg-[var(--palette-rose-500)] shadow-lg shadow-[var(--palette-rose-500)]/50 animate-pulse" :
+              widgetStatus === "unknown" ? "bg-[var(--palette-zinc-500)] animate-pulse" :
+              "bg-[var(--palette-zinc-600)]"
             }`} />
-            <span className="text-xs font-semibold text-zinc-300">
+            <span className="text-xs font-semibold text-[var(--palette-zinc-300)]">
               {statusLabel[widgetStatus]}
             </span>
           </div>
-          <button 
+          <button
             onClick={handleClose}
-            className="text-zinc-500 hover:text-rose-400 transition-colors p-1 hover:bg-zinc-800/50 rounded"
+            className="text-[var(--palette-zinc-500)] hover:text-[var(--palette-rose-400)] transition-colors p-1 hover:bg-[var(--palette-zinc-800)]/50 rounded"
             title="Close monitor"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>

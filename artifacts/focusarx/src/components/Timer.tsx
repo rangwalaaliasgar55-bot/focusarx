@@ -36,9 +36,9 @@ import PetCompanion from "./PetCompanion";
 const MODES: TimerMode[] = ["focus", "break", "longBreak"];
 
 const MODEUI: Record<TimerMode, { icon: string; label: string; accent: string; pill: string }> = {
-  focus:     { icon: "⚔️", label: "Focus",      accent: "text-rose-400",    pill: "bg-rose-500/15 border-rose-500/30 text-rose-300" },
-  break:     { icon: "☕", label: "Break",      accent: "text-emerald-400", pill: "bg-emerald-500/15 border-emerald-500/30 text-emerald-300" },
-  longBreak: { icon: "🌙", label: "Long Break", accent: "text-violet-400",  pill: "bg-violet-500/15 border-violet-500/30 text-violet-300" },
+  focus:     { icon: "⚔️", label: "Focus",      accent: "text-[var(--palette-rose-400)]",    pill: "bg-[var(--palette-rose-500)]/15 border-[var(--palette-rose-500)]/30 text-[var(--palette-rose-300)]" },
+  break:     { icon: "☕", label: "Break",      accent: "text-[var(--palette-emerald-400)]", pill: "bg-[var(--palette-emerald-500)]/15 border-[var(--palette-emerald-500)]/30 text-[var(--palette-emerald-300)]" },
+  longBreak: { icon: "🌙", label: "Long Break", accent: "text-[var(--palette-violet-400)]",  pill: "bg-[var(--palette-violet-500)]/15 border-[var(--palette-violet-500)]/30 text-[var(--palette-violet-300)]" },
 };
 
 const LEVEL_AVATARS = ["🌱","⚡","🔥","💎","🌟","👑","🦅","🚀","🌌","🏆"];
@@ -229,6 +229,14 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     },
   });
 
+  useEffect(() => {
+    const startFromCommand = () => {
+      if (status !== "running") toggle();
+    };
+    window.addEventListener("focusarx:start-focus", startFromCommand);
+    return () => window.removeEventListener("focusarx:start-focus", startFromCommand);
+  }, [status, toggle]);
+
   const persistence = useSessionPersistence({
     getTimerSnapshot: getSnapshot,
     restoreTimer: restoreFromSnapshot,
@@ -412,10 +420,10 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
   if (!recoveryReady) {
     return (
       <div className="w-full max-w-md">
-        <div className="rounded-[2rem] border border-zinc-800 bg-zinc-900/80 p-8 shadow-2xl">
+        <div className="rounded-[2rem] border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/80 p-8 shadow-2xl">
           <motion.div animate={{ opacity: [0.3, 0.7, 0.3] }} transition={{ repeat: Infinity, duration: 1.5 }}
-            className="mx-auto h-52 w-52 rounded-full bg-zinc-800/40" />
-          <p className="mt-6 text-center text-sm text-zinc-500">Loading arena…</p>
+            className="mx-auto h-52 w-52 rounded-full bg-[var(--palette-zinc-800)]/40" />
+          <p className="mt-6 text-center text-sm text-[var(--palette-zinc-500)]">Loading arena…</p>
         </div>
       </div>
     );
@@ -445,8 +453,8 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
       transition={{ type: "spring", stiffness: 260, damping: 32 }}
     >
       <div
-        className={`relative overflow-hidden rounded-[2rem] border bg-[#0d0f17] ${isRunning ? "border-violet-500/30" : "border-zinc-800/80"} shadow-[0_32px_80px_-24px_rgba(0,0,0,0.7)]`}
-        style={typeTint ? { borderColor: `${typeTint.accent}35` } : undefined}
+        className={`relative overflow-hidden rounded-[2rem] border bg-[var(--palette-0d0f17)] ${isRunning ? "border-[var(--palette-violet-500)]/30" : "border-[var(--palette-zinc-800)]/80"} shadow-[0_32px_80px_-24px_var(--rgba-0-0-0-0_7)]`}
+        style={typeTint ? { borderColor: `color-mix(in srgb, ${typeTint.accent} 21%, transparent)` } : undefined}
       >
         {/* Animated background orb when running */}
         {isRunning && (
@@ -454,19 +462,19 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
             className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 h-64 w-64 rounded-full opacity-20 blur-3xl"
             animate={{ scale: [1, 1.15, 1], opacity: [0.15, 0.25, 0.15] }}
             transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-            style={{ background: typeTint?.accent ?? "#7C3AED" }}
+            style={{ background: typeTint?.accent ?? "var(--brand-600)" }}
           />
         )}
 
         {/* ── PLAYER HUD ──────────────────────────────────────────────── */}
-        <div className="relative px-6 pt-5 pb-3 border-b border-zinc-800/60">
+        <div className="relative px-6 pt-5 pb-3 border-b border-[var(--palette-zinc-800)]/60">
           <div className="flex items-center gap-3">
             {/* Avatar + level */}
             <div className="relative flex-shrink-0">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-zinc-800/80 text-2xl border border-zinc-700/50 shadow-inner">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--palette-zinc-800)]/80 text-2xl border border-[var(--palette-zinc-700)]/50 shadow-inner">
                 {avatar}
               </div>
-              <div className="absolute -bottom-1 -right-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-violet-600 text-[10px] font-black text-white px-1 border border-[#0d0f17]">
+              <div className="absolute -bottom-1 -right-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[var(--palette-violet-600)] text-[10px] font-black text-[var(--palette-white)] px-1 border border-[var(--palette-0d0f17)]">
                 {level}
               </div>
             </div>
@@ -474,27 +482,27 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
             {/* XP bar + info */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-bold text-zinc-300">Level {level}</span>
-                <span className="text-[10px] text-zinc-500">{totalXp.toLocaleString()} XP</span>
+                <span className="text-xs font-bold text-[var(--palette-zinc-300)]">Level {level}</span>
+                <span className="text-[10px] text-[var(--palette-zinc-500)]">{totalXp.toLocaleString()} XP</span>
               </div>
-              <div className="h-1.5 w-full rounded-full bg-zinc-800 overflow-hidden">
+              <div className="h-1.5 w-full rounded-full bg-[var(--palette-zinc-800)] overflow-hidden">
                 <motion.div
-                  className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500"
+                  className="h-full rounded-full bg-gradient-to-r from-[var(--palette-violet-500)] to-[var(--palette-fuchsia-500)]"
                   initial={false}
                   animate={{ width: `${xpPct}%` }}
-                  transition={{ duration: 0.6, ease: "easeOut" }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
                 />
               </div>
-              <div className="mt-1 flex items-center gap-3 text-[10px] text-zinc-600">
+              <div className="mt-1 flex items-center gap-3 text-[10px] text-[var(--palette-zinc-600)]">
                 <span>{xpEnd - totalXp} XP to level {level + 1}</span>
               </div>
             </div>
 
             {/* Coins */}
             <div className="flex flex-col items-end gap-1 flex-shrink-0">
-              <div className="flex items-center gap-1 rounded-lg bg-yellow-500/10 border border-yellow-500/20 px-2 py-1">
+              <div className="flex items-center gap-1 rounded-lg bg-[var(--palette-yellow-500)]/10 border border-[var(--palette-yellow-500)]/20 px-2 py-1">
                 <span className="text-sm">🪙</span>
-                <span className="text-xs font-bold text-yellow-400">{coins.toLocaleString()}</span>
+                <span className="text-xs font-bold text-[var(--palette-yellow-400)]">{coins.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -506,14 +514,14 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: "spring", stiffness: 300, damping: 14, delay: 0.3 }}
-                className="flex items-center gap-1.5 rounded-full border border-orange-500/25 bg-orange-500/10 px-3 py-1 text-xs font-bold text-orange-400"
+                className="flex items-center gap-1.5 rounded-full border border-[var(--palette-orange-500)]/25 bg-[var(--palette-orange-500)]/10 px-3 py-1 text-xs font-bold text-[var(--palette-orange-400)]"
               >
                 🔥 {currentStreak}-day streak
               </motion.div>
             ) : (
-              <div className="text-[11px] text-zinc-600">Start your streak today!</div>
+              <div className="text-[11px] text-[var(--palette-zinc-600)]">Start your streak today!</div>
             )}
-            <div className="text-[11px] text-zinc-600">
+            <div className="text-[11px] text-[var(--palette-zinc-600)]">
               {storageReady ? focusSessionsToday : 0} block{(storageReady ? focusSessionsToday : 0) !== 1 ? "s" : ""} today
             </div>
           </div>
@@ -521,7 +529,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
 
         {/* ── MODE TABS ───────────────────────────────────────────────── */}
         <div className="relative px-4 pt-4">
-          <div className="flex gap-1.5 rounded-xl bg-zinc-950/60 p-1 ring-1 ring-zinc-800/50">
+          <div className="flex gap-1.5 rounded-xl bg-[var(--palette-zinc-950)]/60 p-1 ring-1 ring-[var(--palette-zinc-800)]/50">
             {MODES.map((m) => {
               const active = mode === m;
               const ui = MODEUI[m];
@@ -531,14 +539,14 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
                   type="button"
                   disabled={!canPickMode}
                   onClick={() => selectMode(m)}
-                  className={`relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] font-semibold transition-all ${
-                    active ? "text-zinc-50" : "text-zinc-500 hover:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-40"
+                  className={`relative z-[var(--z-content)] flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] font-semibold transition-all ${
+                    active ? "text-[var(--palette-zinc-50)]" : "text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)] disabled:cursor-not-allowed disabled:opacity-40"
                   }`}
                 >
                   {active && (
                     <motion.span
                       layoutId="mode-pill"
-                      className="absolute inset-0 -z-10 rounded-lg bg-zinc-800/90 ring-1 ring-white/5 shadow-inner shadow-black/30"
+                      className="absolute inset-0 -z-[var(--z-content)] rounded-lg bg-[var(--palette-zinc-800)]/90 ring-1 ring-[var(--palette-white)]/5 shadow-inner shadow-[var(--palette-black)]/30"
                       transition={{ type: "spring", stiffness: 400, damping: 36 }}
                     />
                   )}
@@ -559,15 +567,15 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
               className="mt-3 w-full"
             >
               <div className="flex items-center justify-between mb-1 text-[10px] font-bold uppercase tracking-wider">
-                <span className="text-zinc-600">Procrastination HP</span>
-                <span className="text-rose-400">{Math.round((1 - progress) * 100)}% defeated</span>
+                <span className="text-[var(--palette-zinc-600)]">Procrastination HP</span>
+                <span className="text-[var(--palette-rose-400)]">{Math.round((1 - progress) * 100)}% defeated</span>
               </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-800">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--palette-zinc-800)]">
                 <motion.div
-                  className="h-full rounded-full bg-gradient-to-r from-rose-600 to-rose-400"
+                  className="h-full rounded-full bg-gradient-to-r from-[var(--palette-rose-600)] to-[var(--palette-rose-400)]"
                   initial={false}
                   animate={{ width: `${(1 - progress) * 100}%` }}
-                  transition={{ duration: 0.9, ease: [0.22, 0.61, 0.36, 1] }}
+                  transition={{ duration: 0.4, ease: [0.22, 0.61, 0.36, 1] }}
                 />
               </div>
             </motion.div>
@@ -591,7 +599,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
               completed={completedFocusSessions}
               total={DEFAULT_CONFIG.sessionsBeforeLongBreak}
             />
-            <p className="text-[10px] text-zinc-600 font-medium">
+            <p className="text-[10px] text-[var(--palette-zinc-600)] font-medium">
               {completedFocusSessions}/{DEFAULT_CONFIG.sessionsBeforeLongBreak} rounds
             </p>
           </div>
@@ -613,9 +621,9 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 4 }}
-                transition={{ duration: 0.2 }}
+                transition={{ duration: 0.15 }}
                 onClick={() => setShowExitConfirm(true)}
-                className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/8 px-4 py-2.5 text-xs font-bold text-emerald-400 transition-all hover:bg-emerald-500/15 hover:border-emerald-500/45 active:scale-95"
+                className="mt-4 flex items-center gap-2 rounded-xl border border-[var(--palette-emerald-500)]/25 bg-[var(--palette-emerald-500)]/8 px-4 py-2.5 text-xs font-bold text-[var(--palette-emerald-400)] transition-all hover:bg-[var(--palette-emerald-500)]/15 hover:border-[var(--palette-emerald-500)]/45 active:scale-95"
                 type="button"
               >
                 <svg width="13" height="13" viewBox="0 0 12 12" fill="none">
@@ -631,7 +639,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
             <button
               type="button"
               onClick={() => void requestNotificationAlerts()}
-              className="mt-3 rounded-lg border border-zinc-800 px-3 py-1.5 text-[11px] text-zinc-500 transition-colors hover:border-zinc-700 hover:text-zinc-300"
+              className="mt-3 rounded-lg border border-[var(--palette-zinc-800)] px-3 py-1.5 text-[11px] text-[var(--palette-zinc-500)] transition-colors hover:border-[var(--palette-zinc-700)] hover:text-[var(--palette-zinc-300)]"
             >
               🔔 Enable session alerts
             </button>
@@ -639,7 +647,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
         </div>
 
         {/* ── BOTTOM STRIP ────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between border-t border-zinc-800/60 px-5 py-3">
+        <div className="flex items-center justify-between border-t border-[var(--palette-zinc-800)]/60 px-5 py-3">
           <SoundEngine
             sessionActive={isRunning && mode === "focus"}
             sessionMinutesLeft={Math.floor(secondsLeft / 60)}
@@ -651,12 +659,12 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
               initial={{ opacity: 0, x: 8 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -4 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.15 }}
               className={`text-xs font-semibold ${modeUi.accent}`}
             >
               {isSaving ? (
-                <span className="flex items-center gap-1.5 text-zinc-500">
-                  <span className="h-1.5 w-1.5 animate-ping rounded-full bg-zinc-400/60" />
+                <span className="flex items-center gap-1.5 text-[var(--palette-zinc-500)]">
+                  <span className="h-1.5 w-1.5 animate-ping rounded-full bg-[var(--palette-zinc-400)]/60" />
                   Saving…
                 </span>
               ) : status === "running" ? (
@@ -685,7 +693,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.35 }}
+            transition={{ duration: 0.25 }}
           >
             <BreakActivityCard
               mode={mode}
@@ -720,7 +728,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
             initial={{ opacity: 0, y: 24, scale: 0.88 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.92 }}
-            transition={{ duration: 0.45, type: "spring", stiffness: 240, damping: 24 }}
+            transition={{ duration: 0.4, type: "spring", stiffness: 240, damping: 24 }}
             className="flex justify-center py-4"
           >
             <PetCompanion
@@ -794,21 +802,21 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-[var(--palette-black)]/75 backdrop-blur-sm p-4"
         >
           <motion.div
             initial={{ scale: 0.92, y: 16, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.92, y: 10, opacity: 0 }}
             transition={{ type: "spring", stiffness: 340, damping: 28 }}
-            className="w-full max-w-xs rounded-2xl border border-zinc-800 bg-[#0d0f17] p-5 shadow-2xl"
+            className="w-full max-w-xs rounded-2xl border border-[var(--palette-zinc-800)] bg-[var(--palette-0d0f17)] p-5 shadow-2xl"
           >
             <div className="mb-5 text-center">
-              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/15 ring-1 ring-amber-500/25 text-3xl">⚡</div>
-              <h3 className="text-sm font-black text-zinc-100">End focus session?</h3>
-              <p className="mt-1 text-xs text-zinc-500">
+              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--palette-amber-500)]/15 ring-1 ring-[var(--palette-amber-500)]/25 text-3xl">⚡</div>
+              <h3 className="text-sm font-black text-[var(--palette-zinc-100)]">End focus session?</h3>
+              <p className="mt-1 text-xs text-[var(--palette-zinc-500)]">
                 You've focused for{" "}
-                <span className="font-bold text-emerald-400">
+                <span className="font-bold text-[var(--palette-emerald-400)]">
                   {Math.floor(getActiveSeconds() / 60)}m {Math.floor(getActiveSeconds() % 60)}s
                 </span>
               </p>
@@ -817,24 +825,24 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
               <button
                 onClick={() => void handleCompleteEarly()}
                 disabled={isSaving}
-                className="w-full rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-left transition-all hover:bg-emerald-500/18 disabled:opacity-50"
+                className="w-full rounded-xl border border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/10 px-4 py-3 text-left transition-all hover:bg-[var(--palette-emerald-500)]/18 disabled:opacity-50"
               >
-                <p className="text-xs font-bold text-emerald-400">✅ Complete & Save Progress</p>
-                <p className="text-[10px] text-emerald-400/60 mt-0.5">Earn XP and coins for time spent</p>
+                <p className="text-xs font-bold text-[var(--palette-emerald-400)]">✅ Complete & Save Progress</p>
+                <p className="text-[10px] text-[var(--palette-emerald-400)]/60 mt-0.5">Earn XP and coins for time spent</p>
               </button>
               <button
                 onClick={() => setShowExitConfirm(false)}
-                className="w-full rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-3 text-left transition-all hover:border-violet-500/30"
+                className="w-full rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/60 px-4 py-3 text-left transition-all hover:border-[var(--palette-violet-500)]/30"
               >
-                <p className="text-xs font-bold text-zinc-200">▶ Continue Session</p>
-                <p className="text-[10px] text-zinc-600 mt-0.5">Keep the timer running</p>
+                <p className="text-xs font-bold text-[var(--palette-zinc-200)]">▶ Continue Session</p>
+                <p className="text-[10px] text-[var(--palette-zinc-600)] mt-0.5">Keep the timer running</p>
               </button>
               <button
                 onClick={handleCancelNoSave}
-                className="w-full rounded-xl border border-red-500/15 bg-red-500/8 px-4 py-3 text-left transition-all hover:bg-red-500/15"
+                className="w-full rounded-xl border border-[var(--palette-red-500)]/15 bg-[var(--palette-red-500)]/8 px-4 py-3 text-left transition-all hover:bg-[var(--palette-red-500)]/15"
               >
-                <p className="text-xs font-bold text-red-400">✕ Abandon Session</p>
-                <p className="text-[10px] text-red-400/60 mt-0.5">Discard all progress</p>
+                <p className="text-xs font-bold text-[var(--palette-red-400)]">✕ Abandon Session</p>
+                <p className="text-[10px] text-[var(--palette-red-400)]/60 mt-0.5">Discard all progress</p>
               </button>
             </div>
           </motion.div>

@@ -7,23 +7,23 @@ export default function PrivacyPage() {
   return (
     <div className="relative min-h-[100dvh] forge-bg-glow">
       <PageSEO {...PAGE_SEO.privacy} />
-      <main id="main-content" className="relative z-10 mx-auto max-w-3xl px-4 py-10">
+      <main id="main-content" className="relative z-[var(--z-content)] mx-auto max-w-3xl px-4 py-10">
         <PageTransition>
-          <Link href="/" className="mb-6 inline-flex items-center gap-2 text-xs text-[#4B5563] hover:text-[#A78BFA] transition-colors">
+          <Link href="/" className="mb-6 inline-flex items-center gap-2 text-xs text-[var(--foreground-subtle)] hover:text-[var(--brand-400)] transition-colors">
             <ArrowLeft size={13} /> Back to FocusArx
           </Link>
 
           <header className="mb-8">
             <div className="mb-3 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[rgba(124,58,237,0.15)]">
-                <Shield size={20} className="text-[#A78BFA]" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--rgba-124-58-237-0_15)]">
+                <Shield size={20} className="text-[var(--brand-400)]" />
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#4B5563]">Legal</p>
-                <h1 className="text-2xl font-bold text-[#E2E8F0]">Privacy Policy</h1>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">Legal</p>
+                <h1 className="text-2xl font-bold text-[var(--foreground)]">Privacy Policy</h1>
               </div>
             </div>
-            <p className="text-xs text-[#4B5563]">Last updated: August 2026</p>
+            <p className="text-xs text-[var(--foreground-subtle)]">Last updated: August 2026</p>
           </header>
 
           <div className="prose-legal space-y-8">
@@ -48,7 +48,7 @@ export default function PrivacyPage() {
             </Section>
 
             <Section title="4. Data Retention">
-              <p>We retain your account data for as long as your account is active. You can request deletion at any time via <Link href="/data-deletion" className="text-[#A78BFA] hover:underline">our data deletion page</Link>. Guest session data is eligible for purging after 30 days of inactivity.</p>
+              <p>We retain your account data for as long as your account is active. You can request deletion at any time via <Link href="/data-deletion" className="text-[var(--brand-400)] hover:underline">our data deletion page</Link>. Guest session data is eligible for purging after 30 days of inactivity.</p>
             </Section>
 
             <Section title="5. Cookies & Local Storage">
@@ -60,11 +60,11 @@ export default function PrivacyPage() {
             </Section>
 
             <Section title="7. Your Rights">
-              <p>Depending on your jurisdiction, you may have rights to access, correct, or delete your personal data. Contact us or use the <Link href="/data-deletion" className="text-[#A78BFA] hover:underline">data deletion page</Link> to exercise these rights.</p>
+              <p>Depending on your jurisdiction, you may have rights to access, correct, or delete your personal data. Contact us or use the <Link href="/data-deletion" className="text-[var(--brand-400)] hover:underline">data deletion page</Link> to exercise these rights.</p>
             </Section>
 
             <Section title="8. Contact">
-              <p>Questions about this policy? Reach us at <span className="text-[#A78BFA]">focusarx@gmail.com</span></p>
+              <p>Questions about this policy? Reach us at <span className="text-[var(--brand-400)]">focusarx@gmail.com</span></p>
             </Section>
           </div>
 
@@ -77,9 +77,9 @@ export default function PrivacyPage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-[rgba(124,58,237,0.1)] bg-[rgba(16,23,50,0.4)] p-6">
-      <h2 className="mb-3 text-base font-semibold text-[#E2E8F0]">{title}</h2>
-      <div className="space-y-2 text-sm leading-relaxed text-[#94A3B8]">{children}</div>
+    <section className="rounded-2xl border border-[var(--rgba-124-58-237-0_1)] bg-[var(--rgba-16-23-50-0_4)] p-6">
+      <h2 className="mb-3 text-base font-semibold text-[var(--foreground)]">{title}</h2>
+      <div className="space-y-2 text-sm leading-relaxed text-[var(--foreground-muted)]">{children}</div>
     </section>
   );
 }
@@ -94,9 +94,9 @@ function LegalFooter() {
     { href: "/data-deletion", label: "Data Deletion" },
   ];
   return (
-    <div className="mt-10 flex flex-wrap gap-3 border-t border-[rgba(124,58,237,0.1)] pt-6">
+    <div className="mt-10 flex flex-wrap gap-3 border-t border-[var(--rgba-124-58-237-0_1)] pt-6">
       {links.map(({ href, label }) => (
-        <Link key={href} href={href} className="text-xs text-[#4B5563] hover:text-[#A78BFA] transition-colors">
+        <Link key={href} href={href} className="text-xs text-[var(--foreground-subtle)] hover:text-[var(--brand-400)] transition-colors">
           {label}
         </Link>
       ))}

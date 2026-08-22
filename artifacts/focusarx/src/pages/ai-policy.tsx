@@ -5,32 +5,32 @@ import { Sparkles, ArrowLeft } from "lucide-react";
 export default function AiPolicyPage() {
   return (
     <div className="relative min-h-[100dvh] forge-bg-glow">
-      <main id="main-content" className="relative z-10 mx-auto max-w-3xl px-4 py-10">
+      <main id="main-content" className="relative z-[var(--z-content)] mx-auto max-w-3xl px-4 py-10">
         <PageTransition>
-          <Link href="/" className="mb-6 inline-flex items-center gap-2 text-xs text-[#4B5563] hover:text-[#A78BFA] transition-colors">
+          <Link href="/" className="mb-6 inline-flex items-center gap-2 text-xs text-[var(--foreground-subtle)] hover:text-[var(--brand-400)] transition-colors">
             <ArrowLeft size={13} /> Back to FocusArx
           </Link>
 
           <header className="mb-8">
             <div className="mb-3 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[rgba(124,58,237,0.15)]">
-                <Sparkles size={20} className="text-[#A78BFA]" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--rgba-124-58-237-0_15)]">
+                <Sparkles size={20} className="text-[var(--brand-400)]" />
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#4B5563]">Legal</p>
-                <h1 className="text-2xl font-bold text-[#E2E8F0]">AI Usage Policy</h1>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">Legal</p>
+                <h1 className="text-2xl font-bold text-[var(--foreground)]">AI Usage Policy</h1>
               </div>
             </div>
-            <p className="text-xs text-[#4B5563]">Last updated: August 2026</p>
+            <p className="text-xs text-[var(--foreground-subtle)]">Last updated: August 2026</p>
           </header>
 
           <div className="space-y-8">
             <Section title="AI Features in FocusArx">
               <p>FocusArx uses artificial intelligence to power two core features:</p>
               <ul>
-                <li><strong className="text-[#E2E8F0]">FocusArx Coach</strong> — A conversational productivity coach powered by Groq's Llama 3 model that provides personalised focus tips, motivation, and session-aware guidance.</li>
-                <li><strong className="text-[#E2E8F0]">AI Study Roadmap</strong> — A roadmap generator powered by Google Gemini 2.5 Flash that creates structured learning paths for any subject.</li>
-                <li><strong className="text-[#E2E8F0]">Webcam Attention Monitoring</strong> — Powered by MediaPipe running <em>entirely in your browser</em>. No video is sent to any server.</li>
+                <li><strong className="text-[var(--foreground)]">FocusArx Coach</strong> — A conversational productivity coach powered by Groq's Llama 3 model that provides personalised focus tips, motivation, and session-aware guidance.</li>
+                <li><strong className="text-[var(--foreground)]">AI Study Roadmap</strong> — A roadmap generator powered by Google Gemini 2.5 Flash that creates structured learning paths for any subject.</li>
+                <li><strong className="text-[var(--foreground)]">Webcam Attention Monitoring</strong> — Powered by MediaPipe running <em>entirely in your browser</em>. No video is sent to any server.</li>
               </ul>
             </Section>
 
@@ -48,8 +48,8 @@ export default function AiPolicyPage() {
 
             <Section title="AI Providers & Their Policies">
               <ul>
-                <li><strong className="text-[#E2E8F0]">Groq (Coach)</strong> — Requests are processed via Groq Cloud. See <a href="https://groq.com/privacy-policy/" target="_blank" rel="noopener noreferrer" className="text-[#A78BFA] hover:underline">Groq's Privacy Policy</a>.</li>
-                <li><strong className="text-[#E2E8F0]">Google Gemini (Roadmap)</strong> — Requests use the Gemini API. See <a href="https://ai.google.dev/terms" target="_blank" rel="noopener noreferrer" className="text-[#A78BFA] hover:underline">Google AI Terms</a>.</li>
+                <li><strong className="text-[var(--foreground)]">Groq (Coach)</strong> — Requests are processed via Groq Cloud. See <a href="https://groq.com/privacy-policy/" target="_blank" rel="noopener noreferrer" className="text-[var(--brand-400)] hover:underline">Groq's Privacy Policy</a>.</li>
+                <li><strong className="text-[var(--foreground)]">Google Gemini (Roadmap)</strong> — Requests use the Gemini API. See <a href="https://ai.google.dev/terms" target="_blank" rel="noopener noreferrer" className="text-[var(--brand-400)] hover:underline">Google AI Terms</a>.</li>
               </ul>
             </Section>
 
@@ -67,7 +67,7 @@ export default function AiPolicyPage() {
             </Section>
 
             <Section title="Contact">
-              <p>Questions about our AI usage? Contact <span className="text-[#A78BFA]">focusarx@gmail.com</span></p>
+              <p>Questions about our AI usage? Contact <span className="text-[var(--brand-400)]">focusarx@gmail.com</span></p>
             </Section>
           </div>
 
@@ -80,9 +80,9 @@ export default function AiPolicyPage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-[rgba(124,58,237,0.1)] bg-[rgba(16,23,50,0.4)] p-6">
-      <h2 className="mb-3 text-base font-semibold text-[#E2E8F0]">{title}</h2>
-      <div className="space-y-2 text-sm leading-relaxed text-[#94A3B8] [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-2">{children}</div>
+    <section className="rounded-2xl border border-[var(--rgba-124-58-237-0_1)] bg-[var(--rgba-16-23-50-0_4)] p-6">
+      <h2 className="mb-3 text-base font-semibold text-[var(--foreground)]">{title}</h2>
+      <div className="space-y-2 text-sm leading-relaxed text-[var(--foreground-muted)] [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-2">{children}</div>
     </section>
   );
 }
@@ -97,9 +97,9 @@ function LegalFooter() {
     { href: "/data-deletion", label: "Data Deletion" },
   ];
   return (
-    <div className="mt-10 flex flex-wrap gap-3 border-t border-[rgba(124,58,237,0.1)] pt-6">
+    <div className="mt-10 flex flex-wrap gap-3 border-t border-[var(--rgba-124-58-237-0_1)] pt-6">
       {links.map(({ href, label }) => (
-        <Link key={href} href={href} className="text-xs text-[#4B5563] hover:text-[#A78BFA] transition-colors">
+        <Link key={href} href={href} className="text-xs text-[var(--foreground-subtle)] hover:text-[var(--brand-400)] transition-colors">
           {label}
         </Link>
       ))}

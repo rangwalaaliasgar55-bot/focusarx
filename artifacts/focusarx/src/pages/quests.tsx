@@ -13,9 +13,9 @@ function authHeaders() {
 }
 
 const DIFF_STYLE: Record<string, { color: string; bg: string; border: string }> = {
-  easy:   { color: "#10B981", bg: "rgba(16,185,129,0.08)",  border: "rgba(16,185,129,0.2)"  },
-  medium: { color: "#F59E0B", bg: "rgba(245,158,11,0.08)",  border: "rgba(245,158,11,0.2)"  },
-  hard:   { color: "#EF4444", bg: "rgba(239,68,68,0.08)",   border: "rgba(239,68,68,0.2)"   },
+  easy:   { color: "var(--palette-10b981)", bg: "var(--rgba-16-185-129-0_08)",  border: "var(--rgba-16-185-129-0_2)"  },
+  medium: { color: "var(--color-warning)", bg: "var(--rgba-245-158-11-0_08)",  border: "var(--rgba-245-158-11-0_2)"  },
+  hard:   { color: "var(--color-error)", bg: "var(--rgba-239-68-68-0_08)",   border: "var(--rgba-239-68-68-0_2)"   },
 };
 
 function QuestCard({ progress, onClaim, claiming }: { progress: any; onClaim: (id: string) => void; claiming: string | null }) {
@@ -29,52 +29,52 @@ function QuestCard({ progress, onClaim, claiming }: { progress: any; onClaim: (i
   return (
     <motion.div variants={CARD}
       className="rounded-2xl border p-4 transition-all"
-      style={{ borderColor: isComplete && !isClaimed ? "rgba(6,214,160,0.4)" : "rgba(255,255,255,0.06)", background: isComplete && !isClaimed ? "rgba(6,214,160,0.04)" : "rgba(255,255,255,0.02)" }}>
+      style={{ borderColor: isComplete && !isClaimed ? "var(--rgba-6-214-160-0_4)" : "var(--rgba-255-255-255-0_06)", background: isComplete && !isClaimed ? "var(--rgba-6-214-160-0_04)" : "var(--rgba-255-255-255-0_02)" }}>
       <div className="flex items-start gap-3">
         <div className="text-2xl shrink-0">{quest.icon}</div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
-            <h3 className="text-sm font-semibold text-[#E2E8F0]">{quest.title}</h3>
+            <h3 className="text-sm font-semibold text-[var(--foreground)]">{quest.title}</h3>
             <span className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase" style={{ color: diff.color, background: diff.bg, border: `1px solid ${diff.border}` }}>
               {quest.difficulty}
             </span>
-            {isClaimed && <span className="rounded-full bg-[rgba(16,185,129,0.12)] border border-[rgba(16,185,129,0.25)] px-2 py-0.5 text-[9px] font-bold text-[#10B981]">CLAIMED</span>}
+            {isClaimed && <span className="rounded-full bg-[var(--rgba-16-185-129-0_12)] border border-[var(--rgba-16-185-129-0_25)] px-2 py-0.5 text-[9px] font-bold text-[var(--palette-10b981)]">CLAIMED</span>}
           </div>
-          <p className="text-[11px] text-[#4B5563] mb-3">{quest.description}</p>
+          <p className="text-[11px] text-[var(--foreground-subtle)] mb-3">{quest.description}</p>
 
           {/* Progress bar */}
           <div className="mb-2">
             <div className="flex justify-between items-center mb-1">
-              <span className="text-[10px] text-[#4B5563]">{progress.current ?? 0} / {quest.target} {quest.metric?.replace(/_/g, " ")}</span>
+              <span className="text-[10px] text-[var(--foreground-subtle)]">{progress.current ?? 0} / {quest.target} {quest.metric?.replace(/_/g, " ")}</span>
               <span className="text-[10px] font-semibold" style={{ color: diff.color }}>{pct}%</span>
             </div>
-            <div className="h-1.5 rounded-full bg-[rgba(255,255,255,0.06)] overflow-hidden">
+            <div className="h-1.5 rounded-full bg-[var(--rgba-255-255-255-0_06)] overflow-hidden">
               <motion.div
                 className="h-full rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: `${pct}%` }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-                style={{ background: isComplete ? "#10B981" : diff.color }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                style={{ background: isComplete ? "var(--palette-10b981)" : diff.color }}
               />
             </div>
           </div>
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1 text-[10px] text-[#A78BFA]"><Zap size={10} /> +{quest.xpReward} XP</span>
-              <span className="flex items-center gap-1 text-[10px] text-[#F59E0B]">🪙 +{quest.coinReward}</span>
+              <span className="flex items-center gap-1 text-[10px] text-[var(--brand-400)]"><Zap size={10} /> +{quest.xpReward} XP</span>
+              <span className="flex items-center gap-1 text-[10px] text-[var(--color-warning)]">🪙 +{quest.coinReward}</span>
             </div>
             {isComplete && !isClaimed && (
               <button
                 onClick={() => onClaim(quest.id)}
                 disabled={!!claiming}
-                className="rounded-xl bg-[rgba(6,214,160,0.2)] border border-[rgba(6,214,160,0.3)] px-3 py-1.5 text-xs font-bold text-[#06D6A0] hover:bg-[rgba(6,214,160,0.3)] transition-all disabled:opacity-50"
+                className="rounded-xl bg-[var(--rgba-6-214-160-0_2)] border border-[var(--rgba-6-214-160-0_3)] px-3 py-1.5 text-xs font-bold text-[var(--brand-teal)] hover:bg-[var(--rgba-6-214-160-0_3)] transition-all disabled:opacity-50"
               >
                 {claiming === quest.id ? "Claiming…" : "Claim!"}
               </button>
             )}
             {isComplete && isClaimed && (
-              <CheckCircle size={16} className="text-[#10B981]" />
+              <CheckCircle size={16} className="text-[var(--palette-10b981)]" />
             )}
           </div>
         </div>
@@ -123,16 +123,16 @@ export default function QuestsPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-[#E2E8F0]">Quests <span className="text-[#F59E0B]">🗺️</span></h1>
-            <p className="text-sm text-[#4B5563] mt-0.5">Complete challenges, earn rewards</p>
+            <h1 className="text-2xl font-bold text-[var(--foreground)]">Quests <span className="text-[var(--color-warning)]">🗺️</span></h1>
+            <p className="text-sm text-[var(--foreground-subtle)] mt-0.5">Complete challenges, earn rewards</p>
           </div>
           <div className="flex items-center gap-2">
             {claimable > 0 && (
-              <span className="rounded-full bg-[rgba(6,214,160,0.15)] border border-[rgba(6,214,160,0.3)] px-3 py-1 text-xs font-bold text-[#06D6A0]">
+              <span className="rounded-full bg-[var(--rgba-6-214-160-0_15)] border border-[var(--rgba-6-214-160-0_3)] px-3 py-1 text-xs font-bold text-[var(--brand-teal)]">
                 {claimable} ready to claim!
               </span>
             )}
-            <button onClick={load} className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] p-2 text-[#4B5563] hover:text-[#94A3B8] transition-colors">
+            <button onClick={load} className="rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] p-2 text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)] transition-colors">
               <RefreshCw size={14} />
             </button>
           </div>
@@ -140,19 +140,19 @@ export default function QuestsPage() {
 
         {loading ? (
           <div className="py-12 flex justify-center">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-700 border-t-[#7C3AED]" />
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--palette-zinc-700)] border-t-[var(--brand-600)]" />
           </div>
         ) : (
           <>
             {/* Daily */}
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Clock size={14} className="text-[#06D6A0]" />
-                <h2 className="text-xs font-bold uppercase tracking-wider text-[#06D6A0]">Daily Quests</h2>
-                <span className="text-[10px] text-[#4B5563]">(resets at midnight)</span>
+                <Clock size={14} className="text-[var(--brand-teal)]" />
+                <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--brand-teal)]">Daily Quests</h2>
+                <span className="text-[10px] text-[var(--foreground-subtle)]">(resets at midnight)</span>
               </div>
               {quests.daily.length === 0 ? (
-                <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] p-6 text-center text-sm text-[#4B5563]">
+                <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] p-6 text-center text-sm text-[var(--foreground-subtle)]">
                   Daily quests loading… Complete a session to unlock them!
                 </div>
               ) : (
@@ -165,12 +165,12 @@ export default function QuestsPage() {
             {/* Weekly */}
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Calendar size={14} className="text-[#A78BFA]" />
-                <h2 className="text-xs font-bold uppercase tracking-wider text-[#A78BFA]">Weekly Quests</h2>
-                <span className="text-[10px] text-[#4B5563]">(resets Monday)</span>
+                <Calendar size={14} className="text-[var(--brand-400)]" />
+                <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--brand-400)]">Weekly Quests</h2>
+                <span className="text-[10px] text-[var(--foreground-subtle)]">(resets Monday)</span>
               </div>
               {quests.weekly.length === 0 ? (
-                <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] p-6 text-center text-sm text-[#4B5563]">
+                <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] p-6 text-center text-sm text-[var(--foreground-subtle)]">
                   No weekly quests yet. Keep completing sessions to unlock them!
                 </div>
               ) : (
@@ -185,7 +185,7 @@ export default function QuestsPage() {
         <AnimatePresence>
           {toast && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-              className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 rounded-2xl border border-[rgba(124,58,237,0.3)] bg-[#0d0f1c] px-5 py-3 text-sm font-semibold text-[#A78BFA] shadow-lg">
+              className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[var(--z-modal)] rounded-2xl border border-[var(--rgba-124-58-237-0_3)] bg-[var(--palette-0d0f1c)] px-5 py-3 text-sm font-semibold text-[var(--brand-400)] shadow-lg">
               ✅ {toast}
             </motion.div>
           )}

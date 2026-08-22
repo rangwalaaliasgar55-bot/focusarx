@@ -12,12 +12,12 @@ interface SoundDef {
 }
 
 const SOUNDS: SoundDef[] = [
-  { id: "rain",       label: "Rain",         emoji: "🌧️", color: "#60A5FA" },
-  { id: "ocean",      label: "Ocean",        emoji: "🌊", color: "#0EA5E9" },
-  { id: "forest",     label: "Forest",       emoji: "🌲", color: "#22C55E" },
-  { id: "storm",      label: "Storm",        emoji: "⛈️", color: "#8B5CF6" },
-  { id: "whitenoise", label: "White Noise",  emoji: "🌫️", color: "#94A3B8" },
-  { id: "cafe",       label: "Café Hum",     emoji: "☕", color: "#D97706" },
+  { id: "rain",       label: "Rain",         emoji: "🌧️", color: "var(--info)" },
+  { id: "ocean",      label: "Ocean",        emoji: "🌊", color: "var(--palette-0ea5e9)" },
+  { id: "forest",     label: "Forest",       emoji: "🌲", color: "var(--color-success)" },
+  { id: "storm",      label: "Storm",        emoji: "⛈️", color: "var(--brand-500)" },
+  { id: "whitenoise", label: "White Noise",  emoji: "🌫️", color: "var(--foreground-muted)" },
+  { id: "cafe",       label: "Café Hum",     emoji: "☕", color: "var(--palette-d97706)" },
 ];
 
 // ── Web Audio procedural sound generators ──────────────────────────
@@ -295,29 +295,29 @@ export default function AmbientSoundBar({ visible = true }: Props) {
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: "spring", stiffness: 220, damping: 28 }}
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-md"
+      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[var(--z-nav)] w-[calc(100%-2rem)] max-w-md"
     >
-      <div className="rounded-2xl border border-[rgba(124,58,237,0.25)] bg-[rgba(12,17,40,0.92)] backdrop-blur-xl shadow-[0_8px_40px_rgba(0,0,0,0.4)]">
+      <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_25)] bg-[var(--rgba-12-17-40-0_92)] backdrop-blur-xl shadow-[0_8px_40px_var(--rgba-0-0-0-0_4)]">
         {/* Header row */}
         <div className="flex items-center justify-between px-4 py-2.5">
           <div className="flex items-center gap-2">
-            <Music2 size={13} className="text-[#A78BFA]" />
-            <span className="text-xs font-semibold text-[#94A3B8]">Ambient Sounds</span>
+            <Music2 size={13} className="text-[var(--brand-400)]" />
+            <span className="text-xs font-semibold text-[var(--foreground-muted)]">Ambient Sounds</span>
             {activeSounds.length > 0 && (
-              <span className="rounded-full bg-[rgba(124,58,237,0.2)] px-2 py-0.5 text-[9px] font-semibold text-[#A78BFA]">
+              <span className="rounded-full bg-[var(--rgba-124-58-237-0_2)] px-2 py-0.5 text-[9px] font-semibold text-[var(--brand-400)]">
                 {activeSounds.length} playing
               </span>
             )}
           </div>
           <div className="flex items-center gap-2">
             {activeSounds.length > 0 && (
-              <button onClick={stopAll} className="text-[10px] text-[#4B5563] hover:text-[#94A3B8] transition-colors">
+              <button onClick={stopAll} className="text-[10px] text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)] transition-colors">
                 Stop all
               </button>
             )}
             <button
               onClick={() => setExpanded((e) => !e)}
-              className="rounded-lg p-1 text-[#4B5563] hover:text-[#94A3B8] transition-colors"
+              className="rounded-lg p-1 text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)] transition-colors"
             >
               {expanded ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
             </button>
@@ -331,7 +331,7 @@ export default function AmbientSoundBar({ visible = true }: Props) {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.15 }}
               className="overflow-hidden"
             >
               <div className="px-4 pb-4 pt-1 space-y-3">
@@ -346,14 +346,14 @@ export default function AmbientSoundBar({ visible = true }: Props) {
                         disabled={isDisabled}
                         className={`rounded-xl border p-2.5 text-center transition-all ${
                           isActive
-                            ? "border-[rgba(124,58,237,0.4)] bg-[rgba(124,58,237,0.15)]"
+                            ? "border-[var(--rgba-124-58-237-0_4)] bg-[var(--rgba-124-58-237-0_15)]"
                             : isDisabled
-                            ? "border-[rgba(124,58,237,0.06)] bg-transparent opacity-40 cursor-not-allowed"
-                            : "border-[rgba(124,58,237,0.1)] bg-[rgba(124,58,237,0.04)] hover:bg-[rgba(124,58,237,0.09)]"
+                            ? "border-[var(--rgba-124-58-237-0_06)] bg-transparent opacity-40 cursor-not-allowed"
+                            : "border-[var(--rgba-124-58-237-0_1)] bg-[var(--rgba-124-58-237-0_04)] hover:bg-[var(--rgba-124-58-237-0_09)]"
                         }`}
                       >
                         <span className="text-base">{sound.emoji}</span>
-                        <p className={`text-[9px] mt-0.5 font-medium ${isActive ? "text-[#A78BFA]" : "text-[#6B7280]"}`}>
+                        <p className={`text-[9px] mt-0.5 font-medium ${isActive ? "text-[var(--brand-400)]" : "text-[var(--palette-6b7280)]"}`}>
                           {sound.label}
                         </p>
                       </button>
@@ -367,7 +367,7 @@ export default function AmbientSoundBar({ visible = true }: Props) {
                   return (
                     <div key={s.id} className="flex items-center gap-3">
                       <span className="text-sm w-6 shrink-0 text-center">{def.emoji}</span>
-                      <VolumeX size={11} className="text-[#4B5563] shrink-0" />
+                      <VolumeX size={11} className="text-[var(--foreground-subtle)] shrink-0" />
                       <input
                         type="range"
                         min={0}
@@ -377,16 +377,16 @@ export default function AmbientSoundBar({ visible = true }: Props) {
                         onChange={(e) => setVolume(s.id, parseFloat(e.target.value))}
                         className="flex-1 h-1 rounded-full appearance-none cursor-pointer"
                         style={{
-                          background: `linear-gradient(to right, ${def.color} 0%, ${def.color} ${s.volume * 100}%, rgba(124,58,237,0.12) ${s.volume * 100}%, rgba(124,58,237,0.12) 100%)`,
+                          background: `linear-gradient(to right, ${def.color} 0%, ${def.color} ${s.volume * 100}%, var(--rgba-124-58-237-0_12) ${s.volume * 100}%, var(--rgba-124-58-237-0_12) 100%)`,
                         }}
                       />
-                      <Volume2 size={11} className="text-[#4B5563] shrink-0" />
+                      <Volume2 size={11} className="text-[var(--foreground-subtle)] shrink-0" />
                     </div>
                   );
                 })}
 
                 {activeSounds.length === 0 && (
-                  <p className="text-center text-[10px] text-[#4B5563]">Tap a sound to begin. Layer up to 2.</p>
+                  <p className="text-center text-[10px] text-[var(--foreground-subtle)]">Tap a sound to begin. Layer up to 2.</p>
                 )}
               </div>
             </motion.div>
@@ -410,10 +410,10 @@ export default function AmbientSoundBar({ visible = true }: Props) {
                     onChange={(e) => setVolume(s.id, parseFloat(e.target.value))}
                     className="flex-1 h-0.5 rounded-full appearance-none cursor-pointer"
                     style={{
-                      background: `linear-gradient(to right, ${def.color} 0%, ${def.color} ${s.volume * 100}%, rgba(124,58,237,0.1) ${s.volume * 100}%, rgba(124,58,237,0.1) 100%)`,
+                      background: `linear-gradient(to right, ${def.color} 0%, ${def.color} ${s.volume * 100}%, var(--rgba-124-58-237-0_1) ${s.volume * 100}%, var(--rgba-124-58-237-0_1) 100%)`,
                     }}
                   />
-                  <button onClick={() => stopSound(s.id)} className="text-[#4B5563] hover:text-[#94A3B8] transition-colors">
+                  <button onClick={() => stopSound(s.id)} className="text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)] transition-colors">
                     <VolumeX size={11} />
                   </button>
                 </div>

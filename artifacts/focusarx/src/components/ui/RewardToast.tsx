@@ -22,11 +22,11 @@ export function useRewardToast() {
 }
 
 const TYPE_STYLES: Record<RewardType, { bg: string; emoji: string }> = {
-  xp:      { bg: "from-violet-600/90 to-violet-800/90", emoji: "⚡" },
-  coins:   { bg: "from-yellow-500/90 to-amber-700/90",   emoji: "🪙" },
-  badge:   { bg: "from-pink-500/90 to-purple-700/90",    emoji: "🏅" },
-  delight: { bg: "from-teal-500/90 to-cyan-700/90",      emoji: "🎉" },
-  lootbox: { bg: "from-indigo-500/90 to-blue-700/90",    emoji: "📦" },
+  xp:      { bg: "from-[var(--palette-violet-600)]/90 to-[var(--palette-violet-800)]/90", emoji: "⚡" },
+  coins:   { bg: "from-[var(--palette-yellow-500)]/90 to-[var(--palette-amber-700)]/90",   emoji: "🪙" },
+  badge:   { bg: "from-[var(--palette-pink-500)]/90 to-[var(--palette-purple-700)]/90",    emoji: "🏅" },
+  delight: { bg: "from-[var(--palette-teal-500)]/90 to-[var(--palette-cyan-700)]/90",      emoji: "🎉" },
+  lootbox: { bg: "from-[var(--palette-indigo-500)]/90 to-[var(--palette-blue-700)]/90",    emoji: "📦" },
 };
 
 export function RewardToastProvider({ children }: { children: React.ReactNode }) {
@@ -44,7 +44,7 @@ export function RewardToastProvider({ children }: { children: React.ReactNode })
   return (
     <RewardToastContext.Provider value={{ showReward }}>
       {children}
-      <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[9999] flex flex-col items-center gap-2 pointer-events-none">
+      <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[var(--z-max)] flex flex-col items-center gap-2 pointer-events-none">
         <AnimatePresence>
           {rewards.map(r => {
             const style = TYPE_STYLES[r.type];
@@ -56,7 +56,7 @@ export function RewardToastProvider({ children }: { children: React.ReactNode })
                 exit={{ opacity: 0, y: -10, scale: 0.95 }}
                 transition={{ duration: 0.25, ease: "easeOut" }}
                 className={cn(
-                  "flex items-center gap-2 rounded-2xl px-4 py-2.5 shadow-2xl bg-gradient-to-r text-white text-sm font-semibold backdrop-blur-sm",
+                  "flex items-center gap-2 rounded-2xl px-4 py-2.5 shadow-2xl bg-gradient-to-r text-[var(--palette-white)] text-sm font-semibold backdrop-blur-sm",
                   style.bg
                 )}
               >

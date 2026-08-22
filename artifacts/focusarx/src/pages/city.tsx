@@ -15,12 +15,12 @@ function authHeaders() {
 }
 
 const TIER_CONFIG: Record<string, { label: string; color: string; icon: string; popMin: number; popMax: number }> = {
-  hamlet:       { label: "Study Hamlet",       color: "#10B981", icon: "🏘️",  popMin: 0,    popMax: 100   },
-  village:      { label: "Focus Village",      color: "#06B6D4", icon: "🏙️",  popMin: 100,  popMax: 500   },
-  town:         { label: "Learning Town",      color: "#3B82F6", icon: "🌆",  popMin: 500,  popMax: 1000  },
-  city:         { label: "Knowledge City",     color: "#8B5CF6", icon: "🏙️",  popMin: 1000, popMax: 5000  },
-  metropolis:   { label: "Wisdom Metropolis",  color: "#EC4899", icon: "🌃",  popMin: 5000, popMax: 10000 },
-  civilization: { label: "Enlightened Civilization", color: "#F59E0B", icon: "✨", popMin: 10000, popMax: 50000 },
+  hamlet:       { label: "Study Hamlet",       color: "var(--palette-10b981)", icon: "🏘️",  popMin: 0,    popMax: 100   },
+  village:      { label: "Focus Village",      color: "var(--palette-06b6d4)", icon: "🏙️",  popMin: 100,  popMax: 500   },
+  town:         { label: "Learning Town",      color: "var(--color-info)", icon: "🌆",  popMin: 500,  popMax: 1000  },
+  city:         { label: "Knowledge City",     color: "var(--brand-500)", icon: "🏙️",  popMin: 1000, popMax: 5000  },
+  metropolis:   { label: "Wisdom Metropolis",  color: "var(--palette-ec4899)", icon: "🌃",  popMin: 5000, popMax: 10000 },
+  civilization: { label: "Enlightened Civilization", color: "var(--color-warning)", icon: "✨", popMin: 10000, popMax: 50000 },
 };
 
 const WEATHER_EMOJI: Record<string, string> = {
@@ -40,36 +40,36 @@ function BuildingCard({ building, owned, onBuy, wallet }: {
       variants={CARD}
       className={`relative rounded-2xl border p-4 transition-all cursor-pointer ${
         owned
-          ? "border-[rgba(124,58,237,0.4)] bg-[rgba(124,58,237,0.08)]"
-          : "border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] hover:border-[rgba(124,58,237,0.2)]"
+          ? "border-[var(--rgba-124-58-237-0_4)] bg-[var(--rgba-124-58-237-0_08)]"
+          : "border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] hover:border-[var(--rgba-124-58-237-0_2)]"
       }`}
       onClick={() => !owned && meetsLevel && meetsSession && onBuy(building)}
     >
       {owned && (
-        <div className="absolute top-2 right-2 rounded-full bg-[#10B981] px-1.5 py-0.5 text-[9px] font-bold text-white">BUILT</div>
+        <div className="absolute top-2 right-2 rounded-full bg-[var(--palette-10b981)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--palette-white)]">BUILT</div>
       )}
       {!meetsLevel && (
-        <div className="absolute top-2 right-2 flex items-center gap-1 text-[10px] text-[#4B5563]">
+        <div className="absolute top-2 right-2 flex items-center gap-1 text-[10px] text-[var(--foreground-subtle)]">
           <Lock size={9} /> Lv{building.unlockLevel}
         </div>
       )}
       <div className="text-3xl mb-2">{building.icon}</div>
-      <h3 className="text-sm font-semibold text-[#E2E8F0] mb-1">{building.name}</h3>
-      <p className="text-[10px] text-[#4B5563] mb-3 leading-relaxed">{building.description}</p>
+      <h3 className="text-sm font-semibold text-[var(--foreground)] mb-1">{building.name}</h3>
+      <p className="text-[10px] text-[var(--foreground-subtle)] mb-3 leading-relaxed">{building.description}</p>
 
       <div className="flex flex-wrap gap-1.5 mb-3">
         {building.populationBonus > 0 && (
-          <span className="flex items-center gap-1 rounded-full bg-[rgba(16,185,129,0.12)] border border-[rgba(16,185,129,0.25)] px-1.5 py-0.5 text-[9px] text-[#10B981]">
+          <span className="flex items-center gap-1 rounded-full bg-[var(--rgba-16-185-129-0_12)] border border-[var(--rgba-16-185-129-0_25)] px-1.5 py-0.5 text-[9px] text-[var(--palette-10b981)]">
             <Users size={8} /> +{building.populationBonus} pop
           </span>
         )}
         {building.xpBonusPerSession > 0 && (
-          <span className="flex items-center gap-1 rounded-full bg-[rgba(124,58,237,0.12)] border border-[rgba(124,58,237,0.25)] px-1.5 py-0.5 text-[9px] text-[#A78BFA]">
+          <span className="flex items-center gap-1 rounded-full bg-[var(--rgba-124-58-237-0_12)] border border-[var(--rgba-124-58-237-0_25)] px-1.5 py-0.5 text-[9px] text-[var(--brand-400)]">
             <Zap size={8} /> +{building.xpBonusPerSession} XP/session
           </span>
         )}
         {building.coinBonusPerSession > 0 && (
-          <span className="flex items-center gap-1 rounded-full bg-[rgba(245,158,11,0.12)] border border-[rgba(245,158,11,0.25)] px-1.5 py-0.5 text-[9px] text-[#F59E0B]">
+          <span className="flex items-center gap-1 rounded-full bg-[var(--rgba-245-158-11-0_12)] border border-[var(--rgba-245-158-11-0_25)] px-1.5 py-0.5 text-[9px] text-[var(--color-warning)]">
             🪙 +{building.coinBonusPerSession}/session
           </span>
         )}
@@ -81,10 +81,10 @@ function BuildingCard({ building, owned, onBuy, wallet }: {
           disabled={!canAfford || !meetsLevel || !meetsSession}
           className="w-full rounded-xl py-1.5 text-xs font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           style={{
-            background: canAfford && meetsLevel ? "rgba(124,58,237,0.2)" : "rgba(255,255,255,0.04)",
-            color: canAfford && meetsLevel ? "#A78BFA" : "#4B5563",
+            background: canAfford && meetsLevel ? "var(--rgba-124-58-237-0_2)" : "var(--rgba-255-255-255-0_04)",
+            color: canAfford && meetsLevel ? "var(--brand-400)" : "var(--foreground-subtle)",
             border: "1px solid",
-            borderColor: canAfford && meetsLevel ? "rgba(124,58,237,0.3)" : "rgba(255,255,255,0.06)",
+            borderColor: canAfford && meetsLevel ? "var(--rgba-124-58-237-0_3)" : "var(--rgba-255-255-255-0_06)",
           }}
         >
           {building.coinCost === 0 ? "Build Free" : `🪙 ${building.coinCost.toLocaleString()}`}
@@ -149,7 +149,7 @@ export default function CityPage() {
 
   if (loading) return (
     <div className="flex min-h-screen items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-[#7C3AED]" />
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--palette-zinc-700)] border-t-[var(--brand-600)]" />
     </div>
   );
 
@@ -158,27 +158,27 @@ export default function CityPage() {
       <PageSEO {...PAGE_SEO.city} />
       <motion.div variants={PAGE} initial="initial" animate="animate" className="max-w-5xl mx-auto px-4 py-8 space-y-6">
         {/* Hero */}
-        <div className="rounded-2xl border border-[rgba(124,58,237,0.2)] bg-gradient-to-br from-[rgba(124,58,237,0.08)] to-[rgba(6,214,160,0.04)] p-6">
+        <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_2)] bg-gradient-to-br from-[var(--rgba-124-58-237-0_08)] to-[var(--rgba-6-214-160-0_04)] p-6">
           <div className="flex items-center gap-4 flex-wrap">
             <div className="text-5xl">{tier.icon}</div>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-2xl font-bold text-[#E2E8F0]">{tier.label}</h1>
-                <span className="rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase" style={{ color: tier.color, borderColor: tier.color + "40", background: tier.color + "12" }}>
+                <h1 className="text-2xl font-bold text-[var(--foreground)]">{tier.label}</h1>
+                <span className="rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase" style={{ color: tier.color, borderColor: `color-mix(in srgb, ${tier.color} 25%, transparent)`, background: `color-mix(in srgb, ${tier.color} 7%, transparent)` }}>
                   {city?.tier ?? "hamlet"}
                 </span>
               </div>
-              <p className="text-sm text-[#64748B]">Build your academic city — each session adds to your civilization</p>
+              <p className="text-sm text-[var(--muted-fg)]">Build your academic city — each session adds to your civilization</p>
               <div className="flex flex-wrap gap-3 mt-3">
-                <div className="flex items-center gap-1.5 text-xs text-[#94A3B8]">
-                  <Users size={12} className="text-[#10B981]" />
-                  <span><strong className="text-[#10B981]">{city?.population?.toLocaleString() ?? 0}</strong> citizens</span>
+                <div className="flex items-center gap-1.5 text-xs text-[var(--foreground-muted)]">
+                  <Users size={12} className="text-[var(--palette-10b981)]" />
+                  <span><strong className="text-[var(--palette-10b981)]">{city?.population?.toLocaleString() ?? 0}</strong> citizens</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-xs text-[#94A3B8]">
-                  <Building2 size={12} className="text-[#A78BFA]" />
-                  <span><strong className="text-[#A78BFA]">{city?.totalBuildings ?? 0}</strong> buildings</span>
+                <div className="flex items-center gap-1.5 text-xs text-[var(--foreground-muted)]">
+                  <Building2 size={12} className="text-[var(--brand-400)]" />
+                  <span><strong className="text-[var(--brand-400)]">{city?.totalBuildings ?? 0}</strong> buildings</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-xs text-[#94A3B8]">
+                <div className="flex items-center gap-1.5 text-xs text-[var(--foreground-muted)]">
                   <span className="text-lg">{WEATHER_EMOJI[city?.weather ?? "clear"]}</span>
                   <span className="capitalize">{city?.weather ?? "Clear"}</span>
                 </div>
@@ -186,9 +186,9 @@ export default function CityPage() {
             </div>
             {wallet && (
               <div className="text-right">
-                <p className="text-xs text-[#4B5563]">Your coins</p>
-                <p className="text-2xl font-bold text-[#F59E0B]">🪙 {wallet.coins.toLocaleString()}</p>
-                <p className="text-[10px] text-[#4B5563]">Level {wallet.level}</p>
+                <p className="text-xs text-[var(--foreground-subtle)]">Your coins</p>
+                <p className="text-2xl font-bold text-[var(--color-warning)]">🪙 {wallet.coins.toLocaleString()}</p>
+                <p className="text-[10px] text-[var(--foreground-subtle)]">Level {wallet.level}</p>
               </div>
             )}
           </div>
@@ -198,7 +198,7 @@ export default function CityPage() {
         <div className="flex flex-wrap gap-2">
           {categories.map(c => (
             <button key={c} onClick={() => setFilter(c)}
-              className={`rounded-xl px-3 py-1.5 text-xs font-medium capitalize transition-all ${filter === c ? "bg-[rgba(124,58,237,0.2)] text-[#A78BFA] border border-[rgba(124,58,237,0.3)]" : "bg-[rgba(255,255,255,0.04)] text-[#64748B] border border-transparent hover:border-[rgba(255,255,255,0.08)]"}`}>
+              className={`rounded-xl px-3 py-1.5 text-xs font-medium capitalize transition-all ${filter === c ? "bg-[var(--rgba-124-58-237-0_2)] text-[var(--brand-400)] border border-[var(--rgba-124-58-237-0_3)]" : "bg-[var(--rgba-255-255-255-0_04)] text-[var(--muted-fg)] border border-transparent hover:border-[var(--rgba-255-255-255-0_08)]"}`}>
               {c}
             </button>
           ))}
@@ -214,8 +214,8 @@ export default function CityPage() {
         {/* Empty state */}
         {buildings.length === 0 && (
           <div className="flex flex-col items-center gap-3 py-16 text-center">
-            <Building2 size={40} className="text-[#2D3748]" />
-            <p className="text-sm text-[#4B5563]">No buildings available yet</p>
+            <Building2 size={40} className="text-[var(--foreground-subtle)]" />
+            <p className="text-sm text-[var(--foreground-subtle)]">No buildings available yet</p>
           </div>
         )}
 
@@ -223,7 +223,7 @@ export default function CityPage() {
         <AnimatePresence>
           {toast && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-              className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 rounded-2xl border border-[rgba(124,58,237,0.3)] bg-[#0d0f1c] px-5 py-3 text-sm font-semibold text-[#A78BFA] shadow-lg">
+              className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[var(--z-modal)] rounded-2xl border border-[var(--rgba-124-58-237-0_3)] bg-[var(--palette-0d0f1c)] px-5 py-3 text-sm font-semibold text-[var(--brand-400)] shadow-lg">
               {toast}
             </motion.div>
           )}

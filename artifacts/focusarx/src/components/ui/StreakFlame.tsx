@@ -13,9 +13,9 @@ export function StreakFlame({ streak, size = "md", showLabel = false, className 
   const numSize = { sm: "text-xs", md: "text-sm", lg: "text-lg" };
 
   const glowColor = streak >= 30
-    ? "drop-shadow(0 0 6px #ff6b6b) drop-shadow(0 0 12px #ffd93d)"
+    ? "drop-shadow(0 0 6px var(--palette-ff6b6b)) drop-shadow(0 0 12px var(--palette-ffd93d))"
     : streak >= 7
-    ? "drop-shadow(0 0 6px #FFB800)"
+    ? "drop-shadow(0 0 6px var(--brand-gold))"
     : "none";
 
   return (

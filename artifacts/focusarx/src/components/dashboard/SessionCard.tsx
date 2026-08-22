@@ -17,9 +17,9 @@ export type DashboardSession = {
 };
 
 const qualityStyles: Record<FocusQuality, string> = {
-  high: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-  medium: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-  low: "bg-rose-500/15 text-rose-400 border-rose-500/30",
+  high: "bg-[var(--palette-emerald-500)]/15 text-[var(--palette-emerald-400)] border-[var(--palette-emerald-500)]/30",
+  medium: "bg-[var(--palette-amber-500)]/15 text-[var(--palette-amber-400)] border-[var(--palette-amber-500)]/30",
+  low: "bg-[var(--palette-rose-500)]/15 text-[var(--palette-rose-400)] border-[var(--palette-rose-500)]/30",
 };
 
 export function SessionCard({ session }: { session: DashboardSession }) {
@@ -35,7 +35,7 @@ export function SessionCard({ session }: { session: DashboardSession }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-[var(--palette-zinc-500)]">
             {date.toLocaleDateString(undefined, {
               weekday: "short",
               month: "short",
@@ -43,14 +43,14 @@ export function SessionCard({ session }: { session: DashboardSession }) {
             })}{" "}
             · {date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
           </p>
-          <p className="mt-1 text-lg font-semibold text-zinc-100">
-            {mins} min <span className="text-sm font-normal text-zinc-500">focus</span>
+          <p className="mt-1 text-lg font-semibold text-[var(--palette-zinc-100)]">
+            {mins} min <span className="text-sm font-normal text-[var(--palette-zinc-500)]">focus</span>
           </p>
         </div>
         {session.focusScore != null && (
           <div className="text-right">
-            <div className="text-2xl font-semibold text-zinc-100">{session.focusScore}</div>
-            <p className="text-[10px] uppercase tracking-wider text-zinc-500">score</p>
+            <div className="text-2xl font-semibold text-[var(--palette-zinc-100)]">{session.focusScore}</div>
+            <p className="text-[10px] uppercase tracking-wider text-[var(--palette-zinc-500)]">score</p>
           </div>
         )}
       </div>
@@ -64,7 +64,7 @@ export function SessionCard({ session }: { session: DashboardSession }) {
           </span>
         )}
         {session.stabilityRating && (
-          <span className="rounded-full border border-zinc-700 bg-zinc-800/50 px-2 py-0.5 text-[10px] text-zinc-400">
+          <span className="rounded-full border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-800)]/50 px-2 py-0.5 text-[10px] text-[var(--palette-zinc-400)]">
             {session.stabilityRating}
           </span>
         )}
@@ -77,7 +77,7 @@ export function SessionCard({ session }: { session: DashboardSession }) {
       )}
 
       {session.sessionInsights?.summary && (
-        <p className="mt-3 text-xs leading-relaxed text-zinc-400">
+        <p className="mt-3 text-xs leading-relaxed text-[var(--palette-zinc-400)]">
           {session.sessionInsights.summary}
         </p>
       )}

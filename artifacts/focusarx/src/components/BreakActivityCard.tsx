@@ -8,54 +8,54 @@ const ACTIVITIES = [
     title: "Hydrate",
     instruction: "Drink a full glass of water",
     tip: "Staying hydrated sharpens focus and reduces fatigue.",
-    color: "#38bdf8",
-    bg: "rgba(56,189,248,0.08)",
-    border: "rgba(56,189,248,0.2)",
+    color: "var(--palette-38bdf8)",
+    bg: "var(--rgba-56-189-248-0_08)",
+    border: "var(--rgba-56-189-248-0_2)",
   },
   {
     icon: "🧘",
     title: "Box Breathe",
     instruction: "Inhale 4s · Hold 4s · Exhale 4s · Hold 4s",
     tip: "Resets your nervous system and clears mental fog.",
-    color: "#a78bfa",
-    bg: "rgba(167,139,250,0.08)",
-    border: "rgba(167,139,250,0.2)",
+    color: "var(--brand-400)",
+    bg: "var(--rgba-167-139-250-0_08)",
+    border: "var(--rgba-167-139-250-0_2)",
   },
   {
     icon: "🤸",
     title: "Stretch",
     instruction: "Roll your neck, stretch your shoulders and back",
     tip: "Sitting hunched compresses your spine. Fix it now.",
-    color: "#34d399",
-    bg: "rgba(52,211,153,0.08)",
-    border: "rgba(52,211,153,0.2)",
+    color: "var(--success)",
+    bg: "var(--rgba-52-211-153-0_08)",
+    border: "var(--rgba-52-211-153-0_2)",
   },
   {
     icon: "👁️",
     title: "Eye Rest",
     instruction: "Look at something 20 ft away for 20 seconds",
     tip: "The 20-20-20 rule prevents digital eye strain.",
-    color: "#fbbf24",
-    bg: "rgba(251,191,36,0.08)",
-    border: "rgba(251,191,36,0.2)",
+    color: "var(--warning)",
+    bg: "var(--rgba-251-191-36-0_08)",
+    border: "var(--rgba-251-191-36-0_2)",
   },
   {
     icon: "🚶",
     title: "Walk",
     instruction: "Take a short stroll — even just around the room",
     tip: "Movement resets your brain for the next focus block.",
-    color: "#f97316",
-    bg: "rgba(249,115,22,0.08)",
-    border: "rgba(249,115,22,0.2)",
+    color: "var(--palette-f97316)",
+    bg: "var(--rgba-249-115-22-0_08)",
+    border: "var(--rgba-249-115-22-0_2)",
   },
   {
     icon: "😌",
     title: "Relax",
     instruction: "Close your eyes, drop your shoulders, breathe slow",
     tip: "True rest between sessions amplifies your next block.",
-    color: "#ec4899",
-    bg: "rgba(236,72,153,0.08)",
-    border: "rgba(236,72,153,0.2)",
+    color: "var(--palette-ec4899)",
+    bg: "var(--rgba-236-72-153-0_08)",
+    border: "var(--rgba-236-72-153-0_2)",
   },
 ];
 
@@ -92,7 +92,7 @@ function CountdownRing({ secondsLeft, totalSeconds, color }: { secondsLeft: numb
   return (
     <div className="flex flex-col items-center gap-0.5">
       <svg width="52" height="52" viewBox="0 0 52 52">
-        <circle cx="26" cy="26" r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="3" />
+        <circle cx="26" cy="26" r={r} fill="none" stroke="var(--rgba-255-255-255-0_05)" strokeWidth="3" />
         <circle
           cx="26" cy="26" r={r} fill="none"
           stroke={color} strokeWidth="3"
@@ -101,11 +101,11 @@ function CountdownRing({ secondsLeft, totalSeconds, color }: { secondsLeft: numb
           transform="rotate(-90 26 26)"
           style={{ transition: "stroke-dasharray 0.8s ease" }}
         />
-        <text x="26" y="30" textAnchor="middle" fontSize="10" fontWeight="700" fill="white" fontFamily="monospace">
+        <text x="26" y="30" textAnchor="middle" fontSize="10" fontWeight="700" fill="var(--palette-white)" fontFamily="monospace">
           {m}:{s}
         </text>
       </svg>
-      <p className="text-[9px] text-zinc-500 uppercase tracking-widest">break left</p>
+      <p className="text-[9px] text-[var(--palette-zinc-500)] uppercase tracking-widest">break left</p>
     </div>
   );
 }
@@ -136,7 +136,7 @@ export default function BreakActivityCard({ mode, secondsLeft, breakDurationSeco
         initial={{ opacity: 0, y: 12, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: -8, scale: 0.97 }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
         className="w-full max-w-md rounded-2xl border p-5"
         style={{
           background: activity.bg,
@@ -148,7 +148,7 @@ export default function BreakActivityCard({ mode, secondsLeft, breakDurationSeco
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xl">{activity.icon}</span>
               <div>
-                <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--palette-zinc-500)]">
                   {isLong ? "Long Break" : "Break"} Activity
                 </p>
                 <p className="text-sm font-bold" style={{ color: activity.color }}>{activity.title}</p>
@@ -161,18 +161,18 @@ export default function BreakActivityCard({ mode, secondsLeft, breakDurationSeco
                   animate={{ scale }}
                   transition={{ duration: 4, ease: "easeInOut" }}
                   className="h-10 w-10 rounded-full shrink-0"
-                  style={{ background: `radial-gradient(circle, ${activity.color}55, ${activity.color}11)`, border: `1.5px solid ${activity.color}55` }}
+                  style={{ background: `radial-gradient(circle, color-mix(in srgb, ${activity.color} 33%, transparent), color-mix(in srgb, ${activity.color} 7%, transparent))`, border: `1.5px solid color-mix(in srgb, ${activity.color} 33%, transparent)` }}
                 />
                 <div>
                   <p className="text-xs font-semibold" style={{ color: activity.color }}>{label}</p>
-                  <p className="text-[11px] text-zinc-400 mt-0.5">{activity.instruction}</p>
+                  <p className="text-[11px] text-[var(--palette-zinc-400)] mt-0.5">{activity.instruction}</p>
                 </div>
               </div>
             ) : (
-              <p className="text-[12px] font-medium text-zinc-200 mb-1">{activity.instruction}</p>
+              <p className="text-[12px] font-medium text-[var(--palette-zinc-200)] mb-1">{activity.instruction}</p>
             )}
 
-            <p className="text-[11px] text-zinc-500 mt-2">{activity.tip}</p>
+            <p className="text-[11px] text-[var(--palette-zinc-500)] mt-2">{activity.tip}</p>
           </div>
 
           <CountdownRing
@@ -191,13 +191,13 @@ export default function BreakActivityCard({ mode, secondsLeft, breakDurationSeco
               style={{
                 width: i === activityIndex ? 20 : 6,
                 height: 6,
-                background: i === activityIndex ? activity.color : "rgba(255,255,255,0.1)",
+                background: i === activityIndex ? activity.color : "var(--rgba-255-255-255-0_1)",
               }}
             />
           ))}
           <button
             onClick={() => setActivityIndex((activityIndex + 1) % ACTIVITIES.length)}
-            className="ml-auto text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors"
+            className="ml-auto text-[10px] text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)] transition-colors"
           >
             Next activity →
           </button>

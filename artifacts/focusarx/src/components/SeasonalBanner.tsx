@@ -40,24 +40,24 @@ export default function SeasonalBanner() {
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, height: 0 }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: 0.25 }}
         className="relative flex items-center gap-3 rounded-xl border px-4 py-3 text-sm"
-        style={{ borderColor: event.bannerColor + "40", background: event.bannerColor + "10" }}
+        style={{ borderColor: `color-mix(in srgb, ${event.bannerColor} 25%, transparent)`, background: `color-mix(in srgb, ${event.bannerColor} 6%, transparent)` }}
       >
         <Star size={15} style={{ color: event.bannerColor }} className="shrink-0" />
         <div className="flex-1 min-w-0">
           <span className="font-semibold" style={{ color: event.bannerColor }}>{event.name}</span>
-          <span className="text-[#94A3B8] ml-2 text-xs">{event.description}</span>
+          <span className="text-[var(--foreground-muted)] ml-2 text-xs">{event.description}</span>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           {event.xpMultiplier > 1 && (
             <span className="flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold"
-              style={{ color: event.bannerColor, borderColor: event.bannerColor + "40", background: event.bannerColor + "15" }}>
+              style={{ color: event.bannerColor, borderColor: `color-mix(in srgb, ${event.bannerColor} 25%, transparent)`, background: `color-mix(in srgb, ${event.bannerColor} 8%, transparent)` }}>
               <Zap size={9} /> {event.xpMultiplier}x XP
             </span>
           )}
-          <span className="text-[10px] text-[#4B5563]">{daysLeft}d left</span>
-          <button onClick={handleDismiss} className="text-[#4B5563] hover:text-[#94A3B8] transition-colors">
+          <span className="text-[10px] text-[var(--foreground-subtle)]">{daysLeft}d left</span>
+          <button onClick={handleDismiss} className="text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)] transition-colors">
             <X size={13} />
           </button>
         </div>

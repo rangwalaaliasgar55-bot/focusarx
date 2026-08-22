@@ -8,22 +8,22 @@ export default function NotFound() {
   return (
     <div className="relative min-h-screen overflow-hidden forge-bg-glow flex items-center justify-center px-4">
       {/* Ambient glows */}
-      <div className="pointer-events-none absolute inset-0 z-0" aria-hidden>
-        <div className="absolute left-1/4 top-1/4 h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.10),transparent_65%)] blur-3xl" />
-        <div className="absolute right-1/4 bottom-1/4 h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle_at_center,rgba(6,214,160,0.06),transparent_65%)] blur-3xl" />
+      <div className="pointer-events-none absolute inset-0 z-[var(--z-base)]" aria-hidden>
+        <div className="absolute left-1/4 top-1/4 h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle_at_center,var(--rgba-124-58-237-0_10),transparent_65%)] blur-3xl" />
+        <div className="absolute right-1/4 bottom-1/4 h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle_at_center,var(--rgba-6-214-160-0_06),transparent_65%)] blur-3xl" />
       </div>
 
       <motion.div
         variants={PAGE}
         initial="initial"
         animate="animate"
-        className="relative z-10 text-center max-w-md"
+        className="relative z-[var(--z-content)] text-center max-w-md"
       >
         {/* 404 number */}
         <div className="relative mb-6 inline-block">
           <span className="font-metric text-[8rem] font-bold leading-none select-none"
             style={{
-              background: "linear-gradient(135deg, rgba(124,58,237,0.25), rgba(167,139,250,0.15))",
+              background: "linear-gradient(135deg, var(--rgba-124-58-237-0_25), var(--rgba-167-139-250-0_15))",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               backgroundClip: "text",
@@ -33,8 +33,8 @@ export default function NotFound() {
           </span>
           {/* Floating icon overlay */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-[var(--radius-2xl)] bg-gradient-to-br from-[var(--brand-violet)] to-[#4F46E5] shadow-[var(--shadow-violet-lg)]">
-              <Zap size={26} className="text-white" fill="white" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-[var(--radius-2xl)] bg-gradient-to-br from-[var(--brand-violet)] to-[var(--palette-4f46e5)] shadow-[var(--shadow-violet-lg)]">
+              <Zap size={26} className="text-[var(--palette-white)]" fill="var(--palette-white)" />
             </div>
           </div>
         </div>

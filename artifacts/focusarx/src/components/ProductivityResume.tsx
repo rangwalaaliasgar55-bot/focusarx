@@ -25,23 +25,23 @@ export default function ProductivityResume({
   };
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-zinc-950 p-8 shadow-2xl relative overflow-hidden">
+    <div className="rounded-3xl border border-[var(--palette-white)]/10 bg-[var(--palette-zinc-950)] p-8 shadow-2xl relative overflow-hidden">
       {/* Background Decorative Elements */}
-      <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 h-64 w-64 rounded-full bg-purple-600/10 blur-3xl" />
-      <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 h-64 w-64 rounded-full bg-blue-600/10 blur-3xl" />
-      
-      <div className="relative z-10">
+      <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 h-64 w-64 rounded-full bg-[var(--palette-purple-600)]/10 blur-3xl" />
+      <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 h-64 w-64 rounded-full bg-[var(--palette-blue-600)]/10 blur-3xl" />
+
+      <div className="relative z-[var(--z-content)]">
         <header className="flex justify-between items-start mb-12">
           <div>
             <div className="flex items-center gap-2 mb-2">
-               <div className="h-6 w-6 rounded bg-gradient-to-br from-[#7C3AED] to-[#F472B6]" />
-               <span className="text-xs font-black uppercase tracking-[0.3em] text-[#4B5563]">FocusArx Certificate</span>
+               <div className="h-6 w-6 rounded bg-gradient-to-br from-[var(--brand-600)] to-[var(--brand-pink)]" />
+               <span className="text-xs font-black uppercase tracking-[0.3em] text-[var(--foreground-subtle)]">FocusArx Certificate</span>
             </div>
-            <h2 className="text-3xl font-black text-white">{userName}</h2>
-            <p className="text-sm text-[#94A3B8] mt-1">Academic Discipline Summary</p>
+            <h2 className="text-3xl font-black text-[var(--palette-white)]">{userName}</h2>
+            <p className="text-sm text-[var(--foreground-muted)] mt-1">Academic Discipline Summary</p>
           </div>
           <div className="text-right">
-             <span className="rounded-full border border-[#A78BFA]/30 bg-[#A78BFA]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#A78BFA]">
+             <span className="rounded-full border border-[var(--brand-400)]/30 bg-[var(--brand-400)]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--brand-400)]">
                {rank}
              </span>
           </div>
@@ -49,28 +49,28 @@ export default function ProductivityResume({
 
         <StaggerContainer className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
           {[
-            { label: "Focus Depth", value: `${avgFocusScore}%`, icon: <Target size={14} />, color: "text-[#A78BFA]" },
-            { label: "Total Volume", value: `${totalFocusHours}h`, icon: <Clock size={14} />, color: "text-[#60A5FA]" },
-            { label: "Current Streak", value: `${streak} Days`, icon: <Zap size={14} />, color: "text-[#F59E0B]" },
-            { label: "Primary Flow", value: topMode, icon: <TrendingUp size={14} />, color: "text-[#10B981]" },
+            { label: "Focus Depth", value: `${avgFocusScore}%`, icon: <Target size={14} />, color: "text-[var(--brand-400)]" },
+            { label: "Total Volume", value: `${totalFocusHours}h`, icon: <Clock size={14} />, color: "text-[var(--info)]" },
+            { label: "Current Streak", value: `${streak} Days`, icon: <Zap size={14} />, color: "text-[var(--color-warning)]" },
+            { label: "Primary Flow", value: topMode, icon: <TrendingUp size={14} />, color: "text-[var(--palette-10b981)]" },
           ].map((stat, i) => (
             <StaggerItem key={i}>
-              <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+              <div className="rounded-2xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] p-4">
                 <div className={`${stat.color} mb-3`}>{stat.icon}</div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[#4B5563]">{stat.label}</p>
-                <p className="text-xl font-black text-white mt-1">{stat.value}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--foreground-subtle)]">{stat.label}</p>
+                <p className="text-xl font-black text-[var(--palette-white)] mt-1">{stat.value}</p>
               </div>
             </StaggerItem>
           ))}
         </StaggerContainer>
 
-        <footer className="flex flex-col sm:flex-row gap-4 pt-8 border-t border-white/5">
-           <button className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-bold text-black hover:bg-zinc-200 transition-all">
+        <footer className="flex flex-col sm:flex-row gap-4 pt-8 border-t border-[var(--palette-white)]/5">
+           <button className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[var(--palette-white)] px-6 py-3 text-sm font-bold text-[var(--palette-black)] hover:bg-[var(--palette-zinc-200)] transition-all">
              <Download size={16} /> Export as PDF
            </button>
-           <button 
+           <button
              onClick={shareToX}
-             className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-bold text-white hover:bg-white/10 transition-all"
+             className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-[var(--palette-white)]/10 bg-[var(--palette-white)]/5 px-6 py-3 text-sm font-bold text-[var(--palette-white)] hover:bg-[var(--palette-white)]/10 transition-all"
            >
              <Share2 size={16} /> Share Achievement
            </button>

@@ -19,12 +19,12 @@ interface LeaderboardEntry {
 type Filter = "weekly" | "total";
 
 const AVATAR_GRADIENTS = [
-  "from-[#7C3AED] to-[#4F46E5]",
-  "from-[#06D6A0] to-[#0EA5E9]",
-  "from-[#F59E0B] to-[#EF4444]",
-  "from-[#EC4899] to-[#8B5CF6]",
-  "from-[#14B8A6] to-[#3B82F6]",
-  "from-[#F97316] to-[#EF4444]",
+  "from-[var(--brand-600)] to-[var(--palette-4f46e5)]",
+  "from-[var(--brand-teal)] to-[var(--palette-0ea5e9)]",
+  "from-[var(--color-warning)] to-[var(--color-error)]",
+  "from-[var(--palette-ec4899)] to-[var(--brand-500)]",
+  "from-[var(--palette-14b8a6)] to-[var(--color-info)]",
+  "from-[var(--palette-f97316)] to-[var(--color-error)]",
 ];
 
 function getAvatarGradient(name: string) {
@@ -32,9 +32,9 @@ function getAvatarGradient(name: string) {
 }
 
 const RANK_META = {
-  1: { crown: "#FFB800", glow: "rgba(255,184,0,0.35)", bg: "from-[rgba(255,184,0,0.12)] to-[rgba(255,184,0,0.02)]", border: "rgba(255,184,0,0.3)",  height: "h-28" },
-  2: { crown: "#C0C0C0", glow: "rgba(192,192,192,0.25)", bg: "from-[rgba(192,192,192,0.1)] to-[rgba(192,192,192,0.02)]", border: "rgba(192,192,192,0.22)", height: "h-24" },
-  3: { crown: "#CD7F32", glow: "rgba(205,127,50,0.25)", bg: "from-[rgba(205,127,50,0.1)] to-[rgba(205,127,50,0.02)]", border: "rgba(205,127,50,0.22)", height: "h-20" },
+  1: { crown: "var(--brand-gold)", glow: "var(--rgba-255-184-0-0_35)", bg: "from-[var(--rgba-255-184-0-0_12)] to-[var(--rgba-255-184-0-0_02)]", border: "var(--rgba-255-184-0-0_3)",  height: "h-28" },
+  2: { crown: "var(--palette-c0c0c0)", glow: "var(--rgba-192-192-192-0_25)", bg: "from-[var(--rgba-192-192-192-0_1)] to-[var(--rgba-192-192-192-0_02)]", border: "var(--rgba-192-192-192-0_22)", height: "h-24" },
+  3: { crown: "var(--palette-cd7f32)", glow: "var(--rgba-205-127-50-0_25)", bg: "from-[var(--rgba-205-127-50-0_1)] to-[var(--rgba-205-127-50-0_02)]", border: "var(--rgba-205-127-50-0_22)", height: "h-20" },
 };
 
 function getMsUntilMonday(): number {
@@ -71,7 +71,7 @@ function PodiumCard({ entry, podiumRank, filter }: { entry: LeaderboardEntry; po
       initial={{ opacity: 0, y: 20 + podiumRank * 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: podiumRank === 1 ? 0 : podiumRank === 2 ? 0.1 : 0.15, type: "spring", stiffness: 300, damping: 28 }}
-      className={`relative flex flex-col items-center rounded-2xl border bg-gradient-to-b p-4 text-center backdrop-blur-xl h-full ${entry.isCurrentUser ? "ring-2 ring-[#7C3AED]" : ""}`}
+      className={`relative flex flex-col items-center rounded-2xl border bg-gradient-to-b p-4 text-center backdrop-blur-xl h-full ${entry.isCurrentUser ? "ring-2 ring-[var(--brand-600)]" : ""}`}
       style={{
         background: `linear-gradient(to bottom, ${meta.bg.replace("from-", "").replace("to-", "").split("]")[0].trim()})`,
         borderColor: meta.border,
@@ -95,7 +95,7 @@ function PodiumCard({ entry, podiumRank, filter }: { entry: LeaderboardEntry; po
 
       {/* Avatar */}
       <div
-        className={`relative mb-2 flex ${podiumRank === 1 ? "h-14 w-14" : "h-11 w-11"} items-center justify-center rounded-full bg-gradient-to-br ${getAvatarGradient(entry.name)} font-bold text-white shadow-lg`}
+        className={`relative mb-2 flex ${podiumRank === 1 ? "h-14 w-14" : "h-11 w-11"} items-center justify-center rounded-full bg-gradient-to-br ${getAvatarGradient(entry.name)} font-bold text-[var(--palette-white)] shadow-lg`}
         style={{ fontSize: podiumRank === 1 ? "15px" : "12px" }}
       >
         {entry.name.slice(0, 2).toUpperCase()}
@@ -112,16 +112,16 @@ function PodiumCard({ entry, podiumRank, filter }: { entry: LeaderboardEntry; po
 
       {/* Name */}
       <p className="max-w-[80px] truncate text-xs font-bold text-[var(--foreground)]">{entry.name}</p>
-      {entry.isCurrentUser && <span className="text-[9px] text-[#A78BFA]">(you)</span>}
+      {entry.isCurrentUser && <span className="text-[9px] text-[var(--brand-400)]">(you)</span>}
 
       {/* XP */}
-      <p className="mt-1.5 text-base font-black" style={{ color: "#A78BFA" }}>
+      <p className="mt-1.5 text-base font-black" style={{ color: "var(--brand-400)" }}>
         {xp.toLocaleString()}
         <span className="ml-0.5 text-[9px] font-normal text-[var(--foreground-subtle)]">XP</span>
       </p>
 
       {/* Streak */}
-      <div className="mt-1 flex items-center gap-1 text-[10px] text-[#F97316]">
+      <div className="mt-1 flex items-center gap-1 text-[10px] text-[var(--palette-f97316)]">
         <Flame size={9} />
         {entry.streak}d
       </div>
@@ -183,11 +183,11 @@ export default function LeaderboardPage() {
   return (
     <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <div className="absolute right-0 top-0 h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle_at_center,rgba(255,184,0,0.05),transparent_65%)] blur-3xl" />
-        <div className="absolute left-0 bottom-0 h-[300px] w-[300px] rounded-full bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.06),transparent_65%)] blur-3xl" />
+        <div className="absolute right-0 top-0 h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle_at_center,var(--rgba-255-184-0-0_05),transparent_65%)] blur-3xl" />
+        <div className="absolute left-0 bottom-0 h-[300px] w-[300px] rounded-full bg-[radial-gradient(circle_at_center,var(--rgba-124-58-237-0_06),transparent_65%)] blur-3xl" />
       </div>
 
-      <main id="main-content" className="relative z-10 mx-auto max-w-3xl px-4 py-10">
+      <main id="main-content" className="relative z-[var(--z-content)] mx-auto max-w-3xl px-4 py-10">
         <PageTransition>
 
           {/* Header */}
@@ -195,7 +195,7 @@ export default function LeaderboardPage() {
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--foreground-subtle)]">Rankings</p>
               <h1 className="mt-1 flex items-center gap-2.5 text-2xl font-bold text-[var(--foreground)] sm:text-3xl">
-                <Trophy size={26} className="text-[#FFB800]" aria-hidden />
+                <Trophy size={26} className="text-[var(--brand-gold)]" aria-hidden />
                 Leaderboard
               </h1>
             </div>
@@ -203,7 +203,7 @@ export default function LeaderboardPage() {
               onClick={loadLeaderboard}
               disabled={loading}
               aria-label="Refresh leaderboard"
-              className="mt-1 rounded-xl border border-[rgba(124,58,237,0.2)] bg-[rgba(124,58,237,0.07)] p-2 text-[var(--muted-fg)] transition-all hover:border-[rgba(124,58,237,0.4)] hover:text-[#A78BFA] disabled:opacity-50"
+              className="mt-1 rounded-xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-124-58-237-0_07)] p-2 text-[var(--muted-fg)] transition-all hover:border-[var(--rgba-124-58-237-0_4)] hover:text-[var(--brand-400)] disabled:opacity-50"
             >
               <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
             </button>
@@ -211,34 +211,34 @@ export default function LeaderboardPage() {
 
           {/* Weekly reset chip */}
           <div className="mb-5 flex flex-wrap items-center gap-3">
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(6,214,160,0.2)] bg-[rgba(6,214,160,0.06)] px-3 py-1">
-              <span className="text-[9px] font-semibold uppercase tracking-wider text-[#06D6A0]">Weekly reset</span>
-              <span className="text-[10px] font-bold text-[#06D6A0]">{resetCountdown}</span>
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--rgba-6-214-160-0_2)] bg-[var(--rgba-6-214-160-0_06)] px-3 py-1">
+              <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--brand-teal)]">Weekly reset</span>
+              <span className="text-[10px] font-bold text-[var(--brand-teal)]">{resetCountdown}</span>
             </div>
             {fetchError && (
-              <div className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(239,68,68,0.25)] bg-[rgba(239,68,68,0.06)] px-3 py-1">
-                <Medal size={10} className="text-[#EF4444]" />
-                <p className="text-[10px] text-[#EF4444]">Could not load rankings — showing sample</p>
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--rgba-239-68-68-0_25)] bg-[var(--rgba-239-68-68-0_06)] px-3 py-1">
+                <Medal size={10} className="text-[var(--color-error)]" />
+                <p className="text-[10px] text-[var(--color-error)]">Could not load rankings — showing sample</p>
               </div>
             )}
             {!fetchError && isDemo && (
-              <div className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(124,58,237,0.2)] bg-[rgba(124,58,237,0.06)] px-3 py-1">
-                <Medal size={10} className="text-[#A78BFA]" />
-                <p className="text-[10px] text-[#A78BFA]">Demo data — complete a session to appear</p>
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-124-58-237-0_06)] px-3 py-1">
+                <Medal size={10} className="text-[var(--brand-400)]" />
+                <p className="text-[10px] text-[var(--brand-400)]">Demo data — complete a session to appear</p>
               </div>
             )}
           </div>
 
           {/* Filter tabs */}
-          <div className="mb-6 inline-flex rounded-xl border border-[rgba(124,58,237,0.2)] bg-[rgba(16,23,50,0.7)] p-1">
+          <div className="mb-6 inline-flex rounded-xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-16-23-50-0_7)] p-1">
             {(["weekly", "total"] as Filter[]).map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
                 aria-pressed={filter === f}
-                className={`rounded-lg px-5 py-1.5 text-xs font-semibold capitalize transition-all duration-150 ${
+                className={`rounded-lg px-5 py-1.5 text-xs font-semibold capitalize transition-all duration-[var(--duration-fast)] ${
                   filter === f
-                    ? "bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] text-white shadow-[0_0_14px_rgba(124,58,237,0.35)]"
+                    ? "bg-gradient-to-br from-[var(--brand-600)] to-[var(--palette-4f46e5)] text-[var(--palette-white)] shadow-[0_0_14px_var(--rgba-124-58-237-0_35)]"
                     : "text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]"
                 }`}
               >
@@ -249,13 +249,13 @@ export default function LeaderboardPage() {
 
           {loading ? (
             <div className="flex h-52 items-center justify-center" role="status" aria-label="Loading leaderboard">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-[rgba(124,58,237,0.3)] border-t-[#7C3AED]" />
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--rgba-124-58-237-0_3)] border-t-[var(--brand-600)]" />
             </div>
           ) : sorted.length === 0 ? (
-            <div className="rounded-2xl border border-[rgba(124,58,237,0.15)] bg-[rgba(16,23,50,0.5)] p-14 text-center">
-              <Trophy size={40} className="mx-auto mb-3 text-[#2D3748]" />
+            <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-16-23-50-0_5)] p-14 text-center">
+              <Trophy size={40} className="mx-auto mb-3 text-[var(--foreground-subtle)]" />
               <p className="text-sm text-[var(--muted-fg)]">No one's on the board yet.</p>
-              <p className="mt-1 text-xs text-[#374151]">Complete a focus session to earn XP and claim a rank!</p>
+              <p className="mt-1 text-xs text-[var(--foreground-subtle)]">Complete a focus session to earn XP and claim a rank!</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -276,7 +276,7 @@ export default function LeaderboardPage() {
 
               {/* List rows (rank 4+) */}
               {rest.length > 0 && (
-                <div className="overflow-hidden rounded-2xl border border-[rgba(124,58,237,0.12)] backdrop-blur-xl">
+                <div className="overflow-hidden rounded-2xl border border-[var(--rgba-124-58-237-0_12)] backdrop-blur-xl">
                   {rest.map((entry, i) => (
                     <motion.div
                       key={entry.userId}
@@ -285,33 +285,33 @@ export default function LeaderboardPage() {
                       transition={{ delay: 0.3 + i * 0.04 }}
                       className={`flex items-center gap-3 px-4 py-3 transition-colors ${
                         entry.isCurrentUser
-                          ? "bg-[rgba(124,58,237,0.1)] border-l-2 border-[#7C3AED]"
-                          : "hover:bg-[rgba(124,58,237,0.04)]"
-                      } ${i < rest.length - 1 ? "border-b border-[rgba(124,58,237,0.07)]" : ""}`}
+                          ? "bg-[var(--rgba-124-58-237-0_1)] border-l-2 border-[var(--brand-600)]"
+                          : "hover:bg-[var(--rgba-124-58-237-0_04)]"
+                      } ${i < rest.length - 1 ? "border-b border-[var(--rgba-124-58-237-0_07)]" : ""}`}
                     >
-                      <span className="w-6 text-center text-xs font-black text-[#374151]">{entry.rank}</span>
+                      <span className="w-6 text-center text-xs font-black text-[var(--foreground-subtle)]">{entry.rank}</span>
                       <div
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${getAvatarGradient(entry.name)} text-[11px] font-bold text-white`}
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${getAvatarGradient(entry.name)} text-[11px] font-bold text-[var(--palette-white)]`}
                       >
                         {entry.name.slice(0, 2).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="truncate text-sm font-semibold text-[var(--foreground)]">
                           {entry.name}
-                          {entry.isCurrentUser && <span className="ml-1.5 text-[9px] font-normal text-[#A78BFA]">(you)</span>}
+                          {entry.isCurrentUser && <span className="ml-1.5 text-[9px] font-normal text-[var(--brand-400)]">(you)</span>}
                         </p>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="flex items-center gap-0.5 text-[10px] text-[#F97316]">
+                          <span className="flex items-center gap-0.5 text-[10px] text-[var(--palette-f97316)]">
                             <Flame size={9} />{entry.streak}d
                           </span>
-                          <span className="text-[10px] text-[#FFB800]">🪙{entry.coins.toLocaleString()}</span>
+                          <span className="text-[10px] text-[var(--brand-gold)]">🪙{entry.coins.toLocaleString()}</span>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-bold text-[#A78BFA]">
+                        <p className="text-sm font-bold text-[var(--brand-400)]">
                           {(filter === "weekly" ? entry.weeklyXp : entry.totalXp).toLocaleString()}
                         </p>
-                        <p className="text-[10px] text-[#374151]">XP</p>
+                        <p className="text-[10px] text-[var(--foreground-subtle)]">XP</p>
                       </div>
                     </motion.div>
                   ))}
@@ -324,14 +324,14 @@ export default function LeaderboardPage() {
                   <motion.div
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="rounded-2xl border border-[#7C3AED] bg-[rgba(124,58,237,0.09)] p-4 flex items-center gap-3"
+                    className="rounded-2xl border border-[var(--brand-600)] bg-[var(--rgba-124-58-237-0_09)] p-4 flex items-center gap-3"
                   >
-                    <span className="text-xs font-black text-[#A78BFA]">#{myRow.rank}</span>
-                    <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br ${getAvatarGradient(myRow.name)} text-xs font-bold text-white`}>
+                    <span className="text-xs font-black text-[var(--brand-400)]">#{myRow.rank}</span>
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br ${getAvatarGradient(myRow.name)} text-xs font-bold text-[var(--palette-white)]`}>
                       {myRow.name.slice(0, 2).toUpperCase()}
                     </div>
                     <p className="flex-1 text-sm font-semibold text-[var(--foreground)]">You</p>
-                    <p className="text-sm font-bold text-[#A78BFA]">
+                    <p className="text-sm font-bold text-[var(--brand-400)]">
                       {(filter === "weekly" ? myRow.weeklyXp : myRow.totalXp).toLocaleString()} XP
                     </p>
                   </motion.div>

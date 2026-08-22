@@ -22,18 +22,18 @@ export function AnnouncementBanner() {
         initial={{ height: 0, opacity: 0 }}
         animate={{ height: "auto", opacity: 1 }}
         exit={{ height: 0, opacity: 0 }}
-        className="relative z-50 overflow-hidden border-b border-[#7C3AED]/30 bg-gradient-to-r from-[#7C3AED]/15 via-[#4F46E5]/10 to-[#7C3AED]/15 backdrop-blur-xl"
+        className="relative z-[var(--z-modal)] overflow-hidden border-b border-[var(--brand-600)]/30 bg-gradient-to-r from-[var(--brand-600)]/15 via-[var(--palette-4f46e5)]/10 to-[var(--brand-600)]/15 backdrop-blur-xl"
       >
         <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2.5">
           {settings.announcementEmoji && <span className="text-lg">{settings.announcementEmoji}</span>}
           <div className="min-w-0 flex-1">
-            {title && <p className="text-xs font-bold text-[#A78BFA]">{title}</p>}
-            {text && <p className="truncate text-xs text-[#94A3B8]">{text}</p>}
+            {title && <p className="text-xs font-bold text-[var(--brand-400)]">{title}</p>}
+            {text && <p className="truncate text-xs text-[var(--foreground-muted)]">{text}</p>}
           </div>
           <button
             onClick={() => setDismissed(true)}
             aria-label="Dismiss announcement"
-            className="shrink-0 rounded-lg p-1 text-[#4B5563] transition-colors hover:bg-white/5 hover:text-[#E2E8F0]"
+            className="shrink-0 rounded-lg p-1 text-[var(--foreground-subtle)] transition-colors hover:bg-[var(--palette-white)]/5 hover:text-[var(--foreground)]"
           >
             <X size={14} />
           </button>

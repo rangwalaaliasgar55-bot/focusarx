@@ -11,9 +11,9 @@ const DISTRACTIONS = [
 
 // 4-7-8 breathing pattern
 const BREATHING_PHASES = [
-  { label: "Inhale", duration: 4, color: "#2dd4bf" },
-  { label: "Hold", duration: 7, color: "#a78bfa" },
-  { label: "Exhale", duration: 8, color: "#60a5fa" },
+  { label: "Inhale", duration: 4, color: "var(--palette-2dd4bf)" },
+  { label: "Hold", duration: 7, color: "var(--brand-400)" },
+  { label: "Exhale", duration: 8, color: "var(--info)" },
 ];
 
 function BreathingCircle() {
@@ -49,10 +49,10 @@ function BreathingCircle() {
           animate={{ scale: circleSize }}
           transition={{ duration: phase.duration, ease: "linear" }}
           className="w-40 h-40 rounded-full"
-          style={{ background: `radial-gradient(circle, ${phase.color}22 0%, ${phase.color}08 100%)`, border: `2px solid ${phase.color}44` }}
+          style={{ background: `radial-gradient(circle, color-mix(in srgb, ${phase.color} 13%, transparent) 0%, color-mix(in srgb, ${phase.color} 3%, transparent) 100%)`, border: `2px solid color-mix(in srgb, ${phase.color} 27%, transparent)` }}
         />
         <svg className="absolute" width="160" height="160" viewBox="0 0 160 160">
-          <circle cx="80" cy="80" r="60" fill="none" stroke={`${phase.color}22`} strokeWidth="4" />
+          <circle cx="80" cy="80" r="60" fill="none" stroke={`color-mix(in srgb, ${phase.color} 13%, transparent)`} strokeWidth="4" />
           <motion.circle
             cx="80"
             cy="80"
@@ -71,10 +71,10 @@ function BreathingCircle() {
         </svg>
         <div className="absolute flex flex-col items-center">
           <span className="text-3xl font-bold tabular-nums" style={{ color: phase.color }}>{seconds}</span>
-          <span className="text-xs font-semibold tracking-wider" style={{ color: `${phase.color}cc` }}>{phase.label}</span>
+          <span className="text-xs font-semibold tracking-wider" style={{ color: `color-mix(in srgb, ${phase.color} 80%, transparent)` }}>{phase.label}</span>
         </div>
       </div>
-      <p className="text-xs text-[#4a6060] text-center">
+      <p className="text-xs text-[var(--palette-4a6060)] text-center">
         4s inhale · 7s hold · 8s exhale
       </p>
     </div>
@@ -99,10 +99,10 @@ function Countdown({ totalSec, onUnlock }: { totalSec: number; onUnlock: () => v
 
   return (
     <div className="flex flex-col items-center gap-1">
-      <span className="text-5xl font-black tabular-nums text-teal-300 font-mono">
+      <span className="text-5xl font-black tabular-nums text-[var(--palette-teal-300)] font-mono">
         {mm}:{ss}
       </span>
-      <p className="text-xs text-[#3a5050]">hang on — ride the wave</p>
+      <p className="text-xs text-[var(--palette-3a5050)]">hang on — ride the wave</p>
     </div>
   );
 }
@@ -119,16 +119,16 @@ export default function UrgeSurfing() {
   return (
     <>
       <div className="flex flex-col items-center py-6 px-4">
-        <p className="text-xs text-[#3a5050] mb-4 text-center max-w-xs">
+        <p className="text-xs text-[var(--palette-3a5050)] mb-4 text-center max-w-xs">
           Urges peak and pass in 5–10 minutes. Use this tool to ride it out.
         </p>
         <motion.button
           whileHover={{ scale: 1.04 }}
           whileTap={{ scale: 0.97 }}
           onClick={handleOpen}
-          className="flex items-center gap-3 rounded-2xl border border-teal-600/30 bg-gradient-to-r from-teal-900/40 to-blue-900/40 px-7 py-4 text-base font-semibold text-teal-200 shadow-lg hover:shadow-teal-900/30 transition-shadow"
+          className="flex items-center gap-3 rounded-2xl border border-[var(--palette-teal-600)]/30 bg-gradient-to-r from-[var(--palette-teal-900)]/40 to-[var(--palette-blue-900)]/40 px-7 py-4 text-base font-semibold text-[var(--palette-teal-200)] shadow-lg hover:shadow-[var(--palette-teal-900)]/30 transition-shadow"
         >
-          <Waves size={20} className="text-teal-400" />
+          <Waves size={20} className="text-[var(--palette-teal-400)]" />
           I'm struggling right now 🌊
         </motion.button>
       </div>
@@ -139,10 +139,10 @@ export default function UrgeSurfing() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-[200] flex flex-col items-center justify-start overflow-y-auto"
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-[var(--z-command)] flex flex-col items-center justify-start overflow-y-auto"
             style={{
-              background: "linear-gradient(160deg, #020e12 0%, #021018 40%, #020c14 100%)",
+              background: "linear-gradient(160deg, var(--palette-020e12) 0%, var(--palette-021018) 40%, var(--palette-020c14) 100%)",
             }}
           >
             {/* Close button */}
@@ -154,7 +154,7 @@ export default function UrgeSurfing() {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0 }}
                     onClick={() => setOpen(false)}
-                    className="flex items-center gap-2 rounded-xl border border-teal-900/40 bg-teal-900/20 px-4 py-2 text-sm text-teal-400 hover:text-teal-200 transition-colors"
+                    className="flex items-center gap-2 rounded-xl border border-[var(--palette-teal-900)]/40 bg-[var(--palette-teal-900)]/20 px-4 py-2 text-sm text-[var(--palette-teal-400)] hover:text-[var(--palette-teal-200)] transition-colors"
                   >
                     <X size={14} /> Close
                   </motion.button>
@@ -164,8 +164,8 @@ export default function UrgeSurfing() {
 
             <div className="flex flex-col items-center gap-8 px-6 pb-12 w-full max-w-md">
               <div>
-                <h2 className="text-xl font-bold text-teal-100 text-center">You're doing great. 🌊</h2>
-                <p className="text-sm text-teal-600 text-center mt-1">Breathe with this. The wave will pass.</p>
+                <h2 className="text-xl font-bold text-[var(--palette-teal-100)] text-center">You're doing great. 🌊</h2>
+                <p className="text-sm text-[var(--palette-teal-600)] text-center mt-1">Breathe with this. The wave will pass.</p>
               </div>
 
               {/* Breathing */}
@@ -176,25 +176,25 @@ export default function UrgeSurfing() {
 
               {/* Distraction cards */}
               <div className="w-full">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#2a4040] mb-3 text-center">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--palette-2a4040)] mb-3 text-center">
                   Try one of these instead
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   {DISTRACTIONS.map((d) => (
                     <div
                       key={d.label}
-                      className="rounded-xl border border-teal-900/30 bg-teal-900/10 p-3"
+                      className="rounded-xl border border-[var(--palette-teal-900)]/30 bg-[var(--palette-teal-900)]/10 p-3"
                     >
                       <p className="text-xl mb-1">{d.icon}</p>
-                      <p className="text-xs font-semibold text-teal-200">{d.label}</p>
-                      <p className="text-[10px] text-teal-700 mt-0.5 leading-snug">{d.sub}</p>
+                      <p className="text-xs font-semibold text-[var(--palette-teal-200)]">{d.label}</p>
+                      <p className="text-[10px] text-[var(--palette-teal-700)] mt-0.5 leading-snug">{d.sub}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
               {!canClose && (
-                <p className="text-xs text-[#1a3030] text-center">
+                <p className="text-xs text-[var(--palette-1a3030)] text-center">
                   Close button appears in 60 seconds — stay with it.
                 </p>
               )}

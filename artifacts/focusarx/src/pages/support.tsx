@@ -42,14 +42,14 @@ const FAQS = [
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border-b border-[rgba(124,58,237,0.1)] last:border-0">
+    <div className="border-b border-[var(--rgba-124-58-237-0_1)] last:border-0">
       <button
         onClick={() => setOpen(v => !v)}
         className="flex w-full items-center justify-between py-4 text-left gap-4 group"
       >
-        <span className="text-sm font-semibold text-[#E2E8F0] group-hover:text-[#A78BFA] transition-colors">{q}</span>
-        <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
-          <ChevronDown size={16} className="text-[#4B5563] shrink-0" />
+        <span className="text-sm font-semibold text-[var(--foreground)] group-hover:text-[var(--brand-400)] transition-colors">{q}</span>
+        <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.15 }}>
+          <ChevronDown size={16} className="text-[var(--foreground-subtle)] shrink-0" />
         </motion.span>
       </button>
       <AnimatePresence initial={false}>
@@ -61,7 +61,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <p className="pb-4 text-sm leading-relaxed text-[#94A3B8]">{a}</p>
+            <p className="pb-4 text-sm leading-relaxed text-[var(--foreground-muted)]">{a}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -75,9 +75,9 @@ export default function SupportPage() {
   return (
     <div className="relative min-h-[100dvh] forge-bg-glow">
       <PageSEO {...PAGE_SEO.support} />
-      <main id="main-content" className="relative z-10 mx-auto max-w-4xl px-4 py-10">
+      <main id="main-content" className="relative z-[var(--z-content)] mx-auto max-w-4xl px-4 py-10">
         <PageTransition>
-          <Link href="/" className="mb-6 inline-flex items-center gap-2 text-xs text-[#4B5563] hover:text-[#A78BFA] transition-colors">
+          <Link href="/" className="mb-6 inline-flex items-center gap-2 text-xs text-[var(--foreground-subtle)] hover:text-[var(--brand-400)] transition-colors">
             <ArrowLeft size={13} /> Back to FocusArx
           </Link>
 
@@ -85,8 +85,8 @@ export default function SupportPage() {
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5 }}
-              className="mb-4 inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-purple-300"
+              transition={{ duration: 0.4 }}
+              className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--palette-purple-500)]/30 bg-[var(--palette-purple-500)]/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--palette-purple-300)]"
             >
               <HelpCircle size={12} />
               Help Center
@@ -94,16 +94,16 @@ export default function SupportPage() {
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="mb-3 text-4xl font-black tracking-tight text-[#E2E8F0]"
+              transition={{ duration: 0.4, delay: 0.1 }}
+              className="mb-3 text-4xl font-black tracking-tight text-[var(--foreground)]"
             >
               How can we help?
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="text-sm text-[#6b7280]"
+              transition={{ duration: 0.4, delay: 0.2 }}
+              className="text-sm text-[var(--palette-6b7280)]"
             >
               Browse our FAQ or reach out directly — we usually reply within 24 hours.
             </motion.p>
@@ -123,20 +123,20 @@ export default function SupportPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: i * 0.08 }}
                 whileHover={{ y: -3 }}
-                className="flex items-center gap-3.5 rounded-2xl border border-[rgba(124,58,237,0.15)] bg-[rgba(12,14,28,0.8)] p-4 backdrop-blur-sm transition-colors hover:border-[rgba(124,58,237,0.35)]"
+                className="flex items-center gap-3.5 rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-12-14-28-0_8)] p-4 backdrop-blur-sm transition-colors hover:border-[var(--rgba-124-58-237-0_35)]"
               >
                 <span className="text-2xl">{c.emoji}</span>
                 <div>
-                  <p className="text-sm font-semibold text-[#E2E8F0]">{c.title}</p>
-                  <p className="text-xs text-[#6b7280]">{c.desc}</p>
+                  <p className="text-sm font-semibold text-[var(--foreground)]">{c.title}</p>
+                  <p className="text-xs text-[var(--palette-6b7280)]">{c.desc}</p>
                 </div>
               </motion.a>
             ))}
           </div>
 
           {/* FAQ */}
-          <div className="rounded-2xl border border-[rgba(124,58,237,0.2)] bg-[rgba(12,14,28,0.8)] p-6 backdrop-blur-sm">
-            <h2 className="mb-6 text-lg font-bold text-[#E2E8F0]">Frequently Asked Questions</h2>
+          <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-12-14-28-0_8)] p-6 backdrop-blur-sm">
+            <h2 className="mb-6 text-lg font-bold text-[var(--foreground)]">Frequently Asked Questions</h2>
 
             {/* Category tabs */}
             <div className="mb-6 flex flex-wrap gap-2">
@@ -146,8 +146,8 @@ export default function SupportPage() {
                   onClick={() => setActiveTab(i)}
                   className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${
                     activeTab === i
-                      ? "bg-[rgba(124,58,237,0.25)] text-[#A78BFA] border border-[rgba(124,58,237,0.4)]"
-                      : "bg-[rgba(124,58,237,0.06)] text-[#4B5563] border border-transparent hover:text-[#94A3B8]"
+                      ? "bg-[var(--rgba-124-58-237-0_25)] text-[var(--brand-400)] border border-[var(--rgba-124-58-237-0_4)]"
+                      : "bg-[var(--rgba-124-58-237-0_06)] text-[var(--foreground-subtle)] border border-transparent hover:text-[var(--foreground-muted)]"
                   }`}
                 >
                   {cat.cat}
@@ -163,23 +163,23 @@ export default function SupportPage() {
           </div>
 
           {/* Still need help */}
-          <div className="mt-8 rounded-2xl border border-[rgba(124,58,237,0.15)] bg-gradient-to-br from-[rgba(124,58,237,0.08)] to-transparent p-6 text-center">
-            <p className="mb-1.5 font-semibold text-[#E2E8F0]">Still need help?</p>
-            <p className="mb-4 text-sm text-[#6b7280]">Our team is happy to assist. Average response time is under 24 hours.</p>
+          <div className="mt-8 rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-gradient-to-br from-[var(--rgba-124-58-237-0_08)] to-transparent p-6 text-center">
+            <p className="mb-1.5 font-semibold text-[var(--foreground)]">Still need help?</p>
+            <p className="mb-4 text-sm text-[var(--palette-6b7280)]">Our team is happy to assist. Average response time is under 24 hours.</p>
             <Link href="/contact">
               <motion.button
-                whileHover={{ scale: 1.04, boxShadow: "0 0 30px 6px rgba(124,58,237,0.3)" }}
+                whileHover={{ scale: 1.04, boxShadow: "0 0 30px 6px var(--rgba-124-58-237-0_3)" }}
                 whileTap={{ scale: 0.97 }}
-                className="rounded-xl bg-gradient-to-r from-[#7c3aed] to-[#e879f9] px-6 py-2.5 text-sm font-bold text-white"
+                className="rounded-xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-e879f9)] px-6 py-2.5 text-sm font-bold text-[var(--palette-white)]"
               >
                 Contact Support →
               </motion.button>
             </Link>
           </div>
 
-          <div className="mt-8 flex flex-wrap gap-3 border-t border-[rgba(124,58,237,0.1)] pt-6 text-xs text-[#374151]">
+          <div className="mt-8 flex flex-wrap gap-3 border-t border-[var(--rgba-124-58-237-0_1)] pt-6 text-xs text-[var(--foreground-subtle)]">
             {[["/contact","Contact"], ["/about","About"], ["/privacy","Privacy"]].map(([href, label]) => (
-              <Link key={href} href={href} className="hover:text-[#A78BFA] transition-colors">{label}</Link>
+              <Link key={href} href={href} className="hover:text-[var(--brand-400)] transition-colors">{label}</Link>
             ))}
           </div>
         </PageTransition>

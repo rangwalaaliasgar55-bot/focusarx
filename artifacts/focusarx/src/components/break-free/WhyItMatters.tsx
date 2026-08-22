@@ -37,19 +37,19 @@ export default function WhyItMatters() {
   return (
     <div className="w-full py-4">
       <div className="flex items-center justify-between px-4 mb-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#2a4040]">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--palette-2a4040)]">
           The science
         </p>
         <div className="flex gap-2">
           <button
             onClick={() => scroll("left")}
-            className="rounded-lg p-1.5 border border-teal-900/30 text-teal-700 hover:text-teal-400 transition-colors"
+            className="rounded-lg p-1.5 border border-[var(--palette-teal-900)]/30 text-[var(--palette-teal-700)] hover:text-[var(--palette-teal-400)] transition-colors"
           >
             <ChevronLeft size={14} />
           </button>
           <button
             onClick={() => scroll("right")}
-            className="rounded-lg p-1.5 border border-teal-900/30 text-teal-700 hover:text-teal-400 transition-colors"
+            className="rounded-lg p-1.5 border border-[var(--palette-teal-900)]/30 text-[var(--palette-teal-700)] hover:text-[var(--palette-teal-400)] transition-colors"
           >
             <ChevronRight size={14} />
           </button>
@@ -66,11 +66,11 @@ export default function WhyItMatters() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: i * 0.08 }}
-            className="shrink-0 w-72 rounded-2xl border border-teal-900/25 bg-[#061212] p-5"
+            className="shrink-0 w-72 rounded-2xl border border-[var(--palette-teal-900)]/25 bg-[var(--palette-061212)] p-5"
           >
             <div className="text-3xl mb-3">{card.icon}</div>
-            <h4 className="text-sm font-bold text-teal-100 mb-2">{card.title}</h4>
-            <p className="text-xs text-teal-700 leading-relaxed">{card.body}</p>
+            <h4 className="text-sm font-bold text-[var(--palette-teal-100)] mb-2">{card.title}</h4>
+            <p className="text-xs text-[var(--palette-teal-700)] leading-relaxed">{card.body}</p>
           </motion.div>
         ))}
       </div>

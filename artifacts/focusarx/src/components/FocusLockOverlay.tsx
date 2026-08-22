@@ -53,20 +53,20 @@ function MathPuzzle({ onSolved }: { onSolved: () => void }) {
 
   return (
     <div className="space-y-4">
-      <p className="text-center text-xs text-[#94A3B8]">Step {step + 1}/3</p>
-      <p className="text-center text-2xl font-bold text-white">{puzzles[step]!.q}</p>
+      <p className="text-center text-xs text-[var(--foreground-muted)]">Step {step + 1}/3</p>
+      <p className="text-center text-2xl font-bold text-[var(--palette-white)]">{puzzles[step]!.q}</p>
       <motion.input
         animate={shake ? { x: [-6, 6, -6, 6, 0] } : {}}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: 0.25 }}
         type="number"
         value={input}
         onChange={e => setInput(e.target.value)}
         onKeyDown={e => e.key === "Enter" && check()}
         placeholder="Your answer"
-        className="w-full rounded-xl border border-[rgba(239,68,68,0.4)] bg-[rgba(239,68,68,0.05)] px-4 py-3 text-center text-lg font-bold text-white focus:border-[#EF4444] focus:outline-none"
+        className="w-full rounded-xl border border-[var(--rgba-239-68-68-0_4)] bg-[var(--rgba-239-68-68-0_05)] px-4 py-3 text-center text-lg font-bold text-[var(--palette-white)] focus:border-[var(--color-error)] focus:outline-none"
         autoFocus
       />
-      <button onClick={check} className="w-full rounded-xl bg-[rgba(239,68,68,0.2)] py-2.5 text-sm font-semibold text-red-300 transition hover:bg-[rgba(239,68,68,0.35)]">
+      <button onClick={check} className="w-full rounded-xl bg-[var(--rgba-239-68-68-0_2)] py-2.5 text-sm font-semibold text-[var(--palette-red-300)] transition hover:bg-[var(--rgba-239-68-68-0_35)]">
         Confirm
       </button>
     </div>
@@ -146,8 +146,8 @@ export default function FocusLockOverlay({ mode, exitPhrase, secondsLeft, totalS
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[rgba(4,6,14,0.97)] backdrop-blur-xl"
-      style={{ border: redBorder ? "3px solid #EF4444" : "none", transition: "border 0.2s" }}
+      className="fixed inset-0 z-[var(--z-max)] flex flex-col items-center justify-center bg-[var(--rgba-4-6-14-0_97)] backdrop-blur-xl"
+      style={{ border: redBorder ? "3px solid var(--color-error)" : "none", transition: "border 0.2s" }}
     >
       <AnimatePresence>
         {redBorder && (
@@ -155,9 +155,9 @@ export default function FocusLockOverlay({ mode, exitPhrase, secondsLeft, totalS
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-10 pointer-events-none ring-4 ring-red-500/80"
+            className="fixed inset-0 z-[var(--z-content)] pointer-events-none ring-4 ring-[var(--palette-red-500)]/80"
           >
-            <p className="absolute top-8 left-1/2 -translate-x-1/2 text-sm font-semibold text-red-400 drop-shadow-md">
+            <p className="absolute top-8 left-1/2 -translate-x-1/2 text-sm font-semibold text-[var(--palette-red-400)] drop-shadow-md">
               Stay present. You've got this.
             </p>
           </motion.div>
@@ -165,41 +165,41 @@ export default function FocusLockOverlay({ mode, exitPhrase, secondsLeft, totalS
       </AnimatePresence>
 
       {!showExit ? (
-        <div className="relative z-20 flex flex-col items-center gap-8 px-6 text-center">
-          <p className="text-[10px] uppercase tracking-widest text-[#4B5563]">Focus Session</p>
+        <div className="relative z-[var(--z-sticky)] flex flex-col items-center gap-8 px-6 text-center">
+          <p className="text-[10px] uppercase tracking-widest text-[var(--foreground-subtle)]">Focus Session</p>
 
           <div className="relative flex h-[200px] w-[200px] items-center justify-center">
             <svg width="200" height="200" className="absolute -rotate-90">
-              <circle cx="100" cy="100" r={r} fill="none" stroke="rgba(124,58,237,0.12)" strokeWidth="8" />
-              <motion.circle cx="100" cy="100" r={r} fill="none" stroke="#7C3AED" strokeWidth="8"
+              <circle cx="100" cy="100" r={r} fill="none" stroke="var(--rgba-124-58-237-0_12)" strokeWidth="8" />
+              <motion.circle cx="100" cy="100" r={r} fill="none" stroke="var(--brand-600)" strokeWidth="8"
                 strokeLinecap="round" strokeDasharray={circ}
                 animate={{ strokeDashoffset: circ - dash }}
-                transition={{ duration: 0.5, ease: "linear" }}
+                transition={{ duration: 0.4, ease: "linear" }}
               />
             </svg>
             <motion.div
               animate={{ scale: [1, 1.06, 1] }}
               transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-              className="absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.08),transparent_70%)]"
+              className="absolute inset-0 rounded-full bg-[radial-gradient(circle,var(--rgba-124-58-237-0_08),transparent_70%)]"
             />
-            <div className="relative z-10 flex flex-col items-center">
-              <span className="text-5xl font-bold tabular-nums text-white">{m}:{s}</span>
-              <span className="mt-1 text-xs text-[#4B5563]">remaining</span>
+            <div className="relative z-[var(--z-content)] flex flex-col items-center">
+              <span className="text-5xl font-bold tabular-nums text-[var(--palette-white)]">{m}:{s}</span>
+              <span className="mt-1 text-xs text-[var(--foreground-subtle)]">remaining</span>
             </div>
           </div>
 
           {taskName && (
             <div className="max-w-xs">
-              <p className="text-[10px] text-[#4B5563] uppercase tracking-widest mb-1">Working on</p>
-              <p className="text-xl font-semibold text-[#E2E8F0]">{taskName}</p>
+              <p className="text-[10px] text-[var(--foreground-subtle)] uppercase tracking-widest mb-1">Working on</p>
+              <p className="text-xl font-semibold text-[var(--foreground)]">{taskName}</p>
             </div>
           )}
 
           <div className="flex items-center gap-2">
             <span className={`text-xs rounded-full px-2 py-0.5 font-semibold ${
-              mode === "soft" ? "bg-yellow-900/30 text-yellow-400" :
-              mode === "hard" ? "bg-red-900/30 text-red-400" :
-              "bg-zinc-900 text-zinc-300"
+              mode === "soft" ? "bg-[var(--palette-yellow-900)]/30 text-[var(--palette-yellow-400)]" :
+              mode === "hard" ? "bg-[var(--palette-red-900)]/30 text-[var(--palette-red-400)]" :
+              "bg-[var(--palette-zinc-900)] text-[var(--palette-zinc-300)]"
             }`}>
               {mode === "soft" ? "🟡 Soft Lock" : mode === "hard" ? "🔴 Hard Lock" : "⚫ Beast Mode"}
             </span>
@@ -207,7 +207,7 @@ export default function FocusLockOverlay({ mode, exitPhrase, secondsLeft, totalS
 
           <button
             onClick={startExitFlow}
-            className="mt-4 text-xs text-[#4B5563] hover:text-[#94A3B8] transition-colors"
+            className="mt-4 text-xs text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)] transition-colors"
           >
             Request exit →
           </button>
@@ -216,16 +216,16 @@ export default function FocusLockOverlay({ mode, exitPhrase, secondsLeft, totalS
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="z-20 w-full max-w-sm rounded-2xl border border-[rgba(239,68,68,0.3)] bg-[rgba(20,8,8,0.95)] p-7 shadow-2xl"
+          className="z-[var(--z-sticky)] w-full max-w-sm rounded-2xl border border-[var(--rgba-239-68-68-0_3)] bg-[var(--rgba-20-8-8-0_95)] p-7 shadow-2xl"
         >
-          <h3 className="mb-5 text-center text-lg font-bold text-red-400">Exit Focus Session?</h3>
+          <h3 className="mb-5 text-center text-lg font-bold text-[var(--palette-red-400)]">Exit Focus Session?</h3>
 
           {mode === "soft" && (
             <div className="space-y-4 text-center">
-              <p className="text-sm text-[#94A3B8]">Take a breath. Exit unlocks in:</p>
-              <p className="text-5xl font-bold text-yellow-400">{softCountdown}</p>
+              <p className="text-sm text-[var(--foreground-muted)]">Take a breath. Exit unlocks in:</p>
+              <p className="text-5xl font-bold text-[var(--palette-yellow-400)]">{softCountdown}</p>
               <button disabled={!canSoftExit} onClick={onExit}
-                className="w-full rounded-xl bg-yellow-900/30 py-3 text-sm font-semibold text-yellow-300 disabled:opacity-40 transition hover:bg-yellow-900/50 disabled:cursor-not-allowed"
+                className="w-full rounded-xl bg-[var(--palette-yellow-900)]/30 py-3 text-sm font-semibold text-[var(--palette-yellow-300)] disabled:opacity-40 transition hover:bg-[var(--palette-yellow-900)]/50 disabled:cursor-not-allowed"
               >
                 {canSoftExit ? "Exit session" : `Wait ${softCountdown}s…`}
               </button>
@@ -234,18 +234,18 @@ export default function FocusLockOverlay({ mode, exitPhrase, secondsLeft, totalS
 
           {mode === "hard" && (
             <div className="space-y-4">
-              <p className="text-center text-sm text-[#94A3B8]">Type your exit phrase to leave:</p>
-              <p className="text-center text-xs font-mono text-red-400 italic">"{exitPhrase}"</p>
+              <p className="text-center text-sm text-[var(--foreground-muted)]">Type your exit phrase to leave:</p>
+              <p className="text-center text-xs font-mono text-[var(--palette-red-400)] italic">"{exitPhrase}"</p>
               <input
                 type="text"
                 value={phraseInput}
                 onChange={e => setPhraseInput(e.target.value)}
                 placeholder="Type the phrase…"
-                className="w-full rounded-xl border border-[rgba(239,68,68,0.3)] bg-[rgba(239,68,68,0.05)] px-4 py-3 text-sm text-white focus:border-red-400 focus:outline-none"
+                className="w-full rounded-xl border border-[var(--rgba-239-68-68-0_3)] bg-[var(--rgba-239-68-68-0_05)] px-4 py-3 text-sm text-[var(--palette-white)] focus:border-[var(--palette-red-400)] focus:outline-none"
                 autoFocus
               />
               <button disabled={!canHardExit} onClick={onExit}
-                className="w-full rounded-xl bg-red-900/30 py-3 text-sm font-semibold text-red-300 disabled:opacity-40 transition hover:bg-red-900/50 disabled:cursor-not-allowed"
+                className="w-full rounded-xl bg-[var(--palette-red-900)]/30 py-3 text-sm font-semibold text-[var(--palette-red-300)] disabled:opacity-40 transition hover:bg-[var(--palette-red-900)]/50 disabled:cursor-not-allowed"
               >
                 Exit session
               </button>
@@ -256,17 +256,17 @@ export default function FocusLockOverlay({ mode, exitPhrase, secondsLeft, totalS
             <div className="space-y-4">
               {!beastPuzzleDone ? (
                 <>
-                  <p className="text-center text-sm text-[#94A3B8]">Solve 3 math puzzles to exit:</p>
+                  <p className="text-center text-sm text-[var(--foreground-muted)]">Solve 3 math puzzles to exit:</p>
                   <MathPuzzle onSolved={() => { setBeastPuzzleDone(true); if (beastWait === 0) setBeastReady(true); }} />
                 </>
               ) : beastWait > 0 ? (
                 <div className="text-center space-y-2">
-                  <p className="text-sm text-[#94A3B8]">Puzzles done. Now wait:</p>
-                  <p className="text-4xl font-bold text-zinc-300">{beastWait}s</p>
+                  <p className="text-sm text-[var(--foreground-muted)]">Puzzles done. Now wait:</p>
+                  <p className="text-4xl font-bold text-[var(--palette-zinc-300)]">{beastWait}s</p>
                 </div>
               ) : (
                 <button onClick={onExit}
-                  className="w-full rounded-xl bg-zinc-800 py-3 text-sm font-semibold text-zinc-300 transition hover:bg-zinc-700"
+                  className="w-full rounded-xl bg-[var(--palette-zinc-800)] py-3 text-sm font-semibold text-[var(--palette-zinc-300)] transition hover:bg-[var(--palette-zinc-700)]"
                 >
                   Exit session
                 </button>
@@ -275,7 +275,7 @@ export default function FocusLockOverlay({ mode, exitPhrase, secondsLeft, totalS
           )}
 
           <button onClick={() => { setShowExit(false); setPhraseInput(""); }}
-            className="mt-4 w-full text-center text-xs text-[#4B5563] hover:text-[#94A3B8] transition-colors"
+            className="mt-4 w-full text-center text-xs text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)] transition-colors"
           >
             ← Stay focused
           </button>
@@ -307,28 +307,28 @@ export function LockModePicker({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-[var(--palette-black)]/60 px-4 backdrop-blur-sm"
     >
       <motion.div
         initial={{ scale: 0.93, y: 16 }}
         animate={{ scale: 1, y: 0 }}
-        className="w-full max-w-sm rounded-2xl border border-[rgba(124,58,237,0.3)] bg-[rgba(8,12,28,0.98)] p-6 shadow-2xl"
+        className="w-full max-w-sm rounded-2xl border border-[var(--rgba-124-58-237-0_3)] bg-[var(--rgba-8-12-28-0_98)] p-6 shadow-2xl"
       >
-        <h3 className="mb-1 text-base font-bold text-[#E2E8F0]">Commitment level</h3>
-        <p className="mb-5 text-xs text-[#4B5563]">How locked in do you want to be?</p>
+        <h3 className="mb-1 text-base font-bold text-[var(--foreground)]">Commitment level</h3>
+        <p className="mb-5 text-xs text-[var(--foreground-subtle)]">How locked in do you want to be?</p>
         <div className="space-y-2.5">
           {modes.map(m => (
             <button key={m.id} onClick={() => setSelected(m.id)}
               className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all ${
                 selected === m.id
-                  ? "border-[#7C3AED] bg-[rgba(124,58,237,0.15)]"
-                  : "border-[rgba(124,58,237,0.12)] hover:border-[rgba(124,58,237,0.3)]"
+                  ? "border-[var(--brand-600)] bg-[var(--rgba-124-58-237-0_15)]"
+                  : "border-[var(--rgba-124-58-237-0_12)] hover:border-[var(--rgba-124-58-237-0_3)]"
               }`}
             >
               <span className="text-lg">{m.emoji}</span>
               <div>
-                <p className="text-sm font-semibold text-[#E2E8F0]">{m.label}</p>
-                <p className="text-[11px] text-[#4B5563]">{m.sub}</p>
+                <p className="text-sm font-semibold text-[var(--foreground)]">{m.label}</p>
+                <p className="text-[11px] text-[var(--foreground-subtle)]">{m.sub}</p>
               </div>
             </button>
           ))}
@@ -341,19 +341,19 @@ export function LockModePicker({
               placeholder='Your exit phrase, e.g. "I give up today"'
               value={phrase}
               onChange={e => setPhrase(e.target.value)}
-              className="w-full rounded-xl border border-[rgba(124,58,237,0.3)] bg-[rgba(124,58,237,0.05)] px-4 py-2.5 text-sm text-[#E2E8F0] placeholder-[#4B5563] focus:border-[#7C3AED] focus:outline-none"
+              className="w-full rounded-xl border border-[var(--rgba-124-58-237-0_3)] bg-[var(--rgba-124-58-237-0_05)] px-4 py-2.5 text-sm text-[var(--foreground)] placeholder-[var(--foreground-subtle)] focus:border-[var(--brand-600)] focus:outline-none"
             />
           </motion.div>
         )}
 
         <div className="mt-5 flex gap-3">
-          <button onClick={onCancel} className="flex-1 rounded-xl border border-[rgba(124,58,237,0.2)] py-2.5 text-sm text-[#6B7280] transition hover:text-[#94A3B8]">
+          <button onClick={onCancel} className="flex-1 rounded-xl border border-[var(--rgba-124-58-237-0_2)] py-2.5 text-sm text-[var(--palette-6b7280)] transition hover:text-[var(--foreground-muted)]">
             Cancel
           </button>
           <button
             disabled={selected === "hard" && !phrase.trim()}
             onClick={() => onConfirm(selected, phrase)}
-            className="flex-1 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
+            className="flex-1 rounded-xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] py-2.5 text-sm font-semibold text-[var(--palette-white)] transition hover:opacity-90 disabled:opacity-40"
           >
             Start session
           </button>

@@ -33,21 +33,21 @@ export function AuthCard({
   return (
     <div className="relative min-h-screen overflow-hidden forge-bg-glow flex items-center justify-center px-4 py-12">
       {/* Ambient glows */}
-      <div className="pointer-events-none absolute inset-0 z-0" aria-hidden>
-        <div className="absolute -left-40 -top-40 h-[700px] w-[700px] rounded-full bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.12),transparent_65%)] blur-3xl" />
-        <div className="absolute -right-40 bottom-0 h-[600px] w-[600px] rounded-full bg-[radial-gradient(circle_at_center,rgba(79,70,229,0.07),transparent_65%)] blur-3xl" />
+      <div className="pointer-events-none absolute inset-0 z-[var(--z-base)]" aria-hidden>
+        <div className="absolute -left-40 -top-40 h-[700px] w-[700px] rounded-full bg-[radial-gradient(circle_at_center,var(--rgba-124-58-237-0_12),transparent_65%)] blur-3xl" />
+        <div className="absolute -right-40 bottom-0 h-[600px] w-[600px] rounded-full bg-[radial-gradient(circle_at_center,var(--rgba-79-70-229-0_07),transparent_65%)] blur-3xl" />
       </div>
 
       <motion.div
         variants={PAGE}
         initial="initial"
         animate="animate"
-        className="relative z-10 w-full max-w-[420px]"
+        className="relative z-[var(--z-content)] w-full max-w-[420px]"
       >
         {/* Logo */}
         <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-xl)] bg-gradient-to-br from-[var(--brand-violet)] to-[#4F46E5] shadow-[var(--shadow-violet-md)] logo-pulse">
-            {icon ?? <Zap size={22} className="text-white" fill="white" />}
+          <div className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-xl)] bg-gradient-to-br from-[var(--brand-violet)] to-[var(--palette-4f46e5)] shadow-[var(--shadow-violet-md)] logo-pulse">
+            {icon ?? <Zap size={22} className="text-[var(--palette-white)]" fill="var(--palette-white)" />}
           </div>
           <div className="text-center">
             <p className="text-lg font-bold tracking-tight text-[var(--foreground)]">FocusArx</p>
@@ -76,7 +76,7 @@ export function AuthCard({
 
           {/* Loading overlay */}
           {isLoading && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-[var(--radius-2xl)] bg-[var(--surface-3)]/60 backdrop-blur-sm">
+            <div className="absolute inset-0 z-[var(--z-content)] flex items-center justify-center rounded-[var(--radius-2xl)] bg-[var(--surface-3)]/60 backdrop-blur-sm">
               <div className="size-7 animate-spin rounded-full border-2 border-[var(--brand-violet)] border-t-transparent" />
             </div>
           )}

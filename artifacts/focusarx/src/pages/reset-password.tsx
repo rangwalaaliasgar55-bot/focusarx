@@ -67,7 +67,7 @@ export default function ResetPasswordPage() {
         footer={<p className="text-center text-sm text-[var(--foreground-subtle)]"><AuthLink href="/forgot-password">Request a new link</AuthLink></p>}
       >
         <div className="text-center space-y-4">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[var(--radius-xl)] bg-[rgba(245,158,11,0.10)] border border-[rgba(245,158,11,0.20)]">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[var(--radius-xl)] bg-[var(--rgba-245-158-11-0_10)] border border-[var(--rgba-245-158-11-0_20)]">
             <AlertTriangle className="size-6 text-[var(--color-warning)]" />
           </div>
           <p className="text-sm text-[var(--foreground-muted)]">
@@ -90,7 +90,7 @@ export default function ResetPasswordPage() {
           animate={{ opacity: 1, scale: 1 }}
           className="text-center space-y-4"
         >
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[var(--radius-xl)] bg-[rgba(34,197,94,0.12)] border border-[rgba(34,197,94,0.22)]">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[var(--radius-xl)] bg-[var(--rgba-34-197-94-0_12)] border border-[var(--rgba-34-197-94-0_22)]">
             <CheckCircle2 className="size-6 text-[var(--color-success)]" />
           </div>
           <p className="text-sm text-[var(--foreground-muted)]">
@@ -144,7 +144,7 @@ export default function ResetPasswordPage() {
 
         {error && (
           <div
-            className="flex items-center gap-2.5 rounded-[var(--radius-md)] bg-[rgba(239,68,68,0.10)] border border-[rgba(239,68,68,0.22)] px-3 py-2.5"
+            className="flex items-center gap-2.5 rounded-[var(--radius-md)] bg-[var(--rgba-239-68-68-0_10)] border border-[var(--rgba-239-68-68-0_22)] px-3 py-2.5"
             role="alert"
           >
             <AlertCircle className="size-4 text-[var(--color-error)] shrink-0" />

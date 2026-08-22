@@ -49,7 +49,7 @@ export function XPBurst({ active, earnedXp, earnedCoins, originRef }: XPBurstPro
           vx: Math.cos(angle) * speed,
           vy: Math.sin(angle) * speed - 1.5,
           label: i === 0 ? `+${earnedXp} XP` : "✦",
-          color: i === 0 ? "#a78bfa" : "#7c3aed",
+          color: i === 0 ? "var(--brand-400)" : "var(--brand-600)",
           size: i === 0 ? 14 : 10,
         });
       }
@@ -68,7 +68,7 @@ export function XPBurst({ active, earnedXp, earnedCoins, originRef }: XPBurstPro
           vx: Math.cos(angle) * speed,
           vy: Math.sin(angle) * speed - 1.2,
           label: i === 0 ? `+${earnedCoins} 🪙` : "◆",
-          color: i === 0 ? "#fbbf24" : "#f59e0b",
+          color: i === 0 ? "var(--warning)" : "var(--color-warning)",
           size: i === 0 ? 14 : 9,
         });
       }
@@ -85,7 +85,7 @@ export function XPBurst({ active, earnedXp, earnedCoins, originRef }: XPBurstPro
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed - 2,
         label: ["✦", "✧", "⬡", "★"][Math.floor(Math.random() * 4)]!,
-        color: ["#7c3aed", "#a78bfa", "#fbbf24", "#06d6a0", "#60a5fa"][Math.floor(Math.random() * 5)]!,
+        color: ["var(--brand-600)", "var(--brand-400)", "var(--warning)", "var(--brand-teal)", "var(--info)"][Math.floor(Math.random() * 5)]!,
         size: 8 + Math.random() * 6,
       });
     }
@@ -98,7 +98,7 @@ export function XPBurst({ active, earnedXp, earnedCoins, originRef }: XPBurstPro
   if (particles.length === 0) return null;
 
   return (
-    <div ref={containerRef} className="pointer-events-none fixed inset-0 z-[999] overflow-hidden">
+    <div ref={containerRef} className="pointer-events-none fixed inset-0 z-[var(--z-modal)] overflow-hidden">
       <AnimatePresence>
         {particles.map((p) => (
           <motion.div
@@ -127,7 +127,7 @@ export function XPBurst({ active, earnedXp, earnedCoins, originRef }: XPBurstPro
               color: p.color,
               fontSize: p.size,
               fontWeight: 700,
-              textShadow: `0 0 12px ${p.color}88`,
+              textShadow: `0 0 12px color-mix(in srgb, ${p.color} 53%, transparent)`,
               whiteSpace: "nowrap",
               userSelect: "none",
             }}

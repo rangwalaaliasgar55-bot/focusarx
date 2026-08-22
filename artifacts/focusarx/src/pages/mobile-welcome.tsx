@@ -69,25 +69,25 @@ export default function MobileWelcomePage() {
   };
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-zinc-950 px-5 py-8 overflow-hidden">
+    <div className="flex min-h-[100dvh] flex-col bg-[var(--palette-zinc-950)] px-5 py-8 overflow-hidden">
       {/* Logo */}
       <div className="mb-8 flex items-center gap-2">
-        <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-rose-500 to-violet-600 flex items-center justify-center text-xs font-black text-white">F</div>
-        <span className="text-sm font-bold text-zinc-200 tracking-tight">FocusArx</span>
+        <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-[var(--palette-rose-500)] to-[var(--palette-violet-600)] flex items-center justify-center text-xs font-black text-[var(--palette-white)]">F</div>
+        <span className="text-sm font-bold text-[var(--palette-zinc-200)] tracking-tight">FocusArx</span>
       </div>
 
       {/* Progress bar */}
       {step !== "auth" && (
         <div className="mb-8">
-          <div className="h-1 w-full rounded-full bg-zinc-800/80">
+          <div className="h-1 w-full rounded-full bg-[var(--palette-zinc-800)]/80">
             <motion.div
-              className="h-full rounded-full bg-rose-500"
+              className="h-full rounded-full bg-[var(--palette-rose-500)]"
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.4, ease: "easeOut" }}
             />
           </div>
-          <p className="mt-2 text-[10px] text-zinc-600 text-right">{stepIndex + 1} of {STEPS.length - 1}</p>
+          <p className="mt-2 text-[10px] text-[var(--palette-zinc-600)] text-right">{stepIndex + 1} of {STEPS.length - 1}</p>
         </div>
       )}
 
@@ -96,8 +96,8 @@ export default function MobileWelcomePage() {
         <AnimatePresence mode="wait">
           {step === "goal" && (
             <StepSlide key="goal">
-              <h2 className="text-2xl font-bold text-zinc-100 mb-1">What's your main goal?</h2>
-              <p className="text-sm text-zinc-500 mb-6">We'll personalise your experience.</p>
+              <h2 className="text-2xl font-bold text-[var(--palette-zinc-100)] mb-1">What's your main goal?</h2>
+              <p className="text-sm text-[var(--palette-zinc-500)] mb-6">We'll personalise your experience.</p>
               <div className="grid grid-cols-2 gap-2.5">
                 {GOALS.map((g) => (
                   <OptionBtn
@@ -112,8 +112,8 @@ export default function MobileWelcomePage() {
 
           {step === "challenge" && (
             <StepSlide key="challenge">
-              <h2 className="text-2xl font-bold text-zinc-100 mb-1">Biggest focus challenge?</h2>
-              <p className="text-sm text-zinc-500 mb-6">Be honest — we've all been there.</p>
+              <h2 className="text-2xl font-bold text-[var(--palette-zinc-100)] mb-1">Biggest focus challenge?</h2>
+              <p className="text-sm text-[var(--palette-zinc-500)] mb-6">Be honest — we've all been there.</p>
               <div className="grid grid-cols-2 gap-2.5">
                 {CHALLENGES.map((c) => (
                   <OptionBtn
@@ -128,8 +128,8 @@ export default function MobileWelcomePage() {
 
           {step === "style" && (
             <StepSlide key="style">
-              <h2 className="text-2xl font-bold text-zinc-100 mb-1">Your focus style?</h2>
-              <p className="text-sm text-zinc-500 mb-6">Sets your default session length.</p>
+              <h2 className="text-2xl font-bold text-[var(--palette-zinc-100)] mb-1">Your focus style?</h2>
+              <p className="text-sm text-[var(--palette-zinc-500)] mb-6">Sets your default session length.</p>
               <div className="flex flex-col gap-3">
                 {STYLES.map((s) => (
                   <button
@@ -137,16 +137,16 @@ export default function MobileWelcomePage() {
                     onClick={() => pick(setStyle, s.id)}
                     className={`flex items-center gap-4 rounded-2xl border px-5 py-4 text-left transition-all ${
                       style === s.id
-                        ? "border-rose-500/60 bg-rose-950/30 ring-1 ring-rose-500/30"
-                        : "border-zinc-800 bg-zinc-900/40 hover:border-zinc-700"
+                        ? "border-[var(--palette-rose-500)]/60 bg-[var(--palette-rose-950)]/30 ring-1 ring-[var(--palette-rose-500)]/30"
+                        : "border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 hover:border-[var(--palette-zinc-700)]"
                     }`}
                   >
                     <span className="text-2xl">{s.icon}</span>
                     <div className="flex-1">
-                      <p className="font-semibold text-zinc-100">{s.label}</p>
-                      <p className="text-sm text-zinc-500">{s.sub}</p>
+                      <p className="font-semibold text-[var(--palette-zinc-100)]">{s.label}</p>
+                      <p className="text-sm text-[var(--palette-zinc-500)]">{s.sub}</p>
                     </div>
-                    <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400">{s.duration}m</span>
+                    <span className="rounded-full bg-[var(--palette-zinc-800)] px-2 py-0.5 text-xs text-[var(--palette-zinc-400)]">{s.duration}m</span>
                   </button>
                 ))}
               </div>
@@ -156,11 +156,11 @@ export default function MobileWelcomePage() {
           {step === "auth" && (
             <StepSlide key="auth">
               <div className="flex flex-col items-center text-center pt-4">
-                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-rose-500/20 to-violet-600/20 text-3xl ring-1 ring-rose-500/30">
+                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[var(--palette-rose-500)]/20 to-[var(--palette-violet-600)]/20 text-3xl ring-1 ring-[var(--palette-rose-500)]/30">
                   🎯
                 </div>
-                <h2 className="text-2xl font-bold text-zinc-100 mb-2">You're ready to focus.</h2>
-                <p className="text-sm text-zinc-500 mb-2 max-w-xs">
+                <h2 className="text-2xl font-bold text-[var(--palette-zinc-100)] mb-2">You're ready to focus.</h2>
+                <p className="text-sm text-[var(--palette-zinc-500)] mb-2 max-w-xs">
                   Create a free account to save your progress, streaks, and AI insights.
                 </p>
 
@@ -175,26 +175,26 @@ export default function MobileWelcomePage() {
                   <motion.button
                     whileTap={{ scale: 0.97 }}
                     onClick={() => handleAuth("signup")}
-                    className="w-full rounded-2xl bg-rose-600 py-3.5 text-base font-semibold text-white hover:bg-rose-500 transition-colors"
+                    className="w-full rounded-2xl bg-[var(--palette-rose-600)] py-3.5 text-base font-semibold text-[var(--palette-white)] hover:bg-[var(--palette-rose-500)] transition-colors"
                   >
                     Create free account →
                   </motion.button>
                   <motion.button
                     whileTap={{ scale: 0.97 }}
                     onClick={() => handleAuth("login")}
-                    className="w-full rounded-2xl border border-zinc-700 bg-zinc-900/60 py-3.5 text-base font-semibold text-zinc-300 hover:border-zinc-600 hover:text-zinc-100 transition-colors"
+                    className="w-full rounded-2xl border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-900)]/60 py-3.5 text-base font-semibold text-[var(--palette-zinc-300)] hover:border-[var(--palette-zinc-600)] hover:text-[var(--palette-zinc-100)] transition-colors"
                   >
                     I already have an account
                   </motion.button>
                   <button
                     onClick={handleGuest}
-                    className="w-full py-2.5 text-sm text-zinc-600 hover:text-zinc-400 transition-colors"
+                    className="w-full py-2.5 text-sm text-[var(--palette-zinc-600)] hover:text-[var(--palette-zinc-400)] transition-colors"
                   >
                     Continue as guest →
                   </button>
                 </div>
 
-                <p className="mt-6 text-[11px] text-zinc-700">
+                <p className="mt-6 text-[11px] text-[var(--palette-zinc-700)]">
                   Free forever · No credit card required
                 </p>
               </div>
@@ -207,7 +207,7 @@ export default function MobileWelcomePage() {
       {stepIndex > 0 && step !== "auth" && (
         <button
           onClick={() => setStep(STEPS[stepIndex - 1]!)}
-          className="mt-6 flex items-center gap-1.5 text-xs text-zinc-600 hover:text-zinc-400 transition"
+          className="mt-6 flex items-center gap-1.5 text-xs text-[var(--palette-zinc-600)] hover:text-[var(--palette-zinc-400)] transition"
         >
           ← Back
         </button>
@@ -222,7 +222,7 @@ function StepSlide({ children }: { children: React.ReactNode }) {
       initial={{ opacity: 0, x: 28 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -28 }}
-      transition={{ duration: 0.22, ease: "easeOut" }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
     >
       {children}
     </motion.div>
@@ -237,18 +237,18 @@ function OptionBtn({ icon, label, selected, onClick }: {
       onClick={onClick}
       className={`flex items-center gap-2.5 rounded-2xl border px-4 py-3.5 text-left transition-all active:scale-95 ${
         selected
-          ? "border-rose-500/60 bg-rose-950/30 ring-1 ring-rose-500/30"
-          : "border-zinc-800 bg-zinc-900/40"
+          ? "border-[var(--palette-rose-500)]/60 bg-[var(--palette-rose-950)]/30 ring-1 ring-[var(--palette-rose-500)]/30"
+          : "border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40"
       }`}
     >
       <span className="text-xl">{icon}</span>
-      <span className="text-sm font-medium text-zinc-200 leading-snug">{label}</span>
+      <span className="text-sm font-medium text-[var(--palette-zinc-200)] leading-snug">{label}</span>
     </button>
   );
 }
 
 function Tag({ label }: { label: string }) {
   return (
-    <span className="rounded-full bg-zinc-800 px-3 py-1 text-xs text-zinc-300">{label}</span>
+    <span className="rounded-full bg-[var(--palette-zinc-800)] px-3 py-1 text-xs text-[var(--palette-zinc-300)]">{label}</span>
   );
 }

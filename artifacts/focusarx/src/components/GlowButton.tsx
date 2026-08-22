@@ -11,34 +11,34 @@ interface GlowButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> 
 
 const variants = {
   primary: {
-    base: "bg-gradient-to-br from-[#7C3AED] via-[#8B5CF6] to-[#4F46E5] text-white border-transparent",
-    glow: "shadow-[0_0_24px_rgba(124,58,237,0.3),0_4px_12px_rgba(0,0,0,0.3)]",
-    hover: "hover:shadow-[0_0_32px_rgba(124,58,237,0.5),0_4px_16px_rgba(0,0,0,0.4)] hover:brightness-110",
+    base: "bg-gradient-to-br from-[var(--brand-600)] via-[var(--brand-500)] to-[var(--palette-4f46e5)] text-[var(--palette-white)] border-transparent",
+    glow: "shadow-[0_0_24px_var(--rgba-124-58-237-0_3),0_4px_12px_var(--rgba-0-0-0-0_3)]",
+    hover: "hover:shadow-[0_0_32px_var(--rgba-124-58-237-0_5),0_4px_16px_var(--rgba-0-0-0-0_4)] hover:brightness-110",
   },
   secondary: {
-    base: "bg-[rgba(124,58,237,0.1)] text-[#A78BFA] border-[rgba(124,58,237,0.3)]",
-    glow: "shadow-[0_0_12px_rgba(124,58,237,0.15)]",
-    hover: "hover:bg-[rgba(124,58,237,0.18)] hover:shadow-[0_0_20px_rgba(124,58,237,0.25)]",
+    base: "bg-[var(--rgba-124-58-237-0_1)] text-[var(--brand-400)] border-[var(--rgba-124-58-237-0_3)]",
+    glow: "shadow-[0_0_12px_var(--rgba-124-58-237-0_15)]",
+    hover: "hover:bg-[var(--rgba-124-58-237-0_18)] hover:shadow-[0_0_20px_var(--rgba-124-58-237-0_25)]",
   },
   danger: {
-    base: "bg-[rgba(239,68,68,0.12)] text-[#F87171] border-[rgba(239,68,68,0.3)]",
-    glow: "shadow-[0_0_12px_rgba(239,68,68,0.15)]",
-    hover: "hover:bg-[rgba(239,68,68,0.2)] hover:shadow-[0_0_20px_rgba(239,68,68,0.3)]",
+    base: "bg-[var(--rgba-239-68-68-0_12)] text-[var(--palette-f87171)] border-[var(--rgba-239-68-68-0_3)]",
+    glow: "shadow-[0_0_12px_var(--rgba-239-68-68-0_15)]",
+    hover: "hover:bg-[var(--rgba-239-68-68-0_2)] hover:shadow-[0_0_20px_var(--rgba-239-68-68-0_3)]",
   },
   success: {
-    base: "bg-[rgba(34,211,135,0.12)] text-[#22d387] border-[rgba(34,211,135,0.3)]",
-    glow: "shadow-[0_0_12px_rgba(34,211,135,0.15)]",
-    hover: "hover:bg-[rgba(34,211,135,0.2)] hover:shadow-[0_0_20px_rgba(34,211,135,0.3)]",
+    base: "bg-[var(--rgba-34-211-135-0_12)] text-[var(--palette-22d387)] border-[var(--rgba-34-211-135-0_3)]",
+    glow: "shadow-[0_0_12px_var(--rgba-34-211-135-0_15)]",
+    hover: "hover:bg-[var(--rgba-34-211-135-0_2)] hover:shadow-[0_0_20px_var(--rgba-34-211-135-0_3)]",
   },
   ghost: {
-    base: "bg-transparent text-[#94A3B8] border-[rgba(124,58,237,0.15)]",
+    base: "bg-transparent text-[var(--foreground-muted)] border-[var(--rgba-124-58-237-0_15)]",
     glow: "",
-    hover: "hover:bg-[rgba(124,58,237,0.08)] hover:text-[#E2E8F0]",
+    hover: "hover:bg-[var(--rgba-124-58-237-0_08)] hover:text-[var(--foreground)]",
   },
   premium: {
-    base: "bg-gradient-to-br from-[#7C3AED] via-[#F472B6] to-[#3B82F6] text-white border-transparent",
-    glow: "shadow-[0_0_30px_rgba(244,114,182,0.4),0_0_50px_rgba(124,58,237,0.2)]",
-    hover: "hover:scale-[1.04] hover:shadow-[0_0_40px_rgba(244,114,182,0.6)] hover:brightness-110",
+    base: "bg-gradient-to-br from-[var(--brand-600)] via-[var(--brand-pink)] to-[var(--color-info)] text-[var(--palette-white)] border-transparent",
+    glow: "shadow-[0_0_30px_var(--rgba-244-114-182-0_4),0_0_50px_var(--rgba-124-58-237-0_2)]",
+    hover: "hover:scale-[1.04] hover:shadow-[0_0_40px_var(--rgba-244-114-182-0_6)] hover:brightness-110",
   },
 };
 
@@ -59,8 +59,8 @@ export const GlowButton = forwardRef<HTMLButtonElement, GlowButtonProps>(
         transition={{ type: "spring", stiffness: 400, damping: 20 }}
         disabled={disabled || loading}
         className={`
-          relative inline-flex items-center justify-center gap-2 
-          border font-semibold transition-all duration-200 
+          relative inline-flex items-center justify-center gap-2
+          border font-semibold transition-all duration-[var(--duration-fast)]
           disabled:opacity-50 disabled:cursor-not-allowed
           ${v.base} ${glow ? v.glow : ""} ${v.hover}
           ${sizes[size]} ${className}

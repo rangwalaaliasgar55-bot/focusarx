@@ -48,7 +48,8 @@ export function SEOHead({ title, description, image, url, type = "website", noIn
     setMeta("keywords", "pomodoro, focus timer, study app, gamification, productivity, deep work, attention tracking, AI study", true);
     setMeta("author", "FocusArx", true);
     setMeta("robots", noIndex ? "noindex,nofollow" : "index,follow", true);
-    setMeta("theme-color", "#7C3AED", true);
+    const themeColor = getComputedStyle(document.documentElement).getPropertyValue("--brand-600").trim();
+    if (themeColor) setMeta("theme-color", themeColor, true);
 
     // Open Graph
     setMeta("og:title", fullTitle);
