@@ -8,6 +8,7 @@ import { trackSiteEvent } from "@/lib/site-analytics";
 import type { Task } from "@/types/timer";
 
 type ServerTask = { id: string; text: string; completed: boolean; estimatedMinutes: number | null; priority?: Task["priority"]; category?: string; createdAt?: string };
+type TaskUpdate = Partial<Task> & { completed?: boolean };
 const key = ["tasks"] as const;
 const toTask = (task: ServerTask): Task => ({ id: task.id, title: task.text, done: task.completed, estimatedPomodoros: task.estimatedMinutes ? Math.max(1, Math.round(task.estimatedMinutes / 25)) : 1, completedPomodoros: 0, createdAt: task.createdAt ?? new Date().toISOString(), priority: task.priority ?? "medium", category: task.category ?? "Default" });
 const refreshEvery = typeof document === "undefined" || document.visibilityState === "visible" ? 20_000 : false;
@@ -40,7 +41,7 @@ export function useTasks() {
     onSettled: invalidateRelated,
   });
   const change = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<Task> }) => apiFetch(`/api/tasks/${id}`, { method: "PATCH", body: JSON.stringify(updates) }),
+    mutationFn: ({ id, updates }: { id: string; updates: TaskUpdate }) => apiFetch(`/api/tasks/${id}`, { method: "PATCH", body: JSON.stringify(updates) }),
     onMutate: async ({ id, updates }) => { await qc.cancelQueries({ queryKey: key }); const previous = qc.getQueryData<Task[]>(key) ?? []; qc.setQueryData<Task[]>(key, old => (old ?? []).map(task => task.id === id ? { ...task, ...updates } : task)); return { previous }; },
     onError: (_e, _v, context) => qc.setQueryData(key, context?.previous), onSettled: invalidateRelated,
   });
