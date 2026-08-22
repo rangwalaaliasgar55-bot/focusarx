@@ -34,7 +34,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 const TOKEN_KEY = "focusarx-auth-token";
 
 export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
+  return typeof window === "undefined" ? null : localStorage.getItem(TOKEN_KEY);
 }
 
 export function setToken(token: string) {
@@ -88,6 +88,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       linkAnalyticsUser(data.user.id);
     }
   }, [status, data?.user?.id]);
+
+  useEffect(() => {
+    const onExpired = () => {
+      setData(null);
+      setStatus("unauthenticated");
+    };
+    window.addEventListener("focusarx:auth-expired", onExpired);
+    return () => window.removeEventListener("focusarx:auth-expired", onExpired);
+  }, []);
 
   const signIn = useCallback(async (
     provider: string,
