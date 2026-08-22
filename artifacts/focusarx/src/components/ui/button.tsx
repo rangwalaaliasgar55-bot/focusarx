@@ -49,19 +49,35 @@ export interface ButtonProps
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, loading = false, disabled, children, ...props }, ref) => {
-    const Component = asChild ? Slot : "button";
+    const classes = cn(buttonVariants({ variant, size }), className);
+
+    // Radix Slot requires exactly one React child. Keep the loading indicator
+    // on native buttons so `asChild` links never receive sibling nodes.
+    if (asChild) {
+      return (
+        <Slot
+          ref={ref}
+          aria-disabled={disabled || loading || undefined}
+          className={classes}
+          {...props}
+        >
+          {children}
+        </Slot>
+      );
+    }
+
     return (
-      <Component
+      <button
         ref={ref}
-        disabled={!asChild ? disabled || loading : undefined}
+        disabled={disabled || loading}
         aria-disabled={disabled || loading || undefined}
         aria-busy={loading || undefined}
-        className={cn(buttonVariants({ variant, size }), className)}
+        className={classes}
         {...props}
       >
         {loading && <LoaderCircle className="animate-spin motion-reduce:animate-none" aria-hidden="true" />}
         {children}
-      </Component>
+      </button>
     );
   },
 );
