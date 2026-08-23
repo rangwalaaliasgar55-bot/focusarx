@@ -158,6 +158,8 @@ export default function FlashcardsPage() {
   const [newDesc, setNewDesc] = useState("");
   const [creating, setCreating] = useState(false);
   const [cardFront, setCardFront] = useState("");
+  const [aiNotes, setAiNotes] = useState("");
+  const [generating, setGenerating] = useState(false);
   const [cardBack, setCardBack] = useState("");
   const [addingCard, setAddingCard] = useState(false);
   const [studying, setStudying] = useState(false);
@@ -225,6 +227,18 @@ export default function FlashcardsPage() {
     finally { setAddingCard(false); }
   };
 
+  const generateCards = async () => {
+    if (!activeDeck || aiNotes.trim().length < 50) return;
+    setGenerating(true);
+    try {
+      const response = await fetch(`/api/flashcards/decks/${activeDeck.id}/generate`, { method: "POST", headers: authHeaders(), body: JSON.stringify({ notes: aiNotes.trim(), count: 10 }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Generation failed");
+      setCards((current) => [...current, ...(data.cards ?? [])]); setAiNotes(""); void loadDecks(); toast(`${data.cards?.length ?? 0} cards generated`, "success");
+    } catch (error) { toast(error instanceof Error ? error.message : "AI cards could not be generated", "danger"); }
+    finally { setGenerating(false); }
+  };
+
   const deleteCard = async (id: string) => {
     const response = await fetch(`/api/flashcards/cards/${id}`, { method: "DELETE", headers: authHeaders() });
     if (!response.ok) { toast("Card could not be deleted", "danger"); return; }
@@ -273,6 +287,7 @@ export default function FlashcardsPage() {
           <div className="space-y-5">
             <UICard><CardHeader><CardTitle>Leitner progress</CardTitle><CardDescription>Cards move toward mastery as recall improves.</CardDescription></CardHeader><CardContent><LeitnerBar cards={cards} /></CardContent></UICard>
             <UICard><CardHeader><CardTitle>Add a card</CardTitle><CardDescription>Keep each prompt focused on one idea.</CardDescription></CardHeader><CardContent><form onSubmit={addCard} className="space-y-3"><Input value={cardFront} onChange={(event) => setCardFront(event.target.value)} placeholder="Question or prompt" aria-label="Card front" /><Textarea value={cardBack} onChange={(event) => setCardBack(event.target.value)} placeholder="Answer" rows={4} aria-label="Card back" /><Button type="submit" loading={addingCard} disabled={!cardFront.trim() || !cardBack.trim()} className="w-full"><Plus /> Add card</Button></form></CardContent></UICard>
+            <UICard><CardHeader><CardTitle className="flex items-center gap-2"><Sparkles /> AI cards <Badge>Premium</Badge></CardTitle><CardDescription>Paste notes and generate ten focused question-answer cards.</CardDescription></CardHeader><CardContent className="space-y-3"><Textarea value={aiNotes} onChange={(event) => setAiNotes(event.target.value)} rows={6} placeholder="Paste at least 50 characters of notes…" aria-label="Notes for AI flashcard generation" /><Button className="w-full" onClick={() => void generateCards()} loading={generating} disabled={aiNotes.trim().length < 50}><Sparkles /> Generate cards</Button></CardContent></UICard>
             <Button variant="ghost" className="w-full text-[var(--danger)]" onClick={() => void deleteDeck(activeDeck.id)}><Trash2 /> Delete deck</Button>
           </div>
           <UICard className="overflow-hidden"><CardHeader><CardTitle>Cards</CardTitle><CardDescription>{cards.length} card{cards.length === 1 ? "" : "s"} in this deck.</CardDescription></CardHeader><CardContent className="pt-4">{cardsLoading ? <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16" />)}</div> : cards.length ? <div className="divide-y divide-[var(--border-subtle)]">{cards.map((card) => <div key={card.id} className="group flex min-h-20 items-center gap-3 py-3"><Badge variant="secondary" className="shrink-0">Box {card.box}</Badge><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{card.front}</p><p className="mt-1 truncate text-xs text-[var(--foreground-muted)]">{card.back}</p></div><Button variant="ghost" size="icon" className="text-[var(--foreground-subtle)] hover:text-[var(--danger)]" onClick={() => void deleteCard(card.id)} aria-label={`Delete card ${card.front}`}><Trash2 /></Button></div>)}</div> : <EmptyState icon={<BookOpen />} title="This deck is empty" description="Add the first question and answer to make it study-ready." />}</CardContent></UICard>

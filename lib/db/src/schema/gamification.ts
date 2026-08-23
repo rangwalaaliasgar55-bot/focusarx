@@ -1,7 +1,11 @@
 import { pgTable, text, timestamp, boolean, integer, jsonb, index } from 'drizzle-orm/pg-core';
 import { usersTable as users } from './focusarx';
 
-// Phase 6: Battle Pass Rebuild
+// DEPRECATED / NOT RUNTIME-CANONICAL: this unfinished Phase 6 model is retained
+// only for migration compatibility. Runtime routes use battlePassProgressTable
+// from focusarx.ts and the tier definitions in api-server/lib/battlePass.ts.
+// Do not build new behavior on these tables; remove them in a dedicated,
+// data-verified migration once production usage has been confirmed as zero.
 export const battlePasses = pgTable('battle_passes', {
   id: text('id').primaryKey(),
   season: text('season').notNull().unique(),

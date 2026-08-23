@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Zap, Star } from "lucide-react";
+import { X, Zap, Star, Crown, Lock } from "lucide-react";
 import { getToken } from "@/lib/auth";
 
 function authHeaders() {
@@ -44,12 +44,13 @@ export default function SeasonalBanner() {
         className="relative flex items-center gap-3 rounded-xl border px-4 py-3 text-sm"
         style={{ borderColor: `color-mix(in srgb, ${event.bannerColor} 25%, transparent)`, background: `color-mix(in srgb, ${event.bannerColor} 6%, transparent)` }}
       >
-        <Star size={15} style={{ color: event.bannerColor }} className="shrink-0" />
+        {event.premiumOnly ? <Crown size={15} style={{ color: event.bannerColor }} className="shrink-0" /> : <Star size={15} style={{ color: event.bannerColor }} className="shrink-0" />}
         <div className="flex-1 min-w-0">
           <span className="font-semibold" style={{ color: event.bannerColor }}>{event.name}</span>
           <span className="text-[var(--foreground-muted)] ml-2 text-xs">{event.description}</span>
         </div>
         <div className="flex items-center gap-3 shrink-0">
+          {event.locked && <a href="/premium" className="flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-bold" style={{ color: event.bannerColor }}><Lock size={9} /> Unlock Premium</a>}
           {event.xpMultiplier > 1 && (
             <span className="flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold"
               style={{ color: event.bannerColor, borderColor: `color-mix(in srgb, ${event.bannerColor} 25%, transparent)`, background: `color-mix(in srgb, ${event.bannerColor} 8%, transparent)` }}>

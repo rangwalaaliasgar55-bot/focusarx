@@ -10,8 +10,6 @@ import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from "@ta
 
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { ToastProvider } from "@/components/Toast";
-import { CapacitorNativeBridge } from "@/components/CapacitorNativeBridge";
-import { GuestBootstrap } from "@/components/GuestBootstrap";
 import { SiteAnalyticsTracker } from "@/components/SiteAnalyticsTracker";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import AppShell from "@/components/AppShell";
@@ -34,6 +32,7 @@ import { FloatingParticles } from "@/components/FloatingParticles";
 import { CookieConsent } from "@/components/CookieConsent";
 import { MaintenanceGate } from "@/components/MaintenanceGate";
 import { AnnouncementBanner } from "@/components/AnnouncementBanner";
+import SeasonalBanner from "@/components/SeasonalBanner";
 
 const OnboardingPage = lazy(() => import("@/pages/onboarding"));
 const DashboardPage = lazy(() => import("@/pages/dashboard"));
@@ -93,6 +92,8 @@ const ForgeRoomPage = lazy(() => import("@/pages/forge-room"));
 const StudyMethodCalculatorPage = lazy(() => import("@/pages/study-calculator"));
 const FlashcardsPage = lazy(() => import("@/pages/flashcards"));
 const TasksPage = lazy(() => import("@/pages/tasks"));
+const SessionReplayPage = lazy(() => import("@/pages/session-replay"));
+const ComparisonPage = lazy(() => import("@/pages/comparison"));
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -143,7 +144,7 @@ function MobileWelcomeGate({ children }: { children: React.ReactNode }) {
         "/focus-guide", "/pomodoro-guide", "/study-techniques", "/virtual-study-room",
         "/deep-study-guide", "/two-hour-study-method",
         "/study-rooms", "/breathe", "/break-free", "/roadmap", "/leaderboard",
-        "/about", "/contact", "/support", "/pricing",
+        "/about", "/contact", "/support", "/pricing", "/comparison/",
         "/privacy", "/terms", "/cookie-policy", "/acceptable-use", "/ai-policy",
         "/data-deletion", "/u/",
       ];
@@ -243,6 +244,7 @@ function RoutedContent() {
               <Route path="/" component={() => <ErrorBoundary><RootPage /></ErrorBoundary>} />
               <Route path="/dashboard" component={() => <ErrorBoundary><ProtectedRoute component={DashboardPage} /></ErrorBoundary>} />
               <Route path="/analytics" component={() => <ErrorBoundary><ProtectedRoute component={AnalyticsPage} /></ErrorBoundary>} />
+              <Route path="/session-replay" component={() => <ErrorBoundary><ProtectedRoute component={SessionReplayPage} /></ErrorBoundary>} />
               <Route path="/leaderboard" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><LeaderboardPage /></Suspense></ErrorBoundary>} />
               <Route path="/achievements" component={() => <ErrorBoundary><ProtectedRoute component={AchievementsPage} /></ErrorBoundary>} />
               <Route path="/missions" component={() => <ErrorBoundary><ProtectedRoute component={MissionsPage} /></ErrorBoundary>} />
@@ -309,6 +311,8 @@ function RoutedContent() {
               <Route path="/ai-policy" component={() => <ErrorBoundary><AiPolicyPage /></ErrorBoundary>} />
               <Route path="/data-deletion" component={() => <ErrorBoundary><DataDeletionPage /></ErrorBoundary>} />
               <Route path="/pricing" component={() => <ErrorBoundary><PricingPage /></ErrorBoundary>} />
+              <Route path="/comparison/focusarx-vs-forest" component={() => <ErrorBoundary><ComparisonPage /></ErrorBoundary>} />
+              <Route path="/comparison/focusarx-vs-focus-todo" component={() => <ErrorBoundary><ComparisonPage /></ErrorBoundary>} />
               <Route path="/premium" component={() => <ErrorBoundary><ProtectedRoute component={PremiumPage} /></ErrorBoundary>} />
               <Route path="/about" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><AboutPage /></Suspense></ErrorBoundary>} />
               <Route path="/contact" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><ContactPage /></Suspense></ErrorBoundary>} />
@@ -376,6 +380,7 @@ function AppWithPalette() {
         </Suspense>
       )}
       <AnnouncementBanner />
+      {status === "authenticated" && <div className="px-3 pt-2 sm:px-5"><SeasonalBanner /></div>}
       <DailyRewardBanner />
       <LiveActivityTicker />
       <FloatingTimer />
@@ -414,8 +419,6 @@ function App() {
         <ToastProvider>
           <FloatingParticles count={14} />
           <SocketInitializer />
-          <CapacitorNativeBridge />
-          <GuestBootstrap />
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <GlobalBackground isFocusing={isFocusing} />
             <SiteAnalyticsTracker />

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
-import { ShoppingBag, Coins, CheckCircle, Filter, Package, Sparkles, Zap } from "lucide-react";
+import { ShoppingBag, CheckCircle, Package, Zap, Crown, Lock } from "lucide-react";
 
 const RARITY_STYLES: Record<string, { label: string; color: string; bg: string; border: string; glow: string }> = {
   common:    { label: "Common",    color: "var(--foreground-muted)", bg: "var(--rgba-148-163-184-0_08)", border: "var(--rgba-148-163-184-0_2)", glow: "0 0 0 transparent" },
@@ -151,7 +151,9 @@ export default function MarketplacePage() {
                     style={{ color: rarity.color, background: `color-mix(in srgb, ${rarity.bg} 50%, transparent)`, border: `1px solid ${rarity.border}` }}>
                     {rarity.label}
                   </span>
-                  {item.owned && <CheckCircle size={14} className="text-[var(--palette-22d387)]" />}
+                  {item.owned ? <CheckCircle size={14} className="text-[var(--palette-22d387)]" /> : item.locked ? (
+                    <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase text-[var(--palette-amber-400)]"><Crown size={12} /> Premium</span>
+                  ) : null}
                 </div>
 
                 <div className="text-4xl text-center">{item.emoji}</div>
@@ -169,15 +171,15 @@ export default function MarketplacePage() {
                   ) : (
                     <button
                       onClick={() => purchase(item.id)}
-                      disabled={purchasing === item.id || !canAfford}
+                      disabled={purchasing === item.id || !canAfford || item.locked}
                       className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all ${
-                        !canAfford
+                        item.locked || !canAfford
                           ? "bg-[var(--rgba-255-255-255-0_04)] text-[var(--foreground-subtle)] cursor-not-allowed"
                           : justBought === item.id
                           ? "bg-[var(--rgba-34-211-135-0_2)] text-[var(--palette-22d387)]"
                           : "bg-[var(--rgba-124-58-237-0_2)] text-[var(--brand-400)] hover:bg-[var(--rgba-124-58-237-0_35)] border border-[var(--rgba-124-58-237-0_3)]"
                       }`}>
-                      {purchasing === item.id ? "..." : justBought === item.id ? "Bought!" : !canAfford ? "Need coins" : "Buy"}
+                      {item.locked ? <span className="inline-flex items-center gap-1"><Lock size={10} /> Premium</span> : purchasing === item.id ? "..." : justBought === item.id ? "Bought!" : !canAfford ? "Need coins" : "Buy"}
                     </button>
                   )}
                 </div>

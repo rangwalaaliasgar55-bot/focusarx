@@ -18,7 +18,11 @@ function isAdminAuthed(req: { headers: { cookie?: string } }): boolean {
   const token = match?.[1];
   if (!token) return false;
   try {
-    const payload = jwt.verify(token, getJwtSecret()) as { role?: string };
+    const payload = jwt.verify(token, getJwtSecret(), {
+      algorithms: ["HS256"],
+      issuer: "focusarx-api",
+      audience: "focusarx-admin",
+    }) as { role?: string };
     return payload?.role === "admin_session";
   } catch {
     return false;

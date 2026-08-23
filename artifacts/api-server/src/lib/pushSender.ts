@@ -42,7 +42,7 @@ export async function sendPush(
     try {
       await webpush.sendNotification(
         { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-        JSON.stringify({ title: payload.title, body: payload.body, url: payload.url || "/" })
+        JSON.stringify({ title: payload.title, body: payload.body, url: payload.url || "/", priority: sub.priorityEnabled, sound: sub.sound })
       );
     } catch (err: any) {
       if (err?.statusCode === 410 || err?.statusCode === 404) {

@@ -46,7 +46,7 @@ const DAILY_HOURS = [
   { id: "6h", label: "6+ hours", sub: "Extreme" },
 ];
 
-const STEPS = ["intro", "goal", "challenge", "style", "hours", "ready"] as const;
+const STEPS = ["intro", "goal", "challenge", "style", "hours", "guide", "ready"] as const;
 type Step = typeof STEPS[number];
 
 // Read answers the user may already have given in the mobile welcome flow
@@ -224,6 +224,26 @@ export default function OnboardingPage() {
                   </button>
                 ))}
               </div>
+            </StepWrapper>
+          )}
+
+          {step === "guide" && (
+            <StepWrapper key="guide" title="Your FocusArx Flight Plan" sub="Know exactly what happens after setup.">
+              <div className="space-y-3">
+                {[
+                  ["1", "Choose the next action", "Dashboard recommendations combine your tasks, streak, and time of day."],
+                  ["2", "Protect one focus block", "The timer tracks verified elapsed time and keeps your session recoverable."],
+                  ["3", "Use AI with context", "The coach and roadmap turn your goal into specific sessions; rule-based fallback is labeled."],
+                  ["4", "Review transparent progress", "Analytics shows minutes, time-of-day patterns, streaks, and session replay."],
+                  ["5", "Build momentum", "XP, city growth, flashcards, and missions reward completed work—not clicks."],
+                ].map(([number, title, text]) => (
+                  <div key={number} className="flex gap-3 rounded-2xl border border-[var(--palette-white)]/10 bg-[var(--palette-white)]/[0.03] p-4">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--brand-600)] font-bold">{number}</span>
+                    <div><p className="font-semibold">{title}</p><p className="mt-1 text-sm text-[var(--foreground-subtle)]">{text}</p></div>
+                  </div>
+                ))}
+              </div>
+              <button onClick={next} className="mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--brand-600)] font-bold">Show my plan <ArrowRight size={18} /></button>
             </StepWrapper>
           )}
 

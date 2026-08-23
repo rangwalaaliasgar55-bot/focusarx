@@ -5,7 +5,7 @@ import pinoHttp from "pino-http";
 import compression from "compression";
 import router from "./routes";
 import { logger } from "./lib/logger";
-import { getConfigErrors } from "./lib/config";
+import { getConfigErrors, getServerConfig } from "./lib/config";
 import { generalLimiter } from "./lib/rateLimiter";
 import { masterSecurityMiddleware } from "./middlewares/security";
 import { isMaintenanceMode } from "./lib/siteSettings";
@@ -82,9 +82,10 @@ app.use(
       // Build the allowlist dynamically so the API keeps working no matter
       // where the frontend is hosted (Vercel, Replit, localhost, custom domain).
       const configured = [
-        process.env.APP_URL,
+        getServerConfig().appUrl,
         process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
         process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null,
+        ...(process.env.CORS_ALLOWED_ORIGINS?.split(",").map((value) => value.trim()) ?? []),
       ].filter((v): v is string => Boolean(v));
 
       // Normalize a URL to a bare `https://host` origin for comparison.
@@ -98,16 +99,7 @@ app.use(
       };
 
       const allowedOrigins = configured.map(toOrigin);
-      const bareHost = origin.replace(/^https?:\/\//, "").replace(/:\d+$/, "");
-
-      const isAllowed =
-        allowedOrigins.includes(origin) ||
-        bareHost.endsWith(".vercel.app") ||
-        bareHost.endsWith(".replit.dev") ||
-        bareHost.endsWith(".replit.app") ||
-        bareHost.endsWith(".e2b.app") ||
-        bareHost === "localhost" ||
-        bareHost === "127.0.0.1";
+      const isAllowed = allowedOrigins.includes(toOrigin(origin));
 
       if (isAllowed) {
         cb(null, true);

@@ -7,6 +7,7 @@ import { extractUserId } from "./auth";
 import { eq, and } from "drizzle-orm";
 import { initVapid, getVapidPublicKey } from "../lib/pushSender";
 import { logger } from "../lib/logger";
+import { isUserPremium } from "../lib/premiumCheck";
 
 export const pushRouter = Router();
 
@@ -49,6 +50,26 @@ pushRouter.post("/push/subscribe", authMiddleware, async (req: AuthRequest, res:
     logger.error({ err }, "push subscribe error");
     res.status(500).json({ error: "Internal error" });
   }
+});
+
+pushRouter.get("/push/preferences", authMiddleware, async (req: AuthRequest, res: Response) => {
+  const [subscription] = await db.select({ priorityEnabled: pushSubscriptionsTable.priorityEnabled, sound: pushSubscriptionsTable.sound })
+    .from(pushSubscriptionsTable).where(eq(pushSubscriptionsTable.userId, req.userId)).limit(1);
+  res.json({ priorityEnabled: subscription?.priorityEnabled ?? false, sound: subscription?.sound ?? "default", premium: await isUserPremium(req.userId) });
+});
+
+pushRouter.patch("/push/preferences", authMiddleware, async (req: AuthRequest, res: Response) => {
+  const { priorityEnabled, sound } = req.body as { priorityEnabled?: boolean; sound?: string };
+  const allowedSounds = ["default", "chime", "focus-bell", "cosmic"];
+  if (sound && !allowedSounds.includes(sound)) return res.status(400).json({ error: "Invalid sound" });
+  const [subscription] = await db.select({ id: pushSubscriptionsTable.id }).from(pushSubscriptionsTable)
+    .where(eq(pushSubscriptionsTable.userId, req.userId)).limit(1);
+  if (!subscription) return res.status(409).json({ error: "Enable push notifications first" });
+  const premium = await isUserPremium(req.userId);
+  if (!premium && (priorityEnabled || (sound && sound !== "default"))) return res.status(403).json({ error: "Premium notification controls require Premium" });
+  await db.update(pushSubscriptionsTable).set({ priorityEnabled: premium && Boolean(priorityEnabled), sound: premium ? (sound ?? "default") : "default" })
+    .where(eq(pushSubscriptionsTable.userId, req.userId));
+  res.json({ ok: true, priorityEnabled: premium && Boolean(priorityEnabled), sound: premium ? (sound ?? "default") : "default" });
 });
 
 pushRouter.delete("/push/subscribe", authMiddleware, async (req: AuthRequest, res: Response) => {

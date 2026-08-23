@@ -12,7 +12,22 @@ import { eq, and, desc, sql, ne } from "drizzle-orm";
 export const studyRoomsRouter = Router();
 
 function genCode() {
-  return Math.random().toString(36).slice(2, 8).toUpperCase();
+  return crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase();
+}
+
+async function canAccessRoom(userId: string, room: typeof studyRoomsTable.$inferSelect): Promise<boolean> {
+  if (room.isPublic) return true;
+  const [roomMembership] = await db.select({ id: studyRoomMembersTable.id }).from(studyRoomMembersTable)
+    .where(and(
+      eq(studyRoomMembersTable.roomId, room.id),
+      eq(studyRoomMembersTable.userId, userId),
+      eq(studyRoomMembersTable.status, "active"),
+    )).limit(1);
+  if (roomMembership) return true;
+  if (!room.groupId) return false;
+  const [groupMembership] = await db.select({ id: groupMembersTable.id }).from(groupMembersTable)
+    .where(and(eq(groupMembersTable.groupId, room.groupId), eq(groupMembersTable.userId, userId))).limit(1);
+  return Boolean(groupMembership);
 }
 
 async function enrichRoom(room: any) {
@@ -49,6 +64,11 @@ studyRoomsRouter.get("/study-rooms", async (req: AuthRequest, res: Response) => 
   const { groupId } = req.query as { groupId?: string };
   let rooms;
   if (groupId) {
+    const userId = (req as any).userId as string | null;
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+    const [membership] = await db.select({ id: groupMembersTable.id }).from(groupMembersTable)
+      .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, userId))).limit(1);
+    if (!membership) return res.status(404).json({ error: "Group not found" });
     rooms = await db.select().from(studyRoomsTable)
       .where(and(eq(studyRoomsTable.groupId, groupId), eq(studyRoomsTable.status, "active")))
       .orderBy(desc(studyRoomsTable.createdAt));
@@ -65,7 +85,7 @@ studyRoomsRouter.get("/study-rooms", async (req: AuthRequest, res: Response) => 
 studyRoomsRouter.get("/study-rooms/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
   const [room] = await db.select().from(studyRoomsTable)
     .where(eq(studyRoomsTable.id, req.params.id as string)).limit(1);
-  if (!room) return res.status(404).json({ error: "Room not found" });
+  if (!room || !await canAccessRoom(req.userId, room)) return res.status(404).json({ error: "Room not found" });
   res.json(await enrichRoom(room));
 });
 
@@ -99,7 +119,7 @@ studyRoomsRouter.post("/study-rooms/:id/join", authMiddleware, async (req: AuthR
   const userId = req.userId!;
   const [room] = await db.select().from(studyRoomsTable)
     .where(eq(studyRoomsTable.id, req.params.id as string)).limit(1);
-  if (!room) return res.status(404).json({ error: "Room not found" });
+  if (!room || !await canAccessRoom(userId, room)) return res.status(404).json({ error: "Room not found" });
   if (room.status !== "active") return res.status(400).json({ error: "Room is not active" });
 
   const activeCount = await db.select({ count: sql<number>`count(*)` })

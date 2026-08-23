@@ -12,7 +12,6 @@ const APP_SHELL = [
   "/",
   "/manifest.json",
   "/logo.png",
-  "/logo.png",
 ];
 
 self.addEventListener("install", (event) => {
@@ -89,7 +88,9 @@ self.addEventListener("push", (event) => {
       body: data.body || "You have a new notification",
       icon: "/logo.png",
       badge: "/logo.png",
-      data: data.url ? { url: data.url } : undefined,
+      data: { url: data.url || "/", sound: data.sound || "default" },
+      requireInteraction: data.priority === true,
+      tag: data.priority === true ? "focusarx-priority" : undefined,
     })
   );
 });

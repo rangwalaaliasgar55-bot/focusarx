@@ -14,6 +14,7 @@ export const seasonalEventsTable = pgTable('seasonal_events', {
   coinMultiplier: real('coin_multiplier').notNull().default(1.0),
   specialMissions: jsonb('special_missions').default([]),
   exclusiveRewards: jsonb('exclusive_rewards').default([]),
+  premiumOnly: boolean('premium_only').notNull().default(false),
   isActive: boolean('is_active').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (t) => [index('seasonal_events_slug_idx').on(t.slug)]);

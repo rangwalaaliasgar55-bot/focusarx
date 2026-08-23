@@ -4,6 +4,14 @@ import { Router } from "express";
 import { extractUserId } from "./auth";
 import { db, focusCitiesTable, cityBuildingDefinitionsTable, userWalletsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { isUserPremium } from "../lib/premiumCheck";
+
+export const CITY_SKINS = [
+  { id: "classic", name: "Classic Academy", emoji: "🏛️", premiumOnly: false, gradient: "#0f172a,#312e81" },
+  { id: "cosmic", name: "Cosmic Civilization", emoji: "🌌", premiumOnly: true, gradient: "#09001f,#581c87" },
+  { id: "neon", name: "Neon Metropolis", emoji: "🌃", premiumOnly: true, gradient: "#020617,#0e7490" },
+  { id: "aurora", name: "Aurora Kingdom", emoji: "🌠", premiumOnly: true, gradient: "#052e16,#6d28d9" },
+] as const;
 
 export const cityRouter = Router();
 
@@ -47,10 +55,21 @@ cityRouter.get("/city", authMiddleware, async (req: AuthRequest, res: Response) 
       await db.update(focusCitiesTable).set({ weather, weatherUpdatedAt: new Date() }).where(eq(focusCitiesTable.id, city.id));
       city.weather = weather;
     }
-    res.json(city);
+    const premium = await isUserPremium(req.userId);
+    res.json({ ...city, premium, skins: CITY_SKINS.map((skin) => ({ ...skin, locked: skin.premiumOnly && !premium })) });
   } catch (e) {
     res.status(500).json({ error: "Failed to load city" });
   }
+});
+
+cityRouter.patch("/city/skin", authMiddleware, async (req: AuthRequest, res: Response) => {
+  const skin = CITY_SKINS.find((item) => item.id === (req.body as { skinId?: string }).skinId);
+  if (!skin) return res.status(400).json({ error: "Invalid city skin" });
+  if (skin.premiumOnly && !await isUserPremium(req.userId)) return res.status(403).json({ error: "This city skin requires Premium" });
+  const city = await getOrCreateCity(req.userId);
+  const [updated] = await db.update(focusCitiesTable).set({ selectedSkin: skin.id, updatedAt: new Date() })
+    .where(eq(focusCitiesTable.id, city.id)).returning();
+  res.json({ city: updated, skin });
 });
 
 cityRouter.get("/city/buildings", authMiddleware, async (req: AuthRequest, res: Response) => {

@@ -10,7 +10,11 @@ import {
 import { extractUserId } from "./auth";
 import { sendPush } from "../lib/pushSender";
 import { logger } from "../lib/logger";
-import { eq, and, sql, lt, gt, gte } from "drizzle-orm";
+import { and, eq, isNull, sql, lt, gt, gte } from "drizzle-orm";
+import {
+  BATTLE_PASS_CURRENT_SEASON, BATTLE_PASS_TIERS, battlePassClaimId,
+  calculateBattlePassTier, nextBattlePassThreshold,
+} from "../lib/battlePass";
 
 export const retentionRouter = Router();
 
@@ -179,30 +183,19 @@ retentionRouter.get("/retention/reengage/run", async (req: Request, res: Respons
   }
 });
 
-const BATTLE_PASS_CURRENT_SEASON = 1;
-
-const BATTLE_PASS_TIERS = [
-  { tier: 1, xpRequired: 0,    freeReward: { coins: 50,  xp: 0,   label: "50 coins" },        premiumReward: { coins: 100, xp: 200, label: "100 coins + 200 XP" } },
-  { tier: 2, xpRequired: 500,  freeReward: { coins: 75,  xp: 0,   label: "75 coins" },        premiumReward: { coins: 150, xp: 300, label: "150 coins + 300 XP" } },
-  { tier: 3, xpRequired: 1200, freeReward: { coins: 100, xp: 0,   label: "100 coins" },       premiumReward: { coins: 200, xp: 500, label: "200 coins + 500 XP" } },
-  { tier: 4, xpRequired: 2000, freeReward: { coins: 0,   xp: 500, label: "500 XP" },          premiumReward: { coins: 300, xp: 800, label: "300 coins + 800 XP" } },
-  { tier: 5, xpRequired: 3000, freeReward: { coins: 150, xp: 0,   label: "150 coins" },       premiumReward: { coins: 500, xp: 1000, label: "500 coins + 1000 XP" } },
-  { tier: 6, xpRequired: 4500, freeReward: { coins: 0,   xp: 750, label: "750 XP" },          premiumReward: { coins: 400, xp: 1200, label: "400 coins + 1200 XP" } },
-  { tier: 7, xpRequired: 6000, freeReward: { coins: 200, xp: 0,   label: "200 coins" },       premiumReward: { coins: 600, xp: 1500, label: "600 coins + 1500 XP" } },
-  { tier: 8, xpRequired: 8000, freeReward: { coins: 250, xp: 500, label: "250 coins + 500 XP" }, premiumReward: { coins: 1000, xp: 2000, label: "1000 coins + 2000 XP" } },
-];
 
 retentionRouter.get("/retention/battle-pass", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   let [progress] = await db.select().from(battlePassProgressTable).where(eq(battlePassProgressTable.userId, userId)).limit(1);
-  const currentTierDef = progress ? BATTLE_PASS_TIERS.find(t => t.tier > (progress?.tier ?? 0)) : BATTLE_PASS_TIERS[0];
+  const currentTier = calculateBattlePassTier(progress?.seasonXp ?? 0);
+  const nextTierXp = nextBattlePassThreshold(currentTier);
   res.json({
     season: BATTLE_PASS_CURRENT_SEASON,
-    tier: progress?.tier ?? 0,
+    tier: currentTier,
     seasonXp: progress?.seasonXp,
     premiumUnlocked: progress?.premiumUnlocked,
     claimedTiers: progress?.claimedTiers ?? [],
-    nextTierXp: currentTierDef?.xpRequired ?? 10000,
+    nextTierXp,
     tiers: BATTLE_PASS_TIERS,
     endsAt: "2026-09-30",
   });
@@ -218,11 +211,12 @@ retentionRouter.post("/retention/battle-pass/claim", authMiddleware, async (req:
 
   const tierDef = BATTLE_PASS_TIERS.find(t => t.tier === tier);
   if (!tierDef) return res.status(400).json({ error: "Invalid tier" });
-  if ((progress.claimedTiers ?? []).includes(tier)) return res.status(400).json({ error: "Already claimed" });
-  if (progress.tier < tier) return res.status(400).json({ error: "Tier not reached" });
+  const claimId = battlePassClaimId(tier, track);
+  if ((progress.claimedTiers ?? []).includes(claimId)) return res.status(400).json({ error: "Already claimed" });
+  if (calculateBattlePassTier(progress.seasonXp ?? 0) < tier) return res.status(400).json({ error: "Tier not reached" });
 
   const reward = track === "premium" ? tierDef.premiumReward : tierDef.freeReward;
-  const newClaimed = [...(progress.claimedTiers ?? []), tier];
+  const newClaimed = [...(progress.claimedTiers ?? []), claimId];
   await db.update(battlePassProgressTable).set({ claimedTiers: newClaimed, updatedAt: new Date() }).where(eq(battlePassProgressTable.userId, userId));
   await db.update(userWalletsTable).set({
     coins: sql`coins + ${reward.coins}`,
@@ -233,83 +227,97 @@ retentionRouter.post("/retention/battle-pass/claim", authMiddleware, async (req:
   res.json({ ok: true, reward });
 });
 
-retentionRouter.post("/retention/battle-pass/advance", authMiddleware, async (req: AuthRequest, res: Response) => {
-  const userId = req.userId!;
-  const { xp } = req.body as { xp: number };
-  let [progress] = await db.select().from(battlePassProgressTable).where(eq(battlePassProgressTable.userId, userId)).limit(1);
-  if (!progress) {
-    [progress] = await db.insert(battlePassProgressTable).values({ userId, season: BATTLE_PASS_CURRENT_SEASON }).returning();
-  }
-  const newXp = (progress.seasonXp ?? 0) + xp;
-  const newTier = BATTLE_PASS_TIERS.filter(t => t.xpRequired <= newXp).length;
-  await db.update(battlePassProgressTable).set({ seasonXp: newXp, tier: newTier, updatedAt: new Date() }).where(eq(battlePassProgressTable.userId, userId));
-  res.json({ ok: true, newTier, newXp });
-});
+// Battle-pass XP is advanced only by trusted server-side domain events.
 
 // ─── REFERRAL SYSTEM ──────────────────────────────────────────────────────────
 
-function makeReferralCode(userId: string): string {
-  const base36 = parseInt(userId.replace(/-/g, "").slice(0, 8), 16).toString(36).toUpperCase();
-  return `FAX-${base36.slice(0, 6)}`;
+function createReferralCode(): string {
+  return `FAX-${crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
 }
 
 retentionRouter.get("/referral/my-code", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
-  const [user] = await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email })
-    .from(usersTable).where(eq(usersTable.id, userId)).limit(1);
-  if (!user) return res.status(404).json({ error: "User not found" });
+  try {
+    let [user] = await db.select({
+      id: usersTable.id,
+      name: usersTable.name,
+      email: usersTable.email,
+      referralCode: usersTable.referralCode,
+    }).from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    if (!user) return res.status(404).json({ error: "User not found" });
 
-  const code = makeReferralCode(userId);
-  const shareUrl = `${process.env["APP_URL"] || "https://focusarx.replit.app"}/?ref=${code}`;
-  res.json({ code, shareUrl, name: user.name || user.email?.split("@")[0] || "You" });
+    if (!user.referralCode) {
+      const [updated] = await db.update(usersTable)
+        .set({ referralCode: createReferralCode() })
+        .where(and(eq(usersTable.id, userId), isNull(usersTable.referralCode)))
+        .returning({ referralCode: usersTable.referralCode });
+      user = { ...user, referralCode: updated?.referralCode ?? user.referralCode };
+    }
+    if (!user.referralCode) return res.status(500).json({ error: "Unable to create referral code" });
+
+    const baseUrl = (process.env["APP_URL"] || "https://focusarx.site").replace(/\/$/, "");
+    res.json({
+      code: user.referralCode,
+      shareUrl: `${baseUrl}/?ref=${encodeURIComponent(user.referralCode)}`,
+      name: user.name || user.email?.split("@")[0] || "You",
+    });
+  } catch {
+    res.status(500).json({ error: "Unable to load referral code" });
+  }
 });
 
 retentionRouter.post("/referral/apply", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
-  const { code } = req.body as { code?: string };
-  if (!code?.startsWith("FAX-")) return res.status(400).json({ error: "Invalid referral code" });
+  const rawCode = (req.body as { code?: unknown }).code;
+  const code = typeof rawCode === "string" ? rawCode.trim().toUpperCase() : "";
+  if (!/^FAX-[A-F0-9]{8}$/.test(code)) return res.status(400).json({ error: "Invalid referral code" });
 
-  const [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, userId)).limit(1);
-  if (!wallet) return res.status(400).json({ error: "Wallet not found" });
-
-  // Reward the person applying the code
-  await db.update(userWalletsTable).set({
-    coins: sql`coins + 200`,
-    totalXp: sql`total_xp + 500`,
-    updatedAt: new Date(),
-  }).where(eq(userWalletsTable.userId, userId));
-
-  await db.insert(notificationsTable).values({
-    userId, type: "referral",
-    title: "Referral bonus applied! 🎉",
-    message: "+200 coins and +500 XP for joining with a friend's code",
-    data: { code },
-  });
-
-  // Find and reward the referrer by scanning all users and matching their derived code
   try {
-    const allUsers = await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email })
-      .from(usersTable).limit(5000);
-    const referrer = allUsers.find(u => u.id !== userId && makeReferralCode(u.id) === code);
-    if (referrer) {
-      const [referrerWallet] = await db.select().from(userWalletsTable)
-        .where(eq(userWalletsTable.userId, referrer.id)).limit(1);
-      if (referrerWallet) {
-        await db.update(userWalletsTable).set({
-          coins: sql`coins + 500`,
-          totalXp: sql`total_xp + 1000`,
-          weeklyXp: sql`weekly_xp + 1000`,
-          updatedAt: new Date(),
-        }).where(eq(userWalletsTable.userId, referrer.id));
-        await db.insert(notificationsTable).values({
-          userId: referrer.id, type: "referral",
-          title: "Someone used your referral code! 🎉",
+    const result = await db.transaction(async (tx) => {
+      const [referrer] = await tx.select({ id: usersTable.id })
+        .from(usersTable).where(eq(usersTable.referralCode, code)).limit(1);
+      if (!referrer || referrer.id === userId) return { error: "Invalid referral code", status: 400 } as const;
+
+      // The conditional update is the concurrency guard: only one request can
+      // transition referralAppliedAt from NULL and become eligible for rewards.
+      const [applied] = await tx.update(usersTable).set({
+        referredByUserId: referrer.id,
+        referralAppliedAt: new Date(),
+      }).where(and(eq(usersTable.id, userId), isNull(usersTable.referralAppliedAt)))
+        .returning({ id: usersTable.id });
+      if (!applied) return { error: "A referral code has already been applied", status: 409 } as const;
+
+      const [applicantWallet] = await tx.select({ id: userWalletsTable.id })
+        .from(userWalletsTable).where(eq(userWalletsTable.userId, userId)).limit(1);
+      const [referrerWallet] = await tx.select({ id: userWalletsTable.id })
+        .from(userWalletsTable).where(eq(userWalletsTable.userId, referrer.id)).limit(1);
+      if (!applicantWallet || !referrerWallet) throw new Error("Referral wallets are not initialized");
+
+      await tx.update(userWalletsTable).set({
+        coins: sql`coins + 200`, totalXp: sql`total_xp + 500`, updatedAt: new Date(),
+      }).where(eq(userWalletsTable.userId, userId));
+      await tx.update(userWalletsTable).set({
+        coins: sql`coins + 500`, totalXp: sql`total_xp + 1000`,
+        weeklyXp: sql`weekly_xp + 1000`, updatedAt: new Date(),
+      }).where(eq(userWalletsTable.userId, referrer.id));
+
+      await tx.insert(notificationsTable).values([
+        {
+          userId, type: "referral", title: "Referral bonus applied! 🎉",
+          message: "+200 coins and +500 XP for joining with a friend's code", data: { code },
+        },
+        {
+          userId: referrer.id, type: "referral", title: "Someone used your referral code! 🎉",
           message: "+500 coins and +1000 XP — thanks for spreading the word!",
           data: { code, newUserId: userId },
-        });
-      }
-    }
-  } catch { /* referrer reward is non-critical */ }
+        },
+      ]);
+      return { ok: true } as const;
+    });
 
-  res.json({ ok: true, coins: 200, xp: 500 });
+    if (!("ok" in result)) return res.status(result.status).json({ error: result.error });
+    res.json({ ok: true, coins: 200, xp: 500 });
+  } catch {
+    res.status(500).json({ error: "Unable to apply referral code" });
+  }
 });

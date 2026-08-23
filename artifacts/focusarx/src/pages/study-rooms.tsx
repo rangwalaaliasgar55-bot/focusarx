@@ -6,6 +6,7 @@ import { useSocketEvent, getSocket } from "@/lib/socket";
 import { Radio, Users, Lock, Globe, Plus, X, Send, MessageCircle, LogIn, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
+import { EmotePicker } from "@/components/EmotePicker";
 
 interface Room {
   id: string;
@@ -36,7 +37,7 @@ async function createRoom(body: { name: string; description: string; isPrivate: 
   const res = await fetch("/api/study-rooms", {
     method: "POST",
     headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ name: body.name, description: body.description, isPublic: !body.isPrivate }),
   });
   if (!res.ok) throw new Error("Failed to create room");
   return res.json();
@@ -53,7 +54,7 @@ async function joinRoom(roomId: string): Promise<void> {
 async function leaveRoom(roomId: string): Promise<void> {
   const token = getToken();
   await fetch(`/api/study-rooms/${roomId}/leave`, {
-    method: "POST",
+    method: "DELETE",
     headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
   });
 }
@@ -83,7 +84,7 @@ function RoomChat({ room, onClose }: { room: Room; onClose: () => void }) {
   };
 
   return (
-    <div className="flex flex-col h-[420px] rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] overflow-hidden">
+    <div className="flex h-[min(70dvh,42rem)] min-h-[28rem] flex-col rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--rgba-124-58-237-0_15)]">
         <div className="flex items-center gap-2">
           <MessageCircle size={14} className="text-[var(--brand-400)]" />
@@ -111,7 +112,8 @@ function RoomChat({ room, onClose }: { room: Room; onClose: () => void }) {
         <div ref={bottomRef} />
       </div>
 
-      <div className="flex items-center gap-2 px-3 py-2.5 border-t border-[var(--rgba-124-58-237-0_1)]">
+      <div className="flex items-center gap-2 px-3 py-2.5 border-t border-[var(--rgba-124-58-237-0_1)] pb-[max(.625rem,env(safe-area-inset-bottom))]">
+        <EmotePicker onSelect={(emoji) => setInput((value) => `${value}${emoji}`)} />
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -161,7 +163,7 @@ export default function StudyRoomsPage() {
 
   return (
     <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow">
-      <main className="relative z-[var(--z-content)] mx-auto max-w-3xl px-4 py-10">
+      <main className="relative z-[var(--z-content)] mx-auto max-w-5xl px-3 py-6 sm:px-4 sm:py-10">
         <PageTransition>
           <header className="mb-8 flex items-center justify-between">
             <div>

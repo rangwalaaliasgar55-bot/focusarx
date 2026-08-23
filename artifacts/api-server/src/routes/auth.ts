@@ -2,6 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
+import { createHash } from "node:crypto";
 import { z } from "zod";
 import { db, usersTable, passwordResetTokensTable } from "@workspace/db";
 import { eq, and, gt, isNull } from "drizzle-orm";
@@ -44,12 +45,24 @@ function jwtSecretOrRespond(res: { status: (code: number) => { json: (body: unkn
 }
 
 function makeToken(userId: string, secret: string): string {
-  return jwt.sign({ sub: userId }, secret, { expiresIn: "7d" });
+  return jwt.sign({ sub: userId, type: "access" }, secret, {
+    algorithm: "HS256",
+    issuer: "focusarx-api",
+    audience: "focusarx-web",
+    expiresIn: "7d",
+  });
 }
 
-function verifyToken(token: string, secret: string): { sub: string } | null {
+function verifyToken(token: string, secret: string): { sub: string; type: string } | null {
   try {
-    return jwt.verify(token, secret) as { sub: string };
+    const payload = jwt.verify(token, secret, {
+      algorithms: ["HS256"],
+      issuer: "focusarx-api",
+      audience: "focusarx-web",
+    }) as { sub?: unknown; type?: unknown };
+    return typeof payload.sub === "string" && payload.type === "access"
+      ? { sub: payload.sub, type: payload.type }
+      : null;
   } catch {
     return null;
   }
@@ -141,6 +154,10 @@ router.post("/auth/guest", async (req, res) => {
 
 // ── Password reset ────────────────────────────────────────────────────────
 
+function hashResetToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
 async function sendResetEmail(to: string, resetUrl: string): Promise<boolean> {
   const host = process.env.SMTP_HOST;
   const port = parseInt(process.env.SMTP_PORT ?? "587");
@@ -184,7 +201,7 @@ router.post("/auth/forgot-password", forgotPasswordLimiter, async (req, res) => 
     const token = crypto.randomUUID() + "-" + crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 3600_000);
 
-    await db.insert(passwordResetTokensTable).values({ userId: user.id, token, expiresAt });
+    await db.insert(passwordResetTokensTable).values({ userId: user.id, token: hashResetToken(token), expiresAt });
 
     const resetUrl = `${appUrl}/reset-password?token=${token}`;
     const emailSent = await sendResetEmail(user.email, resetUrl);
@@ -206,15 +223,22 @@ router.post("/auth/reset-password", authLimiter, async (req, res) => {
 
   try {
     const now = new Date();
-    const [resetToken] = await db.select().from(passwordResetTokensTable)
-      .where(and(eq(passwordResetTokensTable.token, token), gt(passwordResetTokensTable.expiresAt, now), isNull(passwordResetTokensTable.usedAt)));
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const consumed = await db.transaction(async (tx) => {
+      const [resetToken] = await tx.update(passwordResetTokensTable)
+        .set({ usedAt: now })
+        .where(and(
+          eq(passwordResetTokensTable.token, hashResetToken(token)),
+          gt(passwordResetTokensTable.expiresAt, now),
+          isNull(passwordResetTokensTable.usedAt),
+        ))
+        .returning({ id: passwordResetTokensTable.id, userId: passwordResetTokensTable.userId });
+      if (!resetToken) return false;
+      await tx.update(usersTable).set({ hashedPassword }).where(eq(usersTable.id, resetToken.userId));
+      return true;
+    });
 
-    if (!resetToken) { res.status(400).json({ error: "Reset link is invalid or expired" }); return; }
-
-    const hashed = await bcrypt.hash(password, 12);
-    await db.update(usersTable).set({ hashedPassword: hashed }).where(eq(usersTable.id, resetToken.userId));
-    await db.update(passwordResetTokensTable).set({ usedAt: now }).where(eq(passwordResetTokensTable.id, resetToken.id));
-
+    if (!consumed) { res.status(400).json({ error: "Reset link is invalid or expired" }); return; }
     res.json({ ok: true });
   } catch (err) {
     logger.error({ err }, "reset password error");
@@ -229,7 +253,7 @@ router.get("/auth/reset-password/verify", async (req, res) => {
     const now = new Date();
     const [resetToken] = await db.select({ id: passwordResetTokensTable.id })
       .from(passwordResetTokensTable)
-      .where(and(eq(passwordResetTokensTable.token, token), gt(passwordResetTokensTable.expiresAt, now), isNull(passwordResetTokensTable.usedAt)));
+      .where(and(eq(passwordResetTokensTable.token, hashResetToken(token)), gt(passwordResetTokensTable.expiresAt, now), isNull(passwordResetTokensTable.usedAt)));
     res.json({ valid: !!resetToken });
   } catch {
     res.json({ valid: false });

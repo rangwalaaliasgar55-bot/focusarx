@@ -2,11 +2,14 @@ import { Request, Response, NextFunction } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db, marketplaceItemsTable, userInventoryTable, userWalletsTable, coinTransactionsTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gte, sql } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
+import { isUserPremium } from "../lib/premiumCheck";
 
 const router = Router();
+
+const PREMIUM_ITEM_IDS = new Set(["frame-diamond", "avatar-astronaut", "effect-aurora", "acc-fire-wings"]);
 
 // Seed default marketplace items if none exist
 const DEFAULT_ITEMS = [
@@ -56,7 +59,7 @@ async function ensureDefaultItems() {
   try {
     // Always upsert every default item so new items added to code appear in DB
     await db.insert(marketplaceItemsTable)
-      .values(DEFAULT_ITEMS.map(item => ({ ...item, isActive: true })))
+      .values(DEFAULT_ITEMS.map(item => ({ ...item, premiumOnly: PREMIUM_ITEM_IDS.has(item.id), isActive: true })))
       .onConflictDoNothing();
   } catch { }
 }
@@ -64,12 +67,15 @@ async function ensureDefaultItems() {
 router.get("/marketplace", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     await ensureDefaultItems();
-    const [items, inventory] = await Promise.all([
+    const [items, inventory, premium] = await Promise.all([
       db.select().from(marketplaceItemsTable).where(eq(marketplaceItemsTable.isActive, true)),
       db.select().from(userInventoryTable).where(eq(userInventoryTable.userId, req.userId)),
+      isUserPremium(req.userId),
     ]);
     const ownedIds = new Set(inventory.map(i => i.itemId));
-    const itemsWithOwned = items.map(item => ({ ...item, owned: ownedIds.has(item.id) }));
+    const itemsWithOwned = items.map(item => ({
+      ...item, owned: ownedIds.has(item.id), locked: item.premiumOnly && !premium,
+    }));
     res.json({ items: itemsWithOwned });
   } catch (err) {
     logger.error({ err }, "get marketplace error");
@@ -105,35 +111,40 @@ router.post("/marketplace/:itemId/purchase", authMiddleware, async (req: AuthReq
     const [item] = await db.select().from(marketplaceItemsTable)
       .where(and(eq(marketplaceItemsTable.id, itemId), eq(marketplaceItemsTable.isActive, true)));
     if (!item) { res.status(404).json({ error: "Item not found" }); return; }
+    if (item.premiumOnly && !await isUserPremium(req.userId)) {
+      res.status(403).json({ error: "This marketplace item requires Premium" }); return;
+    }
 
-    // Check not already owned
-    const [alreadyOwned] = await db.select().from(userInventoryTable)
-      .where(and(eq(userInventoryTable.userId, req.userId), eq(userInventoryTable.itemId, itemId)));
-    if (alreadyOwned) { res.status(400).json({ error: "Already owned" }); return; }
+    const purchase = await db.transaction(async (tx) => {
+      const [alreadyOwned] = await tx.select({ id: userInventoryTable.id }).from(userInventoryTable)
+        .where(and(eq(userInventoryTable.userId, req.userId), eq(userInventoryTable.itemId, itemId)))
+        .limit(1);
+      if (alreadyOwned) return { error: "Already owned", status: 409 } as const;
 
-    // Check wallet balance
-    const [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.userId));
-    if (!wallet) { res.status(400).json({ error: "No wallet found" }); return; }
-    if (wallet.coins < item.costCoins) { res.status(400).json({ error: "Insufficient coins" }); return; }
+      const [wallet] = await tx.update(userWalletsTable).set({
+        coins: sql`${userWalletsTable.coins} - ${item.costCoins}`,
+        updatedAt: new Date(),
+      }).where(and(
+        eq(userWalletsTable.userId, req.userId),
+        gte(userWalletsTable.coins, item.costCoins),
+      )).returning({ coins: userWalletsTable.coins });
+      if (!wallet) return { error: "Insufficient coins", status: 400 } as const;
 
-    const newBalance = wallet.coins - item.costCoins;
-    // Deduct coins, add to inventory, log transaction
-    await Promise.all([
-      db.update(userWalletsTable).set({ coins: newBalance, updatedAt: new Date() })
-        .where(eq(userWalletsTable.userId, req.userId)),
-      db.insert(userInventoryTable).values({ userId: req.userId, itemId }),
-      db.insert(coinTransactionsTable).values({
+      await tx.insert(userInventoryTable).values({ userId: req.userId, itemId });
+      await tx.insert(coinTransactionsTable).values({
         userId: req.userId,
         type: "spend",
         amount: -item.costCoins,
         reason: "marketplace_purchase",
         description: `Purchased ${item.name}`,
-        balanceAfter: newBalance,
+        balanceAfter: wallet.coins,
         metadata: { itemId, itemName: item.name, itemType: item.type },
-      }).catch(() => {}),
-    ]);
+      });
+      return { ok: true, newBalance: wallet.coins } as const;
+    });
 
-    res.json({ ok: true, newBalance });
+    if (!("ok" in purchase)) return res.status(purchase.status).json({ error: purchase.error });
+    res.json(purchase);
   } catch (err) {
     logger.error({ err }, "purchase error");
     res.status(500).json({ error: "Internal error" });

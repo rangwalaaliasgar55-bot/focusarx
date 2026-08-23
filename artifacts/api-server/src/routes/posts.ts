@@ -23,6 +23,23 @@ export const postsRouter = Router();
 
 const REACTION_TYPES = ["fire", "insightful", "focused", "legendary", "love"] as const;
 
+async function canViewPost(post: typeof socialPostsTable.$inferSelect, viewerId: string | null): Promise<boolean> {
+  if (viewerId === post.userId) return true;
+  if (post.moderationStatus !== "approved") return false;
+  if (post.isPublic && !post.groupId) return true;
+  if (!viewerId || !post.groupId) return false;
+  const [membership] = await db.select({ id: groupMembersTable.id }).from(groupMembersTable)
+    .where(and(eq(groupMembersTable.groupId, post.groupId), eq(groupMembersTable.userId, viewerId)))
+    .limit(1);
+  return Boolean(membership);
+}
+
+async function loadVisiblePost(postId: string, viewerId: string | null) {
+  const [post] = await db.select().from(socialPostsTable)
+    .where(eq(socialPostsTable.id, postId)).limit(1);
+  return post && await canViewPost(post, viewerId) ? post : null;
+}
+
 async function enrichPost(post: any, viewerId: string | null) {
   const [author] = await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email })
     .from(usersTable).where(eq(usersTable.id, post.userId)).limit(1);
@@ -189,8 +206,7 @@ postsRouter.post("/posts", authMiddleware, async (req: AuthRequest, res: Respons
 });
 
 postsRouter.get("/posts/:id", optionalAuth, async (req: AuthRequest, res: Response) => {
-  const [post] = await db.select().from(socialPostsTable)
-    .where(eq(socialPostsTable.id, req.params.id as string)).limit(1);
+  const post = await loadVisiblePost(req.params.id as string, req.userId ?? null);
   if (!post) return res.status(404).json({ error: "Post not found" });
 
   await db.update(socialPostsTable)
@@ -229,6 +245,8 @@ postsRouter.get("/users/:userId/posts", optionalAuth, async (req: AuthRequest, r
 
 postsRouter.post("/posts/:id/react", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
+  const visiblePost = await loadVisiblePost(req.params.id as string, userId);
+  if (!visiblePost) return res.status(404).json({ error: "Post not found" });
   const { reaction } = req.body;
   if (!REACTION_TYPES.includes(reaction)) return res.status(400).json({ error: "Invalid reaction" });
 
@@ -266,6 +284,8 @@ postsRouter.post("/posts/:id/react", authMiddleware, async (req: AuthRequest, re
 // ─── COMMENTS ────────────────────────────────────────────────────────────────
 
 postsRouter.get("/posts/:id/comments", optionalAuth, async (req: AuthRequest, res: Response) => {
+  const visiblePost = await loadVisiblePost(req.params.id as string, req.userId ?? null);
+  if (!visiblePost) return res.status(404).json({ error: "Post not found" });
   const comments = await db.select().from(postCommentsTable)
     .where(eq(postCommentsTable.postId, req.params.id as string))
     .orderBy(postCommentsTable.createdAt);
@@ -281,10 +301,19 @@ postsRouter.get("/posts/:id/comments", optionalAuth, async (req: AuthRequest, re
 
 postsRouter.post("/posts/:id/comments", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
+  const visiblePost = await loadVisiblePost(req.params.id as string, userId);
+  if (!visiblePost) return res.status(404).json({ error: "Post not found" });
   const { content, parentId } = req.body;
   if (!content?.trim()) return res.status(400).json({ error: "content required" });
 
   // Automated moderation on comments too.
+  if (parentId) {
+    const [parent] = await db.select({ id: postCommentsTable.id }).from(postCommentsTable)
+      .where(and(eq(postCommentsTable.id, parentId), eq(postCommentsTable.postId, req.params.id as string)))
+      .limit(1);
+    if (!parent) return res.status(400).json({ error: "Invalid parent comment" });
+  }
+
   const moderation = await moderateText(content);
   if (moderation.status === "rejected") {
     return res.status(400).json({
@@ -328,6 +357,8 @@ postsRouter.delete("/posts/:postId/comments/:commentId", authMiddleware, async (
 
 postsRouter.post("/posts/:id/save", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
+  const visiblePost = await loadVisiblePost(req.params.id as string, userId);
+  if (!visiblePost) return res.status(404).json({ error: "Post not found" });
   const [existing] = await db.select().from(postSavesTable)
     .where(and(eq(postSavesTable.postId, req.params.id as string), eq(postSavesTable.userId, userId))).limit(1);
 

@@ -11,12 +11,14 @@ import { PageTransition } from "@/components/PageTransition";
 import PageHeader from "@/components/PageHeader";
 import { format, parseISO } from "date-fns";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
-import { PremiumGate } from "@/components/PremiumGate";
 
 interface AnalyticsData {
   heatmap: Record<string, number>;
   chartData14: Array<{ date: string; minutes: number }>;
   hourDist: Array<{ hour: number; minutes: number }>;
+  timeDayHeatmap: Array<{ day: number; hour: number; minutes: number; sessions: number }>;
+  historyDays?: number;
+  isPremium?: boolean;
   weekBarData?: Array<{ day: string; date: string; minutes: number }>;
   weekComparison?: { thisWeekMinutes: number; lastWeekMinutes: number; changePercent: number };
   personalBests: {
@@ -114,7 +116,6 @@ export default function AnalyticsPage() {
   const weekBar = data?.weekBarData ?? [];
 
   return (
-    <PremiumGate feature="Analytics">
     <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow">
       <PageSEO {...PAGE_SEO.analytics} />
       <div className="pointer-events-none absolute inset-0" aria-hidden>
@@ -242,6 +243,14 @@ export default function AnalyticsPage() {
                 </ResponsiveContainer>
               </div>
 
+              <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
+                <div className="mb-4 flex items-center justify-between"><div><h2 className="text-sm font-semibold">Focus time by hour and weekday</h2><p className="mt-1 text-xs text-[var(--foreground-subtle)]">{data.historyDays ?? 60}-day view · hover a cell for session detail</p></div>{data.isPremium && <span className="rounded-full bg-[var(--brand-soft)] px-2 py-1 text-[10px] font-bold text-[var(--brand-400)]">180-day Premium</span>}</div>
+                <div className="overflow-x-auto"><div className="grid min-w-[42rem] grid-cols-[3rem_repeat(24,1fr)] gap-1 text-[9px]">
+                  <span />{Array.from({ length: 24 }, (_, hour) => <span key={hour} className="text-center text-[var(--foreground-subtle)]">{hour % 3 === 0 ? hour : ""}</span>)}
+                  {Array.from({ length: 7 }, (_, day) => <div key={day} className="contents"><span className="self-center text-[var(--foreground-subtle)]">{["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][day]}</span>{Array.from({ length: 24 }, (_, hour) => { const cell = data.timeDayHeatmap?.find((item) => item.day === day && item.hour === hour); const intensity = Math.min(100, 8 + (cell?.minutes ?? 0) / 3); return <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: (day * 24 + hour) * .002 }} key={hour} className="aspect-square min-h-4 rounded-sm" title={`${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][day]} ${hour}:00 — ${cell?.minutes ?? 0} minutes across ${cell?.sessions ?? 0} sessions`} style={{ background: `color-mix(in srgb, var(--brand-600) ${intensity}%, transparent)` }} />; })}</div>)}
+                </div></div>
+              </div>
+
               {/* Two-column: hour distribution + heatmap */}
               <div className="grid gap-4 lg:grid-cols-2">
                 {/* Productive hours */}
@@ -307,6 +316,5 @@ export default function AnalyticsPage() {
         </PageTransition>
       </main>
     </div>
-    </PremiumGate>
   );
 }

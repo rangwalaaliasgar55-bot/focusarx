@@ -208,6 +208,25 @@ function RecentActivity({ sessions }: { sessions: DashboardStats["recentSessions
   );
 }
 
+function TodaysFocus({ tasks, streak, minutes, onStart }: { tasks: Array<{ title: string; priority?: string }>; streak: number; minutes: number; onStart: () => void }) {
+  const hour = new Date().getHours();
+  const task = tasks.find((item) => item.priority === "high") ?? tasks[0];
+  const recommendation = task
+    ? { title: task.title, reason: `Your clearest next action${task.priority === "high" ? " and highest-priority task" : ""}.`, duration: hour >= 20 ? 25 : 45 }
+    : minutes === 0
+      ? { title: "Start your first protected block", reason: streak ? `Keep your ${streak}-day streak alive.` : "A small first win creates momentum.", duration: 25 }
+      : { title: "Review today and plan tomorrow", reason: `You already protected ${minutes} minutes today.`, duration: 15 };
+  return (
+    <Card className="border-[var(--brand-500)]/30 bg-gradient-to-r from-[var(--brand-soft)] to-transparent">
+      <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[var(--brand-600)] text-white"><Target /></div>
+        <div className="min-w-0 flex-1"><p className="text-xs font-bold uppercase tracking-widest text-[var(--brand-strong)]">Today&apos;s Focus</p><h2 className="mt-1 truncate text-lg font-semibold">{recommendation.title}</h2><p className="mt-1 text-sm text-[var(--foreground-muted)]">{recommendation.reason} Recommended: {recommendation.duration} minutes.</p></div>
+        <Button onClick={onStart}>Start now <ArrowRight /></Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function DashboardPage() {
   const { status, data: session } = useAuth();
   const [, navigate] = useLocation();
@@ -261,6 +280,7 @@ export default function DashboardPage() {
         <EmptyState icon={<RefreshCw />} title="Your dashboard could not be loaded" description="Your data is safe. Check your connection and try again." action={{ label: "Retry dashboard", onClick: () => void statsQuery.refetch() }} />
       ) : (
         <div className="space-y-5">
+          <TodaysFocus tasks={activeTasks} streak={stats.currentStreak} minutes={stats.totalStudyMinutesToday} onStart={startFocus} />
           <FocusHero onStart={startFocus} />
 
           <StreakFreezeCard />

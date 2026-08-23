@@ -6,31 +6,10 @@ import {
   premiumSubscriptionsTable,
 } from "@workspace/db";
 import { eq, and, isNull, lt, sql } from "drizzle-orm";
-import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
+import { checkAdminAuth } from "../lib/adminAuth";
 
 const router = Router();
-
-async function checkAdminAuth(req: any): Promise<boolean> {
-  const cookieHeader = req.headers.cookie ?? "";
-  const match = cookieHeader.match(/(?:^|;\s*)focusarx_admin=([^;]+)/);
-  const token = match?.[1];
-  if (token) {
-    try {
-      const jwt = await import("jsonwebtoken");
-      const secret = process.env.AUTH_SECRET ?? process.env.JWT_SECRET ?? "dev-secret";
-      const payload = jwt.default.verify(token, secret) as { role?: string };
-      if (payload?.role === "admin_session") return true;
-    } catch { }
-  }
-  const userId = extractUserId(req);
-  if (!userId) return false;
-  try {
-    const [user] = await db.select({ role: usersTable.role })
-      .from(usersTable).where(eq(usersTable.id, userId));
-    return user?.role?.toLowerCase() === "admin";
-  } catch { return false; }
-}
 
 // ─── Shared email layout wrapper ─────────────────────────────────────────────
 function emailLayout(preheader: string, body: string): string {
@@ -263,8 +242,8 @@ async function sendEmailViaResend(
 ): Promise<{ ok: boolean; id?: string; error?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
-    logger.warn("RESEND_API_KEY not set — email not sent (logged only)");
-    return { ok: true, id: `mock-${Date.now()}` };
+    logger.warn("RESEND_API_KEY not set — email delivery is not configured");
+    return { ok: false, error: "Email provider is not configured" };
   }
   try {
     const response = await fetch("https://api.resend.com/emails", {

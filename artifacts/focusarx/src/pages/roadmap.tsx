@@ -13,6 +13,9 @@ type RoadmapDay = {
   focusSessions: string[];
   tasks: string[];
   estimatedTime: number;
+  milestone?: string;
+  progressCheck?: string;
+  resources?: Array<{ title: string; url: string; type: string }>;
 };
 
 type SavedRoadmap = {
@@ -273,6 +276,12 @@ export default function RoadmapPage() {
                                  </ul>
                               </div>
                            </div>
+                           {(day.milestone || day.progressCheck || day.resources?.length) && <div className="border-t border-[var(--brand-500)]/20 bg-[var(--brand-soft)] p-6">
+                             <p className="text-[10px] font-black uppercase tracking-widest text-[var(--brand-400)]">Premium depth</p>
+                             {day.milestone && <p className="mt-2 text-sm"><strong>Milestone:</strong> {day.milestone}</p>}
+                             {day.progressCheck && <p className="mt-1 text-sm"><strong>Progress check:</strong> {day.progressCheck}</p>}
+                             {!!day.resources?.length && <div className="mt-3 flex flex-wrap gap-2">{day.resources.map((resource) => <a key={resource.url} href={resource.url} target="_blank" rel="noreferrer" className="rounded-lg border border-[var(--brand-500)]/30 px-3 py-2 text-xs text-[var(--brand-400)]">{resource.title} ↗</a>)}</div>}
+                           </div>}
                         </motion.div>
                       ))}
                    </div>

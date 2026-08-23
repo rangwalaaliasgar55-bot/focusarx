@@ -13,30 +13,12 @@ import {
   coinTransactionsTable,
 } from "@workspace/db";
 import { eq, sql, count } from "drizzle-orm";
-import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
+import { checkAdminAuth } from "../lib/adminAuth";
 
 const router = Router();
 
-async function checkAuth(req: any): Promise<boolean> {
-  const cookieHeader = req.headers.cookie ?? "";
-  const match = cookieHeader.match(/(?:^|;\s*)focusarx_admin=([^;]+)/);
-  const token = match?.[1];
-  if (token) {
-    try {
-      const jwt = await import("jsonwebtoken");
-      const secret = process.env.AUTH_SECRET ?? process.env.JWT_SECRET ?? "dev-secret";
-      const payload = jwt.default.verify(token, secret) as { role?: string };
-      if (payload?.role === "admin_session") return true;
-    } catch { }
-  }
-  const userId = extractUserId(req);
-  if (!userId) return false;
-  try {
-    const [user] = await db.select({ role: usersTable.role }).from(usersTable).where(eq(usersTable.id, userId));
-    return user?.role?.toLowerCase() === "admin";
-  } catch { return false; }
-}
+const checkAuth = checkAdminAuth;
 
 // ─── MARKETPLACE CMS ─────────────────────────────────────────────────────────
 
@@ -53,14 +35,14 @@ router.get("/admin/cms/marketplace", async (req, res) => {
 
 router.post("/admin/cms/marketplace", async (req, res) => {
   if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
-  const { id, name, description, type, costCoins, rarity, emoji, isActive } = req.body as any;
+  const { id, name, description, type, costCoins, rarity, emoji, premiumOnly, isActive } = req.body as any;
   if (!id || !name || !type || costCoins === undefined) {
     res.status(400).json({ error: "id, name, type, costCoins required" }); return;
   }
   try {
     const [item] = await db.insert(marketplaceItemsTable).values({
       id, name, description: description ?? "", type, costCoins: Number(costCoins),
-      rarity: rarity ?? "common", emoji: emoji ?? "🎁", isActive: isActive ?? true,
+      rarity: rarity ?? "common", emoji: emoji ?? "🎁", premiumOnly: premiumOnly ?? false, isActive: isActive ?? true,
     }).onConflictDoNothing().returning();
     res.json({ ok: true, item });
   } catch (err) {
@@ -72,7 +54,7 @@ router.post("/admin/cms/marketplace", async (req, res) => {
 router.patch("/admin/cms/marketplace/:itemId", async (req, res) => {
   if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
   const { itemId } = req.params as { itemId: string };
-  const { name, description, type, costCoins, rarity, emoji, isActive } = req.body as any;
+  const { name, description, type, costCoins, rarity, emoji, premiumOnly, isActive } = req.body as any;
   try {
     const updates: any = {};
     if (name !== undefined) updates.name = name;
@@ -81,7 +63,8 @@ router.patch("/admin/cms/marketplace/:itemId", async (req, res) => {
     if (costCoins !== undefined) updates.costCoins = Number(costCoins);
     if (rarity !== undefined) updates.rarity = rarity;
     if (emoji !== undefined) updates.emoji = emoji;
-    if (isActive !== undefined) updates.isActive = isActive;
+    if (premiumOnly !== undefined) updates.premiumOnly = Boolean(premiumOnly);
+    if (isActive !== undefined) updates.isActive = Boolean(isActive);
     const [item] = await db.update(marketplaceItemsTable).set(updates)
       .where(eq(marketplaceItemsTable.id, itemId)).returning();
     res.json({ ok: true, item });

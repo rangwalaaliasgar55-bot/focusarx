@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getToken, useAuth } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
 import { MessageSquare, Send, Plus, Search, X, Users, ArrowLeft, AlertCircle, RefreshCw } from "lucide-react";
+import { EmotePicker } from "@/components/EmotePicker";
 
 async function apiFetch(path: string, opts?: RequestInit) {
   const token = getToken();
@@ -131,7 +132,8 @@ function ConversationThread({ conv, currentUserId, onBack }: { conv: any; curren
       </div>
 
       <div className="p-4 border-t border-[var(--rgba-255-255-255-0_06)]">
-        <div className="flex gap-2">
+        <div className="flex gap-2 pb-[env(safe-area-inset-bottom)]">
+          <EmotePicker onSelect={(emoji) => setText((value) => `${value}${emoji}`)} />
           <input
             value={text}
             onChange={e => setText(e.target.value)}

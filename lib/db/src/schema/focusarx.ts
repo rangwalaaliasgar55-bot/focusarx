@@ -1,4 +1,4 @@
-import { pgTable, text, integer, boolean, timestamp, real, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, boolean, timestamp, real, jsonb, index, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -16,6 +16,9 @@ export const usersTable = pgTable("users", {
   timezone: text("timezone").default("UTC"),
   productivityScore: real("productivity_score").default(0),
   totalFocusMinutes: integer("total_focus_minutes").default(0),
+  referralCode: text("referral_code").unique(),
+  referredByUserId: text("referred_by_user_id"),
+  referralAppliedAt: timestamp("referral_applied_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -40,9 +43,11 @@ export const focusSessionsTable = pgTable("focus_sessions", {
   sessionInsights: text("session_insights"),
   category: text("category").default("General"),
   productivityScore: real("productivity_score"),
+  clientNonce: text("client_nonce"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   index("focus_sessions_user_id_idx").on(t.userId),
+  unique("focus_sessions_user_nonce_unique").on(t.userId, t.clientNonce),
   index("focus_sessions_completed_at_idx").on(t.completedAt),
 ]);
 
@@ -62,6 +67,7 @@ export const activeSessionsTable = pgTable("active_sessions", {
   lastSeenFaceAt: text("last_seen_face_at"),
   focusTimeline: text("focus_timeline").default("[]"),
   monitorEnabled: boolean("monitor_enabled").default(false),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
@@ -498,6 +504,7 @@ export const marketplaceItemsTable = pgTable("marketplace_items", {
   rarity: text("rarity").default("common"),
   emoji: text("emoji").default("🎁"),
   data: jsonb("data"),
+  premiumOnly: boolean("premium_only").default(false).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -512,6 +519,7 @@ export const userInventoryTable = pgTable("user_inventory", {
   equipped: boolean("equipped").default(false).notNull(),
 }, (t) => [
   index("user_inventory_user_idx").on(t.userId),
+  unique("user_inventory_user_item_unique").on(t.userId, t.itemId),
 ]);
 
 export type UserInventory = typeof userInventoryTable.$inferSelect;
@@ -721,6 +729,19 @@ export const userProfileExtrasTable = pgTable("user_profile_extras", {
 
 export type UserProfileExtras = typeof userProfileExtrasTable.$inferSelect;
 
+// ─── EMOTES ──────────────────────────────────────────────────────────────────
+
+export const userEmotesTable = pgTable("user_emotes", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  emoteId: text("emote_id").notNull(),
+  equipped: boolean("equipped").default(false).notNull(),
+  unlockedAt: timestamp("unlocked_at").defaultNow().notNull(),
+}, (t) => [
+  unique("user_emotes_user_emote_unique").on(t.userId, t.emoteId),
+  index("user_emotes_user_idx").on(t.userId),
+]);
+
 // ─── PUSH SUBSCRIPTIONS ───────────────────────────────────────────────────────
 
 export const pushSubscriptionsTable = pgTable("push_subscriptions", {
@@ -729,6 +750,8 @@ export const pushSubscriptionsTable = pgTable("push_subscriptions", {
   endpoint: text("endpoint").notNull(),
   p256dh: text("p256dh").notNull(),
   auth: text("auth").notNull(),
+  priorityEnabled: boolean("priority_enabled").default(false).notNull(),
+  sound: text("sound").default("default").notNull(),
   expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [index("push_sub_user_idx").on(t.userId)]);

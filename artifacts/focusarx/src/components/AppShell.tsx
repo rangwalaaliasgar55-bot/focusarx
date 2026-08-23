@@ -12,6 +12,7 @@ import {
   Gift,
   Goal,
   GraduationCap,
+  History,
   LayoutDashboard,
   Library,
   LogIn,
@@ -90,6 +91,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/forge-room", label: "Study room", icon: GraduationCap },
       { href: "/ai-insights", label: "AI coach", icon: Brain, premium: true },
       { href: "/analytics", label: "Analytics", icon: BarChart3, premium: true },
+      { href: "/session-replay", label: "Session replay", icon: History },
     ],
   },
   {

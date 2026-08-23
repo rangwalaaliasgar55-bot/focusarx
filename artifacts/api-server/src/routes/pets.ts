@@ -72,28 +72,9 @@ router.post("/pets", authMiddleware, async (req: AuthRequest, res: Response) => 
   }
 });
 
-// Award pet XP (called after sessions)
-router.post("/pets/award-xp", authMiddleware, async (req: AuthRequest, res: Response) => {
-  const { xpAmount } = req.body as { xpAmount?: number };
-  if (!xpAmount || xpAmount <= 0) { res.status(400).json({ error: "xpAmount required" }); return; }
-  try {
-    const [pet] = await db.select().from(userPetsTable).where(eq(userPetsTable.userId, req.userId));
-    if (!pet) { res.json({ ok: true, leveled: false }); return; }
-
-    const newXp = pet.petXp + xpAmount;
-    const newLevel = Math.floor(newXp / PET_XP_PER_LEVEL) + 1;
-    const leveled = newLevel > pet.petLevel;
-    const mood = newXp > 0 ? (newLevel >= 10 ? "excited" : "happy") : "sleepy";
-
-    await db.update(userPetsTable).set({
-      petXp: newXp, petLevel: newLevel, mood, updatedAt: new Date(),
-    }).where(eq(userPetsTable.userId, req.userId));
-
-    res.json({ ok: true, leveled, newLevel, newXp });
-  } catch (err) {
-    logger.error({ err }, "award pet xp error");
-    res.status(500).json({ error: "Internal error" });
-  }
+// Pet XP is awarded only by trusted server-side session/reward events.
+router.post("/pets/award-xp", authMiddleware, (_req: AuthRequest, res: Response) => {
+  res.status(410).json({ error: "Direct pet XP awards are no longer supported" });
 });
 
 export { router as petsRouter };

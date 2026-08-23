@@ -7,6 +7,7 @@ import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
 import { updateMissionProgress } from "./missions";
 import { runDelightCheck } from "../lib/delightEngine";
+import { BATTLE_PASS_CURRENT_SEASON, calculateBattlePassTier } from "../lib/battlePass";
 
 async function maybeDropLootBox(userId: string, sessionCount: number): Promise<boolean> {
   try {
@@ -51,24 +52,21 @@ async function updateCityProgress(userId: string): Promise<void> {
   } catch { /* best effort */ }
 }
 
-const BATTLE_PASS_XP_PER_TIER = 200;
-const BATTLE_PASS_MAX_TIER = 50;
-
 async function advanceBattlePass(userId: string, xpEarned: number) {
   try {
     const [bp] = await db.select().from(battlePassProgressTable).where(eq(battlePassProgressTable.userId, userId));
     if (bp) {
       const newSeasonXp = bp.seasonXp + xpEarned;
-      const newTier = Math.min(BATTLE_PASS_MAX_TIER, Math.floor(newSeasonXp / BATTLE_PASS_XP_PER_TIER));
+      const newTier = calculateBattlePassTier(newSeasonXp);
       await db.update(battlePassProgressTable).set({
         seasonXp: newSeasonXp,
         tier: newTier,
         updatedAt: new Date(),
       }).where(eq(battlePassProgressTable.userId, userId));
     } else {
-      const newTier = Math.min(BATTLE_PASS_MAX_TIER, Math.floor(xpEarned / BATTLE_PASS_XP_PER_TIER));
+      const newTier = calculateBattlePassTier(xpEarned);
       await db.insert(battlePassProgressTable).values({
-        userId, season: 1, seasonXp: xpEarned, tier: newTier,
+        userId, season: BATTLE_PASS_CURRENT_SEASON, seasonXp: xpEarned, tier: newTier,
         premiumUnlocked: false, claimedTiers: [],
       });
     }
@@ -90,10 +88,18 @@ const sessionSchema = z.object({
   focusTimeline: z.unknown().optional(),
   sessionInsights: z.unknown().optional(),
   taskId: z.string().uuid().nullable().optional(),
-  clientNonce: z.string().max(64).optional(),
+  sessionId: z.string().uuid().optional(),
+  clientNonce: z.string().min(8).max(64).regex(/^[a-zA-Z0-9_-]+$/).optional(),
   completedAt: z.string().optional(),
   category: z.string().max(50).optional(),
 });
+
+const activeCreateSchema = z.object({
+  mode: z.enum(["focus", "short_break", "long_break"]).default("focus"),
+  secondsLeft: z.number().int().min(60).max(14_400).default(1_500),
+  timerStatus: z.enum(["running", "paused", "idle"]).default("paused"),
+  monitorEnabled: z.boolean().default(false),
+}).strict();
 
 const activeSyncSchema = z.object({
   sessionId: z.string().uuid(),
@@ -128,7 +134,9 @@ router.get("/sessions/active", authMiddleware, async (req: AuthRequest, res) => 
 });
 
 router.post("/sessions/active", authMiddleware, async (req: AuthRequest, res) => {
-  const { mode, secondsLeft, timerStatus, monitorEnabled } = req.body as any;
+  const parsed = activeCreateSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Invalid active session" }); return; }
+  const { mode, secondsLeft, timerStatus, monitorEnabled } = parsed.data;
   try {
     await db.delete(activeSessionsTable).where(eq(activeSessionsTable.userId, req.userId));
     const [session] = await db.insert(activeSessionsTable).values({
@@ -177,19 +185,43 @@ router.post("/sessions", authMiddleware, async (req: AuthRequest, res) => {
   if (!parsed.success) { res.status(400).json({ error: "Invalid session data" }); return; }
   const {
     mode, durationSec, plannedDurationSec, completedEarly, completionPercentage, sessionStatus,
-    focusScore, focusQuality, stabilityRating, focusTimeline, sessionInsights, category
+    focusScore, focusQuality, stabilityRating, focusTimeline, sessionInsights, category,
+    sessionId, clientNonce,
   } = parsed.data;
   try {
-    // Compute completion percentage if not provided but we have both durations
-    let computedPct = completionPercentage ?? null;
-    if (computedPct === null && plannedDurationSec && plannedDurationSec > 0 && durationSec > 0) {
-      computedPct = Math.min(100, Math.round((durationSec / plannedDurationSec) * 100));
+    if (clientNonce) {
+      const [existing] = await db.select().from(focusSessionsTable).where(and(
+        eq(focusSessionsTable.userId, req.userId),
+        eq(focusSessionsTable.clientNonce, clientNonce),
+      )).limit(1);
+      if (existing) {
+        res.json({ session: existing, streakUpdated: false, earnedXp: 0, earnedCoins: 0, idempotentReplay: true });
+        return;
+      }
     }
+
+    const [activeSession] = sessionId
+      ? await db.select().from(activeSessionsTable).where(and(
+          eq(activeSessionsTable.id, sessionId),
+          eq(activeSessionsTable.userId, req.userId),
+        )).limit(1)
+      : [];
+    const wallClockSeconds = activeSession
+      ? Math.max(0, Math.floor((Date.now() - activeSession.startedAt.getTime()) / 1000) + 15)
+      : 0;
+    const verifiedDurationSec = activeSession && activeSession.mode === mode
+      ? Math.min(durationSec, activeSession.activeSeconds ?? 0, wallClockSeconds, 14_400)
+      : 0;
+
+    // Ignore the client percentage and derive it only from server-bounded time.
+    const computedPct = plannedDurationSec && plannedDurationSec > 0 && verifiedDurationSec > 0
+      ? Math.min(100, Math.round((verifiedDurationSec / plannedDurationSec) * 100))
+      : null;
 
     const [session] = await db.insert(focusSessionsTable).values({
       userId: req.userId,
       mode: mode ?? "focus",
-      durationSec: durationSec ?? 0,
+      durationSec: verifiedDurationSec,
       plannedDurationSec: plannedDurationSec ?? null,
       completedEarly: completedEarly ?? false,
       completionPercentage: computedPct,
@@ -201,9 +233,11 @@ router.post("/sessions", authMiddleware, async (req: AuthRequest, res) => {
       focusTimeline: typeof focusTimeline === "string" ? focusTimeline : JSON.stringify(focusTimeline ?? []),
       sessionInsights: typeof sessionInsights === "string" ? sessionInsights : JSON.stringify(sessionInsights ?? null),
       category: category ?? "General",
+      clientNonce: clientNonce ?? null,
     }).returning();
 
-    const streakUpdated = await updateStreak(req.userId);
+    const rewardEligible = mode === "focus" && sessionStatus !== "cancelled" && verifiedDurationSec >= 60;
+    const streakUpdated = rewardEligible ? await updateStreak(req.userId) : false;
 
     // Check premium status for multipliers
     let isPremium = false;
@@ -220,14 +254,14 @@ router.post("/sessions", authMiddleware, async (req: AuthRequest, res) => {
     let earnedXp = 0;
     let earnedCoins = 0;
     // All focus sessions with duration > 0 contribute to analytics — including early completions
-    if ((mode ?? "focus") === "focus" && durationSec > 0) {
-      const minutes = Math.floor(durationSec / 60);
+    if (rewardEligible) {
+      const minutes = Math.floor(verifiedDurationSec / 60);
       earnedXp = minutes * 20;
       earnedCoins = Math.floor(minutes / 5) * 10;
       // Bonus for completing a full 25-min pomodoro
-      if (durationSec >= 1500) earnedCoins += 50;
+      if (verifiedDurationSec >= 1500) earnedCoins += 50;
       // Small bonus for early completion (you still showed up!)
-      if (completedEarly && durationSec >= 60) earnedCoins += 10;
+      if (completedEarly && verifiedDurationSec >= 60) earnedCoins += 10;
       // Premium multipliers: 1.5x XP and 1.25x coins
       if (isPremium) {
         earnedXp = Math.round(earnedXp * 1.5);
@@ -241,9 +275,8 @@ router.post("/sessions", authMiddleware, async (req: AuthRequest, res) => {
       if (minutes > 0) {
         await updateMissionProgress(req.userId, "sessions", 1);
         await updateMissionProgress(req.userId, "minutes", minutes);
-        if (focusScore != null) {
-          await updateMissionProgress(req.userId, "score", focusScore, { replace: true });
-        }
+        // Focus score remains analytics-only until it is backed by a trusted,
+        // server-verifiable signal; it cannot advance reward missions.
       }
 
       await updateProductivityLog(req.userId, minutes, 1, focusScore);
@@ -253,19 +286,29 @@ router.post("/sessions", authMiddleware, async (req: AuthRequest, res) => {
       }
     }
 
-    // City progress (best-effort, always)
-    void updateCityProgress(req.userId);
-
-    // Count total focus sessions to check loot box drop threshold
     let lootBoxDropped = false;
-    try {
-      const [{ total }] = await db.select({ total: sql<number>`count(*)::int` })
-        .from(focusSessionsTable)
-        .where(and(eq(focusSessionsTable.userId, req.userId)));
-      lootBoxDropped = await maybeDropLootBox(req.userId, total);
-    } catch { /* best effort */ }
+    if (rewardEligible) {
+      void updateCityProgress(req.userId);
+      try {
+        const [{ total }] = await db.select({ total: sql<number>`count(*)::int` })
+          .from(focusSessionsTable)
+          .where(and(
+            eq(focusSessionsTable.userId, req.userId),
+            eq(focusSessionsTable.mode, "focus"),
+            sql`${focusSessionsTable.durationSec} >= 60`,
+          ));
+        lootBoxDropped = await maybeDropLootBox(req.userId, total);
+      } catch { /* best effort */ }
+    }
 
-    const delightReward = (mode ?? "focus") === "focus" && durationSec > 0 ? runDelightCheck() : null;
+    if (activeSession) {
+      await db.delete(activeSessionsTable).where(and(
+        eq(activeSessionsTable.id, activeSession.id),
+        eq(activeSessionsTable.userId, req.userId),
+      ));
+    }
+
+    const delightReward = (mode ?? "focus") === "focus" && verifiedDurationSec > 0 ? runDelightCheck() : null;
 
     res.json({ session, streakUpdated, earnedXp, earnedCoins, lootBoxDropped, delightReward });
   } catch (err) {

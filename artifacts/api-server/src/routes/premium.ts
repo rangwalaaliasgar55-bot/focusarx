@@ -13,6 +13,7 @@ import {
 import { eq } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
+import { invalidatePremiumCache } from "../lib/premiumCheck";
 
 const router = Router();
 
@@ -145,6 +146,7 @@ router.post("/premium/activate", authMiddleware, async (req: AuthRequest, res: R
       logger.warn({ err }, "battle pass premium unlock failed (non-critical)");
     }
 
+    await invalidatePremiumCache(req.userId);
     res.json({ ok: true, newBalance, expiresAt, benefits: PREMIUM_BENEFITS });
   } catch (err) {
     logger.error({ err }, "premium activate error");

@@ -52,6 +52,7 @@ import { ghostsRouter } from "./ghosts";
 import { profilesRouter } from "./profiles";
 import { sessionReplayRouter } from "./sessionReplay";
 import { wrappedRouter } from "./wrapped";
+import { emotesRouter } from "./emotes";
 
 const router: IRouter = Router();
 
@@ -108,5 +109,6 @@ router.use(ghostsRouter);
 router.use(profilesRouter);
 router.use(sessionReplayRouter);
 router.use(wrappedRouter);
+router.use(emotesRouter);
 
 export default router;

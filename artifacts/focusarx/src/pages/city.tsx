@@ -94,8 +94,11 @@ function BuildingCard({ building, owned, onBuy, wallet }: {
   );
 }
 
+type CitySkin = { id: string; name: string; emoji: string; gradient: string; premiumOnly: boolean; locked: boolean };
+type CityView = City & { selectedSkin?: string; skins?: CitySkin[]; premium?: boolean };
+
 export default function CityPage() {
-  const [city, setCity] = useState<City | null>(null);
+  const [city, setCity] = useState<CityView | null>(null);
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [loading, setLoading] = useState(true);
@@ -142,7 +145,16 @@ export default function CityPage() {
     }
   };
 
+  const selectSkin = async (skin: CitySkin) => {
+    if (skin.locked) { setToast("Premium unlocks this city skin"); return; }
+    const response = await fetch("/api/city/skin", { method: "PATCH", headers: authHeaders(), body: JSON.stringify({ skinId: skin.id }) });
+    const data = await response.json();
+    if (!response.ok) { setToast(data.error ?? "Could not change city skin"); return; }
+    setCity((current) => current ? { ...current, ...data.city } : data.city);
+  };
+
   const tier = city ? TIER_CONFIG[city.tier] ?? TIER_CONFIG.hamlet : TIER_CONFIG.hamlet;
+  const selectedSkin = city?.skins?.find((skin) => skin.id === city.selectedSkin) ?? city?.skins?.[0];
   const categories = ["all", ...Array.from(new Set(buildings.map((b: any) => b.category)))];
   const displayed = filter === "all" ? buildings : buildings.filter((b: any) => b.category === filter);
   const owned = city?.buildings ?? {};
@@ -158,7 +170,7 @@ export default function CityPage() {
       <PageSEO {...PAGE_SEO.city} />
       <motion.div variants={PAGE} initial="initial" animate="animate" className="max-w-5xl mx-auto px-4 py-8 space-y-6">
         {/* Hero */}
-        <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_2)] bg-gradient-to-br from-[var(--rgba-124-58-237-0_08)] to-[var(--rgba-6-214-160-0_04)] p-6">
+        <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_2)] p-6" style={{ background: selectedSkin ? `linear-gradient(135deg, ${selectedSkin.gradient})` : undefined }}>
           <div className="flex items-center gap-4 flex-wrap">
             <div className="text-5xl">{tier.icon}</div>
             <div className="flex-1">
@@ -193,6 +205,18 @@ export default function CityPage() {
             )}
           </div>
         </div>
+
+        {city?.skins?.length ? (
+          <section aria-labelledby="city-skins-title" className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4">
+            <h2 id="city-skins-title" className="mb-3 text-sm font-semibold">City appearance</h2>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {city.skins.map((skin) => <button key={skin.id} type="button" onClick={() => void selectSkin(skin)} aria-pressed={city.selectedSkin === skin.id}
+                className={`min-h-20 rounded-xl border p-3 text-left ${city.selectedSkin === skin.id ? "border-[var(--brand-400)] bg-[var(--brand-soft)]" : "border-[var(--border)]"} ${skin.locked ? "opacity-55" : ""}`}>
+                <span className="text-2xl">{skin.emoji}</span><span className="mt-1 block text-xs font-semibold">{skin.name}</span>{skin.locked && <span className="text-[10px] text-[var(--color-warning)]">Premium</span>}
+              </button>)}
+            </div>
+          </section>
+        ) : null}
 
         {/* Category filter */}
         <div className="flex flex-wrap gap-2">
