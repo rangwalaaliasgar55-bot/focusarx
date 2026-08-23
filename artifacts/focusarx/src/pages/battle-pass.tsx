@@ -3,6 +3,7 @@ import { getToken } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
 import { Zap, Lock, Check, Gift, Crown, Trophy, ArrowRight } from "lucide-react";
 import { BattlePassTier, BattlePassData } from "@/types/gamification";
+import { ErrorState } from "@/components/ErrorState";
 
 async function apiFetch(path: string, opts?: RequestInit) {
   const token = getToken();
@@ -71,7 +72,7 @@ export default function BattlePassPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
 
-  const { data, isLoading } = useQuery<BattlePassData & { tier: number, seasonXp: number, nextTierXp: number, claimedTiers: number[], season: number }>({
+  const { data, isLoading, isError, refetch } = useQuery<BattlePassData & { tier: number, seasonXp: number, nextTierXp: number, claimedTiers: number[], season: number }>({
     queryKey: ["battle-pass"],
     queryFn: () => apiFetch("/api/retention/battle-pass"),
     staleTime: 30_000,
@@ -89,11 +90,12 @@ export default function BattlePassPage() {
   });
 
   if (isLoading) return <div className="flex justify-center items-center min-h-screen"><div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--rgba-255-255-255-0_06)] border-t-[var(--brand-600)]" /></div>;
+  if (isError) return <ErrorState title="Battle pass unavailable" onRetry={() => { void refetch(); }} />;
 
   const tiers = data?.tiers ?? [];
   const currentTier = data?.tier ?? 0;
   const seasonXp = data?.seasonXp ?? 0;
-  const nextTierXp = data?.nextTierXp ?? 200;
+  const nextTierXp = data?.nextTierXp ?? seasonXp;
   const claimedTiers = data?.claimedTiers ?? [];
   const premiumUnlocked = data?.premiumUnlocked ?? false;
   const xpProgress = currentTier > 0 ? tiers[currentTier - 1]?.xpRequired ?? 0 : 0;
@@ -116,7 +118,7 @@ export default function BattlePassPage() {
             <ProgressBar value={seasonXp - xpProgress} max={xpForNext - xpProgress} color="var(--color-warning)" />
           </div>
           <div className="mt-3 flex items-center gap-3">
-            <div className="flex items-center gap-1.5 rounded-full border border-[var(--palette-amber-500)]/30 bg-[var(--palette-amber-500)]/10 px-3 py-1"><Zap size={12} className="text-[var(--palette-amber-400)]" /><span className="text-xs font-bold text-[var(--palette-amber-400)]">Tier {currentTier} / 50</span></div>
+            <div className="flex items-center gap-1.5 rounded-full border border-[var(--palette-amber-500)]/30 bg-[var(--palette-amber-500)]/10 px-3 py-1"><Zap size={12} className="text-[var(--palette-amber-400)]" /><span className="text-xs font-bold text-[var(--palette-amber-400)]">Tier {currentTier} / {tiers.length}</span></div>
             {!premiumUnlocked && (
               <button className="flex items-center gap-1.5 rounded-full border border-[var(--palette-amber-500)]/50 bg-[var(--palette-amber-500)]/20 px-3 py-1 text-xs font-bold text-[var(--palette-amber-400)] hover:bg-[var(--palette-amber-500)]/30 transition-colors">
                 <Crown size={12} /> Upgrade Premium
@@ -143,7 +145,7 @@ export default function BattlePassPage() {
 
       {/* Tiers grid */}
       <div>
-        <p className="text-sm font-semibold text-[var(--foreground)] mb-3">All Tiers <span className="text-[var(--foreground-subtle)] font-normal">(50 total)</span></p>
+        <p className="text-sm font-semibold text-[var(--foreground)] mb-3">All Tiers <span className="text-[var(--foreground-subtle)] font-normal">({tiers.length} total)</span></p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {tiers.map((t) => (
             <TierCard

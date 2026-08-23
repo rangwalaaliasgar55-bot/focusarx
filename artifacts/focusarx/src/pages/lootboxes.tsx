@@ -4,6 +4,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
 import { Gift, Package, Sparkles, Star, Lock, ChevronRight } from "lucide-react";
 import { PAGE, CARD, STAGGER, POP } from "@/lib/animations";
+import { ErrorState } from "@/components/ErrorState";
 
 function authHeaders() {
   const t = getToken();
@@ -125,21 +126,26 @@ export default function LootBoxesPage() {
   const [myBoxes, setMyBoxes] = useState<any[]>([]);
   const [wallet, setWallet] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [openedReward, setOpenedReward] = useState<any | null>(null);
   const [processing, setProcessing] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const [tr, mr, wr] = await Promise.all([
         fetch("/api/lootboxes/types", { headers: authHeaders() }),
         fetch("/api/lootboxes/mine", { headers: authHeaders() }),
         fetch("/api/gamification/wallet", { headers: authHeaders() }),
       ]);
-      if (tr.ok) setBoxTypes(await tr.json());
-      if (mr.ok) setMyBoxes(await mr.json());
-      if (wr.ok) setWallet(await wr.json());
+      if (!tr.ok || !mr.ok || !wr.ok) throw new Error("Unable to load loot boxes");
+      setBoxTypes(await tr.json());
+      setMyBoxes(await mr.json());
+      setWallet(await wr.json());
+    } catch {
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -192,6 +198,7 @@ export default function LootBoxesPage() {
       <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--palette-zinc-700)] border-t-[var(--brand-600)]" />
     </div>
   );
+  if (loadError) return <ErrorState title="Loot boxes unavailable" onRetry={() => { void load(); }} />;
 
   return (
     <PageTransition>
@@ -227,7 +234,7 @@ export default function LootBoxesPage() {
         {boxTypes.length === 0 && (
           <div className="py-16 text-center">
             <Gift size={40} className="mx-auto mb-3 text-[var(--foreground-subtle)]" />
-            <p className="text-sm text-[var(--foreground-subtle)]">Loot boxes coming soon!</p>
+            <p className="text-sm text-[var(--foreground-subtle)]">No loot box types are configured.</p>
           </div>
         )}
 

@@ -4,6 +4,7 @@ import { Trophy, Flame, Crown, Medal, RefreshCw } from "lucide-react";
 import { getToken } from "@/lib/auth";
 import { PageTransition } from "@/components/PageTransition";
 import { TiltCard } from "@/components/TiltCard";
+import { ErrorState } from "@/components/ErrorState";
 
 interface LeaderboardEntry {
   rank: number;
@@ -157,20 +158,9 @@ export default function LeaderboardPage() {
 
   useEffect(() => { loadLeaderboard(); }, [loadLeaderboard]);
 
-  const DEMO_ENTRIES: LeaderboardEntry[] = [
-    { rank: 1, userId: "d1", name: "Alex R.",   weeklyXp: 840, totalXp: 6400, coins: 160, streak: 24, isCurrentUser: false },
-    { rank: 2, userId: "d2", name: "Priya S.",  weeklyXp: 760, totalXp: 5800, coins: 140, streak: 18, isCurrentUser: false },
-    { rank: 3, userId: "d3", name: "Kai M.",    weeklyXp: 620, totalXp: 4200, coins: 110, streak: 14, isCurrentUser: false },
-    { rank: 4, userId: "d4", name: "Jordan T.", weeklyXp: 540, totalXp: 3600, coins: 80,  streak: 10, isCurrentUser: false },
-    { rank: 5, userId: "d5", name: "Sam W.",    weeklyXp: 380, totalXp: 2400, coins: 60,  streak: 6,  isCurrentUser: false },
-    { rank: 6, userId: "d6", name: "River B.",  weeklyXp: 260, totalXp: 1700, coins: 40,  streak: 4,  isCurrentUser: false },
-    { rank: 7, userId: "me", name: "You",       weeklyXp: 0,   totalXp: 0,    coins: 0,   streak: 0,  isCurrentUser: true  },
-  ];
-
-  const isDemo = entries.length < 3;
-  const sorted = [...(isDemo ? DEMO_ENTRIES : entries)]
+  const sorted = [...entries]
     .sort((a, b) => filter === "weekly" ? b.weeklyXp - a.weeklyXp : b.totalXp - a.totalXp)
-    .map((e, i) => ({ ...e, rank: i + 1 }));
+    .map((entry, index) => ({ ...entry, rank: index + 1 }));
 
   // Podium order: 2nd, 1st, 3rd for visual balance
   const top3 = sorted.slice(0, 3);
@@ -221,15 +211,10 @@ export default function LeaderboardPage() {
             {fetchError && (
               <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--rgba-239-68-68-0_25)] bg-[var(--rgba-239-68-68-0_06)] px-3 py-1">
                 <Medal size={10} className="text-[var(--color-error)]" />
-                <p className="text-[10px] text-[var(--color-error)]">Could not load rankings — showing sample</p>
+                <p className="text-[10px] text-[var(--color-error)]">Could not load rankings</p>
               </div>
             )}
-            {!fetchError && isDemo && (
-              <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-124-58-237-0_06)] px-3 py-1">
-                <Medal size={10} className="text-[var(--brand-400)]" />
-                <p className="text-[10px] text-[var(--brand-400)]">Demo data — complete a session to appear</p>
-              </div>
-            )}
+
           </div>
 
           {/* Filter tabs */}
@@ -250,7 +235,9 @@ export default function LeaderboardPage() {
             ))}
           </div>
 
-          {loading ? (
+          {fetchError ? (
+            <ErrorState title="Rankings unavailable" onRetry={loadLeaderboard} />
+          ) : loading ? (
             <div className="flex h-52 items-center justify-center" role="status" aria-label="Loading leaderboard">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--rgba-124-58-237-0_3)] border-t-[var(--brand-600)]" />
             </div>

@@ -8,6 +8,7 @@ import { getServerConfig } from "../lib/config";
 import { extractUserId } from "./auth";
 import { adminLimiter } from "../lib/rateLimiter";
 import { ALL_MISSIONS } from "./missions";
+import { checkAdminAuth } from "../lib/adminAuth";
 
 const router = Router();
 const ADMIN_COOKIE = "focusarx_admin";
@@ -22,31 +23,7 @@ function getJwtSecret(): string {
   return secret;
 }
 
-function isAdminAuthed(req: { headers: { cookie?: string } }): boolean {
-  const cookieHeader = req.headers.cookie ?? "";
-  const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${ADMIN_COOKIE}=([^;]+)`));
-  const token = match?.[1];
-  if (!token) return false;
-  try {
-    const payload = jwt.verify(token, getJwtSecret()) as { role?: string };
-    return payload?.role === "admin_session";
-  } catch {
-    return false;
-  }
-}
-
-async function checkAuth(req: { headers: { cookie?: string; authorization?: string } }): Promise<boolean> {
-  if (isAdminAuthed(req)) return true;
-  const userId = extractUserId(req);
-  if (!userId) return false;
-
-  try {
-    const [user] = await db.select({ role: usersTable.role }).from(usersTable).where(eq(usersTable.id, userId));
-    return user?.role?.toLowerCase() === "admin";
-  } catch {
-    return false;
-  }
-}
+const checkAuth = checkAdminAuth;
 
 const SECURE_FLAG = IS_PROD ? "; Secure" : "";
 
@@ -67,7 +44,9 @@ router.post("/admin/auth", adminLimiter, async (req, res) => {
         res.status(403).json({ error: "Access denied" });
         return;
       }
-      const token = jwt.sign({ role: "admin_session" }, getJwtSecret(), { expiresIn: ADMIN_TOKEN_EXPIRY });
+      const token = jwt.sign({ role: "admin_session" }, getJwtSecret(), {
+        algorithm: "HS256", issuer: "focusarx-api", audience: "focusarx-admin", expiresIn: ADMIN_TOKEN_EXPIRY,
+      });
       res.setHeader("Set-Cookie", `${ADMIN_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${SECURE_FLAG}`);
       res.json({ ok: true });
     } catch (err) {
@@ -91,7 +70,9 @@ router.post("/admin/auth", adminLimiter, async (req, res) => {
     res.status(403).json({ error: "Access denied" });
     return;
   }
-  const token = jwt.sign({ role: "admin_session" }, getJwtSecret(), { expiresIn: ADMIN_TOKEN_EXPIRY });
+  const token = jwt.sign({ role: "admin_session" }, getJwtSecret(), {
+    algorithm: "HS256", issuer: "focusarx-api", audience: "focusarx-admin", expiresIn: ADMIN_TOKEN_EXPIRY,
+  });
   res.setHeader("Set-Cookie", `${ADMIN_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${SECURE_FLAG}`);
   res.json({ ok: true });
 });
@@ -383,23 +364,37 @@ router.get("/admin/retention", async (req, res) => {
 // ─── SQL EDITOR (admin only) ──────────────────────────────────────────────────
 
 router.post("/admin/sql", adminLimiter, async (req, res) => {
+  if (process.env.NODE_ENV === "production" || process.env.ENABLE_ADMIN_SQL !== "true") {
+    res.status(404).json({ error: "Not found" }); return;
+  }
   if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
   const { query } = req.body as { query?: string };
   if (!query || typeof query !== "string") { res.status(400).json({ error: "query required" }); return; }
   const trimmed = query.trim().toLowerCase();
   // Safety: only allow SELECT, SHOW, EXPLAIN, WITH (read-only)
   const safe = /^(select|show|explain|with\s)/i.test(trimmed);
-  if (!safe) { res.status(400).json({ error: "Only SELECT queries are permitted" }); return; }
+  if (!safe || trimmed.replace(/;\s*$/, "").includes(";")) {
+    res.status(400).json({ error: "Only one read-only query is permitted" }); return;
+  }
   if (trimmed.length > 4000) { res.status(400).json({ error: "Query too long" }); return; }
+
+  const client = await pool.connect();
   try {
-    const result = await pool.query(query);
+    await client.query("BEGIN READ ONLY");
+    await client.query("SET LOCAL statement_timeout = '2000ms'");
+    const result = await client.query(query);
+    await client.query("ROLLBACK");
     res.json({
-      rows: result.rows ?? [],
-      rowCount: result.rowCount ?? 0,
+      rows: (result.rows ?? []).slice(0, 500),
+      rowCount: Math.min(result.rowCount ?? 0, 500),
       fields: (result.fields ?? []).map((f: any) => ({ name: f.name, dataTypeID: f.dataTypeID })),
+      truncated: (result.rows?.length ?? 0) > 500,
     });
   } catch (err: any) {
+    await client.query("ROLLBACK").catch(() => undefined);
     res.status(400).json({ error: err?.message ?? "Query error" });
+  } finally {
+    client.release();
   }
 });
 

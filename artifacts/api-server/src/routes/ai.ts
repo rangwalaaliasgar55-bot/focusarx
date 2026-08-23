@@ -11,6 +11,9 @@ interface RoadmapDay {
   focusSessions: string[];
   tasks: string[];
   estimatedTime: number;
+  milestone?: string;
+  resources?: Array<{ title: string; url: string; type: string }>;
+  progressCheck?: string;
 }
 
 async function generateRoadmapWithGemini(
@@ -19,6 +22,7 @@ async function generateRoadmapWithGemini(
   level: string,
   numDays: number,
   currentProgress?: string,
+  premium = false,
 ): Promise<RoadmapDay[] | null> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
@@ -36,8 +40,11 @@ Return ONLY a JSON array with exactly ${numDays} objects. Each object must have:
 - "focusSessions": array of exactly ${pomodoros} short descriptive session titles (max 8 words each, specific to the goal)
 - "tasks": array of 3–4 concrete actionable tasks for that day (specific, measurable, tied to the goal)
 - "estimatedTime": number (total minutes = ${pomodoros * 25 + (pomodoros - 1) * 5})
+${premium ? `- "milestone": a measurable outcome for the day
+- "progressCheck": a concrete self-test
+- "resources": 1–3 reputable public learning links, each with title, full https URL, and type` : ""}
 
-Make each day progressively build on the previous. Be specific to the goal, not generic. No markdown, no explanation — pure JSON array only.`;
+Make each day progressively build on the previous. ${premium ? "This is a Premium roadmap: make it more detailed, measurable, resource-rich, and adaptive." : "Keep the free roadmap concise."} Be specific to the goal, not generic. No markdown, no explanation — pure JSON array only.`;
 
   try {
     const resp = await fetch(
@@ -78,6 +85,7 @@ function buildRoadmapFallback(
   level: string,
   numDays: number,
   currentProgress?: string,
+  premium = false,
 ): RoadmapDay[] {
   const hours = Math.min(12, Math.max(0.5, dailyHours));
   const pomodoros = Math.max(1, Math.round((hours * 60) / 25));
@@ -90,9 +98,14 @@ function buildRoadmapFallback(
   for (let d = 1; d <= numDays; d++) {
     roadmap.push({
       day: d,
-      focusSessions: [`${levelLabel} Session ${d}`],
-      tasks: [`Task 1 for ${topic}`, `Task 2 for ${topic}`],
-      estimatedTime: pomodoros * 25
+      focusSessions: Array.from({ length: pomodoros }, (_, index) => `${levelLabel}: ${topic} block ${index + 1}`),
+      tasks: Array.from({ length: tasksPerDay }, (_, index) => `${index + 1}. Complete a measurable ${topic} practice task`),
+      estimatedTime: pomodoros * 25,
+      ...(premium ? {
+        milestone: `Explain and apply day ${d}'s ${topic} concept without notes`,
+        progressCheck: `Score at least 80% on a short self-test for day ${d}`,
+        resources: [],
+      } : {}),
     });
   }
   return roadmap;
@@ -112,8 +125,9 @@ router.post("/ai/roadmap", authMiddleware, premiumStatusMiddleware, aiRoadmapLim
   let numDays = 7;
 
   try {
-    const roadmap = await generateRoadmapWithGemini(goal.trim(), hours, level ?? "intermediate", numDays, currentProgress);
-    res.json({ roadmap: roadmap ?? buildRoadmapFallback(goal.trim(), hours, level ?? "intermediate", numDays, currentProgress) });
+    const premium = Boolean((req as AuthRequest & { isPremium?: boolean }).isPremium);
+    const roadmap = await generateRoadmapWithGemini(goal.trim(), hours, level ?? "intermediate", numDays, currentProgress, premium);
+    res.json({ roadmap: roadmap ?? buildRoadmapFallback(goal.trim(), hours, level ?? "intermediate", numDays, currentProgress, premium), tier: premium ? "premium" : "free" });
   } catch (err) {
     logger.error({ err }, "ai/roadmap error");
     res.status(500).json({ error: "Failed to generate roadmap" });

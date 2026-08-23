@@ -31,6 +31,12 @@ const PREMIUM_EXTRAS = [
   "Exclusive themes, pets & profile badge",
   "Premium analytics & AI reports",
   "Premium Battle Pass access",
+  "Exclusive emotes in messages and study rooms",
+  "Cosmic, Neon, and Aurora Focus City skins",
+  "Premium seasonal challenges and rewards",
+  "AI-generated flashcards and unlimited decks",
+  "Detailed AI roadmaps with milestones and resources",
+  "180-day analytics and premium notification controls",
 ];
 
 export default function PricingPage() {

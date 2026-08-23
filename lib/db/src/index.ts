@@ -86,9 +86,9 @@ export const pool = new Pool({
   max: process.env.VERCEL ? 1 : 10,
   idleTimeoutMillis: 20_000,
   connectionTimeoutMillis: 15_000,
-  // rejectUnauthorized:false trusts Neon/Vercel/Supabase certs without needing
-  // a local CA bundle — safe because the connection is already TLS-encrypted.
-  ssl: useSsl ? { rejectUnauthorized: false } : undefined,
+  // Verify the server certificate; encryption without identity verification is
+  // vulnerable to an active network attacker.
+  ssl: useSsl ? { rejectUnauthorized: true } : undefined,
 });
 
 export const db = drizzle(pool, { schema });

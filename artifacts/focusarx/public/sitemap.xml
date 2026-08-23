@@ -216,4 +216,16 @@
     <changefreq>yearly</changefreq>
     <priority>0.50</priority>
   </url>
+  <url>
+    <loc>https://www.focusarx.site/comparison/focusarx-vs-forest</loc>
+    <lastmod>2026-08-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://www.focusarx.site/comparison/focusarx-vs-focus-todo</loc>
+    <lastmod>2026-08-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.80</priority>
+  </url>
 </urlset>

@@ -12,7 +12,7 @@ import { eq, and, desc, sql, or } from "drizzle-orm";
 export const groupsRouter = Router();
 
 function genInviteCode() {
-  return Math.random().toString(36).slice(2, 8).toUpperCase();
+  return crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase();
 }
 
 async function getGroupWithDetails(groupId: string) {
@@ -58,8 +58,17 @@ groupsRouter.get("/groups/mine", authMiddleware, async (req: AuthRequest, res: R
 });
 
 groupsRouter.get("/groups/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
-  const group = await getGroupWithDetails(req.params.id as string);
-  if (!group) return res.status(404).json({ error: "Group not found" });
+  const groupId = req.params.id as string;
+  const [groupRow] = await db.select({ isPublic: studyGroupsTable.isPublic })
+    .from(studyGroupsTable).where(eq(studyGroupsTable.id, groupId)).limit(1);
+  if (!groupRow) return res.status(404).json({ error: "Group not found" });
+  if (!groupRow.isPublic) {
+    const [membership] = await db.select({ id: groupMembersTable.id }).from(groupMembersTable)
+      .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, req.userId)))
+      .limit(1);
+    if (!membership) return res.status(404).json({ error: "Group not found" });
+  }
+  const group = await getGroupWithDetails(groupId);
   res.json(group);
 });
 
@@ -104,6 +113,7 @@ groupsRouter.post("/groups/:id/join", authMiddleware, async (req: AuthRequest, r
   const userId = req.userId!;
   const [group] = await db.select().from(studyGroupsTable).where(eq(studyGroupsTable.id, req.params.id as string)).limit(1);
   if (!group) return res.status(404).json({ error: "Group not found" });
+  if (!group.isPublic) return res.status(403).json({ error: "An invite code is required to join this group" });
 
   const [existing] = await db.select().from(groupMembersTable)
     .where(and(eq(groupMembersTable.groupId, req.params.id as string), eq(groupMembersTable.userId, userId))).limit(1);
@@ -158,7 +168,11 @@ groupsRouter.patch("/groups/:id/members/:memberId/role", authMiddleware, async (
 });
 
 groupsRouter.get("/groups/:id/leaderboard", authMiddleware, async (req: AuthRequest, res: Response) => {
-  const members = await db.select().from(groupMembersTable).where(eq(groupMembersTable.groupId, req.params.id as string));
+  const groupId = req.params.id as string;
+  const [membership] = await db.select({ id: groupMembersTable.id }).from(groupMembersTable)
+    .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, req.userId))).limit(1);
+  if (!membership) return res.status(404).json({ error: "Group not found" });
+  const members = await db.select().from(groupMembersTable).where(eq(groupMembersTable.groupId, groupId));
   const entries = await Promise.all(members.map(async m => {
     const [user] = await db.select({ name: usersTable.name, email: usersTable.email })
       .from(usersTable).where(eq(usersTable.id, m.userId)).limit(1);
@@ -175,18 +189,6 @@ groupsRouter.get("/groups/:id/leaderboard", authMiddleware, async (req: AuthRequ
   res.json(entries.sort((a, b) => b.xpContribution - a.xpContribution).map((e, i) => ({ ...e, rank: i + 1 })));
 });
 
-groupsRouter.post("/groups/:id/contribute-xp", authMiddleware, async (req: AuthRequest, res: Response) => {
-  const userId = req.userId!;
-  const { xp } = req.body as { xp: number };
-  if (!xp || xp <= 0) return res.status(400).json({ error: "xp must be positive" });
-  const memberships = await db.select().from(groupMembersTable)
-    .where(and(eq(groupMembersTable.groupId, req.params.id as string), eq(groupMembersTable.userId, userId)));
-  if (!memberships.length) return res.status(403).json({ error: "Not a member" });
-  await db.update(groupMembersTable)
-    .set({ xpContribution: sql`xp_contribution + ${xp}` })
-    .where(and(eq(groupMembersTable.groupId, req.params.id as string), eq(groupMembersTable.userId, userId)));
-  await db.update(studyGroupsTable)
-    .set({ groupXp: sql`group_xp + ${xp}`, updatedAt: new Date() })
-    .where(eq(studyGroupsTable.id, req.params.id as string));
-  res.json({ ok: true });
+groupsRouter.post("/groups/:id/contribute-xp", authMiddleware, (_req: AuthRequest, res: Response) => {
+  res.status(410).json({ error: "Direct group XP contributions are no longer supported" });
 });

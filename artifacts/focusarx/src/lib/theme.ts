@@ -123,7 +123,7 @@ export function useTheme(): [Theme, (t: Theme) => Promise<boolean>] {
     return () => window.removeEventListener("focusarx:theme", handler);
   }, []);
 
-  const update = async (t: Theme) => {
+  const update = async (t: Theme): Promise<boolean> => {
     const ok = await setTheme(t);
     if (ok) setThemeState(t);
     return ok;

@@ -10,6 +10,7 @@ import { extractUserId } from "./auth";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { emitToUser } from "../lib/socketManager";
 import { logger } from "../lib/logger";
+import { sendPush } from "../lib/pushSender";
 
 export const dmRouter = Router();
 
@@ -171,6 +172,15 @@ dmRouter.post("/dm/:convId/messages", authMiddleware, async (req: AuthRequest, r
       .where(and(eq(conversationParticipants.conversationId, req.params.convId as string), eq(conversationParticipants.userId, userId))).limit(1);
     if (!participant) return res.status(403).json({ error: "Not in this conversation" });
 
+    if (replyToId) {
+      const [replyTarget] = await db.select({ id: messages.id }).from(messages)
+        .where(and(
+          eq(messages.id, replyToId),
+          eq(messages.conversationId, req.params.convId as string),
+        )).limit(1);
+      if (!replyTarget) return res.status(400).json({ error: "Invalid reply target" });
+    }
+
     const [msg] = await db.insert(messages).values({
       id: crypto.randomUUID(),
       conversationId: req.params.convId as string,
@@ -192,12 +202,15 @@ dmRouter.post("/dm/:convId/messages", authMiddleware, async (req: AuthRequest, r
         .where(and(eq(conversationParticipants.conversationId, req.params.convId as string), sql`user_id != ${userId}`));
       for (const other of others) {
         emitToUser(other.userId, "dm:new_message", { conversationId: req.params.convId as string, message: fullMsg });
+        const pushTitle = `Message from ${senderUser?.name || "Someone"}`;
+        const pushBody = content.trim().slice(0, 100);
         await db.insert(notificationsTable).values({
           userId: other.userId, type: "dm",
-          title: `Message from ${senderUser?.name || "Someone"}`,
-          message: content.trim().slice(0, 100),
+          title: pushTitle,
+          message: pushBody,
           data: { conversationId: req.params.convId as string, messageId: msg.id },
         });
+        void sendPush(other.userId, { title: pushTitle, body: pushBody, url: "/messages" });
       }
     } catch (notifyErr) {
       logger.warn({ err: notifyErr, route: "POST /dm/:convId/messages" }, "Failed to send notifications (non-fatal)");
@@ -214,7 +227,17 @@ dmRouter.post("/dm/messages/:msgId/react", authMiddleware, async (req: AuthReque
   try {
     const userId = req.userId!;
     const { emoji } = req.body;
-    if (!emoji) return res.status(400).json({ error: "emoji required" });
+    if (typeof emoji !== "string" || !emoji.trim() || emoji.length > 16) return res.status(400).json({ error: "valid emoji required" });
+
+    const [message] = await db.select({ conversationId: messages.conversationId }).from(messages)
+      .where(eq(messages.id, req.params.msgId as string)).limit(1);
+    if (!message) return res.status(404).json({ error: "Message not found" });
+    const [participant] = await db.select({ id: conversationParticipants.id }).from(conversationParticipants)
+      .where(and(
+        eq(conversationParticipants.conversationId, message.conversationId),
+        eq(conversationParticipants.userId, userId),
+      )).limit(1);
+    if (!participant) return res.status(404).json({ error: "Message not found" });
 
     const [existing] = await db.select().from(messageReactions)
       .where(and(eq(messageReactions.messageId, req.params.msgId as string), eq(messageReactions.userId, userId))).limit(1);

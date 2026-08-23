@@ -44,6 +44,16 @@ export function useFocusTracking(
 
   const buildSnapshot = useCallback(
     (result: VisionFrameResult): FocusTrackingSnapshot => {
+      if (!result.available) {
+        return {
+          focusScore: 0,
+          isFocused: false,
+          warnings: ["Attention monitor unavailable"],
+          facePresent: false,
+          phoneDetected: false,
+        };
+      }
+
       smoothedScoreRef.current =
         smoothedScoreRef.current * 0.82 + result.attentionScore * 0.18;
       const focusScore = Math.round(smoothedScoreRef.current);

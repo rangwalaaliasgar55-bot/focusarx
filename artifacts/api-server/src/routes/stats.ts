@@ -75,7 +75,7 @@ router.get("/analytics", authMiddleware, async (req: AuthRequest, res: Response)
   try {
     const now = new Date();
     const premium = await isUserPremium(req.userId!);
-    const historyDays = premium ? 90 : 30;
+    const historyDays = premium ? 180 : 60;
     const dateLimit = new Date(now.getTime() - historyDays * 86400000);
     const fourteenDaysAgo = new Date(now.getTime() - 13 * 86400000);
 
@@ -114,6 +114,10 @@ router.get("/analytics", authMiddleware, async (req: AuthRequest, res: Response)
         .reduce((acc, s) => acc + s.durationSec / 60, 0);
       return { hour: h, minutes: Math.round(mins) };
     });
+    const timeDayHeatmap = Array.from({ length: 7 }, (_, day) => Array.from({ length: 24 }, (_, hour) => {
+      const matching = allSessions.filter((session) => session.completedAt?.getDay() === day && session.completedAt.getHours() === hour);
+      return { day, hour, minutes: Math.round(matching.reduce((sum, session) => sum + session.durationSec / 60, 0)), sessions: matching.length };
+    })).flat();
 
     const [streak] = await db.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, req.userId));
 
@@ -152,6 +156,7 @@ router.get("/analytics", authMiddleware, async (req: AuthRequest, res: Response)
       heatmap,
       chartData14,
       hourDist,
+      timeDayHeatmap,
       weekBarData,
       weekComparison: { thisWeekMinutes, lastWeekMinutes, changePercent: weekChangePercent },
       personalBests: {

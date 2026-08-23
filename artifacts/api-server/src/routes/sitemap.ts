@@ -26,7 +26,8 @@ const STATIC_PAGES = [
   { url: "/study-techniques",    changefreq: "monthly", priority: "0.8" },
   { url: "/virtual-study-room",  changefreq: "weekly",  priority: "0.8" },
   { url: "/study-rooms",         changefreq: "hourly",  priority: "0.7" },
-  { url: "/leaderboard",         changefreq: "hourly",  priority: "0.8" },
+  { url: "/comparison/focusarx-vs-forest", changefreq: "monthly", priority: "0.8" },
+  { url: "/comparison/focusarx-vs-focus-todo", changefreq: "monthly", priority: "0.8" },
 ];
 
 router.get("/sitemap.xml", (_req, res) => {

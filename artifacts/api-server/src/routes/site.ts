@@ -1,42 +1,14 @@
 import { Router } from "express";
-import jwt from "jsonwebtoken";
 import { z } from "zod";
-import { db, siteSettingsTable, usersTable } from "@workspace/db";
+import { db, siteSettingsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
-import { getServerConfig } from "../lib/config";
-import { extractUserId } from "./auth";
 import { adminLimiter } from "../lib/rateLimiter";
 import { getSiteSettings, invalidateSiteSettingsCache } from "../lib/siteSettings";
+import { checkAdminAuth } from "../lib/adminAuth";
 
 const router = Router();
-const ADMIN_COOKIE = "focusarx_admin";
-
-function isAdminAuthed(req: { headers: { cookie?: string } }): boolean {
-  const secret = getServerConfig().jwtSecret;
-  if (!secret) return false;
-  const match = (req.headers.cookie ?? "").match(new RegExp(`(?:^|;\\s*)${ADMIN_COOKIE}=([^;]+)`));
-  const token = match?.[1];
-  if (!token) return false;
-  try {
-    const payload = jwt.verify(token, secret) as { role?: string };
-    return payload?.role === "admin_session";
-  } catch {
-    return false;
-  }
-}
-
-async function checkAuth(req: { headers: { cookie?: string; authorization?: string } }): Promise<boolean> {
-  if (isAdminAuthed(req)) return true;
-  const userId = extractUserId(req);
-  if (!userId) return false;
-  try {
-    const [user] = await db.select({ role: usersTable.role }).from(usersTable).where(eq(usersTable.id, userId));
-    return user?.role?.toLowerCase() === "admin";
-  } catch {
-    return false;
-  }
-}
+const checkAuth = checkAdminAuth;
 
 /** Public — the frontend reads this to show maintenance mode + announcements. */
 router.get("/site/settings", async (_req, res) => {

@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
 import { Heart, Zap, Star, Edit2, ArrowRight, CheckCircle, ShoppingBag, CheckSquare, Square, Lock } from "lucide-react";
+import { ErrorState } from "@/components/ErrorState";
 
 const PET_TYPES = [
   { id: "owl",     name: "Sage Owl",       emoji: "🦉", color: "var(--color-warning)", desc: "Wise and calm. Perfect for deep study.",   evolutions: ["Owlet", "Wise Owl", "Elder Sage", "Celestial Owl"],     moods: { happy: "😌", excited: "🤩", sleepy: "😴", focused: "🤓" }, premiumOnly: false },
@@ -269,6 +270,7 @@ function AccessoryInventory({ inventory, onEquipToggle }: {
 export default function PetsPage() {
   const [pet, setPet] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [petName, setPetName] = useState("");
@@ -276,17 +278,27 @@ export default function PetsPage() {
   const [inventory, setInventory] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<"companion" | "accessories">("companion");
 
-  useEffect(() => {
-    const h = authHeaders();
-    Promise.all([
-      fetch("/api/pets", { headers: h }).then(r => r.json()),
-      fetch("/api/marketplace/inventory", { headers: h }).then(r => r.json()),
-    ]).then(([pd, id_]) => {
-      setPet(pd.pet);
-      if (id_.inventory) setInventory(id_.inventory);
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const h = authHeaders();
+      const [petResponse, inventoryResponse] = await Promise.all([
+        fetch("/api/pets", { headers: h }),
+        fetch("/api/marketplace/inventory", { headers: h }),
+      ]);
+      if (!petResponse.ok || !inventoryResponse.ok) throw new Error("Unable to load pet data");
+      const [petData, inventoryData] = await Promise.all([petResponse.json(), inventoryResponse.json()]);
+      setPet(petData.pet);
+      setInventory(inventoryData.inventory ?? []);
+    } catch {
+      setLoadError(true);
+    } finally {
       setLoading(false);
-    }).catch(() => setLoading(false));
+    }
   }, []);
+
+  useEffect(() => { void load(); }, [load]);
 
   async function savePet() {
     if (!selected) return;
@@ -324,6 +336,7 @@ export default function PetsPage() {
       <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--brand-600)] border-t-transparent" />
     </div>
   );
+  if (loadError) return <ErrorState title="Pet companion unavailable" onRetry={() => { void load(); }} />;
 
   const petType = pet ? PET_TYPES.find(p => p.id === pet.petType) : null;
 
