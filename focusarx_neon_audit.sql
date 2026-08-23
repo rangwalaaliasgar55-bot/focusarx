@@ -1,174 +1,145 @@
 -- ============================================================
--- FOCUSARX — NEON DB FULL HEALTH CHECK & RECOVERY SQL
--- Run this in your Neon SQL Editor to verify every table.
+-- FOCUSARX — PRODUCTION DB HEALTH CHECK (READ-ONLY)
+--
+-- Paste into your Supabase / Neon SQL Editor and run.
+-- Every block is a pure SELECT — it changes nothing.
+--
+-- If any check fails, apply the canonical repair script:
+--   focusarx_prod_migration.sql  (repo root, fully idempotent)
 -- ============================================================
 
--- 1. LIST ALL TABLES (should show 78 tables)
-SELECT table_name
+-- ────────────────────────────────────────────────────────────
+-- 1. TABLE COUNT — expect exactly 82 tables in public
+-- ────────────────────────────────────────────────────────────
+SELECT count(*) AS table_count, 82 AS expected
 FROM information_schema.tables
+WHERE table_schema = 'public';
+
+-- ────────────────────────────────────────────────────────────
+-- 2. MISSING TABLE CHECK — expect 0 rows returned
+-- ────────────────────────────────────────────────────────────
+WITH expected(t) AS (VALUES
+  ('active_sessions'), ('analytics_events'), ('analytics_sessions'),
+  ('app_feedback'), ('audit_logs'), ('battle_passes'),
+  ('battle_pass_progress'), ('battle_pass_rewards'), ('break_free_moods'),
+  ('break_free_pledges'), ('break_free_streaks'), ('buddy_requests'),
+  ('city_building_definitions'), ('coin_transactions'),
+  ('consequence_contracts'), ('conversation_participants'),
+  ('conversations'), ('distraction_logs'), ('email_logs'),
+  ('flashcard_decks'), ('flashcards'), ('focus_cities'), ('focus_dna'),
+  ('focus_profiles'), ('focus_sessions'), ('follows'), ('freeze_tokens'),
+  ('friendships'), ('goals'), ('group_audit_logs'),
+  ('group_challenge_progress'), ('group_challenges'), ('group_invitations'),
+  ('group_members'), ('habit_completions'), ('habits'),
+  ('leaderboard_snapshots'), ('login_rewards'), ('loot_box_types'),
+  ('marketplace_items'), ('message_reactions'), ('messages'), ('missions'),
+  ('notifications'), ('page_views'), ('password_reset_tokens'),
+  ('post_comments'), ('post_likes'), ('post_reactions'), ('post_saves'),
+  ('posts'), ('premium_subscriptions'), ('productivity_logs'),
+  ('push_subscriptions'), ('quest_definitions'), ('readiness_logs'),
+  ('roadmaps'), ('seasonal_events'), ('session_ghosts'), ('shared_goals'),
+  ('site_settings'), ('social_posts'), ('study_buddies'), ('study_groups'),
+  ('study_room_members'), ('study_rooms'), ('study_streaks'),
+  ('tasks'), ('user_badges'), ('user_battle_pass_progress'),
+  ('user_dreams'), ('user_inventory'), ('user_loot_boxes'),
+  ('user_mission_progress'), ('user_pets'), ('user_profile_extras'),
+  ('user_quest_progress'), ('user_seasonal_progress'), ('user_wallets'),
+  ('users'), ('visitors'), ('wrapped_snapshots')
+)
+SELECT t AS missing_table
+FROM expected
+WHERE t NOT IN (
+  SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'
+);
+
+-- ────────────────────────────────────────────────────────────
+-- 3. PREVIOUS DRIFT POINTS — verify the columns/tables that were
+--    missing in production are present now (expect 1 row each = true)
+-- ────────────────────────────────────────────────────────────
+SELECT 'social_posts.moderation_status' AS check, EXISTS (
+  SELECT 1 FROM information_schema.columns
+  WHERE table_schema='public' AND table_name='social_posts' AND column_name='moderation_status'
+) AS ok
+UNION ALL
+SELECT 'social_posts.moderation_reason', EXISTS (
+  SELECT 1 FROM information_schema.columns
+  WHERE table_schema='public' AND table_name='social_posts' AND column_name='moderation_reason'
+)
+UNION ALL
+SELECT 'tasks.order', EXISTS (
+  SELECT 1 FROM information_schema.columns
+  WHERE table_schema='public' AND table_name='tasks' AND column_name='order'
+)
+UNION ALL
+SELECT 'site_settings table', EXISTS (
+  SELECT 1 FROM information_schema.tables
+  WHERE table_schema='public' AND table_name='site_settings'
+)
+UNION ALL
+SELECT 'flashcard_decks table', EXISTS (
+  SELECT 1 FROM information_schema.tables
+  WHERE table_schema='public' AND table_name='flashcard_decks'
+)
+UNION ALL
+SELECT 'flashcards table', EXISTS (
+  SELECT 1 FROM information_schema.tables
+  WHERE table_schema='public' AND table_name='flashcards'
+);
+
+-- ────────────────────────────────────────────────────────────
+-- 4. PHANTOM COLUMN CHECK — these were invented by a stale copy of
+--    the schema and must NOT exist (expect 0 rows)
+-- ────────────────────────────────────────────────────────────
+SELECT table_name, column_name AS unexpected_column
+FROM information_schema.columns
 WHERE table_schema = 'public'
-ORDER BY table_name;
+  AND table_name = 'user_pets'
+  AND column_name IN ('last_fed_at', 'happiness');
 
--- ============================================================
--- 2. VERIFY THE 3 PREVIOUSLY-REPORTED MISSING OBJECTS
--- ============================================================
+-- ────────────────────────────────────────────────────────────
+-- 5. SEED DATA COUNTS — expect: missions 22, quests 7, buildings 12,
+--    loot_box_types 45, marketplace_items >= 19, site_settings row 'default'
+-- ────────────────────────────────────────────────────────────
+SELECT 'missions' AS table_name, count(*) FROM missions
+UNION ALL SELECT 'quest_definitions', count(*) FROM quest_definitions
+UNION ALL SELECT 'city_building_definitions', count(*) FROM city_building_definitions
+UNION ALL SELECT 'loot_box_types', count(*) FROM loot_box_types
+UNION ALL SELECT 'marketplace_items', count(*) FROM marketplace_items
+UNION ALL SELECT 'site_settings', count(*) FROM site_settings;
 
--- 2a. Check email_logs table exists and has correct columns
-SELECT column_name, data_type, is_nullable, column_default
-FROM information_schema.columns
-WHERE table_name = 'email_logs'
-ORDER BY ordinal_position;
+-- ────────────────────────────────────────────────────────────
+-- 6. FOREIGN KEY INTEGRITY — orphan sweep preview.
+--    Expect 0 rows; any row listed would violate its FK once added.
+--    (The API server sweeps these automatically at deploy via
+--    lib/db/scripts/cleanup-orphans.mjs)
+-- ────────────────────────────────────────────────────────────
+SELECT 'user_quest_progress orphans' AS issue, count(*)
+FROM user_quest_progress up
+WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = up.user_id)
+UNION ALL
+SELECT 'group_members orphans (user)', count(*)
+FROM group_members gm
+WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = gm.user_id);
 
--- 2b. Check premium_subscriptions table exists and has correct columns
-SELECT column_name, data_type, is_nullable, column_default
-FROM information_schema.columns
-WHERE table_name = 'premium_subscriptions'
-ORDER BY ordinal_position;
-
--- 2c. Check conversation_participants.is_admin column exists
-SELECT column_name, data_type, is_nullable, column_default
-FROM information_schema.columns
-WHERE table_name = 'conversation_participants'
-ORDER BY ordinal_position;
-
--- ============================================================
--- 3. FULL TABLE ROW COUNTS (all 78 tables)
--- ============================================================
+-- ────────────────────────────────────────────────────────────
+-- 7. USERS HEALTH SNAPSHOT
+-- ────────────────────────────────────────────────────────────
 SELECT
-  t.table_name,
-  (SELECT reltuples::bigint FROM pg_class WHERE relname = t.table_name) AS approx_row_count
-FROM information_schema.tables t
-WHERE t.table_schema = 'public'
-ORDER BY t.table_name;
-
--- ============================================================
--- 4. MISSING TABLE SAFETY NET — CREATE IF NOT EXISTS
--- Run these only if the SELECT above shows any missing tables.
--- ============================================================
-
-CREATE TABLE IF NOT EXISTS email_logs (
-  id TEXT PRIMARY KEY,
-  recipient_id TEXT REFERENCES users(id) ON DELETE SET NULL,
-  recipient_email TEXT NOT NULL,
-  template TEXT NOT NULL,
-  subject TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending',
-  provider_id TEXT,
-  sent_at TIMESTAMPTZ,
-  opened_at TIMESTAMPTZ,
-  clicked_at TIMESTAMPTZ,
-  bounced BOOLEAN DEFAULT false,
-  error TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-);
-CREATE INDEX IF NOT EXISTS email_logs_recipient_idx ON email_logs(recipient_id);
-CREATE INDEX IF NOT EXISTS email_logs_created_at_idx ON email_logs(created_at);
-
-CREATE TABLE IF NOT EXISTS premium_subscriptions (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-  activated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-  expires_at TIMESTAMPTZ,
-  coins_cost INTEGER DEFAULT 9000,
-  benefits JSONB DEFAULT '["exclusive_pets","premium_loot_boxes","premium_themes","xp_multiplier","coin_multiplier","premium_analytics","profile_badge","premium_battle_pass"]',
-  is_active BOOLEAN NOT NULL DEFAULT true,
-  granted_by_admin BOOLEAN NOT NULL DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-);
-CREATE INDEX IF NOT EXISTS premium_subscriptions_user_idx ON premium_subscriptions(user_id);
-
--- Add is_admin column to conversation_participants if missing
-ALTER TABLE conversation_participants
-  ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false;
-
-CREATE TABLE IF NOT EXISTS coin_transactions (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  type TEXT NOT NULL,
-  amount INTEGER NOT NULL,
-  reason TEXT NOT NULL,
-  description TEXT NOT NULL,
-  balance_after INTEGER NOT NULL DEFAULT 0,
-  metadata JSONB,
-  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-);
-CREATE INDEX IF NOT EXISTS coin_tx_user_idx ON coin_transactions(user_id);
-
--- ============================================================
--- 5. INDEX HEALTH CHECK — verify critical indexes exist
--- ============================================================
-SELECT
-  indexname,
-  tablename,
-  indexdef
-FROM pg_indexes
-WHERE schemaname = 'public'
-  AND tablename IN (
-    'email_logs', 'premium_subscriptions', 'coin_transactions',
-    'conversation_participants', 'focus_sessions', 'notifications',
-    'tasks', 'user_wallets', 'habits', 'habit_completions'
-  )
-ORDER BY tablename, indexname;
-
--- ============================================================
--- 6. FOREIGN KEY HEALTH CHECK
--- ============================================================
-SELECT
-  tc.table_name,
-  kcu.column_name,
-  ccu.table_name AS foreign_table_name,
-  ccu.column_name AS foreign_column_name,
-  rc.delete_rule
-FROM information_schema.table_constraints AS tc
-JOIN information_schema.key_column_usage AS kcu
-  ON tc.constraint_name = kcu.constraint_name
-JOIN information_schema.constraint_column_usage AS ccu
-  ON ccu.constraint_name = tc.constraint_name
-JOIN information_schema.referential_constraints AS rc
-  ON rc.constraint_name = tc.constraint_name
-WHERE tc.constraint_type = 'FOREIGN KEY'
-  AND tc.table_schema = 'public'
-ORDER BY tc.table_name;
-
--- ============================================================
--- 7. USERS TABLE HEALTH
--- ============================================================
-SELECT
-  COUNT(*) AS total_users,
-  COUNT(*) FILTER (WHERE is_guest = false) AS real_users,
-  COUNT(*) FILTER (WHERE is_guest = true) AS guest_users,
-  COUNT(*) FILTER (WHERE role = 'admin') AS admins,
-  COUNT(*) FILTER (WHERE onboarding_completed = true) AS onboarded
+  count(*)                                   AS total_users,
+  count(*) FILTER (WHERE is_guest = false)   AS real_users,
+  count(*) FILTER (WHERE is_guest = true)    AS guest_users,
+  count(*) FILTER (WHERE role = 'admin')     AS admins,
+  count(*) FILTER (WHERE onboarding_completed) AS onboarded
 FROM users;
 
--- ============================================================
--- 8. PREMIUM SUBSCRIPTIONS STATUS
--- ============================================================
+-- ────────────────────────────────────────────────────────────
+-- 8. PREMIUM / EMAIL OPERATIONS SNAPSHOT (safe if tables are empty)
+-- ────────────────────────────────────────────────────────────
 SELECT
-  COUNT(*) AS total,
-  COUNT(*) FILTER (WHERE is_active = true) AS active,
-  COUNT(*) FILTER (WHERE is_active = false) AS inactive,
-  COUNT(*) FILTER (WHERE expires_at < NOW()) AS expired,
-  COUNT(*) FILTER (WHERE granted_by_admin = true) AS admin_granted
+  count(*) FILTER (WHERE is_active)                          AS active_subs,
+  count(*) FILTER (WHERE NOT is_active)                      AS inactive_subs,
+  count(*) FILTER (WHERE expires_at < now())                 AS expired_subs,
+  count(*) FILTER (WHERE granted_by_admin)                   AS admin_granted
 FROM premium_subscriptions;
 
--- ============================================================
--- 9. EMAIL LOGS STATUS
--- ============================================================
-SELECT
-  status,
-  COUNT(*) AS count,
-  COUNT(*) FILTER (WHERE bounced = true) AS bounced
-FROM email_logs
-GROUP BY status;
-
--- ============================================================
--- 10. RECENT ERRORS — last 20 failed email sends
--- ============================================================
-SELECT
-  id, recipient_email, template, status, error, created_at
-FROM email_logs
-WHERE status = 'failed'
-ORDER BY created_at DESC
-LIMIT 20;
-
+SELECT status, count(*) FROM email_logs GROUP BY status;

@@ -10,6 +10,7 @@ A productivity-focused web app that combines Pomodoro-style focus tracking, gami
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
+- To repair/rebuild a database by hand: run `focusarx_prod_migration.sql` (repo root) in the SQL editor — canonical 82-table schema, fully idempotent. Verify afterwards with `focusarx_neon_audit.sql`.
 - Required env: `DATABASE_URL` — Postgres connection string (auto-set by Replit DB)
 
 ## Stack
