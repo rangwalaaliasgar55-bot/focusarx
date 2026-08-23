@@ -53,6 +53,10 @@ export function getTheme(): Theme {
   try {
     const stored = localStorage.getItem(LS_KEY) as Theme | null;
     if (stored && (THEME_META as any)[stored]) return stored;
+    // No explicit choice yet — follow the OS preference (audit L3).
+    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: light)").matches) {
+      return "light";
+    }
   } catch {}
   return "dark";
 }
@@ -122,6 +126,7 @@ export function useTheme(): [Theme, (t: Theme) => Promise<boolean>] {
   const update = async (t: Theme) => {
     const ok = await setTheme(t);
     if (ok) setThemeState(t);
+    return ok;
   };
 
   return [theme, update];

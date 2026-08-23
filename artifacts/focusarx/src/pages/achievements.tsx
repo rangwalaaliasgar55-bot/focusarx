@@ -18,6 +18,7 @@ interface Badge {
   unlockedAt: string | null;
   progress: number;
   newlyUnlocked: boolean;
+  unlockRate?: number;
 }
 
 interface Stats {
@@ -132,6 +133,18 @@ function BadgeCard({ badge, isCelebrating }: { badge: Badge; isCelebrating: bool
       >
         {badge.description}
       </p>
+
+      {typeof badge.unlockRate === "number" && (
+        <p
+          className="mt-1 flex items-center gap-1 text-[9px] font-medium"
+          style={{ color: badge.unlocked ? "var(--foreground-subtle)" : "var(--palette-1f2937)" }}
+        >
+          <Users size={8} />
+          {badge.unlocked
+            ? `${badge.unlockRate}% of learners have this`
+            : `Only ${badge.unlockRate}% of learners have this`}
+        </p>
+      )}
 
       {!badge.unlocked && (
         <div className="mt-2.5 w-full">

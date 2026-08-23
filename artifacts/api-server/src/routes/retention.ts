@@ -8,7 +8,9 @@ import {
   usersTable,
 } from "@workspace/db";
 import { extractUserId } from "./auth";
-import { eq, sql } from "drizzle-orm";
+import { sendPush } from "../lib/pushSender";
+import { logger } from "../lib/logger";
+import { eq, and, sql, lt, gt, gte } from "drizzle-orm";
 
 export const retentionRouter = Router();
 
@@ -88,6 +90,93 @@ retentionRouter.post("/retention/freeze-tokens/use", authMiddleware, async (req:
   if (!record || (record.tokensAvailable ?? 0) <= 0) return res.status(400).json({ error: "No freeze tokens" });
   await db.update(freezeTokensTable).set({ tokensAvailable: sql`tokens_available - 1`, tokensUsed: sql`tokens_used + 1`, updatedAt: new Date() }).where(eq(freezeTokensTable.userId, userId));
   res.json({ ok: true });
+});
+
+// ─── RE-ENGAGEMENT CRON (audit Gap 1) ──────────────────────────────────
+// Win-back pushes for users whose streak went cold. Designed to be hit once
+// a day by Vercel Cron (see vercel.json): Vercel automatically attaches
+// `Authorization: Bearer $CRON_SECRET` when that env var is set on the
+// project. Safe no-op when the secret is not configured.
+retentionRouter.get("/retention/reengage/run", async (req: Request, res: Response) => {
+  const secret = process.env["CRON_SECRET"];
+  if (!secret) return res.status(503).json({ error: "CRON_SECRET not configured" });
+  if (req.headers["authorization"] !== `Bearer ${secret}`) return res.status(401).json({ error: "Unauthorized" });
+
+  try {
+    const daysAgo = (n: number) => {
+      const d = new Date();
+      d.setDate(d.getDate() - n);
+      return d.toISOString().slice(0, 10);
+    };
+    const cutoff3 = daysAgo(3);
+    const cutoff7 = daysAgo(7);
+    const dedupeWindowStart = new Date(Date.now() - 2 * 86_400_000);
+
+    // At-risk users: have a real streak but nothing logged in 3+ days.
+    const candidates = await db
+      .select({
+        userId: studyStreaksTable.userId,
+        streak: studyStreaksTable.currentStreak,
+        lastStudyDate: studyStreaksTable.lastStudyDate,
+      })
+      .from(studyStreaksTable)
+      .where(and(gt(studyStreaksTable.currentStreak, 0), lt(studyStreaksTable.lastStudyDate, cutoff3)))
+      .orderBy(studyStreaksTable.lastStudyDate)
+      .limit(300);
+
+    let sentAtRisk = 0;
+    let sentWinBack = 0;
+
+    for (const candidate of candidates) {
+      // Never nag the same user more than once every 48 hours.
+      const [recent] = await db
+        .select({ id: notificationsTable.id })
+        .from(notificationsTable)
+        .where(
+          and(
+            eq(notificationsTable.userId, candidate.userId),
+            eq(notificationsTable.type, "reengage"),
+            gte(notificationsTable.createdAt, dedupeWindowStart),
+          ),
+        )
+        .limit(1);
+      if (recent) continue;
+
+      const longGone = !candidate.lastStudyDate || candidate.lastStudyDate <= cutoff7;
+      if (longGone) {
+        await sendPush(candidate.userId, {
+          title: "We saved your progress \u{1F4BE}",
+          body: `Your ${candidate.streak}-day streak is waiting — one 5-minute session restarts it today.`,
+          url: "/",
+        });
+      } else {
+        await sendPush(candidate.userId, {
+          title: `Your ${candidate.streak}-day streak is at risk \u{1F525}`,
+          body: "A short session today keeps it alive. You've got this.",
+          url: "/",
+        });
+      }
+
+      await db.insert(notificationsTable).values({
+        userId: candidate.userId,
+        type: "reengage",
+        title: longGone ? "We saved your progress" : "Streak at risk",
+        message: longGone
+          ? `One 5-minute session restarts your ${candidate.streak}-day streak.`
+          : `Complete a session today to protect your ${candidate.streak}-day streak.`,
+        data: { bucket: longGone ? "winback_7plus" : "at_risk_3days", streak: candidate.streak },
+      });
+
+      if (longGone) sentWinBack += 1;
+      else sentAtRisk += 1;
+    }
+
+    logger.info({ candidates: candidates.length, sentAtRisk, sentWinBack }, "reengage run complete");
+    res.json({ ok: true, candidates: candidates.length, sentAtRisk, sentWinBack });
+  } catch (err) {
+    logger.error({ err }, "reengage run error");
+    res.status(500).json({ error: "Internal error" });
+  }
 });
 
 const BATTLE_PASS_CURRENT_SEASON = 1;

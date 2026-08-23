@@ -14,6 +14,8 @@ import DailyGoal from "@/components/DailyGoal";
 import MissedTaskReview, { useMissedTaskReview } from "@/components/MissedTaskReview";
 import FeedbackModal, { useFeedbackTrigger } from "@/components/FeedbackModal";
 import { FocusMoodWidget } from "@/components/FocusMoodWidget";
+import StreakNudge from "@/components/StreakNudge";
+import SmartSuggestion from "@/components/SmartSuggestion";
 
 function SidePanel() {
   const { focusSessionsToday } = useSessionHistory();
@@ -323,6 +325,8 @@ export default function FocusHomePage() {
     <SessionRecoveryProvider>
       <div className="flex flex-col min-h-[100dvh] focus-chamber">
         <FocusChamberHeader />
+        <StreakNudge />
+        <SmartSuggestion />
         <div className="flex-1 flex flex-col lg:flex-row gap-0 overflow-auto">
           {/* Timer area */}
           <div className="flex-1 flex flex-col items-center justify-start gap-3 px-4 sm:px-6 py-6 lg:py-8">
