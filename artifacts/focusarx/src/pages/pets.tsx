@@ -2,15 +2,15 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
-import { Heart, Zap, Star, Edit2, ArrowRight, CheckCircle, ShoppingBag, CheckSquare, Square } from "lucide-react";
+import { Heart, Zap, Star, Edit2, ArrowRight, CheckCircle, ShoppingBag, CheckSquare, Square, Lock } from "lucide-react";
 
 const PET_TYPES = [
-  { id: "owl",     name: "Sage Owl",       emoji: "🦉", color: "var(--color-warning)", desc: "Wise and calm. Perfect for deep study.",   evolutions: ["Owlet", "Wise Owl", "Elder Sage", "Celestial Owl"],     moods: { happy: "😌", excited: "🤩", sleepy: "😴", focused: "🤓" } },
-  { id: "fox",     name: "Focus Fox",      emoji: "🦊", color: "var(--color-error)", desc: "Sharp and cunning. Thrives on consistency.", evolutions: ["Fox Kit", "Quick Fox", "Silver Fox", "Phantom Fox"],   moods: { happy: "😊", excited: "🥳", sleepy: "😪", focused: "😤" } },
-  { id: "dragon",  name: "Study Dragon",   emoji: "🐲", color: "var(--brand-500)", desc: "Fierce and powerful. Grows with ambition.", evolutions: ["Hatchling", "Drake", "Fire Drake", "Legend Dragon"],  moods: { happy: "😄", excited: "🔥", sleepy: "😴", focused: "💪" } },
-  { id: "robot",   name: "Study Bot",      emoji: "🤖", color: "var(--palette-06b6d4)", desc: "Logical and precise. Optimizes sessions.", evolutions: ["Prototype", "StudyBot v2", "Neural Bot", "Quantum AI"], moods: { happy: "🙂", excited: "⚡", sleepy: "💤", focused: "🎯" } },
-  { id: "cat",     name: "Neko Scholar",   emoji: "🐱", color: "var(--palette-ec4899)", desc: "Curious and playful. Keeps you motivated.", evolutions: ["Kitten", "Scholar Cat", "Mystic Cat", "Cosmic Neko"], moods: { happy: "😸", excited: "🙀", sleepy: "😿", focused: "😼" } },
-  { id: "phoenix", name: "Rising Phoenix", emoji: "🦅", color: "var(--palette-f97316)", desc: "Reborn every session. Symbolizes growth.", evolutions: ["Fledgling", "Ember Bird", "Phoenix", "Eternal Flame"],  moods: { happy: "😎", excited: "🌟", sleepy: "😮‍💨", focused: "🦾" } },
+  { id: "owl",     name: "Sage Owl",       emoji: "🦉", color: "var(--color-warning)", desc: "Wise and calm. Perfect for deep study.",   evolutions: ["Owlet", "Wise Owl", "Elder Sage", "Celestial Owl"],     moods: { happy: "😌", excited: "🤩", sleepy: "😴", focused: "🤓" }, premiumOnly: false },
+  { id: "fox",     name: "Focus Fox",      emoji: "🦊", color: "var(--color-error)", desc: "Sharp and cunning. Thrives on consistency.", evolutions: ["Fox Kit", "Quick Fox", "Silver Fox", "Phantom Fox"],   moods: { happy: "😊", excited: "🥳", sleepy: "😪", focused: "😤" }, premiumOnly: false },
+  { id: "dragon",  name: "Study Dragon",   emoji: "🐲", color: "var(--brand-500)", desc: "Fierce and powerful. Grows with ambition.", evolutions: ["Hatchling", "Drake", "Fire Drake", "Legend Dragon"],  moods: { happy: "😄", excited: "🔥", sleepy: "😴", focused: "💪" }, premiumOnly: true },
+  { id: "robot",   name: "Study Bot",      emoji: "🤖", color: "var(--palette-06b6d4)", desc: "Logical and precise. Optimizes sessions.", evolutions: ["Prototype", "StudyBot v2", "Neural Bot", "Quantum AI"], moods: { happy: "🙂", excited: "⚡", sleepy: "💤", focused: "🎯" }, premiumOnly: false },
+  { id: "cat",     name: "Neko Scholar",   emoji: "🐱", color: "var(--palette-ec4899)", desc: "Curious and playful. Keeps you motivated.", evolutions: ["Kitten", "Scholar Cat", "Mystic Cat", "Cosmic Neko"], moods: { happy: "😸", excited: "🙀", sleepy: "😿", focused: "😼" }, premiumOnly: false },
+  { id: "phoenix", name: "Rising Phoenix", emoji: "🦅", color: "var(--palette-f97316)", desc: "Reborn every session. Symbolizes growth.", evolutions: ["Fledgling", "Ember Bird", "Phoenix", "Eternal Flame"],  moods: { happy: "😎", excited: "🌟", sleepy: "😮‍💨", focused: "🦾" }, premiumOnly: true },
 ];
 
 const XP_PER_LEVEL = 500;
@@ -344,13 +344,17 @@ export default function PetsPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
             {PET_TYPES.map((pt, i) => (
               <motion.button key={pt.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
-                onClick={() => setSelected(pt.id)}
+                onClick={() => { if (!pt.premiumOnly) setSelected(pt.id); }}
                 className={`relative rounded-2xl border p-5 text-left transition-all duration-[var(--duration-fast)] ${
+                  pt.premiumOnly ? "opacity-70" : ""
+                } ${
                   selected === pt.id
                     ? "border-[var(--rgba-124-58-237-0_6)] bg-[var(--rgba-124-58-237-0_12)] shadow-[0_0_24px_var(--rgba-124-58-237-0_2)]"
                     : "border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] hover:border-[var(--rgba-124-58-237-0_3)]"
                 }`}>
-                {selected === pt.id && (
+                {pt.premiumOnly && (
+                  <span className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-[var(--brand-gold)]/15 border border-[var(--brand-gold)]/30 px-2 py-0.5 text-[9px] font-bold text-[var(--brand-gold)]"><Lock size={8} /> Premium</span>
+                ) || selected === pt.id && (
                   <span className="absolute top-2 right-2"><CheckCircle size={16} style={{ color: pt.color }} /></span>
                 )}
                 <motion.div animate={selected === pt.id ? { y: [0, -4, 0] } : {}} transition={{ repeat: Infinity, duration: 2 }}

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useTasks } from "@/hooks/useTasks";
 import { useToast } from "@/components/Toast";
+import { usePremium } from "@/hooks/usePremium";
 import {
   Command,
   CommandEmpty,
@@ -31,14 +32,22 @@ import {
 } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
-const DESTINATIONS = [
+interface Destination {
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string; size?: number }>;
+  keywords: string;
+  premium?: boolean;
+}
+
+const DESTINATIONS: Destination[] = [
   { label: "Focus timer", href: "/", icon: Timer, keywords: "start session pomodoro" },
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, keywords: "home overview" },
   { label: "Tasks", href: "/tasks", icon: CheckSquare2, keywords: "todo work" },
   { label: "Goals", href: "/goals", icon: Goal, keywords: "targets planning" },
   { label: "Flashcards", href: "/flashcards", icon: Library, keywords: "decks study leitner" },
-  { label: "AI coach", href: "/ai-insights", icon: Brain, keywords: "insights advice" },
-  { label: "Analytics", href: "/analytics", icon: BarChart3, keywords: "reports stats" },
+  { label: "AI coach", href: "/ai-insights", icon: Brain, keywords: "insights advice", premium: true },
+  { label: "Analytics", href: "/analytics", icon: BarChart3, keywords: "reports stats", premium: true },
   { label: "Achievements", href: "/achievements", icon: Trophy, keywords: "badges rewards" },
   { label: "Missions", href: "/missions", icon: Sparkles, keywords: "quests challenges" },
   { label: "Community", href: "/social", icon: Users, keywords: "friends groups" },
@@ -58,6 +67,7 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const [creating, setCreating] = useState(false);
   const { addTask } = useTasks();
   const { toast } = useToast();
+  const { isPremium } = usePremium();
 
   const close = () => {
     setQuery("");
@@ -105,15 +115,20 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
               </CommandItem>
               {query.trim() && (
                 <CommandItem value={`create task ${query}`} onSelect={() => void createTask()} disabled={creating} className="min-h-11 rounded-[var(--radius-md)]">
-                  <Plus /> <span className="truncate">Create task “{query.trim()}”</span><CommandShortcut>↵</CommandShortcut>
+                  <Plus /> <span className="truncate">Create task "{query.trim()}"</span><CommandShortcut>↵</CommandShortcut>
                 </CommandItem>
               )}
             </CommandGroup>
             <CommandSeparator className="my-2" />
             <CommandGroup heading="Go to">
-              {DESTINATIONS.map(({ label, href, icon: Icon, keywords }) => (
+              {DESTINATIONS.map(({ label, href, icon: Icon, keywords, premium }) => (
                 <CommandItem key={`${label}-${href}`} value={`${label} ${keywords}`} onSelect={() => go(href)} className="min-h-11 rounded-[var(--radius-md)]">
                   <Icon /> <span>{label}</span>
+                  {premium && !isPremium && (
+                    <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-[var(--palette-amber-500)]/10 px-2 py-0.5 text-[0.625rem] font-bold text-[var(--palette-amber-400)] border border-[var(--palette-amber-500)]/20">
+                      PRO
+                    </span>
+                  )}
                 </CommandItem>
               ))}
             </CommandGroup>

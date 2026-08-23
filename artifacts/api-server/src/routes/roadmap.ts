@@ -5,6 +5,8 @@ import { logger } from "../lib/logger";
 import jwt from "jsonwebtoken";
 import { getServerConfig } from "../lib/config";
 import { aiRoadmapLimiter } from "../lib/rateLimiter";
+import { authMiddleware, AuthRequest } from "../middlewares/auth";
+import { premiumStatusMiddleware } from "../lib/premiumCheck";
 
 const router = Router();
 
@@ -20,8 +22,9 @@ function extractUserId(req: any): string | null {
   } catch { return null; }
 }
 
-router.post("/roadmap/save", aiRoadmapLimiter, async (req, res) => {
-  const userId = extractUserId(req);
+// premiumStatusMiddleware runs before aiRoadmapLimiter — premium users bypass rate limit
+router.post("/roadmap/save", authMiddleware, premiumStatusMiddleware, aiRoadmapLimiter, async (req: AuthRequest, res) => {
+  const userId = req.userId;
   if (!userId) { res.status(401).json({ error: "Not authenticated" }); return; }
   const { subject, data } = req.body as { subject?: string; data?: unknown };
   if (!subject || !data) { res.status(400).json({ error: "subject and data are required" }); return; }

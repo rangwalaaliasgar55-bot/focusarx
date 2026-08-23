@@ -14,7 +14,7 @@ interface PageSEOProps {
 // Single source of truth for the canonical origin. Defaults to the production
 // domain but can be overridden per deployment via VITE_APP_URL so canonical /
 // og:url / og:image URLs never drift out of sync with where the app is hosted.
-const BASE_URL = (import.meta.env.VITE_APP_URL || "https://focusarx.site").replace(/\/+$/, "");
+const BASE_URL = (import.meta.env.VITE_APP_URL || "https://www.focusarx.site").replace(/\/+$/, "");
 const DEFAULT_OG_IMAGE = `${BASE_URL}/opengraph.jpg`;
 
 function setMeta(name: string, content: string, attr: "name" | "property" = "name") {
@@ -139,9 +139,9 @@ export function PageSEO({
 export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canonical: string }> = {
   home: {
     canonical: "/",
-    title: "FocusArx | AI Productivity Platform & Focus Timer",
-    description: "Master your focus with FocusArx. An AI-powered deep-work OS with adaptive Pomodoro sessions, real-time AI coaching, gamified progress, and on-device privacy.",
-    keywords: "FocusArx, AI productivity tool, best focus timer, Pomodoro timer, deep work app, study timer, habit tracker, AI study coach, productivity platform",
+    title: "FocusArx — AI Pomodoro Timer & Deep Work Tracker",
+    description: "The AI focus timer 50,000+ people use to build real deep work habits — free, gamified, and built to stick.",
+    keywords: "focus timer, AI focus timer, Pomodoro timer, deep work app, AI productivity coach, focus streak tracker, gamified productivity, free study timer",
   },
   profiles: {
     canonical: "/profiles",
@@ -247,7 +247,7 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   },
   scienceOfDeepWork: {
     canonical: "/science-of-deep-work",
-    title: "The Neuro-Science of Deep Work | How Focus Rewires Your Brain",
+    title: "The Neuroscience of Deep Work | How Focus Rewires Your Brain",
     description: "Explore the biological mechanisms behind deep work. Learn about myelin, neurotransmitters, and how FocusArx helps you enter the flow state faster.",
     keywords: "science of focus, deep work neuroscience, myelin study, flow state biology, FocusArx science",
   },
@@ -256,5 +256,66 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
     title: "The Feynman Technique | Master Any Subject Faster | FocusArx",
     description: "Learn the Feynman Technique — the ultimate method for rapid learning. 4 simple steps to understand complex topics by teaching them to others.",
     keywords: "feynman technique, rapid learning, study methods, richard feynman, how to learn anything",
+  },
+  deepStudyGuide: {
+    canonical: "/deep-study-guide",
+    title: "Deep Study Guide 2026 | Master Deep Learning Techniques | FocusArx",
+    description: "The complete deep study guide. Science-backed strategies for sustained concentration, memory retention, and peak academic performance.",
+    keywords: "deep study, study guide, how to study effectively, deep learning techniques, concentration tips",
+  },
+  twoHourStudyMethod: {
+    canonical: "/two-hour-study-method",
+    title: "The 2-Hour Study Method |高效学习 | FocusArx",
+    description: "Master the 2-hour focused study method. Structure your sessions for maximum retention with timed intervals, active recall, and strategic breaks.",
+    keywords: "2 hour study method, study session structure, timed studying, focus blocks",
+  },
+  studyMethodQuiz: {
+    canonical: "/study-method-quiz",
+    title: "Which Study Method Works Best for You? | Free Quiz | FocusArx",
+    description: "Take our free study method quiz. Discover whether active recall, spaced repetition, or the Pomodoro technique matches your learning style.",
+    keywords: "study method quiz, which study method, learning style quiz, best study technique quiz",
+  },
+  studyCalculator: {
+    canonical: "/study-calculator",
+    title: "Study Time Calculator | Plan Your Study Sessions | FocusArx",
+    description: "Free study time calculator. Input your exam date, topics, and hours available — get a personalized study schedule optimized for retention.",
+    keywords: "study time calculator, study schedule planner, exam study planner, how many hours to study",
+  },
+  dataDeletion: {
+    canonical: "/data-deletion",
+    title: "Data Deletion Request | FocusArx",
+    description: "Request deletion of your FocusArx account and all associated data. We process all deletion requests within 30 days.",
+    keywords: "FocusArx delete account, FocusArx data deletion, delete my data",
+    noindex: true,
+  },
+  cookiePolicy: {
+    canonical: "/cookie-policy",
+    title: "Cookie Policy | FocusArx",
+    description: "How FocusArx uses cookies. We use minimal cookies for authentication and analytics — no third-party tracking cookies.",
+    keywords: "FocusArx cookies, FocusArx cookie policy",
+  },
+  acceptableUse: {
+    canonical: "/acceptable-use",
+    title: "Acceptable Use Policy | FocusArx",
+    description: "FocusArx Acceptable Use Policy. Guidelines for responsible use of the platform and community standards.",
+    keywords: "FocusArx acceptable use, FocusArx community guidelines",
+  },
+  aiPolicy: {
+    canonical: "/ai-policy",
+    title: "AI Policy | How FocusArx Uses AI | FocusArx",
+    description: "How FocusArx uses artificial intelligence. Our AI features, data handling, and privacy-first approach to machine learning.",
+    keywords: "FocusArx AI, FocusArx artificial intelligence, AI privacy, how AI works FocusArx",
+  },
+  leaderboard: {
+    canonical: "/leaderboard",
+    title: "Leaderboard | Top Focus Champions | FocusArx",
+    description: "See who's leading the FocusArx leaderboard. Top focus champions ranked by XP, streaks, and total focus time.",
+    keywords: "FocusArx leaderboard, top students, focus champions, productivity ranking",
+  },
+  signup: {
+    canonical: "/signup",
+    title: "Sign Up Free | FocusArx",
+    description: "Create your free FocusArx account. No credit card required. Start tracking your focus sessions in 30 seconds.",
+    keywords: "sign up FocusArx, create account, free focus app registration",
   },
 };

@@ -44,6 +44,11 @@ function BoxTypeCard({ boxType, myBoxes, wallet, onBuy, onOpen }: {
         <span className="inline-block mt-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase" style={{ background: style.bg, color: style.color, border: `1px solid ${style.border}` }}>
           {style.label}
         </span>
+        {boxType.premiumOnly && (
+          <span className="inline-block mt-1 ml-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase bg-[var(--brand-gold)]/10 text-[var(--brand-gold)] border border-[var(--brand-gold)]/30">
+            <Lock size={8} className="inline -mt-px" /> Premium
+          </span>
+        )}
       </div>
 
       <p className="text-[10px] text-[var(--foreground-subtle)] text-center mb-4 leading-relaxed">{boxType.description}</p>

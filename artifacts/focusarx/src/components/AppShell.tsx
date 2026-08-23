@@ -19,6 +19,7 @@ import {
   Menu,
   MessageCircle,
   Moon,
+  Crown,
   Search,
   Settings,
   Shield,
@@ -56,6 +57,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import CoachPanel from "@/components/CoachPanel";
+import { usePremium } from "@/hooks/usePremium";
 
 interface NavEntry {
   href: string;
@@ -63,6 +65,7 @@ interface NavEntry {
   icon: React.ComponentType<{ className?: string; size?: number }>;
   badge?: "missions" | "notifications";
   admin?: boolean;
+  premium?: boolean;
 }
 
 interface NavGroup {
@@ -85,8 +88,8 @@ const NAV_GROUPS: NavGroup[] = [
     entries: [
       { href: "/flashcards", label: "Flashcards", icon: Library },
       { href: "/forge-room", label: "Study room", icon: GraduationCap },
-      { href: "/ai-insights", label: "AI coach", icon: Brain },
-      { href: "/analytics", label: "Analytics", icon: BarChart3 },
+      { href: "/ai-insights", label: "AI coach", icon: Brain, premium: true },
+      { href: "/analytics", label: "Analytics", icon: BarChart3, premium: true },
     ],
   },
   {
@@ -179,6 +182,7 @@ function CountBadge({ count }: { count: number }) {
 function Navigation({ onNavigate }: { onNavigate?: () => void }) {
   const [location] = useLocation();
   const { data: user } = useAuth();
+  const { isPremium } = usePremium();
   const { data: missionCount = 0 } = useQuery({
     queryKey: ["missions-badge"],
     queryFn: fetchMissionCount,
@@ -214,6 +218,9 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
                     <Icon size={18} aria-hidden="true" />
                     <span className="truncate">{entry.label}</span>
                     {entry.badge === "missions" && <CountBadge count={missionCount} />}
+                    {entry.premium && !isPremium && (
+                      <Crown size={12} className="ml-auto shrink-0 text-[var(--palette-amber-400)]" aria-label="Premium" />
+                    )}
                   </Link>
                 );
               })}

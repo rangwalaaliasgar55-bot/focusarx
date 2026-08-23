@@ -3,6 +3,7 @@ import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { extractUserId } from "./auth";
 import { db, lootBoxTypesTable, userLootBoxesTable, userWalletsTable, notificationsTable, coinTransactionsTable, marketplaceItemsTable, userInventoryTable } from "@workspace/db";
+import { isUserPremium } from "../lib/premiumCheck";
 import { eq, and, sql } from "drizzle-orm";
 
 export const lootboxesRouter = Router();
@@ -29,10 +30,12 @@ function describeReward(r: any): { label: string; description: string; emoji: st
   }
 }
 
-lootboxesRouter.get("/lootboxes/types", async (_req, res) => {
+lootboxesRouter.get("/lootboxes/types", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const types = await db.select().from(lootBoxTypesTable);
-    res.json(types);
+    const premium = req.userId ? await isUserPremium(req.userId) : false;
+    const visible = premium ? types : types.filter(t => !t.premiumOnly);
+    res.json(visible);
   } catch {
     res.status(500).json({ error: "Failed to load box types" });
   }
@@ -55,6 +58,9 @@ lootboxesRouter.post("/lootboxes/buy", authMiddleware, async (req: AuthRequest, 
   try {
     const [boxType] = await db.select().from(lootBoxTypesTable).where(eq(lootBoxTypesTable.id, typeId)).limit(1);
     if (!boxType) return res.status(404).json({ error: "Box type not found" });
+    if (boxType.premiumOnly && !(await isUserPremium(req.userId!))) {
+      return res.status(403).json({ error: "This loot box requires Premium" });
+    }
 
     if (boxType.coinCost > 0) {
       const [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.userId)).limit(1);
