@@ -8,6 +8,7 @@ import {
   usersTable,
   notificationsTable,
   coinTransactionsTable,
+  battlePassProgressTable,
 } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { extractUserId } from "./auth";
@@ -46,6 +47,10 @@ router.get("/premium/status", authMiddleware, async (req: AuthRequest, res: Resp
       await db.update(premiumSubscriptionsTable)
         .set({ isActive: false })
         .where(eq(premiumSubscriptionsTable.userId, req.userId));
+      // Revoke battle pass premium track on expiry
+      await db.update(battlePassProgressTable)
+        .set({ premiumUnlocked: false, updatedAt: new Date() })
+        .where(eq(battlePassProgressTable.userId, req.userId));
       res.json({ isPremium: false, cost: PREMIUM_COST, benefits: PREMIUM_BENEFITS });
       return;
     }
@@ -117,6 +122,28 @@ router.post("/premium/activate", authMiddleware, async (req: AuthRequest, res: R
       title: "Welcome to Premium! 👑",
       message: "You now have access to all premium features. Enjoy exclusive pets, boosters, and more!",
     }).catch(() => {});
+
+    // Unlock premium battle pass track — create row if it doesn't exist yet
+    try {
+      const [bp] = await db.select().from(battlePassProgressTable)
+        .where(eq(battlePassProgressTable.userId, req.userId)).limit(1);
+      if (bp) {
+        await db.update(battlePassProgressTable)
+          .set({ premiumUnlocked: true, updatedAt: new Date() })
+          .where(eq(battlePassProgressTable.userId, req.userId));
+      } else {
+        await db.insert(battlePassProgressTable).values({
+          userId: req.userId,
+          season: 1,
+          seasonXp: 0,
+          tier: 0,
+          premiumUnlocked: true,
+          claimedTiers: [],
+        });
+      }
+    } catch (err) {
+      logger.warn({ err }, "battle pass premium unlock failed (non-critical)");
+    }
 
     res.json({ ok: true, newBalance, expiresAt, benefits: PREMIUM_BENEFITS });
   } catch (err) {

@@ -16,6 +16,7 @@ export const lootBoxTypesTable = pgTable('loot_box_types', {
   rarity: text('rarity').notNull(),
   coinCost: integer('coin_cost').notNull().default(0),
   sessionsRequired: integer('sessions_required').notNull().default(0),
+  premiumOnly: boolean('premium_only').notNull().default(false),
   icon: text('icon').notNull(),
   glowColor: text('glow_color').notNull().default('#7C3AED'),
   possibleRewards: jsonb('possible_rewards').notNull().$type<LootBoxReward[]>(),

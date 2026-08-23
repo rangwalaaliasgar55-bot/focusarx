@@ -2,6 +2,7 @@ import { Router } from "express";
 import { logger } from "../lib/logger";
 import { aiRoadmapLimiter } from "../lib/rateLimiter";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
+import { premiumStatusMiddleware } from "../lib/premiumCheck";
 
 const router = Router();
 
@@ -97,7 +98,9 @@ function buildRoadmapFallback(
   return roadmap;
 }
 
-router.post("/ai/roadmap", authMiddleware, aiRoadmapLimiter, async (req: AuthRequest, res) => {
+// premiumStatusMiddleware runs before aiRoadmapLimiter — sets req.isPremium
+// so premium users bypass the rate limit entirely (unlimited roadmap generation)
+router.post("/ai/roadmap", authMiddleware, premiumStatusMiddleware, aiRoadmapLimiter, async (req: AuthRequest, res) => {
   const { goal, dailyHours, level, deadline, currentProgress } = req.body;
 
   if (!goal?.trim()) {

@@ -51,12 +51,14 @@ export const adminLimiter = rateLimit({
   message: { error: "Too many admin requests, please try again later." },
 });
 
+/** Premium users bypass this limiter (unlimited AI Roadmap generation). */
 export const aiRoadmapLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: isDev ? 50 : 10,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Roadmap generation limit reached. Please try again in an hour." },
+  skip: (req) => !!(req as any).isPremium,
   keyGenerator: (req) => {
     const authHeader = (req.headers as Record<string, string | undefined>).authorization;
     const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7, 50) : null;
@@ -67,12 +69,14 @@ export const aiRoadmapLimiter = rateLimit({
   validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false },
 });
 
+/** Premium users bypass this limiter (unlimited AI Coach messages). */
 export const aiCoachLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: isDev ? 60 : 20,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Coach message limit reached. Please wait a moment." },
+  skip: (req) => !!(req as any).isPremium,
   keyGenerator: (req) => {
     const authHeader = (req.headers as Record<string, string | undefined>).authorization;
     const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7, 50) : null;

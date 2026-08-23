@@ -1,22 +1,31 @@
 # ══════════════════════════════════════════════════════════════
 # FocusArx robots.txt — Production
-# Domain: https://focusarx.site
+# Domain: https://www.focusarx.site
 # ══════════════════════════════════════════════════════════════
 
 # ── Allow all compliant crawlers ──────────────────────────────
 User-agent: *
 Allow: /
 Allow: /focus-guide
+Allow: /deep-study-guide
+Allow: /two-hour-study-method
 Allow: /science-of-deep-work
 Allow: /feynman-technique
 Allow: /pomodoro-guide
 Allow: /study-techniques
 Allow: /virtual-study-room
+Allow: /study-method-quiz
+Allow: /study-calculator
 Allow: /pricing
+Allow: /premium
 Allow: /about
 Allow: /contact
 Allow: /support
 Allow: /roadmap
+Allow: /leaderboard
+Allow: /achievements
+Allow: /breathe
+Allow: /break-free
 
 # ── Block private / user-specific routes ─────────────────────
 Disallow: /dashboard
@@ -27,7 +36,6 @@ Disallow: /onboarding
 Disallow: /notifications
 Disallow: /messages
 Disallow: /missions
-Disallow: /achievements
 Disallow: /shop
 Disallow: /wallet
 Disallow: /goals
@@ -46,14 +54,13 @@ Disallow: /ghosts
 Disallow: /consequences
 Disallow: /replay
 Disallow: /forge
+Disallow: /forge-room
 Disallow: /distractions
 Disallow: /profiles
 Disallow: /referral
 Disallow: /ai-insights
 Disallow: /groups
 Disallow: /social
-Disallow: /premium
-Disallow: /leaderboard
 
 # ── Block auth / callback routes ─────────────────────────────
 Disallow: /forgot-password
@@ -84,4 +91,4 @@ Disallow: /admin
 Disallow: /api/
 
 # ── Sitemap reference ─────────────────────────────────────────
-Sitemap: https://focusarx.site/sitemap.xml
+Sitemap: https://www.focusarx.site/sitemap.xml

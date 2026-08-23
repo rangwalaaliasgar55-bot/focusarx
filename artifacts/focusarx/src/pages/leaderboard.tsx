@@ -13,6 +13,7 @@ interface LeaderboardEntry {
   totalXp: number;
   coins: number;
   streak: number;
+  isPremium?: boolean;
   isCurrentUser: boolean;
 }
 
@@ -141,16 +142,18 @@ export default function LeaderboardPage() {
     const token = getToken();
     setLoading(true);
     setFetchError(false);
-    fetch("/api/gamification/leaderboard", {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
+    fetch(`/api/social/leaderboard?period=${filter === "weekly" ? "weekly" : "total"}`,
+      {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      },
+    )
       .then((r) => {
         if (!r.ok) throw new Error(`${r.status}`);
-        return r.json() as Promise<{ leaderboard: LeaderboardEntry[] }>;
+        return r.json() as Promise<LeaderboardEntry[]>;
       })
-      .then((d) => { setEntries(d.leaderboard ?? []); setLoading(false); })
+      .then((d) => { setEntries(Array.isArray(d) ? d : []); setLoading(false); })
       .catch(() => { setFetchError(true); setLoading(false); });
-  }, []);
+  }, [filter]);
 
   useEffect(() => { loadLeaderboard(); }, [loadLeaderboard]);
 
@@ -298,6 +301,7 @@ export default function LeaderboardPage() {
                       <div className="flex-1 min-w-0">
                         <p className="truncate text-sm font-semibold text-[var(--foreground)]">
                           {entry.name}
+                          {entry.isPremium && <Crown size={10} className="ml-1 inline text-[var(--brand-gold)]" aria-label="Premium" />}
                           {entry.isCurrentUser && <span className="ml-1.5 text-[9px] font-normal text-[var(--brand-400)]">(you)</span>}
                         </p>
                         <div className="flex items-center gap-2 mt-0.5">

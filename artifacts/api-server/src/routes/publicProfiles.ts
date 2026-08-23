@@ -8,6 +8,8 @@ import {
   friendshipsTable,
 } from "@workspace/db";
 import { extractUserId } from "./auth";
+import { isUserPremium } from "../lib/premiumCheck";
+import { premiumSubscriptionsTable } from "@workspace/db";
 import { eq, and, or, sql, desc } from "drizzle-orm";
 
 export const publicProfilesRouter = Router();
@@ -34,6 +36,8 @@ publicProfilesRouter.get("/u/:username", async (req: AuthRequest, res: Response)
   const [friendCount] = await db.select({ count: sql<number>`count(*)` }).from(friendshipsTable)
     .where(and(or(eq(friendshipsTable.requesterId, user.id), eq(friendshipsTable.addresseeId, user.id)), eq(friendshipsTable.status, "accepted")));
 
+  const isPremium = await isUserPremium(user.id);
+
   res.json({
     id: user.id,
     name: user.name || user.email?.split("@")[0] || "User",
@@ -44,6 +48,7 @@ publicProfilesRouter.get("/u/:username", async (req: AuthRequest, res: Response)
     level: wallet?.level ?? 1,
     coins: wallet?.coins ?? 0,
     prestige: wallet?.prestige ?? 0,
+    isPremium,
     streak: streak?.currentStreak ?? 0,
     longestStreak: streak?.longestStreak ?? 0,
     totalSessions: Number(sessionStats?.totalSessions ?? 0),

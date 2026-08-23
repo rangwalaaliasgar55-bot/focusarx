@@ -4,6 +4,7 @@ import { getToken } from "@/lib/auth";
 import { Sparkles, Brain, Clock, RefreshCw, BarChart2, Target, Flame, TrendingUp, Zap } from "lucide-react";
 import { PageTransition } from "@/components/PageTransition";
 import PageHeader from "@/components/PageHeader";
+import { PremiumGate } from "@/components/PremiumGate";
 
 async function apiFetch(path: string) {
   const token = getToken();
@@ -89,6 +90,7 @@ export default function AiInsightsPage() {
   };
 
   return (
+    <PremiumGate feature="AI Coach">
     <div className="min-h-screen forge-bg-glow">
       <div className="relative z-[var(--z-content)] mx-auto max-w-3xl px-4 py-8">
         <PageTransition>
@@ -247,5 +249,6 @@ export default function AiInsightsPage() {
         </PageTransition>
       </div>
     </div>
+    </PremiumGate>
   );
 }

@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db, userPetsTable, userWalletsTable } from "@workspace/db";
+import { isUserPremium } from "../lib/premiumCheck";
 import { eq } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
@@ -11,12 +12,12 @@ const router = Router();
 const PET_XP_PER_LEVEL = 500;
 
 export const PET_TYPES = [
-  { id: "owl", name: "Sage Owl", emoji: "🦉", desc: "Wise and calm. Perfect for deep study sessions.", evolutions: ["Owlet", "Wise Owl", "Elder Sage", "Celestial Owl"] },
-  { id: "fox", name: "Focus Fox", emoji: "🦊", desc: "Sharp and cunning. Thrives on consistency.", evolutions: ["Fox Kit", "Quick Fox", "Silver Fox", "Phantom Fox"] },
-  { id: "dragon", name: "Study Dragon", emoji: "🐲", desc: "Fierce and powerful. Grows with your ambition.", evolutions: ["Hatchling", "Drake", "Fire Drake", "Legendary Dragon"] },
-  { id: "robot", name: "Study Bot", emoji: "🤖", desc: "Logical and precise. Optimizes your sessions.", evolutions: ["Prototype", "StudyBot v2", "Neural Bot", "Quantum AI"] },
-  { id: "cat", name: "Neko Scholar", emoji: "🐱", desc: "Curious and playful. Keeps you motivated.", evolutions: ["Kitten", "Scholar Cat", "Mystic Cat", "Cosmic Neko"] },
-  { id: "phoenix", name: "Rising Phoenix", emoji: "🦅", desc: "Reborn after every session. Symbolizes growth.", evolutions: ["Fledgling", "Ember Bird", "Phoenix", "Eternal Flame"] },
+  { id: "owl", name: "Sage Owl", emoji: "🦉", desc: "Wise and calm. Perfect for deep study sessions.", evolutions: ["Owlet", "Wise Owl", "Elder Sage", "Celestial Owl"], premiumOnly: false },
+  { id: "fox", name: "Focus Fox", emoji: "🦊", desc: "Sharp and cunning. Thrives on consistency.", evolutions: ["Fox Kit", "Quick Fox", "Silver Fox", "Phantom Fox"], premiumOnly: false },
+  { id: "dragon", name: "Study Dragon", emoji: "🐲", desc: "Fierce and powerful. Grows with your ambition.", evolutions: ["Hatchling", "Drake", "Fire Drake", "Legendary Dragon"], premiumOnly: true },
+  { id: "robot", name: "Study Bot", emoji: "🤖", desc: "Logical and precise. Optimizes your sessions.", evolutions: ["Prototype", "StudyBot v2", "Neural Bot", "Quantum AI"], premiumOnly: false },
+  { id: "cat", name: "Neko Scholar", emoji: "🐱", desc: "Curious and playful. Keeps you motivated.", evolutions: ["Kitten", "Scholar Cat", "Mystic Cat", "Cosmic Neko"], premiumOnly: false },
+  { id: "phoenix", name: "Rising Phoenix", emoji: "🦅", desc: "Reborn after every session. Symbolizes growth.", evolutions: ["Fledgling", "Ember Bird", "Phoenix", "Eternal Flame"], premiumOnly: true },
 ];
 
 router.get("/pets/types", (_req, res) => {
@@ -45,6 +46,9 @@ router.post("/pets", authMiddleware, async (req: AuthRequest, res: Response) => 
   if (!petType) { res.status(400).json({ error: "petType required" }); return; }
   const validType = PET_TYPES.find(p => p.id === petType);
   if (!validType) { res.status(400).json({ error: "Invalid pet type" }); return; }
+  if (validType.premiumOnly && !(await isUserPremium(req.userId!))) {
+    return res.status(403).json({ error: "This pet requires Premium" });
+  }
 
   try {
     const [existing] = await db.select().from(userPetsTable).where(eq(userPetsTable.userId, req.userId));

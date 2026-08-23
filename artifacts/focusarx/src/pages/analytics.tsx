@@ -11,6 +11,7 @@ import { PageTransition } from "@/components/PageTransition";
 import PageHeader from "@/components/PageHeader";
 import { format, parseISO } from "date-fns";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
+import { PremiumGate } from "@/components/PremiumGate";
 
 interface AnalyticsData {
   heatmap: Record<string, number>;
@@ -113,6 +114,7 @@ export default function AnalyticsPage() {
   const weekBar = data?.weekBarData ?? [];
 
   return (
+    <PremiumGate feature="Analytics">
     <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow">
       <PageSEO {...PAGE_SEO.analytics} />
       <div className="pointer-events-none absolute inset-0" aria-hidden>
@@ -305,5 +307,6 @@ export default function AnalyticsPage() {
         </PageTransition>
       </main>
     </div>
+    </PremiumGate>
   );
 }

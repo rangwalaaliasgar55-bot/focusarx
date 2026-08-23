@@ -7,6 +7,7 @@ import { eq, desc, and } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
 import { aiCoachLimiter } from "../lib/rateLimiter";
+import { premiumStatusMiddleware } from "../lib/premiumCheck";
 
 const router = Router();
 
@@ -71,7 +72,9 @@ function builtinReply(userMessage: string): string {
   return tips[Math.floor(Date.now() / 1000) % tips.length]!;
 }
 
-router.post("/coach/chat", authMiddleware, aiCoachLimiter, async (req: AuthRequest, res: Response) => {
+// premiumStatusMiddleware runs before aiCoachLimiter — sets req.isPremium
+// so premium users bypass the rate limit entirely (unlimited messages)
+router.post("/coach/chat", authMiddleware, premiumStatusMiddleware, aiCoachLimiter, async (req: AuthRequest, res: Response) => {
   const { message, conversationHistory } = req.body as {
     message?: string;
     conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>;
@@ -117,10 +120,7 @@ router.post("/coach/chat", authMiddleware, aiCoachLimiter, async (req: AuthReque
       context.push(`Recent distractions: ${recentDistractions.map(d => d.reason).join(", ")}`);
     }
 
-    const systemPrompt = `You are FocusArx Coach — an expert productivity and deep-work coach powered by neuroscience. You have real-time context about this user below. Be warm, sharp, direct. Under 80 words unless the user asks for more. Never use bullet points.
-
-User context:
-${context.length > 0 ? context.join("\n") : "No context available yet."}`;
+    const systemPrompt = `You are FocusArx Coach — an expert productivity and deep-work coach powered by neuroscience. You have real-time context about this user below. Be warm, sharp, direct. Under 80 words unless the user asks for more. Never use bullet points.\n\nUser context:\n${context.length > 0 ? context.join("\n") : "No context available yet."}`;
 
     const history = (conversationHistory ?? []).slice(-8);
     const reply = await callGroq(systemPrompt, history, message)

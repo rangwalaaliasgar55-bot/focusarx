@@ -29,7 +29,7 @@ function TierCard({ tier, claimed, reached, premiumUnlocked, onClaim }: {
 }) {
   const isMilestone = tier.tier % 5 === 0;
   const freeClaimedThis = claimed.includes(tier.tier);
-  const premiumClaimedThis = false; // Add to claimed tiers in real API
+  const premiumClaimedThis = claimed.includes(tier.tier + 100); // premium tiers use offset IDs in claimedTiers
 
   return (
     <div className={`relative rounded-2xl border p-3 transition-all ${isMilestone ? "border-[var(--palette-amber-500)]/40 bg-[var(--palette-amber-500)]/5" : "border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)]"} ${!reached ? "opacity-40" : ""}`}>

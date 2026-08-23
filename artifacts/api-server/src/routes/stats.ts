@@ -5,6 +5,7 @@ import { db, focusSessionsTable, studyStreaksTable, tasksTable, productivityLogs
 import { eq, and, gte, lt, desc, count, sql } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
+import { isUserPremium } from "../lib/premiumCheck";
 
 const router = Router();
 
@@ -63,11 +64,13 @@ router.get("/stats", authMiddleware, async (req: AuthRequest, res: Response) => 
 router.get("/analytics", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const now = new Date();
-    const ninetyDaysAgo = new Date(now.getTime() - 90 * 86400000);
+    const premium = await isUserPremium(req.userId!);
+    const historyDays = premium ? 90 : 30;
+    const dateLimit = new Date(now.getTime() - historyDays * 86400000);
     const fourteenDaysAgo = new Date(now.getTime() - 13 * 86400000);
 
     const allSessions = await db.select().from(focusSessionsTable)
-      .where(and(eq(focusSessionsTable.userId, req.userId), eq(focusSessionsTable.mode, "focus"), gte(focusSessionsTable.completedAt, ninetyDaysAgo)))
+      .where(and(eq(focusSessionsTable.userId, req.userId), eq(focusSessionsTable.mode, "focus"), gte(focusSessionsTable.completedAt, dateLimit)))
       .orderBy(focusSessionsTable.completedAt);
 
     // Build heatmap
@@ -148,6 +151,8 @@ router.get("/analytics", authMiddleware, async (req: AuthRequest, res: Response)
         totalMinutes: allTotalMinutes,
         longestStreak: streak?.longestStreak ?? 0,
       },
+      isPremium: premium,
+      historyDays,
     });
   } catch (err) {
     logger.error({ err }, "analytics error");

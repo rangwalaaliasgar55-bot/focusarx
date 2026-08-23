@@ -7,6 +7,7 @@ import {
   productivityLogsTable, userWalletsTable,
 } from "@workspace/db";
 import { extractUserId } from "./auth";
+import { isUserPremium } from "../lib/premiumCheck";
 import { eq, and, desc, sql } from "drizzle-orm";
 
 export const aiInsightsRouter = Router();
@@ -107,8 +108,21 @@ function generateFallbackReport(stats: Awaited<ReturnType<typeof gatherUserStats
 
 aiInsightsRouter.get("/ai/weekly-report", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
-  const stats = await gatherUserStats(userId);
+  const premium = await isUserPremium(userId);
 
+  // Free users get a basic non-AI fallback report
+  if (!premium) {
+    const stats = await gatherUserStats(userId);
+    return res.json({
+      report: generateFallbackReport(stats),
+      stats,
+      generatedAt: new Date().toISOString(),
+      aiPowered: false,
+      isPremium: false,
+    });
+  }
+
+  const stats = await gatherUserStats(userId);
   const prompt = `Generate a personalized weekly productivity report. Stats: ${stats.totalSessions} sessions, ${stats.totalMinutes} min, ${stats.avgFocusScore}% avg score, ${stats.currentStreak} day streak, ${stats.tasksCompleted}/${stats.tasksTotal} tasks. Peak hour: ${stats.peakHour !== null ? `${stats.peakHour}:00` : "unknown"}. Level ${stats.level}. Write 4 sections: Performance, Strengths, Opportunities, Next Week Challenge. 250 words max. Motivating and data-driven.`;
 
   const aiReport = await callGroq("You are FocusArx AI Coach. Write a concise, motivating productivity report.", prompt, 400);
@@ -118,6 +132,7 @@ aiInsightsRouter.get("/ai/weekly-report", authMiddleware, async (req: AuthReques
     stats,
     generatedAt: new Date().toISOString(),
     aiPowered: !!aiReport,
+    isPremium: true,
   });
 });
 
@@ -175,5 +190,46 @@ aiInsightsRouter.get("/ai/habit-analysis", authMiddleware, async (req: AuthReque
     avgDailyMinutes: activeDays > 0 ? Math.round(totalSeconds / 60 / activeDays) : 0,
     totalSessions: sessions.length,
     monthlyGoalProgress: Math.min(100, Math.round((activeDays / 20) * 100)),
+  });
+});
+
+// Premium-only: Monthly AI Report
+aiInsightsRouter.get("/ai/monthly-report", authMiddleware, async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const premium = await isUserPremium(userId);
+  if (!premium) {
+    return res.status(403).json({ error: "Monthly AI Reports require Premium" });
+  }
+
+  const monthAgo = daysAgoStr(30);
+  const sessions = await db.select().from(focusSessionsTable)
+    .where(and(eq(focusSessionsTable.userId, userId), sql`completed_at >= ${monthAgo}`))
+    .orderBy(desc(focusSessionsTable.completedAt));
+
+  const [taskStats] = await db.select({
+    total: sql<number>`count(*)`,
+    completed: sql<number>`count(*) filter (where completed = true)`,
+  }).from(tasksTable).where(eq(tasksTable.userId, userId));
+
+  const [streak] = await db.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, userId)).limit(1);
+  const [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, userId)).limit(1);
+
+  const totalMinutes = sessions.reduce((s, r) => s + Math.round((r.durationSec ?? 0) / 60), 0);
+  const avgScore = sessions.length ? sessions.reduce((s, r) => s + (r.focusScore ?? 0), 0) / sessions.length : 0;
+  const activeDays = new Set(sessions.filter(s => s.completedAt).map(s => s.completedAt!.toISOString().slice(0, 10))).size;
+  const peakHourBuckets: Record<number, number> = {};
+  sessions.forEach(s => { if (s.completedAt) { const h = new Date(s.completedAt).getHours(); peakHourBuckets[h] = (peakHourBuckets[h] ?? 0) + 1; } });
+  const peakHour = Object.entries(peakHourBuckets).sort((a, b) => Number(b[1]) - Number(a[1]))[0]?.[0];
+
+  const prompt = `Generate a personalized MONTHLY productivity report. Stats over 30 days: ${sessions.length} sessions, ${totalMinutes} minutes total, ${Math.round(avgScore)}% avg focus score, ${activeDays} active days, ${taskStats?.completed ?? 0}/${taskStats?.total ?? 0} tasks completed. Peak hour: ${peakHour !== undefined ? `${peakHour}:00` : "unknown"}. Level ${wallet?.level ?? 1}. Streak: ${streak?.currentStreak ?? 0} days. Write 5 sections: Monthly Overview, Focus Patterns, Strengths, Areas for Growth, Next Month Goals. 350 words max. Analytical and data-driven with actionable recommendations.`;
+
+  const aiReport = await callGroq("You are FocusArx AI Analytics Engine. Write a detailed monthly productivity analysis.", prompt, 600);
+
+  res.json({
+    report: aiReport ?? `## Monthly Overview\n\nOver the past 30 days, you completed ${sessions.length} focus sessions totalling ${totalMinutes} minutes with an average focus score of ${Math.round(avgScore)}%. You were active on ${activeDays} of 30 days (${Math.round((activeDays / 30) * 100)}% consistency).\n\n## Focus Patterns\n\n${peakHour !== undefined ? `Your peak focus hour is ${peakHour}:00. Schedule deep work during this window for maximum productivity.` : "Not enough data to identify your peak focus hour yet."}\n\n## Next Month Goals\n\n🎯 Maintain at least 20 active days this month\n🎯 Target ${Math.max(Math.round(avgScore), 75)}% average focus score\n🎯 Complete ${Math.max((taskStats?.completed ?? 0) + 5, 10)} tasks\n\n_Premium users receive AI-powered insights. Upgrade for personalized recommendations._`,
+    stats: { totalSessions: sessions.length, totalMinutes, avgFocusScore: Math.round(avgScore), activeDays, tasksCompleted: taskStats?.completed ?? 0, tasksTotal: taskStats?.total ?? 0 },
+    generatedAt: new Date().toISOString(),
+    aiPowered: !!aiReport,
+    isPremium: true,
   });
 });

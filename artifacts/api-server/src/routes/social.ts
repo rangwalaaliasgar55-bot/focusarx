@@ -7,6 +7,7 @@ import {
   notificationsTable, followsTable,
   userMissionProgressTable, socialPostsTable, userBadgesTable,
 } from "@workspace/db";
+import { isUserPremium } from "../lib/premiumCheck";
 import { eq, or, and, desc, ilike, sql, gte, inArray } from "drizzle-orm";
 
 export const socialRouter = Router();
@@ -270,6 +271,7 @@ socialRouter.get("/social/leaderboard", authMiddleware, async (req: AuthRequest,
     const [u] = await db.select({ name: usersTable.name, email: usersTable.email })
       .from(usersTable).where(eq(usersTable.id, w.userId)).limit(1);
     const [streak] = await db.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, w.userId)).limit(1);
+    const isPremium = await isUserPremium(w.userId);
     return {
       userId: w.userId,
       name: u?.name || u?.email?.split("@")[0] || "User",
@@ -277,6 +279,7 @@ socialRouter.get("/social/leaderboard", authMiddleware, async (req: AuthRequest,
       level: w.level,
       streak: streak?.currentStreak ?? 0,
       coins: w.coins,
+      isPremium,
       isMe: w.userId === userId,
     };
   }));

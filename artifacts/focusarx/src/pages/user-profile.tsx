@@ -105,6 +105,7 @@ export default function UserProfilePage() {
         <div className="mb-5">
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-2xl font-black text-[var(--foreground)]">{profile.name}</h1>
+            {profile.isPremium && <span className="flex items-center gap-1 rounded-full border border-[var(--brand-gold)]/40 bg-[var(--brand-gold)]/10 px-2 py-0.5 text-xs text-[var(--brand-gold)] font-bold"><Crown size={10} /> Premium</span>}
             {profile.prestige > 0 && <span className="flex items-center gap-1 rounded-full border border-[var(--palette-amber-500)]/40 bg-[var(--palette-amber-500)]/10 px-2 py-0.5 text-xs text-[var(--palette-amber-400)] font-bold"><Crown size={10} /> Prestige {profile.prestige}</span>}
           </div>
           {profile.bio && <p className="text-sm text-[var(--foreground-subtle)] mt-1.5 leading-relaxed">{profile.bio}</p>}
