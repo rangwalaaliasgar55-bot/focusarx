@@ -47,10 +47,17 @@ export function getServerConfig(): ServerConfig {
   }
 
   const adminPassword: string | null = process.env.ADMIN_PASSWORD ?? null;
-  if (!adminPassword && isProduction) {
-    throw new Error("ADMIN_PASSWORD must be set in production.");
-  }
-  if (!adminPassword && !isProduction && !warnedDevAdmin) {
+  // NOTE: never throw from getServerConfig(). It is called from request-time
+  // middleware (e.g. the CORS origin callback on EVERY cross-origin request),
+  // so a throw here surfaces as an opaque 500 "Internal error" on login and
+  // other auth requests. The admin login route already handles a null
+  // adminPassword gracefully, and getConfigErrors() reports it as missing.
+  if (!adminPassword && isProduction && !warnedDevAdmin) {
+    warnedDevAdmin = true;
+    console.error(
+      "[config] ADMIN_PASSWORD is not set — admin password login is disabled. Set it in your environment variables.",
+    );
+  } else if (!adminPassword && !isProduction && !warnedDevAdmin) {
     warnedDevAdmin = true;
     console.warn(
       "[config] ADMIN_PASSWORD is not set — admin password login disabled in dev.",

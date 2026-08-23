@@ -41,3 +41,4 @@
 - [Constellations page routing](constellations-routing.md) — /constellations page existed but had no route; uses /api/sessions/history (not /api/stats/sessions-history); route+nav added in this session
 - [Git push blocked in main agent](git-push-blocked.md) — git write ops (add, commit, fetch, push) blocked in main agent sandbox; use project_tasks for GitHub sync; branches diverged: local has 2 commits, origin/main has 8 from previous task agents
 - [Visitors upsert race condition](visitors-upsert.md) — siteAnalytics.ts check-then-insert pattern caused duplicate key errors; fixed with onConflictDoUpdate targeting visitorId
+- [Sign-in 500 from schema drift](signin-schema-drift.md) — POST "harden" push: bare db.select().from(usersTable) + drifted DB (missing referral_* cols) → login 500. Fixed by projecting explicit columns. RULE: never bare-select on auth paths; getServerConfig() must never throw

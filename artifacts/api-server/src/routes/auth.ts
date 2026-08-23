@@ -99,7 +99,18 @@ router.post("/auth/login", authLimiter, async (req, res) => {
   if (!parsed.success) { res.status(400).json({ error: "Invalid email or password format" }); return; }
   const { email, password } = parsed.data;
   try {
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email));
+    // Select ONLY the columns login needs. A bare `db.select().from(usersTable)`
+    // selects every schema column (including ones added by later migrations, e.g.
+    // referral_*), so any schema drift (a deploy whose `drizzle-kit push` was
+    // skipped/aborted) makes this query throw "column ... does not exist" and the
+    // user gets an opaque 500 "Internal error" instead of signing in.
+    const [user] = await db.select({
+      id: usersTable.id,
+      email: usersTable.email,
+      name: usersTable.name,
+      isGuest: usersTable.isGuest,
+      hashedPassword: usersTable.hashedPassword,
+    }).from(usersTable).where(eq(usersTable.email, email));
     if (!user?.hashedPassword) { res.status(401).json({ error: "Invalid credentials" }); return; }
     const valid = await bcrypt.compare(password, user.hashedPassword);
     if (!valid) { res.status(401).json({ error: "Invalid credentials" }); return; }
@@ -122,7 +133,9 @@ router.post("/auth/register", authLimiter, async (req, res) => {
     const [existing] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, email));
     if (existing) { res.status(400).json({ error: "Email already registered" }); return; }
     const hashedPassword = await bcrypt.hash(password, 12);
-    const [user] = await db.insert(usersTable).values({ email, name: name || null, hashedPassword, isGuest: false }).returning();
+    // Returning only the columns we use keeps this resilient to schema drift
+    // (a full `.returning()` selects every column and throws if any is missing).
+    const [user] = await db.insert(usersTable).values({ email, name: name || null, hashedPassword, isGuest: false }).returning({ id: usersTable.id, email: usersTable.email });
     if (!user) { res.status(500).json({ error: "Failed to create user" }); return; }
     res.status(201).json({ message: "Account created", user: { id: user.id, email: user.email } });
   } catch (err) {
@@ -139,9 +152,19 @@ router.post("/auth/guest", async (req, res) => {
   const safeKey = guestKey.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 120);
   const guestEmail = `guest_${safeKey}@guest.focusarx.internal`;
   try {
-    let [user] = await db.select().from(usersTable).where(eq(usersTable.guestKey, safeKey));
+    let [user] = await db.select({
+      id: usersTable.id,
+      email: usersTable.email,
+      name: usersTable.name,
+      isGuest: usersTable.isGuest,
+    }).from(usersTable).where(eq(usersTable.guestKey, safeKey));
     if (!user) {
-      const [created] = await db.insert(usersTable).values({ email: guestEmail, guestKey: safeKey, isGuest: true, name: "Guest" }).returning();
+      const [created] = await db.insert(usersTable).values({ email: guestEmail, guestKey: safeKey, isGuest: true, name: "Guest" }).returning({
+        id: usersTable.id,
+        email: usersTable.email,
+        name: usersTable.name,
+        isGuest: usersTable.isGuest,
+      });
       user = created;
     }
     if (!user) { res.status(500).json({ error: "Failed to create guest" }); return; }
