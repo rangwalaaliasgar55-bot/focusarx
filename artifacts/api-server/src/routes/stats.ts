@@ -1,8 +1,18 @@
 import { Request, Response, NextFunction } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
-import { db, focusSessionsTable, studyStreaksTable, tasksTable, productivityLogsTable } from "@workspace/db";
-import { eq, and, gte, lt, desc, count, sql } from "drizzle-orm";
+import {
+  db,
+  focusSessionsTable,
+  studyStreaksTable,
+  tasksTable,
+  productivityLogsTable,
+  usersTable,
+  activeSessionsTable,
+  userWalletsTable,
+  studyRoomMembersTable,
+} from "@workspace/db";
+import { eq, and, gte, lt, gt, desc, count, sql } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
 import { isUserPremium } from "../lib/premiumCheck";
@@ -195,6 +205,96 @@ router.get("/stats/productivity", authMiddleware, async (req: AuthRequest, res: 
     });
   } catch (err) {
     logger.error({ err }, "productivity stats error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// Community social proof for the dashboard: who is focusing right now,
+// today's top performer (first name only for privacy), community size and
+// the signed-in user's weekly XP rank.
+router.get("/stats/community", authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const now = new Date();
+    const fiveMinAgo = new Date(now.getTime() - 5 * 60_000);
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    // A user counts as "focusing right now" when their persisted timer is
+    // actively running and has checked in within the last 5 minutes.
+    const [{ value: focusingNow }] = await db.select({ value: count() })
+      .from(activeSessionsTable)
+      .where(and(eq(activeSessionsTable.timerStatus, "running"), gte(activeSessionsTable.updatedAt, fiveMinAgo)));
+
+    const [{ value: communityMembers }] = await db.select({ value: count() })
+      .from(usersTable)
+      .where(eq(usersTable.isGuest, false));
+
+    const topRows = await db.select({
+      name: usersTable.name,
+      seconds: sql<number>`coalesce(sum(${focusSessionsTable.durationSec}), 0)`,
+    })
+      .from(focusSessionsTable)
+      .innerJoin(usersTable, eq(usersTable.id, focusSessionsTable.userId))
+      .where(and(eq(focusSessionsTable.mode, "focus"), gte(focusSessionsTable.completedAt, todayStart)))
+      .groupBy(focusSessionsTable.userId, usersTable.name)
+      .orderBy(desc(sql`sum(${focusSessionsTable.durationSec})`))
+      .limit(1);
+
+    const [myWallet] = await db.select({ weeklyXp: userWalletsTable.weeklyXp })
+      .from(userWalletsTable)
+      .where(eq(userWalletsTable.userId, req.userId!))
+      .limit(1);
+
+    let yourWeeklyRank: number | null = null;
+    if (myWallet && myWallet.weeklyXp > 0) {
+      const [{ value: richerUsers }] = await db.select({ value: count() })
+        .from(userWalletsTable)
+        .where(gt(userWalletsTable.weeklyXp, myWallet.weeklyXp));
+      yourWeeklyRank = richerUsers + 1;
+    }
+
+    res.json({
+      focusingNow,
+      communityMembers,
+      topPerformerToday: topRows[0]
+        ? { firstName: (topRows[0].name || "A learner").split(" ")[0], minutes: Math.round((topRows[0].seconds ?? 0) / 60) }
+        : null,
+      yourWeeklyRank,
+    });
+  } catch (err) {
+    logger.error({ err }, "community stats error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// Server-side signals that drive the dashboard onboarding checklist.
+router.get("/stats/onboarding", authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const [user] = await db.select({ name: usersTable.name, bio: usersTable.bio, onboardingCompleted: usersTable.onboardingCompleted })
+      .from(usersTable)
+      .where(eq(usersTable.id, req.userId!))
+      .limit(1);
+
+    const [{ value: totalSessions }] = await db.select({ value: count() })
+      .from(focusSessionsTable)
+      .where(and(eq(focusSessionsTable.userId, req.userId!), eq(focusSessionsTable.mode, "focus")));
+
+    const [{ value: taskCount }] = await db.select({ value: count() })
+      .from(tasksTable)
+      .where(eq(tasksTable.userId, req.userId!));
+
+    const [{ value: studyRoomCount }] = await db.select({ value: count() })
+      .from(studyRoomMembersTable)
+      .where(eq(studyRoomMembersTable.userId, req.userId!));
+
+    res.json({
+      totalSessions,
+      taskCount,
+      studyRoomCount,
+      profileComplete: Boolean(user?.name || user?.bio),
+      onboardingQuizDone: Boolean(user?.onboardingCompleted),
+    });
+  } catch (err) {
+    logger.error({ err }, "onboarding stats error");
     res.status(500).json({ error: "Internal error" });
   }
 });

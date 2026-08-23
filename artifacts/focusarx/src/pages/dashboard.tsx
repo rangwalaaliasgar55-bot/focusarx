@@ -20,7 +20,12 @@ import {
 import { useAuth } from "@/lib/auth";
 import { apiJson } from "@/lib/api";
 import { useTasks } from "@/hooks/useTasks";
+import { useSwipeToComplete } from "@/hooks/useSwipeToComplete";
 import { useToast } from "@/components/Toast";
+import StreakFreezeCard from "@/components/dashboard/StreakFreezeCard";
+import CommunityNow from "@/components/dashboard/CommunityNow";
+import WeeklyReviewCard from "@/components/dashboard/WeeklyReviewCard";
+import OnboardingChecklist from "@/components/dashboard/OnboardingChecklist";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 import PageHeader from "@/components/PageHeader";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
@@ -89,6 +94,23 @@ function FocusHero({ onStart }: { onStart: () => void }) {
   );
 }
 
+function TaskRow({ title, priority, onToggle }: { title: string; priority: string | undefined; onToggle: () => void }) {
+  const swipe = useSwipeToComplete(onToggle);
+  return (
+    <motion.button
+      layout
+      type="button"
+      onClick={onToggle}
+      {...swipe}
+      className="group flex min-h-12 w-full touch-pan-y items-center gap-3 rounded-[var(--radius-md)] px-2 text-left hover:bg-[var(--surface-hover)]"
+    >
+      <span className="grid h-6 w-6 place-items-center rounded-full border-2 border-[var(--border-strong)] text-transparent group-hover:border-[var(--brand-500)]"><CheckCircle2 size={14} /></span>
+      <span className="min-w-0 flex-1 truncate text-sm text-[var(--foreground-muted)]">{title}</span>
+      <Badge variant="secondary" className="hidden sm:flex">{priority}</Badge>
+    </motion.button>
+  );
+}
+
 function PulseCard({ icon, label, value, detail, tone = "brand" }: { icon: React.ReactNode; label: string; value: number; detail: string; tone?: "brand" | "success" | "warning" }) {
   const colors = {
     brand: { color: "var(--brand-strong)", soft: "var(--brand-soft)" },
@@ -146,17 +168,7 @@ function QuickTasks() {
         </form>
         <div className="mt-4 space-y-1">
           {isLoading ? Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-12" />) : activeTasks.length ? activeTasks.slice(0, 4).map((task) => (
-            <motion.button
-              layout
-              key={task.id}
-              type="button"
-              onClick={() => toggleDone(task.id)}
-              className="group flex min-h-12 w-full items-center gap-3 rounded-[var(--radius-md)] px-2 text-left hover:bg-[var(--surface-hover)]"
-            >
-              <span className="grid h-6 w-6 place-items-center rounded-full border-2 border-[var(--border-strong)] text-transparent group-hover:border-[var(--brand-500)]"><CheckCircle2 size={14} /></span>
-              <span className="min-w-0 flex-1 truncate text-sm text-[var(--foreground-muted)]">{task.title}</span>
-              <Badge variant="secondary" className="hidden sm:flex">{task.priority}</Badge>
-            </motion.button>
+            <TaskRow key={task.id} title={task.title} priority={task.priority} onToggle={() => toggleDone(task.id)} />
           )) : (
             <div className="py-7 text-center"><CheckCircle2 className="mx-auto text-[var(--success)]" /><p className="mt-2 text-sm font-medium">Your task list is clear.</p><p className="mt-1 text-xs text-[var(--foreground-subtle)]">Add the next thing worth doing.</p></div>
           )}
@@ -206,7 +218,7 @@ export default function DashboardPage() {
 
   const statsQuery = useQuery<DashboardStats>({
     queryKey: ["dashboard-stats"],
-    queryFn: () => apiJson<DashboardStats>("/api/analytics/dashboard"),
+    queryFn: () => apiJson<DashboardStats>("/api/stats"),
     staleTime: 60_000,
     enabled: status === "authenticated",
   });
@@ -237,6 +249,8 @@ export default function DashboardPage() {
         actions={<Button onClick={startFocus}><Timer /> Start session</Button>}
       />
 
+      <OnboardingChecklist />
+
       {loading ? (
         <div className="space-y-5" role="status" aria-label="Loading dashboard">
           <Skeleton className="h-96" />
@@ -248,6 +262,8 @@ export default function DashboardPage() {
       ) : (
         <div className="space-y-5">
           <FocusHero onStart={startFocus} />
+
+          <StreakFreezeCard />
 
           <section aria-labelledby="pulse-title">
             <div className="mb-3 flex items-center justify-between">
@@ -280,6 +296,10 @@ export default function DashboardPage() {
             <PulseCard icon={<Target />} label="Focus score" value={stats.avgFocusScore ?? 0} detail={stats.avgFocusScore ? "average session quality" : "complete a session to score"} tone="success" />
             <PulseCard icon={<Trophy />} label="Tasks completed" value={stats.completedTasks} detail="completed today" tone="warning" />
           </div>
+
+          <CommunityNow />
+
+          <WeeklyReviewCard />
 
           <RecentActivity sessions={stats.recentSessions} />
         </div>

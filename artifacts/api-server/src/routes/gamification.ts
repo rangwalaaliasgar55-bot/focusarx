@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { db, userWalletsTable, userBadgesTable, usersTable, focusSessionsTable, studyStreaksTable, tasksTable, coinTransactionsTable } from "@workspace/db";
-import { eq, desc, and, sql, gte } from "drizzle-orm";
+import { eq, desc, and, sql, gte, count } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
@@ -74,18 +74,27 @@ router.get("/gamification/badges", authMiddleware, async (req: AuthRequest, res:
     const [streak] = await db.select({ count: studyStreaksTable.currentStreak }).from(studyStreaksTable).where(eq(studyStreaksTable.userId, req.userId));
     const [tasks] = await db.select({ count: sql<number>`count(*)` }).from(tasksTable).where(and(eq(tasksTable.userId, req.userId), eq(tasksTable.completed, true)));
 
+    // Social proof (audit M1): what share of registered learners hold each badge.
+    const [{ value: totalLearners }] = await db.select({ value: count() }).from(usersTable).where(eq(usersTable.isGuest, false));
+    const holderRows = await db
+      .select({ badgeId: userBadgesTable.badgeId, holders: count() })
+      .from(userBadgesTable)
+      .groupBy(userBadgesTable.badgeId);
+    const holderMap = new Map(holderRows.map((row) => [row.badgeId, row.holders]));
+
     const badges = BADGE_DEFS.map(def => {
       const unlocked = badgeMap.get(def.id);
       let progress = 0;
       if (def.unit === "totalMinutes") progress = Number(stats?.totalMinutes ?? 0);
       else if (def.unit === "streak") progress = streak?.count ?? 0;
       else if (def.unit === "completedTasks") progress = Number(tasks?.count ?? 0);
-      
+
       return {
         ...def,
         unlocked: !!unlocked,
         unlockedAt: unlocked?.unlockedAt ?? null,
         progress: Math.min(progress, def.threshold),
+        unlockRate: Math.round(((holderMap.get(def.id) ?? 0) / Math.max(1, totalLearners)) * 100),
       };
     });
 

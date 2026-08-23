@@ -28,6 +28,8 @@ const AdminPage = lazy(() => import("@/pages/admin"));
 import DailyRewardBanner from "@/components/DailyRewardBanner";
 import { RewardToastProvider } from "@/components/ui/RewardToast";
 import { LiveActivityTicker } from "@/components/LiveActivityTicker";
+import FloatingTimer from "@/components/FloatingTimer";
+import LiveAnnouncer from "@/components/LiveAnnouncer";
 import { FloatingParticles } from "@/components/FloatingParticles";
 import { CookieConsent } from "@/components/CookieConsent";
 import { MaintenanceGate } from "@/components/MaintenanceGate";
@@ -322,7 +324,34 @@ function RoutedContent() {
 
 function AppWithPalette() {
   const { status } = useAuth();
+  const [, setLocation] = useLocation();
   const [paletteOpen, setPaletteOpen] = useState(false);
+
+  // Quick page switching (audit L2): 1-Home, 2-Tasks, 3-Analytics,
+  // 4-Leaderboard, 5-Achievements. Ignored while typing or with modifiers.
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    const pageKeys: Record<string, string> = {
+      "1": "/",
+      "2": "/tasks",
+      "3": "/analytics",
+      "4": "/leaderboard",
+      "5": "/achievements",
+    };
+    const handler = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const target = pageKeys[e.key];
+      if (!target || paletteOpen) return;
+      const el = e.target as HTMLElement | null;
+      const tag = el?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (el?.isContentEditable) return;
+      setLocation(target);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [status, paletteOpen, setLocation]);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -349,6 +378,8 @@ function AppWithPalette() {
       <AnnouncementBanner />
       <DailyRewardBanner />
       <LiveActivityTicker />
+      <FloatingTimer />
+      <LiveAnnouncer />
       <CookieConsent />
       <MaintenanceGate>
         <MobileWelcomeGate>

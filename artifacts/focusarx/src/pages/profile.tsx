@@ -22,6 +22,8 @@ import {
   Zap,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { Switch } from "@/components/ui/switch";
+import { playSessionComplete } from "@/lib/soundEngine";
 import { useAuth, getToken } from "@/lib/auth";
 import { apiJson } from "@/lib/api";
 import { useToast } from "@/components/Toast";
@@ -133,6 +135,46 @@ function ActivityHeatmap({ data }: { data: Record<string, number> }) {
   );
 }
 
+/** Sound preferences (audit L1): persistent toggles for effects + coach voice. */
+function SoundPreferencesCard() {
+  const [effectsOn, setEffectsOn] = useState(() => localStorage.getItem("fx_muted") !== "1");
+  const [voiceOn, setVoiceOn] = useState(() => localStorage.getItem("fx-coach-voice") === "true");
+
+  const setEffects = (on: boolean) => {
+    localStorage.setItem("fx_muted", on ? "0" : "1");
+    setEffectsOn(on);
+    if (on) playSessionComplete();
+  };
+
+  const setVoice = (on: boolean) => {
+    localStorage.setItem("fx-coach-voice", on ? "true" : "false");
+    setVoiceOn(on);
+  };
+
+  return (
+    <Card className="mb-5">
+      <CardContent className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center">
+        <div className="min-w-0 flex-1 space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-sm font-medium">Sound effects</p>
+              <p className="text-xs text-[var(--foreground-subtle)]">Session chimes, XP and achievement sounds.</p>
+            </div>
+            <Switch checked={effectsOn} onCheckedChange={setEffects} aria-label="Toggle sound effects" />
+          </div>
+          <div className="flex items-center justify-between gap-4 border-t border-[var(--border-subtle)] pt-4">
+            <div className="min-w-0">
+              <p className="text-sm font-medium">AI coach voice</p>
+              <p className="text-xs text-[var(--foreground-subtle)]">Spoken encouragement at session start and end.</p>
+            </div>
+            <Switch checked={voiceOn} onCheckedChange={setVoice} aria-label="Toggle AI coach voice" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function AchievementCard({ badge }: { badge: BadgeDef }) {
   const percent = badge.unlocked ? 100 : Math.min(100, (badge.progress / Math.max(1, badge.threshold)) * 100);
   return (
@@ -207,6 +249,8 @@ export default function ProfilePage() {
       <div className="mb-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[{ label: "Focus time", value: `${Math.round(stats.totalMinutes / 60)}h`, icon: Clock3, tone: "var(--brand-strong)", soft: "var(--brand-soft)" }, { label: "Sessions", value: stats.sessions.toLocaleString(), icon: Target, tone: "var(--success)", soft: "var(--success-soft)" }, { label: "Current streak", value: `${stats.streak}d`, icon: Flame, tone: "var(--warning)", soft: "var(--warning-soft)" }, { label: "Best score", value: `${stats.maxScore}%`, icon: Star, tone: "var(--info)", soft: "var(--info-soft)" }].map(({ label, value, icon: Icon, tone, soft }) => <Card key={label} interactive><CardContent className="flex items-center gap-4"><span className="grid h-11 w-11 place-items-center rounded-xl" style={{ color: tone, background: soft }}><Icon size={20} /></span><div><p className="text-2xl font-semibold tabular-nums">{value}</p><p className="text-xs text-[var(--foreground-subtle)]">{label}</p></div></CardContent></Card>)}
       </div>
+
+      <SoundPreferencesCard />
 
       <Tabs defaultValue="achievements">
         <TabsList className="mb-5 grid h-auto w-full max-w-md grid-cols-3"><TabsTrigger value="achievements" className="min-h-11"><Award /> Achievements</TabsTrigger><TabsTrigger value="activity" className="min-h-11"><History /> Activity</TabsTrigger><TabsTrigger value="wallet" className="min-h-11"><WalletCards /> Wallet</TabsTrigger></TabsList>

@@ -24,6 +24,7 @@ import TaskTimeline, { OverrunModal } from "./TaskTimeline";
 import { SoundEngine } from "./SoundEngine";
 import SessionTypePicker, { type SessionType, SESSION_TYPE_TINTS } from "./SessionTypePicker";
 import AmbientSoundBar from "./AmbientSoundBar";
+import ZenOverlay from "./ZenOverlay";
 import { useTasks } from "@/hooks/useTasks";
 import BreakActivityCard from "./BreakActivityCard";
 import SessionSummaryCard from "./SessionSummaryCard";
@@ -106,6 +107,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
   const [activeTaskName, setActiveTaskName] = useState("");
   const [totalFocusSec, setTotalFocusSec] = useState(0);
   const [showDistractionModal, setShowDistractionModal] = useState(false);
+  const [showZen, setShowZen] = useState(false);
   const [overrunTask, setOverrunTask] = useState<{ text: string } | null>(null);
   const [overrunMinutes, setOverrunMinutes] = useState(0);
 
@@ -644,6 +646,16 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
               🔔 Enable session alerts
             </button>
           )}
+
+          {/* Zen mode */}
+          <button
+            type="button"
+            onClick={() => setShowZen(true)}
+            className="mt-3 flex items-center gap-2 rounded-xl border border-[var(--palette-violet-500)]/25 bg-[var(--palette-violet-500)]/8 px-4 py-2.5 text-xs font-bold text-[var(--palette-violet-400)] transition-all hover:border-[var(--palette-violet-500)]/45 hover:bg-[var(--palette-violet-500)]/15 active:scale-95"
+          >
+            🧘 Zen Mode
+            <span className="text-[10px] font-medium text-[var(--palette-zinc-600)]">full-screen focus</span>
+          </button>
         </div>
 
         {/* ── BOTTOM STRIP ────────────────────────────────────────────── */}
@@ -748,6 +760,20 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     <AmbientSoundBar visible={true} />
 
     {/* ── OVERLAYS ──────────────────────────────────────────────────── */}
+    <AnimatePresence>
+      {showZen && (
+        <ZenOverlay
+          secondsLeft={secondsLeft}
+          progress={progress}
+          mode={mode}
+          isRunning={isRunning}
+          accent={typeTint?.accent ?? (mode === "break" ? "var(--palette-emerald-500)" : mode === "longBreak" ? "var(--palette-violet-500)" : "var(--brand-600)")}
+          onToggle={toggle}
+          onExit={() => setShowZen(false)}
+        />
+      )}
+    </AnimatePresence>
+
     <SessionTypePicker
       open={showSessionTypePicker}
       onClose={() => setShowSessionTypePicker(false)}
