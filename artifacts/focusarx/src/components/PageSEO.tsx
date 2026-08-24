@@ -265,7 +265,7 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   },
   twoHourStudyMethod: {
     canonical: "/two-hour-study-method",
-    title: "The 2-Hour Study Method |高效学习 | FocusArx",
+    title: "The 2-Hour Study Method: Structure Deep Study Sessions | FocusArx",
     description: "Master the 2-hour focused study method. Structure your sessions for maximum retention with timed intervals, active recall, and strategic breaks.",
     keywords: "2 hour study method, study session structure, timed studying, focus blocks",
   },
@@ -317,5 +317,41 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
     title: "Sign Up Free | FocusArx",
     description: "Create your free FocusArx account. No credit card required. Start tracking your focus sessions in 30 seconds.",
     keywords: "sign up FocusArx, create account, free focus app registration",
+  },
+  guides: {
+    canonical: "/guides",
+    title: "All Focus & Study Guides | Free Productivity Library | FocusArx",
+    description: "Browse every free FocusArx guide — Pomodoro technique, deep work, study techniques, ADHD focus, beating procrastination, study music, and more. Science-backed and practical.",
+    keywords: "study guides, focus guides, productivity guides, free study resources, how to focus, how to study",
+  },
+  adhdFocus: {
+    canonical: "/adhd-focus-tips",
+    title: "How to Focus with ADHD: 15 Science-Backed Strategies (2026) | FocusArx",
+    description: "Practical focus strategies that actually work for ADHD brains — body doubling, the 10-minute rule, dopamine-friendly rewards, timers, and how to build study habits that stick.",
+    keywords: "how to focus with ADHD, ADHD study tips, ADHD concentration, focus strategies ADHD, ADHD productivity, ADHD time blindness, body doubling study",
+  },
+  stopProcrastinating: {
+    canonical: "/stop-procrastinating",
+    title: "How to Stop Procrastinating: 12 Methods That Work | FocusArx",
+    description: "Why you procrastinate (it's not laziness) and 12 proven ways to stop — the 2-minute rule, temptation bundling, implementation intentions, and systems that make starting easy.",
+    keywords: "how to stop procrastinating, stop procrastination, why do I procrastinate, procrastination help, overcome procrastination, 2 minute rule, motivation to study",
+  },
+  studyWithMe: {
+    canonical: "/study-with-me",
+    title: "Study With Me: Live Virtual Study Sessions | FocusArx",
+    description: "Study with me and thousands of other learners in live virtual study rooms. Real-time accountability, Pomodoro sync, and the body-doubling effect that makes focusing easier.",
+    keywords: "study with me, study with me online, virtual study session, body doubling, study live with others, pomodoro study with me, study together online",
+  },
+  focusMusic: {
+    canonical: "/focus-music",
+    title: "Best Music for Studying & Focus: What Science Says | FocusArx",
+    description: "Does study music actually help? What the research really says about focus music, lo-fi, binaural beats, and silence — plus how to build a playlist that deepens concentration.",
+    keywords: "focus music, study music, music for concentration, lo fi study music, binaural beats focus, best music for studying, music while working",
+  },
+  search: {
+    canonical: "/search",
+    title: "Search FocusArx | Find Guides, Features & Tools",
+    description: "Search all FocusArx guides, study tools, and features — from Pomodoro timers and study rooms to focus guides and calculators.",
+    keywords: "search FocusArx, find study guides, focus tools",
   },
 };

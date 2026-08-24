@@ -6,6 +6,7 @@
 # ── Allow all compliant crawlers ──────────────────────────────
 User-agent: *
 Allow: /
+Allow: /guides
 Allow: /focus-guide
 Allow: /deep-study-guide
 Allow: /two-hour-study-method
@@ -16,6 +17,11 @@ Allow: /study-techniques
 Allow: /virtual-study-room
 Allow: /study-method-quiz
 Allow: /study-calculator
+Allow: /adhd-focus-tips
+Allow: /stop-procrastinating
+Allow: /study-with-me
+Allow: /focus-music
+Allow: /comparison
 Allow: /pricing
 Allow: /premium
 Allow: /about

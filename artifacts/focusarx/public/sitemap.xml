@@ -79,8 +79,38 @@
        PUBLIC CONTENT PAGES (highest SEO value)
   ═══════════════════════════════════════════════ -->
   <url>
+    <loc>https://www.focusarx.site/guides</loc>
+    <lastmod>2026-08-24</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://www.focusarx.site/adhd-focus-tips</loc>
+    <lastmod>2026-08-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://www.focusarx.site/stop-procrastinating</loc>
+    <lastmod>2026-08-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://www.focusarx.site/focus-music</loc>
+    <lastmod>2026-08-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.92</priority>
+  </url>
+  <url>
+    <loc>https://www.focusarx.site/study-with-me</loc>
+    <lastmod>2026-08-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
     <loc>https://www.focusarx.site/focus-guide</loc>
-    <lastmod>2026-08-16</lastmod>
+    <lastmod>2026-08-24</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.90</priority>
   </url>
@@ -92,7 +122,7 @@
   </url>
   <url>
     <loc>https://www.focusarx.site/two-hour-study-method</loc>
-    <lastmod>2026-07-08</lastmod>
+    <lastmod>2026-08-24</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.92</priority>
   </url>
@@ -206,12 +236,6 @@
   </url>
   <url>
     <loc>https://www.focusarx.site/ai-policy</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.50</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/data-deletion</loc>
     <lastmod>2026-08-16</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.50</priority>

@@ -1,0 +1,225 @@
+#!/usr/bin/env node
+// ══════════════════════════════════════════════════════════════════
+// FocusArx build-time prerenderer
+// ══════════════════════════════════════════════════════════════════
+// Generates a static HTML file for every public route listed in
+// scripts/prerender-data.mjs, each with its own <title>, meta
+// description, canonical URL, Open Graph / Twitter tags, JSON-LD
+// structured data, and crawler-visible body content.
+//
+// Why: the app is a client-rendered SPA. Without prerendering, every
+// URL shares the homepage's title/description for crawlers and social
+// scrapers that don't execute JavaScript. With prerendering:
+//   - Google/Bing get unique titles + snippets per URL (better CTR)
+//   - Facebook/WhatsApp/X/Discord/LinkedIn previews work everywhere
+//   - Content is visible even before the JS bundle hydrates
+//
+// The static body inside #root is replaced when React mounts, so the
+// interactive app behaves exactly as before.
+//
+// Hosting: Vercel's `"handle": "filesystem"` route serves these files
+// automatically before falling back to the SPA index.html.
+
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { ROUTES, SITE_NAME } from "./prerender-data.mjs";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DIST = path.resolve(__dirname, "..", "dist", "public");
+const TEMPLATE = path.join(DIST, "index.html");
+const BASE_URL = (process.env.VITE_APP_URL || "https://www.focusarx.site").replace(/\/+$/, "");
+
+// ── helpers ────────────────────────────────────────────────────────
+const escapeHtml = (s) =>
+  String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+function replaceTag(html, regex, replacement) {
+  if (!regex.test(html)) {
+    throw new Error(`prerender: pattern not found: ${regex}`);
+  }
+  return html.replace(regex, replacement);
+}
+
+// Replace the content of a meta tag matched by an attribute selector.
+function setMeta(html, attr, name, content) {
+  const regex = new RegExp(
+    `<meta\\s+[^>]*${attr}=["']${name.replace(/[-:]/g, "\\$&")}["'][^>]*>`,
+    "i",
+  );
+  return replaceTag(html, regex, `<meta ${attr}="${name}" content="${escapeHtml(content)}" />`);
+}
+
+function setCanonical(html, url) {
+  return replaceTag(
+    html,
+    /<link\s+[^>]*rel=["']canonical["'][^>]*>/i,
+    `<link rel="canonical" href="${escapeHtml(url)}" />`,
+  );
+}
+
+// Remove global JSON-LD blocks (FAQPage / ItemList) that only belong on
+// the homepage — every route inherits the built index.html head.
+function stripHomepageOnlySchemas(html) {
+  return html.replace(
+    /<script type="application\/ld\+json">[\s\S]*?<\/script>/g,
+    (block) => (/"@type":\s*"(FAQPage|ItemList)"/.test(block) ? "" : block),
+  );
+}
+
+function breadcrumbSchema(routePath, title) {
+  const parts = routePath.split("/").filter(Boolean);
+  const items = [{ "@type": "ListItem", position: 1, name: "Home", item: BASE_URL }];
+  parts.forEach((p, i) => {
+    items.push({
+      "@type": "ListItem",
+      position: i + 2,
+      name: p.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+      item: `${BASE_URL}/${parts.slice(0, i + 1).join("/")}`,
+    });
+  });
+  // The last crumb should be labeled with the real page title.
+  if (items.length > 1) items[items.length - 1].name = title.replace(/\s*\|\s*FocusArx.*$/i, "");
+  return { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: items };
+}
+
+function articleSchema(entry, url) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: entry.h1,
+    description: entry.description,
+    author: { "@type": "Organization", name: SITE_NAME },
+    publisher: {
+      "@type": "Organization",
+      name: SITE_NAME,
+      logo: { "@type": "ImageObject", url: `${BASE_URL}/logo.png` },
+    },
+    dateModified: new Date().toISOString().slice(0, 10),
+    mainEntityOfPage: url,
+  };
+}
+
+function faqSchema(faq) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faq.map(([q, a]) => ({
+      "@type": "Question",
+      name: q,
+      acceptedAnswer: { "@type": "Answer", text: a },
+    })),
+  };
+}
+
+// ── prerendered body ───────────────────────────────────────────────
+const SHELL_CSS = `
+:root{color-scheme:dark}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0b0d13;color:#e7e9ee;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.65}
+.fa-seo{max-width:760px;margin:0 auto;padding:72px 24px 96px}
+.fa-seo .badge{display:inline-block;border:1px solid rgba(124,58,237,.35);background:rgba(124,58,237,.12);color:#a78bfa;border-radius:999px;padding:4px 12px;font-size:12px;font-weight:600;margin-bottom:20px}
+.fa-seo h1{font-size:34px;font-weight:900;line-height:1.2;letter-spacing:-.02em;margin-bottom:14px}
+.fa-seo h2{font-size:21px;font-weight:800;margin:32px 0 8px}
+.fa-seo .lead{font-size:17px;color:#b9bdca;margin-bottom:28px}
+.fa-seo p{color:#b9bdca;font-size:15px;margin-bottom:14px}
+.fa-seo a{color:#a78bfa}
+.fa-seo .related{margin-top:44px;border-top:1px solid rgba(255,255,255,.08);padding-top:24px}
+.fa-seo .related strong{display:block;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:#8b90a0;margin-bottom:10px}
+.fa-seo .related ul{list-style:none;display:grid;gap:6px}
+.fa-seo .cta{display:inline-block;margin-top:40px;background:linear-gradient(90deg,#7c3aed,#4f46e5);color:#fff;font-weight:700;padding:13px 24px;border-radius:12px;text-decoration:none}
+.fa-noscript{max-width:760px;margin:0 auto;padding:16px 24px;color:#8b90a0;font-size:14px}
+`;
+
+function renderBody(entry, url) {
+  const sections = (entry.sections || [])
+    .map((s) => `<h2>${escapeHtml(s.h)}</h2><p>${escapeHtml(s.p)}</p>`)
+    .join("\n");
+  const related = (entry.related || [])
+    .map((pair) => {
+      const [href, label] = pair.split("|");
+      return `<li><a href="${escapeHtml(href)}">${escapeHtml(label || href)}</a></li>`;
+    })
+    .join("");
+  const relatedBlock = related
+    ? `<div class="related"><strong>Keep reading</strong><ul>${related}</ul></div>`
+    : "";
+  return `<div class="fa-seo"><span class="badge">${SITE_NAME}</span><h1>${escapeHtml(entry.h1)}</h1><p class="lead">${escapeHtml(entry.lead)}</p>${sections}${relatedBlock}<a class="cta" href="/signup">Start focusing free — ${SITE_NAME}</a></div>`;
+}
+
+// ── main ───────────────────────────────────────────────────────────
+function main() {
+  if (!existsSync(TEMPLATE)) {
+    console.error("prerender: dist/public/index.html not found — run `vite build` first.");
+    process.exit(1);
+  }
+
+  const template = readFileSync(TEMPLATE, "utf8");
+  let written = 0;
+
+  for (const entry of ROUTES) {
+    const url =
+      entry.path === ""
+        ? `${BASE_URL}/`
+        : `${BASE_URL}${entry.path.startsWith("/") ? entry.path : `/${entry.path}`}`;
+    const fullTitle = entry.title;
+
+    let html = template;
+
+    // Title & description
+    html = replaceTag(html, /<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(fullTitle)}</title>`);
+    html = setMeta(html, "name", "description", entry.description);
+
+    // Canonical + URL-bearing tags
+    html = setCanonical(html, url);
+    html = setMeta(html, "property", "og:url", url);
+    html = setMeta(html, "property", "og:title", fullTitle);
+    html = setMeta(html, "property", "og:description", entry.description);
+    html = setMeta(html, "name", "twitter:title", fullTitle);
+    html = setMeta(html, "name", "twitter:description", entry.description);
+    html = replaceTag(
+      html,
+      /<meta\s+property=["']al:web:url["'][^>]*>/i,
+      `<meta property="al:web:url" content="${escapeHtml(url)}" />`,
+    );
+
+    // Route-scoped structured data + strip homepage-only global schemas
+    // on non-home routes (FAQ/ItemList belong to the landing page).
+    const schemas = [breadcrumbSchema(entry.path, fullTitle)];
+    if (entry.article) schemas.push(articleSchema(entry, url));
+    if (entry.faq) schemas.push(faqSchema(entry.faq));
+    const ld = schemas.map((s) => `<script type="application/ld+json">${JSON.stringify(s)}</script>`).join("\n");
+    if (entry.path !== "") html = stripHomepageOnlySchemas(html);
+    html = html.replace("</head>", `  <!-- Route-scoped structured data (prerendered) -->\n  ${ld}\n</head>`);
+
+    // Static body content injected into #root (replaced on React mount)
+    const body = renderBody(entry, url);
+    html = html.replace(
+      /<div id="root"\s*><\/div>/i,
+      `<div id="root">${body}</div>`,
+    );
+
+    // Minimal critical CSS so the prerendered shell looks intentional
+    // before the app bundle loads.
+    html = html.replace("</head>", `  <style>${SHELL_CSS}</style>\n</head>`);
+
+    // noscript notice (content above is already visible without JS)
+    html = html.replace(
+      "</body>",
+      `<noscript><p class="fa-noscript">${SITE_NAME} is an interactive app — content above is a static summary. Enable JavaScript for the full experience.</p></noscript>\n  </body>`,
+    );
+
+    const outDir = path.join(DIST, entry.path);
+    mkdirSync(outDir, { recursive: true });
+    writeFileSync(path.join(outDir, "index.html"), html);
+    written++;
+  }
+
+  console.log(`prerender: wrote ${written} static pages to dist/public`);
+}
+
+main();
