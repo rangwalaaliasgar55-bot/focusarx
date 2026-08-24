@@ -42,9 +42,19 @@ production lost `referral_*` and how both the sign-in outage and the empty
 user list happened.
 
 Fix: `lib/db/scripts/push.mjs` wraps the push, detects the TTY abort (and any
-truncation prompt), prints what to run locally, and exits 1 so the build fails
-loudly. `lib/db` `push` now calls it. Note the prompt drizzle raises here asks
-to **TRUNCATE** a table — never accept that blind; write a SQL migration.
+truncation prompt), names the exact pending change drizzle wanted to apply, and
+reports it loudly.
+
+**It does not fail the build by default.** The first version exited 1, which
+broke the Vercel deploy outright — `build:vercel` chains the push with `&&`, so
+nothing could ship at all. That is worse than shipping against a slightly-behind
+database, particularly now that the auth/admin query paths project explicit
+columns and tolerate drift. Set `DB_PUSH_STRICT=1` for a hard gate.
+
+drizzle-kit has no non-interactive-safe flag: `--strict` asks for *more*
+confirmations, and `--force` auto-approves statements that can TRUNCATE tables.
+Note the prompt raised here asks to truncate `focus_sessions` — never accept
+that blind; write a SQL migration instead.
 
 ## Admin live viewer
 
