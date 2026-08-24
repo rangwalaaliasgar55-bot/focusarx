@@ -8,8 +8,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
 import {
   Plus, Pencil, Trash2, Save, X, Send, CheckCircle, RefreshCw,
-  Gift, Coins, AlertTriangle, ChevronDown, ChevronUp, Star
+  Gift, Coins, AlertTriangle, ChevronDown, ChevronUp, Star, Search, Bot, Settings2
 } from "lucide-react";
+import { UserManagerDialog } from "@/components/admin/UserManagerDialog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -37,7 +38,7 @@ type AdminStats = {
   dailyChart: DailyPoint[];
   topUsers: TopUser[];
 };
-type AdminData = { users: AdminUser[]; activeCount: number; guestCount?: number };
+type AdminData = { users: AdminUser[]; activeCount: number; guestCount?: number; botCount?: number };
 
 type MarketplaceItem = {
   id: string; name: string; description: string; type: string;
@@ -66,7 +67,7 @@ type CmsOverview = {
 };
 
 type Tab =
-  | "overview" | "analytics" | "users" | "moderation" | "missions" | "retention" | "sql"
+  | "overview" | "analytics" | "users" | "moderation" | "missions" | "retention" | "sql" | "rivals"
   | "marketplace" | "pets" | "lootboxes" | "battlepass" | "quests"
   | "city" | "notify" | "coins" | "email" | "premium" | "site";
 
@@ -216,6 +217,13 @@ export default function AdminPage() {
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkResult, setBulkResult] = useState<string | null>(null);
 
+  // User manager + search + AI rivals
+  const [userSearch, setUserSearch] = useState("");
+  const [managingUserId, setManagingUserId] = useState<string | null>(null);
+  const [botsState, setBotsState] = useState<{ bots: any[]; personas: number } | null>(null);
+  const [botsLoading, setBotsLoading] = useState(false);
+  const [botsBusy, setBotsBusy] = useState(false);
+
   // Site settings state (maintenance mode, announcement, branding)
   const [siteSettings, setSiteSettings] = useState<{
     maintenanceMode: boolean;
@@ -270,6 +278,7 @@ export default function AdminPage() {
     if (tab === "premium" && premiumUsers.length === 0) loadPremiumUsers();
     if (tab === "moderation") loadModerationQueue();
     if (tab === "site") loadSiteSettings();
+    if (tab === "rivals" && !botsState) void loadBots();
   }, [tab]);
 
   useEffect(() => {
@@ -545,6 +554,37 @@ export default function AdminPage() {
     } finally { setModerationActionId(null); }
   }
 
+  async function loadBots() {
+    setBotsLoading(true);
+    try {
+      const r = await fetch("/api/admin/bots", { headers: authHeaders(), credentials: "include" });
+      if (r.ok) setBotsState(await r.json());
+    } finally { setBotsLoading(false); }
+  }
+
+  async function seedRivals() {
+    setBotsBusy(true);
+    try {
+      const r = await fetch("/api/admin/bots/seed", { method: "POST", headers: authHeaders(), credentials: "include" });
+      const d = await r.json();
+      alert(r.ok ? `AI rivals ready — ${d.created} created, ${d.total} total.` : (d.error ?? "Failed"));
+      await loadBots();
+      await loadData();
+    } finally { setBotsBusy(false); }
+  }
+
+  async function removeRivals() {
+    if (!confirm("Remove ALL AI rival accounts and their content?")) return;
+    setBotsBusy(true);
+    try {
+      const r = await fetch("/api/admin/bots", { method: "DELETE", headers: authHeaders(), credentials: "include" });
+      const d = await r.json();
+      alert(r.ok ? `Removed ${d.deleted} AI rivals.` : (d.error ?? "Failed"));
+      await loadBots();
+      await loadData();
+    } finally { setBotsBusy(false); }
+  }
+
   const toggleRole = async (user: AdminUser) => {
     const newRole = user.role === "admin" ? "user" : "admin";
     setRoleLoading(user.id);
@@ -599,9 +639,19 @@ export default function AdminPage() {
         credentials: "include",
         body: JSON.stringify({ query: sqlQuery }),
       });
-      const d = await r.json();
-      if (!r.ok) setSqlError(d.error ?? "Query failed");
-      else setSqlResults(d);
+      const text = await r.text();
+      let d: any = null;
+      try { d = JSON.parse(text); } catch {
+        setSqlError(`Server returned ${r.status}: ${text.slice(0, 300)}`);
+        return;
+      }
+      if (!r.ok) {
+        setSqlError(d.error ?? `Query failed (${r.status})`);
+        return;
+      }
+      setSqlResults(d);
+    } catch (e: any) {
+      setSqlError(e.message ?? "Network error");
     } finally { setSqlLoading(false); }
   };
 
@@ -730,7 +780,13 @@ export default function AdminPage() {
     );
   }
 
-  const users = data?.users ?? [];
+  const allUsers = data?.users ?? [];
+  const users = userSearch.trim()
+    ? allUsers.filter(u =>
+        (u.name ?? "").toLowerCase().includes(userSearch.toLowerCase()) ||
+        u.email.toLowerCase().includes(userSearch.toLowerCase()))
+    : allUsers;
+  const botCount = data?.botCount ?? 0;
   const maxSessions = Math.max(1, ...(stats?.dailyChart.map(d => d.sessions) ?? [1]));
 
   function maskEmail(email: string) {
@@ -856,11 +912,21 @@ export default function AdminPage() {
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">
-          <StatCard label="Registered users" value={String(users.length)} />
+          <StatCard label="Registered users" value={String(allUsers.length - botCount)} />
           <StatCard label="Active sessions" value={String(data?.activeCount ?? 0)} accent="rose" />
-          {(data?.guestCount ?? stats?.guestCount ?? 0) > 0 && (
-            <StatCard label="Guest accounts" value={String(data?.guestCount ?? stats?.guestCount ?? 0)} accent="amber" />
-          )}
+          <StatCard label={botCount > 0 ? "AI rivals" : "Guest accounts"}
+            value={String(botCount > 0 ? botCount : (data?.guestCount ?? stats?.guestCount ?? 0))} accent="amber" />
+        </div>
+
+        {/* Search */}
+        <div className="relative mb-4 max-w-sm">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--palette-zinc-600)]" />
+          <input
+            value={userSearch}
+            onChange={e => setUserSearch(e.target.value)}
+            placeholder="Search by name or email…"
+            className="w-full rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-950)]/60 py-2.5 pl-9 pr-3 text-sm text-[var(--palette-zinc-200)] placeholder-[var(--palette-zinc-600)] outline-none focus:border-[var(--palette-violet-600)]"
+          />
         </div>
 
         {/* Bulk actions bar */}
@@ -909,6 +975,8 @@ export default function AdminPage() {
                   <td className="px-4 py-3">
                     {user.role === "admin"
                       ? <Badge label="Admin" color="bg-[var(--palette-violet-950)] text-[var(--palette-violet-300)]" />
+                      : user.role === "bot"
+                      ? <Badge label="AI rival" color="bg-[var(--palette-sky-950)] text-[var(--palette-sky-400)]" />
                       : <Badge label="User" color="bg-[var(--palette-zinc-800)] text-[var(--palette-zinc-400)]" />}
                   </td>
                   <td className="px-4 py-3 text-[var(--palette-zinc-300)]">{user.sessionCount}</td>
@@ -916,7 +984,13 @@ export default function AdminPage() {
                   <td className="px-4 py-3 text-xs text-[var(--palette-zinc-500)] whitespace-nowrap">{new Date(user.createdAt).toLocaleDateString()}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      {!user.isGuest && (
+                      <button
+                        onClick={() => setManagingUserId(user.id)}
+                        className="rounded-lg border border-[var(--palette-violet-800)] px-2.5 py-1 text-xs font-semibold text-[var(--palette-violet-300)] hover:bg-[var(--palette-violet-950)] transition"
+                      >
+                        <Settings2 size={11} className="inline mr-1" />Manage
+                      </button>
+                      {!user.isGuest && user.role !== "bot" && (
                         <button
                           onClick={() => void toggleRole(user)}
                           disabled={roleLoading === user.id}
@@ -1735,10 +1809,10 @@ export default function AdminPage() {
   function renderSql() {
     return (
       <MotionTab>
-        <div className="flex items-center gap-3 mb-4">
-          <h2 className="text-base font-semibold text-[var(--palette-zinc-100)]">SQL Database Editor</h2>
-          <span className="rounded-full border border-[var(--palette-amber-700)]/40 bg-[var(--palette-amber-950)]/30 px-2 py-0.5 text-[10px] font-medium text-[var(--palette-amber-400)] uppercase tracking-wider">Read-only</span>
-        </div>
+        <SectionHeader
+          title="SQL Database Editor"
+          sub="Run read-only SELECT queries against the live database (SELECT / SHOW / EXPLAIN / WITH, 2s timeout, 500-row cap). Set ENABLE_ADMIN_SQL=false to hard-disable it."
+        />
 
         <div className="flex gap-4">
           {/* Schema sidebar */}
@@ -2320,6 +2394,85 @@ export default function AdminPage() {
     );
   }
 
+  function renderRivals() {
+    const bots = botsState?.bots ?? [];
+    return (
+      <MotionTab>
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <SectionHeader
+            title="AI Rivals"
+            sub="Labelled bot accounts that train daily, keep streaks and post in the community — so the leaderboard and feed are never empty. Every rival is visibly badged “AI” so nobody mistakes them for real people."
+          />
+          <div className="flex items-center gap-2">
+            <button onClick={() => void loadBots()} className="rounded-lg border border-[var(--palette-zinc-700)] px-3 py-1.5 text-xs text-[var(--palette-zinc-400)] hover:text-[var(--palette-zinc-200)] transition">
+              <RefreshCw size={12} className={`inline mr-1 ${botsLoading ? "animate-spin" : ""}`} />Refresh
+            </button>
+            <button
+              onClick={() => void seedRivals()}
+              disabled={botsBusy}
+              className="rounded-lg bg-[var(--palette-sky-700)] hover:bg-[var(--palette-sky-600)] px-3 py-1.5 text-xs font-semibold text-[var(--palette-white)] flex items-center gap-1 disabled:opacity-50"
+            >
+              <Bot size={13} /> {bots.length === 0 ? "Seed AI rivals" : "Sync / add missing"}
+            </button>
+            {bots.length > 0 && (
+              <button
+                onClick={() => void removeRivals()}
+                disabled={botsBusy}
+                className="rounded-lg border border-[var(--palette-rose-800)] px-3 py-1.5 text-xs font-medium text-[var(--palette-rose-400)] hover:bg-[var(--palette-rose-950)] disabled:opacity-50"
+              >
+                Remove all
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <StatCard label="AI rivals live" value={String(bots.length)} accent="sky" />
+          <StatCard label="Persona library" value={String(botsState?.personas ?? 0)} />
+          <StatCard label="Daily XP budget" value="120–380 / rival" />
+        </div>
+
+        <div className="rounded-xl border border-[var(--palette-zinc-800)]/80 bg-[var(--palette-zinc-900)]/20 p-4 text-xs leading-relaxed text-[var(--palette-zinc-400)]">
+          <p className="mb-1 font-semibold text-[var(--palette-zinc-300)]">How it works</p>
+          <ul className="list-disc space-y-1 pl-4">
+            <li>Each rival earns XP and advances its streak once a day — triggered lazily when anyone views the leaderboard or community feed (no cron needed).</li>
+            <li>A few rivals post in the community every day, and they sometimes comment under fresh human posts.</li>
+            <li>Rivals always carry a visible 🤖 <span className="text-[var(--palette-sky-400)]">AI</span> badge in the leaderboard, community and search — they never pretend to be real users.</li>
+            <li>They are excluded from your real platform metrics (registered users, weekly signups, analytics).</li>
+          </ul>
+        </div>
+
+        {botsLoading ? (
+          <div className="text-center py-8 text-[var(--palette-zinc-500)] text-sm">Loading…</div>
+        ) : bots.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-[var(--palette-zinc-800)] p-10 text-center">
+            <Bot size={36} className="mx-auto mb-3 text-[var(--palette-zinc-600)]" />
+            <p className="text-sm font-medium text-[var(--palette-zinc-300)]">No AI rivals yet</p>
+            <p className="mt-1 text-xs text-[var(--palette-zinc-500)]">Seed the crew to fill the leaderboard and community instantly.</p>
+          </div>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {bots.map((b: any) => (
+              <div key={b.id} className="flex items-center gap-3 rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 px-4 py-3">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--palette-sky-950)] text-[var(--palette-sky-400)]"><Bot size={16} /></span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-[var(--palette-zinc-200)]">{b.name ?? "Rival"}</p>
+                  <p className="truncate text-[10px] font-mono text-[var(--palette-zinc-600)]">{b.email}</p>
+                </div>
+                <button
+                  onClick={() => setManagingUserId(b.id)}
+                  className="rounded-lg border border-[var(--palette-zinc-700)] px-2 py-1 text-[10px] text-[var(--palette-zinc-400)] hover:text-[var(--palette-zinc-200)]"
+                >
+                  Edit
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </MotionTab>
+    );
+  }
+
   const TAB_RENDER: Record<Tab, () => React.ReactNode> = {
     overview: renderOverview,
     analytics: () => (
@@ -2333,6 +2486,7 @@ export default function AdminPage() {
     missions: renderMissions,
     retention: renderRetention,
     sql: renderSql,
+    rivals: renderRivals,
     marketplace: renderMarketplace,
     pets: renderPets,
     lootboxes: renderLootboxes,
@@ -2353,6 +2507,13 @@ export default function AdminPage() {
           {TAB_RENDER[tab]?.() ?? null}
         </div>
       </AnimatePresence>
+
+      <UserManagerDialog
+        userId={managingUserId}
+        onClose={() => setManagingUserId(null)}
+        onChanged={() => void loadData()}
+        authHeaders={authHeaders}
+      />
 
       <Dialog open={Boolean(deleteConfirm)} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
         <DialogContent className="w-[min(calc(100vw-2rem),28rem)]">

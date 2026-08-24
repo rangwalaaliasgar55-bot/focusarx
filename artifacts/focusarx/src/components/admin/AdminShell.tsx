@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import {
   BarChart2,
   Bell,
+  Bot,
   Building2,
   Coins,
   Crown,
@@ -34,6 +35,7 @@ const ADMIN_SECTIONS = [
   { id: "analytics", label: "Analytics", icon: BarChart2, group: "Platform" },
   { id: "users", label: "Users", icon: Users, group: "Platform" },
   { id: "moderation", label: "Moderation", icon: ShieldCheck, group: "Platform" },
+  { id: "rivals", label: "AI rivals", icon: Bot, group: "Platform" },
   { id: "missions", label: "Missions", icon: Target, group: "Platform" },
   { id: "retention", label: "Retention", icon: Heart, group: "Platform" },
   { id: "marketplace", label: "Marketplace", icon: ShoppingBag, group: "Content" },

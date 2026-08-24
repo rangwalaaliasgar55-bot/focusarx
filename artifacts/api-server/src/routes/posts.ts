@@ -10,6 +10,7 @@ import {
 import { extractUserId } from "./auth";
 import { eq, and, desc, sql, inArray, or } from "drizzle-orm";
 import { moderateText } from "../lib/moderation";
+import { ensureDailyBotActivity, maybeBotReply } from "../lib/botEngine";
 
 const REPEAT_OFFENDER_THRESHOLD = 3;
 
@@ -41,7 +42,7 @@ async function loadVisiblePost(postId: string, viewerId: string | null) {
 }
 
 async function enrichPost(post: any, viewerId: string | null) {
-  const [author] = await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email })
+  const [author] = await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, role: usersTable.role })
     .from(usersTable).where(eq(usersTable.id, post.userId)).limit(1);
   const [wallet] = await db.select({ level: userWalletsTable.level })
     .from(userWalletsTable).where(eq(userWalletsTable.userId, post.userId)).limit(1);
@@ -63,12 +64,16 @@ async function enrichPost(post: any, viewerId: string | null) {
     ? (await db.select().from(postSavesTable).where(and(eq(postSavesTable.postId, post.id), eq(postSavesTable.userId, viewerId))).limit(1)).length > 0
     : false;
 
+  const authorRole = (author?.role ?? "user").toLowerCase();
   return {
     ...post,
     author: {
       id: author?.id,
       name: author?.name || author?.email?.split("@")[0] || "User",
       level: wallet?.level ?? 1,
+      role: authorRole,
+      isAdmin: authorRole === "admin",
+      isBot: authorRole === "bot",
     },
     reactionCounts,
     totalReactions: reactions.length,
@@ -84,6 +89,11 @@ postsRouter.get("/feed", authMiddleware, async (req: AuthRequest, res: Response)
   try {
   const userId = req.userId!;
   const { type = "following", limit = "20", offset = "0", groupId } = req.query as Record<string, string>;
+
+  // Public surfaces keep the AI rivals' daily activity ticking (throttled).
+  if (type === "discover" || type === "public") {
+    await ensureDailyBotActivity();
+  }
 
   let posts: any[] = [];
 
@@ -195,6 +205,11 @@ postsRouter.post("/posts", authMiddleware, async (req: AuthRequest, res: Respons
     } catch {}
 
     const enriched = await enrichPost(post, userId);
+    // An AI rival may drop a supportive comment under fresh human posts
+    // (only for posts that made it through moderation).
+    if (moderation.status === "approved" || moderation.status === "flagged") {
+      await maybeBotReply(post.id, userId);
+    }
     res.status(201).json({
       ...enriched,
       moderation: { status: moderation.status, reason: moderation.reason },
@@ -291,9 +306,20 @@ postsRouter.get("/posts/:id/comments", optionalAuth, async (req: AuthRequest, re
     .orderBy(postCommentsTable.createdAt);
 
   const enriched = await Promise.all(comments.map(async c => {
-    const [author] = await db.select({ name: usersTable.name, email: usersTable.email })
+    const [author] = await db.select({ name: usersTable.name, email: usersTable.email, role: usersTable.role, id: usersTable.id })
       .from(usersTable).where(eq(usersTable.id, c.userId)).limit(1);
-    return { ...c, authorName: author?.name || author?.email?.split("@")[0] || "User" };
+    const role = (author?.role ?? "user").toLowerCase();
+    return {
+      ...c,
+      authorName: author?.name || author?.email?.split("@")[0] || "User",
+      author: {
+        id: author?.id,
+        name: author?.name || author?.email?.split("@")[0] || "User",
+        role,
+        isAdmin: role === "admin",
+        isBot: role === "bot",
+      },
+    };
   }));
 
   res.json(enriched);
@@ -340,10 +366,21 @@ postsRouter.post("/posts/:id/comments", authMiddleware, async (req: AuthRequest,
     }
   } catch {}
 
-  const [author] = await db.select({ name: usersTable.name, email: usersTable.email })
+  const [author] = await db.select({ name: usersTable.name, email: usersTable.email, role: usersTable.role, id: usersTable.id })
     .from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+  const role = (author?.role ?? "user").toLowerCase();
 
-  res.status(201).json({ ...comment, authorName: author?.name || author?.email?.split("@")[0] || "User" });
+  res.status(201).json({
+    ...comment,
+    authorName: author?.name || author?.email?.split("@")[0] || "User",
+    author: {
+      id: author?.id,
+      name: author?.name || author?.email?.split("@")[0] || "User",
+      role,
+      isAdmin: role === "admin",
+      isBot: role === "bot",
+    },
+  });
 });
 
 postsRouter.delete("/posts/:postId/comments/:commentId", authMiddleware, async (req: AuthRequest, res: Response) => {

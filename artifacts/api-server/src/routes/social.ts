@@ -8,6 +8,7 @@ import {
   userMissionProgressTable, socialPostsTable, userBadgesTable,
 } from "@workspace/db";
 import { isUserPremium } from "../lib/premiumCheck";
+import { ensureDailyBotActivity } from "../lib/botEngine";
 import { eq, or, and, desc, ilike, sql, gte, inArray } from "drizzle-orm";
 
 export const socialRouter = Router();
@@ -187,11 +188,16 @@ socialRouter.get("/social/search", authMiddleware, async (req: AuthRequest, res:
     return res.json(friends.filter(u => u.id !== userId));
   }
 
-  const users = await db.select({ id: usersTable.id, name: usersTable.name })
+  const users = await db.select({ id: usersTable.id, name: usersTable.name, role: usersTable.role })
     .from(usersTable)
-    .where(or(ilike(usersTable.name, `%${q}%`), ilike(usersTable.email, `%${q}%`)))
+    .where(and(
+      or(ilike(usersTable.name, `%${q}%`), ilike(usersTable.email, `%${q}%`)),
+      eq(usersTable.isGuest, false),
+    ))
     .limit(10);
-  res.json(users.filter(u => u.id !== userId));
+  res.json(users
+    .filter(u => u.id !== userId)
+    .map(u => ({ ...u, isAdmin: (u.role ?? "").toLowerCase() === "admin", isBot: (u.role ?? "").toLowerCase() === "bot" })));
 });
 
 socialRouter.get("/social/activity", authMiddleware, async (req: AuthRequest, res: Response) => {
@@ -237,14 +243,17 @@ socialRouter.get("/social/activity", authMiddleware, async (req: AuthRequest, re
     ]);
 
     const uids = new Set([...sessions.map(s => s.userId), ...badges.map(b => b.userId), ...missions.map(m => m.userId), ...posts.map(p => p.userId)]);
-    const userMap = new Map<string, { name: string; level: number }>();
+    const userMap = new Map<string, { name: string; level: number; isAdmin: boolean; isBot: boolean }>();
     if (uids.size > 0) {
       const [userRows, walletRows] = await Promise.all([
-        db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email }).from(usersTable).where(inArray(usersTable.id, [...uids])),
+        db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, role: usersTable.role }).from(usersTable).where(inArray(usersTable.id, [...uids])),
         db.select({ userId: userWalletsTable.userId, level: userWalletsTable.level }).from(userWalletsTable).where(inArray(userWalletsTable.userId, [...uids])),
       ]);
       const wmap = new Map(walletRows.map(w => [w.userId, w.level]));
-      for (const u of userRows) userMap.set(u.id, { name: u.name || u.email?.split("@")[0] || "Scholar", level: wmap.get(u.id) ?? 1 });
+      for (const u of userRows) {
+        const role = (u.role ?? "user").toLowerCase();
+        userMap.set(u.id, { name: u.name || u.email?.split("@")[0] || "Scholar", level: wmap.get(u.id) ?? 1, isAdmin: role === "admin", isBot: role === "bot" });
+      }
     }
 
     const items: {
@@ -254,6 +263,8 @@ socialRouter.get("/social/activity", authMiddleware, async (req: AuthRequest, re
       userName: string;
       userLevel: number;
       isMe: boolean;
+      isAdmin: boolean;
+      isBot: boolean;
       timestamp: Date;
       data: any;
     }[] = [];
@@ -261,21 +272,21 @@ socialRouter.get("/social/activity", authMiddleware, async (req: AuthRequest, re
     for (const s of sessions) {
       const u = userMap.get(s.userId);
       if (s.completedAt) {
-        items.push({ id: `session-${s.id}`, type: "session_complete", userId: s.userId, userName: u?.name ?? "Scholar", userLevel: u?.level ?? 1, isMe: s.userId === userId, timestamp: s.completedAt, data: { durationMin: Math.round((s.durationSec ?? 0) / 60), focusScore: s.focusScore, category: s.category ?? "General" } });
+        items.push({ id: `session-${s.id}`, type: "session_complete", userId: s.userId, userName: u?.name ?? "Scholar", userLevel: u?.level ?? 1, isMe: s.userId === userId, isAdmin: u?.isAdmin ?? false, isBot: u?.isBot ?? false, timestamp: s.completedAt, data: { durationMin: Math.round((s.durationSec ?? 0) / 60), focusScore: s.focusScore, category: s.category ?? "General" } });
       }
     }
     for (const b of badges) {
       const u = userMap.get(b.userId);
-      items.push({ id: `badge-${b.id}`, type: "badge_unlocked", userId: b.userId, userName: u?.name ?? "Scholar", userLevel: u?.level ?? 1, isMe: b.userId === userId, timestamp: b.unlockedAt, data: { badgeId: b.badgeId } });
+      items.push({ id: `badge-${b.id}`, type: "badge_unlocked", userId: b.userId, userName: u?.name ?? "Scholar", userLevel: u?.level ?? 1, isMe: b.userId === userId, isAdmin: u?.isAdmin ?? false, isBot: u?.isBot ?? false, timestamp: b.unlockedAt, data: { badgeId: b.badgeId } });
     }
     for (const m of missions) {
       if (!m.completedAt) continue;
       const u = userMap.get(m.userId);
-      items.push({ id: `mission-${m.id}`, type: "mission_claimed", userId: m.userId, userName: u?.name ?? "Scholar", userLevel: u?.level ?? 1, isMe: m.userId === userId, timestamp: m.completedAt, data: { missionKey: m.missionKey } });
+      items.push({ id: `mission-${m.id}`, type: "mission_claimed", userId: m.userId, userName: u?.name ?? "Scholar", userLevel: u?.level ?? 1, isMe: m.userId === userId, isAdmin: u?.isAdmin ?? false, isBot: u?.isBot ?? false, timestamp: m.completedAt, data: { missionKey: m.missionKey } });
     }
     for (const p of posts) {
       const u = userMap.get(p.userId);
-      items.push({ id: `post-${p.id}`, type: "post_created", userId: p.userId, userName: u?.name ?? "Scholar", userLevel: u?.level ?? 1, isMe: p.userId === userId, timestamp: p.createdAt, data: { content: p.content.slice(0, 200), postType: p.type } });
+      items.push({ id: `post-${p.id}`, type: "post_created", userId: p.userId, userName: u?.name ?? "Scholar", userLevel: u?.level ?? 1, isMe: p.userId === userId, isAdmin: u?.isAdmin ?? false, isBot: u?.isBot ?? false, timestamp: p.createdAt, data: { content: p.content.slice(0, 200), postType: p.type } });
     }
 
     items.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
@@ -289,30 +300,106 @@ socialRouter.get("/social/activity", authMiddleware, async (req: AuthRequest, re
 socialRouter.get("/social/leaderboard", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const period = (req.query.period as string) || "weekly";
-  const friendIds = await getFriendIds(userId);
-  const allIds = [userId, ...friendIds];
+  const scope = (req.query.scope as string) || "global";
 
-  const wallets = await db.select().from(userWalletsTable)
-    .where(sql`${userWalletsTable.userId} = ANY(ARRAY[${sql.join(allIds.map(id => sql`${id}::text`), sql`, `)}])`);
+  try {
+    // Global board: every registered user + AI rivals, so there's always
+    // someone to compete with. Friends board: just your circle.
+    const friendIds = await getFriendIds(userId);
 
-  const entries = await Promise.all(wallets.map(async w => {
-    const [u] = await db.select({ name: usersTable.name, email: usersTable.email })
-      .from(usersTable).where(eq(usersTable.id, w.userId)).limit(1);
-    const [streak] = await db.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, w.userId)).limit(1);
-    const isPremium = await isUserPremium(w.userId);
-    return {
-      userId: w.userId,
-      name: u?.name || u?.email?.split("@")[0] || "User",
-      xp: period === "weekly" ? (w.weeklyXp ?? 0) : w.totalXp,
-      level: w.level,
-      streak: streak?.currentStreak ?? 0,
-      coins: w.coins,
-      isPremium,
-      isMe: w.userId === userId,
-    };
-  }));
+    if (scope === "global") {
+      // Keep the AI rivals' daily XP ticking whenever the board is viewed.
+      await ensureDailyBotActivity();
+    }
 
-  res.json(entries.sort((a, b) => b.xp - a.xp).map((e, i) => ({ ...e, rank: i + 1 })));
+    const rows = await db
+      .select({
+        userId: usersTable.id,
+        name: usersTable.name,
+        email: usersTable.email,
+        role: usersTable.role,
+        coins: userWalletsTable.coins,
+        totalXp: userWalletsTable.totalXp,
+        weeklyXp: userWalletsTable.weeklyXp,
+        level: userWalletsTable.level,
+        streak: studyStreaksTable.currentStreak,
+      })
+      .from(usersTable)
+      .innerJoin(userWalletsTable, eq(userWalletsTable.userId, usersTable.id))
+      .leftJoin(studyStreaksTable, eq(studyStreaksTable.userId, usersTable.id))
+      .where(eq(usersTable.isGuest, false));
+
+    const filtered = scope === "friends"
+      ? rows.filter(r => r.userId === userId || friendIds.includes(r.userId))
+      : rows;
+
+    // Fresh users may not have a wallet row yet (it's created lazily) — the
+    // inner join above drops them. Append the viewer with zeroed stats so
+    // everyone can always find themselves on the board.
+    if (!filtered.some(r => r.userId === userId)) {
+      const [me] = await db.select({
+        userId: usersTable.id,
+        name: usersTable.name,
+        email: usersTable.email,
+        role: usersTable.role,
+        coins: userWalletsTable.coins,
+        totalXp: userWalletsTable.totalXp,
+        weeklyXp: userWalletsTable.weeklyXp,
+        level: userWalletsTable.level,
+        streak: studyStreaksTable.currentStreak,
+      })
+        .from(usersTable)
+        .leftJoin(userWalletsTable, eq(userWalletsTable.userId, usersTable.id))
+        .leftJoin(studyStreaksTable, eq(studyStreaksTable.userId, usersTable.id))
+        .where(eq(usersTable.id, userId));
+      if (me) filtered.push({
+        ...me,
+        coins: me.coins ?? 0,
+        totalXp: me.totalXp ?? 0,
+        weeklyXp: me.weeklyXp ?? 0,
+        level: me.level ?? 1,
+      });
+    }
+
+    const premiumChecks = await Promise.all(filtered.map(async r => [r.userId, await isUserPremium(r.userId)] as const));
+    const premiumSet = new Set(premiumChecks.filter(([, p]) => p).map(([id]) => id));
+
+    const entries = filtered.map(r => {
+      const role = (r.role ?? "user").toLowerCase();
+      return {
+        userId: r.userId,
+        name: r.name || r.email?.split("@")[0] || "User",
+        // Both shapes — the leaderboard page reads weeklyXp/totalXp while the
+        // community table reads `xp`.
+        xp: period === "weekly" ? (r.weeklyXp ?? 0) : (r.totalXp ?? 0),
+        weeklyXp: r.weeklyXp ?? 0,
+        totalXp: r.totalXp ?? 0,
+        level: r.level ?? 1,
+        streak: r.streak ?? 0,
+        coins: r.coins ?? 0,
+        isPremium: premiumSet.has(r.userId),
+        isAdmin: role === "admin",
+        isBot: role === "bot",
+        isCurrentUser: r.userId === userId,
+        isMe: r.userId === userId,
+      };
+    });
+
+    entries.sort((a, b) => b.xp - a.xp);
+
+    // Top 50 — but always include the viewer, even past the cut.
+    const LIMIT = 50;
+    let ranked = entries.slice(0, LIMIT).map((e, i) => ({ ...e, rank: i + 1 }));
+    const meIdx = entries.findIndex(e => e.isCurrentUser);
+    if (meIdx >= LIMIT) {
+      ranked = [...ranked, { ...entries[meIdx]!, rank: meIdx + 1 }];
+    }
+
+    res.json(ranked);
+  } catch (err) {
+    console.error("GET /social/leaderboard error:", err);
+    res.status(500).json({ error: "Internal error" });
+  }
 });
 
 socialRouter.post("/social/follow/:userId", authMiddleware, async (req: AuthRequest, res: Response) => {

@@ -3,7 +3,7 @@ import type { ElementType } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getToken, useAuth } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
-import { Users, UserPlus, Trophy, Activity, Check, X, Bell, Clock, Rss, Heart, MessageCircle as MessageCircleIcon, Bookmark, Flame, Plus, Send, MoreHorizontal, Image, Edit3, Newspaper, Trash2, ArrowUpRight, Star as StarIcon } from "lucide-react";
+import { Users, UserPlus, Trophy, Activity, Check, X, Bell, Clock, Rss, Heart, MessageCircle as MessageCircleIcon, Bookmark, Flame, Plus, Send, MoreHorizontal, Image, Edit3, Newspaper, Trash2, ArrowUpRight, Star as StarIcon, Shield, Bot } from "lucide-react";
 import { PageTransition } from "@/components/PageTransition";
 import PageHeader from "@/components/PageHeader";
 import { motion, AnimatePresence } from "framer-motion";
@@ -31,6 +31,24 @@ function Avatar({ name, size = 36, level }: { name: string; size?: number, level
         </div>
       )}
     </div>
+  );
+}
+
+function IdentityBadges({ isAdmin, isBot, className = "" }: { isAdmin?: boolean; isBot?: boolean; className?: string }) {
+  if (!isAdmin && !isBot) return null;
+  return (
+    <span className={`inline-flex items-center gap-0.5 ${className}`}>
+      {isAdmin && (
+        <span className="inline-flex items-center gap-0.5 rounded-full border border-[var(--palette-red-500)]/30 bg-[var(--palette-red-500)]/10 px-1.5 py-px text-[7px] font-black uppercase tracking-widest text-[var(--palette-red-400)]" title="FocusArx admin">
+          <Shield size={7} /> Admin
+        </span>
+      )}
+      {isBot && (
+        <span className="inline-flex items-center gap-0.5 rounded-full border border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/10 px-1.5 py-px text-[7px] font-black uppercase tracking-widest text-[var(--palette-violet-300)]" title="AI rival — a practice account, not a real person">
+          <Bot size={7} /> AI
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -84,7 +102,11 @@ function LeaderboardTable({ data }: { data: any[] }) {
           <span className={`w-6 text-center text-sm font-black ${i < 3 ? "text-xl" : "text-[var(--foreground-subtle)]"}`}>{i < 3 ? medals[i] : `${i + 1}`}</span>
           <Avatar name={e.name} size={32} level={e.level} />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-[var(--palette-white)] truncate">{e.name}{e.isMe && " (You)"}</p>
+            <p className="text-sm font-bold text-[var(--palette-white)] truncate flex items-center gap-1.5">
+              {e.name}
+              <IdentityBadges isAdmin={e.isAdmin} isBot={e.isBot} />
+              {e.isMe && <span className="text-[var(--brand-400)]">(You)</span>}
+            </p>
             <p className="text-[9px] font-black uppercase tracking-widest text-[var(--foreground-subtle)]">LV.{e.level} · {e.streak}d STREAK</p>
           </div>
           <div className="text-right">
@@ -156,7 +178,10 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post
           <div className="flex items-center gap-4">
              <Avatar name={post.author?.name || "U"} size={44} level={post.author?.level} />
              <div>
-                <p className="font-bold text-[var(--palette-white)] leading-none mb-1">{post.author?.name || "User"}</p>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <p className="font-bold text-[var(--palette-white)] leading-none">{post.author?.name || "User"}</p>
+                  <IdentityBadges isAdmin={post.author?.isAdmin} isBot={post.author?.isBot} />
+                </div>
                 <p className="text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)]">{post.createdAt ? timeAgo(post.createdAt) : ""}</p>
              </div>
           </div>
@@ -234,10 +259,11 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post
               <div className="space-y-4 max-h-64 overflow-y-auto pr-2 scrollbar-none">
                 {comments.map((c: any) => (
                   <div key={c.id} className="flex gap-3">
-                    <Avatar name={c.author?.name || "U"} size={28} />
+                    <Avatar name={c.author?.name || c.authorName || "U"} size={28} />
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <p className="text-xs font-bold text-[var(--palette-white)]">{c.author?.name || "User"}</p>
+                        <p className="text-xs font-bold text-[var(--palette-white)]">{c.author?.name || c.authorName || "User"}</p>
+                        <IdentityBadges isAdmin={c.author?.isAdmin ?? (c as any).isAdmin} isBot={c.author?.isBot ?? (c as any).isBot} />
                         <p className="text-[8px] font-black uppercase tracking-widest text-[var(--foreground-subtle)]">{timeAgo(c.createdAt)}</p>
                       </div>
                       <p className="text-xs text-[var(--palette-zinc-400)] leading-relaxed">{c.content}</p>
@@ -264,8 +290,8 @@ export default function SocialPage() {
 
   const { data: posts = [], isLoading: postsLoading, refetch: refetchPosts } = useQuery({
     queryKey: ["posts", tab],
-    queryFn: () => apiFetch(tab === "feed" ? "/api/posts" : "/api/posts/following"),
-    enabled: tab === "feed" || tab === "activity",
+    queryFn: () => apiFetch(tab === "feed" ? "/api/feed?type=discover&limit=30" : "/api/feed?type=following&limit=30"),
+    enabled: tab === "feed",
     staleTime: 60_000,
   });
 
@@ -292,7 +318,7 @@ export default function SocialPage() {
   });
 
   const { data: leaderboard = [], isLoading: leaderboardLoading, error: leaderboardError } = useQuery({
-    queryKey: ["social-leaderboard", period], queryFn: () => apiFetch(`/api/social/leaderboard?period=${period}`),
+    queryKey: ["social-leaderboard", period], queryFn: () => apiFetch(`/api/social/leaderboard?period=${period === "alltime" ? "total" : period}&scope=global`),
     enabled: tab === "leaderboard",
   });
 
@@ -372,7 +398,12 @@ export default function SocialPage() {
                   searchResults.map((u: any) => (
                     <div key={u.id} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-[var(--palette-white)]/5 transition-all">
                       <Avatar name={u.name} level={u.level} />
-                      <div className="flex-1 min-w-0"><p className="text-sm font-bold text-[var(--palette-white)] truncate">{u.name}</p><p className="text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)]">LV.{u.level} · {u.streak}d Streak</p></div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-[var(--palette-white)] truncate flex items-center gap-1.5">{u.name}<IdentityBadges isAdmin={u.isAdmin} isBot={u.isBot} /></p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)]">
+                          {u.isBot ? "AI RIVAL" : u.level != null ? `LV.${u.level} · ${u.streak ?? 0}d Streak` : "Member"}
+                        </p>
+                      </div>
                       <button onClick={() => sendRequest.mutate(u.id)}
                         className="rounded-xl bg-[var(--palette-white)] text-[var(--palette-black)] px-4 py-2 text-xs font-black hover:bg-[var(--palette-zinc-200)] transition-all flex items-center gap-2">
                          <Plus size={14} /> Connect
@@ -466,7 +497,11 @@ export default function SocialPage() {
                            {a.type === "session_complete" ? "🎯" : a.type === "badge_unlocked" ? "🏅" : "⚡"}
                         </div>
                         <div>
-                           <p className="text-sm font-bold text-[var(--palette-white)] mb-0.5">{a.userName} <span className="text-[10px] font-black text-[var(--brand-teal)] ml-2">LV.{a.userLevel}</span></p>
+                           <p className="text-sm font-bold text-[var(--palette-white)] mb-0.5 flex items-center gap-1.5">
+                              {a.userName}
+                              <IdentityBadges isAdmin={a.isAdmin} isBot={a.isBot} />
+                              <span className="text-[10px] font-black text-[var(--brand-teal)] ml-1">LV.{a.userLevel}</span>
+                            </p>
                            <p className="text-xs text-[var(--foreground-subtle)] font-medium leading-tight">
                               {a.type === "session_complete" ? `Completed ${a.data?.durationMin}m Session` : a.type === "badge_unlocked" ? `Earned ${a.data?.badgeId} Badge` : "Updated Protocol"}
                            </p>

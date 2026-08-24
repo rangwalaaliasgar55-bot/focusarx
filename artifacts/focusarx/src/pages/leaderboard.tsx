@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Flame, Crown, Medal, RefreshCw } from "lucide-react";
+import { Trophy, Flame, Crown, Medal, RefreshCw, Shield, Bot, Users } from "lucide-react";
 import { getToken } from "@/lib/auth";
 import { PageTransition } from "@/components/PageTransition";
 import { TiltCard } from "@/components/TiltCard";
@@ -15,10 +15,13 @@ interface LeaderboardEntry {
   coins: number;
   streak: number;
   isPremium?: boolean;
+  isAdmin?: boolean;
+  isBot?: boolean;
   isCurrentUser: boolean;
 }
 
 type Filter = "weekly" | "total";
+type Scope = "global" | "friends";
 
 const AVATAR_GRADIENTS = [
   "from-[var(--brand-600)] to-[var(--palette-4f46e5)]",
@@ -31,6 +34,23 @@ const AVATAR_GRADIENTS = [
 
 function getAvatarGradient(name: string) {
   return AVATAR_GRADIENTS[name.charCodeAt(0) % AVATAR_GRADIENTS.length]!;
+}
+
+function NameBadges({ entry }: { entry: LeaderboardEntry }) {
+  return (
+    <>
+      {entry.isAdmin && (
+        <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full border border-[var(--rgba-239-68-68-0_35)] bg-[var(--rgba-239-68-68-0_12)] px-1.5 py-px text-[8px] font-black uppercase tracking-wider text-[var(--color-error)]" title="FocusArx team">
+          <Shield size={7} /> Admin
+        </span>
+      )}
+      {entry.isBot && (
+        <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full border border-[var(--rgba-124-58-237-0_35)] bg-[var(--rgba-124-58-237-0_12)] px-1.5 py-px text-[8px] font-black uppercase tracking-wider text-[var(--brand-400)]" title="AI rival — a practice account you can race against">
+          <Bot size={7} /> AI
+        </span>
+      )}
+    </>
+  );
 }
 
 const RANK_META = {
@@ -114,6 +134,7 @@ function PodiumCard({ entry, podiumRank, filter }: { entry: LeaderboardEntry; po
 
       {/* Name */}
       <p className="max-w-[80px] truncate text-xs font-bold text-[var(--foreground)]">{entry.name}</p>
+      {(entry.isAdmin || entry.isBot) && <NameBadges entry={entry} />}
       {entry.isCurrentUser && <span className="text-[9px] text-[var(--brand-400)]">(you)</span>}
 
       {/* XP */}
@@ -137,13 +158,14 @@ export default function LeaderboardPage() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
   const [filter, setFilter] = useState<Filter>("weekly");
+  const [scope, setScope] = useState<Scope>("global");
   const resetCountdown = useCountdown(getMsUntilMonday());
 
   const loadLeaderboard = useCallback(() => {
     const token = getToken();
     setLoading(true);
     setFetchError(false);
-    fetch(`/api/social/leaderboard?period=${filter === "weekly" ? "weekly" : "total"}`,
+    fetch(`/api/social/leaderboard?period=${filter === "weekly" ? "weekly" : "total"}&scope=${scope}`,
       {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       },
@@ -154,7 +176,7 @@ export default function LeaderboardPage() {
       })
       .then((d) => { setEntries(Array.isArray(d) ? d : []); setLoading(false); })
       .catch(() => { setFetchError(true); setLoading(false); });
-  }, [filter]);
+  }, [filter, scope]);
 
   useEffect(() => { loadLeaderboard(); }, [loadLeaderboard]);
 
@@ -218,21 +240,40 @@ export default function LeaderboardPage() {
           </div>
 
           {/* Filter tabs */}
-          <div className="mb-6 inline-flex rounded-xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-16-23-50-0_7)] p-1">
-            {(["weekly", "total"] as Filter[]).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                aria-pressed={filter === f}
-                className={`rounded-lg px-5 py-1.5 text-xs font-semibold capitalize transition-all duration-[var(--duration-fast)] ${
-                  filter === f
-                    ? "bg-gradient-to-br from-[var(--brand-600)] to-[var(--palette-4f46e5)] text-[var(--palette-white)] shadow-[0_0_14px_var(--rgba-124-58-237-0_35)]"
-                    : "text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]"
-                }`}
-              >
-                {f === "weekly" ? "🗓 This Week" : "🏆 All Time"}
-              </button>
-            ))}
+          <div className="mb-6 flex flex-wrap items-center gap-3">
+            <div className="inline-flex rounded-xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-16-23-50-0_7)] p-1">
+              {(["weekly", "total"] as Filter[]).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  aria-pressed={filter === f}
+                  className={`rounded-lg px-5 py-1.5 text-xs font-semibold capitalize transition-all duration-[var(--duration-fast)] ${
+                    filter === f
+                      ? "bg-gradient-to-br from-[var(--brand-600)] to-[var(--palette-4f46e5)] text-[var(--palette-white)] shadow-[0_0_14px_var(--rgba-124-58-237-0_35)]"
+                      : "text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]"
+                  }`}
+                >
+                  {f === "weekly" ? "🗓 This Week" : "🏆 All Time"}
+                </button>
+              ))}
+            </div>
+            <div className="inline-flex rounded-xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-16-23-50-0_7)] p-1">
+              {(["global", "friends"] as Scope[]).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setScope(s)}
+                  aria-pressed={scope === s}
+                  className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-semibold transition-all duration-[var(--duration-fast)] ${
+                    scope === s
+                      ? "bg-gradient-to-br from-[var(--brand-600)] to-[var(--palette-4f46e5)] text-[var(--palette-white)] shadow-[0_0_14px_var(--rgba-124-58-237-0_35)]"
+                      : "text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]"
+                  }`}
+                >
+                  {s === "global" ? <Trophy size={11} /> : <Users size={11} />}
+                  {s === "global" ? "Everyone" : "My friends"}
+                </button>
+              ))}
+            </div>
           </div>
 
           {fetchError ? (
@@ -245,7 +286,7 @@ export default function LeaderboardPage() {
             <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-16-23-50-0_5)] p-14 text-center">
               <Trophy size={40} className="mx-auto mb-3 text-[var(--foreground-subtle)]" />
               <p className="text-sm text-[var(--muted-fg)]">No one's on the board yet.</p>
-              <p className="mt-1 text-xs text-[var(--foreground-subtle)]">Complete a focus session to earn XP and claim a rank!</p>
+              <p className="mt-1 text-xs text-[var(--foreground-subtle)]">Complete a focus session to earn XP and claim a rank — the AI rivals are waiting for you.</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -288,6 +329,7 @@ export default function LeaderboardPage() {
                       <div className="flex-1 min-w-0">
                         <p className="truncate text-sm font-semibold text-[var(--foreground)]">
                           {entry.name}
+                          <NameBadges entry={entry} />
                           {entry.isPremium && <Crown size={10} className="ml-1 inline text-[var(--brand-gold)]" aria-label="Premium" />}
                           {entry.isCurrentUser && <span className="ml-1.5 text-[9px] font-normal text-[var(--brand-400)]">(you)</span>}
                         </p>
