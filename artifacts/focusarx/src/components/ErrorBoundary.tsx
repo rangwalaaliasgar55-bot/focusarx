@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { isChunkLoadError, recoverFromChunkError } from "@/lib/chunkRecovery";
 
 interface Props {
   children: ReactNode;
@@ -25,7 +26,13 @@ export class ErrorBoundary extends Component<Props, State> {
     this.props.onError?.(error, info);
   }
 
-  private handleRetry = () => this.setState({ hasError: false, error: null });
+  private handleRetry = () => {
+    // If the view failed because its lazy chunk is stale (a deploy replaced the
+    // hashed filename), clearing the error state just re-runs the same failed
+    // import. Reload instead so the new index.html is picked up.
+    if (isChunkLoadError(this.state.error) && recoverFromChunkError()) return;
+    this.setState({ hasError: false, error: null });
+  };
 
   render() {
     if (!this.state.hasError) return this.props.children;

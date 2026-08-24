@@ -85,16 +85,38 @@ router.delete("/admin/auth", (_req, res) => {
 router.get("/admin/users", async (req, res) => {
   if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
-    const users = await db.select().from(usersTable).orderBy(usersTable.createdAt);
-    const sessions = await db.select().from(focusSessionsTable);
-    const streaks = await db.select().from(studyStreaksTable);
-    const active = await db.select().from(activeSessionsTable);
+    // Project explicit columns (CLAUDE.md rule #1). A bare
+    // `db.select().from(usersTable)` asks for all 17 columns, so if the live DB
+    // is missing even one (e.g. referral_code after schema drift) the query
+    // throws and this route 500s — which made the admin user list render EMPTY
+    // while the rows were still sitting in the database.
+    const users = await db.select({
+      id: usersTable.id,
+      name: usersTable.name,
+      email: usersTable.email,
+      isGuest: usersTable.isGuest,
+      role: usersTable.role,
+      createdAt: usersTable.createdAt,
+    }).from(usersTable).orderBy(usersTable.createdAt);
 
-    const sessionCountByUser: Record<string, number> = {};
-    for (const s of sessions) sessionCountByUser[s.userId] = (sessionCountByUser[s.userId] ?? 0) + 1;
+    // Aggregate in SQL instead of pulling every session/streak row into memory
+    // and counting in JS — that grows without bound with usage.
+    const sessionCounts = await db.select({
+      userId: focusSessionsTable.userId,
+      count: sql<number>`count(*)`,
+    }).from(focusSessionsTable).groupBy(focusSessionsTable.userId);
 
-    const streakByUser: Record<string, number> = {};
-    for (const s of streaks) streakByUser[s.userId] = s.currentStreak;
+    const streakRows = await db.select({
+      userId: studyStreaksTable.userId,
+      currentStreak: studyStreaksTable.currentStreak,
+    }).from(studyStreaksTable);
+
+    const [{ value: activeCount }] = await db.select({
+      value: sql<number>`count(*)`,
+    }).from(activeSessionsTable);
+
+    const sessionCountByUser = new Map(sessionCounts.map((r) => [r.userId, Number(r.count)]));
+    const streakByUser = new Map(streakRows.map((r) => [r.userId, r.currentStreak]));
 
     const registered = users.filter((u) => !u.isGuest);
 
@@ -102,11 +124,11 @@ router.get("/admin/users", async (req, res) => {
       users: registered.map((u) => ({
         id: u.id, name: u.name, email: u.email, isGuest: false,
         role: u.role ?? "user",
-        sessionCount: sessionCountByUser[u.id] ?? 0,
-        streak: streakByUser[u.id] ?? 0,
+        sessionCount: sessionCountByUser.get(u.id) ?? 0,
+        streak: streakByUser.get(u.id) ?? 0,
         createdAt: u.createdAt,
       })),
-      activeCount: active.length,
+      activeCount: Number(activeCount ?? 0),
       guestCount: users.length - registered.length,
     });
   } catch (err) {
@@ -121,7 +143,11 @@ router.get("/admin/stats", async (req, res) => {
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 6 * 86400000);
 
-    const allSessions = await db.select().from(focusSessionsTable)
+    // Project explicit columns (CLAUDE.md rule #1) — bare selects 500 on drift.
+    const allSessions = await db.select({
+      completedAt: focusSessionsTable.completedAt,
+      durationSec: focusSessionsTable.durationSec,
+    }).from(focusSessionsTable)
       .where(gte(focusSessionsTable.createdAt, sevenDaysAgo));
     const allUsers = await db.select({ id: usersTable.id, createdAt: usersTable.createdAt, isGuest: usersTable.isGuest }).from(usersTable);
     const allFocusSessions = await db.select({
@@ -130,7 +156,9 @@ router.get("/admin/stats", async (req, res) => {
       completedAt: focusSessionsTable.completedAt,
       mode: focusSessionsTable.mode,
     }).from(focusSessionsTable);
-    const active = await db.select().from(activeSessionsTable);
+    const [{ value: activeSessionCount }] = await db.select({
+      value: sql<number>`count(*)`,
+    }).from(activeSessionsTable);
 
     const totalFocusSec = allFocusSessions
       .filter(s => s.mode === "focus")
@@ -181,7 +209,7 @@ router.get("/admin/stats", async (req, res) => {
       guestCount: guestIds.size,
       totalFocusHours: Math.round(totalFocusSec / 3600),
       totalSessions: allFocusSessions.filter(s => s.mode === "focus").length,
-      activeSessions: active.length,
+      activeSessions: Number(activeSessionCount ?? 0),
       newUsersThisWeek,
       dailyChart,
       topUsers: topUsersData,
