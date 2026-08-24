@@ -11,7 +11,8 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "push": "node ./scripts/cleanup-orphans.mjs && node ./scripts/push.mjs",
-    "push-force": "drizzle-kit push --force --config ./drizzle.config.ts"
+    "push-force": "drizzle-kit push --force --config ./drizzle.config.ts",
+    "push:vercel": "node ./scripts/push-vercel.mjs"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",
