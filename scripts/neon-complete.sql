@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS "active_sessions" (
   "last_seen_face_at" text,
   "focus_timeline" text DEFAULT '[]',
   "monitor_enabled" boolean DEFAULT false,
+  "started_at" timestamp NOT NULL DEFAULT now(),
   "updated_at" timestamp NOT NULL DEFAULT now()
 );
 

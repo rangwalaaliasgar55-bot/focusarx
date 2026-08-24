@@ -4,7 +4,7 @@ import "./index.css";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
 import { getToken } from "@/lib/auth";
 import { getTheme, applyTheme, registerPremiumChecker } from "@/lib/theme";
-import { installChunkRecovery, clearChunkRecoveryFlag } from "@/lib/chunkRecovery";
+import { installChunkRecovery } from "@/lib/chunkRecovery";
 
 // Apply saved theme before first paint (prevents flash of wrong theme)
 applyTheme(getTheme());
@@ -12,8 +12,9 @@ applyTheme(getTheme());
 // Recover automatically from stale lazy chunks after a deploy instead of
 // forcing the user to reload to reach a page.
 installChunkRecovery();
-// We booted cleanly, so a future deploy is allowed to trigger one recovery.
-clearChunkRecoveryFlag();
+// Keep the recent-reload guard in sessionStorage until it naturally expires.
+// Clearing it before React renders can create a reload loop when a genuinely
+// broken lazy chunk fails again during route hydration.
 
 // Register premium checker so theme.ts can gate premium themes
 registerPremiumChecker(async () => {
