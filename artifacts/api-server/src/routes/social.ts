@@ -76,11 +76,16 @@ socialRouter.get("/social/requests", authMiddleware, async (req: AuthRequest, re
   res.json({ incoming: await enriched(incoming, "incoming"), outgoing: await enriched(outgoing, "outgoing") });
 });
 
-socialRouter.post("/social/request", authMiddleware, async (req: AuthRequest, res: Response) => {
+// The web app posts to the plural /social/requests with `{ toUserId }`, while
+// older callers use the singular /social/request with `{ targetId }`. Both
+// shapes are accepted here so neither one 404s or 400s.
+async function handleSendFriendRequest(req: AuthRequest, res: Response) {
   const userId = req.userId!;
-  const { targetId, targetUsername } = req.body;
+  const { targetId, targetUsername, toUserId } = (req.body ?? {}) as {
+    targetId?: string; targetUsername?: string; toUserId?: string;
+  };
 
-  let resolvedId = targetId;
+  let resolvedId = targetId ?? toUserId;
   if (!resolvedId && targetUsername) {
     const [u] = await db.select({ id: usersTable.id }).from(usersTable)
       .where(or(eq(usersTable.email, targetUsername), ilike(usersTable.name, targetUsername))).limit(1);
@@ -108,11 +113,16 @@ socialRouter.post("/social/request", authMiddleware, async (req: AuthRequest, re
   });
 
   res.json({ ok: true, friendship: row });
-});
+}
 
-socialRouter.patch("/social/request/:id/accept", authMiddleware, async (req: AuthRequest, res: Response) => {
+socialRouter.post("/social/request", authMiddleware, handleSendFriendRequest);
+socialRouter.post("/social/requests", authMiddleware, handleSendFriendRequest);
+
+async function handleAcceptFriendRequest(req: AuthRequest, res: Response) {
   const userId = req.userId!;
-  const [row] = await db.select().from(friendshipsTable).where(eq(friendshipsTable.id, req.params.id as string)).limit(1);
+  const [row] = await db.select({
+    id: friendshipsTable.id, requesterId: friendshipsTable.requesterId, addresseeId: friendshipsTable.addresseeId,
+  }).from(friendshipsTable).where(eq(friendshipsTable.id, req.params.id as string)).limit(1);
   if (!row || row.addresseeId !== userId) return res.status(403).json({ error: "Not authorized" });
   const [updated] = await db.update(friendshipsTable).set({ status: "accepted", updatedAt: new Date() })
     .where(eq(friendshipsTable.id, req.params.id as string)).returning();
@@ -123,23 +133,41 @@ socialRouter.patch("/social/request/:id/accept", authMiddleware, async (req: Aut
     data: { friendshipId: row.id },
   });
   res.json({ ok: true, friendship: updated });
-});
+}
 
-socialRouter.patch("/social/request/:id/reject", authMiddleware, async (req: AuthRequest, res: Response) => {
+// The web app uses POST; PATCH is kept for existing API consumers.
+socialRouter.patch("/social/request/:id/accept", authMiddleware, handleAcceptFriendRequest);
+socialRouter.post("/social/request/:id/accept", authMiddleware, handleAcceptFriendRequest);
+socialRouter.patch("/social/requests/:id/accept", authMiddleware, handleAcceptFriendRequest);
+socialRouter.post("/social/requests/:id/accept", authMiddleware, handleAcceptFriendRequest);
+
+async function handleRejectFriendRequest(req: AuthRequest, res: Response) {
   const userId = req.userId!;
-  const [row] = await db.select().from(friendshipsTable).where(eq(friendshipsTable.id, req.params.id as string)).limit(1);
+  const [row] = await db.select({
+    id: friendshipsTable.id, addresseeId: friendshipsTable.addresseeId,
+  }).from(friendshipsTable).where(eq(friendshipsTable.id, req.params.id as string)).limit(1);
   if (!row || row.addresseeId !== userId) return res.status(403).json({ error: "Not authorized" });
   await db.delete(friendshipsTable).where(eq(friendshipsTable.id, req.params.id as string));
   res.json({ ok: true });
-});
+}
 
-socialRouter.delete("/social/request/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
+socialRouter.patch("/social/request/:id/reject", authMiddleware, handleRejectFriendRequest);
+socialRouter.post("/social/request/:id/reject", authMiddleware, handleRejectFriendRequest);
+socialRouter.patch("/social/requests/:id/reject", authMiddleware, handleRejectFriendRequest);
+socialRouter.post("/social/requests/:id/reject", authMiddleware, handleRejectFriendRequest);
+
+async function handleCancelFriendRequest(req: AuthRequest, res: Response) {
   const userId = req.userId!;
-  const [row] = await db.select().from(friendshipsTable).where(eq(friendshipsTable.id, req.params.id as string)).limit(1);
+  const [row] = await db.select({
+    id: friendshipsTable.id, requesterId: friendshipsTable.requesterId, addresseeId: friendshipsTable.addresseeId,
+  }).from(friendshipsTable).where(eq(friendshipsTable.id, req.params.id as string)).limit(1);
   if (!row || (row.requesterId !== userId && row.addresseeId !== userId)) return res.status(403).json({ error: "Not authorized" });
   await db.delete(friendshipsTable).where(eq(friendshipsTable.id, req.params.id as string));
   res.json({ ok: true });
-});
+}
+
+socialRouter.delete("/social/request/:id", authMiddleware, handleCancelFriendRequest);
+socialRouter.delete("/social/requests/:id", authMiddleware, handleCancelFriendRequest);
 
 socialRouter.get("/social/search", authMiddleware, async (req: AuthRequest, res: Response) => {
   const { q, friendsOnly } = req.query as { q?: string; friendsOnly?: string };
