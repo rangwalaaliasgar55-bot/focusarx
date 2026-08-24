@@ -227,6 +227,13 @@ async function handleTaskUpdate(req: AuthRequest, res: Response) {
       updates.completedAt = undefined;
     }
 
+    // Nothing to change — return 400 rather than letting drizzle throw
+    // "No values to set", which surfaced as a 500.
+    if (Object.keys(updates).length === 0) {
+      res.status(400).json({ error: "No fields to update" });
+      return;
+    }
+
     const [task] = await db.update(tasksTable).set(updates)
       .where(and(eq(tasksTable.id, id), eq(tasksTable.userId, req.userId)))
       .returning();

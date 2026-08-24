@@ -71,8 +71,39 @@ router.get("/gamification/badges", authMiddleware, async (req: AuthRequest, res:
       sessions: sql<number>`count(*)`,
     }).from(focusSessionsTable).where(and(eq(focusSessionsTable.userId, req.userId), eq(focusSessionsTable.mode, "focus")));
 
-    const [streak] = await db.select({ count: studyStreaksTable.currentStreak }).from(studyStreaksTable).where(eq(studyStreaksTable.userId, req.userId));
+    const [streak] = await db.select({
+      currentStreak: studyStreaksTable.currentStreak,
+      longestStreak: studyStreaksTable.longestStreak,
+    }).from(studyStreaksTable).where(eq(studyStreaksTable.userId, req.userId));
     const [tasks] = await db.select({ count: sql<number>`count(*)` }).from(tasksTable).where(and(eq(tasksTable.userId, req.userId), eq(tasksTable.completed, true)));
+
+    // Session-quality stats. The profile page renders these directly
+    // (stats.totalMinutes, stats.maxScore, ...), so every field the client
+    // declares must be present — a missing `stats` object used to throw a
+    // TypeError mid-render and take the whole /profile view down.
+    const [quality] = await db.select({
+      maxScore: sql<number>`coalesce(max(${focusSessionsTable.focusScore}), 0)`,
+      perfectSessions: sql<number>`count(*) filter (where ${focusSessionsTable.focusScore} >= 100)`,
+      maxSessionMinutes: sql<number>`coalesce(max(${focusSessionsTable.durationSec}), 0) / 60`,
+      nightSessions: sql<number>`count(*) filter (where extract(hour from ${focusSessionsTable.completedAt}) >= 22 or extract(hour from ${focusSessionsTable.completedAt}) < 5)`,
+      earlySessions: sql<number>`count(*) filter (where ${focusSessionsTable.completedEarly} = true)`,
+    }).from(focusSessionsTable).where(and(eq(focusSessionsTable.userId, req.userId), eq(focusSessionsTable.mode, "focus")));
+
+    // Busiest single day (minutes). Scalar sub-select: drizzle does not emit a
+    // column alias for `sql` fragments inside a derived table, so the per-day
+    // grouping is written out explicitly and aliased in raw SQL.
+    const [dayPeak] = await db.select({
+      maxDayMinutes: sql<number>`coalesce((
+        select max(per_day.minutes) from (
+          select coalesce(sum(day_sessions.duration_sec), 0) / 60 as minutes
+          from focus_sessions day_sessions
+          where day_sessions.user_id = ${req.userId}
+            and day_sessions.mode = 'focus'
+            and day_sessions.completed_at is not null
+          group by date(day_sessions.completed_at)
+        ) per_day
+      ), 0)`,
+    }).from(focusSessionsTable).where(eq(focusSessionsTable.userId, req.userId!)).limit(1);
 
     // Social proof (audit M1): what share of registered learners hold each badge.
     const [{ value: totalLearners }] = await db.select({ value: count() }).from(usersTable).where(eq(usersTable.isGuest, false));
@@ -86,7 +117,7 @@ router.get("/gamification/badges", authMiddleware, async (req: AuthRequest, res:
       const unlocked = badgeMap.get(def.id);
       let progress = 0;
       if (def.unit === "totalMinutes") progress = Number(stats?.totalMinutes ?? 0);
-      else if (def.unit === "streak") progress = streak?.count ?? 0;
+      else if (def.unit === "streak") progress = streak?.currentStreak ?? 0;
       else if (def.unit === "completedTasks") progress = Number(tasks?.count ?? 0);
 
       return {
@@ -98,7 +129,22 @@ router.get("/gamification/badges", authMiddleware, async (req: AuthRequest, res:
       };
     });
 
-    res.json({ badges });
+    res.json({
+      badges,
+      stats: {
+        totalMinutes: Number(stats?.totalMinutes ?? 0),
+        sessions: Number(stats?.sessions ?? 0),
+        streak: Number(streak?.currentStreak ?? 0),
+        longestStreak: Number(streak?.longestStreak ?? 0),
+        maxScore: Math.round(Number(quality?.maxScore ?? 0)),
+        perfectSessions: Number(quality?.perfectSessions ?? 0),
+        maxSessionMinutes: Math.round(Number(quality?.maxSessionMinutes ?? 0)),
+        maxDayMinutes: Math.round(Number(dayPeak?.maxDayMinutes ?? 0)),
+        nightSessions: Number(quality?.nightSessions ?? 0),
+        earlySessions: Number(quality?.earlySessions ?? 0),
+        completedTasks: Number(tasks?.count ?? 0),
+      },
+    });
   } catch (err) {
     logger.error({ err }, "get badges error");
     res.status(500).json({ error: "Internal error" });
