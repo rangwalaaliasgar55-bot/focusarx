@@ -57,6 +57,8 @@
 
 // ─── Event Types ─────────────────────────────────────────────────────────────
 
+import { trackEvent } from "@/lib/gtag";
+
 export type AnalyticsEvent =
   | { event: "landing_page_view"; properties: { source?: string; utm_campaign?: string; utm_medium?: string } }
   | { event: "signup_started"; properties: { method: "email" | "google" } }
@@ -83,18 +85,15 @@ export type AnalyticsEvent =
 
 // ─── Tracker Implementation ───────────────────────────────────────────────────
 
-/** Send an analytics event. Currently logs to console in development.
- *  Replace the stub below with your analytics provider
- *  (e.g. PostHog, Mixpanel, Amplitude, or a custom /api/analytics endpoint).
- */
+/** Send an analytics event. Forwards to Google Analytics 4 (via @/lib/gtag,
+ *  which no-ops unless VITE_GA_MEASUREMENT_ID is configured) and logs to
+ *  console in development. */
 export function track(event: AnalyticsEvent["event"], properties: Record<string, unknown> = {}) {
   if (typeof window === "undefined") return;
 
-  // ── STUB: Replace with real analytics provider ──────────────────────────
-  // Example: posthog.capture(event, properties)
-  // Example: mixpanel.track(event, properties)
-  // Example: fetch('/api/analytics', { method: 'POST', body: JSON.stringify({ event, properties }) })
-  // ────────────────────────────────────────────────────────────────────────
+  // Forward product events to GA4 when a Measurement ID is configured.
+  // Page views are handled separately by SiteAnalyticsTracker.
+  trackEvent(event, properties);
 
   if (import.meta.env.DEV) {
     console.debug(`[analytics] ${event}`, properties);
