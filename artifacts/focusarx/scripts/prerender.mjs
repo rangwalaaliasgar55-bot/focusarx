@@ -118,10 +118,16 @@ function faqSchema(faq) {
 
 // ── prerendered body ───────────────────────────────────────────────
 const SHELL_CSS = `
-:root{color-scheme:dark}
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#0b0d13;color:#e7e9ee;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.65}
-.fa-seo{max-width:760px;margin:0 auto;padding:72px 24px 96px}
+/* ── Static SEO shell (seen ONLY by crawlers without JavaScript) ──
+   Every rule is scoped: nothing here can affect the React app's styles.
+   The inline <head> script adds .fa-js before first paint, which hides
+   this whole shell from every real browser and from Googlebot (which
+   renders JS) — they get the real app instead. */
+html.fa-js .fa-seo,html.fa-js .fa-noscript{display:none}
+html:not(.fa-js){color-scheme:dark}
+html:not(.fa-js) body{background:#0b0d13}
+.fa-seo{max-width:760px;margin:0 auto;padding:72px 24px 96px;color:#e7e9ee;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.65}
+.fa-seo *{margin:0;padding:0;box-sizing:border-box}
 .fa-seo .badge{display:inline-block;border:1px solid rgba(124,58,237,.35);background:rgba(124,58,237,.12);color:#a78bfa;border-radius:999px;padding:4px 12px;font-size:12px;font-weight:600;margin-bottom:20px}
 .fa-seo h1{font-size:34px;font-weight:900;line-height:1.2;letter-spacing:-.02em;margin-bottom:14px}
 .fa-seo h2{font-size:21px;font-weight:800;margin:32px 0 8px}
@@ -206,6 +212,15 @@ function main() {
     // Minimal critical CSS so the prerendered shell looks intentional
     // before the app bundle loads.
     html = html.replace("</head>", `  <style>${SHELL_CSS}</style>\n</head>`);
+
+    // Inline head script — runs synchronously BEFORE the body paints, so
+    // any browser executing JavaScript never sees the static SEO shell
+    // (CSS above hides .fa-seo when this class is present). No-JS
+    // crawlers never run this, so they still see the full content.
+    html = html.replace(
+      "<head>",
+      `<head>\n    <script>document.documentElement.classList.add("fa-js")</script>`,
+    );
 
     // noscript notice (content above is already visible without JS)
     html = html.replace(
