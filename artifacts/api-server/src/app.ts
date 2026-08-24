@@ -115,6 +115,19 @@ app.use(
 app.use(express.json({ limit: "100kb" }));
 app.use(express.urlencoded({ extended: true, limit: "100kb" }));
 
+// Express 5 leaves `req.body` as `undefined` when a request arrives with no
+// body (DELETE/GET with no payload, or an empty request). Route handlers
+// destructure it directly (`const { x } = req.body as ...`), which throws a
+// TypeError and surfaces as an opaque 500 "Internal error" — e.g.
+// DELETE /api/push/subscribe with no body. Normalising here means no handler
+// can 500 purely because the client sent nothing.
+app.use((req, _res, next) => {
+  if (req.body === undefined || req.body === null) {
+    (req as { body?: unknown }).body = {};
+  }
+  next();
+});
+
 // Add security headers for all responses
 app.use((_req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");

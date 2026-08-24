@@ -69,6 +69,19 @@ interface UserStats {
   earlySessions: number;
 }
 
+/** Fallback so a partial/older API response can never blank the whole page. */
+const EMPTY_USER_STATS: UserStats = {
+  totalMinutes: 0,
+  sessions: 0,
+  streak: 0,
+  maxScore: 0,
+  perfectSessions: 0,
+  maxSessionMinutes: 0,
+  maxDayMinutes: 0,
+  nightSessions: 0,
+  earlySessions: 0,
+};
+
 interface WalletData { coins: number; totalXp: number; weeklyXp: number; rank: number | null; }
 interface CoinTx { id: string; amount: number; description: string; reason: string; balanceAfter: number; createdAt: string; }
 interface TxHistory { transactions: CoinTx[]; totalEarned: number; totalSpent: number; currentBalance: number; }
@@ -198,9 +211,12 @@ export default function ProfilePage() {
     queryKey: ["profile-overview"],
     queryFn: async () => {
       const [wallet, badgeData, profile, transactions, analytics] = await Promise.all([
-        apiJson<WalletData>("/api/gamification/wallet"),
-        apiJson<{ badges: BadgeDef[]; stats: UserStats }>("/api/gamification/badges"),
-        apiJson<ProfileData>("/api/auth/session"),
+        apiJson<WalletData>("/api/gamification/wallet").catch(() => ({ coins: 0, totalXp: 0, weeklyXp: 0, rank: null })),
+        // Each of these degrades on its own: a single failing endpoint must not
+        // blank the entire profile view.
+        apiJson<{ badges?: BadgeDef[]; stats?: UserStats }>("/api/gamification/badges")
+          .catch(() => ({ badges: [], stats: EMPTY_USER_STATS })),
+        apiJson<ProfileData>("/api/auth/session").catch(() => ({}) as ProfileData),
         apiJson<TxHistory>("/api/gamification/wallet/transactions?limit=50").catch(() => null),
         apiJson<AnalyticsData>("/api/analytics").catch(() => ({ heatmap: {} })),
       ]);
@@ -229,7 +245,7 @@ export default function ProfilePage() {
   if (query.isLoading) return <div className="page-container space-y-5" role="status" aria-label="Loading profile"><Skeleton className="h-32" /><Skeleton className="h-44" /><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{Array.from({ length: 8 }).map((_, index) => <Skeleton key={index} className="h-40" />)}</div></div>;
   if (query.isError || !data) return <div className="page-container"><EmptyState icon={<UserRound />} title="Profile could not be loaded" description="Check your connection and try again. Your progress is safe." action={{ label: "Retry", onClick: () => void query.refetch() }} /></div>;
 
-  const stats = data.badgeData.stats;
+  const stats = data.badgeData.stats ?? EMPTY_USER_STATS;
   const editFields = { name: displayName, bio: profile?.bio ?? "", timezone: profile?.timezone ?? "UTC" };
 
   return (
@@ -240,7 +256,7 @@ export default function ProfilePage() {
         <CardContent className="grid gap-6 p-6 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:p-8">
           <Avatar className="h-20 w-20 border border-[var(--card-border)] shadow-[var(--shadow-violet-sm)]"><AvatarFallback className="bg-[var(--brand-soft)] text-xl font-semibold text-[var(--brand-strong)]">{initials}</AvatarFallback></Avatar>
           <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h2 className="truncate text-2xl font-semibold tracking-tight">{displayName}</h2><Badge><Zap /> Level {level.level}</Badge></div><p className="mt-1 text-sm text-[var(--foreground-muted)]">{profile?.bio || "Building a more deliberate focus practice."}</p><p className="mt-2 text-xs text-[var(--foreground-subtle)]">{session?.user?.email} · {profile?.timezone ?? "UTC"}</p></div>
-          <div className="grid grid-cols-2 gap-2 text-center"><div className="rounded-xl bg-[var(--warning-soft)] p-3"><p className="text-xl font-semibold tabular-nums text-[var(--warning)]">{data.wallet.coins.toLocaleString()}</p><p className="text-[0.6875rem] text-[var(--foreground-subtle)]">coins</p></div><div className="rounded-xl bg-[var(--brand-soft)] p-3"><p className="text-xl font-semibold tabular-nums text-[var(--brand-strong)]">{data.wallet.weeklyXp.toLocaleString()}</p><p className="text-[0.6875rem] text-[var(--foreground-subtle)]">weekly XP</p></div></div>
+          <div className="grid grid-cols-2 gap-2 text-center"><div className="rounded-xl bg-[var(--warning-soft)] p-3"><p className="text-xl font-semibold tabular-nums text-[var(--warning)]">{(data.wallet.coins ?? 0).toLocaleString()}</p><p className="text-[0.6875rem] text-[var(--foreground-subtle)]">coins</p></div><div className="rounded-xl bg-[var(--brand-soft)] p-3"><p className="text-xl font-semibold tabular-nums text-[var(--brand-strong)]">{(data.wallet.weeklyXp ?? 0).toLocaleString()}</p><p className="text-[0.6875rem] text-[var(--foreground-subtle)]">weekly XP</p></div></div>
         </CardContent>
       </Card>
 

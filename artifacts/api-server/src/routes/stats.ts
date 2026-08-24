@@ -304,14 +304,26 @@ router.get("/stats/onboarding", authMiddleware, async (req: AuthRequest, res: Re
   }
 });
 
-router.get("/streak", authMiddleware, async (req: AuthRequest, res: Response) => {
+// Project explicit columns (CLAUDE.md rule #1) — a bare select couples this to
+// the whole study_streaks schema and 500s on schema drift.
+async function handleStreak(req: AuthRequest, res: Response) {
   try {
-    const [streak] = await db.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, req.userId));
+    const [streak] = await db.select({
+      currentStreak: studyStreaksTable.currentStreak,
+      longestStreak: studyStreaksTable.longestStreak,
+      lastStudyDate: studyStreaksTable.lastStudyDate,
+    }).from(studyStreaksTable).where(eq(studyStreaksTable.userId, req.userId!));
     res.json({ streak: streak ?? { currentStreak: 0, longestStreak: 0, lastStudyDate: null } });
   } catch (err) {
     logger.error({ err }, "streak error");
     res.status(500).json({ error: "Internal error" });
   }
-});
+}
+
+// Two callers use two different paths for the same payload: Timer.tsx uses
+// /api/streak, while StreakNudge + the dashboard StreakFreezeCard use
+// /api/stats/streak. Both are served here so neither silently 404s.
+router.get("/streak", authMiddleware, handleStreak);
+router.get("/stats/streak", authMiddleware, handleStreak);
 
 export { router as statsRouter };
