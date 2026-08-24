@@ -1020,7 +1020,7 @@ CREATE INDEX IF NOT EXISTS "page_views_session_id_idx" ON "page_views" USING btr
 
 CREATE INDEX IF NOT EXISTS "page_views_viewed_at_idx" ON "page_views" USING btree ("viewed_at");
 
-CREATE UNIQUE INDEX IF NOT EXISTS ON "visitors" USING btree ("visitor_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "visitors_visitor_id_idx" ON "visitors" USING btree ("visitor_id");
 
 CREATE INDEX IF NOT EXISTS "visitors_last_seen_idx" ON "visitors" USING btree ("last_seen");
 
@@ -1132,3 +1132,405 @@ CREATE TABLE IF NOT EXISTS "site_settings" (
 ALTER TABLE "site_settings" ADD COLUMN IF NOT EXISTS "hero_title" text;
 ALTER TABLE "site_settings" ADD COLUMN IF NOT EXISTS "hero_subtitle" text;
 ALTER TABLE "site_settings" ADD COLUMN IF NOT EXISTS "hero_cta_text" text;
+
+-- =============================================================================
+-- Later schema (0001–0011). All IF NOT EXISTS / skip-if-present.
+-- Does not drop or rewrite existing data.
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS "city_building_definitions" (
+	"id" text PRIMARY KEY NOT NULL,
+	"slug" text NOT NULL,
+	"name" text NOT NULL,
+	"description" text NOT NULL,
+	"district" text NOT NULL,
+	"category" text NOT NULL,
+	"unlock_level" integer DEFAULT 1 NOT NULL,
+	"unlock_sessions" integer DEFAULT 0 NOT NULL,
+	"coin_cost" integer DEFAULT 0 NOT NULL,
+	"population_bonus" integer DEFAULT 10 NOT NULL,
+	"xp_bonus_per_session" integer DEFAULT 0 NOT NULL,
+	"coin_bonus_per_session" integer DEFAULT 0 NOT NULL,
+	"icon" text NOT NULL,
+	"tier" text DEFAULT 'hamlet' NOT NULL,
+	"sort_order" integer DEFAULT 0 NOT NULL,
+	CONSTRAINT "city_building_definitions_slug_unique" UNIQUE("slug")
+);
+
+CREATE TABLE IF NOT EXISTS "focus_cities" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"tier" text DEFAULT 'hamlet' NOT NULL,
+	"tier_name" text DEFAULT 'Study Hamlet' NOT NULL,
+	"population" integer DEFAULT 5 NOT NULL,
+	"total_buildings" integer DEFAULT 0 NOT NULL,
+	"total_sessions" integer DEFAULT 0 NOT NULL,
+	"unlocked_districts" jsonb DEFAULT '["downtown"]'::jsonb,
+	"buildings" jsonb DEFAULT '{}'::jsonb,
+	"atmosphere" text DEFAULT 'day' NOT NULL,
+	"weather" text DEFAULT 'clear' NOT NULL,
+	"weather_updated_at" timestamp DEFAULT now(),
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "focus_cities_user_id_unique" UNIQUE("user_id")
+);
+
+CREATE TABLE IF NOT EXISTS "app_feedback" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text,
+	"rating" integer NOT NULL,
+	"message" text,
+	"category" text DEFAULT 'general',
+	"session_count" integer DEFAULT 0,
+	"user_level" integer DEFAULT 1,
+	"device" text,
+	"app_version" text DEFAULT '1.0',
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "email_logs" (
+	"id" text PRIMARY KEY NOT NULL,
+	"recipient_id" text,
+	"recipient_email" text NOT NULL,
+	"template" text NOT NULL,
+	"subject" text NOT NULL,
+	"status" text DEFAULT 'pending' NOT NULL,
+	"provider_id" text,
+	"sent_at" timestamp,
+	"opened_at" timestamp,
+	"clicked_at" timestamp,
+	"bounced" boolean DEFAULT false,
+	"error" text,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "marketplace_items" (
+	"id" text PRIMARY KEY NOT NULL,
+	"name" text NOT NULL,
+	"description" text,
+	"type" text DEFAULT 'avatar' NOT NULL,
+	"cost_coins" integer DEFAULT 100 NOT NULL,
+	"rarity" text DEFAULT 'common',
+	"emoji" text DEFAULT '🎁',
+	"data" jsonb,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "premium_subscriptions" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"activated_at" timestamp DEFAULT now() NOT NULL,
+	"expires_at" timestamp,
+	"coins_cost" integer DEFAULT 9000,
+	"benefits" jsonb DEFAULT '["exclusive_pets","premium_loot_boxes","premium_themes","xp_multiplier","coin_multiplier","premium_analytics","profile_badge","premium_battle_pass"]'::jsonb,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"granted_by_admin" boolean DEFAULT false NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "premium_subscriptions_user_id_unique" UNIQUE("user_id")
+);
+
+CREATE TABLE IF NOT EXISTS "user_dreams" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"dream_type" text DEFAULT 'custom' NOT NULL,
+	"custom_goal" text,
+	"target_date" text,
+	"daily_target_minutes" integer DEFAULT 120,
+	"total_minutes_logged" integer DEFAULT 0,
+	"start_date" text,
+	"emoji" text DEFAULT '🎯',
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "user_dreams_user_id_unique" UNIQUE("user_id")
+);
+
+CREATE TABLE IF NOT EXISTS "user_inventory" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"item_id" text NOT NULL,
+	"acquired_at" timestamp DEFAULT now() NOT NULL,
+	"equipped" boolean DEFAULT false NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "user_pets" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"pet_type" text DEFAULT 'owl' NOT NULL,
+	"pet_name" text,
+	"pet_level" integer DEFAULT 1 NOT NULL,
+	"pet_xp" integer DEFAULT 0 NOT NULL,
+	"evolution_stage" integer DEFAULT 1 NOT NULL,
+	"mood" text DEFAULT 'happy',
+	"accessories" jsonb DEFAULT '[]'::jsonb,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "user_pets_user_id_unique" UNIQUE("user_id")
+);
+
+CREATE TABLE IF NOT EXISTS "wrapped_snapshots" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"period" text NOT NULL,
+	"period_type" text DEFAULT 'monthly' NOT NULL,
+	"data" jsonb NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "loot_box_types" (
+	"id" text PRIMARY KEY NOT NULL,
+	"name" text NOT NULL,
+	"description" text NOT NULL,
+	"rarity" text NOT NULL,
+	"coin_cost" integer DEFAULT 0 NOT NULL,
+	"sessions_required" integer DEFAULT 0 NOT NULL,
+	"icon" text NOT NULL,
+	"glow_color" text DEFAULT '#7C3AED' NOT NULL,
+	"possible_rewards" jsonb NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "user_loot_boxes" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"box_type_id" text NOT NULL,
+	"status" text DEFAULT 'unopened' NOT NULL,
+	"reward_type" text,
+	"reward_value" jsonb,
+	"earned_reason" text,
+	"opened_at" timestamp,
+	"earned_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "quest_definitions" (
+	"id" text PRIMARY KEY NOT NULL,
+	"title" text NOT NULL,
+	"description" text NOT NULL,
+	"type" text NOT NULL,
+	"difficulty" text DEFAULT 'easy' NOT NULL,
+	"target" integer NOT NULL,
+	"metric" text NOT NULL,
+	"xp_reward" integer DEFAULT 0 NOT NULL,
+	"coin_reward" integer DEFAULT 0 NOT NULL,
+	"icon" text NOT NULL,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"rotation_weight" integer DEFAULT 10 NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "user_quest_progress" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"quest_id" text NOT NULL,
+	"period" text NOT NULL,
+	"current" integer DEFAULT 0 NOT NULL,
+	"completed" boolean DEFAULT false NOT NULL,
+	"claimed_at" timestamp,
+	"assigned_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "user_quest_progress_unique" UNIQUE("user_id","quest_id","period")
+);
+
+CREATE TABLE IF NOT EXISTS "seasonal_events" (
+	"id" text PRIMARY KEY NOT NULL,
+	"name" text NOT NULL,
+	"slug" text NOT NULL,
+	"description" text NOT NULL,
+	"theme" text NOT NULL,
+	"banner_color" text DEFAULT '#7C3AED' NOT NULL,
+	"start_date" timestamp NOT NULL,
+	"end_date" timestamp NOT NULL,
+	"xp_multiplier" real DEFAULT 1 NOT NULL,
+	"coin_multiplier" real DEFAULT 1 NOT NULL,
+	"special_missions" jsonb DEFAULT '[]'::jsonb,
+	"exclusive_rewards" jsonb DEFAULT '[]'::jsonb,
+	"is_active" boolean DEFAULT false NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "seasonal_events_slug_unique" UNIQUE("slug")
+);
+
+CREATE TABLE IF NOT EXISTS "user_seasonal_progress" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"event_id" text NOT NULL,
+	"points" integer DEFAULT 0 NOT NULL,
+	"completed_missions" jsonb DEFAULT '[]'::jsonb,
+	"rewards_claimed" jsonb DEFAULT '[]'::jsonb,
+	"rank" integer,
+	CONSTRAINT "user_seasonal_progress_unique" UNIQUE("user_id","event_id")
+);
+
+CREATE TABLE IF NOT EXISTS "flashcard_decks" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"title" text NOT NULL,
+	"description" text,
+	"category" text DEFAULT 'General',
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "flashcards" (
+	"id" text PRIMARY KEY NOT NULL,
+	"deck_id" text NOT NULL,
+	"front" text NOT NULL,
+	"back" text NOT NULL,
+	"box" integer DEFAULT 1 NOT NULL,
+	"next_review_at" timestamp DEFAULT now() NOT NULL,
+	"correct_count" integer DEFAULT 0 NOT NULL,
+	"incorrect_count" integer DEFAULT 0 NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "user_emotes" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"emote_id" text NOT NULL,
+	"equipped" boolean DEFAULT false NOT NULL,
+	"unlocked_at" timestamp DEFAULT now() NOT NULL
+);
+
+-- Extra columns (skip if already there)
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "referral_code" text;
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "referred_by_user_id" text;
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "referral_applied_at" timestamp;
+ALTER TABLE "marketplace_items" ADD COLUMN IF NOT EXISTS "premium_only" boolean DEFAULT false NOT NULL;
+ALTER TABLE "focus_sessions" ADD COLUMN IF NOT EXISTS "client_nonce" text;
+ALTER TABLE "active_sessions" ADD COLUMN IF NOT EXISTS "started_at" timestamp DEFAULT now() NOT NULL;
+ALTER TABLE "focus_cities" ADD COLUMN IF NOT EXISTS "selected_skin" text DEFAULT 'classic' NOT NULL;
+ALTER TABLE "seasonal_events" ADD COLUMN IF NOT EXISTS "premium_only" boolean DEFAULT false NOT NULL;
+ALTER TABLE "push_subscriptions" ADD COLUMN IF NOT EXISTS "priority_enabled" boolean DEFAULT false NOT NULL;
+ALTER TABLE "push_subscriptions" ADD COLUMN IF NOT EXISTS "sound" text DEFAULT 'default' NOT NULL;
+
+-- Dedupe then unique: inventory
+DELETE FROM "user_inventory" a
+USING "user_inventory" b
+WHERE a."user_id" = b."user_id"
+  AND a."item_id" = b."item_id"
+  AND a."id" > b."id";
+
+-- Dedupe then unique: focus_sessions nonce
+DELETE FROM public.focus_sessions
+WHERE id IN (
+  SELECT id FROM (
+    SELECT id, ROW_NUMBER() OVER (
+      PARTITION BY user_id, client_nonce
+      ORDER BY created_at DESC NULLS LAST, id DESC
+    ) AS rn
+    FROM public.focus_sessions
+    WHERE client_nonce IS NOT NULL
+  ) ranked
+  WHERE rn > 1
+);
+
+DO $$ BEGIN
+  ALTER TABLE "focus_cities" ADD CONSTRAINT "focus_cities_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "app_feedback" ADD CONSTRAINT "app_feedback_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "email_logs" ADD CONSTRAINT "email_logs_recipient_id_users_id_fk" FOREIGN KEY ("recipient_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "premium_subscriptions" ADD CONSTRAINT "premium_subscriptions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "user_dreams" ADD CONSTRAINT "user_dreams_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "user_inventory" ADD CONSTRAINT "user_inventory_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "user_inventory" ADD CONSTRAINT "user_inventory_item_id_marketplace_items_id_fk" FOREIGN KEY ("item_id") REFERENCES "public"."marketplace_items"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "user_pets" ADD CONSTRAINT "user_pets_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "wrapped_snapshots" ADD CONSTRAINT "wrapped_snapshots_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "user_loot_boxes" ADD CONSTRAINT "user_loot_boxes_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "user_loot_boxes" ADD CONSTRAINT "user_loot_boxes_box_type_id_loot_box_types_id_fk" FOREIGN KEY ("box_type_id") REFERENCES "public"."loot_box_types"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "user_quest_progress" ADD CONSTRAINT "user_quest_progress_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "user_quest_progress" ADD CONSTRAINT "user_quest_progress_quest_id_quest_definitions_id_fk" FOREIGN KEY ("quest_id") REFERENCES "public"."quest_definitions"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "user_seasonal_progress" ADD CONSTRAINT "user_seasonal_progress_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "user_seasonal_progress" ADD CONSTRAINT "user_seasonal_progress_event_id_seasonal_events_id_fk" FOREIGN KEY ("event_id") REFERENCES "public"."seasonal_events"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "flashcard_decks" ADD CONSTRAINT "flashcard_decks_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE cascade;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "flashcards" ADD CONSTRAINT "flashcards_deck_id_flashcard_decks_id_fk" FOREIGN KEY ("deck_id") REFERENCES "flashcard_decks"("id") ON DELETE cascade;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "user_emotes" ADD CONSTRAINT "user_emotes_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE cascade;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "users" ADD CONSTRAINT "users_referred_by_user_id_users_id_fk"
+    FOREIGN KEY ("referred_by_user_id") REFERENCES "users"("id") ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
+      AND c.relname = 'focus_sessions_user_nonce_unique'
+      AND c.relkind = 'i'
+  ) AND NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'focus_sessions_user_nonce_unique'
+  ) THEN
+    DROP INDEX public.focus_sessions_user_nonce_unique;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'focus_sessions_user_nonce_unique'
+  ) THEN
+    ALTER TABLE public.focus_sessions
+      ADD CONSTRAINT focus_sessions_user_nonce_unique UNIQUE (user_id, client_nonce);
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS "city_building_slug_idx" ON "city_building_definitions" USING btree ("slug");
+CREATE INDEX IF NOT EXISTS "focus_cities_user_idx" ON "focus_cities" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "app_feedback_user_idx" ON "app_feedback" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "email_logs_recipient_idx" ON "email_logs" USING btree ("recipient_id");
+CREATE INDEX IF NOT EXISTS "email_logs_created_at_idx" ON "email_logs" USING btree ("created_at");
+CREATE INDEX IF NOT EXISTS "premium_subscriptions_user_idx" ON "premium_subscriptions" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "user_inventory_user_idx" ON "user_inventory" USING btree ("user_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "user_inventory_user_item_unique" ON "user_inventory" ("user_id", "item_id");
+CREATE INDEX IF NOT EXISTS "wrapped_user_period_idx" ON "wrapped_snapshots" USING btree ("user_id","period");
+CREATE INDEX IF NOT EXISTS "user_loot_boxes_user_idx" ON "user_loot_boxes" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "user_quest_progress_user_idx" ON "user_quest_progress" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "seasonal_events_slug_idx" ON "seasonal_events" USING btree ("slug");
+CREATE INDEX IF NOT EXISTS "user_seasonal_progress_user_idx" ON "user_seasonal_progress" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "flashcard_decks_user_idx" ON "flashcard_decks" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "flashcards_deck_idx" ON "flashcards" USING btree ("deck_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "users_referral_code_unique" ON "users" ("referral_code");
+CREATE INDEX IF NOT EXISTS "users_referred_by_user_id_idx" ON "users" ("referred_by_user_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "user_emotes_user_emote_unique" ON "user_emotes" ("user_id", "emote_id");
+CREATE INDEX IF NOT EXISTS "user_emotes_user_idx" ON "user_emotes" ("user_id");
+
+INSERT INTO "seasonal_events" (
+  "id", "name", "slug", "description", "theme", "banner_color", "start_date", "end_date",
+  "xp_multiplier", "coin_multiplier", "special_missions", "exclusive_rewards", "premium_only", "is_active"
+) VALUES (
+  'season-cosmic-focus-2026', 'Cosmic Focus Season', 'cosmic-focus-2026',
+  'A Premium season of consistency, deep minutes, and exclusive cosmic rewards.', 'cosmic', '#8B5CF6',
+  '2026-08-23T00:00:00Z', '2026-09-30T23:59:59Z', 1.25, 1.15,
+  '[{"id":"cosmic-10","target":10,"unit":"sessions"},{"id":"deep-300","target":300,"unit":"minutes"}]'::jsonb,
+  '[{"id":"aurora-skin","type":"city_skin"},{"id":"galaxy-emote","type":"emote"}]'::jsonb,
+  true, true
+) ON CONFLICT ("id") DO UPDATE SET "premium_only" = true, "is_active" = true;
+
+UPDATE "marketplace_items"
+SET "premium_only" = true
+WHERE "id" IN ('frame-diamond', 'avatar-astronaut', 'effect-aurora', 'acc-fire-wings');
