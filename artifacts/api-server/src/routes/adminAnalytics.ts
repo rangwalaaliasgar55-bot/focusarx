@@ -3,6 +3,8 @@ import {
   db,
   visitorsTable,
   analyticsEventsTable,
+  usersTable,
+  activeSessionsTable,
 } from "@workspace/db";
 import { eq, and, gte, desc, sql, count, isNotNull } from "drizzle-orm";
 import { logger } from "../lib/logger";
@@ -201,6 +203,8 @@ router.get("/admin/analytics/live", async (req, res) => {
   try {
     const since = req.query.since as string | undefined;
     const sinceDate = since ? new Date(since) : new Date(Date.now() - 60 * 60 * 1000);
+    const now = new Date();
+    const onlineCutoff = new Date(now.getTime() - ONLINE_MS);
 
     const events = await db.select({
       id: analyticsEventsTable.id,
@@ -214,7 +218,52 @@ router.get("/admin/analytics/live", async (req, res) => {
       .orderBy(desc(analyticsEventsTable.createdAt))
       .limit(50);
 
-    res.json({ events, serverTime: new Date().toISOString() });
+    // ── Who is here right now ────────────────────────────────────────────────
+    // The event log alone is a poor "live" view: it says what happened, not who
+    // is on the site this minute. Surface currently-focusing users (from
+    // active_sessions) plus a live visitor/online count.
+    const focusing = await db.select({
+      userId: activeSessionsTable.userId,
+      mode: activeSessionsTable.mode,
+      timerStatus: activeSessionsTable.timerStatus,
+      secondsLeft: activeSessionsTable.secondsLeft,
+      activeSeconds: activeSessionsTable.activeSeconds,
+      startedAt: activeSessionsTable.startedAt,
+      name: usersTable.name,
+      email: usersTable.email,
+      isGuest: usersTable.isGuest,
+    })
+      .from(activeSessionsTable)
+      .innerJoin(usersTable, eq(usersTable.id, activeSessionsTable.userId))
+      .orderBy(desc(activeSessionsTable.startedAt))
+      .limit(25);
+
+    const [onlineVisitors] = await db.select({ c: count() })
+      .from(visitorsTable)
+      .where(and(eq(visitorsTable.isBot, false), gte(visitorsTable.lastSeen, onlineCutoff)));
+
+    const [focusingCount] = await db.select({ c: count() })
+      .from(activeSessionsTable)
+      .where(eq(activeSessionsTable.timerStatus, "running"));
+
+    res.json({
+      events,
+      serverTime: now.toISOString(),
+      live: {
+        onlineVisitors: Number(onlineVisitors?.c ?? 0),
+        focusingNow: Number(focusingCount?.c ?? 0),
+        users: focusing.map((u) => ({
+          userId: u.userId,
+          name: u.name || u.email?.split("@")[0] || (u.isGuest ? "Guest" : "User"),
+          isGuest: u.isGuest,
+          mode: u.mode,
+          timerStatus: u.timerStatus,
+          secondsLeft: u.secondsLeft,
+          activeSeconds: u.activeSeconds,
+          startedAt: u.startedAt,
+        })),
+      },
+    });
   } catch (err) {
     logger.error({ err }, "admin analytics live error");
     res.status(500).json({ error: "Internal error" });

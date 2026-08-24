@@ -1,5 +1,5 @@
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
-import { Router } from "express";
+import { Router, type Response } from "express";
 import { z } from "zod";
 import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, userWalletsTable, productivityLogsTable, battlePassProgressTable, coinTransactionsTable, focusCitiesTable, userLootBoxesTable, premiumSubscriptionsTable } from "@workspace/db";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -317,11 +317,11 @@ router.post("/sessions", authMiddleware, async (req: AuthRequest, res) => {
   }
 });
 
-router.get("/sessions/history", authMiddleware, async (req: AuthRequest, res) => {
+async function handleSessionHistory(req: AuthRequest, res: Response) {
   try {
     const limit = Math.min(100, Number(req.query.limit) || 30);
     const sessions = await db.select().from(focusSessionsTable)
-      .where(eq(focusSessionsTable.userId, req.userId))
+      .where(eq(focusSessionsTable.userId, req.userId!))
       .orderBy(desc(focusSessionsTable.completedAt))
       .limit(limit);
     res.json({ sessions });
@@ -329,7 +329,12 @@ router.get("/sessions/history", authMiddleware, async (req: AuthRequest, res) =>
     logger.error({ err }, "session history error");
     res.status(500).json({ error: "Internal error" });
   }
-});
+}
+
+router.get("/sessions/history", authMiddleware, handleSessionHistory);
+// Some callers (e.g. the constellations fallback) request /api/sessions
+// directly; serve the same payload so it does not 404.
+router.get("/sessions", authMiddleware, handleSessionHistory);
 
 async function updateProductivityLog(userId: string, focusMinutes: number, sessionsCompleted: number, avgScore?: number | null) {
   try {

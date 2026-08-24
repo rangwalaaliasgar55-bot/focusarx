@@ -24,6 +24,7 @@ CREATE TABLE public.active_sessions (
     last_seen_face_at text,
     focus_timeline text DEFAULT '[]'::text,
     monitor_enabled boolean DEFAULT false,
+    started_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL
 );
 CREATE TABLE public.analytics_events (
