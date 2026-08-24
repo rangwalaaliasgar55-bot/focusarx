@@ -1004,7 +1004,7 @@ DO $$ BEGIN
   ALTER TABLE "post_likes" ADD CONSTRAINT "post_likes_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-CREATE UNIQUE INDEX IF NOT EXISTS ON "analytics_events" USING btree ("event_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "analytics_events_event_id_idx" ON "analytics_events" USING btree ("event_id");
 
 CREATE INDEX IF NOT EXISTS "analytics_events_created_at_idx" ON "analytics_events" USING btree ("created_at");
 
