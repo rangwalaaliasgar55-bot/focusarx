@@ -697,6 +697,11 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     {/* ── RIGHT COLUMN ────────────────────────────────────────────────── */}
     <div className="flex w-full max-w-md flex-col gap-4">
 
+      {/* Ambient mixer — always visible on desktop, no scrolling needed */}
+      <div className="hidden lg:block">
+        <AmbientSoundBar variant="panel" />
+      </div>
+
       {/* Break Activity Card */}
       <AnimatePresence>
         {isRunning && (mode === "break" || mode === "longBreak") && (
@@ -756,7 +761,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     </div>
     </div>
 
-    {/* Ambient Sound Bar */}
+    {/* Ambient Sound Bar — floating pill on mobile/tablet (hidden on lg where the panel lives) */}
     <AmbientSoundBar visible={true} />
 
     {/* ── OVERLAYS ──────────────────────────────────────────────────── */}

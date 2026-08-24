@@ -29,6 +29,38 @@ async function getCameraPermissionState(): Promise<PermissionState | "unknown"> 
   }
 }
 
+function formatDuration(totalSec: number) {
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
+/** Tiny attention sparkline — last ~3 minutes, one bar per 2s. */
+function AttentionSparkline({ timeline }: { timeline: number[] }) {
+  const bars = timeline.slice(-45);
+  return (
+    <div className="flex h-8 items-end gap-[2px]" aria-hidden>
+      {bars.length === 0 && <span className="text-[10px] text-[var(--palette-zinc-600)]">Attention history appears here</span>}
+      {bars.map((v, i) => (
+        <div
+          key={i}
+          className="flex-1 min-w-[2px] rounded-sm transition-all duration-300"
+          style={{
+            height: `${Math.max(8, v * 100)}%`,
+            background:
+              v > 0.66
+                ? "var(--palette-emerald-400)"
+                : v > 0.35
+                  ? "var(--palette-amber-400)"
+                  : "var(--palette-rose-400)",
+            opacity: 0.35 + 0.65 * (i / Math.max(1, bars.length - 1)),
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function FocusCamera({ className = "" }: FocusCameraProps) {
   const webcamRef = useRef<Webcam>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -75,6 +107,8 @@ export function FocusCamera({ className = "" }: FocusCameraProps) {
 
   const handleEnable = useCallback(async () => {
     try {
+      // Kick model loading in parallel — it finishes while the camera warms up.
+      void initVisionProcessor().then(() => setModelsReady(isVisionProcessorReady()));
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user", width: 480, height: 360 },
         audio: false,
@@ -131,6 +165,22 @@ export function FocusCamera({ className = "" }: FocusCameraProps) {
         ? "text-[var(--palette-amber-400)]"
         : "text-[var(--palette-rose-400)]";
 
+  const ringColor = tracking.isFocused
+    ? "var(--palette-emerald-500)"
+    : tracking.warnings.length > 0
+      ? "var(--palette-rose-500)"
+      : "var(--palette-zinc-700)";
+
+  const stateLabel = !tracking.facePresent
+    ? tracking.warnings.includes("No face detected")
+      ? "Away from desk"
+      : "Looking for you…"
+    : tracking.faceCount > 1
+      ? "Multiple people"
+      : tracking.isFocused
+        ? "In the zone"
+        : "Distracted";
+
   return (
     <motion.div
       layout
@@ -142,7 +192,7 @@ export function FocusCamera({ className = "" }: FocusCameraProps) {
             🎥 AI Focus Monitor
           </p>
           <p className="text-[11px] text-[var(--palette-zinc-500)] mt-0.5">
-            Face detection · Real-time focus tracking
+            On-device vision · posture &amp; attention
           </p>
         </div>
         {enabled ? (
@@ -161,10 +211,9 @@ export function FocusCamera({ className = "" }: FocusCameraProps) {
             whileTap={{ scale: 0.95 }}
             type="button"
             onClick={() => void handleEnable()}
-            disabled={!modelsReady}
-            className="rounded-lg bg-gradient-to-r from-[var(--palette-emerald-500)] to-[var(--palette-teal-500)] px-3 py-1.5 text-xs font-semibold text-[var(--palette-white)] hover:shadow-lg hover:shadow-[var(--palette-emerald-500)]/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="rounded-lg bg-gradient-to-r from-[var(--palette-emerald-500)] to-[var(--palette-teal-500)] px-3 py-1.5 text-xs font-semibold text-[var(--palette-white)] hover:shadow-lg hover:shadow-[var(--palette-emerald-500)]/40 transition-all"
           >
-            {modelsReady ? "Start Camera" : "Loading…"}
+            {modelsReady ? "Start Camera" : "Start Camera · AI…"}
           </motion.button>
         )}
       </div>
@@ -179,13 +228,8 @@ export function FocusCamera({ className = "" }: FocusCameraProps) {
             className="mt-4 space-y-3 overflow-hidden"
           >
             <div
-              className={`relative aspect-video overflow-hidden rounded-xl bg-[var(--palette-black)] ring-2 ${
-                tracking.isFocused
-                  ? "ring-[var(--palette-emerald-500)]/50"
-                  : tracking.warnings.length > 0
-                    ? "ring-[var(--palette-rose-500)]/50"
-                    : "ring-[var(--palette-zinc-700)]/50"
-              }`}
+              className="relative aspect-video overflow-hidden rounded-xl bg-[var(--palette-black)] ring-2 transition-colors duration-500"
+              style={{ ["--tw-ring-color" as string]: ringColor }}
             >
               {hasPermission === false ? (
                 <p className="flex h-full items-center justify-center text-sm text-[var(--palette-zinc-500)]">
@@ -208,8 +252,35 @@ export function FocusCamera({ className = "" }: FocusCameraProps) {
                   }}
                 />
               )}
+              {/* Live state chip */}
+              <div className="absolute left-2 top-2 flex items-center gap-1.5 rounded-full bg-[var(--palette-black)]/60 px-2.5 py-1 backdrop-blur-sm">
+                <span
+                  className="h-1.5 w-1.5 rounded-full animate-pulse"
+                  style={{ background: ringColor }}
+                />
+                <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--palette-white)]">
+                  {stateLabel}
+                </span>
+              </div>
+              {/* Attention gauge */}
+              <div className="absolute inset-x-2 bottom-2">
+                <div className="h-1 w-full overflow-hidden rounded-full bg-[var(--palette-black)]/50">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${tracking.attention}%`,
+                      background: tracking.attention >= 66
+                        ? "var(--palette-emerald-400)"
+                        : tracking.attention >= 35
+                          ? "var(--palette-amber-400)"
+                          : "var(--palette-rose-400)",
+                    }}
+                  />
+                </div>
+              </div>
             </div>
 
+            {/* Stats row */}
             <div className="flex items-end justify-between gap-3">
               <div>
                 <p className="text-[10px] uppercase tracking-wider text-[var(--palette-zinc-500)]">
@@ -219,22 +290,42 @@ export function FocusCamera({ className = "" }: FocusCameraProps) {
                   {tracking.focusScore}
                 </p>
               </div>
-              <div className="flex flex-wrap justify-end gap-1.5">
-                {tracking.isFocused && tracking.warnings.length === 0 && (
-                  <Badge tone="ok">In focus</Badge>
-                )}
-                {tracking.phoneDetected && (
-                  <Badge tone="warn">Phone detected</Badge>
-                )}
-                {tracking.warnings.includes("No face detected") && (
-                  <Badge tone="warn">No face detected</Badge>
-                )}
-                {!tracking.facePresent &&
-                  !tracking.warnings.includes("No face detected") && (
-                    <Badge tone="muted">Looking for face…</Badge>
-                  )}
+              <div className="flex flex-col items-end gap-1 text-right">
+                <p className="text-[11px] text-[var(--palette-zinc-400)]">
+                  🎯 <span className="font-bold text-[var(--palette-zinc-200)]">{formatDuration(tracking.focusedSeconds)}</span> focused
+                </p>
+                <p className="text-[11px] text-[var(--palette-zinc-400)]">
+                  ⏱ <span className="font-bold text-[var(--palette-zinc-200)]">{formatDuration(tracking.distractedSeconds)}</span> away
+                </p>
+                <p className="text-[11px] text-[var(--palette-zinc-400)]">
+                  ⚡ <span className="font-bold text-[var(--palette-zinc-200)]">{tracking.distractionCount}</span> distraction{tracking.distractionCount !== 1 ? "s" : ""}
+                </p>
               </div>
             </div>
+
+            {/* Attention history */}
+            <div className="rounded-xl border border-[var(--palette-zinc-800)]/70 bg-[var(--palette-zinc-950)]/40 px-2.5 py-2">
+              <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-600)]">
+                Attention — last 90s
+              </p>
+              <AttentionSparkline timeline={tracking.timeline} />
+            </div>
+
+            {/* Status badges */}
+            <div className="flex flex-wrap gap-1.5">
+              {tracking.isFocused && <Badge tone="ok">In focus</Badge>}
+              {tracking.warnings.includes("No face detected") && <Badge tone="warn">No face detected</Badge>}
+              {tracking.faceCount > 1 && <Badge tone="warn">{tracking.faceCount} people in frame</Badge>}
+              {tracking.distance === "too_far" && <Badge tone="warn">Too far from screen</Badge>}
+              {!tracking.facePresent && !tracking.warnings.includes("No face detected") && (
+                <Badge tone="muted">Looking for face…</Badge>
+              )}
+              {tracking.isFocused && tracking.focusScore >= 85 && <Badge tone="ok">Deep focus 🔥</Badge>}
+            </div>
+
+            <p className="text-[9px] leading-relaxed text-[var(--palette-zinc-600)]">
+              🔒 Video never leaves your device — all analysis runs locally in your browser.
+            </p>
           </motion.div>
         )}
       </AnimatePresence>

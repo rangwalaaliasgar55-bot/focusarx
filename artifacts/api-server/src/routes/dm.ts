@@ -62,9 +62,10 @@ dmRouter.get("/dm/conversations", authMiddleware, async (req: AuthRequest, res: 
 
       let otherParticipant = null;
       if (conv.type === "direct" && others[0]) {
-        const [u] = await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email })
+        const [u] = await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, role: usersTable.role })
           .from(usersTable).where(eq(usersTable.id, others[0].userId)).limit(1);
-        otherParticipant = { id: u?.id, name: u?.name || u?.email?.split("@")[0] || "User" };
+        const role = (u?.role ?? "user").toLowerCase();
+        otherParticipant = { id: u?.id, name: u?.name || u?.email?.split("@")[0] || "User", isAdmin: role === "admin", isBot: role === "bot" };
       }
 
       const [lastMsg] = await db.select().from(messages)
@@ -135,7 +136,7 @@ dmRouter.get("/dm/:convId/messages", authMiddleware, async (req: AuthRequest, re
       .limit(parseInt(limit)).offset(parseInt(offset));
 
     const enriched = await Promise.all(msgs.map(async m => {
-      const [sender] = await db.select({ name: usersTable.name, email: usersTable.email })
+      const [sender] = await db.select({ name: usersTable.name, email: usersTable.email, role: usersTable.role })
         .from(usersTable).where(eq(usersTable.id, m.senderId)).limit(1);
 
       const reacts = await db.select().from(messageReactions)
@@ -143,9 +144,12 @@ dmRouter.get("/dm/:convId/messages", authMiddleware, async (req: AuthRequest, re
       const reactions: Record<string, number> = {};
       reacts.forEach(r => { reactions[r.emoji] = (reactions[r.emoji] || 0) + 1; });
 
+      const senderRole = (sender?.role ?? "user").toLowerCase();
       return {
         ...m,
         senderName: sender?.name || sender?.email?.split("@")[0] || "User",
+        senderIsAdmin: senderRole === "admin",
+        senderIsBot: senderRole === "bot",
         reactions,
       };
     }));
@@ -192,10 +196,11 @@ dmRouter.post("/dm/:convId/messages", authMiddleware, async (req: AuthRequest, r
     await db.update(conversations).set({ lastMessageAt: new Date() })
       .where(eq(conversations.id, req.params.convId as string));
 
-    const [senderUser] = await db.select({ name: usersTable.name, email: usersTable.email })
+    const [senderUser] = await db.select({ name: usersTable.name, email: usersTable.email, role: usersTable.role })
       .from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    const senderRole = (senderUser?.role ?? "user").toLowerCase();
 
-    const fullMsg = { ...msg, senderName: senderUser?.name || senderUser?.email?.split("@")[0] || "User", reactions: {} };
+    const fullMsg = { ...msg, senderName: senderUser?.name || senderUser?.email?.split("@")[0] || "User", senderIsAdmin: senderRole === "admin", senderIsBot: senderRole === "bot", reactions: {} };
 
     try {
       const others = await db.select().from(conversationParticipants)

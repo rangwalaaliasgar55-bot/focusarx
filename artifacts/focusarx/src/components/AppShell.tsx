@@ -17,6 +17,7 @@ import {
   Library,
   LogIn,
   LogOut,
+  Medal,
   Menu,
   MessageCircle,
   Moon,
@@ -97,8 +98,9 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Momentum",
     entries: [
+      { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
       { href: "/missions", label: "Missions", icon: Target, badge: "missions" },
-      { href: "/achievements", label: "Achievements", icon: Trophy },
+      { href: "/achievements", label: "Achievements", icon: Medal },
       { href: "/break-free", label: "Break Free", icon: Flame },
       { href: "/social", label: "Community", icon: Users },
     ],

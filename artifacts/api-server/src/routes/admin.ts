@@ -1,7 +1,8 @@
 import crypto from "crypto";
+import bcrypt from "bcryptjs";
 import { Router } from "express";
 import jwt from "jsonwebtoken";
-import { db, pool, usersTable, focusSessionsTable, studyStreaksTable, activeSessionsTable, userMissionProgressTable, loginRewardsTable, freezeTokensTable, battlePassProgressTable, notificationsTable, premiumSubscriptionsTable } from "@workspace/db";
+import { db, pool, usersTable, focusSessionsTable, studyStreaksTable, activeSessionsTable, userMissionProgressTable, loginRewardsTable, freezeTokensTable, battlePassProgressTable, notificationsTable, premiumSubscriptionsTable, userWalletsTable, socialPostsTable } from "@workspace/db";
 import { eq, gte, inArray, and, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getServerConfig } from "../lib/config";
@@ -9,6 +10,7 @@ import { extractUserId } from "./auth";
 import { adminLimiter } from "../lib/rateLimiter";
 import { ALL_MISSIONS } from "./missions";
 import { checkAdminAuth } from "../lib/adminAuth";
+import { seedBots, deleteAllBots, BOT_PERSONAS } from "../lib/botEngine";
 
 const router = Router();
 const ADMIN_COOKIE = "focusarx_admin";
@@ -119,6 +121,7 @@ router.get("/admin/users", async (req, res) => {
     const streakByUser = new Map(streakRows.map((r) => [r.userId, r.currentStreak]));
 
     const registered = users.filter((u) => !u.isGuest);
+    const botCount = registered.filter((u) => (u.role ?? "").toLowerCase() === "bot").length;
 
     res.json({
       users: registered.map((u) => ({
@@ -130,6 +133,7 @@ router.get("/admin/users", async (req, res) => {
       })),
       activeCount: Number(activeCount ?? 0),
       guestCount: users.length - registered.length,
+      botCount,
     });
   } catch (err) {
     logger.error({ err }, "admin users error");
@@ -149,7 +153,7 @@ router.get("/admin/stats", async (req, res) => {
       durationSec: focusSessionsTable.durationSec,
     }).from(focusSessionsTable)
       .where(gte(focusSessionsTable.createdAt, sevenDaysAgo));
-    const allUsers = await db.select({ id: usersTable.id, createdAt: usersTable.createdAt, isGuest: usersTable.isGuest }).from(usersTable);
+    const allUsers = await db.select({ id: usersTable.id, createdAt: usersTable.createdAt, isGuest: usersTable.isGuest, role: usersTable.role }).from(usersTable);
     const allFocusSessions = await db.select({
       userId: focusSessionsTable.userId,
       durationSec: focusSessionsTable.durationSec,
@@ -182,7 +186,8 @@ router.get("/admin/stats", async (req, res) => {
       if (s.mode === "focus") timeByUser[s.userId] = (timeByUser[s.userId] ?? 0) + (s.durationSec ?? 0);
     }
     const guestIds = new Set(allUsers.filter((u) => u.isGuest).map((u) => u.id));
-    const registeredUsers = allUsers.filter((u) => !u.isGuest);
+    // Bots (AI rivals) are excluded from human platform metrics.
+    const registeredUsers = allUsers.filter((u) => !u.isGuest && (u.role ?? "").toLowerCase() !== "bot");
 
     const topUserIds = Object.entries(timeByUser)
       .filter(([id]) => !guestIds.has(id))
@@ -224,8 +229,8 @@ router.patch("/admin/users/:id/role", async (req, res) => {
   if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
   const { id } = req.params as { id: string };
   const { role } = req.body as { role?: string };
-  if (!role || !["admin", "user"].includes(role)) {
-    res.status(400).json({ error: "role must be 'admin' or 'user'" });
+  if (!role || !["admin", "user", "bot"].includes(role)) {
+    res.status(400).json({ error: "role must be 'admin', 'user' or 'bot'" });
     return;
   }
   try {
@@ -234,6 +239,301 @@ router.patch("/admin/users/:id/role", async (req, res) => {
     res.json({ ok: true, id: updated.id, role: updated.role });
   } catch (err) {
     logger.error({ err }, "admin set role error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// ─── FULL USER PROFILE (admin) ────────────────────────────────────────────────
+// Everything the platform knows about one user, in one payload.
+
+router.get("/admin/users/:id/profile", async (req, res) => {
+  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const { id } = req.params as { id: string };
+  try {
+    // Explicit column projection (CLAUDE.md rule #1) so schema drift can't 500.
+    const [user] = await db.select({
+      id: usersTable.id,
+      email: usersTable.email,
+      name: usersTable.name,
+      isGuest: usersTable.isGuest,
+      role: usersTable.role,
+      bio: usersTable.bio,
+      timezone: usersTable.timezone,
+      onboardingCompleted: usersTable.onboardingCompleted,
+      productivityScore: usersTable.productivityScore,
+      totalFocusMinutes: usersTable.totalFocusMinutes,
+      referralCode: usersTable.referralCode,
+      createdAt: usersTable.createdAt,
+    }).from(usersTable).where(eq(usersTable.id, id));
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    const [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, id));
+    const [streak] = await db.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, id));
+    const [premium] = await db.select().from(premiumSubscriptionsTable).where(eq(premiumSubscriptionsTable.userId, id));
+
+    const [sessionAgg] = await db.select({
+      count: sql<number>`count(*)`,
+      totalSec: sql<number>`coalesce(sum(${focusSessionsTable.durationSec}), 0)`,
+      lastAt: sql<string | null>`max(${focusSessionsTable.completedAt})`,
+    }).from(focusSessionsTable).where(eq(focusSessionsTable.userId, id));
+
+    const [postAgg] = await db.select({
+      count: sql<number>`count(*)`,
+    }).from(socialPostsTable).where(eq(socialPostsTable.userId, id));
+
+    const recentSessions = await db.select({
+      id: focusSessionsTable.id,
+      mode: focusSessionsTable.mode,
+      durationSec: focusSessionsTable.durationSec,
+      focusScore: focusSessionsTable.focusScore,
+      completedAt: focusSessionsTable.completedAt,
+      sessionStatus: focusSessionsTable.sessionStatus,
+    }).from(focusSessionsTable)
+      .where(eq(focusSessionsTable.userId, id))
+      .orderBy(sql`${focusSessionsTable.completedAt} desc nulls last`)
+      .limit(10);
+
+    const hasPassword = await (async () => {
+      const [row] = await db.select({ hashed: usersTable.hashedPassword }).from(usersTable).where(eq(usersTable.id, id));
+      return Boolean(row?.hashed);
+    })();
+
+    res.json({
+      user: {
+        ...user,
+        hasPassword,
+      },
+      wallet: wallet ? {
+        coins: wallet.coins,
+        totalXp: wallet.totalXp,
+        weeklyXp: wallet.weeklyXp,
+        level: wallet.level,
+        prestige: wallet.prestige,
+      } : null,
+      streak: streak ? {
+        currentStreak: streak.currentStreak,
+        longestStreak: streak.longestStreak,
+        lastStudyDate: streak.lastStudyDate,
+      } : null,
+      premium: premium ? { isActive: premium.isActive, expiresAt: premium.expiresAt } : null,
+      stats: {
+        sessionCount: Number(sessionAgg?.count ?? 0),
+        totalFocusMinutes: Math.round(Number(sessionAgg?.totalSec ?? 0) / 60),
+        lastSessionAt: sessionAgg?.lastAt ?? null,
+        postCount: Number(postAgg?.count ?? 0),
+      },
+      recentSessions,
+    });
+  } catch (err) {
+    logger.error({ err }, "admin user profile error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// ─── EDIT CORE PROFILE ────────────────────────────────────────────────────────
+
+router.patch("/admin/users/:id", adminLimiter, async (req, res) => {
+  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const { id } = req.params as { id: string };
+  const b = req.body as Record<string, unknown>;
+  const patch: Partial<typeof usersTable.$inferInsert> = {};
+
+  if (typeof b.name === "string") patch.name = b.name.trim().slice(0, 80) || null;
+  if (typeof b.email === "string" && b.email.includes("@")) patch.email = b.email.trim().toLowerCase().slice(0, 160);
+  if (typeof b.bio === "string") patch.bio = b.bio.slice(0, 280);
+  if (typeof b.timezone === "string") patch.timezone = b.timezone.slice(0, 60);
+  if (typeof b.role === "string" && ["admin", "user", "bot"].includes(b.role)) patch.role = b.role;
+  if (typeof b.onboardingCompleted === "boolean") patch.onboardingCompleted = b.onboardingCompleted;
+  if (typeof b.productivityScore === "number" && Number.isFinite(b.productivityScore)) patch.productivityScore = Math.max(0, Math.min(100, b.productivityScore));
+  if (typeof b.totalFocusMinutes === "number" && Number.isFinite(b.totalFocusMinutes)) patch.totalFocusMinutes = Math.max(0, Math.round(b.totalFocusMinutes));
+
+  if (Object.keys(patch).length === 0) {
+    res.status(400).json({ error: "No valid fields to update" });
+    return;
+  }
+  try {
+    const [updated] = await db.update(usersTable).set(patch)
+      .where(eq(usersTable.id, id))
+      .returning({ id: usersTable.id, name: usersTable.name, email: usersTable.email, role: usersTable.role });
+    if (!updated) { res.status(404).json({ error: "User not found" }); return; }
+    logger.info({ id, fields: Object.keys(patch) }, "admin edited user profile");
+    res.json({ ok: true, user: updated });
+  } catch (err: any) {
+    if (String(err?.code) === "23505") { res.status(409).json({ error: "Email already in use" }); return; }
+    logger.error({ err }, "admin edit user error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// ─── EDIT STREAK ──────────────────────────────────────────────────────────────
+
+router.patch("/admin/users/:id/streak", adminLimiter, async (req, res) => {
+  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const { id } = req.params as { id: string };
+  const b = req.body as { currentStreak?: number; longestStreak?: number };
+  const current = typeof b.currentStreak === "number" ? Math.max(0, Math.round(b.currentStreak)) : null;
+  const longest = typeof b.longestStreak === "number" ? Math.max(0, Math.round(b.longestStreak)) : null;
+  if (current === null && longest === null) {
+    res.status(400).json({ error: "currentStreak or longestStreak required" });
+    return;
+  }
+  try {
+    const [existing] = await db.select({ id: studyStreaksTable.id }).from(studyStreaksTable).where(eq(studyStreaksTable.userId, id));
+    if (existing) {
+      await db.update(studyStreaksTable).set({
+        ...(current !== null ? { currentStreak: current } : {}),
+        ...(longest !== null ? { longestStreak: longest } : {}),
+        ...(current !== null && current > 0 ? { lastStudyDate: new Date().toISOString().slice(0, 10) } : {}),
+        updatedAt: new Date(),
+      }).where(eq(studyStreaksTable.userId, id));
+    } else {
+      await db.insert(studyStreaksTable).values({
+        userId: id,
+        currentStreak: current ?? 0,
+        longestStreak: longest ?? current ?? 0,
+        ...(current && current > 0 ? { lastStudyDate: new Date().toISOString().slice(0, 10) } : {}),
+      });
+    }
+    const [row] = await db.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, id));
+    res.json({ ok: true, streak: row });
+  } catch (err) {
+    logger.error({ err }, "admin edit streak error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// ─── EDIT WALLET (coins / XP / level) ─────────────────────────────────────────
+
+router.patch("/admin/users/:id/wallet", adminLimiter, async (req, res) => {
+  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const { id } = req.params as { id: string };
+  const b = req.body as { coins?: number; totalXp?: number; weeklyXp?: number; level?: number; mode?: "set" | "add" };
+  const mode = b.mode === "add" ? "add" : "set";
+  const num = (v: unknown) => typeof v === "number" && Number.isFinite(v) ? Math.round(v) : null;
+  const coins = num(b.coins);
+  const totalXp = num(b.totalXp);
+  const weeklyXp = num(b.weeklyXp);
+  const level = num(b.level);
+  if (coins === null && totalXp === null && weeklyXp === null && level === null) {
+    res.status(400).json({ error: "coins, totalXp, weeklyXp or level required" });
+    return;
+  }
+  const clamp = (v: number) => Math.max(0, v);
+  try {
+    const [existing] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, id));
+    if (!existing) {
+      await db.insert(userWalletsTable).values({
+        userId: id,
+        coins: clamp(coins ?? 0),
+        totalXp: clamp(totalXp ?? 0),
+        weeklyXp: clamp(weeklyXp ?? 0),
+        level: clamp(level ?? 1),
+      });
+    } else {
+      await db.update(userWalletsTable).set({
+        ...(coins !== null ? { coins: clamp(mode === "add" ? existing.coins + coins : coins) } : {}),
+        ...(totalXp !== null ? { totalXp: clamp(mode === "add" ? existing.totalXp + totalXp : totalXp) } : {}),
+        ...(weeklyXp !== null ? { weeklyXp: clamp(mode === "add" ? existing.weeklyXp + weeklyXp : weeklyXp) } : {}),
+        ...(level !== null ? { level: Math.max(1, mode === "add" ? existing.level + level : level) } : {}),
+        updatedAt: new Date(),
+      }).where(eq(userWalletsTable.userId, id));
+    }
+    const [row] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, id));
+    logger.info({ id, mode, coins, totalXp }, "admin edited wallet");
+    res.json({ ok: true, wallet: row });
+  } catch (err) {
+    logger.error({ err }, "admin edit wallet error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// ─── ADMIN PASSWORD RESET (forgot password help) ──────────────────────────────
+// Sets a brand-new password for the user. When none is supplied a random one is
+// generated and returned exactly once — the admin relays it to the user.
+
+router.post("/admin/users/:id/reset-password", adminLimiter, async (req, res) => {
+  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const { id } = req.params as { id: string };
+  const bodyPassword = typeof (req.body as any)?.password === "string" ? (req.body as any).password as string : "";
+  const password = bodyPassword.trim().length >= 8
+    ? bodyPassword
+    : `Fx-${crypto.randomBytes(5).toString("hex")}-${crypto.randomInt(10, 99)}`;
+  try {
+    const [user] = await db.select({ id: usersTable.id, email: usersTable.email, isGuest: usersTable.isGuest })
+      .from(usersTable).where(eq(usersTable.id, id));
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    if (user.isGuest) { res.status(400).json({ error: "Guest accounts have no password" }); return; }
+    const hashed = await bcrypt.hash(password, 12);
+    await db.update(usersTable).set({ hashedPassword: hashed }).where(eq(usersTable.id, id));
+    // Invalidate any outstanding self-service reset tokens.
+    await db.execute(sql`update password_reset_tokens set used_at = now() where user_id = ${id} and used_at is null`);
+    logger.info({ id }, "admin reset user password");
+    res.json({ ok: true, email: user.email, temporaryPassword: password, generated: bodyPassword.trim().length < 8 });
+  } catch (err) {
+    logger.error({ err }, "admin reset password error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// ─── DIRECT NOTIFICATION TO ONE USER ──────────────────────────────────────────
+
+router.post("/admin/users/:id/notification", adminLimiter, async (req, res) => {
+  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const { id } = req.params as { id: string };
+  const { title, message, type } = req.body as { title?: string; message?: string; type?: string };
+  if (!title?.trim() || !message?.trim()) { res.status(400).json({ error: "title and message required" }); return; }
+  try {
+    await db.insert(notificationsTable).values({
+      userId: id,
+      type: type ?? "system",
+      title: title.trim().slice(0, 120),
+      message: message.trim().slice(0, 500),
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    logger.error({ err }, "admin notify user error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// ─── AI RIVALS (labelled bot accounts) ────────────────────────────────────────
+
+router.get("/admin/bots", async (_req, res) => {
+  if (!await checkAuth(_req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  try {
+    const bots = await db.select({
+      id: usersTable.id,
+      name: usersTable.name,
+      email: usersTable.email,
+      createdAt: usersTable.createdAt,
+    }).from(usersTable).where(eq(usersTable.role, "bot")).orderBy(usersTable.createdAt);
+    res.json({ bots, personas: BOT_PERSONAS.length });
+  } catch (err) {
+    logger.error({ err }, "admin list bots error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+router.post("/admin/bots/seed", adminLimiter, async (req, res) => {
+  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  try {
+    const result = await seedBots();
+    logger.info(result, "admin seeded AI rivals");
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    logger.error({ err }, "admin seed bots error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+router.delete("/admin/bots", adminLimiter, async (req, res) => {
+  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  try {
+    const deleted = await deleteAllBots();
+    logger.info({ deleted }, "admin removed AI rivals");
+    res.json({ ok: true, deleted });
+  } catch (err) {
+    logger.error({ err }, "admin delete bots error");
     res.status(500).json({ error: "Internal error" });
   }
 });
@@ -392,8 +692,12 @@ router.get("/admin/retention", async (req, res) => {
 // ─── SQL EDITOR (admin only) ──────────────────────────────────────────────────
 
 router.post("/admin/sql", adminLimiter, async (req, res) => {
-  if (process.env.NODE_ENV === "production" || process.env.ENABLE_ADMIN_SQL !== "true") {
-    res.status(404).json({ error: "Not found" }); return;
+  // Available wherever admin auth works, but can be hard-disabled by setting
+  // ENABLE_ADMIN_SQL=false. Queries always run inside a READ ONLY transaction
+  // with a statement timeout, so this can never mutate data.
+  if (process.env.ENABLE_ADMIN_SQL === "false") {
+    res.status(404).json({ error: "SQL editor is disabled on this deployment (ENABLE_ADMIN_SQL=false)" });
+    return;
   }
   if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
   const { query } = req.body as { query?: string };

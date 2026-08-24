@@ -1,301 +1,228 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Music2, VolumeX, Volume2, ChevronDown, ChevronUp } from "lucide-react";
+import { Music2, VolumeX, Volume2, ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
+import {
+  ambientEngine,
+  AMBIENT_SOUNDS,
+  AMBIENT_PRESETS,
+  type SoundId,
+} from "@/lib/ambientEngine";
 
-type SoundId = "rain" | "ocean" | "forest" | "storm" | "whitenoise" | "cafe";
+const STORAGE_KEY = "focusarx_sounds_v2";
+const MAX_LAYERS = 3;
 
-interface SoundDef {
-  id: SoundId;
-  label: string;
-  emoji: string;
+interface SavedPrefs {
+  sounds: Array<{ id: SoundId; volume: number }>;
+  master: number;
+}
+
+function loadSavedPrefs(): SavedPrefs {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as SavedPrefs;
+      if (Array.isArray(parsed.sounds)) return parsed;
+    }
+  } catch {}
+  return { sounds: [], master: 0.9 };
+}
+
+function savePrefs(sounds: Array<{ id: SoundId; volume: number }>, master: number) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ sounds, master })); } catch {}
+}
+
+function VolumeSlider({
+  value,
+  color,
+  onChange,
+  compact,
+}: {
+  value: number;
   color: string;
-}
-
-const SOUNDS: SoundDef[] = [
-  { id: "rain",       label: "Rain",         emoji: "🌧️", color: "var(--info)" },
-  { id: "ocean",      label: "Ocean",        emoji: "🌊", color: "var(--palette-0ea5e9)" },
-  { id: "forest",     label: "Forest",       emoji: "🌲", color: "var(--color-success)" },
-  { id: "storm",      label: "Storm",        emoji: "⛈️", color: "var(--brand-500)" },
-  { id: "whitenoise", label: "White Noise",  emoji: "🌫️", color: "var(--foreground-muted)" },
-  { id: "cafe",       label: "Café Hum",     emoji: "☕", color: "var(--palette-d97706)" },
-];
-
-// ── Web Audio procedural sound generators ──────────────────────────
-function createAudioCtx() {
-  return new (window.AudioContext || (window as any).webkitAudioContext)();
-}
-
-function buildRainNode(ctx: AudioContext): AudioNode {
-  const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.7;
-  const src = ctx.createBufferSource();
-  src.buffer = buf;
-  src.loop = true;
-  const lo = ctx.createBiquadFilter();
-  lo.type = "lowpass"; lo.frequency.value = 3500; lo.Q.value = 0.3;
-  const hi = ctx.createBiquadFilter();
-  hi.type = "highpass"; hi.frequency.value = 400;
-  src.connect(lo); lo.connect(hi);
-  src.start();
-  return hi;
-}
-
-function buildOceanNode(ctx: AudioContext): AudioNode {
-  const master = ctx.createGain();
-  const rate = 0.1;
-  const osc = ctx.createOscillator();
-  osc.frequency.value = rate;
-  const oscGain = ctx.createGain();
-  oscGain.gain.value = 0;
-  osc.connect(oscGain.gain);
-  osc.start();
-
-  const buf = ctx.createBuffer(1, ctx.sampleRate * 3, ctx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1);
-  const src = ctx.createBufferSource();
-  src.buffer = buf; src.loop = true;
-  const filter = ctx.createBiquadFilter();
-  filter.type = "bandpass"; filter.frequency.value = 600; filter.Q.value = 0.5;
-  src.connect(filter); filter.connect(oscGain); oscGain.connect(master);
-  src.start();
-  return master;
-}
-
-function buildForestNode(ctx: AudioContext): AudioNode {
-  const master = ctx.createGain();
-  // Wind
-  const wBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
-  const wd = wBuf.getChannelData(0);
-  for (let i = 0; i < wd.length; i++) wd[i] = (Math.random() * 2 - 1) * 0.3;
-  const wSrc = ctx.createBufferSource();
-  wSrc.buffer = wBuf; wSrc.loop = true;
-  const wFilt = ctx.createBiquadFilter();
-  wFilt.type = "lowpass"; wFilt.frequency.value = 500;
-  wSrc.connect(wFilt); wFilt.connect(master);
-  wSrc.start();
-  // Birds — short chirp pattern
-  const chirp = () => {
-    const osc = ctx.createOscillator();
-    const g = ctx.createGain();
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(2400 + Math.random() * 1200, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(3200 + Math.random() * 800, ctx.currentTime + 0.12);
-    g.gain.setValueAtTime(0, ctx.currentTime);
-    g.gain.linearRampToValueAtTime(0.06, ctx.currentTime + 0.02);
-    g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.15);
-    osc.connect(g); g.connect(master);
-    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.2);
-    setTimeout(chirp, 800 + Math.random() * 3200);
-  };
-  setTimeout(chirp, 500);
-  return master;
-}
-
-function buildStormNode(ctx: AudioContext): AudioNode {
-  const master = ctx.createGain();
-  // Heavy rain
-  const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1);
-  const src = ctx.createBufferSource();
-  src.buffer = buf; src.loop = true;
-  const lo = ctx.createBiquadFilter(); lo.type = "lowpass"; lo.frequency.value = 4000;
-  const hi = ctx.createBiquadFilter(); hi.type = "highpass"; hi.frequency.value = 200;
-  src.connect(lo); lo.connect(hi); hi.connect(master); src.start();
-  // Thunder rumble
-  const thunder = () => {
-    const g = ctx.createGain();
-    const osc = ctx.createOscillator(); osc.type = "sawtooth"; osc.frequency.value = 30;
-    const filt = ctx.createBiquadFilter(); filt.type = "lowpass"; filt.frequency.value = 80;
-    const dur = 1.5 + Math.random();
-    g.gain.setValueAtTime(0, ctx.currentTime);
-    g.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.05);
-    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
-    osc.connect(filt); filt.connect(g); g.connect(master);
-    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + dur);
-    setTimeout(thunder, 8000 + Math.random() * 15000);
-  };
-  setTimeout(thunder, 3000);
-  return master;
-}
-
-function buildWhiteNoiseNode(ctx: AudioContext): AudioNode {
-  const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.5;
-  const src = ctx.createBufferSource();
-  src.buffer = buf; src.loop = true; src.start();
-  return src;
-}
-
-function buildCafeNode(ctx: AudioContext): AudioNode {
-  const master = ctx.createGain();
-  // Low murmur
-  const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.4;
-  const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
-  const filt = ctx.createBiquadFilter(); filt.type = "bandpass"; filt.frequency.value = 300; filt.Q.value = 0.8;
-  src.connect(filt); filt.connect(master); src.start();
-  // Coffee cup + keyboard sounds
-  const click = () => {
-    const g = ctx.createGain();
-    const osc = ctx.createOscillator(); osc.type = "square"; osc.frequency.value = 1200;
-    const f = ctx.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 800;
-    g.gain.setValueAtTime(0.02, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.04);
-    osc.connect(f); f.connect(g); g.connect(master);
-    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.05);
-    setTimeout(click, 200 + Math.random() * 600);
-  };
-  setTimeout(click, 1000);
-  return master;
-}
-
-const BUILDERS: Record<SoundId, (ctx: AudioContext) => AudioNode> = {
-  rain:       buildRainNode,
-  ocean:      buildOceanNode,
-  forest:     buildForestNode,
-  storm:      buildStormNode,
-  whitenoise: buildWhiteNoiseNode,
-  cafe:       buildCafeNode,
-};
-
-interface ActiveSound {
-  id: SoundId;
-  gainNode: GainNode;
-  volume: number;
+  onChange: (v: number) => void;
+  compact?: boolean;
+}) {
+  return (
+    <input
+      type="range"
+      min={0}
+      max={1}
+      step={0.01}
+      value={value}
+      onChange={(e) => onChange(parseFloat(e.target.value))}
+      aria-label="Volume"
+      className={`flex-1 rounded-full appearance-none cursor-pointer ${compact ? "h-0.5" : "h-1"}`}
+      style={{
+        background: `linear-gradient(to right, ${color} 0%, ${color} ${value * 100}%, var(--rgba-124-58-237-0_12) ${value * 100}%, var(--rgba-124-58-237-0_12) 100%)`,
+      }}
+    />
+  );
 }
 
 interface Props {
   visible?: boolean;
+  /** "floating" renders the bottom pill (mobile); "panel" renders an inline card (desktop). */
+  variant?: "floating" | "panel";
 }
 
-const STORAGE_KEY = "focusarx_sounds";
-
-function loadSavedPrefs(): { sounds: Array<{ id: SoundId; volume: number }> } {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as { sounds: Array<{ id: SoundId; volume: number }> };
-  } catch {}
-  return { sounds: [] };
-}
-
-function saveSoundPrefs(sounds: Array<{ id: SoundId; volume: number }>) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ sounds })); } catch {}
-}
-
-export default function AmbientSoundBar({ visible = true }: Props) {
-  const ctxRef = useRef<AudioContext | null>(null);
-  const activeSoundsRef = useRef<Map<SoundId, { gainNode: GainNode; source: AudioNode }>>(new Map());
-  const [activeSounds, setActiveSounds] = useState<ActiveSound[]>([]);
+export default function AmbientSoundBar({ visible = true, variant = "floating" }: Props) {
   const [expanded, setExpanded] = useState(true);
-  const [initialized, setInitialized] = useState(false);
+  const [activeSounds, setActiveSounds] = useState<Array<{ id: SoundId; volume: number }>>([]);
+  const [master, setMaster] = useState(0.9);
 
-  const getCtx = useCallback(() => {
-    if (!ctxRef.current) {
-      ctxRef.current = createAudioCtx();
-      setInitialized(true);
-    }
-    if (ctxRef.current.state === "suspended") ctxRef.current.resume();
-    return ctxRef.current;
-  }, []);
-
-  // Cleanup on unmount
+  // Sync with the shared audio engine + restore persisted layers on mount.
   useEffect(() => {
-    return () => {
-      if (ctxRef.current) {
-        ctxRef.current.close().catch(() => {});
-      }
+    const sync = () => {
+      setActiveSounds(ambientEngine.activeIds().map(id => ({ id, volume: ambientEngine.getVolume(id) })));
+      setMaster(ambientEngine.getMasterVolume());
     };
+    sync();
+    const unsub = ambientEngine.subscribe(sync);
+    const prefs = loadSavedPrefs();
+    ambientEngine.setMasterVolume(prefs.master ?? 0.9);
+    return unsub;
   }, []);
 
-  // Fade on visibility change
+  // Persist on change.
   useEffect(() => {
-    if (!initialized) return;
-    activeSoundsRef.current.forEach(({ gainNode }) => {
-      gainNode.gain.cancelScheduledValues(ctxRef.current!.currentTime);
-      if (visible) {
-        gainNode.gain.linearRampToValueAtTime(
-          activeSounds.find((s) => s.id === gainNode as any)?.volume ?? 0.5,
-          ctxRef.current!.currentTime + 1
-        );
-      } else {
-        gainNode.gain.linearRampToValueAtTime(0, ctxRef.current!.currentTime + 1);
-      }
-    });
-  }, [visible, initialized]);
+    if (activeSounds.length > 0 || master !== 0.9) savePrefs(activeSounds, master);
+  }, [activeSounds, master]);
 
-  const playSound = useCallback((id: SoundId) => {
-    if (activeSounds.length >= 2 && !activeSounds.find((s) => s.id === id)) return;
-    if (activeSoundsRef.current.has(id)) return; // already playing
-
-    const ctx = getCtx();
-    const sourceNode = BUILDERS[id](ctx);
-    const gainNode = ctx.createGain();
-    gainNode.gain.setValueAtTime(0, ctx.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 1);
-    sourceNode.connect(gainNode);
-    gainNode.connect(ctx.destination);
-    activeSoundsRef.current.set(id, { gainNode, source: sourceNode });
-
-    setActiveSounds((prev) => {
-      const next = [...prev.filter((s) => s.id !== id), { id, gainNode, volume: 0.5 }];
-      saveSoundPrefs(next.map((s) => ({ id: s.id, volume: s.volume })));
-      return next;
-    });
-  }, [activeSounds, getCtx]);
-
-  const stopSound = useCallback((id: SoundId) => {
-    const entry = activeSoundsRef.current.get(id);
-    if (!entry) return;
-    const ctx = ctxRef.current!;
-    entry.gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.5);
-    setTimeout(() => {
-      try { entry.gainNode.disconnect(); } catch {}
-      try { (entry.source as any).stop?.(); } catch {}
-      activeSoundsRef.current.delete(id);
-    }, 600);
-    setActiveSounds((prev) => {
-      const next = prev.filter((s) => s.id !== id);
-      saveSoundPrefs(next.map((s) => ({ id: s.id, volume: s.volume })));
-      return next;
-    });
-  }, []);
+  // Fade with visibility (e.g. hide while session overlay is up).
+  useEffect(() => {
+    ambientEngine.setVisible(visible);
+  }, [visible]);
 
   const toggleSound = useCallback((id: SoundId) => {
-    if (activeSoundsRef.current.has(id)) {
-      stopSound(id);
-    } else {
-      playSound(id);
+    if (ambientEngine.isActive(id)) {
+      ambientEngine.stop(id);
+    } else if (ambientEngine.activeIds().length < MAX_LAYERS) {
+      ambientEngine.play(id, 0.5);
     }
-  }, [playSound, stopSound]);
-
-  const setVolume = useCallback((id: SoundId, vol: number) => {
-    const entry = activeSoundsRef.current.get(id);
-    if (!entry) return;
-    entry.gainNode.gain.linearRampToValueAtTime(vol, ctxRef.current!.currentTime + 0.1);
-    setActiveSounds((prev) => {
-      const next = prev.map((s) => s.id === id ? { ...s, volume: vol } : s);
-      saveSoundPrefs(next.map((s) => ({ id: s.id, volume: s.volume })));
-      return next;
-    });
   }, []);
 
-  const stopAll = () => {
-    activeSounds.forEach((s) => stopSound(s.id));
-  };
+  const setVolume = useCallback((id: SoundId, vol: number) => ambientEngine.setVolume(id, vol), []);
+  const stopAll = useCallback(() => ambientEngine.stopAll(), []);
+  const setMasterVol = useCallback((v: number) => {
+    ambientEngine.setMasterVolume(v);
+    setMaster(v);
+  }, []);
 
   if (!visible) return null;
 
+  const soundGrid = (
+    <div className={`grid gap-2 ${variant === "panel" ? "grid-cols-3 xl:grid-cols-4" : "grid-cols-3"}`}>
+      {AMBIENT_SOUNDS.map((sound) => {
+        const isActive = activeSounds.some((s) => s.id === sound.id);
+        const isDisabled = activeSounds.length >= MAX_LAYERS && !isActive;
+        return (
+          <button
+            key={sound.id}
+            onClick={() => !isDisabled && toggleSound(sound.id)}
+            disabled={isDisabled}
+            title={isActive ? `Turn off ${sound.label}` : `Play ${sound.label}`}
+            className={`rounded-xl border p-2.5 text-center transition-all ${
+              isActive
+                ? "border-[var(--rgba-124-58-237-0_4)] bg-[var(--rgba-124-58-237-0_15)]"
+                : isDisabled
+                ? "border-[var(--rgba-124-58-237-0_06)] bg-transparent opacity-40 cursor-not-allowed"
+                : "border-[var(--rgba-124-58-237-0_1)] bg-[var(--rgba-124-58-237-0_04)] hover:bg-[var(--rgba-124-58-237-0_09)]"
+            }`}
+          >
+            <span className="text-base">{sound.emoji}</span>
+            <p className={`text-[9px] mt-0.5 font-medium ${isActive ? "text-[var(--brand-400)]" : "text-[var(--palette-6b7280)]"}`}>
+              {sound.label}
+            </p>
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  const presetRow = (
+    <div className="flex flex-wrap gap-1.5">
+      {AMBIENT_PRESETS.map((p) => (
+        <button
+          key={p.id}
+          onClick={() => ambientEngine.applyPreset(p)}
+          className="rounded-full border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-124-58-237-0_05)] px-2.5 py-1 text-[10px] font-medium text-[var(--foreground-muted)] hover:bg-[var(--rgba-124-58-237-0_12)] hover:text-[var(--brand-400)] transition-colors"
+        >
+          {p.emoji} {p.label}
+        </button>
+      ))}
+    </div>
+  );
+
+  const activeSliders = activeSounds.length > 0 && (
+    <div className="space-y-2">
+      {activeSounds.map((s) => {
+        const def = AMBIENT_SOUNDS.find((sd) => sd.id === s.id)!;
+        return (
+          <div key={s.id} className="flex items-center gap-2.5">
+            <button
+              onClick={() => ambientEngine.stop(s.id)}
+              title={`Stop ${def.label}`}
+              className="text-base w-6 shrink-0 text-center hover:scale-110 transition-transform"
+            >
+              {def.emoji}
+            </button>
+            <VolumeX size={11} className="text-[var(--foreground-subtle)] shrink-0" />
+            <VolumeSlider value={s.volume} color={def.color} onChange={(v) => setVolume(s.id, v)} />
+            <Volume2 size={11} className="text-[var(--foreground-subtle)] shrink-0" />
+          </div>
+        );
+      })}
+      <div className="flex items-center gap-2.5 border-t border-[var(--rgba-124-58-237-0_1)] pt-2">
+        <SlidersHorizontal size={11} className="text-[var(--foreground-subtle)] shrink-0" />
+        <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)] shrink-0">Master</span>
+        <VolumeSlider value={master} color="var(--brand-400)" onChange={setMasterVol} />
+      </div>
+    </div>
+  );
+
+  const emptyHint = activeSounds.length === 0 && (
+    <p className="text-center text-[10px] text-[var(--foreground-subtle)]">
+      Tap a sound or a preset — layer up to {MAX_LAYERS}.
+    </p>
+  );
+
+  // ── Desktop panel variant ────────────────────────────────────────────────
+  if (variant === "panel") {
+    return (
+      <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_18)] bg-[var(--rgba-12-17-40-0_75)] p-4 backdrop-blur-xl shadow-[0_8px_40px_var(--rgba-0-0-0-0_35)]">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Music2 size={13} className="text-[var(--brand-400)]" />
+            <span className="text-xs font-semibold text-[var(--foreground-muted)]">Ambient Mixer</span>
+            {activeSounds.length > 0 && (
+              <span className="rounded-full bg-[var(--rgba-124-58-237-0_2)] px-2 py-0.5 text-[9px] font-semibold text-[var(--brand-400)]">
+                {activeSounds.length} playing
+              </span>
+            )}
+          </div>
+          {activeSounds.length > 0 && (
+            <button onClick={stopAll} className="text-[10px] text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)] transition-colors">
+              Stop all
+            </button>
+          )}
+        </div>
+        <div className="space-y-3">
+          {soundGrid}
+          {presetRow}
+          {activeSliders}
+          {emptyHint}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Floating pill variant (mobile / small screens) ───────────────────────
   return (
     <motion.div
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: "spring", stiffness: 220, damping: 28 }}
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[var(--z-nav)] w-[calc(100%-2rem)] max-w-md"
+      className="fixed bottom-4 lg:hidden left-1/2 -translate-x-1/2 z-[var(--z-nav)] w-[calc(100%-2rem)] max-w-md"
     >
       <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_25)] bg-[var(--rgba-12-17-40-0_92)] backdrop-blur-xl shadow-[0_8px_40px_var(--rgba-0-0-0-0_4)]">
         {/* Header row */}
@@ -337,85 +264,25 @@ export default function AmbientSoundBar({ visible = true }: Props) {
               className="overflow-hidden"
             >
               <div className="px-4 pb-4 pt-1 space-y-3">
-                <div className="grid grid-cols-3 gap-2">
-                  {SOUNDS.map((sound) => {
-                    const isActive = activeSounds.some((s) => s.id === sound.id);
-                    const isDisabled = activeSounds.length >= 2 && !isActive;
-                    return (
-                      <button
-                        key={sound.id}
-                        onClick={() => !isDisabled && toggleSound(sound.id)}
-                        disabled={isDisabled}
-                        className={`rounded-xl border p-2.5 text-center transition-all ${
-                          isActive
-                            ? "border-[var(--rgba-124-58-237-0_4)] bg-[var(--rgba-124-58-237-0_15)]"
-                            : isDisabled
-                            ? "border-[var(--rgba-124-58-237-0_06)] bg-transparent opacity-40 cursor-not-allowed"
-                            : "border-[var(--rgba-124-58-237-0_1)] bg-[var(--rgba-124-58-237-0_04)] hover:bg-[var(--rgba-124-58-237-0_09)]"
-                        }`}
-                      >
-                        <span className="text-base">{sound.emoji}</span>
-                        <p className={`text-[9px] mt-0.5 font-medium ${isActive ? "text-[var(--brand-400)]" : "text-[var(--palette-6b7280)]"}`}>
-                          {sound.label}
-                        </p>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Volume sliders for active sounds */}
-                {activeSounds.map((s) => {
-                  const def = SOUNDS.find((sd) => sd.id === s.id)!;
-                  return (
-                    <div key={s.id} className="flex items-center gap-3">
-                      <span className="text-sm w-6 shrink-0 text-center">{def.emoji}</span>
-                      <VolumeX size={11} className="text-[var(--foreground-subtle)] shrink-0" />
-                      <input
-                        type="range"
-                        min={0}
-                        max={1}
-                        step={0.01}
-                        value={s.volume}
-                        onChange={(e) => setVolume(s.id, parseFloat(e.target.value))}
-                        className="flex-1 h-1 rounded-full appearance-none cursor-pointer"
-                        style={{
-                          background: `linear-gradient(to right, ${def.color} 0%, ${def.color} ${s.volume * 100}%, var(--rgba-124-58-237-0_12) ${s.volume * 100}%, var(--rgba-124-58-237-0_12) 100%)`,
-                        }}
-                      />
-                      <Volume2 size={11} className="text-[var(--foreground-subtle)] shrink-0" />
-                    </div>
-                  );
-                })}
-
-                {activeSounds.length === 0 && (
-                  <p className="text-center text-[10px] text-[var(--foreground-subtle)]">Tap a sound to begin. Layer up to 2.</p>
-                )}
+                {soundGrid}
+                {presetRow}
+                {activeSliders}
+                {emptyHint}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Mini indicator when collapsed */}
+        {/* Mini mixer when collapsed */}
         {!expanded && activeSounds.length > 0 && (
           <div className="flex items-center gap-2 px-4 pb-2.5">
             {activeSounds.map((s) => {
-              const def = SOUNDS.find((sd) => sd.id === s.id)!;
+              const def = AMBIENT_SOUNDS.find((sd) => sd.id === s.id)!;
               return (
-                <div key={s.id} className="flex items-center gap-1.5 flex-1">
+                <div key={s.id} className="flex items-center gap-1.5 flex-1 min-w-0">
                   <span className="text-sm">{def.emoji}</span>
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={s.volume}
-                    onChange={(e) => setVolume(s.id, parseFloat(e.target.value))}
-                    className="flex-1 h-0.5 rounded-full appearance-none cursor-pointer"
-                    style={{
-                      background: `linear-gradient(to right, ${def.color} 0%, ${def.color} ${s.volume * 100}%, var(--rgba-124-58-237-0_1) ${s.volume * 100}%, var(--rgba-124-58-237-0_1) 100%)`,
-                    }}
-                  />
-                  <button onClick={() => stopSound(s.id)} className="text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)] transition-colors">
+                  <VolumeSlider value={s.volume} color={def.color} onChange={(v) => setVolume(s.id, v)} compact />
+                  <button onClick={() => ambientEngine.stop(s.id)} className="text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)] transition-colors">
                     <VolumeX size={11} />
                   </button>
                 </div>
