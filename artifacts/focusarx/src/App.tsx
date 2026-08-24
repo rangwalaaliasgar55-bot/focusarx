@@ -90,6 +90,12 @@ const FeynmanTechniquePage = lazy(() => import("@/pages/feynman-technique"));
 const StudyMethodQuizPage = lazy(() => import("@/pages/study-method-quiz"));
 const ForgeRoomPage = lazy(() => import("@/pages/forge-room"));
 const StudyMethodCalculatorPage = lazy(() => import("@/pages/study-calculator"));
+const GuidesPage = lazy(() => import("@/pages/guides"));
+const AdhdFocusPage = lazy(() => import("@/pages/adhd-focus"));
+const StopProcrastinatingPage = lazy(() => import("@/pages/stop-procrastinating"));
+const StudyWithMePage = lazy(() => import("@/pages/study-with-me"));
+const FocusMusicPage = lazy(() => import("@/pages/focus-music"));
+const SearchPage = lazy(() => import("@/pages/search"));
 const FlashcardsPage = lazy(() => import("@/pages/flashcards"));
 const TasksPage = lazy(() => import("@/pages/tasks"));
 const SessionReplayPage = lazy(() => import("@/pages/session-replay"));
@@ -271,6 +277,12 @@ function RoutedContent() {
               <Route path="/study-method-quiz" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StudyMethodQuizPage /></Suspense></ErrorBoundary>} />
               <Route path="/forge-room" component={() => <ErrorBoundary><ProtectedRoute component={ForgeRoomPage} /></ErrorBoundary>} />
               <Route path="/study-calculator" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StudyMethodCalculatorPage /></Suspense></ErrorBoundary>} />
+              <Route path="/guides" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><GuidesPage /></Suspense></ErrorBoundary>} />
+              <Route path="/adhd-focus-tips" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><AdhdFocusPage /></Suspense></ErrorBoundary>} />
+              <Route path="/stop-procrastinating" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StopProcrastinatingPage /></Suspense></ErrorBoundary>} />
+              <Route path="/study-with-me" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StudyWithMePage /></Suspense></ErrorBoundary>} />
+              <Route path="/focus-music" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><FocusMusicPage /></Suspense></ErrorBoundary>} />
+              <Route path="/search" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><SearchPage /></Suspense></ErrorBoundary>} />
               <Route path="/referral" component={() => <ErrorBoundary><ProtectedRoute component={ReferralPage} /></ErrorBoundary>} />
 
               {/* New V12 pages */}

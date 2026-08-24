@@ -65,7 +65,7 @@ function MarketingNav() {
         <div className="hidden items-center gap-7 md:flex">
           <a href="#product" className="text-sm text-[var(--foreground-muted)] hover:text-[var(--foreground)]">Product</a>
           <a href="#features" className="text-sm text-[var(--foreground-muted)] hover:text-[var(--foreground)]">Features</a>
-          <Link href="/study-techniques" className="text-sm text-[var(--foreground-muted)] hover:text-[var(--foreground)]">Study guides</Link>
+          <Link href="/guides" className="text-sm text-[var(--foreground-muted)] hover:text-[var(--foreground)]">Study guides</Link>
           <Link href="/pricing" className="text-sm text-[var(--foreground-muted)] hover:text-[var(--foreground)]">Pricing</Link>
         </div>
         <div className="hidden items-center gap-2 md:flex">
@@ -87,7 +87,7 @@ function MarketingNav() {
           <div className="grid gap-1">
             <a href="#product" onClick={() => setOpen(false)} className="flex min-h-11 items-center rounded-lg px-3 text-sm">Product</a>
             <a href="#features" onClick={() => setOpen(false)} className="flex min-h-11 items-center rounded-lg px-3 text-sm">Features</a>
-            <Link href="/study-techniques" className="flex min-h-11 items-center rounded-lg px-3 text-sm">Study guides</Link>
+            <Link href="/guides" className="flex min-h-11 items-center rounded-lg px-3 text-sm">Study guides</Link>
             <Link href="/pricing" className="flex min-h-11 items-center rounded-lg px-3 text-sm">Pricing</Link>
             <div className="mt-3 grid grid-cols-2 gap-2"><Button asChild variant="outline"><Link href="/login">Sign in</Link></Button><Button asChild><Link href="/signup">Get started</Link></Button></div>
           </div>
@@ -332,7 +332,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
             <div className="lg:col-span-2"><Brand /><p className="mt-4 max-w-sm text-sm leading-relaxed text-[var(--foreground-muted)]">A calm operating system for focused work, deliberate study, and sustainable momentum.</p></div>
-            {[{ title: "Product", links: [["Dashboard", "/dashboard"], ["Flashcards", "/flashcards"], ["Pricing", "/pricing"]] }, { title: "Learn", links: [["Focus guide", "/focus-guide"], ["Pomodoro guide", "/pomodoro-guide"], ["Study techniques", "/study-techniques"]] }, { title: "Company", links: [["About", "/about"], ["Contact", "/contact"], ["Support", "/support"]] }].map((group) => <div key={group.title}><h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">{group.title}</h2><ul className="mt-4 space-y-3">{group.links.map(([label, href]) => <li key={href}><Link href={href} className="text-sm text-[var(--foreground-muted)] hover:text-[var(--foreground)]">{label}</Link></li>)}</ul></div>)}
+            {[{ title: "Product", links: [["Dashboard", "/dashboard"], ["Flashcards", "/flashcards"], ["Pricing", "/pricing"]] }, { title: "Learn", links: [["All guides", "/guides"], ["Focus guide", "/focus-guide"], ["Pomodoro guide", "/pomodoro-guide"], ["ADHD focus tips", "/adhd-focus-tips"], ["Stop procrastinating", "/stop-procrastinating"], ["Focus music", "/focus-music"]] }, { title: "Company", links: [["About", "/about"], ["Contact", "/contact"], ["Support", "/support"]] }].map((group) => <div key={group.title}><h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">{group.title}</h2><ul className="mt-4 space-y-3">{group.links.map(([label, href]) => <li key={href}><Link href={href} className="text-sm text-[var(--foreground-muted)] hover:text-[var(--foreground)]">{label}</Link></li>)}</ul></div>)}
           </div>
           <div className="mt-12 flex flex-col gap-4 border-t border-[var(--border-subtle)] pt-6 text-xs text-[var(--foreground-subtle)] sm:flex-row sm:items-center sm:justify-between"><p>© 2026 FocusArx. Built for deliberate work.</p><div className="flex flex-wrap gap-4"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/cookie-policy">Cookies</Link><Link href="/acceptable-use">Acceptable use</Link></div></div>
         </div>
