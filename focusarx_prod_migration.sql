@@ -1425,6 +1425,12 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
   ALTER TABLE "app_feedback" ADD CONSTRAINT "app_feedback_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- Orphan recipient_ids block adding/validating the FK. Column is nullable (ON DELETE SET NULL).
+UPDATE "email_logs" e
+SET "recipient_id" = NULL
+WHERE e."recipient_id" IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM "users" u WHERE u."id" = e."recipient_id");
+
 DO $$ BEGIN
   ALTER TABLE "email_logs" ADD CONSTRAINT "email_logs_recipient_id_users_id_fk" FOREIGN KEY ("recipient_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
