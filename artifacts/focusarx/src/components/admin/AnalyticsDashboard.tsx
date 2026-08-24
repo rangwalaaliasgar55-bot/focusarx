@@ -37,6 +37,28 @@ type LiveEvent = {
   visitorId: string;
 };
 
+type LiveUser = {
+  userId: string;
+  name: string;
+  isGuest: boolean;
+  mode: string;
+  timerStatus: string;
+  secondsLeft: number;
+  activeSeconds: number;
+  startedAt: string;
+};
+
+type LiveSnapshot = {
+  onlineVisitors: number;
+  focusingNow: number;
+  users: LiveUser[];
+};
+
+function mmss(totalSeconds: number) {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
 const PIE_COLORS = ["var(--brand-600)", "var(--palette-4f46e5)", "var(--brand-400)", "var(--palette-6366f1)", "var(--brand-500)", "var(--foreground-muted)"];
 
 const EVENT_LABELS: Record<string, string> = {
@@ -61,6 +83,9 @@ export function AnalyticsDashboard({ authHeaders }: { authHeaders: () => Record<
   const [charts, setCharts] = useState<Charts | null>(null);
   const [devices, setDevices] = useState<Devices | null>(null);
   const [live, setLive] = useState<LiveEvent[]>([]);
+  const [snapshot, setSnapshot] = useState<LiveSnapshot | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [liveError, setLiveError] = useState(false);
   const [loading, setLoading] = useState(true);
   const lastPollRef = useRef<string | null>(null);
 
@@ -86,9 +111,13 @@ export function AnalyticsDashboard({ authHeaders }: { authHeaders: () => Record<
     const url = since
       ? `/api/admin/analytics/live?since=${encodeURIComponent(since)}`
       : "/api/admin/analytics/live";
-    const res = await fetch(url, { headers, credentials: "include" });
-    if (res.ok) {
-      const json = await res.json() as { events: LiveEvent[]; serverTime: string };
+    try {
+      const res = await fetch(url, { headers, credentials: "include" });
+      if (!res.ok) { setLiveError(true); return; }
+      setLiveError(false);
+      const json = await res.json() as {
+        events: LiveEvent[]; serverTime: string; live?: LiveSnapshot;
+      };
       if (json.events.length) {
         setLive((prev) => {
           const ids = new Set(prev.map((e) => e.id));
@@ -96,16 +125,27 @@ export function AnalyticsDashboard({ authHeaders }: { authHeaders: () => Record<
           return merged.slice(0, 40);
         });
       }
+      if (json.live) setSnapshot(json.live);
+      setLastUpdated(new Date(json.serverTime));
       lastPollRef.current = json.serverTime;
+    } catch {
+      setLiveError(true);
     }
   }, [authHeaders]);
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
     void pollLive();
-    const id = setInterval(() => void pollLive(), 10_000);
+    // 4s feels genuinely "live"; 10s read as stale. The endpoint is a bounded
+    // read (limit 50 + two counts), so the extra polls are cheap.
+    const id = setInterval(() => void pollLive(), 4_000);
     return () => clearInterval(id);
   }, [pollLive]);
+  // Keep the headline metrics moving without a manual refresh.
+  useEffect(() => {
+    const id = setInterval(() => void load(), 30_000);
+    return () => clearInterval(id);
+  }, [load]);
 
   if (loading) {
     return (
@@ -214,6 +254,43 @@ export function AnalyticsDashboard({ authHeaders }: { authHeaders: () => Record<
       </div>
 
       <div className="rounded-xl border border-[var(--palette-zinc-800)]/80 bg-[var(--palette-zinc-900)]/40 p-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs font-medium uppercase tracking-wider text-[var(--palette-zinc-500)]">On the site right now</p>
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1.5 rounded-full border border-[var(--palette-zinc-800)] px-2.5 py-1 text-xs text-[var(--palette-zinc-300)]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--palette-emerald-400)] animate-pulse" />
+              {snapshot?.onlineVisitors ?? 0} online
+            </span>
+            <span className="flex items-center gap-1.5 rounded-full border border-[var(--palette-zinc-800)] px-2.5 py-1 text-xs text-[var(--palette-zinc-300)]">
+              <Zap className="h-3 w-3 text-[var(--palette-violet-400)]" />
+              {snapshot?.focusingNow ?? 0} focusing
+            </span>
+            <span className="text-[10px] font-mono text-[var(--palette-zinc-600)]">
+              {liveError ? "reconnecting…" : lastUpdated ? `updated ${lastUpdated.toLocaleTimeString()}` : "connecting…"}
+            </span>
+          </div>
+        </div>
+
+        {(snapshot?.users.length ?? 0) > 0 ? (
+          <div className="mb-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {snapshot!.users.map((u) => (
+              <div key={u.userId} className="flex items-center justify-between rounded-lg border border-[var(--palette-zinc-800)]/60 bg-[var(--palette-zinc-950)]/50 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="truncate text-sm text-[var(--palette-zinc-200)]">{u.name}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-[var(--palette-zinc-600)]">
+                    {u.timerStatus === "running" ? "focusing" : u.timerStatus} · {u.mode.replaceAll("_", " ")}
+                  </p>
+                </div>
+                <span className="ml-2 shrink-0 font-mono text-xs tabular-nums text-[var(--palette-emerald-400)]">
+                  {mmss(u.activeSeconds)}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mb-5 text-sm text-[var(--palette-zinc-600)]">Nobody is mid-session right now.</p>
+        )}
+
         <p className="text-xs font-medium uppercase tracking-wider text-[var(--palette-zinc-500)] mb-3">Live activity feed</p>
         <div className="space-y-2 max-h-64 overflow-y-auto">
           {live.length === 0 && (
