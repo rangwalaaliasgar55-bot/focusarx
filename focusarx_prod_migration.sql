@@ -2,6 +2,36 @@
 -- Run this entire script in your Neon SQL Editor.
 -- All statements are idempotent — safe to run even if tables already exist.
 
+-- Orphan sweep FIRST so later FKs do not fail (email_logs 23503, etc.).
+-- Nullable user refs are set to NULL. Required user refs with no parent are deleted.
+DO $$
+BEGIN
+  IF to_regclass('public.email_logs') IS NOT NULL AND to_regclass('public.users') IS NOT NULL THEN
+    UPDATE public.email_logs e
+    SET recipient_id = NULL
+    WHERE e.recipient_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM public.users u WHERE u.id = e.recipient_id);
+  END IF;
+  IF to_regclass('public.visitors') IS NOT NULL AND to_regclass('public.users') IS NOT NULL THEN
+    UPDATE public.visitors v
+    SET user_id = NULL
+    WHERE v.user_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM public.users u WHERE u.id = v.user_id);
+  END IF;
+  IF to_regclass('public.audit_logs') IS NOT NULL AND to_regclass('public.users') IS NOT NULL THEN
+    UPDATE public.audit_logs a
+    SET user_id = NULL
+    WHERE a.user_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM public.users u WHERE u.id = a.user_id);
+  END IF;
+  IF to_regclass('public.app_feedback') IS NOT NULL AND to_regclass('public.users') IS NOT NULL THEN
+    UPDATE public.app_feedback a
+    SET user_id = NULL
+    WHERE a.user_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM public.users u WHERE u.id = a.user_id);
+  END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS "analytics_events" (
 	"id" text PRIMARY KEY NOT NULL,
 	"event_id" text NOT NULL,
