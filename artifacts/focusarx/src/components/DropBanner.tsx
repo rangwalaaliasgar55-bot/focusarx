@@ -10,6 +10,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSocketEvent } from "@/lib/socket";
+import { haptic } from "@/lib/haptics";
 
 interface Drop {
   id: string;
@@ -108,6 +109,7 @@ export function DropBanner() {
         if (d.rewardXp) bits.push(`+${d.rewardXp.toLocaleString()} XP`);
         if (d.itemGranted) bits.push(d.itemGranted);
         showToast(`Claimed! ${bits.join(" · ") || "You're in."}`);
+        haptic("success");
         void refresh();
       } else {
         showToast(d.error ?? "Could not claim that drop.");

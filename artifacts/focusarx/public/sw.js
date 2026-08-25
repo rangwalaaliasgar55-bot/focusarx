@@ -6,12 +6,14 @@
 // - Never cache /api/* (authenticated data must stay fresh).
 // Bump CACHE_NAME on deploy to invalidate stale caches.
 
-const CACHE_NAME = "focusarx-v3";
+const CACHE_NAME = "focusarx-v4";
 
 const APP_SHELL = [
   "/",
   "/manifest.json",
-  "/logo.png",
+  "/icon-192.png",
+  "/icon-512.png",
+  "/icon-maskable-512.png",
 ];
 
 self.addEventListener("install", (event) => {

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { haptic } from "@/lib/haptics";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
@@ -72,8 +73,9 @@ export default function MarketplacePage() {
     try {
       const r = await fetch(`/api/marketplace/${itemId}/purchase`, { method: "POST", headers: authHeaders() });
       const d = await r.json();
-      if (!r.ok) { setError(d.error ?? "Purchase failed"); return; }
+      if (!r.ok) { setError(d.error ?? "Purchase failed"); haptic("error"); return; }
       setJustBought(itemId);
+      haptic("success");
       setTimeout(() => setJustBought(null), 2000);
       await load();
     } finally {

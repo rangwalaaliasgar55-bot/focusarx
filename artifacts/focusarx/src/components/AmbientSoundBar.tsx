@@ -271,7 +271,7 @@ export default function AmbientSoundBar({ visible = true, variant = "floating" }
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: "spring", stiffness: 220, damping: 28 }}
-      className="fixed bottom-4 lg:hidden left-1/2 -translate-x-1/2 z-[var(--z-nav)] w-[calc(100%-2rem)] max-w-md"
+      className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] md:bottom-4 lg:hidden left-1/2 -translate-x-1/2 z-[var(--z-nav)] w-[calc(100%-2rem)] max-w-md"
     >
       <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_25)] bg-[var(--rgba-12-17-40-0_92)] backdrop-blur-xl shadow-[0_8px_40px_var(--rgba-0-0-0-0_4)]">
         {/* Header row */}

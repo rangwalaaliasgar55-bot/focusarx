@@ -15,6 +15,7 @@ import { getModeLabel } from "@/lib/timerUtils";
 import { DEFAULT_CONFIG } from "@/lib/constants";
 import { trackSiteEvent } from "@/lib/site-analytics";
 import { trackSessionStart, trackSessionComplete, trackSessionAbandoned } from "@/lib/analytics";
+import { haptic } from "@/lib/haptics";
 import type { PersistedActiveSession } from "@/types/session-persistence";
 import type { TimerMode } from "@/types/timer";
 import FocusLockOverlay, { LockModePicker } from "./FocusLockOverlay";
@@ -209,6 +210,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
         });
         setShowSummary(true);
         setShowConfetti(true);
+        haptic("celebrate");
         setTimeout(() => setShowConfetti(false), 3500);
         onSessionCompleteProp?.();
       }

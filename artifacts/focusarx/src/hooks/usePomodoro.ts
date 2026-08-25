@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { DEFAULT_CONFIG } from "@/lib/constants";
 import { generateId } from "@/lib/timerUtils";
+import { haptic } from "@/lib/haptics";
 import {
   finalizeSessionMetrics,
   resetFocusMonitor,
@@ -183,11 +184,13 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
       }
       clearDeadline();
       setStatus("paused");
+      haptic("tap");
       return;
     }
 
     armDeadline();
     setStatus("running");
+    haptic("select");
   }, [armDeadline, clearDeadline, status]);
 
   const reset = useCallback(

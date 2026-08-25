@@ -65,7 +65,7 @@ export default function FloatingTimer() {
         transition={{ type: "spring", stiffness: 300, damping: 26 }}
         onClick={() => navigate("/")}
         aria-label={`Focus session running — ${Math.ceil(remaining / 60)} minutes left. Return to session`}
-        className="fixed bottom-[76px] left-4 z-[var(--z-nav)] flex items-center gap-2 rounded-full border border-[var(--palette-violet-500)]/35 bg-[var(--palette-violet-500)]/12 px-3.5 py-2 text-xs font-bold text-[var(--palette-a5a8ff)] shadow-lg shadow-[var(--palette-black)]/40 backdrop-blur-xl transition-transform hover:scale-[1.03] md:bottom-5"
+        className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] left-4 z-[var(--z-nav)] flex items-center gap-2 rounded-full border border-[var(--palette-violet-500)]/35 bg-[var(--palette-violet-500)]/12 px-3.5 py-2 text-xs font-bold text-[var(--palette-a5a8ff)] shadow-lg shadow-[var(--palette-black)]/40 backdrop-blur-xl transition-transform hover:scale-[1.03] md:bottom-5"
       >
         <span className="relative flex h-2 w-2">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--palette-violet-400)] opacity-60" />
