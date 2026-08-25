@@ -184,20 +184,28 @@ export async function activeDropXpMultiplier(now = new Date()): Promise<ActiveMu
   return { multiplier: 1, dropId: null, type: null };
 }
 
-/** Flash-sale discount for a marketplace item right now (Workstream C tie-in). */
-export async function activeSaleDiscount(itemId: string, now = new Date()): Promise<{ discountPct: number; dropId: string } | null> {
+/** All live flash-sale discounts at once — itemId -> { discountPct, dropId, endsAt }. */
+export async function liveSaleDiscounts(now = new Date()): Promise<Map<string, { discountPct: number; dropId: string; endsAt: Date }>> {
+  const out = new Map<string, { discountPct: number; dropId: string; endsAt: Date }>();
   const rows = await db
     .select({ id: adminDropsTable.id, type: adminDropsTable.type, payload: adminDropsTable.payload, startsAt: adminDropsTable.startsAt, endsAt: adminDropsTable.endsAt, isActive: adminDropsTable.isActive, cancelledAt: adminDropsTable.cancelledAt, endedAt: adminDropsTable.endedAt })
     .from(adminDropsTable)
     .where(eq(adminDropsTable.type, "item_flash_sale"));
   for (const drop of rows) {
     if (!isDropLive(drop, now)) continue;
-    if (drop.payload?.itemId === itemId) {
-      const pct = Math.min(70, Math.max(0, Number(drop.payload?.discountPct) || 0));
-      if (pct > 0) return { discountPct: pct, dropId: drop.id };
-    }
+    const itemId = typeof drop.payload?.itemId === "string" ? drop.payload.itemId : null;
+    if (!itemId) continue;
+    const pct = Math.min(70, Math.max(0, Number(drop.payload?.discountPct) || 0));
+    if (pct > 0) out.set(itemId, { discountPct: pct, dropId: drop.id, endsAt: drop.endsAt });
   }
-  return null;
+  return out;
+}
+
+/** Flash-sale discount for a marketplace item right now (Workstream C tie-in). */
+export async function activeSaleDiscount(itemId: string, now = new Date()): Promise<{ discountPct: number; dropId: string } | null> {
+  const sales = await liveSaleDiscounts(now);
+  const hit = sales.get(itemId);
+  return hit ? { discountPct: hit.discountPct, dropId: hit.dropId } : null;
 }
 
 // ── claims ───────────────────────────────────────────────────────────────────

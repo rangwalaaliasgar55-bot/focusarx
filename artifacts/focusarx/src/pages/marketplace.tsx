@@ -242,7 +242,8 @@ export default function MarketplacePage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {filtered.map((item, i) => {
             const rarity = RARITY_STYLES[item.rarity ?? "common"] ?? RARITY_STYLES.common!;
-            const canAfford = (wallet?.coins ?? 0) >= item.costCoins;
+            const priceNow = item.salePrice ?? item.costCoins;
+            const canAfford = (wallet?.coins ?? 0) >= priceNow;
             return (
               <motion.div key={item.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
                 className="rounded-2xl border p-4 flex flex-col gap-3 relative transition-all duration-[var(--duration-fast)] hover:-translate-y-0.5"
@@ -266,8 +267,14 @@ export default function MarketplacePage() {
 
                 <div className="mt-auto flex flex-col gap-1.5">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1 text-sm font-bold text-[var(--color-warning)]">
-                      🪙 {item.costCoins.toLocaleString()}
+                    <div className="flex items-center gap-1.5 text-sm font-bold text-[var(--color-warning)]">
+                      {item.saleDiscountPct ? (
+                        <>
+                          <span className="rounded bg-[var(--palette-red-500)]/20 border border-[var(--palette-red-500)]/40 px-1 py-px text-[8px] font-black uppercase tracking-wider text-[var(--palette-red-400)]">-{item.saleDiscountPct}%</span>
+                          <span className="text-[11px] text-[var(--foreground-subtle)] line-through">🪙 {item.costCoins.toLocaleString()}</span>
+                        </>
+                      ) : null}
+                      <span>🪙 {priceNow.toLocaleString()}</span>
                     </div>
                     {item.owned ? (
                       <span className="text-[10px] font-semibold text-[var(--palette-22d387)]">Owned</span>

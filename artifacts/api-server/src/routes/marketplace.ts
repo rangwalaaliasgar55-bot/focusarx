@@ -7,6 +7,7 @@ import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
 import { isUserPremium } from "../lib/premiumCheck";
 import { mintCoins, burnCoins } from "../lib/coinLedger";
+import { liveSaleDiscounts } from "../lib/drops";
 
 const router = Router();
 
@@ -117,9 +118,18 @@ router.get("/marketplace", authMiddleware, async (req: AuthRequest, res: Respons
       isUserPremium(req.userId),
     ]);
     const ownedIds = new Set(inventory.map(i => i.itemId));
-    const itemsWithOwned = items.map(item => ({
-      ...item, owned: ownedIds.has(item.id), locked: item.premiumOnly && !premium,
-    }));
+    // Flash-sale annotations (WS C tie-in, wired by the self-added sale fix):
+    // one batched lookup, applied to both listing and purchase pricing.
+    const sales = await liveSaleDiscounts();
+    const itemsWithOwned = items.map(item => {
+      const sale = sales.get(item.id);
+      return {
+        ...item, owned: ownedIds.has(item.id), locked: item.premiumOnly && !premium,
+        saleDiscountPct: sale ? sale.discountPct : null,
+        salePrice: sale ? Math.max(0, Math.round(item.costCoins * (100 - sale.discountPct) / 100)) : null,
+        saleEndsAt: sale ? sale.endsAt : null,
+      };
+    });
     const itemMap = new Map(items.map(i => [i.id, i]));
     const bundles = BUNDLES.map(b => {
       const bundleItems = b.items.map(id => itemMap.get(id)).filter(Boolean) as any[];
@@ -172,6 +182,12 @@ router.post("/marketplace/:itemId/purchase", authMiddleware, async (req: AuthReq
       res.status(403).json({ error: "This marketplace item requires Premium" }); return;
     }
 
+    // Active flash-sale discount, if any (server-computed, never client-trusted).
+    const sale = (await liveSaleDiscounts()).get(itemId) ?? null;
+    const price = sale
+      ? Math.max(0, Math.round(item.costCoins * (100 - sale.discountPct) / 100))
+      : item.costCoins;
+
     const purchase = await db.transaction(async (tx) => {
       const [alreadyOwned] = await tx.select({ id: userInventoryTable.id }).from(userInventoryTable)
         .where(and(eq(userInventoryTable.userId, req.userId), eq(userInventoryTable.itemId, itemId)))
@@ -179,15 +195,20 @@ router.post("/marketplace/:itemId/purchase", authMiddleware, async (req: AuthReq
       if (alreadyOwned) return { error: "Already owned", status: 409 } as const;
 
       // Ledger burn inside the transaction (balance + coin_transactions row
-      // commit or roll back together).
-      const newBalance = await burnCoins(req.userId, item.costCoins, "marketplace_purchase", {
-        description: `Purchased ${item.name}`,
-        metadata: { itemId, itemName: item.name, itemType: item.type },
+      // commit or roll back together). Sale discounts reduce the burn.
+      const newBalance = await burnCoins(req.userId, price, "marketplace_purchase", {
+        description: sale
+          ? `Purchased ${item.name} (flash sale -${sale.discountPct}%)`
+          : `Purchased ${item.name}`,
+        metadata: {
+          itemId, itemName: item.name, itemType: item.type,
+          ...(sale ? { saleDropId: sale.dropId, saleDiscountPct: sale.discountPct, fullCost: item.costCoins } : {}),
+        },
       }, tx as never);
       if (newBalance === null) return { error: "Insufficient coins", status: 400 } as const;
 
       await tx.insert(userInventoryTable).values({ userId: req.userId, itemId });
-      return { ok: true, newBalance } as const;
+      return { ok: true, newBalance, priceCharged: price, saleDiscountPct: sale?.discountPct ?? null } as const;
     });
 
     if (!("ok" in purchase)) return res.status(purchase.status).json({ error: purchase.error });
