@@ -22,6 +22,8 @@ interface RoomMessage {
   userId: string;
   content: string;
   ts: string;
+  isBot?: boolean;
+  botName?: string;
 }
 
 async function fetchRooms(): Promise<Room[]> {
@@ -103,7 +105,7 @@ function RoomChat({ room, onClose }: { room: Room; onClose: () => void }) {
         )}
         {messages.map((m, i) => (
           <div key={i} className={`flex flex-col gap-0.5 ${m.userId === session?.user?.id ? "items-end" : "items-start"}`}>
-            <span className="text-[10px] text-[var(--foreground-subtle)]">{m.userId === session?.user?.id ? "You" : `User ${m.userId.slice(0, 6)}`}</span>
+            <span className="text-[10px] text-[var(--foreground-subtle)]">{m.userId === session?.user?.id ? "You" : (m.botName ?? `User ${m.userId.slice(0, 6)}`)}</span>
             <div className={`rounded-xl px-3 py-1.5 text-sm max-w-[80%] ${m.userId === session?.user?.id ? "bg-[var(--rgba-124-58-237-0_25)] text-[var(--foreground)]" : "bg-[var(--rgba-255-255-255-0_05)] text-[var(--foreground)]"}`}>
               {m.content}
             </div>

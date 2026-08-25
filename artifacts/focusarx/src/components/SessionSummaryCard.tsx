@@ -1,8 +1,10 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState } from "react";
-import { Share2, Check } from "lucide-react";
+import { useEffect, useState , useMemo} from "react";
+import { Check, Image as ImageIcon, Share2 } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import ShareCardModal, { type ShareCardStats } from "./ShareCardModal";
 
 const QUOTES = [
   "Small steps every day lead to giant leaps over time.",
@@ -26,6 +28,7 @@ interface Props {
   earnedCoins?: number;
   completedEarly?: boolean;
   completionPercentage?: number | null;
+  streakDays?: number | null;
   onStartBreak: () => void;
   onKeepGoing: () => void;
   onClose: () => void;
@@ -40,6 +43,7 @@ export default function SessionSummaryCard({
   earnedCoins = 0,
   completedEarly = false,
   completionPercentage,
+  streakDays,
   onStartBreak,
   onKeepGoing,
   onClose,
@@ -49,6 +53,21 @@ export default function SessionSummaryCard({
   const [animatedXp, setAnimatedXp] = useState(0);
   const [animatedCoins, setAnimatedCoins] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const { data: session } = useAuth();
+  const user = session?.user ?? null;
+  const shareStats: ShareCardStats = useMemo(
+    () => ({
+      userName: user?.name,
+      durationSeconds,
+      focusScore,
+      earnedXp,
+      earnedCoins,
+      streakDays,
+      date: new Date(),
+    }),
+    [user?.name, durationSeconds, focusScore, earnedXp, earnedCoins, streakDays]
+  );
 
   useEffect(() => {
     if (open) {
@@ -176,25 +195,16 @@ export default function SessionSummaryCard({
               "{quote}"
             </p>
 
-            {/* Share button */}
+            {/* Share card (WS K) — OG-style image share */}
             <button
-              onClick={async () => {
-                const scoreText = focusScore != null ? ` · ${focusScore}% focus score` : "";
-                const xpText = earnedXp > 0 ? ` · +${earnedXp} XP` : "";
-                const text = `🎯 Just completed a ${timeLabel} focus session on FocusArx${scoreText}${xpText} 🔥\nBuilding the deep work habit one block at a time. focusarx.app`;
-                if (navigator.share) {
-                  try { await navigator.share({ text, url: "https://focusarx.app" }); } catch { /* cancelled */ }
-                } else {
-                  await navigator.clipboard.writeText(text);
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
-                }
-              }}
+              onClick={() => setShareOpen(true)}
               className="mb-3 w-full flex items-center justify-center gap-2 rounded-xl border border-[var(--palette-white)]/8 bg-[var(--palette-white)]/4 py-2 text-xs font-semibold text-[var(--muted-fg)] transition-colors hover:border-[var(--palette-white)]/12 hover:text-[var(--foreground-muted)]"
             >
-              {copied ? <Check size={12} className="text-[var(--palette-emerald-400)]" /> : <Share2 size={12} />}
-              {copied ? "Copied to clipboard!" : "Share session"}
+              <ImageIcon size={12} />
+              Share card
             </button>
+
+            <ShareCardModal open={shareOpen} stats={shareStats} onClose={() => setShareOpen(false)} />
 
             {/* Buttons */}
             <div className="flex gap-3">

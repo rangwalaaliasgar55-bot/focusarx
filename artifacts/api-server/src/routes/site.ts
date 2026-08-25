@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
-import { db, siteSettingsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, siteSettingsTable, usersTable, focusSessionsTable } from "@workspace/db";
+import { and, eq, gte, ne, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { adminLimiter } from "../lib/rateLimiter";
 import { getSiteSettings, invalidateSiteSettingsCache } from "../lib/siteSettings";
@@ -32,6 +32,58 @@ const updateSchema = z.object({
   heroTitle: z.string().max(120).optional().nullable(),
   heroSubtitle: z.string().max(300).optional().nullable(),
   heroCtaText: z.string().max(60).optional().nullable(),
+});
+
+// ─── COMMUNITY PULSE (A4 — honest scale display) ────────────────────────────
+// Public, cached 60s. The ONLY public counter that mixes humans + AI rivals,
+// and it always says so ("incl. AI rivals"). Real humans are reported
+// separately — never blended without a label.
+let pulseCache: { at: number; data: unknown } | null = null;
+
+router.get("/site/community-pulse", async (_req, res) => {
+  if (pulseCache && Date.now() - pulseCache.at < 60_000) {
+    res.json(pulseCache.data);
+    return;
+  }
+  try {
+    const weekAgo = new Date(Date.now() - 7 * 86400000);
+    const [membersArr, botsArr, humansArr, studiersArr] = await Promise.all([
+      db.select({ n: sql<number>`count(*)` }).from(usersTable).where(eq(usersTable.isGuest, false)),
+      db.select({ n: sql<number>`count(*)` }).from(usersTable).where(and(eq(usersTable.isGuest, false), eq(usersTable.role, "bot"))),
+      db.select({ n: sql<number>`count(*)` }).from(usersTable).where(and(eq(usersTable.isGuest, false), ne(usersTable.role, "bot"))),
+      db.select({ n: sql<number>`count(distinct ${focusSessionsTable.userId})` })
+        .from(focusSessionsTable)
+        .innerJoin(usersTable, eq(usersTable.id, focusSessionsTable.userId))
+        .where(and(
+          eq(usersTable.isGuest, false),
+          ne(usersTable.role, "bot"),
+          gte(focusSessionsTable.completedAt, weekAgo),
+        )),
+    ]);
+
+    const total = Number(membersArr[0]?.n ?? 0);
+    const bots = Number(botsArr[0]?.n ?? 0);
+    const humans = Number(humansArr[0]?.n ?? 0);
+    const studiers = Number(studiersArr[0]?.n ?? 0);
+    const rounded = Math.floor(total / 100) * 100;
+    const data = {
+      // "12,400+ members training daily (incl. AI rivals)"
+      membersLabel: total > rounded
+        ? `${rounded.toLocaleString("en-US")}+ members training daily (incl. AI rivals)`
+        : `${total.toLocaleString("en-US")} members training daily (incl. AI rivals)`,
+      membersTotal: total,
+      aiRivals: bots,
+      realMembers: humans,
+      realStudiersThisWeek: studiers,
+      studiersLabel: `${studiers.toLocaleString("en-US")} real studiers this week`,
+      generatedAt: new Date().toISOString(),
+    };
+    pulseCache = { at: Date.now(), data };
+    res.json(data);
+  } catch (err) {
+    logger.error({ err }, "community pulse error");
+    res.status(500).json({ error: "Internal error" });
+  }
 });
 
 /** Admin — read full settings. */

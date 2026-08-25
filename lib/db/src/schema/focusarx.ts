@@ -1,4 +1,4 @@
-import { pgTable, text, integer, boolean, timestamp, real, jsonb, index, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, boolean, timestamp, real, jsonb, index, unique, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -129,7 +129,12 @@ export const userWalletsTable = pgTable("user_wallets", {
   level: integer("level").notNull().default(1),
   prestige: integer("prestige").notNull().default(0),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (t) => [
+  // A3: the global leaderboard sorts by these — index both so the top-50
+  // query stays < 300ms at 12k+ wallets (ORDER BY … LIMIT in SQL).
+  index("user_wallets_weekly_xp_idx").on(t.weeklyXp),
+  index("user_wallets_total_xp_idx").on(t.totalXp),
+]);
 
 export type UserWallet = typeof userWalletsTable.$inferSelect;
 
@@ -519,7 +524,9 @@ export const userInventoryTable = pgTable("user_inventory", {
   equipped: boolean("equipped").default(false).notNull(),
 }, (t) => [
   index("user_inventory_user_idx").on(t.userId),
-  unique("user_inventory_user_item_unique").on(t.userId, t.itemId),
+  // uniqueIndex (not constraint) — the DB object was created as a unique
+  // index by drizzle-kit; matching that keeps `push` non-interactive.
+  uniqueIndex("user_inventory_user_item_unique").on(t.userId, t.itemId),
 ]);
 
 export type UserInventory = typeof userInventoryTable.$inferSelect;

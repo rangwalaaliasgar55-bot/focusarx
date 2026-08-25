@@ -91,6 +91,8 @@ const StudyMethodQuizPage = lazy(() => import("@/pages/study-method-quiz"));
 const ForgeRoomPage = lazy(() => import("@/pages/forge-room"));
 const StudyMethodCalculatorPage = lazy(() => import("@/pages/study-calculator"));
 const GuidesPage = lazy(() => import("@/pages/guides"));
+const ExamHubPage = lazy(() => import("@/pages/exam").then((m) => ({ default: m.ExamHubPage })));
+const ExamGuidePage = lazy(() => import("@/pages/exam").then((m) => ({ default: m.ExamGuidePage })));
 const AdhdFocusPage = lazy(() => import("@/pages/adhd-focus"));
 const StopProcrastinatingPage = lazy(() => import("@/pages/stop-procrastinating"));
 const StudyWithMePage = lazy(() => import("@/pages/study-with-me"));
@@ -278,6 +280,8 @@ function RoutedContent() {
               <Route path="/forge-room" component={() => <ErrorBoundary><ProtectedRoute component={ForgeRoomPage} /></ErrorBoundary>} />
               <Route path="/study-calculator" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StudyMethodCalculatorPage /></Suspense></ErrorBoundary>} />
               <Route path="/guides" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><GuidesPage /></Suspense></ErrorBoundary>} />
+              <Route path="/exam" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><ExamHubPage /></Suspense></ErrorBoundary>} />
+              <Route path="/exam/:slug" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><ExamGuidePage /></Suspense></ErrorBoundary>} />
               <Route path="/adhd-focus-tips" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><AdhdFocusPage /></Suspense></ErrorBoundary>} />
               <Route path="/stop-procrastinating" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StopProcrastinatingPage /></Suspense></ErrorBoundary>} />
               <Route path="/study-with-me" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StudyWithMePage /></Suspense></ErrorBoundary>} />

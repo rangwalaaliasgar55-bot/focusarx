@@ -68,6 +68,13 @@ function TierCard({ tier, claimed, reached, premiumUnlocked, onClaim }: {
   );
 }
 
+function formatSeasonEnd(iso?: string): string {
+  if (!iso) return "next Monday";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+}
+
 export default function BattlePassPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -109,7 +116,7 @@ export default function BattlePassPage() {
         <div className="relative">
           <div className="flex items-center gap-2 mb-1"><Trophy size={20} className="text-[var(--palette-amber-400)]" /><span className="text-xs font-bold uppercase tracking-widest text-[var(--palette-amber-400)]">Season {data?.season ?? 1}</span></div>
           <h1 className="text-3xl font-black text-[var(--foreground)]">Battle Pass</h1>
-          <p className="text-sm text-[var(--foreground-subtle)] mt-1">Earn XP, unlock rewards. Ends {data?.endsAt ?? "Sep 30"}</p>
+          <p className="text-sm text-[var(--foreground-subtle)] mt-1">Earn XP, unlock rewards. Season resets {formatSeasonEnd(data?.endsAt)}</p>
           <div className="mt-4">
             <div className="flex justify-between text-xs mb-1.5">
               <span className="text-[var(--foreground-subtle)]">Tier {currentTier} → {currentTier + 1}</span>

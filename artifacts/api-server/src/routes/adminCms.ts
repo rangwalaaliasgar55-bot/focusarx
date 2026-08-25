@@ -15,6 +15,7 @@ import {
 import { eq, sql, count } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { checkAdminAuth } from "../lib/adminAuth";
+import { mintCoins } from "../lib/coinLedger";
 
 const router = Router();
 
@@ -325,8 +326,10 @@ router.post("/admin/cms/grant-coins", async (req, res) => {
   try {
     const [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, userId));
     if (!wallet) { res.status(404).json({ error: "User wallet not found" }); return; }
-    const newBalance = wallet.coins + Number(amount);
-    await db.update(userWalletsTable).set({ coins: newBalance }).where(eq(userWalletsTable.userId, userId));
+    const newBalance = await mintCoins(userId, Number(amount), "admin_grant", {
+      description: reason ? `Admin grant (${reason})` : "Admin grant",
+      metadata: { actor: (req as any).userId ?? "admin" },
+    });
     await db.insert(notificationsTable).values({
       userId, type: "system", read: false,
       title: "Admin Coin Grant",
@@ -356,7 +359,10 @@ router.post("/admin/cms/grant-coins/bulk", async (req, res) => {
       try {
         const [wallet] = await db.select({ coins: userWalletsTable.coins }).from(userWalletsTable).where(eq(userWalletsTable.userId, id)).limit(1);
         if (!wallet) continue;
-        await db.update(userWalletsTable).set({ coins: wallet.coins + amt }).where(eq(userWalletsTable.userId, id));
+        await mintCoins(id, amt, "admin_grant_bulk", {
+          description: reason ? `Admin bulk grant (${reason})` : "Admin bulk grant",
+          metadata: { actor: (req as any).userId ?? "admin" },
+        });
         await db.insert(notificationsTable).values({
           userId: id, type: "system", read: false,
           title: "Admin Coin Grant",

@@ -29,6 +29,8 @@ export const BADGE_DEFS: BadgeDef[] = [
   { id: "two_fifty_h",     name: "Deep Work Master",    description: "Accumulate 250 hours of focus",          tier: "gold",      category: "time",       icon: "🧘",  threshold: 15000,  unit: "totalMinutes"     },
   { id: "five_hundred_h",  name: "Half Millennium",     description: "Accumulate 500 hours of focus",          tier: "legendary", category: "time",       icon: "👁️",  threshold: 30000,  unit: "totalMinutes"     },
   { id: "millennium",      name: "Millennium Sage",     description: "Reach 1000 hours of focus",              tier: "legendary", category: "time",       icon: "🧙",  threshold: 60000,  unit: "totalMinutes"     },
+  { id: "deep_runner",     name: "Deep Runner",         description: "Complete a single 2-hour focus session",  tier: "silver",    category: "time",       icon: "🏃",  threshold: 120,    unit: "maxSessionMinutes"},
+  { id: "marathoner",      name: "Marathoner",          description: "Complete a single 4-hour focus session",  tier: "gold",      category: "time",       icon: "🏔️", threshold: 240,    unit: "maxSessionMinutes"},
 
   // ── STREAK BADGES ────────────────────────────────────────────────────────────
   { id: "spark",           name: "Spark",               description: "Maintain a 3-day study streak",          tier: "bronze",    category: "streak",     icon: "✨",  threshold: 3,      unit: "streak"           },
@@ -119,6 +121,7 @@ router.get("/gamification/badges", authMiddleware, async (req: AuthRequest, res:
       if (def.unit === "totalMinutes") progress = Number(stats?.totalMinutes ?? 0);
       else if (def.unit === "streak") progress = streak?.currentStreak ?? 0;
       else if (def.unit === "completedTasks") progress = Number(tasks?.count ?? 0);
+      else if (def.unit === "maxSessionMinutes") progress = Math.floor(Number(quality?.maxSessionMinutes ?? 0));
 
       return {
         ...def,

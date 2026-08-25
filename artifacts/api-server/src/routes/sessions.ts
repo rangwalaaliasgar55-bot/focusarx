@@ -1,13 +1,15 @@
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router, type Response } from "express";
 import { z } from "zod";
-import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, userWalletsTable, productivityLogsTable, battlePassProgressTable, coinTransactionsTable, focusCitiesTable, userLootBoxesTable, premiumSubscriptionsTable } from "@workspace/db";
+import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, userWalletsTable, productivityLogsTable, battlePassProgressTable, coinTransactionsTable, focusCitiesTable, userLootBoxesTable, premiumSubscriptionsTable, userPetsTable} from "@workspace/db";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
 import { updateMissionProgress } from "./missions";
+import { activeDropXpMultiplier } from "../lib/drops";
+import { computeSessionRewards } from "../lib/sessionRewards";
 import { runDelightCheck } from "../lib/delightEngine";
-import { BATTLE_PASS_CURRENT_SEASON, calculateBattlePassTier } from "../lib/battlePass";
+import { calculateBattlePassTier, currentBattlePassSeason, rolloverBattlePassSeason } from "../lib/battlePass";
 
 async function maybeDropLootBox(userId: string, sessionCount: number): Promise<boolean> {
   try {
@@ -54,6 +56,9 @@ async function updateCityProgress(userId: string): Promise<void> {
 
 async function advanceBattlePass(userId: string, xpEarned: number) {
   try {
+    // WS K: weekly season rollover — lazy + idempotent, so the first reward
+    // after the Monday boundary resets the season before XP is added.
+    await rolloverBattlePassSeason(userId);
     const [bp] = await db.select().from(battlePassProgressTable).where(eq(battlePassProgressTable.userId, userId));
     if (bp) {
       const newSeasonXp = bp.seasonXp + xpEarned;
@@ -66,7 +71,7 @@ async function advanceBattlePass(userId: string, xpEarned: number) {
     } else {
       const newTier = calculateBattlePassTier(xpEarned);
       await db.insert(battlePassProgressTable).values({
-        userId, season: BATTLE_PASS_CURRENT_SEASON, seasonXp: xpEarned, tier: newTier,
+        userId, season: currentBattlePassSeason(), seasonXp: xpEarned, tier: newTier,
         premiumUnlocked: false, claimedTiers: [],
       });
     }
@@ -256,20 +261,34 @@ router.post("/sessions", authMiddleware, async (req: AuthRequest, res) => {
     // All focus sessions with duration > 0 contribute to analytics — including early completions
     if (rewardEligible) {
       const minutes = Math.floor(verifiedDurationSec / 60);
-      earnedXp = minutes * 20;
-      earnedCoins = Math.floor(minutes / 5) * 10;
-      // Bonus for completing a full 25-min pomodoro
-      if (verifiedDurationSec >= 1500) earnedCoins += 50;
-      // Small bonus for early completion (you still showed up!)
-      if (completedEarly && verifiedDurationSec >= 60) earnedCoins += 10;
-      // Premium multipliers: 1.5x XP and 1.25x coins
-      if (isPremium) {
-        earnedXp = Math.round(earnedXp * 1.5);
-        earnedCoins = Math.round(earnedCoins * 1.25);
-      }
+      // Workstream H: sub-linear rewards — full rate for the first 2h,
+      // 75% XP/coins beyond (marathon taper), premium multipliers,
+      // pomodoro + showed-up bonuses. Pure function → unit tested.
+      const rewards = computeSessionRewards({
+        minutes,
+        completedEarly: completedEarly && verifiedDurationSec >= 60,
+        isPremium,
+      });
+      earnedXp = rewards.xp;
+      earnedCoins = rewards.coins;
+      // Admin Drop multiplier (Double-XP Hour / Leaderboard Shake-up) —
+      // computed server-side so it can never be spoofed by the client.
+      try {
+        const dropMult = await activeDropXpMultiplier(new Date());
+        if (dropMult.multiplier > 1 && earnedXp > 0) {
+          earnedXp = Math.round(earnedXp * dropMult.multiplier);
+        }
+      } catch { /* multiplier is best-effort */ }
 
       if (earnedXp > 0 || earnedCoins > 0) {
         await awardGamification(req.userId, earnedXp, earnedCoins);
+      }
+
+      // Pet companion lifecycle: 1 pet XP per focused minute (capped at 240
+      // to mirror the 240-min session cap). Levels at 500*level cumulative XP;
+      // evolution stage = floor((level-1)/10). Best-effort, never blocks rewards.
+      if (minutes > 0) {
+        await awardPetXp(req.userId, minutes);
       }
 
       if (minutes > 0) {
@@ -389,6 +408,34 @@ async function updateStreak(userId: string): Promise<boolean> {
     return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Pet companion XP (Workstream I). Feeds the pet's level/evolution lifecycle
+ * from real focus time. Cumulative XP scheme: the level-up threshold for the
+ * current level is 500 * level, matching the xpToNextLevel view in /pets.
+ */
+async function awardPetXp(userId: string, minutes: number): Promise<void> {
+  try {
+    const gain = Math.min(240, Math.max(1, Math.floor(minutes)));
+    const [pet] = await db
+      .select({ id: userPetsTable.id, petXp: userPetsTable.petXp, petLevel: userPetsTable.petLevel })
+      .from(userPetsTable)
+      .where(eq(userPetsTable.userId, userId))
+      .limit(1);
+    if (!pet) return;
+
+    const newXp = pet.petXp + gain;
+    let level = pet.petLevel;
+    while (newXp >= 500 * level) level += 1;
+    const evolutionStage = Math.min(3, Math.floor((level - 1) / 10));
+
+    await db.update(userPetsTable)
+      .set({ petXp: newXp, petLevel: level, evolutionStage, mood: "happy", updatedAt: new Date() })
+      .where(eq(userPetsTable.id, pet.id));
+  } catch {
+    // Pet XP is a nice-to-have; a failure here must never block session rewards.
   }
 }
 

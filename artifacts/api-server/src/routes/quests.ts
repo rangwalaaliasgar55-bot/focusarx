@@ -4,6 +4,7 @@ import { Router } from "express";
 import { extractUserId } from "./auth";
 import { db, questDefinitionsTable, userQuestProgressTable, userWalletsTable, notificationsTable } from "@workspace/db";
 import { eq, and, inArray } from "drizzle-orm";
+import { mintCoins } from "../lib/coinLedger";
 
 export const questsRouter = Router();
 
@@ -90,11 +91,16 @@ questsRouter.post("/quests/:questId/claim", authMiddleware, async (req: AuthRequ
     await db.update(userQuestProgressTable).set({ claimedAt: new Date() }).where(eq(userQuestProgressTable.id, prog.id));
 
     if (def.xpReward || def.coinReward) {
+      if (def.coinReward) {
+        await mintCoins(req.userId, def.coinReward, "quest_reward", {
+          description: `Quest reward: +${def.coinReward} coins`,
+          metadata: { questId },
+        });
+      }
       const [w] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.userId)).limit(1);
-      if (w) {
+      if (w && def.xpReward) {
         await db.update(userWalletsTable).set({
-          totalXp: w.totalXp + (def.xpReward ?? 0),
-          coins: w.coins + (def.coinReward ?? 0),
+          totalXp: w.totalXp + def.xpReward,
         }).where(eq(userWalletsTable.userId, req.userId));
       }
     }

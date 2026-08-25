@@ -9,7 +9,8 @@
     "build:vercel": "vite build --config vite.config.ts && node scripts/prerender.mjs",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "seo:audit": "echo 'SEO Auditing...' && grep -r 'PageSEO' src"
+    "seo:audit": "echo 'SEO Auditing...' && grep -r 'PageSEO' src",
+    "test": "vitest run"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",
@@ -85,6 +86,7 @@
     "vaul": "^1.1.2",
     "vite": "catalog:",
     "wouter": "^3.3.5",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "vitest": "^4.1.11"
   }
 }

@@ -3,9 +3,11 @@ import type { ElementType } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getToken, useAuth } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
-import { Users, UserPlus, Trophy, Activity, Check, X, Bell, Clock, Rss, Heart, MessageCircle as MessageCircleIcon, Bookmark, Flame, Plus, Send, MoreHorizontal, Image, Edit3, Newspaper, Trash2, ArrowUpRight, Star as StarIcon, Shield, Bot } from "lucide-react";
+import { Users, UserPlus, Trophy, Activity, Check, X, Bell, Clock, Rss, Heart, MessageCircle as MessageCircleIcon, Bookmark, Flame, Plus, Send, MoreHorizontal, Image, Edit3, Newspaper, Trash2, ArrowUpRight, Star as StarIcon, Shield } from "lucide-react";
 import { PageTransition } from "@/components/PageTransition";
 import PageHeader from "@/components/PageHeader";
+import CommunityPulse from "@/components/CommunityPulse";
+import { DropBanner } from "@/components/DropBanner";
 import { motion, AnimatePresence } from "framer-motion";
 import { BLUR_IN, STAGGER, STAGGER_CHILD } from "@/lib/animations";
 
@@ -34,20 +36,13 @@ function Avatar({ name, size = 36, level }: { name: string; size?: number, level
   );
 }
 
-function IdentityBadges({ isAdmin, isBot, className = "" }: { isAdmin?: boolean; isBot?: boolean; className?: string }) {
-  if (!isAdmin && !isBot) return null;
+function IdentityBadges({ isAdmin, className = "" }: { isAdmin?: boolean; className?: string }) {
+  if (!isAdmin) return null;
   return (
     <span className={`inline-flex items-center gap-0.5 ${className}`}>
-      {isAdmin && (
-        <span className="inline-flex items-center gap-0.5 rounded-full border border-[var(--palette-red-500)]/30 bg-[var(--palette-red-500)]/10 px-1.5 py-px text-[7px] font-black uppercase tracking-widest text-[var(--palette-red-400)]" title="FocusArx admin">
+      <span className="inline-flex items-center gap-0.5 rounded-full border border-[var(--palette-red-500)]/30 bg-[var(--palette-red-500)]/10 px-1.5 py-px text-[7px] font-black uppercase tracking-widest text-[var(--palette-red-400)]" title="FocusArx admin">
           <Shield size={7} /> Admin
         </span>
-      )}
-      {isBot && (
-        <span className="inline-flex items-center gap-0.5 rounded-full border border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/10 px-1.5 py-px text-[7px] font-black uppercase tracking-widest text-[var(--palette-violet-300)]" title="AI rival — a practice account, not a real person">
-          <Bot size={7} /> AI
-        </span>
-      )}
     </span>
   );
 }
@@ -104,7 +99,7 @@ function LeaderboardTable({ data }: { data: any[] }) {
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-[var(--palette-white)] truncate flex items-center gap-1.5">
               {e.name}
-              <IdentityBadges isAdmin={e.isAdmin} isBot={e.isBot} />
+              <IdentityBadges isAdmin={e.isAdmin} />
               {e.isMe && <span className="text-[var(--brand-400)]">(You)</span>}
             </p>
             <p className="text-[9px] font-black uppercase tracking-widest text-[var(--foreground-subtle)]">LV.{e.level} · {e.streak}d STREAK</p>
@@ -180,7 +175,7 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post
              <div>
                 <div className="flex items-center gap-1.5 mb-1">
                   <p className="font-bold text-[var(--palette-white)] leading-none">{post.author?.name || "User"}</p>
-                  <IdentityBadges isAdmin={post.author?.isAdmin} isBot={post.author?.isBot} />
+                  <IdentityBadges isAdmin={post.author?.isAdmin} />
                 </div>
                 <p className="text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)]">{post.createdAt ? timeAgo(post.createdAt) : ""}</p>
              </div>
@@ -263,7 +258,7 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-0.5">
                         <p className="text-xs font-bold text-[var(--palette-white)]">{c.author?.name || c.authorName || "User"}</p>
-                        <IdentityBadges isAdmin={c.author?.isAdmin ?? (c as any).isAdmin} isBot={c.author?.isBot ?? (c as any).isBot} />
+                        <IdentityBadges isAdmin={c.author?.isAdmin ?? (c as any).isAdmin} />
                         <p className="text-[8px] font-black uppercase tracking-widest text-[var(--foreground-subtle)]">{timeAgo(c.createdAt)}</p>
                       </div>
                       <p className="text-xs text-[var(--palette-zinc-400)] leading-relaxed">{c.content}</p>
@@ -288,12 +283,15 @@ export default function SocialPage() {
   const [search, setSearch] = useState("");
   const [newPost, setNewPost] = useState("");
 
-  const { data: posts = [], isLoading: postsLoading, refetch: refetchPosts } = useQuery({
+  const { data: feedData, isLoading: postsLoading, refetch: refetchPosts } = useQuery({
     queryKey: ["posts", tab],
     queryFn: () => apiFetch(tab === "feed" ? "/api/feed?type=discover&limit=30" : "/api/feed?type=following&limit=30"),
     enabled: tab === "feed",
     staleTime: 60_000,
   });
+  // The discover feed returns { posts, nextCursor } (cursor pagination with a
+  // 60/40 human/bot mix); "following" still returns a plain array.
+  const posts = Array.isArray(feedData) ? feedData : (feedData?.posts ?? []);
 
   const createPost = useMutation({
     mutationFn: () => apiFetch("/api/posts", { method: "POST", body: JSON.stringify({ content: newPost, type: "status" }) }),
@@ -399,9 +397,9 @@ export default function SocialPage() {
                     <div key={u.id} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-[var(--palette-white)]/5 transition-all">
                       <Avatar name={u.name} level={u.level} />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-[var(--palette-white)] truncate flex items-center gap-1.5">{u.name}<IdentityBadges isAdmin={u.isAdmin} isBot={u.isBot} /></p>
+                        <p className="text-sm font-bold text-[var(--palette-white)] truncate flex items-center gap-1.5">{u.name}<IdentityBadges isAdmin={u.isAdmin} /></p>
                         <p className="text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)]">
-                          {u.isBot ? "AI RIVAL" : u.level != null ? `LV.${u.level} · ${u.streak ?? 0}d Streak` : "Member"}
+                          {u.level != null ? `LV.${u.level} · ${u.streak ?? 0}d Streak` : "Member"}
                         </p>
                       </div>
                       <button onClick={() => sendRequest.mutate(u.id)}
@@ -436,6 +434,10 @@ export default function SocialPage() {
         <AnimatePresence mode="wait">
           {tab === "feed" && (
             <motion.div key="feed" variants={STAGGER} initial="initial" animate="animate" exit="exit" className="space-y-6">
+               <DropBanner />
+               <div className="flex justify-center">
+                 <CommunityPulse />
+               </div>
                <div className="rounded-[32px] border border-[var(--border)] bg-[var(--palette-white)]/[0.01] p-6 glass-heavy">
                   <div className="flex gap-4">
                      <Avatar name={session?.user?.name || "U"} size={44} level={12} />
@@ -499,7 +501,7 @@ export default function SocialPage() {
                         <div>
                            <p className="text-sm font-bold text-[var(--palette-white)] mb-0.5 flex items-center gap-1.5">
                               {a.userName}
-                              <IdentityBadges isAdmin={a.isAdmin} isBot={a.isBot} />
+                              <IdentityBadges isAdmin={a.isAdmin} />
                               <span className="text-[10px] font-black text-[var(--brand-teal)] ml-1">LV.{a.userLevel}</span>
                             </p>
                            <p className="text-xs text-[var(--foreground-subtle)] font-medium leading-tight">

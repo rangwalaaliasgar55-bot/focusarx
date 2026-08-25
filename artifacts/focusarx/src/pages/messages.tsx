@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, Component, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getToken, useAuth } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
-import { MessageSquare, Send, Plus, Search, X, Users, ArrowLeft, AlertCircle, RefreshCw, Shield, Bot } from "lucide-react";
+import { MessageSquare, Send, Plus, Search, X, Users, ArrowLeft, AlertCircle, RefreshCw, Shield } from "lucide-react";
 import { EmotePicker } from "@/components/EmotePicker";
 
 async function apiFetch(path: string, opts?: RequestInit) {
@@ -26,20 +26,13 @@ function Avatar({ name, size = 36 }: { name: string; size?: number }) {
 
 const EMOJI_REACTIONS = ["👍", "❤️", "😂", "🔥", "🎯", "🏆"];
 
-function IdentityBadges({ isAdmin, isBot }: { isAdmin?: boolean; isBot?: boolean }) {
-  if (!isAdmin && !isBot) return null;
+function IdentityBadges({ isAdmin }: { isAdmin?: boolean }) {
+  if (!isAdmin) return null;
   return (
     <span className="inline-flex items-center gap-1">
-      {isAdmin && (
-        <span className="inline-flex items-center gap-0.5 rounded-full border border-[var(--palette-red-500)]/30 bg-[var(--palette-red-500)]/10 px-1.5 py-px text-[7px] font-black uppercase tracking-widest text-[var(--palette-red-400)]" title="FocusArx admin">
+      <span className="inline-flex items-center gap-0.5 rounded-full border border-[var(--palette-red-500)]/30 bg-[var(--palette-red-500)]/10 px-1.5 py-px text-[7px] font-black uppercase tracking-widest text-[var(--palette-red-400)]" title="FocusArx admin">
           <Shield size={7} /> Admin
         </span>
-      )}
-      {isBot && (
-        <span className="inline-flex items-center gap-0.5 rounded-full border border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/10 px-1.5 py-px text-[7px] font-black uppercase tracking-widest text-[var(--palette-violet-300)]" title="AI rival — a practice account, not a real person">
-          <Bot size={7} /> AI
-        </span>
-      )}
     </span>
   );
 }
@@ -51,10 +44,10 @@ function MessageBubble({ msg, isMe, onReact }: { msg: any; isMe: boolean; onReac
     <div className={`flex gap-2 group ${isMe ? "flex-row-reverse" : ""}`}>
       {!isMe && <Avatar name={msg.senderName || "U"} size={28} />}
       <div className={`max-w-[75%] ${isMe ? "items-end" : "items-start"} flex flex-col gap-0.5`}>
-        {!isMe && (msg.senderIsAdmin || msg.senderIsBot) && (
+        {!isMe && msg.senderIsAdmin && (
           <div className="flex items-center gap-1 mb-0.5">
             <span className="text-[10px] font-semibold text-[var(--foreground-muted)]">{msg.senderName}</span>
-            <IdentityBadges isAdmin={msg.senderIsAdmin} isBot={msg.senderIsBot} />
+            <IdentityBadges isAdmin={msg.senderIsAdmin} />
           </div>
         )}
         {msg.replyTo && (
@@ -130,7 +123,7 @@ function ConversationThread({ conv, currentUserId, onBack }: { conv: any; curren
         <div>
           <div className="flex items-center gap-1.5">
             <p className="text-sm font-semibold text-[var(--foreground)]">{otherName}</p>
-            <IdentityBadges isAdmin={conv.otherParticipant?.isAdmin} isBot={conv.otherParticipant?.isBot} />
+            <IdentityBadges isAdmin={conv.otherParticipant?.isAdmin} />
           </div>
           {conv.type === "group" && <p className="text-xs text-[var(--foreground-subtle)]">{conv.participantCount} members</p>}
         </div>
@@ -350,7 +343,7 @@ function MessagesPageInner() {
                   <div className="flex-1 text-left min-w-0">
                     <p className="flex items-center gap-1.5">
                       <span className="text-sm font-medium text-[var(--foreground)] truncate">{name}</span>
-                      <IdentityBadges isAdmin={c.otherParticipant?.isAdmin} isBot={c.otherParticipant?.isBot} />
+                      <IdentityBadges isAdmin={c.otherParticipant?.isAdmin} />
                     </p>
                     <p className="text-xs text-[var(--foreground-subtle)] truncate">{c.lastMessage?.content || "No messages yet"}</p>
                   </div>

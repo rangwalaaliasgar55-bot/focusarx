@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Flame, Crown, Medal, RefreshCw, Shield, Bot, Users } from "lucide-react";
+import { Trophy, Flame, Crown, Medal, RefreshCw, Shield, Users } from "lucide-react";
 import { getToken } from "@/lib/auth";
 import { PageTransition } from "@/components/PageTransition";
 import { TiltCard } from "@/components/TiltCard";
@@ -42,11 +42,6 @@ function NameBadges({ entry }: { entry: LeaderboardEntry }) {
       {entry.isAdmin && (
         <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full border border-[var(--rgba-239-68-68-0_35)] bg-[var(--rgba-239-68-68-0_12)] px-1.5 py-px text-[8px] font-black uppercase tracking-wider text-[var(--color-error)]" title="FocusArx team">
           <Shield size={7} /> Admin
-        </span>
-      )}
-      {entry.isBot && (
-        <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full border border-[var(--rgba-124-58-237-0_35)] bg-[var(--rgba-124-58-237-0_12)] px-1.5 py-px text-[8px] font-black uppercase tracking-wider text-[var(--brand-400)]" title="AI rival — a practice account you can race against">
-          <Bot size={7} /> AI
         </span>
       )}
     </>
@@ -134,7 +129,7 @@ function PodiumCard({ entry, podiumRank, filter }: { entry: LeaderboardEntry; po
 
       {/* Name */}
       <p className="max-w-[80px] truncate text-xs font-bold text-[var(--foreground)]">{entry.name}</p>
-      {(entry.isAdmin || entry.isBot) && <NameBadges entry={entry} />}
+      {entry.isAdmin && <NameBadges entry={entry} />}
       {entry.isCurrentUser && <span className="text-[9px] text-[var(--brand-400)]">(you)</span>}
 
       {/* XP */}

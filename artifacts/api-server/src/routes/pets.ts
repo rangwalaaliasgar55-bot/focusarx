@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
-import { db, userPetsTable, userWalletsTable } from "@workspace/db";
+import { db, userPetsTable, userWalletsTable, focusSessionsTable, studyStreaksTable } from "@workspace/db";
 import { isUserPremium } from "../lib/premiumCheck";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
 
@@ -24,6 +24,37 @@ router.get("/pets/types", (_req, res) => {
   res.json({ petTypes: PET_TYPES });
 });
 
+/**
+ * Mood is derived, never client-supplied: recent focus + streak make the pet
+ * happy/excited; 3+ days of silence makes it sleepy. Computed at read time
+ * (cheap indexed lookups) so it is always current.
+ */
+async function derivePetMood(userId: string): Promise<string> {
+  try {
+    const [last] = await db
+      .select({ completedAt: focusSessionsTable.completedAt })
+      .from(focusSessionsTable)
+      .where(eq(focusSessionsTable.userId, userId))
+      .orderBy(desc(focusSessionsTable.completedAt))
+      .limit(1);
+    if (!last?.completedAt) return "sleepy";
+
+    const [streak] = await db
+      .select({ currentStreak: studyStreaksTable.currentStreak })
+      .from(studyStreaksTable)
+      .where(eq(studyStreaksTable.userId, userId))
+      .limit(1);
+
+    const ageMs = Date.now() - last.completedAt.getTime();
+    const hour = 3_600_000;
+    if (ageMs < 24 * hour) return (streak?.currentStreak ?? 0) >= 3 ? "excited" : "happy";
+    if (ageMs < 72 * hour) return "happy";
+    return "sleepy";
+  } catch {
+    return "happy";
+  }
+}
+
 router.get("/pets", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const [pet] = await db.select().from(userPetsTable).where(eq(userPetsTable.userId, req.userId));
@@ -33,8 +64,9 @@ router.get("/pets", authMiddleware, async (req: AuthRequest, res: Response) => {
     const evolutionStage = Math.min(3, Math.floor((pet.petLevel - 1) / 10));
     const type = PET_TYPES.find(p => p.id === pet.petType);
     const evolutionName = type?.evolutions[evolutionStage] ?? pet.petType;
+    const mood = await derivePetMood(req.userId);
 
-    res.json({ pet: { ...pet, xpToNextLevel, evolutionStage, evolutionName } });
+    res.json({ pet: { ...pet, mood, xpToNextLevel, evolutionStage, evolutionName } });
   } catch (err) {
     logger.error({ err }, "get pet error");
     res.status(500).json({ error: "Internal error" });

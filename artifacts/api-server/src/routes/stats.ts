@@ -12,6 +12,7 @@ import {
   userWalletsTable,
   studyRoomMembersTable,
 } from "@workspace/db";
+import { ensureStreakEndangerment } from "../lib/streakEndangerment";
 import { eq, and, gte, lt, gt, desc, count, sql } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
@@ -308,6 +309,8 @@ router.get("/stats/onboarding", authMiddleware, async (req: AuthRequest, res: Re
 // the whole study_streaks schema and 500s on schema drift.
 async function handleStreak(req: AuthRequest, res: Response) {
   try {
+    // WS K: streak-endangerment nudge — lazy, idempotent, fire-and-forget.
+    void ensureStreakEndangerment(req.userId!);
     const [streak] = await db.select({
       currentStreak: studyStreaksTable.currentStreak,
       longestStreak: studyStreaksTable.longestStreak,

@@ -1,4 +1,28 @@
-export const BATTLE_PASS_CURRENT_SEASON = 1;
+/**
+ * Battle-pass seasons are ISO weeks (Mon–Sun, UTC) — deterministic from the
+ * date, so every serverless instance agrees without any coordination or
+ * cron. A rollover is a lazy, idempotent per-user reset: the first request
+ * after the week boundary (session reward or battle-pass fetch) moves the
+ * user to the new season. Unclaimed tiers are forfeited at the boundary
+ * (standard battle-pass behavior).
+ */
+export function currentBattlePassSeason(now: Date = new Date()): number {
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const day = d.getUTCDay() || 7; // ISO: Monday=1..Sunday=7
+  d.setUTCDate(d.getUTCDate() + 4 - day); // Thursday of this ISO week
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const week = Math.ceil(((d.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
+  return d.getUTCFullYear() * 100 + week;
+}
+
+/** ISO instant of the next Monday 00:00 UTC (season boundary). */
+export function battlePassSeasonEndsAt(now: Date = new Date()): Date {
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + (8 - day)); // next Monday
+  return d;
+}
+
 
 export type BattlePassReward = {
   type: "coins" | "xp" | "bundle";
@@ -50,4 +74,28 @@ export function nextBattlePassThreshold(currentTier: number): number | null {
 /** Premium claim IDs share one integer[] column without colliding with free claims. */
 export function battlePassClaimId(tier: number, track: "free" | "premium"): number {
   return track === "premium" ? tier + 100 : tier;
+}
+
+/**
+ * Lazy, idempotent weekly rollover. Returns true when the user's season was
+ * just reset. Unclaimed tiers are forfeited at the boundary; claimed rewards
+ * were already paid out.
+ */
+export async function rolloverBattlePassSeason(userId: string): Promise<boolean> {
+  const { db, battlePassProgressTable } = await import("@workspace/db");
+  const { eq } = await import("drizzle-orm");
+  const current = currentBattlePassSeason();
+  const [row] = await db
+    .select({ season: battlePassProgressTable.season })
+    .from(battlePassProgressTable)
+    .where(eq(battlePassProgressTable.userId, userId))
+    .limit(1);
+  if (!row) return false; // no progress yet — fresh insert will use the current season
+  if (row.season >= current) return false;
+
+  await db
+    .update(battlePassProgressTable)
+    .set({ season: current, seasonXp: 0, tier: 0, claimedTiers: [], updatedAt: new Date() })
+    .where(eq(battlePassProgressTable.userId, userId));
+  return true;
 }

@@ -93,6 +93,10 @@ export function initSocket(httpServer: import("http").Server) {
         await socket.join(`room:${roomId}`);
         acknowledge?.({ ok: true });
         logger.debug({ userId, roomId }, "joined room");
+        // A couple of AI rivals banter briefly when a human joins — the room
+        // feels inhabited. Deterministic per (room, IST day), throttled to
+        // once per 20 minutes per room. Bots are always visibly badged.
+        scheduleBotBanter(io!, roomId);
       } catch (err) {
         acknowledge?.({ ok: false, error: "Unable to join room" });
         logger.error({ err, userId, roomId }, "socket room authorization failed");
@@ -145,7 +149,77 @@ export function initSocket(httpServer: import("http").Server) {
   return io;
 }
 
+// ── study-room bot banter (A2: "bots live like real members") ───────────────
+// Short bot-to-bot exchanges (2–4 Hinglish lines) that play when a human
+// joins an active room. Deterministic per (room, IST day) + in-memory
+// throttle, so repeated joins don't replay it, and it costs zero AI calls.
+
+import { BANTER } from "./botTemplates";
+import { hashString, mulberry32 } from "./personas";
+import { usersTable as botUsersTable } from "@workspace/db";
+import { eq as eqRoom } from "drizzle-orm";
+
+const lastBotBanter = new Map<string, number>(); // roomId -> last-run timestamp
+
+async function pickBanterBots(): Promise<Array<{ id: string; name: string }>> {
+  const rows = await db
+    .select({ id: botUsersTable.id, name: botUsersTable.name })
+    .from(botUsersTable)
+    .where(eqRoom(botUsersTable.role, "bot"))
+    .limit(40);
+  return rows.map((r) => ({ id: r.id, name: r.name ?? "Rival" }));
+}
+
+function scheduleBotBanter(io: Server, roomId: string): void {
+  try {
+    const dayKey = new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10);
+    const rng = mulberry32(hashString(`banter:${roomId}:${dayKey}`));
+    if (rng() > 0.75) return; // ~75% of room-days get a little banter
+    const last = lastBotBanter.get(roomId) ?? 0;
+    if (Date.now() - last < 20 * 60 * 1000) return;
+    lastBotBanter.set(roomId, Date.now());
+
+    void (async () => {
+      const bots = await pickBanterBots();
+      if (bots.length < 2) return;
+      const speakerA = bots[Math.floor(rng() * bots.length)]!;
+      const speakerB = bots[Math.floor(rng() * bots.length)]!;
+      if (speakerA.id === speakerB.id) return;
+      const count = 2 + Math.floor(rng() * 3); // 2–4 lines
+      const firstLine = Math.floor(rng() * BANTER.length);
+      const delay = 1500 + rng() * 2500;
+      let i = 0;
+      const emitNext = () => {
+        if (i >= count) return;
+        const speaker = i % 2 === 0 ? speakerA : speakerB;
+        const line = BANTER[(firstLine + i) % BANTER.length]!;
+        io.to(`room:${roomId}`).emit("room:chat", {
+          userId: speaker.id,
+          content: line,
+          isBot: true,
+          botName: speaker.name,
+          ts: new Date().toISOString(),
+        });
+        i++;
+        setTimeout(emitNext, 4000 + Math.random() * 5000);
+      };
+      setTimeout(emitNext, delay);
+    })().catch(() => undefined);
+  } catch {
+    // banter must never break a join
+  }
+}
+
 export function getIO(): Server | null { return io; }
+
+/** Broadcast an event to every connected socket (drop announcements etc). */
+export function emitDrop(data: unknown): void {
+  try {
+    io?.emit("drop:started", data);
+  } catch (err) {
+    logger.warn({ err }, "emit drop failed (non-fatal)");
+  }
+}
 
 export function emitToUser(userId: string, event: string, data: unknown) {
   io?.to(`user:${userId}`).emit(event, data);

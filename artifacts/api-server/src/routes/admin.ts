@@ -2,15 +2,18 @@ import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { Router } from "express";
 import jwt from "jsonwebtoken";
-import { db, pool, usersTable, focusSessionsTable, studyStreaksTable, activeSessionsTable, userMissionProgressTable, loginRewardsTable, freezeTokensTable, battlePassProgressTable, notificationsTable, premiumSubscriptionsTable, userWalletsTable, socialPostsTable } from "@workspace/db";
-import { eq, gte, inArray, and, sql } from "drizzle-orm";
+import { db, pool, usersTable, focusSessionsTable, studyStreaksTable, activeSessionsTable, userMissionProgressTable, loginRewardsTable, freezeTokensTable, battlePassProgressTable, notificationsTable, premiumSubscriptionsTable, userWalletsTable, socialPostsTable, followsTable, platformMetaTable } from "@workspace/db";
+import { desc, eq, gte, inArray, and, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import { mintCoins, burnCoins } from "../lib/coinLedger";
 import { getServerConfig } from "../lib/config";
 import { extractUserId } from "./auth";
 import { adminLimiter } from "../lib/rateLimiter";
 import { ALL_MISSIONS } from "./missions";
 import { checkAdminAuth } from "../lib/adminAuth";
-import { seedBots, deleteAllBots, BOT_PERSONAS } from "../lib/botEngine";
+import { seedBots, seedBotsToTarget, deleteAllBots, BOT_PERSONAS, botActivityStats, buildBotFollowGraph, istDayKey } from "../lib/botEngine";
+import { generatePersona } from "../lib/personas";
+import { templateInventory } from "../lib/botTemplates";
 
 const router = Router();
 const ADMIN_COOKIE = "focusarx_admin";
@@ -420,21 +423,48 @@ router.patch("/admin/users/:id/wallet", adminLimiter, async (req, res) => {
   }
   const clamp = (v: number) => Math.max(0, v);
   try {
-    const [existing] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, id));
+    let [existing] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, id));
     if (!existing) {
+      // Create the wallet shell first; coin movement goes through the ledger
+      // below so admin adjustments land in coin_transactions like everything
+      // else (economy dashboard + audit).
       await db.insert(userWalletsTable).values({
         userId: id,
-        coins: clamp(coins ?? 0),
+        coins: 0,
         totalXp: clamp(totalXp ?? 0),
         weeklyXp: clamp(weeklyXp ?? 0),
         level: clamp(level ?? 1),
       });
-    } else {
+      [existing] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, id));
+    }
+
+    // Coin movement via the ledger (add = mint; set = mint/burn the delta).
+    if (coins !== null) {
+      const target = clamp(mode === "add" ? existing!.coins + coins : coins);
+      const delta = target - existing!.coins;
+      if (delta > 0) {
+        await mintCoins(id, delta, "admin_adjust", {
+          description: `Admin set wallet to ${target} coins`,
+          metadata: { mode, actor: req.userId ?? "admin" },
+        });
+      } else if (delta < 0) {
+        const newBal = await burnCoins(id, -delta, "admin_adjust", {
+          description: `Admin set wallet to ${target} coins`,
+          metadata: { mode, actor: req.userId ?? "admin" },
+        });
+        if (newBal === null) {
+          res.status(400).json({ error: "Cannot set balance below the burn amount — wallet has fewer coins" });
+          return;
+        }
+      }
+    }
+
+    if (totalXp !== null || weeklyXp !== null || level !== null) {
+      const [cur] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, id));
       await db.update(userWalletsTable).set({
-        ...(coins !== null ? { coins: clamp(mode === "add" ? existing.coins + coins : coins) } : {}),
-        ...(totalXp !== null ? { totalXp: clamp(mode === "add" ? existing.totalXp + totalXp : totalXp) } : {}),
-        ...(weeklyXp !== null ? { weeklyXp: clamp(mode === "add" ? existing.weeklyXp + weeklyXp : weeklyXp) } : {}),
-        ...(level !== null ? { level: Math.max(1, mode === "add" ? existing.level + level : level) } : {}),
+        ...(totalXp !== null ? { totalXp: clamp(mode === "add" ? cur.totalXp + totalXp : totalXp) } : {}),
+        ...(weeklyXp !== null ? { weeklyXp: clamp(mode === "add" ? cur.weeklyXp + weeklyXp : weeklyXp) } : {}),
+        ...(level !== null ? { level: Math.max(1, mode === "add" ? cur.level + level : level) } : {}),
         updatedAt: new Date(),
       }).where(eq(userWalletsTable.userId, id));
     }
@@ -501,13 +531,32 @@ router.post("/admin/users/:id/notification", adminLimiter, async (req, res) => {
 router.get("/admin/bots", async (_req, res) => {
   if (!await checkAuth(_req)) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
-    const bots = await db.select({
-      id: usersTable.id,
-      name: usersTable.name,
-      email: usersTable.email,
-      createdAt: usersTable.createdAt,
-    }).from(usersTable).where(eq(usersTable.role, "bot")).orderBy(usersTable.createdAt);
-    res.json({ bots, personas: BOT_PERSONAS.length });
+    const [bots, totalArr] = await Promise.all([
+      db.select({
+        id: usersTable.id,
+        name: usersTable.name,
+        email: usersTable.email,
+        createdAt: usersTable.createdAt,
+      }).from(usersTable).where(eq(usersTable.role, "bot")).orderBy(desc(usersTable.createdAt)).limit(100),
+      db.select({ n: sql<number>`count(*)` }).from(usersTable).where(eq(usersTable.role, "bot")),
+    ]);
+    const stats = await botActivityStats();
+    // Preview of what the next seed would create (deterministic).
+    const reserved = new Set<string>();
+    const total = Number(totalArr[0]?.n ?? 0);
+    const preview = Array.from({ length: 8 }, (_, i) => {
+      const p = generatePersona(total + i, reserved);
+      return { name: p.name, bio: p.bio, xp: p.totalXp, streak: p.streak, timezone: p.timezone };
+    });
+    res.json({
+      bots,
+      total,
+      personas: BOT_PERSONAS.length,
+      stats,
+      preview,
+      inventory: templateInventory(),
+      istDay: istDayKey(),
+    });
   } catch (err) {
     logger.error({ err }, "admin list bots error");
     res.status(500).json({ error: "Internal error" });
@@ -517,11 +566,33 @@ router.get("/admin/bots", async (_req, res) => {
 router.post("/admin/bots/seed", adminLimiter, async (req, res) => {
   if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
-    const result = await seedBots();
-    logger.info(result, "admin seeded AI rivals");
-    res.json({ ok: true, ...result });
+    const target = Math.floor(Number((req.body as { target?: number })?.target) || 12000);
+    if (![500, 2000, 12000].includes(target) && (target < 100 || target > 20000)) {
+      res.status(400).json({ error: "target must be 500, 2000 or 12000 (or 100–20000)" });
+      return;
+    }
+    const t0 = Date.now();
+    const result = await seedBotsToTarget(target);
+    logger.info({ ...result, ms: Date.now() - t0 }, "admin seeded AI rivals");
+    res.json({ ok: true, ...result, ms: Date.now() - t0 });
   } catch (err) {
     logger.error({ err }, "admin seed bots error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+router.post("/admin/bots/graph", adminLimiter, async (req, res) => {
+  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  try {
+    // reset=true: wipe the bot follow graph + flag so it can be rebuilt.
+    if ((req.body as { reset?: boolean })?.reset) {
+      await db.delete(followsTable).where(sql`${followsTable.followerId} IN (SELECT id FROM users WHERE role = 'bot')`);
+      await db.delete(platformMetaTable).where(eq(platformMetaTable.key, "bot_follow_graph_v1"));
+    }
+    const result = await buildBotFollowGraph();
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    logger.error({ err }, "admin build bot graph error");
     res.status(500).json({ error: "Internal error" });
   }
 });
@@ -689,44 +760,92 @@ router.get("/admin/retention", async (req, res) => {
   }
 });
 
-// ─── SQL EDITOR (admin only) ──────────────────────────────────────────────────
+// ─── ECONOMY DASHBOARD (Workstream C) ────────────────────────────────────────
+// All mints/burns land in coin_transactions via lib/coinLedger, so this view
+// is complete by construction: circulating supply, daily mint/burn flow,
+// top reasons, and an inflation alert (net mint last 7d vs supply).
 
-router.post("/admin/sql", adminLimiter, async (req, res) => {
-  // Available wherever admin auth works, but can be hard-disabled by setting
-  // ENABLE_ADMIN_SQL=false. Queries always run inside a READ ONLY transaction
-  // with a statement timeout, so this can never mutate data.
-  if (process.env.ENABLE_ADMIN_SQL === "false") {
-    res.status(404).json({ error: "SQL editor is disabled on this deployment (ENABLE_ADMIN_SQL=false)" });
-    return;
-  }
+router.get("/admin/economy", async (req, res) => {
   if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
-  const { query } = req.body as { query?: string };
-  if (!query || typeof query !== "string") { res.status(400).json({ error: "query required" }); return; }
-  const trimmed = query.trim().toLowerCase();
-  // Safety: only allow SELECT, SHOW, EXPLAIN, WITH (read-only)
-  const safe = /^(select|show|explain|with\s)/i.test(trimmed);
-  if (!safe || trimmed.replace(/;\s*$/, "").includes(";")) {
-    res.status(400).json({ error: "Only one read-only query is permitted" }); return;
-  }
-  if (trimmed.length > 4000) { res.status(400).json({ error: "Query too long" }); return; }
-
-  const client = await pool.connect();
   try {
-    await client.query("BEGIN READ ONLY");
-    await client.query("SET LOCAL statement_timeout = '2000ms'");
-    const result = await client.query(query);
-    await client.query("ROLLBACK");
+    const supply = await pool.query(`
+      SELECT
+        coalesce(sum(uw.coins), 0)::bigint AS total,
+        coalesce(sum(CASE WHEN u.role = 'bot' THEN uw.coins ELSE 0 END), 0)::bigint AS bots,
+        count(uw.id)::int AS wallets,
+        coalesce(sum(CASE WHEN u.role = 'bot' THEN 0 ELSE 1 END), 0)::int AS humans
+      FROM user_wallets uw
+      LEFT JOIN users u ON u.id = uw.user_id
+    `);
+    const daily = await pool.query(`
+      SELECT to_char(created_at AT TIME ZONE 'Asia/Kolkata', 'MM-DD') AS day,
+             type,
+             coalesce(sum(amount), 0)::bigint AS total,
+             count(*)::int AS n
+      FROM coin_transactions
+      WHERE created_at >= now() - interval '14 days'
+      GROUP BY 1, 2
+      ORDER BY 1 DESC, 2
+    `);
+    const reasons = await pool.query(`
+      SELECT reason, type,
+             coalesce(sum(amount), 0)::bigint AS total,
+             count(*)::int AS n
+      FROM coin_transactions
+      WHERE created_at >= now() - interval '7 days'
+      GROUP BY 1, 2
+      ORDER BY abs(coalesce(sum(amount), 0)) DESC
+      LIMIT 10
+    `);
+    const last7 = await pool.query(`
+      SELECT coalesce(sum(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0)::bigint AS mints,
+             coalesce(sum(CASE WHEN amount < 0 THEN -amount ELSE 0 END), 0)::bigint AS burns
+      FROM coin_transactions
+      WHERE created_at >= now() - interval '7 days'
+    `);
+    const marketplace = await pool.query(`
+      SELECT reason, count(*)::int AS n, coalesce(sum(amount), 0)::bigint AS total
+      FROM coin_transactions
+      WHERE reason IN ('marketplace_purchase','gift_purchase','sellback','bundle_purchase')
+        AND created_at >= now() - interval '7 days'
+      GROUP BY 1
+    `);
+
+    const total = Number(supply.rows[0].total);
+    const net7 = Number(last7.rows[0].mints) - Number(last7.rows[0].burns);
+    const inflationPct = total > 0 ? (net7 / total) * 100 : 0;
+
+    // Build a 14-day series (MM-DD labels) with mints/burns per day.
+    const byDay = new Map<string, { day: string; mints: number; burns: number }>();
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000);
+      const key = d.toISOString().slice(5, 7) + "-" + d.toISOString().slice(8, 10);
+      byDay.set(key, { day: key, mints: 0, burns: 0 });
+    }
+    for (const r of daily.rows) {
+      const slot = byDay.get(r.day);
+      if (!slot) continue;
+      if (r.type === "earn") slot.mints += Number(r.total);
+      else slot.burns += Number(r.total);
+    }
+
     res.json({
-      rows: (result.rows ?? []).slice(0, 500),
-      rowCount: Math.min(result.rowCount ?? 0, 500),
-      fields: (result.fields ?? []).map((f: any) => ({ name: f.name, dataTypeID: f.dataTypeID })),
-      truncated: (result.rows?.length ?? 0) > 500,
+      supply: {
+        total,
+        humans: supply.rows[0].humans,
+        bots: Number(supply.rows[0].bots),
+        wallets: supply.rows[0].wallets,
+      },
+      last7: { mints: Number(last7.rows[0].mints), burns: Number(last7.rows[0].burns), net: net7 },
+      inflationPct: Math.round(inflationPct * 100) / 100,
+      inflationAlert: inflationPct > 5,
+      daily: [...byDay.values()],
+      topReasons: reasons.rows,
+      marketplace: Object.fromEntries(marketplace.rows.map((r) => [r.reason, { n: r.n, total: Number(r.total) }])),
     });
-  } catch (err: any) {
-    await client.query("ROLLBACK").catch(() => undefined);
-    res.status(400).json({ error: err?.message ?? "Query error" });
-  } finally {
-    client.release();
+  } catch (err) {
+    logger.error({ err }, "economy dashboard error");
+    res.status(500).json({ error: "Internal error" });
   }
 });
 
