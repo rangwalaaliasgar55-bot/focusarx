@@ -1,7 +1,7 @@
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router, type Response } from "express";
 import { z } from "zod";
-import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, userWalletsTable, productivityLogsTable, battlePassProgressTable, coinTransactionsTable, focusCitiesTable, userLootBoxesTable, premiumSubscriptionsTable } from "@workspace/db";
+import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, userWalletsTable, productivityLogsTable, battlePassProgressTable, coinTransactionsTable, focusCitiesTable, userLootBoxesTable, premiumSubscriptionsTable, userPetsTable} from "@workspace/db";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
@@ -281,6 +281,13 @@ router.post("/sessions", authMiddleware, async (req: AuthRequest, res) => {
         await awardGamification(req.userId, earnedXp, earnedCoins);
       }
 
+      // Pet companion lifecycle: 1 pet XP per focused minute (capped at 240
+      // to mirror the 240-min session cap). Levels at 500*level cumulative XP;
+      // evolution stage = floor((level-1)/10). Best-effort, never blocks rewards.
+      if (minutes > 0) {
+        await awardPetXp(req.userId, minutes);
+      }
+
       if (minutes > 0) {
         await updateMissionProgress(req.userId, "sessions", 1);
         await updateMissionProgress(req.userId, "minutes", minutes);
@@ -398,6 +405,34 @@ async function updateStreak(userId: string): Promise<boolean> {
     return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Pet companion XP (Workstream I). Feeds the pet's level/evolution lifecycle
+ * from real focus time. Cumulative XP scheme: the level-up threshold for the
+ * current level is 500 * level, matching the xpToNextLevel view in /pets.
+ */
+async function awardPetXp(userId: string, minutes: number): Promise<void> {
+  try {
+    const gain = Math.min(240, Math.max(1, Math.floor(minutes)));
+    const [pet] = await db
+      .select({ id: userPetsTable.id, petXp: userPetsTable.petXp, petLevel: userPetsTable.petLevel })
+      .from(userPetsTable)
+      .where(eq(userPetsTable.userId, userId))
+      .limit(1);
+    if (!pet) return;
+
+    const newXp = pet.petXp + gain;
+    let level = pet.petLevel;
+    while (newXp >= 500 * level) level += 1;
+    const evolutionStage = Math.min(3, Math.floor((level - 1) / 10));
+
+    await db.update(userPetsTable)
+      .set({ petXp: newXp, petLevel: level, evolutionStage, mood: "happy", updatedAt: new Date() })
+      .where(eq(userPetsTable.id, pet.id));
+  } catch {
+    // Pet XP is a nice-to-have; a failure here must never block session rewards.
   }
 }
 

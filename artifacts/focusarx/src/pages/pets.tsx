@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
-import { Heart, Zap, Star, Edit2, ArrowRight, CheckCircle, ShoppingBag, CheckSquare, Square, Lock } from "lucide-react";
+import { Box, Heart, PawPrint, Zap, Star, Edit2, ArrowRight, CheckCircle, ShoppingBag, CheckSquare, Square, Lock } from "lucide-react";
 import { ErrorState } from "@/components/ErrorState";
+import { Pet3D, is3DCapable } from "@/components/Pet3D";
 
 const PET_TYPES = [
   { id: "owl",     name: "Sage Owl",       emoji: "🦉", color: "var(--color-warning)", desc: "Wise and calm. Perfect for deep study.",   evolutions: ["Owlet", "Wise Owl", "Elder Sage", "Celestial Owl"],     moods: { happy: "😌", excited: "🤩", sleepy: "😴", focused: "🤓" }, premiumOnly: false },
@@ -53,7 +54,11 @@ function PetDisplay({ pet, petType, accessories }: { pet: any; petType: typeof P
   const xpInCurrentLevel = pet.petXp % XP_PER_LEVEL;
   const xpPct = Math.round((xpInCurrentLevel / XP_PER_LEVEL) * 100);
 
+  const [view3d, setView3d] = useState(() => is3DCapable());
   const equipped = accessories.filter(a => a.equipped);
+  const acc3d = equipped
+    .filter(a => getItemSlot(a.itemId) !== "other")
+    .map(a => ({ itemId: a.itemId, slot: getItemSlot(a.itemId) }));
   const hat     = equipped.find(a => getItemSlot(a.itemId) === "hat");
   const glasses = equipped.find(a => getItemSlot(a.itemId) === "glasses");
   const back    = equipped.find(a => getItemSlot(a.itemId) === "back");
@@ -81,7 +86,18 @@ function PetDisplay({ pet, petType, accessories }: { pet: any; petType: typeof P
           <div className="absolute inset-0 rounded-2xl" style={{ background: bgColors[bg.itemId] ?? "transparent" }} />
         )}
 
-        {/* Pet with accessories */}
+        {/* Pet with accessories — 3D habitat or 2D fallback */}
+        {view3d ? (
+          <div className="h-64 sm:h-72 mx-auto mb-3 max-w-sm relative z-[var(--z-content)]" aria-label={`${petType.name} in 3D`}>
+            <Pet3D
+              petType={pet.petType}
+              mood={pet.mood ?? "happy"}
+              evolutionStage={evolutionStage}
+              accessories={acc3d}
+              onCrash={() => setView3d(false)}
+            />
+          </div>
+        ) : (
         <div className="relative inline-block mb-3">
           {/* Wings behind */}
           {wings && (
@@ -128,6 +144,7 @@ function PetDisplay({ pet, petType, accessories }: { pet: any; petType: typeof P
             </div>
           )}
         </div>
+        )}
 
         <div className="text-2xl mb-0.5 relative z-[var(--z-content)]">{getMoodEmoji(petType, pet.mood ?? "happy")}</div>
         <h2 className="text-xl font-bold text-[var(--palette-white)] mt-1 relative z-[var(--z-content)]">{pet.petName || petType.name}</h2>
@@ -141,6 +158,24 @@ function PetDisplay({ pet, petType, accessories }: { pet: any; petType: typeof P
             Stage {evolutionStage + 1}/4
           </span>
         </div>
+
+        {/* 3D / 2D toggle */}
+        {is3DCapable() && (
+          <div className="flex items-center justify-center gap-1 mt-3 relative z-[var(--z-content)]">
+            <button
+              onClick={() => setView3d(true)}
+              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold border transition-colors ${view3d ? "border-[var(--rgba-124-58-237-0_5)] bg-[var(--rgba-124-58-237-0_15)] text-[var(--brand-400)]" : "border-[var(--rgba-255-255-255-0_08)] text-[var(--foreground-subtle)] hover:text-[var(--foreground)]"}`}
+            >
+              <Box size={11} /> 3D
+            </button>
+            <button
+              onClick={() => setView3d(false)}
+              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold border transition-colors ${!view3d ? "border-[var(--rgba-124-58-237-0_5)] bg-[var(--rgba-124-58-237-0_15)] text-[var(--brand-400)]" : "border-[var(--rgba-255-255-255-0_08)] text-[var(--foreground-subtle)] hover:text-[var(--foreground)]"}`}
+            >
+              <PawPrint size={11} /> 2D
+            </button>
+          </div>
+        )}
 
         {/* Active accessories badges */}
         {equipped.length > 0 && (
