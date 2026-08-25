@@ -8,9 +8,17 @@
  * Setup:
  *   1. Create a GA4 property at https://analytics.google.com
  *   2. Add VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX to your deployment env
+ *      (or edit the fallback below)
+ *
+ * Active property: G-PXMVX28PL5 (FocusArx web stream, set 2026-08-24).
  */
 
-const MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID as string | undefined;
+/** Production measurement ID. Overridable via VITE_GA_MEASUREMENT_ID env var. */
+const GA4_MEASUREMENT_ID_FALLBACK = "G-PXMVX28PL5";
+
+const MEASUREMENT_ID =
+  ((import.meta.env.VITE_GA_MEASUREMENT_ID as string | undefined) || GA4_MEASUREMENT_ID_FALLBACK).trim() ||
+  undefined;
 
 type Gtag = (command: "config" | "event" | "js" | "set", ...args: unknown[]) => void;
 
