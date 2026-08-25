@@ -11,6 +11,12 @@
 // (client-rendered) page — never fabricated content.
 
 export const SITE_NAME = "FocusArx";
+import { EXAM_GUIDES, EXAM_HUB } from "../src/content/exam/index.mjs";
+
+// OG card base for dynamic OG images (serverless /api/og endpoint).
+const OG_BASE = "https://www.focusarx.site";
+const examOgImage = (title, subtitle) =>
+  `${OG_BASE}/api/og?tag=${encodeURIComponent("EXAM GUIDE")}&title=${encodeURIComponent(title)}&subtitle=${encodeURIComponent(subtitle)}&accent=${encodeURIComponent("#a78bfa")}`;
 export const DEFAULT_OG_IMAGE_PATH = "/opengraph.jpg";
 
 /**
@@ -741,4 +747,28 @@ export const ROUTES = [
     article: true,
     related: ["/comparison/focusarx-vs-forest|FocusArx vs Forest", "/pricing|FocusArx pricing", "/guides|All guides"],
   },
+
+  // ── Exam guide cluster (Workstream E) ─────────────────────
+  {
+    path: "/exam",
+    title: EXAM_HUB.title,
+    description: EXAM_HUB.description,
+    h1: EXAM_HUB.h1,
+    lead: EXAM_HUB.lead,
+    sections: EXAM_HUB.sections,
+    faq: EXAM_HUB.faq,
+    related: EXAM_GUIDES.map((g) => `/exam/${g.slug}|${g.h1}`),
+  },
+  ...EXAM_GUIDES.map((g) => ({
+    path: `/exam/${g.slug}`,
+    title: g.title,
+    description: g.description,
+    h1: g.h1,
+    lead: g.lead,
+    sections: g.sections,
+    faq: g.faq,
+    article: true,
+    ogImage: examOgImage(g.title.replace(/\s*\|\s*FocusArx.*$/i, ""), g.lead),
+    related: g.related,
+  })),
 ];

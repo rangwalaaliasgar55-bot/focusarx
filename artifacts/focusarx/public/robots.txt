@@ -21,6 +21,7 @@ Allow: /adhd-focus-tips
 Allow: /stop-procrastinating
 Allow: /study-with-me
 Allow: /focus-music
+Allow: /exam
 Allow: /comparison
 Allow: /pricing
 Allow: /premium

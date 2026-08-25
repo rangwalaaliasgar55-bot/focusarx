@@ -1,8 +1,15 @@
 import { Link } from "wouter";
-import { ArrowRight, Brain, Clock, Flame, Music, Sparkles, Timer, Users, BookOpen, Calculator, HelpCircle, Atom, Layers, Coffee, Wind } from "lucide-react";
+import { ArrowRight, Brain, Clock, Flame, Music, Sparkles, Timer, Users, BookOpen, Calculator, HelpCircle, Atom, Layers, Coffee, Wind, GraduationCap } from "lucide-react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 
 const COLLECTIONS = [
+  {
+    title: "Exam preparation",
+    description: "India-first prep guides — JEE, NEET, UPSC, SSC, GATE, CAT, CBSE boards, NDA, CTET, IBPS — plus exam anxiety and last-minute revision.",
+    guides: [
+      { href: "/exam", icon: <GraduationCap size={18} />, label: "All Exam Prep Guides", blurb: "14 practical guides: exam patterns, study plans, daily focus routines, mock protocols, and FAQ — from JEE Main to CBSE Class 10." },
+    ],
+  },
   {
     title: "Focus fundamentals",
     description: "The core skills: how attention works, how to concentrate for hours, and the science of deep work.",

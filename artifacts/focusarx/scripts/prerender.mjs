@@ -143,7 +143,12 @@ html:not(.fa-js) body{background:#0b0d13}
 
 function renderBody(entry, url) {
   const sections = (entry.sections || [])
-    .map((s) => `<h2>${escapeHtml(s.h)}</h2><p>${escapeHtml(s.p)}</p>`)
+    .map((s) => {
+      const paras = (Array.isArray(s.p) ? s.p : [s.p])
+        .map((p) => `<p>${escapeHtml(p)}</p>`)
+        .join("\n");
+      return `<h2>${escapeHtml(s.h)}</h2>${paras}`;
+    })
     .join("\n");
   const related = (entry.related || [])
     .map((pair) => {
@@ -187,6 +192,11 @@ function main() {
     html = setMeta(html, "property", "og:description", entry.description);
     html = setMeta(html, "name", "twitter:title", fullTitle);
     html = setMeta(html, "name", "twitter:description", entry.description);
+    if (entry.ogImage) {
+      html = setMeta(html, "property", "og:image", entry.ogImage);
+      html = setMeta(html, "property", "og:image:secure_url", entry.ogImage);
+      html = setMeta(html, "name", "twitter:image", entry.ogImage);
+    }
     html = replaceTag(
       html,
       /<meta\s+property=["']al:web:url["'][^>]*>/i,
