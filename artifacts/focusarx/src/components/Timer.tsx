@@ -1019,6 +1019,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
       earnedCoins={summaryData?.earnedCoins ?? 0}
       completedEarly={summaryData?.completedEarly ?? false}
       completionPercentage={summaryData?.completionPercentage ?? null}
+      streakDays={currentStreak}
       onStartBreak={() => { setShowSummary(false); skipToNext(); }}
       onKeepGoing={() => { setShowSummary(false); }}
       onClose={() => { setShowSummary(false); }}

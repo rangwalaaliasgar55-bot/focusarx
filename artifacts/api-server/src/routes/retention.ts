@@ -13,7 +13,7 @@ import { logger } from "../lib/logger";
 import { mintCoins } from "../lib/coinLedger";
 import { and, eq, isNull, sql, lt, gt, gte } from "drizzle-orm";
 import {
-  BATTLE_PASS_CURRENT_SEASON, BATTLE_PASS_TIERS, battlePassClaimId,
+  BATTLE_PASS_TIERS, battlePassClaimId, currentBattlePassSeason, rolloverBattlePassSeason, battlePassSeasonEndsAt,
   calculateBattlePassTier, nextBattlePassThreshold,
 } from "../lib/battlePass";
 
@@ -192,18 +192,22 @@ retentionRouter.get("/retention/reengage/run", async (req: Request, res: Respons
 
 retentionRouter.get("/retention/battle-pass", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
+  // WS K: roll the season over lazily (also happens on session rewards), so
+  // a user opening the page after the Monday boundary always sees the live
+  // season even if they haven't focused since.
+  try { await rolloverBattlePassSeason(userId); } catch { /* best effort */ }
   let [progress] = await db.select().from(battlePassProgressTable).where(eq(battlePassProgressTable.userId, userId)).limit(1);
   const currentTier = calculateBattlePassTier(progress?.seasonXp ?? 0);
   const nextTierXp = nextBattlePassThreshold(currentTier);
   res.json({
-    season: BATTLE_PASS_CURRENT_SEASON,
+    season: currentBattlePassSeason(),
     tier: currentTier,
     seasonXp: progress?.seasonXp,
     premiumUnlocked: progress?.premiumUnlocked,
     claimedTiers: progress?.claimedTiers ?? [],
     nextTierXp,
     tiers: BATTLE_PASS_TIERS,
-    endsAt: "2026-09-30",
+    endsAt: battlePassSeasonEndsAt().toISOString(),
   });
 });
 

@@ -9,7 +9,7 @@ import { updateMissionProgress } from "./missions";
 import { activeDropXpMultiplier } from "../lib/drops";
 import { computeSessionRewards } from "../lib/sessionRewards";
 import { runDelightCheck } from "../lib/delightEngine";
-import { BATTLE_PASS_CURRENT_SEASON, calculateBattlePassTier } from "../lib/battlePass";
+import { calculateBattlePassTier, currentBattlePassSeason, rolloverBattlePassSeason } from "../lib/battlePass";
 
 async function maybeDropLootBox(userId: string, sessionCount: number): Promise<boolean> {
   try {
@@ -56,6 +56,9 @@ async function updateCityProgress(userId: string): Promise<void> {
 
 async function advanceBattlePass(userId: string, xpEarned: number) {
   try {
+    // WS K: weekly season rollover — lazy + idempotent, so the first reward
+    // after the Monday boundary resets the season before XP is added.
+    await rolloverBattlePassSeason(userId);
     const [bp] = await db.select().from(battlePassProgressTable).where(eq(battlePassProgressTable.userId, userId));
     if (bp) {
       const newSeasonXp = bp.seasonXp + xpEarned;
@@ -68,7 +71,7 @@ async function advanceBattlePass(userId: string, xpEarned: number) {
     } else {
       const newTier = calculateBattlePassTier(xpEarned);
       await db.insert(battlePassProgressTable).values({
-        userId, season: BATTLE_PASS_CURRENT_SEASON, seasonXp: xpEarned, tier: newTier,
+        userId, season: currentBattlePassSeason(), seasonXp: xpEarned, tier: newTier,
         premiumUnlocked: false, claimedTiers: [],
       });
     }
