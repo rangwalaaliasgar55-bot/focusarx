@@ -16,6 +16,15 @@ Baseline verified: typecheck ✓, tests ✓ (13/13), route contract ✓.
 | J  | Mobile excellence | ✅ | PWA: proper 192/512/maskable icons generated, manifest theme/background colors, per-scheme theme-color, Apple standalone metas (deduped), SW cache bumped v4 w/ icon precache. Haptics: lib/haptics.ts presets (tap/select/success/error/celebrate, safe no-op) wired to timer start/pause, session-complete celebrate, drop claim, marketplace purchase. 360px pass: AmbientSoundBar pill + FloatingTimer chip now clear the 4.5rem bottom nav incl. safe-area (was overlapping); bottom nav, ambient bar, toasts, coach panel already nav-aware (verified & skipped); landing hero has 640px override. Reduced motion: verified existing global CSS kill-switch + MotionConfig reducedMotion="user" + useReducedMotion guards + Pet3D capability check — no gaps left. |
 | K  | Agent upgrades (seasons, share cards, re-engagement) | ✅ | **Seasons**: battle-pass season = ISO week (deterministic, serverless); lazy idempotent per-user rollover on session reward + battle-pass fetch (unclaimed tiers forfeited at boundary); UI shows live season + "Season resets Mon, Aug 31" (was hardcoded Sep 30). **Share cards**: ShareCardModal renders a 1200×630 OG-style SVG client-side (no auth headaches) — session time, focus score, XP/coins, 🔥 streak chip, brand gradient; actions: native share with PNG file, PNG download, text share. **Streak endangerment**: serverless tick on /api/streak — streak ≥2, no focus today (IST), after 16:00 IST → in-app notification + Web Push, once/day throttle via notifications table; pure IST date helpers in lib/istDate. 4 new unit tests (ISO week edges, IST day boundary); live smoke: forced stale season 1/xp 3200 → rolled to 202635 + reset. |
 
+## Final deliverable: Neon SQL schema script
+
+`neon-schema.sql` (repo root) — ONE complete, idempotent script for the Neon SQL editor covering the entire database. Generated last, from live Postgres catalog introspection (no hand-written DDL, no psql — generator kept at `scripts/gen-neon-schema.cjs` for reproducibility).
+- 93 tables in FK dependency order (targets before dependents), every `CREATE TABLE IF NOT EXISTS`.
+- All 213 primary-key/unique/FK constraints re-added via guarded `DO $$` blocks (skipped when already present), all 89 non-constraint indexes via `CREATE INDEX IF NOT EXISTS` (constraint-backed indexes excluded via pg_depend).
+- Zero enums, zero sequences in the catalog — nothing else to create.
+- Validated: run against a scratch database → catalog identical to production (93 tables / 208 indexes / 213 constraints / 818 columns); run a second time → zero errors, zero drift (fully idempotent).
+- Supersedes the old non-idempotent `artifacts/focusarx/public/schema.sql` (left in place, unused by code).
+
 ## Self-added upgrades (owner delegation: "add upgrades wherever you think they improve the product")
 
 | # | Upgrade | Status | Notes |
