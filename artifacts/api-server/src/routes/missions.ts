@@ -2,6 +2,7 @@ import { Request, Response, NextFunction, Router } from "express";
 import { db, userMissionProgressTable, userWalletsTable, usersTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import { mintCoins } from "../lib/coinLedger";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 
 const router = Router();
@@ -124,17 +125,22 @@ router.post("/missions/:key/claim", authMiddleware, async (req: AuthRequest, res
       )
     );
 
+    if (mission.coinReward > 0) {
+      await mintCoins(req.userId, mission.coinReward, "mission_reward", {
+        description: `Mission "${mission.title}" completed: +${mission.coinReward} coins`,
+        metadata: { missionKey: key, periodStart },
+      });
+    }
     const [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.userId));
     if (wallet) {
       await db.update(userWalletsTable).set({
-        coins: wallet.coins + mission.coinReward,
         totalXp: wallet.totalXp + mission.xpReward,
         weeklyXp: wallet.weeklyXp + mission.xpReward,
         updatedAt: new Date(),
       }).where(eq(userWalletsTable.userId, req.userId));
     } else {
       await db.insert(userWalletsTable).values({
-        userId: req.userId, coins: mission.coinReward, totalXp: mission.xpReward, weeklyXp: mission.xpReward,
+        userId: req.userId, coins: 0, totalXp: mission.xpReward, weeklyXp: mission.xpReward,
       });
     }
 

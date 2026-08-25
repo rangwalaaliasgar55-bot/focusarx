@@ -16,7 +16,6 @@ import {
   Menu,
   Moon,
   ShieldCheck,
-  Star,
   Sun,
   Sparkles,
   Target,
@@ -26,6 +25,7 @@ import {
   Zap,
 } from "lucide-react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
+import CommunityPulse from "@/components/CommunityPulse";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -187,9 +187,11 @@ export default function LandingPage() {
               No signup friction — start your first session in 10 seconds
             </motion.p>
             <motion.div {...entrance} className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-[var(--foreground-muted)]">
-              <span className="inline-flex items-center gap-2"><Users size={16} className="text-[var(--brand-strong)]" /> <strong className="text-[var(--foreground)]">50,000+</strong> learners</span>
               <span className="inline-flex items-center gap-2"><Check size={16} className="text-[var(--success)]" /> Free forever tier</span>
-              <span className="inline-flex items-center gap-2"><Star size={16} className="text-[var(--palette-amber-400)]" /> 4.8 average rating</span>
+            </motion.div>
+            {/* Honest scale only — no fabricated counts (guardrail #8). */}
+            <motion.div {...entrance} className="mt-3">
+              <CommunityPulse />
             </motion.div>
           </div>
         </section>

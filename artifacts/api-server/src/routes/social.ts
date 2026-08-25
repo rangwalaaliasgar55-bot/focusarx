@@ -312,7 +312,12 @@ socialRouter.get("/social/leaderboard", authMiddleware, async (req: AuthRequest,
       await ensureDailyBotActivity();
     }
 
-    const rows = await db
+    // A3: ORDER BY + LIMIT in SQL (user_wallets_weekly_xp_idx /
+    // _total_xp_idx) so the board stays <300ms at 12k+ wallets. The viewer
+    // is fetched separately and always included, even past the top-50 cut.
+    const sortCol = period === "weekly" ? userWalletsTable.weeklyXp : userWalletsTable.totalXp;
+
+    const baseQuery = db
       .select({
         userId: usersTable.id,
         name: usersTable.name,
@@ -327,7 +332,11 @@ socialRouter.get("/social/leaderboard", authMiddleware, async (req: AuthRequest,
       .from(usersTable)
       .innerJoin(userWalletsTable, eq(userWalletsTable.userId, usersTable.id))
       .leftJoin(studyStreaksTable, eq(studyStreaksTable.userId, usersTable.id))
-      .where(eq(usersTable.isGuest, false));
+      .where(eq(usersTable.isGuest, false))
+      .orderBy(desc(sortCol), desc(usersTable.createdAt));
+
+    // Global board: top 50 in SQL (indexed). Friends board: small, unbounded.
+    const rows = scope === "global" ? await baseQuery.limit(50) : await baseQuery;
 
     const filtered = scope === "friends"
       ? rows.filter(r => r.userId === userId || friendIds.includes(r.userId))

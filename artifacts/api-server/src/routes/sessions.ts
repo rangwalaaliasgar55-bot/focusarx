@@ -6,6 +6,8 @@ import { eq, and, desc, sql } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
 import { updateMissionProgress } from "./missions";
+import { activeDropXpMultiplier } from "../lib/drops";
+import { computeSessionRewards } from "../lib/sessionRewards";
 import { runDelightCheck } from "../lib/delightEngine";
 import { BATTLE_PASS_CURRENT_SEASON, calculateBattlePassTier } from "../lib/battlePass";
 
@@ -256,17 +258,24 @@ router.post("/sessions", authMiddleware, async (req: AuthRequest, res) => {
     // All focus sessions with duration > 0 contribute to analytics — including early completions
     if (rewardEligible) {
       const minutes = Math.floor(verifiedDurationSec / 60);
-      earnedXp = minutes * 20;
-      earnedCoins = Math.floor(minutes / 5) * 10;
-      // Bonus for completing a full 25-min pomodoro
-      if (verifiedDurationSec >= 1500) earnedCoins += 50;
-      // Small bonus for early completion (you still showed up!)
-      if (completedEarly && verifiedDurationSec >= 60) earnedCoins += 10;
-      // Premium multipliers: 1.5x XP and 1.25x coins
-      if (isPremium) {
-        earnedXp = Math.round(earnedXp * 1.5);
-        earnedCoins = Math.round(earnedCoins * 1.25);
-      }
+      // Workstream H: sub-linear rewards — full rate for the first 2h,
+      // 75% XP/coins beyond (marathon taper), premium multipliers,
+      // pomodoro + showed-up bonuses. Pure function → unit tested.
+      const rewards = computeSessionRewards({
+        minutes,
+        completedEarly: completedEarly && verifiedDurationSec >= 60,
+        isPremium,
+      });
+      earnedXp = rewards.xp;
+      earnedCoins = rewards.coins;
+      // Admin Drop multiplier (Double-XP Hour / Leaderboard Shake-up) —
+      // computed server-side so it can never be spoofed by the client.
+      try {
+        const dropMult = await activeDropXpMultiplier(new Date());
+        if (dropMult.multiplier > 1 && earnedXp > 0) {
+          earnedXp = Math.round(earnedXp * dropMult.multiplier);
+        }
+      } catch { /* multiplier is best-effort */ }
 
       if (earnedXp > 0 || earnedCoins > 0) {
         await awardGamification(req.userId, earnedXp, earnedCoins);

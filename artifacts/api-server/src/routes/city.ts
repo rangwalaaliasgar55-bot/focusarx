@@ -5,6 +5,7 @@ import { extractUserId } from "./auth";
 import { db, focusCitiesTable, cityBuildingDefinitionsTable, userWalletsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { isUserPremium } from "../lib/premiumCheck";
+import { burnCoins } from "../lib/coinLedger";
 
 export const CITY_SKINS = [
   { id: "classic", name: "Classic Academy", emoji: "🏛️", premiumOnly: false, gradient: "#0f172a,#312e81" },
@@ -93,11 +94,11 @@ cityRouter.post("/city/buildings/:slug/build", authMiddleware, async (req: AuthR
     if (owned[slug]) return res.status(400).json({ error: "Already built" });
 
     if (building.coinCost > 0) {
-      const [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.userId)).limit(1);
-      if (!wallet || wallet.coins < building.coinCost) {
-        return res.status(400).json({ error: "Insufficient coins" });
-      }
-      await db.update(userWalletsTable).set({ coins: wallet.coins - building.coinCost }).where(eq(userWalletsTable.userId, req.userId));
+      const spent = await burnCoins(req.userId, building.coinCost, "city_building", {
+        description: `Built ${building.name} in your Focus City`,
+        metadata: { building: slug },
+      });
+      if (spent === null) return res.status(400).json({ error: "Insufficient coins" });
     }
 
     const newBuildings = { ...owned, [slug]: true };

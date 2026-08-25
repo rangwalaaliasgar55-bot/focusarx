@@ -267,6 +267,37 @@ async function sendEmailViaResend(
   }
 }
 
+/**
+ * Public email helper (used by drop blasts + Gemini briefings). Sends via
+ * the configured provider and always writes an email_logs row — so admin
+ * analytics see every email attempt even when the provider is unset
+ * (status stays "pending").
+ */
+export async function sendEmail(
+  to: string,
+  subject: string,
+  html: string,
+  template: string,
+  recipientId?: string,
+): Promise<{ ok: boolean; id?: string; error?: string }> {
+  const res = await sendEmailViaResend(to, subject, html);
+  try {
+    await db.insert(emailLogsTable).values({
+      recipientId: recipientId ?? null,
+      recipientEmail: to,
+      template,
+      subject,
+      status: res.ok ? "sent" : "failed",
+      providerId: res.id,
+      sentAt: res.ok ? new Date() : null,
+      error: res.error ?? null,
+    });
+  } catch (err) {
+    logger.warn({ err }, "email log write failed (non-fatal)");
+  }
+  return res;
+}
+
 // ─── GET: email logs ──────────────────────────────────────────────────────────
 
 router.get("/admin/email/logs", async (req, res) => {

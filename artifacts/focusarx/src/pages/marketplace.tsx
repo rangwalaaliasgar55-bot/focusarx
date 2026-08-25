@@ -37,17 +37,28 @@ export default function MarketplacePage() {
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [justBought, setJustBought] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [bundles, setBundles] = useState<any[]>([]);
+  const [inventoryMap, setInventoryMap] = useState<Record<string, string>>({}); // itemId -> inventory row id
+  const [busyGift, setBusyGift] = useState<string | null>(null);
+  const [selling, setSelling] = useState<string | null>(null);
+  const [buyingBundle, setBuyingBundle] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const [itemsRes, walletRes] = await Promise.all([
+      const [itemsRes, walletRes, invRes] = await Promise.all([
         fetch("/api/marketplace", { headers: authHeaders() }),
         fetch("/api/gamification/wallet", { headers: authHeaders() }),
+        fetch("/api/marketplace/inventory", { headers: authHeaders() }),
       ]);
       const itemsData = await itemsRes.json();
       const walletData = await walletRes.json();
+      const invData = await invRes.json();
       setItems(itemsData.items ?? []);
+      setBundles(itemsData.bundles ?? []);
       setWallet(walletData ?? null);
+      const map: Record<string, string> = {};
+      for (const row of invData.inventory ?? []) map[row.itemId] = row.id;
+      setInventoryMap(map);
     } finally {
       setLoading(false);
     }
@@ -67,6 +78,61 @@ export default function MarketplacePage() {
       await load();
     } finally {
       setPurchasing(null);
+    }
+  }
+
+  async function gift(itemId: string, itemName: string) {
+    const toEmail = prompt(`Gift “${itemName}” to which member?\n(They pay nothing — you pay the price + a 5% gift tax)`);
+    if (!toEmail) return;
+    setBusyGift(itemId);
+    setError(null);
+    try {
+      const r = await fetch(`/api/marketplace/${itemId}/gift`, {
+        method: "POST",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ toEmail: toEmail.trim() }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setError(d.error ?? "Gifting failed"); return; }
+      alert(`Gifted! Tax paid: ${d.tax} coins.`);
+      await load();
+    } finally {
+      setBusyGift(null);
+    }
+  }
+
+  async function sellBack(item: any) {
+    const refund = Math.floor(item.costCoins * 0.5);
+    if (!confirm(`Sell “${item.name}” back for ${refund.toLocaleString()} coins (50% refund)?`)) return;
+    setSelling(item.id);
+    setError(null);
+    try {
+      const r = await fetch(`/api/marketplace/inventory/${inventoryMap[item.id]}/sell`, {
+        method: "POST", headers: authHeaders(),
+      });
+      const d = await r.json();
+      if (!r.ok) { setError(d.error ?? "Sell-back failed"); return; }
+      alert(`Sold! +${d.refund.toLocaleString()} coins`);
+      await load();
+    } finally {
+      setSelling(null);
+    }
+  }
+
+  async function buyBundle(bundle: any) {
+    if (!confirm(`Buy “${bundle.name}” (${bundle.items.length} items) for ${bundle.price.toLocaleString()} coins?`)) return;
+    setBuyingBundle(bundle.id);
+    setError(null);
+    try {
+      const r = await fetch(`/api/marketplace/bundles/${bundle.id}/purchase`, {
+        method: "POST", headers: { ...authHeaders(), "Content-Type": "application/json" }, body: "{}",
+      });
+      const d = await r.json();
+      if (!r.ok) { setError(d.error ?? "Bundle purchase failed"); return; }
+      alert(`Unpacked ${d.items} items!`);
+      await load();
+    } finally {
+      setBuyingBundle(null);
     }
   }
 
@@ -136,6 +202,40 @@ export default function MarketplacePage() {
           ))}
         </div>
 
+        {/* Bundles */}
+        {bundles.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-[var(--brand-400)]">
+              <Package size={14} /> Bundles — save with a multi-item pack
+            </h2>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {bundles.map((b) => (
+                <div key={b.id} className="rounded-2xl border border-[var(--rgba-124-58-237-0_25)] bg-[var(--rgba-124-58-237-0_06)] p-4 flex flex-col gap-2">
+                  <div className="text-2xl">{b.items.map((i: any) => i.emoji).join("")}</div>
+                  <div className="text-sm font-semibold text-[var(--palette-white)]">{b.name}</div>
+                  <div className="text-[10px] text-[var(--muted-fg)] leading-relaxed">{b.description}</div>
+                  <div className="text-[10px] text-[var(--foreground-subtle)]">
+                    {b.items.length} items · worth {b.fullPrice.toLocaleString()} <span className="line-through opacity-60">{b.fullPrice.toLocaleString()}</span>
+                  </div>
+                  <div className="mt-auto flex items-center justify-between pt-1">
+                    <div className="text-sm font-bold text-[var(--color-warning)]">🪙 {b.price.toLocaleString()} <span className="ml-1 rounded-full bg-[var(--rgba-34-211-135-0_15)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--palette-22d387)]">-{b.discountPct}%</span></div>
+                    {b.owned ? (
+                      <span className="text-[10px] font-semibold text-[var(--palette-22d387)]">Owned</span>
+                    ) : (
+                      <button
+                        onClick={() => buyBundle(b)}
+                        disabled={buyingBundle === b.id || (wallet?.coins ?? 0) < b.price}
+                        className="rounded-lg bg-[var(--rgba-124-58-237-0_2)] px-2.5 py-1 text-[11px] font-semibold text-[var(--brand-400)] border border-[var(--rgba-124-58-237-0_3)] transition hover:bg-[var(--rgba-124-58-237-0_35)] disabled:opacity-40">
+                        {buyingBundle === b.id ? "..." : "Buy"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
         {/* Items grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {filtered.map((item, i) => {
@@ -162,13 +262,14 @@ export default function MarketplacePage() {
                   <div className="text-[10px] text-[var(--muted-fg)] mt-0.5 leading-relaxed">{item.description}</div>
                 </div>
 
-                <div className="mt-auto flex items-center justify-between">
-                  <div className="flex items-center gap-1 text-sm font-bold text-[var(--color-warning)]">
-                    🪙 {item.costCoins.toLocaleString()}
-                  </div>
-                  {item.owned ? (
-                    <span className="text-[10px] font-semibold text-[var(--palette-22d387)]">Owned</span>
-                  ) : (
+                <div className="mt-auto flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1 text-sm font-bold text-[var(--color-warning)]">
+                      🪙 {item.costCoins.toLocaleString()}
+                    </div>
+                    {item.owned ? (
+                      <span className="text-[10px] font-semibold text-[var(--palette-22d387)]">Owned</span>
+                    ) : (
                     <button
                       onClick={() => purchase(item.id)}
                       disabled={purchasing === item.id || !canAfford || item.locked}
@@ -182,6 +283,23 @@ export default function MarketplacePage() {
                       {item.locked ? <span className="inline-flex items-center gap-1"><Lock size={10} /> Premium</span> : purchasing === item.id ? "..." : justBought === item.id ? "Bought!" : !canAfford ? "Need coins" : "Buy"}
                     </button>
                   )}
+                  {!item.owned && !item.locked && (
+                    <button
+                      onClick={() => gift(item.id, item.name)}
+                      disabled={busyGift === item.id}
+                      className="w-full rounded-lg border border-[var(--rgba-255-255-255-0_08)] px-2 py-1 text-[10px] font-medium text-[var(--foreground-subtle)] transition hover:text-[var(--foreground)] disabled:opacity-50">
+                      {busyGift === item.id ? "Gifting…" : "🎁 Gift to a friend (+5% tax)"}
+                    </button>
+                  )}
+                  {item.owned && (
+                    <button
+                      onClick={() => sellBack(item)}
+                      disabled={selling === item.id}
+                      className="w-full rounded-lg border border-[var(--rgba-34-211-135-0_25)] px-2 py-1 text-[10px] font-medium text-[var(--palette-22d387)] transition hover:bg-[var(--rgba-34-211-135-0_08)] disabled:opacity-50">
+                      {selling === item.id ? "…" : `Sell back · +${Math.floor(item.costCoins * 0.5).toLocaleString()} coins`}
+                    </button>
+                  )}
+                  </div>
                 </div>
               </motion.div>
             );

@@ -4,6 +4,7 @@ import { Router } from "express";
 import { extractUserId } from "./auth";
 import { db, loginRewardsTable, userWalletsTable, notificationsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { mintCoins } from "../lib/coinLedger";
 
 export const dailyRewardRouter = Router();
 
@@ -66,10 +67,16 @@ dailyRewardRouter.post("/daily-reward/claim", authMiddleware, async (req: AuthRe
       updatedAt: new Date(),
     }).where(eq(loginRewardsTable.userId, req.userId));
 
+    // Coins via the ledger (every mint writes coin_transactions).
+    if (rewardDef.coins > 0) {
+      await mintCoins(req.userId, rewardDef.coins, "daily_reward", {
+        description: `Daily reward (streak ${newStreak}): +${rewardDef.coins} coins`,
+        metadata: { streak: newStreak },
+      });
+    }
     const [w] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.userId)).limit(1);
     if (w) {
       await db.update(userWalletsTable).set({
-        coins: w.coins + rewardDef.coins,
         totalXp: w.totalXp + rewardDef.xp,
       }).where(eq(userWalletsTable.userId, req.userId));
     }

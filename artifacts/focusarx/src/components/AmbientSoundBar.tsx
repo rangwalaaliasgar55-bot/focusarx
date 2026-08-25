@@ -5,15 +5,20 @@ import {
   ambientEngine,
   AMBIENT_SOUNDS,
   AMBIENT_PRESETS,
+  EQ_PRESETS,
+  MAX_LAYERS,
   type SoundId,
+  type EqPresetId,
 } from "@/lib/ambientEngine";
+import AudioVisualizer from "@/components/AudioVisualizer";
 
-const STORAGE_KEY = "focusarx_sounds_v2";
-const MAX_LAYERS = 3;
+const STORAGE_KEY = "focusarx_sounds_v3";
 
 interface SavedPrefs {
   sounds: Array<{ id: SoundId; volume: number }>;
   master: number;
+  eq?: EqPresetId;
+  reactive?: boolean;
 }
 
 function loadSavedPrefs(): SavedPrefs {
@@ -27,8 +32,8 @@ function loadSavedPrefs(): SavedPrefs {
   return { sounds: [], master: 0.9 };
 }
 
-function savePrefs(sounds: Array<{ id: SoundId; volume: number }>, master: number) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ sounds, master })); } catch {}
+function savePrefs(sounds: Array<{ id: SoundId; volume: number }>, master: number, eq?: EqPresetId, reactive?: boolean) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ sounds, master, eq, reactive })); } catch {}
 }
 
 function VolumeSlider({
@@ -69,6 +74,8 @@ export default function AmbientSoundBar({ visible = true, variant = "floating" }
   const [expanded, setExpanded] = useState(true);
   const [activeSounds, setActiveSounds] = useState<Array<{ id: SoundId; volume: number }>>([]);
   const [master, setMaster] = useState(0.9);
+  const [eq, setEq] = useState<EqPresetId>("flat");
+  const [reactive, setReactive] = useState(false);
 
   // Sync with the shared audio engine + restore persisted layers on mount.
   useEffect(() => {
@@ -80,13 +87,15 @@ export default function AmbientSoundBar({ visible = true, variant = "floating" }
     const unsub = ambientEngine.subscribe(sync);
     const prefs = loadSavedPrefs();
     ambientEngine.setMasterVolume(prefs.master ?? 0.9);
+    if (prefs.eq) { ambientEngine.setEq(prefs.eq); setEq(prefs.eq); }
+    if (prefs.reactive) { ambientEngine.setReactive(true); setReactive(true); }
     return unsub;
   }, []);
 
   // Persist on change.
   useEffect(() => {
-    if (activeSounds.length > 0 || master !== 0.9) savePrefs(activeSounds, master);
-  }, [activeSounds, master]);
+    if (activeSounds.length > 0 || master !== 0.9) savePrefs(activeSounds, master, eq, reactive);
+  }, [activeSounds, master, eq, reactive]);
 
   // Fade with visibility (e.g. hide while session overlay is up).
   useEffect(() => {
@@ -109,6 +118,44 @@ export default function AmbientSoundBar({ visible = true, variant = "floating" }
   }, []);
 
   if (!visible) return null;
+
+  const eqReactiveRow = (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">EQ</span>
+      {EQ_PRESETS.map((p) => (
+        <button
+          key={p.id}
+          onClick={() => { ambientEngine.setEq(p.id); setEq(p.id); }}
+          className={`rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors ${
+            eq === p.id
+              ? "border-[var(--rgba-124-58-237-0_4)] bg-[var(--rgba-124-58-237-0_15)] text-[var(--brand-400)]"
+              : "border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-124-58-237-0_05)] text-[var(--foreground-muted)] hover:bg-[var(--rgba-124-58-237-0_12)]"
+          }`}
+        >
+          {p.emoji} {p.label}
+        </button>
+      ))}
+      <button
+        onClick={() => {
+          const next = !reactive;
+          ambientEngine.setReactive(next);
+          setReactive(next);
+        }}
+        title="Reactive mode: the mix breathes slowly while you focus"
+        className={`rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors ${
+          reactive
+            ? "border-[var(--rgba-34-211-135-0_4)] bg-[var(--rgba-34-211-135-0_12)] text-[var(--palette-22d387)]"
+            : "border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-124-58-237-0_05)] text-[var(--foreground-muted)] hover:bg-[var(--rgba-124-58-237-0_12)]"
+        }`}
+      >
+        🫁 Reactive {reactive ? "on" : "off"}
+      </button>
+    </div>
+  );
+
+  const visualizer = activeSounds.length > 0 && (
+    <AudioVisualizer className="w-full h-9" />
+  );
 
   const soundGrid = (
     <div className={`grid gap-2 ${variant === "panel" ? "grid-cols-3 xl:grid-cols-4" : "grid-cols-3"}`}>
@@ -207,6 +254,8 @@ export default function AmbientSoundBar({ visible = true, variant = "floating" }
           )}
         </div>
         <div className="space-y-3">
+          {eqReactiveRow}
+          {visualizer}
           {soundGrid}
           {presetRow}
           {activeSliders}
@@ -264,6 +313,8 @@ export default function AmbientSoundBar({ visible = true, variant = "floating" }
               className="overflow-hidden"
             >
               <div className="px-4 pb-4 pt-1 space-y-3">
+                {eqReactiveRow}
+                {visualizer}
                 {soundGrid}
                 {presetRow}
                 {activeSliders}

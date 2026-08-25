@@ -10,6 +10,7 @@ import {
 import { extractUserId } from "./auth";
 import { sendPush } from "../lib/pushSender";
 import { logger } from "../lib/logger";
+import { mintCoins } from "../lib/coinLedger";
 import { and, eq, isNull, sql, lt, gt, gte } from "drizzle-orm";
 import {
   BATTLE_PASS_CURRENT_SEASON, BATTLE_PASS_TIERS, battlePassClaimId,
@@ -65,8 +66,13 @@ retentionRouter.post("/retention/login-reward/claim", authMiddleware, async (req
   if (!wallet) {
     [wallet] = await db.insert(userWalletsTable).values({ userId }).returning();
   }
+  if (reward.coins > 0) {
+    await mintCoins(userId, reward.coins, "login_reward", {
+      description: `Login reward: +${reward.coins} coins`,
+      metadata: { claimStreak: 0 },
+    });
+  }
   await db.update(userWalletsTable).set({
-    coins: sql`coins + ${reward.coins}`,
     totalXp: sql`total_xp + ${reward.xp}`,
     weeklyXp: sql`weekly_xp + ${reward.xp}`,
     updatedAt: new Date(),
@@ -218,8 +224,13 @@ retentionRouter.post("/retention/battle-pass/claim", authMiddleware, async (req:
   const reward = track === "premium" ? tierDef.premiumReward : tierDef.freeReward;
   const newClaimed = [...(progress.claimedTiers ?? []), claimId];
   await db.update(battlePassProgressTable).set({ claimedTiers: newClaimed, updatedAt: new Date() }).where(eq(battlePassProgressTable.userId, userId));
+  if (reward.coins > 0) {
+    await mintCoins(userId, reward.coins, "battle_pass_reward", {
+      description: `Battle pass tier ${tier} reward: +${reward.coins} coins`,
+      metadata: { tier, track },
+    });
+  }
   await db.update(userWalletsTable).set({
-    coins: sql`coins + ${reward.coins}`,
     totalXp: sql`total_xp + ${reward.xp}`,
     updatedAt: new Date(),
   }).where(eq(userWalletsTable.userId, userId));
@@ -293,11 +304,18 @@ retentionRouter.post("/referral/apply", authMiddleware, async (req: AuthRequest,
         .from(userWalletsTable).where(eq(userWalletsTable.userId, referrer.id)).limit(1);
       if (!applicantWallet || !referrerWallet) throw new Error("Referral wallets are not initialized");
 
+      // Coins + ledger rows join the outer transaction (pass tx through).
+      await mintCoins(userId, 200, "referral_bonus", {
+        description: "Referral bonus: +200 coins", metadata: { code },
+      }, tx as never);
+      await mintCoins(referrer.id, 500, "referral_bonus", {
+        description: "Someone used your referral code: +500 coins", metadata: { code },
+      }, tx as never);
       await tx.update(userWalletsTable).set({
-        coins: sql`coins + 200`, totalXp: sql`total_xp + 500`, updatedAt: new Date(),
+        totalXp: sql`total_xp + 500`, updatedAt: new Date(),
       }).where(eq(userWalletsTable.userId, userId));
       await tx.update(userWalletsTable).set({
-        coins: sql`coins + 500`, totalXp: sql`total_xp + 1000`,
+        totalXp: sql`total_xp + 1000`,
         weeklyXp: sql`weekly_xp + 1000`, updatedAt: new Date(),
       }).where(eq(userWalletsTable.userId, referrer.id));
 

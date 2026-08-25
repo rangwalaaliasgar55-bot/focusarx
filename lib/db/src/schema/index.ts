@@ -10,3 +10,4 @@ export * from "./quests";
 export * from "./seasonal";
 export * from "./site";
 export * from "./flashcards";
+export * from "./platform";

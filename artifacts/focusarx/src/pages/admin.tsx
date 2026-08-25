@@ -6,11 +6,14 @@ import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, Dia
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 import {
   Plus, Pencil, Trash2, Save, X, Send, CheckCircle, RefreshCw,
   Gift, Coins, AlertTriangle, ChevronDown, ChevronUp, Star, Search, Bot, Settings2
 } from "lucide-react";
 import { UserManagerDialog } from "@/components/admin/UserManagerDialog";
+import { GeminiPanel } from "@/components/admin/GeminiPanel";
+import { SqlConsolePanel } from "@/components/admin/SqlConsolePanel";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -69,7 +72,7 @@ type CmsOverview = {
 type Tab =
   | "overview" | "analytics" | "users" | "moderation" | "missions" | "retention" | "sql" | "rivals"
   | "marketplace" | "pets" | "lootboxes" | "battlepass" | "quests"
-  | "city" | "notify" | "coins" | "email" | "premium" | "site";
+  | "city" | "notify" | "drops" | "economy" | "coins" | "email" | "premium" | "site" | "gemini";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -139,13 +142,6 @@ export default function AdminPage() {
   const [tab, setTab] = useState<Tab>("overview");
   const [missionData, setMissionData] = useState<{ missions: { key: string; title: string; completions: number; claims: number; completionRate: number }[]; totalCompletions: number; totalClaims: number } | null>(null);
   const [retentionData, setRetentionData] = useState<any>(null);
-  const [sqlQuery, setSqlQuery] = useState("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;");
-  const [sqlResults, setSqlResults] = useState<{ rows: any[]; fields: { name: string }[]; rowCount: number } | null>(null);
-  const [sqlError, setSqlError] = useState<string | null>(null);
-  const [sqlLoading, setSqlLoading] = useState(false);
-  const [schemaData, setSchemaData] = useState<Record<string, any[]> | null>(null);
-  const [schemaExpanded, setSchemaExpanded] = useState<Set<string>>(new Set());
-  const [schemaLoading, setSchemaLoading] = useState(false);
 
   // CMS State
   const [marketplaceItems, setMarketplaceItems] = useState<MarketplaceItem[]>([]);
@@ -220,9 +216,54 @@ export default function AdminPage() {
   // User manager + search + AI rivals
   const [userSearch, setUserSearch] = useState("");
   const [managingUserId, setManagingUserId] = useState<string | null>(null);
-  const [botsState, setBotsState] = useState<{ bots: any[]; personas: number } | null>(null);
+  const [botsState, setBotsState] = useState<{
+    bots: any[];
+    total: number;
+    personas: number;
+    stats?: { total: number; today: { posts: number; comments: number; reactions: number; follows: number; pendingReplies: number } };
+    preview?: Array<{ name: string; bio: string; xp: number; streak: number; timezone: string }>;
+    istDay?: string;
+  } | null>(null);
   const [botsLoading, setBotsLoading] = useState(false);
   const [botsBusy, setBotsBusy] = useState(false);
+
+  // Admin Drops state
+  const [dropsState, setDropsState] = useState<{
+    drops: any[];
+    sparklines: Record<string, Array<{ bucket: string; n: number }>>;
+    templates: Array<{ type: string; label: string; description: string; defaultPayload: Record<string, any> }>;
+    items: Array<{ id: string; name: string; costCoins: number }>;
+  } | null>(null);
+  const [dropsLoading, setDropsLoading] = useState(false);
+  const [dropsBusy, setDropsBusy] = useState(false);
+  const [dropForm, setDropForm] = useState({
+    type: "coin_rain",
+    title: "",
+    description: "",
+    startsInMin: 15,
+    durationH: 3,
+    coinsPerClaim: 250,
+    poolTotal: 25000,
+    multiplier: 2,
+    targetMinutes: 120,
+    rewardCoins: 1000,
+    rewardXp: 500,
+    itemId: "",
+    discountPct: 50,
+    emailBlast: false,
+  });
+
+  // Economy dashboard state
+  const [economyState, setEconomyState] = useState<{
+    supply: { total: number; humans: number; bots: number; wallets: number };
+    last7: { mints: number; burns: number; net: number };
+    inflationPct: number;
+    inflationAlert: boolean;
+    daily: Array<{ day: string; mints: number; burns: number }>;
+    topReasons: Array<{ reason: string; type: string; total: string; n: number }>;
+    marketplace: Record<string, { n: number; total: number }>;
+  } | null>(null);
+  const [economyLoading, setEconomyLoading] = useState(false);
 
   // Site settings state (maintenance mode, announcement, branding)
   const [siteSettings, setSiteSettings] = useState<{
@@ -279,6 +320,8 @@ export default function AdminPage() {
     if (tab === "moderation") loadModerationQueue();
     if (tab === "site") loadSiteSettings();
     if (tab === "rivals" && !botsState) void loadBots();
+    if (tab === "drops" && !dropsState) void loadDrops();
+    if (tab === "economy" && !economyState) void loadEconomy();
   }, [tab]);
 
   useEffect(() => {
@@ -562,12 +605,19 @@ export default function AdminPage() {
     } finally { setBotsLoading(false); }
   }
 
-  async function seedRivals() {
+  async function seedRivals(target: number) {
     setBotsBusy(true);
     try {
-      const r = await fetch("/api/admin/bots/seed", { method: "POST", headers: authHeaders(), credentials: "include" });
+      const r = await fetch("/api/admin/bots/seed", {
+        method: "POST",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ target }),
+      });
       const d = await r.json();
-      alert(r.ok ? `AI rivals ready — ${d.created} created, ${d.total} total.` : (d.error ?? "Failed"));
+      alert(r.ok
+        ? `AI rivals ready — ${d.created} created, ${d.total} total (${Math.round((d.ms ?? 0) / 100) / 10}s).`
+        : (d.error ?? "Failed"));
       await loadBots();
       await loadData();
     } finally { setBotsBusy(false); }
@@ -583,6 +633,78 @@ export default function AdminPage() {
       await loadBots();
       await loadData();
     } finally { setBotsBusy(false); }
+  }
+
+  // ── Admin Drops ─────────────────────────────────────────────────────────────
+  async function loadDrops() {
+    setDropsLoading(true);
+    try {
+      const r = await fetch("/api/admin/drops", { headers: authHeaders(), credentials: "include" });
+      if (r.ok) setDropsState(await r.json());
+    } finally { setDropsLoading(false); }
+  }
+
+  function dropPayloadFor(form: typeof dropForm): Record<string, any> {
+    switch (form.type) {
+      case "coin_rain": return { coinsPerClaim: form.coinsPerClaim, poolTotal: form.poolTotal };
+      case "streak_freeze": return { tokensPerClaim: 1, poolTotal: form.poolTotal };
+      case "double_xp": return { multiplier: form.multiplier };
+      case "board_shakeup": return { multiplier: form.multiplier, scope: "weekly" };
+      case "flash_quest": return { targetMinutes: form.targetMinutes, rewardCoins: form.rewardCoins, rewardXp: form.rewardXp };
+      case "item_flash_sale": return { itemId: form.itemId, discountPct: form.discountPct };
+      default: return {};
+    }
+  }
+
+  async function createDropNow() {
+    if (!dropForm.title.trim()) { alert("Give the drop a title."); return; }
+    if (dropForm.type === "item_flash_sale" && !dropForm.itemId) { alert("Pick an item for the flash sale."); return; }
+    setDropsBusy(true);
+    try {
+      const start = new Date(Date.now() + dropForm.startsInMin * 60 * 1000);
+      const end = new Date(start.getTime() + dropForm.durationH * 3600 * 1000);
+      const r = await fetch("/api/admin/drops", {
+        method: "POST",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          type: dropForm.type,
+          title: dropForm.title.trim(),
+          description: dropForm.description.trim() || undefined,
+          payload: dropPayloadFor(dropForm),
+          startsAt: start.toISOString(),
+          endsAt: end.toISOString(),
+          emailBlast: dropForm.emailBlast,
+        }),
+      });
+      const d = await r.json();
+      alert(r.ok
+        ? `Drop live — announced to ${d.fannedOut} members${d.emailBlast === "queued" ? " + email blast queued" : ""}.`
+        : (d.error ?? "Failed"));
+      await loadDrops();
+    } finally { setDropsBusy(false); }
+  }
+
+  async function dropAction(id: string, action: "end" | "cancel" | "duplicate") {
+    setDropsBusy(true);
+    try {
+      const r = await fetch(`/api/admin/drops/${id}/${action}`, {
+        method: "POST",
+        headers: authHeaders(),
+        credentials: "include",
+      });
+      const d = await r.json();
+      if (!r.ok) alert(d.error ?? "Failed");
+      await loadDrops();
+    } finally { setDropsBusy(false); }
+  }
+
+  async function loadEconomy() {
+    setEconomyLoading(true);
+    try {
+      const r = await fetch("/api/admin/economy", { headers: authHeaders(), credentials: "include" });
+      if (r.ok) setEconomyState(await r.json());
+    } finally { setEconomyLoading(false); }
   }
 
   const toggleRole = async (user: AdminUser) => {
@@ -627,42 +749,6 @@ export default function AdminPage() {
       });
       if (res.ok) await loadData();
     } finally { setPurgeLoading(false); }
-  };
-
-  const runSqlQuery = async () => {
-    if (!sqlQuery.trim()) return;
-    setSqlLoading(true); setSqlError(null); setSqlResults(null);
-    try {
-      const r = await fetch("/api/admin/sql", {
-        method: "POST",
-        headers: { ...authHeaders(), "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ query: sqlQuery }),
-      });
-      const text = await r.text();
-      let d: any = null;
-      try { d = JSON.parse(text); } catch {
-        setSqlError(`Server returned ${r.status}: ${text.slice(0, 300)}`);
-        return;
-      }
-      if (!r.ok) {
-        setSqlError(d.error ?? `Query failed (${r.status})`);
-        return;
-      }
-      setSqlResults(d);
-    } catch (e: any) {
-      setSqlError(e.message ?? "Network error");
-    } finally { setSqlLoading(false); }
-  };
-
-  const loadSchema = async () => {
-    if (schemaData) return;
-    setSchemaLoading(true);
-    try {
-      const r = await fetch("/api/admin/schema", { headers: authHeaders(), credentials: "include" });
-      const d = await r.json();
-      setSchemaData(d.tables ?? {});
-    } finally { setSchemaLoading(false); }
   };
 
   // Marketplace CRUD
@@ -1810,127 +1896,10 @@ export default function AdminPage() {
     return (
       <MotionTab>
         <SectionHeader
-          title="SQL Database Editor"
-          sub="Run read-only SELECT queries against the live database (SELECT / SHOW / EXPLAIN / WITH, 2s timeout, 500-row cap). Set ENABLE_ADMIN_SQL=false to hard-disable it."
+          title="SQL Console"
+          sub="Read-only by default (SELECT / SHOW / EXPLAIN / WITH). Write mode unlocks for 15 minutes with the typed phrase; destructive statements need a second confirmation. Every statement is recorded in the insert-only admin_sql_log audit table. Set ENABLE_ADMIN_SQL=false to hard-disable it."
         />
-
-        <div className="flex gap-4">
-          {/* Schema sidebar */}
-          <div className="w-52 shrink-0">
-            <div className="rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 p-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-[var(--palette-zinc-400)]">Tables</span>
-                <button onClick={() => void loadSchema()} disabled={schemaLoading}
-                  className="text-[10px] text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)] disabled:opacity-40">
-                  {schemaLoading ? "Loading..." : schemaData ? "↺" : "Load"}
-                </button>
-              </div>
-              {schemaData ? (
-                <div className="space-y-1 max-h-[400px] overflow-y-auto">
-                  {Object.entries(schemaData).map(([table, cols]) => (
-                    <div key={table}>
-                      <button
-                        onClick={() => {
-                          setSchemaExpanded(prev => { const n = new Set(prev); n.has(table) ? n.delete(table) : n.add(table); return n; });
-                          setSqlQuery(`SELECT * FROM ${table} LIMIT 50;`);
-                        }}
-                        className="w-full text-left text-[11px] text-[var(--palette-violet-400)] hover:text-[var(--palette-violet-300)] font-mono py-0.5 truncate"
-                      >{table}</button>
-                      {schemaExpanded.has(table) && (
-                        <div className="pl-2 space-y-0.5">
-                          {cols.map(c => (
-                            <div key={c.column} className="text-[10px] text-[var(--palette-zinc-500)] font-mono">
-                              {c.column} <span className="text-[var(--palette-zinc-600)]">{c.type}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-[10px] text-[var(--palette-zinc-600)]">Click Load to explore tables</p>
-              )}
-            </div>
-          </div>
-
-          {/* Editor + Results */}
-          <div className="flex-1 space-y-3">
-            <div className="rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 overflow-hidden">
-              <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--palette-zinc-800)]">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">SQL Query</span>
-                <div className="flex items-center gap-2">
-                  {sqlResults && <span className="text-[10px] text-[var(--palette-zinc-500)]">{sqlResults.rowCount} row{sqlResults.rowCount !== 1 ? "s" : ""}</span>}
-                  <button
-                    onClick={() => void runSqlQuery()} disabled={sqlLoading}
-                    className="rounded-lg bg-[var(--palette-violet-700)] hover:bg-[var(--palette-violet-600)] px-3 py-1 text-xs font-semibold text-[var(--palette-white)] disabled:opacity-40 flex items-center gap-1.5"
-                  >
-                    {sqlLoading ? "Running..." : "▶ Run"}
-                  </button>
-                </div>
-              </div>
-              <textarea
-                value={sqlQuery}
-                onChange={e => setSqlQuery(e.target.value)}
-                onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); void runSqlQuery(); } }}
-                className="w-full bg-transparent px-3 py-3 font-mono text-sm text-[var(--palette-zinc-200)] placeholder:text-[var(--palette-zinc-600)] focus:outline-none resize-none"
-                rows={6}
-                placeholder="SELECT * FROM users LIMIT 10;"
-                spellCheck={false}
-              />
-              <div className="px-3 py-1.5 border-t border-[var(--palette-zinc-800)] text-[10px] text-[var(--palette-zinc-600)]">⌘ + Enter to run · Only SELECT queries allowed</div>
-            </div>
-
-            {sqlError && <div className="rounded-xl border border-[var(--palette-red-900)]/50 bg-[var(--palette-red-950)]/30 p-3 font-mono text-xs text-[var(--palette-red-400)]">{sqlError}</div>}
-
-            {sqlResults && sqlResults.rows.length > 0 && (
-              <div className="rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 overflow-hidden">
-                <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]">
-                        {sqlResults.fields.map(f => (
-                          <th key={f.name} className="px-3 py-2 text-left font-semibold text-[var(--palette-zinc-400)] whitespace-nowrap">{f.name}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sqlResults.rows.map((row, i) => (
-                        <tr key={i} className={`border-b border-[var(--palette-zinc-800)]/50 ${i % 2 === 0 ? "bg-[var(--palette-zinc-900)]/20" : ""} hover:bg-[var(--palette-zinc-800)]/40`}>
-                          {sqlResults.fields.map(f => (
-                            <td key={f.name} className="px-3 py-2 text-[var(--palette-zinc-300)] whitespace-nowrap max-w-[200px] truncate font-mono">
-                              {row[f.name] === null ? <span className="text-[var(--palette-zinc-600)] italic">null</span> : String(row[f.name])}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {sqlResults && sqlResults.rows.length === 0 && !sqlError && (
-              <div className="rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/20 p-4 text-center text-xs text-[var(--palette-zinc-500)]">Query returned 0 rows.</div>
-            )}
-
-            <div className="flex flex-wrap gap-2">
-              {[
-                { label: "All users", q: "SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC LIMIT 20;" },
-                { label: "Recent sessions", q: "SELECT user_id, duration_sec, mode, focus_score, completed_at FROM focus_sessions ORDER BY completed_at DESC LIMIT 20;" },
-                { label: "Top XP", q: "SELECT u.name, u.email, w.total_xp, w.level, w.coins FROM users u JOIN user_wallets w ON u.id = w.user_id ORDER BY w.total_xp DESC LIMIT 20;" },
-                { label: "DB size", q: "SELECT schemaname, tablename, pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size FROM pg_tables WHERE schemaname='public' ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;" },
-                { label: "Marketplace", q: "SELECT id, name, type, rarity, cost_coins, is_active FROM marketplace_items ORDER BY type, rarity;" },
-                { label: "Quests", q: "SELECT id, title, type, requirement_type, requirement_value, xp_reward, coin_reward, is_active FROM quest_definitions ORDER BY type;" },
-              ].map(q => (
-                <button key={q.label} onClick={() => { setSqlQuery(q.q); setSqlResults(null); setSqlError(null); }}
-                  className="rounded-lg border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 px-2.5 py-1 text-[10px] text-[var(--palette-zinc-400)] hover:text-[var(--palette-zinc-200)] hover:border-[var(--palette-zinc-600)] transition font-mono">
-                  {q.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <SqlConsolePanel authHeaders={authHeaders} />
       </MotionTab>
     );
   }
@@ -2394,25 +2363,335 @@ export default function AdminPage() {
     );
   }
 
+  function renderEconomy() {
+    const e = economyState;
+    const fmt = (n: number) => n.toLocaleString("en-IN");
+    const maxFlow = e ? Math.max(1, ...e.daily.map(d => Math.max(d.mints, d.burns))) : 1;
+    return (
+      <MotionTab>
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <SectionHeader
+            title="Economy"
+            sub="Circulating supply, coin flow and ledger health. Every mint/burn in the product writes coin_transactions (lib/coinLedger), so these numbers are complete by construction. Humans and AI rivals are kept separate."
+          />
+          <button onClick={() => void loadEconomy()} className="rounded-lg border border-[var(--palette-zinc-700)] px-3 py-1.5 text-xs text-[var(--palette-zinc-400)] hover:text-[var(--palette-zinc-200)] transition">
+            <RefreshCw size={12} className={cn("inline mr-1", economyLoading && "animate-spin")} />Refresh
+          </button>
+        </div>
+
+        {!e && <p className="text-xs text-[var(--palette-zinc-500)]">{economyLoading ? "Loading…" : "No data yet."}</p>}
+
+        {e && (
+          <>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard label="Circulating supply" value={fmt(e.supply.total)} accent="violet" sub={`${fmt(e.supply.humans)} humans · ${fmt(e.supply.wallets)} wallets`} />
+              <StatCard label="In AI rival wallets" value={fmt(e.supply.bots)} accent="sky" sub={`${e.supply.total > 0 ? Math.round((e.supply.bots / e.supply.total) * 100) : 0}% of supply (simulated economy)`} />
+              <StatCard label="7-day mints" value={`+${fmt(e.last7.mints)}`} accent="emerald" sub={`${e.last7.net >= 0 ? "net +":""}${fmt(e.last7.net)}`} />
+              <StatCard label="7-day burns" value={`-${fmt(e.last7.burns)}`} accent="rose" sub={`inflation ${e.inflationPct}% of supply / 7d`} />
+            </div>
+
+            {e.inflationAlert && (
+              <div className="mt-4 rounded-xl border border-[var(--palette-amber-500)]/40 bg-[var(--palette-amber-500)]/10 p-4">
+                <p className="text-xs font-semibold text-[var(--palette-amber-400]">⚠️ Inflation alert</p>
+                <p className="mt-1 text-[0.6875rem] leading-relaxed text-[var(--palette-zinc-400)]">
+                  Net coin mints over 7 days are {e.inflationPct}% of circulating supply (threshold 5%). Consider raising coin sinks (bundle discounts, gifting tax, sell-back caps) or lowering mint rates (session rewards, drop pools) before the supply doubles.
+                </p>
+              </div>
+            )}
+
+            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+              {/* 14-day flow */}
+              <div className="rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-950)]/40 p-4">
+                <h3 className="mb-3 text-sm font-semibold text-[var(--palette-zinc-200)]">14-day coin flow (IST days)</h3>
+                <div className="flex h-40 items-end gap-1">
+                  {e.daily.map((d) => (
+                    <div key={d.day} className="flex flex-1 flex-col items-center gap-1" title={`${d.day} — minted ${d.mints.toLocaleString()}, burned ${d.burns.toLocaleString()}`}>
+                      <div className="flex w-full flex-1 items-end justify-center gap-px">
+                        <div className="w-1/2 rounded-t-sm bg-[var(--palette-emerald-500)]/70" style={{ height: `${Math.max(3, (d.mints / maxFlow) * 100)}%` }} />
+                        <div className="w-1/2 rounded-t-sm bg-[var(--palette-rose-500)]/70" style={{ height: `${Math.max(3, (d.burns / maxFlow) * 100)}%` }} />
+                      </div>
+                      <span className="text-[0.5rem] text-[var(--palette-zinc-600)]">{d.day.slice(3)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-2 flex gap-4 text-[0.625rem] text-[var(--palette-zinc-500)]">
+                  <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-[var(--palette-emerald-500)]/70" /> minted</span>
+                  <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-[var(--palette-rose-500)]/70" /> burned</span>
+                </div>
+              </div>
+
+              {/* Top reasons */}
+              <div className="rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-950)]/40 p-4">
+                <h3 className="mb-3 text-sm font-semibold text-[var(--palette-zinc-200)]">Top coin movers — last 7 days</h3>
+                <div className="space-y-1.5">
+                  {e.topReasons.length === 0 && <p className="text-xs text-[var(--palette-zinc-500)]">No transactions yet.</p>}
+                  {e.topReasons.map((r) => {
+                    const total = Number(r.total);
+                    return (
+                      <div key={`${r.reason}-${r.type}`} className="flex items-center justify-between rounded-lg bg-[var(--palette-zinc-900)]/50 px-3 py-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-medium text-[var(--palette-zinc-300)]">{r.reason.replace(/_/g, " ")}</p>
+                          <p className="text-[0.625rem] text-[var(--palette-zinc-500)]">{r.n} transactions</p>
+                        </div>
+                        <span className={cn("shrink-0 text-xs font-bold", total >= 0 ? "text-[var(--palette-emerald-400)]" : "text-[var(--palette-rose-400)]")}>
+                          {total >= 0 ? "+" : ""}{total.toLocaleString("en-IN")}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Marketplace flows */}
+            <div className="mt-4 rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-950)]/40 p-4">
+              <h3 className="mb-3 text-sm font-semibold text-[var(--palette-zinc-200)]">Marketplace flows — last 7 days</h3>
+              <div className="grid gap-3 sm:grid-cols-4">
+                {([
+                  { label: "🛒 Purchases", key: "marketplace_purchase" },
+                  { label: "🎁 Gifts (incl. 5% tax)", key: "gift_purchase" },
+                  { label: "♻️ Sell-backs (50% refund)", key: "sellback" },
+                  { label: "📦 Bundles", key: "bundle_purchase" },
+                ] as Array<{ label: string; key: string }>).map(({ label, key }) => {
+                  const m = e.marketplace[key];
+                  return (
+                    <div key={key} className="rounded-lg bg-[var(--palette-zinc-900)]/50 p-3">
+                      <p className="text-[0.6875rem] text-[var(--palette-zinc-400)]">{label}</p>
+                      <p className="mt-1 text-lg font-bold text-[var(--palette-zinc-200)]">{m?.n ?? 0}</p>
+                      <p className={cn("text-[0.625rem]", (m?.total ?? 0) >= 0 ? "text-[var(--palette-emerald-400)]" : "text-[var(--palette-rose-400)]")}>
+                        {(m?.total ?? 0) >= 0 ? "+" : ""}{(m?.total ?? 0).toLocaleString("en-IN")} coins
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
+      </MotionTab>
+    );
+  }
+
+  function renderDrops() {
+    const drops = dropsState?.drops ?? [];
+    const templates = dropsState?.templates ?? [];
+    const items = dropsState?.items ?? [];
+    const sparklines = dropsState?.sparklines ?? {};
+    const now = Date.now();
+    const currentTemplate = templates.find((t) => t.type === dropForm.type);
+
+    function fmtCountdown(target: number): string {
+      const diff = target - now;
+      if (diff <= 0) return "now";
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const sec = Math.floor((diff % 60000) / 1000);
+      if (h > 0) return `${h}h ${m}m`;
+      if (m > 0) return `${m}m ${sec}s`;
+      return `${sec}s`;
+    }
+
+    const numField = (label: string, key: string, step = 1) => (
+      <label className="block">
+        <span className="mb-1 block text-[0.6875rem] font-medium text-[var(--palette-zinc-400)]">{label}</span>
+        <input
+          type="number"
+          step={step}
+          min={0}
+          value={dropForm[key as keyof typeof dropForm] as number}
+          onChange={(e) => setDropForm((f) => ({ ...f, [key]: Number(e.target.value) || 0 }))}
+          className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-900)] px-3 py-2 text-xs text-[var(--palette-zinc-200)] outline-none focus:border-[var(--accent)]"
+        />
+      </label>
+    );
+
+    return (
+      <MotionTab>
+        <SectionHeader
+          title="Admin Drops"
+          sub="Scheduled hype events — coin rain, double-XP hours, flash quests, streak-freeze giveaways, item flash sales and leaderboard shake-ups. Creating a drop announces it to every real member (notification + push + socket pop; bots are never spammed) and optional email blast."
+        />
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          {/* Create panel */}
+          <div className="rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-950)]/40 p-4">
+            <h3 className="mb-3 text-sm font-semibold text-[var(--palette-zinc-200)]">New drop</h3>
+            <div className="mb-3 flex flex-wrap gap-1.5">
+              {templates.map((t) => (
+                <button
+                  key={t.type}
+                  onClick={() => setDropForm((f) => ({ ...f, type: t.type }))}
+                  title={t.description}
+                  className={cn(
+                    "rounded-full border px-2.5 py-1 text-[0.6875rem] transition",
+                    dropForm.type === t.type
+                      ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]"
+                      : "border-[var(--palette-zinc-700)] text-[var(--palette-zinc-400)] hover:text-[var(--palette-zinc-200)]"
+                  )}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            <p className="mb-3 text-[0.6875rem] leading-relaxed text-[var(--palette-zinc-500)]">{currentTemplate?.description}</p>
+
+            <div className="space-y-3">
+              <label className="block">
+                <span className="mb-1 block text-[0.6875rem] font-medium text-[var(--palette-zinc-400)]">Title</span>
+                <input
+                  value={dropForm.title}
+                  onChange={(e) => setDropForm((f) => ({ ...f, title: e.target.value }))}
+                  placeholder="e.g. Monsoon Coin Rain — 250 coins"
+                  className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-900)] px-3 py-2 text-xs text-[var(--palette-zinc-200)] outline-none focus:border-[var(--accent)]"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-[0.6875rem] font-medium text-[var(--palette-zinc-400)]">Announcement text (shown in notification + banner)</span>
+                <input
+                  value={dropForm.description}
+                  onChange={(e) => setDropForm((f) => ({ ...f, description: e.target.value }))}
+                  placeholder="e.g. Coins are raining — grab yours before the pool runs out!"
+                  className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-900)] px-3 py-2 text-xs text-[var(--palette-zinc-200)] outline-none focus:border-[var(--accent)]"
+                />
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                {numField("Starts in (minutes)", "startsInMin")}
+                {numField("Window length (hours)", "durationH")}
+                {(dropForm.type === "coin_rain" || dropForm.type === "streak_freeze") && numField(dropForm.type === "coin_rain" ? "Coins per claim" : "Tokens per claim", "coinsPerClaim")}
+                {(dropForm.type === "coin_rain" || dropForm.type === "streak_freeze") && numField("Total pool", "poolTotal")}
+                {(dropForm.type === "double_xp" || dropForm.type === "board_shakeup") && numField("XP multiplier (×)", "multiplier", 0.5)}
+                {dropForm.type === "flash_quest" && numField("Target focus minutes", "targetMinutes")}
+                {dropForm.type === "flash_quest" && numField("Reward coins", "rewardCoins")}
+                {dropForm.type === "flash_quest" && numField("Reward XP", "rewardXp")}
+                {dropForm.type === "item_flash_sale" && numField("Discount %", "discountPct")}
+              </div>
+              {dropForm.type === "item_flash_sale" && (
+                <label className="block">
+                  <span className="mb-1 block text-[0.6875rem] font-medium text-[var(--palette-zinc-400)]">Item</span>
+                  <select
+                    value={dropForm.itemId}
+                    onChange={(e) => setDropForm((f) => ({ ...f, itemId: e.target.value }))}
+                    className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-900)] px-3 py-2 text-xs text-[var(--palette-zinc-200)] outline-none focus:border-[var(--accent)]"
+                  >
+                    <option value="">Select an item…</option>
+                    {items.map((it) => (
+                      <option key={it.id} value={it.id}>{it.name} — {it.costCoins.toLocaleString()} coins</option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              <label className="flex cursor-pointer items-center gap-2 text-xs text-[var(--palette-zinc-400)]">
+                <input
+                  type="checkbox"
+                  checked={dropForm.emailBlast}
+                  onChange={(e) => setDropForm((f) => ({ ...f, emailBlast: e.target.checked }))}
+                  className="accent-[var(--accent)]"
+                />
+                Also send an email blast to every member
+              </label>
+              <button
+                onClick={() => void createDropNow()}
+                disabled={dropsBusy}
+                className="w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+              >
+                {dropsBusy ? "Working…" : "Create & announce drop"}
+              </button>
+            </div>
+          </div>
+
+          {/* Live monitor */}
+          <div className="rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-950)]/40 p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-[var(--palette-zinc-200)]">Drops ({drops.length})</h3>
+              <button onClick={() => void loadDrops()} className="text-xs text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)] transition">
+                <RefreshCw size={12} className={cn("inline mr-1", dropsLoading && "animate-spin")} />Refresh
+              </button>
+            </div>
+            {drops.length === 0 && <p className="text-xs text-[var(--palette-zinc-500)]">No drops yet. Create your first drop — it announces instantly to every member.</p>}
+            <div className="max-h-[32rem] space-y-2 overflow-y-auto pr-1">
+              {drops.map((d) => {
+                const state = d.live ? "LIVE" : d.cancelledAt ? "cancelled" : d.startsAt > new Date(now) ? "upcoming" : "ended";
+                const spark = sparklines[d.id] ?? [];
+                const maxN = Math.max(1, ...spark.map((s: any) => s.n));
+                const pct = d.poolTotal > 0 ? Math.max(0, Math.min(100, Math.round(((d.poolRemaining ?? 0) / d.poolTotal) * 100))) : null;
+                return (
+                  <div key={d.id} className="rounded-lg border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/50 p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate text-xs font-semibold text-[var(--palette-zinc-200)]">{d.title}</span>
+                          <span className={cn(
+                            "shrink-0 rounded-full px-1.5 py-0.5 text-[0.5625rem] font-semibold uppercase tracking-wide",
+                            state === "LIVE" && "bg-[var(--accent)]/15 text-[var(--accent)]",
+                            state === "upcoming" && "bg-[var(--palette-amber-500)]/15 text-[var(--palette-amber-400)]",
+                            state === "ended" && "bg-[var(--palette-zinc-700)]/40 text-[var(--palette-zinc-400)]",
+                            state === "cancelled" && "bg-[var(--palette-rose-500)]/15 text-[var(--palette-rose-400)]"
+                          )}>
+                            {state === "upcoming" ? `in ${fmtCountdown(new Date(d.startsAt).getTime())}` : state}
+                          </span>
+                        </div>
+                        {d.description && <p className="mt-0.5 truncate text-[0.6875rem] text-[var(--palette-zinc-500)]">{d.description}</p>}
+                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[0.625rem] text-[var(--palette-zinc-500)]">
+                          <span>{d.type.replace("_", " ")}</span>
+                          <span>ends {new Date(d.endsAt).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+                          <span className="text-[var(--palette-zinc-300)]">{d.claims} claims{d.createdVia === "gemini" && " · via Gemini"}</span>
+                          {pct !== null && <span className={pct === 0 ? "text-[var(--palette-rose-400)]" : undefined}>{d.poolRemaining ?? 0} / {d.poolTotal} left ({pct}%)</span>}
+                        </div>
+                        {pct !== null && (
+                          <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-[var(--palette-zinc-800)]">
+                            <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${pct}%` }} />
+                          </div>
+                        )}
+                        {spark.length > 0 && (
+                          <div className="mt-2 flex h-8 items-end gap-0.5">
+                            {spark.map((sp: any, i: number) => (
+                              <div key={i} className="flex-1 rounded-sm bg-[var(--accent)]/50" style={{ height: `${Math.max(8, (sp.n / maxN) * 100)}%` }} title={`${sp.bucket} — ${sp.n} claims`} />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex shrink-0 flex-col gap-1">
+                        {d.live && (
+                          <>
+                            <button onClick={() => { if (confirm(`End “${d.title}” now?`)) void dropAction(d.id, "end"); }} className="rounded border border-[var(--palette-zinc-700)] px-2 py-1 text-[0.625rem] text-[var(--palette-zinc-300)] hover:text-[var(--palette-zinc-100)]">End</button>
+                            <button onClick={() => void dropAction(d.id, "duplicate")} className="rounded border border-[var(--palette-zinc-700)] px-2 py-1 text-[0.625rem] text-[var(--palette-zinc-300)] hover:text-[var(--palette-zinc-100)]">Repeat</button>
+                          </>
+                        )}
+                        {!d.live && !d.cancelledAt && d.startsAt > new Date(now) && (
+                          <button onClick={() => { if (confirm(`Cancel “${d.title}” before it starts?`)) void dropAction(d.id, "cancel"); }} className="rounded border border-[var(--palette-rose-800)] px-2 py-1 text-[0.625rem] text-[var(--palette-rose-400)] hover:bg-[var(--palette-rose-950)]">Cancel</button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <ul className="mt-4 list-disc space-y-1 pl-5 text-[0.6875rem] leading-relaxed text-[var(--palette-zinc-500)]">
+          <li>Pools are atomic — the last coin can never be oversold to two members; each member claims once per drop (enforced in the database).</li>
+          <li>Double-XP and shake-up multipliers apply server-side to session rewards only while the window is live — nothing to claim, nothing to spoof.</li>
+          <li>Expiry is a window check (no cron). The public /drops endpoint drives the live countdown chips in the app.</li>
+        </ul>
+      </MotionTab>
+    );
+  }
+
   function renderRivals() {
+
     const bots = botsState?.bots ?? [];
+    const stats = botsState?.stats;
     return (
       <MotionTab>
         <div className="flex items-center justify-between flex-wrap gap-3">
           <SectionHeader
             title="AI Rivals"
-            sub="Labelled bot accounts that train daily, keep streaks and post in the community — so the leaderboard and feed are never empty. Every rival is visibly badged “AI” so nobody mistakes them for real people."
+            sub="A living community of clearly-labelled AI accounts — Indian names, exam goals, real XP curves. They post, hold threads, reply to members with a natural 1–8h lag, like, react and follow. Every rival is visibly badged “AI” so nobody mistakes them for real people."
           />
           <div className="flex items-center gap-2">
             <button onClick={() => void loadBots()} className="rounded-lg border border-[var(--palette-zinc-700)] px-3 py-1.5 text-xs text-[var(--palette-zinc-400)] hover:text-[var(--palette-zinc-200)] transition">
               <RefreshCw size={12} className={`inline mr-1 ${botsLoading ? "animate-spin" : ""}`} />Refresh
-            </button>
-            <button
-              onClick={() => void seedRivals()}
-              disabled={botsBusy}
-              className="rounded-lg bg-[var(--palette-sky-700)] hover:bg-[var(--palette-sky-600)] px-3 py-1.5 text-xs font-semibold text-[var(--palette-white)] flex items-center gap-1 disabled:opacity-50"
-            >
-              <Bot size={13} /> {bots.length === 0 ? "Seed AI rivals" : "Sync / add missing"}
             </button>
             {bots.length > 0 && (
               <button
@@ -2426,29 +2705,84 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          <StatCard label="AI rivals live" value={String(bots.length)} accent="sky" />
-          <StatCard label="Persona library" value={String(botsState?.personas ?? 0)} />
-          <StatCard label="Daily XP budget" value="120–380 / rival" />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard label="AI rivals live" value={String(botsState?.total ?? bots.length)} accent="sky" />
+          <StatCard label="Posts today" value={String(stats?.today.posts ?? 0)} />
+          <StatCard label="Comments today" value={String(stats?.today.comments ?? 0)} />
+          <StatCard label="Follows today" value={String(stats?.today.follows ?? 0)} />
         </div>
+
+        {/* Target dial (A1) */}
+        <div className="rounded-xl border border-[var(--palette-zinc-800)]/80 bg-[var(--palette-zinc-900)]/20 p-4">
+          <p className="mb-2 text-xs font-semibold text-[var(--palette-zinc-300)]">Community size</p>
+          <div className="flex flex-wrap items-center gap-2">
+            {[500, 2000, 12000].map((n) => {
+              const active = (botsState?.total ?? 0) === n;
+              return (
+                <button
+                  key={n}
+                  onClick={() => { if (confirm(`Seed the community up to ${n.toLocaleString()} AI rivals? (idempotent — existing rivals are kept)`)) void seedRivals(n); }}
+                  disabled={botsBusy || active}
+                  className={`rounded-lg px-4 py-2 text-xs font-semibold transition disabled:opacity-60 ${
+                    active
+                      ? "border border-[var(--palette-emerald-700)] bg-[var(--palette-emerald-950)] text-[var(--palette-emerald-300)]"
+                      : "border border-[var(--palette-zinc-700)] text-[var(--palette-zinc-300)] hover:border-[var(--palette-sky-700)] hover:text-[var(--palette-sky-300)]"
+                  }`}
+                >
+                  {active ? "✓ " : ""}{n.toLocaleString()} rivals
+                </button>
+              );
+            })}
+            <button
+              onClick={() => void seedRivals(Math.max(36, Math.floor((botsState?.total ?? 0) * 1.5)))}
+              disabled={botsBusy || !bots.length}
+              className="rounded-lg border border-[var(--palette-zinc-700)] px-3 py-2 text-xs text-[var(--palette-zinc-400)] hover:text-[var(--palette-zinc-200)] disabled:opacity-50"
+            >
+              +50% more
+            </button>
+            <span className="text-[10px] text-[var(--palette-zinc-500)]">
+              {botsBusy ? "Seeding… (12k takes a few seconds, batched in transactions)" : "Idempotent + resumable. Seeding runs off request paths."}
+            </span>
+          </div>
+        </div>
+
+        {/* Next personas preview */}
+        {Array.isArray(botsState?.preview) && botsState.preview.length > 0 && (
+          <div className="rounded-xl border border-[var(--palette-zinc-800)]/80 bg-[var(--palette-zinc-900)]/20 p-4">
+            <p className="mb-2 text-xs font-semibold text-[var(--palette-zinc-300)]">Next personas (deterministic preview)</p>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {botsState.preview.map((p: any, i: number) => (
+                <div key={i} className="rounded-lg border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 p-3">
+                  <p className="truncate text-xs font-semibold text-[var(--palette-zinc-200)]">🤖 {p.name}</p>
+                  <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-[var(--palette-zinc-500)]">{p.bio}</p>
+                  <p className="mt-1 text-[10px] text-[var(--palette-zinc-400)]">{p.xp.toLocaleString()} XP · 🔥{p.streak} · {p.timezone}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="rounded-xl border border-[var(--palette-zinc-800)]/80 bg-[var(--palette-zinc-900)]/20 p-4 text-xs leading-relaxed text-[var(--palette-zinc-400)]">
           <p className="mb-1 font-semibold text-[var(--palette-zinc-300)]">How it works</p>
           <ul className="list-disc space-y-1 pl-4">
-            <li>Each rival earns XP and advances its streak once a day — triggered lazily when anyone views the leaderboard or community feed (no cron needed).</li>
-            <li>A few rivals post in the community every day, and they sometimes comment under fresh human posts.</li>
-            <li>Rivals always carry a visible 🤖 <span className="text-[var(--palette-sky-400)]">AI</span> badge in the leaderboard, community and search — they never pretend to be real users.</li>
-            <li>They are excluded from your real platform metrics (registered users, weekly signups, analytics).</li>
+            <li>Each rival earns XP and advances its streak once a day — triggered lazily when anyone views the leaderboard or community feed (no cron; exactly-once per IST day even across serverless instances).</li>
+            <li>Daily rhythm: 3–8 posts spread across IST 06:00–now, 1–2 real bot-to-bot threads, 5–15 topic-matched comments, 15–30 reactions, ≤30 new follows.</li>
+            <li>When a human posts, 0–2 rivals reply with a natural 1–8h lag. Per-bot daily caps: 1 post · 3 comments · 15 reactions · 5 follows; the feed stays majority-human by design.</li>
+            <li>Rivals blend into the community — no visible AI badge on leaderboards, feed, rooms or messages (owner decision, Aug 2026). They stay internally flagged <code>role="bot"</code> so admin analytics always separate humans from bots.</li>
+            <li>Admin analytics keep real humans and AI rivals as separate numbers.</li>
           </ul>
         </div>
 
+        <p className="mt-4 mb-2 text-xs font-semibold text-[var(--palette-zinc-300)]">
+          Latest rivals {bots.length > 0 && <span className="font-normal text-[var(--palette-zinc-500)]">(newest {bots.length} of {botsState?.total ?? bots.length})</span>}
+        </p>
         {botsLoading ? (
           <div className="text-center py-8 text-[var(--palette-zinc-500)] text-sm">Loading…</div>
         ) : bots.length === 0 ? (
           <div className="rounded-xl border border-dashed border-[var(--palette-zinc-800)] p-10 text-center">
             <Bot size={36} className="mx-auto mb-3 text-[var(--palette-zinc-600)]" />
             <p className="text-sm font-medium text-[var(--palette-zinc-300)]">No AI rivals yet</p>
-            <p className="mt-1 text-xs text-[var(--palette-zinc-500)]">Seed the crew to fill the leaderboard and community instantly.</p>
+            <p className="mt-1 text-xs text-[var(--palette-zinc-500)]">Pick a community size above to seed the crew.</p>
           </div>
         ) : (
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -2494,6 +2828,17 @@ export default function AdminPage() {
     quests: renderQuests,
     city: renderCity,
     notify: renderNotify,
+    drops: renderDrops,
+    economy: renderEconomy,
+    gemini: () => (
+      <MotionTab>
+        <SectionHeader
+          title="Gemini Chief-of-Staff"
+          sub="AI budget & traffic (G5), idea backlog with human approval (G3), daily IST briefing + SEO officer (G7/G6), and bot-fleet ops reviews (G4). Suggest-only: nothing AI-initiated can block, mute, or ban."
+        />
+        <GeminiPanel authHeaders={authHeaders} />
+      </MotionTab>
+    ),
     coins: renderCoins,
     email: renderEmail,
     premium: renderPremiumManagement,

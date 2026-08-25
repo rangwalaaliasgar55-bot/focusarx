@@ -8,9 +8,9 @@ import {
   groupMembersTable,
 } from "@workspace/db";
 import { extractUserId } from "./auth";
-import { eq, and, desc, sql, inArray, or } from "drizzle-orm";
+import { eq, and, desc, lt, sql, inArray, or, ne } from "drizzle-orm";
 import { moderateText } from "../lib/moderation";
-import { ensureDailyBotActivity, maybeBotReply } from "../lib/botEngine";
+import { ensureDailyBotActivity, maybeBotReply, materializeDueBotReplies, queueBotReplies, queueBotCommentReply } from "../lib/botEngine";
 
 const REPEAT_OFFENDER_THRESHOLD = 3;
 
@@ -88,14 +88,18 @@ async function enrichPost(post: any, viewerId: string | null) {
 postsRouter.get("/feed", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
   const userId = req.userId!;
-  const { type = "following", limit = "20", offset = "0", groupId } = req.query as Record<string, string>;
+  const { type = "following", limit = "20", offset = "0", groupId, cursor } = req.query as Record<string, string>;
+  const pageLimit = Math.max(5, Math.min(50, parseInt(limit) || 20));
 
-  // Public surfaces keep the AI rivals' daily activity ticking (throttled).
+  // Public surfaces keep the AI rivals' daily activity ticking (throttled)
+  // and materialise staggered bot replies that have come due.
   if (type === "discover" || type === "public") {
     await ensureDailyBotActivity();
+    await materializeDueBotReplies();
   }
 
   let posts: any[] = [];
+  let nextCursor: string | null = null;
 
   if (type === "following") {
     const following = await db.select({ followingId: followsTable.followingId })
@@ -111,13 +115,53 @@ postsRouter.get("/feed", authMiddleware, async (req: AuthRequest, res: Response)
       .orderBy(desc(socialPostsTable.createdAt))
       .limit(parseInt(limit)).offset(parseInt(offset));
   } else if (type === "discover") {
-    posts = await db.select().from(socialPostsTable)
-      .where(and(
-        eq(socialPostsTable.isPublic, true),
-        eq(socialPostsTable.moderationStatus, "approved"),
-      ))
-      .orderBy(desc(socialPostsTable.createdAt))
-      .limit(parseInt(limit)).offset(parseInt(offset));
+    // A3: cursor pagination + ~60/40 human/bot recency mix so the feed never
+    // floods at 12k-bot scale. Bots are interleaved by recency but capped so
+    // humans always hold the majority of every page.
+    const cursorDate = cursor ? new Date(cursor) : null;
+    const baseWhere = and(
+      eq(socialPostsTable.isPublic, true),
+      eq(socialPostsTable.moderationStatus, "approved"),
+      cursorDate ? lt(socialPostsTable.createdAt, cursorDate) : undefined,
+    );
+    const overfetch = pageLimit * 3;
+    const [humanRows, botRows] = await Promise.all([
+      db.select().from(socialPostsTable)
+        .innerJoin(usersTable, eq(usersTable.id, socialPostsTable.userId))
+        .where(and(baseWhere, ne(usersTable.role, "bot"), ne(usersTable.role, "admin")))
+        .orderBy(desc(socialPostsTable.createdAt))
+        .limit(overfetch),
+      db.select().from(socialPostsTable)
+        .innerJoin(usersTable, eq(usersTable.id, socialPostsTable.userId))
+        .where(and(baseWhere, eq(usersTable.role, "bot")))
+        .orderBy(desc(socialPostsTable.createdAt))
+        .limit(overfetch),
+    ]);
+
+    const merged = [
+      ...humanRows.map((p: any) => ({ post: p, isBot: false })),
+      ...botRows.map((p: any) => ({ post: p, isBot: true })),
+    ].sort((a, b) => (b.post.createdAt as Date).getTime() - (a.post.createdAt as Date).getTime());
+
+    const botBudget = Math.ceil(pageLimit * 0.4);
+    let botCount = 0;
+    for (const item of merged) {
+      if (posts.length >= pageLimit) break;
+      if (item.isBot && botCount >= botBudget) continue;
+      posts.push(item.post);
+      if (item.isBot) botCount++;
+    }
+    // Thin tail: if the mix left the page short (few humans), top up.
+    if (posts.length < pageLimit) {
+      const seen = new Set(posts.map((p: any) => p.id));
+      for (const item of merged) {
+        if (posts.length >= pageLimit) break;
+        if (seen.has(item.post.id)) continue;
+        posts.push(item.post);
+        seen.add(item.post.id);
+      }
+    }
+    nextCursor = posts.length ? (posts[posts.length - 1] as any).createdAt : null;
   } else if (type === "group" && groupId) {
     posts = await db.select().from(socialPostsTable)
       .where(and(
@@ -205,10 +249,10 @@ postsRouter.post("/posts", authMiddleware, async (req: AuthRequest, res: Respons
     } catch {}
 
     const enriched = await enrichPost(post, userId);
-    // An AI rival may drop a supportive comment under fresh human posts
-    // (only for posts that made it through moderation).
+    // AI rivals drop topic-matched replies under fresh human posts with a
+    // natural 1–8h lag (only for posts that passed moderation).
     if (moderation.status === "approved" || moderation.status === "flagged") {
-      await maybeBotReply(post.id, userId);
+      await queueBotReplies(post.id, userId, content.trim(), false);
     }
     res.status(201).json({
       ...enriched,
@@ -369,6 +413,11 @@ postsRouter.post("/posts/:id/comments", authMiddleware, async (req: AuthRequest,
   const [author] = await db.select({ name: usersTable.name, email: usersTable.email, role: usersTable.role, id: usersTable.id })
     .from(usersTable).where(eq(usersTable.id, userId)).limit(1);
   const role = (author?.role ?? "user").toLowerCase();
+
+  // Bots continue conversations under fresh human comments (threaded).
+  if (role !== "bot" && (moderation.status === "approved" || moderation.status === "flagged")) {
+    await queueBotCommentReply(comment.id, req.params.id as string, userId);
+  }
 
   res.status(201).json({
     ...comment,

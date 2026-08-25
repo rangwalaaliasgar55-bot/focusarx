@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { syncFocusSessionToCloud } from "@/lib/sync-focus-session";
 import { useSessionRecovery } from "@/components/SessionRecoveryContext";
 import { usePomodoro } from "@/hooks/usePomodoro";
@@ -110,6 +110,12 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
   const [showZen, setShowZen] = useState(false);
   const [overrunTask, setOverrunTask] = useState<{ text: string } | null>(null);
   const [overrunMinutes, setOverrunMinutes] = useState(0);
+  const [showMarathonConfirm, setShowMarathonConfirm] = useState(false);
+  const marathonNudgeRef = useRef(0);
+  const prefersReducedMotion = useMemo(
+    () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    []
+  );
 
   monitorEnabledRef.current = monitorEnabled;
 
@@ -301,15 +307,38 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
   const isRunning = status === "running";
   const canPickMode = status !== "running";
   const activeSeconds = isRunning ? getActiveSeconds() : 0;
+  // Workstream H: a "marathon" is a running focus session planned beyond 2h.
+  const isMarathon = isRunning && mode === "focus" && totalFocusSec > 2 * 60 * 60;
+
+  const beginMarathonStart = useCallback(() => {
+    setShowMarathonConfirm(false);
+    setTotalFocusSec(secondsLeft);
+    setShowSessionTypePicker(true);
+  }, [secondsLeft]);
 
   const handleToggle = useCallback(() => {
     if (status === "idle" && mode === "focus") {
       setTotalFocusSec(secondsLeft);
+      // Workstream H: micro-confirm before any focus session beyond 2h.
+      if (secondsLeft > 2 * 60 * 60) {
+        setShowMarathonConfirm(true);
+        return;
+      }
       setShowSessionTypePicker(true);
     } else {
       toggle();
     }
   }, [status, mode, secondsLeft, toggle]);
+
+  // Workstream H: hourly break nudge during marathons (>2h planned).
+  useEffect(() => {
+    if (!isRunning || mode !== "focus" || totalFocusSec < 2 * 60 * 60) return;
+    const hourMark = Math.floor(activeSeconds / 3600);
+    if (hourMark >= 1 && hourMark > marathonNudgeRef.current) {
+      marathonNudgeRef.current = hourMark;
+      toast(`🚶 Hour ${hourMark} of the marathon — step away for 5 minutes? Beyond 2h, XP pays at 75%.`, "info", 12000);
+    }
+  }, [isRunning, mode, totalFocusSec, activeSeconds, toast]);
 
   const handleSessionTypeSelected = useCallback((type: SessionType) => {
     setSessionType(type);
@@ -414,8 +443,8 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     const input = prompt(`Enter custom duration for ${mode} (in minutes):`, currentMins.toString());
     if (input) {
       const val = parseInt(input, 10);
-      if (!isNaN(val) && val > 0 && val <= 180) setCustomDuration(mode, val * 60);
-      else toast("Please enter a valid number of minutes (1-180).", "error");
+      if (!isNaN(val) && val > 0 && val <= 240) setCustomDuration(mode, val * 60);
+      else toast("Please enter a valid number of minutes (1-240).", "error");
     }
   };
 
@@ -455,7 +484,11 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
       transition={{ type: "spring", stiffness: 260, damping: 32 }}
     >
       <div
-        className={`relative overflow-hidden rounded-[2rem] border bg-[var(--palette-0d0f17)] ${isRunning ? "border-[var(--palette-violet-500)]/30" : "border-[var(--palette-zinc-800)]/80"} shadow-[0_32px_80px_-24px_var(--rgba-0-0-0-0_7)]`}
+        className={`relative overflow-hidden rounded-[2rem] border bg-[var(--palette-0d0f17)] ${
+          isMarathon ? "border-[var(--brand-400)]/45"
+          : isRunning ? "border-[var(--palette-violet-500)]/30"
+          : "border-[var(--palette-zinc-800)]/80"
+        } shadow-[0_32px_80px_-24px_var(--rgba-0-0-0-0_7)]`}
         style={typeTint ? { borderColor: `color-mix(in srgb, ${typeTint.accent} 21%, transparent)` } : undefined}
       >
         {/* Animated background orb when running */}
@@ -465,6 +498,20 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
             animate={{ scale: [1, 1.15, 1], opacity: [0.15, 0.25, 0.15] }}
             transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
             style={{ background: typeTint?.accent ?? "var(--brand-600)" }}
+          />
+        )}
+        {/* Workstream H: marathon pulse — slow heartbeat glow on the card */}
+        {isMarathon && !prefersReducedMotion && (
+          <motion.div
+            className="pointer-events-none absolute inset-0 rounded-[2rem]"
+            animate={{
+              boxShadow: [
+                "0 0 0 0 var(--rgba-167-139-250-0_0)",
+                "0 0 44px 3px var(--rgba-167-139-250-0_4)",
+                "0 0 0 0 var(--rgba-167-139-250-0_0)",
+              ],
+            }}
+            transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
           />
         )}
 
@@ -558,6 +605,40 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
               );
             })}
           </div>
+
+          {/* Workstream H: quick duration chips (focus mode, idle) */}
+          {mode === "focus" && status === "idle" && (
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-600)] mr-0.5">
+                {Math.floor(secondsLeft / 60)}m plan
+              </span>
+              {[25, 50, 90, 120].map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setCustomDuration("focus", m * 60)}
+                  className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold transition-all ${
+                    Math.floor(secondsLeft / 60) === m
+                      ? "border-[var(--brand-400)]/50 bg-[var(--rgba-124-58-237-0_15)] text-[var(--brand-400)]"
+                      : "border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/60 text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)]"
+                  }`}
+                >
+                  {m}m
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setCustomDuration("focus", 240 * 60)}
+                className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold transition-all ${
+                  Math.floor(secondsLeft / 60) === 240
+                    ? "border-[var(--brand-400)]/50 bg-[var(--rgba-167-139-250-0_2)] text-[var(--brand-400)]"
+                    : "border-[var(--rgba-167-139-250-0_3)] bg-[var(--rgba-167-139-250-0_08)] text-[var(--palette-zinc-400)] hover:text-[var(--brand-400)]"
+                }`}
+              >
+                🏔️ Marathon 4h
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ── TIMER DISPLAY ───────────────────────────────────────────── */}
@@ -823,6 +904,52 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
           onDefer={() => { toast("Remaining tasks deferred to tomorrow.", "info"); setOverrunTask(null); }}
           onDrop={() => { toast("Remaining tasks dropped.", "info"); setOverrunTask(null); }}
         />
+      )}
+    </AnimatePresence>
+
+    {/* Workstream H: marathon micro-confirm (>2h) */}
+    <AnimatePresence>
+      {showMarathonConfirm && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-[var(--palette-black)]/75 backdrop-blur-sm p-4"
+        >
+          <motion.div
+            initial={{ scale: 0.92, y: 16, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            exit={{ scale: 0.92, y: 10, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 340, damping: 28 }}
+            className="w-full max-w-sm rounded-2xl border border-[var(--rgba-167-139-250-0_35)] bg-[var(--palette-0d0f17)] p-5 shadow-2xl"
+          >
+            <div className="mb-4 text-center">
+              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--rgba-167-139-250-0_15)] ring-1 ring-[var(--rgba-167-139-250-0_3)] text-3xl">🏔️</div>
+              <h3 className="text-sm font-black text-[var(--palette-zinc-100)]">Marathon ahead — {Math.floor(secondsLeft / 60)} minutes</h3>
+              <p className="mt-1.5 text-xs leading-relaxed text-[var(--palette-zinc-500)]">
+                You're planning <span className="font-bold text-[var(--brand-400)]">more than 2 hours</span> of
+                unbroken focus. Beyond the first 2h, XP and coins pay at 75%, and I'll nudge you for a break at
+                every hour mark. Hydrate before you start.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <button
+                onClick={beginMarathonStart}
+                className="w-full rounded-xl border border-[var(--brand-400)]/40 bg-[var(--rgba-124-58-237-0_15)] px-4 py-3 text-left transition-all hover:bg-[var(--rgba-124-58-237-0_25)]"
+              >
+                <p className="text-xs font-bold text-[var(--brand-400)]">🏔️ Let's ride the marathon</p>
+                <p className="text-[10px] text-[var(--palette-zinc-500)] mt-0.5">Break nudges on · 75% XP beyond 2h</p>
+              </button>
+              <button
+                onClick={() => { setShowMarathonConfirm(false); setCustomDuration(mode, 2 * 60 * 60); }}
+                className="w-full rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/60 px-4 py-3 text-left transition-all hover:border-[var(--palette-violet-500)]/30"
+              >
+                <p className="text-xs font-bold text-[var(--palette-zinc-200)]"> Cap it at 2 hours</p>
+                <p className="text-[10px] text-[var(--palette-zinc-600)] mt-0.5">Full XP rate the whole way</p>
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
       )}
     </AnimatePresence>
 

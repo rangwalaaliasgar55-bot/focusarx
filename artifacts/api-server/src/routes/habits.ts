@@ -7,6 +7,7 @@ import {
 } from "@workspace/db";
 import { extractUserId } from "./auth";
 import { eq, and, desc, sql, gte } from "drizzle-orm";
+import { mintCoins } from "../lib/coinLedger";
 
 export const habitsRouter = Router();
 
@@ -129,8 +130,12 @@ habitsRouter.post("/habits/:id/complete", authMiddleware, async (req: AuthReques
 
   try {
     await db.update(userWalletsTable)
-      .set({ coins: sql`coins + 10`, totalXp: sql`total_xp + 25`, weeklyXp: sql`weekly_xp + 25` })
+      .set({ totalXp: sql`total_xp + 25`, weeklyXp: sql`weekly_xp + 25` })
       .where(eq(userWalletsTable.userId, userId));
+    await mintCoins(userId, 10, "habit_reward", {
+      description: "Habit completed: +10 coins",
+      metadata: { habitId: habit.id },
+    });
   } catch {}
 
   res.json({ ok: true, streak, totalCompletions: habit.totalCompletions + 1 });

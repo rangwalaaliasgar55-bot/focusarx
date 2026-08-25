@@ -16,6 +16,8 @@ import FeedbackModal, { useFeedbackTrigger } from "@/components/FeedbackModal";
 import { FocusMoodWidget } from "@/components/FocusMoodWidget";
 import StreakNudge from "@/components/StreakNudge";
 import SmartSuggestion from "@/components/SmartSuggestion";
+import AskArx from "@/components/AskArx";
+import { DropBanner } from "@/components/DropBanner";
 
 function SidePanel() {
   const { focusSessionsToday } = useSessionHistory();
@@ -114,6 +116,7 @@ function SidePanel() {
       </div>
 
       <FocusMoodWidget />
+      <AskArx />
       <DailyGoal />
       <ProductivityScoreWidget />
       <MissionsWidget />
@@ -327,6 +330,9 @@ export default function FocusHomePage() {
         <FocusChamberHeader />
         <StreakNudge />
         <SmartSuggestion />
+        <div className="w-full px-4 sm:px-6 pt-3 pb-1">
+          <DropBanner />
+        </div>
         <div className="flex-1 flex flex-col lg:flex-row gap-0 overflow-auto">
           {/* Timer area */}
           <div className="flex-1 flex flex-col items-center justify-start gap-3 px-4 sm:px-6 py-6 lg:py-8">
