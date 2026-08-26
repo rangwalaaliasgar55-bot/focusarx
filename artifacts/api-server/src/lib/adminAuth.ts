@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { getServerConfig } from "./config";
 import { extractUserId } from "../routes/auth";
 
-const ADMIN_COOKIE = "focusarx_admin";
+export const ADMIN_COOKIE = "focusarx_admin";
 
 function getJwtSecret(): string {
   const secret = getServerConfig().jwtSecret;
@@ -41,4 +41,23 @@ export async function checkAdminAuth(req: {
   } catch {
     return false;
   }
+}
+
+export async function getAdminIdentity(req: {
+  headers: { cookie?: string; authorization?: string };
+}): Promise<{ isAdmin: boolean; userId?: string; method: "cookie" | "role" | "none" }> {
+  if (isAdminAuthed(req)) {
+    return { isAdmin: true, method: "cookie" };
+  }
+  const userId = extractUserId(req);
+  if (!userId) return { isAdmin: false, method: "none" };
+  try {
+    const [user] = await db.select({ role: usersTable.role }).from(usersTable).where(eq(usersTable.id, userId));
+    if (user?.role?.toLowerCase() === "admin") {
+      return { isAdmin: true, userId, method: "role" };
+    }
+  } catch {
+    // ignore
+  }
+  return { isAdmin: false, method: "none" };
 }

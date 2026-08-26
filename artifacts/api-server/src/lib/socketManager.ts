@@ -3,12 +3,22 @@ import { extractUserId } from "../routes/auth";
 import { logger } from "./logger";
 import { db, studyRoomMembersTable, studyRoomsTable } from "@workspace/db";
 import { and, eq } from "drizzle-orm";
+import { z } from "zod";
 
 let io: Server | null = null;
 
 const userSockets = new Map<string, Set<string>>();
 const socketUsers = new Map<string, string>();
 const onlineUsers = new Set<string>();
+
+// Zod schemas for socket payloads
+const roomIdSchema = z.string().uuid();
+const roomChatSchema = z.object({
+  roomId: z.string().uuid(),
+  content: z.string().trim().min(1).max(500),
+});
+
+const joinRoomSchema = z.string().uuid();
 
 export function initSocket(httpServer: import("http").Server) {
   const isDev = process.env.NODE_ENV !== "production";
@@ -18,6 +28,7 @@ export function initSocket(httpServer: import("http").Server) {
     process.env.VERCEL_PROJECT_PRODUCTION_URL
       ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
       : undefined,
+    ...(process.env.CORS_ALLOWED_ORIGINS?.split(",").map((v) => v.trim()).filter(Boolean) ?? []),
   ].filter((value): value is string => Boolean(value)).map((value) => {
     try { return new URL(value).origin; } catch { return value.replace(/\/+$/, ""); }
   });
@@ -33,9 +44,12 @@ export function initSocket(httpServer: import("http").Server) {
         cb(new Error("Origin not allowed"));
       },
       credentials: true,
+      methods: ["GET", "POST"],
     },
     transports: ["websocket", "polling"],
     path: "/socket.io/",
+    maxHttpBufferSize: 1e6, // 1MB max message size
+    connectTimeout: 10000,
   });
 
   io.use((socket: Socket, next) => {
@@ -45,8 +59,8 @@ export function initSocket(httpServer: import("http").Server) {
       next(new Error("Authentication required"));
       return;
     }
-    const fakeReq = { headers: { authorization: `Bearer ${token}` } };
-    const userId = extractUserId(fakeReq as any);
+    const fakeReq = { headers: { authorization: `Bearer ${token}` } } as any;
+    const userId = extractUserId(fakeReq);
     if (!userId) {
       logger.warn({ socketId: socket.id }, "socket auth rejected: invalid token");
       next(new Error("Invalid token"));
@@ -69,63 +83,135 @@ export function initSocket(httpServer: import("http").Server) {
     logger.info({ userId, socketId: socket.id, transport: socket.conn.transport.name }, "socket connected");
 
     const canAccessRoom = async (roomId: string): Promise<boolean> => {
-      if (!/^[0-9a-f-]{36}$/i.test(roomId)) return false;
-      const [membership] = await db.select({ id: studyRoomMembersTable.id })
-        .from(studyRoomMembersTable)
-        .innerJoin(studyRoomsTable, eq(studyRoomMembersTable.roomId, studyRoomsTable.id))
-        .where(and(
-          eq(studyRoomMembersTable.roomId, roomId),
-          eq(studyRoomMembersTable.userId, userId),
-          eq(studyRoomMembersTable.status, "active"),
-          eq(studyRoomsTable.status, "active"),
-        ))
-        .limit(1);
-      return Boolean(membership);
+      const parsed = roomIdSchema.safeParse(roomId);
+      if (!parsed.success) return false;
+      try {
+        const [membership] = await db.select({ id: studyRoomMembersTable.id })
+          .from(studyRoomMembersTable)
+          .innerJoin(studyRoomsTable, eq(studyRoomMembersTable.roomId, studyRoomsTable.id))
+          .where(and(
+            eq(studyRoomMembersTable.roomId, roomId),
+            eq(studyRoomMembersTable.userId, userId),
+            eq(studyRoomMembersTable.status, "active"),
+            eq(studyRoomsTable.status, "active"),
+          ))
+          .limit(1);
+        return Boolean(membership);
+      } catch {
+        return false;
+      }
     };
+
+    // Rate limiting per socket
+    const recentRoomMessages: number[] = [];
+    const recentJoins: number[] = [];
+
+    function checkRateLimit(bucket: number[], windowMs: number, max: number): boolean {
+      const cutoff = Date.now() - windowMs;
+      while (bucket.length && bucket[0]! < cutoff) bucket.shift();
+      if (bucket.length >= max) return false;
+      bucket.push(Date.now());
+      return true;
+    }
 
     socket.on("join:room", async (roomId: string, acknowledge?: (result: { ok: boolean; error?: string }) => void) => {
       try {
-        if (!await canAccessRoom(roomId)) {
-          acknowledge?.({ ok: false, error: "Not authorized for this room" });
-          logger.warn({ userId, roomId }, "unauthorized socket room join rejected");
+        const parsed = joinRoomSchema.safeParse(roomId);
+        if (!parsed.success) {
+          acknowledge?.({ ok: false, error: "INVALID_ROOM_ID" });
+          socket.emit("error", { code: "INVALID_MESSAGE", message: "Invalid room ID" });
           return;
         }
-        await socket.join(`room:${roomId}`);
+
+        if (!checkRateLimit(recentJoins, 60_000, 20)) {
+          acknowledge?.({ ok: false, error: "RATE_LIMITED" });
+          socket.emit("error", { code: "RATE_LIMITED", message: "Too many join attempts" });
+          return;
+        }
+
+        if (!await canAccessRoom(parsed.data)) {
+          acknowledge?.({ ok: false, error: "Not authorized for this room" });
+          logger.warn({ userId, roomId: parsed.data }, "unauthorized socket room join rejected");
+          socket.emit("error", { code: "FORBIDDEN", message: "Not authorized for this room" });
+          return;
+        }
+
+        await socket.join(`room:${parsed.data}`);
         acknowledge?.({ ok: true });
-        logger.debug({ userId, roomId }, "joined room");
-        // A couple of AI rivals banter briefly when a human joins — the room
-        // feels inhabited. Deterministic per (room, IST day), throttled to
-        // once per 20 minutes per room. Bots are always visibly badged.
-        scheduleBotBanter(io!, roomId);
+        logger.debug({ userId, roomId: parsed.data }, "joined room");
+        scheduleBotBanter(io!, parsed.data);
       } catch (err) {
         acknowledge?.({ ok: false, error: "Unable to join room" });
         logger.error({ err, userId, roomId }, "socket room authorization failed");
+        socket.emit("error", { code: "INTERNAL_ERROR", message: "Unable to join room" });
       }
     });
 
     socket.on("leave:room", (roomId: string) => {
-      socket.leave(`room:${roomId}`);
+      const parsed = roomIdSchema.safeParse(roomId);
+      if (!parsed.success) {
+        socket.emit("error", { code: "INVALID_MESSAGE", message: "Invalid room ID" });
+        return;
+      }
+      socket.leave(`room:${parsed.data}`);
     });
 
-    const recentRoomMessages: number[] = [];
-    socket.on("room:chat", async ({ roomId, content }: { roomId?: string; content?: string }) => {
-      if (!roomId || typeof content !== "string" || !content.trim() || content.length > 500) return;
-      const cutoff = Date.now() - 60_000;
-      while (recentRoomMessages.length && recentRoomMessages[0]! < cutoff) recentRoomMessages.shift();
-      if (recentRoomMessages.length >= 20) {
+    socket.on("room:chat", async (payload: unknown) => {
+      const parsed = roomChatSchema.safeParse(payload);
+      if (!parsed.success) {
+        socket.emit("error", { code: "INVALID_MESSAGE", message: "Invalid message format" });
+        return;
+      }
+
+      const { roomId, content } = parsed.data;
+
+      if (!checkRateLimit(recentRoomMessages, 60_000, 20)) {
         logger.warn({ userId, roomId }, "socket room message rate limit exceeded");
+        socket.emit("error", { code: "RATE_LIMITED", message: "Too many messages" });
         return;
       }
-      if (!socket.rooms.has(`room:${roomId}`) || !await canAccessRoom(roomId)) {
+
+      // Verify room membership AND that socket actually joined the room
+      // Do not trust client-supplied userId — use authenticated socket.userId
+      if (!socket.rooms.has(`room:${roomId}`)) {
+        const hasAccess = await canAccessRoom(roomId);
+        if (!hasAccess) {
+          logger.warn({ userId, roomId }, "unauthorized socket room message rejected - not in room");
+          socket.emit("error", { code: "FORBIDDEN", message: "Not in room" });
+          return;
+        }
+        // Auto-join if they have access but haven't joined via event (defensive)
+        await socket.join(`room:${roomId}`);
+      }
+
+      if (!await canAccessRoom(roomId)) {
         logger.warn({ userId, roomId }, "unauthorized socket room message rejected");
+        socket.emit("error", { code: "FORBIDDEN", message: "Not authorized" });
         return;
       }
-      recentRoomMessages.push(Date.now());
+
+      // Sanitize content — prevent XSS
+      const sanitized = content.trim().replace(/[<>]/g, "").slice(0, 500);
+      if (!sanitized) {
+        socket.emit("error", { code: "INVALID_MESSAGE", message: "Empty message" });
+        return;
+      }
+
       io?.to(`room:${roomId}`).emit("room:chat", {
-        userId,
-        content: content.trim(),
+        userId, // Server-determined, never trust client
+        content: sanitized,
         ts: new Date().toISOString(),
       });
+    });
+
+    // Generic message handler with validation
+    socket.on("room:typing", async (payload: unknown) => {
+      const parsed = roomIdSchema.safeParse((payload as any)?.roomId ?? payload);
+      if (!parsed.success) return;
+      const roomId = parsed.data;
+      if (!socket.rooms.has(`room:${roomId}`)) return;
+      if (!await canAccessRoom(roomId)) return;
+      socket.to(`room:${roomId}`).emit("room:typing", { userId, ts: new Date().toISOString() });
     });
 
     socket.on("disconnect", (reason) => {
@@ -149,17 +235,14 @@ export function initSocket(httpServer: import("http").Server) {
   return io;
 }
 
-// ── study-room bot banter (A2: "bots live like real members") ───────────────
-// Short bot-to-bot exchanges (2–4 Hinglish lines) that play when a human
-// joins an active room. Deterministic per (room, IST day) + in-memory
-// throttle, so repeated joins don't replay it, and it costs zero AI calls.
+// ── study-room bot banter ───────────────────────────────────────────────
 
 import { BANTER } from "./botTemplates";
 import { hashString, mulberry32 } from "./personas";
 import { usersTable as botUsersTable } from "@workspace/db";
 import { eq as eqRoom } from "drizzle-orm";
 
-const lastBotBanter = new Map<string, number>(); // roomId -> last-run timestamp
+const lastBotBanter = new Map<string, number>();
 
 async function pickBanterBots(): Promise<Array<{ id: string; name: string }>> {
   const rows = await db
@@ -174,7 +257,7 @@ function scheduleBotBanter(io: Server, roomId: string): void {
   try {
     const dayKey = new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10);
     const rng = mulberry32(hashString(`banter:${roomId}:${dayKey}`));
-    if (rng() > 0.75) return; // ~75% of room-days get a little banter
+    if (rng() > 0.75) return;
     const last = lastBotBanter.get(roomId) ?? 0;
     if (Date.now() - last < 20 * 60 * 1000) return;
     lastBotBanter.set(roomId, Date.now());
@@ -185,7 +268,7 @@ function scheduleBotBanter(io: Server, roomId: string): void {
       const speakerA = bots[Math.floor(rng() * bots.length)]!;
       const speakerB = bots[Math.floor(rng() * bots.length)]!;
       if (speakerA.id === speakerB.id) return;
-      const count = 2 + Math.floor(rng() * 3); // 2–4 lines
+      const count = 2 + Math.floor(rng() * 3);
       const firstLine = Math.floor(rng() * BANTER.length);
       const delay = 1500 + rng() * 2500;
       let i = 0;
@@ -212,7 +295,6 @@ function scheduleBotBanter(io: Server, roomId: string): void {
 
 export function getIO(): Server | null { return io; }
 
-/** Broadcast an event to every connected socket (drop announcements etc). */
 export function emitDrop(data: unknown): void {
   try {
     io?.emit("drop:started", data);

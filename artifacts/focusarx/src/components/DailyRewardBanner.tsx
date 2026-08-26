@@ -16,12 +16,25 @@ function getTodayKey() { return new Date().toISOString().split("T")[0]; }
 
 const STREAK_EMOJIS = ["🌟", "⭐", "🔥", "💫", "✨", "🏅", "🏆"];
 
+interface DailyRewardStatus {
+  streak: number;
+  alreadyClaimed: boolean;
+  nextReward?: { icon: string; label: string; description?: string };
+}
+
+interface ClaimedReward {
+  coins?: number;
+  xp?: number;
+  label?: string;
+  icon?: string;
+}
+
 export default function DailyRewardBanner() {
-  const [status, setStatus] = useState<any>(null);
+  const [status, setStatus] = useState<DailyRewardStatus | null>(null);
   const [open, setOpen] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [claimed, setClaimed] = useState(false);
-  const [claimedReward, setClaimedReward] = useState<any>(null);
+  const [claimedReward, setClaimedReward] = useState<ClaimedReward | null>(null);
 
   useEffect(() => {
     const token = getToken();
@@ -54,7 +67,7 @@ export default function DailyRewardBanner() {
       if (!res.ok) { handleDismiss(); return; }
       setClaimed(true);
       setClaimedReward(data.reward);
-      setStatus((s: any) => s ? { ...s, alreadyClaimed: true, streak: data.streak } : s);
+      setStatus((s) => s ? { ...s, alreadyClaimed: true, streak: data.streak } : s);
       setTimeout(() => { setOpen(false); localStorage.setItem(LS_KEY, getTodayKey()); }, 3000);
     } finally {
       setClaiming(false);

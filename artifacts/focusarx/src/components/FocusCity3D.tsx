@@ -1,6 +1,6 @@
 import { resolveColorToken } from "@/lib/color-tokens";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useRef, useMemo, Suspense } from "react";
+import { useRef, useMemo, Suspense, useEffect, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls, PerspectiveCamera, Text, Float, Environment, ContactShadows } from "@react-three/drei";
 
@@ -14,18 +14,18 @@ const BUILDINGS_CONFIG = [
   { id: "observatory", name: "Observatory", xp: 100000, color: resolveColorToken("--palette-818cf8"), emoji: "🔭", height: 3.5 },
 ];
 
-function Building({ config, position, unlocked }: { config: any, position: [number, number, number], unlocked: boolean }) {
+function Building({ config, position, unlocked, lowDetail }: { config: any, position: [number, number, number], unlocked: boolean, lowDetail: boolean }) {
   const meshRef = useRef<THREE.Mesh>(null!);
 
   return (
     <group position={position}>
-      <Float speed={unlocked ? 1.5 : 0} rotationIntensity={0.2} floatIntensity={0.5}>
+      <Float speed={unlocked && !lowDetail ? 1.5 : 0} rotationIntensity={lowDetail ? 0 : 0.2} floatIntensity={lowDetail ? 0 : 0.5}>
         <mesh ref={meshRef}>
           <boxGeometry args={[1, config.height, 1]} />
           <meshStandardMaterial
             color={unlocked ? config.color : resolveColorToken("--palette-2a2a3a")}
-            metalness={0.6}
-            roughness={0.2}
+            metalness={lowDetail ? 0.2 : 0.6}
+            roughness={lowDetail ? 0.6 : 0.2}
             transparent
             opacity={unlocked ? 0.9 : 0.4}
             emissive={unlocked ? config.color : resolveColorToken("--neutral-950")}
@@ -54,23 +54,22 @@ function Building({ config, position, unlocked }: { config: any, position: [numb
   );
 }
 
-function CityScene({ totalXp }: { totalXp: number }) {
+function CityScene({ totalXp, lowDetail }: { totalXp: number, lowDetail: boolean }) {
   return (
     <>
       <PerspectiveCamera makeDefault position={[8, 8, 8]} fov={40} />
-      <OrbitControls enableZoom={false} autoRotate autoRotateSpeed={0.5} />
-      <ambientLight intensity={0.7} />
-      <pointLight position={[10, 10, 10]} intensity={1} />
-      <Environment preset="night" />
+      <OrbitControls enableZoom={false} autoRotate={!lowDetail} autoRotateSpeed={0.5} enableDamping={false} />
+      <ambientLight intensity={lowDetail ? 0.9 : 0.7} />
+      {!lowDetail && <pointLight position={[10, 10, 10]} intensity={1} />}
+      {!lowDetail && <Environment preset="night" />}
 
       <group position={[0, -1, 0]}>
-        {/* Ground */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
           <planeGeometry args={[20, 20]} />
           <meshStandardMaterial color={resolveColorToken("--palette-0a0f1e")} roughness={0.8} />
         </mesh>
 
-        <gridHelper args={[20, 20, resolveColorToken("--palette-1a2e1a"), resolveColorToken("--palette-111")]} position={[0, 0.01, 0]} />
+        {!lowDetail && <gridHelper args={[20, 20, resolveColorToken("--palette-1a2e1a"), resolveColorToken("--palette-111")]} position={[0, 0.01, 0]} />}
 
         {BUILDINGS_CONFIG.map((b, i) => {
           const angle = (i / BUILDINGS_CONFIG.length) * Math.PI * 2;
@@ -84,22 +83,135 @@ function CityScene({ totalXp }: { totalXp: number }) {
               config={b}
               position={[x, b.height / 2, z]}
               unlocked={unlocked}
+              lowDetail={lowDetail}
             />
           );
         })}
       </group>
 
-      <ContactShadows opacity={0.4} scale={20} blur={2.4} far={4.5} />
+      {!lowDetail && <ContactShadows opacity={0.4} scale={20} blur={2.4} far={4.5} />}
     </>
   );
 }
 
+function useWebGLSupport() {
+  const [supported, setSupported] = useState(true);
+  useEffect(() => {
+    try {
+      const canvas = document.createElement("canvas");
+      const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+      if (!gl) setSupported(false);
+    } catch {
+      setSupported(false);
+    }
+  }, []);
+  return supported;
+}
+
+function useReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
+    mq.addEventListener?.("change", handler);
+    return () => mq.removeEventListener?.("change", handler);
+  }, []);
+  return reduced;
+}
+
+function useIsMobile() {
+  const [mobile, setMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setMobile(window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+  return mobile;
+}
+
+export function FocusCityFallback({ totalXp }: { totalXp: number }) {
+  const unlockedCount = BUILDINGS_CONFIG.filter(b => totalXp >= b.xp).length;
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-4 rounded-xl border border-dashed p-8 text-center">
+      <div className="text-4xl">🏙️</div>
+      <div>
+        <p className="font-semibold">Focus City (2D Mode)</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          {unlockedCount} of {BUILDINGS_CONFIG.length} buildings unlocked
+        </p>
+      </div>
+      <div className="grid grid-cols-4 gap-2 mt-2">
+        {BUILDINGS_CONFIG.map(b => {
+          const unlocked = totalXp >= b.xp;
+          return (
+            <div key={b.id} className={`rounded-lg border p-2 text-center ${unlocked ? "bg-primary/10 border-primary/30" : "opacity-40"}`}>
+              <div className="text-xl">{b.emoji}</div>
+              <div className="text-[10px] mt-1">{b.name}</div>
+            </div>
+          );
+        })}
+      </div>
+      <p className="text-xs text-muted-foreground mt-2">3D unavailable — showing lightweight fallback</p>
+    </div>
+  );
+}
+
+export function CitySkeleton() {
+  return (
+    <div className="h-full w-full animate-pulse rounded-xl bg-muted/50 flex items-center justify-center">
+      <div className="text-sm text-muted-foreground">Loading city...</div>
+    </div>
+  );
+}
+
 export default function FocusCity3D({ totalXp, className }: { totalXp: number, className?: string }) {
+  const webglSupported = useWebGLSupport();
+  const reducedMotion = useReducedMotion();
+  const isMobile = useIsMobile();
+  const lowDetail = isMobile || reducedMotion;
+
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    // GPU memory cleanup on route change / unmount
+    return () => {
+      try {
+        // Force Three.js to dispose
+        THREE.Cache.clear();
+      } catch {}
+    };
+  }, []);
+
+  if (!webglSupported || hasError) {
+    return <FocusCityFallback totalXp={totalXp} />;
+  }
+
   return (
     <div className={`h-full w-full ${className}`}>
-      <Canvas shadows>
+      <Canvas
+        dpr={[1, lowDetail ? 1.2 : 1.5]}
+        frameloop={reducedMotion ? "demand" : "always"}
+        gl={{
+          antialias: !lowDetail,
+          powerPreference: "high-performance",
+          alpha: true,
+          stencil: false,
+          depth: true,
+        }}
+        shadows={!lowDetail}
+        onCreated={({ gl }) => {
+          // Handle context loss
+          const canvas = gl.domElement;
+          canvas.addEventListener("webglcontextlost", (e) => {
+            e.preventDefault();
+            setHasError(true);
+          });
+        }}
+      >
         <Suspense fallback={null}>
-          <CityScene totalXp={totalXp} />
+          <CityScene totalXp={totalXp} lowDetail={lowDetail} />
         </Suspense>
       </Canvas>
     </div>

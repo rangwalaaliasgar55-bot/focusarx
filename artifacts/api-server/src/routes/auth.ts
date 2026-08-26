@@ -32,19 +32,43 @@ const resetSchema = z.object({
 
 const router = Router();
 
+const IS_PROD = process.env.NODE_ENV === "production";
+
 function jwtSecretOrRespond(res: { status: (code: number) => { json: (body: unknown) => void } }): string | null {
   const secret = getServerConfig().jwtSecret;
   if (!secret) {
     res.status(503).json({
-      error: "Authentication is not configured",
-      hint: "Set AUTH_SECRET in your environment variables",
+      error: {
+        code: "CONFIG_ERROR",
+        message: "Authentication is not configured",
+        hint: "Set AUTH_SECRET in your environment variables",
+      },
     });
     return null;
   }
   return secret;
 }
 
-function makeToken(userId: string, secret: string): string {
+function makeAccessToken(userId: string, secret: string): string {
+  return jwt.sign({ sub: userId, type: "access" }, secret, {
+    algorithm: "HS256",
+    issuer: "focusarx-api",
+    audience: "focusarx-web",
+    expiresIn: "15m",
+  });
+}
+
+function makeRefreshToken(userId: string, secret: string): string {
+  return jwt.sign({ sub: userId, type: "refresh", jti: crypto.randomUUID() }, secret, {
+    algorithm: "HS256",
+    issuer: "focusarx-api",
+    audience: "focusarx-web",
+    expiresIn: "7d",
+  });
+}
+
+// Legacy 7d token for backward compat during migration — will be removed
+function makeLegacyToken(userId: string, secret: string): string {
   return jwt.sign({ sub: userId, type: "access" }, secret, {
     algorithm: "HS256",
     issuer: "focusarx-api",
@@ -53,42 +77,134 @@ function makeToken(userId: string, secret: string): string {
   });
 }
 
-function verifyToken(token: string, secret: string): { sub: string; type: string } | null {
+function verifyToken(token: string, secret: string, expectedType: "access" | "refresh" = "access"): { sub: string; type: string } | null {
   try {
     const payload = jwt.verify(token, secret, {
       algorithms: ["HS256"],
       issuer: "focusarx-api",
       audience: "focusarx-web",
     }) as { sub?: unknown; type?: unknown };
-    return typeof payload.sub === "string" && payload.type === "access"
-      ? { sub: payload.sub, type: payload.type }
-      : null;
+    if (typeof payload.sub !== "string") return null;
+    if (payload.type !== expectedType) {
+      // Allow legacy tokens that have type access but we accept for refresh fallback
+      if (expectedType === "access" && payload.type === "access") {
+        return { sub: payload.sub, type: payload.type as string };
+      }
+      return null;
+    }
+    return { sub: payload.sub, type: payload.type as string };
   } catch {
     return null;
   }
 }
 
-export function extractUserId(req: { headers: { authorization?: string } }): string | null {
+function verifyAnyAccessToken(token: string, secret: string): { sub: string } | null {
+  // Accept both short-lived and legacy long-lived access tokens
+  const result = verifyToken(token, secret, "access");
+  return result ? { sub: result.sub } : null;
+}
+
+export function extractUserId(req: { headers: { authorization?: string; cookie?: string }; cookies?: Record<string, string> }): string | null {
   const secret = getServerConfig().jwtSecret;
   if (!secret) return null;
+
+  // 1. Try Authorization header
   const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith("Bearer ")) return null;
-  const token = authHeader.slice(7);
-  const payload = verifyToken(token, secret);
-  return payload?.sub ?? null;
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.slice(7);
+    const payload = verifyAnyAccessToken(token, secret);
+    if (payload?.sub) return payload.sub;
+  }
+
+  // 2. Try httpOnly cookie (secure path)
+  const cookies = (req as any).cookies ?? {};
+  const cookieToken = cookies["access_token"] ?? cookies["focusarx_token"];
+  if (cookieToken) {
+    const payload = verifyAnyAccessToken(cookieToken, secret);
+    if (payload?.sub) return payload.sub;
+  }
+
+  // 3. Fallback: parse cookie header manually if cookie-parser not applied
+  const cookieHeader = req.headers.cookie ?? "";
+  if (cookieHeader) {
+    const match = cookieHeader.match(/(?:^|;\s*)(?:access_token|focusarx_token)=([^;]+)/);
+    if (match?.[1]) {
+      try {
+        const payload = verifyAnyAccessToken(decodeURIComponent(match[1]), secret);
+        if (payload?.sub) return payload.sub;
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  return null;
+}
+
+function setAuthCookies(res: any, accessToken: string, refreshToken: string) {
+  const baseOpts = {
+    httpOnly: true,
+    secure: IS_PROD,
+    sameSite: "lax" as const,
+    path: "/",
+  };
+
+  res.cookie("access_token", accessToken, {
+    ...baseOpts,
+    maxAge: 15 * 60 * 1000, // 15 minutes
+  });
+
+  res.cookie("refresh_token", refreshToken, {
+    ...baseOpts,
+    path: "/api/auth/refresh",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  });
+
+  // Legacy cookie for backward compat
+  res.cookie("focusarx_token", accessToken, {
+    ...baseOpts,
+    maxAge: 15 * 60 * 1000,
+  });
+}
+
+function clearAuthCookies(res: any) {
+  const baseOpts = {
+    httpOnly: true,
+    secure: IS_PROD,
+    sameSite: "lax" as const,
+    path: "/",
+  };
+  res.cookie("access_token", "", { ...baseOpts, maxAge: 0 });
+  res.cookie("refresh_token", "", { ...baseOpts, path: "/api/auth/refresh", maxAge: 0 });
+  res.cookie("focusarx_token", "", { ...baseOpts, maxAge: 0 });
 }
 
 router.get("/auth/session", async (req, res) => {
   if (!jwtSecretOrRespond(res)) return;
   const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!userId) {
+    res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Unauthorized" } });
+    return;
+  }
   try {
-    const [user] = await db.select({ id: usersTable.id, email: usersTable.email, name: usersTable.name, isGuest: usersTable.isGuest, role: usersTable.role, onboardingCompleted: usersTable.onboardingCompleted, bio: usersTable.bio, timezone: usersTable.timezone }).from(usersTable).where(eq(usersTable.id, userId));
-    if (!user) { res.status(401).json({ error: "User not found" }); return; }
+    const [user] = await db.select({
+      id: usersTable.id,
+      email: usersTable.email,
+      name: usersTable.name,
+      isGuest: usersTable.isGuest,
+      role: usersTable.role,
+      onboardingCompleted: usersTable.onboardingCompleted,
+      bio: usersTable.bio,
+      timezone: usersTable.timezone
+    }).from(usersTable).where(eq(usersTable.id, userId));
+    if (!user) {
+      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "User not found" } });
+      return;
+    }
     res.json({ user });
   } catch (err) {
     logger.error({ err }, "session error");
-    res.status(500).json({ error: "Internal error" });
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 });
 
@@ -96,14 +212,12 @@ router.post("/auth/login", authLimiter, async (req, res) => {
   const secret = jwtSecretOrRespond(res);
   if (!secret) return;
   const parsed = loginSchema.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: "Invalid email or password format" }); return; }
+  if (!parsed.success) {
+    res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid email or password format" } });
+    return;
+  }
   const { email, password } = parsed.data;
   try {
-    // Select ONLY the columns login needs. A bare `db.select().from(usersTable)`
-    // selects every schema column (including ones added by later migrations, e.g.
-    // referral_*), so any schema drift (a deploy whose `drizzle-kit push` was
-    // skipped/aborted) makes this query throw "column ... does not exist" and the
-    // user gets an opaque 500 "Internal error" instead of signing in.
     const [user] = await db.select({
       id: usersTable.id,
       email: usersTable.email,
@@ -111,36 +225,58 @@ router.post("/auth/login", authLimiter, async (req, res) => {
       isGuest: usersTable.isGuest,
       hashedPassword: usersTable.hashedPassword,
     }).from(usersTable).where(eq(usersTable.email, email));
-    if (!user?.hashedPassword) { res.status(401).json({ error: "Invalid credentials" }); return; }
+    if (!user?.hashedPassword) {
+      res.status(401).json({ error: { code: "INVALID_CREDENTIALS", message: "Invalid credentials" } });
+      return;
+    }
     const valid = await bcrypt.compare(password, user.hashedPassword);
-    if (!valid) { res.status(401).json({ error: "Invalid credentials" }); return; }
-    res.json({ token: makeToken(user.id, secret), user: { id: user.id, email: user.email, name: user.name, isGuest: user.isGuest } });
+    if (!valid) {
+      res.status(401).json({ error: { code: "INVALID_CREDENTIALS", message: "Invalid credentials" } });
+      return;
+    }
+    const accessToken = makeAccessToken(user.id, secret);
+    const refreshToken = makeRefreshToken(user.id, secret);
+    const legacyToken = makeLegacyToken(user.id, secret); // for clients still using Bearer
+
+    setAuthCookies(res, accessToken, refreshToken);
+
+    res.json({
+      token: legacyToken,
+      accessToken,
+      user: { id: user.id, email: user.email, name: user.name, isGuest: user.isGuest }
+    });
   } catch (err) {
     logger.error({ err }, "login error");
-    res.status(500).json({ error: "Internal error" });
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 });
 
 router.post("/auth/register", authLimiter, async (req, res) => {
+  const secret = jwtSecretOrRespond(res);
+  if (!secret) return;
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) {
     const msg = parsed.error.errors[0]?.message ?? "Invalid input";
-    res.status(400).json({ error: msg });
+    res.status(400).json({ error: { code: "VALIDATION_ERROR", message: msg } });
     return;
   }
   const { email, password, name } = parsed.data;
   try {
     const [existing] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, email));
-    if (existing) { res.status(400).json({ error: "Email already registered" }); return; }
+    if (existing) {
+      res.status(400).json({ error: { code: "EMAIL_EXISTS", message: "Email already registered" } });
+      return;
+    }
     const hashedPassword = await bcrypt.hash(password, 12);
-    // Returning only the columns we use keeps this resilient to schema drift
-    // (a full `.returning()` selects every column and throws if any is missing).
     const [user] = await db.insert(usersTable).values({ email, name: name || null, hashedPassword, isGuest: false }).returning({ id: usersTable.id, email: usersTable.email });
-    if (!user) { res.status(500).json({ error: "Failed to create user" }); return; }
+    if (!user) {
+      res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to create user" } });
+      return;
+    }
     res.status(201).json({ message: "Account created", user: { id: user.id, email: user.email } });
   } catch (err) {
     logger.error({ err }, "register error");
-    res.status(500).json({ error: "Internal error" });
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 });
 
@@ -148,7 +284,10 @@ router.post("/auth/guest", async (req, res) => {
   const secret = jwtSecretOrRespond(res);
   if (!secret) return;
   const { guestKey } = req.body as { guestKey?: string };
-  if (!guestKey || guestKey.length < 8) { res.status(400).json({ error: "Invalid guest key" }); return; }
+  if (!guestKey || guestKey.length < 8) {
+    res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid guest key" } });
+    return;
+  }
   const safeKey = guestKey.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 120);
   const guestEmail = `guest_${safeKey}@guest.focusarx.internal`;
   try {
@@ -167,12 +306,71 @@ router.post("/auth/guest", async (req, res) => {
       });
       user = created;
     }
-    if (!user) { res.status(500).json({ error: "Failed to create guest" }); return; }
-    res.json({ token: makeToken(user.id, secret), user: { id: user.id, email: user.email, name: user.name, isGuest: true } });
+    if (!user) {
+      res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to create guest" } });
+      return;
+    }
+    const accessToken = makeAccessToken(user.id, secret);
+    const refreshToken = makeRefreshToken(user.id, secret);
+    const legacyToken = makeLegacyToken(user.id, secret);
+
+    setAuthCookies(res, accessToken, refreshToken);
+
+    res.json({
+      token: legacyToken,
+      accessToken,
+      user: { id: user.id, email: user.email, name: user.name, isGuest: true }
+    });
   } catch (err) {
     logger.error({ err }, "guest error");
-    res.status(500).json({ error: "Internal error" });
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
+});
+
+router.post("/auth/refresh", async (req, res) => {
+  const secret = jwtSecretOrRespond(res);
+  if (!secret) return;
+
+  const cookies = (req as any).cookies ?? {};
+  const refreshToken = cookies["refresh_token"] ?? (req.body as any)?.refreshToken;
+
+  if (!refreshToken) {
+    res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Refresh token required" } });
+    return;
+  }
+
+  const payload = verifyToken(refreshToken, secret, "refresh");
+  if (!payload?.sub) {
+    clearAuthCookies(res);
+    res.status(401).json({ error: { code: "INVALID_TOKEN", message: "Invalid refresh token" } });
+    return;
+  }
+
+  try {
+    const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, payload.sub));
+    if (!user) {
+      clearAuthCookies(res);
+      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "User not found" } });
+      return;
+    }
+
+    // Rotate refresh token
+    const newAccessToken = makeAccessToken(user.id, secret);
+    const newRefreshToken = makeRefreshToken(user.id, secret);
+    const legacyToken = makeLegacyToken(user.id, secret);
+
+    setAuthCookies(res, newAccessToken, newRefreshToken);
+
+    res.json({ token: legacyToken, accessToken: newAccessToken });
+  } catch (err) {
+    logger.error({ err }, "refresh error");
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
+  }
+});
+
+router.post("/auth/logout", async (_req, res) => {
+  clearAuthCookies(res);
+  res.json({ ok: true });
 });
 
 // ── Password reset ────────────────────────────────────────────────────────
@@ -208,7 +406,10 @@ async function sendResetEmail(to: string, resetUrl: string): Promise<boolean> {
 
 router.post("/auth/forgot-password", forgotPasswordLimiter, async (req, res) => {
   const parsed = forgotSchema.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: "Valid email required" }); return; }
+  if (!parsed.success) {
+    res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Valid email required" } });
+    return;
+  }
   const { email } = parsed.data;
   const { appUrl } = getServerConfig();
 
@@ -235,13 +436,16 @@ router.post("/auth/forgot-password", forgotPasswordLimiter, async (req, res) => 
     res.json({ ok: true, emailSent });
   } catch (err) {
     logger.error({ err }, "forgot password error");
-    res.status(500).json({ error: "Internal error" });
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 });
 
 router.post("/auth/reset-password", authLimiter, async (req, res) => {
   const parsed = resetSchema.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: "Token and a password of at least 8 characters are required" }); return; }
+  if (!parsed.success) {
+    res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Token and a password of at least 8 characters are required" } });
+    return;
+  }
   const { token, password } = parsed.data;
 
   try {
@@ -261,17 +465,23 @@ router.post("/auth/reset-password", authLimiter, async (req, res) => {
       return true;
     });
 
-    if (!consumed) { res.status(400).json({ error: "Reset link is invalid or expired" }); return; }
+    if (!consumed) {
+      res.status(400).json({ error: { code: "INVALID_TOKEN", message: "Reset link is invalid or expired" } });
+      return;
+    }
     res.json({ ok: true });
   } catch (err) {
     logger.error({ err }, "reset password error");
-    res.status(500).json({ error: "Internal error" });
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 });
 
 router.get("/auth/reset-password/verify", async (req, res) => {
   const token = req.query.token as string | undefined;
-  if (!token) { res.status(400).json({ valid: false }); return; }
+  if (!token) {
+    res.status(400).json({ valid: false });
+    return;
+  }
   try {
     const now = new Date();
     const [resetToken] = await db.select({ id: passwordResetTokensTable.id })
@@ -294,11 +504,20 @@ const onboardingSchema = z.object({
 
 router.post("/auth/onboarding", async (req, res) => {
   const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!userId) {
+    res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Unauthorized" } });
+    return;
+  }
   const { data } = req.body as { data?: unknown };
-  if (!data) { res.status(400).json({ error: "Missing onboarding data" }); return; }
+  if (!data) {
+    res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Missing onboarding data" } });
+    return;
+  }
   const parsed = onboardingSchema.safeParse(data);
-  if (!parsed.success) { res.status(400).json({ error: "Invalid onboarding data", details: parsed.error.errors }); return; }
+  if (!parsed.success) {
+    res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid onboarding data", details: parsed.error.errors } });
+    return;
+  }
   try {
     await db.update(usersTable)
       .set({ onboardingCompleted: true, onboardingData: parsed.data })
@@ -306,26 +525,32 @@ router.post("/auth/onboarding", async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     logger.error({ err }, "onboarding save error");
-    res.status(500).json({ error: "Internal error" });
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 });
 
 router.patch("/auth/profile", async (req, res) => {
   const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!userId) {
+    res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Unauthorized" } });
+    return;
+  }
   const { name, bio, timezone } = req.body as Record<string, unknown>;
   const updates: Record<string, unknown> = {};
   if (typeof name === "string" && name.trim()) updates.name = name.trim().slice(0, 60);
   if (typeof bio === "string") updates.bio = bio.slice(0, 300);
   if (typeof timezone === "string") updates.timezone = timezone;
-  if (Object.keys(updates).length === 0) { res.status(400).json({ error: "No valid fields to update" }); return; }
+  if (Object.keys(updates).length === 0) {
+    res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "No valid fields to update" } });
+    return;
+  }
   try {
     await db.update(usersTable).set(updates).where(eq(usersTable.id, userId));
     const [user] = await db.select({ id: usersTable.id, email: usersTable.email, name: usersTable.name }).from(usersTable).where(eq(usersTable.id, userId));
     res.json({ ok: true, user });
   } catch (err) {
     logger.error({ err }, "profile update error");
-    res.status(500).json({ error: "Internal error" });
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 });
 
