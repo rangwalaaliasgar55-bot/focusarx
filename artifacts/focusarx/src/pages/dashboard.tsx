@@ -37,6 +37,8 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Wallet } from "@/types/gamification";
+import { MobileDashboard } from "@/components/mobile/MobileDashboard";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 const FocusChart = lazy(() => import("@/components/dashboard/FocusChart"));
 
@@ -231,6 +233,7 @@ export default function DashboardPage() {
   const { status, data: session } = useAuth();
   const [, navigate] = useLocation();
   const { activeTasks } = useTasks();
+  const isMobile = useIsMobile();
   const now = useMemo(() => new Date(), []);
   const greeting = now.getHours() < 12 ? "Good morning" : now.getHours() < 17 ? "Good afternoon" : "Good evening";
   const firstName = session?.user?.name?.split(" ")[0] || session?.user?.email?.split("@")[0] || "there";
@@ -241,6 +244,15 @@ export default function DashboardPage() {
     staleTime: 60_000,
     enabled: status === "authenticated",
   });
+
+  // Mobile lightweight endpoint
+  const mobileStatsQuery = useQuery({
+    queryKey: ["mobile-dashboard"],
+    queryFn: () => apiJson<any>("/api/mobile/dashboard"),
+    staleTime: 30_000,
+    enabled: status === "authenticated" && isMobile,
+  });
+
   const walletQuery = useQuery<Wallet>({
     queryKey: ["wallet"],
     queryFn: () => apiJson<Wallet>("/api/gamification/wallet"),
@@ -256,6 +268,26 @@ export default function DashboardPage() {
   const stats = statsQuery.data;
   const xp = xpProgress(walletQuery.data?.totalXp ?? 0);
   const loading = status === "loading" || statsQuery.isLoading;
+
+  // Mobile-first dashboard
+  if (isMobile && !loading && stats) {
+    return (
+      <>
+        <PageSEO {...PAGE_SEO.dashboard} />
+        <MobileDashboard
+          onStartFocus={startFocus}
+          stats={{
+            totalStudyMinutesToday: stats.totalStudyMinutesToday,
+            sessionsToday: stats.sessionsToday,
+            currentStreak: stats.currentStreak,
+            avgFocusScore: stats.avgFocusScore,
+          }}
+          recentSessions={stats.recentSessions}
+          wallet={walletQuery.data ? { totalXp: walletQuery.data.totalXp, coins: walletQuery.data.coins, level: xp.level } : undefined}
+        />
+      </>
+    );
+  }
 
   return (
     <div className="page-container">

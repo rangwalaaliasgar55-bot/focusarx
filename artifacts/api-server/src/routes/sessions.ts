@@ -529,12 +529,39 @@ router.post("/sessions", authMiddleware, async (req: AuthRequest, res) => {
 
 async function handleSessionHistory(req: AuthRequest, res: Response) {
   try {
-    const limit = Math.min(100, Number(req.query.limit) || 30);
-    const sessions = await db.select().from(focusSessionsTable)
-      .where(eq(focusSessionsTable.userId, req.userId!))
-      .orderBy(desc(focusSessionsTable.completedAt))
-      .limit(limit);
-    res.json({ sessions });
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 30));
+    const offset = (page - 1) * limit;
+
+    const [sessions, countResult] = await Promise.all([
+      db.select().from(focusSessionsTable)
+        .where(eq(focusSessionsTable.userId, req.userId!))
+        .orderBy(desc(focusSessionsTable.completedAt))
+        .limit(limit)
+        .offset(offset),
+      db.select({ count: sql<number>`count(*)::int` })
+        .from(focusSessionsTable)
+        .where(eq(focusSessionsTable.userId, req.userId!))
+        .then(r => r[0]?.count ?? 0),
+    ]);
+
+    // If pagination params provided, return paginated format
+    if (req.query.page) {
+      res.json({
+        sessions,
+        pagination: {
+          page,
+          limit,
+          total: Number(countResult),
+          totalPages: Math.ceil(Number(countResult) / limit),
+          hasMore: offset + sessions.length < Number(countResult),
+        },
+        serverNow: Date.now(),
+      });
+    } else {
+      // Legacy format for existing clients
+      res.json({ sessions });
+    }
   } catch (err) {
     logger.error({ err }, "session history error");
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });

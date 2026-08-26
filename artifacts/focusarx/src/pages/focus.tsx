@@ -1,23 +1,33 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { AnimatePresence, motion, motion as m } from "framer-motion";
 import { ClipboardList, X } from "lucide-react";
-import MissionsWidget from "@/components/MissionsWidget";
-import ProductivityScoreWidget from "@/components/ProductivityScoreWidget";
 import { useAuth } from "@/lib/auth";
 import { SessionRecoveryProvider } from "@/components/SessionRecoveryContext";
 import Timer from "@/components/Timer";
-import { FocusCamera } from "@/components/camera/FocusCamera";
 import { useSessionHistory } from "@/hooks/useSessionHistory";
 import { useTasks } from "@/hooks/useTasks";
 import ReadinessCheckInModal from "@/components/ReadinessCheckInModal";
-import DailyGoal from "@/components/DailyGoal";
 import MissedTaskReview, { useMissedTaskReview } from "@/components/MissedTaskReview";
 import FeedbackModal, { useFeedbackTrigger } from "@/components/FeedbackModal";
-import { FocusMoodWidget } from "@/components/FocusMoodWidget";
 import StreakNudge from "@/components/StreakNudge";
 import SmartSuggestion from "@/components/SmartSuggestion";
-import AskArx from "@/components/AskArx";
 import { DropBanner } from "@/components/DropBanner";
+import { useIsMobile } from "@/hooks/useIsMobile";
+import { FocusTimerMobileFirst } from "@/components/mobile/FocusTimerMobileFirst";
+import { NotificationPermissionPrompt } from "@/components/mobile/NotificationPermissionPrompt";
+import { useNotificationPermission } from "@/hooks/useNotificationPermission";
+
+// Heavy features lazy-loaded after main interface is usable
+const MissionsWidget = lazy(() => import("@/components/MissionsWidget"));
+const ProductivityScoreWidget = lazy(() => import("@/components/ProductivityScoreWidget"));
+const FocusCamera = lazy(() => import("@/components/camera/FocusCamera").then(m => ({ default: m.FocusCamera })));
+const DailyGoal = lazy(() => import("@/components/DailyGoal"));
+const FocusMoodWidget = lazy(() => import("@/components/FocusMoodWidget").then(m => ({ default: m.FocusMoodWidget })));
+const AskArx = lazy(() => import("@/components/AskArx"));
+
+function HeavyWidgetFallback() {
+  return <div className="h-20 animate-pulse rounded-2xl bg-[var(--surface-1)]/50" />;
+}
 
 function SidePanel() {
   const { focusSessionsToday } = useSessionHistory();
@@ -115,15 +125,27 @@ function SidePanel() {
         </form>
       </div>
 
-      <FocusMoodWidget />
-      <AskArx />
-      <DailyGoal />
-      <ProductivityScoreWidget />
-      <MissionsWidget />
+      <Suspense fallback={<HeavyWidgetFallback />}>
+        <FocusMoodWidget />
+      </Suspense>
+      <Suspense fallback={<HeavyWidgetFallback />}>
+        <AskArx />
+      </Suspense>
+      <Suspense fallback={<HeavyWidgetFallback />}>
+        <DailyGoal />
+      </Suspense>
+      <Suspense fallback={<HeavyWidgetFallback />}>
+        <ProductivityScoreWidget />
+      </Suspense>
+      <Suspense fallback={<HeavyWidgetFallback />}>
+        <MissionsWidget />
+      </Suspense>
 
       <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-4">
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--palette-4a4f62)] mb-3">AI Camera</p>
-        <FocusCamera />
+        <Suspense fallback={<HeavyWidgetFallback />}>
+          <FocusCamera />
+        </Suspense>
       </div>
     </div>
   );
@@ -242,6 +264,8 @@ function MotivationalLine() {
 
 function MobileSidePanelDrawer() {
   const [open, setOpen] = useState(false);
+  const sheetRef = useState<HTMLDivElement | null>(null)[0] as any;
+  const dragRef = useState<{ startY: number; currentY: number } | null>(null)[0] as any;
 
   useEffect(() => {
     if (!open) return;
@@ -249,6 +273,31 @@ function MobileSidePanelDrawer() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, [open]);
+
+  // Swipe down to close
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const y = e.touches[0]?.clientY ?? 0;
+    (handleTouchStart as any).startY = y;
+  };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const startY = (handleTouchStart as any).startY;
+    if (startY === undefined) return;
+    const curY = e.touches[0]?.clientY ?? 0;
+    const diff = curY - startY;
+    if (diff > 0) {
+      const sheet = document.getElementById("mobile-panel-sheet");
+      if (sheet) sheet.style.transform = `translateY(${diff}px)`;
+    }
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const startY = (handleTouchStart as any).startY;
+    const curY = e.changedTouches[0]?.clientY ?? 0;
+    const diff = curY - (startY ?? 0);
+    const sheet = document.getElementById("mobile-panel-sheet");
+    if (sheet) sheet.style.transform = "";
+    if (diff > 100) setOpen(false);
+    (handleTouchStart as any).startY = undefined;
+  };
 
   return (
     <>
@@ -275,17 +324,21 @@ function MobileSidePanelDrawer() {
               onClick={() => setOpen(false)}
             />
             <m.div
+              id="mobile-panel-sheet"
               key="mobile-panel-sheet"
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 300 }}
               className="fixed inset-x-0 bottom-0 z-[var(--z-modal)] max-h-[85dvh] rounded-t-2xl border-t border-[var(--rgba-255-255-255-0_08)] bg-[var(--palette-0d0f1a)] backdrop-blur-2xl lg:hidden"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
             >
               <div className="mx-auto mt-3 h-1.5 w-16 rounded-full bg-[var(--rgba-255-255-255-0_1)]" />
               <div className="flex items-center justify-between px-5 py-3">
                 <span className="text-sm font-semibold text-[var(--foreground)]">Tasks & Stats</span>
-                <button onClick={() => setOpen(false)} className="text-[var(--foreground-subtle)] active:text-[var(--foreground-muted)]">
+                <button onClick={() => setOpen(false)} className="min-h-[44px] min-w-[44px] grid place-items-center text-[var(--foreground-subtle)] active:text-[var(--foreground-muted)]" aria-label="Close">
                   <X size={16} />
                 </button>
               </div>
@@ -324,6 +377,14 @@ function FocusChamberHeader() {
 
 export default function FocusHomePage() {
   const feedback = useFeedbackTrigger();
+  const isMobile = useIsMobile();
+  const { trackSessionCompleted } = useNotificationPermission();
+
+  const handleSessionComplete = () => {
+    trackSessionCompleted();
+    feedback.recordSession();
+  };
+
   return (
     <SessionRecoveryProvider>
       <div className="flex flex-col min-h-[100dvh] focus-chamber">
@@ -334,10 +395,14 @@ export default function FocusHomePage() {
           <DropBanner />
         </div>
         <div className="flex-1 flex flex-col lg:flex-row gap-0 overflow-auto">
-          {/* Timer area */}
+          {/* Timer area - mobile-first */}
           <div className="flex-1 flex flex-col items-center justify-start gap-3 px-4 sm:px-6 py-6 lg:py-8">
             <div className="w-full flex flex-col items-center">
-              <Timer onSessionComplete={feedback.recordSession} />
+              {isMobile ? (
+                <FocusTimerMobileFirst onSessionComplete={handleSessionComplete} />
+              ) : (
+                <Timer onSessionComplete={handleSessionComplete} />
+              )}
               <MotivationalLine />
             </div>
           </div>
@@ -349,6 +414,7 @@ export default function FocusHomePage() {
         <MobileSidePanelDrawer />
         <ReadinessCheckInModal />
         <FeedbackModal open={feedback.show} onClose={feedback.dismiss} onSubmit={feedback.onSubmit} />
+        <NotificationPermissionPrompt />
       </div>
     </SessionRecoveryProvider>
   );

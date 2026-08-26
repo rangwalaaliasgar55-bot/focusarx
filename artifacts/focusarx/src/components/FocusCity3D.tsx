@@ -1,8 +1,9 @@
 import { resolveColorToken } from "@/lib/color-tokens";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useRef, useMemo, Suspense, useEffect, useState } from "react";
+import { useRef, useMemo, Suspense, useEffect, useState, lazy } from "react";
 import * as THREE from "three";
 import { OrbitControls, PerspectiveCamera, Text, Float, Environment, ContactShadows } from "@react-three/drei";
+import { use3DQuality } from "@/hooks/use3DQuality";
 
 const BUILDINGS_CONFIG = [
   { id: "hut", name: "Study Hut", xp: 0, color: resolveColorToken("--brand-400"), emoji: "🏠", height: 1 },
@@ -14,22 +15,23 @@ const BUILDINGS_CONFIG = [
   { id: "observatory", name: "Observatory", xp: 100000, color: resolveColorToken("--palette-818cf8"), emoji: "🔭", height: 3.5 },
 ];
 
-function Building({ config, position, unlocked, lowDetail }: { config: any, position: [number, number, number], unlocked: boolean, lowDetail: boolean }) {
+function Building({ config, position, unlocked, quality }: { config: any, position: [number, number, number], unlocked: boolean, quality: ReturnType<typeof use3DQuality> }) {
   const meshRef = useRef<THREE.Mesh>(null!);
+  const lowDetail = quality.effectiveQuality === "battery" || quality.effectiveQuality === "off";
 
   return (
     <group position={position}>
-      <Float speed={unlocked && !lowDetail ? 1.5 : 0} rotationIntensity={lowDetail ? 0 : 0.2} floatIntensity={lowDetail ? 0 : 0.5}>
+      <Float speed={unlocked && quality.config.cameraMovement ? 1.5 : 0} rotationIntensity={lowDetail ? 0 : 0.2} floatIntensity={lowDetail ? 0 : 0.5}>
         <mesh ref={meshRef}>
           <boxGeometry args={[1, config.height, 1]} />
           <meshStandardMaterial
             color={unlocked ? config.color : resolveColorToken("--palette-2a2a3a")}
-            metalness={lowDetail ? 0.2 : 0.6}
-            roughness={lowDetail ? 0.6 : 0.2}
+            metalness={quality.config.reflections ? 0.6 : 0.2}
+            roughness={quality.config.reflections ? 0.2 : 0.6}
             transparent
             opacity={unlocked ? 0.9 : 0.4}
             emissive={unlocked ? config.color : resolveColorToken("--neutral-950")}
-            emissiveIntensity={unlocked ? 0.2 : 0}
+            emissiveIntensity={unlocked ? (quality.isHigh ? 0.25 : 0.15) : 0}
           />
         </mesh>
         {unlocked && (
@@ -54,14 +56,15 @@ function Building({ config, position, unlocked, lowDetail }: { config: any, posi
   );
 }
 
-function CityScene({ totalXp, lowDetail }: { totalXp: number, lowDetail: boolean }) {
+function CityScene({ totalXp, quality }: { totalXp: number, quality: ReturnType<typeof use3DQuality> }) {
+  const lowDetail = quality.effectiveQuality === "battery";
   return (
     <>
       <PerspectiveCamera makeDefault position={[8, 8, 8]} fov={40} />
-      <OrbitControls enableZoom={false} autoRotate={!lowDetail} autoRotateSpeed={0.5} enableDamping={false} />
+      <OrbitControls enableZoom={false} autoRotate={quality.config.autoRotate} autoRotateSpeed={0.5} enableDamping={false} />
       <ambientLight intensity={lowDetail ? 0.9 : 0.7} />
-      {!lowDetail && <pointLight position={[10, 10, 10]} intensity={1} />}
-      {!lowDetail && <Environment preset="night" />}
+      {quality.config.lights > 1 && <pointLight position={[10, 10, 10]} intensity={1} />}
+      {quality.config.environment && <Environment preset="night" />}
 
       <group position={[0, -1, 0]}>
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
@@ -69,7 +72,7 @@ function CityScene({ totalXp, lowDetail }: { totalXp: number, lowDetail: boolean
           <meshStandardMaterial color={resolveColorToken("--palette-0a0f1e")} roughness={0.8} />
         </mesh>
 
-        {!lowDetail && <gridHelper args={[20, 20, resolveColorToken("--palette-1a2e1a"), resolveColorToken("--palette-111")]} position={[0, 0.01, 0]} />}
+        {quality.config.backgroundEffects && <gridHelper args={[20, 20, resolveColorToken("--palette-1a2e1a"), resolveColorToken("--palette-111")]} position={[0, 0.01, 0]} />}
 
         {BUILDINGS_CONFIG.map((b, i) => {
           const angle = (i / BUILDINGS_CONFIG.length) * Math.PI * 2;
@@ -77,19 +80,23 @@ function CityScene({ totalXp, lowDetail }: { totalXp: number, lowDetail: boolean
           const x = Math.cos(angle) * radius;
           const z = Math.sin(angle) * radius;
           const unlocked = totalXp >= b.xp;
+          // Reduce animated objects on battery saver
+          if (quality.effectiveQuality === "battery" && i >= quality.config.animatedObjects) {
+            return null;
+          }
           return (
             <Building
               key={b.id}
               config={b}
               position={[x, b.height / 2, z]}
               unlocked={unlocked}
-              lowDetail={lowDetail}
+              quality={quality}
             />
           );
         })}
       </group>
 
-      {!lowDetail && <ContactShadows opacity={0.4} scale={20} blur={2.4} far={4.5} />}
+      {quality.config.contactShadows && <ContactShadows opacity={0.4} scale={20} blur={2.4} far={4.5} />}
     </>
   );
 }
@@ -170,39 +177,71 @@ export default function FocusCity3D({ totalXp, className }: { totalXp: number, c
   const webglSupported = useWebGLSupport();
   const reducedMotion = useReducedMotion();
   const isMobile = useIsMobile();
-  const lowDetail = isMobile || reducedMotion;
+  const quality = use3DQuality();
+  const lowDetail = isMobile || reducedMotion || quality.effectiveQuality === "battery";
 
   const [hasError, setHasError] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // GPU memory cleanup on route change / unmount
+    // Load 3D scene only after main interface is usable - don't block timer/dashboard
+    const id = requestAnimationFrame(() => {
+      // Defer 3D loading by 1 frame + 300ms to prioritize main thread
+      const timeout = setTimeout(() => setIsVisible(true), 300);
+      return () => clearTimeout(timeout);
+    });
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  useEffect(() => {
     return () => {
       try {
-        // Force Three.js to dispose
         THREE.Cache.clear();
       } catch {}
     };
   }, []);
 
-  if (!webglSupported || hasError) {
+  // Manual setting: Off -> always fallback
+  if (quality.isOff || !webglSupported || hasError) {
     return <FocusCityFallback totalXp={totalXp} />;
+  }
+
+  // Don't block main interface - show skeleton until visible
+  if (!isVisible) {
+    return <CitySkeleton />;
   }
 
   return (
     <div className={`h-full w-full ${className}`}>
+      {/* Quality selector for mobile */}
+      <div className="absolute right-2 top-2 z-10 flex gap-1 md:hidden">
+        {(["battery", "balanced", "high"] as const).map((q) => (
+          <button
+            key={q}
+            type="button"
+            onClick={() => quality.setQuality(q)}
+            className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors ${
+              quality.quality === q
+                ? "bg-[var(--brand-600)] text-white"
+                : "bg-[var(--surface-1)] text-[var(--foreground-subtle)]"
+            }`}
+          >
+            {q === "battery" ? "Saver" : q}
+          </button>
+        ))}
+      </div>
       <Canvas
-        dpr={[1, lowDetail ? 1.2 : 1.5]}
-        frameloop={reducedMotion ? "demand" : "always"}
+        dpr={quality.config.dpr}
+        frameloop={reducedMotion ? "demand" : quality.effectiveQuality === "battery" ? "demand" : "always"}
         gl={{
-          antialias: !lowDetail,
+          antialias: quality.config.antialias,
           powerPreference: "high-performance",
           alpha: true,
           stencil: false,
           depth: true,
         }}
-        shadows={!lowDetail}
+        shadows={quality.config.shadows}
         onCreated={({ gl }) => {
-          // Handle context loss
           const canvas = gl.domElement;
           canvas.addEventListener("webglcontextlost", (e) => {
             e.preventDefault();
@@ -211,9 +250,15 @@ export default function FocusCity3D({ totalXp, className }: { totalXp: number, c
         }}
       >
         <Suspense fallback={null}>
-          <CityScene totalXp={totalXp} lowDetail={lowDetail} />
+          <CityScene totalXp={totalXp} quality={quality} />
         </Suspense>
       </Canvas>
+      {/* Manual setting hint */}
+      <div className="absolute bottom-2 left-2 right-2 flex justify-center md:hidden">
+        <p className="rounded-full bg-black/40 px-3 py-1 text-[10px] text-white/60 backdrop-blur">
+          Settings → Appearance → 3D effects: {quality.appearance}
+        </p>
+      </div>
     </div>
   );
 }

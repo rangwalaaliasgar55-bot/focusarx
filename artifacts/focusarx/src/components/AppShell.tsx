@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { motion } from "framer-motion";
 import {
   BarChart3,
   Bell,
@@ -60,6 +59,9 @@ import {
 } from "@/components/ui/sheet";
 import CoachPanel from "@/components/CoachPanel";
 import { usePremium } from "@/hooks/usePremium";
+import { MobileBottomNav } from "@/components/mobile/MobileBottomNav";
+import { MobileMoreMenu } from "@/components/mobile/MobileMoreMenu";
+import { NetworkStatusBanner } from "@/components/mobile/NetworkStatusBanner";
 
 interface NavEntry {
   href: string;
@@ -116,14 +118,6 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/admin", label: "Admin", icon: Shield, admin: true },
     ],
   },
-];
-
-const MOBILE_TABS = [
-  { href: "/dashboard", label: "Home", icon: LayoutDashboard },
-  { href: "/tasks", label: "Tasks", icon: CheckSquare2 },
-  { href: "/", label: "Focus", icon: Timer, primary: true },
-  { href: "/flashcards", label: "Study", icon: Library },
-  { href: "/profile", label: "You", icon: UserRound },
 ];
 
 const NO_SHELL = [
@@ -217,7 +211,7 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
                     href={entry.href}
                     onClick={onNavigate}
                     aria-current={active ? "page" : undefined}
-                    className={cn("nav-item", active && "nav-item-active")}
+                    className={cn("nav-item min-h-[44px]", active && "nav-item-active")}
                   >
                     <Icon size={18} aria-hidden="true" />
                     <span className="truncate">{entry.label}</span>
@@ -251,7 +245,7 @@ function UserMenu({ compact = false }: { compact?: boolean }) {
 
   if (status !== "authenticated") {
     return (
-      <Button asChild variant="outline" className={cn(compact && "w-11 px-0")}>
+      <Button asChild variant="outline" className={cn(compact && "w-11 px-0", "min-h-[44px]")}>
         <Link href="/login" aria-label="Sign in">
           <LogIn /> {!compact && "Sign in"}
         </Link>
@@ -262,7 +256,7 @@ function UserMenu({ compact = false }: { compact?: boolean }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className={cn("h-11 justify-start px-2", compact ? "w-11" : "w-full")} aria-label="Open user menu">
+        <Button variant="ghost" className={cn("h-11 min-h-[44px] justify-start px-2", compact ? "w-11" : "w-full")} aria-label="Open user menu">
           <Avatar className="h-8 w-8 border border-[var(--border-strong)]">
             <AvatarFallback className="bg-[var(--brand-soft)] text-xs font-bold text-[var(--brand-strong)]">{initials}</AvatarFallback>
           </Avatar>
@@ -314,25 +308,25 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
   return (
     <header className="app-topbar">
       <div className="flex items-center gap-2 md:hidden">
-        <Button variant="ghost" size="icon" onClick={onMenu} aria-label="Open navigation">
+        <Button variant="ghost" size="icon" onClick={onMenu} aria-label="Open navigation" className="min-h-[44px] min-w-[44px]">
           <Menu />
         </Button>
         <Brand compact />
       </div>
 
-      <button type="button" onClick={openPalette} className="global-search" aria-label="Open global search">
+      <button type="button" onClick={openPalette} className="global-search min-h-[44px]" aria-label="Open global search">
         <Search size={17} aria-hidden="true" />
         <span className="hidden sm:inline">Search FocusArx</span>
         <kbd className="ml-auto hidden rounded-md border border-[var(--border)] bg-[var(--surface-raised)] px-2 py-0.5 text-[0.6875rem] text-[var(--foreground-subtle)] sm:inline">Ctrl K</kbd>
       </button>
 
       <div className="ml-auto flex items-center gap-1 sm:gap-2">
-        <div className="streak-pill" aria-label={`${focusSessionsToday} focus sessions today`}>
+        <div className="streak-pill min-h-[36px]" aria-label={`${focusSessionsToday} focus sessions today`}>
           <Flame size={16} aria-hidden="true" />
           <span className="tabular-nums">{focusSessionsToday}</span>
           <span className="hidden lg:inline">today</span>
         </div>
-        <Button asChild variant="ghost" size="icon" className="relative" aria-label="Notifications">
+        <Button asChild variant="ghost" size="icon" className="relative min-h-[44px] min-w-[44px]" aria-label="Notifications">
           <Link href="/notifications">
             <Bell />
             {!!notificationCount && <span className="notification-dot" aria-label={`${notificationCount} unread`} />}
@@ -344,37 +338,35 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
   );
 }
 
-function MobileTabs() {
-  const [location] = useLocation();
-  return (
-    <nav className="app-bottom-nav md:hidden" aria-label="Mobile navigation">
-      {MOBILE_TABS.map((tab) => {
-        const Icon = tab.icon;
-        const active = location === tab.href;
-        return (
-          <Link key={tab.href} href={tab.href} className={cn("mobile-tab", active && "mobile-tab-active", tab.primary && "mobile-tab-primary")} aria-current={active ? "page" : undefined}>
-            {active && <motion.span layoutId="mobile-nav-active" className="mobile-tab-indicator" />}
-            <span className="mobile-tab-icon"><Icon size={tab.primary ? 21 : 19} /></span>
-            <span>{tab.label}</span>
-          </Link>
-        );
-      })}
-    </nav>
-  );
-}
-
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { status } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [isFocusActive, setIsFocusActive] = useState(false);
 
   useEffect(() => setMobileOpen(false), [location]);
+
+  useEffect(() => {
+    const handleStart = () => setIsFocusActive(true);
+    const handleStop = () => setIsFocusActive(false);
+    window.addEventListener("fx:focus-start", handleStart);
+    window.addEventListener("fx:focus-stop", handleStop);
+    return () => {
+      window.removeEventListener("fx:focus-start", handleStart);
+      window.removeEventListener("fx:focus-stop", handleStop);
+    };
+  }, []);
+
+  const isFocusPage = location === "/";
+  const hideBottomNav = isFocusPage && isFocusActive;
 
   if (NO_SHELL.some((path) => location === path || location.startsWith(`${path}/`))) return <>{children}</>;
   if (location === "/" && status !== "authenticated") return <>{children}</>;
 
   return (
     <div className="app-frame">
+      <NetworkStatusBanner />
       <aside className="app-sidebar hidden md:flex" aria-label="Application sidebar">
         <div className="flex h-[4.5rem] shrink-0 items-center border-b border-[var(--border)] px-5">
           <Brand />
@@ -405,7 +397,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </SheetContent>
       </Sheet>
 
-      <MobileTabs />
+      {/* New mobile bottom nav: Home · Timer · Plan · Stats · Profile */}
+      <MobileBottomNav hidden={hideBottomNav} onMoreClick={() => setMoreOpen(true)} />
+      <MobileMoreMenu open={moreOpen} onClose={() => setMoreOpen(false)} />
       {status === "authenticated" && <CoachPanel />}
     </div>
   );

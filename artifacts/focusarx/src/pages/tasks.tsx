@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   CalendarClock,
@@ -21,6 +21,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import type { Task } from "@/types/timer";
 
 const FILTERS = [
@@ -52,20 +53,79 @@ function TaskRow({
   onDelete: () => void;
 }) {
   const pending = task.id.startsWith("pending-");
+  const isMobile = useIsMobile();
+  const rowRef = useRef<HTMLLIElement>(null);
+  const [offsetX, setOffsetX] = useState(0);
+  const startX = useRef(0);
+  const [swiping, setSwiping] = useState(false);
+
+  useEffect(() => {
+    if (!isMobile) return;
+    const el = rowRef.current;
+    if (!el) return;
+    let start = 0;
+    const onTouchStart = (e: TouchEvent) => {
+      start = e.touches[0]?.clientX ?? 0;
+      startX.current = start;
+      setSwiping(true);
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (!swiping) return;
+      const cur = e.touches[0]?.clientX ?? 0;
+      const diff = cur - start;
+      // Limit swipe to ±100px
+      const clamped = Math.max(-100, Math.min(100, diff));
+      setOffsetX(clamped);
+    };
+    const onTouchEnd = () => {
+      setSwiping(false);
+      if (offsetX > 70) {
+        onToggle();
+        // Haptic
+        if ("vibrate" in navigator) navigator.vibrate(20);
+      } else if (offsetX < -70) {
+        onDelete();
+        if ("vibrate" in navigator) navigator.vibrate([20, 30, 20]);
+      }
+      setOffsetX(0);
+    };
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: true });
+    el.addEventListener("touchend", onTouchEnd);
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [isMobile, offsetX, swiping, onToggle, onDelete]);
+
   return (
     <motion.li
+      ref={rowRef}
       layout
       initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={{ opacity: 1, y: 0, x: offsetX }}
       exit={{ opacity: 0, x: 24, height: 0 }}
-      transition={{ duration: 0.25, ease: "easeOut" }}
-      className={cn("group flex min-h-16 items-center gap-2 border-b border-[var(--border-subtle)] px-3 last:border-0 sm:gap-3 sm:px-4", selected && "bg-[var(--brand-soft)]")}
+      transition={{ duration: swiping ? 0 : 0.25, ease: "easeOut" }}
+      className={cn("group relative flex min-h-16 items-center gap-2 border-b border-[var(--border-subtle)] px-3 last:border-0 sm:gap-3 sm:px-4", selected && "bg-[var(--brand-soft)]")}
       onKeyDown={(event) => {
         if (event.key === "Enter" && event.target === event.currentTarget) onToggle();
         if ((event.key === "Delete" || event.key === "Backspace") && event.target === event.currentTarget) onDelete();
       }}
       tabIndex={0}
+      aria-label={`${task.title} - swipe right to complete, swipe left to delete`}
     >
+      {/* Swipe hints */}
+      {isMobile && offsetX > 20 && (
+        <div className="pointer-events-none absolute inset-y-0 left-0 flex w-20 items-center justify-center bg-[var(--success-soft)] text-[var(--success)]">
+          <Check size={20} />
+        </div>
+      )}
+      {isMobile && offsetX < -20 && (
+        <div className="pointer-events-none absolute inset-y-0 right-0 flex w-20 items-center justify-center bg-[var(--danger-soft)] text-[var(--danger)]">
+          <Trash2 size={20} />
+        </div>
+      )}
       <label className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center" aria-label={`Select ${task.title}`}>
         <Checkbox checked={selected} onCheckedChange={onSelect} aria-label={`Select ${task.title}`} />
       </label>

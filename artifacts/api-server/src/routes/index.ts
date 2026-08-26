@@ -58,6 +58,7 @@ import { profilesRouter } from "./profiles";
 import { sessionReplayRouter } from "./sessionReplay";
 import { wrappedRouter } from "./wrapped";
 import { emotesRouter } from "./emotes";
+import { mobileRouter } from "./mobile";
 
 const router: IRouter = Router();
 
@@ -120,5 +121,6 @@ router.use(profilesRouter);
 router.use(sessionReplayRouter);
 router.use(wrappedRouter);
 router.use(emotesRouter);
+router.use(mobileRouter);
 
 export default router;

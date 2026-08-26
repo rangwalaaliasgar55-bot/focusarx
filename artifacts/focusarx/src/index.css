@@ -1899,3 +1899,102 @@ html.light {
 .admin-shell textarea {
   min-height: 5.5rem;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE SAFE-AREA & VIEWPORT FIXES (Serious mobile upgrades)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.min-h-screen {
+  min-height: 100dvh;
+}
+.h-screen {
+  height: 100dvh;
+}
+.max-h-screen {
+  max-height: 100dvh;
+}
+.app-shell {
+  min-height: 100dvh;
+  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+}
+.bottom-nav {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Mobile touch targets - minimum 44px */
+@media (max-width: 767px) {
+  button,
+  a,
+  [role="button"],
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  /* Except for inline elements */
+  .mobile-tab,
+  .nav-item,
+  .inline-flex,
+  .inline {
+    min-height: auto;
+    min-width: auto;
+  }
+  .mobile-tab {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Mobile forms - one column, large labels, numeric keyboards */
+@media (max-width: 767px) {
+  .form-grid {
+    grid-template-columns: 1fr !important;
+  }
+  label {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  input[type="number"] {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+}
+
+/* Mobile accessibility - high contrast, focus visible */
+@media (max-width: 767px) {
+  *:focus-visible {
+    outline: 2px solid var(--brand-500);
+    outline-offset: 2px;
+  }
+}
+
+/* Ensure app-main has safe-area padding */
+.app-main {
+  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+}
+
+/* Hide scrollbar on mobile for cleaner feel but keep accessible */
+@media (max-width: 767px) {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Mobile gestures - swipe down to close modal handled in JS, but add visual handle */
+.modal-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-strong);
+  margin: 8px auto;
+}
+
+/* Reduced motion already handled above, ensure mobile also respects */
+@media (prefers-reduced-motion: reduce) {
+  .motion-reduce {
+    animation: none !important;
+    transition: none !important;
+  }
+}
