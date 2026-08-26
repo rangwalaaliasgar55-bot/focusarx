@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { AlertCircle, Check, Eye, EyeOff, LockKeyhole, Mail, UserRound } from "lucide-react";
-import { useAuth } from "@/lib/auth";
+import { apiErrorMessage, useAuth } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/button";
@@ -48,9 +48,9 @@ export default function SignupPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), email: email.trim(), password }),
       });
-      const data = await response.json().catch(() => ({})) as { error?: string };
+      const data: unknown = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setError(data.error ?? "Your account could not be created. Try again.");
+        setError(apiErrorMessage(data, "Your account could not be created. Try again."));
         return;
       }
       const login = await signIn("credentials", { email: email.trim(), password });

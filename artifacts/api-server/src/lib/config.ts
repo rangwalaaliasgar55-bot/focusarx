@@ -12,6 +12,7 @@ export type ServerConfig = {
 
 let warnedDevJwt = false;
 let warnedDevAdmin = false;
+let devJwtSecret: string | null = null;
 
 export function resolveDatabaseUrl(): string | null {
   try {
@@ -43,7 +44,14 @@ export function getServerConfig(): ServerConfig {
 
   let jwtSecret: string | null = getJwtSecret();
   if (!jwtSecret && !isProduction) {
-    jwtSecret = `dev-${crypto.randomUUID()}`;
+    // Keep one deterministic-per-process dev secret. Generating a fresh UUID on
+    // every getServerConfig() call made tokens signed in one request impossible
+    // to verify in the next (login signed with secret A, session verified with
+    // secret B → 401), which broke sign-in/sign-up wherever AUTH_SECRET was unset.
+    if (!devJwtSecret) {
+      devJwtSecret = `dev-${crypto.randomUUID()}`;
+    }
+    jwtSecret = devJwtSecret;
     if (!warnedDevJwt) {
       warnedDevJwt = true;
       console.warn(

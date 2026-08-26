@@ -5,6 +5,7 @@ import { AuthCard, AuthLink } from "@/components/auth/AuthCard";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { apiErrorMessage } from "@/lib/auth";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail]             = useState("");
@@ -23,8 +24,11 @@ export default function ForgotPasswordPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-      const data = await res.json() as { ok?: boolean; error?: string; devResetUrl?: string };
-      if (!res.ok || !data.ok) { setError(data.error ?? "Something went wrong. Try again."); return; }
+      const data = await res.json() as { ok?: boolean; error?: unknown; devResetUrl?: string };
+      if (!res.ok || !data.ok) {
+        setError(apiErrorMessage(data, "Something went wrong. Try again."));
+        return;
+      }
       setSubmitted(true);
       if (data.devResetUrl) setDevResetUrl(data.devResetUrl);
     } catch {
