@@ -17,11 +17,16 @@ export default function SeasonalBanner() {
   useEffect(() => {
     const key = "focusarx-seasonal-banner-dismissed";
     const d = localStorage.getItem(key);
-    if (d && Date.now() - parseInt(d) < 24 * 60 * 60 * 1000) { setDismissed(true); return; }
+    if (d && Date.now() - parseInt(d) < 24 * 60 * 60 * 1000) {
+      setDismissed(true);
+      return;
+    }
 
     fetch("/api/seasonal/active", { headers: authHeaders() })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setEvent(d); })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d) setEvent(d);
+      })
       .catch(() => {});
   }, []);
 
@@ -32,7 +37,11 @@ export default function SeasonalBanner() {
 
   if (!event || dismissed) return null;
 
-  const daysLeft = Math.ceil((new Date(event.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  const daysLeft = Math.max(
+    0,
+    Math.ceil((new Date(event.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+  );
+  const color = event.bannerColor || "var(--brand-violet)";
 
   return (
     <AnimatePresence>
@@ -41,25 +50,74 @@ export default function SeasonalBanner() {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, height: 0 }}
         transition={{ duration: 0.25 }}
-        className="relative flex items-center gap-3 rounded-xl border px-4 py-3 text-sm"
-        style={{ borderColor: `color-mix(in srgb, ${event.bannerColor} 25%, transparent)`, background: `color-mix(in srgb, ${event.bannerColor} 6%, transparent)` }}
+        className="relative overflow-hidden rounded-xl border px-3 py-2.5 sm:px-4 sm:py-3"
+        style={{
+          borderColor: `color-mix(in srgb, ${color} 28%, transparent)`,
+          background: `color-mix(in srgb, ${color} 8%, transparent)`,
+        }}
+        role="status"
+        aria-label={`${event.name}. ${event.description || ""}`}
       >
-        {event.premiumOnly ? <Crown size={15} style={{ color: event.bannerColor }} className="shrink-0" /> : <Star size={15} style={{ color: event.bannerColor }} className="shrink-0" />}
-        <div className="flex-1 min-w-0">
-          <span className="font-semibold" style={{ color: event.bannerColor }}>{event.name}</span>
-          <span className="text-[var(--foreground-muted)] ml-2 text-xs">{event.description}</span>
-        </div>
-        <div className="flex items-center gap-3 shrink-0">
-          {event.locked && <a href="/premium" className="flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-bold" style={{ color: event.bannerColor }}><Lock size={9} /> Unlock Premium</a>}
-          {event.xpMultiplier > 1 && (
-            <span className="flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold"
-              style={{ color: event.bannerColor, borderColor: `color-mix(in srgb, ${event.bannerColor} 25%, transparent)`, background: `color-mix(in srgb, ${event.bannerColor} 8%, transparent)` }}>
-              <Zap size={9} /> {event.xpMultiplier}x XP
-            </span>
-          )}
-          <span className="text-[10px] text-[var(--foreground-subtle)]">{daysLeft}d left</span>
-          <button onClick={handleDismiss} className="text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)] transition-colors">
-            <X size={13} />
+        <div className="flex items-start gap-2.5 sm:items-center sm:gap-3">
+          <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg sm:mt-0 sm:h-9 sm:w-9" style={{ background: `color-mix(in srgb, ${color} 14%, transparent)` }}>
+            {event.premiumOnly ? (
+              <Crown size={15} style={{ color }} />
+            ) : (
+              <Star size={15} style={{ color }} />
+            )}
+          </span>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <p className="text-sm font-semibold leading-tight" style={{ color }}>
+                {event.name}
+              </p>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {event.xpMultiplier > 1 && (
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold"
+                    style={{
+                      color,
+                      borderColor: `color-mix(in srgb, ${color} 30%, transparent)`,
+                      background: `color-mix(in srgb, ${color} 12%, transparent)`,
+                    }}
+                  >
+                    <Zap size={10} />
+                    {event.xpMultiplier}x XP
+                  </span>
+                )}
+                <span className="text-[10px] font-medium text-[var(--foreground-subtle)]">
+                  {daysLeft}d left
+                </span>
+              </div>
+            </div>
+            {event.description ? (
+              <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-[var(--foreground-muted)] sm:line-clamp-1">
+                {event.description}
+              </p>
+            ) : null}
+            {event.locked ? (
+              <a
+                href="/premium"
+                className="mt-1.5 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold sm:mt-1"
+                style={{
+                  color,
+                  borderColor: `color-mix(in srgb, ${color} 30%, transparent)`,
+                }}
+              >
+                <Lock size={10} />
+                Unlock Premium
+              </a>
+            ) : null}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleDismiss}
+            aria-label="Dismiss seasonal banner"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[var(--foreground-subtle)] transition-colors hover:bg-[var(--palette-white)]/5 hover:text-[var(--foreground)]"
+          >
+            <X size={14} />
           </button>
         </div>
       </motion.div>
