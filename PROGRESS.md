@@ -31,7 +31,7 @@ Baseline verified: typecheck ✓, tests ✓ (13/13), route contract ✓.
 |---|---------|--------|-------|
 | S1 | Flash-sale discounts wired into real purchases | ✅ | `activeSaleDiscount` existed but was never applied — `item_flash_sale` drops now actually discount: batched `liveSaleDiscounts()` lookup, GET /marketplace annotates `salePrice/saleDiscountPct/saleEndsAt`, purchase burns the discounted price (server-computed), coin ledger records `saleDropId + fullCost`, UI shows -% chip + strikethrough + sale price. Live smoke: 50% off → charged 100 of 200, audit row verified. |
 
-Owner decision (Aug 24, 2026): visible 🤖/AI badges removed from bots on all end-user surfaces (leaderboard, feed, DMs, study rooms) — bots now blend in. Internal `role="bot"` flag kept; admin analytics still separate humans/bots. CommunityPulse public counter still says "incl. AI rivals" (say the word to change that too).
+Owner decision (Aug 24, 2026): visible 🤖/AI badges removed from bots on all end-user surfaces (leaderboard, feed, DMs, study rooms) — bots now blend in. Internal `role="bot"` flag kept; admin analytics still separate humans/bots. CommunityPulse "incl. AI rivals" label removed — now just shows honest human-only counts.
 
 Rules being enforced throughout:
 - No bare db.select() on auth/critical paths; explicit projections.

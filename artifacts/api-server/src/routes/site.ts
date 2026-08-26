@@ -67,10 +67,9 @@ router.get("/site/community-pulse", async (_req, res) => {
     const studiers = Number(studiersArr[0]?.n ?? 0);
     const rounded = Math.floor(total / 100) * 100;
     const data = {
-      // "12,400+ members training daily (incl. AI rivals)"
       membersLabel: total > rounded
-        ? `${rounded.toLocaleString("en-US")}+ members training daily (incl. AI rivals)`
-        : `${total.toLocaleString("en-US")} members training daily (incl. AI rivals)`,
+        ? `${rounded.toLocaleString("en-US")}+ members training daily`
+        : `${total.toLocaleString("en-US")} members training daily`,
       membersTotal: total,
       aiRivals: bots,
       realMembers: humans,

@@ -181,7 +181,46 @@ function hashResetToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-async function sendResetEmail(to: string, resetUrl: string): Promise<boolean> {
+const RESET_EMAIL_SUBJECT = "Reset your FocusArx password";
+const resetEmailText = (resetUrl: string) =>
+  `Click the link below to reset your password. It expires in 1 hour.\n\n${resetUrl}\n\nIf you didn't request this, ignore this email.`;
+const resetEmailHtml = (resetUrl: string) =>
+  `<p>Click the link below to reset your password. It expires in 1 hour.</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>If you didn't request this, ignore this email.</p>`;
+
+/** Preferred path: Resend HTTP API (no SMTP credentials needed). */
+async function sendResetEmailViaResend(to: string, resetUrl: string): Promise<boolean | null> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return null; // not configured — let caller fall back to SMTP
+  const from = process.env.EMAIL_FROM ?? "FocusArx <onboarding@resend.dev>";
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to,
+        subject: RESET_EMAIL_SUBJECT,
+        text: resetEmailText(resetUrl),
+        html: resetEmailHtml(resetUrl),
+      }),
+    });
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      logger.warn({ status: response.status, body }, "Resend reset-email send failed");
+      return false;
+    }
+    return true;
+  } catch (err) {
+    logger.warn({ err }, "Resend reset-email request error");
+    return false;
+  }
+}
+
+/** Fallback path: classic SMTP via nodemailer. */
+async function sendResetEmailViaSmtp(to: string, resetUrl: string): Promise<boolean> {
   const host = process.env.SMTP_HOST;
   const port = parseInt(process.env.SMTP_PORT ?? "587");
   const user = process.env.SMTP_USER;
@@ -195,15 +234,22 @@ async function sendResetEmail(to: string, resetUrl: string): Promise<boolean> {
     await transporter.sendMail({
       from: `"FocusArx" <${from}>`,
       to,
-      subject: "Reset your FocusArx password",
-      text: `Click the link below to reset your password. It expires in 1 hour.\n\n${resetUrl}\n\nIf you didn't request this, ignore this email.`,
-      html: `<p>Click the link below to reset your password. It expires in 1 hour.</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>If you didn't request this, ignore this email.</p>`,
+      subject: RESET_EMAIL_SUBJECT,
+      text: resetEmailText(resetUrl),
+      html: resetEmailHtml(resetUrl),
     });
     return true;
   } catch (err) {
     logger.warn({ err }, "failed to send reset email");
     return false;
   }
+}
+
+/** Send the password-reset email via Resend when configured, else SMTP. */
+async function sendResetEmail(to: string, resetUrl: string): Promise<boolean> {
+  const viaResend = await sendResetEmailViaResend(to, resetUrl);
+  if (viaResend !== null) return viaResend;
+  return sendResetEmailViaSmtp(to, resetUrl);
 }
 
 router.post("/auth/forgot-password", forgotPasswordLimiter, async (req, res) => {
