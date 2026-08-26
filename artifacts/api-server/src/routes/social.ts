@@ -335,8 +335,8 @@ socialRouter.get("/social/leaderboard", authMiddleware, async (req: AuthRequest,
       .where(eq(usersTable.isGuest, false))
       .orderBy(desc(sortCol), desc(usersTable.createdAt));
 
-    // Global board: top 50 in SQL (indexed). Friends board: small, unbounded.
-    const rows = scope === "global" ? await baseQuery.limit(50) : await baseQuery;
+    // Global board: top 200 in SQL (indexed) for competitive view. Friends board: small, unbounded.
+    const rows = scope === "global" ? await baseQuery.limit(200) : await baseQuery;
 
     const filtered = scope === "friends"
       ? rows.filter(r => r.userId === userId || friendIds.includes(r.userId))
@@ -396,8 +396,8 @@ socialRouter.get("/social/leaderboard", authMiddleware, async (req: AuthRequest,
 
     entries.sort((a, b) => b.xp - a.xp);
 
-    // Top 50 — but always include the viewer, even past the cut.
-    const LIMIT = 50;
+    // Top 200 — but always include the viewer, even past the cut.
+    const LIMIT = 200;
     let ranked = entries.slice(0, LIMIT).map((e, i) => ({ ...e, rank: i + 1 }));
     const meIdx = entries.findIndex(e => e.isCurrentUser);
     if (meIdx >= LIMIT) {

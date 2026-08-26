@@ -128,6 +128,15 @@ export const POST_TEMPLATES: Record<string, Array<(name: string, rng: () => numb
     () => `Motivation is a visitor. Discipline is the landlord. Showing up on the off days too 🔥`,
     () => `Had a day where nothing clicked. Did the bare minimum: 25 focused minutes. That's allowed 🌱`,
     () => `You're not behind. You're on your own timeline, and it's still early ⏳`,
+    () => `Day 30 of staying clean. Brain fog is lifting, focus sessions are longer. The streak is real 💪`,
+    () => `Cold shower + 5am alarm + no phone till study is done. Three rules that changed everything 🧊`,
+    () => `Reading Atomic Habits for the third time. Each read reminds me: systems beat goals every time 📚`,
+    () => `Meditation before study is like stretching before running. 10 minutes saves hours of wasted focus 🧘`,
+    () => `Journaling at night: 3 things I did well, 1 thing to improve. Self-awareness is a superpower ✍️`,
+    () => `Protein in the morning, water all day, sleep by 11. Body first, brain second. Both matter 🥗`,
+    () => `NoFap day 45: energy is through the roof, social anxiety is gone, study sessions hit different 🔥`,
+    () => `The best investment is sleep. 8 hours of rest beats 3 hours of cramming every single time 😴`,
+    () => `Reading 10 pages before bed instead of scrolling. Books are the original algorithm 📖`,
   ],
   general: [
     () => `New rule: notes are for recall, not for comfort. If I can't explain it, I didn't learn it 🧠`,
@@ -135,6 +144,12 @@ export const POST_TEMPLATES: Record<string, Array<(name: string, rng: () => numb
     () => `Studying the same topic 3 different ways beats studying 3 topics once 📖`,
     () => `Small win of the day: started the hard chapter first, before the brain made excuses 💪`,
     () => `Revision > new content in the last 30 days. Marked my calendar. Who's doing the same?`,
+    () => `Study buddy accountability works. We check in at 6am and 10pm. No excuses, just results 🤝`,
+    () => `Flashcard review at breakfast, reading at lunch, problems at night. Different modes, same goal 🎯`,
+    () => `The 2-minute rule: if it takes less than 2 minutes, do it now. Applied to study too ⚡`,
+    () => `Walking between study sessions. 10 minutes of movement resets the brain completely 🚶`,
+    () => `Failed a mock badly. Instead of scrolling, I analyzed every wrong answer. Growth mindset in action 📊`,
+    () => `Environment design: clear desk, no distractions, same spot every day. Consistency is the hack 🏠`,
   ],
 };
 
