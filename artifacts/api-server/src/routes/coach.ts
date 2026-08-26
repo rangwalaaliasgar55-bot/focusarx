@@ -5,7 +5,9 @@ import { usersTable, distractionLogsTable, readinessLogsTable, activeSessionsTab
 import { eq, desc, and } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { aiCoachLimiter } from "../lib/rateLimiter";
-import { premiumStatusMiddleware } from "../lib/premiumCheck";
+import { requirePremium, premiumStatusMiddleware } from "../lib/premiumCheck";
+import { getActivePlans } from "../lib/premiumPlans";
+import { getTokenBalance } from "../lib/tokenLedger";
 import { checkBudget, recordCall, recordRateLimit, userPurposeCalls } from "../lib/aiBudget";
 import {
   sanitizeAiInput,
@@ -110,7 +112,7 @@ function builtinReply(userMessage: string): string {
   return tips[Math.floor(Date.now() / 1000) % tips.length]!;
 }
 
-router.post("/coach/chat", authMiddleware, premiumStatusMiddleware, aiCoachLimiter, async (req: AuthRequest, res) => {
+router.post("/coach/chat", authMiddleware, requirePremium, aiCoachLimiter, async (req: AuthRequest, res) => {
   const ip = req.ip ?? "unknown";
   if (!checkIpLimit(ip)) {
     res.status(429).json({ error: { code: "RATE_LIMITED", message: "Daily AI limit for this IP reached" } });
@@ -245,7 +247,47 @@ router.post("/coach/chat", authMiddleware, premiumStatusMiddleware, aiCoachLimit
   }
 });
 
-router.get("/coach/session-tip", authMiddleware, async (req: AuthRequest, res) => {
+router.get("/coach/status", authMiddleware, premiumStatusMiddleware, async (req: AuthRequest, res) => {
+  try {
+    const isPremium = Boolean((req as any).isPremium);
+    if (isPremium) {
+      res.json({ isPremium: true });
+      return;
+    }
+    // Free user — show lock screen data without loading AI
+    const [plans, balance] = await Promise.all([
+      getActivePlans().catch(() => []),
+      getTokenBalance(req.userId!).catch(() => 0),
+    ]);
+    const cheapest = plans.sort((a: any, b: any) => a.tokenCost - b.tokenCost)[0];
+    const required = cheapest?.tokenCost ?? 10000;
+    const needed = Math.max(0, required - balance);
+    res.json({
+      isPremium: false,
+      lockScreen: {
+        title: "Focus Coach is available with Premium access",
+        description: "Unlock personalized focus plans, session analysis, and productivity guidance using Focus Tokens.",
+        benefits: [
+          "Personalized focus plan",
+          "Session reflection & analysis",
+          "Weekly productivity summary",
+          "Distraction pattern analysis",
+          "Suggested session lengths",
+          "Study plan generation",
+          "Recovery suggestions after missed streaks",
+        ],
+        currentBalance: balance,
+        requiredTokens: required,
+        tokensNeeded: needed,
+        plan: cheapest ? { name: cheapest.name, durationDays: cheapest.durationDays, tokenCost: cheapest.tokenCost } : null,
+      },
+    });
+  } catch (err) {
+    res.json({ isPremium: false });
+  }
+});
+
+router.get("/coach/session-tip", authMiddleware, requirePremium, async (req: AuthRequest, res) => {
   try {
     const today = new Date().toISOString().split("T")[0]!;
     const [readiness] = await db.select({ score: readinessLogsTable.score })

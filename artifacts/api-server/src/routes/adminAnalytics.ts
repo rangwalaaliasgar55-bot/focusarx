@@ -5,8 +5,16 @@ import {
   analyticsEventsTable,
   usersTable,
   activeSessionsTable,
+  focusSessionsTable,
+  tokenLedgerTable,
+  premiumEntitlementsTable,
+  premiumPlansTable,
+  userPetInventoryTable,
+  petCatalogTable,
+  battlePassClaimsTable,
+  aiCallLogTable,
 } from "@workspace/db";
-import { eq, and, gte, desc, sql, count, isNotNull } from "drizzle-orm";
+import { eq, and, gte, desc, sql, count, isNotNull, lte } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { checkAdminAuth } from "../lib/adminAuth";
 
@@ -269,5 +277,99 @@ router.get("/admin/analytics/live", async (req, res) => {
     res.status(500).json({ error: "Internal error" });
   }
 });
+
+
+router.get("/admin/analytics/premium-economy", async (req, res) => {
+  if (!await checkAdminAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  try {
+    const now = new Date();
+    const dayAgo = new Date(now.getTime() - 24*3600*1000);
+    const weekAgo = new Date(now.getTime() - 7*24*3600*1000);
+    const monthAgo = new Date(now.getTime() - 30*24*3600*1000);
+
+    // DAU/WAU
+    const [dau] = await db.select({ c: count() }).from(visitorsTable).where(and(eq(visitorsTable.isBot,false), gte(visitorsTable.lastSeen, dayAgo)));
+    const [wau] = await db.select({ c: count() }).from(visitorsTable).where(and(eq(visitorsTable.isBot,false), gte(visitorsTable.lastSeen, weekAgo)));
+
+    // Focus minutes
+    const [focusAgg] = await db.select({ totalSec: sql<number>`coalesce(sum(${focusSessionsTable.durationSec}),0)`, cnt: count() }).from(focusSessionsTable).where(gte(focusSessionsTable.createdAt, weekAgo));
+    const [focusMonthAgg] = await db.select({ totalSec: sql<number>`coalesce(sum(${focusSessionsTable.durationSec}),0)` }).from(focusSessionsTable).where(gte(focusSessionsTable.createdAt, monthAgo));
+
+    // Token circulation
+    const [circulation] = await db.select({ sum: sql<number>`coalesce(sum(amount),0)` }).from(tokenLedgerTable);
+    const [earned] = await db.select({ sum: sql<number>`coalesce(sum(amount),0)` }).from(tokenLedgerTable).where(eq(tokenLedgerTable.transactionType, "earn"));
+    const [spent] = await db.select({ sum: sql<number>`coalesce(sum(amount),0)` }).from(tokenLedgerTable).where(eq(tokenLedgerTable.transactionType, "spend"));
+    const [grants] = await db.select({ sum: sql<number>`coalesce(sum(amount),0)` }).from(tokenLedgerTable).where(eq(tokenLedgerTable.transactionType, "admin_grant"));
+
+    // Premium unlocks/expirations
+    const [activePremium] = await db.select({ c: count() }).from(premiumEntitlementsTable).where(and(eq(premiumEntitlementsTable.status, "active"), gte(premiumEntitlementsTable.endsAt, now)));
+    const [expiredWeek] = await db.select({ c: count() }).from(premiumEntitlementsTable).where(and(eq(premiumEntitlementsTable.status, "expired"), gte(premiumEntitlementsTable.endsAt, weekAgo)));
+    const [unlocksWeek] = await db.select({ c: count() }).from(premiumEntitlementsTable).where(gte(premiumEntitlementsTable.createdAt, weekAgo));
+    const [expiringSoon] = await db.select({ c: count() }).from(premiumEntitlementsTable).where(and(eq(premiumEntitlementsTable.status, "active"), lte(premiumEntitlementsTable.endsAt, new Date(now.getTime()+3*24*3600*1000)), gte(premiumEntitlementsTable.endsAt, now)));
+
+    // Battle-pass participation
+    const [bpParticipants] = await db.select({ c: sql<number>`count(distinct ${battlePassClaimsTable.userId})` }).from(battlePassClaimsTable).where(gte(battlePassClaimsTable.claimedAt, monthAgo));
+    const [bpClaimsWeek] = await db.select({ c: count() }).from(battlePassClaimsTable).where(gte(battlePassClaimsTable.claimedAt, weekAgo));
+
+    // Pet ownership
+    const [totalPetsOwned] = await db.select({ c: count() }).from(userPetInventoryTable);
+    const petOwnershipByRarity = await db.select({ rarity: petCatalogTable.rarity, count: count() }).from(userPetInventoryTable).innerJoin(petCatalogTable, eq(petCatalogTable.id, userPetInventoryTable.petId)).groupBy(petCatalogTable.rarity);
+    const petOwnershipByCategory = await db.select({ category: petCatalogTable.category, count: count() }).from(userPetInventoryTable).innerJoin(petCatalogTable, eq(petCatalogTable.id, userPetInventoryTable.petId)).groupBy(petCatalogTable.category);
+
+    // Events: seasonal/event pet unlocks etc via token ledger source seasonal_event, event
+    const [seasonalEarned] = await db.select({ sum: sql<number>`coalesce(sum(amount),0)` }).from(tokenLedgerTable).where(eq(tokenLedgerTable.source, "seasonal_event"));
+    const [referralEarned] = await db.select({ sum: sql<number>`coalesce(sum(amount),0)` }).from(tokenLedgerTable).where(eq(tokenLedgerTable.source, "referral"));
+
+    // AI usage
+    const [aiCallsWeek] = await db.select({ c: count() }).from(aiCallLogTable).where(gte(aiCallLogTable.createdAt, weekAgo));
+    const [aiCallsMonth] = await db.select({ c: count() }).from(aiCallLogTable).where(gte(aiCallLogTable.createdAt, monthAgo));
+    const aiByStatus = await db.select({ status: aiCallLogTable.status, count: count() }).from(aiCallLogTable).where(gte(aiCallLogTable.createdAt, weekAgo)).groupBy(aiCallLogTable.status);
+
+    // Errors: count failed AI calls + maybe analytics events with error type
+    const [failedAi] = await db.select({ c: count() }).from(aiCallLogTable).where(and(eq(aiCallLogTable.status, "error"), gte(aiCallLogTable.createdAt, weekAgo)));
+
+    res.json({
+      dau: dau?.c ?? 0,
+      wau: wau?.c ?? 0,
+      focusMinutesWeek: Math.round((focusAgg?.totalSec ?? 0)/60),
+      focusMinutesMonth: Math.round((focusMonthAgg?.totalSec ?? 0)/60),
+      focusSessionsWeek: focusAgg?.cnt ?? 0,
+      tokenCirculation: circulation?.sum ?? 0,
+      totalEarned: earned?.sum ?? 0,
+      totalSpent: Math.abs(spent?.sum ?? 0),
+      totalAdminGrants: grants?.sum ?? 0,
+      premium: {
+        active: activePremium?.c ?? 0,
+        unlocksWeek: unlocksWeek?.c ?? 0,
+        expiredWeek: expiredWeek?.c ?? 0,
+        expiringSoon: expiringSoon?.c ?? 0,
+      },
+      battlePass: {
+        participantsMonth: Number((bpParticipants as any)?.c ?? 0),
+        claimsWeek: bpClaimsWeek?.c ?? 0,
+      },
+      pets: {
+        totalOwned: totalPetsOwned?.c ?? 0,
+        byRarity: petOwnershipByRarity,
+        byCategory: petOwnershipByCategory,
+      },
+      events: {
+        seasonalTokens: seasonalEarned?.sum ?? 0,
+        referralTokens: referralEarned?.sum ?? 0,
+      },
+      aiUsage: {
+        callsWeek: aiCallsWeek?.c ?? 0,
+        callsMonth: aiCallsMonth?.c ?? 0,
+        byStatus: aiByStatus,
+        errorsWeek: failedAi?.c ?? 0,
+      }
+    });
+  } catch (err) {
+    const { logger } = await import("../lib/logger");
+    logger.error({ err }, "admin premium-economy analytics error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
 
 export { router as adminAnalyticsRouter };

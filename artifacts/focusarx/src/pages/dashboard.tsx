@@ -312,14 +312,16 @@ export default function DashboardPage() {
         <EmptyState icon={<RefreshCw />} title="Your dashboard could not be loaded" description="Your data is safe. Check your connection and try again." action={{ label: "Retry dashboard", onClick: () => void statsQuery.refetch() }} />
       ) : (
         <div className="space-y-5">
-          <TodaysFocus tasks={activeTasks} streak={stats.currentStreak} minutes={stats.totalStudyMinutesToday} onStart={startFocus} />
+          {/* Priority: Start Focus > today progress > quest > pet > city > battle-pass > analytics > community */}
           <FocusHero onStart={startFocus} />
+          <TodaysFocus tasks={activeTasks} streak={stats.currentStreak} minutes={stats.totalStudyMinutesToday} onStart={startFocus} />
 
           <StreakFreezeCard />
 
+          {/* Today progress */}
           <section aria-labelledby="pulse-title">
             <div className="mb-3 flex items-center justify-between">
-              <div><h2 id="pulse-title" className="text-lg font-semibold">Today&apos;s Pulse</h2><p className="text-sm text-[var(--foreground-muted)]">A live read on your momentum.</p></div>
+              <div><h2 id="pulse-title" className="text-lg font-semibold">Today's Progress</h2><p className="text-sm text-[var(--foreground-muted)]">Live read on your momentum.</p></div>
               <Badge variant={stats.sessionsToday > 0 ? "success" : "secondary"}>{stats.sessionsToday > 0 ? "In motion" : "Ready to begin"}</Badge>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
@@ -334,6 +336,32 @@ export default function DashboardPage() {
               <PulseCard icon={<CheckSquare2 />} label="Tasks due" value={activeTasks.length} detail={activeTasks.length ? "active tasks in your queue" : "Nothing waiting"} tone="success" />
             </div>
           </section>
+
+          {/* Quest preview */}
+          <Card>
+            <CardHeader className="flex-row items-center justify-between"><div><CardTitle className="flex items-center gap-2"><Target size={16}/> Quests</CardTitle><CardDescription>Daily & weekly challenges for Focus Tokens</CardDescription></div><Button asChild variant="ghost" size="sm"><Link href="/quests">View quests <ArrowRight /></Link></Button></CardHeader>
+            <CardContent><p className="text-xs text-[var(--foreground-muted)]">Complete quests to earn Focus Tokens and unlock Premium. Premium gets more quests & streak token bonuses.</p></CardContent>
+          </Card>
+
+          {/* Pet preview */}
+          <Card>
+            <CardHeader className="flex-row items-center justify-between"><div><CardTitle>Companion</CardTitle><CardDescription>Your active pet grows with focus</CardDescription></div><Button asChild variant="ghost" size="sm"><Link href="/pets">Manage pets <ArrowRight /></Link></Button></CardHeader>
+            <CardContent><p className="text-xs text-[var(--foreground-muted)]">Bond level 1-20, unlocks at 1/3/5/8/10/15/20. Premium pets and 3D models available.</p></CardContent>
+          </Card>
+
+          {/* City preview */}
+          <Card>
+            <CardHeader className="flex-row items-center justify-between"><div><CardTitle>Focus City</CardTitle><CardDescription>Build your civilization</CardDescription></div><Button asChild variant="ghost" size="sm"><Link href="/city">Open city <ArrowRight /></Link></Button></CardHeader>
+            <CardContent><p className="text-xs text-[var(--foreground-muted)]">Premium unlocks night/sunset/weather/seasonal buildings, skyboxes, shareable snapshots.</p></CardContent>
+          </Card>
+
+          {/* Battle-pass preview */}
+          <Card>
+            <CardHeader className="flex-row items-center justify-between"><div><CardTitle>Battle Pass</CardTitle><CardDescription>30 tiers • 28-30 day season</CardDescription></div><Button asChild variant="ghost" size="sm"><Link href="/battle-pass">View pass <ArrowRight /></Link></Button></CardHeader>
+            <CardContent><p className="text-xs text-[var(--foreground-muted)]">Free + Premium tracks, token-only unlock, claim-all, grace period. No real-money.</p></CardContent>
+          </Card>
+
+
 
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(20rem,.75fr)]">
             <Card>

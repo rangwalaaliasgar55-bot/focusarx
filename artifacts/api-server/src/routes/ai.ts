@@ -2,7 +2,9 @@ import { Router } from "express";
 import { logger } from "../lib/logger";
 import { aiRoadmapLimiter } from "../lib/rateLimiter";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
-import { premiumStatusMiddleware } from "../lib/premiumCheck";
+import { premiumStatusMiddleware, requirePremium } from "../lib/premiumCheck";
+import { getActivePlans } from "../lib/premiumPlans";
+import { getTokenBalance } from "../lib/tokenLedger";
 import { checkBudget, recordCall, recordRateLimit, userPurposeCalls } from "../lib/aiBudget";
 import { sanitizeAiInput, detectPromptInjection, checkIpLimit, isSafeFallbackError } from "../lib/aiGuardrails";
 import { z } from "zod";
@@ -233,11 +235,14 @@ router.post("/ai/roadmap", authMiddleware, premiumStatusMiddleware, aiRoadmapLim
       }
     }
 
-    const roadmap = await generateRoadmapWithGemini(sanitizedGoal, hours, level ?? "intermediate", numDays, sanitizedProgress, premium);
+    let roadmap: any = null;
+    if (premium) {
+      roadmap = await generateRoadmapWithGemini(sanitizedGoal, hours, level ?? "intermediate", numDays, sanitizedProgress, premium);
+    }
     const finalRoadmap = roadmap ?? buildRoadmapFallback(sanitizedGoal, hours, level ?? "intermediate", numDays, sanitizedProgress, premium);
 
     // Final validation before sending to frontend
-    const validated = finalRoadmap.filter(d => roadmapDaySchema.safeParse(d).success);
+    const validated = finalRoadmap.filter((d: any) => roadmapDaySchema.safeParse(d).success);
 
     res.json({
       roadmap: validated.length > 0 ? validated : finalRoadmap,

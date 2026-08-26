@@ -34,7 +34,7 @@ router.get("/mobile/dashboard", authMiddleware, async (req: AuthRequest, res: Re
       db.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, userId)).then(r => r[0] || null),
       db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, userId)).then(r => r[0] || null),
       db.select().from(activeSessionsTable).where(eq(activeSessionsTable.userId, userId)).then(r => r[0] || null),
-      db.select({ id: tasksTable.id, title: tasksTable.title, priority: tasksTable.priority, dueDate: tasksTable.dueDate })
+      db.select({ id: tasksTable.id, title: tasksTable.text, priority: tasksTable.priority, dueDate: tasksTable.dueDate })
         .from(tasksTable)
         .where(and(eq(tasksTable.userId, userId), eq(tasksTable.completed, false)))
         .orderBy(desc(tasksTable.priority), tasksTable.createdAt)

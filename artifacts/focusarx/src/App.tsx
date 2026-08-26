@@ -77,6 +77,7 @@ const FocusGuidePage = lazy(() => import("@/pages/focus-guide"));
 const DeepStudyGuidePage = lazy(() => import("@/pages/deep-study-guide"));
 const TwoHourStudyMethodPage = lazy(() => import("@/pages/two-hour-study-method"));
 const PremiumPage = lazy(() => import("@/pages/premium"));
+const FocusTimerPage = lazy(() => import("@/pages/focus-timer"));
 const AboutPage = lazy(() => import("@/pages/about"));
 const ContactPage = lazy(() => import("@/pages/contact"));
 const SupportPage = lazy(() => import("@/pages/support"));

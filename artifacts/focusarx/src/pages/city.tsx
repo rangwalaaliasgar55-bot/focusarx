@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
-import { Building2, Zap, Users, Star, Lock, ShoppingBag, RefreshCw } from "lucide-react";
+import { Building2, Zap, Users, Star, Lock, ShoppingBag, RefreshCw, Crown, Sun, Moon, CloudRain, Sparkles, Camera } from "lucide-react";
+import { usePremium } from "@/hooks/usePremium";
+import { Link } from "wouter";
 import { PAGE, CARD, STAGGER } from "@/lib/animations";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 import type { Building, City, Wallet } from "@/types/gamification";
@@ -105,6 +107,9 @@ export default function CityPage() {
   const [building, setBuilding] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
   const [toast, setToast] = useState<string | null>(null);
+  const { isPremium } = usePremium();
+  const [selectedWeather, setSelectedWeather] = useState<string>("clear");
+  const [selectedTime, setSelectedTime] = useState<string>("day");
 
   useEffect(() => {
     const load = async () => {
@@ -206,17 +211,80 @@ export default function CityPage() {
           </div>
         </div>
 
-        {city?.skins?.length ? (
-          <section aria-labelledby="city-skins-title" className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4">
-            <h2 id="city-skins-title" className="mb-3 text-sm font-semibold">City appearance</h2>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {city.skins.map((skin) => <button key={skin.id} type="button" onClick={() => void selectSkin(skin)} aria-pressed={city.selectedSkin === skin.id}
-                className={`min-h-20 rounded-xl border p-3 text-left ${city.selectedSkin === skin.id ? "border-[var(--brand-400)] bg-[var(--brand-soft)]" : "border-[var(--border)]"} ${skin.locked ? "opacity-55" : ""}`}>
-                <span className="text-2xl">{skin.emoji}</span><span className="mt-1 block text-xs font-semibold">{skin.name}</span>{skin.locked && <span className="text-[10px] text-[var(--color-warning)]">Premium</span>}
-              </button>)}
+        {/* Premium City Modes */}
+        <section className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold flex items-center gap-2"><Sparkles size={14} /> City appearance & modes</h2>
+            {!isPremium && <Link href="/premium" className="inline-flex items-center gap-1 rounded-full bg-[var(--palette-amber-500)]/15 px-2.5 py-1 text-[10px] font-bold text-[var(--palette-amber-400)]"><Crown size={10} /> Premium unlocks night/sunset/weather</Link>}
+          </div>
+
+          {/* Time of day */}
+          <div className="mb-4">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">Time of day</p>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { id: "day", label: "Day", icon: Sun, emoji: "☀️", premium: false },
+                { id: "sunset", label: "Sunset", icon: Sun, emoji: "🌅", premium: true },
+                { id: "night", label: "Night", icon: Moon, emoji: "🌙", premium: true },
+              ].map(({ id, label, emoji, premium }) => (
+                <button key={id} onClick={() => { if (premium && !isPremium) { setToast("Premium unlocks sunset & night modes"); return; } setSelectedTime(id); }}
+                  className={`rounded-xl border p-3 text-center ${selectedTime===id ? "border-[var(--brand-400)] bg-[var(--brand-soft)]" : "border-[var(--border)]"} ${premium && !isPremium ? "opacity-60" : ""}`}>
+                  <span className="text-xl">{emoji}</span>
+                  <span className="mt-1 block text-xs font-semibold">{label}</span>
+                  {premium && !isPremium && <span className="text-[9px] text-[var(--palette-amber-400)] flex items-center justify-center gap-1"><Lock size={8}/> Premium</span>}
+                </button>
+              ))}
             </div>
-          </section>
-        ) : null}
+          </div>
+
+          {/* Weather */}
+          <div className="mb-4">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">Weather & seasons</p>
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { id: "clear", label: "Clear", emoji: "☀️", premium: false },
+                { id: "cloudy", label: "Cloudy", emoji: "☁️", premium: false },
+                { id: "rain", label: "Rain", emoji: "🌧️", premium: true },
+                { id: "snow", label: "Snow", emoji: "❄️", premium: true },
+                { id: "sunset_rain", label: "Sunset Rain", emoji: "🌦️", premium: true },
+                { id: "aurora", label: "Aurora", emoji: "🌌", premium: true },
+                { id: "cherry", label: "Cherry Blossom", emoji: "🌸", premium: true },
+                { id: "autumn", label: "Autumn", emoji: "🍂", premium: true },
+              ].map((w) => (
+                <button key={w.id} onClick={() => { if (w.premium && !isPremium) { setToast("Premium weather requires Premium"); return; } setSelectedWeather(w.id); }}
+                  className={`rounded-xl border p-2 text-center ${selectedWeather===w.id ? "border-[var(--brand-400)] bg-[var(--brand-soft)]" : "border-[var(--border)]"} ${w.premium && !isPremium ? "opacity-60" : ""}`}>
+                  <span className="text-lg">{w.emoji}</span>
+                  <span className="mt-1 block text-[10px] font-semibold">{w.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Skins from server */}
+          {city?.skins?.length ? (
+            <div>
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">City skins</p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {city.skins.map((skin) => <button key={skin.id} type="button" onClick={() => void selectSkin(skin)} aria-pressed={city.selectedSkin === skin.id}
+                  className={`min-h-20 rounded-xl border p-3 text-left ${city.selectedSkin === skin.id ? "border-[var(--brand-400)] bg-[var(--brand-soft)]" : "border-[var(--border)]"} ${skin.locked ? "opacity-55" : ""}`}>
+                  <span className="text-2xl">{skin.emoji}</span><span className="mt-1 block text-xs font-semibold">{skin.name}</span>{skin.locked && <span className="text-[10px] text-[var(--color-warning)] flex items-center gap-1"><Lock size={8}/> Premium</span>}
+                </button>)}
+              </div>
+            </div>
+          ) : null}
+
+          {/* Shareable snapshot — premium */}
+          <div className="mt-4 flex items-center justify-between rounded-xl border border-[var(--forge-border)] bg-[var(--surface-1)] p-3">
+            <div>
+              <p className="text-xs font-bold flex items-center gap-1"><Camera size={12}/> Shareable snapshot</p>
+              <p className="text-[10px] text-[var(--foreground-subtle)]">Export your city as image (Premium)</p>
+            </div>
+            <button onClick={() => { if (!isPremium) { setToast("Premium unlocks shareable snapshots"); return; } setToast("Snapshot feature — premium skybox captured!"); }}
+              className={`rounded-full px-4 py-1.5 text-xs font-bold ${isPremium ? "bg-[var(--brand-600)] text-white" : "bg-[var(--palette-amber-500)]/15 text-[var(--palette-amber-400)]"}`}>
+              {isPremium ? "Capture" : "Unlock Premium"}
+            </button>
+          </div>
+        </section>
 
         {/* Category filter */}
         <div className="flex flex-wrap gap-2">
