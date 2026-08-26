@@ -107,7 +107,9 @@ export default function UserProfilePage() {
             <h1 className="text-2xl font-black text-[var(--foreground)]">{profile.name}</h1>
             {profile.isPremium && <span className="flex items-center gap-1 rounded-full border border-[var(--brand-gold)]/40 bg-[var(--brand-gold)]/10 px-2 py-0.5 text-xs text-[var(--brand-gold)] font-bold"><Crown size={10} /> Premium</span>}
             {profile.prestige > 0 && <span className="flex items-center gap-1 rounded-full border border-[var(--palette-amber-500)]/40 bg-[var(--palette-amber-500)]/10 px-2 py-0.5 text-xs text-[var(--palette-amber-400)] font-bold"><Crown size={10} /> Prestige {profile.prestige}</span>}
+            {(profile.isBot || profile.role === "bot") && <span className="inline-flex items-center gap-1 rounded-full border border-[var(--forge-border)] bg-[var(--surface-1)] px-2.5 py-1 text-[10px] font-medium text-[var(--foreground-subtle)]" title="Focus Companion — fictional identity for community simulation, not a real person"><span className="h-1.5 w-1.5 rounded-full bg-[var(--foreground-subtle)]"/> Focus Companion</span>}
           </div>
+          {(profile.isBot || profile.role === "bot") && <p className="mt-2 text-[11px] leading-relaxed text-[var(--foreground-subtle)]">This is a Focus Companion — a fictional community member to make study rooms feel alive. Not a real person, no real testimonials.</p>}
           {profile.bio && <p className="text-sm text-[var(--foreground-subtle)] mt-1.5 leading-relaxed">{profile.bio}</p>}
           <div className="flex items-center gap-3 mt-2 text-xs text-[var(--foreground-subtle)]">
             <span className="flex items-center gap-1"><Users size={11} /> {profile.friendCount} friends</span>

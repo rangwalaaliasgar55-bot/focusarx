@@ -46,6 +46,8 @@ const ADMIN_SECTIONS = [
   { id: "battlepass", label: "Battle pass", icon: Zap, group: "Content" },
   { id: "quests", label: "Quests", icon: Sparkles, group: "Content" },
   { id: "city", label: "Focus City", icon: Building2, group: "Content" },
+  { id: "tokens", label: "Tokens", icon: Coins, group: "Operations" },
+  { id: "flags", label: "Feature Flags", icon: Sparkles, group: "Operations" },
   { id: "email", label: "Email", icon: Mail, group: "Operations" },
   { id: "premium", label: "Premium", icon: Crown, group: "Operations" },
   { id: "drops", label: "Drops", icon: Flame, group: "Operations" },

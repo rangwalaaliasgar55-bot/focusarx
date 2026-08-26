@@ -49,6 +49,9 @@ export const focusSessionsTable = pgTable("focus_sessions", {
   index("focus_sessions_user_id_idx").on(t.userId),
   unique("focus_sessions_user_nonce_unique").on(t.userId, t.clientNonce),
   index("focus_sessions_completed_at_idx").on(t.completedAt),
+  index("focus_sessions_user_started_idx").on(t.userId, t.createdAt),
+  index("focus_sessions_user_completed_idx").on(t.userId, t.completedAt),
+  index("focus_sessions_user_status_idx").on(t.userId, t.sessionStatus),
 ]);
 
 export type FocusSession = typeof focusSessionsTable.$inferSelect;
@@ -69,7 +72,10 @@ export const activeSessionsTable = pgTable("active_sessions", {
   monitorEnabled: boolean("monitor_enabled").default(false),
   startedAt: timestamp("started_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (t) => [
+  unique("active_session_per_user_idx").on(t.userId),
+  index("active_sessions_started_at_idx").on(t.startedAt),
+]);
 
 export type ActiveSession = typeof activeSessionsTable.$inferSelect;
 
@@ -626,7 +632,11 @@ export const studyRoomMembersTable = pgTable("study_room_members", {
   leftAt: timestamp("left_at"),
   focusMinutes: integer("focus_minutes").notNull().default(0),
   status: text("status").notNull().default("active"),
-}, (t) => [index("study_room_members_room_idx").on(t.roomId)]);
+}, (t) => [
+  index("study_room_members_room_idx").on(t.roomId),
+  index("room_members_room_user_idx").on(t.roomId, t.userId),
+  unique("study_room_members_room_user_unique").on(t.roomId, t.userId),
+]);
 
 export type StudyRoomMember = typeof studyRoomMembersTable.$inferSelect;
 

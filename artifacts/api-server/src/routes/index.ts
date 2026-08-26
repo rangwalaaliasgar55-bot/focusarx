@@ -58,6 +58,12 @@ import { profilesRouter } from "./profiles";
 import { sessionReplayRouter } from "./sessionReplay";
 import { wrappedRouter } from "./wrapped";
 import { emotesRouter } from "./emotes";
+import { mobileRouter } from "./mobile";
+import { petCatalogRouter } from "./petCatalog";
+import { battlePassEnhancedRouter } from "./battlePassEnhanced";
+import { adminTokensRouter } from "./adminTokens";
+import { cosmeticsRouter } from "./cosmetics";
+import { featureFlagsRouter } from "./featureFlags";
 
 const router: IRouter = Router();
 
@@ -120,5 +126,11 @@ router.use(profilesRouter);
 router.use(sessionReplayRouter);
 router.use(wrappedRouter);
 router.use(emotesRouter);
+router.use(mobileRouter);
+router.use(petCatalogRouter);
+router.use(battlePassEnhancedRouter);
+router.use(adminTokensRouter);
+router.use(cosmeticsRouter);
+router.use(featureFlagsRouter);
 
 export default router;

@@ -10,15 +10,15 @@ import { getServerConfig } from "../lib/config";
 import { extractUserId } from "./auth";
 import { adminLimiter } from "../lib/rateLimiter";
 import { ALL_MISSIONS } from "./missions";
-import { checkAdminAuth } from "../lib/adminAuth";
+import { checkAdminAuth, ADMIN_COOKIE } from "../lib/adminAuth";
 import { seedBots, seedBotsToTarget, deleteAllBots, BOT_PERSONAS, botActivityStats, buildBotFollowGraph, istDayKey } from "../lib/botEngine";
 import { generatePersona } from "../lib/personas";
 import { templateInventory } from "../lib/botTemplates";
+import { auditLog, getClientIp } from "../lib/auditLog";
 
 const router = Router();
-const ADMIN_COOKIE = "focusarx_admin";
 const IS_PROD = process.env.NODE_ENV === "production";
-const ADMIN_TOKEN_EXPIRY = "24h";
+const ADMIN_TOKEN_EXPIRY = "12h";
 
 function getJwtSecret(): string {
   const secret = getServerConfig().jwtSecret;
@@ -30,13 +30,31 @@ function getJwtSecret(): string {
 
 const checkAuth = checkAdminAuth;
 
-const SECURE_FLAG = IS_PROD ? "; Secure" : "";
+function secureAdminCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: IS_PROD,
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge: 12 * 60 * 60 * 1000, // 12h, reduced from 24h
+  };
+}
+
+function timingSafeCompare(a: string, b: string): boolean {
+  // Hash both to fixed length to avoid length leakage, then constant-time compare
+  const hashA = crypto.createHash("sha256").update(a).digest();
+  const hashB = crypto.createHash("sha256").update(b).digest();
+  return crypto.timingSafeEqual(hashA, hashB);
+}
 
 router.post("/admin/auth", adminLimiter, async (req, res) => {
   const password = getServerConfig().adminPassword;
+  const ip = getClientIp(req as any);
+
   if (!password) {
     const userId = extractUserId(req);
     if (!userId) {
+      auditLog({ action: "admin_login_failed", ip, details: { reason: "no_admin_password_and_no_user" } });
       res.status(503).json({
         error: "ADMIN_PASSWORD not configured",
         hint: "Set ADMIN_PASSWORD in Vercel env vars or use a user with role=admin.",
@@ -46,13 +64,15 @@ router.post("/admin/auth", adminLimiter, async (req, res) => {
     try {
       const [user] = await db.select({ role: usersTable.role }).from(usersTable).where(eq(usersTable.id, userId));
       if (user?.role?.toLowerCase() !== "admin") {
+        auditLog({ action: "admin_login_failed", userId, ip, details: { reason: "not_admin_role" } });
         res.status(403).json({ error: "Access denied" });
         return;
       }
       const token = jwt.sign({ role: "admin_session" }, getJwtSecret(), {
         algorithm: "HS256", issuer: "focusarx-api", audience: "focusarx-admin", expiresIn: ADMIN_TOKEN_EXPIRY,
       });
-      res.setHeader("Set-Cookie", `${ADMIN_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${SECURE_FLAG}`);
+      res.cookie(ADMIN_COOKIE, token, secureAdminCookieOptions());
+      auditLog({ action: "admin_login_success", userId, ip, details: { method: "role" } });
       res.json({ ok: true });
     } catch (err) {
       logger.error({ err }, "admin auth role check error");
@@ -60,30 +80,36 @@ router.post("/admin/auth", adminLimiter, async (req, res) => {
     }
     return;
   }
+
   const { password: inputPassword } = req.body as { password?: string };
-  if (!inputPassword || inputPassword.length > 256) {
+  if (!inputPassword || typeof inputPassword !== "string" || inputPassword.length === 0 || inputPassword.length > 256) {
+    auditLog({ action: "admin_login_failed", ip, details: { reason: "invalid_input" } });
+    // Generic response — never expose whether password was missing vs wrong
     res.status(403).json({ error: "Access denied" });
     return;
   }
-  const a = Buffer.from(inputPassword.slice(0, 256));
-  const b = Buffer.from(password.slice(0, 256));
-  const lengthMatch = a.length === b.length;
-  const padLen = Math.max(a.length, b.length);
-  const aPad = Buffer.concat([a, Buffer.alloc(padLen - a.length)]);
-  const bPad = Buffer.concat([b, Buffer.alloc(padLen - b.length)]);
-  if (!lengthMatch || !crypto.timingSafeEqual(aPad, bPad)) {
+
+  // Constant-time comparison via hashed values
+  const isValid = timingSafeCompare(inputPassword, password);
+
+  if (!isValid) {
+    auditLog({ action: "admin_login_failed", ip, details: { reason: "bad_password" } });
     res.status(403).json({ error: "Access denied" });
     return;
   }
+
   const token = jwt.sign({ role: "admin_session" }, getJwtSecret(), {
     algorithm: "HS256", issuer: "focusarx-api", audience: "focusarx-admin", expiresIn: ADMIN_TOKEN_EXPIRY,
   });
-  res.setHeader("Set-Cookie", `${ADMIN_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${SECURE_FLAG}`);
+  res.cookie(ADMIN_COOKIE, token, secureAdminCookieOptions());
+  auditLog({ action: "admin_login_success", ip, details: { method: "password" } });
   res.json({ ok: true });
 });
 
-router.delete("/admin/auth", (_req, res) => {
-  res.setHeader("Set-Cookie", `${ADMIN_COOKIE}=; Path=/; HttpOnly; Max-Age=0${SECURE_FLAG}`);
+router.delete("/admin/auth", (req, res) => {
+  const ip = getClientIp(req as any);
+  res.cookie(ADMIN_COOKIE, "", { ...secureAdminCookieOptions(), maxAge: 0 });
+  auditLog({ action: "admin_logout", ip });
   res.json({ ok: true });
 });
 

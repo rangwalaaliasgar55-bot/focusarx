@@ -3,6 +3,19 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { initSocket } from "./lib/socketManager";
 import { initVapid } from "./lib/pushSender";
+import { getEnv, env as envModule } from "./lib/env";
+
+// Validate env early — fail fast in production with clear message
+try {
+  getEnv();
+  envModule.validateProductionEnv();
+} catch (err) {
+  console.error((err as Error).message);
+  if (process.env.NODE_ENV === "production") {
+    // In production, fail immediately — do not start in half-working state
+    throw err;
+  }
+}
 
 // Export app for Vercel serverless
 export default app;

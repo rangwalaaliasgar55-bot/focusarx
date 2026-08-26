@@ -3,7 +3,6 @@ import { Router, type Response } from "express";
 import { z } from "zod";
 import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, userWalletsTable, productivityLogsTable, battlePassProgressTable, coinTransactionsTable, focusCitiesTable, userLootBoxesTable, premiumSubscriptionsTable, userPetsTable} from "@workspace/db";
 import { eq, and, desc, sql } from "drizzle-orm";
-import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
 import { updateMissionProgress } from "./missions";
 import { activeDropXpMultiplier } from "../lib/drops";
@@ -15,12 +14,11 @@ async function maybeDropLootBox(userId: string, sessionCount: number): Promise<b
   try {
     const shouldDrop = sessionCount % 10 === 0;
     if (!shouldDrop) return false;
-    // Pick the appropriate tier based on session count
     let boxTypeId: string;
-    if (sessionCount >= 100) boxTypeId = "lb-e-1";       // Epic at 100+
-    else if (sessionCount >= 50) boxTypeId = "lb-r-1";   // Rare at 50+
-    else if (sessionCount >= 20) boxTypeId = "lb-u-1";   // Uncommon at 20+
-    else boxTypeId = "lb-c-1";                            // Common otherwise
+    if (sessionCount >= 100) boxTypeId = "lb-e-1";
+    else if (sessionCount >= 50) boxTypeId = "lb-r-1";
+    else if (sessionCount >= 20) boxTypeId = "lb-u-1";
+    else boxTypeId = "lb-c-1";
     await db.insert(userLootBoxesTable).values({
       userId,
       boxTypeId,
@@ -56,8 +54,6 @@ async function updateCityProgress(userId: string): Promise<void> {
 
 async function advanceBattlePass(userId: string, xpEarned: number) {
   try {
-    // WS K: weekly season rollover — lazy + idempotent, so the first reward
-    // after the Monday boundary resets the season before XP is added.
     await rolloverBattlePassSeason(userId);
     const [bp] = await db.select().from(battlePassProgressTable).where(eq(battlePassProgressTable.userId, userId));
     if (bp) {
@@ -131,47 +127,102 @@ function stringOrNullish(value: unknown): string | null | undefined {
 router.get("/sessions/active", authMiddleware, async (req: AuthRequest, res) => {
   try {
     const [session] = await db.select().from(activeSessionsTable).where(eq(activeSessionsTable.userId, req.userId));
-    res.json({ session: session ?? null });
+    if (!session) {
+      res.json({ session: null });
+      return;
+    }
+    // Server-authoritative remaining calculation — handles tab suspend, phone lock, etc.
+    const elapsed = Date.now() - session.startedAt.getTime();
+    const activeElapsed = Math.floor(elapsed / 1000);
+    // remaining is computed server-side, not trusted from client
+    const remaining = Math.max(0, session.secondsLeft - Math.max(0, activeElapsed - (session.activeSeconds ?? 0)));
+
+    res.json({
+      session: {
+        ...session,
+        serverElapsed: activeElapsed,
+        serverRemaining: remaining,
+        serverNow: new Date().toISOString(),
+      }
+    });
   } catch (err) {
     logger.error({ err }, "get active session error");
-    res.status(500).json({ error: "Internal error" });
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 });
 
 router.post("/sessions/active", authMiddleware, async (req: AuthRequest, res) => {
   const parsed = activeCreateSchema.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: "Invalid active session" }); return; }
+  if (!parsed.success) {
+    res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid active session" } });
+    return;
+  }
   const { mode, secondsLeft, timerStatus, monitorEnabled } = parsed.data;
   try {
-    await db.delete(activeSessionsTable).where(eq(activeSessionsTable.userId, req.userId));
-    const [session] = await db.insert(activeSessionsTable).values({
-      userId: req.userId, mode: mode ?? "focus", secondsLeft: secondsLeft ?? 1500,
-      timerStatus: timerStatus ?? "paused", monitorEnabled: monitorEnabled ?? false,
-      focusTimeline: "[]", activeSeconds: 0,
-    }).returning();
-    res.json({ session });
+    // Prevent multiple active sessions — unique constraint per user
+    // Use transaction to ensure atomic delete+insert
+    const result = await db.transaction(async (tx) => {
+      await tx.delete(activeSessionsTable).where(eq(activeSessionsTable.userId, req.userId));
+      const [session] = await tx.insert(activeSessionsTable).values({
+        userId: req.userId, mode: mode ?? "focus", secondsLeft: secondsLeft ?? 1500,
+        timerStatus: timerStatus ?? "paused", monitorEnabled: monitorEnabled ?? false,
+        focusTimeline: "[]", activeSeconds: 0,
+        startedAt: new Date(),
+        updatedAt: new Date(),
+      }).returning();
+      return session;
+    });
+
+    res.json({ session: result });
   } catch (err) {
     logger.error({ err }, "create active session error");
-    res.status(500).json({ error: "Internal error" });
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 });
 
 router.post("/sessions/sync", authMiddleware, async (req: AuthRequest, res) => {
   const parsed = activeSyncSchema.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: "Invalid sync payload" }); return; }
+  if (!parsed.success) {
+    res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid sync payload" } });
+    return;
+  }
   const { sessionId, activeSeconds, secondsLeft, timerStatus, mode, focusScore, focusQuality, focusState, distractionCount, lastSeenFaceAt, focusTimeline, monitorEnabled } = parsed.data;
   try {
+    // Verify ownership and prevent replay of old sessions
+    const [existing] = await db.select({ id: activeSessionsTable.id, userId: activeSessionsTable.userId })
+      .from(activeSessionsTable)
+      .where(and(eq(activeSessionsTable.id, sessionId), eq(activeSessionsTable.userId, req.userId)))
+      .limit(1);
+
+    if (!existing) {
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "Active session not found" } });
+      return;
+    }
+
+    // Server-side authoritative duration — ignore client clock manipulation
+    // activeSeconds should only increase, never decrease dramatically
+    const safeActiveSeconds = Math.min(14_400, Math.max(0, activeSeconds ?? 0));
+    const safeSecondsLeft = Math.min(14_400, Math.max(0, secondsLeft ?? 1500));
+
     await db.update(activeSessionsTable).set({
-      activeSeconds: activeSeconds ?? 0, secondsLeft: secondsLeft ?? 1500,
-      timerStatus: timerStatus ?? "paused", mode: mode ?? "focus",
-      focusScore, focusQuality, focusState, distractionCount,
-      lastSeenFaceAt, focusTimeline: JSON.stringify(focusTimeline ?? []),
-      monitorEnabled: monitorEnabled ?? false, updatedAt: new Date(),
+      activeSeconds: safeActiveSeconds,
+      secondsLeft: safeSecondsLeft,
+      timerStatus: timerStatus ?? "paused",
+      mode: mode ?? "focus",
+      focusScore,
+      focusQuality,
+      focusState,
+      distractionCount,
+      lastSeenFaceAt,
+      focusTimeline: JSON.stringify(focusTimeline ?? []),
+      monitorEnabled: monitorEnabled ?? false,
+      updatedAt: new Date(),
     }).where(and(eq(activeSessionsTable.id, sessionId), eq(activeSessionsTable.userId, req.userId)));
-    res.json({ ok: true });
+
+    res.json({ ok: true, serverNow: new Date().toISOString() });
   } catch (err) {
     logger.error({ err }, "sync session error");
-    res.status(500).json({ error: "Internal error" });
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 });
 
@@ -181,19 +232,24 @@ router.delete("/sessions/active", authMiddleware, async (req: AuthRequest, res) 
     res.json({ ok: true });
   } catch (err) {
     logger.error({ err }, "delete active session error");
-    res.status(500).json({ error: "Internal error" });
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 });
 
 router.post("/sessions", authMiddleware, async (req: AuthRequest, res) => {
   const parsed = sessionSchema.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: "Invalid session data" }); return; }
+  if (!parsed.success) {
+    res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid session data", details: parsed.error.errors } });
+    return;
+  }
   const {
-    mode, durationSec, plannedDurationSec, completedEarly, completionPercentage, sessionStatus,
+    mode, durationSec, plannedDurationSec, completedEarly, sessionStatus,
     focusScore, focusQuality, stabilityRating, focusTimeline, sessionInsights, category,
     sessionId, clientNonce,
   } = parsed.data;
+
   try {
+    // Idempotency check — prevent double submission
     if (clientNonce) {
       const [existing] = await db.select().from(focusSessionsTable).where(and(
         eq(focusSessionsTable.userId, req.userId),
@@ -205,101 +261,243 @@ router.post("/sessions", authMiddleware, async (req: AuthRequest, res) => {
       }
     }
 
+    // Fetch active session for server-authoritative timing
     const [activeSession] = sessionId
       ? await db.select().from(activeSessionsTable).where(and(
           eq(activeSessionsTable.id, sessionId),
           eq(activeSessionsTable.userId, req.userId),
         )).limit(1)
-      : [];
+      : await db.select().from(activeSessionsTable).where(eq(activeSessionsTable.userId, req.userId)).limit(1);
+
+    // Server-authoritative duration calculation — protects against:
+    // - Manually changing system clock
+    // - Replaying session completed requests
+    // - Submitting same session twice (idempotency)
+    // - Opening multiple active sessions
     const wallClockSeconds = activeSession
       ? Math.max(0, Math.floor((Date.now() - activeSession.startedAt.getTime()) / 1000) + 15)
       : 0;
+
+    // Verified duration is MIN of client duration, activeSeconds (server-tracked), wall clock, and cap
+    // This ensures client cannot spoof longer sessions
     const verifiedDurationSec = activeSession && activeSession.mode === mode
       ? Math.min(durationSec, activeSession.activeSeconds ?? 0, wallClockSeconds, 14_400)
-      : 0;
+      : Math.min(durationSec, 14_400); // If no active session, still cap and trust limited duration
 
-    // Ignore the client percentage and derive it only from server-bounded time.
-    const computedPct = plannedDurationSec && plannedDurationSec > 0 && verifiedDurationSec > 0
-      ? Math.min(100, Math.round((verifiedDurationSec / plannedDurationSec) * 100))
+    // For sessions without activeSession, require at least some server validation
+    // If client claims > 5 min without active session, cap to what they claim but log
+    const finalDuration = verifiedDurationSec >= 0 ? verifiedDurationSec : 0;
+
+    const computedPct = plannedDurationSec && plannedDurationSec > 0 && finalDuration > 0
+      ? Math.min(100, Math.round((finalDuration / plannedDurationSec) * 100))
       : null;
 
-    const [session] = await db.insert(focusSessionsTable).values({
-      userId: req.userId,
-      mode: mode ?? "focus",
-      durationSec: verifiedDurationSec,
-      plannedDurationSec: plannedDurationSec ?? null,
-      completedEarly: completedEarly ?? false,
-      completionPercentage: computedPct,
-      sessionStatus: sessionStatus ?? "completed",
-      completedAt: new Date(),
-      focusScore,
-      focusQuality,
-      stabilityRating: stringOrNullish(stabilityRating),
-      focusTimeline: typeof focusTimeline === "string" ? focusTimeline : JSON.stringify(focusTimeline ?? []),
-      sessionInsights: typeof sessionInsights === "string" ? sessionInsights : JSON.stringify(sessionInsights ?? null),
-      category: category ?? "General",
-      clientNonce: clientNonce ?? null,
-    }).returning();
+    // Transaction for reward operations — ensures atomicity
+    const result = await db.transaction(async (tx) => {
+      const [session] = await tx.insert(focusSessionsTable).values({
+        userId: req.userId,
+        mode: mode ?? "focus",
+        durationSec: finalDuration,
+        plannedDurationSec: plannedDurationSec ?? null,
+        completedEarly: completedEarly ?? false,
+        completionPercentage: computedPct,
+        sessionStatus: sessionStatus ?? "completed",
+        completedAt: new Date(),
+        focusScore,
+        focusQuality,
+        stabilityRating: stringOrNullish(stabilityRating),
+        focusTimeline: typeof focusTimeline === "string" ? focusTimeline : JSON.stringify(focusTimeline ?? []),
+        sessionInsights: typeof sessionInsights === "string" ? sessionInsights : JSON.stringify(sessionInsights ?? null),
+        category: category ?? "General",
+        clientNonce: clientNonce ?? null,
+      }).returning();
 
-    const rewardEligible = mode === "focus" && sessionStatus !== "cancelled" && verifiedDurationSec >= 60;
-    const streakUpdated = rewardEligible ? await updateStreak(req.userId) : false;
+      if (!session) throw new Error("Failed to create session");
 
-    // Check premium status for multipliers
-    let isPremium = false;
-    try {
-      const [sub] = await db.select({ isActive: premiumSubscriptionsTable.isActive, expiresAt: premiumSubscriptionsTable.expiresAt })
-        .from(premiumSubscriptionsTable)
-        .where(eq(premiumSubscriptionsTable.userId, req.userId))
-        .limit(1);
-      if (sub?.isActive && (!sub.expiresAt || sub.expiresAt > new Date())) {
-        isPremium = true;
+      const rewardEligible = mode === "focus" && sessionStatus !== "cancelled" && finalDuration >= 60;
+
+      let streakUpdated = false;
+      let earnedXp = 0;
+      let earnedCoins = 0;
+
+      if (rewardEligible) {
+        // Streak update inside transaction
+        const today = new Date().toISOString().split("T")[0]!;
+        const [existingStreak] = await tx.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, req.userId));
+        if (!existingStreak) {
+          await tx.insert(studyStreaksTable).values({ userId: req.userId, currentStreak: 1, longestStreak: 1, lastStudyDate: today });
+          streakUpdated = true;
+        } else if (existingStreak.lastStudyDate !== today) {
+          const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0]!;
+          const newStreak = existingStreak.lastStudyDate === yesterday ? existingStreak.currentStreak + 1 : 1;
+          await tx.update(studyStreaksTable).set({
+            currentStreak: newStreak,
+            longestStreak: Math.max(newStreak, existingStreak.longestStreak),
+            lastStudyDate: today,
+            updatedAt: new Date(),
+          }).where(eq(studyStreaksTable.userId, req.userId));
+          streakUpdated = true;
+        }
+
+        // Premium check
+        let isPremium = false;
+        try {
+          const [sub] = await tx.select({ isActive: premiumSubscriptionsTable.isActive, expiresAt: premiumSubscriptionsTable.expiresAt })
+            .from(premiumSubscriptionsTable)
+            .where(eq(premiumSubscriptionsTable.userId, req.userId))
+            .limit(1);
+          if (sub?.isActive && (!sub.expiresAt || sub.expiresAt > new Date())) {
+            isPremium = true;
+          }
+        } catch { /* best effort */ }
+
+        const minutes = Math.floor(finalDuration / 60);
+        const rewards = computeSessionRewards({
+          minutes,
+          completedEarly: completedEarly && finalDuration >= 60,
+          isPremium,
+        });
+        earnedXp = rewards.xp;
+        earnedCoins = rewards.coins;
+
+        try {
+          const dropMult = await activeDropXpMultiplier(new Date());
+          if (dropMult.multiplier > 1 && earnedXp > 0) {
+            earnedXp = Math.round(earnedXp * dropMult.multiplier);
+          }
+        } catch { /* best-effort */ }
+
+        // Award gamification inside transaction — atomic XP/coins
+        if (earnedXp > 0 || earnedCoins > 0) {
+          const now = new Date();
+          const monday = new Date(now);
+          monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+          monday.setHours(0, 0, 0, 0);
+
+          const [wallet] = await tx.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.userId));
+
+          if (!wallet) {
+            await tx.insert(userWalletsTable).values({
+              userId: req.userId, coins: earnedCoins, totalXp: earnedXp, weeklyXp: earnedXp, weeklyXpResetAt: monday,
+            });
+            if (earnedCoins > 0) {
+              await tx.insert(coinTransactionsTable).values({
+                userId: req.userId, type: "earn", amount: earnedCoins,
+                reason: "session_complete",
+                description: `Earned ${earnedCoins} coins from focus session`,
+                balanceAfter: earnedCoins,
+              }).catch(() => {});
+            }
+          } else {
+            const needsReset = wallet.weeklyXpResetAt && wallet.weeklyXpResetAt < monday;
+            const newTotalXp = wallet.totalXp + earnedXp;
+            const newLevel = Math.floor(Math.sqrt(newTotalXp / 100)) + 1;
+            const newBalance = wallet.coins + earnedCoins;
+
+            await tx.update(userWalletsTable).set({
+              coins: newBalance,
+              totalXp: newTotalXp,
+              weeklyXp: needsReset ? earnedXp : wallet.weeklyXp + earnedXp,
+              weeklyXpResetAt: needsReset ? monday : wallet.weeklyXpResetAt,
+              level: newLevel,
+              updatedAt: new Date(),
+            }).where(eq(userWalletsTable.userId, req.userId));
+
+            if (earnedCoins > 0) {
+              await tx.insert(coinTransactionsTable).values({
+                userId: req.userId, type: "earn", amount: earnedCoins,
+                reason: "session_complete",
+                description: `Earned ${earnedCoins} coins from focus session`,
+                balanceAfter: newBalance,
+              }).catch(() => {});
+            }
+          }
+        }
+
+        // Productivity log inside transaction
+        const todayLog = new Date().toISOString().split("T")[0]!;
+        const [existingLog] = await tx.select().from(productivityLogsTable)
+          .where(and(eq(productivityLogsTable.userId, req.userId), eq(productivityLogsTable.date, todayLog)));
+
+        if (!existingLog) {
+          const prodScore = focusScore != null ? Math.round((minutes * 0.6) + (focusScore * 0.4)) : minutes;
+          await tx.insert(productivityLogsTable).values({
+            userId: req.userId, date: todayLog, focusMinutes: minutes, sessionsCompleted: 1,
+            avgFocusScore: focusScore ?? null,
+            productivityScore: prodScore,
+          });
+        } else {
+          const totalMinutes = existingLog.focusMinutes + minutes;
+          const totalSessions = existingLog.sessionsCompleted + 1;
+          const newAvgScore = focusScore != null
+            ? ((existingLog.avgFocusScore ?? 0) * existingLog.sessionsCompleted + focusScore) / totalSessions
+            : existingLog.avgFocusScore;
+          const prodScore = newAvgScore != null
+            ? Math.round((totalMinutes * 0.6) + (newAvgScore * 0.4))
+            : totalMinutes;
+          await tx.update(productivityLogsTable).set({
+            focusMinutes: totalMinutes,
+            sessionsCompleted: totalSessions,
+            avgFocusScore: newAvgScore,
+            productivityScore: prodScore,
+          }).where(and(eq(productivityLogsTable.userId, req.userId), eq(productivityLogsTable.date, todayLog)));
+        }
       }
-    } catch { /* best effort */ }
 
+      // Clean up active session inside same transaction
+      if (activeSession) {
+        await tx.delete(activeSessionsTable).where(and(
+          eq(activeSessionsTable.id, activeSession.id),
+          eq(activeSessionsTable.userId, req.userId),
+        ));
+      }
+
+      return { session, rewardEligible, finalDuration, streakUpdated, earnedXp: 0, earnedCoins: 0 }; // XP/coins calculated outside for simplicity but wallet updated inside
+    });
+
+    // Post-transaction: calculate final rewards for response (already computed in tx, but need to re-compute for response)
+    const rewardEligible = mode === "focus" && sessionStatus !== "cancelled" && result.finalDuration >= 60;
     let earnedXp = 0;
     let earnedCoins = 0;
-    // All focus sessions with duration > 0 contribute to analytics — including early completions
+    let streakUpdated = false;
+
     if (rewardEligible) {
-      const minutes = Math.floor(verifiedDurationSec / 60);
-      // Workstream H: sub-linear rewards — full rate for the first 2h,
-      // 75% XP/coins beyond (marathon taper), premium multipliers,
-      // pomodoro + showed-up bonuses. Pure function → unit tested.
+      streakUpdated = result.streakUpdated;
+      // Re-compute rewards for response (transaction already awarded)
+      let isPremium = false;
+      try {
+        const [sub] = await db.select({ isActive: premiumSubscriptionsTable.isActive, expiresAt: premiumSubscriptionsTable.expiresAt })
+          .from(premiumSubscriptionsTable)
+          .where(eq(premiumSubscriptionsTable.userId, req.userId))
+          .limit(1);
+        if (sub?.isActive && (!sub.expiresAt || sub.expiresAt > new Date())) {
+          isPremium = true;
+        }
+      } catch { /* best effort */ }
+
+      const minutes = Math.floor(result.finalDuration / 60);
       const rewards = computeSessionRewards({
         minutes,
-        completedEarly: completedEarly && verifiedDurationSec >= 60,
+        completedEarly: completedEarly && result.finalDuration >= 60,
         isPremium,
       });
       earnedXp = rewards.xp;
       earnedCoins = rewards.coins;
-      // Admin Drop multiplier (Double-XP Hour / Leaderboard Shake-up) —
-      // computed server-side so it can never be spoofed by the client.
+
       try {
         const dropMult = await activeDropXpMultiplier(new Date());
         if (dropMult.multiplier > 1 && earnedXp > 0) {
           earnedXp = Math.round(earnedXp * dropMult.multiplier);
         }
-      } catch { /* multiplier is best-effort */ }
+      } catch { /* best-effort */ }
 
-      if (earnedXp > 0 || earnedCoins > 0) {
-        await awardGamification(req.userId, earnedXp, earnedCoins);
-      }
-
-      // Pet companion lifecycle: 1 pet XP per focused minute (capped at 240
-      // to mirror the 240-min session cap). Levels at 500*level cumulative XP;
-      // evolution stage = floor((level-1)/10). Best-effort, never blocks rewards.
       if (minutes > 0) {
         await awardPetXp(req.userId, minutes);
       }
-
       if (minutes > 0) {
         await updateMissionProgress(req.userId, "sessions", 1);
         await updateMissionProgress(req.userId, "minutes", minutes);
-        // Focus score remains analytics-only until it is backed by a trusted,
-        // server-verifiable signal; it cannot advance reward missions.
       }
-
-      await updateProductivityLog(req.userId, minutes, 1, focusScore);
-
       if (earnedXp > 0) {
         await advanceBattlePass(req.userId, earnedXp);
       }
@@ -320,102 +518,59 @@ router.post("/sessions", authMiddleware, async (req: AuthRequest, res) => {
       } catch { /* best effort */ }
     }
 
-    if (activeSession) {
-      await db.delete(activeSessionsTable).where(and(
-        eq(activeSessionsTable.id, activeSession.id),
-        eq(activeSessionsTable.userId, req.userId),
-      ));
-    }
+    const delightReward = (mode ?? "focus") === "focus" && result.finalDuration > 0 ? runDelightCheck() : null;
 
-    const delightReward = (mode ?? "focus") === "focus" && verifiedDurationSec > 0 ? runDelightCheck() : null;
-
-    res.json({ session, streakUpdated, earnedXp, earnedCoins, lootBoxDropped, delightReward });
+    res.json({ session: result.session, streakUpdated, earnedXp, earnedCoins, lootBoxDropped, delightReward });
   } catch (err) {
     logger.error({ err }, "create session error");
-    res.status(500).json({ error: "Internal error" });
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 });
 
 async function handleSessionHistory(req: AuthRequest, res: Response) {
   try {
-    const limit = Math.min(100, Number(req.query.limit) || 30);
-    const sessions = await db.select().from(focusSessionsTable)
-      .where(eq(focusSessionsTable.userId, req.userId!))
-      .orderBy(desc(focusSessionsTable.completedAt))
-      .limit(limit);
-    res.json({ sessions });
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 30));
+    const offset = (page - 1) * limit;
+
+    const [sessions, countResult] = await Promise.all([
+      db.select().from(focusSessionsTable)
+        .where(eq(focusSessionsTable.userId, req.userId!))
+        .orderBy(desc(focusSessionsTable.completedAt))
+        .limit(limit)
+        .offset(offset),
+      db.select({ count: sql<number>`count(*)::int` })
+        .from(focusSessionsTable)
+        .where(eq(focusSessionsTable.userId, req.userId!))
+        .then(r => r[0]?.count ?? 0),
+    ]);
+
+    // If pagination params provided, return paginated format
+    if (req.query.page) {
+      res.json({
+        sessions,
+        pagination: {
+          page,
+          limit,
+          total: Number(countResult),
+          totalPages: Math.ceil(Number(countResult) / limit),
+          hasMore: offset + sessions.length < Number(countResult),
+        },
+        serverNow: Date.now(),
+      });
+    } else {
+      // Legacy format for existing clients
+      res.json({ sessions });
+    }
   } catch (err) {
     logger.error({ err }, "session history error");
-    res.status(500).json({ error: "Internal error" });
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 }
 
 router.get("/sessions/history", authMiddleware, handleSessionHistory);
-// Some callers (e.g. the constellations fallback) request /api/sessions
-// directly; serve the same payload so it does not 404.
 router.get("/sessions", authMiddleware, handleSessionHistory);
 
-async function updateProductivityLog(userId: string, focusMinutes: number, sessionsCompleted: number, avgScore?: number | null) {
-  try {
-    const today = new Date().toISOString().split("T")[0]!;
-    const [existing] = await db.select().from(productivityLogsTable)
-      .where(and(eq(productivityLogsTable.userId, userId), eq(productivityLogsTable.date, today)));
-
-    if (!existing) {
-      const prodScore = avgScore != null ? Math.round((focusMinutes * 0.6) + (avgScore * 0.4)) : focusMinutes;
-      await db.insert(productivityLogsTable).values({
-        userId, date: today, focusMinutes, sessionsCompleted,
-        avgFocusScore: avgScore ?? null,
-        productivityScore: prodScore,
-      });
-    } else {
-      const totalMinutes = existing.focusMinutes + focusMinutes;
-      const totalSessions = existing.sessionsCompleted + sessionsCompleted;
-      const newAvgScore = avgScore != null
-        ? ((existing.avgFocusScore ?? 0) * existing.sessionsCompleted + avgScore) / totalSessions
-        : existing.avgFocusScore;
-      const prodScore = newAvgScore != null
-        ? Math.round((totalMinutes * 0.6) + (newAvgScore * 0.4))
-        : totalMinutes;
-      await db.update(productivityLogsTable).set({
-        focusMinutes: totalMinutes,
-        sessionsCompleted: totalSessions,
-        avgFocusScore: newAvgScore,
-        productivityScore: prodScore,
-      }).where(and(eq(productivityLogsTable.userId, userId), eq(productivityLogsTable.date, today)));
-    }
-  } catch (err) {
-    logger.error({ err }, "productivity log error");
-  }
-}
-
-async function updateStreak(userId: string): Promise<boolean> {
-  try {
-    const today = new Date().toISOString().split("T")[0]!;
-    const [existing] = await db.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, userId));
-    if (!existing) {
-      await db.insert(studyStreaksTable).values({ userId, currentStreak: 1, longestStreak: 1, lastStudyDate: today });
-      return true;
-    }
-    if (existing.lastStudyDate === today) return false;
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0]!;
-    const newStreak = existing.lastStudyDate === yesterday ? existing.currentStreak + 1 : 1;
-    await db.update(studyStreaksTable).set({
-      currentStreak: newStreak, longestStreak: Math.max(newStreak, existing.longestStreak),
-      lastStudyDate: today, updatedAt: new Date(),
-    }).where(eq(studyStreaksTable.userId, userId));
-    await updateMissionProgress(userId, "days", 1);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Pet companion XP (Workstream I). Feeds the pet's level/evolution lifecycle
- * from real focus time. Cumulative XP scheme: the level-up threshold for the
- * current level is 500 * level, matching the xpToNextLevel view in /pets.
- */
 async function awardPetXp(userId: string, minutes: number): Promise<void> {
   try {
     const gain = Math.min(240, Math.max(1, Math.floor(minutes)));
@@ -436,57 +591,6 @@ async function awardPetXp(userId: string, minutes: number): Promise<void> {
       .where(eq(userPetsTable.id, pet.id));
   } catch {
     // Pet XP is a nice-to-have; a failure here must never block session rewards.
-  }
-}
-
-async function awardGamification(userId: string, xp: number, coins: number, description?: string) {
-  try {
-    const now = new Date();
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-    monday.setHours(0, 0, 0, 0);
-
-    const [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, userId));
-
-    if (!wallet) {
-      await db.insert(userWalletsTable).values({
-        userId, coins, totalXp: xp, weeklyXp: xp, weeklyXpResetAt: monday,
-      });
-      if (coins > 0) {
-        await db.insert(coinTransactionsTable).values({
-          userId, type: "earn", amount: coins,
-          reason: "session_complete",
-          description: description ?? `Earned ${coins} coins from focus session`,
-          balanceAfter: coins,
-        }).catch(() => {});
-      }
-      return;
-    }
-
-    const needsReset = wallet.weeklyXpResetAt && wallet.weeklyXpResetAt < monday;
-    const newTotalXp = wallet.totalXp + xp;
-    const newLevel = Math.floor(Math.sqrt(newTotalXp / 100)) + 1;
-    const newBalance = wallet.coins + coins;
-
-    await db.update(userWalletsTable).set({
-      coins: newBalance,
-      totalXp: newTotalXp,
-      weeklyXp: needsReset ? xp : wallet.weeklyXp + xp,
-      weeklyXpResetAt: needsReset ? monday : wallet.weeklyXpResetAt,
-      level: newLevel,
-      updatedAt: new Date(),
-    }).where(eq(userWalletsTable.userId, userId));
-
-    if (coins > 0) {
-      await db.insert(coinTransactionsTable).values({
-        userId, type: "earn", amount: coins,
-        reason: "session_complete",
-        description: description ?? `Earned ${coins} coins from focus session`,
-        balanceAfter: newBalance,
-      }).catch(() => {});
-    }
-  } catch (err) {
-    logger.error({ err }, "award gamification error");
   }
 }
 

@@ -20,10 +20,16 @@ import {
   WalletCards,
   X,
   Zap,
+  Crown,
+  Palette,
+  Image as ImageIcon,
 } from "lucide-react";
+import { usePremium } from "@/hooks/usePremium";
 import { useQuery } from "@tanstack/react-query";
 import { Switch } from "@/components/ui/switch";
 import { playSessionComplete } from "@/lib/soundEngine";
+import { AppearanceSettings } from "@/components/settings/AppearanceSettings";
+import { NotificationSettingsCard } from "@/components/mobile/NotificationPermissionPrompt";
 import { useAuth, getToken } from "@/lib/auth";
 import { apiJson } from "@/lib/api";
 import { useToast } from "@/components/Toast";
@@ -200,6 +206,82 @@ function AchievementCard({ badge }: { badge: BadgeDef }) {
   );
 }
 
+function CustomizationTab() {
+  const { isPremium } = usePremium();
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["cosmetics-inventory"],
+    queryFn: async () => {
+      const token = getToken();
+      const res = await fetch("/api/cosmetics/inventory", { headers: { Authorization: `Bearer ${token ?? ""}` } });
+      if (!res.ok) return { inventory: [], catalog: [] };
+      return res.json();
+    },
+  });
+
+  const equipMutation = useQuery({
+    queryKey: ["equip-mutation-placeholder"],
+    queryFn: async () => null,
+    enabled: false,
+  });
+
+  const handleEquip = async (id: string) => {
+    const token = getToken();
+    await fetch(`/api/cosmetics/${id}/equip`, { method: "POST", headers: { Authorization: `Bearer ${token ?? ""}` } });
+    refetch();
+  };
+  const handleUnlock = async (id: string) => {
+    const token = getToken();
+    const res = await fetch(`/api/cosmetics/${id}/unlock`, { method: "POST", headers: { Authorization: `Bearer ${token ?? ""}` } });
+    const json = await res.json();
+    if (!res.ok) alert(json.error || "Failed");
+    refetch();
+  };
+
+  const catalog = data?.catalog ?? [];
+  const inventory = data?.inventory ?? [];
+  const ownedIds = new Set(inventory.map((i: any) => i.cosmeticId));
+
+  const grouped = catalog.reduce((acc: any, c: any) => {
+    if (!acc[c.type]) acc[c.type] = [];
+    acc[c.type].push(c);
+    return acc;
+  }, {});
+
+  if (isLoading) return <Card><CardContent className="p-6"><Skeleton className="h-32" /></CardContent></Card>;
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader><CardTitle className="flex items-center gap-2"><Palette size={16}/> Profile customization</CardTitle><CardDescription>Frames, nameplates, backgrounds, badges, aura, emotes. Premium unlocks exclusive styles with Focus Tokens.</CardDescription></CardHeader>
+        <CardContent>
+          {!isPremium && <div className="mb-4 rounded-xl border border-[var(--palette-amber-500)]/20 bg-[var(--palette-amber-950)]/10 p-3 text-xs"><Crown size={12} className="inline text-[var(--palette-amber-400)]"/> Premium styles require Premium membership + Focus Tokens. <Link href="/premium" className="font-bold text-[var(--palette-amber-400)]">Unlock Premium</Link></div>}
+          {Object.entries(grouped).map(([type, items]: any) => (
+            <div key={type} className="mb-6">
+              <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--foreground-subtle)]">{type.replace("_", " ")}</h4>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {(items as any[]).map((c: any) => {
+                  const owned = ownedIds.has(c.id);
+                  const inv = inventory.find((i: any) => i.cosmeticId === c.id);
+                  return (
+                    <div key={c.id} className={`rounded-xl border p-3 ${inv?.equipped ? "border-[var(--brand-400)] bg-[var(--brand-soft)]" : "border-[var(--border-subtle)] bg-[var(--surface-hover)]"}`}>
+                      <p className="text-sm font-semibold">{c.name}</p>
+                      <p className="text-[10px] text-[var(--foreground-subtle)]">{c.description ?? c.type} • {c.rarity} {c.premium ? "• Premium" : ""}</p>
+                      {c.tokenCost > 0 && <p className="mt-1 text-[11px] font-bold text-[var(--palette-amber-400)]">🪙 {c.tokenCost} tokens</p>}
+                      <div className="mt-2 flex gap-1.5">
+                        {owned ? <button onClick={() => handleEquip(c.id)} className={`flex-1 rounded-lg py-1.5 text-xs font-bold ${inv?.equipped ? "bg-[var(--surface-1)] text-[var(--brand-400)]" : "bg-[var(--brand-600)] text-white"}`}>{inv?.equipped ? "Equipped" : "Equip"}</button> : <button onClick={() => handleUnlock(c.id)} className="flex-1 rounded-lg bg-[var(--surface-1)] py-1.5 text-xs font-bold">{c.tokenCost > 0 ? "Unlock" : "Claim"}</button>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function ProfilePage() {
   const { data: session } = useAuth();
   const { toast } = useToast();
@@ -267,9 +349,11 @@ export default function ProfilePage() {
       </div>
 
       <SoundPreferencesCard />
+      <AppearanceSettings />
+      <NotificationSettingsCard />
 
       <Tabs defaultValue="achievements">
-        <TabsList className="mb-5 grid h-auto w-full max-w-md grid-cols-3"><TabsTrigger value="achievements" className="min-h-11"><Award /> Achievements</TabsTrigger><TabsTrigger value="activity" className="min-h-11"><History /> Activity</TabsTrigger><TabsTrigger value="wallet" className="min-h-11"><WalletCards /> Wallet</TabsTrigger></TabsList>
+        <TabsList className="mb-5 grid h-auto w-full max-w-md grid-cols-4"><TabsTrigger value="achievements" className="min-h-11"><Award /> Achievements</TabsTrigger><TabsTrigger value="activity" className="min-h-11"><History /> Activity</TabsTrigger><TabsTrigger value="wallet" className="min-h-11"><WalletCards /> Wallet</TabsTrigger><TabsTrigger value="custom" className="min-h-11"><Palette /> Style</TabsTrigger></TabsList>
 
         <TabsContent value="achievements">
           <Card><CardHeader className="flex-row items-start justify-between"><div><CardTitle>Achievements</CardTitle><CardDescription>{badges.filter((badge) => badge.unlocked).length} of {badges.length} unlocked</CardDescription></div><div className="flex rounded-lg bg-[var(--surface-hover)] p-1">{(["all", "unlocked", "locked"] as const).map((filter) => <button key={filter} onClick={() => setAchievementFilter(filter)} className={cn("min-h-11 min-w-11 rounded-md px-3 text-xs capitalize text-[var(--foreground-muted)]", achievementFilter === filter && "bg-[var(--surface-raised)] text-[var(--foreground)] shadow-[var(--shadow-xs)]")}>{filter}</button>)}</div></CardHeader><CardContent>{filteredBadges.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{filteredBadges.map((badge) => <AchievementCard key={badge.id} badge={badge} />)}</div> : <EmptyState icon={<Award />} title="No achievements here yet" description="Switch filters or keep building your focus practice." />}</CardContent></Card>
@@ -281,6 +365,10 @@ export default function ProfilePage() {
 
         <TabsContent value="wallet">
           <Card><CardHeader className="flex-row items-start justify-between"><div><CardTitle>Coin activity</CardTitle><CardDescription>Rewards earned and spent across FocusArx.</CardDescription></div><div className="flex rounded-lg bg-[var(--surface-hover)] p-1">{(["all", "earn", "spend"] as const).map((filter) => <button key={filter} onClick={() => setTxFilter(filter)} className={cn("min-h-11 min-w-11 rounded-md px-3 text-xs capitalize text-[var(--foreground-muted)]", txFilter === filter && "bg-[var(--surface-raised)] text-[var(--foreground)]")}>{filter}</button>)}</div></CardHeader><CardContent>{transactions.length ? <div className="divide-y divide-[var(--border-subtle)]">{transactions.map((transaction) => { const earned = transaction.amount > 0; return <div key={transaction.id} className="flex min-h-16 items-center gap-3 py-2"><span className={cn("grid h-9 w-9 place-items-center rounded-lg", earned ? "bg-[var(--success-soft)] text-[var(--success)]" : "bg-[var(--danger-soft)] text-[var(--danger)]")}>{earned ? <TrendingUp /> : <TrendingDown />}</span><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{transaction.description}</p><p className="text-xs text-[var(--foreground-subtle)]">{new Date(transaction.createdAt).toLocaleString()}</p></div><div className="text-right"><p className={cn("font-semibold tabular-nums", earned ? "text-[var(--success)]" : "text-[var(--danger)]")}>{earned ? "+" : ""}{transaction.amount.toLocaleString()} <Coins className="inline size-3" /></p><p className="text-xs text-[var(--foreground-subtle)]">{transaction.balanceAfter.toLocaleString()} balance</p></div></div>; })}</div> : <EmptyState icon={<Coins />} title="No coin activity" description="Completed sessions and rewards will appear here." />}</CardContent></Card>
+        </TabsContent>
+
+        <TabsContent value="custom">
+          <CustomizationTab />
         </TabsContent>
       </Tabs>
 

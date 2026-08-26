@@ -69,6 +69,12 @@
     <priority>0.80</priority>
   </url>
   <url>
+    <loc>https://www.focusarx.site/focus-timer</loc>
+    <lastmod>2026-08-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.80</priority>
+  </url>
+  <url>
     <loc>https://www.focusarx.site/roadmap</loc>
     <lastmod>2026-08-16</lastmod>
     <changefreq>weekly</changefreq>

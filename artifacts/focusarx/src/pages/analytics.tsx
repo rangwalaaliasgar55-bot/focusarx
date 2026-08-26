@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { TrendingUp, Clock, Zap, Calendar, Award, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { TrendingUp, Clock, Zap, Calendar, Award, ArrowUp, ArrowDown, Minus, Crown, Lock } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
@@ -11,6 +11,9 @@ import { PageTransition } from "@/components/PageTransition";
 import PageHeader from "@/components/PageHeader";
 import { format, parseISO } from "date-fns";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
+import { usePremium } from "@/hooks/usePremium";
+import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 
 interface AnalyticsData {
   heatmap: Record<string, number>;
@@ -80,9 +83,44 @@ const BarTooltip = ({ active, payload, label }: { active?: boolean; payload?: an
   );
 };
 
+function PremiumLock({ feature, description }: { feature: string; description: string }) {
+  const { data: premiumStatus } = useQuery({
+    queryKey: ["premium-status"],
+    queryFn: async () => {
+      const token = getToken();
+      const res = await fetch("/api/premium/status", { headers: { Authorization: `Bearer ${token ?? ""}` } });
+      if (!res.ok) return { balance: 0, plans: [] };
+      return res.json();
+    },
+    staleTime: 60_000,
+  });
+  const balance = premiumStatus?.balance ?? 0;
+  const cheapest = premiumStatus?.plans?.[0];
+  const needed = cheapest ? Math.max(0, cheapest.tokenCost - balance) : 0;
+  return (
+    <div className="rounded-2xl border border-[var(--palette-amber-500)]/20 bg-gradient-to-br from-[var(--palette-amber-950)]/20 to-[var(--surface-1)] p-6 text-center">
+      <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-[var(--palette-amber-500)]/15 text-[var(--palette-amber-400)]">
+        <Lock size={20} />
+      </div>
+      <h3 className="mt-3 text-sm font-bold">{feature} — Premium only</h3>
+      <p className="mx-auto mt-1 max-w-sm text-xs text-[var(--foreground-muted)]">{description}</p>
+      {cheapest && (
+        <p className="mt-2 text-xs text-[var(--foreground-subtle)]">
+          You have <span className="font-bold text-[var(--brand-400)]">{balance.toLocaleString()}</span> Focus Tokens
+          {needed > 0 ? `, need ${needed.toLocaleString()} more for ${cheapest.durationDays} days` : ""}.
+        </p>
+      )}
+      <Link href="/premium" className="mt-4 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-gradient-to-r from-[var(--palette-amber-500)] to-[var(--palette-amber-600)] px-5 py-2 text-xs font-bold text-white">
+        <Crown size={14} /> Unlock Premium
+      </Link>
+    </div>
+  );
+}
+
 export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const { isPremium } = usePremium();
 
   useEffect(() => {
     const token = getToken();
@@ -141,7 +179,7 @@ export default function AnalyticsPage() {
             </div>
           ) : (
             <div className="space-y-6">
-              {/* All-time personal bests */}
+              {/* All-time personal bests — free */}
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
                 {[
                   { icon: Clock,      label: "Total hours",    value: `${Math.round((data.personalBests.totalMinutes ?? 0) / 60)}h`, color: "var(--brand-400)" },
@@ -163,59 +201,62 @@ export default function AnalyticsPage() {
                 ))}
               </div>
 
-              {/* Weekly comparison card */}
-              {wc && (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <p className="text-xs text-[var(--foreground-subtle)]">Compared to last week</p>
-                        <div className="mt-1 flex items-center gap-2">
-                          {wc.changePercent > 0 ? (
-                            <div className="flex items-center gap-1 text-[var(--palette-emerald-400)]">
-                              <ArrowUp size={14} />
-                              <span className="text-lg font-bold">+{wc.changePercent}%</span>
-                            </div>
-                          ) : wc.changePercent < 0 ? (
-                            <div className="flex items-center gap-1 text-[var(--palette-red-400)]">
-                              <ArrowDown size={14} />
-                              <span className="text-lg font-bold">{wc.changePercent}%</span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1 text-[var(--foreground-muted)]">
-                              <Minus size={14} />
-                              <span className="text-lg font-bold">0%</span>
-                            </div>
-                          )}
+              {/* Weekly comparison — premium */}
+              {wc ? (
+                isPremium ? (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
+                      <div className="mb-3 flex items-start justify-between">
+                        <div>
+                          <p className="text-xs text-[var(--foreground-subtle)]">Compared to last week</p>
+                          <div className="mt-1 flex items-center gap-2">
+                            {wc.changePercent > 0 ? (
+                              <div className="flex items-center gap-1 text-[var(--palette-emerald-400)]">
+                                <ArrowUp size={14} />
+                                <span className="text-lg font-bold">+{wc.changePercent}%</span>
+                              </div>
+                            ) : wc.changePercent < 0 ? (
+                              <div className="flex items-center gap-1 text-[var(--palette-red-400)]">
+                                <ArrowDown size={14} />
+                                <span className="text-lg font-bold">{wc.changePercent}%</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1 text-[var(--foreground-muted)]">
+                                <Minus size={14} />
+                                <span className="text-lg font-bold">0%</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] text-[var(--foreground-subtle)]">This week</p>
+                          <p className="text-sm font-bold text-[var(--foreground)]">{Math.round(wc.thisWeekMinutes / 60)}h {wc.thisWeekMinutes % 60}m</p>
+                          <p className="mt-1 text-[10px] text-[var(--foreground-subtle)]">Last week</p>
+                          <p className="text-sm font-bold text-[var(--palette-6b7280)]">{Math.round(wc.lastWeekMinutes / 60)}h {wc.lastWeekMinutes % 60}m</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-[10px] text-[var(--foreground-subtle)]">This week</p>
-                        <p className="text-sm font-bold text-[var(--foreground)]">{Math.round(wc.thisWeekMinutes / 60)}h {wc.thisWeekMinutes % 60}m</p>
-                        <p className="text-[10px] text-[var(--foreground-subtle)] mt-1">Last week</p>
-                        <p className="text-sm font-bold text-[var(--palette-6b7280)]">{Math.round(wc.lastWeekMinutes / 60)}h {wc.lastWeekMinutes % 60}m</p>
+                    </div>
+
+                    {weekBar.length > 0 && (
+                      <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
+                        <p className="mb-3 text-xs font-semibold text-[var(--foreground)]">This week — daily focus</p>
+                        <ResponsiveContainer width="100%" height={100}>
+                          <BarChart data={weekBar} margin={{ top: 2, right: 0, bottom: 0, left: -24 }}>
+                            <XAxis dataKey="day" tick={{ fill: "var(--foreground-subtle)", fontSize: 9 }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fill: "var(--foreground-subtle)", fontSize: 9 }} axisLine={false} tickLine={false} unit="m" />
+                            <Tooltip content={<BarTooltip />} />
+                            <Bar dataKey="minutes" fill="var(--brand-teal)" radius={[4, 4, 0, 0]} opacity={0.85} />
+                          </BarChart>
+                        </ResponsiveContainer>
                       </div>
-                    </div>
+                    )}
                   </div>
+                ) : (
+                  <PremiumLock feature="Weekly comparison" description="Compare this week vs last week, daily breakdown, and trends. Premium unlocks full historical comparisons." />
+                )
+              ) : null}
 
-                  {/* Weekly bar chart */}
-                  {weekBar.length > 0 && (
-                    <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
-                      <p className="text-xs font-semibold text-[var(--foreground)] mb-3">This week — daily focus</p>
-                      <ResponsiveContainer width="100%" height={100}>
-                        <BarChart data={weekBar} margin={{ top: 2, right: 0, bottom: 0, left: -24 }}>
-                          <XAxis dataKey="day" tick={{ fill: "var(--foreground-subtle)", fontSize: 9 }} axisLine={false} tickLine={false} />
-                          <YAxis tick={{ fill: "var(--foreground-subtle)", fontSize: 9 }} axisLine={false} tickLine={false} unit="m" />
-                          <Tooltip content={<BarTooltip />} />
-                          <Bar dataKey="minutes" fill="var(--brand-teal)" radius={[4, 4, 0, 0]} opacity={0.85} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* 14-day focus chart */}
+              {/* 14-day focus chart — free */}
               <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-6 backdrop-blur-xl">
                 <h2 className="mb-5 text-sm font-semibold text-[var(--foreground)]">Focus time — last 14 days</h2>
                 <ResponsiveContainer width="100%" height={200}>
@@ -243,73 +284,115 @@ export default function AnalyticsPage() {
                 </ResponsiveContainer>
               </div>
 
-              <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
-                <div className="mb-4 flex items-center justify-between"><div><h2 className="text-sm font-semibold">Focus time by hour and weekday</h2><p className="mt-1 text-xs text-[var(--foreground-subtle)]">{data.historyDays ?? 60}-day view · hover a cell for session detail</p></div>{data.isPremium && <span className="rounded-full bg-[var(--brand-soft)] px-2 py-1 text-[10px] font-bold text-[var(--brand-400)]">180-day Premium</span>}</div>
-                <div className="overflow-x-auto"><div className="grid min-w-[42rem] grid-cols-[3rem_repeat(24,1fr)] gap-1 text-[9px]">
-                  <span />{Array.from({ length: 24 }, (_, hour) => <span key={hour} className="text-center text-[var(--foreground-subtle)]">{hour % 3 === 0 ? hour : ""}</span>)}
-                  {Array.from({ length: 7 }, (_, day) => <div key={day} className="contents"><span className="self-center text-[var(--foreground-subtle)]">{["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][day]}</span>{Array.from({ length: 24 }, (_, hour) => { const cell = data.timeDayHeatmap?.find((item) => item.day === day && item.hour === hour); const intensity = Math.min(100, 8 + (cell?.minutes ?? 0) / 3); return <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: (day * 24 + hour) * .002 }} key={hour} className="aspect-square min-h-4 rounded-sm" title={`${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][day]} ${hour}:00 — ${cell?.minutes ?? 0} minutes across ${cell?.sessions ?? 0} sessions`} style={{ background: `color-mix(in srgb, var(--brand-600) ${intensity}%, transparent)` }} />; })}</div>)}
-                </div></div>
-              </div>
+              {/* Hour & weekday heatmap — premium */}
+              {isPremium ? (
+                <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
+                  <div className="mb-4 flex items-center justify-between">
+                    <div>
+                      <h2 className="text-sm font-semibold">Focus time by hour and weekday</h2>
+                      <p className="mt-1 text-xs text-[var(--foreground-subtle)]">{data.historyDays ?? 60}-day view · hover a cell for session detail</p>
+                    </div>
+                    {data.isPremium && <span className="rounded-full bg-[var(--brand-soft)] px-2 py-1 text-[10px] font-bold text-[var(--brand-400)]">180-day Premium</span>}
+                  </div>
+                  <div className="overflow-x-auto">
+                    <div className="grid min-w-[42rem] grid-cols-[3rem_repeat(24,1fr)] gap-1 text-[9px]">
+                      <span />
+                      {Array.from({ length: 24 }, (_, hour) => (
+                        <span key={hour} className="text-center text-[var(--foreground-subtle)]">{hour % 3 === 0 ? hour : ""}</span>
+                      ))}
+                      {Array.from({ length: 7 }, (_, day) => (
+                        <div key={day} className="contents">
+                          <span className="self-center text-[var(--foreground-subtle)]">{["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][day]}</span>
+                          {Array.from({ length: 24 }, (_, hour) => {
+                            const cell = data.timeDayHeatmap?.find((item) => item.day === day && item.hour === hour);
+                            const intensity = Math.min(100, 8 + (cell?.minutes ?? 0) / 3);
+                            return (
+                              <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: (day * 24 + hour) * 0.002 }}
+                                key={hour}
+                                className="aspect-square min-h-4 rounded-sm"
+                                title={`${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][day]} ${hour}:00 — ${cell?.minutes ?? 0} minutes across ${cell?.sessions ?? 0} sessions`}
+                                style={{ background: `color-mix(in srgb, var(--brand-600) ${intensity}%, transparent)` }}
+                              />
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <PremiumLock feature="Hour & weekday heatmap" description="See your best focus hours and best days of the week with Premium analytics. Full historical data up to 180 days." />
+              )}
 
               {/* Two-column: hour distribution + heatmap */}
               <div className="grid gap-4 lg:grid-cols-2">
-                {/* Productive hours */}
-                {topHours.length > 0 && (
-                  <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-6 backdrop-blur-xl">
-                    <h2 className="mb-5 text-sm font-semibold text-[var(--foreground)]">Most productive hours</h2>
-                    <ResponsiveContainer width="100%" height={180}>
-                      <PieChart>
-                        <Pie
-                          data={topHours}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={50}
-                          outerRadius={75}
-                          paddingAngle={3}
-                          dataKey="value"
-                        >
-                          {topHours.map((entry) => (
-                            <Cell key={entry.name} fill={entry.fill} opacity={0.9} />
-                          ))}
-                        </Pie>
-                        <Legend
-                          formatter={(value) => <span className="text-[10px] text-[var(--foreground-muted)]">{value}</span>}
-                          wrapperStyle={{ fontSize: "10px" }}
-                        />
-                        <Tooltip
-                          formatter={(v: number) => [`${v}m`, "Focus"]}
-                          contentStyle={{ background: "var(--rgba-12-17-40-0_95)", border: "1px solid var(--rgba-124-58-237-0_3)", borderRadius: 8, fontSize: 11 }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-
-                {/* Activity heatmap — 91 days */}
-                <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-6 backdrop-blur-xl">
-                  <h2 className="mb-4 text-sm font-semibold text-[var(--foreground)]">Activity — last 91 days</h2>
-                  <div className="flex gap-1 mb-2 text-[9px] text-[var(--foreground-subtle)]">
-                    {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d) => (
-                      <div key={d} className="flex-1 text-center">{d[0]}</div>
-                    ))}
-                  </div>
-                  <div className="grid gap-0.5" style={{ gridTemplateColumns: "repeat(7, 1fr)" }}>
-                    {heatCells.map((cell, i) =>
-                      cell.empty ? (
-                        <div key={i} className="aspect-square" />
-                      ) : (
-                        <HeatmapCell key={cell.date} minutes={cell.minutes} date={cell.date} />
-                      )
+                {isPremium ? (
+                  <>
+                    {topHours.length > 0 && (
+                      <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-6 backdrop-blur-xl">
+                        <h2 className="mb-5 text-sm font-semibold text-[var(--foreground)]">Most productive hours</h2>
+                        <ResponsiveContainer width="100%" height={180}>
+                          <PieChart>
+                            <Pie
+                              data={topHours}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={50}
+                              outerRadius={75}
+                              paddingAngle={3}
+                              dataKey="value"
+                            >
+                              {topHours.map((entry) => (
+                                <Cell key={entry.name} fill={entry.fill} opacity={0.9} />
+                              ))}
+                            </Pie>
+                            <Legend
+                              formatter={(value) => <span className="text-[10px] text-[var(--foreground-muted)]">{value}</span>}
+                              wrapperStyle={{ fontSize: "10px" }}
+                            />
+                            <Tooltip
+                              formatter={(v: number) => [`${v}m`, "Focus"]}
+                              contentStyle={{ background: "var(--rgba-12-17-40-0_95)", border: "1px solid var(--rgba-124-58-237-0_3)", borderRadius: 8, fontSize: 11 }}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
                     )}
-                  </div>
-                  <div className="mt-3 flex items-center gap-1.5 text-[9px] text-[var(--foreground-subtle)]">
-                    <span>Less</span>
-                    {[0.08, 0.3, 0.55, 0.8, 0.95].map((a) => (
-                      <div key={a} className="h-2.5 w-2.5 rounded-sm" style={{ background: `color-mix(in srgb, var(--brand-600) ${a * 100}%, transparent)` }} />
-                    ))}
-                    <span>More</span>
-                  </div>
-                </div>
+
+                    <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-6 backdrop-blur-xl">
+                      <h2 className="mb-4 text-sm font-semibold text-[var(--foreground)]">Activity — last 91 days</h2>
+                      <div className="mb-2 flex gap-1 text-[9px] text-[var(--foreground-subtle)]">
+                        {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d) => (
+                          <div key={d} className="flex-1 text-center">{d[0]}</div>
+                        ))}
+                      </div>
+                      <div className="grid gap-0.5" style={{ gridTemplateColumns: "repeat(7, 1fr)" }}>
+                        {heatCells.map((cell, i) =>
+                          cell.empty ? (
+                            <div key={i} className="aspect-square" />
+                          ) : (
+                            <HeatmapCell key={cell.date} minutes={cell.minutes} date={cell.date} />
+                          )
+                        )}
+                      </div>
+                      <div className="mt-3 flex items-center gap-1.5 text-[9px] text-[var(--foreground-subtle)]">
+                        <span>Less</span>
+                        {[0.08, 0.3, 0.55, 0.8, 0.95].map((a) => (
+                          <div key={a} className="h-2.5 w-2.5 rounded-sm" style={{ background: `color-mix(in srgb, var(--brand-600) ${a * 100}%, transparent)` }} />
+                        ))}
+                        <span>More</span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <PremiumLock feature="Productive hours" description="Discover your best focus hours and peak productivity windows." />
+                    <PremiumLock feature="Advanced trends" description="Full historical data, completion rate, abandonment, streak consistency, and export." />
+                  </>
+                )}
               </div>
             </div>
           )}

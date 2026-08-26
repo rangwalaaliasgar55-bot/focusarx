@@ -34,6 +34,10 @@ import { XPBurst } from "./XPBurst";
 import { getToken } from "@/lib/auth";
 import { useCoinXP } from "./CoinXPBar";
 import PetCompanion from "./PetCompanion";
+import { TimerRitualsPanel, ReflectionModal, RITUAL_TEMPLATES } from "./TimerRituals";
+import { usePremium } from "@/hooks/usePremium";
+import { Crown, Lock } from "lucide-react";
+import { Link } from "wouter";
 
 const MODES: TimerMode[] = ["focus", "break", "longBreak"];
 
@@ -81,6 +85,11 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
   const { requestMonitorRecovery, monitorEnabled } = useSessionRecovery();
   const { activeTasks, completedTasks, refreshTasks } = useTasks();
   const { wallet, refresh: refreshWallet } = useCoinXP();
+  const { isPremium } = usePremium();
+  const [intention, setIntention] = useState("");
+  const [showReflection, setShowReflection] = useState(false);
+  const [reflectionDuration, setReflectionDuration] = useState(0);
+  const [ritualHistory, setRitualHistory] = useState<Array<{ date: string; template: string; intention: string; duration: number }>>([]);
 
   const [storageReady, setStorageReady] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -213,6 +222,11 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
         haptic("celebrate");
         setTimeout(() => setShowConfetti(false), 3500);
         onSessionCompleteProp?.();
+        // Premium reflection prompt
+        if (isPremium) {
+          setReflectionDuration(session.durationSeconds);
+          setTimeout(() => setShowReflection(true), 1200);
+        }
       }
       if ("Notification" in window && Notification.permission === "granted") {
         new Notification(session.mode === "focus"
@@ -445,8 +459,14 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     const input = prompt(`Enter custom duration for ${mode} (in minutes):`, currentMins.toString());
     if (input) {
       const val = parseInt(input, 10);
-      if (!isNaN(val) && val > 0 && val <= 240) setCustomDuration(mode, val * 60);
-      else toast("Please enter a valid number of minutes (1-240).", "error");
+      if (!isNaN(val) && val > 0 && val <= 240) {
+        // Free users limited to 15,25,50 — premium 10-180
+        if (!isPremium && mode === "focus" && ![15,25,50].includes(val) && (val < 10 || val > 50)) {
+          toast("Custom 10-180m is Premium only. Free: 15, 25, 50m.", "error");
+          return;
+        }
+        setCustomDuration(mode, val * 60);
+      } else toast("Please enter a valid number of minutes (1-240).", "error");
     }
   };
 
@@ -805,6 +825,18 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
       </AnimatePresence>
 
 
+      {/* Premium Rituals */}
+      <TimerRitualsPanel
+        currentFocusMin={Math.floor(secondsLeft / 60)}
+        onCustomDuration={(mins) => setCustomDuration("focus", mins * 60)}
+        onSelectTemplate={(t) => {
+          setCustomDuration("focus", t.focusMin * 60);
+          setCustomDuration("break", t.breakMin * 60);
+          setCustomDuration("longBreak", t.longBreakMin * 60);
+          toast(`Template ${t.name} applied — ${t.focusMin}m focus`, "success");
+        }}
+      />
+
       {/* Task Timeline */}
       <TaskTimeline
         tasks={activeTasks.map(t => ({
@@ -1023,6 +1055,21 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
       onStartBreak={() => { setShowSummary(false); skipToNext(); }}
       onKeepGoing={() => { setShowSummary(false); }}
       onClose={() => { setShowSummary(false); }}
+    />
+
+    <ReflectionModal
+      open={showReflection}
+      durationSeconds={reflectionDuration}
+      onClose={() => setShowReflection(false)}
+      onSubmit={(txt) => {
+        if (isPremium) {
+          const entry = { date: new Date().toISOString(), template: sessionType, intention, duration: reflectionDuration };
+          setRitualHistory((h) => [entry, ...h].slice(0, 20));
+          try { localStorage.setItem("focusarx-ritual-history", JSON.stringify([entry, ...ritualHistory].slice(0,20))); } catch {}
+        }
+        toast(txt ? "Reflection saved!" : "Session completed", "success");
+        setShowReflection(false);
+      }}
     />
 
     <XPBurst

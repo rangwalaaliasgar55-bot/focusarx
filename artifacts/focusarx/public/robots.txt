@@ -25,6 +25,7 @@ Allow: /exam
 Allow: /comparison
 Allow: /pricing
 Allow: /premium
+Allow: /focus-timer
 Allow: /about
 Allow: /contact
 Allow: /support

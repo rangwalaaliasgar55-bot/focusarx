@@ -72,7 +72,7 @@ type CmsOverview = {
 type Tab =
   | "overview" | "analytics" | "users" | "moderation" | "missions" | "retention" | "sql" | "rivals"
   | "marketplace" | "pets" | "lootboxes" | "battlepass" | "quests"
-  | "city" | "notify" | "drops" | "economy" | "coins" | "email" | "premium" | "site" | "gemini";
+  | "city" | "notify" | "drops" | "economy" | "coins" | "email" | "premium" | "site" | "gemini" | "tokens" | "flags";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -265,6 +265,17 @@ export default function AdminPage() {
   } | null>(null);
   const [economyLoading, setEconomyLoading] = useState(false);
 
+  // Token admin state
+  const [tokenLedger, setTokenLedger] = useState<any[]>([]);
+  const [tokenAnalytics, setTokenAnalytics] = useState<any>(null);
+  const [tokenGrantForm, setTokenGrantForm] = useState({ userId: "", amount: "", reason: "", type: "grant" as "grant" | "remove" });
+  const [tokenGrantLoading, setTokenGrantLoading] = useState(false);
+  const [tokenGrantResult, setTokenGrantResult] = useState<any>(null);
+
+  // Feature flags admin state
+  const [featureFlags, setFeatureFlags] = useState<any[]>([]);
+  const [flagsLoading, setFlagsLoading] = useState(false);
+
   // Site settings state (maintenance mode, announcement, branding)
   const [siteSettings, setSiteSettings] = useState<{
     maintenanceMode: boolean;
@@ -322,7 +333,39 @@ export default function AdminPage() {
     if (tab === "rivals" && !botsState) void loadBots();
     if (tab === "drops" && !dropsState) void loadDrops();
     if (tab === "economy" && !economyState) void loadEconomy();
+    if (tab === "tokens") { loadTokenLedger(); loadTokenAnalytics(); }
+    if (tab === "flags") loadFeatureFlags();
   }, [tab]);
+
+  async function loadTokenLedger() {
+    try {
+      const r = await fetch("/api/admin/tokens/ledger?limit=50", { headers: authHeaders(), credentials: "include" });
+      if (r.ok) { const d = await r.json(); setTokenLedger(d.ledger ?? []); }
+    } catch {}
+  }
+  async function loadTokenAnalytics() {
+    try {
+      const r = await fetch("/api/admin/tokens/analytics", { headers: authHeaders(), credentials: "include" });
+      if (r.ok) { const d = await r.json(); setTokenAnalytics(d); }
+    } catch {}
+  }
+  async function loadFeatureFlags() {
+    setFlagsLoading(true);
+    try {
+      const r = await fetch("/api/admin/feature-flags", { headers: authHeaders(), credentials: "include" });
+      if (r.ok) { const d = await r.json(); setFeatureFlags(d.flags ?? []); }
+    } finally { setFlagsLoading(false); }
+  }
+  async function grantTokensAdmin() {
+    if (!tokenGrantForm.userId || !tokenGrantForm.amount || !tokenGrantForm.reason) return;
+    setTokenGrantLoading(true);
+    setTokenGrantResult(null);
+    try {
+      const r = await fetch("/api/admin/tokens/grant", { method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() }, credentials: "include", body: JSON.stringify({ userId: tokenGrantForm.userId, amount: Number(tokenGrantForm.amount), reason: tokenGrantForm.reason, type: tokenGrantForm.type }) });
+      const d = await r.json();
+      if (r.ok) { setTokenGrantResult(d); loadTokenLedger(); loadTokenAnalytics(); } else setTokenGrantResult({ error: d.error });
+    } finally { setTokenGrantLoading(false); }
+  }
 
   useEffect(() => {
     if (tab !== "moderation" || moderationPosts.length === 0) return;
@@ -2807,6 +2850,80 @@ export default function AdminPage() {
     );
   }
 
+  function renderTokens() {
+    return (
+      <MotionTab>
+        <SectionHeader title="Token Economy" sub="Focus Tokens circulation, ledger audit, grant/remove with reason + immutable audit + before/after balance. Anti-abuse: idempotency, daily caps, rate limits." />
+        <div className="grid gap-3 sm:grid-cols-4">
+          <StatCard label="Total circulation" value={String(tokenAnalytics?.totalCirculation ?? 0)} accent="amber" />
+          <StatCard label="Total earned" value={String(tokenAnalytics?.totalEarned ?? 0)} accent="emerald" />
+          <StatCard label="Total spent" value={String(tokenAnalytics?.totalSpent ?? 0)} accent="rose" />
+          <StatCard label="Admin grants" value={String(tokenAnalytics?.totalAdminGrants ?? 0)} accent="violet" />
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 p-5 space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--palette-zinc-400)]">Grant / Remove Tokens (audit)</p>
+            <input className="admin-input font-mono" placeholder="User ID" value={tokenGrantForm.userId} onChange={(e) => setTokenGrantForm(f => ({ ...f, userId: e.target.value }))} />
+            <div className="grid grid-cols-2 gap-2">
+              <input className="admin-input" type="number" placeholder="Amount" value={tokenGrantForm.amount} onChange={(e) => setTokenGrantForm(f => ({ ...f, amount: e.target.value }))} />
+              <select className="admin-input" value={tokenGrantForm.type} onChange={(e) => setTokenGrantForm(f => ({ ...f, type: e.target.value as any }))}><option value="grant">Grant</option><option value="remove">Remove</option></select>
+            </div>
+            <input className="admin-input" placeholder="Reason (min 5 chars, audited)" value={tokenGrantForm.reason} onChange={(e) => setTokenGrantForm(f => ({ ...f, reason: e.target.value }))} />
+            <button onClick={() => void grantTokensAdmin()} disabled={tokenGrantLoading || !tokenGrantForm.userId || !tokenGrantForm.amount || tokenGrantForm.reason.length < 5} className="w-full rounded-lg bg-[var(--palette-amber-600)] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">🪙 {tokenGrantForm.type === "remove" ? "Remove" : "Grant"} Tokens</button>
+            {tokenGrantResult && <div className={`rounded-lg border p-3 text-xs ${tokenGrantResult.error ? "border-[var(--palette-red-800)] bg-[var(--palette-red-950)] text-[var(--palette-red-400)]" : "border-[var(--palette-emerald-800)] bg-[var(--palette-emerald-950)] text-[var(--palette-emerald-400)]"}`}>{tokenGrantResult.error ? tokenGrantResult.error : `Before: ${tokenGrantResult.beforeBalance} → After: ${tokenGrantResult.afterBalance} • Ledger ${tokenGrantResult.ledgerId?.slice(0,8)}`}</div>}
+          </div>
+
+          <div className="rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 p-5">
+            <div className="mb-3 flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wider text-[var(--palette-zinc-400)]">Recent ledger (immutable audit)</p><button onClick={() => void loadTokenLedger()} className="text-[10px] text-[var(--palette-zinc-500)]">Refresh</button></div>
+            <div className="max-h-[400px] overflow-auto space-y-1.5">
+              {tokenLedger.map((e: any) => (
+                <div key={e.id} className="rounded-lg border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/30 px-3 py-2 text-[11px]">
+                  <div className="flex justify-between"><span className={e.amount > 0 ? "text-[var(--palette-emerald-400)]" : "text-[var(--palette-red-400)]"}>{e.amount > 0 ? "+" : ""}{e.amount} {e.transactionType}</span><span className="text-[var(--palette-zinc-600)]">{new Date(e.createdAt).toLocaleString()}</span></div>
+                  <p className="text-[var(--palette-zinc-400)]">{e.source} • balance_after {e.balanceAfter} • {e.adminReason ?? e.relatedEntityId ?? ""}</p>
+                  <p className="font-mono text-[9px] text-[var(--palette-zinc-600)]">{e.userId.slice(0,8)}… idemp {e.idempotencyKey.slice(0,16)}…</p>
+                </div>
+              ))}
+              {tokenLedger.length === 0 && <p className="text-xs text-[var(--palette-zinc-500)]">No ledger entries</p>}
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/20 p-4 text-xs text-[var(--palette-zinc-500)]">
+          <p className="font-semibold text-[var(--palette-zinc-300)]">Anti-abuse & token sources</p>
+          <ul className="mt-2 list-disc pl-5 space-y-1">
+            <li>Sources: focus session, daily/weekly quest, streak, battle-pass milestone, community challenges, pet milestones, city upgrades, admin grants, seasonal events, referral</li>
+            <li>Server timer validation, min duration, duplicate prevention, rate limits, cooldowns, daily caps, idempotency, transactions</li>
+            <li>Ledger is source of truth with idempotency_key unique, balance_after, type earn/spend/refund/admin_grant/adjustment/expiration</li>
+          </ul>
+        </div>
+      </MotionTab>
+    );
+  }
+
+  function renderFlags() {
+    return (
+      <MotionTab>
+        <SectionHeader title="Feature Flags" sub="Control premium features rollout, asset catalog, seasonal events." />
+        {flagsLoading ? <p className="text-xs text-[var(--palette-zinc-500)]">Loading…</p> : (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {featureFlags.map((f: any) => (
+              <div key={f.key} className="rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 p-4 flex items-center justify-between">
+                <div><p className="text-sm font-semibold">{f.key}</p><p className="text-[11px] text-[var(--palette-zinc-500)]">{f.description ?? ""} • rollout {f.rolloutPercentage}%</p></div>
+                <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${f.enabled ? "bg-[var(--palette-emerald-950)] text-[var(--palette-emerald-400)]" : "bg-[var(--palette-zinc-800)] text-[var(--palette-zinc-500)]"}`}>{f.enabled ? "ON" : "OFF"}</span>
+              </div>
+            ))}
+            {featureFlags.length === 0 && <p className="text-xs text-[var(--palette-zinc-500)]">No flags yet — defaults enabled: premium_timer_rituals, premium_analytics, premium_city_modes, pets_3d, battle_pass</p>}
+          </div>
+        )}
+        <div className="mt-4 rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/20 p-4">
+          <p className="text-xs font-semibold">Content tools</p>
+          <p className="mt-1 text-[11px] text-[var(--palette-zinc-500)]">Pets / cosmetics / buildings / themes / sounds / quests / battle passes / announcements / token rewards — use respective tabs (marketplace, pets, quests, battlepass, city, notify, tokens) for CRUD. Asset catalog for 3D models, thumbnails, etc. is at /api/assets/catalog.</p>
+        </div>
+      </MotionTab>
+    );
+  }
+
   const TAB_RENDER: Record<Tab, () => React.ReactNode> = {
     overview: renderOverview,
     analytics: () => (
@@ -2843,6 +2960,8 @@ export default function AdminPage() {
     email: renderEmail,
     premium: renderPremiumManagement,
     site: renderSiteSettings,
+    tokens: renderTokens,
+    flags: renderFlags,
   };
 
   return (

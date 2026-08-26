@@ -1,67 +1,102 @@
-import { Request, Response, NextFunction } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
-import { Router } from "express";
+import { Router, Response } from "express";
 import { db } from "@workspace/db";
 import {
   premiumSubscriptionsTable,
   userWalletsTable,
-  usersTable,
   notificationsTable,
-  coinTransactionsTable,
   battlePassProgressTable,
+  tokenLedgerTable,
+  premiumEntitlementsTable,
 } from "@workspace/db";
-import { eq } from "drizzle-orm";
-import { extractUserId } from "./auth";
+import { eq, desc, and, gte } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { invalidatePremiumCache } from "../lib/premiumCheck";
+import { getActivePlans, getPlanById, purchasePremiumWithTokens, getEntitlementHistory, hasActivePremium, seedPremiumPlans } from "../lib/premiumPlans";
+import { getTokenBalance } from "../lib/tokenLedger";
+import { z } from "zod";
 
 const router = Router();
 
-const PREMIUM_COST = 9000;
 const PREMIUM_BENEFITS = [
+  "ai_coach",
+  "premium_timer_rituals",
+  "advanced_analytics",
+  "premium_focus_city",
+  "premium_profile",
+  "premium_convenience",
   "exclusive_pets",
-  "premium_loot_boxes",
-  "premium_themes",
-  "premium_emotes",
-  "premium_marketplace_items",
-  "xp_multiplier",
-  "coin_multiplier",
-  "premium_focus_cities",
   "premium_battle_pass",
   "premium_analytics",
   "profile_badge",
   "exclusive_seasonal_events",
 ];
 
+// Seed plans on startup (best effort)
+void seedPremiumPlans().catch(() => {});
+
+// GET /api/premium/plans — public list of token-based plans
+router.get("/premium/plans", async (_req, res: Response) => {
+  try {
+    const plans = await getActivePlans();
+    res.json({ plans });
+  } catch (err) {
+    logger.error({ err }, "premium plans error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// GET /api/premium/status — includes balance, plans, entitlement
 router.get("/premium/status", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const [sub] = await db.select().from(premiumSubscriptionsTable)
-      .where(eq(premiumSubscriptionsTable.userId, req.userId)).limit(1);
+    const userId = req.userId!;
+    const [activeCheck, plans, balance, entitlements] = await Promise.all([
+      hasActivePremium(userId),
+      getActivePlans(),
+      getTokenBalance(userId),
+      getEntitlementHistory(userId),
+    ]);
 
-    if (!sub || !sub.isActive) {
-      res.json({ isPremium: false, cost: PREMIUM_COST, benefits: PREMIUM_BENEFITS });
-      return;
+    // Also check old table for backward compat
+    const [oldSub] = await db.select().from(premiumSubscriptionsTable).where(eq(premiumSubscriptionsTable.userId, userId)).limit(1);
+
+    let isPremium = activeCheck.active;
+    let expiresAt = activeCheck.expiresAt ?? oldSub?.expiresAt ?? null;
+    let activatedAt = activeCheck.entitlement?.startsAt ?? oldSub?.activatedAt ?? null;
+    let benefits = (activeCheck.entitlement?.benefits as string[]) ?? oldSub?.benefits ?? PREMIUM_BENEFITS;
+
+    // Expire check
+    if (expiresAt && new Date(expiresAt) < new Date()) {
+      isPremium = false;
+      // Mark expired in DB (best effort)
+      try {
+        await db.update(premiumSubscriptionsTable).set({ isActive: false }).where(eq(premiumSubscriptionsTable.userId, userId));
+        await db.update(battlePassProgressTable).set({ premiumUnlocked: false, updatedAt: new Date() }).where(eq(battlePassProgressTable.userId, userId));
+      } catch {}
     }
 
-    const expired = sub.expiresAt && sub.expiresAt < new Date();
-    if (expired) {
-      await db.update(premiumSubscriptionsTable)
-        .set({ isActive: false })
-        .where(eq(premiumSubscriptionsTable.userId, req.userId));
-      // Revoke battle pass premium track on expiry
-      await db.update(battlePassProgressTable)
-        .set({ premiumUnlocked: false, updatedAt: new Date() })
-        .where(eq(battlePassProgressTable.userId, req.userId));
-      res.json({ isPremium: false, cost: PREMIUM_COST, benefits: PREMIUM_BENEFITS });
-      return;
+    // Determine expiring soon (within 3 days)
+    let status: "active" | "expiring_soon" | "expired" | "inactive" = "inactive";
+    if (isPremium && expiresAt) {
+      const daysLeft = (new Date(expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+      if (daysLeft <= 3 && daysLeft > 0) status = "expiring_soon";
+      else if (daysLeft > 0) status = "active";
+      else status = "expired";
+    } else if (isPremium) {
+      status = "active";
     }
 
     res.json({
-      isPremium: true,
-      activatedAt: sub.activatedAt,
-      expiresAt: sub.expiresAt,
-      benefits: sub.benefits ?? PREMIUM_BENEFITS,
-      cost: PREMIUM_COST,
+      isPremium,
+      status,
+      activatedAt,
+      expiresAt,
+      benefits,
+      plans,
+      balance,
+      entitlements: entitlements.slice(0, 10),
+      // For legacy clients
+      cost: plans[0]?.tokenCost ?? 10000,
     });
   } catch (err) {
     logger.error({ err }, "premium status error");
@@ -69,72 +104,48 @@ router.get("/premium/status", authMiddleware, async (req: AuthRequest, res: Resp
   }
 });
 
-router.post("/premium/activate", authMiddleware, async (req: AuthRequest, res: Response) => {
+// POST /api/premium/purchase — token-based purchase with idempotency
+const purchaseSchema = z.object({
+  planId: z.string().min(1),
+  idempotencyKey: z.string().min(8).max(64).optional(),
+});
+
+router.post("/premium/purchase", authMiddleware, async (req: AuthRequest, res: Response) => {
+  const parsed = purchaseSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.errors });
+    return;
+  }
+
+  const { planId, idempotencyKey } = parsed.data;
+  const key = idempotencyKey ?? `premium_${req.userId}_${planId}_${Date.now()}`;
+
   try {
-    const [existing] = await db.select().from(premiumSubscriptionsTable)
-      .where(eq(premiumSubscriptionsTable.userId, req.userId)).limit(1);
+    const result = await purchasePremiumWithTokens(req.userId!, planId, key);
 
-    if (existing?.isActive) {
-      res.status(400).json({ error: "Already premium" });
+    if (!result.success) {
+      res.status(400).json({ error: result.error });
       return;
     }
 
-    const [wallet] = await db.select().from(userWalletsTable)
-      .where(eq(userWalletsTable.userId, req.userId)).limit(1);
-
-    if (!wallet || wallet.coins < PREMIUM_COST) {
-      res.status(400).json({ error: `Need ${PREMIUM_COST} coins to activate Premium` });
-      return;
-    }
-
-    const newBalance = wallet.coins - PREMIUM_COST;
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
-
-    await db.update(userWalletsTable)
-      .set({ coins: newBalance, updatedAt: new Date() })
-      .where(eq(userWalletsTable.userId, req.userId));
-
-    await db.insert(coinTransactionsTable).values({
-      userId: req.userId,
-      type: "spend",
-      amount: -PREMIUM_COST,
-      reason: "premium_activation",
-      description: "Premium subscription activated (30 days)",
-      balanceAfter: newBalance,
-    }).catch(() => {});
-
-    if (existing) {
-      await db.update(premiumSubscriptionsTable)
-        .set({ isActive: true, activatedAt: new Date(), expiresAt, benefits: PREMIUM_BENEFITS })
-        .where(eq(premiumSubscriptionsTable.userId, req.userId));
-    } else {
-      await db.insert(premiumSubscriptionsTable).values({
-        userId: req.userId,
-        expiresAt,
-        coinsCost: PREMIUM_COST,
-        benefits: PREMIUM_BENEFITS,
-        isActive: true,
-      });
-    }
-
-    await db.insert(notificationsTable).values({
-      userId: req.userId,
-      type: "premium",
-      title: "Welcome to Premium! 👑",
-      message: "You now have access to all premium features. Enjoy exclusive pets, boosters, and more!",
-    }).catch(() => {});
-
-    // Unlock premium battle pass track — create row if it doesn't exist yet
+    // Notification
     try {
-      const [bp] = await db.select().from(battlePassProgressTable)
-        .where(eq(battlePassProgressTable.userId, req.userId)).limit(1);
+      await db.insert(notificationsTable).values({
+        userId: req.userId!,
+        type: "premium",
+        title: "Welcome to Premium! 👑",
+        message: `You now have Premium access until ${new Date(result.entitlement.endsAt).toLocaleDateString()}. Enjoy exclusive features!`,
+      });
+    } catch {}
+
+    // Unlock battle pass premium track
+    try {
+      const [bp] = await db.select().from(battlePassProgressTable).where(eq(battlePassProgressTable.userId, req.userId!)).limit(1);
       if (bp) {
-        await db.update(battlePassProgressTable)
-          .set({ premiumUnlocked: true, updatedAt: new Date() })
-          .where(eq(battlePassProgressTable.userId, req.userId));
+        await db.update(battlePassProgressTable).set({ premiumUnlocked: true, updatedAt: new Date() }).where(eq(battlePassProgressTable.userId, req.userId!));
       } else {
         await db.insert(battlePassProgressTable).values({
-          userId: req.userId,
+          userId: req.userId!,
           season: 1,
           seasonXp: 0,
           tier: 0,
@@ -143,15 +154,114 @@ router.post("/premium/activate", authMiddleware, async (req: AuthRequest, res: R
         });
       }
     } catch (err) {
-      logger.warn({ err }, "battle pass premium unlock failed (non-critical)");
+      logger.warn({ err }, "battle pass premium unlock failed");
     }
 
-    await invalidatePremiumCache(req.userId);
-    res.json({ ok: true, newBalance, expiresAt, benefits: PREMIUM_BENEFITS });
+    res.json({
+      ok: true,
+      entitlement: result.entitlement,
+      newBalance: result.newBalance,
+      expiresAt: result.entitlement.endsAt,
+    });
+  } catch (err) {
+    logger.error({ err }, "premium purchase error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// Legacy endpoint — POST /api/premium/activate (for backward compat)
+router.post("/premium/activate", authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const plans = await getActivePlans();
+    const cheapest = (plans as any[]).sort((a: any, b: any) => a.tokenCost - b.tokenCost)[0];
+    if (!cheapest) {
+      res.status(500).json({ error: "No premium plans configured" });
+      return;
+    }
+
+    const key = `legacy_${req.userId}_${Date.now()}`;
+    const result = await purchasePremiumWithTokens(req.userId!, cheapest.id, key);
+
+    if (!result.success) {
+      res.status(400).json({ error: result.error });
+      return;
+    }
+
+    res.json({ ok: true, newBalance: result.newBalance, expiresAt: result.entitlement.endsAt, benefits: cheapest.benefits ?? PREMIUM_BENEFITS });
   } catch (err) {
     logger.error({ err }, "premium activate error");
     res.status(500).json({ error: "Internal error" });
   }
+});
+
+// GET /api/premium/history — purchase history
+router.get("/premium/history", authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const history = await getEntitlementHistory(req.userId!);
+    res.json({ history });
+  } catch (err) {
+    logger.error({ err }, "premium history error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// GET /api/premium/ledger — token ledger for current user
+router.get("/premium/ledger", authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 20));
+    const offset = (page - 1) * limit;
+
+    const [entries, totalRow] = await Promise.all([
+      db.select().from(tokenLedgerTable).where(eq(tokenLedgerTable.userId, req.userId!)).orderBy(desc(tokenLedgerTable.createdAt)).limit(limit).offset(offset),
+      db.select({ count: desc(tokenLedgerTable.createdAt) }).from(tokenLedgerTable).where(eq(tokenLedgerTable.userId, req.userId!)).then(async () => {
+        const { sql } = await import("drizzle-orm");
+        const [r] = await db.select({ count: sql<number>`count(*)::int` }).from(tokenLedgerTable).where(eq(tokenLedgerTable.userId, req.userId!));
+        return r?.count ?? 0;
+      }),
+    ]);
+
+    res.json({
+      entries,
+      pagination: {
+        page,
+        limit,
+        total: Number(totalRow),
+        totalPages: Math.ceil(Number(totalRow) / limit),
+      },
+    });
+  } catch (err) {
+    logger.error({ err }, "ledger error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// GET /api/premium/benefits — list benefits
+router.get("/premium/benefits", async (_req, res) => {
+  res.json({
+    benefits: [
+      { id: "ai_coach", name: "AI Focus Coach", description: "Personalized focus plans, session analysis, productivity guidance", icon: "🧠", free: false },
+      { id: "premium_timer_rituals", name: "Premium Timer Rituals", description: "Unlimited custom presets, 10-180min sessions, full-screen focus, ambient mixing", icon: "⏱️", free: false },
+      { id: "advanced_analytics", name: "Advanced Analytics", description: "Full history, best hours, streak consistency, export", icon: "📊", free: false },
+      { id: "premium_focus_city", name: "Premium Focus City", description: "Night/sunset modes, weather, seasonal decorations, premium buildings", icon: "🏙️", free: false },
+      { id: "premium_profile", name: "Premium Profile", description: "Avatar frames, animated nameplates, backgrounds, aura effects", icon: "👑", free: false },
+      { id: "premium_convenience", name: "Premium Convenience", description: "More pets, presets, private rooms, quests, recovery tokens", icon: "⚡", free: false },
+      { id: "exclusive_pets", name: "Exclusive Pets", description: "Rare and legendary companions", icon: "🐾", free: false },
+      { id: "premium_battle_pass", name: "Premium Battle Pass", description: "Unlock premium reward track", icon: "🎟️", free: false },
+    ],
+    freeTier: [
+      { id: "core_timer", name: "Core Focus Timer", description: "Standard presets, basic sessions" },
+      { id: "tasks", name: "Task Management", description: "Basic task list" },
+      { id: "streaks", name: "Streaks", description: "Basic streak tracking" },
+      { id: "pet", name: "One Active Pet", description: "Starter pet companion" },
+      { id: "city", name: "Starter City", description: "Basic Focus City" },
+      { id: "quests", name: "Daily Quests", description: "Free daily quests" },
+      { id: "battle_pass_free", name: "Free Battle Pass", description: "Free reward track" },
+      { id: "study_rooms", name: "Public Study Rooms", description: "Join public rooms" },
+      { id: "achievements", name: "Basic Achievements", description: "Core badges" },
+      { id: "history", name: "Basic History", description: "Recent sessions" },
+    ],
+  });
 });
 
 export { router as premiumRouter };

@@ -1,25 +1,45 @@
-import { Request, Response, NextFunction } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { usersTable, distractionLogsTable, readinessLogsTable, activeSessionsTable } from "@workspace/db";
 import { eq, desc, and } from "drizzle-orm";
-import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
 import { aiCoachLimiter } from "../lib/rateLimiter";
-import { premiumStatusMiddleware } from "../lib/premiumCheck";
+import { requirePremium, premiumStatusMiddleware } from "../lib/premiumCheck";
+import { getActivePlans } from "../lib/premiumPlans";
+import { getTokenBalance } from "../lib/tokenLedger";
+import { checkBudget, recordCall, recordRateLimit, userPurposeCalls } from "../lib/aiBudget";
+import {
+  sanitizeAiInput,
+  detectPromptInjection,
+  validateAiOutput,
+  checkIpLimit,
+  isSafeFallbackError,
+  MAX_AI_INPUT_LENGTH,
+} from "../lib/aiGuardrails";
+import { z } from "zod";
 
 const router = Router();
 
-// Groq API — Llama 3.1 8B Instant (feels near-instant for users)
+const coachChatSchema = z.object({
+  message: z.string().min(1).max(1000),
+  conversationHistory: z.array(z.object({
+    role: z.enum(["user", "assistant"]),
+    content: z.string().max(1000),
+  })).max(20).optional(),
+});
+
+// Groq API — Llama 3.1 8B Instant
 async function callGroq(
   systemPrompt: string,
   messages: Array<{ role: "user" | "assistant"; content: string }>,
   userMessage: string,
   maxTokens = 300,
-): Promise<string | null> {
+): Promise<{ text: string | null; tokensIn?: number; tokensOut?: number; fallbackReason?: string }> {
   const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) return { text: null };
+
+  const start = Date.now();
   try {
     const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -39,15 +59,35 @@ async function callGroq(
       }),
       signal: AbortSignal.timeout(12_000),
     });
-    if (!resp.ok) return null;
-    const data = await resp.json() as { choices?: Array<{ message?: { content?: string } }> };
-    return data.choices?.[0]?.message?.content?.trim() ?? null;
-  } catch {
-    return null;
+
+    if (!resp.ok) {
+      const errText = await resp.text().catch(() => "");
+      const fallback = isSafeFallbackError(`${resp.status} ${errText}`);
+      if (resp.status === 429) {
+        await recordRateLimit("groq").catch(() => {});
+      }
+      return { text: null, fallbackReason: fallback ?? "unknown" };
+    }
+
+    const data = await resp.json() as {
+      choices?: Array<{ message?: { content?: string } }>;
+      usage?: { prompt_tokens?: number; completion_tokens?: number };
+    };
+    const text = data.choices?.[0]?.message?.content?.trim() ?? null;
+    return {
+      text,
+      tokensIn: data.usage?.prompt_tokens,
+      tokensOut: data.usage?.completion_tokens,
+    };
+  } catch (err) {
+    const fallback = isSafeFallbackError(err);
+    return { text: null, fallbackReason: fallback ?? "unknown" };
+  } finally {
+    // latency tracking could be added here
+    void start;
   }
 }
 
-// Smart built-in fallback (no API key required)
 function builtinReply(userMessage: string): string {
   const msg = userMessage.toLowerCase();
   const tips = [
@@ -72,15 +112,54 @@ function builtinReply(userMessage: string): string {
   return tips[Math.floor(Date.now() / 1000) % tips.length]!;
 }
 
-// premiumStatusMiddleware runs before aiCoachLimiter — sets req.isPremium
-// so premium users bypass the rate limit entirely (unlimited messages)
-router.post("/coach/chat", authMiddleware, premiumStatusMiddleware, aiCoachLimiter, async (req: AuthRequest, res: Response) => {
-  const { message, conversationHistory } = req.body as {
-    message?: string;
-    conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>;
-  };
-  if (!message?.trim()) { res.status(400).json({ error: "message required" }); return; }
-  if (message.length > 1000) { res.status(400).json({ error: "message too long (max 1000 chars)" }); return; }
+router.post("/coach/chat", authMiddleware, requirePremium, aiCoachLimiter, async (req: AuthRequest, res) => {
+  const ip = req.ip ?? "unknown";
+  if (!checkIpLimit(ip)) {
+    res.status(429).json({ error: { code: "RATE_LIMITED", message: "Daily AI limit for this IP reached" } });
+    return;
+  }
+
+  const parsed = coachChatSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid request", details: parsed.error.errors } });
+    return;
+  }
+
+  const rawMessage = parsed.data.message;
+  const sanitized = sanitizeAiInput(rawMessage);
+
+  if (detectPromptInjection(rawMessage)) {
+    logger.warn({ userId: req.userId, rawMessage: rawMessage.slice(0, 100) }, "prompt injection detected");
+    res.status(400).json({ error: { code: "INVALID_INPUT", message: "Message contains disallowed content" } });
+    return;
+  }
+
+  if (sanitized.length === 0) {
+    res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Message is empty after sanitization" } });
+    return;
+  }
+
+  // Per-user daily limit (free tier discipline)
+  try {
+    const isPremium = Boolean((req as any).isPremium);
+    if (!isPremium) {
+      const used = await userPurposeCalls(req.userId, "coach_chat");
+      if (used >= 30) {
+        res.status(429).json({ error: { code: "BUDGET_EXCEEDED", message: "Daily AI coach limit reached (30/day). Upgrade for unlimited." } });
+        return;
+      }
+    }
+
+    const budget = await checkBudget("groq");
+    if (!budget.available) {
+      logger.warn({ budget }, "groq budget exhausted, using fallback");
+      const reply = builtinReply(sanitized);
+      res.json({ reply, fallback: true, reason: "budget_exceeded" });
+      return;
+    }
+  } catch (err) {
+    logger.warn({ err }, "budget check failed, continuing with fallback allowed");
+  }
 
   try {
     const [user] = await db.select({ name: usersTable.name, onboardingData: usersTable.onboardingData })
@@ -122,18 +201,93 @@ router.post("/coach/chat", authMiddleware, premiumStatusMiddleware, aiCoachLimit
 
     const systemPrompt = `You are FocusArx Coach — an expert productivity and deep-work coach powered by neuroscience. You have real-time context about this user below. Be warm, sharp, direct. Under 80 words unless the user asks for more. Never use bullet points.\n\nUser context:\n${context.length > 0 ? context.join("\n") : "No context available yet."}`;
 
-    const history = (conversationHistory ?? []).slice(-8);
-    const reply = await callGroq(systemPrompt, history, message)
-      ?? builtinReply(message);
+    const history = (parsed.data.conversationHistory ?? []).slice(-8);
 
-    res.json({ reply, fallback: !process.env.GROQ_API_KEY });
+    const start = Date.now();
+    const groqResult = await callGroq(systemPrompt, history, sanitized);
+    const latencyMs = Date.now() - start;
+
+    let reply: string;
+    let isFallback = false;
+
+    if (groqResult.text) {
+      const validated = validateAiOutput(groqResult.text, 2000);
+      reply = validated.sanitized;
+
+      await recordCall({
+        provider: "groq",
+        model: "llama-3.1-8b-instant",
+        purpose: "coach_chat",
+        userId: req.userId,
+        tokensIn: groqResult.tokensIn,
+        tokensOut: groqResult.tokensOut,
+        latencyMs,
+        status: "ok",
+      }).catch(() => {});
+    } else {
+      // Safe fallback only for known safe errors
+      isFallback = true;
+      reply = builtinReply(sanitized);
+
+      await recordCall({
+        provider: "groq",
+        model: "llama-3.1-8b-instant",
+        purpose: "coach_chat",
+        userId: req.userId,
+        latencyMs,
+        status: groqResult.fallbackReason === "rate_limited" ? "rate_limited" : "fallback",
+        fallbackUsed: true,
+      }).catch(() => {});
+    }
+
+    res.json({ reply, fallback: isFallback });
   } catch (err) {
     logger.error({ err }, "coach chat error");
-    res.status(500).json({ error: "Internal error" });
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 });
 
-router.get("/coach/session-tip", authMiddleware, async (req: AuthRequest, res: Response) => {
+router.get("/coach/status", authMiddleware, premiumStatusMiddleware, async (req: AuthRequest, res) => {
+  try {
+    const isPremium = Boolean((req as any).isPremium);
+    if (isPremium) {
+      res.json({ isPremium: true });
+      return;
+    }
+    // Free user — show lock screen data without loading AI
+    const [plans, balance] = await Promise.all([
+      getActivePlans().catch(() => []),
+      getTokenBalance(req.userId!).catch(() => 0),
+    ]);
+    const cheapest = plans.sort((a: any, b: any) => a.tokenCost - b.tokenCost)[0];
+    const required = cheapest?.tokenCost ?? 10000;
+    const needed = Math.max(0, required - balance);
+    res.json({
+      isPremium: false,
+      lockScreen: {
+        title: "Focus Coach is available with Premium access",
+        description: "Unlock personalized focus plans, session analysis, and productivity guidance using Focus Tokens.",
+        benefits: [
+          "Personalized focus plan",
+          "Session reflection & analysis",
+          "Weekly productivity summary",
+          "Distraction pattern analysis",
+          "Suggested session lengths",
+          "Study plan generation",
+          "Recovery suggestions after missed streaks",
+        ],
+        currentBalance: balance,
+        requiredTokens: required,
+        tokensNeeded: needed,
+        plan: cheapest ? { name: cheapest.name, durationDays: cheapest.durationDays, tokenCost: cheapest.tokenCost } : null,
+      },
+    });
+  } catch (err) {
+    res.json({ isPremium: false });
+  }
+});
+
+router.get("/coach/session-tip", authMiddleware, requirePremium, async (req: AuthRequest, res) => {
   try {
     const today = new Date().toISOString().split("T")[0]!;
     const [readiness] = await db.select({ score: readinessLogsTable.score })
@@ -143,10 +297,12 @@ router.get("/coach/session-tip", authMiddleware, async (req: AuthRequest, res: R
     const systemPrompt = "You are a focus coach. Give ONE ultra-concise focus tip (max 2 sentences, plain text, no bullet points).";
     const userMessage = `Quick tip for a user about to start a focus session.${readiness ? ` Readiness: ${readiness.score}/100.` : ""}`;
 
-    const tip = await callGroq(systemPrompt, [], userMessage, 80)
-      ?? "Start your timer, close every other tab. The hardest part is always the first 2 minutes.";
+    const groqResult = await callGroq(systemPrompt, [], userMessage, 80);
+    const tip = groqResult.text
+      ? validateAiOutput(groqResult.text, 300).sanitized
+      : "Start your timer, close every other tab. The hardest part is always the first 2 minutes.";
 
-    res.json({ tip, fallback: !process.env.GROQ_API_KEY });
+    res.json({ tip, fallback: !groqResult.text });
   } catch {
     res.json({ tip: "Start your timer, close every other tab." });
   }

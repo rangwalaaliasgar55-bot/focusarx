@@ -81,7 +81,24 @@ export type AnalyticsEvent =
   | { event: "blog_cta_click"; properties: { article: string; cta: string } }
   | { event: "study_room_joined"; properties: { room_id: string; participant_count: number } }
   | { event: "leaderboard_viewed"; properties: { tab: string } }
-  | { event: "shop_purchase"; properties: { item_id: string; coins_spent: number } };
+  | { event: "shop_purchase"; properties: { item_id: string; coins_spent: number } }
+  // Token premium economy events
+  | { event: "token_earned"; properties: { source: string; amount: number; daily_total?: number } }
+  | { event: "token_spent"; properties: { source: string; amount: number; balance_after: number } }
+  | { event: "premium_unlocked"; properties: { plan_id: string; duration_days: number; token_cost: number; idempotency_key: string } }
+  | { event: "premium_expired"; properties: { plan_id?: string; expired_at: string } }
+  | { event: "premium_renewal_view"; properties: { days_left: number } }
+  | { event: "premium_feature_blocked"; properties: { feature: string; required_tokens: number; balance: number } }
+  | { event: "pet_unlocked"; properties: { pet_slug: string; category: string; cost?: number } }
+  | { event: "pet_level_up"; properties: { pet_slug: string; level: number; xp: number } }
+  | { event: "pet_equipped"; properties: { pet_slug: string } }
+  | { event: "battle_pass_tier_claimed"; properties: { tier: number; is_premium: boolean; reward_id: string } }
+  | { event: "battle_pass_claim_all"; properties: { claimed_count: number } }
+  | { event: "cosmetic_equipped"; properties: { cosmetic_id: string; type: string } }
+  | { event: "quest_completed"; properties: { quest_id: string; period: string; token_reward: number } }
+  | { event: "focus_city_mode_changed"; properties: { mode: string; is_premium: boolean } }
+  | { event: "timer_ritual_used"; properties: { preset: string; duration: number; is_premium: boolean } }
+  | { event: "token_ledger_viewed"; properties: { limit: number } };
 
 // ─── Tracker Implementation ───────────────────────────────────────────────────
 
@@ -183,4 +200,24 @@ export function trackStreakAchieved(streakDays: number) {
   if ([3, 7, 14, 21, 30, 60, 100].includes(streakDays)) {
     track("streak_achieved", { streak_days: streakDays });
   }
+}
+
+/** Token economy tracking */
+export function trackTokenEarned(source: string, amount: number, dailyTotal?: number) {
+  track("token_earned", { source, amount, daily_total: dailyTotal });
+}
+export function trackTokenSpent(source: string, amount: number, balanceAfter: number) {
+  track("token_spent", { source, amount, balance_after: balanceAfter });
+}
+export function trackPremiumUnlocked(planId: string, durationDays: number, tokenCost: number, idempotencyKey: string) {
+  track("premium_unlocked", { plan_id: planId, duration_days: durationDays, token_cost: tokenCost, idempotency_key: idempotencyKey });
+}
+export function trackPremiumFeatureBlocked(feature: string, requiredTokens: number, balance: number) {
+  track("premium_feature_blocked", { feature, required_tokens: requiredTokens, balance });
+}
+export function trackPetUnlocked(petSlug: string, category: string, cost?: number) {
+  track("pet_unlocked", { pet_slug: petSlug, category, cost });
+}
+export function trackBattlePassClaim(tier: number, isPremium: boolean, rewardId: string) {
+  track("battle_pass_tier_claimed", { tier, is_premium: isPremium, reward_id: rewardId });
 }

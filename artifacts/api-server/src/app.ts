@@ -3,9 +3,12 @@ import cors from "cors";
 import helmet from "helmet";
 import pinoHttp from "pino-http";
 import compression from "compression";
+import cookieParser from "cookie-parser";
+import crypto from "crypto";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { getConfigErrors, getServerConfig } from "./lib/config";
+import { getEnv } from "./lib/env";
 import { generalLimiter } from "./lib/rateLimiter";
 import { masterSecurityMiddleware } from "./middlewares/security";
 import { isMaintenanceMode } from "./lib/siteSettings";
@@ -13,6 +16,14 @@ import { isMaintenanceMode } from "./lib/siteSettings";
 const isDev = process.env.NODE_ENV !== "production";
 const app: Express = express();
 app.set("trust proxy", 1);
+
+// Request ID middleware — must be early
+app.use((req, _res, next) => {
+  const existing = req.headers["x-request-id"] as string | undefined;
+  const requestId = existing && existing.length < 128 ? existing : `req_${crypto.randomUUID()}`;
+  (req as any).id = requestId;
+  next();
+});
 
 app.use(masterSecurityMiddleware);
 app.use(compression({
@@ -60,9 +71,11 @@ app.use(
     },
   } as Parameters<typeof helmet>[0]),
 );
+
 app.use(
   pinoHttp({
     logger,
+    genReqId: (req) => (req as any).id ?? crypto.randomUUID(),
     serializers: {
       req(req) {
         return { id: req.id, method: req.method, url: req.url?.split("?")[0] };
@@ -73,22 +86,39 @@ app.use(
     },
   }),
 );
+
+// CORS — locked down in production
 app.use(
   cors({
     origin: (origin, cb) => {
-      // No Origin header (curl, server-to-server, same-origin GET) — allow.
-      if (!origin || isDev) { cb(null, true); return; }
+      if (!origin) {
+        cb(null, true);
+        return;
+      }
+      if (isDev) {
+        cb(null, true);
+        return;
+      }
 
-      // Build the allowlist dynamically so the API keeps working no matter
-      // where the frontend is hosted (Vercel, Replit, localhost, custom domain).
-      const configured = [
-        getServerConfig().appUrl,
-        process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
-        process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null,
-        ...(process.env.CORS_ALLOWED_ORIGINS?.split(",").map((value) => value.trim()) ?? []),
-      ].filter((v): v is string => Boolean(v));
+      let configured: string[] = [];
+      try {
+        const env = getEnv();
+        configured = [
+          getServerConfig().appUrl,
+          env.VERCEL_URL ? `https://${env.VERCEL_URL}` : null,
+          env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${env.VERCEL_PROJECT_PRODUCTION_URL}` : null,
+          ...(env.CORS_ALLOWED_ORIGINS?.split(",").map((value) => value.trim()).filter(Boolean) ?? []),
+          ...(process.env.CORS_ALLOWED_ORIGINS?.split(",").map((value) => value.trim()).filter(Boolean) ?? []),
+        ].filter((v): v is string => Boolean(v));
+      } catch {
+        configured = [
+          getServerConfig().appUrl,
+          process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+          process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null,
+          ...(process.env.CORS_ALLOWED_ORIGINS?.split(",").map((value) => value.trim()).filter(Boolean) ?? []),
+        ].filter((v): v is string => Boolean(v));
+      }
 
-      // Normalize a URL to a bare `https://host` origin for comparison.
       const toOrigin = (url: string): string => {
         try {
           const u = new URL(url);
@@ -99,28 +129,28 @@ app.use(
       };
 
       const allowedOrigins = configured.map(toOrigin);
-      const isAllowed = allowedOrigins.includes(toOrigin(origin));
+      const requestOrigin = toOrigin(origin);
+      const isAllowed = allowedOrigins.includes(requestOrigin);
 
       if (isAllowed) {
         cb(null, true);
       } else {
-        // Log the rejected origin so misconfigurations are easy to diagnose.
         logger.warn({ origin, allowedOrigins }, "CORS origin rejected");
         cb(new Error("CORS: origin not allowed"));
       }
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-Request-Id"],
+    exposedHeaders: ["X-Request-Id"],
+    maxAge: 86400,
   }),
 );
+
+app.use(cookieParser());
 app.use(express.json({ limit: "100kb" }));
 app.use(express.urlencoded({ extended: true, limit: "100kb" }));
 
-// Express 5 leaves `req.body` as `undefined` when a request arrives with no
-// body (DELETE/GET with no payload, or an empty request). Route handlers
-// destructure it directly (`const { x } = req.body as ...`), which throws a
-// TypeError and surfaces as an opaque 500 "Internal error" — e.g.
-// DELETE /api/push/subscribe with no body. Normalising here means no handler
-// can 500 purely because the client sent nothing.
 app.use((req, _res, next) => {
   if (req.body === undefined || req.body === null) {
     (req as { body?: unknown }).body = {};
@@ -128,11 +158,12 @@ app.use((req, _res, next) => {
   next();
 });
 
-// Add security headers for all responses
 app.use((_req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  const reqId = (_req as any).id;
+  if (reqId) res.setHeader("X-Request-Id", reqId);
   next();
 });
 
@@ -145,18 +176,19 @@ app.use("/api", (req, res, next) => {
   const missing = getConfigErrors();
   if (missing.length > 0) {
     res.status(503).json({
-      error: "Server is missing required configuration",
-      missing,
-      hint: "Add these in your environment variables: " + missing.join(", "),
+      error: {
+        code: "CONFIG_ERROR",
+        message: "Server is missing required configuration",
+        missing,
+        hint: "Add these in your environment variables: " + missing.join(", "),
+        requestId: (req as any).id,
+      },
     });
     return;
   }
   next();
 });
-// Maintenance-mode gate: when enabled, block everything except the public
-// settings endpoint (so the frontend can render the maintenance screen), the
-// admin panel (so an admin can turn it off), auth (so the admin can log in),
-// and health checks.
+
 app.use("/api", async (req, res, next) => {
   const p = req.path;
   const isExempt =
@@ -165,12 +197,19 @@ app.use("/api", async (req, res, next) => {
     p.startsWith("/auth/") ||
     p === "/healthz" ||
     p.startsWith("/healthz/");
-  if (isExempt) { next(); return; }
+  if (isExempt) {
+    next();
+    return;
+  }
   try {
     if (await isMaintenanceMode()) {
       res.status(503).json({
-        error: "FocusArx is temporarily in maintenance mode",
-        hint: "We're making things better — please check back in a few minutes.",
+        error: {
+          code: "MAINTENANCE",
+          message: "FocusArx is temporarily in maintenance mode",
+          hint: "We're making things better — please check back in a few minutes.",
+          requestId: (req as any).id,
+        },
       });
       return;
     }
@@ -179,13 +218,60 @@ app.use("/api", async (req, res, next) => {
   }
   next();
 });
+
 app.use("/api", router);
-app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+
+// Centralized error handling — standardized format, no leakage
+app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const requestId = (req as any).id ?? `req_${crypto.randomUUID()}`;
+
   if (err.message?.startsWith("CORS")) {
-    res.status(403).json({ error: "Forbidden", reason: err.message });
+    res.status(403).json({
+      error: {
+        code: "CORS_FORBIDDEN",
+        message: "Origin not allowed",
+        requestId,
+      },
+    });
     return;
   }
-  logger.error({ err }, "unhandled error");
-  res.status(500).json({ error: "Internal error" });
+
+  // Zod validation errors
+  if (err.name === "ZodError" || err.code === "VALIDATION_ERROR") {
+    res.status(400).json({
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "The request is invalid",
+        requestId,
+      },
+    });
+    return;
+  }
+
+  // Rate limit errors from express-rate-limit
+  if (err.status === 429) {
+    res.status(429).json({
+      error: {
+        code: "RATE_LIMITED",
+        message: "Too many requests, please try again later",
+        requestId,
+      },
+    });
+    return;
+  }
+
+  logger.error({ err, requestId, url: req.url, method: req.method }, "unhandled error");
+
+  // Never expose stack traces, SQL errors, internal paths, API keys
+  const isProd = process.env.NODE_ENV === "production";
+  res.status(500).json({
+    error: {
+      code: "INTERNAL_ERROR",
+      message: "An unexpected error occurred",
+      requestId,
+      ...(isProd ? {} : { details: err.message }),
+    },
+  });
 });
+
 export default app;

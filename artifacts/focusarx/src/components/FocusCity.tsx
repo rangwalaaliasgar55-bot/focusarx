@@ -2,8 +2,12 @@ import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { getToken } from "@/lib/auth";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const FocusCity3D = lazy(() => import("./FocusCity3D"));
+const FocusCityFallback = lazy(() => import("./FocusCity3D").then(m => ({ default: m.FocusCityFallback })));
+const CitySkeleton = lazy(() => import("./FocusCity3D").then(m => ({ default: m.CitySkeleton })));
+
 
 async function apiFetch(path: string) {
   const token = getToken();
@@ -348,11 +352,13 @@ export default function FocusCity({ className }: FocusCityProps) {
         </div>
       </div>
 
-      {/* City 3D View */}
+      {/* City 3D View — wrapped in ErrorBoundary with 2D fallback for WebGL failures */}
       <div className="px-2 pb-1 h-[220px] relative">
-        <Suspense fallback={<div className="h-full w-full flex items-center justify-center text-[10px] text-[var(--palette-zinc-500)]">Loading City...</div>}>
-          <FocusCity3D totalXp={totalXp} />
-        </Suspense>
+        <ErrorBoundary fallback={<FocusCityFallback totalXp={totalXp} />}>
+          <Suspense fallback={<CitySkeleton />}>
+            <FocusCity3D totalXp={totalXp} />
+          </Suspense>
+        </ErrorBoundary>
       </div>
 
       {/* Next unlock progress */}

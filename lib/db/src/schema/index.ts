@@ -11,3 +11,4 @@ export * from "./seasonal";
 export * from "./site";
 export * from "./flashcards";
 export * from "./platform";
+export * from "./premium-economy";
