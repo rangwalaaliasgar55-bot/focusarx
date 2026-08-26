@@ -3,7 +3,7 @@ import { Bot, Users } from "lucide-react";
 
 /**
  * Honest community pulse (A4). The only public counter that mixes humans and
- * AI rivals — and it always says so. "50,000+ learners" style fabrications
+ * community pulse — no fabricated totals. "50,000+ learners" style fabrications
  * are gone by design (honesty guardrail #8).
  */
 export interface CommunityPulse {
@@ -34,7 +34,7 @@ export default function CommunityPulse({ className = "" }: { className?: string 
   return (
     <div
       className={`flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-xs text-[var(--foreground-subtle)] ${className}`}
-      aria-label="Community size, including AI rivals"
+      aria-label="Community size"
     >
       <span className="inline-flex items-center gap-1.5">
         <Users size={13} className="text-[var(--brand-strong)]" />
@@ -42,7 +42,7 @@ export default function CommunityPulse({ className = "" }: { className?: string 
       </span>
       <span className="inline-flex items-center gap-1.5">
         <Bot size={13} />
-        {pulse.realStudiersThisWeek.toLocaleString("en-US")} real studiers this week
+        {pulse.realStudiersThisWeek.toLocaleString("en-US")} active this week
       </span>
     </div>
   );
