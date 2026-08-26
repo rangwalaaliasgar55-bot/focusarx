@@ -1,3 +1,5 @@
+# CI workflow — copy to .github/workflows/ci.yml after granting workflows permission
+# See SECURITY.md for hardening details
 name: CI
 
 on:
