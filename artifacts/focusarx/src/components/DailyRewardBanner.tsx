@@ -19,7 +19,7 @@ const STREAK_EMOJIS = ["🌟", "⭐", "🔥", "💫", "✨", "🏅", "🏆"];
 interface DailyRewardStatus {
   streak: number;
   alreadyClaimed: boolean;
-  nextReward?: { icon: string; label: string; description?: string };
+  nextReward?: { icon: string; label: string; description?: string; coins?: number; xp?: number };
 }
 
 interface ClaimedReward {

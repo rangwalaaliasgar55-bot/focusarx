@@ -45,6 +45,24 @@ export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
 }
 
+/**
+ * The API returns errors as `{ error: { code, message } }` (or a plain string
+ * from older/proxy paths). Auth forms store the result in a string state var,
+ * so normalize the nested message here instead of leaking an object into React.
+ */
+export function apiErrorMessage(data: unknown, fallback: string): string {
+  if (typeof data === "string") return data.trim() || fallback;
+  if (data && typeof data === "object") {
+    const err = (data as { error?: unknown }).error;
+    if (typeof err === "string") return err.trim() || fallback;
+    if (err && typeof err === "object") {
+      const message = (err as { message?: unknown }).message;
+      if (typeof message === "string" && message.trim()) return message.trim();
+    }
+  }
+  return fallback;
+}
+
 async function fetchSession(): Promise<AuthSession> {
   const token = getToken();
   if (!token) return null;
@@ -114,23 +132,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Tolerate non-JSON responses (e.g. a proxy/edge error page) so we can
       // surface a clean message instead of throwing during JSON parsing.
-      let json: { token?: string; error?: string } = {};
+      let data: unknown = {};
       try {
-        json = (await res.json()) as { token?: string; error?: string };
+        data = await res.json();
       } catch {
-        json = {};
+        data = {};
       }
+      const token =
+        data && typeof data === "object"
+          ? (data as { token?: unknown }).token
+          : undefined;
 
-      if (!res.ok || !json.token) {
+      if (!res.ok || typeof token !== "string" || !token) {
+        const fallback = res.status === 429
+          ? "Too many attempts. Please wait a moment and try again."
+          : "Authentication failed. Please try again.";
         return {
           ok: false,
-          error: json.error ?? (res.status === 429
-            ? "Too many attempts. Please wait a moment and try again."
-            : "Authentication failed. Please try again."),
+          error: apiErrorMessage(data, fallback),
         };
       }
 
-      setToken(json.token);
+      setToken(token);
       await refresh();
       trackSiteEvent("user_logged_in", { provider });
       trackGAEvent("login", { method: provider });

@@ -5,6 +5,7 @@ import { Lock, AlertCircle, CheckCircle2, AlertTriangle } from "lucide-react";
 import { AuthCard, AuthLink } from "@/components/auth/AuthCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { apiErrorMessage } from "@/lib/auth";
 
 export default function ResetPasswordPage() {
   const [, setLocation] = useLocation();
@@ -39,8 +40,11 @@ export default function ResetPasswordPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, password }),
       });
-      const data = await res.json() as { ok?: boolean; error?: string };
-      if (!res.ok || !data.ok) { setError(data.error ?? "Reset failed. The link may have expired."); return; }
+      const data = await res.json() as { ok?: boolean; error?: unknown };
+      if (!res.ok || !data.ok) {
+        setError(apiErrorMessage(data, "Reset failed. The link may have expired."));
+        return;
+      }
       setDone(true);
       setTimeout(() => setLocation("/login"), 2500);
     } catch {

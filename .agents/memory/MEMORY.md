@@ -1,4 +1,5 @@
 - [FocusArx project setup](focusarx-setup.md) — pnpm monorepo; after any changes to lib/api-spec/openapi.yaml must run codegen then restart frontend
+- [Dev JWT secret instability](dev-jwt-secret-instability.md) — getServerConfig() re-created the dev secret per call, so login tokens 401'd on the next request; fixed by caching one secret per process + auth error normalization
 - [Partial session save](partial-session.md) — users stopping mid-session now save to DB if ≥60s elapsed; implemented in Timer.tsx savePartialSessionIfNeeded
 - [Level formula](level-formula.md) — sqrt formula must be used identically in CoinXPBar and profile page
 - [Lazy loading pattern](lazy-loading.md) — all static imports before const lazy(); Suspense wraps Switch; PageLoader defined before AppWithPalette

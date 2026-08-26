@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { setToken, getToken } from "@/lib/auth";
+import { setToken, getToken, useAuth } from "@/lib/auth";
 
 export default function AuthCallbackPage() {
   const [, setLocation] = useLocation();
+  const { refresh } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -15,28 +16,33 @@ export default function AuthCallbackPage() {
       setToken(token);
       window.history.replaceState({}, "", "/auth/callback");
 
-      if (isNew) {
-        setLocation("/onboarding");
-        return;
-      }
+      // Sync the token into AuthProvider before navigating. Without this the
+      // ProtectedRoute still sees "unauthenticated" and immediately bounces the
+      // user back to /login, so a valid OAuth session appeared "not working".
+      void refresh().then(() => {
+        if (isNew) {
+          setLocation("/onboarding");
+          return;
+        }
 
-      // Check onboarding status for existing Google users
-      void fetch("/api/auth/session", {
-        headers: { Authorization: `Bearer ${getToken() ?? ""}` },
-      })
-        .then(r => r.ok ? r.json() : null)
-        .then((d: { user?: { onboardingCompleted?: boolean } } | null) => {
-          if (d?.user?.onboardingCompleted === false) {
-            setLocation("/onboarding");
-          } else {
-            setLocation("/dashboard");
-          }
+        // Check onboarding status for existing Google users
+        void fetch("/api/auth/session", {
+          headers: { Authorization: `Bearer ${getToken() ?? ""}` },
         })
-        .catch(() => setLocation("/dashboard"));
+          .then(r => r.ok ? r.json() : null)
+          .then((d: { user?: { onboardingCompleted?: boolean } } | null) => {
+            if (d?.user?.onboardingCompleted === false) {
+              setLocation("/onboarding");
+            } else {
+              setLocation("/dashboard");
+            }
+          })
+          .catch(() => setLocation("/dashboard"));
+      }).catch(() => setLocation("/dashboard"));
     } else {
       setError("Authentication failed — no token received.");
     }
-  }, [setLocation]);
+  }, [setLocation, refresh]);
 
   if (error) {
     return (
