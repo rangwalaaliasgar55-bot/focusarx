@@ -68,35 +68,3 @@ export async function syncActiveSession(payload: SessionSyncPayload): Promise<bo
     return false;
   }
 }
-
-export async function completePersistedSession(
-  session: Session,
-  dbSessionId: string
-): Promise<{ success: boolean; streakUpdated: boolean; offline?: boolean; error?: string }> {
-  try {
-    const res = await fetch("/api/sessions", {
-      method: "POST",
-      headers: authHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify({
-        sessionId: dbSessionId,
-        mode: session.mode,
-        durationSec: session.durationSeconds,
-        completedAt: session.completedAt,
-        clientNonce: session.id,
-        focusScore: session.focusScore,
-        focusQuality: session.focusQuality,
-        focusTimeline: session.focusTimeline,
-        stabilityRating: session.stabilityRating,
-        sessionInsights: session.sessionInsights,
-        taskId: session.taskId,
-      }),
-    });
-    if (!res.ok) {
-      return { success: false, streakUpdated: false, error: `HTTP ${res.status}` };
-    }
-    const data = await res.json() as { streakUpdated?: boolean };
-    return { success: true, streakUpdated: !!data.streakUpdated };
-  } catch {
-    return { success: false, streakUpdated: false, offline: true };
-  }
-}
