@@ -2,8 +2,17 @@ import { z } from "zod";
 
 /**
  * Centralized environment validation.
- * Fails fast with clear errors when required values are missing in production.
- * In development, allows missing optional secrets with safe fallbacks and warnings.
+ *
+ * One invalid variable must never take the whole API down. Recovery model:
+ *  - getEnv() ALWAYS recovers: invalid keys are dropped (they are all
+ *    optional) with a loud `[env] Ignoring invalid KEY` log line, so the
+ *    server keeps serving everything that doesn't depend on the bad key.
+ *    (It used to throw in production, which — combined with module-scope
+ *    limiter construction — 500'd every route in the deployment.)
+ *  - Required-in-production gaps are still enforced, but per-request and
+ *    with a clear message: routes/middleware turn them into 503
+ *    CONFIG_ERROR responses naming what's missing (see getConfigErrors),
+ *    and validateProductionEnv() still fails fast for long-running starts.
  */
 
 const envSchema = z.object({
@@ -29,7 +38,9 @@ const envSchema = z.object({
   CORS_ALLOWED_ORIGINS: z.string().optional(),
 
   // Admin
-  ADMIN_PASSWORD: z.string().min(12, "ADMIN_PASSWORD must be at least 12 characters").optional(),
+  // Same floor as regular user passwords (auth.ts registerSchema); the admin
+  // gate is additionally rate-limited and compared in constant time.
+  ADMIN_PASSWORD: z.string().min(8, "ADMIN_PASSWORD must be at least 8 characters").optional(),
 
   // OAuth
   GOOGLE_CLIENT_ID: z.string().optional(),
@@ -86,20 +97,20 @@ export function getEnv(): RawEnv {
 
   if (!result.success) {
     console.error("[env] Invalid environment variables:\n" + formatZodErrors(result.error));
-    if (process.env.NODE_ENV === "production") {
-      throw new Error(
-        "Invalid environment variables:\n" + formatZodErrors(result.error),
-      );
-    }
-    // In dev, recover by dropping ONLY the offending keys and re-parsing, so
-    // one malformed variable doesn't discard every valid one (a full
-    // envSchema.parse({}) here used to zero out the whole config).
+    // Recover by dropping ONLY the offending keys and re-parsing, so one
+    // malformed variable doesn't discard every valid one (a full
+    // envSchema.parse({}) here used to zero out the whole config) — and, in
+    // production, used to throw and 500 every request. Every schema field is
+    // optional, so dropping an invalid key is always safe; if that key was
+    // required in production, getConfigErrors() reports it as a 503
+    // CONFIG_ERROR naming the variable, which is actionable instead of an
+    // opaque INTERNAL_ERROR.
     const scrubbed: Record<string, string | undefined> = { ...process.env };
     for (const issue of result.error.errors) {
       const key = issue.path[0];
       if (typeof key === "string") {
         delete scrubbed[key];
-        console.warn(`[env] Ignoring invalid ${key} in development`);
+        console.warn(`[env] Ignoring invalid ${key} in ${process.env.NODE_ENV ?? "development"}`);
       }
     }
     parsedEnv = envSchema.parse(scrubbed);
@@ -130,7 +141,7 @@ export function validateProductionEnv(): void {
 
   if (!hasDb) missing.push("DATABASE_URL (or POSTGRES_URL_NON_POOLING)");
   if (!env.AUTH_SECRET && !env.SESSION_SECRET) missing.push("AUTH_SECRET (min 32 chars)");
-  if (!env.ADMIN_PASSWORD) missing.push("ADMIN_PASSWORD (min 12 chars)");
+  if (!env.ADMIN_PASSWORD) missing.push("ADMIN_PASSWORD (min 8 chars)");
   if (!env.APP_URL && !env.VERCEL_URL) missing.push("APP_URL (or VERCEL_URL auto)");
 
   if (missing.length > 0) {
@@ -148,8 +159,8 @@ export function validateProductionEnv(): void {
   if (env.AUTH_SECRET && env.AUTH_SECRET.length < 32) {
     throw new Error("[env] AUTH_SECRET must be at least 32 characters in production");
   }
-  if (env.ADMIN_PASSWORD && env.ADMIN_PASSWORD.length < 12) {
-    throw new Error("[env] ADMIN_PASSWORD must be at least 12 characters in production");
+  if (env.ADMIN_PASSWORD && env.ADMIN_PASSWORD.length < 8) {
+    throw new Error("[env] ADMIN_PASSWORD must be at least 8 characters in production");
   }
 }
 
