@@ -8,7 +8,7 @@ Complete inventory of every environment variable this app reads, verified agains
 |---|---|---|
 | `DATABASE_URL` | `lib/db/src/index.ts`, `lib/config.ts` | PostgreSQL connection string. On Vercel, `POSTGRES_URL_NON_POOLING` is preferred first (pooler transaction mode breaks prepared statements). Also accepts `POSTGRES_PRISMA_URL` / `POSTGRES_URL`. |
 | `AUTH_SECRET` | `lib/config.ts` | JWT signing secret (32+ random chars). `SESSION_SECRET` accepted as legacy alias. In dev, an ephemeral secret is generated per boot if unset. |
-| `ADMIN_PASSWORD` | `lib/config.ts`, `routes/admin.ts` | Bootstrap password for `/admin` (**min 12 chars**). Mandatory in production; users with `role=admin` in DB also have access. |
+| `ADMIN_PASSWORD` | `lib/config.ts`, `routes/admin.ts` | Bootstrap password for `/admin` (**min 8 chars**, same floor as user passwords). Mandatory in production; users with `role=admin` in DB also have access. |
 | `APP_URL` | `lib/config.ts` | Canonical public origin — used for password-reset links, CORS allowlist, OAuth redirects. Falls back to `VERCEL_URL`, then `https://focusarx.vercel.app`. |
 
 ## 📧 Email via Resend (recommended)
@@ -91,7 +91,7 @@ assets from one deployment while API requests go to another.
 ```bash
 DATABASE_URL=postgresql://...?sslmode=require
 AUTH_SECRET=<32+ random chars>
-ADMIN_PASSWORD=<strong password, min 12 chars>
+ADMIN_PASSWORD=<strong password, min 8 chars>
 APP_URL=https://your-domain.com
 RESEND_API_KEY=re_...
 EMAIL_FROM="FocusArx <noreply@your-domain.com>"

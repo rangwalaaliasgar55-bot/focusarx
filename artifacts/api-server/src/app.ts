@@ -209,14 +209,28 @@ app.use("/api", (req, res, next) => {
     next();
     return;
   }
-  const missing = getConfigErrors();
-  if (missing.length > 0) {
+  try {
+    const missing = getConfigErrors();
+    if (missing.length > 0) {
+      res.status(503).json({
+        error: {
+          code: "CONFIG_ERROR",
+          message: "Server is missing required configuration",
+          missing,
+          hint: "Add these in your environment variables: " + missing.join(", "),
+          requestId: (req as any).id,
+        },
+      });
+      return;
+    }
+  } catch (err) {
+    // Never let a config introspection failure become an opaque 500.
+    logger.error({ err }, "config gate failed");
     res.status(503).json({
       error: {
         code: "CONFIG_ERROR",
-        message: "Server is missing required configuration",
-        missing,
-        hint: "Add these in your environment variables: " + missing.join(", "),
+        message: "Server configuration could not be validated",
+        hint: "Check the API server logs for [env] lines naming the invalid variable.",
         requestId: (req as any).id,
       },
     });
