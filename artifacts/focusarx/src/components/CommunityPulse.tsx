@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bot, Users } from "lucide-react";
+import { Users } from "lucide-react";
 
 /**
  * Honest community pulse (A4). The only public counter that mixes humans and
@@ -41,7 +41,7 @@ export default function CommunityPulse({ className = "" }: { className?: string 
         {pulse.membersLabel}
       </span>
       <span className="inline-flex items-center gap-1.5">
-        <Bot size={13} />
+        <Users size={13} className="text-[var(--brand-strong)]" />
         {pulse.realStudiersThisWeek.toLocaleString("en-US")} active this week
       </span>
     </div>

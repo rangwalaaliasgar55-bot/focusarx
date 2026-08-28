@@ -660,6 +660,14 @@ async function runDailyComments(ctx: ContentCtx): Promise<void> {
 async function runDailyReactions(ctx: ContentCtx): Promise<void> {
   const dayRng = mulberry32(hashString(`reactions:${ctx.day}`));
   const bursts = 15 + Math.floor(dayRng() * 16); // 15–30 reaction events
+
+  // Find admin for prioritized reactions.
+  const [adminRow] = await db.select({ id: usersTable.id })
+    .from(usersTable)
+    .where(eq(usersTable.role, "admin"))
+    .limit(1);
+  const adminId = adminRow?.id;
+
   const recentPosts = await db
     .select({ id: socialPostsTable.id, userId: socialPostsTable.userId })
     .from(socialPostsTable)
@@ -671,6 +679,22 @@ async function runDailyReactions(ctx: ContentCtx): Promise<void> {
     .orderBy(desc(socialPostsTable.createdAt))
     .limit(120);
   if (!recentPosts.length) return;
+
+  // Admin posts get extra reactions (3–6 bots each) for liveliness.
+  const adminPosts = adminId ? recentPosts.filter(p => p.userId === adminId) : [];
+  for (const post of adminPosts) {
+    const botsForPost = 3 + Math.floor(dayRng() * 4);
+    for (let k = 0; k < botsForPost; k++) {
+      const bot = ctx.bots[Math.floor(dayRng() * ctx.bots.length)]!;
+      if (bot.id === post.userId) continue;
+      if ((ctx.usage.reactions.get(bot.id) ?? 0) >= CAPS.reaction) continue;
+      const type = REACTION_TYPES[Math.floor(dayRng() * REACTION_TYPES.length)]!;
+      try {
+        await db.insert(postReactionsTable).values({ postId: post.id, userId: bot.id, reaction: type });
+        ctx.usage.reactions.set(bot.id, (ctx.usage.reactions.get(bot.id) ?? 0) + 1);
+      } catch { /* skip */ }
+    }
+  }
 
   for (let r = 0; r < bursts; r++) {
     const post = recentPosts[Math.floor(dayRng() * recentPosts.length)]!;
@@ -696,6 +720,13 @@ async function runDailyFollows(ctx: ContentCtx): Promise<void> {
   const want = Math.max(0, Math.min(GLOBAL_FOLLOWS_MAX, GLOBAL_FOLLOWS_MAX - alreadyToday));
   if (!want) return;
 
+  // Find the admin user (role='admin') — bots should always follow the admin.
+  const [adminRow] = await db.select({ id: usersTable.id })
+    .from(usersTable)
+    .where(eq(usersTable.role, "admin"))
+    .limit(1);
+  const adminId = adminRow?.id;
+
   // Targets: active humans (studied in last 72h) + high-XP bots.
   const [activeHumans, topBots] = await Promise.all([
     db.select({ id: usersTable.id })
@@ -717,7 +748,9 @@ async function runDailyFollows(ctx: ContentCtx): Promise<void> {
   ]);
 
   const targetIds: string[] = [];
-  for (const h of activeHumans) targetIds.push(h.id);
+  // Admin always first in the follow target list.
+  if (adminId) targetIds.push(adminId);
+  for (const h of activeHumans) if (!targetIds.includes(h.id)) targetIds.push(h.id);
   for (const b of topBots) if (!targetIds.includes(b.userId)) targetIds.push(b.userId);
   if (!targetIds.length) return;
 

@@ -6,6 +6,7 @@
     "types": ["node"]
   },
   "include": ["src"],
+  "exclude": ["**/*.test.ts", "**/*.integration.test.ts"],
   "references": [
     {
       "path": "../../lib/db"

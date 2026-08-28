@@ -29,7 +29,7 @@
 - **Animation**: Framer Motion.
 - **Backend**: Node.js, Express, Drizzle ORM, PostgreSQL (Neon).
 - **AI Integration**: Gemini 2.5 Flash, Groq, MediaPipe (Vision).
-- **Infrastructure**: Vercel (deployment), Replit (dev environment).
+- **Infrastructure**: Vercel (deployment), Freebuff (dev environment).
 
 ## 📦 Project Structure
 
