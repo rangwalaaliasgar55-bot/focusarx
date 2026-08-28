@@ -5,6 +5,331 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface OkResponseDto {
+  ok: boolean;
+}
+
+export type ErrorEnvelopeDtoError = {
+  code: string;
+  message: string;
+  requestId?: string;
+};
+
+export interface ErrorEnvelopeDto {
+  error?: ErrorEnvelopeDtoError;
+}
+
+export interface RegisterBodyDto {
+  /** @maxLength 254 */
+  email: string;
+  /**
+     * @minLength 8
+     * @maxLength 128
+     */
+  password: string;
+  /** @maxLength 100 */
+  name?: string | null;
+}
+
+export type RegisterResponseDtoUser = {
+  id: string;
+  email: string;
+};
+
+export interface RegisterResponseDto {
+  message: string;
+  user: RegisterResponseDtoUser;
+}
+
+export interface LoginBodyDto {
+  email: string;
+  password: string;
+}
+
+export interface GuestBodyDto {
+  /** @minLength 8 */
+  guestKey: string;
+}
+
+export interface LoginUserDto {
+  id: string;
+  email: string;
+  name?: string | null;
+  isGuest?: boolean;
+}
+
+export interface LoginResponseDto {
+  /** Legacy 7-day bearer token (deprecated — cookies carry the session) */
+  token: string;
+  accessToken: string;
+  user: LoginUserDto;
+}
+
+export interface SessionUserDto {
+  id: string;
+  email: string;
+  name?: string | null;
+  isGuest: boolean;
+  role: string;
+  onboardingCompleted: boolean;
+  bio?: string | null;
+  timezone?: string | null;
+}
+
+export interface SessionResponseDto {
+  user: SessionUserDto;
+}
+
+export interface RefreshResponseDto {
+  token: string;
+  accessToken: string;
+}
+
+export interface ForgotPasswordBodyDto {
+  email: string;
+}
+
+export interface ResetPasswordBodyDto {
+  token: string;
+  /**
+     * @minLength 8
+     * @maxLength 128
+     */
+  password: string;
+}
+
+export interface VerifyResetResponseDto {
+  valid: boolean;
+}
+
+export interface ChangePasswordBodyDto {
+  currentPassword: string;
+  /**
+     * @minLength 8
+     * @maxLength 128
+     */
+  newPassword: string;
+}
+
+export interface ChangePasswordResponseDto {
+  ok: boolean;
+  message?: string;
+}
+
+export interface DeleteAccountBodyDto {
+  /** Required for password accounts; guests omit it */
+  password?: string;
+}
+
+export interface SocketTicketResponseDto {
+  ticket: string;
+  expiresInSeconds: number;
+}
+
+export type OnboardingBodyDtoData = {
+  /** @maxLength 200 */
+  goal?: string;
+  /** @maxLength 50 */
+  level?: string;
+  dailyHours?: number;
+  preferredSessionLength?: number;
+};
+
+export interface OnboardingBodyDto {
+  data: OnboardingBodyDtoData;
+}
+
+export interface UpdateProfileBodyDto {
+  /** @maxLength 60 */
+  name?: string;
+  /** @maxLength 300 */
+  bio?: string;
+  timezone?: string;
+}
+
+export type ProfileUpdateResponseDtoUser = {
+  id: string;
+  email: string;
+  name?: string | null;
+};
+
+export interface ProfileUpdateResponseDto {
+  ok: boolean;
+  user?: ProfileUpdateResponseDtoUser;
+}
+
+export type SessionModeDto = typeof SessionModeDto[keyof typeof SessionModeDto];
+
+
+export const SessionModeDto = {
+  focus: 'focus',
+  short_break: 'short_break',
+  long_break: 'long_break',
+} as const;
+
+export type TimerStatusDto = typeof TimerStatusDto[keyof typeof TimerStatusDto];
+
+
+export const TimerStatusDto = {
+  running: 'running',
+  paused: 'paused',
+  idle: 'idle',
+} as const;
+
+export interface ActiveSessionDto {
+  id: string;
+  userId: string;
+  mode: SessionModeDto;
+  secondsLeft: number;
+  timerStatus: TimerStatusDto;
+  activeSeconds?: number;
+  startedAt: string;
+  updatedAt: string;
+  serverElapsed?: number;
+  serverRemaining?: number;
+  serverNow?: string;
+}
+
+export type ExpiredSessionSummaryDtoSessionStatus = typeof ExpiredSessionSummaryDtoSessionStatus[keyof typeof ExpiredSessionSummaryDtoSessionStatus];
+
+
+export const ExpiredSessionSummaryDtoSessionStatus = {
+  completed: 'completed',
+  expired: 'expired',
+} as const;
+
+export interface ExpiredSessionSummaryDto {
+  sessionId?: string;
+  sessionStatus?: ExpiredSessionSummaryDtoSessionStatus;
+  durationSec?: number;
+  earnedXp?: number;
+  earnedCoins?: number;
+}
+
+export interface ActiveSessionResponseDto {
+  session?: ActiveSessionDto;
+  expiredSession?: ExpiredSessionSummaryDto;
+}
+
+export interface StartActiveSessionBodyDto {
+  mode?: SessionModeDto;
+  /**
+     * @minimum 60
+     * @maximum 14400
+     */
+  secondsLeft: number;
+  timerStatus?: TimerStatusDto;
+  monitorEnabled?: boolean;
+}
+
+export interface SyncActiveSessionBodyDto {
+  sessionId: string;
+  activeSeconds?: number;
+  secondsLeft?: number;
+  timerStatus?: TimerStatusDto;
+  mode?: SessionModeDto;
+  monitorEnabled?: boolean;
+}
+
+export interface SyncActiveSessionResponseDto {
+  ok: boolean;
+  serverNow?: string;
+}
+
+export type CompleteSessionBodyDtoSessionStatus = typeof CompleteSessionBodyDtoSessionStatus[keyof typeof CompleteSessionBodyDtoSessionStatus];
+
+
+export const CompleteSessionBodyDtoSessionStatus = {
+  completed: 'completed',
+  completed_early: 'completed_early',
+  cancelled: 'cancelled',
+} as const;
+
+export interface CompleteSessionBodyDto {
+  mode?: SessionModeDto;
+  /**
+     * @minimum 0
+     * @maximum 86400
+     */
+  durationSec: number;
+  plannedDurationSec?: number | null;
+  completedEarly?: boolean;
+  sessionStatus?: CompleteSessionBodyDtoSessionStatus;
+  focusScore?: number | null;
+  focusQuality?: string | null;
+  taskId?: string | null;
+  sessionId?: string;
+  /** @pattern ^[a-zA-Z0-9_-]{8,64}$ */
+  clientNonce?: string;
+  /** @maxLength 50 */
+  category?: string;
+}
+
+export interface FocusSessionDto {
+  id: string;
+  userId: string;
+  mode: SessionModeDto;
+  durationSec: number;
+  plannedDurationSec?: number | null;
+  completedEarly?: boolean;
+  sessionStatus?: string;
+  completedAt?: string | null;
+  focusScore?: number | null;
+  category?: string;
+  clientNonce?: string | null;
+}
+
+export interface SessionCompletionResponseDto {
+  session: FocusSessionDto;
+  streakUpdated: boolean;
+  earnedXp: number;
+  earnedCoins: number;
+  lootBoxDropped?: boolean;
+  idempotentReplay?: boolean;
+}
+
+export interface SessionHistoryResponseDto {
+  sessions: FocusSessionDto[];
+}
+
+export interface PaginationMetaDto {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasMore: boolean;
+}
+
+export interface PaginatedSessionHistoryResponseDto {
+  sessions: FocusSessionDto[];
+  pagination: PaginationMetaDto;
+  serverNow?: number;
+}
+
+export interface RewardDefinitionDto {
+  day: number;
+  coins: number;
+  xp: number;
+  label: string;
+  icon?: string;
+}
+
+export interface LoginRewardStatusResponseDto {
+  alreadyClaimed: boolean;
+  claimStreak: number;
+  totalClaimed?: number;
+  nextReward: RewardDefinitionDto;
+  calendar: RewardDefinitionDto[];
+}
+
+export interface LoginRewardClaimResponseDto {
+  ok: boolean;
+  newStreak?: number;
+  coins?: number;
+  xp?: number;
+  reward: RewardDefinitionDto;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -63,4 +388,20 @@ export interface BreakFreePledgeEntry {
 export interface BreakFreePledgesResponse {
   pledges: BreakFreePledgeEntry[];
 }
+
+export type VerifyResetTokenParams = {
+token: string;
+};
+
+export type ListSessionHistoryParams = {
+/**
+ * @minimum 1
+ */
+page?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+};
 

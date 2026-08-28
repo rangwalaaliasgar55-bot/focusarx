@@ -137,3 +137,468 @@ export const PostBreakFreePledgeResponse = zod.object({
 })
 
 
+/**
+ * @summary Create an account
+ */
+export const registerUserBodyEmailMax = 254;
+
+export const registerUserBodyPasswordMin = 8;
+export const registerUserBodyPasswordMax = 128;
+
+export const registerUserBodyNameMax = 100;
+
+
+
+export const RegisterUserBody = zod.object({
+  "email": zod.string().email().max(registerUserBodyEmailMax),
+  "password": zod.string().min(registerUserBodyPasswordMin).max(registerUserBodyPasswordMax),
+  "name": zod.string().max(registerUserBodyNameMax).nullish()
+})
+
+
+/**
+ * @summary Sign in with email and password
+ */
+export const LoginUserBody = zod.object({
+  "email": zod.string().email(),
+  "password": zod.string()
+})
+
+export const LoginUserResponse = zod.object({
+  "token": zod.string().describe('Legacy 7-day bearer token (deprecated — cookies carry the session)'),
+  "accessToken": zod.string(),
+  "user": zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "name": zod.string().nullish(),
+  "isGuest": zod.boolean().optional()
+})
+})
+
+
+/**
+ * @summary Create or resume a guest session from a device key
+ */
+export const createGuestSessionBodyGuestKeyMin = 8;
+
+
+
+export const CreateGuestSessionBody = zod.object({
+  "guestKey": zod.string().min(createGuestSessionBodyGuestKeyMin)
+})
+
+export const CreateGuestSessionResponse = zod.object({
+  "token": zod.string().describe('Legacy 7-day bearer token (deprecated — cookies carry the session)'),
+  "accessToken": zod.string(),
+  "user": zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "name": zod.string().nullish(),
+  "isGuest": zod.boolean().optional()
+})
+})
+
+
+/**
+ * @summary Current user (cookie or bearer auth)
+ */
+export const GetAuthSessionResponse = zod.object({
+  "user": zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "name": zod.string().nullish(),
+  "isGuest": zod.boolean(),
+  "role": zod.string(),
+  "onboardingCompleted": zod.boolean(),
+  "bio": zod.string().nullish(),
+  "timezone": zod.string().nullish()
+})
+})
+
+
+/**
+ * @summary Rotate the refresh token and mint a new access token
+ */
+export const RefreshSessionResponse = zod.object({
+  "token": zod.string(),
+  "accessToken": zod.string()
+})
+
+
+/**
+ * @summary Revoke the presented refresh token and clear cookies
+ */
+export const LogoutResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Request a password-reset email (uniform response)
+ */
+export const RequestPasswordResetBody = zod.object({
+  "email": zod.string().email()
+})
+
+export const RequestPasswordResetResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Consume a reset token and set a new password (revokes all sessions)
+ */
+export const resetPasswordBodyPasswordMin = 8;
+export const resetPasswordBodyPasswordMax = 128;
+
+
+
+export const ResetPasswordBody = zod.object({
+  "token": zod.string(),
+  "password": zod.string().min(resetPasswordBodyPasswordMin).max(resetPasswordBodyPasswordMax)
+})
+
+export const ResetPasswordResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Check whether a reset token is still valid
+ */
+export const VerifyResetTokenQueryParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const VerifyResetTokenResponse = zod.object({
+  "valid": zod.boolean()
+})
+
+
+/**
+ * @summary Change the password (revokes all sessions)
+ */
+export const changePasswordBodyNewPasswordMin = 8;
+export const changePasswordBodyNewPasswordMax = 128;
+
+
+
+export const ChangePasswordBody = zod.object({
+  "currentPassword": zod.string(),
+  "newPassword": zod.string().min(changePasswordBodyNewPasswordMin).max(changePasswordBodyNewPasswordMax)
+})
+
+export const ChangePasswordResponse = zod.object({
+  "ok": zod.boolean(),
+  "message": zod.string().optional()
+})
+
+
+/**
+ * @summary Permanently delete the account (password-confirmed; guests exempt; admins blocked)
+ */
+export const DeleteAccountBody = zod.object({
+  "password": zod.string().optional().describe('Required for password accounts; guests omit it')
+})
+
+export const DeleteAccountResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Issue a 60s single-purpose Socket.IO handshake ticket
+ */
+export const GetSocketTicketResponse = zod.object({
+  "ticket": zod.string(),
+  "expiresInSeconds": zod.number()
+})
+
+
+/**
+ * @summary Persist onboarding answers
+ */
+export const saveOnboardingBodyDataGoalMax = 200;
+
+export const saveOnboardingBodyDataLevelMax = 50;
+
+
+
+export const SaveOnboardingBody = zod.object({
+  "data": zod.object({
+  "goal": zod.string().max(saveOnboardingBodyDataGoalMax).optional(),
+  "level": zod.string().max(saveOnboardingBodyDataLevelMax).optional(),
+  "dailyHours": zod.number().optional(),
+  "preferredSessionLength": zod.number().optional()
+})
+})
+
+export const SaveOnboardingResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Update profile fields
+ */
+export const updateProfileBodyNameMax = 60;
+
+export const updateProfileBodyBioMax = 300;
+
+
+
+export const UpdateProfileBody = zod.object({
+  "name": zod.string().max(updateProfileBodyNameMax).optional(),
+  "bio": zod.string().max(updateProfileBodyBioMax).optional(),
+  "timezone": zod.string().optional()
+})
+
+export const UpdateProfileResponse = zod.object({
+  "ok": zod.boolean(),
+  "user": zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "name": zod.string().nullish()
+}).optional()
+})
+
+
+/**
+ * @summary The server-authoritative active timer (expired rows are finalized)
+ */
+export const GetActiveSessionResponse = zod.object({
+  "session": zod.object({
+  "id": zod.string(),
+  "userId": zod.string(),
+  "mode": zod.enum(['focus', 'short_break', 'long_break']),
+  "secondsLeft": zod.number(),
+  "timerStatus": zod.enum(['running', 'paused', 'idle']),
+  "activeSeconds": zod.number().optional(),
+  "startedAt": zod.string(),
+  "updatedAt": zod.string(),
+  "serverElapsed": zod.number().optional(),
+  "serverRemaining": zod.number().optional(),
+  "serverNow": zod.string().optional()
+}).optional(),
+  "expiredSession": zod.object({
+  "sessionId": zod.string().optional(),
+  "sessionStatus": zod.enum(['completed', 'expired']).optional(),
+  "durationSec": zod.number().optional(),
+  "earnedXp": zod.number().optional(),
+  "earnedCoins": zod.number().optional()
+}).optional()
+})
+
+
+/**
+ * @summary Start (or replace) the single active timer
+ */
+export const startActiveSessionBodySecondsLeftMin = 60;
+export const startActiveSessionBodySecondsLeftMax = 14400;
+
+
+
+export const StartActiveSessionBody = zod.object({
+  "mode": zod.enum(['focus', 'short_break', 'long_break']).optional(),
+  "secondsLeft": zod.number().min(startActiveSessionBodySecondsLeftMin).max(startActiveSessionBodySecondsLeftMax),
+  "timerStatus": zod.enum(['running', 'paused', 'idle']).optional(),
+  "monitorEnabled": zod.boolean().optional()
+})
+
+export const StartActiveSessionResponse = zod.object({
+  "session": zod.object({
+  "id": zod.string(),
+  "userId": zod.string(),
+  "mode": zod.enum(['focus', 'short_break', 'long_break']),
+  "secondsLeft": zod.number(),
+  "timerStatus": zod.enum(['running', 'paused', 'idle']),
+  "activeSeconds": zod.number().optional(),
+  "startedAt": zod.string(),
+  "updatedAt": zod.string(),
+  "serverElapsed": zod.number().optional(),
+  "serverRemaining": zod.number().optional(),
+  "serverNow": zod.string().optional()
+}).optional(),
+  "expiredSession": zod.object({
+  "sessionId": zod.string().optional(),
+  "sessionStatus": zod.enum(['completed', 'expired']).optional(),
+  "durationSec": zod.number().optional(),
+  "earnedXp": zod.number().optional(),
+  "earnedCoins": zod.number().optional()
+}).optional()
+})
+
+
+/**
+ * @summary Discard the active timer without recording a session
+ */
+export const AbandonActiveSessionResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Periodic sync of live timer state (server clamps to wall clock)
+ */
+export const SyncActiveSessionBody = zod.object({
+  "sessionId": zod.string().uuid(),
+  "activeSeconds": zod.number().optional(),
+  "secondsLeft": zod.number().optional(),
+  "timerStatus": zod.enum(['running', 'paused', 'idle']).optional(),
+  "mode": zod.enum(['focus', 'short_break', 'long_break']).optional(),
+  "monitorEnabled": zod.boolean().optional()
+})
+
+export const SyncActiveSessionResponse = zod.object({
+  "ok": zod.boolean(),
+  "serverNow": zod.string().optional()
+})
+
+
+/**
+ * @summary Record a completed session (idempotent per clientNonce; rewards require server evidence)
+ */
+export const completeSessionBodyDurationSecMin = 0;
+export const completeSessionBodyDurationSecMax = 86400;
+
+export const completeSessionBodyClientNonceRegExp = new RegExp('^[a-zA-Z0-9_-]{8,64}$');
+export const completeSessionBodyCategoryMax = 50;
+
+
+
+export const CompleteSessionBody = zod.object({
+  "mode": zod.enum(['focus', 'short_break', 'long_break']).optional(),
+  "durationSec": zod.number().min(completeSessionBodyDurationSecMin).max(completeSessionBodyDurationSecMax),
+  "plannedDurationSec": zod.number().nullish(),
+  "completedEarly": zod.boolean().optional(),
+  "sessionStatus": zod.enum(['completed', 'completed_early', 'cancelled']).optional(),
+  "focusScore": zod.number().nullish(),
+  "focusQuality": zod.string().nullish(),
+  "taskId": zod.string().uuid().nullish(),
+  "sessionId": zod.string().uuid().optional(),
+  "clientNonce": zod.string().regex(completeSessionBodyClientNonceRegExp).optional(),
+  "category": zod.string().max(completeSessionBodyCategoryMax).optional()
+})
+
+export const CompleteSessionResponse = zod.object({
+  "session": zod.object({
+  "id": zod.string(),
+  "userId": zod.string(),
+  "mode": zod.enum(['focus', 'short_break', 'long_break']),
+  "durationSec": zod.number(),
+  "plannedDurationSec": zod.number().nullish(),
+  "completedEarly": zod.boolean().optional(),
+  "sessionStatus": zod.string().optional(),
+  "completedAt": zod.string().nullish(),
+  "focusScore": zod.number().nullish(),
+  "category": zod.string().optional(),
+  "clientNonce": zod.string().nullish()
+}),
+  "streakUpdated": zod.boolean(),
+  "earnedXp": zod.number(),
+  "earnedCoins": zod.number(),
+  "lootBoxDropped": zod.boolean().optional(),
+  "idempotentReplay": zod.boolean().optional()
+})
+
+
+/**
+ * @summary Session history (legacy shape; see /sessions/history for pagination)
+ */
+export const ListSessionsResponse = zod.object({
+  "sessions": zod.array(zod.object({
+  "id": zod.string(),
+  "userId": zod.string(),
+  "mode": zod.enum(['focus', 'short_break', 'long_break']),
+  "durationSec": zod.number(),
+  "plannedDurationSec": zod.number().nullish(),
+  "completedEarly": zod.boolean().optional(),
+  "sessionStatus": zod.string().optional(),
+  "completedAt": zod.string().nullish(),
+  "focusScore": zod.number().nullish(),
+  "category": zod.string().optional(),
+  "clientNonce": zod.string().nullish()
+}))
+})
+
+
+/**
+ * @summary Paginated session history
+ */
+
+export const listSessionHistoryQueryLimitMax = 100;
+
+
+
+export const ListSessionHistoryQueryParams = zod.object({
+  "page": zod.coerce.number().min(1).optional(),
+  "limit": zod.coerce.number().min(1).max(listSessionHistoryQueryLimitMax).optional()
+})
+
+export const ListSessionHistoryResponse = zod.object({
+  "sessions": zod.array(zod.object({
+  "id": zod.string(),
+  "userId": zod.string(),
+  "mode": zod.enum(['focus', 'short_break', 'long_break']),
+  "durationSec": zod.number(),
+  "plannedDurationSec": zod.number().nullish(),
+  "completedEarly": zod.boolean().optional(),
+  "sessionStatus": zod.string().optional(),
+  "completedAt": zod.string().nullish(),
+  "focusScore": zod.number().nullish(),
+  "category": zod.string().optional(),
+  "clientNonce": zod.string().nullish()
+})),
+  "pagination": zod.object({
+  "page": zod.number(),
+  "limit": zod.number(),
+  "total": zod.number(),
+  "totalPages": zod.number(),
+  "hasMore": zod.boolean()
+}),
+  "serverNow": zod.number().optional()
+})
+
+
+/**
+ * @summary Daily login-reward calendar state
+ */
+export const GetLoginRewardStatusResponse = zod.object({
+  "alreadyClaimed": zod.boolean(),
+  "claimStreak": zod.number(),
+  "totalClaimed": zod.number().optional(),
+  "nextReward": zod.object({
+  "day": zod.number(),
+  "coins": zod.number(),
+  "xp": zod.number(),
+  "label": zod.string(),
+  "icon": zod.string().optional()
+}),
+  "calendar": zod.array(zod.object({
+  "day": zod.number(),
+  "coins": zod.number(),
+  "xp": zod.number(),
+  "label": zod.string(),
+  "icon": zod.string().optional()
+}))
+})
+
+
+/**
+ * @summary Claim today's login reward (race-free)
+ */
+export const ClaimLoginRewardResponse = zod.object({
+  "ok": zod.boolean(),
+  "newStreak": zod.number().optional(),
+  "coins": zod.number().optional(),
+  "xp": zod.number().optional(),
+  "reward": zod.object({
+  "day": zod.number(),
+  "coins": zod.number(),
+  "xp": zod.number(),
+  "label": zod.string(),
+  "icon": zod.string().optional()
+})
+})
+
+
