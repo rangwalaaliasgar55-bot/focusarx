@@ -1,12 +1,13 @@
 import { Router } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { db } from "@workspace/db";
-import { battlePasses, battlePassRewards, userBattlePassProgress } from "@workspace/db";
+import { battlePasses, battlePassRewards, battlePassProgressTable } from "@workspace/db";
 import { battlePassClaimsTable, tokenLedgerTable } from "@workspace/db";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { isUserPremium } from "../lib/premiumCheck";
 import { earnTokens, getTokenBalance } from "../lib/tokenLedger";
 import { logger } from "../lib/logger";
+import { requiredXpForTier, eligibleTiersForXp, currentTierForXp } from "../lib/battlePassTiers";
 
 const router = Router();
 
@@ -21,6 +22,13 @@ function getCurrentSeason(): { start: Date; end: Date; seasonId: string } {
   // Extend to 28-30 days minimum — month naturally is 28-31
   const seasonId = `${year}-${String(month + 1).padStart(2, "0")}`;
   return { start, end, seasonId };
+}
+
+// Live season XP: session completion credits battle_pass_progress (the
+// user_battle_pass_progress table this route used to read has no writers).
+async function getSeasonXp(userId: string): Promise<number> {
+  const [p] = await db.select({ seasonXp: battlePassProgressTable.seasonXp }).from(battlePassProgressTable).where(eq(battlePassProgressTable.userId, userId)).limit(1);
+  return p?.seasonXp ?? 0;
 }
 
 // GET /api/battle-pass/current — enhanced with 30-50 tiers, free+premium, countdown, grace
@@ -39,7 +47,7 @@ router.get("/battle-pass/current", authMiddleware, async (req: AuthRequest, res)
       const rewards = await db.select().from(battlePassRewards).where(eq(battlePassRewards.battlePassId, bp.id)).orderBy(battlePassRewards.tier);
       tiers = rewards.map((r: any) => ({
         tier: r.tier,
-        xpRequired: r.xpRequired,
+        xpRequired: r.requiredXp,
         freeReward: { type: r.freeRewardType, value: r.freeRewardValue, label: r.freeRewardLabel, coins: r.freeRewardCoins ?? 0, xp: r.freeRewardXp ?? 0 },
         premiumReward: { type: r.premiumRewardType, value: r.premiumRewardValue, label: r.premiumRewardLabel, coins: r.premiumRewardCoins ?? 0, xp: r.premiumRewardXp ?? 0 },
       }));
@@ -74,10 +82,9 @@ router.get("/battle-pass/current", authMiddleware, async (req: AuthRequest, res)
       });
     }
 
-    // User progress
-    const [progress] = await db.select().from(userBattlePassProgress).where(and(eq(userBattlePassProgress.userId, req.userId!), eq(userBattlePassProgress.battlePassId, bp?.id ?? seasonId))).limit(1);
-    const seasonXp = progress?.currentXp ?? 0;
-    const currentTier = tiers.filter(t => seasonXp >= t.xpRequired).length;
+    // User progress (live season XP from battle_pass_progress)
+    const seasonXp = await getSeasonXp(req.userId!);
+    const currentTier = currentTierForXp(seasonXp, (t) => requiredXpForTier(tiers.find(x => x.tier === t), t));
 
     // Claims
     const claims = await db.select().from(battlePassClaimsTable).where(and(eq(battlePassClaimsTable.userId, req.userId!), eq(battlePassClaimsTable.battlePassId, bp?.id ?? seasonId)));
@@ -126,9 +133,8 @@ router.post("/battle-pass/claim", authMiddleware, async (req: AuthRequest, res) 
       return res.json({ claimed: existing, alreadyClaimed: true });
     }
 
-    // Check progression
-    const [progress] = await db.select().from(userBattlePassProgress).where(and(eq(userBattlePassProgress.userId, req.userId!), eq(userBattlePassProgress.battlePassId, bpId))).limit(1);
-    const seasonXp = progress?.currentXp ?? 0;
+    // Check progression (live season XP from battle_pass_progress)
+    const seasonXp = await getSeasonXp(req.userId!);
 
     // Load tier requirement
     const [bp] = await db.select().from(battlePasses).where(eq(battlePasses.id, bpId)).limit(1);
@@ -195,12 +201,17 @@ router.post("/battle-pass/claim-all", authMiddleware, async (req: AuthRequest, r
   try {
     const { seasonId } = getCurrentSeason();
     const bpId = battlePassId ?? seasonId;
-    const [progress] = await db.select().from(userBattlePassProgress).where(and(eq(userBattlePassProgress.userId, req.userId!), eq(userBattlePassProgress.battlePassId, bpId))).limit(1);
-    const seasonXp = progress?.currentXp ?? 0;
+    const seasonXp = await getSeasonXp(req.userId!);
     const isPremium = await isUserPremium(req.userId!);
 
-    // Generate tier list up to current
-    const tiers = Array.from({ length: 30 }, (_, i) => i + 1).filter(t => seasonXp >= t * 500);
+    // Same requirement resolution as POST /claim (DB thresholds when a pass
+    // definition exists, tier * 500 otherwise)
+    const [bp] = await db.select().from(battlePasses).where(eq(battlePasses.id, bpId)).limit(1);
+    const rewards = bp
+      ? await db.select().from(battlePassRewards).where(eq(battlePassRewards.battlePassId, bp.id))
+      : [];
+    const requirementFor = (t: number) => requiredXpForTier(rewards.find(r => r.tier === t), t);
+    const tiers = eligibleTiersForXp(seasonXp, requirementFor);
 
     const claims = await db.select().from(battlePassClaimsTable).where(and(eq(battlePassClaimsTable.userId, req.userId!), eq(battlePassClaimsTable.battlePassId, bpId)));
     const claimedSet = new Set(claims.map(c => `${c.tier}_${c.isPremiumReward ? "p" : "f"}`));
