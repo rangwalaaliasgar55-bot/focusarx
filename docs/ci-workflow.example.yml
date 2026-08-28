@@ -1,3 +1,6 @@
+# FocusArx CI pipeline.
+# Copy to .github/workflows/ci.yml (grants the app 'workflows' permission on push)
+# once the integration is allowed to manage workflow files.
 name: CI
 
 on:
