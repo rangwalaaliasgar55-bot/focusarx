@@ -13,9 +13,9 @@ We aim to respond within 48 hours and will keep you updated on the fix.
 
 Please do NOT open a public GitHub issue for security vulnerabilities.
 
-## Security Hardening (2026-08-26)
+## Security Architecture
 
-This repository has undergone a critical security hardening pass:
+FocusArx ships with the following protections (verify against the code when auditing):
 
 ### Authentication & Authorization
 - **Environment validation**: Centralized Zod schema in `artifacts/api-server/src/lib/env.ts` — fails fast in production when `DATABASE_URL`, `AUTH_SECRET`, `ADMIN_PASSWORD` are missing

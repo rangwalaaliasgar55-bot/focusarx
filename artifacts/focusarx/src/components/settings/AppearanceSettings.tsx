@@ -1,4 +1,3 @@
-"use client";
 
 import { use3DQuality } from "@/hooks/use3DQuality";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";

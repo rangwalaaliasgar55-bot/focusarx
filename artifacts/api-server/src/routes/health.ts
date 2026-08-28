@@ -27,6 +27,12 @@ router.get("/healthz/db", async (req, res) => {
     res.set("Cache-Control", "no-store");
     res.json({ status: "ok", database: true });
   } catch (err) {
+    // Never leak driver/connection internals to a public endpoint in production;
+    // the detail is only useful (and safe) in local development.
+    if (process.env.NODE_ENV === "production") {
+      res.status(503).json({ status: "error", database: false, message: "Database unavailable" });
+      return;
+    }
     const base = err instanceof Error ? err.message : "unknown";
     const cause = err instanceof Error && err.cause instanceof Error ? err.cause.message : undefined;
     // Full detail goes to the log, never to the client.

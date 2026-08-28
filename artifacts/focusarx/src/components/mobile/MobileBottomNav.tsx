@@ -1,4 +1,3 @@
-"use client";
 
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";

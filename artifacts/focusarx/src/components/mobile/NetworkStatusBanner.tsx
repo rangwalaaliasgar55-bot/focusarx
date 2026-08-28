@@ -1,4 +1,3 @@
-"use client";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { WifiOff, Wifi, AlertTriangle, RefreshCw } from "lucide-react";

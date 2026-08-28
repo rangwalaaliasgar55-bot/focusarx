@@ -20,7 +20,7 @@ try {
 // Export app for Vercel serverless
 export default app;
 
-// Only start the HTTP server when PORT is available (Replit / local dev)
+// Only start the HTTP server when PORT is set (local dev / standalone deploy)
 const rawPort = process.env["PORT"];
 if (rawPort) {
   const port = Number(rawPort);
