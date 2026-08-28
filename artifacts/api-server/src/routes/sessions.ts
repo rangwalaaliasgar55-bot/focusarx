@@ -1,7 +1,7 @@
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router, type Response } from "express";
 import { z } from "zod";
-import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, userWalletsTable, productivityLogsTable, battlePassProgressTable, coinTransactionsTable, focusCitiesTable, userLootBoxesTable, premiumSubscriptionsTable, userPetsTable} from "@workspace/db";
+import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, userWalletsTable, productivityLogsTable, battlePassProgressTable, coinTransactionsTable, focusCitiesTable, userLootBoxesTable, premiumSubscriptionsTable, userPetsTable, type ActiveSession} from "@workspace/db";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { updateMissionProgress } from "./missions";
@@ -16,7 +16,13 @@ import {
   isRewardEligible,
   nextStreakValues,
   istWeekStartDate,
+  MIN_REWARD_DURATION_SEC,
 } from "../lib/sessionCompletionCore";
+import {
+  evaluateActiveSession,
+  stateFromTimerStatus,
+  type SessionState,
+} from "../lib/sessionStateMachine";
 
 async function maybeDropLootBox(userId: string, sessionCount: number): Promise<boolean> {
   try {
@@ -134,11 +140,21 @@ function stringOrNullish(value: unknown): string | null | undefined {
 
 router.get("/sessions/active", authMiddleware, async (req: AuthRequest, res) => {
   try {
-    const [session] = await db.select().from(activeSessionsTable).where(eq(activeSessionsTable.userId, req.userId));
+    let [session] = await db.select().from(activeSessionsTable).where(eq(activeSessionsTable.userId, req.userId));
     if (!session) {
       res.json({ session: null });
       return;
     }
+
+    // State machine: lazily finalize abandoned sessions (no cron needed on
+    // serverless — the next read is the tick).
+    const evaluation = evaluateActiveSession(session, Date.now());
+    if (evaluation.expired) {
+      const finalized = await finalizeExpiredSession(req.userId, session);
+      res.json({ session: null, expiredSession: finalized });
+      return;
+    }
+
     // Server-authoritative remaining calculation — handles tab suspend, phone lock, etc.
     const elapsed = Date.now() - session.startedAt.getTime();
     const activeElapsed = Math.floor(elapsed / 1000);
@@ -167,6 +183,18 @@ router.post("/sessions/active", authMiddleware, async (req: AuthRequest, res) =>
   }
   const { mode, secondsLeft, timerStatus, monitorEnabled } = parsed.data;
   try {
+    // State machine guard: replacing an existing row is a transition into a
+    // fresh session — finalize a stale one first so its (earned) rewards and
+    // history are not silently destroyed by the delete below.
+    const [stale] = await db.select().from(activeSessionsTable).where(eq(activeSessionsTable.userId, req.userId)).limit(1);
+    let expiredSession: Awaited<ReturnType<typeof finalizeExpiredSession>> | null = null;
+    if (stale) {
+      const evaluation = evaluateActiveSession(stale, Date.now());
+      if (evaluation.expired) {
+        expiredSession = await finalizeExpiredSession(req.userId, stale);
+      }
+    }
+
     // Prevent multiple active sessions — unique constraint per user
     // Use transaction to ensure atomic delete+insert
     const result = await db.transaction(async (tx) => {
@@ -181,7 +209,7 @@ router.post("/sessions/active", authMiddleware, async (req: AuthRequest, res) =>
       return session;
     });
 
-    res.json({ session: result });
+    res.json(expiredSession ? { session: result, expiredSession } : { session: result });
   } catch (err) {
     logger.error({ err }, "create active session error");
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
@@ -204,6 +232,16 @@ router.post("/sessions/sync", authMiddleware, async (req: AuthRequest, res) => {
 
     if (!existing) {
       res.status(404).json({ error: { code: "NOT_FOUND", message: "Active session not found" } });
+      return;
+    }
+
+    // State machine: expired rows cannot transition to anything but archived
+    // (sync is not a completion). Finalize and tell the client.
+    const [syncTarget] = await db.select().from(activeSessionsTable).where(and(eq(activeSessionsTable.id, sessionId), eq(activeSessionsTable.userId, req.userId))).limit(1);
+    const syncEvaluation = evaluateActiveSession(syncTarget, Date.now());
+    if (syncEvaluation.expired) {
+      const finalized = await finalizeExpiredSession(req.userId, syncTarget);
+      res.status(409).json({ error: { code: "SESSION_EXPIRED", message: "Session expired and was archived" }, expiredSession: finalized });
       return;
     }
 
@@ -372,80 +410,14 @@ router.post("/sessions", authMiddleware, sessionCompleteLimiter, async (req: Aut
 
       let streakUpdated = false;
       if (rewardEligible) {
-        // IST day keys — the product's canonical calendar (lib/istDate.ts),
-        // consistent with missions and daily rewards.
-        const today = istToday();
-        const yesterday = istToday(new Date(Date.now() - 86_400_000));
-        const [existingStreak] = await tx.select().from(studyStreaksTable)
-          .where(eq(studyStreaksTable.userId, req.userId)).for("update");
-        const streak = nextStreakValues({
-          lastStudyDate: existingStreak?.lastStudyDate ?? null,
-          currentStreak: existingStreak?.currentStreak ?? 0,
-          longestStreak: existingStreak?.longestStreak ?? 0,
-          today,
-          yesterday,
-        });
-        if (!existingStreak) {
-          await tx.insert(studyStreaksTable).values({ userId: req.userId, currentStreak: streak.currentStreak, longestStreak: streak.longestStreak, lastStudyDate: today });
-          streakUpdated = true;
-        } else if (streak.changed) {
-          await tx.update(studyStreaksTable).set({
-            currentStreak: streak.currentStreak,
-            longestStreak: streak.longestStreak,
-            lastStudyDate: today,
-            updatedAt: new Date(),
-          }).where(eq(studyStreaksTable.userId, req.userId));
-          streakUpdated = true;
-        }
+        // IST day keys — shared transactional streak progression.
+        streakUpdated = await applyStreakProgress(tx, req.userId);
       }
 
       // Award XP/coins inside the transaction — atomic, and a ledger failure
       // rolls the whole completion back (never a wallet credit without its
-      // ledger row). Wallet row is locked to serialize concurrent completions.
-      if (earnedXp > 0 || earnedCoins > 0) {
-        const now = new Date();
-        const monday = istWeekStartDate(now);
-
-        const [wallet] = await tx.select().from(userWalletsTable)
-          .where(eq(userWalletsTable.userId, req.userId)).for("update");
-
-        if (!wallet) {
-          await tx.insert(userWalletsTable).values({
-            userId: req.userId, coins: earnedCoins, totalXp: earnedXp, weeklyXp: earnedXp, weeklyXpResetAt: monday,
-          });
-          if (earnedCoins > 0) {
-            await tx.insert(coinTransactionsTable).values({
-              userId: req.userId, type: "earn", amount: earnedCoins,
-              reason: "session_complete",
-              description: `Earned ${earnedCoins} coins from focus session`,
-              balanceAfter: earnedCoins,
-            });
-          }
-        } else {
-          const needsReset = wallet.weeklyXpResetAt && wallet.weeklyXpResetAt < monday;
-          const newTotalXp = wallet.totalXp + earnedXp;
-          const newLevel = Math.floor(Math.sqrt(newTotalXp / 100)) + 1;
-          const newBalance = wallet.coins + earnedCoins;
-
-          await tx.update(userWalletsTable).set({
-            coins: newBalance,
-            totalXp: newTotalXp,
-            weeklyXp: needsReset ? earnedXp : wallet.weeklyXp + earnedXp,
-            weeklyXpResetAt: needsReset ? monday : wallet.weeklyXpResetAt,
-            level: newLevel,
-            updatedAt: new Date(),
-          }).where(eq(userWalletsTable.userId, req.userId));
-
-          if (earnedCoins > 0) {
-            await tx.insert(coinTransactionsTable).values({
-              userId: req.userId, type: "earn", amount: earnedCoins,
-              reason: "session_complete",
-              description: `Earned ${earnedCoins} coins from focus session`,
-              balanceAfter: newBalance,
-            });
-          }
-        }
-      }
+      // ledger row). Shared with expiry auto-completion.
+      await creditSessionRewards(tx, req.userId, earnedXp, earnedCoins);
 
       // Productivity log (IST day key — matches streaks and missions).
       if (finalDuration > 0) {
@@ -579,6 +551,180 @@ async function handleSessionHistory(req: AuthRequest, res: Response) {
 
 router.get("/sessions/history", authMiddleware, handleSessionHistory);
 router.get("/sessions", authMiddleware, handleSessionHistory);
+
+/**
+ * Shared transactional streak progression (used by explicit completion and
+ * expiry auto-completion). Returns whether the streak moved forward.
+ */
+async function applyStreakProgress(tx: TxLike, userId: string): Promise<boolean> {
+  const today = istToday();
+  const yesterday = istToday(new Date(Date.now() - 86_400_000));
+  const [existingStreak] = await tx.select().from(studyStreaksTable)
+    .where(eq(studyStreaksTable.userId, userId)).for("update");
+  const streak = nextStreakValues({
+    lastStudyDate: existingStreak?.lastStudyDate ?? null,
+    currentStreak: existingStreak?.currentStreak ?? 0,
+    longestStreak: existingStreak?.longestStreak ?? 0,
+    today,
+    yesterday,
+  });
+  if (!existingStreak) {
+    await tx.insert(studyStreaksTable).values({ userId, currentStreak: streak.currentStreak, longestStreak: streak.longestStreak, lastStudyDate: today });
+    return true;
+  }
+  if (streak.changed) {
+    await tx.update(studyStreaksTable).set({
+      currentStreak: streak.currentStreak,
+      longestStreak: streak.longestStreak,
+      lastStudyDate: today,
+      updatedAt: new Date(),
+    }).where(eq(studyStreaksTable.userId, userId));
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Shared transactional wallet credit (used by explicit completion and expiry
+ * auto-completion). Ledger failures throw → caller's transaction rolls back.
+ */
+async function creditSessionRewards(tx: TxLike, userId: string, earnedXp: number, earnedCoins: number): Promise<void> {
+  if (earnedXp <= 0 && earnedCoins <= 0) return;
+  const monday = istWeekStartDate(new Date());
+
+  const [wallet] = await tx.select().from(userWalletsTable)
+    .where(eq(userWalletsTable.userId, userId)).for("update");
+
+  if (!wallet) {
+    await tx.insert(userWalletsTable).values({
+      userId, coins: earnedCoins, totalXp: earnedXp, weeklyXp: earnedXp, weeklyXpResetAt: monday,
+    });
+    if (earnedCoins > 0) {
+      await tx.insert(coinTransactionsTable).values({
+        userId, type: "earn", amount: earnedCoins,
+        reason: "session_complete",
+        description: `Earned ${earnedCoins} coins from focus session`,
+        balanceAfter: earnedCoins,
+      });
+    }
+    return;
+  }
+
+  const needsReset = wallet.weeklyXpResetAt && wallet.weeklyXpResetAt < monday;
+  const newTotalXp = wallet.totalXp + earnedXp;
+  const newLevel = Math.floor(Math.sqrt(newTotalXp / 100)) + 1;
+  const newBalance = wallet.coins + earnedCoins;
+
+  await tx.update(userWalletsTable).set({
+    coins: newBalance,
+    totalXp: newTotalXp,
+    weeklyXp: needsReset ? earnedXp : wallet.weeklyXp + earnedXp,
+    weeklyXpResetAt: needsReset ? monday : wallet.weeklyXpResetAt,
+    level: newLevel,
+    updatedAt: new Date(),
+  }).where(eq(userWalletsTable.userId, userId));
+
+  if (earnedCoins > 0) {
+    await tx.insert(coinTransactionsTable).values({
+      userId, type: "earn", amount: earnedCoins,
+      reason: "session_complete",
+      description: `Earned ${earnedCoins} coins from focus session`,
+      balanceAfter: newBalance,
+    });
+  }
+}
+
+/** The drizzle transaction handle — derived so helpers stay fully typed. */
+type TxLike = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * Archive an expired active session (state machine: → expired).
+ *
+ * - Running past its deadline: auto-COMPLETED with duration = secondsLeft
+ *   (server-owned evidence) and full, transactional rewards — this is exactly
+ *   what the completion request would have recorded had the tab survived.
+ * - Paused/idle past the absolute TTL: archived as "expired" with clamped
+ *   duration and NO rewards (focus time is unverifiable).
+ *
+ * Returns the archived summary for API responses.
+ */
+async function finalizeExpiredSession(
+  userId: string,
+  session: ActiveSession,
+): Promise<{ sessionId: string; sessionStatus: string; durationSec: number; earnedXp: number; earnedCoins: number }> {
+  const evaluation = evaluateActiveSession(session, Date.now());
+  if (!evaluation.expired) {
+    throw new Error("finalizeExpiredSession called on a live session");
+  }
+
+  const outcome = await db.transaction(async (tx) => {
+    // Delete-first guard: only finalize if the row is still present (a racing
+    // completion or another instance may have beaten us here).
+    const deleted = await tx.delete(activeSessionsTable)
+      .where(and(eq(activeSessionsTable.id, session.id), eq(activeSessionsTable.userId, userId)))
+      .returning({ id: activeSessionsTable.id });
+    if (deleted.length === 0) return null;
+
+    const wasRunning = evaluation.wasRunning;
+    const sessionStatus = wasRunning ? "completed" : "expired";
+    const durationSec = evaluation.maxFocusSec;
+    const minutes = Math.floor(durationSec / 60);
+    const rewardEligible = wasRunning && session.mode === "focus" && durationSec >= MIN_REWARD_DURATION_SEC;
+
+    let earnedXp = 0;
+    let earnedCoins = 0;
+    let streakUpdated = false;
+
+    if (rewardEligible) {
+      streakUpdated = await applyStreakProgress(tx, userId);
+      earnedXp = computeSessionRewards({ minutes, isPremium: false }).xp;
+      earnedCoins = computeSessionRewards({ minutes, isPremium: false }).coins;
+      await creditSessionRewards(tx, userId, earnedXp, earnedCoins);
+    }
+
+    const [archived] = await tx.insert(focusSessionsTable).values({
+      userId,
+      mode: session.mode,
+      durationSec,
+      plannedDurationSec: session.secondsLeft,
+      completedEarly: false,
+      completionPercentage: session.secondsLeft > 0
+        ? Math.min(100, Math.round((durationSec / session.secondsLeft) * 100))
+        : null,
+      sessionStatus,
+      completedAt: new Date(),
+      focusTimeline: session.focusTimeline ?? "[]",
+      sessionInsights: session.focusState ? JSON.stringify({ finalFocusState: session.focusState }) : null,
+      category: "General",
+    }).returning();
+
+    return { session: archived, sessionStatus, durationSec, earnedXp, earnedCoins, streakUpdated };
+  });
+
+  if (!outcome) {
+    return { sessionId: session.id, sessionStatus: "expired", durationSec: 0, earnedXp: 0, earnedCoins: 0 };
+  }
+
+  // Post-transaction best-effort gamification, mirroring explicit completion.
+  if (outcome.sessionStatus === "completed" && outcome.durationSec >= MIN_REWARD_DURATION_SEC) {
+    const minutes = Math.floor(outcome.durationSec / 60);
+    try {
+      if (minutes > 0) {
+        await awardPetXp(userId, minutes);
+        await updateMissionProgress(userId, "sessions", 1);
+        await updateMissionProgress(userId, "minutes", minutes);
+      }
+      if (outcome.earnedXp > 0) {
+        await advanceBattlePass(userId, outcome.earnedXp);
+      }
+    } catch (err) {
+      logger.warn({ err, userId }, "expired-session gamification failed (non-fatal)");
+    }
+  }
+
+  logger.info({ userId, sessionId: session.id, status: outcome.sessionStatus, durationSec: outcome.durationSec }, "expired active session finalized");
+  return { sessionId: outcome.session.id, sessionStatus: outcome.sessionStatus, durationSec: outcome.durationSec, earnedXp: outcome.earnedXp, earnedCoins: outcome.earnedCoins };
+}
 
 async function awardPetXp(userId: string, minutes: number): Promise<void> {
   try {

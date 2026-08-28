@@ -4,12 +4,12 @@ import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { db, usersTable, passwordResetTokensTable } from "@workspace/db";
+import { db, usersTable, passwordResetTokensTable, emailLogsTable } from "@workspace/db";
 import { eq, and, gt, isNull } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getServerConfig } from "../lib/config";
 import { authLimiter, forgotPasswordLimiter } from "../lib/rateLimiter";
-import { createRefreshFamily, rotateRefreshToken, revokeRefreshToken } from "../lib/refreshTokens";
+import { createRefreshFamily, rotateRefreshToken, revokeRefreshToken, revokeAllUserRefreshTokens } from "../lib/refreshTokens";
 
 const loginSchema = z.object({
   email: z.string().email().max(254).toLowerCase().trim(),
@@ -404,6 +404,111 @@ router.post("/auth/logout", async (req, res) => {
   }
   clearAuthCookies(res);
   res.json({ ok: true });
+});
+
+// ── Password change (authenticated) ───────────────────────────────────────
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1).max(256),
+  newPassword: z.string().min(8).max(128),
+}).strict();
+
+router.post("/auth/change-password", authLimiter, async (req, res) => {
+  const secret = jwtSecretOrRespond(res);
+  if (!secret) return;
+  const userId = extractUserId(req);
+  if (!userId) {
+    res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Unauthorized" } });
+    return;
+  }
+  const parsed = changePasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Current password and a new password of at least 8 characters are required" } });
+    return;
+  }
+  const { currentPassword, newPassword } = parsed.data;
+
+  try {
+    const [user] = await db.select({ id: usersTable.id, hashedPassword: usersTable.hashedPassword, isGuest: usersTable.isGuest })
+      .from(usersTable).where(eq(usersTable.id, userId));
+    if (!user?.hashedPassword) {
+      // Guests and OAuth-only accounts have no password to change.
+      res.status(400).json({ error: { code: "NO_PASSWORD", message: "This account does not use a password" } });
+      return;
+    }
+    const valid = await bcrypt.compare(currentPassword, user.hashedPassword);
+    if (!valid) {
+      res.status(401).json({ error: { code: "INVALID_CREDENTIALS", message: "Current password is incorrect" } });
+      return;
+    }
+    if (await bcrypt.compare(newPassword, user.hashedPassword)) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "New password must differ from the current password" } });
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    await db.transaction(async (tx) => {
+      await tx.update(usersTable).set({ hashedPassword }).where(eq(usersTable.id, userId));
+    });
+
+    // Invalidate every refresh family — all devices must re-authenticate with
+    // the new password. (Stateless legacy access tokens wind down naturally;
+    // refresh-based sessions die immediately.)
+    await revokeAllUserRefreshTokens(userId);
+    clearAuthCookies(res);
+    logger.info({ userId }, "password changed — all refresh tokens revoked");
+    res.json({ ok: true, message: "Password updated. Please sign in again." });
+  } catch (err) {
+    logger.error({ err }, "change password error");
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
+  }
+});
+
+// ── Account deletion (authenticated, password-confirmed) ──────────────────
+
+router.delete("/auth/account", authLimiter, async (req, res) => {
+  const userId = extractUserId(req);
+  if (!userId) {
+    res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Unauthorized" } });
+    return;
+  }
+
+  try {
+    const [user] = await db.select({ id: usersTable.id, hashedPassword: usersTable.hashedPassword, isGuest: usersTable.isGuest, email: usersTable.email, role: usersTable.role })
+      .from(usersTable).where(eq(usersTable.id, userId));
+    if (!user) {
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "Account not found" } });
+      return;
+    }
+    if (user.role?.toLowerCase() === "admin") {
+      res.status(403).json({ error: { code: "FORBIDDEN", message: "Admin accounts cannot self-delete" } });
+      return;
+    }
+
+    // Password confirmation (non-guest accounts with a password). Guests prove
+    // nothing — their account is ephemeral by design.
+    if (!user.isGuest && user.hashedPassword) {
+      const { password } = req.body as { password?: string };
+      if (!password || typeof password !== "string" || !(await bcrypt.compare(password, user.hashedPassword))) {
+        res.status(401).json({ error: { code: "INVALID_CREDENTIALS", message: "Password confirmation required" } });
+        return;
+      }
+    }
+
+    // Scrub PII that would survive the cascade via ON DELETE SET NULL — must
+    // happen BEFORE the delete (the link is lost afterwards).
+    await db.transaction(async (tx) => {
+      await tx.update(emailLogsTable).set({ recipientEmail: "[deleted]" }).where(eq(emailLogsTable.recipientId, userId));
+      await tx.delete(usersTable).where(eq(usersTable.id, userId));
+    });
+
+    clearAuthCookies(res);
+    logger.info({ userId, isGuest: user.isGuest }, "account deleted");
+    res.json({ ok: true });
+  } catch (err) {
+    logger.error({ err }, "account deletion error");
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
+  }
 });
 
 // ── Password reset ────────────────────────────────────────────────────────

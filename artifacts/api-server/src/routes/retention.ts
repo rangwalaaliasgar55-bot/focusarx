@@ -145,53 +145,67 @@ retentionRouter.get("/retention/reengage/run", async (req: Request, res: Respons
 
     let sentAtRisk = 0;
     let sentWinBack = 0;
+    let failures = 0;
 
-    for (const candidate of candidates) {
-      // Never nag the same user more than once every 48 hours.
-      const [recent] = await db
-        .select({ id: notificationsTable.id })
-        .from(notificationsTable)
-        .where(
-          and(
-            eq(notificationsTable.userId, candidate.userId),
-            eq(notificationsTable.type, "reengage"),
-            gte(notificationsTable.createdAt, dedupeWindowStart),
-          ),
-        )
-        .limit(1);
-      if (recent) continue;
+    // Bounded-parallel batches: sequential awaits across 300 candidates can
+    // exceed the serverless execution budget; unbounded Promise.all would
+    // stampede the DB and the push provider. 10 at a time balances both.
+    // One candidate's failure never aborts the run.
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
+      const batch = candidates.slice(i, i + BATCH_SIZE);
+      await Promise.all(batch.map(async (candidate) => {
+        try {
+          // Never nag the same user more than once every 48 hours.
+          const [recent] = await db
+            .select({ id: notificationsTable.id })
+            .from(notificationsTable)
+            .where(
+              and(
+                eq(notificationsTable.userId, candidate.userId),
+                eq(notificationsTable.type, "reengage"),
+                gte(notificationsTable.createdAt, dedupeWindowStart),
+              ),
+            )
+            .limit(1);
+          if (recent) return;
 
-      const longGone = !candidate.lastStudyDate || candidate.lastStudyDate <= cutoff7;
-      if (longGone) {
-        await sendPush(candidate.userId, {
-          title: "We saved your progress \u{1F4BE}",
-          body: `Your ${candidate.streak}-day streak is waiting — one 5-minute session restarts it today.`,
-          url: "/",
-        });
-      } else {
-        await sendPush(candidate.userId, {
-          title: `Your ${candidate.streak}-day streak is at risk \u{1F525}`,
-          body: "A short session today keeps it alive. You've got this.",
-          url: "/",
-        });
-      }
+          const longGone = !candidate.lastStudyDate || candidate.lastStudyDate <= cutoff7;
+          if (longGone) {
+            await sendPush(candidate.userId, {
+              title: "We saved your progress \u{1F4BE}",
+              body: `Your ${candidate.streak}-day streak is waiting — one 5-minute session restarts it today.`,
+              url: "/",
+            });
+          } else {
+            await sendPush(candidate.userId, {
+              title: `Your ${candidate.streak}-day streak is at risk \u{1F525}`,
+              body: "A short session today keeps it alive. You've got this.",
+              url: "/",
+            });
+          }
 
-      await db.insert(notificationsTable).values({
-        userId: candidate.userId,
-        type: "reengage",
-        title: longGone ? "We saved your progress" : "Streak at risk",
-        message: longGone
-          ? `One 5-minute session restarts your ${candidate.streak}-day streak.`
-          : `Complete a session today to protect your ${candidate.streak}-day streak.`,
-        data: { bucket: longGone ? "winback_7plus" : "at_risk_3days", streak: candidate.streak },
-      });
+          await db.insert(notificationsTable).values({
+            userId: candidate.userId,
+            type: "reengage",
+            title: longGone ? "We saved your progress" : "Streak at risk",
+            message: longGone
+              ? `One 5-minute session restarts your ${candidate.streak}-day streak.`
+              : `Complete a session today to protect your ${candidate.streak}-day streak.`,
+            data: { bucket: longGone ? "winback_7plus" : "at_risk_3days", streak: candidate.streak },
+          });
 
-      if (longGone) sentWinBack += 1;
-      else sentAtRisk += 1;
+          if (longGone) sentWinBack += 1;
+          else sentAtRisk += 1;
+        } catch (err) {
+          failures += 1;
+          logger.warn({ err, userId: candidate.userId }, "reengage candidate failed (continuing)");
+        }
+      }));
     }
 
-    logger.info({ candidates: candidates.length, sentAtRisk, sentWinBack }, "reengage run complete");
-    res.json({ ok: true, candidates: candidates.length, sentAtRisk, sentWinBack });
+    logger.info({ candidates: candidates.length, sentAtRisk, sentWinBack, failures }, "reengage run complete");
+    res.json({ ok: true, candidates: candidates.length, sentAtRisk, sentWinBack, failures });
   } catch (err) {
     logger.error({ err }, "reengage run error");
     res.status(500).json({ error: "Internal error" });

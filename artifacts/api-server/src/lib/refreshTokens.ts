@@ -162,6 +162,13 @@ async function rotateFromRow(
   return { status: "ok", token: nextToken, expiresAt, familyId: row.familyId, userId: row.userId };
 }
 
+/** Revoke every live refresh token for a user (password change / account compromise). */
+export async function revokeAllUserRefreshTokens(userId: string): Promise<void> {
+  await db.update(refreshTokensTable)
+    .set({ revokedAt: new Date() })
+    .where(and(eq(refreshTokensTable.userId, userId), isNull(refreshTokensTable.revokedAt)));
+}
+
 /** Revoke the presented token (logout). No-op when unknown. */
 export async function revokeRefreshToken(presentedToken: string): Promise<void> {
   const tokenHash = hashToken(presentedToken);

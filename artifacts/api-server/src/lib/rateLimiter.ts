@@ -1,10 +1,21 @@
 import rateLimit from "express-rate-limit";
+import { getRateLimitStore } from "./rateLimitStore";
 
 const isDev = process.env.NODE_ENV !== "production";
+
+/**
+ * Upstash-backed store when configured (global counters on serverless),
+ * otherwise undefined → express-rate-limit's in-memory store (dev/self-host).
+ * The prefix isolates each limiter's counters in Redis.
+ */
+function store(windowMs: number, prefix: string) {
+  return getRateLimitStore(windowMs, prefix);
+}
 
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: isDev ? 100 : 10,
+  store: store(15 * 60 * 1000, "auth"),
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many attempts, please try again later." },
@@ -14,6 +25,7 @@ export const authLimiter = rateLimit({
 export const forgotPasswordLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: isDev ? 50 : 5,
+  store: store(60 * 60 * 1000, "forgot-password"),
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many password reset requests, please wait an hour." },
@@ -22,6 +34,7 @@ export const forgotPasswordLimiter = rateLimit({
 export const generalLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: isDev ? 500 : 120,
+  store: store(60 * 1000, "general"),
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests, slow down." },
@@ -52,6 +65,7 @@ export const trackLimiter = rateLimit({
 export const sessionCompleteLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
   max: isDev ? 200 : 30,
+  store: store(5 * 60 * 1000, "session-complete"),
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: { code: "RATE_LIMITED", message: "Too many session submissions, please wait a moment." } },
@@ -60,6 +74,7 @@ export const sessionCompleteLimiter = rateLimit({
 export const adminLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: isDev ? 100 : 20,
+  store: store(15 * 60 * 1000, "admin"),
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many admin requests, please try again later." },
@@ -69,6 +84,7 @@ export const adminLimiter = rateLimit({
 export const aiRoadmapLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: isDev ? 50 : 10,
+  store: store(60 * 60 * 1000, "ai-roadmap"),
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Roadmap generation limit reached. Please try again in an hour." },
@@ -87,6 +103,7 @@ export const aiRoadmapLimiter = rateLimit({
 export const aiCoachLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: isDev ? 60 : 20,
+  store: store(60 * 1000, "ai-coach"),
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Coach message limit reached. Please wait a moment." },

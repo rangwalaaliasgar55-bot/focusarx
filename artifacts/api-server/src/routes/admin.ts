@@ -130,30 +130,62 @@ router.get("/admin/users", async (req, res) => {
       createdAt: usersTable.createdAt,
     }).from(usersTable).orderBy(usersTable.createdAt);
 
-    // Aggregate in SQL instead of pulling every session/streak row into memory
-    // and counting in JS — that grows without bound with usage.
-    const sessionCounts = await db.select({
+    // Bounded pagination + server-side search. Legacy callers (no ?page=)
+    // still receive the enveloped shape they expect, but the window is capped
+    // so the endpoint can never scan the whole table again.
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(500, Math.max(1, parseInt(req.query.limit as string) || 500));
+    const offset = (page - 1) * limit;
+    const search = typeof req.query.search === "string" ? req.query.search.trim().slice(0, 100) : "";
+    const searchPattern = search ? `%${search.replace(/[%_]/g, (m) => `\\${m}`)}%` : null;
+
+    const [{ value: totalCount }] = await db.select({ value: sql<number>`count(*)` })
+      .from(usersTable)
+      .where(searchPattern ? sql`(${usersTable.name} ilike ${searchPattern} or ${usersTable.email} ilike ${searchPattern})` : sql`true`);
+
+    const pageUsers = await db.select({
+      id: usersTable.id,
+      name: usersTable.name,
+      email: usersTable.email,
+      isGuest: usersTable.isGuest,
+      role: usersTable.role,
+      createdAt: usersTable.createdAt,
+    }).from(usersTable)
+      .where(searchPattern ? sql`(${usersTable.name} ilike ${searchPattern} or ${usersTable.email} ilike ${searchPattern})` : sql`true`)
+      .orderBy(desc(usersTable.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    const pageIds = pageUsers.map((u) => u.id);
+
+    // Aggregates scoped to the page — SQL-side counting, bounded input set.
+    const sessionCounts = pageIds.length > 0 ? await db.select({
       userId: focusSessionsTable.userId,
       count: sql<number>`count(*)`,
-    }).from(focusSessionsTable).groupBy(focusSessionsTable.userId);
+    }).from(focusSessionsTable).where(inArray(focusSessionsTable.userId, pageIds)).groupBy(focusSessionsTable.userId) : [];
 
-    const streakRows = await db.select({
+    const streakRows = pageIds.length > 0 ? await db.select({
       userId: studyStreaksTable.userId,
       currentStreak: studyStreaksTable.currentStreak,
-    }).from(studyStreaksTable);
+    }).from(studyStreaksTable).where(inArray(studyStreaksTable.userId, pageIds)) : [];
 
     const [{ value: activeCount }] = await db.select({
       value: sql<number>`count(*)`,
     }).from(activeSessionsTable);
 
+    // Global role counts — small dimension (users), full-table counts are fine.
+    const [{ value: registeredCount }] = await db.select({ value: sql<number>`count(*)` })
+      .from(usersTable).where(and(eq(usersTable.isGuest, false), sql`${usersTable.role} <> 'bot'`));
+    const [{ value: botCount }] = await db.select({ value: sql<number>`count(*)` })
+      .from(usersTable).where(sql`${usersTable.role} = 'bot'`);
+    const [{ value: guestCount }] = await db.select({ value: sql<number>`count(*)` })
+      .from(usersTable).where(eq(usersTable.isGuest, true));
+
     const sessionCountByUser = new Map(sessionCounts.map((r) => [r.userId, Number(r.count)]));
     const streakByUser = new Map(streakRows.map((r) => [r.userId, r.currentStreak]));
 
-    const registered = users.filter((u) => !u.isGuest);
-    const botCount = registered.filter((u) => (u.role ?? "").toLowerCase() === "bot").length;
-
     res.json({
-      users: registered.map((u) => ({
+      users: pageUsers.filter((u) => !u.isGuest && (u.role ?? "user").toLowerCase() !== "bot").map((u) => ({
         id: u.id, name: u.name, email: u.email, isGuest: false,
         role: u.role ?? "user",
         sessionCount: sessionCountByUser.get(u.id) ?? 0,
@@ -161,8 +193,15 @@ router.get("/admin/users", async (req, res) => {
         createdAt: u.createdAt,
       })),
       activeCount: Number(activeCount ?? 0),
-      guestCount: users.length - registered.length,
-      botCount,
+      guestCount: Number(guestCount ?? 0),
+      botCount: Number(botCount ?? 0),
+      pagination: {
+        page,
+        limit,
+        total: Number(registeredCount ?? 0),
+        totalPages: Math.max(1, Math.ceil(Number(registeredCount ?? 0) / limit)),
+        hasMore: offset + pageUsers.length < Number(registeredCount ?? 0),
+      },
     });
   } catch (err) {
     logger.error({ err }, "admin users error");
