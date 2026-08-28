@@ -15,6 +15,6 @@ CREATE TABLE IF NOT EXISTS "site_settings" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 
-ALTER TABLE "site_settings" ADD COLUMN IF NOT EXISTS "hero_title" text;
-ALTER TABLE "site_settings" ADD COLUMN IF NOT EXISTS "hero_subtitle" text;
-ALTER TABLE "site_settings" ADD COLUMN IF NOT EXISTS "hero_cta_text" text;
+ALTER TABLE IF EXISTS "site_settings" ADD COLUMN IF NOT EXISTS "hero_title" text;
+ALTER TABLE IF EXISTS "site_settings" ADD COLUMN IF NOT EXISTS "hero_subtitle" text;
+ALTER TABLE IF EXISTS "site_settings" ADD COLUMN IF NOT EXISTS "hero_cta_text" text;
