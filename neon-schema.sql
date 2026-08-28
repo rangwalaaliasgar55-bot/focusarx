@@ -1,8 +1,10 @@
 -- FocusArx — complete idempotent schema for the Neon SQL editor
--- Generated: 2026-08-25T12:18:42.748Z
+-- Generated: 2026-08-28T08:23:03.597Z
 -- Source: live Postgres catalog introspection (node, no psql)
--- Tables: 93 - all CREATEs are IF NOT EXISTS; constraints and indexes
+-- Tables: 104 - all CREATEs are IF NOT EXISTS; constraints and indexes
 -- are guarded / IF NOT EXISTS. Safe to run repeatedly. No data is modified.
+-- Every column also has an ADD COLUMN IF NOT EXISTS reconciliation line, so
+-- existing databases that drifted behind the schema are healed in place.
 -- FK tables are ordered before their dependents.
 
 SET search_path TO public;
@@ -26,6 +28,25 @@ CREATE TABLE IF NOT EXISTS public."users" (
     "referral_applied_at" timestamp without time zone,
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."users" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."users" ADD COLUMN IF NOT EXISTS "email" text NOT NULL;
+ALTER TABLE public."users" ADD COLUMN IF NOT EXISTS "name" text;
+ALTER TABLE public."users" ADD COLUMN IF NOT EXISTS "hashed_password" text;
+ALTER TABLE public."users" ADD COLUMN IF NOT EXISTS "guest_key" text;
+ALTER TABLE public."users" ADD COLUMN IF NOT EXISTS "is_guest" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."users" ADD COLUMN IF NOT EXISTS "role" text DEFAULT 'user'::text NOT NULL;
+ALTER TABLE public."users" ADD COLUMN IF NOT EXISTS "onboarding_completed" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."users" ADD COLUMN IF NOT EXISTS "onboarding_data" jsonb;
+ALTER TABLE public."users" ADD COLUMN IF NOT EXISTS "bio" text;
+ALTER TABLE public."users" ADD COLUMN IF NOT EXISTS "timezone" text DEFAULT 'UTC'::text;
+ALTER TABLE public."users" ADD COLUMN IF NOT EXISTS "productivity_score" real DEFAULT 0;
+ALTER TABLE public."users" ADD COLUMN IF NOT EXISTS "total_focus_minutes" integer DEFAULT 0;
+ALTER TABLE public."users" ADD COLUMN IF NOT EXISTS "referral_code" text;
+ALTER TABLE public."users" ADD COLUMN IF NOT EXISTS "referred_by_user_id" text;
+ALTER TABLE public."users" ADD COLUMN IF NOT EXISTS "referral_applied_at" timestamp without time zone;
+ALTER TABLE public."users" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -85,6 +106,23 @@ CREATE TABLE IF NOT EXISTS public."active_sessions" (
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."active_sessions" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."active_sessions" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."active_sessions" ADD COLUMN IF NOT EXISTS "mode" text DEFAULT 'focus'::text NOT NULL;
+ALTER TABLE public."active_sessions" ADD COLUMN IF NOT EXISTS "seconds_left" integer DEFAULT 1500 NOT NULL;
+ALTER TABLE public."active_sessions" ADD COLUMN IF NOT EXISTS "timer_status" text DEFAULT 'paused'::text NOT NULL;
+ALTER TABLE public."active_sessions" ADD COLUMN IF NOT EXISTS "active_seconds" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."active_sessions" ADD COLUMN IF NOT EXISTS "focus_score" real;
+ALTER TABLE public."active_sessions" ADD COLUMN IF NOT EXISTS "focus_quality" text;
+ALTER TABLE public."active_sessions" ADD COLUMN IF NOT EXISTS "focus_state" text;
+ALTER TABLE public."active_sessions" ADD COLUMN IF NOT EXISTS "distraction_count" integer DEFAULT 0;
+ALTER TABLE public."active_sessions" ADD COLUMN IF NOT EXISTS "last_seen_face_at" text;
+ALTER TABLE public."active_sessions" ADD COLUMN IF NOT EXISTS "focus_timeline" text DEFAULT '[]'::text;
+ALTER TABLE public."active_sessions" ADD COLUMN IF NOT EXISTS "monitor_enabled" boolean DEFAULT false;
+ALTER TABLE public."active_sessions" ADD COLUMN IF NOT EXISTS "started_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."active_sessions" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -99,11 +137,23 @@ DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint
+    WHERE conname = 'active_session_per_user_idx' AND conrelid = format('%I.%I', 'public', 'active_sessions')::regclass
+  ) THEN
+    ALTER TABLE public."active_sessions" ADD CONSTRAINT "active_session_per_user_idx" UNIQUE (user_id);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
     WHERE conname = 'active_sessions_user_id_users_id_fk' AND conrelid = format('%I.%I', 'public', 'active_sessions')::regclass
   ) THEN
     ALTER TABLE public."active_sessions" ADD CONSTRAINT "active_sessions_user_id_users_id_fk" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
   END IF;
 END $$;
+
+CREATE INDEX IF NOT EXISTS active_sessions_started_at_idx ON public.active_sessions USING btree (started_at);
 
 CREATE TABLE IF NOT EXISTS public."admin_drops" (
     "id" text NOT NULL,
@@ -122,6 +172,23 @@ CREATE TABLE IF NOT EXISTS public."admin_drops" (
     "ended_at" timestamp without time zone,
     "cancelled_at" timestamp without time zone
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."admin_drops" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."admin_drops" ADD COLUMN IF NOT EXISTS "type" text NOT NULL;
+ALTER TABLE public."admin_drops" ADD COLUMN IF NOT EXISTS "title" text NOT NULL;
+ALTER TABLE public."admin_drops" ADD COLUMN IF NOT EXISTS "description" text;
+ALTER TABLE public."admin_drops" ADD COLUMN IF NOT EXISTS "payload" jsonb;
+ALTER TABLE public."admin_drops" ADD COLUMN IF NOT EXISTS "pool_total" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."admin_drops" ADD COLUMN IF NOT EXISTS "pool_claimed" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."admin_drops" ADD COLUMN IF NOT EXISTS "starts_at" timestamp without time zone NOT NULL;
+ALTER TABLE public."admin_drops" ADD COLUMN IF NOT EXISTS "ends_at" timestamp without time zone NOT NULL;
+ALTER TABLE public."admin_drops" ADD COLUMN IF NOT EXISTS "is_active" boolean DEFAULT true NOT NULL;
+ALTER TABLE public."admin_drops" ADD COLUMN IF NOT EXISTS "created_by_id" text;
+ALTER TABLE public."admin_drops" ADD COLUMN IF NOT EXISTS "created_via" text DEFAULT 'admin'::text NOT NULL;
+ALTER TABLE public."admin_drops" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."admin_drops" ADD COLUMN IF NOT EXISTS "ended_at" timestamp without time zone;
+ALTER TABLE public."admin_drops" ADD COLUMN IF NOT EXISTS "cancelled_at" timestamp without time zone;
 
 DO $$
 BEGIN
@@ -156,6 +223,15 @@ CREATE TABLE IF NOT EXISTS public."admin_drop_claims" (
     "item_granted" text,
     "claimed_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."admin_drop_claims" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."admin_drop_claims" ADD COLUMN IF NOT EXISTS "drop_id" text NOT NULL;
+ALTER TABLE public."admin_drop_claims" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."admin_drop_claims" ADD COLUMN IF NOT EXISTS "reward_coins" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."admin_drop_claims" ADD COLUMN IF NOT EXISTS "reward_xp" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."admin_drop_claims" ADD COLUMN IF NOT EXISTS "item_granted" text;
+ALTER TABLE public."admin_drop_claims" ADD COLUMN IF NOT EXISTS "claimed_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -213,6 +289,17 @@ CREATE TABLE IF NOT EXISTS public."admin_sql_log" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."admin_sql_log" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."admin_sql_log" ADD COLUMN IF NOT EXISTS "admin_id" text;
+ALTER TABLE public."admin_sql_log" ADD COLUMN IF NOT EXISTS "sql" text NOT NULL;
+ALTER TABLE public."admin_sql_log" ADD COLUMN IF NOT EXISTS "kind" text DEFAULT 'write'::text NOT NULL;
+ALTER TABLE public."admin_sql_log" ADD COLUMN IF NOT EXISTS "rows_affected" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."admin_sql_log" ADD COLUMN IF NOT EXISTS "status" text DEFAULT 'ok'::text NOT NULL;
+ALTER TABLE public."admin_sql_log" ADD COLUMN IF NOT EXISTS "error" text;
+ALTER TABLE public."admin_sql_log" ADD COLUMN IF NOT EXISTS "branch_name" text;
+ALTER TABLE public."admin_sql_log" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -248,6 +335,18 @@ CREATE TABLE IF NOT EXISTS public."ai_action_audit" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."ai_action_audit" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."ai_action_audit" ADD COLUMN IF NOT EXISTS "actor" text NOT NULL;
+ALTER TABLE public."ai_action_audit" ADD COLUMN IF NOT EXISTS "actor_role" text DEFAULT 'system'::text NOT NULL;
+ALTER TABLE public."ai_action_audit" ADD COLUMN IF NOT EXISTS "model" text;
+ALTER TABLE public."ai_action_audit" ADD COLUMN IF NOT EXISTS "action" text NOT NULL;
+ALTER TABLE public."ai_action_audit" ADD COLUMN IF NOT EXISTS "payload" jsonb;
+ALTER TABLE public."ai_action_audit" ADD COLUMN IF NOT EXISTS "approved_by" text;
+ALTER TABLE public."ai_action_audit" ADD COLUMN IF NOT EXISTS "approved_at" timestamp without time zone;
+ALTER TABLE public."ai_action_audit" ADD COLUMN IF NOT EXISTS "outcome" text DEFAULT 'pending'::text NOT NULL;
+ALTER TABLE public."ai_action_audit" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -282,6 +381,15 @@ CREATE TABLE IF NOT EXISTS public."ai_briefings" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."ai_briefings" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."ai_briefings" ADD COLUMN IF NOT EXISTS "day" text NOT NULL;
+ALTER TABLE public."ai_briefings" ADD COLUMN IF NOT EXISTS "kind" text DEFAULT 'daily'::text NOT NULL;
+ALTER TABLE public."ai_briefings" ADD COLUMN IF NOT EXISTS "data" jsonb NOT NULL;
+ALTER TABLE public."ai_briefings" ADD COLUMN IF NOT EXISTS "summary" text DEFAULT ''::text NOT NULL;
+ALTER TABLE public."ai_briefings" ADD COLUMN IF NOT EXISTS "emailed" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."ai_briefings" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -303,6 +411,15 @@ CREATE TABLE IF NOT EXISTS public."ai_budget_state" (
     "cool_until" timestamp without time zone,
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."ai_budget_state" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."ai_budget_state" ADD COLUMN IF NOT EXISTS "provider" text DEFAULT 'gemini'::text NOT NULL;
+ALTER TABLE public."ai_budget_state" ADD COLUMN IF NOT EXISTS "day" text NOT NULL;
+ALTER TABLE public."ai_budget_state" ADD COLUMN IF NOT EXISTS "calls_used" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."ai_budget_state" ADD COLUMN IF NOT EXISTS "cap" integer DEFAULT 1500 NOT NULL;
+ALTER TABLE public."ai_budget_state" ADD COLUMN IF NOT EXISTS "cool_until" timestamp without time zone;
+ALTER TABLE public."ai_budget_state" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -329,6 +446,19 @@ CREATE TABLE IF NOT EXISTS public."ai_call_log" (
     "fallback_used" boolean DEFAULT false NOT NULL,
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."ai_call_log" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."ai_call_log" ADD COLUMN IF NOT EXISTS "provider" text NOT NULL;
+ALTER TABLE public."ai_call_log" ADD COLUMN IF NOT EXISTS "model" text NOT NULL;
+ALTER TABLE public."ai_call_log" ADD COLUMN IF NOT EXISTS "purpose" text NOT NULL;
+ALTER TABLE public."ai_call_log" ADD COLUMN IF NOT EXISTS "user_id" text;
+ALTER TABLE public."ai_call_log" ADD COLUMN IF NOT EXISTS "tokens_in" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."ai_call_log" ADD COLUMN IF NOT EXISTS "tokens_out" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."ai_call_log" ADD COLUMN IF NOT EXISTS "latency_ms" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."ai_call_log" ADD COLUMN IF NOT EXISTS "status" text DEFAULT 'ok'::text NOT NULL;
+ALTER TABLE public."ai_call_log" ADD COLUMN IF NOT EXISTS "fallback_used" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."ai_call_log" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -370,6 +500,19 @@ CREATE TABLE IF NOT EXISTS public."ai_ideas" (
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."ai_ideas" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."ai_ideas" ADD COLUMN IF NOT EXISTS "title" text NOT NULL;
+ALTER TABLE public."ai_ideas" ADD COLUMN IF NOT EXISTS "body" text NOT NULL;
+ALTER TABLE public."ai_ideas" ADD COLUMN IF NOT EXISTS "category" text DEFAULT 'growth'::text NOT NULL;
+ALTER TABLE public."ai_ideas" ADD COLUMN IF NOT EXISTS "effort" text DEFAULT 'medium'::text NOT NULL;
+ALTER TABLE public."ai_ideas" ADD COLUMN IF NOT EXISTS "impact" text DEFAULT 'medium'::text NOT NULL;
+ALTER TABLE public."ai_ideas" ADD COLUMN IF NOT EXISTS "source" text DEFAULT 'gemini'::text NOT NULL;
+ALTER TABLE public."ai_ideas" ADD COLUMN IF NOT EXISTS "status" text DEFAULT 'backlog'::text NOT NULL;
+ALTER TABLE public."ai_ideas" ADD COLUMN IF NOT EXISTS "promoted_to_task" text;
+ALTER TABLE public."ai_ideas" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."ai_ideas" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -391,6 +534,15 @@ CREATE TABLE IF NOT EXISTS public."analytics_events" (
     "event_data" jsonb,
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."analytics_events" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."analytics_events" ADD COLUMN IF NOT EXISTS "event_id" text NOT NULL;
+ALTER TABLE public."analytics_events" ADD COLUMN IF NOT EXISTS "visitor_id" text NOT NULL;
+ALTER TABLE public."analytics_events" ADD COLUMN IF NOT EXISTS "session_id" text;
+ALTER TABLE public."analytics_events" ADD COLUMN IF NOT EXISTS "event_type" text NOT NULL;
+ALTER TABLE public."analytics_events" ADD COLUMN IF NOT EXISTS "event_data" jsonb;
+ALTER TABLE public."analytics_events" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -422,6 +574,19 @@ CREATE TABLE IF NOT EXISTS public."analytics_sessions" (
     "last_activity_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."analytics_sessions" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."analytics_sessions" ADD COLUMN IF NOT EXISTS "visitor_id" text NOT NULL;
+ALTER TABLE public."analytics_sessions" ADD COLUMN IF NOT EXISTS "session_start" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."analytics_sessions" ADD COLUMN IF NOT EXISTS "session_end" timestamp without time zone;
+ALTER TABLE public."analytics_sessions" ADD COLUMN IF NOT EXISTS "duration_sec" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."analytics_sessions" ADD COLUMN IF NOT EXISTS "page_views" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."analytics_sessions" ADD COLUMN IF NOT EXISTS "focus_sessions_started" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."analytics_sessions" ADD COLUMN IF NOT EXISTS "tasks_created" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."analytics_sessions" ADD COLUMN IF NOT EXISTS "roadmaps_generated" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."analytics_sessions" ADD COLUMN IF NOT EXISTS "ai_features_used" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."analytics_sessions" ADD COLUMN IF NOT EXISTS "last_activity_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -449,6 +614,18 @@ CREATE TABLE IF NOT EXISTS public."app_feedback" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."app_feedback" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."app_feedback" ADD COLUMN IF NOT EXISTS "user_id" text;
+ALTER TABLE public."app_feedback" ADD COLUMN IF NOT EXISTS "rating" integer NOT NULL;
+ALTER TABLE public."app_feedback" ADD COLUMN IF NOT EXISTS "message" text;
+ALTER TABLE public."app_feedback" ADD COLUMN IF NOT EXISTS "category" text DEFAULT 'general'::text;
+ALTER TABLE public."app_feedback" ADD COLUMN IF NOT EXISTS "session_count" integer DEFAULT 0;
+ALTER TABLE public."app_feedback" ADD COLUMN IF NOT EXISTS "user_level" integer DEFAULT 1;
+ALTER TABLE public."app_feedback" ADD COLUMN IF NOT EXISTS "device" text;
+ALTER TABLE public."app_feedback" ADD COLUMN IF NOT EXISTS "app_version" text DEFAULT '1.0'::text;
+ALTER TABLE public."app_feedback" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -471,6 +648,51 @@ END $$;
 
 CREATE INDEX IF NOT EXISTS app_feedback_user_idx ON public.app_feedback USING btree (user_id);
 
+CREATE TABLE IF NOT EXISTS public."asset_catalog" (
+    "id" text NOT NULL,
+    "key" text NOT NULL,
+    "type" text NOT NULL,
+    "url" text NOT NULL,
+    "fallback_url" text,
+    "size_bytes" integer,
+    "mime_type" text,
+    "metadata" jsonb,
+    "created_at" timestamp without time zone DEFAULT now() NOT NULL
+);
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."asset_catalog" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."asset_catalog" ADD COLUMN IF NOT EXISTS "key" text NOT NULL;
+ALTER TABLE public."asset_catalog" ADD COLUMN IF NOT EXISTS "type" text NOT NULL;
+ALTER TABLE public."asset_catalog" ADD COLUMN IF NOT EXISTS "url" text NOT NULL;
+ALTER TABLE public."asset_catalog" ADD COLUMN IF NOT EXISTS "fallback_url" text;
+ALTER TABLE public."asset_catalog" ADD COLUMN IF NOT EXISTS "size_bytes" integer;
+ALTER TABLE public."asset_catalog" ADD COLUMN IF NOT EXISTS "mime_type" text;
+ALTER TABLE public."asset_catalog" ADD COLUMN IF NOT EXISTS "metadata" jsonb;
+ALTER TABLE public."asset_catalog" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'asset_catalog_pkey' AND conrelid = format('%I.%I', 'public', 'asset_catalog')::regclass
+  ) THEN
+    ALTER TABLE public."asset_catalog" ADD CONSTRAINT "asset_catalog_pkey" PRIMARY KEY (id);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'asset_catalog_key_unique' AND conrelid = format('%I.%I', 'public', 'asset_catalog')::regclass
+  ) THEN
+    ALTER TABLE public."asset_catalog" ADD CONSTRAINT "asset_catalog_key_unique" UNIQUE (key);
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS asset_catalog_type_idx ON public.asset_catalog USING btree (type);
+
 CREATE TABLE IF NOT EXISTS public."audit_logs" (
     "id" text NOT NULL,
     "user_id" text,
@@ -479,6 +701,14 @@ CREATE TABLE IF NOT EXISTS public."audit_logs" (
     "ip" text,
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."audit_logs" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."audit_logs" ADD COLUMN IF NOT EXISTS "user_id" text;
+ALTER TABLE public."audit_logs" ADD COLUMN IF NOT EXISTS "action" text NOT NULL;
+ALTER TABLE public."audit_logs" ADD COLUMN IF NOT EXISTS "details" jsonb;
+ALTER TABLE public."audit_logs" ADD COLUMN IF NOT EXISTS "ip" text;
+ALTER TABLE public."audit_logs" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -502,6 +732,51 @@ END $$;
 
 CREATE INDEX IF NOT EXISTS audit_logs_user_idx ON public.audit_logs USING btree (user_id);
 
+CREATE TABLE IF NOT EXISTS public."battle_pass_claims" (
+    "id" text NOT NULL,
+    "battle_pass_id" text NOT NULL,
+    "user_id" text NOT NULL,
+    "tier" integer NOT NULL,
+    "reward_id" text NOT NULL,
+    "is_premium_reward" boolean DEFAULT false NOT NULL,
+    "claimed_at" timestamp without time zone DEFAULT now() NOT NULL
+);
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."battle_pass_claims" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."battle_pass_claims" ADD COLUMN IF NOT EXISTS "battle_pass_id" text NOT NULL;
+ALTER TABLE public."battle_pass_claims" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."battle_pass_claims" ADD COLUMN IF NOT EXISTS "tier" integer NOT NULL;
+ALTER TABLE public."battle_pass_claims" ADD COLUMN IF NOT EXISTS "reward_id" text NOT NULL;
+ALTER TABLE public."battle_pass_claims" ADD COLUMN IF NOT EXISTS "is_premium_reward" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."battle_pass_claims" ADD COLUMN IF NOT EXISTS "claimed_at" timestamp without time zone DEFAULT now() NOT NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'battle_pass_claims_pkey' AND conrelid = format('%I.%I', 'public', 'battle_pass_claims')::regclass
+  ) THEN
+    ALTER TABLE public."battle_pass_claims" ADD CONSTRAINT "battle_pass_claims_pkey" PRIMARY KEY (id);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'battle_pass_claims_user_id_users_id_fk' AND conrelid = format('%I.%I', 'public', 'battle_pass_claims')::regclass
+  ) THEN
+    ALTER TABLE public."battle_pass_claims" ADD CONSTRAINT "battle_pass_claims_user_id_users_id_fk" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS battle_pass_claims_pass_idx ON public.battle_pass_claims USING btree (battle_pass_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS battle_pass_claims_unique ON public.battle_pass_claims USING btree (battle_pass_id, user_id, tier, reward_id);
+
+CREATE INDEX IF NOT EXISTS battle_pass_claims_user_idx ON public.battle_pass_claims USING btree (user_id);
+
 CREATE TABLE IF NOT EXISTS public."battle_pass_progress" (
     "id" text NOT NULL,
     "user_id" text NOT NULL,
@@ -512,6 +787,16 @@ CREATE TABLE IF NOT EXISTS public."battle_pass_progress" (
     "claimed_tiers" jsonb DEFAULT '[]'::jsonb,
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."battle_pass_progress" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."battle_pass_progress" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."battle_pass_progress" ADD COLUMN IF NOT EXISTS "season" integer DEFAULT 1 NOT NULL;
+ALTER TABLE public."battle_pass_progress" ADD COLUMN IF NOT EXISTS "tier" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."battle_pass_progress" ADD COLUMN IF NOT EXISTS "season_xp" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."battle_pass_progress" ADD COLUMN IF NOT EXISTS "premium_unlocked" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."battle_pass_progress" ADD COLUMN IF NOT EXISTS "claimed_tiers" jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public."battle_pass_progress" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -553,6 +838,15 @@ CREATE TABLE IF NOT EXISTS public."battle_passes" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."battle_passes" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."battle_passes" ADD COLUMN IF NOT EXISTS "season" text NOT NULL;
+ALTER TABLE public."battle_passes" ADD COLUMN IF NOT EXISTS "title" text NOT NULL;
+ALTER TABLE public."battle_passes" ADD COLUMN IF NOT EXISTS "start_date" timestamp without time zone NOT NULL;
+ALTER TABLE public."battle_passes" ADD COLUMN IF NOT EXISTS "end_date" timestamp without time zone NOT NULL;
+ALTER TABLE public."battle_passes" ADD COLUMN IF NOT EXISTS "is_active" boolean DEFAULT true NOT NULL;
+ALTER TABLE public."battle_passes" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -582,6 +876,15 @@ CREATE TABLE IF NOT EXISTS public."battle_pass_rewards" (
     "required_xp" integer NOT NULL,
     "is_premium" boolean DEFAULT false NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."battle_pass_rewards" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."battle_pass_rewards" ADD COLUMN IF NOT EXISTS "battle_pass_id" text NOT NULL;
+ALTER TABLE public."battle_pass_rewards" ADD COLUMN IF NOT EXISTS "tier" integer NOT NULL;
+ALTER TABLE public."battle_pass_rewards" ADD COLUMN IF NOT EXISTS "type" text NOT NULL;
+ALTER TABLE public."battle_pass_rewards" ADD COLUMN IF NOT EXISTS "value" jsonb;
+ALTER TABLE public."battle_pass_rewards" ADD COLUMN IF NOT EXISTS "required_xp" integer NOT NULL;
+ALTER TABLE public."battle_pass_rewards" ADD COLUMN IF NOT EXISTS "is_premium" boolean DEFAULT false NOT NULL;
 
 DO $$
 BEGIN
@@ -618,6 +921,21 @@ CREATE TABLE IF NOT EXISTS public."study_groups" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL,
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."study_groups" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."study_groups" ADD COLUMN IF NOT EXISTS "name" text NOT NULL;
+ALTER TABLE public."study_groups" ADD COLUMN IF NOT EXISTS "description" text;
+ALTER TABLE public."study_groups" ADD COLUMN IF NOT EXISTS "owner_id" text NOT NULL;
+ALTER TABLE public."study_groups" ADD COLUMN IF NOT EXISTS "group_xp" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."study_groups" ADD COLUMN IF NOT EXISTS "group_level" integer DEFAULT 1 NOT NULL;
+ALTER TABLE public."study_groups" ADD COLUMN IF NOT EXISTS "is_public" boolean DEFAULT true NOT NULL;
+ALTER TABLE public."study_groups" ADD COLUMN IF NOT EXISTS "invite_code" text NOT NULL;
+ALTER TABLE public."study_groups" ADD COLUMN IF NOT EXISTS "max_members" integer DEFAULT 20 NOT NULL;
+ALTER TABLE public."study_groups" ADD COLUMN IF NOT EXISTS "avatar_emoji" text DEFAULT '🎯'::text NOT NULL;
+ALTER TABLE public."study_groups" ADD COLUMN IF NOT EXISTS "tags" jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public."study_groups" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."study_groups" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -664,6 +982,21 @@ CREATE TABLE IF NOT EXISTS public."social_posts" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL,
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."social_posts" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."social_posts" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."social_posts" ADD COLUMN IF NOT EXISTS "content" text NOT NULL;
+ALTER TABLE public."social_posts" ADD COLUMN IF NOT EXISTS "type" text DEFAULT 'general'::text NOT NULL;
+ALTER TABLE public."social_posts" ADD COLUMN IF NOT EXISTS "image_urls" jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public."social_posts" ADD COLUMN IF NOT EXISTS "metadata" jsonb;
+ALTER TABLE public."social_posts" ADD COLUMN IF NOT EXISTS "group_id" text;
+ALTER TABLE public."social_posts" ADD COLUMN IF NOT EXISTS "is_public" boolean DEFAULT true NOT NULL;
+ALTER TABLE public."social_posts" ADD COLUMN IF NOT EXISTS "view_count" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."social_posts" ADD COLUMN IF NOT EXISTS "moderation_status" text DEFAULT 'approved'::text NOT NULL;
+ALTER TABLE public."social_posts" ADD COLUMN IF NOT EXISTS "moderation_reason" text;
+ALTER TABLE public."social_posts" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."social_posts" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -713,6 +1046,17 @@ CREATE TABLE IF NOT EXISTS public."bot_pending_replies" (
     "sent_at" timestamp without time zone
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."bot_pending_replies" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."bot_pending_replies" ADD COLUMN IF NOT EXISTS "post_id" text NOT NULL;
+ALTER TABLE public."bot_pending_replies" ADD COLUMN IF NOT EXISTS "bot_id" text NOT NULL;
+ALTER TABLE public."bot_pending_replies" ADD COLUMN IF NOT EXISTS "content" text NOT NULL;
+ALTER TABLE public."bot_pending_replies" ADD COLUMN IF NOT EXISTS "parent_id" text;
+ALTER TABLE public."bot_pending_replies" ADD COLUMN IF NOT EXISTS "due_at" timestamp without time zone NOT NULL;
+ALTER TABLE public."bot_pending_replies" ADD COLUMN IF NOT EXISTS "status" text DEFAULT 'pending'::text NOT NULL;
+ALTER TABLE public."bot_pending_replies" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."bot_pending_replies" ADD COLUMN IF NOT EXISTS "sent_at" timestamp without time zone;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -755,6 +1099,13 @@ CREATE TABLE IF NOT EXISTS public."break_free_moods" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."break_free_moods" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."break_free_moods" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."break_free_moods" ADD COLUMN IF NOT EXISTS "mood" integer NOT NULL;
+ALTER TABLE public."break_free_moods" ADD COLUMN IF NOT EXISTS "date" text NOT NULL;
+ALTER TABLE public."break_free_moods" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -781,6 +1132,11 @@ CREATE TABLE IF NOT EXISTS public."break_free_pledges" (
     "posted_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."break_free_pledges" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."break_free_pledges" ADD COLUMN IF NOT EXISTS "message" text NOT NULL;
+ALTER TABLE public."break_free_pledges" ADD COLUMN IF NOT EXISTS "posted_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -801,6 +1157,16 @@ CREATE TABLE IF NOT EXISTS public."break_free_streaks" (
     "last_relapse_date" text,
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."break_free_streaks" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."break_free_streaks" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."break_free_streaks" ADD COLUMN IF NOT EXISTS "start_date" text NOT NULL;
+ALTER TABLE public."break_free_streaks" ADD COLUMN IF NOT EXISTS "current_streak" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."break_free_streaks" ADD COLUMN IF NOT EXISTS "longest_streak" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."break_free_streaks" ADD COLUMN IF NOT EXISTS "relapse_count" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."break_free_streaks" ADD COLUMN IF NOT EXISTS "last_relapse_date" text;
+ALTER TABLE public."break_free_streaks" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -841,6 +1207,15 @@ CREATE TABLE IF NOT EXISTS public."buddy_requests" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL,
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."buddy_requests" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."buddy_requests" ADD COLUMN IF NOT EXISTS "sender_id" text NOT NULL;
+ALTER TABLE public."buddy_requests" ADD COLUMN IF NOT EXISTS "receiver_id" text NOT NULL;
+ALTER TABLE public."buddy_requests" ADD COLUMN IF NOT EXISTS "status" text DEFAULT 'pending'::text NOT NULL;
+ALTER TABLE public."buddy_requests" ADD COLUMN IF NOT EXISTS "message" text;
+ALTER TABLE public."buddy_requests" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."buddy_requests" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -892,6 +1267,23 @@ CREATE TABLE IF NOT EXISTS public."city_building_definitions" (
     "sort_order" integer DEFAULT 0 NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."city_building_definitions" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."city_building_definitions" ADD COLUMN IF NOT EXISTS "slug" text NOT NULL;
+ALTER TABLE public."city_building_definitions" ADD COLUMN IF NOT EXISTS "name" text NOT NULL;
+ALTER TABLE public."city_building_definitions" ADD COLUMN IF NOT EXISTS "description" text NOT NULL;
+ALTER TABLE public."city_building_definitions" ADD COLUMN IF NOT EXISTS "district" text NOT NULL;
+ALTER TABLE public."city_building_definitions" ADD COLUMN IF NOT EXISTS "category" text NOT NULL;
+ALTER TABLE public."city_building_definitions" ADD COLUMN IF NOT EXISTS "unlock_level" integer DEFAULT 1 NOT NULL;
+ALTER TABLE public."city_building_definitions" ADD COLUMN IF NOT EXISTS "unlock_sessions" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."city_building_definitions" ADD COLUMN IF NOT EXISTS "coin_cost" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."city_building_definitions" ADD COLUMN IF NOT EXISTS "population_bonus" integer DEFAULT 10 NOT NULL;
+ALTER TABLE public."city_building_definitions" ADD COLUMN IF NOT EXISTS "xp_bonus_per_session" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."city_building_definitions" ADD COLUMN IF NOT EXISTS "coin_bonus_per_session" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."city_building_definitions" ADD COLUMN IF NOT EXISTS "icon" text NOT NULL;
+ALTER TABLE public."city_building_definitions" ADD COLUMN IF NOT EXISTS "tier" text DEFAULT 'hamlet'::text NOT NULL;
+ALTER TABLE public."city_building_definitions" ADD COLUMN IF NOT EXISTS "sort_order" integer DEFAULT 0 NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -925,6 +1317,17 @@ CREATE TABLE IF NOT EXISTS public."coin_transactions" (
     "metadata" jsonb,
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."coin_transactions" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."coin_transactions" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."coin_transactions" ADD COLUMN IF NOT EXISTS "type" text NOT NULL;
+ALTER TABLE public."coin_transactions" ADD COLUMN IF NOT EXISTS "amount" integer NOT NULL;
+ALTER TABLE public."coin_transactions" ADD COLUMN IF NOT EXISTS "reason" text NOT NULL;
+ALTER TABLE public."coin_transactions" ADD COLUMN IF NOT EXISTS "description" text NOT NULL;
+ALTER TABLE public."coin_transactions" ADD COLUMN IF NOT EXISTS "balance_after" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."coin_transactions" ADD COLUMN IF NOT EXISTS "metadata" jsonb;
+ALTER TABLE public."coin_transactions" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -962,6 +1365,19 @@ CREATE TABLE IF NOT EXISTS public."consequence_contracts" (
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."consequence_contracts" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."consequence_contracts" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."consequence_contracts" ADD COLUMN IF NOT EXISTS "week_start" text NOT NULL;
+ALTER TABLE public."consequence_contracts" ADD COLUMN IF NOT EXISTS "contract_type" text NOT NULL;
+ALTER TABLE public."consequence_contracts" ADD COLUMN IF NOT EXISTS "target_minutes" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."consequence_contracts" ADD COLUMN IF NOT EXISTS "charity_name" text;
+ALTER TABLE public."consequence_contracts" ADD COLUMN IF NOT EXISTS "charity_amount" integer;
+ALTER TABLE public."consequence_contracts" ADD COLUMN IF NOT EXISTS "achieved" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."consequence_contracts" ADD COLUMN IF NOT EXISTS "consequence_triggered" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."consequence_contracts" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."consequence_contracts" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -990,6 +1406,14 @@ CREATE TABLE IF NOT EXISTS public."conversation_participants" (
     "is_admin" boolean DEFAULT false NOT NULL,
     "joined_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."conversation_participants" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."conversation_participants" ADD COLUMN IF NOT EXISTS "conversation_id" text NOT NULL;
+ALTER TABLE public."conversation_participants" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."conversation_participants" ADD COLUMN IF NOT EXISTS "last_read_at" timestamp without time zone;
+ALTER TABLE public."conversation_participants" ADD COLUMN IF NOT EXISTS "is_admin" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."conversation_participants" ADD COLUMN IF NOT EXISTS "joined_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -1022,6 +1446,14 @@ CREATE TABLE IF NOT EXISTS public."conversations" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."conversations" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."conversations" ADD COLUMN IF NOT EXISTS "type" text DEFAULT 'direct'::text NOT NULL;
+ALTER TABLE public."conversations" ADD COLUMN IF NOT EXISTS "name" text;
+ALTER TABLE public."conversations" ADD COLUMN IF NOT EXISTS "group_id" text;
+ALTER TABLE public."conversations" ADD COLUMN IF NOT EXISTS "last_message_at" timestamp without time zone;
+ALTER TABLE public."conversations" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -1034,6 +1466,49 @@ END $$;
 
 CREATE INDEX IF NOT EXISTS conversations_group_idx ON public.conversations USING btree (group_id);
 
+CREATE TABLE IF NOT EXISTS public."cosmetic_inventory" (
+    "id" text NOT NULL,
+    "user_id" text NOT NULL,
+    "cosmetic_id" text NOT NULL,
+    "type" text NOT NULL,
+    "equipped" boolean DEFAULT false NOT NULL,
+    "acquired_from" text DEFAULT 'starter'::text NOT NULL,
+    "acquired_at" timestamp without time zone DEFAULT now() NOT NULL
+);
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."cosmetic_inventory" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."cosmetic_inventory" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."cosmetic_inventory" ADD COLUMN IF NOT EXISTS "cosmetic_id" text NOT NULL;
+ALTER TABLE public."cosmetic_inventory" ADD COLUMN IF NOT EXISTS "type" text NOT NULL;
+ALTER TABLE public."cosmetic_inventory" ADD COLUMN IF NOT EXISTS "equipped" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."cosmetic_inventory" ADD COLUMN IF NOT EXISTS "acquired_from" text DEFAULT 'starter'::text NOT NULL;
+ALTER TABLE public."cosmetic_inventory" ADD COLUMN IF NOT EXISTS "acquired_at" timestamp without time zone DEFAULT now() NOT NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'cosmetic_inventory_pkey' AND conrelid = format('%I.%I', 'public', 'cosmetic_inventory')::regclass
+  ) THEN
+    ALTER TABLE public."cosmetic_inventory" ADD CONSTRAINT "cosmetic_inventory_pkey" PRIMARY KEY (id);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'cosmetic_inventory_user_id_users_id_fk' AND conrelid = format('%I.%I', 'public', 'cosmetic_inventory')::regclass
+  ) THEN
+    ALTER TABLE public."cosmetic_inventory" ADD CONSTRAINT "cosmetic_inventory_user_id_users_id_fk" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS cosmetic_inventory_user_idx ON public.cosmetic_inventory USING btree (user_id);
+
+CREATE INDEX IF NOT EXISTS cosmetic_inventory_user_type_idx ON public.cosmetic_inventory USING btree (user_id, type);
+
 CREATE TABLE IF NOT EXISTS public."distraction_logs" (
     "id" text NOT NULL,
     "user_id" text NOT NULL,
@@ -1043,6 +1518,15 @@ CREATE TABLE IF NOT EXISTS public."distraction_logs" (
     "hour" integer NOT NULL,
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."distraction_logs" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."distraction_logs" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."distraction_logs" ADD COLUMN IF NOT EXISTS "session_id" text;
+ALTER TABLE public."distraction_logs" ADD COLUMN IF NOT EXISTS "reason" text NOT NULL;
+ALTER TABLE public."distraction_logs" ADD COLUMN IF NOT EXISTS "worth_it" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."distraction_logs" ADD COLUMN IF NOT EXISTS "hour" integer NOT NULL;
+ALTER TABLE public."distraction_logs" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -1080,6 +1564,21 @@ CREATE TABLE IF NOT EXISTS public."email_logs" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."email_logs" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."email_logs" ADD COLUMN IF NOT EXISTS "recipient_id" text;
+ALTER TABLE public."email_logs" ADD COLUMN IF NOT EXISTS "recipient_email" text NOT NULL;
+ALTER TABLE public."email_logs" ADD COLUMN IF NOT EXISTS "template" text NOT NULL;
+ALTER TABLE public."email_logs" ADD COLUMN IF NOT EXISTS "subject" text NOT NULL;
+ALTER TABLE public."email_logs" ADD COLUMN IF NOT EXISTS "status" text DEFAULT 'pending'::text NOT NULL;
+ALTER TABLE public."email_logs" ADD COLUMN IF NOT EXISTS "provider_id" text;
+ALTER TABLE public."email_logs" ADD COLUMN IF NOT EXISTS "sent_at" timestamp without time zone;
+ALTER TABLE public."email_logs" ADD COLUMN IF NOT EXISTS "opened_at" timestamp without time zone;
+ALTER TABLE public."email_logs" ADD COLUMN IF NOT EXISTS "clicked_at" timestamp without time zone;
+ALTER TABLE public."email_logs" ADD COLUMN IF NOT EXISTS "bounced" boolean DEFAULT false;
+ALTER TABLE public."email_logs" ADD COLUMN IF NOT EXISTS "error" text;
+ALTER TABLE public."email_logs" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -1104,6 +1603,47 @@ CREATE INDEX IF NOT EXISTS email_logs_created_at_idx ON public.email_logs USING 
 
 CREATE INDEX IF NOT EXISTS email_logs_recipient_idx ON public.email_logs USING btree (recipient_id);
 
+CREATE TABLE IF NOT EXISTS public."feature_flags" (
+    "id" text NOT NULL,
+    "key" text NOT NULL,
+    "enabled" boolean DEFAULT true NOT NULL,
+    "description" text,
+    "rollout_percentage" integer DEFAULT 100 NOT NULL,
+    "created_at" timestamp without time zone DEFAULT now() NOT NULL,
+    "updated_at" timestamp without time zone DEFAULT now() NOT NULL
+);
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."feature_flags" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."feature_flags" ADD COLUMN IF NOT EXISTS "key" text NOT NULL;
+ALTER TABLE public."feature_flags" ADD COLUMN IF NOT EXISTS "enabled" boolean DEFAULT true NOT NULL;
+ALTER TABLE public."feature_flags" ADD COLUMN IF NOT EXISTS "description" text;
+ALTER TABLE public."feature_flags" ADD COLUMN IF NOT EXISTS "rollout_percentage" integer DEFAULT 100 NOT NULL;
+ALTER TABLE public."feature_flags" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."feature_flags" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'feature_flags_pkey' AND conrelid = format('%I.%I', 'public', 'feature_flags')::regclass
+  ) THEN
+    ALTER TABLE public."feature_flags" ADD CONSTRAINT "feature_flags_pkey" PRIMARY KEY (id);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'feature_flags_key_unique' AND conrelid = format('%I.%I', 'public', 'feature_flags')::regclass
+  ) THEN
+    ALTER TABLE public."feature_flags" ADD CONSTRAINT "feature_flags_key_unique" UNIQUE (key);
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS feature_flags_enabled_idx ON public.feature_flags USING btree (enabled);
+
 CREATE TABLE IF NOT EXISTS public."flashcard_decks" (
     "id" text NOT NULL,
     "user_id" text NOT NULL,
@@ -1113,6 +1653,15 @@ CREATE TABLE IF NOT EXISTS public."flashcard_decks" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL,
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."flashcard_decks" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."flashcard_decks" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."flashcard_decks" ADD COLUMN IF NOT EXISTS "title" text NOT NULL;
+ALTER TABLE public."flashcard_decks" ADD COLUMN IF NOT EXISTS "description" text;
+ALTER TABLE public."flashcard_decks" ADD COLUMN IF NOT EXISTS "category" text DEFAULT 'General'::text;
+ALTER TABLE public."flashcard_decks" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."flashcard_decks" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -1147,6 +1696,17 @@ CREATE TABLE IF NOT EXISTS public."flashcards" (
     "incorrect_count" integer DEFAULT 0 NOT NULL,
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."flashcards" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."flashcards" ADD COLUMN IF NOT EXISTS "deck_id" text NOT NULL;
+ALTER TABLE public."flashcards" ADD COLUMN IF NOT EXISTS "front" text NOT NULL;
+ALTER TABLE public."flashcards" ADD COLUMN IF NOT EXISTS "back" text NOT NULL;
+ALTER TABLE public."flashcards" ADD COLUMN IF NOT EXISTS "box" integer DEFAULT 1 NOT NULL;
+ALTER TABLE public."flashcards" ADD COLUMN IF NOT EXISTS "next_review_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."flashcards" ADD COLUMN IF NOT EXISTS "correct_count" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."flashcards" ADD COLUMN IF NOT EXISTS "incorrect_count" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."flashcards" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -1186,6 +1746,22 @@ CREATE TABLE IF NOT EXISTS public."focus_cities" (
     "weather_updated_at" timestamp without time zone DEFAULT now(),
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."focus_cities" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."focus_cities" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."focus_cities" ADD COLUMN IF NOT EXISTS "tier" text DEFAULT 'hamlet'::text NOT NULL;
+ALTER TABLE public."focus_cities" ADD COLUMN IF NOT EXISTS "tier_name" text DEFAULT 'Study Hamlet'::text NOT NULL;
+ALTER TABLE public."focus_cities" ADD COLUMN IF NOT EXISTS "population" integer DEFAULT 5 NOT NULL;
+ALTER TABLE public."focus_cities" ADD COLUMN IF NOT EXISTS "total_buildings" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."focus_cities" ADD COLUMN IF NOT EXISTS "total_sessions" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."focus_cities" ADD COLUMN IF NOT EXISTS "unlocked_districts" jsonb DEFAULT '["downtown"]'::jsonb;
+ALTER TABLE public."focus_cities" ADD COLUMN IF NOT EXISTS "buildings" jsonb DEFAULT '{}'::jsonb;
+ALTER TABLE public."focus_cities" ADD COLUMN IF NOT EXISTS "atmosphere" text DEFAULT 'day'::text NOT NULL;
+ALTER TABLE public."focus_cities" ADD COLUMN IF NOT EXISTS "selected_skin" text DEFAULT 'classic'::text NOT NULL;
+ALTER TABLE public."focus_cities" ADD COLUMN IF NOT EXISTS "weather" text DEFAULT 'clear'::text NOT NULL;
+ALTER TABLE public."focus_cities" ADD COLUMN IF NOT EXISTS "weather_updated_at" timestamp without time zone DEFAULT now();
+ALTER TABLE public."focus_cities" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -1236,6 +1812,22 @@ CREATE TABLE IF NOT EXISTS public."focus_dna" (
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."focus_dna" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."focus_dna" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."focus_dna" ADD COLUMN IF NOT EXISTS "archetype" text NOT NULL;
+ALTER TABLE public."focus_dna" ADD COLUMN IF NOT EXISTS "description" text NOT NULL;
+ALTER TABLE public."focus_dna" ADD COLUMN IF NOT EXISTS "color_primary" text NOT NULL;
+ALTER TABLE public."focus_dna" ADD COLUMN IF NOT EXISTS "color_secondary" text NOT NULL;
+ALTER TABLE public."focus_dna" ADD COLUMN IF NOT EXISTS "icon" text NOT NULL;
+ALTER TABLE public."focus_dna" ADD COLUMN IF NOT EXISTS "top_focus_hour" integer;
+ALTER TABLE public."focus_dna" ADD COLUMN IF NOT EXISTS "avg_session_min" integer;
+ALTER TABLE public."focus_dna" ADD COLUMN IF NOT EXISTS "strongest_day" text;
+ALTER TABLE public."focus_dna" ADD COLUMN IF NOT EXISTS "biggest_weakness" text;
+ALTER TABLE public."focus_dna" ADD COLUMN IF NOT EXISTS "session_count_at_generation" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."focus_dna" ADD COLUMN IF NOT EXISTS "generated_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."focus_dna" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -1276,6 +1868,16 @@ CREATE TABLE IF NOT EXISTS public."focus_profiles" (
     "is_active" boolean DEFAULT false NOT NULL,
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."focus_profiles" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."focus_profiles" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."focus_profiles" ADD COLUMN IF NOT EXISTS "name" text NOT NULL;
+ALTER TABLE public."focus_profiles" ADD COLUMN IF NOT EXISTS "ssid" text;
+ALTER TABLE public."focus_profiles" ADD COLUMN IF NOT EXISTS "blocked_domains" jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public."focus_profiles" ADD COLUMN IF NOT EXISTS "whitelist" jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public."focus_profiles" ADD COLUMN IF NOT EXISTS "is_active" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."focus_profiles" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -1318,6 +1920,26 @@ CREATE TABLE IF NOT EXISTS public."focus_sessions" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."focus_sessions" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."focus_sessions" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."focus_sessions" ADD COLUMN IF NOT EXISTS "mode" text DEFAULT 'focus'::text NOT NULL;
+ALTER TABLE public."focus_sessions" ADD COLUMN IF NOT EXISTS "duration_sec" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."focus_sessions" ADD COLUMN IF NOT EXISTS "planned_duration_sec" integer;
+ALTER TABLE public."focus_sessions" ADD COLUMN IF NOT EXISTS "completed_early" boolean DEFAULT false;
+ALTER TABLE public."focus_sessions" ADD COLUMN IF NOT EXISTS "completion_percentage" real;
+ALTER TABLE public."focus_sessions" ADD COLUMN IF NOT EXISTS "session_status" text DEFAULT 'completed'::text;
+ALTER TABLE public."focus_sessions" ADD COLUMN IF NOT EXISTS "completed_at" timestamp without time zone;
+ALTER TABLE public."focus_sessions" ADD COLUMN IF NOT EXISTS "focus_score" real;
+ALTER TABLE public."focus_sessions" ADD COLUMN IF NOT EXISTS "focus_quality" text;
+ALTER TABLE public."focus_sessions" ADD COLUMN IF NOT EXISTS "stability_rating" text;
+ALTER TABLE public."focus_sessions" ADD COLUMN IF NOT EXISTS "focus_timeline" text;
+ALTER TABLE public."focus_sessions" ADD COLUMN IF NOT EXISTS "session_insights" text;
+ALTER TABLE public."focus_sessions" ADD COLUMN IF NOT EXISTS "category" text DEFAULT 'General'::text;
+ALTER TABLE public."focus_sessions" ADD COLUMN IF NOT EXISTS "productivity_score" real;
+ALTER TABLE public."focus_sessions" ADD COLUMN IF NOT EXISTS "client_nonce" text;
+ALTER TABLE public."focus_sessions" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -1350,7 +1972,13 @@ END $$;
 
 CREATE INDEX IF NOT EXISTS focus_sessions_completed_at_idx ON public.focus_sessions USING btree (completed_at);
 
+CREATE INDEX IF NOT EXISTS focus_sessions_user_completed_idx ON public.focus_sessions USING btree (user_id, completed_at);
+
 CREATE INDEX IF NOT EXISTS focus_sessions_user_id_idx ON public.focus_sessions USING btree (user_id);
+
+CREATE INDEX IF NOT EXISTS focus_sessions_user_started_idx ON public.focus_sessions USING btree (user_id, created_at);
+
+CREATE INDEX IF NOT EXISTS focus_sessions_user_status_idx ON public.focus_sessions USING btree (user_id, session_status);
 
 CREATE TABLE IF NOT EXISTS public."follows" (
     "id" text NOT NULL,
@@ -1358,6 +1986,12 @@ CREATE TABLE IF NOT EXISTS public."follows" (
     "following_id" text NOT NULL,
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."follows" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."follows" ADD COLUMN IF NOT EXISTS "follower_id" text NOT NULL;
+ALTER TABLE public."follows" ADD COLUMN IF NOT EXISTS "following_id" text NOT NULL;
+ALTER TABLE public."follows" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -1401,6 +2035,13 @@ CREATE TABLE IF NOT EXISTS public."freeze_tokens" (
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."freeze_tokens" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."freeze_tokens" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."freeze_tokens" ADD COLUMN IF NOT EXISTS "tokens_available" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."freeze_tokens" ADD COLUMN IF NOT EXISTS "tokens_used" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."freeze_tokens" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -1439,6 +2080,14 @@ CREATE TABLE IF NOT EXISTS public."friendships" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL,
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."friendships" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."friendships" ADD COLUMN IF NOT EXISTS "requester_id" text NOT NULL;
+ALTER TABLE public."friendships" ADD COLUMN IF NOT EXISTS "addressee_id" text NOT NULL;
+ALTER TABLE public."friendships" ADD COLUMN IF NOT EXISTS "status" text DEFAULT 'pending'::text NOT NULL;
+ALTER TABLE public."friendships" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."friendships" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -1483,6 +2132,14 @@ CREATE TABLE IF NOT EXISTS public."goals" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."goals" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."goals" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."goals" ADD COLUMN IF NOT EXISTS "title" text NOT NULL;
+ALTER TABLE public."goals" ADD COLUMN IF NOT EXISTS "description" text;
+ALTER TABLE public."goals" ADD COLUMN IF NOT EXISTS "completed" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."goals" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -1512,6 +2169,15 @@ CREATE TABLE IF NOT EXISTS public."group_audit_logs" (
     "details" jsonb,
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."group_audit_logs" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."group_audit_logs" ADD COLUMN IF NOT EXISTS "group_id" text NOT NULL;
+ALTER TABLE public."group_audit_logs" ADD COLUMN IF NOT EXISTS "actor_id" text NOT NULL;
+ALTER TABLE public."group_audit_logs" ADD COLUMN IF NOT EXISTS "action" text NOT NULL;
+ALTER TABLE public."group_audit_logs" ADD COLUMN IF NOT EXISTS "target_id" text;
+ALTER TABLE public."group_audit_logs" ADD COLUMN IF NOT EXISTS "details" jsonb;
+ALTER TABLE public."group_audit_logs" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -1543,6 +2209,14 @@ CREATE TABLE IF NOT EXISTS public."group_challenge_progress" (
     "completed_at" timestamp without time zone,
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."group_challenge_progress" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."group_challenge_progress" ADD COLUMN IF NOT EXISTS "challenge_id" text NOT NULL;
+ALTER TABLE public."group_challenge_progress" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."group_challenge_progress" ADD COLUMN IF NOT EXISTS "progress" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."group_challenge_progress" ADD COLUMN IF NOT EXISTS "completed_at" timestamp without time zone;
+ALTER TABLE public."group_challenge_progress" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -1581,6 +2255,20 @@ CREATE TABLE IF NOT EXISTS public."group_challenges" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."group_challenges" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."group_challenges" ADD COLUMN IF NOT EXISTS "group_id" text NOT NULL;
+ALTER TABLE public."group_challenges" ADD COLUMN IF NOT EXISTS "creator_id" text NOT NULL;
+ALTER TABLE public."group_challenges" ADD COLUMN IF NOT EXISTS "title" text NOT NULL;
+ALTER TABLE public."group_challenges" ADD COLUMN IF NOT EXISTS "description" text;
+ALTER TABLE public."group_challenges" ADD COLUMN IF NOT EXISTS "target_value" integer DEFAULT 1 NOT NULL;
+ALTER TABLE public."group_challenges" ADD COLUMN IF NOT EXISTS "unit" text DEFAULT 'sessions'::text NOT NULL;
+ALTER TABLE public."group_challenges" ADD COLUMN IF NOT EXISTS "xp_reward" integer DEFAULT 500 NOT NULL;
+ALTER TABLE public."group_challenges" ADD COLUMN IF NOT EXISTS "start_date" text NOT NULL;
+ALTER TABLE public."group_challenges" ADD COLUMN IF NOT EXISTS "end_date" text NOT NULL;
+ALTER TABLE public."group_challenges" ADD COLUMN IF NOT EXISTS "status" text DEFAULT 'active'::text NOT NULL;
+ALTER TABLE public."group_challenges" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -1613,6 +2301,16 @@ CREATE TABLE IF NOT EXISTS public."group_invitations" (
     "expires_at" timestamp without time zone,
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."group_invitations" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."group_invitations" ADD COLUMN IF NOT EXISTS "group_id" text NOT NULL;
+ALTER TABLE public."group_invitations" ADD COLUMN IF NOT EXISTS "inviter_id" text NOT NULL;
+ALTER TABLE public."group_invitations" ADD COLUMN IF NOT EXISTS "invitee_email" text;
+ALTER TABLE public."group_invitations" ADD COLUMN IF NOT EXISTS "invitee_id" text;
+ALTER TABLE public."group_invitations" ADD COLUMN IF NOT EXISTS "status" text DEFAULT 'pending'::text NOT NULL;
+ALTER TABLE public."group_invitations" ADD COLUMN IF NOT EXISTS "expires_at" timestamp without time zone;
+ALTER TABLE public."group_invitations" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -1654,6 +2352,14 @@ CREATE TABLE IF NOT EXISTS public."group_members" (
     "xp_contribution" integer DEFAULT 0 NOT NULL,
     "joined_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."group_members" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."group_members" ADD COLUMN IF NOT EXISTS "group_id" text NOT NULL;
+ALTER TABLE public."group_members" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."group_members" ADD COLUMN IF NOT EXISTS "role" text DEFAULT 'member'::text NOT NULL;
+ALTER TABLE public."group_members" ADD COLUMN IF NOT EXISTS "xp_contribution" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."group_members" ADD COLUMN IF NOT EXISTS "joined_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -1705,6 +2411,21 @@ CREATE TABLE IF NOT EXISTS public."habits" (
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."habits" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."habits" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."habits" ADD COLUMN IF NOT EXISTS "name" text NOT NULL;
+ALTER TABLE public."habits" ADD COLUMN IF NOT EXISTS "icon" text DEFAULT '⭐'::text NOT NULL;
+ALTER TABLE public."habits" ADD COLUMN IF NOT EXISTS "color" text DEFAULT '#7C3AED'::text NOT NULL;
+ALTER TABLE public."habits" ADD COLUMN IF NOT EXISTS "frequency" text DEFAULT 'daily'::text NOT NULL;
+ALTER TABLE public."habits" ADD COLUMN IF NOT EXISTS "target_days" jsonb DEFAULT '[0, 1, 2, 3, 4, 5, 6]'::jsonb;
+ALTER TABLE public."habits" ADD COLUMN IF NOT EXISTS "current_streak" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."habits" ADD COLUMN IF NOT EXISTS "longest_streak" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."habits" ADD COLUMN IF NOT EXISTS "total_completions" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."habits" ADD COLUMN IF NOT EXISTS "is_archived" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."habits" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."habits" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -1735,6 +2456,14 @@ CREATE TABLE IF NOT EXISTS public."habit_completions" (
     "note" text,
     "completed_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."habit_completions" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."habit_completions" ADD COLUMN IF NOT EXISTS "habit_id" text NOT NULL;
+ALTER TABLE public."habit_completions" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."habit_completions" ADD COLUMN IF NOT EXISTS "date" text NOT NULL;
+ALTER TABLE public."habit_completions" ADD COLUMN IF NOT EXISTS "note" text;
+ALTER TABLE public."habit_completions" ADD COLUMN IF NOT EXISTS "completed_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -1780,6 +2509,15 @@ CREATE TABLE IF NOT EXISTS public."leaderboard_snapshots" (
     "generated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."leaderboard_snapshots" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."leaderboard_snapshots" ADD COLUMN IF NOT EXISTS "period" text NOT NULL;
+ALTER TABLE public."leaderboard_snapshots" ADD COLUMN IF NOT EXISTS "category" text NOT NULL;
+ALTER TABLE public."leaderboard_snapshots" ADD COLUMN IF NOT EXISTS "scope" text DEFAULT 'global'::text;
+ALTER TABLE public."leaderboard_snapshots" ADD COLUMN IF NOT EXISTS "group_id" text;
+ALTER TABLE public."leaderboard_snapshots" ADD COLUMN IF NOT EXISTS "data" jsonb NOT NULL;
+ALTER TABLE public."leaderboard_snapshots" ADD COLUMN IF NOT EXISTS "generated_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -1800,6 +2538,14 @@ CREATE TABLE IF NOT EXISTS public."login_rewards" (
     "total_claimed" integer DEFAULT 0 NOT NULL,
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."login_rewards" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."login_rewards" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."login_rewards" ADD COLUMN IF NOT EXISTS "last_claimed_date" text;
+ALTER TABLE public."login_rewards" ADD COLUMN IF NOT EXISTS "claim_streak" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."login_rewards" ADD COLUMN IF NOT EXISTS "total_claimed" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."login_rewards" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -1844,6 +2590,18 @@ CREATE TABLE IF NOT EXISTS public."loot_box_types" (
     "possible_rewards" jsonb NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."loot_box_types" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."loot_box_types" ADD COLUMN IF NOT EXISTS "name" text NOT NULL;
+ALTER TABLE public."loot_box_types" ADD COLUMN IF NOT EXISTS "description" text NOT NULL;
+ALTER TABLE public."loot_box_types" ADD COLUMN IF NOT EXISTS "rarity" text NOT NULL;
+ALTER TABLE public."loot_box_types" ADD COLUMN IF NOT EXISTS "coin_cost" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."loot_box_types" ADD COLUMN IF NOT EXISTS "sessions_required" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."loot_box_types" ADD COLUMN IF NOT EXISTS "premium_only" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."loot_box_types" ADD COLUMN IF NOT EXISTS "icon" text NOT NULL;
+ALTER TABLE public."loot_box_types" ADD COLUMN IF NOT EXISTS "glow_color" text DEFAULT '#7C3AED'::text NOT NULL;
+ALTER TABLE public."loot_box_types" ADD COLUMN IF NOT EXISTS "possible_rewards" jsonb NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -1868,6 +2626,19 @@ CREATE TABLE IF NOT EXISTS public."marketplace_items" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."marketplace_items" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."marketplace_items" ADD COLUMN IF NOT EXISTS "name" text NOT NULL;
+ALTER TABLE public."marketplace_items" ADD COLUMN IF NOT EXISTS "description" text;
+ALTER TABLE public."marketplace_items" ADD COLUMN IF NOT EXISTS "type" text DEFAULT 'avatar'::text NOT NULL;
+ALTER TABLE public."marketplace_items" ADD COLUMN IF NOT EXISTS "cost_coins" integer DEFAULT 100 NOT NULL;
+ALTER TABLE public."marketplace_items" ADD COLUMN IF NOT EXISTS "rarity" text DEFAULT 'common'::text;
+ALTER TABLE public."marketplace_items" ADD COLUMN IF NOT EXISTS "emoji" text DEFAULT '🎁'::text;
+ALTER TABLE public."marketplace_items" ADD COLUMN IF NOT EXISTS "data" jsonb;
+ALTER TABLE public."marketplace_items" ADD COLUMN IF NOT EXISTS "premium_only" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."marketplace_items" ADD COLUMN IF NOT EXISTS "is_active" boolean DEFAULT true NOT NULL;
+ALTER TABLE public."marketplace_items" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -1885,6 +2656,13 @@ CREATE TABLE IF NOT EXISTS public."message_reactions" (
     "emoji" text NOT NULL,
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."message_reactions" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."message_reactions" ADD COLUMN IF NOT EXISTS "message_id" text NOT NULL;
+ALTER TABLE public."message_reactions" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."message_reactions" ADD COLUMN IF NOT EXISTS "emoji" text NOT NULL;
+ALTER TABLE public."message_reactions" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -1922,6 +2700,18 @@ CREATE TABLE IF NOT EXISTS public."messages" (
     "metadata" jsonb,
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."messages" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."messages" ADD COLUMN IF NOT EXISTS "conversation_id" text NOT NULL;
+ALTER TABLE public."messages" ADD COLUMN IF NOT EXISTS "sender_id" text NOT NULL;
+ALTER TABLE public."messages" ADD COLUMN IF NOT EXISTS "content" text NOT NULL;
+ALTER TABLE public."messages" ADD COLUMN IF NOT EXISTS "type" text DEFAULT 'text'::text;
+ALTER TABLE public."messages" ADD COLUMN IF NOT EXISTS "reply_to_id" text;
+ALTER TABLE public."messages" ADD COLUMN IF NOT EXISTS "is_edited" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."messages" ADD COLUMN IF NOT EXISTS "is_deleted" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."messages" ADD COLUMN IF NOT EXISTS "metadata" jsonb;
+ALTER TABLE public."messages" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -1964,6 +2754,22 @@ CREATE TABLE IF NOT EXISTS public."missions" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."missions" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."missions" ADD COLUMN IF NOT EXISTS "mission_key" text NOT NULL;
+ALTER TABLE public."missions" ADD COLUMN IF NOT EXISTS "title" text NOT NULL;
+ALTER TABLE public."missions" ADD COLUMN IF NOT EXISTS "description" text NOT NULL;
+ALTER TABLE public."missions" ADD COLUMN IF NOT EXISTS "type" text DEFAULT 'daily'::text NOT NULL;
+ALTER TABLE public."missions" ADD COLUMN IF NOT EXISTS "category" text DEFAULT 'focus'::text NOT NULL;
+ALTER TABLE public."missions" ADD COLUMN IF NOT EXISTS "xp_reward" integer DEFAULT 100 NOT NULL;
+ALTER TABLE public."missions" ADD COLUMN IF NOT EXISTS "coin_reward" integer DEFAULT 50 NOT NULL;
+ALTER TABLE public."missions" ADD COLUMN IF NOT EXISTS "target_value" integer DEFAULT 1 NOT NULL;
+ALTER TABLE public."missions" ADD COLUMN IF NOT EXISTS "unit" text DEFAULT 'sessions'::text NOT NULL;
+ALTER TABLE public."missions" ADD COLUMN IF NOT EXISTS "icon" text DEFAULT '🎯'::text NOT NULL;
+ALTER TABLE public."missions" ADD COLUMN IF NOT EXISTS "difficulty" text DEFAULT 'easy'::text NOT NULL;
+ALTER TABLE public."missions" ADD COLUMN IF NOT EXISTS "is_active" boolean DEFAULT true NOT NULL;
+ALTER TABLE public."missions" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -1995,6 +2801,16 @@ CREATE TABLE IF NOT EXISTS public."notifications" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."notifications" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."notifications" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."notifications" ADD COLUMN IF NOT EXISTS "type" text NOT NULL;
+ALTER TABLE public."notifications" ADD COLUMN IF NOT EXISTS "title" text NOT NULL;
+ALTER TABLE public."notifications" ADD COLUMN IF NOT EXISTS "message" text NOT NULL;
+ALTER TABLE public."notifications" ADD COLUMN IF NOT EXISTS "data" jsonb;
+ALTER TABLE public."notifications" ADD COLUMN IF NOT EXISTS "read" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."notifications" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -2025,6 +2841,13 @@ CREATE TABLE IF NOT EXISTS public."page_views" (
     "viewed_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."page_views" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."page_views" ADD COLUMN IF NOT EXISTS "visitor_id" text NOT NULL;
+ALTER TABLE public."page_views" ADD COLUMN IF NOT EXISTS "session_id" text NOT NULL;
+ALTER TABLE public."page_views" ADD COLUMN IF NOT EXISTS "page" text NOT NULL;
+ALTER TABLE public."page_views" ADD COLUMN IF NOT EXISTS "viewed_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -2049,6 +2872,14 @@ CREATE TABLE IF NOT EXISTS public."password_reset_tokens" (
     "used_at" timestamp without time zone,
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."password_reset_tokens" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."password_reset_tokens" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."password_reset_tokens" ADD COLUMN IF NOT EXISTS "token" text NOT NULL;
+ALTER TABLE public."password_reset_tokens" ADD COLUMN IF NOT EXISTS "expires_at" timestamp without time zone NOT NULL;
+ALTER TABLE public."password_reset_tokens" ADD COLUMN IF NOT EXISTS "used_at" timestamp without time zone;
+ALTER TABLE public."password_reset_tokens" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -2080,11 +2911,91 @@ BEGIN
   END IF;
 END $$;
 
+CREATE TABLE IF NOT EXISTS public."pet_catalog" (
+    "id" text NOT NULL,
+    "slug" text NOT NULL,
+    "name" text NOT NULL,
+    "description" text NOT NULL,
+    "rarity" text DEFAULT 'common'::text NOT NULL,
+    "category" text DEFAULT 'starter'::text NOT NULL,
+    "thumbnail_url" text,
+    "model_url" text,
+    "fallback_image_url" text,
+    "animations" jsonb DEFAULT '{}'::jsonb,
+    "unlock_source" text DEFAULT 'starter'::text NOT NULL,
+    "token_cost" integer DEFAULT 0,
+    "is_premium" boolean DEFAULT false NOT NULL,
+    "is_seasonal" boolean DEFAULT false NOT NULL,
+    "seasonal_event_id" text,
+    "available_from" timestamp without time zone,
+    "available_until" timestamp without time zone,
+    "is_active" boolean DEFAULT true NOT NULL,
+    "sort_order" integer DEFAULT 0 NOT NULL,
+    "max_level" integer DEFAULT 20 NOT NULL,
+    "created_at" timestamp without time zone DEFAULT now() NOT NULL,
+    "updated_at" timestamp without time zone DEFAULT now() NOT NULL
+);
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."pet_catalog" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."pet_catalog" ADD COLUMN IF NOT EXISTS "slug" text NOT NULL;
+ALTER TABLE public."pet_catalog" ADD COLUMN IF NOT EXISTS "name" text NOT NULL;
+ALTER TABLE public."pet_catalog" ADD COLUMN IF NOT EXISTS "description" text NOT NULL;
+ALTER TABLE public."pet_catalog" ADD COLUMN IF NOT EXISTS "rarity" text DEFAULT 'common'::text NOT NULL;
+ALTER TABLE public."pet_catalog" ADD COLUMN IF NOT EXISTS "category" text DEFAULT 'starter'::text NOT NULL;
+ALTER TABLE public."pet_catalog" ADD COLUMN IF NOT EXISTS "thumbnail_url" text;
+ALTER TABLE public."pet_catalog" ADD COLUMN IF NOT EXISTS "model_url" text;
+ALTER TABLE public."pet_catalog" ADD COLUMN IF NOT EXISTS "fallback_image_url" text;
+ALTER TABLE public."pet_catalog" ADD COLUMN IF NOT EXISTS "animations" jsonb DEFAULT '{}'::jsonb;
+ALTER TABLE public."pet_catalog" ADD COLUMN IF NOT EXISTS "unlock_source" text DEFAULT 'starter'::text NOT NULL;
+ALTER TABLE public."pet_catalog" ADD COLUMN IF NOT EXISTS "token_cost" integer DEFAULT 0;
+ALTER TABLE public."pet_catalog" ADD COLUMN IF NOT EXISTS "is_premium" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."pet_catalog" ADD COLUMN IF NOT EXISTS "is_seasonal" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."pet_catalog" ADD COLUMN IF NOT EXISTS "seasonal_event_id" text;
+ALTER TABLE public."pet_catalog" ADD COLUMN IF NOT EXISTS "available_from" timestamp without time zone;
+ALTER TABLE public."pet_catalog" ADD COLUMN IF NOT EXISTS "available_until" timestamp without time zone;
+ALTER TABLE public."pet_catalog" ADD COLUMN IF NOT EXISTS "is_active" boolean DEFAULT true NOT NULL;
+ALTER TABLE public."pet_catalog" ADD COLUMN IF NOT EXISTS "sort_order" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."pet_catalog" ADD COLUMN IF NOT EXISTS "max_level" integer DEFAULT 20 NOT NULL;
+ALTER TABLE public."pet_catalog" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."pet_catalog" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'pet_catalog_pkey' AND conrelid = format('%I.%I', 'public', 'pet_catalog')::regclass
+  ) THEN
+    ALTER TABLE public."pet_catalog" ADD CONSTRAINT "pet_catalog_pkey" PRIMARY KEY (id);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'pet_catalog_slug_unique' AND conrelid = format('%I.%I', 'public', 'pet_catalog')::regclass
+  ) THEN
+    ALTER TABLE public."pet_catalog" ADD CONSTRAINT "pet_catalog_slug_unique" UNIQUE (slug);
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS pet_catalog_active_idx ON public.pet_catalog USING btree (is_active);
+
+CREATE INDEX IF NOT EXISTS pet_catalog_category_idx ON public.pet_catalog USING btree (category);
+
+CREATE INDEX IF NOT EXISTS pet_catalog_rarity_idx ON public.pet_catalog USING btree (rarity);
+
 CREATE TABLE IF NOT EXISTS public."platform_meta" (
     "key" text NOT NULL,
     "value" jsonb,
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."platform_meta" ADD COLUMN IF NOT EXISTS "key" text NOT NULL;
+ALTER TABLE public."platform_meta" ADD COLUMN IF NOT EXISTS "value" jsonb;
+ALTER TABLE public."platform_meta" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -2104,6 +3015,14 @@ CREATE TABLE IF NOT EXISTS public."post_comments" (
     "content" text NOT NULL,
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."post_comments" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."post_comments" ADD COLUMN IF NOT EXISTS "post_id" text NOT NULL;
+ALTER TABLE public."post_comments" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."post_comments" ADD COLUMN IF NOT EXISTS "parent_id" text;
+ALTER TABLE public."post_comments" ADD COLUMN IF NOT EXISTS "content" text NOT NULL;
+ALTER TABLE public."post_comments" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -2144,6 +3063,12 @@ CREATE TABLE IF NOT EXISTS public."post_likes" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."post_likes" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."post_likes" ADD COLUMN IF NOT EXISTS "post_id" text NOT NULL;
+ALTER TABLE public."post_likes" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."post_likes" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -2173,6 +3098,13 @@ CREATE TABLE IF NOT EXISTS public."post_reactions" (
     "reaction" text NOT NULL,
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."post_reactions" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."post_reactions" ADD COLUMN IF NOT EXISTS "post_id" text NOT NULL;
+ALTER TABLE public."post_reactions" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."post_reactions" ADD COLUMN IF NOT EXISTS "reaction" text NOT NULL;
+ALTER TABLE public."post_reactions" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -2212,6 +3144,12 @@ CREATE TABLE IF NOT EXISTS public."post_saves" (
     "user_id" text NOT NULL,
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."post_saves" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."post_saves" ADD COLUMN IF NOT EXISTS "post_id" text NOT NULL;
+ALTER TABLE public."post_saves" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."post_saves" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -2259,6 +3197,19 @@ CREATE TABLE IF NOT EXISTS public."posts" (
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."posts" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."posts" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."posts" ADD COLUMN IF NOT EXISTS "content" text NOT NULL;
+ALTER TABLE public."posts" ADD COLUMN IF NOT EXISTS "type" text DEFAULT 'general'::text NOT NULL;
+ALTER TABLE public."posts" ADD COLUMN IF NOT EXISTS "image_urls" jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public."posts" ADD COLUMN IF NOT EXISTS "achievement_data" jsonb;
+ALTER TABLE public."posts" ADD COLUMN IF NOT EXISTS "study_log_data" jsonb;
+ALTER TABLE public."posts" ADD COLUMN IF NOT EXISTS "is_public" boolean DEFAULT true NOT NULL;
+ALTER TABLE public."posts" ADD COLUMN IF NOT EXISTS "group_id" text;
+ALTER TABLE public."posts" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."posts" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -2283,6 +3234,144 @@ CREATE INDEX IF NOT EXISTS posts_created_at_idx ON public.posts USING btree (cre
 
 CREATE INDEX IF NOT EXISTS posts_user_idx ON public.posts USING btree (user_id);
 
+CREATE TABLE IF NOT EXISTS public."premium_plans" (
+    "id" text NOT NULL,
+    "name" text NOT NULL,
+    "slug" text NOT NULL,
+    "description" text DEFAULT ''::text NOT NULL,
+    "duration_days" integer NOT NULL,
+    "token_cost" integer NOT NULL,
+    "is_active" boolean DEFAULT true NOT NULL,
+    "sort_order" integer DEFAULT 0 NOT NULL,
+    "benefits" jsonb DEFAULT '[]'::jsonb,
+    "created_at" timestamp without time zone DEFAULT now() NOT NULL,
+    "updated_at" timestamp without time zone DEFAULT now() NOT NULL
+);
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."premium_plans" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."premium_plans" ADD COLUMN IF NOT EXISTS "name" text NOT NULL;
+ALTER TABLE public."premium_plans" ADD COLUMN IF NOT EXISTS "slug" text NOT NULL;
+ALTER TABLE public."premium_plans" ADD COLUMN IF NOT EXISTS "description" text DEFAULT ''::text NOT NULL;
+ALTER TABLE public."premium_plans" ADD COLUMN IF NOT EXISTS "duration_days" integer NOT NULL;
+ALTER TABLE public."premium_plans" ADD COLUMN IF NOT EXISTS "token_cost" integer NOT NULL;
+ALTER TABLE public."premium_plans" ADD COLUMN IF NOT EXISTS "is_active" boolean DEFAULT true NOT NULL;
+ALTER TABLE public."premium_plans" ADD COLUMN IF NOT EXISTS "sort_order" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."premium_plans" ADD COLUMN IF NOT EXISTS "benefits" jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public."premium_plans" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."premium_plans" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'premium_plans_pkey' AND conrelid = format('%I.%I', 'public', 'premium_plans')::regclass
+  ) THEN
+    ALTER TABLE public."premium_plans" ADD CONSTRAINT "premium_plans_pkey" PRIMARY KEY (id);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'premium_plans_slug_unique' AND conrelid = format('%I.%I', 'public', 'premium_plans')::regclass
+  ) THEN
+    ALTER TABLE public."premium_plans" ADD CONSTRAINT "premium_plans_slug_unique" UNIQUE (slug);
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS premium_plans_active_idx ON public.premium_plans USING btree (is_active);
+
+CREATE TABLE IF NOT EXISTS public."premium_entitlements" (
+    "id" text NOT NULL,
+    "user_id" text NOT NULL,
+    "plan_id" text,
+    "source" text NOT NULL,
+    "status" text DEFAULT 'active'::text NOT NULL,
+    "starts_at" timestamp without time zone DEFAULT now() NOT NULL,
+    "ends_at" timestamp without time zone NOT NULL,
+    "token_cost" integer DEFAULT 0 NOT NULL,
+    "idempotency_key" text NOT NULL,
+    "granted_by_admin_id" text,
+    "admin_reason" text,
+    "created_at" timestamp without time zone DEFAULT now() NOT NULL,
+    "updated_at" timestamp without time zone DEFAULT now() NOT NULL
+);
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."premium_entitlements" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."premium_entitlements" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."premium_entitlements" ADD COLUMN IF NOT EXISTS "plan_id" text;
+ALTER TABLE public."premium_entitlements" ADD COLUMN IF NOT EXISTS "source" text NOT NULL;
+ALTER TABLE public."premium_entitlements" ADD COLUMN IF NOT EXISTS "status" text DEFAULT 'active'::text NOT NULL;
+ALTER TABLE public."premium_entitlements" ADD COLUMN IF NOT EXISTS "starts_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."premium_entitlements" ADD COLUMN IF NOT EXISTS "ends_at" timestamp without time zone NOT NULL;
+ALTER TABLE public."premium_entitlements" ADD COLUMN IF NOT EXISTS "token_cost" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."premium_entitlements" ADD COLUMN IF NOT EXISTS "idempotency_key" text NOT NULL;
+ALTER TABLE public."premium_entitlements" ADD COLUMN IF NOT EXISTS "granted_by_admin_id" text;
+ALTER TABLE public."premium_entitlements" ADD COLUMN IF NOT EXISTS "admin_reason" text;
+ALTER TABLE public."premium_entitlements" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."premium_entitlements" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'premium_entitlements_pkey' AND conrelid = format('%I.%I', 'public', 'premium_entitlements')::regclass
+  ) THEN
+    ALTER TABLE public."premium_entitlements" ADD CONSTRAINT "premium_entitlements_pkey" PRIMARY KEY (id);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'premium_entitlements_idempotency_key_unique' AND conrelid = format('%I.%I', 'public', 'premium_entitlements')::regclass
+  ) THEN
+    ALTER TABLE public."premium_entitlements" ADD CONSTRAINT "premium_entitlements_idempotency_key_unique" UNIQUE (idempotency_key);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'premium_entitlements_granted_by_admin_id_users_id_fk' AND conrelid = format('%I.%I', 'public', 'premium_entitlements')::regclass
+  ) THEN
+    ALTER TABLE public."premium_entitlements" ADD CONSTRAINT "premium_entitlements_granted_by_admin_id_users_id_fk" FOREIGN KEY (granted_by_admin_id) REFERENCES users(id) ON DELETE SET NULL;
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'premium_entitlements_plan_id_premium_plans_id_fk' AND conrelid = format('%I.%I', 'public', 'premium_entitlements')::regclass
+  ) THEN
+    ALTER TABLE public."premium_entitlements" ADD CONSTRAINT "premium_entitlements_plan_id_premium_plans_id_fk" FOREIGN KEY (plan_id) REFERENCES premium_plans(id) ON DELETE SET NULL;
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'premium_entitlements_user_id_users_id_fk' AND conrelid = format('%I.%I', 'public', 'premium_entitlements')::regclass
+  ) THEN
+    ALTER TABLE public."premium_entitlements" ADD CONSTRAINT "premium_entitlements_user_id_users_id_fk" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS premium_entitlements_ends_idx ON public.premium_entitlements USING btree (ends_at);
+
+CREATE UNIQUE INDEX IF NOT EXISTS premium_entitlements_idempotency_unique ON public.premium_entitlements USING btree (idempotency_key);
+
+CREATE INDEX IF NOT EXISTS premium_entitlements_user_idx ON public.premium_entitlements USING btree (user_id);
+
+CREATE INDEX IF NOT EXISTS premium_entitlements_user_status_idx ON public.premium_entitlements USING btree (user_id, status);
+
 CREATE TABLE IF NOT EXISTS public."premium_subscriptions" (
     "id" text NOT NULL,
     "user_id" text NOT NULL,
@@ -2294,6 +3383,17 @@ CREATE TABLE IF NOT EXISTS public."premium_subscriptions" (
     "granted_by_admin" boolean DEFAULT false NOT NULL,
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."premium_subscriptions" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."premium_subscriptions" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."premium_subscriptions" ADD COLUMN IF NOT EXISTS "activated_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."premium_subscriptions" ADD COLUMN IF NOT EXISTS "expires_at" timestamp without time zone;
+ALTER TABLE public."premium_subscriptions" ADD COLUMN IF NOT EXISTS "coins_cost" integer DEFAULT 9000;
+ALTER TABLE public."premium_subscriptions" ADD COLUMN IF NOT EXISTS "benefits" jsonb DEFAULT '["exclusive_pets", "premium_loot_boxes", "premium_themes", "xp_multiplier", "coin_multiplier", "premium_analytics", "profile_badge", "premium_battle_pass"]'::jsonb;
+ALTER TABLE public."premium_subscriptions" ADD COLUMN IF NOT EXISTS "is_active" boolean DEFAULT true NOT NULL;
+ALTER TABLE public."premium_subscriptions" ADD COLUMN IF NOT EXISTS "granted_by_admin" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."premium_subscriptions" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -2339,6 +3439,17 @@ CREATE TABLE IF NOT EXISTS public."productivity_logs" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."productivity_logs" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."productivity_logs" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."productivity_logs" ADD COLUMN IF NOT EXISTS "date" text NOT NULL;
+ALTER TABLE public."productivity_logs" ADD COLUMN IF NOT EXISTS "focus_minutes" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."productivity_logs" ADD COLUMN IF NOT EXISTS "sessions_completed" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."productivity_logs" ADD COLUMN IF NOT EXISTS "tasks_completed" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."productivity_logs" ADD COLUMN IF NOT EXISTS "avg_focus_score" real;
+ALTER TABLE public."productivity_logs" ADD COLUMN IF NOT EXISTS "productivity_score" real;
+ALTER TABLE public."productivity_logs" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -2372,6 +3483,17 @@ CREATE TABLE IF NOT EXISTS public."push_subscriptions" (
     "expires_at" timestamp without time zone,
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."push_subscriptions" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."push_subscriptions" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."push_subscriptions" ADD COLUMN IF NOT EXISTS "endpoint" text NOT NULL;
+ALTER TABLE public."push_subscriptions" ADD COLUMN IF NOT EXISTS "p256dh" text NOT NULL;
+ALTER TABLE public."push_subscriptions" ADD COLUMN IF NOT EXISTS "auth" text NOT NULL;
+ALTER TABLE public."push_subscriptions" ADD COLUMN IF NOT EXISTS "priority_enabled" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."push_subscriptions" ADD COLUMN IF NOT EXISTS "sound" text DEFAULT 'default'::text NOT NULL;
+ALTER TABLE public."push_subscriptions" ADD COLUMN IF NOT EXISTS "expires_at" timestamp without time zone;
+ALTER TABLE public."push_subscriptions" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -2410,6 +3532,20 @@ CREATE TABLE IF NOT EXISTS public."quest_definitions" (
     "rotation_weight" integer DEFAULT 10 NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."quest_definitions" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."quest_definitions" ADD COLUMN IF NOT EXISTS "title" text NOT NULL;
+ALTER TABLE public."quest_definitions" ADD COLUMN IF NOT EXISTS "description" text NOT NULL;
+ALTER TABLE public."quest_definitions" ADD COLUMN IF NOT EXISTS "type" text NOT NULL;
+ALTER TABLE public."quest_definitions" ADD COLUMN IF NOT EXISTS "difficulty" text DEFAULT 'easy'::text NOT NULL;
+ALTER TABLE public."quest_definitions" ADD COLUMN IF NOT EXISTS "target" integer NOT NULL;
+ALTER TABLE public."quest_definitions" ADD COLUMN IF NOT EXISTS "metric" text NOT NULL;
+ALTER TABLE public."quest_definitions" ADD COLUMN IF NOT EXISTS "xp_reward" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."quest_definitions" ADD COLUMN IF NOT EXISTS "coin_reward" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."quest_definitions" ADD COLUMN IF NOT EXISTS "icon" text NOT NULL;
+ALTER TABLE public."quest_definitions" ADD COLUMN IF NOT EXISTS "is_active" boolean DEFAULT true NOT NULL;
+ALTER TABLE public."quest_definitions" ADD COLUMN IF NOT EXISTS "rotation_weight" integer DEFAULT 10 NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -2419,6 +3555,57 @@ BEGIN
     ALTER TABLE public."quest_definitions" ADD CONSTRAINT "quest_definitions_pkey" PRIMARY KEY (id);
   END IF;
 END $$;
+
+CREATE TABLE IF NOT EXISTS public."quest_progress" (
+    "id" text NOT NULL,
+    "user_id" text NOT NULL,
+    "quest_id" text NOT NULL,
+    "progress" integer DEFAULT 0 NOT NULL,
+    "target" integer NOT NULL,
+    "completed" boolean DEFAULT false NOT NULL,
+    "claimed" boolean DEFAULT false NOT NULL,
+    "period" text NOT NULL,
+    "claimed_at" timestamp without time zone,
+    "created_at" timestamp without time zone DEFAULT now() NOT NULL,
+    "updated_at" timestamp without time zone DEFAULT now() NOT NULL
+);
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."quest_progress" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."quest_progress" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."quest_progress" ADD COLUMN IF NOT EXISTS "quest_id" text NOT NULL;
+ALTER TABLE public."quest_progress" ADD COLUMN IF NOT EXISTS "progress" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."quest_progress" ADD COLUMN IF NOT EXISTS "target" integer NOT NULL;
+ALTER TABLE public."quest_progress" ADD COLUMN IF NOT EXISTS "completed" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."quest_progress" ADD COLUMN IF NOT EXISTS "claimed" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."quest_progress" ADD COLUMN IF NOT EXISTS "period" text NOT NULL;
+ALTER TABLE public."quest_progress" ADD COLUMN IF NOT EXISTS "claimed_at" timestamp without time zone;
+ALTER TABLE public."quest_progress" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."quest_progress" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'quest_progress_pkey' AND conrelid = format('%I.%I', 'public', 'quest_progress')::regclass
+  ) THEN
+    ALTER TABLE public."quest_progress" ADD CONSTRAINT "quest_progress_pkey" PRIMARY KEY (id);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'quest_progress_user_id_users_id_fk' AND conrelid = format('%I.%I', 'public', 'quest_progress')::regclass
+  ) THEN
+    ALTER TABLE public."quest_progress" ADD CONSTRAINT "quest_progress_user_id_users_id_fk" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS quest_progress_unique ON public.quest_progress USING btree (user_id, quest_id, period);
+
+CREATE INDEX IF NOT EXISTS quest_progress_user_idx ON public.quest_progress USING btree (user_id);
 
 CREATE TABLE IF NOT EXISTS public."readiness_logs" (
     "id" text NOT NULL,
@@ -2432,6 +3619,18 @@ CREATE TABLE IF NOT EXISTS public."readiness_logs" (
     "hrv" integer,
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."readiness_logs" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."readiness_logs" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."readiness_logs" ADD COLUMN IF NOT EXISTS "date" text NOT NULL;
+ALTER TABLE public."readiness_logs" ADD COLUMN IF NOT EXISTS "sleep" integer NOT NULL;
+ALTER TABLE public."readiness_logs" ADD COLUMN IF NOT EXISTS "stress" integer NOT NULL;
+ALTER TABLE public."readiness_logs" ADD COLUMN IF NOT EXISTS "energy" integer NOT NULL;
+ALTER TABLE public."readiness_logs" ADD COLUMN IF NOT EXISTS "score" integer NOT NULL;
+ALTER TABLE public."readiness_logs" ADD COLUMN IF NOT EXISTS "session_length_rec" integer NOT NULL;
+ALTER TABLE public."readiness_logs" ADD COLUMN IF NOT EXISTS "hrv" integer;
+ALTER TABLE public."readiness_logs" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -2460,6 +3659,13 @@ CREATE TABLE IF NOT EXISTS public."roadmaps" (
     "data" jsonb NOT NULL,
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."roadmaps" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."roadmaps" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."roadmaps" ADD COLUMN IF NOT EXISTS "subject" text NOT NULL;
+ALTER TABLE public."roadmaps" ADD COLUMN IF NOT EXISTS "data" jsonb NOT NULL;
+ALTER TABLE public."roadmaps" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -2499,6 +3705,23 @@ CREATE TABLE IF NOT EXISTS public."seasonal_events" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."seasonal_events" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."seasonal_events" ADD COLUMN IF NOT EXISTS "name" text NOT NULL;
+ALTER TABLE public."seasonal_events" ADD COLUMN IF NOT EXISTS "slug" text NOT NULL;
+ALTER TABLE public."seasonal_events" ADD COLUMN IF NOT EXISTS "description" text NOT NULL;
+ALTER TABLE public."seasonal_events" ADD COLUMN IF NOT EXISTS "theme" text NOT NULL;
+ALTER TABLE public."seasonal_events" ADD COLUMN IF NOT EXISTS "banner_color" text DEFAULT '#7C3AED'::text NOT NULL;
+ALTER TABLE public."seasonal_events" ADD COLUMN IF NOT EXISTS "start_date" timestamp without time zone NOT NULL;
+ALTER TABLE public."seasonal_events" ADD COLUMN IF NOT EXISTS "end_date" timestamp without time zone NOT NULL;
+ALTER TABLE public."seasonal_events" ADD COLUMN IF NOT EXISTS "xp_multiplier" real DEFAULT 1 NOT NULL;
+ALTER TABLE public."seasonal_events" ADD COLUMN IF NOT EXISTS "coin_multiplier" real DEFAULT 1 NOT NULL;
+ALTER TABLE public."seasonal_events" ADD COLUMN IF NOT EXISTS "special_missions" jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public."seasonal_events" ADD COLUMN IF NOT EXISTS "exclusive_rewards" jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public."seasonal_events" ADD COLUMN IF NOT EXISTS "premium_only" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."seasonal_events" ADD COLUMN IF NOT EXISTS "is_active" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."seasonal_events" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -2532,6 +3755,16 @@ CREATE TABLE IF NOT EXISTS public."session_ghosts" (
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."session_ghosts" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."session_ghosts" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."session_ghosts" ADD COLUMN IF NOT EXISTS "task_category" text DEFAULT 'General'::text NOT NULL;
+ALTER TABLE public."session_ghosts" ADD COLUMN IF NOT EXISTS "best_duration_sec" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."session_ghosts" ADD COLUMN IF NOT EXISTS "best_unbroken_sec" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."session_ghosts" ADD COLUMN IF NOT EXISTS "session_id" text;
+ALTER TABLE public."session_ghosts" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."session_ghosts" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -2564,6 +3797,18 @@ CREATE TABLE IF NOT EXISTS public."shared_goals" (
     "status" text DEFAULT 'active'::text,
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."shared_goals" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."shared_goals" ADD COLUMN IF NOT EXISTS "group_id" text;
+ALTER TABLE public."shared_goals" ADD COLUMN IF NOT EXISTS "creator_id" text NOT NULL;
+ALTER TABLE public."shared_goals" ADD COLUMN IF NOT EXISTS "title" text NOT NULL;
+ALTER TABLE public."shared_goals" ADD COLUMN IF NOT EXISTS "description" text;
+ALTER TABLE public."shared_goals" ADD COLUMN IF NOT EXISTS "target_value" integer NOT NULL;
+ALTER TABLE public."shared_goals" ADD COLUMN IF NOT EXISTS "current_value" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."shared_goals" ADD COLUMN IF NOT EXISTS "deadline" timestamp without time zone;
+ALTER TABLE public."shared_goals" ADD COLUMN IF NOT EXISTS "status" text DEFAULT 'active'::text;
+ALTER TABLE public."shared_goals" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -2603,6 +3848,21 @@ CREATE TABLE IF NOT EXISTS public."site_settings" (
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."site_settings" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."site_settings" ADD COLUMN IF NOT EXISTS "maintenance_mode" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."site_settings" ADD COLUMN IF NOT EXISTS "maintenance_message" text;
+ALTER TABLE public."site_settings" ADD COLUMN IF NOT EXISTS "announcement_enabled" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."site_settings" ADD COLUMN IF NOT EXISTS "announcement_title" text;
+ALTER TABLE public."site_settings" ADD COLUMN IF NOT EXISTS "announcement_text" text;
+ALTER TABLE public."site_settings" ADD COLUMN IF NOT EXISTS "announcement_emoji" text;
+ALTER TABLE public."site_settings" ADD COLUMN IF NOT EXISTS "branding_name" text DEFAULT 'FocusArx'::text NOT NULL;
+ALTER TABLE public."site_settings" ADD COLUMN IF NOT EXISTS "branding_tagline" text;
+ALTER TABLE public."site_settings" ADD COLUMN IF NOT EXISTS "hero_title" text;
+ALTER TABLE public."site_settings" ADD COLUMN IF NOT EXISTS "hero_subtitle" text;
+ALTER TABLE public."site_settings" ADD COLUMN IF NOT EXISTS "hero_cta_text" text;
+ALTER TABLE public."site_settings" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -2620,6 +3880,13 @@ CREATE TABLE IF NOT EXISTS public."study_buddies" (
     "status" text DEFAULT 'active'::text,
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."study_buddies" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."study_buddies" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."study_buddies" ADD COLUMN IF NOT EXISTS "buddy_id" text NOT NULL;
+ALTER TABLE public."study_buddies" ADD COLUMN IF NOT EXISTS "status" text DEFAULT 'active'::text;
+ALTER TABLE public."study_buddies" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -2670,6 +3937,22 @@ CREATE TABLE IF NOT EXISTS public."study_rooms" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."study_rooms" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."study_rooms" ADD COLUMN IF NOT EXISTS "name" text NOT NULL;
+ALTER TABLE public."study_rooms" ADD COLUMN IF NOT EXISTS "group_id" text;
+ALTER TABLE public."study_rooms" ADD COLUMN IF NOT EXISTS "host_id" text NOT NULL;
+ALTER TABLE public."study_rooms" ADD COLUMN IF NOT EXISTS "mode" text DEFAULT 'silent'::text NOT NULL;
+ALTER TABLE public."study_rooms" ADD COLUMN IF NOT EXISTS "status" text DEFAULT 'active'::text NOT NULL;
+ALTER TABLE public."study_rooms" ADD COLUMN IF NOT EXISTS "max_participants" integer DEFAULT 50 NOT NULL;
+ALTER TABLE public."study_rooms" ADD COLUMN IF NOT EXISTS "timer_duration" integer DEFAULT 1500 NOT NULL;
+ALTER TABLE public."study_rooms" ADD COLUMN IF NOT EXISTS "ambiance" text DEFAULT 'silence'::text NOT NULL;
+ALTER TABLE public."study_rooms" ADD COLUMN IF NOT EXISTS "is_public" boolean DEFAULT true NOT NULL;
+ALTER TABLE public."study_rooms" ADD COLUMN IF NOT EXISTS "invite_code" text NOT NULL;
+ALTER TABLE public."study_rooms" ADD COLUMN IF NOT EXISTS "scheduled_for" timestamp without time zone;
+ALTER TABLE public."study_rooms" ADD COLUMN IF NOT EXISTS "ended_at" timestamp without time zone;
+ALTER TABLE public."study_rooms" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -2714,6 +3997,15 @@ CREATE TABLE IF NOT EXISTS public."study_room_members" (
     "status" text DEFAULT 'active'::text NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."study_room_members" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."study_room_members" ADD COLUMN IF NOT EXISTS "room_id" text NOT NULL;
+ALTER TABLE public."study_room_members" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."study_room_members" ADD COLUMN IF NOT EXISTS "joined_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."study_room_members" ADD COLUMN IF NOT EXISTS "left_at" timestamp without time zone;
+ALTER TABLE public."study_room_members" ADD COLUMN IF NOT EXISTS "focus_minutes" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."study_room_members" ADD COLUMN IF NOT EXISTS "status" text DEFAULT 'active'::text NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -2721,6 +4013,16 @@ BEGIN
     WHERE conname = 'study_room_members_pkey' AND conrelid = format('%I.%I', 'public', 'study_room_members')::regclass
   ) THEN
     ALTER TABLE public."study_room_members" ADD CONSTRAINT "study_room_members_pkey" PRIMARY KEY (id);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'study_room_members_room_user_unique' AND conrelid = format('%I.%I', 'public', 'study_room_members')::regclass
+  ) THEN
+    ALTER TABLE public."study_room_members" ADD CONSTRAINT "study_room_members_room_user_unique" UNIQUE (room_id, user_id);
   END IF;
 END $$;
 
@@ -2744,6 +4046,8 @@ BEGIN
   END IF;
 END $$;
 
+CREATE INDEX IF NOT EXISTS room_members_room_user_idx ON public.study_room_members USING btree (room_id, user_id);
+
 CREATE INDEX IF NOT EXISTS study_room_members_room_idx ON public.study_room_members USING btree (room_id);
 
 CREATE TABLE IF NOT EXISTS public."study_streaks" (
@@ -2754,6 +4058,14 @@ CREATE TABLE IF NOT EXISTS public."study_streaks" (
     "last_study_date" text,
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."study_streaks" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."study_streaks" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."study_streaks" ADD COLUMN IF NOT EXISTS "current_streak" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."study_streaks" ADD COLUMN IF NOT EXISTS "longest_streak" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."study_streaks" ADD COLUMN IF NOT EXISTS "last_study_date" text;
+ALTER TABLE public."study_streaks" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -2805,6 +4117,25 @@ CREATE TABLE IF NOT EXISTS public."tasks" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."tasks" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."tasks" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."tasks" ADD COLUMN IF NOT EXISTS "text" text NOT NULL;
+ALTER TABLE public."tasks" ADD COLUMN IF NOT EXISTS "completed" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."tasks" ADD COLUMN IF NOT EXISTS "order" integer DEFAULT 0;
+ALTER TABLE public."tasks" ADD COLUMN IF NOT EXISTS "estimated_minutes" integer;
+ALTER TABLE public."tasks" ADD COLUMN IF NOT EXISTS "category" text DEFAULT 'General'::text;
+ALTER TABLE public."tasks" ADD COLUMN IF NOT EXISTS "priority" text DEFAULT 'medium'::text;
+ALTER TABLE public."tasks" ADD COLUMN IF NOT EXISTS "tags" jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public."tasks" ADD COLUMN IF NOT EXISTS "due_date" text;
+ALTER TABLE public."tasks" ADD COLUMN IF NOT EXISTS "recurring" text;
+ALTER TABLE public."tasks" ADD COLUMN IF NOT EXISTS "completed_at" timestamp without time zone;
+ALTER TABLE public."tasks" ADD COLUMN IF NOT EXISTS "status" text DEFAULT 'active'::text;
+ALTER TABLE public."tasks" ADD COLUMN IF NOT EXISTS "missed_at" timestamp without time zone;
+ALTER TABLE public."tasks" ADD COLUMN IF NOT EXISTS "miss_count" integer DEFAULT 0;
+ALTER TABLE public."tasks" ADD COLUMN IF NOT EXISTS "archived_at" timestamp without time zone;
+ALTER TABLE public."tasks" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -2827,12 +4158,128 @@ END $$;
 
 CREATE INDEX IF NOT EXISTS tasks_user_id_idx ON public.tasks USING btree (user_id);
 
+CREATE TABLE IF NOT EXISTS public."token_earning_rules" (
+    "id" text NOT NULL,
+    "source" text NOT NULL,
+    "amount" integer NOT NULL,
+    "daily_limit" integer,
+    "description" text DEFAULT ''::text NOT NULL,
+    "is_active" boolean DEFAULT true NOT NULL,
+    "created_at" timestamp without time zone DEFAULT now() NOT NULL,
+    "updated_at" timestamp without time zone DEFAULT now() NOT NULL
+);
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."token_earning_rules" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."token_earning_rules" ADD COLUMN IF NOT EXISTS "source" text NOT NULL;
+ALTER TABLE public."token_earning_rules" ADD COLUMN IF NOT EXISTS "amount" integer NOT NULL;
+ALTER TABLE public."token_earning_rules" ADD COLUMN IF NOT EXISTS "daily_limit" integer;
+ALTER TABLE public."token_earning_rules" ADD COLUMN IF NOT EXISTS "description" text DEFAULT ''::text NOT NULL;
+ALTER TABLE public."token_earning_rules" ADD COLUMN IF NOT EXISTS "is_active" boolean DEFAULT true NOT NULL;
+ALTER TABLE public."token_earning_rules" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."token_earning_rules" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'token_earning_rules_pkey' AND conrelid = format('%I.%I', 'public', 'token_earning_rules')::regclass
+  ) THEN
+    ALTER TABLE public."token_earning_rules" ADD CONSTRAINT "token_earning_rules_pkey" PRIMARY KEY (id);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'token_earning_rules_source_unique' AND conrelid = format('%I.%I', 'public', 'token_earning_rules')::regclass
+  ) THEN
+    ALTER TABLE public."token_earning_rules" ADD CONSTRAINT "token_earning_rules_source_unique" UNIQUE (source);
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS token_earning_rules_active_idx ON public.token_earning_rules USING btree (is_active);
+
+CREATE TABLE IF NOT EXISTS public."token_ledger" (
+    "id" text NOT NULL,
+    "user_id" text NOT NULL,
+    "amount" integer NOT NULL,
+    "transaction_type" text NOT NULL,
+    "source" text NOT NULL,
+    "related_entity_id" text,
+    "idempotency_key" text NOT NULL,
+    "balance_after" integer NOT NULL,
+    "admin_reason" text,
+    "metadata" jsonb,
+    "created_at" timestamp without time zone DEFAULT now() NOT NULL
+);
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."token_ledger" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."token_ledger" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."token_ledger" ADD COLUMN IF NOT EXISTS "amount" integer NOT NULL;
+ALTER TABLE public."token_ledger" ADD COLUMN IF NOT EXISTS "transaction_type" text NOT NULL;
+ALTER TABLE public."token_ledger" ADD COLUMN IF NOT EXISTS "source" text NOT NULL;
+ALTER TABLE public."token_ledger" ADD COLUMN IF NOT EXISTS "related_entity_id" text;
+ALTER TABLE public."token_ledger" ADD COLUMN IF NOT EXISTS "idempotency_key" text NOT NULL;
+ALTER TABLE public."token_ledger" ADD COLUMN IF NOT EXISTS "balance_after" integer NOT NULL;
+ALTER TABLE public."token_ledger" ADD COLUMN IF NOT EXISTS "admin_reason" text;
+ALTER TABLE public."token_ledger" ADD COLUMN IF NOT EXISTS "metadata" jsonb;
+ALTER TABLE public."token_ledger" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'token_ledger_pkey' AND conrelid = format('%I.%I', 'public', 'token_ledger')::regclass
+  ) THEN
+    ALTER TABLE public."token_ledger" ADD CONSTRAINT "token_ledger_pkey" PRIMARY KEY (id);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'token_ledger_idempotency_key_unique' AND conrelid = format('%I.%I', 'public', 'token_ledger')::regclass
+  ) THEN
+    ALTER TABLE public."token_ledger" ADD CONSTRAINT "token_ledger_idempotency_key_unique" UNIQUE (idempotency_key);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'token_ledger_user_id_users_id_fk' AND conrelid = format('%I.%I', 'public', 'token_ledger')::regclass
+  ) THEN
+    ALTER TABLE public."token_ledger" ADD CONSTRAINT "token_ledger_user_id_users_id_fk" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS token_ledger_idempotency_unique ON public.token_ledger USING btree (idempotency_key);
+
+CREATE INDEX IF NOT EXISTS token_ledger_source_idx ON public.token_ledger USING btree (source);
+
+CREATE INDEX IF NOT EXISTS token_ledger_type_idx ON public.token_ledger USING btree (transaction_type);
+
+CREATE INDEX IF NOT EXISTS token_ledger_user_created_idx ON public.token_ledger USING btree (user_id, created_at);
+
+CREATE INDEX IF NOT EXISTS token_ledger_user_idx ON public.token_ledger USING btree (user_id);
+
 CREATE TABLE IF NOT EXISTS public."user_badges" (
     "id" text NOT NULL,
     "user_id" text NOT NULL,
     "badge_id" text NOT NULL,
     "unlocked_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."user_badges" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."user_badges" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."user_badges" ADD COLUMN IF NOT EXISTS "badge_id" text NOT NULL;
+ALTER TABLE public."user_badges" ADD COLUMN IF NOT EXISTS "unlocked_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -2863,6 +4310,15 @@ CREATE TABLE IF NOT EXISTS public."user_battle_pass_progress" (
     "claimed_rewards" jsonb DEFAULT '[]'::jsonb,
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."user_battle_pass_progress" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."user_battle_pass_progress" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."user_battle_pass_progress" ADD COLUMN IF NOT EXISTS "battle_pass_id" text NOT NULL;
+ALTER TABLE public."user_battle_pass_progress" ADD COLUMN IF NOT EXISTS "current_xp" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."user_battle_pass_progress" ADD COLUMN IF NOT EXISTS "current_tier" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."user_battle_pass_progress" ADD COLUMN IF NOT EXISTS "claimed_rewards" jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public."user_battle_pass_progress" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -2910,6 +4366,19 @@ CREATE TABLE IF NOT EXISTS public."user_dreams" (
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."user_dreams" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."user_dreams" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."user_dreams" ADD COLUMN IF NOT EXISTS "dream_type" text DEFAULT 'custom'::text NOT NULL;
+ALTER TABLE public."user_dreams" ADD COLUMN IF NOT EXISTS "custom_goal" text;
+ALTER TABLE public."user_dreams" ADD COLUMN IF NOT EXISTS "target_date" text;
+ALTER TABLE public."user_dreams" ADD COLUMN IF NOT EXISTS "daily_target_minutes" integer DEFAULT 120;
+ALTER TABLE public."user_dreams" ADD COLUMN IF NOT EXISTS "total_minutes_logged" integer DEFAULT 0;
+ALTER TABLE public."user_dreams" ADD COLUMN IF NOT EXISTS "start_date" text;
+ALTER TABLE public."user_dreams" ADD COLUMN IF NOT EXISTS "emoji" text DEFAULT '🎯'::text;
+ALTER TABLE public."user_dreams" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."user_dreams" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -2947,6 +4416,13 @@ CREATE TABLE IF NOT EXISTS public."user_emotes" (
     "equipped" boolean DEFAULT false NOT NULL,
     "unlocked_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."user_emotes" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."user_emotes" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."user_emotes" ADD COLUMN IF NOT EXISTS "emote_id" text NOT NULL;
+ALTER TABLE public."user_emotes" ADD COLUMN IF NOT EXISTS "equipped" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."user_emotes" ADD COLUMN IF NOT EXISTS "unlocked_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -2987,6 +4463,13 @@ CREATE TABLE IF NOT EXISTS public."user_inventory" (
     "acquired_at" timestamp without time zone DEFAULT now() NOT NULL,
     "equipped" boolean DEFAULT false NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."user_inventory" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."user_inventory" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."user_inventory" ADD COLUMN IF NOT EXISTS "item_id" text NOT NULL;
+ALTER TABLE public."user_inventory" ADD COLUMN IF NOT EXISTS "acquired_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."user_inventory" ADD COLUMN IF NOT EXISTS "equipped" boolean DEFAULT false NOT NULL;
 
 DO $$
 BEGIN
@@ -3034,6 +4517,17 @@ CREATE TABLE IF NOT EXISTS public."user_loot_boxes" (
     "earned_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."user_loot_boxes" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."user_loot_boxes" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."user_loot_boxes" ADD COLUMN IF NOT EXISTS "box_type_id" text NOT NULL;
+ALTER TABLE public."user_loot_boxes" ADD COLUMN IF NOT EXISTS "status" text DEFAULT 'unopened'::text NOT NULL;
+ALTER TABLE public."user_loot_boxes" ADD COLUMN IF NOT EXISTS "reward_type" text;
+ALTER TABLE public."user_loot_boxes" ADD COLUMN IF NOT EXISTS "reward_value" jsonb;
+ALTER TABLE public."user_loot_boxes" ADD COLUMN IF NOT EXISTS "earned_reason" text;
+ALTER TABLE public."user_loot_boxes" ADD COLUMN IF NOT EXISTS "opened_at" timestamp without time zone;
+ALTER TABLE public."user_loot_boxes" ADD COLUMN IF NOT EXISTS "earned_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -3078,6 +4572,17 @@ CREATE TABLE IF NOT EXISTS public."user_mission_progress" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."user_mission_progress" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."user_mission_progress" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."user_mission_progress" ADD COLUMN IF NOT EXISTS "mission_key" text NOT NULL;
+ALTER TABLE public."user_mission_progress" ADD COLUMN IF NOT EXISTS "period_start" text NOT NULL;
+ALTER TABLE public."user_mission_progress" ADD COLUMN IF NOT EXISTS "current_value" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."user_mission_progress" ADD COLUMN IF NOT EXISTS "completed" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."user_mission_progress" ADD COLUMN IF NOT EXISTS "completed_at" timestamp without time zone;
+ALTER TABLE public."user_mission_progress" ADD COLUMN IF NOT EXISTS "reward_claimed" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."user_mission_progress" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -3100,6 +4605,73 @@ END $$;
 
 CREATE INDEX IF NOT EXISTS mission_progress_user_period_idx ON public.user_mission_progress USING btree (user_id, period_start);
 
+CREATE TABLE IF NOT EXISTS public."user_pet_inventory" (
+    "id" text NOT NULL,
+    "user_id" text NOT NULL,
+    "pet_id" text NOT NULL,
+    "level" integer DEFAULT 1 NOT NULL,
+    "bond_xp" integer DEFAULT 0 NOT NULL,
+    "nickname" text,
+    "mood" text DEFAULT 'happy'::text NOT NULL,
+    "is_active" boolean DEFAULT false NOT NULL,
+    "acquired_from" text DEFAULT 'starter'::text NOT NULL,
+    "accessories" jsonb DEFAULT '[]'::jsonb,
+    "color_variant" text DEFAULT 'default'::text,
+    "acquired_at" timestamp without time zone DEFAULT now() NOT NULL,
+    "updated_at" timestamp without time zone DEFAULT now() NOT NULL
+);
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."user_pet_inventory" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."user_pet_inventory" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."user_pet_inventory" ADD COLUMN IF NOT EXISTS "pet_id" text NOT NULL;
+ALTER TABLE public."user_pet_inventory" ADD COLUMN IF NOT EXISTS "level" integer DEFAULT 1 NOT NULL;
+ALTER TABLE public."user_pet_inventory" ADD COLUMN IF NOT EXISTS "bond_xp" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."user_pet_inventory" ADD COLUMN IF NOT EXISTS "nickname" text;
+ALTER TABLE public."user_pet_inventory" ADD COLUMN IF NOT EXISTS "mood" text DEFAULT 'happy'::text NOT NULL;
+ALTER TABLE public."user_pet_inventory" ADD COLUMN IF NOT EXISTS "is_active" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."user_pet_inventory" ADD COLUMN IF NOT EXISTS "acquired_from" text DEFAULT 'starter'::text NOT NULL;
+ALTER TABLE public."user_pet_inventory" ADD COLUMN IF NOT EXISTS "accessories" jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public."user_pet_inventory" ADD COLUMN IF NOT EXISTS "color_variant" text DEFAULT 'default'::text;
+ALTER TABLE public."user_pet_inventory" ADD COLUMN IF NOT EXISTS "acquired_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."user_pet_inventory" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'user_pet_inventory_pkey' AND conrelid = format('%I.%I', 'public', 'user_pet_inventory')::regclass
+  ) THEN
+    ALTER TABLE public."user_pet_inventory" ADD CONSTRAINT "user_pet_inventory_pkey" PRIMARY KEY (id);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'user_pet_inventory_pet_id_pet_catalog_id_fk' AND conrelid = format('%I.%I', 'public', 'user_pet_inventory')::regclass
+  ) THEN
+    ALTER TABLE public."user_pet_inventory" ADD CONSTRAINT "user_pet_inventory_pet_id_pet_catalog_id_fk" FOREIGN KEY (pet_id) REFERENCES pet_catalog(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'user_pet_inventory_user_id_users_id_fk' AND conrelid = format('%I.%I', 'public', 'user_pet_inventory')::regclass
+  ) THEN
+    ALTER TABLE public."user_pet_inventory" ADD CONSTRAINT "user_pet_inventory_user_id_users_id_fk" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS user_pet_inventory_user_active_idx ON public.user_pet_inventory USING btree (user_id, is_active);
+
+CREATE INDEX IF NOT EXISTS user_pet_inventory_user_idx ON public.user_pet_inventory USING btree (user_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS user_pet_inventory_user_pet_unique ON public.user_pet_inventory USING btree (user_id, pet_id);
+
 CREATE TABLE IF NOT EXISTS public."user_pets" (
     "id" text NOT NULL,
     "user_id" text NOT NULL,
@@ -3113,6 +4685,19 @@ CREATE TABLE IF NOT EXISTS public."user_pets" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL,
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."user_pets" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."user_pets" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."user_pets" ADD COLUMN IF NOT EXISTS "pet_type" text DEFAULT 'owl'::text NOT NULL;
+ALTER TABLE public."user_pets" ADD COLUMN IF NOT EXISTS "pet_name" text;
+ALTER TABLE public."user_pets" ADD COLUMN IF NOT EXISTS "pet_level" integer DEFAULT 1 NOT NULL;
+ALTER TABLE public."user_pets" ADD COLUMN IF NOT EXISTS "pet_xp" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."user_pets" ADD COLUMN IF NOT EXISTS "evolution_stage" integer DEFAULT 1 NOT NULL;
+ALTER TABLE public."user_pets" ADD COLUMN IF NOT EXISTS "mood" text DEFAULT 'happy'::text;
+ALTER TABLE public."user_pets" ADD COLUMN IF NOT EXISTS "accessories" jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public."user_pets" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."user_pets" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -3159,6 +4744,20 @@ CREATE TABLE IF NOT EXISTS public."user_profile_extras" (
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."user_profile_extras" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."user_profile_extras" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."user_profile_extras" ADD COLUMN IF NOT EXISTS "banner_url" text;
+ALTER TABLE public."user_profile_extras" ADD COLUMN IF NOT EXISTS "banner_gradient" text;
+ALTER TABLE public."user_profile_extras" ADD COLUMN IF NOT EXISTS "social_links" jsonb DEFAULT '{}'::jsonb;
+ALTER TABLE public."user_profile_extras" ADD COLUMN IF NOT EXISTS "featured_post_ids" jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public."user_profile_extras" ADD COLUMN IF NOT EXISTS "pinned_badge_ids" jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public."user_profile_extras" ADD COLUMN IF NOT EXISTS "is_private" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."user_profile_extras" ADD COLUMN IF NOT EXISTS "custom_status" text;
+ALTER TABLE public."user_profile_extras" ADD COLUMN IF NOT EXISTS "status_emoji" text;
+ALTER TABLE public."user_profile_extras" ADD COLUMN IF NOT EXISTS "creator_tier" text DEFAULT 'learner'::text NOT NULL;
+ALTER TABLE public."user_profile_extras" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -3199,6 +4798,16 @@ CREATE TABLE IF NOT EXISTS public."user_quest_progress" (
     "claimed_at" timestamp without time zone,
     "assigned_at" timestamp without time zone DEFAULT now() NOT NULL
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."user_quest_progress" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."user_quest_progress" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."user_quest_progress" ADD COLUMN IF NOT EXISTS "quest_id" text NOT NULL;
+ALTER TABLE public."user_quest_progress" ADD COLUMN IF NOT EXISTS "period" text NOT NULL;
+ALTER TABLE public."user_quest_progress" ADD COLUMN IF NOT EXISTS "current" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."user_quest_progress" ADD COLUMN IF NOT EXISTS "completed" boolean DEFAULT false NOT NULL;
+ALTER TABLE public."user_quest_progress" ADD COLUMN IF NOT EXISTS "claimed_at" timestamp without time zone;
+ALTER TABLE public."user_quest_progress" ADD COLUMN IF NOT EXISTS "assigned_at" timestamp without time zone DEFAULT now() NOT NULL;
 
 DO $$
 BEGIN
@@ -3251,6 +4860,15 @@ CREATE TABLE IF NOT EXISTS public."user_seasonal_progress" (
     "rewards_claimed" jsonb DEFAULT '[]'::jsonb,
     "rank" integer
 );
+
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."user_seasonal_progress" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."user_seasonal_progress" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."user_seasonal_progress" ADD COLUMN IF NOT EXISTS "event_id" text NOT NULL;
+ALTER TABLE public."user_seasonal_progress" ADD COLUMN IF NOT EXISTS "points" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."user_seasonal_progress" ADD COLUMN IF NOT EXISTS "completed_missions" jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public."user_seasonal_progress" ADD COLUMN IF NOT EXISTS "rewards_claimed" jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public."user_seasonal_progress" ADD COLUMN IF NOT EXISTS "rank" integer;
 
 DO $$
 BEGIN
@@ -3306,6 +4924,17 @@ CREATE TABLE IF NOT EXISTS public."user_wallets" (
     "updated_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."user_wallets" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."user_wallets" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."user_wallets" ADD COLUMN IF NOT EXISTS "coins" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."user_wallets" ADD COLUMN IF NOT EXISTS "total_xp" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."user_wallets" ADD COLUMN IF NOT EXISTS "weekly_xp" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."user_wallets" ADD COLUMN IF NOT EXISTS "weekly_xp_reset_at" timestamp without time zone DEFAULT now();
+ALTER TABLE public."user_wallets" ADD COLUMN IF NOT EXISTS "level" integer DEFAULT 1 NOT NULL;
+ALTER TABLE public."user_wallets" ADD COLUMN IF NOT EXISTS "prestige" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."user_wallets" ADD COLUMN IF NOT EXISTS "updated_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -3355,6 +4984,20 @@ CREATE TABLE IF NOT EXISTS public."visitors" (
     "is_bot" boolean DEFAULT false NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."visitors" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."visitors" ADD COLUMN IF NOT EXISTS "visitor_id" text NOT NULL;
+ALTER TABLE public."visitors" ADD COLUMN IF NOT EXISTS "user_id" text;
+ALTER TABLE public."visitors" ADD COLUMN IF NOT EXISTS "first_seen" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."visitors" ADD COLUMN IF NOT EXISTS "last_seen" timestamp without time zone DEFAULT now() NOT NULL;
+ALTER TABLE public."visitors" ADD COLUMN IF NOT EXISTS "visit_count" integer DEFAULT 0 NOT NULL;
+ALTER TABLE public."visitors" ADD COLUMN IF NOT EXISTS "device_type" text;
+ALTER TABLE public."visitors" ADD COLUMN IF NOT EXISTS "browser" text;
+ALTER TABLE public."visitors" ADD COLUMN IF NOT EXISTS "os" text;
+ALTER TABLE public."visitors" ADD COLUMN IF NOT EXISTS "country" text;
+ALTER TABLE public."visitors" ADD COLUMN IF NOT EXISTS "city" text;
+ALTER TABLE public."visitors" ADD COLUMN IF NOT EXISTS "is_bot" boolean DEFAULT false NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -3390,6 +5033,14 @@ CREATE TABLE IF NOT EXISTS public."wrapped_snapshots" (
     "created_at" timestamp without time zone DEFAULT now() NOT NULL
 );
 
+-- Heal columns added after this table was first created (no-op if present).
+ALTER TABLE public."wrapped_snapshots" ADD COLUMN IF NOT EXISTS "id" text NOT NULL;
+ALTER TABLE public."wrapped_snapshots" ADD COLUMN IF NOT EXISTS "user_id" text NOT NULL;
+ALTER TABLE public."wrapped_snapshots" ADD COLUMN IF NOT EXISTS "period" text NOT NULL;
+ALTER TABLE public."wrapped_snapshots" ADD COLUMN IF NOT EXISTS "period_type" text DEFAULT 'monthly'::text NOT NULL;
+ALTER TABLE public."wrapped_snapshots" ADD COLUMN IF NOT EXISTS "data" jsonb NOT NULL;
+ALTER TABLE public."wrapped_snapshots" ADD COLUMN IF NOT EXISTS "created_at" timestamp without time zone DEFAULT now() NOT NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -3412,5 +5063,5 @@ END $$;
 
 CREATE INDEX IF NOT EXISTS wrapped_user_period_idx ON public.wrapped_snapshots USING btree (user_id, period);
 
--- Verification: expect 93 tables
+-- Verification: expect 104 tables
 SELECT count(*) AS table_count FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE';

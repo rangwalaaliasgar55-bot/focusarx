@@ -22,6 +22,7 @@ async function main() {
     const tables = tablesRes.rows.map((r) => r.table_name);
 
     const tableSql = new Map();
+    const alterTableSql = new Map();
     const fkDeps = new Map();
 
     for (const t of tables) {
@@ -46,6 +47,18 @@ async function main() {
         return def;
       });
       tableSql.set(t, "CREATE TABLE IF NOT EXISTS public." + QUOTED(t) + " (\n" + colDefs.join(",\n") + "\n);");
+
+      // Column reconciliation: heals databases that already have the table
+      // but are missing columns added by later schema changes (the silent
+      // drift that turns selects into 500s). No-op when the column exists.
+      const alterSql = cols.rows.map((col) => {
+        let def = QUOTED(col.column_name) + " " + col.type;
+        if (col.column_default !== null) def += " DEFAULT " + col.column_default;
+        if (col.is_nullable === "NO") def += " NOT NULL";
+        return "ALTER TABLE public." + QUOTED(t) + " ADD COLUMN IF NOT EXISTS " + def + ";";
+      });
+      alterTableSql.set(t, alterSql);
+
 
       const fks = await c.query(
         `SELECT ct.relname AS ref_table
@@ -129,6 +142,8 @@ async function main() {
     out.push("-- Source: live Postgres catalog introspection (node, no psql)");
     out.push("-- Tables: " + tables.length + " - all CREATEs are IF NOT EXISTS; constraints and indexes");
     out.push("-- are guarded / IF NOT EXISTS. Safe to run repeatedly. No data is modified.");
+    out.push("-- Every column also has an ADD COLUMN IF NOT EXISTS reconciliation line, so");
+    out.push("-- existing databases that drifted behind the schema are healed in place.");
     out.push("-- FK tables are ordered before their dependents.");
     out.push("");
     out.push("SET search_path TO public;");
@@ -136,6 +151,12 @@ async function main() {
 
     for (const t of ordered) {
       out.push(tableSql.get(t));
+      const alters = alterTableSql.get(t);
+      if (alters && alters.length) {
+        out.push("");
+        out.push("-- Heal columns added after this table was first created (no-op if present).");
+        out.push(alters.join("\n"));
+      }
       const post = postTableBlocks.get(t);
       if (post) out.push("", post);
       out.push("");
