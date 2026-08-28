@@ -85,7 +85,6 @@ const CORE_PAGES: Page[] = [
   { url: "/about", changefreq: "monthly", priority: "0.6" },
   { url: "/contact", changefreq: "monthly", priority: "0.5" },
   { url: "/support", changefreq: "monthly", priority: "0.5" },
-  { url: "/developer", changefreq: "weekly", priority: "0.7" },
 ];
 
 const GUIDE_PAGES: Page[] = [
