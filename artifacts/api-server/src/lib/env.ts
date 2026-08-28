@@ -29,7 +29,7 @@ const envSchema = z.object({
   CORS_ALLOWED_ORIGINS: z.string().optional(),
 
   // Admin
-  ADMIN_PASSWORD: z.string().min(16, "ADMIN_PASSWORD must be at least 16 characters").optional(),
+  ADMIN_PASSWORD: z.string().min(12, "ADMIN_PASSWORD must be at least 12 characters").optional(),
 
   // OAuth
   GOOGLE_CLIENT_ID: z.string().optional(),
@@ -130,7 +130,7 @@ export function validateProductionEnv(): void {
 
   if (!hasDb) missing.push("DATABASE_URL (or POSTGRES_URL_NON_POOLING)");
   if (!env.AUTH_SECRET && !env.SESSION_SECRET) missing.push("AUTH_SECRET (min 32 chars)");
-  if (!env.ADMIN_PASSWORD) missing.push("ADMIN_PASSWORD (min 16 chars)");
+  if (!env.ADMIN_PASSWORD) missing.push("ADMIN_PASSWORD (min 12 chars)");
   if (!env.APP_URL && !env.VERCEL_URL) missing.push("APP_URL (or VERCEL_URL auto)");
 
   if (missing.length > 0) {
@@ -148,8 +148,8 @@ export function validateProductionEnv(): void {
   if (env.AUTH_SECRET && env.AUTH_SECRET.length < 32) {
     throw new Error("[env] AUTH_SECRET must be at least 32 characters in production");
   }
-  if (env.ADMIN_PASSWORD && env.ADMIN_PASSWORD.length < 16) {
-    throw new Error("[env] ADMIN_PASSWORD must be at least 16 characters in production");
+  if (env.ADMIN_PASSWORD && env.ADMIN_PASSWORD.length < 12) {
+    throw new Error("[env] ADMIN_PASSWORD must be at least 12 characters in production");
   }
 }
 

@@ -18,9 +18,15 @@ export function initVapid() {
     return;
   }
 
+  // No stable keys configured: fall back to an ephemeral per-instance pair so
+  // push still works within this process. Never print generated key material
+  // into logs — it looks like a leaked secret and is useless on other
+  // instances anyway. Tell the operator how to pin a stable pair instead.
   const keys = webpush.generateVAPIDKeys();
-  logger.info(
-    `\n[VAPID] Keys not set. Add these to your .env:\nVAPID_PUBLIC_KEY=${keys.publicKey}\nVAPID_PRIVATE_KEY=${keys.privateKey}\nVAPID_EMAIL=mailto:focusarx@gmail.com`
+  logger.warn(
+    "[VAPID] VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY not set — using an ephemeral per-instance key pair; " +
+      "push subscriptions will stop working on the next cold start. Generate a stable pair with " +
+      "`npx web-push generate-vapid-keys` and set VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY (and optionally VAPID_EMAIL).",
   );
   webpush.setVapidDetails(email, keys.publicKey, keys.privateKey);
   vapidInitialized = true;

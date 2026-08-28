@@ -18,11 +18,18 @@
  */
 import { Redis } from "@upstash/redis";
 import type { Store, IncrementResponse } from "express-rate-limit";
-import { getEnv } from "./env";
 
+// NOTE: read the Upstash vars straight from process.env — NOT via getEnv().
+// getEnv() validates the *entire* environment and throws in production when
+// any single variable is invalid, and this module runs at import time
+// (rateLimiter.ts calls getRateLimitStore() at module scope for every limiter
+// definition, and nearly every route file imports a limiter). Routing through
+// getEnv() here meant one bad, unrelated variable (e.g. a too-short
+// ADMIN_PASSWORD) crashed the whole bundle on cold start and 500'd every
+// route in the deployment. These two vars are all this module needs;
+// @upstash/redis fails loudly on its own if they are malformed.
 export function isDistributedLimiterConfigured(): boolean {
-  const env = getEnv();
-  return Boolean(env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN);
+  return Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 }
 
 let sharedClient: Redis | null = null;
@@ -30,11 +37,10 @@ let sharedClient: Redis | null = null;
 function getRedisClient(): Redis | null {
   if (!isDistributedLimiterConfigured()) return null;
   if (!sharedClient) {
-    const env = getEnv();
     // Non-null asserted — guarded by isDistributedLimiterConfigured().
     sharedClient = new Redis({
-      url: env.UPSTASH_REDIS_REST_URL!,
-      token: env.UPSTASH_REDIS_REST_TOKEN!,
+      url: process.env.UPSTASH_REDIS_REST_URL!,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
     });
   }
   return sharedClient;
