@@ -18,7 +18,12 @@ export const EMOTES = [
 ] as const;
 
 const router = Router();
-router.use(authMiddleware);
+// Scoped to the /emotes prefix: this router is mounted at the parent's root,
+// so an unscoped `router.use(authMiddleware)` here ran for EVERY request that
+// reached it — 401-ing every route mounted after this router in index.ts
+// (/api/deployment, /api/feature-flags, /api/recommendations, …) for
+// anonymous callers.
+router.use("/emotes", authMiddleware);
 
 router.get("/emotes", async (req: AuthRequest, res: Response) => {
   const [premium, owned] = await Promise.all([

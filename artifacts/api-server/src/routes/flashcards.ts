@@ -22,7 +22,10 @@ const createCardSchema = z.object({
 /** Leitner box intervals in days: box 1 → 1d, 2 → 3d, 3 → 7d, 4 → 14d, 5 → 30d. */
 const BOX_INTERVALS_DAYS = [0, 1, 3, 7, 14, 30];
 
-router.use(authMiddleware);
+// Scoped to the /flashcards prefix — see the note in emotes.ts: an unscoped
+// router.use(authMiddleware) here leaked auth enforcement to every router
+// mounted after this one in index.ts.
+router.use("/flashcards", authMiddleware);
 
 // ─── DECKS ──────────────────────────────────────────────────────────────────
 
