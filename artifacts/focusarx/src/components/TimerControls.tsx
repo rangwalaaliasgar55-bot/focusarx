@@ -1,4 +1,3 @@
-"use client";
 
 import { motion } from "framer-motion";
 import type { TimerMode, TimerStatus } from "@/types/timer";

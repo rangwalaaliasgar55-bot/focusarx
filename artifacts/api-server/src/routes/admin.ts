@@ -116,7 +116,7 @@ router.delete("/admin/auth", (req, res) => {
 router.get("/admin/users", async (req, res) => {
   if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
-    // Project explicit columns (CLAUDE.md rule #1). A bare
+    // Project explicit columns (see CONTRIBUTING «Database query rules»). A bare
     // `db.select().from(usersTable)` asks for all 17 columns, so if the live DB
     // is missing even one (e.g. referral_code after schema drift) the query
     // throws and this route 500s — which made the admin user list render EMPTY
@@ -176,7 +176,7 @@ router.get("/admin/stats", async (req, res) => {
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 6 * 86400000);
 
-    // Project explicit columns (CLAUDE.md rule #1) — bare selects 500 on drift.
+    // Project explicit columns — bare selects 500 on schema drift.
     const allSessions = await db.select({
       completedAt: focusSessionsTable.completedAt,
       durationSec: focusSessionsTable.durationSec,
@@ -279,7 +279,7 @@ router.get("/admin/users/:id/profile", async (req, res) => {
   if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
   const { id } = req.params as { id: string };
   try {
-    // Explicit column projection (CLAUDE.md rule #1) so schema drift can't 500.
+    // Explicit column projection so schema drift can't 500.
     const [user] = await db.select({
       id: usersTable.id,
       email: usersTable.email,

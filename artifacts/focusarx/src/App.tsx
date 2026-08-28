@@ -85,7 +85,6 @@ const PomodoroGuidePage = lazy(() => import("@/pages/pomodoro-guide"));
 const StudyTechniquesPage = lazy(() => import("@/pages/study-techniques"));
 const VirtualStudyRoomPage = lazy(() => import("@/pages/virtual-study-room"));
 const ConstellationsPage = lazy(() => import("@/pages/constellations"));
-const StyleGuidePage = lazy(() => import("@/pages/style-guide"));
 const ScienceOfDeepWorkPage = lazy(() => import("@/pages/science-of-deep-work"));
 const FeynmanTechniquePage = lazy(() => import("@/pages/feynman-technique"));
 const StudyMethodQuizPage = lazy(() => import("@/pages/study-method-quiz"));
@@ -121,7 +120,9 @@ const queryClient = new QueryClient({
       },
       staleTime: 60_000,
       gcTime: 5 * 60_000,
-      refetchOnWindowFocus: true,
+      // Live data arrives over Socket.IO, and stale queries refetch on mount,
+      // so re-hammering every endpoint on each window focus was pure waste.
+      refetchOnWindowFocus: false,
     },
     mutations: { retry: false },
   },
@@ -316,9 +317,6 @@ function RoutedContent() {
               <Route path="/breathe" component={() => <ErrorBoundary><BreathePage /></ErrorBoundary>} />
               <Route path="/profile" component={() => <ErrorBoundary><ProtectedRoute component={ProfilePage} /></ErrorBoundary>} />
               <Route path="/break-free" component={() => <ErrorBoundary><BreakFreePage /></ErrorBoundary>} />
-
-              {/* Design system style guide */}
-              <Route path="/style-guide" component={() => <ErrorBoundary><Suspense fallback={null}><StyleGuidePage /></Suspense></ErrorBoundary>} />
 
               {/* Legal */}
               <Route path="/privacy" component={() => <ErrorBoundary><PrivacyPage /></ErrorBoundary>} />

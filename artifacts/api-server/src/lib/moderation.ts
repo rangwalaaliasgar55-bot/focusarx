@@ -40,7 +40,7 @@ const BLOCKED_PATTERNS: Array<{ re: RegExp; reason: string }> = [
 const FLAG_PATTERNS: Array<{ re: RegExp; reason: string }> = [
   { re: /\b(drug|weed|cocaine|heroin|meth|pill)\b/i, reason: "Substance reference" },
   { re: /\b(hack|cheat|exploit|bot)\b.{0,30}\b(account|leaderboard|coins|xp)\b/i, reason: "Possible cheating / exploitation" },
-  { re: /https?:\/\/(?!focusarx\.(site|app|vercel\.app|replit\.app|replit\.dev))[^\s]+/i, reason: "External link" },
+  { re: /https?:\/\/(?!focusarx\.(site|app|vercel\.app))[^\s]+/i, reason: "External link" },
   { re: /\b(click here|check out my|dm me|follow me back)\b.{0,40}\b(link|page|profile|channel)\b/i, reason: "Promotional / self-promotion" },
 ];
 

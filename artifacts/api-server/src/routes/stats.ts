@@ -305,7 +305,7 @@ router.get("/stats/onboarding", authMiddleware, async (req: AuthRequest, res: Re
   }
 });
 
-// Project explicit columns (CLAUDE.md rule #1) — a bare select couples this to
+// Project explicit columns — a bare select couples this to
 // the whole study_streaks schema and 500s on schema drift.
 async function handleStreak(req: AuthRequest, res: Response) {
   try {

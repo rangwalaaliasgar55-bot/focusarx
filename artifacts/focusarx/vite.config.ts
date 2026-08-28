@@ -9,25 +9,10 @@ const basePath = process.env.BASE_PATH ?? "/";
 
 export default defineConfig({
   base: basePath,
-  plugins: [
-    react(),
-    tailwindcss(),
-    ...(process.env.NODE_ENV !== "production" && process.env.REPL_ID !== undefined
-      ? [
-          await import("@replit/vite-plugin-runtime-error-modal").then((m) => m.default()),
-          await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer({
-              root: path.resolve(import.meta.dirname, ".."),
-            }),
-          ),
-          await import("@replit/vite-plugin-dev-banner").then((m) => m.devBanner()),
-        ]
-      : []),
-  ],
+  plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "src"),
-      "@assets": path.resolve(import.meta.dirname, "..", "..", "attached_assets"),
     },
     dedupe: ["react", "react-dom", "@workspace/api-client-react"],
   },
@@ -38,7 +23,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          "vendor-react": ["react", "react-dom"],
+          "vendor-react": ["react", "react-dom", "react-dom/client"],
           "vendor-motion": ["framer-motion"],
           "vendor-query": ["@tanstack/react-query"],
           "vendor-ui": ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu"],
@@ -73,7 +58,7 @@ export default defineConfig({
     },
   },
   preview: {
-    port: Number.isNaN(port) ? 4173 : port,
+    port: 4173,
     host: "0.0.0.0",
     allowedHosts: true,
   },

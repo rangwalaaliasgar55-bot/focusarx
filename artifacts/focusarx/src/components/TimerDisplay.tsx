@@ -1,4 +1,3 @@
-"use client";
 
 import { motion, useReducedMotion } from "framer-motion";
 import { useMemo, useRef, useState, useEffect } from "react";
