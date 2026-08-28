@@ -65,13 +65,17 @@ export function apiErrorMessage(data: unknown, fallback: string): string {
 }
 
 async function fetchSession(): Promise<AuthSession> {
+  // Cookie-first: the httpOnly access cookie is the primary credential and the
+  // 401-recovery path refreshes it silently. The localStorage bearer token is
+  // a legacy fallback (old clients / the OAuth token-param callback).
   const token = getToken();
-  if (!token) return null;
   try {
     const res = await fetch("/api/auth/session", {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      credentials: "include",
     });
     if (!res.ok) {
+      if (res.status === 401 && !token) return null;
       clearToken();
       return null;
     }
@@ -140,6 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(opts),
+        credentials: "include",
       });
 
       // Tolerate non-JSON responses (e.g. a proxy/edge error page) so we can
@@ -150,12 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch {
         data = {};
       }
-      const token =
-        data && typeof data === "object"
-          ? (data as { token?: unknown }).token
-          : undefined;
-
-      if (!res.ok || typeof token !== "string" || !token) {
+      if (!res.ok) {
         const fallback = res.status === 429
           ? "Too many attempts. Please wait a moment and try again."
           : "Authentication failed. Please try again.";
@@ -165,7 +165,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
-      setToken(token);
+      // Bearer retirement: do not persist the legacy token. The httpOnly
+      // cookies set by this response carry the session from here on; the
+      // silent-refresh path renews them. (Old builds still read a stored
+      // token via getToken(), so previously-issued tokens keep working.)
       await refresh();
       trackSiteEvent("user_logged_in", { provider });
       trackGAEvent("login", { method: provider });
