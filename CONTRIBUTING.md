@@ -1,45 +1,127 @@
-# Contributing
+# Contributing to FocusArx
 
-Thanks for taking the time to contribute! 🎉
+Thank you for contributing to FocusArx! This guide covers the workflow, testing requirements, and key conventions.
 
-## How to contribute
+## Local Setup
 
-1. **Fork** the repo and create your branch from `main`.
-2. Make your changes — keep them focused and well-tested.
-3. Follow the existing code style and conventions.
-4. Open a **Pull Request** with a clear title and description:
-   - Use the PR template.
-   - Reference any related issues (`Closes #12`).
-   - Add or update tests where possible.
-
-## Reporting issues
-
-Found a bug or have an idea? Open an **Issue** — the templates make it easy to describe what's happening and what you'd like.
-
-## Database query rules (important)
-
-Schema changes are applied with `drizzle-kit push`, which can abort silently in
-non-interactive deploys — so the live database may lag the Drizzle schema.
-
-1. **Never bare-select on auth/session/critical paths.** `db.select().from(usersTable)`
-   pulls every column in the schema; if one is missing in the live DB the query throws
-   and the route 500s (this once bricked sign-in). Always project explicit columns:
-   ```ts
-   db.select({ id: usersTable.id, email: usersTable.email }).from(usersTable)
+1. **Prerequisites**: Node.js 20+ and `pnpm` (enable via `corepack enable`).
+2. **Clone and install**:
+   ```bash
+   git clone https://github.com/rangwalaaliasgar55-bot/focusarx.git
+   cd focusarx
+   pnpm install
    ```
-   The same applies to `.returning()` — return only the columns you use.
-2. **`getServerConfig()` must never throw** — it runs inside request middleware
-   (e.g. the CORS origin callback); a throw becomes an opaque 500 on every request.
-   Missing-config checks belong in `getConfigErrors()`, which answers 503 with a
-   readable list.
-3. **The JWT shape is fixed by design** — `{ sub, type: "access" }`, issuer
-   `focusarx-api`, audience `focusarx-web`, 7-day expiry. Changing any of it
-   invalidates every active session; do it deliberately.
+3. **Environment variables**: Copy `.env.example` to `.env` and fill in the required values.
+   Only `DATABASE_URL` and `AUTH_SECRET` (32+ chars) are required.
+4. **Database**: Push the schema to your local or Neon database:
+   ```bash
+   pnpm run db:push
+   ```
+5. **Seed data** (optional):
+   ```bash
+   node lib/db/scripts/seed.mjs
+   ```
+6. **Start development servers**:
+   ```bash
+   pnpm run dev   # API on :8080, frontend on :5000
+   ```
 
-## Code of conduct
+## Project Structure
 
-Be respectful and constructive. Harassment and trolling will not be tolerated.
+```text
+/
+├── api/                    # Vercel serverless entry
+├── artifacts/
+│   ├── focusarx/           # React frontend (Vite)
+│   └── api-server/         # Express API (also standalone)
+├── lib/
+│   ├── db/                 # Drizzle schema + migrations
+│   ├── api-spec/           # OpenAPI specification
+│   ├── api-zod/            # Generated Zod types
+│   └── api-client-react/   # Generated typed API client
+├── tests/e2e/              # Playwright tests
+└── docs/                   # Documentation
+```
 
-## License
+## Development Workflow
 
-By contributing, you agree that your contributions are licensed under the same license as this project.
+### Adding a new feature
+
+1. Create a feature branch from `main`.
+2. Make changes to the schema (if needed) in `lib/db/src/schema/`.
+3. Generate a migration: `cd lib/db && npx drizzle-kit generate`
+4. Implement the API route in `artifacts/api-server/src/routes/`.
+5. Update the OpenAPI spec in `lib/api-spec/openapi.yaml`.
+6. Regenerate API types: `cd lib/api-spec && npx orval`
+7. Build the frontend component in `artifacts/focusarx/src/`.
+8. Add tests.
+9. Open a pull request.
+
+### Adding a new database table
+
+1. Define the table in `lib/db/src/schema/` (follow existing patterns).
+2. Add it to `lib/db/src/schema/index.ts` exports.
+3. Generate migration: `cd lib/db && npx drizzle-kit generate`
+4. Push to dev DB: `pnpm run db:push`
+5. Add appropriate indexes for query patterns.
+
+### Changing an API endpoint
+
+1. Update the route handler in `artifacts/api-server/src/routes/`.
+2. Update the OpenAPI spec.
+3. Regenerate types: `cd lib/api-spec && npx orval`
+4. Update frontend consumers.
+5. Add/update tests.
+
+## Testing
+
+```bash
+pnpm run typecheck    # TypeScript across all workspaces
+pnpm run test         # Unit + integration tests (vitest)
+pnpm run build        # Production builds
+```
+
+### Test requirements for PRs
+
+- Unit tests for new utility functions and business logic.
+- Integration tests for API endpoints (auth, authorization, idempotency).
+- Tests for deployment skew protection (see `middlewares/deploymentSkew.test.ts`).
+- Tests for the recommendation engine (see `lib/recommendationEngine.test.ts`).
+- Migration validation runs automatically in CI.
+
+## Database Commands
+
+| Command | Description |
+|---------|-------------|
+| `pnpm run db:push` | Push schema to local dev database |
+| `node lib/db/scripts/seed.mjs` | Seed development data |
+| `node lib/db/scripts/seed.mjs --clear` | Clear seeded data |
+| `node lib/db/scripts/validate-migrations.mjs` | Check migration safety |
+| `node lib/db/scripts/validate-migrations.mjs --strict` | Fail on any destructive SQL |
+
+## Deployment Skew Protection
+
+Every API request carries an `X-FocusArx-Deployment` header. The server detects
+version mismatches and blocks mutations to prevent data corruption during
+rolling deployments. See `artifacts/api-server/src/middlewares/deploymentSkew.ts`.
+
+## Environment Variables
+
+See [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) for the complete reference.
+Required: `DATABASE_URL`, `AUTH_SECRET` (32+ chars).
+Optional: `GROQ_API_KEY`, `GEMINI_API_KEY`, Google OAuth, Resend email, etc.
+
+## Security
+
+- Never commit secrets, API keys, or tokens.
+- Use parameterized queries (Drizzle handles this automatically).
+- Validate all inputs with Zod schemas.
+- Never expose internal error details in production.
+- See [SECURITY.md](SECURITY.md) for vulnerability reporting.
+
+## Code Style
+
+- TypeScript strict mode across all workspaces.
+- Descriptive names, JSDoc comments on public APIs.
+- Small, focused functions with clear error handling.
+- Use the existing patterns — don't introduce new frameworks without discussion.

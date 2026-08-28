@@ -1,12 +1,21 @@
-// FocusArx service worker — production caching strategy.
+// FocusArx service worker — production caching strategy with deployment
+// skew protection.
 //
+// Key features:
 // - Precache the app shell (index.html + manifest + icons) on install.
 // - Network-first for navigation + hashed /assets/* so users always get the
 //   freshest build, falling back to cache when offline.
 // - Never cache /api/* (authenticated data must stay fresh).
-// Bump CACHE_NAME on deploy to invalidate stale caches.
+// - Version-aware cache: each deployment gets its own cache namespace,
+//   preventing stale JS chunks from persisting across deployments.
+// - Supports CLEAR_CACHE messages from the frontend when deployment skew
+//   is detected, triggering a full cache purge before refresh.
+//
+// Bump SW_VERSION when the service worker logic itself changes — this forces
+// the browser to install the new worker and purge old caches.
 
-const CACHE_NAME = "focusarx-v6";
+const SW_VERSION = "focusarx-sw-v7";
+const CACHE_NAME = SW_VERSION;
 
 const APP_SHELL = [
   "/",
@@ -16,6 +25,24 @@ const APP_SHELL = [
   "/icon-512.png",
   "/icon-maskable-512.png",
 ];
+
+// Listen for messages from the frontend (e.g. deployment skew handler)
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "CLEAR_CACHE") {
+    event.waitUntil(
+      caches.keys().then((keys) =>
+        Promise.all(keys.map((key) => caches.delete(key)))
+      ).then(() => {
+        // Re-cache the app shell after clearing
+        return caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL));
+      })
+    );
+  }
+
+  if (event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -30,7 +57,13 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+      .then((keys) =>
+        // Delete all caches that don't match the current SW version.
+        // This ensures stale chunks from previous deployments are purged.
+        Promise.all(
+          keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
+        )
+      )
       .then(() => self.clients.claim())
   );
 });
@@ -44,6 +77,9 @@ self.addEventListener("fetch", (event) => {
 
   // Never cache API calls — they carry per-user auth state.
   if (url.pathname.startsWith("/api/")) return;
+
+  // Never cache the service worker itself or deployment endpoint.
+  if (url.pathname === "/sw.js") return;
 
   const isNavigation = event.request.mode === "navigate";
 
@@ -72,12 +108,11 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Hashed build assets: cache-first (they are immutable), then network.
-  if (url.pathname.startsWith("/assets/") || url.pathname === "/opengraph.jpg") {
+  if (url.pathname.startsWith("/assets/")) {
     event.respondWith(
       caches.match(event.request).then((cached) => {
         if (cached) return cached;
         return fetch(event.request).then((resp) => {
-          // Only cache successful responses
           if (resp && resp.ok) {
             const clone = resp.clone();
             caches.open(CACHE_NAME).then((c) => c.put(event.request, clone));
@@ -92,9 +127,15 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Everything else: network-first, fall back to cache.
+  // Everything else (images, fonts, static files): network-first, fall back to cache.
   event.respondWith(
-    fetch(event.request).catch(() => {
+    fetch(event.request).then((resp) => {
+      if (resp && resp.ok) {
+        const clone = resp.clone();
+        caches.open(CACHE_NAME).then((c) => c.put(event.request, clone));
+      }
+      return resp;
+    }).catch(() => {
       return caches.match(event.request).then((cached) => {
         return cached || new Response("Offline", { status: 503, statusText: "Service Unavailable" });
       });

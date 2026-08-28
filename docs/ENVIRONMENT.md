@@ -61,6 +61,31 @@ Without Resend or SMTP: admin blasts/moderation digests are skipped (logged), pa
 
 Google OAuth placeholders (`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`) are read into config but no OAuth route is currently implemented — optional.
 
+## 🚀 Deployment Skew Protection (set automatically on Vercel)
+
+These variables are injected by Vercel during builds and deployments. They power
+the deployment skew protection system that prevents users from loading frontend
+assets from one deployment while API requests go to another.
+
+| Variable | Read by | Purpose |
+|---|---|---|
+| `VERCEL_DEPLOYMENT_ID` | `lib/deploymentVersion.ts`, `vite.config.ts` | Unique per-deployment identifier. Used as the canonical deployment version. |
+| `VERCEL_GIT_COMMIT_SHA` | `lib/deploymentVersion.ts`, `vite.config.ts` | Git commit SHA (fallback when deployment ID unavailable). |
+| `VERCEL_ENV` | `lib/deploymentVersion.ts` | `production`, `preview`, or `development`. Controls environment-specific behavior. |
+| `DEPLOYMENT_VERSION` | `lib/deploymentVersion.ts` | Explicit deployment version override (for Docker / custom deploys). |
+| `VITE_DEPLOYMENT_VERSION` | Frontend (via `define`) | Deployment version baked into the frontend at build time. |
+
+### How deployment skew protection works
+
+1. The frontend embeds its build version at compile time (`__DEPLOYMENT_VERSION__`).
+2. Every API request includes an `X-FocusArx-Deployment` header with the frontend version.
+3. The server compares this header with its own version.
+4. On mismatch: GET requests pass through (safe), mutations are blocked (409).
+5. The frontend polls `GET /api/deployment` every 5 minutes + on window focus.
+6. On detected skew: an "Update available" banner is shown (non-destructive).
+7. User clicks "Update now" → form data is saved → hard refresh loads new deployment.
+8. The service worker clears its cache on `CLEAR_CACHE` messages to purge stale chunks.
+
 ## Quick start (minimum viable prod)
 
 ```bash

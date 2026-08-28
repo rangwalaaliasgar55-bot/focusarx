@@ -273,12 +273,24 @@ router.post("/auth/register", authLimiter, async (req, res) => {
       return;
     }
     const hashedPassword = await bcrypt.hash(password, 12);
-    const [user] = await db.insert(usersTable).values({ email, name: name || null, hashedPassword, isGuest: false }).returning({ id: usersTable.id, email: usersTable.email });
+    const [user] = await db.insert(usersTable).values({ email, name: name || null, hashedPassword, isGuest: false }).returning({ id: usersTable.id, email: usersTable.email, name: usersTable.name });
     if (!user) {
       res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to create user" } });
       return;
     }
-    res.status(201).json({ message: "Account created", user: { id: user.id, email: user.email } });
+
+    // Auto-login after registration: issue tokens + cookies so the user
+    // doesn't need a separate login step. This prevents the common failure
+    // mode where the login request arrives before the registration is fully
+    // committed, or where the user's browser navigates away before login.
+    const { accessToken, legacyToken } = await issueRefreshCredentials(res, user.id, secret, req);
+
+    res.status(201).json({
+      message: "Account created",
+      token: legacyToken,
+      accessToken,
+      user: { id: user.id, email: user.email, name: user.name, isGuest: false },
+    });
   } catch (err) {
     logger.error({ err }, "register error");
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });

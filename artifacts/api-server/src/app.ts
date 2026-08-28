@@ -12,6 +12,7 @@ import { getConfigErrors, getServerConfig } from "./lib/config";
 import { getEnv } from "./lib/env";
 import { generalLimiter } from "./lib/rateLimiter";
 import { masterSecurityMiddleware } from "./middlewares/security";
+import { deploymentVersionHeaders, deploymentSkewGuard } from "./middlewares/deploymentSkew";
 import { isMaintenanceMode } from "./lib/siteSettings";
 
 const isDev = process.env.NODE_ENV !== "production";
@@ -172,8 +173,8 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-Request-Id"],
-    exposedHeaders: ["X-Request-Id"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-Request-Id", "X-FocusArx-Deployment"],
+    exposedHeaders: ["X-Request-Id", "X-FocusArx-Deployment", "X-FocusArx-Deploy-Env"],
     maxAge: 86400,
   }),
 );
@@ -199,6 +200,10 @@ app.use((_req, res, next) => {
 });
 
 app.use("/api", generalLimiter);
+// Deployment skew protection — attach version headers and guard mutations.
+// Must run before route handlers so every response carries the version.
+app.use("/api", deploymentVersionHeaders);
+app.use("/api", deploymentSkewGuard);
 app.use("/api", (req, res, next) => {
   if (req.path === "/healthz" || req.path.startsWith("/healthz/")) {
     next();

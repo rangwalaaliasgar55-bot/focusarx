@@ -1,4 +1,5 @@
-import { clearToken, getToken } from "@/lib/auth";
+import { clearToken, getToken, setToken } from "@/lib/auth";
+import { FRONTEND_DEPLOYMENT_VERSION, recordServerVersion } from "@/lib/deploymentSkew";
 
 export class ApiError extends Error {
   constructor(public status: number, message = "Request failed") {
@@ -28,7 +29,22 @@ export function tryRefreshSession(): Promise<boolean> {
         headers: { "Content-Type": "application/json" },
         body: "{}",
       });
-      return res.ok;
+      if (res.ok) {
+        // Persist the new access token in localStorage so apiFetch can use
+        // it as the Authorization header. Without this, the Bearer token
+        // stays stale (or null) after refresh, and subsequent requests fail.
+        try {
+          const data = await res.json() as { accessToken?: string; token?: string };
+          const newToken = data.accessToken ?? data.token;
+          if (newToken) {
+            setToken(newToken);
+          }
+        } catch {
+          // Non-JSON body — cookies are still the primary credential
+        }
+        return true;
+      }
+      return false;
     } catch {
       return false;
     }
@@ -63,7 +79,30 @@ export async function apiFetch(path: string, init: RequestInit = {}, _retried = 
   if (token) headers.set("Authorization", `Bearer ${token}`);
   if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
 
+  // Attach deployment version header for skew protection.
+  // This lets the server detect when the frontend and backend are from
+  // different deployments and block mutations to prevent data corruption.
+  headers.set("X-FocusArx-Deployment", FRONTEND_DEPLOYMENT_VERSION);
+
   const response = await fetch(path, { ...init, headers, credentials: "include" });
+
+  // Record the server's deployment version from the response header.
+  const serverVersion = response.headers.get("X-FocusArx-Deployment");
+  if (serverVersion) recordServerVersion(serverVersion);
+
+  // Handle deployment skew: 409 from the server means version mismatch on a mutation.
+  if (response.status === 409) {
+    const body = await response.json().catch(() => ({}));
+    if (body?.error?.code === "DEPLOYMENT_SKEW") {
+      window.dispatchEvent(
+        new CustomEvent("focusarx:deployment-skew", {
+          detail: { status: 409, code: "DEPLOYMENT_SKEW", serverVersion: body.error.serverVersion },
+        })
+      );
+      throw new ApiError(409, body.error.message ?? "A new version is available. Please refresh.");
+    }
+  }
+
   if (response.status === 401 && !_retried && !isAuthPath(path)) {
     // Bearer token expired/absent — try the httpOnly cookie refresh once, then
     // replay the original request. Only a failed refresh clears the session.

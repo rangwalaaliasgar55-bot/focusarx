@@ -64,6 +64,9 @@ import { battlePassEnhancedRouter } from "./battlePassEnhanced";
 import { adminTokensRouter } from "./adminTokens";
 import { cosmeticsRouter } from "./cosmetics";
 import { featureFlagsRouter } from "./featureFlags";
+import { deploymentRouter } from "./deployment";
+import { recommendationsRouter } from "./recommendations";
+import { dbHealthRouter } from "./dbHealth";
 
 const router: IRouter = Router();
 
@@ -132,5 +135,8 @@ router.use(battlePassEnhancedRouter);
 router.use(adminTokensRouter);
 router.use(cosmeticsRouter);
 router.use(featureFlagsRouter);
+router.use(deploymentRouter);
+router.use(recommendationsRouter);
+router.use(dbHealthRouter);
 
 export default router;

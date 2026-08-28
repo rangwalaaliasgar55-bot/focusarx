@@ -33,6 +33,8 @@ import { CookieConsent } from "@/components/CookieConsent";
 import { MaintenanceGate } from "@/components/MaintenanceGate";
 import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 import SeasonalBanner from "@/components/SeasonalBanner";
+import { DeploymentUpdateBanner } from "@/components/DeploymentUpdateBanner";
+import { useDeploymentSkewDetector } from "@/lib/deploymentSkew";
 
 const OnboardingPage = lazy(() => import("@/pages/onboarding"));
 const DashboardPage = lazy(() => import("@/pages/dashboard"));
@@ -102,6 +104,7 @@ const FlashcardsPage = lazy(() => import("@/pages/flashcards"));
 const TasksPage = lazy(() => import("@/pages/tasks"));
 const SessionReplayPage = lazy(() => import("@/pages/session-replay"));
 const ComparisonPage = lazy(() => import("@/pages/comparison"));
+const DeveloperPage = lazy(() => import("@/pages/developer"));
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -290,6 +293,7 @@ function RoutedContent() {
               <Route path="/focus-music" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><FocusMusicPage /></Suspense></ErrorBoundary>} />
               <Route path="/search" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><SearchPage /></Suspense></ErrorBoundary>} />
               <Route path="/referral" component={() => <ErrorBoundary><ProtectedRoute component={ReferralPage} /></ErrorBoundary>} />
+              <Route path="/developer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><DeveloperPage /></Suspense></ErrorBoundary>} />
 
               {/* New V12 pages */}
               <Route path="/pets" component={() => <ErrorBoundary><ProtectedRoute component={PetsPage} /></ErrorBoundary>} />
@@ -395,6 +399,7 @@ function AppWithPalette() {
         </Suspense>
       )}
       <AnnouncementBanner />
+      <DeploymentUpdateBanner />
       {status === "authenticated" && <div className="px-3 pt-2 sm:px-5"><SeasonalBanner /></div>}
       <DailyRewardBanner />
       <LiveActivityTicker />
@@ -414,6 +419,10 @@ function AppWithPalette() {
 
 function App() {
   const [isFocusing, setIsFocusing] = useState(false);
+
+  // Deployment skew detection — polls for new deployments and checks
+  // response headers to detect version mismatches.
+  useDeploymentSkewDetector();
 
   useEffect(() => {
     const start = () => setIsFocusing(true);

@@ -2,14 +2,32 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import { execSync } from "child_process";
 
 const rawPort = process.env.PORT ?? "5173";
 const port = Number(rawPort);
 const basePath = process.env.BASE_PATH ?? "/";
 
+// Deployment version — baked into the frontend at build time.
+// Priority: Vercel deployment ID > git commit SHA > explicit env > "dev-local"
+function getDeploymentVersion(): string {
+  if (process.env.VERCEL_DEPLOYMENT_ID) return process.env.VERCEL_DEPLOYMENT_ID;
+  if (process.env.VERCEL_GIT_COMMIT_SHA) return process.env.VERCEL_GIT_COMMIT_SHA.slice(0, 12);
+  if (process.env.VITE_DEPLOYMENT_VERSION) return process.env.VITE_DEPLOYMENT_VERSION;
+  try {
+    return execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim();
+  } catch {
+    return "dev-local";
+  }
+}
+
 export default defineConfig({
   base: basePath,
   plugins: [react(), tailwindcss()],
+  define: {
+    __DEPLOYMENT_VERSION__: JSON.stringify(getDeploymentVersion()),
+    "import.meta.env.VITE_DEPLOYMENT_VERSION": JSON.stringify(getDeploymentVersion()),
+  },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "src"),

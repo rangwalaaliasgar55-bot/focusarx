@@ -67,15 +67,37 @@ export function apiErrorMessage(data: unknown, fallback: string): string {
 async function fetchSession(): Promise<AuthSession> {
   // Cookie-first: the httpOnly access cookie is the primary credential and the
   // 401-recovery path refreshes it silently. The localStorage bearer token is
-  // a legacy fallback (old clients / the OAuth token-param callback).
+  // a fallback for environments where Set-Cookie propagation is unreliable
+  // (some Vercel serverless / edge scenarios).
   const token = getToken();
   try {
     const res = await fetch("/api/auth/session", {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       credentials: "include",
     });
+
     if (!res.ok) {
-      if (res.status === 401 && !token) return null;
+      // If session check failed, try a silent refresh before giving up.
+      // The 15-min access token/cookie may have expired while the 7-day
+      // refresh cookie is still valid. This prevents unnecessary logouts.
+      if (res.status === 401) {
+        const refreshed = await tryRefreshSession();
+        if (refreshed) {
+          // After refresh, the server set new cookies. Also update the
+          // localStorage token from the refresh response.
+          const retryRes = await fetch("/api/auth/session", {
+            headers: { Authorization: `Bearer ${getToken() ?? ""}` },
+            credentials: "include",
+          });
+          if (retryRes.ok) {
+            const data = await retryRes.json() as { user: AuthUser };
+            if (data.user?.onboardingCompleted) {
+              localStorage.setItem("onboardingComplete", "true");
+            }
+            return { user: data.user };
+          }
+        }
+      }
       clearToken();
       return null;
     }
@@ -165,10 +187,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
-      // Bearer retirement: do not persist the legacy token. The httpOnly
-      // cookies set by this response carry the session from here on; the
-      // silent-refresh path renews them. (Old builds still read a stored
-      // token via getToken(), so previously-issued tokens keep working.)
+      // Persist the short-lived access token in localStorage as a fallback
+      // for the Authorization header. The httpOnly cookies remain the primary
+      // credential (automatic cookie sending via credentials: "include"), but
+      // some serverless/edge environments don't propagate Set-Cookie reliably.
+      // The localStorage token ensures apiFetch always has a Bearer to attach.
+      const responseData = data as { token?: string; accessToken?: string };
+      const bearerToken = responseData.accessToken ?? responseData.token;
+      if (bearerToken) {
+        setToken(bearerToken);
+      }
+
       await refresh();
       trackSiteEvent("user_logged_in", { provider });
       trackGAEvent("login", { method: provider });

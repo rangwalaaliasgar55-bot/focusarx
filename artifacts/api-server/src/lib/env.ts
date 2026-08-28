@@ -61,6 +61,12 @@ const envSchema = z.object({
 
   // Vercel
   VERCEL: z.string().optional(),
+  VERCEL_ENV: z.string().optional(),
+  VERCEL_DEPLOYMENT_ID: z.string().optional(),
+  VERCEL_GIT_COMMIT_SHA: z.string().optional(),
+
+  // Deployment version override
+  DEPLOYMENT_VERSION: z.string().optional(),
 });
 
 type RawEnv = z.infer<typeof envSchema>;

@@ -13,7 +13,10 @@
     "push": "node ./scripts/cleanup-orphans.mjs && node ./scripts/push.mjs",
     "push-force": "drizzle-kit push --force --config ./drizzle.config.ts",
     "push:vercel": "node ./scripts/push-vercel.mjs",
-    "test:db": "node ./scripts/test-db.mjs"
+    "test:db": "node ./scripts/test-db.mjs",
+    "seed": "node ./scripts/seed.mjs",
+    "seed:clear": "node ./scripts/seed.mjs --clear",
+    "validate-migrations": "node ./scripts/validate-migrations.mjs"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",

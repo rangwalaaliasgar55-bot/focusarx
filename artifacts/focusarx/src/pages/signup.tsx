@@ -24,7 +24,7 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [, navigate] = useLocation();
-  const { signIn } = useAuth();
+  const { signIn, refresh } = useAuth();
   const { toast } = useToast();
   const strength = useMemo(() => passwordScore(password), [password]);
   const strengthLabel = ["Add a password", "Weak", "Fair", "Good", "Strong"][strength];
@@ -47,18 +47,24 @@ export default function SignupPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), email: email.trim(), password }),
+        credentials: "include",
       });
       const data: unknown = await response.json().catch(() => ({}));
       if (!response.ok) {
         setError(apiErrorMessage(data, "Your account could not be created. Try again."));
         return;
       }
-      const login = await signIn("credentials", { email: email.trim(), password });
-      if (!login.ok) {
-        toast("Account created. Sign in to continue.", "success");
-        navigate("/login");
-        return;
+
+      // Register now auto-logs in (returns tokens + sets cookies).
+      // Store the access token so subsequent requests work immediately.
+      const responseData = data as { token?: string; accessToken?: string };
+      const bearerToken = responseData.accessToken ?? responseData.token;
+      if (bearerToken) {
+        localStorage.setItem("focusarx-auth-token", bearerToken);
       }
+      // Refresh the auth context to pick up the session.
+      await refresh();
+
       trackSiteEvent("user_signed_up", { email: email.split("@")[1] ?? "unknown" });
       trackGAEvent("sign_up", { method: "email" });
       toast("Your FocusArx workspace is ready", "success");
