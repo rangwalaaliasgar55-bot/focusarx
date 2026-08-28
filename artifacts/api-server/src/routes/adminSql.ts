@@ -28,7 +28,15 @@ const router = Router();
 
 const UNLOCK_PHRASE = "FOCUSARX SQL WRITE MODE";
 const UNLOCK_WINDOW_MS = 15 * 60_000; // 15 minutes
-const META_KEY = "sql_console_write_unlock";
+/**
+ * Per-admin unlock keys — an unlock window grants write access only to the
+ * admin who typed the phrase, never to every admin at once (the shared
+ * `sql_console_write_unlock` key let any admin — or anyone holding their
+ * cookie — ride another admin's window).
+ */
+export function unlockMetaKey(adminId: string): string {
+  return `sql_console_write_unlock:${adminId}`;
+}
 const MAX_STATEMENTS = 10;
 const MAX_STATEMENT_CHARS = 20_000;
 const MAX_RETURN_ROWS = 200;
@@ -52,8 +60,8 @@ interface UnlockState {
   by: string; // admin id
 }
 
-async function readUnlock(): Promise<UnlockState | null> {
-  const rows = await db.select().from(platformMetaTable).where(eq(platformMetaTable.key, META_KEY));
+async function readUnlock(adminId: string): Promise<UnlockState | null> {
+  const rows = await db.select().from(platformMetaTable).where(eq(platformMetaTable.key, unlockMetaKey(adminId)));
   const row = rows[0];
   if (!row) return null;
   try {
@@ -66,8 +74,8 @@ async function readUnlock(): Promise<UnlockState | null> {
   }
 }
 
-async function isWriteUnlocked(): Promise<{ unlocked: boolean; remainingMs: number; by: string | null }> {
-  const state = await readUnlock();
+async function isWriteUnlocked(adminId: string): Promise<{ unlocked: boolean; remainingMs: number; by: string | null }> {
+  const state = await readUnlock(adminId);
   if (!state) return { unlocked: false, remainingMs: 0, by: null };
   const remainingMs = state.at + UNLOCK_WINDOW_MS - Date.now();
   return { unlocked: remainingMs > 0, remainingMs: Math.max(0, remainingMs), by: state.by };
@@ -209,8 +217,8 @@ router.get("/admin/sql/status", async (req, res) => {
   const adminId = await guard(req, res);
   if (!adminId) return;
   try {
-    const state = await readUnlock();
-    const { unlocked, remainingMs, by } = await isWriteUnlocked();
+    const state = await readUnlock(adminId);
+    const { unlocked, remainingMs, by } = await isWriteUnlocked(adminId);
     res.json({
       enabled: process.env.ENABLE_ADMIN_SQL !== "false",
       writeUnlocked: unlocked,
@@ -243,7 +251,7 @@ router.post("/admin/sql/unlock", unlockLimiter, async (req, res) => {
     const at = Date.now();
     await db
       .insert(platformMetaTable)
-      .values({ key: META_KEY, value: { at, by: adminId } })
+      .values({ key: unlockMetaKey(adminId), value: { at, by: adminId } })
       .onConflictDoUpdate({ target: platformMetaTable.key, set: { value: { at, by: adminId } } });
     await db.insert(adminSqlLogTable).values({ adminId, sql: "-- write mode unlocked", kind: "write", status: "ok", rowsAffected: 0 });
     res.json({ writeUnlocked: true, remainingMs: UNLOCK_WINDOW_MS, by: adminId });
@@ -294,7 +302,7 @@ router.post("/admin/sql/query", queryLimiter, async (req, res) => {
   const hasDestructive = classified.some((c) => c.isDestructive);
 
   if (hasWrite) {
-    const win = await isWriteUnlocked();
+    const win = await isWriteUnlocked(adminId);
     if (!win.unlocked) {
       await db.insert(adminSqlLogTable).values({
         adminId,

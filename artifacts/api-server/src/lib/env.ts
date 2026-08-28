@@ -54,6 +54,11 @@ const envSchema = z.object({
   VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),
 
+  // Email delivery (Resend preferred, SMTP fallback) + cron auth
+  RESEND_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().optional(),
+  CRON_SECRET: z.string().min(16).optional(),
+
   // Vercel
   VERCEL: z.string().optional(),
 });

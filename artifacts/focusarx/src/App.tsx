@@ -219,7 +219,7 @@ function SocketInitializer() {
     if (status !== "authenticated") return;
     const token = localStorage.getItem("focusarx-auth-token");
     if (!token) return;
-    connectSocket(token);
+    void connectSocket(token);
     return () => { disconnectSocket(); };
   }, [status, session?.user?.id]);
   return null;

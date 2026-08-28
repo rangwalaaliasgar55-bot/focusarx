@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { rateLimit } from "express-rate-limit";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
@@ -10,6 +11,7 @@ import { logger } from "../lib/logger";
 import { getServerConfig } from "../lib/config";
 import { authLimiter, forgotPasswordLimiter } from "../lib/rateLimiter";
 import { createRefreshFamily, rotateRefreshToken, revokeRefreshToken, revokeAllUserRefreshTokens } from "../lib/refreshTokens";
+import { issueSocketTicket } from "../lib/socketTickets";
 
 const loginSchema = z.object({
   email: z.string().email().max(254).toLowerCase().trim(),
@@ -289,7 +291,7 @@ router.post("/auth/register", authLimiter, async (req, res) => {
   }
 });
 
-router.post("/auth/guest", async (req, res) => {
+router.post("/auth/guest", authLimiter, async (req, res) => {
   const secret = jwtSecretOrRespond(res);
   if (!secret) return;
   const { guestKey } = req.body as { guestKey?: string };
@@ -332,7 +334,21 @@ router.post("/auth/guest", async (req, res) => {
   }
 });
 
-router.post("/auth/refresh", async (req, res) => {
+// Lighter than login: legitimate clients refresh every ~14 min per tab.
+const refreshLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: IS_PROD ? 30 : 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // Only count requests that actually present a refresh credential —
+    // empty 401s are cheap and usually just logged-out page loads.
+    const cookies = (req as { cookies?: Record<string, string> }).cookies ?? {};
+    return !cookies.refresh_token && !(req.body as { refreshToken?: string } | null)?.refreshToken;
+  },
+});
+
+router.post("/auth/refresh", refreshLimiter, async (req, res) => {
   const secret = jwtSecretOrRespond(res);
   if (!secret) return;
 
@@ -404,6 +420,21 @@ router.post("/auth/logout", async (req, res) => {
   }
   clearAuthCookies(res);
   res.json({ ok: true });
+});
+
+// ── Socket tickets (short-lived handshake credentials) ────────────────────
+// The SPA exchanges its session for a 60s socket-scoped ticket, so the
+// long-lived bearer token never rides the Socket.IO handshake.
+
+router.get("/auth/socket-ticket", async (req, res) => {
+  const secret = jwtSecretOrRespond(res);
+  if (!secret) return;
+  const userId = extractUserId(req);
+  if (!userId) {
+    res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Unauthorized" } });
+    return;
+  }
+  res.json(issueSocketTicket(userId, secret));
 });
 
 // ── Password change (authenticated) ───────────────────────────────────────
@@ -638,8 +669,8 @@ router.post("/auth/reset-password", authLimiter, async (req, res) => {
   try {
     const now = new Date();
     const hashedPassword = await bcrypt.hash(password, 12);
-    const consumed = await db.transaction(async (tx) => {
-      const [resetToken] = await tx.update(passwordResetTokensTable)
+    const resetToken = await db.transaction(async (tx) => {
+      const [row] = await tx.update(passwordResetTokensTable)
         .set({ usedAt: now })
         .where(and(
           eq(passwordResetTokensTable.token, hashResetToken(token)),
@@ -647,15 +678,19 @@ router.post("/auth/reset-password", authLimiter, async (req, res) => {
           isNull(passwordResetTokensTable.usedAt),
         ))
         .returning({ id: passwordResetTokensTable.id, userId: passwordResetTokensTable.userId });
-      if (!resetToken) return false;
-      await tx.update(usersTable).set({ hashedPassword }).where(eq(usersTable.id, resetToken.userId));
-      return true;
+      if (!row) return null;
+      await tx.update(usersTable).set({ hashedPassword }).where(eq(usersTable.id, row.userId));
+      return row;
     });
 
-    if (!consumed) {
+    if (!resetToken) {
       res.status(400).json({ error: { code: "INVALID_TOKEN", message: "Reset link is invalid or expired" } });
       return;
     }
+    // A password reset means the credential changed (usually a lockout) —
+    // every refresh family dies here so stolen sessions cannot survive it.
+    await revokeAllUserRefreshTokens(resetToken.userId);
+    logger.info({ userId: resetToken.userId }, "password reset — all refresh tokens revoked");
     res.json({ ok: true });
   } catch (err) {
     logger.error({ err }, "reset password error");

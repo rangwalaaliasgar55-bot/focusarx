@@ -274,5 +274,12 @@ Dependency posture: pnpm overrides pin patched `qs`/`ws`/`socket.io-parser`; `mi
 13. ✅ `/api/admin/users`: bounded pagination + server-side `?search=`, aggregates scoped to the page via `inArray` (was: global group-by of the whole sessions table), legacy envelope preserved, legacy window capped at 500.
 14. ✅ Retention cron: bounded-parallel batches of 10 with per-candidate failure isolation (one bad candidate no longer 500s the whole run).
 
-**Phase 5 — remaining tracked items (P2, require maintainer decisions)**
-15. localStorage-bearer phase-out (Socket.IO auth consumes it today — needs a cookie-based socket handshake or short-lived socket tickets); nonce-based CSP; legacy table consolidation (posts/coins/battle-pass duplicates); per-admin SQL-console write unlock; `timestamp` → `timestamptz` migration plan; OpenAPI spec coverage beyond break-free (6 of ~360 endpoints).
+**Phase 5 — implemented (third pass)**
+15. ✅ Socket tickets: `GET /api/auth/socket-ticket` issues a 60s, audience-pinned (`focusarx-socket`), type-scoped ticket; `socketManager` prefers it over the legacy bearer (5 unit tests incl. audience-pinning + expiry). The SPA handshake no longer carries the long-lived localStorage JWT.
+16. ✅ Password reset now revokes **all** refresh families (the reset is a lockout — previously stolen sessions survived it); `/auth/guest` rate-limited (was an unauthenticated user-creation vector); `/auth/refresh` rate-limited with a skip for credential-less requests; admin cookie `SameSite=Strict` in production.
+17. ✅ Per-admin SQL-console write unlock (`sql_console_write_unlock:<adminId>`) — one admin's window no longer opens writes for every admin/stolen cookie.
+18. ✅ Proactive client refresh routed through the single-flight Web-Locks helper (no cross-tab rotation races).
+19. ✅ `docs/TIMESTAMPTZ_MIGRATION.md`: the zero-downtime `timestamp`→`timestamptz` plan (metadata-only UTC conversion, catalog-generated script, day-key rationale, rollback).
+
+**Phase 6 — remaining items (require maintainer decisions)**
+20. localStorage-bearer full phase-out (cookie-auth works for HTTP today; the bearer remains for deep-links/legacy and as the socket-ticket bootstrap — the remaining step is a product call on when to retire it); nonce-based CSP (needs the SPA HTML served by the function rather than static hosting); legacy table consolidation (posts/coins/battle-pass duplicates); OpenAPI spec coverage beyond break-free (6 of ~360 endpoints) — extending the spec requires a coordinated orval regeneration. CI activation: copy `docs/ci-workflow.example.yml` → `.github/workflows/ci.yml` (needs the `workflows` permission).

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { linkAnalyticsUser, trackSiteEvent } from "@/lib/site-analytics";
+import { tryRefreshSession } from "@/lib/api";
 import { trackEvent as trackGAEvent } from "@/lib/gtag";
 
 export type AuthUser = {
@@ -102,17 +103,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   // Keep the httpOnly refresh cookie warm: rotate it every 14 minutes while
-  // signed in, so cookie-based sessions (and the 401-recovery path) stay valid
-  // even when the localStorage bearer token outlives its 7-day window.
+  // signed in. Uses the shared single-flight + Web-Locks helper so concurrent
+  // tabs share one rotation instead of racing the same refresh family.
   useEffect(() => {
     if (status !== "authenticated") return;
     const id = window.setInterval(() => {
-      void fetch("/api/auth/refresh", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: "{}",
-      }).catch(() => undefined);
+      void tryRefreshSession();
     }, 14 * 60 * 1000);
     return () => window.clearInterval(id);
   }, [status]);
