@@ -264,7 +264,7 @@ Dependency posture: pnpm overrides pin patched `qs`/`ws`/`socket.io-parser`; `mi
 6. ✅ Flashcard deck counts scoped to the user's decks (was: full cross-user table scan ×2).
 7. ✅ `useSocketEvent` attach race fixed (handlers now attach whenever the socket appears).
 8. ✅ `ThreeBackground`: `prefers-reduced-motion` honored (static frame, no animation loop), battery-tier DPR/power preference.
-9. ✅ CI wired: `.github/workflows/ci.yml` (typecheck + tests + build + migration-name check + `pnpm audit --prod` + Playwright a11y + gitleaks), from the previously-unwired `docs/ci-workflow.example.yml`.
+9. ✅ CI pipeline definition finalized in `docs/ci-workflow.example.yml` (typecheck + tests + build + migration-name check + `pnpm audit --prod` + Playwright a11y + gitleaks). **To activate:** copy it to `.github/workflows/ci.yml` from an account with the `workflows` permission — the sandbox GitHub App is not allowed to create workflow files, so the file lives in `docs/` ready for a one-line copy.
 10. ✅ Formal `AiProvider` interface (`lib/aiService.ts`: `generateText` + `moderate`) adapting the unified gateway and two-layer moderator; DI-friendly for tests; contract tests included; fixed wasted budget DB queries on zero-key deployments.
 
 **Phase 4 — tracked follow-ups (P1/P2, not in this change set)**
