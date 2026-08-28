@@ -5,6 +5,7 @@ import { extractUserId } from "./auth";
 import { db, loginRewardsTable, userWalletsTable, notificationsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { mintCoins } from "../lib/coinLedger";
+import { istToday } from "../lib/istDate";
 
 export const dailyRewardRouter = Router();
 
@@ -18,11 +19,10 @@ const STREAK_REWARDS = [
   { day: 7, coins: 200, xp: 400, label: "Week 🎉", icon: "🏆" },
 ];
 
-function getToday() { return new Date().toISOString().split("T")[0]; }
-function yesterday() {
-  const d = new Date(); d.setDate(d.getDate() - 1);
-  return d.toISOString().split("T")[0];
-}
+// IST day keys — the canonical calendar shared with session streaks,
+// missions and the retention login-reward endpoint (lib/istDate.ts).
+function getToday() { return istToday(); }
+function yesterday() { return istToday(new Date(Date.now() - 86_400_000)); }
 
 dailyRewardRouter.get("/daily-reward/status", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
@@ -45,51 +45,59 @@ dailyRewardRouter.get("/daily-reward/status", authMiddleware, async (req: AuthRe
 
 dailyRewardRouter.post("/daily-reward/claim", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    let [reward] = await db.select().from(loginRewardsTable).where(eq(loginRewardsTable.userId, req.userId)).limit(1);
-    const today = getToday();
+    // Transaction + row lock: concurrent claims (double-click, second tab, or
+    // the parallel /retention/login-reward/claim endpoint on the same row)
+    // serialize; the loser sees the already-claimed date and 400s.
+    const claimed = await db.transaction(async (tx) => {
+      let [reward] = await tx.select().from(loginRewardsTable).where(eq(loginRewardsTable.userId, req.userId)).limit(1).for("update");
+      const today = getToday();
 
-    if (!reward) {
-      [reward] = await db.insert(loginRewardsTable).values({ userId: req.userId }).returning();
-    }
+      if (!reward) {
+        [reward] = await tx.insert(loginRewardsTable).values({ userId: req.userId }).returning();
+      }
 
-    if (reward.lastClaimedDate === today) {
-      return res.status(400).json({ error: "Already claimed today" });
-    }
+      if (reward.lastClaimedDate === today) return null;
 
-    const isConsecutive = reward.lastClaimedDate === yesterday();
-    const newStreak = isConsecutive ? (reward.claimStreak + 1) : 1;
-    const rewardDef = STREAK_REWARDS[(newStreak - 1) % 7] ?? STREAK_REWARDS[0];
+      const isConsecutive = reward.lastClaimedDate === yesterday();
+      const newStreak = isConsecutive ? (reward.claimStreak + 1) : 1;
+      const rewardDef = STREAK_REWARDS[(newStreak - 1) % 7] ?? STREAK_REWARDS[0];
 
-    await db.update(loginRewardsTable).set({
-      lastClaimedDate: today,
-      claimStreak: newStreak,
-      totalClaimed: (reward.totalClaimed ?? 0) + 1,
-      updatedAt: new Date(),
-    }).where(eq(loginRewardsTable.userId, req.userId));
+      await tx.update(loginRewardsTable).set({
+        lastClaimedDate: today,
+        claimStreak: newStreak,
+        totalClaimed: (reward.totalClaimed ?? 0) + 1,
+        updatedAt: new Date(),
+      }).where(eq(loginRewardsTable.userId, req.userId));
 
-    // Coins via the ledger (every mint writes coin_transactions).
-    if (rewardDef.coins > 0) {
-      await mintCoins(req.userId, rewardDef.coins, "daily_reward", {
-        description: `Daily reward (streak ${newStreak}): +${rewardDef.coins} coins`,
-        metadata: { streak: newStreak },
+      // Coins via the ledger (every mint writes coin_transactions), inside the tx.
+      if (rewardDef.coins > 0) {
+        await mintCoins(req.userId, rewardDef.coins, "daily_reward", {
+          description: `Daily reward (streak ${newStreak}): +${rewardDef.coins} coins`,
+          metadata: { streak: newStreak },
+        }, tx);
+      }
+      const [w] = await tx.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.userId)).limit(1).for("update");
+      if (w) {
+        await tx.update(userWalletsTable).set({
+          totalXp: w.totalXp + rewardDef.xp,
+          updatedAt: new Date(),
+        }).where(eq(userWalletsTable.userId, req.userId));
+      }
+
+      await tx.insert(notificationsTable).values({
+        userId: req.userId,
+        type: "daily_reward",
+        title: `Daily Reward — ${rewardDef.label}`,
+        message: `You earned ${rewardDef.coins} coins and ${rewardDef.xp} XP! Streak: ${newStreak} days.`,
       });
-    }
-    const [w] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.userId)).limit(1);
-    if (w) {
-      await db.update(userWalletsTable).set({
-        totalXp: w.totalXp + rewardDef.xp,
-      }).where(eq(userWalletsTable.userId, req.userId));
-    }
 
-    await db.insert(notificationsTable).values({
-      userId: req.userId,
-      type: "daily_reward",
-      title: `Daily Reward — ${rewardDef.label}`,
-      message: `You earned ${rewardDef.coins} coins and ${rewardDef.xp} XP! Streak: ${newStreak} days.`,
-    }).catch(() => {});
+      return { newStreak, rewardDef };
+    });
 
-    res.json({ success: true, streak: newStreak, reward: rewardDef });
-  } catch {
+    if (!claimed) return res.status(400).json({ error: "Already claimed today" });
+
+    res.json({ success: true, streak: claimed.newStreak, reward: claimed.rewardDef });
+  } catch (err) {
     res.status(500).json({ error: "Failed to claim reward" });
   }
 });

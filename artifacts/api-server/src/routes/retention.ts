@@ -11,6 +11,7 @@ import { extractUserId } from "./auth";
 import { sendPush } from "../lib/pushSender";
 import { logger } from "../lib/logger";
 import { mintCoins } from "../lib/coinLedger";
+import { istToday } from "../lib/istDate";
 import { and, eq, isNull, sql, lt, gt, gte } from "drizzle-orm";
 import {
   BATTLE_PASS_TIERS, battlePassClaimId, currentBattlePassSeason, rolloverBattlePassSeason, battlePassSeasonEndsAt,
@@ -45,47 +46,57 @@ retentionRouter.get("/retention/login-reward", authMiddleware, async (req: AuthR
 retentionRouter.post("/retention/login-reward/claim", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const today = todayStr();
-  let [record] = await db.select().from(loginRewardsTable).where(eq(loginRewardsTable.userId, userId)).limit(1);
-  if (record?.lastClaimedDate === today) return res.status(400).json({ error: "Already claimed today" });
 
-  const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-  const yStr = yesterday.toISOString().slice(0, 10);
-  const continued = record?.lastClaimedDate === yStr;
-  const newStreak = continued ? (record!.claimStreak + 1) : 1;
-  const dayIndex = ((newStreak - 1) % 7);
-  const reward = DAILY_REWARDS[dayIndex];
+  // Transaction + row lock: two concurrent claims (double-click, two tabs)
+  // serialize here; the loser observes the already-claimed date and 400s
+  // instead of minting twice.
+  const claimed = await db.transaction(async (tx) => {
+    const [record] = await tx.select().from(loginRewardsTable).where(eq(loginRewardsTable.userId, userId)).limit(1).for("update");
+    if (record?.lastClaimedDate === today) return null;
 
-  if (record) {
-    await db.update(loginRewardsTable).set({ lastClaimedDate: today, claimStreak: newStreak, totalClaimed: (record.totalClaimed ?? 0) + 1, updatedAt: new Date() })
-      .where(eq(loginRewardsTable.userId, userId));
-  } else {
-    await db.insert(loginRewardsTable).values({ userId, lastClaimedDate: today, claimStreak: 1, totalClaimed: 1 });
-  }
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+    const yStr = yesterday.toISOString().slice(0, 10);
+    const continued = record?.lastClaimedDate === yStr;
+    const newStreak = continued ? ((record?.claimStreak ?? 0) + 1) : 1;
+    const dayIndex = ((newStreak - 1) % 7);
+    const reward = DAILY_REWARDS[dayIndex]!;
 
-  let [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, userId)).limit(1);
-  if (!wallet) {
-    [wallet] = await db.insert(userWalletsTable).values({ userId }).returning();
-  }
-  if (reward.coins > 0) {
-    await mintCoins(userId, reward.coins, "login_reward", {
-      description: `Login reward: +${reward.coins} coins`,
-      metadata: { claimStreak: 0 },
+    if (record) {
+      await tx.update(loginRewardsTable).set({ lastClaimedDate: today, claimStreak: newStreak, totalClaimed: (record.totalClaimed ?? 0) + 1, updatedAt: new Date() })
+        .where(eq(loginRewardsTable.userId, userId));
+    } else {
+      await tx.insert(loginRewardsTable).values({ userId, lastClaimedDate: today, claimStreak: 1, totalClaimed: 1 });
+    }
+
+    let [wallet] = await tx.select().from(userWalletsTable).where(eq(userWalletsTable.userId, userId)).limit(1).for("update");
+    if (!wallet) {
+      [wallet] = await tx.insert(userWalletsTable).values({ userId }).returning();
+    }
+    if (reward.coins > 0) {
+      await mintCoins(userId, reward.coins, "login_reward", {
+        description: `Login reward: +${reward.coins} coins`,
+        metadata: { claimStreak: newStreak },
+      }, tx);
+    }
+    await tx.update(userWalletsTable).set({
+      totalXp: sql`total_xp + ${reward.xp}`,
+      weeklyXp: sql`weekly_xp + ${reward.xp}`,
+      updatedAt: new Date(),
+    }).where(eq(userWalletsTable.userId, userId));
+
+    await tx.insert(notificationsTable).values({
+      userId, type: "daily_reward",
+      title: `Day ${newStreak} reward claimed!`,
+      message: `+${reward.coins} coins, +${reward.xp} XP`,
+      data: { reward, streak: newStreak },
     });
-  }
-  await db.update(userWalletsTable).set({
-    totalXp: sql`total_xp + ${reward.xp}`,
-    weeklyXp: sql`weekly_xp + ${reward.xp}`,
-    updatedAt: new Date(),
-  }).where(eq(userWalletsTable.userId, userId));
 
-  await db.insert(notificationsTable).values({
-    userId, type: "daily_reward",
-    title: `Day ${newStreak} reward claimed!`,
-    message: `+${reward.coins} coins, +${reward.xp} XP`,
-    data: { reward, streak: newStreak },
+    return { reward, newStreak };
   });
 
-  res.json({ ok: true, reward, newStreak, coins: reward.coins, xp: reward.xp });
+  if (!claimed) return res.status(400).json({ error: "Already claimed today" });
+
+  res.json({ ok: true, reward: claimed.reward, newStreak: claimed.newStreak, coins: claimed.reward.coins, xp: claimed.reward.xp });
 });
 
 retentionRouter.get("/retention/freeze-tokens", authMiddleware, async (req: AuthRequest, res: Response) => {
@@ -113,11 +124,9 @@ retentionRouter.get("/retention/reengage/run", async (req: Request, res: Respons
   if (req.headers["authorization"] !== `Bearer ${secret}`) return res.status(401).json({ error: "Unauthorized" });
 
   try {
-    const daysAgo = (n: number) => {
-      const d = new Date();
-      d.setDate(d.getDate() - n);
-      return d.toISOString().slice(0, 10);
-    };
+    // IST day keys — must match the day key written by session completion
+    // (lib/istDate.ts is the product's canonical calendar).
+    const daysAgo = (n: number) => istToday(new Date(Date.now() - n * 86_400_000));
     const cutoff3 = daysAgo(3);
     const cutoff7 = daysAgo(7);
     const dedupeWindowStart = new Date(Date.now() - 2 * 86_400_000);
@@ -214,32 +223,44 @@ retentionRouter.get("/retention/battle-pass", authMiddleware, async (req: AuthRe
 retentionRouter.post("/retention/battle-pass/claim", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const { tier, track } = req.body as { tier: number; track: "free" | "premium" };
-
-  let [progress] = await db.select().from(battlePassProgressTable).where(eq(battlePassProgressTable.userId, userId)).limit(1);
-  if (!progress) return res.status(400).json({ error: "No battle pass progress" });
-  if (track === "premium" && !progress.premiumUnlocked) return res.status(403).json({ error: "Premium track not unlocked" });
-
-  const tierDef = BATTLE_PASS_TIERS.find(t => t.tier === tier);
-  if (!tierDef) return res.status(400).json({ error: "Invalid tier" });
-  const claimId = battlePassClaimId(tier, track);
-  if ((progress.claimedTiers ?? []).includes(claimId)) return res.status(400).json({ error: "Already claimed" });
-  if (calculateBattlePassTier(progress.seasonXp ?? 0) < tier) return res.status(400).json({ error: "Tier not reached" });
-
-  const reward = track === "premium" ? tierDef.premiumReward : tierDef.freeReward;
-  const newClaimed = [...(progress.claimedTiers ?? []), claimId];
-  await db.update(battlePassProgressTable).set({ claimedTiers: newClaimed, updatedAt: new Date() }).where(eq(battlePassProgressTable.userId, userId));
-  if (reward.coins > 0) {
-    await mintCoins(userId, reward.coins, "battle_pass_reward", {
-      description: `Battle pass tier ${tier} reward: +${reward.coins} coins`,
-      metadata: { tier, track },
-    });
+  if (typeof tier !== "number" || !Number.isInteger(tier) || (track !== "free" && track !== "premium")) {
+    return res.status(400).json({ error: "Invalid claim request" });
   }
-  await db.update(userWalletsTable).set({
-    totalXp: sql`total_xp + ${reward.xp}`,
-    updatedAt: new Date(),
-  }).where(eq(userWalletsTable.userId, userId));
 
-  res.json({ ok: true, reward });
+  // Transaction + row lock makes the claimedTiers check-and-set atomic:
+  // two concurrent claims of the same tier can no longer both pass the
+  // "already claimed" gate and double-mint.
+  const claimed = await db.transaction(async (tx) => {
+    const [progress] = await tx.select().from(battlePassProgressTable).where(eq(battlePassProgressTable.userId, userId)).limit(1).for("update");
+    if (!progress) return { status: 400 as const, error: "No battle pass progress" };
+    if (track === "premium" && !progress.premiumUnlocked) return { status: 403 as const, error: "Premium track not unlocked" };
+
+    const tierDef = BATTLE_PASS_TIERS.find(t => t.tier === tier);
+    if (!tierDef) return { status: 400 as const, error: "Invalid tier" };
+    const claimId = battlePassClaimId(tier, track);
+    if ((progress.claimedTiers ?? []).includes(claimId)) return { status: 400 as const, error: "Already claimed" };
+    if (calculateBattlePassTier(progress.seasonXp ?? 0) < tier) return { status: 400 as const, error: "Tier not reached" };
+
+    const reward = track === "premium" ? tierDef.premiumReward : tierDef.freeReward;
+    const newClaimed = [...(progress.claimedTiers ?? []), claimId];
+    await tx.update(battlePassProgressTable).set({ claimedTiers: newClaimed, updatedAt: new Date() }).where(eq(battlePassProgressTable.userId, userId));
+    if (reward.coins > 0) {
+      await mintCoins(userId, reward.coins, "battle_pass_reward", {
+        description: `Battle pass tier ${tier} reward: +${reward.coins} coins`,
+        metadata: { tier, track },
+      }, tx);
+    }
+    await tx.update(userWalletsTable).set({
+      totalXp: sql`total_xp + ${reward.xp}`,
+      updatedAt: new Date(),
+    }).where(eq(userWalletsTable.userId, userId));
+
+    return { status: null as null, reward };
+  });
+
+  if (claimed.status) return res.status(claimed.status).json({ error: claimed.error });
+
+  res.json({ ok: true, reward: claimed.reward });
 });
 
 // Battle-pass XP is advanced only by trusted server-side domain events.

@@ -43,6 +43,20 @@ export const trackLimiter = rateLimit({
   validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false },
 });
 
+/**
+ * Focus-session completion. The endpoint is idempotent per clientNonce, but a
+ * fresh nonce is generated per session, so a broken client loop could still
+ * spam session rows. 30 completions / 5 min is far above legitimate human use
+ * (pomodoro ≈ 12/h) while capping reward-farming write amplification.
+ */
+export const sessionCompleteLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: isDev ? 200 : 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: { code: "RATE_LIMITED", message: "Too many session submissions, please wait a moment." } },
+});
+
 export const adminLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: isDev ? 100 : 20,

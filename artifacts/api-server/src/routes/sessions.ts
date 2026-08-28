@@ -9,6 +9,14 @@ import { activeDropXpMultiplier } from "../lib/drops";
 import { computeSessionRewards } from "../lib/sessionRewards";
 import { runDelightCheck } from "../lib/delightEngine";
 import { calculateBattlePassTier, currentBattlePassSeason, rolloverBattlePassSeason } from "../lib/battlePass";
+import { sessionCompleteLimiter } from "../lib/rateLimiter";
+import { istToday } from "../lib/istDate";
+import {
+  computeVerifiedDurationSec,
+  isRewardEligible,
+  nextStreakValues,
+  istWeekStartDate,
+} from "../lib/sessionCompletionCore";
 
 async function maybeDropLootBox(userId: string, sessionCount: number): Promise<boolean> {
   try {
@@ -189,7 +197,7 @@ router.post("/sessions/sync", authMiddleware, async (req: AuthRequest, res) => {
   const { sessionId, activeSeconds, secondsLeft, timerStatus, mode, focusScore, focusQuality, focusState, distractionCount, lastSeenFaceAt, focusTimeline, monitorEnabled } = parsed.data;
   try {
     // Verify ownership and prevent replay of old sessions
-    const [existing] = await db.select({ id: activeSessionsTable.id, userId: activeSessionsTable.userId })
+    const [existing] = await db.select({ id: activeSessionsTable.id, userId: activeSessionsTable.userId, startedAt: activeSessionsTable.startedAt })
       .from(activeSessionsTable)
       .where(and(eq(activeSessionsTable.id, sessionId), eq(activeSessionsTable.userId, req.userId)))
       .limit(1);
@@ -199,9 +207,12 @@ router.post("/sessions/sync", authMiddleware, async (req: AuthRequest, res) => {
       return;
     }
 
-    // Server-side authoritative duration — ignore client clock manipulation
-    // activeSeconds should only increase, never decrease dramatically
-    const safeActiveSeconds = Math.min(14_400, Math.max(0, activeSeconds ?? 0));
+    // Server-side authoritative bounds — the client may only report *less*
+    // focus time than has physically elapsed since startedAt (pauses, tab
+    // suspends). Reported values above wall clock are clamped so they can
+    // never feed inflated numbers into completion-time reward verification.
+    const wallClockSeconds = Math.max(0, Math.floor((Date.now() - existing.startedAt.getTime()) / 1000));
+    const safeActiveSeconds = Math.min(14_400, Math.max(0, activeSeconds ?? 0), wallClockSeconds);
     const safeSecondsLeft = Math.min(14_400, Math.max(0, secondsLeft ?? 1500));
 
     await db.update(activeSessionsTable).set({
@@ -236,7 +247,7 @@ router.delete("/sessions/active", authMiddleware, async (req: AuthRequest, res) 
   }
 });
 
-router.post("/sessions", authMiddleware, async (req: AuthRequest, res) => {
+router.post("/sessions", authMiddleware, sessionCompleteLimiter, async (req: AuthRequest, res) => {
   const parsed = sessionSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid session data", details: parsed.error.errors } });
@@ -249,19 +260,8 @@ router.post("/sessions", authMiddleware, async (req: AuthRequest, res) => {
   } = parsed.data;
 
   try {
-    // Idempotency check — prevent double submission
-    if (clientNonce) {
-      const [existing] = await db.select().from(focusSessionsTable).where(and(
-        eq(focusSessionsTable.userId, req.userId),
-        eq(focusSessionsTable.clientNonce, clientNonce),
-      )).limit(1);
-      if (existing) {
-        res.json({ session: existing, streakUpdated: false, earnedXp: 0, earnedCoins: 0, idempotentReplay: true });
-        return;
-      }
-    }
-
-    // Fetch active session for server-authoritative timing
+    // Fetch the server-side active session — the only trusted evidence that a
+    // session actually ran (its startedAt is server-owned).
     const [activeSession] = sessionId
       ? await db.select().from(activeSessionsTable).where(and(
           eq(activeSessionsTable.id, sessionId),
@@ -269,39 +269,83 @@ router.post("/sessions", authMiddleware, async (req: AuthRequest, res) => {
         )).limit(1)
       : await db.select().from(activeSessionsTable).where(eq(activeSessionsTable.userId, req.userId)).limit(1);
 
-    // Server-authoritative duration calculation — protects against:
-    // - Manually changing system clock
-    // - Replaying session completed requests
-    // - Submitting same session twice (idempotency)
-    // - Opening multiple active sessions
+    const hasActiveSession = Boolean(activeSession);
     const wallClockSeconds = activeSession
-      ? Math.max(0, Math.floor((Date.now() - activeSession.startedAt.getTime()) / 1000) + 15)
+      ? Math.max(0, Math.floor((Date.now() - activeSession.startedAt.getTime()) / 1000))
       : 0;
 
-    // Verified duration is MIN of client duration, activeSeconds (server-tracked), wall clock, and cap
-    // This ensures client cannot spoof longer sessions
-    const verifiedDurationSec = activeSession && activeSession.mode === mode
-      ? Math.min(durationSec, activeSession.activeSeconds ?? 0, wallClockSeconds, 14_400)
-      : Math.min(durationSec, 14_400); // If no active session, still cap and trust limited duration
+    // Verified duration = min(client claim, server wall clock + grace, 4h cap).
+    // Without an active session the claim is only recorded, never rewarded
+    // (anti-farming: see lib/sessionCompletionCore.ts).
+    const finalDuration = computeVerifiedDurationSec({
+      claimedDurationSec: durationSec,
+      hasActiveSession,
+      wallClockSeconds,
+    });
 
-    // For sessions without activeSession, require at least some server validation
-    // If client claims > 5 min without active session, cap to what they claim but log
-    const finalDuration = verifiedDurationSec >= 0 ? verifiedDurationSec : 0;
+    if (!hasActiveSession && durationSec > 0) {
+      logger.warn(
+        { userId: req.userId, claimedDurationSec: durationSec, requestId: (req as { id?: string }).id },
+        "session completed without an active session — recorded without rewards",
+      );
+    }
 
     const computedPct = plannedDurationSec && plannedDurationSec > 0 && finalDuration > 0
       ? Math.min(100, Math.round((finalDuration / plannedDurationSec) * 100))
       : null;
 
-    // Transaction for reward operations — ensures atomicity
+    const effectiveMode = mode ?? "focus";
+    const effectiveStatus = sessionStatus ?? "completed";
+    const rewardEligible = isRewardEligible({
+      mode: effectiveMode,
+      sessionStatus: effectiveStatus,
+      verifiedDurationSec: finalDuration,
+      hasActiveSession,
+    });
+
+    // Premium + drop multiplier are snapshotted once, before the transaction,
+    // so the awarded values and the response can never diverge.
+    let isPremium = false;
+    if (rewardEligible) {
+      try {
+        const [sub] = await db.select({ isActive: premiumSubscriptionsTable.isActive, expiresAt: premiumSubscriptionsTable.expiresAt })
+          .from(premiumSubscriptionsTable)
+          .where(eq(premiumSubscriptionsTable.userId, req.userId))
+          .limit(1);
+        if (sub?.isActive && (!sub.expiresAt || sub.expiresAt > new Date())) {
+          isPremium = true;
+        }
+      } catch { /* best effort */ }
+    }
+
+    let dropMultiplier = 1;
+    if (rewardEligible) {
+      try {
+        const dropMult = await activeDropXpMultiplier(new Date());
+        dropMultiplier = dropMult.multiplier > 1 ? dropMult.multiplier : 1;
+      } catch { /* best-effort */ }
+    }
+
+    const minutes = Math.floor(finalDuration / 60);
+    const rewards = rewardEligible
+      ? computeSessionRewards({ minutes, completedEarly: completedEarly && finalDuration >= 60, isPremium })
+      : { xp: 0, coins: 0 };
+    const earnedXp = rewards.xp > 0 ? Math.round(rewards.xp * dropMultiplier) : 0;
+    const earnedCoins = rewards.coins;
+
+    // ── Transaction: session row + all reward mutations, atomic & idempotent ──
     const result = await db.transaction(async (tx) => {
-      const [session] = await tx.insert(focusSessionsTable).values({
+      // Idempotent insert: the (user_id, client_nonce) unique constraint is the
+      // race-proof backstop. Insert-first means a concurrent duplicate gets an
+      // empty returning() and is served the original row instead of 500ing.
+      const inserted = await tx.insert(focusSessionsTable).values({
         userId: req.userId,
-        mode: mode ?? "focus",
+        mode: effectiveMode,
         durationSec: finalDuration,
         plannedDurationSec: plannedDurationSec ?? null,
         completedEarly: completedEarly ?? false,
         completionPercentage: computedPct,
-        sessionStatus: sessionStatus ?? "completed",
+        sessionStatus: effectiveStatus,
         completedAt: new Date(),
         focusScore,
         focusQuality,
@@ -310,112 +354,99 @@ router.post("/sessions", authMiddleware, async (req: AuthRequest, res) => {
         sessionInsights: typeof sessionInsights === "string" ? sessionInsights : JSON.stringify(sessionInsights ?? null),
         category: category ?? "General",
         clientNonce: clientNonce ?? null,
-      }).returning();
+      }).onConflictDoNothing({ target: [focusSessionsTable.userId, focusSessionsTable.clientNonce] }).returning();
 
-      if (!session) throw new Error("Failed to create session");
-
-      const rewardEligible = mode === "focus" && sessionStatus !== "cancelled" && finalDuration >= 60;
+      if (inserted.length === 0) {
+        // Replay of an already-processed completion (double-click, retry,
+        // second tab). Serve the original row; zero incremental rewards.
+        const [existing] = await tx.select().from(focusSessionsTable).where(and(
+          eq(focusSessionsTable.userId, req.userId),
+          eq(focusSessionsTable.clientNonce, clientNonce ?? ""),
+        )).limit(1);
+        return { session: existing ?? null, replay: true as const, streakUpdated: false };
+      }
+      const session = inserted[0]!;
 
       let streakUpdated = false;
-      let earnedXp = 0;
-      let earnedCoins = 0;
-
       if (rewardEligible) {
-        // Streak update inside transaction
-        const today = new Date().toISOString().split("T")[0]!;
-        const [existingStreak] = await tx.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, req.userId));
+        // IST day keys — the product's canonical calendar (lib/istDate.ts),
+        // consistent with missions and daily rewards.
+        const today = istToday();
+        const yesterday = istToday(new Date(Date.now() - 86_400_000));
+        const [existingStreak] = await tx.select().from(studyStreaksTable)
+          .where(eq(studyStreaksTable.userId, req.userId)).for("update");
+        const streak = nextStreakValues({
+          lastStudyDate: existingStreak?.lastStudyDate ?? null,
+          currentStreak: existingStreak?.currentStreak ?? 0,
+          longestStreak: existingStreak?.longestStreak ?? 0,
+          today,
+          yesterday,
+        });
         if (!existingStreak) {
-          await tx.insert(studyStreaksTable).values({ userId: req.userId, currentStreak: 1, longestStreak: 1, lastStudyDate: today });
+          await tx.insert(studyStreaksTable).values({ userId: req.userId, currentStreak: streak.currentStreak, longestStreak: streak.longestStreak, lastStudyDate: today });
           streakUpdated = true;
-        } else if (existingStreak.lastStudyDate !== today) {
-          const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0]!;
-          const newStreak = existingStreak.lastStudyDate === yesterday ? existingStreak.currentStreak + 1 : 1;
+        } else if (streak.changed) {
           await tx.update(studyStreaksTable).set({
-            currentStreak: newStreak,
-            longestStreak: Math.max(newStreak, existingStreak.longestStreak),
+            currentStreak: streak.currentStreak,
+            longestStreak: streak.longestStreak,
             lastStudyDate: today,
             updatedAt: new Date(),
           }).where(eq(studyStreaksTable.userId, req.userId));
           streakUpdated = true;
         }
+      }
 
-        // Premium check
-        let isPremium = false;
-        try {
-          const [sub] = await tx.select({ isActive: premiumSubscriptionsTable.isActive, expiresAt: premiumSubscriptionsTable.expiresAt })
-            .from(premiumSubscriptionsTable)
-            .where(eq(premiumSubscriptionsTable.userId, req.userId))
-            .limit(1);
-          if (sub?.isActive && (!sub.expiresAt || sub.expiresAt > new Date())) {
-            isPremium = true;
-          }
-        } catch { /* best effort */ }
+      // Award XP/coins inside the transaction — atomic, and a ledger failure
+      // rolls the whole completion back (never a wallet credit without its
+      // ledger row). Wallet row is locked to serialize concurrent completions.
+      if (earnedXp > 0 || earnedCoins > 0) {
+        const now = new Date();
+        const monday = istWeekStartDate(now);
 
-        const minutes = Math.floor(finalDuration / 60);
-        const rewards = computeSessionRewards({
-          minutes,
-          completedEarly: completedEarly && finalDuration >= 60,
-          isPremium,
-        });
-        earnedXp = rewards.xp;
-        earnedCoins = rewards.coins;
+        const [wallet] = await tx.select().from(userWalletsTable)
+          .where(eq(userWalletsTable.userId, req.userId)).for("update");
 
-        try {
-          const dropMult = await activeDropXpMultiplier(new Date());
-          if (dropMult.multiplier > 1 && earnedXp > 0) {
-            earnedXp = Math.round(earnedXp * dropMult.multiplier);
-          }
-        } catch { /* best-effort */ }
-
-        // Award gamification inside transaction — atomic XP/coins
-        if (earnedXp > 0 || earnedCoins > 0) {
-          const now = new Date();
-          const monday = new Date(now);
-          monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-          monday.setHours(0, 0, 0, 0);
-
-          const [wallet] = await tx.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.userId));
-
-          if (!wallet) {
-            await tx.insert(userWalletsTable).values({
-              userId: req.userId, coins: earnedCoins, totalXp: earnedXp, weeklyXp: earnedXp, weeklyXpResetAt: monday,
+        if (!wallet) {
+          await tx.insert(userWalletsTable).values({
+            userId: req.userId, coins: earnedCoins, totalXp: earnedXp, weeklyXp: earnedXp, weeklyXpResetAt: monday,
+          });
+          if (earnedCoins > 0) {
+            await tx.insert(coinTransactionsTable).values({
+              userId: req.userId, type: "earn", amount: earnedCoins,
+              reason: "session_complete",
+              description: `Earned ${earnedCoins} coins from focus session`,
+              balanceAfter: earnedCoins,
             });
-            if (earnedCoins > 0) {
-              await tx.insert(coinTransactionsTable).values({
-                userId: req.userId, type: "earn", amount: earnedCoins,
-                reason: "session_complete",
-                description: `Earned ${earnedCoins} coins from focus session`,
-                balanceAfter: earnedCoins,
-              }).catch(() => {});
-            }
-          } else {
-            const needsReset = wallet.weeklyXpResetAt && wallet.weeklyXpResetAt < monday;
-            const newTotalXp = wallet.totalXp + earnedXp;
-            const newLevel = Math.floor(Math.sqrt(newTotalXp / 100)) + 1;
-            const newBalance = wallet.coins + earnedCoins;
+          }
+        } else {
+          const needsReset = wallet.weeklyXpResetAt && wallet.weeklyXpResetAt < monday;
+          const newTotalXp = wallet.totalXp + earnedXp;
+          const newLevel = Math.floor(Math.sqrt(newTotalXp / 100)) + 1;
+          const newBalance = wallet.coins + earnedCoins;
 
-            await tx.update(userWalletsTable).set({
-              coins: newBalance,
-              totalXp: newTotalXp,
-              weeklyXp: needsReset ? earnedXp : wallet.weeklyXp + earnedXp,
-              weeklyXpResetAt: needsReset ? monday : wallet.weeklyXpResetAt,
-              level: newLevel,
-              updatedAt: new Date(),
-            }).where(eq(userWalletsTable.userId, req.userId));
+          await tx.update(userWalletsTable).set({
+            coins: newBalance,
+            totalXp: newTotalXp,
+            weeklyXp: needsReset ? earnedXp : wallet.weeklyXp + earnedXp,
+            weeklyXpResetAt: needsReset ? monday : wallet.weeklyXpResetAt,
+            level: newLevel,
+            updatedAt: new Date(),
+          }).where(eq(userWalletsTable.userId, req.userId));
 
-            if (earnedCoins > 0) {
-              await tx.insert(coinTransactionsTable).values({
-                userId: req.userId, type: "earn", amount: earnedCoins,
-                reason: "session_complete",
-                description: `Earned ${earnedCoins} coins from focus session`,
-                balanceAfter: newBalance,
-              }).catch(() => {});
-            }
+          if (earnedCoins > 0) {
+            await tx.insert(coinTransactionsTable).values({
+              userId: req.userId, type: "earn", amount: earnedCoins,
+              reason: "session_complete",
+              description: `Earned ${earnedCoins} coins from focus session`,
+              balanceAfter: newBalance,
+            });
           }
         }
+      }
 
-        // Productivity log inside transaction
-        const todayLog = new Date().toISOString().split("T")[0]!;
+      // Productivity log (IST day key — matches streaks and missions).
+      if (finalDuration > 0) {
+        const todayLog = istToday();
         const [existingLog] = await tx.select().from(productivityLogsTable)
           .where(and(eq(productivityLogsTable.userId, req.userId), eq(productivityLogsTable.date, todayLog)));
 
@@ -444,53 +475,27 @@ router.post("/sessions", authMiddleware, async (req: AuthRequest, res) => {
         }
       }
 
-      // Clean up active session inside same transaction
-      if (activeSession) {
+      // Clean up the consumed active session inside the same transaction — but
+      // only the one this completion belongs to (never an unrelated active
+      // session another tab just started).
+      if (activeSession && activeSession.mode === effectiveMode) {
         await tx.delete(activeSessionsTable).where(and(
           eq(activeSessionsTable.id, activeSession.id),
           eq(activeSessionsTable.userId, req.userId),
         ));
       }
 
-      return { session, rewardEligible, finalDuration, streakUpdated, earnedXp: 0, earnedCoins: 0 }; // XP/coins calculated outside for simplicity but wallet updated inside
+      return { session, replay: false as const, streakUpdated };
     });
 
-    // Post-transaction: calculate final rewards for response (already computed in tx, but need to re-compute for response)
-    const rewardEligible = mode === "focus" && sessionStatus !== "cancelled" && result.finalDuration >= 60;
-    let earnedXp = 0;
-    let earnedCoins = 0;
-    let streakUpdated = false;
+    if (result.replay) {
+      res.json({ session: result.session, streakUpdated: false, earnedXp: 0, earnedCoins: 0, idempotentReplay: true });
+      return;
+    }
 
+    // Post-transaction, best-effort gamification (non-monetary progression —
+    // failures here degrade gracefully and must never fail the completion).
     if (rewardEligible) {
-      streakUpdated = result.streakUpdated;
-      // Re-compute rewards for response (transaction already awarded)
-      let isPremium = false;
-      try {
-        const [sub] = await db.select({ isActive: premiumSubscriptionsTable.isActive, expiresAt: premiumSubscriptionsTable.expiresAt })
-          .from(premiumSubscriptionsTable)
-          .where(eq(premiumSubscriptionsTable.userId, req.userId))
-          .limit(1);
-        if (sub?.isActive && (!sub.expiresAt || sub.expiresAt > new Date())) {
-          isPremium = true;
-        }
-      } catch { /* best effort */ }
-
-      const minutes = Math.floor(result.finalDuration / 60);
-      const rewards = computeSessionRewards({
-        minutes,
-        completedEarly: completedEarly && result.finalDuration >= 60,
-        isPremium,
-      });
-      earnedXp = rewards.xp;
-      earnedCoins = rewards.coins;
-
-      try {
-        const dropMult = await activeDropXpMultiplier(new Date());
-        if (dropMult.multiplier > 1 && earnedXp > 0) {
-          earnedXp = Math.round(earnedXp * dropMult.multiplier);
-        }
-      } catch { /* best-effort */ }
-
       if (minutes > 0) {
         await awardPetXp(req.userId, minutes);
       }
@@ -501,12 +506,10 @@ router.post("/sessions", authMiddleware, async (req: AuthRequest, res) => {
       if (earnedXp > 0) {
         await advanceBattlePass(req.userId, earnedXp);
       }
-    }
 
-    let lootBoxDropped = false;
-    if (rewardEligible) {
-      void updateCityProgress(req.userId);
+      let lootBoxDropped = false;
       try {
+        void updateCityProgress(req.userId);
         const [{ total }] = await db.select({ total: sql<number>`count(*)::int` })
           .from(focusSessionsTable)
           .where(and(
@@ -516,11 +519,14 @@ router.post("/sessions", authMiddleware, async (req: AuthRequest, res) => {
           ));
         lootBoxDropped = await maybeDropLootBox(req.userId, total);
       } catch { /* best effort */ }
+
+      const delightReward = runDelightCheck();
+
+      res.json({ session: result.session, streakUpdated: result.streakUpdated, earnedXp, earnedCoins, lootBoxDropped, delightReward });
+      return;
     }
 
-    const delightReward = (mode ?? "focus") === "focus" && result.finalDuration > 0 ? runDelightCheck() : null;
-
-    res.json({ session: result.session, streakUpdated, earnedXp, earnedCoins, lootBoxDropped, delightReward });
+    res.json({ session: result.session, streakUpdated: result.streakUpdated, earnedXp: 0, earnedCoins: 0, lootBoxDropped: false, delightReward: null });
   } catch (err) {
     logger.error({ err }, "create session error");
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });

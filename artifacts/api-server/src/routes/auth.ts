@@ -464,7 +464,9 @@ router.post("/auth/forgot-password", forgotPasswordLimiter, async (req, res) => 
       .from(usersTable).where(and(eq(usersTable.email, email.toLowerCase().trim()), eq(usersTable.isGuest, false)));
 
     if (!user) {
-      res.json({ ok: true, emailSent: false });
+      // Uniform response for known and unknown emails — do not leak account
+      // existence (the client shows a generic "check your inbox" message).
+      res.json({ ok: true });
       return;
     }
 
@@ -479,7 +481,8 @@ router.post("/auth/forgot-password", forgotPasswordLimiter, async (req, res) => 
     if (process.env.NODE_ENV !== "production" && !emailSent) {
       logger.info({ devResetUrl: resetUrl }, "dev: password reset URL (not sent by email)");
     }
-    res.json({ ok: true, emailSent });
+    // Uniform response — never reveal whether the account exists.
+    res.json({ ok: true });
   } catch (err) {
     logger.error({ err }, "forgot password error");
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
@@ -522,7 +525,7 @@ router.post("/auth/reset-password", authLimiter, async (req, res) => {
   }
 });
 
-router.get("/auth/reset-password/verify", async (req, res) => {
+router.get("/auth/reset-password/verify", forgotPasswordLimiter, async (req, res) => {
   const token = req.query.token as string | undefined;
   if (!token) {
     res.status(400).json({ valid: false });
