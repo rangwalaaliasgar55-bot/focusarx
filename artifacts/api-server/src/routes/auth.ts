@@ -4,11 +4,14 @@ import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { db, usersTable, passwordResetTokensTable } from "@workspace/db";
+import { db, usersTable, passwordResetTokensTable, emailLogsTable } from "@workspace/db";
 import { eq, and, gt, isNull } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getServerConfig } from "../lib/config";
 import { authLimiter, forgotPasswordLimiter, guestLimiter, refreshLimiter } from "../lib/rateLimiter";
+import { createRefreshFamily, rotateRefreshToken, revokeRefreshToken, revokeAllUserRefreshTokens } from "../lib/refreshTokens";
+import { issueSocketTicket } from "../lib/socketTickets";
+import { sendUnauthorized } from "../lib/httpErrors";
 
 const loginSchema = z.object({
   email: z.string().email().max(254).toLowerCase().trim(),
@@ -58,15 +61,6 @@ function makeAccessToken(userId: string, secret: string): string {
   });
 }
 
-function makeRefreshToken(userId: string, secret: string): string {
-  return jwt.sign({ sub: userId, type: "refresh", jti: crypto.randomUUID() }, secret, {
-    algorithm: "HS256",
-    issuer: "focusarx-api",
-    audience: "focusarx-web",
-    expiresIn: "7d",
-  });
-}
-
 // Legacy 7d token for backward compat during migration — will be removed
 function makeLegacyToken(userId: string, secret: string): string {
   return jwt.sign({ sub: userId, type: "access" }, secret, {
@@ -85,13 +79,7 @@ function verifyToken(token: string, secret: string, expectedType: "access" | "re
       audience: "focusarx-web",
     }) as { sub?: unknown; type?: unknown };
     if (typeof payload.sub !== "string") return null;
-    if (payload.type !== expectedType) {
-      // Allow legacy tokens that have type access but we accept for refresh fallback
-      if (expectedType === "access" && payload.type === "access") {
-        return { sub: payload.sub, type: payload.type as string };
-      }
-      return null;
-    }
+    if (payload.type !== expectedType) return null;
     return { sub: payload.sub, type: payload.type as string };
   } catch {
     return null;
@@ -154,9 +142,10 @@ function setAuthCookies(res: any, accessToken: string, refreshToken: string) {
     maxAge: 15 * 60 * 1000, // 15 minutes
   });
 
+  // Path is "/" (not /api/auth/refresh) so POST /api/auth/logout can read and
+  // revoke the presented token server-side. Still httpOnly + SameSite=Lax.
   res.cookie("refresh_token", refreshToken, {
     ...baseOpts,
-    path: "/api/auth/refresh",
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 
@@ -175,15 +164,35 @@ function clearAuthCookies(res: any) {
     path: "/",
   };
   res.cookie("access_token", "", { ...baseOpts, maxAge: 0 });
-  res.cookie("refresh_token", "", { ...baseOpts, path: "/api/auth/refresh", maxAge: 0 });
+  res.cookie("refresh_token", "", { ...baseOpts, maxAge: 0 });
   res.cookie("focusarx_token", "", { ...baseOpts, maxAge: 0 });
+}
+
+/**
+ * Issue a DB-backed refresh token (opaque, hashed at rest) + short access
+ * token, and set cookies. Stateless JWT refresh tokens are no longer minted.
+ */
+async function issueRefreshCredentials(
+  res: { cookie: (name: string, value: string, opts: Record<string, unknown>) => void },
+  userId: string,
+  secret: string,
+  req: { headers: { "user-agent"?: string }; ip?: string },
+): Promise<{ accessToken: string; legacyToken: string }> {
+  const refresh = await createRefreshFamily(userId, {
+    userAgent: req.headers["user-agent"] ?? null,
+    ip: req.ip ?? null,
+  });
+  const accessToken = makeAccessToken(userId, secret);
+  const legacyToken = makeLegacyToken(userId, secret); // migrate clients off this gradually
+  setAuthCookies(res, accessToken, refresh.token);
+  return { accessToken, legacyToken };
 }
 
 router.get("/auth/session", async (req, res) => {
   if (!jwtSecretOrRespond(res)) return;
   const userId = extractUserId(req);
   if (!userId) {
-    res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Unauthorized" } });
+    sendUnauthorized(res);
     return;
   }
   try {
@@ -198,7 +207,7 @@ router.get("/auth/session", async (req, res) => {
       timezone: usersTable.timezone
     }).from(usersTable).where(eq(usersTable.id, userId));
     if (!user) {
-      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "User not found" } });
+      sendUnauthorized(res, "User not found");
       return;
     }
     res.json({ user });
@@ -234,11 +243,7 @@ router.post("/auth/login", authLimiter, async (req, res) => {
       res.status(401).json({ error: { code: "INVALID_CREDENTIALS", message: "Invalid credentials" } });
       return;
     }
-    const accessToken = makeAccessToken(user.id, secret);
-    const refreshToken = makeRefreshToken(user.id, secret);
-    const legacyToken = makeLegacyToken(user.id, secret); // for clients still using Bearer
-
-    setAuthCookies(res, accessToken, refreshToken);
+    const { accessToken, legacyToken } = await issueRefreshCredentials(res, user.id, secret, req);
 
     res.json({
       token: legacyToken,
@@ -310,11 +315,7 @@ router.post("/auth/guest", guestLimiter, async (req, res) => {
       res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to create guest" } });
       return;
     }
-    const accessToken = makeAccessToken(user.id, secret);
-    const refreshToken = makeRefreshToken(user.id, secret);
-    const legacyToken = makeLegacyToken(user.id, secret);
-
-    setAuthCookies(res, accessToken, refreshToken);
+    const { accessToken, legacyToken } = await issueRefreshCredentials(res, user.id, secret, req);
 
     res.json({
       token: legacyToken,
@@ -332,45 +333,193 @@ router.post("/auth/refresh", refreshLimiter, async (req, res) => {
   if (!secret) return;
 
   const cookies = (req as any).cookies ?? {};
-  const refreshToken = cookies["refresh_token"] ?? (req.body as any)?.refreshToken;
+  const presented = cookies["refresh_token"] ?? (req.body as any)?.refreshToken;
 
-  if (!refreshToken) {
-    res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Refresh token required" } });
+  if (!presented || typeof presented !== "string") {
+    sendUnauthorized(res, "Refresh token required");
     return;
   }
 
-  const payload = verifyToken(refreshToken, secret, "refresh");
-  if (!payload?.sub) {
-    clearAuthCookies(res);
-    res.status(401).json({ error: { code: "INVALID_TOKEN", message: "Invalid refresh token" } });
+  const meta = { userAgent: req.headers["user-agent"] ?? null, ip: req.ip ?? null };
+
+  // Legacy stateless JWT refresh cookie (pre-store deployment): exchange it for
+  // a revocable DB-backed family. It expires naturally within 7 days.
+  const legacyPayload = verifyToken(presented, secret, "refresh");
+  if (legacyPayload?.sub) {
+    try {
+      const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, legacyPayload.sub));
+      if (!user) {
+        clearAuthCookies(res);
+        sendUnauthorized(res, "User not found");
+        return;
+      }
+      const { legacyToken } = await issueRefreshCredentials(res, user.id, secret, req);
+      res.json({ token: legacyToken, accessToken: legacyToken });
+    } catch (err) {
+      logger.error({ err }, "refresh error (legacy exchange)");
+      res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
+    }
     return;
   }
 
   try {
-    const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, payload.sub));
-    if (!user) {
+    const result = await rotateRefreshToken(presented, meta);
+    if (result.status !== "ok") {
+      // unknown / expired / reused (reuse already burned the whole family)
       clearAuthCookies(res);
-      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "User not found" } });
+      res.status(401).json({ error: { code: "INVALID_TOKEN", message: "Invalid refresh token" } });
       return;
     }
-
-    // Rotate refresh token
-    const newAccessToken = makeAccessToken(user.id, secret);
-    const newRefreshToken = makeRefreshToken(user.id, secret);
+    const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, result.userId));
+    if (!user) {
+      clearAuthCookies(res);
+      sendUnauthorized(res, "User not found");
+      return;
+    }
+    const accessToken = makeAccessToken(user.id, secret);
     const legacyToken = makeLegacyToken(user.id, secret);
-
-    setAuthCookies(res, newAccessToken, newRefreshToken);
-
-    res.json({ token: legacyToken, accessToken: newAccessToken });
+    setAuthCookies(res, accessToken, result.token);
+    res.json({ token: legacyToken, accessToken });
   } catch (err) {
     logger.error({ err }, "refresh error");
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 });
 
-router.post("/auth/logout", async (_req, res) => {
+router.post("/auth/logout", async (req, res) => {
+  // Revoke the presented refresh token so a stolen/copied cookie cannot be
+  // replayed after "sign out". Cookies are cleared regardless.
+  const cookies = (req as any).cookies ?? {};
+  const presented = cookies["refresh_token"];
+  if (typeof presented === "string" && presented) {
+    try {
+      await revokeRefreshToken(presented);
+    } catch (err) {
+      logger.warn({ err }, "logout revoke failed (cookies still cleared)");
+    }
+  }
   clearAuthCookies(res);
   res.json({ ok: true });
+});
+
+// ── Socket tickets (short-lived handshake credentials) ────────────────────
+// The SPA exchanges its session for a 60s socket-scoped ticket, so the
+// long-lived bearer token never rides the Socket.IO handshake.
+
+router.get("/auth/socket-ticket", async (req, res) => {
+  const secret = jwtSecretOrRespond(res);
+  if (!secret) return;
+  const userId = extractUserId(req);
+  if (!userId) {
+    sendUnauthorized(res);
+    return;
+  }
+  res.json(issueSocketTicket(userId, secret));
+});
+
+// ── Password change (authenticated) ───────────────────────────────────────
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1).max(256),
+  newPassword: z.string().min(8).max(128),
+}).strict();
+
+router.post("/auth/change-password", authLimiter, async (req, res) => {
+  const secret = jwtSecretOrRespond(res);
+  if (!secret) return;
+  const userId = extractUserId(req);
+  if (!userId) {
+    sendUnauthorized(res);
+    return;
+  }
+  const parsed = changePasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Current password and a new password of at least 8 characters are required" } });
+    return;
+  }
+  const { currentPassword, newPassword } = parsed.data;
+
+  try {
+    const [user] = await db.select({ id: usersTable.id, hashedPassword: usersTable.hashedPassword, isGuest: usersTable.isGuest })
+      .from(usersTable).where(eq(usersTable.id, userId));
+    if (!user?.hashedPassword) {
+      // Guests and OAuth-only accounts have no password to change.
+      res.status(400).json({ error: { code: "NO_PASSWORD", message: "This account does not use a password" } });
+      return;
+    }
+    const valid = await bcrypt.compare(currentPassword, user.hashedPassword);
+    if (!valid) {
+      res.status(401).json({ error: { code: "INVALID_CREDENTIALS", message: "Current password is incorrect" } });
+      return;
+    }
+    if (await bcrypt.compare(newPassword, user.hashedPassword)) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "New password must differ from the current password" } });
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    await db.transaction(async (tx) => {
+      await tx.update(usersTable).set({ hashedPassword }).where(eq(usersTable.id, userId));
+    });
+
+    // Invalidate every refresh family — all devices must re-authenticate with
+    // the new password. (Stateless legacy access tokens wind down naturally;
+    // refresh-based sessions die immediately.)
+    await revokeAllUserRefreshTokens(userId);
+    clearAuthCookies(res);
+    logger.info({ userId }, "password changed — all refresh tokens revoked");
+    res.json({ ok: true, message: "Password updated. Please sign in again." });
+  } catch (err) {
+    logger.error({ err }, "change password error");
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
+  }
+});
+
+// ── Account deletion (authenticated, password-confirmed) ──────────────────
+
+router.delete("/auth/account", authLimiter, async (req, res) => {
+  const userId = extractUserId(req);
+  if (!userId) {
+    sendUnauthorized(res);
+    return;
+  }
+
+  try {
+    const [user] = await db.select({ id: usersTable.id, hashedPassword: usersTable.hashedPassword, isGuest: usersTable.isGuest, email: usersTable.email, role: usersTable.role })
+      .from(usersTable).where(eq(usersTable.id, userId));
+    if (!user) {
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "Account not found" } });
+      return;
+    }
+    if (user.role?.toLowerCase() === "admin") {
+      res.status(403).json({ error: { code: "FORBIDDEN", message: "Admin accounts cannot self-delete" } });
+      return;
+    }
+
+    // Password confirmation (non-guest accounts with a password). Guests prove
+    // nothing — their account is ephemeral by design.
+    if (!user.isGuest && user.hashedPassword) {
+      const { password } = req.body as { password?: string };
+      if (!password || typeof password !== "string" || !(await bcrypt.compare(password, user.hashedPassword))) {
+        res.status(401).json({ error: { code: "INVALID_CREDENTIALS", message: "Password confirmation required" } });
+        return;
+      }
+    }
+
+    // Scrub PII that would survive the cascade via ON DELETE SET NULL — must
+    // happen BEFORE the delete (the link is lost afterwards).
+    await db.transaction(async (tx) => {
+      await tx.update(emailLogsTable).set({ recipientEmail: "[deleted]" }).where(eq(emailLogsTable.recipientId, userId));
+      await tx.delete(usersTable).where(eq(usersTable.id, userId));
+    });
+
+    clearAuthCookies(res);
+    logger.info({ userId, isGuest: user.isGuest }, "account deleted");
+    res.json({ ok: true });
+  } catch (err) {
+    logger.error({ err }, "account deletion error");
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
+  }
 });
 
 // ── Password reset ────────────────────────────────────────────────────────
@@ -464,7 +613,9 @@ router.post("/auth/forgot-password", forgotPasswordLimiter, async (req, res) => 
       .from(usersTable).where(and(eq(usersTable.email, email.toLowerCase().trim()), eq(usersTable.isGuest, false)));
 
     if (!user) {
-      res.json({ ok: true, emailSent: false });
+      // Uniform response for known and unknown emails — do not leak account
+      // existence (the client shows a generic "check your inbox" message).
+      res.json({ ok: true });
       return;
     }
 
@@ -479,7 +630,8 @@ router.post("/auth/forgot-password", forgotPasswordLimiter, async (req, res) => 
     if (process.env.NODE_ENV !== "production" && !emailSent) {
       logger.info({ devResetUrl: resetUrl }, "dev: password reset URL (not sent by email)");
     }
-    res.json({ ok: true, emailSent });
+    // Uniform response — never reveal whether the account exists.
+    res.json({ ok: true });
   } catch (err) {
     logger.error({ err }, "forgot password error");
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
@@ -497,8 +649,8 @@ router.post("/auth/reset-password", authLimiter, async (req, res) => {
   try {
     const now = new Date();
     const hashedPassword = await bcrypt.hash(password, 12);
-    const consumed = await db.transaction(async (tx) => {
-      const [resetToken] = await tx.update(passwordResetTokensTable)
+    const resetToken = await db.transaction(async (tx) => {
+      const [row] = await tx.update(passwordResetTokensTable)
         .set({ usedAt: now })
         .where(and(
           eq(passwordResetTokensTable.token, hashResetToken(token)),
@@ -506,15 +658,19 @@ router.post("/auth/reset-password", authLimiter, async (req, res) => {
           isNull(passwordResetTokensTable.usedAt),
         ))
         .returning({ id: passwordResetTokensTable.id, userId: passwordResetTokensTable.userId });
-      if (!resetToken) return false;
-      await tx.update(usersTable).set({ hashedPassword }).where(eq(usersTable.id, resetToken.userId));
-      return true;
+      if (!row) return null;
+      await tx.update(usersTable).set({ hashedPassword }).where(eq(usersTable.id, row.userId));
+      return row;
     });
 
-    if (!consumed) {
+    if (!resetToken) {
       res.status(400).json({ error: { code: "INVALID_TOKEN", message: "Reset link is invalid or expired" } });
       return;
     }
+    // A password reset means the credential changed (usually a lockout) —
+    // every refresh family dies here so stolen sessions cannot survive it.
+    await revokeAllUserRefreshTokens(resetToken.userId);
+    logger.info({ userId: resetToken.userId }, "password reset — all refresh tokens revoked");
     res.json({ ok: true });
   } catch (err) {
     logger.error({ err }, "reset password error");
@@ -522,7 +678,7 @@ router.post("/auth/reset-password", authLimiter, async (req, res) => {
   }
 });
 
-router.get("/auth/reset-password/verify", async (req, res) => {
+router.get("/auth/reset-password/verify", forgotPasswordLimiter, async (req, res) => {
   const token = req.query.token as string | undefined;
   if (!token) {
     res.status(400).json({ valid: false });
@@ -551,7 +707,7 @@ const onboardingSchema = z.object({
 router.post("/auth/onboarding", async (req, res) => {
   const userId = extractUserId(req);
   if (!userId) {
-    res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Unauthorized" } });
+    sendUnauthorized(res);
     return;
   }
   const { data } = req.body as { data?: unknown };
@@ -578,7 +734,7 @@ router.post("/auth/onboarding", async (req, res) => {
 router.patch("/auth/profile", async (req, res) => {
   const userId = extractUserId(req);
   if (!userId) {
-    res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Unauthorized" } });
+    sendUnauthorized(res);
     return;
   }
   const { name, bio, timezone } = req.body as Record<string, unknown>;

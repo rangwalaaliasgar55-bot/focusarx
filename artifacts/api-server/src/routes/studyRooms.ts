@@ -8,6 +8,7 @@ import {
 } from "@workspace/db";
 import { extractUserId } from "./auth";
 import { eq, and, desc, sql, ne } from "drizzle-orm";
+import { sendUnauthorized } from "../lib/httpErrors";
 
 export const studyRoomsRouter = Router();
 
@@ -65,7 +66,7 @@ studyRoomsRouter.get("/study-rooms", async (req: AuthRequest, res: Response) => 
   let rooms;
   if (groupId) {
     const userId = (req as any).userId as string | null;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+    if (!userId) return sendUnauthorized(res);
     const [membership] = await db.select({ id: groupMembersTable.id }).from(groupMembersTable)
       .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, userId))).limit(1);
     if (!membership) return res.status(404).json({ error: "Group not found" });

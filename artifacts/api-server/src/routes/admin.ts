@@ -15,6 +15,7 @@ import { seedBots, seedBotsToTarget, deleteAllBots, BOT_PERSONAS, botActivitySta
 import { generatePersona } from "../lib/personas";
 import { templateInventory } from "../lib/botTemplates";
 import { auditLog, getClientIp } from "../lib/auditLog";
+import { sendUnauthorized } from "../lib/httpErrors";
 
 const router = Router();
 const IS_PROD = process.env.NODE_ENV === "production";
@@ -114,7 +115,7 @@ router.delete("/admin/auth", (req, res) => {
 });
 
 router.get("/admin/users", async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   try {
     // Project explicit columns (see CONTRIBUTING «Database query rules»). A bare
     // `db.select().from(usersTable)` asks for all 17 columns, so if the live DB
@@ -130,30 +131,62 @@ router.get("/admin/users", async (req, res) => {
       createdAt: usersTable.createdAt,
     }).from(usersTable).orderBy(usersTable.createdAt);
 
-    // Aggregate in SQL instead of pulling every session/streak row into memory
-    // and counting in JS — that grows without bound with usage.
-    const sessionCounts = await db.select({
+    // Bounded pagination + server-side search. Legacy callers (no ?page=)
+    // still receive the enveloped shape they expect, but the window is capped
+    // so the endpoint can never scan the whole table again.
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(500, Math.max(1, parseInt(req.query.limit as string) || 500));
+    const offset = (page - 1) * limit;
+    const search = typeof req.query.search === "string" ? req.query.search.trim().slice(0, 100) : "";
+    const searchPattern = search ? `%${search.replace(/[%_]/g, (m) => `\\${m}`)}%` : null;
+
+    const [{ value: totalCount }] = await db.select({ value: sql<number>`count(*)` })
+      .from(usersTable)
+      .where(searchPattern ? sql`(${usersTable.name} ilike ${searchPattern} or ${usersTable.email} ilike ${searchPattern})` : sql`true`);
+
+    const pageUsers = await db.select({
+      id: usersTable.id,
+      name: usersTable.name,
+      email: usersTable.email,
+      isGuest: usersTable.isGuest,
+      role: usersTable.role,
+      createdAt: usersTable.createdAt,
+    }).from(usersTable)
+      .where(searchPattern ? sql`(${usersTable.name} ilike ${searchPattern} or ${usersTable.email} ilike ${searchPattern})` : sql`true`)
+      .orderBy(desc(usersTable.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    const pageIds = pageUsers.map((u) => u.id);
+
+    // Aggregates scoped to the page — SQL-side counting, bounded input set.
+    const sessionCounts = pageIds.length > 0 ? await db.select({
       userId: focusSessionsTable.userId,
       count: sql<number>`count(*)`,
-    }).from(focusSessionsTable).groupBy(focusSessionsTable.userId);
+    }).from(focusSessionsTable).where(inArray(focusSessionsTable.userId, pageIds)).groupBy(focusSessionsTable.userId) : [];
 
-    const streakRows = await db.select({
+    const streakRows = pageIds.length > 0 ? await db.select({
       userId: studyStreaksTable.userId,
       currentStreak: studyStreaksTable.currentStreak,
-    }).from(studyStreaksTable);
+    }).from(studyStreaksTable).where(inArray(studyStreaksTable.userId, pageIds)) : [];
 
     const [{ value: activeCount }] = await db.select({
       value: sql<number>`count(*)`,
     }).from(activeSessionsTable);
 
+    // Global role counts — small dimension (users), full-table counts are fine.
+    const [{ value: registeredCount }] = await db.select({ value: sql<number>`count(*)` })
+      .from(usersTable).where(and(eq(usersTable.isGuest, false), sql`${usersTable.role} <> 'bot'`));
+    const [{ value: botCount }] = await db.select({ value: sql<number>`count(*)` })
+      .from(usersTable).where(sql`${usersTable.role} = 'bot'`);
+    const [{ value: guestCount }] = await db.select({ value: sql<number>`count(*)` })
+      .from(usersTable).where(eq(usersTable.isGuest, true));
+
     const sessionCountByUser = new Map(sessionCounts.map((r) => [r.userId, Number(r.count)]));
     const streakByUser = new Map(streakRows.map((r) => [r.userId, r.currentStreak]));
 
-    const registered = users.filter((u) => !u.isGuest);
-    const botCount = registered.filter((u) => (u.role ?? "").toLowerCase() === "bot").length;
-
     res.json({
-      users: registered.map((u) => ({
+      users: pageUsers.filter((u) => !u.isGuest && (u.role ?? "user").toLowerCase() !== "bot").map((u) => ({
         id: u.id, name: u.name, email: u.email, isGuest: false,
         role: u.role ?? "user",
         sessionCount: sessionCountByUser.get(u.id) ?? 0,
@@ -161,8 +194,15 @@ router.get("/admin/users", async (req, res) => {
         createdAt: u.createdAt,
       })),
       activeCount: Number(activeCount ?? 0),
-      guestCount: users.length - registered.length,
-      botCount,
+      guestCount: Number(guestCount ?? 0),
+      botCount: Number(botCount ?? 0),
+      pagination: {
+        page,
+        limit,
+        total: Number(registeredCount ?? 0),
+        totalPages: Math.max(1, Math.ceil(Number(registeredCount ?? 0) / limit)),
+        hasMore: offset + pageUsers.length < Number(registeredCount ?? 0),
+      },
     });
   } catch (err) {
     logger.error({ err }, "admin users error");
@@ -171,7 +211,7 @@ router.get("/admin/users", async (req, res) => {
 });
 
 router.get("/admin/stats", async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   try {
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 6 * 86400000);
@@ -255,7 +295,7 @@ router.get("/admin/stats", async (req, res) => {
 });
 
 router.patch("/admin/users/:id/role", async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   const { id } = req.params as { id: string };
   const { role } = req.body as { role?: string };
   if (!role || !["admin", "user", "bot"].includes(role)) {
@@ -276,7 +316,7 @@ router.patch("/admin/users/:id/role", async (req, res) => {
 // Everything the platform knows about one user, in one payload.
 
 router.get("/admin/users/:id/profile", async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   const { id } = req.params as { id: string };
   try {
     // Explicit column projection so schema drift can't 500.
@@ -362,7 +402,7 @@ router.get("/admin/users/:id/profile", async (req, res) => {
 // ─── EDIT CORE PROFILE ────────────────────────────────────────────────────────
 
 router.patch("/admin/users/:id", adminLimiter, async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   const { id } = req.params as { id: string };
   const b = req.body as Record<string, unknown>;
   const patch: Partial<typeof usersTable.$inferInsert> = {};
@@ -397,7 +437,7 @@ router.patch("/admin/users/:id", adminLimiter, async (req, res) => {
 // ─── EDIT STREAK ──────────────────────────────────────────────────────────────
 
 router.patch("/admin/users/:id/streak", adminLimiter, async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   const { id } = req.params as { id: string };
   const b = req.body as { currentStreak?: number; longestStreak?: number };
   const current = typeof b.currentStreak === "number" ? Math.max(0, Math.round(b.currentStreak)) : null;
@@ -434,7 +474,7 @@ router.patch("/admin/users/:id/streak", adminLimiter, async (req, res) => {
 // ─── EDIT WALLET (coins / XP / level) ─────────────────────────────────────────
 
 router.patch("/admin/users/:id/wallet", adminLimiter, async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   const { id } = req.params as { id: string };
   const b = req.body as { coins?: number; totalXp?: number; weeklyXp?: number; level?: number; mode?: "set" | "add" };
   const mode = b.mode === "add" ? "add" : "set";
@@ -508,7 +548,7 @@ router.patch("/admin/users/:id/wallet", adminLimiter, async (req, res) => {
 // generated and returned exactly once — the admin relays it to the user.
 
 router.post("/admin/users/:id/reset-password", adminLimiter, async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   const { id } = req.params as { id: string };
   const bodyPassword = typeof (req.body as any)?.password === "string" ? (req.body as any).password as string : "";
   const password = bodyPassword.trim().length >= 8
@@ -534,7 +574,7 @@ router.post("/admin/users/:id/reset-password", adminLimiter, async (req, res) =>
 // ─── DIRECT NOTIFICATION TO ONE USER ──────────────────────────────────────────
 
 router.post("/admin/users/:id/notification", adminLimiter, async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   const { id } = req.params as { id: string };
   const { title, message, type } = req.body as { title?: string; message?: string; type?: string };
   if (!title?.trim() || !message?.trim()) { res.status(400).json({ error: "title and message required" }); return; }
@@ -555,7 +595,7 @@ router.post("/admin/users/:id/notification", adminLimiter, async (req, res) => {
 // ─── AI RIVALS (labelled bot accounts) ────────────────────────────────────────
 
 router.get("/admin/bots", async (_req, res) => {
-  if (!await checkAuth(_req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(_req)) { sendUnauthorized(res); return; }
   try {
     const [bots, totalArr] = await Promise.all([
       db.select({
@@ -590,7 +630,7 @@ router.get("/admin/bots", async (_req, res) => {
 });
 
 router.post("/admin/bots/seed", adminLimiter, async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   try {
     const target = Math.floor(Number((req.body as { target?: number })?.target) || 12000);
     if (![500, 2000, 12000].includes(target) && (target < 100 || target > 20000)) {
@@ -608,7 +648,7 @@ router.post("/admin/bots/seed", adminLimiter, async (req, res) => {
 });
 
 router.post("/admin/bots/graph", adminLimiter, async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   try {
     // reset=true: wipe the bot follow graph + flag so it can be rebuilt.
     if ((req.body as { reset?: boolean })?.reset) {
@@ -624,7 +664,7 @@ router.post("/admin/bots/graph", adminLimiter, async (req, res) => {
 });
 
 router.delete("/admin/bots", adminLimiter, async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   try {
     const deleted = await deleteAllBots();
     logger.info({ deleted }, "admin removed AI rivals");
@@ -636,7 +676,7 @@ router.delete("/admin/bots", adminLimiter, async (req, res) => {
 });
 
 router.delete("/admin/users/guests", adminLimiter, async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   try {
     const deleted = await db.delete(usersTable)
       .where(eq(usersTable.isGuest, true))
@@ -650,7 +690,7 @@ router.delete("/admin/users/guests", adminLimiter, async (req, res) => {
 });
 
 router.delete("/admin/users/:id", async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   const { id } = req.params as { id: string };
   try {
     await db.delete(usersTable).where(eq(usersTable.id, id));
@@ -662,7 +702,7 @@ router.delete("/admin/users/:id", async (req, res) => {
 });
 
 router.post("/admin/users/:id/premium", async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   const { id } = req.params as { id: string };
   const days = Number(req.body.days ?? 30);
   try {
@@ -688,7 +728,7 @@ router.post("/admin/users/:id/premium", async (req, res) => {
 });
 
 router.get("/admin/missions", async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   try {
     const completions = await db
       .select({
@@ -726,7 +766,7 @@ router.get("/admin/missions", async (req, res) => {
 });
 
 router.get("/admin/retention", async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   try {
     const [loginRewardStats] = await db.select({
       totalClaims: sql<number>`coalesce(sum(${loginRewardsTable.totalClaimed}), 0)::int`,

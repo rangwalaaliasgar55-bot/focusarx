@@ -333,6 +333,33 @@ export const passwordResetTokensTable = pgTable("password_reset_tokens", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+/**
+ * Server-side refresh-token store (rotation + reuse detection).
+ *
+ * Refresh tokens are opaque random values; only their SHA-256 hash is stored.
+ * Each login creates a `familyId`; every rotation revokes the presented token
+ * and issues a sibling in the same family. Presenting an already-revoked token
+ * (theft/replay signature) revokes the whole family, forcing re-login on every
+ * device that shares it.
+ */
+export const refreshTokensTable = pgTable("refresh_tokens", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(),
+  familyId: text("family_id").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  revokedAt: timestamp("revoked_at"),
+  replacedByTokenHash: text("replaced_by_token_hash"),
+  userAgent: text("user_agent"),
+  ip: text("ip"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("refresh_tokens_user_idx").on(t.userId),
+  index("refresh_tokens_family_idx").on(t.familyId),
+]);
+
+export type RefreshToken = typeof refreshTokensTable.$inferSelect;
+
 export type PasswordResetToken = typeof passwordResetTokensTable.$inferSelect;
 
 export const roadmapsTable = pgTable("roadmaps", {

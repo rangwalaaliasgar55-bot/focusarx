@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db, flashcardDecksTable, flashcardsTable } from "@workspace/db";
-import { eq, and, desc, lte, sql } from "drizzle-orm";
+import { eq, and, desc, lte, inArray, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { isUserPremium } from "../lib/premiumCheck";
@@ -32,14 +32,23 @@ router.get("/flashcards/decks", async (req: AuthRequest, res) => {
       .where(eq(flashcardDecksTable.userId, req.userId))
       .orderBy(desc(flashcardDecksTable.updatedAt));
 
-    // Attach card counts.
+    // Aggregate per deck, scoped to this user's decks. The previous version
+    // grouped the entire flashcards table (all users) twice per request — an
+    // unbounded cross-tenant scan.
+    const deckIds = decks.map((d) => d.id);
+    if (deckIds.length === 0) {
+      res.json([]);
+      return;
+    }
     const counts = await db.select({ deckId: flashcardsTable.deckId, c: sql<number>`count(*)` })
-      .from(flashcardsTable).groupBy(flashcardsTable.deckId);
+      .from(flashcardsTable)
+      .where(inArray(flashcardsTable.deckId, deckIds))
+      .groupBy(flashcardsTable.deckId);
     const countMap = new Map(counts.map((c) => [c.deckId, Number(c.c)]));
 
     const due = await db.select({ deckId: flashcardsTable.deckId, c: sql<number>`count(*)` })
       .from(flashcardsTable)
-      .where(lte(flashcardsTable.nextReviewAt, new Date()))
+      .where(and(inArray(flashcardsTable.deckId, deckIds), lte(flashcardsTable.nextReviewAt, new Date())))
       .groupBy(flashcardsTable.deckId);
     const dueMap = new Map(due.map((d) => [d.deckId, Number(d.c)]));
 

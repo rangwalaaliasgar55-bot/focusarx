@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { getEnv, getDatabaseUrl, getJwtSecret, getAppUrl } from "./env";
 
 export type ServerConfig = {

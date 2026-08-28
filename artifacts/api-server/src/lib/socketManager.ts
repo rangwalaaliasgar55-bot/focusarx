@@ -1,5 +1,7 @@
 import { Server, Socket } from "socket.io";
 import { extractUserId } from "../routes/auth";
+import { verifySocketTicket } from "./socketTickets";
+import { getServerConfig } from "./config";
 import { logger } from "./logger";
 import { db, studyRoomMembersTable, studyRoomsTable } from "@workspace/db";
 import { and, eq } from "drizzle-orm";
@@ -53,17 +55,23 @@ export function initSocket(httpServer: import("http").Server) {
   });
 
   io.use((socket: Socket, next) => {
+    // Preferred: a 60s socket-scoped ticket from GET /api/auth/socket-ticket.
+    // Fallback: the legacy bearer token (older clients), still fully verified.
+    const ticket = socket.handshake.auth?.ticket as string | undefined;
     const token = socket.handshake.auth?.token as string | undefined;
-    if (!token) {
-      logger.warn({ socketId: socket.id }, "socket auth rejected: no token");
-      next(new Error("Authentication required"));
-      return;
+    let userId: string | null = null;
+
+    if (ticket) {
+      const secret = getServerConfig().jwtSecret;
+      userId = secret ? verifySocketTicket(ticket, secret)?.sub ?? null : null;
+    } else if (token) {
+      const fakeReq = { headers: { authorization: `Bearer ${token}` } } as any;
+      userId = extractUserId(fakeReq);
     }
-    const fakeReq = { headers: { authorization: `Bearer ${token}` } } as any;
-    const userId = extractUserId(fakeReq);
+
     if (!userId) {
-      logger.warn({ socketId: socket.id }, "socket auth rejected: invalid token");
-      next(new Error("Invalid token"));
+      logger.warn({ socketId: socket.id, method: ticket ? "ticket" : token ? "token" : "none" }, "socket auth rejected");
+      next(new Error(ticket || token ? "Invalid credentials" : "Authentication required"));
       return;
     }
     (socket as any).userId = userId;

@@ -166,11 +166,14 @@ async function callGroq(req: AiRequest, purpose: string, fallbackUsed: boolean, 
 export async function generateAi(req: AiRequest): Promise<AiResult | null> {
   if (req.forceTemplate) return null;
 
-  const geminiBudget = await checkBudget("gemini");
-  const groqBudget = await checkBudget("groq");
+  // Key presence first — zero-key deployments must not pay a DB roundtrip
+  // per call just to learn there is nothing to call.
   const geminiKey = Boolean(process.env.GEMINI_API_KEY);
   const groqKey = Boolean(process.env.GROQ_API_KEY);
   if (!geminiKey && !groqKey) return null;
+
+  const geminiBudget = await checkBudget("gemini");
+  const groqBudget = await checkBudget("groq");
 
   let geminiTried = false;
   if (geminiKey && geminiBudget.available) {

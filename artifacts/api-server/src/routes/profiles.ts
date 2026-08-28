@@ -4,12 +4,13 @@ import { focusProfilesTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
+import { sendUnauthorized } from "../lib/httpErrors";
 
 const router = Router();
 
 function auth(req: any, res: any, next: any) {
   const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!userId) { sendUnauthorized(res); return; }
   req.userId = userId;
   next();
 }

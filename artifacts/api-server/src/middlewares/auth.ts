@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { extractUserId } from "../routes/auth";
+import { sendUnauthorized } from "../lib/httpErrors";
 
 export interface AuthRequest extends Request {
   userId: string;
@@ -8,7 +9,7 @@ export interface AuthRequest extends Request {
 export function authMiddleware(req: Request, res: Response, next: NextFunction) {
   const userId = extractUserId(req);
   if (!userId) {
-    res.status(401).json({ error: "Unauthorized" });
+    sendUnauthorized(res);
     return;
   }
   (req as AuthRequest).userId = userId;

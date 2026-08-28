@@ -10,6 +10,12 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Account lifecycle, sessions, and socket tickets
+  - name: sessions
+    description: Server-authoritative focus sessions
+  - name: retention
+    description: Daily rewards and streak retention
   - name: break-free
     description: Break Free wellness module
 paths:
@@ -158,13 +164,1132 @@ paths:
         "400":
           description: Invalid input
 
+  /auth/register:
+    post:
+      operationId: registerUser
+      tags: [auth]
+      summary: Create an account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterBodyDto"
+      responses:
+        "201":
+          description: Account created (sign in to obtain a session)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegisterResponseDto"
+        "400":
+          description: Invalid input or email already registered
+        "429":
+          description: Rate limited
+
+  /auth/login:
+    post:
+      operationId: loginUser
+      tags: [auth]
+      summary: Sign in with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBodyDto"
+      responses:
+        "200":
+          description: Signed in — httpOnly auth cookies are set; token/accessToken are legacy client fallbacks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponseDto"
+        "400":
+          description: Invalid input
+        "401":
+          description: Invalid credentials
+        "429":
+          description: Rate limited
+
+  /auth/guest:
+    post:
+      operationId: createGuestSession
+      tags: [auth]
+      summary: Create or resume a guest session from a device key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GuestBodyDto"
+      responses:
+        "200":
+          description: Guest session — cookies are set
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponseDto"
+        "400":
+          description: Invalid guest key
+        "429":
+          description: Rate limited
+
+  /auth/session:
+    get:
+      operationId: getAuthSession
+      tags: [auth]
+      summary: Current user (cookie or bearer auth)
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Session user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionResponseDto"
+        "401":
+          description: Unauthorized
+
+  /auth/refresh:
+    post:
+      operationId: refreshSession
+      tags: [auth]
+      summary: Rotate the refresh token and mint a new access token
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Refreshed — new cookies are set; reuse of a rotated token revokes the whole family
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefreshResponseDto"
+        "401":
+          description: Invalid/expired/replayed refresh token
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Revoke the presented refresh token and clear cookies
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Signed out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponseDto"
+
+  /auth/forgot-password:
+    post:
+      operationId: requestPasswordReset
+      tags: [auth]
+      summary: Request a password-reset email (uniform response)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgotPasswordBodyDto"
+      responses:
+        "200":
+          description: Always ok — never reveals whether the account exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponseDto"
+        "429":
+          description: Rate limited
+
+  /auth/reset-password:
+    post:
+      operationId: resetPassword
+      tags: [auth]
+      summary: Consume a reset token and set a new password (revokes all sessions)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordBodyDto"
+      responses:
+        "200":
+          description: Password updated; all refresh sessions revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponseDto"
+        "400":
+          description: Token invalid or expired
+        "429":
+          description: Rate limited
+
+  /auth/reset-password/verify:
+    get:
+      operationId: verifyResetToken
+      tags: [auth]
+      summary: Check whether a reset token is still valid
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Token validity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerifyResetResponseDto"
+
+  /auth/change-password:
+    post:
+      operationId: changePassword
+      tags: [auth]
+      summary: Change the password (revokes all sessions)
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordBodyDto"
+      responses:
+        "200":
+          description: Password updated; all devices signed out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChangePasswordResponseDto"
+        "400":
+          description: No password on account / invalid input
+        "401":
+          description: Current password incorrect or unauthorized
+        "429":
+          description: Rate limited
+
+  /auth/account:
+    delete:
+      operationId: deleteAccount
+      tags: [auth]
+      summary: Permanently delete the account (password-confirmed; guests exempt; admins blocked)
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteAccountBodyDto"
+      responses:
+        "200":
+          description: Account and cascade-owned data deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponseDto"
+        "401":
+          description: Password confirmation failed or unauthorized
+        "403":
+          description: Admin accounts cannot self-delete
+        "404":
+          description: Account not found
+
+  /auth/socket-ticket:
+    get:
+      operationId: getSocketTicket
+      tags: [auth]
+      summary: Issue a 60s single-purpose Socket.IO handshake ticket
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Ticket
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SocketTicketResponseDto"
+        "401":
+          description: Unauthorized
+
+  /auth/onboarding:
+    post:
+      operationId: saveOnboarding
+      tags: [auth]
+      summary: Persist onboarding answers
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OnboardingBodyDto"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponseDto"
+        "400":
+          description: Invalid input
+        "401":
+          description: Unauthorized
+
+  /auth/profile:
+    patch:
+      operationId: updateProfile
+      tags: [auth]
+      summary: Update profile fields
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileBodyDto"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileUpdateResponseDto"
+        "400":
+          description: No valid fields
+        "401":
+          description: Unauthorized
+
+  /sessions/active:
+    get:
+      operationId: getActiveSession
+      tags: [sessions]
+      summary: The server-authoritative active timer (expired rows are finalized)
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Active session or null (with an expiredSession summary when one was archived)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActiveSessionResponseDto"
+        "401":
+          description: Unauthorized
+
+    post:
+      operationId: startActiveSession
+      tags: [sessions]
+      summary: Start (or replace) the single active timer
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartActiveSessionBodyDto"
+      responses:
+        "200":
+          description: Active session created (includes expiredSession when a stale row was archived)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActiveSessionResponseDto"
+        "400":
+          description: Invalid input
+        "401":
+          description: Unauthorized
+
+    delete:
+      operationId: abandonActiveSession
+      tags: [sessions]
+      summary: Discard the active timer without recording a session
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Discarded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponseDto"
+        "401":
+          description: Unauthorized
+
+  /sessions/sync:
+    post:
+      operationId: syncActiveSession
+      tags: [sessions]
+      summary: Periodic sync of live timer state (server clamps to wall clock)
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SyncActiveSessionBodyDto"
+      responses:
+        "200":
+          description: Synced
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncActiveSessionResponseDto"
+        "400":
+          description: Invalid input
+        "401":
+          description: Unauthorized
+        "404":
+          description: Active session not found
+        "409":
+          description: Session expired and was archived (expiredSession carries the outcome)
+
+  /sessions:
+    post:
+      operationId: completeSession
+      tags: [sessions]
+      summary: Record a completed session (idempotent per clientNonce; rewards require server evidence)
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteSessionBodyDto"
+      responses:
+        "200":
+          description: Completion recorded with earned rewards
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionCompletionResponseDto"
+        "400":
+          description: Invalid input
+        "401":
+          description: Unauthorized
+        "429":
+          description: Rate limited
+    get:
+      operationId: listSessions
+      tags: [sessions]
+      summary: Session history (legacy shape; see /sessions/history for pagination)
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Recent sessions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionHistoryResponseDto"
+        "401":
+          description: Unauthorized
+
+  /sessions/history:
+    get:
+      operationId: listSessionHistory
+      tags: [sessions]
+      summary: Paginated session history
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: Paginated sessions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedSessionHistoryResponseDto"
+        "401":
+          description: Unauthorized
+
+  /retention/login-reward:
+    get:
+      operationId: getLoginRewardStatus
+      tags: [retention]
+      summary: Daily login-reward calendar state
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginRewardStatusResponseDto"
+        "401":
+          description: Unauthorized
+
+  /retention/login-reward/claim:
+    post:
+      operationId: claimLoginReward
+      tags: [retention]
+      summary: Claim today's login reward (race-free)
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Claimed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginRewardClaimResponseDto"
+        "400":
+          description: Already claimed today
+        "401":
+          description: Unauthorized
+
 components:
   securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: access_token
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
   schemas:
+    OkResponseDto:
+      type: object
+      properties:
+        ok:
+          type: boolean
+      required:
+        - ok
+
+    ErrorEnvelopeDto:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            requestId:
+              type: string
+          required:
+            - code
+            - message
+
+    RegisterBodyDto:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+        name:
+          type: string
+          maxLength: 100
+          nullable: true
+      required:
+        - email
+        - password
+
+    RegisterResponseDto:
+      type: object
+      properties:
+        message:
+          type: string
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+            email:
+              type: string
+          required:
+            - id
+            - email
+      required:
+        - message
+        - user
+
+    LoginBodyDto:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    GuestBodyDto:
+      type: object
+      properties:
+        guestKey:
+          type: string
+          minLength: 8
+      required:
+        - guestKey
+
+    LoginUserDto:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+          nullable: true
+        isGuest:
+          type: boolean
+      required:
+        - id
+        - email
+
+    LoginResponseDto:
+      type: object
+      properties:
+        token:
+          type: string
+          description: Legacy 7-day bearer token (deprecated — cookies carry the session)
+        accessToken:
+          type: string
+        user:
+          $ref: "#/components/schemas/LoginUserDto"
+      required:
+        - token
+        - accessToken
+        - user
+
+    SessionUserDto:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+          nullable: true
+        isGuest:
+          type: boolean
+        role:
+          type: string
+        onboardingCompleted:
+          type: boolean
+        bio:
+          type: string
+          nullable: true
+        timezone:
+          type: string
+          nullable: true
+      required:
+        - id
+        - email
+        - isGuest
+        - role
+        - onboardingCompleted
+
+    SessionResponseDto:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/SessionUserDto"
+      required:
+        - user
+
+    RefreshResponseDto:
+      type: object
+      properties:
+        token:
+          type: string
+        accessToken:
+          type: string
+      required:
+        - token
+        - accessToken
+
+    ForgotPasswordBodyDto:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+        - email
+
+    ResetPasswordBodyDto:
+      type: object
+      properties:
+        token:
+          type: string
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+      required:
+        - token
+        - password
+
+    VerifyResetResponseDto:
+      type: object
+      properties:
+        valid:
+          type: boolean
+      required:
+        - valid
+
+    ChangePasswordBodyDto:
+      type: object
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+          minLength: 8
+          maxLength: 128
+      required:
+        - currentPassword
+        - newPassword
+
+    ChangePasswordResponseDto:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        message:
+          type: string
+      required:
+        - ok
+
+    DeleteAccountBodyDto:
+      type: object
+      properties:
+        password:
+          type: string
+          description: Required for password accounts; guests omit it
+
+    SocketTicketResponseDto:
+      type: object
+      properties:
+        ticket:
+          type: string
+        expiresInSeconds:
+          type: integer
+      required:
+        - ticket
+        - expiresInSeconds
+
+    OnboardingBodyDto:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            goal:
+              type: string
+              maxLength: 200
+            level:
+              type: string
+              maxLength: 50
+            dailyHours:
+              type: number
+            preferredSessionLength:
+              type: number
+      required:
+        - data
+
+    UpdateProfileBodyDto:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 60
+        bio:
+          type: string
+          maxLength: 300
+        timezone:
+          type: string
+
+    ProfileUpdateResponseDto:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+            email:
+              type: string
+            name:
+              type: string
+              nullable: true
+          required:
+            - id
+            - email
+      required:
+        - ok
+
+    SessionModeDto:
+      type: string
+      enum:
+        - focus
+        - short_break
+        - long_break
+
+    TimerStatusDto:
+      type: string
+      enum:
+        - running
+        - paused
+        - idle
+
+    ActiveSessionDto:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        mode:
+          $ref: "#/components/schemas/SessionModeDto"
+        secondsLeft:
+          type: integer
+        timerStatus:
+          $ref: "#/components/schemas/TimerStatusDto"
+        activeSeconds:
+          type: integer
+        startedAt:
+          type: string
+        updatedAt:
+          type: string
+        serverElapsed:
+          type: integer
+        serverRemaining:
+          type: integer
+        serverNow:
+          type: string
+      required:
+        - id
+        - userId
+        - mode
+        - secondsLeft
+        - timerStatus
+        - startedAt
+        - updatedAt
+
+    ActiveSessionResponseDto:
+      type: object
+      properties:
+        session:
+          $ref: "#/components/schemas/ActiveSessionDto"
+        expiredSession:
+          $ref: "#/components/schemas/ExpiredSessionSummaryDto"
+
+    StartActiveSessionBodyDto:
+      type: object
+      properties:
+        mode:
+          $ref: "#/components/schemas/SessionModeDto"
+        secondsLeft:
+          type: integer
+          minimum: 60
+          maximum: 14400
+        timerStatus:
+          $ref: "#/components/schemas/TimerStatusDto"
+        monitorEnabled:
+          type: boolean
+      required:
+        - secondsLeft
+
+    SyncActiveSessionBodyDto:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+        activeSeconds:
+          type: integer
+        secondsLeft:
+          type: integer
+        timerStatus:
+          $ref: "#/components/schemas/TimerStatusDto"
+        mode:
+          $ref: "#/components/schemas/SessionModeDto"
+        monitorEnabled:
+          type: boolean
+      required:
+        - sessionId
+
+    SyncActiveSessionResponseDto:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        serverNow:
+          type: string
+      required:
+        - ok
+
+    ExpiredSessionSummaryDto:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        sessionStatus:
+          type: string
+          enum:
+            - completed
+            - expired
+        durationSec:
+          type: integer
+        earnedXp:
+          type: integer
+        earnedCoins:
+          type: integer
+
+    CompleteSessionBodyDto:
+      type: object
+      properties:
+        mode:
+          $ref: "#/components/schemas/SessionModeDto"
+        durationSec:
+          type: integer
+          minimum: 0
+          maximum: 86400
+        plannedDurationSec:
+          type: integer
+          nullable: true
+        completedEarly:
+          type: boolean
+        sessionStatus:
+          type: string
+          enum:
+            - completed
+            - completed_early
+            - cancelled
+        focusScore:
+          type: number
+          nullable: true
+        focusQuality:
+          type: string
+          nullable: true
+        taskId:
+          type: string
+          format: uuid
+          nullable: true
+        sessionId:
+          type: string
+          format: uuid
+        clientNonce:
+          type: string
+          pattern: "^[a-zA-Z0-9_-]{8,64}$"
+        category:
+          type: string
+          maxLength: 50
+      required:
+        - durationSec
+
+    FocusSessionDto:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        mode:
+          $ref: "#/components/schemas/SessionModeDto"
+        durationSec:
+          type: integer
+        plannedDurationSec:
+          type: integer
+          nullable: true
+        completedEarly:
+          type: boolean
+        sessionStatus:
+          type: string
+        completedAt:
+          type: string
+          nullable: true
+        focusScore:
+          type: number
+          nullable: true
+        category:
+          type: string
+        clientNonce:
+          type: string
+          nullable: true
+      required:
+        - id
+        - userId
+        - mode
+        - durationSec
+
+    SessionCompletionResponseDto:
+      type: object
+      properties:
+        session:
+          $ref: "#/components/schemas/FocusSessionDto"
+        streakUpdated:
+          type: boolean
+        earnedXp:
+          type: integer
+        earnedCoins:
+          type: integer
+        lootBoxDropped:
+          type: boolean
+        idempotentReplay:
+          type: boolean
+      required:
+        - session
+        - streakUpdated
+        - earnedXp
+        - earnedCoins
+
+    SessionHistoryResponseDto:
+      type: object
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/FocusSessionDto"
+      required:
+        - sessions
+
+    PaginationMetaDto:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+        hasMore:
+          type: boolean
+      required:
+        - page
+        - limit
+        - total
+        - totalPages
+        - hasMore
+
+    PaginatedSessionHistoryResponseDto:
+      type: object
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/FocusSessionDto"
+        pagination:
+          $ref: "#/components/schemas/PaginationMetaDto"
+        serverNow:
+          type: integer
+      required:
+        - sessions
+        - pagination
+
+    RewardDefinitionDto:
+      type: object
+      properties:
+        day:
+          type: integer
+        coins:
+          type: integer
+        xp:
+          type: integer
+        label:
+          type: string
+        icon:
+          type: string
+      required:
+        - day
+        - coins
+        - xp
+        - label
+
+    LoginRewardStatusResponseDto:
+      type: object
+      properties:
+        alreadyClaimed:
+          type: boolean
+        claimStreak:
+          type: integer
+        totalClaimed:
+          type: integer
+        nextReward:
+          $ref: "#/components/schemas/RewardDefinitionDto"
+        calendar:
+          type: array
+          items:
+            $ref: "#/components/schemas/RewardDefinitionDto"
+      required:
+        - alreadyClaimed
+        - claimStreak
+        - nextReward
+        - calendar
+
+    LoginRewardClaimResponseDto:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        newStreak:
+          type: integer
+        coins:
+          type: integer
+        xp:
+          type: integer
+        reward:
+          $ref: "#/components/schemas/RewardDefinitionDto"
+      required:
+        - ok
+        - reward
+
     HealthStatus:
       type: object
       properties:

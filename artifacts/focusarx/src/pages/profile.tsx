@@ -29,6 +29,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Switch } from "@/components/ui/switch";
 import { playSessionComplete } from "@/lib/soundEngine";
 import { AppearanceSettings } from "@/components/settings/AppearanceSettings";
+import { AccountSecuritySection } from "@/components/settings/AccountSecuritySection";
 import { NotificationSettingsCard } from "@/components/mobile/NotificationPermissionPrompt";
 import { useAuth, getToken } from "@/lib/auth";
 import { apiJson } from "@/lib/api";
@@ -351,6 +352,7 @@ export default function ProfilePage() {
       <SoundPreferencesCard />
       <AppearanceSettings />
       <NotificationSettingsCard />
+      <AccountSecuritySection />
 
       <Tabs defaultValue="achievements">
         <TabsList className="mb-5 grid h-auto w-full max-w-md grid-cols-4"><TabsTrigger value="achievements" className="min-h-11"><Award /> Achievements</TabsTrigger><TabsTrigger value="activity" className="min-h-11"><History /> Activity</TabsTrigger><TabsTrigger value="wallet" className="min-h-11"><WalletCards /> Wallet</TabsTrigger><TabsTrigger value="custom" className="min-h-11"><Palette /> Style</TabsTrigger></TabsList>

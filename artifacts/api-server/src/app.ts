@@ -106,7 +106,7 @@ app.use(
 app.use(
   pinoHttp({
     logger,
-    genReqId: (req) => (req as any).id ?? crypto.randomUUID(),
+    genReqId: (req) => (req as any).id ?? `req_${crypto.randomUUID()}`,
     serializers: {
       req(req) {
         return { id: req.id, method: req.method, url: req.url?.split("?")[0] };

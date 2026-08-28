@@ -3,6 +3,7 @@ import { db, seasonalEventsTable, userSeasonalProgressTable } from "@workspace/d
 import { eq, and, lte, gte } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { isUserPremium } from "../lib/premiumCheck";
+import { sendUnauthorized } from "../lib/httpErrors";
 
 const PREMIUM_CHALLENGES = [
   { id: "cosmic-10", title: "Cosmic Consistency", description: "Complete 10 focus sessions during the event", target: 10, reward: "Exclusive Aurora city skin" },
@@ -37,14 +38,14 @@ seasonalRouter.get("/seasonal/all", async (_req, res) => {
 
 seasonalRouter.get("/seasonal/premium-challenges", async (req, res) => {
   const userId = extractUserId(req);
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  if (!userId) return sendUnauthorized(res);
   if (!await isUserPremium(userId)) return res.status(403).json({ error: "Premium required" });
   res.json({ challenges: PREMIUM_CHALLENGES });
 });
 
 seasonalRouter.get("/seasonal/:eventId/progress", async (req: any, res) => {
   const userId = extractUserId(req);
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  if (!userId) return sendUnauthorized(res);
   try {
     const [event] = await db.select({ premiumOnly: seasonalEventsTable.premiumOnly }).from(seasonalEventsTable)
       .where(eq(seasonalEventsTable.id, req.params.eventId as string)).limit(1);

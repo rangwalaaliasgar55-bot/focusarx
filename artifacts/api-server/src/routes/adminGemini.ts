@@ -26,6 +26,7 @@ import { checkBudget, usageByPurpose, estimatedCost, istDayKey } from "../lib/ai
 import { providerAvailability } from "../lib/aiProvider";
 import { generateAi } from "../lib/aiProvider";
 import { briefingTemplate, seoBriefingTemplate, dailySeoSuggestions, sanitizeNeverNegative } from "../lib/aiTemplates";
+import { sendUnauthorized } from "../lib/httpErrors";
 
 const router = Router();
 
@@ -39,7 +40,7 @@ const ideaSchema = z.object({
 
 async function guard(req: Request, res: Response): Promise<boolean> {
   if (!(await checkAdminAuth(req))) {
-    res.status(401).json({ error: "Unauthorized" });
+    sendUnauthorized(res);
     return false;
   }
   return true;

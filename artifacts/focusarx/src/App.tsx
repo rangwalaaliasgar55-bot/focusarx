@@ -8,7 +8,7 @@ import { connectSocket, disconnectSocket } from "@/lib/socket";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from "@tanstack/react-query";
 
-import { AuthProvider, useAuth } from "@/lib/auth";
+import { AuthProvider, useAuth, getToken } from "@/lib/auth";
 import { ToastProvider } from "@/components/Toast";
 import { SiteAnalyticsTracker } from "@/components/SiteAnalyticsTracker";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -217,9 +217,9 @@ function SocketInitializer() {
   const { data: session, status } = useAuth();
   useEffect(() => {
     if (status !== "authenticated") return;
-    const token = localStorage.getItem("focusarx-auth-token");
-    if (!token) return;
-    connectSocket(token);
+    // Cookie-first: connectSocket exchanges the session cookie for a 60s
+    // socket ticket; the localStorage bearer (legacy) is only a fallback.
+    void connectSocket(getToken() ?? undefined);
     return () => { disconnectSocket(); };
   }, [status, session?.user?.id]);
   return null;
