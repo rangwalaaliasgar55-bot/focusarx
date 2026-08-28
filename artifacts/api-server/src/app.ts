@@ -6,6 +6,7 @@ import compression from "compression";
 import cookieParser from "cookie-parser";
 import crypto from "crypto";
 import router from "./routes";
+import { sitemapRouter } from "./routes/sitemap";
 import { logger } from "./lib/logger";
 import { getConfigErrors, getServerConfig } from "./lib/config";
 import { getEnv } from "./lib/env";
@@ -40,16 +41,46 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.cookieyes.com"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-        imgSrc: ["'self'", "data:", "https:", "https://images.unsplash.com"],
+        // ── AdSense ──────────────────────────────────────────────
+        // The ad loader, its auction endpoint and the creative iframes all
+        // live on *.googlesyndication.com / *.doubleclick.net. Without these
+        // entries CSP blocked adsbygoogle.js outright, so the <ins> elements
+        // rendered empty and the account saw zero impressions.
+        scriptSrc: [
+          "'self'", "'unsafe-inline'", "https://cdn.cookieyes.com",
+          "https://pagead2.googlesyndication.com",
+          "https://tpc.googlesyndication.com",
+          "https://www.googletagservices.com",
+          "https://www.google.com",
+          "https://*.googleadservices.com",
+          "https://*.googlesyndication.com",
+          "https://*.doubleclick.net",
+          "https://www.googletagmanager.com",
+          "https://www.google-analytics.com",
+          "https://ep2.adtrafficquality.google",
+        ],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://*.googlesyndication.com"],
+        imgSrc: ["'self'", "data:", "blob:", "https:", "https://images.unsplash.com"],
         connectSrc: isDev
           ? ["'self'", "http://localhost:*", "ws://localhost:*", "https:"]
-          : ["'self'", "https:", "wss:"],
+          : [
+              "'self'", "https:", "wss:",
+              "https://pagead2.googlesyndication.com",
+              "https://*.googlesyndication.com",
+              "https://*.doubleclick.net",
+              "https://ep1.adtrafficquality.google",
+              "https://ep2.adtrafficquality.google",
+            ],
         fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
         mediaSrc: ["'self'", "blob:", "data:"],
         workerSrc: ["'self'", "blob:"],
-        frameSrc: ["'none'"],
+        // Ad creatives render inside cross-origin iframes; 'none' killed them.
+        frameSrc: [
+          "https://*.googlesyndication.com",
+          "https://*.doubleclick.net",
+          "https://www.google.com",
+          "https://*.google.com",
+        ],
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
         formAction: ["'self'"],
@@ -218,6 +249,12 @@ app.use("/api", async (req, res, next) => {
   }
   next();
 });
+
+// ── SEO endpoints at the host root ────────────────────────────────
+// Crawlers only ever look for /sitemap.xml and /robots.txt at the origin root,
+// never under /api/. The same router is mounted twice so both work; vercel.json
+// rewrites the root paths to this function (see the `routes` block).
+app.use(sitemapRouter);
 
 app.use("/api", router);
 

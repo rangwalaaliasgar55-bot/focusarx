@@ -1,4 +1,5 @@
 import { FaceDetector, FilesetResolver } from "@mediapipe/tasks-vision";
+import { logger } from "../logger";
 
 /** Results are derived locally in the browser; no camera frame leaves the device. */
 export type VisionFrameResult = {
@@ -59,7 +60,7 @@ export function initVisionProcessor(): Promise<void> {
       } catch (cpuError) {
         initializationFailed = true;
         detector = null;
-        console.warn("[vision] MediaPipe face detector unavailable", cpuError ?? error);
+        logger.warn("[vision] MediaPipe face detector unavailable", cpuError ?? error);
       }
     }
   })();

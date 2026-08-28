@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 import CommunityPulse from "@/components/CommunityPulse";
+import { AdSlot } from "@/components/AdSlot";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -296,6 +297,15 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* ── AD SLOT: mid-landing ─────────────────────────────────
+            Placed between two full-height content sections, far from any
+            CTA, so it satisfies AdSense's accidental-click policy. */}
+        <section className="px-4 sm:px-6">
+          <div className="mx-auto max-w-5xl">
+            <AdSlot name="landingMid" />
+          </div>
+        </section>
+
         {/* ── COMPARISON TEASER ─────────────────────────────────── */}
         <section className="border-y border-[var(--border-subtle)] bg-[var(--surface-hover)] px-4 py-24 sm:px-6 sm:py-32">
           <div className="mx-auto max-w-5xl text-center">
@@ -326,6 +336,13 @@ export default function LandingPage() {
             <p className="mx-auto mt-5 max-w-xl text-base text-[var(--foreground-muted)]">Create a free account, choose one task, and begin with a single focus block. No credit card required.</p>
             <Button asChild size="xl" className="mt-8"><Link href="/signup">Start Focusing Free <ArrowRight /></Link></Button>
             <p className="mt-4 text-xs text-[var(--foreground-subtle)]">Free forever — Premium activated with coins you earn by focusing</p>
+          </div>
+        </section>
+
+        {/* ── AD SLOT: above the footer ─────────────────────────── */}
+        <section className="px-4 pb-16 sm:px-6">
+          <div className="mx-auto max-w-5xl">
+            <AdSlot name="landingFooter" />
           </div>
         </section>
       </main>

@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { rateLimit } from "express-rate-limit";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
@@ -9,7 +8,7 @@ import { db, usersTable, passwordResetTokensTable, emailLogsTable } from "@works
 import { eq, and, gt, isNull } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getServerConfig } from "../lib/config";
-import { authLimiter, forgotPasswordLimiter } from "../lib/rateLimiter";
+import { authLimiter, forgotPasswordLimiter, guestLimiter, refreshLimiter } from "../lib/rateLimiter";
 import { createRefreshFamily, rotateRefreshToken, revokeRefreshToken, revokeAllUserRefreshTokens } from "../lib/refreshTokens";
 import { issueSocketTicket } from "../lib/socketTickets";
 import { sendUnauthorized } from "../lib/httpErrors";
@@ -286,7 +285,7 @@ router.post("/auth/register", authLimiter, async (req, res) => {
   }
 });
 
-router.post("/auth/guest", authLimiter, async (req, res) => {
+router.post("/auth/guest", guestLimiter, async (req, res) => {
   const secret = jwtSecretOrRespond(res);
   if (!secret) return;
   const { guestKey } = req.body as { guestKey?: string };
@@ -327,20 +326,6 @@ router.post("/auth/guest", authLimiter, async (req, res) => {
     logger.error({ err }, "guest error");
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
-});
-
-// Lighter than login: legitimate clients refresh every ~14 min per tab.
-const refreshLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: IS_PROD ? 30 : 200,
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => {
-    // Only count requests that actually present a refresh credential —
-    // empty 401s are cheap and usually just logged-out page loads.
-    const cookies = (req as { cookies?: Record<string, string> }).cookies ?? {};
-    return !cookies.refresh_token && !(req.body as { refreshToken?: string } | null)?.refreshToken;
-  },
 });
 
 router.post("/auth/refresh", refreshLimiter, async (req, res) => {

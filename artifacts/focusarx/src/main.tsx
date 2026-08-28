@@ -5,6 +5,7 @@ import { setAuthTokenGetter } from "@workspace/api-client-react";
 import { getToken } from "@/lib/auth";
 import { getTheme, applyTheme, registerPremiumChecker } from "@/lib/theme";
 import { installChunkRecovery } from "@/lib/chunkRecovery";
+import { logger } from "./lib/logger";
 
 // Apply saved theme before first paint (prevents flash of wrong theme)
 applyTheme(getTheme());
@@ -48,11 +49,11 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
         next.addEventListener("statechange", () => {
           // New worker is ready and pages are already claimed, so the next
           // navigation (or chunk recovery reload) runs the fresh build.
-          if (next.state === "activated") console.info("[pwa] updated build ready");
+          if (next.state === "activated") logger.info("[pwa] updated build ready");
         });
       });
     }).catch((error) => {
-      console.warn("[pwa] service worker registration failed", error);
+      logger.warn("[pwa] service worker registration failed", error);
     });
   });
 }

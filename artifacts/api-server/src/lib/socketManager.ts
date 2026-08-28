@@ -250,7 +250,33 @@ import { hashString, mulberry32 } from "./personas";
 import { usersTable as botUsersTable } from "@workspace/db";
 import { eq as eqRoom } from "drizzle-orm";
 
+/**
+ * Throttle map for study-room bot banter, keyed by roomId.
+ *
+ * Bounded on purpose: every distinct room that ever scheduled banter added an
+ * entry that was never removed, so on a long-lived server this grew without
+ * limit. Entries older than the throttle window are useless anyway, so they
+ * are pruned as the map approaches its cap.
+ */
 const lastBotBanter = new Map<string, number>();
+const BANTER_THROTTLE_MS = 20 * 60 * 1000;
+const BANTER_MAP_MAX = 2_000;
+
+function noteBanter(roomId: string): void {
+  if (lastBotBanter.size >= BANTER_MAP_MAX) {
+    const cutoff = Date.now() - BANTER_THROTTLE_MS;
+    for (const [k, ts] of lastBotBanter) {
+      if (ts < cutoff) lastBotBanter.delete(k);
+    }
+    // Still full (every entry recent) — drop the oldest insertions.
+    while (lastBotBanter.size >= BANTER_MAP_MAX) {
+      const oldest = lastBotBanter.keys().next();
+      if (oldest.done) break;
+      lastBotBanter.delete(oldest.value);
+    }
+  }
+  lastBotBanter.set(roomId, Date.now());
+}
 
 async function pickBanterBots(): Promise<Array<{ id: string; name: string }>> {
   const rows = await db
@@ -267,8 +293,8 @@ function scheduleBotBanter(io: Server, roomId: string): void {
     const rng = mulberry32(hashString(`banter:${roomId}:${dayKey}`));
     if (rng() > 0.75) return;
     const last = lastBotBanter.get(roomId) ?? 0;
-    if (Date.now() - last < 20 * 60 * 1000) return;
-    lastBotBanter.set(roomId, Date.now());
+    if (Date.now() - last < BANTER_THROTTLE_MS) return;
+    noteBanter(roomId);
 
     void (async () => {
       const bots = await pickBanterBots();
@@ -282,6 +308,11 @@ function scheduleBotBanter(io: Server, roomId: string): void {
       let i = 0;
       const emitNext = () => {
         if (i >= count) return;
+        // Abort the chain once the room empties. The timers used to keep
+        // firing for the full exchange after the last human left, doing DB
+        // reads and socket broadcasts nobody was connected to receive.
+        const room = io.sockets.adapter.rooms.get(`room:${roomId}`);
+        if (!room || room.size === 0) return;
         const speaker = i % 2 === 0 ? speakerA : speakerB;
         const line = BANTER[(firstLine + i) % BANTER.length]!;
         io.to(`room:${roomId}`).emit("room:chat", {

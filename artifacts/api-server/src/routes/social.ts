@@ -7,7 +7,8 @@ import {
   notificationsTable, followsTable,
   userMissionProgressTable, socialPostsTable, userBadgesTable,
 } from "@workspace/db";
-import { isUserPremium } from "../lib/premiumCheck";
+import { isUserPremium, isUsersPremium } from "../lib/premiumCheck";
+import { logger } from "../lib/logger";
 import { ensureDailyBotActivity } from "../lib/botEngine";
 import { eq, or, and, desc, ilike, sql, gte, inArray } from "drizzle-orm";
 
@@ -292,7 +293,7 @@ socialRouter.get("/social/activity", authMiddleware, async (req: AuthRequest, re
     items.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
     res.json(items.slice(0, 40));
   } catch (err) {
-    console.error("GET /social/activity error:", err);
+    logger.error({ err }, "GET /social/activity error");
     res.status(500).json({ error: "Internal error" });
   }
 });
@@ -336,7 +337,9 @@ socialRouter.get("/social/leaderboard", authMiddleware, async (req: AuthRequest,
       .orderBy(desc(sortCol), desc(usersTable.createdAt));
 
     // Global board: top 200 in SQL (indexed) for competitive view. Friends board: small, unbounded.
-    const rows = scope === "global" ? await baseQuery.limit(200) : await baseQuery;
+    // Both scopes are bounded. The friends board used to fetch every row in
+    // the users table and filter in JS — unbounded on a 12k-user install.
+    const rows = scope === "global" ? await baseQuery.limit(200) : await baseQuery.limit(500);
 
     const filtered = scope === "friends"
       ? rows.filter(r => r.userId === userId || friendIds.includes(r.userId))
@@ -370,8 +373,8 @@ socialRouter.get("/social/leaderboard", authMiddleware, async (req: AuthRequest,
       });
     }
 
-    const premiumChecks = await Promise.all(filtered.map(async r => [r.userId, await isUserPremium(r.userId)] as const));
-    const premiumSet = new Set(premiumChecks.filter(([, p]) => p).map(([id]) => id));
+    // Batched: 2 queries total instead of one per leaderboard row (was up to 200).
+    const premiumSet = await isUsersPremium(filtered.map(r => r.userId));
 
     const entries = filtered.map(r => {
       const role = (r.role ?? "user").toLowerCase();
@@ -406,7 +409,7 @@ socialRouter.get("/social/leaderboard", authMiddleware, async (req: AuthRequest,
 
     res.json(ranked);
   } catch (err) {
-    console.error("GET /social/leaderboard error:", err);
+    logger.error({ err }, "GET /social/leaderboard error");
     res.status(500).json({ error: "Internal error" });
   }
 });

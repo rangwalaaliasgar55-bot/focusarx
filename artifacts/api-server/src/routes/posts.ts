@@ -10,7 +10,9 @@ import {
 import { extractUserId } from "./auth";
 import { eq, and, desc, lt, sql, inArray, or, ne } from "drizzle-orm";
 import { moderateText } from "../lib/moderation";
+import { parseLimit, parseOffset } from "../lib/pagination";
 import { ensureDailyBotActivity, maybeBotReply, materializeDueBotReplies, queueBotReplies, queueBotCommentReply } from "../lib/botEngine";
+import { logger } from "../lib/logger";
 
 const REPEAT_OFFENDER_THRESHOLD = 3;
 
@@ -89,7 +91,8 @@ postsRouter.get("/feed", authMiddleware, async (req: AuthRequest, res: Response)
   try {
   const userId = req.userId!;
   const { type = "following", limit = "20", offset = "0", groupId, cursor } = req.query as Record<string, string>;
-  const pageLimit = Math.max(5, Math.min(50, parseInt(limit) || 20));
+  const pageLimit = parseLimit(limit, { fallback: 20, min: 5, max: 50 });
+  const pageOffset = parseOffset(offset);
 
   // Public surfaces keep the AI rivals' daily activity ticking (throttled)
   // and materialise staggered bot replies that have come due.
@@ -113,7 +116,7 @@ postsRouter.get("/feed", authMiddleware, async (req: AuthRequest, res: Response)
         eq(socialPostsTable.moderationStatus, "approved"),
       ))
       .orderBy(desc(socialPostsTable.createdAt))
-      .limit(parseInt(limit)).offset(parseInt(offset));
+      .limit(pageLimit).offset(pageOffset);
   } else if (type === "discover") {
     // A3: cursor pagination + ~60/40 human/bot recency mix so the feed never
     // floods at 12k-bot scale. Bots are interleaved by recency but capped so
@@ -169,7 +172,7 @@ postsRouter.get("/feed", authMiddleware, async (req: AuthRequest, res: Response)
         eq(socialPostsTable.moderationStatus, "approved"),
       ))
       .orderBy(desc(socialPostsTable.createdAt))
-      .limit(parseInt(limit)).offset(parseInt(offset));
+      .limit(pageLimit).offset(pageOffset);
   } else if (type === "saved") {
     const saved = await db.select({ postId: postSavesTable.postId })
       .from(postSavesTable).where(eq(postSavesTable.userId, userId));
@@ -180,7 +183,7 @@ postsRouter.get("/feed", authMiddleware, async (req: AuthRequest, res: Response)
         eq(socialPostsTable.moderationStatus, "approved"),
       ))
       .orderBy(desc(socialPostsTable.createdAt))
-      .limit(parseInt(limit)).offset(parseInt(offset));
+      .limit(pageLimit).offset(pageOffset);
   } else {
     posts = await db.select().from(socialPostsTable)
       .where(and(
@@ -188,13 +191,13 @@ postsRouter.get("/feed", authMiddleware, async (req: AuthRequest, res: Response)
         eq(socialPostsTable.moderationStatus, "approved"),
       ))
       .orderBy(desc(socialPostsTable.createdAt))
-      .limit(parseInt(limit)).offset(parseInt(offset));
+      .limit(pageLimit).offset(pageOffset);
   }
 
   const enriched = await Promise.all(posts.map(p => enrichPost(p, userId)));
   res.json(enriched);
   } catch (err) {
-    console.error("GET /feed error:", err);
+    logger.error({ err }, "GET /feed error:");
     res.status(500).json({ error: "Failed to load feed" });
   }
 });
@@ -259,7 +262,7 @@ postsRouter.post("/posts", authMiddleware, async (req: AuthRequest, res: Respons
       moderation: { status: moderation.status, reason: moderation.reason },
     });
   } catch (err) {
-    console.error("POST /posts error:", err);
+    logger.error({ err }, "POST /posts error:");
     res.status(500).json({ error: "Failed to create post" });
   }
 });
@@ -287,6 +290,8 @@ postsRouter.delete("/posts/:id", authMiddleware, async (req: AuthRequest, res: R
 
 postsRouter.get("/users/:userId/posts", optionalAuth, async (req: AuthRequest, res: Response) => {
   const { limit = "20", offset = "0" } = req.query as Record<string, string>;
+  const pageLimit = parseLimit(limit, { fallback: 20, min: 1, max: 50 });
+  const pageOffset = parseOffset(offset);
   const posts = await db.select().from(socialPostsTable)
     .where(and(
       eq(socialPostsTable.userId, req.params.userId as string),
@@ -294,7 +299,7 @@ postsRouter.get("/users/:userId/posts", optionalAuth, async (req: AuthRequest, r
       eq(socialPostsTable.moderationStatus, "approved"),
     ))
     .orderBy(desc(socialPostsTable.createdAt))
-    .limit(parseInt(limit)).offset(parseInt(offset));
+    .limit(pageLimit).offset(pageOffset);
 
   const enriched = await Promise.all(posts.map(p => enrichPost(p, req.userId ?? null)));
   res.json(enriched);

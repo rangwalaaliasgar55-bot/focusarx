@@ -5,6 +5,7 @@ import { db } from "@workspace/db";
 import { appFeedbackTable, userWalletsTable } from "@workspace/db";
 import { extractUserId } from "./auth";
 import { eq, desc, avg, count, sql } from "drizzle-orm";
+import { logger } from "../lib/logger";
 
 function adminAuth(req: any, res: any, next: any) {
   const adminCookie = req.cookies?.focusarx_admin;
@@ -45,7 +46,7 @@ feedbackRouter.post("/feedback", authMiddleware, async (req: AuthRequest, res: R
 
     res.json({ success: true });
   } catch (err) {
-    console.error("POST /feedback error:", err);
+    logger.error({ err }, "POST /feedback error:");
     res.status(500).json({ error: "Internal error" });
   }
 });
@@ -83,7 +84,7 @@ feedbackRouter.get("/admin/feedback", adminAuth, async (_req, res) => {
       recent,
     });
   } catch (err) {
-    console.error("GET /admin/feedback error:", err);
+    logger.error({ err }, "GET /admin/feedback error:");
     res.status(500).json({ error: "Internal error" });
   }
 });
