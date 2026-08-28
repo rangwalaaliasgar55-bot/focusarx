@@ -1,6 +1,8 @@
+import { Fragment } from "react";
 import { Link } from "wouter";
 import { ArrowRight, Brain, Clock, Flame, Music, Sparkles, Timer, Users, BookOpen, Calculator, HelpCircle, Atom, Layers, Coffee, Wind, GraduationCap } from "lucide-react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
+import { AdSlot } from "@/components/AdSlot";
 
 const COLLECTIONS = [
   {
@@ -76,8 +78,12 @@ export default function GuidesPage() {
 
       {/* Collections */}
       <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-        {COLLECTIONS.map((collection) => (
-          <section key={collection.title} className="mb-12">
+        {COLLECTIONS.map((collection, collectionIdx) => (
+          <Fragment key={collection.title}>
+          {/* In-feed ad every second collection — never the first, so the page
+              opens on content rather than an ad. */}
+          {collectionIdx > 0 && collectionIdx % 2 === 0 && <AdSlot name="guidesInFeed" minHeight={120} />}
+          <section className="mb-12">
             <h2 className="mb-1 text-2xl font-black text-[var(--foreground)]">{collection.title}</h2>
             <p className="mb-5 text-sm text-[var(--foreground-muted)]">{collection.description}</p>
             <div className="space-y-3">
@@ -101,6 +107,7 @@ export default function GuidesPage() {
               ))}
             </div>
           </section>
+          </Fragment>
         ))}
 
         {/* CTA */}

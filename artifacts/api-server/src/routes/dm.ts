@@ -11,6 +11,7 @@ import { eq, and, desc, sql } from "drizzle-orm";
 import { emitToUser } from "../lib/socketManager";
 import { logger } from "../lib/logger";
 import { sendPush } from "../lib/pushSender";
+import { parseLimit, parseOffset } from "../lib/pagination";
 
 export const dmRouter = Router();
 
@@ -125,6 +126,8 @@ dmRouter.get("/dm/:convId/messages", authMiddleware, async (req: AuthRequest, re
   try {
     const userId = req.userId!;
     const { limit = "50", offset = "0" } = req.query as Record<string, string>;
+    const pageLimit = parseLimit(limit, { fallback: 50, min: 1, max: 100 });
+    const pageOffset = parseOffset(offset);
 
     const [participant] = await db.select().from(conversationParticipants)
       .where(and(eq(conversationParticipants.conversationId, req.params.convId as string), eq(conversationParticipants.userId, userId))).limit(1);
@@ -133,7 +136,7 @@ dmRouter.get("/dm/:convId/messages", authMiddleware, async (req: AuthRequest, re
     const msgs = await db.select().from(messages)
       .where(eq(messages.conversationId, req.params.convId as string))
       .orderBy(messages.createdAt)
-      .limit(parseInt(limit)).offset(parseInt(offset));
+      .limit(pageLimit).offset(pageOffset);
 
     const enriched = await Promise.all(msgs.map(async m => {
       const [sender] = await db.select({ name: usersTable.name, email: usersTable.email, role: usersTable.role })

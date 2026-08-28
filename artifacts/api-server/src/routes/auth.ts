@@ -8,7 +8,7 @@ import { db, usersTable, passwordResetTokensTable } from "@workspace/db";
 import { eq, and, gt, isNull } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getServerConfig } from "../lib/config";
-import { authLimiter, forgotPasswordLimiter } from "../lib/rateLimiter";
+import { authLimiter, forgotPasswordLimiter, guestLimiter, refreshLimiter } from "../lib/rateLimiter";
 
 const loginSchema = z.object({
   email: z.string().email().max(254).toLowerCase().trim(),
@@ -280,7 +280,7 @@ router.post("/auth/register", authLimiter, async (req, res) => {
   }
 });
 
-router.post("/auth/guest", async (req, res) => {
+router.post("/auth/guest", guestLimiter, async (req, res) => {
   const secret = jwtSecretOrRespond(res);
   if (!secret) return;
   const { guestKey } = req.body as { guestKey?: string };
@@ -327,7 +327,7 @@ router.post("/auth/guest", async (req, res) => {
   }
 });
 
-router.post("/auth/refresh", async (req, res) => {
+router.post("/auth/refresh", refreshLimiter, async (req, res) => {
   const secret = jwtSecretOrRespond(res);
   if (!secret) return;
 

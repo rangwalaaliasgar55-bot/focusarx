@@ -356,10 +356,29 @@
     </script>
 
     <!-- ══════════════════════════════════════════════════════════
-         GOOGLE ADSENSE
+         RESOURCE HINTS — warm the connections the app actually uses.
+         dns-prefetch/preconnect shave 100-300ms off the first request to
+         each origin by overlapping DNS + TCP + TLS with page parse.
     ══════════════════════════════════════════════════════════════ -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3831356027941619"
-     crossorigin="anonymous"></script>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossorigin />
+    <link rel="dns-prefetch" href="https://tpc.googlesyndication.com" />
+    <link rel="dns-prefetch" href="https://images.unsplash.com" />
+
+    <!-- ══════════════════════════════════════════════════════════
+         GOOGLE ADSENSE
+         - `async` so it never blocks first paint
+         - `id` + the window flag let src/components/AdSense.tsx detect that
+           the loader is already present and skip a duplicate injection
+         - requires /ads.txt (public/ads.txt) and the googlesyndication /
+           doubleclick origins allowlisted in the server CSP
+    ══════════════════════════════════════════════════════════════ -->
+    <script
+      id="adsbygoogle-js"
+      async
+      src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3831356027941619"
+      crossorigin="anonymous"
+      onload="window.__adsbygoogleLoaded=true"></script>
 
     <!-- Production assets are injected by vite build. In dev mode, src/main.tsx is used. -->
   </head>

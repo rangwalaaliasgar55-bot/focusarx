@@ -3,7 +3,7 @@ import { db } from "@workspace/db";
 import { adminDropsTable, usersTable, marketplaceItemsTable } from "@workspace/db";
 import { and, desc, eq, gte, isNull } from "drizzle-orm";
 import { authMiddleware, type AuthRequest } from "../middlewares/auth";
-import { checkAdminAuth } from "../lib/adminAuth";
+import { requireAdmin } from "../lib/adminAuth";
 import { generalLimiter, adminLimiter } from "../lib/rateLimiter";
 import { logger } from "../lib/logger";
 import {
@@ -77,7 +77,7 @@ dropsRouter.post("/drops/:id/claim", authMiddleware, generalLimiter, async (req:
 
 // ─── Admin: create / list / end / cancel / duplicate ─────────────────────────
 
-dropsRouter.get("/admin/drops", authMiddleware, checkAdminAuth, adminLimiter, async (_req: AuthRequest, res) => {
+dropsRouter.get("/admin/drops", authMiddleware, requireAdmin, adminLimiter, async (_req: AuthRequest, res) => {
   try {
     const drops = await listDrops();
     // Sparklines for the 3 most recent drops.
@@ -99,7 +99,7 @@ dropsRouter.get("/admin/drops", authMiddleware, checkAdminAuth, adminLimiter, as
   }
 });
 
-dropsRouter.post("/admin/drops", authMiddleware, checkAdminAuth, adminLimiter, async (req: AuthRequest, res) => {
+dropsRouter.post("/admin/drops", authMiddleware, requireAdmin, adminLimiter, async (req: AuthRequest, res) => {
   try {
     const { type, title, description, payload, startsAt, endsAt, emailBlast } = req.body ?? {};
     if (!DROP_TYPES.some((t) => t.type === type)) {
@@ -144,7 +144,7 @@ dropsRouter.post("/admin/drops", authMiddleware, checkAdminAuth, adminLimiter, a
   }
 });
 
-dropsRouter.post("/admin/drops/:id/end", authMiddleware, checkAdminAuth, adminLimiter, async (req: AuthRequest, res) => {
+dropsRouter.post("/admin/drops/:id/end", authMiddleware, requireAdmin, adminLimiter, async (req: AuthRequest, res) => {
   try {
     await endDrop(String(req.params.id), false);
     res.json({ ok: true });
@@ -154,7 +154,7 @@ dropsRouter.post("/admin/drops/:id/end", authMiddleware, checkAdminAuth, adminLi
   }
 });
 
-dropsRouter.post("/admin/drops/:id/cancel", authMiddleware, checkAdminAuth, adminLimiter, async (req: AuthRequest, res) => {
+dropsRouter.post("/admin/drops/:id/cancel", authMiddleware, requireAdmin, adminLimiter, async (req: AuthRequest, res) => {
   try {
     await endDrop(String(req.params.id), true);
     res.json({ ok: true });
@@ -164,7 +164,7 @@ dropsRouter.post("/admin/drops/:id/cancel", authMiddleware, checkAdminAuth, admi
   }
 });
 
-dropsRouter.post("/admin/drops/:id/duplicate", authMiddleware, checkAdminAuth, adminLimiter, async (req: AuthRequest, res) => {
+dropsRouter.post("/admin/drops/:id/duplicate", authMiddleware, requireAdmin, adminLimiter, async (req: AuthRequest, res) => {
   try {
     const copy = await duplicateDrop(String(req.params.id));
     if (!copy) { res.status(404).json({ error: "Drop not found" }); return; }

@@ -8,6 +8,7 @@ import {
 import { extractUserId } from "./auth";
 import { eq, and, desc, sql, gte } from "drizzle-orm";
 import { mintCoins } from "../lib/coinLedger";
+import { logger } from "../lib/logger";
 
 export const habitsRouter = Router();
 
@@ -56,7 +57,7 @@ habitsRouter.get("/habits", authMiddleware, async (req: AuthRequest, res: Respon
 
     res.json(enriched);
   } catch (err) {
-    console.error("GET /habits error:", err);
+    logger.error({ err }, "GET /habits error:");
     res.status(500).json({ error: "Failed to load habits" });
   }
 });
@@ -195,7 +196,7 @@ habitsRouter.get("/habits/stats", authMiddleware, async (req: AuthRequest, res: 
       longestStreak: Math.max(0, ...habits.map(h => h.longestStreak)),
     });
   } catch (err) {
-    console.error("GET /habits/stats error:", err);
+    logger.error({ err }, "GET /habits/stats error:");
     res.status(500).json({ error: "Failed to load habit stats" });
   }
 });
