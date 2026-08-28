@@ -64,8 +64,17 @@ router.get("/healthz/migrations", async (_req, res) => {
 /**
  * Database tables summary — safe metadata only.
  * Used by the Developer page schema explorer.
+ * Requires authentication to prevent unauthenticated schema reconnaissance.
  */
-router.get("/healthz/tables", async (_req, res) => {
+router.get("/healthz/tables", async (req, res) => {
+  // Auth gate: schema metadata is not secret, but we don't want
+  // unauthenticated crawlers enumerating our database structure.
+  const { extractUserId } = await import("./auth");
+  const userId = extractUserId(req);
+  if (!userId) {
+    res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required" } });
+    return;
+  }
   try {
     const { rows: tables } = await pool.query(`
       SELECT
@@ -104,8 +113,18 @@ router.get("/healthz/tables", async (_req, res) => {
 /**
  * Table columns detail view — for the Developer page schema explorer.
  * Returns column metadata without exposing any data.
+ * Requires authentication to prevent unauthenticated schema reconnaissance.
  */
 router.get("/healthz/tables/:tableName", async (req, res) => {
+  // Auth gate: schema details are metadata-only but we don't want
+  // unauthenticated visitors enumerating our table structure.
+  const { extractUserId } = await import("./auth");
+  const userId = extractUserId(req);
+  if (!userId) {
+    res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required" } });
+    return;
+  }
+
   const tableName = req.params.tableName;
 
   // Validate table name to prevent SQL injection

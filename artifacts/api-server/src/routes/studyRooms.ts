@@ -93,22 +93,42 @@ studyRoomsRouter.get("/study-rooms/:id", authMiddleware, async (req: AuthRequest
 studyRoomsRouter.post("/study-rooms", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const { name, mode, groupId, isPublic, maxParticipants, timerDuration, ambiance, scheduledFor } = req.body;
-  if (!name?.trim()) return res.status(400).json({ error: "name required" });
+  if (!name?.trim() || typeof name !== "string") return res.status(400).json({ error: "name required" });
+  if (name.trim().length > 80) return res.status(400).json({ error: "name too long (max 80 chars)" });
 
   const MODES = ["silent", "pomodoro", "open_chat", "accountability"];
   const AMBIANCES = ["silence", "lofi", "rain", "cafe", "forest", "binaural"];
 
+  // Validate maxParticipants — clamp to safe range
+  const safeMax = typeof maxParticipants === "number" && Number.isInteger(maxParticipants)
+    ? Math.min(100, Math.max(2, maxParticipants))
+    : 50;
+
+  // Validate timerDuration — clamp to safe range (60s to 4h)
+  const safeTimer = typeof timerDuration === "number" && Number.isInteger(timerDuration)
+    ? Math.min(14_400, Math.max(60, timerDuration))
+    : 1500;
+
+  // Validate scheduledFor — must be a valid future date if provided
+  let safeScheduledFor: Date | null = null;
+  if (scheduledFor) {
+    const parsed = new Date(scheduledFor);
+    if (!isNaN(parsed.getTime()) && parsed > new Date()) {
+      safeScheduledFor = parsed;
+    }
+  }
+
   const [room] = await db.insert(studyRoomsTable).values({
-    name: name.trim(),
+    name: name.trim().slice(0, 80),
     hostId: userId,
-    groupId: groupId || null,
+    groupId: (typeof groupId === "string" && /^[0-9a-f-]{36}$/i.test(groupId)) ? groupId : null,
     mode: MODES.includes(mode) ? mode : "silent",
     isPublic: isPublic !== false,
-    maxParticipants: maxParticipants || 50,
-    timerDuration: timerDuration || 1500,
+    maxParticipants: safeMax,
+    timerDuration: safeTimer,
     ambiance: AMBIANCES.includes(ambiance) ? ambiance : "silence",
     inviteCode: genCode(),
-    scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
+    scheduledFor: safeScheduledFor,
   }).returning();
 
   await db.insert(studyRoomMembersTable).values({ roomId: room.id, userId, status: "active" });

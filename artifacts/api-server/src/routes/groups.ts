@@ -75,14 +75,24 @@ groupsRouter.get("/groups/:id", authMiddleware, async (req: AuthRequest, res: Re
 groupsRouter.post("/groups", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const { name, description, isPublic, avatarEmoji, maxMembers, tags } = req.body;
-  if (!name?.trim()) return res.status(400).json({ error: "name required" });
+  if (!name?.trim() || typeof name !== "string") return res.status(400).json({ error: "name required" });
+  if (name.trim().length > 80) return res.status(400).json({ error: "name too long (max 80 chars)" });
+  if (typeof description === "string" && description.length > 500) return res.status(400).json({ error: "description too long (max 500 chars)" });
+
+  const safeMaxMembers = typeof maxMembers === "number" && Number.isInteger(maxMembers)
+    ? Math.min(200, Math.max(2, maxMembers))
+    : 20;
+  const safeTags = Array.isArray(tags) ? tags.filter((t: unknown) => typeof t === "string").map((t: string) => t.slice(0, 30)).slice(0, 10) : [];
 
   const [group] = await db.insert(studyGroupsTable).values({
-    name: name.trim(), description, ownerId: userId,
-    isPublic: isPublic !== false, inviteCode: genInviteCode(),
-    avatarEmoji: avatarEmoji || "🎯",
-    maxMembers: maxMembers || 20,
-    tags: tags || [],
+    name: name.trim().slice(0, 80),
+    description: typeof description === "string" ? description.slice(0, 500) : null,
+    ownerId: userId,
+    isPublic: isPublic !== false,
+    inviteCode: genInviteCode(),
+    avatarEmoji: (typeof avatarEmoji === "string" ? avatarEmoji : "🎯").slice(0, 10),
+    maxMembers: safeMaxMembers,
+    tags: safeTags,
   }).returning();
 
   await db.insert(groupMembersTable).values({ groupId: group.id, userId, role: "owner" });
@@ -94,9 +104,19 @@ groupsRouter.patch("/groups/:id", authMiddleware, async (req: AuthRequest, res: 
   const [member] = await db.select().from(groupMembersTable)
     .where(and(eq(groupMembersTable.groupId, req.params.id as string), eq(groupMembersTable.userId, userId))).limit(1);
   if (!member || !["owner", "admin"].includes(member.role)) return res.status(403).json({ error: "Not authorized" });
+
+  // Only update fields that are explicitly provided — never set to undefined.
   const { name, description, isPublic, avatarEmoji, maxMembers, tags } = req.body;
+  const updates: Record<string, unknown> = { updatedAt: new Date() };
+  if (typeof name === "string" && name.trim()) updates.name = name.trim().slice(0, 80);
+  if (typeof description === "string") updates.description = description.slice(0, 500);
+  if (typeof isPublic === "boolean") updates.isPublic = isPublic;
+  if (typeof avatarEmoji === "string") updates.avatarEmoji = avatarEmoji.slice(0, 10);
+  if (typeof maxMembers === "number" && Number.isInteger(maxMembers)) updates.maxMembers = Math.min(200, Math.max(2, maxMembers));
+  if (Array.isArray(tags)) updates.tags = tags.filter((t: unknown) => typeof t === "string").map((t: string) => t.slice(0, 30)).slice(0, 10);
+
   const [updated] = await db.update(studyGroupsTable)
-    .set({ name, description, isPublic, avatarEmoji, maxMembers, tags, updatedAt: new Date() })
+    .set(updates)
     .where(eq(studyGroupsTable.id, req.params.id as string)).returning();
   res.json(updated);
 });

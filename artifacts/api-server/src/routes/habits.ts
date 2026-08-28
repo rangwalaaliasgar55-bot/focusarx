@@ -65,14 +65,17 @@ habitsRouter.get("/habits", authMiddleware, async (req: AuthRequest, res: Respon
 habitsRouter.post("/habits", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const { name, icon, color, frequency, targetDays } = req.body;
-  if (!name?.trim()) return res.status(400).json({ error: "name required" });
+  if (!name?.trim() || typeof name !== "string") return res.status(400).json({ error: "name required" });
+  if (name.trim().length > 100) return res.status(400).json({ error: "name too long (max 100 chars)" });
+  if (typeof color === "string" && !/^#[0-9a-fA-F]{6}$/.test(color)) return res.status(400).json({ error: "color must be a hex value like #7C3AED" });
+  if (typeof icon === "string" && icon.length > 10) return res.status(400).json({ error: "icon too long" });
 
   const [habit] = await db.insert(habitsTable).values({
-    userId, name: name.trim(),
-    icon: icon || "⭐",
-    color: color || "#7C3AED",
-    frequency: frequency || "daily",
-    targetDays: targetDays || [0,1,2,3,4,5,6],
+    userId, name: name.trim().slice(0, 100),
+    icon: (typeof icon === "string" ? icon : "⭐").slice(0, 10),
+    color: (typeof color === "string" && /^#[0-9a-fA-F]{6}$/.test(color) ? color : "#7C3AED"),
+    frequency: (typeof frequency === "string" && ["daily", "weekly", "custom"].includes(frequency) ? frequency : "daily"),
+    targetDays: (Array.isArray(targetDays) ? targetDays.filter((d: unknown) => typeof d === "number" && d >= 0 && d <= 6) : [0,1,2,3,4,5,6]),
   }).returning();
   res.status(201).json(habit);
 });
@@ -83,9 +86,19 @@ habitsRouter.patch("/habits/:id", authMiddleware, async (req: AuthRequest, res: 
     .where(and(eq(habitsTable.id, req.params.id as string), eq(habitsTable.userId, userId))).limit(1);
   if (!habit) return res.status(404).json({ error: "Habit not found" });
 
+  // Only update fields that are explicitly provided and valid.
+  // Never set a field to undefined — that corrupts the record.
   const { name, icon, color, frequency, targetDays, isArchived } = req.body;
+  const updates: Record<string, unknown> = { updatedAt: new Date() };
+  if (typeof name === "string" && name.trim()) updates.name = name.trim().slice(0, 100);
+  if (typeof icon === "string") updates.icon = icon.slice(0, 10);
+  if (typeof color === "string" && /^#[0-9a-fA-F]{6}$/.test(color)) updates.color = color;
+  if (typeof frequency === "string" && ["daily", "weekly", "custom"].includes(frequency)) updates.frequency = frequency;
+  if (Array.isArray(targetDays)) updates.targetDays = targetDays.filter((d: unknown) => typeof d === "number" && d >= 0 && d <= 6);
+  if (typeof isArchived === "boolean") updates.isArchived = isArchived;
+
   const [updated] = await db.update(habitsTable)
-    .set({ name, icon, color, frequency, targetDays, isArchived, updatedAt: new Date() })
+    .set(updates)
     .where(eq(habitsTable.id, req.params.id as string)).returning();
   res.json(updated);
 });

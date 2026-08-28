@@ -105,7 +105,8 @@ dmRouter.post("/dm/start", authMiddleware, async (req: AuthRequest, res: Respons
   try {
     const userId = req.userId!;
     const { userId: targetId } = req.body;
-    if (!targetId) return res.status(400).json({ error: "userId required" });
+    if (!targetId || typeof targetId !== "string") return res.status(400).json({ error: "userId required" });
+    if (!/^[0-9a-f-]{36}$/i.test(targetId)) return res.status(400).json({ error: "Invalid userId format" });
     if (targetId === userId) return res.status(400).json({ error: "Cannot DM yourself" });
 
     const [target] = await db.select({ id: usersTable.id, name: usersTable.name })
