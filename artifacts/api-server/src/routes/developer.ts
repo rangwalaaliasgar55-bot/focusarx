@@ -30,8 +30,10 @@ import { mintCoins, burnCoins } from "../lib/coinLedger";
 
 const router: IRouter = Router();
 
-// All routes require admin auth
-router.use(authMiddleware, requireAdmin);
+// All routes require admin auth. Scoped to the /developer prefix — an
+// unscoped router.use(...) here ran for every request reaching this router
+// and broke routers mounted after it (see the note in emotes.ts).
+router.use("/developer", authMiddleware, requireAdmin);
 
 // ── System Overview ──────────────────────────────────────────────────────────
 
