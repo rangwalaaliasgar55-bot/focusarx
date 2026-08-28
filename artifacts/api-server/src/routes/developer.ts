@@ -392,4 +392,161 @@ router.get("/developer/health", async (_req: AuthRequest, res) => {
   }
 });
 
+// ── User Details (Deep View) ────────────────────────────────────────────────
+
+router.get("/developer/users/:id/details", async (req: AuthRequest, res) => {
+  const userId = String(req.params.id);
+  if (!/^[0-9a-f-]{36}$/i.test(userId)) return res.status(400).json({ error: "Invalid user ID" });
+
+  try {
+    const [user] = await db.select({
+      id: usersTable.id,
+      email: usersTable.email,
+      name: usersTable.name,
+      role: usersTable.role,
+      isGuest: usersTable.isGuest,
+      bio: usersTable.bio,
+      onboardingCompleted: usersTable.onboardingCompleted,
+      createdAt: usersTable.createdAt,
+    }).from(usersTable).where(eq(usersTable.id, userId));
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, userId));
+    const [streak] = await db.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, userId));
+
+    const recentSessions = await db.select({
+      id: focusSessionsTable.id,
+      durationSec: focusSessionsTable.durationSec,
+      focusScore: focusSessionsTable.focusScore,
+      mode: focusSessionsTable.mode,
+      category: focusSessionsTable.category,
+      completedAt: focusSessionsTable.completedAt,
+    }).from(focusSessionsTable)
+      .where(eq(focusSessionsTable.userId, userId))
+      .orderBy(desc(focusSessionsTable.completedAt))
+      .limit(10);
+
+    const [sessionStats] = await db.select({
+      total: count(),
+      totalMinutes: sql<number>`coalesce(sum(duration_sec) / 60, 0)::int`,
+      avgFocus: sql<number>`coalesce(avg(focus_score), 0)::int`,
+    }).from(focusSessionsTable).where(eq(focusSessionsTable.userId, userId));
+
+    const [taskStats] = await db.select({
+      total: count(),
+      completed: sql<number>`count(*) FILTER (WHERE completed = true)::int`,
+    }).from(tasksTable).where(eq(tasksTable.userId, userId));
+
+    const [goalStats] = await db.select({
+      total: count(),
+      completed: sql<number>`count(*) FILTER (WHERE completed = true)::int`,
+    }).from(goalsTable).where(eq(goalsTable.userId, userId));
+
+    const [premium] = await db.select().from(premiumSubscriptionsTable).where(eq(premiumSubscriptionsTable.userId, userId));
+
+    res.json({
+      user,
+      wallet: wallet ?? null,
+      streak: streak ?? null,
+      recentSessions,
+      sessionStats: sessionStats ?? null,
+      taskStats: taskStats ?? null,
+      goalStats: goalStats ?? null,
+      premium: premium ?? null,
+    });
+  } catch (err) {
+    logger.error({ err }, "user details error");
+    res.status(500).json({ error: "Failed to load user details" });
+  }
+});
+
+// ── Set User Role ───────────────────────────────────────────────────────────
+
+router.post("/developer/users/set-role", async (req: AuthRequest, res) => {
+  const { userId, role } = req.body as { userId?: string; role?: string };
+  if (!userId || !role || !["user", "admin", "bot"].includes(role)) {
+    return res.status(400).json({ error: "userId and role (user|admin|bot) required" });
+  }
+
+  try {
+    const [updated] = await db.update(usersTable)
+      .set({ role })
+      .where(eq(usersTable.id, userId))
+      .returning({ id: usersTable.id, role: usersTable.role });
+    if (!updated) return res.status(404).json({ error: "User not found" });
+    res.json({ ok: true, user: updated });
+  } catch (err) {
+    logger.error({ err }, "set role error");
+    res.status(500).json({ error: "Failed to set role" });
+  }
+});
+
+// ── Delete User (Nuclear) ───────────────────────────────────────────────────
+
+router.delete("/developer/users/:id", async (req: AuthRequest, res) => {
+  const userId = String(req.params.id);
+  if (!/^[0-9a-f-]{36}$/i.test(userId)) return res.status(400).json({ error: "Invalid user ID" });
+
+  try {
+    // Don't allow deleting other admins
+    const [user] = await db.select({ role: usersTable.role }).from(usersTable).where(eq(usersTable.id, userId));
+    if (!user) return res.status(404).json({ error: "User not found" });
+    if (user.role === "admin") return res.status(403).json({ error: "Cannot delete admin users" });
+
+    // Delete user (cascade should handle related data)
+    await db.delete(usersTable).where(eq(usersTable.id, userId));
+    res.json({ ok: true, deleted: userId });
+  } catch (err) {
+    logger.error({ err }, "delete user error");
+    res.status(500).json({ error: "Failed to delete user" });
+  }
+});
+
+// ── Economy Overview (Detailed) ─────────────────────────────────────────────
+
+router.get("/developer/economy", async (_req: AuthRequest, res) => {
+  try {
+    const [totals] = await db.select({
+      totalCoins: sql<number>`coalesce(sum(coins), 0)::bigint`,
+      totalXp: sql<number>`coalesce(sum(total_xp), 0)::bigint`,
+      avgCoins: sql<number>`coalesce(avg(coins), 0)::int`,
+      avgXp: sql<number>`coalesce(avg(total_xp), 0)::int`,
+      avgLevel: sql<number>`coalesce(avg(level), 0)::numeric(5,1)`,
+      maxCoins: sql<number>`coalesce(max(coins), 0)::bigint`,
+      maxXp: sql<number>`coalesce(max(total_xp), 0)::bigint`,
+      maxLevel: sql<number>`coalesce(max(level), 0)::int`,
+      usersWithWallets: count(),
+    }).from(userWalletsTable);
+
+    // Top 10 richest users
+    const topCoins = await db.select({
+      userId: userWalletsTable.userId,
+      coins: userWalletsTable.coins,
+      level: userWalletsTable.level,
+      name: usersTable.name,
+      email: usersTable.email,
+    }).from(userWalletsTable)
+      .innerJoin(usersTable, eq(usersTable.id, userWalletsTable.userId))
+      .orderBy(desc(userWalletsTable.coins))
+      .limit(10);
+
+    // Top 10 by XP
+    const topXp = await db.select({
+      userId: userWalletsTable.userId,
+      totalXp: userWalletsTable.totalXp,
+      level: userWalletsTable.level,
+      name: usersTable.name,
+      email: usersTable.email,
+    }).from(userWalletsTable)
+      .innerJoin(usersTable, eq(usersTable.id, userWalletsTable.userId))
+      .orderBy(desc(userWalletsTable.totalXp))
+      .limit(10);
+
+    res.json({ totals, topCoins, topXp });
+  } catch (err) {
+    logger.error({ err }, "economy overview error");
+    res.status(500).json({ error: "Failed to load economy data" });
+  }
+});
+
 export { router as developerRouter };

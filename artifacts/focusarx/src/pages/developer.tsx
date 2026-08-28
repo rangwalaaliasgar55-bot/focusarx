@@ -32,11 +32,12 @@ const ApiDocumentation = lazy(() =>
   import("@/components/developer/ApiDocumentation").then((m) => ({ default: m.ApiDocumentation }))
 );
 
-type Tab = "overview" | "users" | "schema" | "flags" | "ai" | "api" | "flows" | "health";
+type Tab = "overview" | "users" | "economy" | "schema" | "flags" | "ai" | "api" | "flows" | "health";
 
 const TABS: { id: Tab; label: string; icon: typeof Code2 }[] = [
   { id: "overview", label: "Overview", icon: BarChart3 },
   { id: "users", label: "Users", icon: Users },
+  { id: "economy", label: "Economy", icon: Coins },
   { id: "flags", label: "Flags", icon: Flag },
   { id: "ai", label: "AI Budget", icon: Brain },
   { id: "schema", label: "Schema", icon: Database },
@@ -101,6 +102,7 @@ export default function DeveloperPage() {
       <Suspense fallback={<div className="animate-pulse space-y-4">{[...Array(5)].map((_, i) => <div key={i} className="h-16 bg-white/5 rounded-lg" />)}</div>}>
         {tab === "overview" && <OverviewTab />}
         {tab === "users" && <UsersTab />}
+        {tab === "economy" && <EconomyTab />}
         {tab === "flags" && <FlagsTab />}
         {tab === "ai" && <AiBudgetTab />}
         {tab === "schema" && <SchemaExplorer />}
@@ -253,8 +255,13 @@ function UsersTab() {
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [userDetails, setUserDetails] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [actionResult, setActionResult] = useState<string | null>(null);
+  const [customCoins, setCustomCoins] = useState("1000");
+  const [customXp, setCustomXp] = useState("5000");
+  const [customStreak, setCustomStreak] = useState("100");
+  const [customPremiumDays, setCustomPremiumDays] = useState("30");
 
   const searchUsers = useCallback(async () => {
     setLoading(true);
@@ -267,14 +274,32 @@ function UsersTab() {
 
   useEffect(() => { searchUsers(); }, [searchUsers]);
 
-  const doAction = async (action: string, body: Record<string, unknown>) => {
+  const loadUserDetails = async (userId: string) => {
     try {
-      const result = await apiJson(`/api/developer/users/${action}`, {
-        method: "POST",
-        body: JSON.stringify(body),
+      const details = await apiJson(`/api/developer/users/${userId}/details`);
+      setUserDetails(details);
+    } catch { setUserDetails(null); }
+  };
+
+  const selectUser = (u: any) => {
+    if (selectedUser?.id === u.id) {
+      setSelectedUser(null);
+      setUserDetails(null);
+    } else {
+      setSelectedUser(u);
+      loadUserDetails(u.id);
+    }
+  };
+
+  const doAction = async (action: string, body: Record<string, unknown>, method = "POST") => {
+    try {
+      await apiJson(`/api/developer/users/${action}`, {
+        method,
+        body: method !== "DELETE" ? JSON.stringify(body) : undefined,
       });
       setActionResult(`✅ ${action} succeeded`);
-      searchUsers(); // Refresh list
+      searchUsers();
+      if (selectedUser) loadUserDetails(selectedUser.id);
     } catch (e: any) {
       setActionResult(`❌ ${action} failed: ${e.message}`);
     }
@@ -305,7 +330,7 @@ function UsersTab() {
 
       {/* User list */}
       <div className="border border-white/10 rounded-xl overflow-hidden">
-        <div className="divide-y divide-white/5 max-h-[50vh] overflow-y-auto">
+        <div className="divide-y divide-white/5 max-h-[40vh] overflow-y-auto">
           {loading ? (
             <div className="p-8 text-center text-white/30">Searching...</div>
           ) : users.length === 0 ? (
@@ -314,11 +339,11 @@ function UsersTab() {
             users.map((u) => (
               <button
                 key={u.id}
-                onClick={() => setSelectedUser(selectedUser?.id === u.id ? null : u)}
+                onClick={() => selectUser(u)}
                 className={`w-full text-left px-4 py-3 hover:bg-white/5 transition-colors ${selectedUser?.id === u.id ? "bg-amber-500/10" : ""}`}
               >
                 <div className="flex items-center gap-3">
-                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${u.role === "admin" ? "bg-amber-400" : u.isGuest ? "bg-gray-400" : "bg-emerald-400"}`} />
+                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${u.role === "admin" ? "bg-amber-400" : u.role === "bot" ? "bg-blue-400" : u.isGuest ? "bg-gray-400" : "bg-emerald-400"}`} />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm text-white truncate">{u.name || u.email}</div>
                     <div className="text-xs text-white/40">{u.email}</div>
@@ -331,6 +356,7 @@ function UsersTab() {
                     </div>
                   )}
                   {u.role === "admin" && <Crown className="w-4 h-4 text-amber-400 flex-shrink-0" />}
+                  {u.role === "bot" && <span className="text-xs bg-blue-500/20 text-blue-300 px-1.5 rounded">BOT</span>}
                 </div>
               </button>
             ))
@@ -338,59 +364,114 @@ function UsersTab() {
         </div>
       </div>
 
+      {/* User Details Panel */}
+      {selectedUser && userDetails && (
+        <div className="border border-white/10 bg-white/[0.02] rounded-xl p-4">
+          <h4 className="text-sm font-medium text-white/60 mb-3">📊 User Stats</h4>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+            <div className="bg-white/5 rounded-lg p-3">
+              <div className="text-lg font-bold text-white">{userDetails.sessionStats?.total ?? 0}</div>
+              <div className="text-xs text-white/40">Sessions</div>
+            </div>
+            <div className="bg-white/5 rounded-lg p-3">
+              <div className="text-lg font-bold text-white">{userDetails.sessionStats?.totalMinutes ?? 0}m</div>
+              <div className="text-xs text-white/40">Focus Time</div>
+            </div>
+            <div className="bg-white/5 rounded-lg p-3">
+              <div className="text-lg font-bold text-white">{userDetails.sessionStats?.avgFocus ?? 0}%</div>
+              <div className="text-xs text-white/40">Avg Focus</div>
+            </div>
+            <div className="bg-white/5 rounded-lg p-3">
+              <div className="text-lg font-bold text-orange-400">{userDetails.streak?.currentStreak ?? 0}</div>
+              <div className="text-xs text-white/40">Streak</div>
+            </div>
+            <div className="bg-white/5 rounded-lg p-3">
+              <div className="text-lg font-bold text-white">{userDetails.taskStats?.completed ?? 0}/{userDetails.taskStats?.total ?? 0}</div>
+              <div className="text-xs text-white/40">Tasks Done</div>
+            </div>
+            <div className="bg-white/5 rounded-lg p-3">
+              <div className="text-lg font-bold text-white">{userDetails.goalStats?.completed ?? 0}/{userDetails.goalStats?.total ?? 0}</div>
+              <div className="text-xs text-white/40">Goals Done</div>
+            </div>
+            <div className="bg-white/5 rounded-lg p-3">
+              <div className="text-lg font-bold text-emerald-400">{userDetails.streak?.longestStreak ?? 0}</div>
+              <div className="text-xs text-white/40">Best Streak</div>
+            </div>
+            <div className="bg-white/5 rounded-lg p-3">
+              <div className="text-lg font-bold text-amber-400">{userDetails.premium?.isActive ? "✅" : "—"}</div>
+              <div className="text-xs text-white/40">Premium</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* God Mode Actions */}
       {selectedUser && (
-        <div className="border border-amber-500/20 bg-amber-500/5 rounded-xl p-5">
-          <h3 className="font-semibold text-amber-300 mb-4 flex items-center gap-2">
+        <div className="border border-amber-500/20 bg-amber-500/5 rounded-xl p-5 space-y-4">
+          <h3 className="font-semibold text-amber-300 flex items-center gap-2">
             <Crown className="w-4 h-4" />
             God Mode: {selectedUser.name || selectedUser.email}
           </h3>
+
+          {/* Quick Actions */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <ActionButton
-              icon={Coins}
-              label="Grant 1000 Coins"
-              onClick={() => doAction("grant-coins", { userId: selectedUser.id, amount: 1000, reason: "Admin grant" })}
-            />
-            <ActionButton
-              icon={Coins}
-              label="Grant 10000 Coins"
-              onClick={() => doAction("grant-coins", { userId: selectedUser.id, amount: 10000, reason: "Admin grant" })}
-            />
-            <ActionButton
-              icon={Zap}
-              label="Grant 5000 XP"
-              onClick={() => doAction("grant-xp", { userId: selectedUser.id, amount: 5000 })}
-            />
-            <ActionButton
-              icon={Zap}
-              label="Grant 50000 XP"
-              onClick={() => doAction("grant-xp", { userId: selectedUser.id, amount: 50000 })}
-            />
-            <ActionButton
-              icon={Gift}
-              label="Grant 30d Premium"
-              onClick={() => doAction("grant-premium", { userId: selectedUser.id, days: 30 })}
-            />
-            <ActionButton
-              icon={Gift}
-              label="Grant 365d Premium"
-              onClick={() => doAction("grant-premium", { userId: selectedUser.id, days: 365 })}
-            />
-            <ActionButton
-              icon={Activity}
-              label="Set Streak to 100"
-              onClick={() => doAction("reset-streak", { userId: selectedUser.id, streak: 100 })}
-            />
-            <ActionButton
-              icon={Activity}
-              label="Reset Streak to 0"
-              onClick={() => doAction("reset-streak", { userId: selectedUser.id, streak: 0 })}
-            />
-            <ActionButton
-              icon={Bell}
-              label="Send Notification"
-              onClick={() => doAction("notify", { userId: selectedUser.id, title: "Admin Message", message: "Hello from the developer console!" })}
-            />
+            <ActionButton icon={Coins} label="Grant 1000 Coins" onClick={() => doAction("grant-coins", { userId: selectedUser.id, amount: 1000, reason: "Admin grant" })} />
+            <ActionButton icon={Coins} label="Grant 10000 Coins" onClick={() => doAction("grant-coins", { userId: selectedUser.id, amount: 10000, reason: "Admin grant" })} />
+            <ActionButton icon={Zap} label="Grant 5000 XP" onClick={() => doAction("grant-xp", { userId: selectedUser.id, amount: 5000 })} />
+            <ActionButton icon={Zap} label="Grant 50000 XP" onClick={() => doAction("grant-xp", { userId: selectedUser.id, amount: 50000 })} />
+            <ActionButton icon={Gift} label="Grant 30d Premium" onClick={() => doAction("grant-premium", { userId: selectedUser.id, days: 30 })} />
+            <ActionButton icon={Gift} label="Grant 365d Premium" onClick={() => doAction("grant-premium", { userId: selectedUser.id, days: 365 })} />
+            <ActionButton icon={Activity} label="Set Streak to 100" onClick={() => doAction("reset-streak", { userId: selectedUser.id, streak: 100 })} />
+            <ActionButton icon={Activity} label="Reset Streak to 0" onClick={() => doAction("reset-streak", { userId: selectedUser.id, streak: 0 })} />
+            <ActionButton icon={Bell} label="Send Notification" onClick={() => doAction("notify", { userId: selectedUser.id, title: "Admin Message", message: "Hello from the developer console!" })} />
+          </div>
+
+          {/* Custom Amounts */}
+          <div className="border-t border-white/10 pt-4">
+            <h4 className="text-sm font-medium text-white/60 mb-3">Custom Amounts</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex gap-2">
+                <input type="number" value={customCoins} onChange={e => setCustomCoins(e.target.value)} className="w-24 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:ring-1 focus:ring-amber-500/50" />
+                <ActionButton icon={Coins} label="Grant Coins" onClick={() => doAction("grant-coins", { userId: selectedUser.id, amount: Number(customCoins), reason: "Custom grant" })} />
+              </div>
+              <div className="flex gap-2">
+                <input type="number" value={customXp} onChange={e => setCustomXp(e.target.value)} className="w-24 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:ring-1 focus:ring-amber-500/50" />
+                <ActionButton icon={Zap} label="Grant XP" onClick={() => doAction("grant-xp", { userId: selectedUser.id, amount: Number(customXp) })} />
+              </div>
+              <div className="flex gap-2">
+                <input type="number" value={customStreak} onChange={e => setCustomStreak(e.target.value)} className="w-24 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:ring-1 focus:ring-amber-500/50" />
+                <ActionButton icon={Activity} label="Set Streak" onClick={() => doAction("reset-streak", { userId: selectedUser.id, streak: Number(customStreak) })} />
+              </div>
+              <div className="flex gap-2">
+                <input type="number" value={customPremiumDays} onChange={e => setCustomPremiumDays(e.target.value)} className="w-24 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:ring-1 focus:ring-amber-500/50" />
+                <ActionButton icon={Gift} label="Grant Premium" onClick={() => doAction("grant-premium", { userId: selectedUser.id, days: Number(customPremiumDays) })} />
+              </div>
+            </div>
+          </div>
+
+          {/* Dangerous Zone */}
+          <div className="border-t border-red-500/20 pt-4">
+            <h4 className="text-sm font-medium text-red-400 mb-3 flex items-center gap-1">
+              <AlertTriangle className="w-4 h-4" /> Danger Zone
+            </h4>
+            <div className="flex flex-wrap gap-3">
+              <ActionButton
+                icon={Shield}
+                label={`Set Role: ${selectedUser.role === "admin" ? "user" : "admin"}`}
+                onClick={() => doAction("set-role", { userId: selectedUser.id, role: selectedUser.role === "admin" ? "user" : "admin" })}
+              />
+              {selectedUser.role !== "admin" && (
+                <ActionButton
+                  icon={AlertTriangle}
+                  label="Delete User"
+                  onClick={() => {
+                    if (confirm(`Delete ${selectedUser.name || selectedUser.email}? This cannot be undone.`)) {
+                      doAction(`${selectedUser.id}`, {}, "DELETE");
+                    }
+                  }}
+                />
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -409,6 +490,89 @@ function ActionButton({ icon: Icon, label, onClick }: { icon: typeof Coins; labe
       <Icon className="w-4 h-4" />
       {loading ? "..." : label}
     </button>
+  );
+}
+
+// ─── Economy Tab ─────────────────────────────────────────────────────────────
+
+function EconomyTab() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try { setData(await apiJson("/api/developer/economy")); } catch {}
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (loading) return <div className="animate-pulse space-y-4">{[...Array(3)].map((_, i) => <div key={i} className="h-24 bg-white/5 rounded-lg" />)}</div>;
+  if (!data) return <ErrorBox message="Failed to load economy data" onRetry={load} />;
+
+  return (
+    <div className="space-y-6">
+      {/* Totals */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+          <div className="text-2xl font-bold text-yellow-400">{formatNumber(data.totals?.totalCoins ?? 0)}</div>
+          <div className="text-xs text-white/40 mt-1">Total Coins in Circulation</div>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+          <div className="text-2xl font-bold text-purple-400">{formatNumber(data.totals?.totalXp ?? 0)}</div>
+          <div className="text-xs text-white/40 mt-1">Total XP Earned</div>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+          <div className="text-2xl font-bold text-emerald-400">Lv {data.totals?.avgLevel ?? 0}</div>
+          <div className="text-xs text-white/40 mt-1">Average Level</div>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+          <div className="text-2xl font-bold text-white">{formatNumber(data.totals?.usersWithWallets ?? 0)}</div>
+          <div className="text-xs text-white/40 mt-1">Active Wallets</div>
+        </div>
+      </div>
+
+      {/* Leaderboards */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Top by Coins */}
+        <div className="border border-white/10 rounded-xl overflow-hidden">
+          <div className="px-4 py-3 bg-yellow-500/5 border-b border-white/10">
+            <h3 className="font-medium text-yellow-300 flex items-center gap-2"><Coins className="w-4 h-4" /> Richest Users</h3>
+          </div>
+          <div className="divide-y divide-white/5">
+            {(data.topCoins ?? []).map((u: any, i: number) => (
+              <div key={u.userId} className="px-4 py-2.5 flex items-center gap-3">
+                <span className="text-sm text-white/30 w-6">{i + 1}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm text-white truncate">{u.name || u.email?.split("@")[0]}</div>
+                  <div className="text-xs text-white/40">Level {u.level}</div>
+                </div>
+                <span className="text-sm font-medium text-yellow-400">{formatNumber(u.coins)} 🪙</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Top by XP */}
+        <div className="border border-white/10 rounded-xl overflow-hidden">
+          <div className="px-4 py-3 bg-purple-500/5 border-b border-white/10">
+            <h3 className="font-medium text-purple-300 flex items-center gap-2"><Zap className="w-4 h-4" /> Top XP Earners</h3>
+          </div>
+          <div className="divide-y divide-white/5">
+            {(data.topXp ?? []).map((u: any, i: number) => (
+              <div key={u.userId} className="px-4 py-2.5 flex items-center gap-3">
+                <span className="text-sm text-white/30 w-6">{i + 1}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm text-white truncate">{u.name || u.email?.split("@")[0]}</div>
+                  <div className="text-xs text-white/40">Level {u.level}</div>
+                </div>
+                <span className="text-sm font-medium text-purple-400">{formatNumber(u.totalXp)} XP</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
