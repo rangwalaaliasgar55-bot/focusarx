@@ -13,7 +13,7 @@ call in `artifacts/api-server/src` against every exported drizzle table in `lib/
 |---|---|---|---|---|---|
 | `posts` | `legacyPosts` (schema/social.ts) | **0** | **0** | `social_posts` (`socialPostsTable`) + `post_comments` / `post_reactions` / `post_saves` | **Orphan — safe to archive & drop** |
 | `post_likes` | `postLikes` (schema/social.ts) | **0** | **0** | `post_reactions` (`postReactionsTable`) | **Orphan — safe to archive & drop** |
-| `user_battle_pass_progress` | `userBattlePassProgress` (schema/gamification.ts) | 3 (battlePassEnhanced.ts:78,130,198) | **0** | `battle_pass_progress` (`battlePassProgressTable`, written by premium/retention/sessions) | **Latent bug — see §2, fix code before dropping** |
+| `user_battle_pass_progress` | `userBattlePassProgress` (schema/gamification.ts) | **0** (Phase 0 repointed the last three reads) | **0** | `battle_pass_progress` (`battlePassProgressTable`, written by premium/retention/sessions) | **Orphan — safe to archive & drop (Phase 0 code fix shipped)** |
 | `study_buddies` | `studyBuddies` (schema/gamification.ts) | 0 | 0 | friendships / buddy_requests / study_groups | **Orphan — safe to archive & drop** |
 | `shared_goals` | `sharedGoals` (schema/gamification.ts) | 0 | 0 | `goals` + group challenges | **Orphan — safe to archive & drop** |
 | `leaderboard_snapshots` | `leaderboardSnapshots` (schema/gamification.ts) | 0 | 0 | computed on the fly from `focus_sessions` | **Orphan — safe to archive & drop** |
@@ -22,30 +22,24 @@ Not orphans (verified live): `coin_transactions` vs `token_ledger` are two *diff
 vs premium tokens) — both have writers; `user_pets` (3 writers) and `user_pet_inventory` (1 writer) are both
 live. D-4's coins/pets duplication concern is resolved as "intentional, distinct tables".
 
-## 2. Phase 0 — code fix (required before `user_battle_pass_progress` can be dropped)
+## 2. Phase 0 — code fix (IMPLEMENTED — see commit "battle-pass: repair tier claims")
 
-`routes/battlePassEnhanced.ts` gates every tier claim on a row read from `user_battle_pass_progress`
-(lines 78, 130, 198). **Nothing in the codebase has ever written that table** — XP writes go to
-`battle_pass_progress` (routes/premium.ts, routes/retention.ts, routes/sessions.ts) and claim records go to
-`battle_pass_claims`. Net effect: for any user whose progress was created after the migration to
-`battle_pass_progress`, `progress` is always `undefined` and tier rewards are unclaimable — the endpoint
-silently returns progress `{ tier: 0 }`-equivalent data.
+During verification the gate turned out worse than "dead": `routes/battlePassEnhanced.ts` (the router behind
+the client's `/battle-pass` page) read season XP from the never-written `user_battle_pass_progress`, so every
+user's progress rendered as 0 and `POST /battle-pass/claim` always failed with "Tier not yet unlocked". The
+page was non-functional for everyone. Fixed this session:
 
-Fix (small, reviewable):
-
-```ts
-// battlePassEnhanced.ts — replace the three
-const [progress] = await db.select().from(userBattlePassProgress).where(...)
-// with the live table
-import { battlePassProgressTable as userBattlePassProgress } from "@workspace/db";
-// column names are compatible (userId, battlePassId, tier/xp fields) — verify per schema before merging
-```
-
-Then confirm tier math: `battle_pass_progress` stores xp/level-derived tier, while the legacy read expected a
-pre-computed tier. If shapes differ, compute tier from XP via the same formula premium.ts uses. Add a
-regression test asserting a user with `battle_pass_progress` rows can claim a tier via
-`POST /battle-pass/claim` (test DB integration is skipped in this sandbox — the maintainer runs it against a
-real DB).
+- `src/lib/battlePassTiers.ts` — pure tier math (`requiredXpForTier`, `eligibleTiersForXp`,
+  `currentTierForXp`) with unit tests (`battlePassTiers.test.ts`), replacing three divergent inline
+  computations (the `/claim` gate, `/claim-all`'s hardcoded `tier * 500`, and `/current`'s filter count).
+- All three routes now read **live** season XP from `battle_pass_progress.season_xp` (the column session
+  completion credits). The last reader of `user_battle_pass_progress` is gone — the table is now a pure
+  orphan.
+- `/current` mapped a nonexistent `r.xpRequired` field (real column: `required_xp`) — corrected.
+- Semantic note: `battle_pass_progress.season_xp` resets on the ISO-week boundary (canonical battle pass in
+  `lib/battlePass.ts`), while the enhanced routes treat seasons as calendar months. XP therefore accrues
+  weekly; claimed tiers persist in `battle_pass_claims` and survive the reset. Unifying the two season
+  cadences is a product decision, deliberately not made here.
 
 ## 3. Phase 1 — live-DB migration (maintainer, with a production connection)
 
@@ -111,7 +105,7 @@ crash against missing tables it still imports.
 
 ## 4. Follow-through checklist
 
-- [ ] Phase 0: battlePassEnhanced reads repointed to `battle_pass_progress` + claim regression test
+- [x] Phase 0: battlePassEnhanced reads repointed to `battle_pass_progress` (+ `battlePassTiers.test.ts`; the route-level claim regression needs a live DB)
 - [ ] Step 1: archive dumped and stored off-repo
 - [ ] Step 2: row counts recorded
 - [ ] Step 3: code + schema-export deploy live
