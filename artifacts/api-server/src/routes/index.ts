@@ -67,6 +67,7 @@ import { featureFlagsRouter } from "./featureFlags";
 import { deploymentRouter } from "./deployment";
 import { recommendationsRouter } from "./recommendations";
 import { dbHealthRouter } from "./dbHealth";
+import { developerRouter } from "./developer";
 
 const router: IRouter = Router();
 
@@ -138,5 +139,6 @@ router.use(featureFlagsRouter);
 router.use(deploymentRouter);
 router.use(recommendationsRouter);
 router.use(dbHealthRouter);
+router.use(developerRouter);
 
 export default router;

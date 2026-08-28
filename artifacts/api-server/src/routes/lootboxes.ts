@@ -62,33 +62,41 @@ lootboxesRouter.post("/lootboxes/buy", authMiddleware, async (req: AuthRequest, 
       return res.status(403).json({ error: "This loot box requires Premium" });
     }
 
-    if (boxType.coinCost > 0) {
-      const [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.userId)).limit(1);
-      if (!wallet || wallet.coins < boxType.coinCost) {
-        return res.status(400).json({ error: "Insufficient coins" });
+    const result = await db.transaction(async (tx) => {
+      // Atomic balance check + deduction to prevent race conditions
+      if (boxType.coinCost > 0) {
+        const [wallet] = await tx.select().from(userWalletsTable)
+          .where(eq(userWalletsTable.userId, req.userId))
+          .limit(1);
+        if (!wallet || wallet.coins < boxType.coinCost) {
+          return { error: "Insufficient coins" } as const;
+        }
+        const newBalance = wallet.coins - boxType.coinCost;
+        await tx.update(userWalletsTable).set({ coins: newBalance }).where(eq(userWalletsTable.userId, req.userId));
+        await tx.insert(coinTransactionsTable).values({
+          userId: req.userId,
+          type: "spend",
+          amount: -boxType.coinCost,
+          reason: "lootbox_purchase",
+          description: `Purchased ${boxType.name}`,
+          balanceAfter: newBalance,
+          metadata: { boxTypeId: typeId, boxName: boxType.name },
+        }).catch(() => {});
       }
-      const newBalance = wallet.coins - boxType.coinCost;
-      await db.update(userWalletsTable).set({ coins: newBalance }).where(eq(userWalletsTable.userId, req.userId));
-      await db.insert(coinTransactionsTable).values({
+
+      const [box] = await tx.insert(userLootBoxesTable).values({
         userId: req.userId,
-        type: "spend",
-        amount: -boxType.coinCost,
-        reason: "lootbox_purchase",
-        description: `Purchased ${boxType.name}`,
-        balanceAfter: newBalance,
-        metadata: { boxTypeId: typeId, boxName: boxType.name },
-      }).catch(() => {});
-    }
+        boxTypeId: typeId,
+        status: "unopened",
+        earnedReason: "purchase",
+      }).returning();
 
-    const [box] = await db.insert(userLootBoxesTable).values({
-      userId: req.userId,
-      boxTypeId: typeId,
-      status: "unopened",
-      earnedReason: "purchase",
-    }).returning();
+      const [w] = await tx.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.userId)).limit(1);
+      return { ok: true, box, newCoins: w?.coins ?? 0 } as const;
+    });
 
-    const [w] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.userId)).limit(1);
-    res.json({ box, newCoins: w?.coins ?? 0 });
+    if ("error" in result) return res.status(400).json({ error: result.error });
+    res.json({ box: result.box, newCoins: result.newCoins });
   } catch (e: any) {
     res.status(500).json({ error: "Failed to purchase" });
   }
@@ -97,23 +105,32 @@ lootboxesRouter.post("/lootboxes/buy", authMiddleware, async (req: AuthRequest, 
 lootboxesRouter.post("/lootboxes/:boxId/open", authMiddleware, async (req: AuthRequest, res: Response) => {
   const { boxId } = req.params as { boxId: string };
   try {
-    const [box] = await db.select().from(userLootBoxesTable)
-      .where(and(eq(userLootBoxesTable.id, boxId), eq(userLootBoxesTable.userId, req.userId))).limit(1);
-    if (!box) return res.status(404).json({ error: "Box not found" });
-    if (box.status !== "unopened") return res.status(400).json({ error: "Box already opened" });
+    // Use a transaction to atomically check-and-open, preventing double-opens
+    const result = await db.transaction(async (tx) => {
+      const [box] = await tx.select().from(userLootBoxesTable)
+        .where(and(eq(userLootBoxesTable.id, boxId), eq(userLootBoxesTable.userId, req.userId))).limit(1);
+      if (!box) return { error: "Box not found", status: 404 } as const;
+      if (box.status !== "unopened") return { error: "Box already opened", status: 400 } as const;
 
-    const [boxType] = await db.select().from(lootBoxTypesTable).where(eq(lootBoxTypesTable.id, box.boxTypeId)).limit(1);
-    if (!boxType) return res.status(404).json({ error: "Box type not found" });
+      const [boxType] = await tx.select().from(lootBoxTypesTable).where(eq(lootBoxTypesTable.id, box.boxTypeId)).limit(1);
+      if (!boxType) return { error: "Box type not found", status: 404 } as const;
 
-    const rewards = boxType.possibleRewards as any[];
-    const picked = pickReward(rewards);
+      const rewards = boxType.possibleRewards as any[];
+      const picked = pickReward(rewards);
 
-    await db.update(userLootBoxesTable).set({
-      status: "opened",
-      rewardType: picked.type,
-      rewardValue: picked,
-      openedAt: new Date(),
-    }).where(eq(userLootBoxesTable.id, boxId));
+      await tx.update(userLootBoxesTable).set({
+        status: "opened",
+        rewardType: picked.type,
+        rewardValue: picked,
+        openedAt: new Date(),
+      }).where(eq(userLootBoxesTable.id, boxId));
+
+      return { ok: true, box, boxType, picked } as const;
+    });
+
+    if ("error" in result) return res.status(result.status ?? 500).json({ error: result.error });
+
+    const { picked } = result;
 
     let newCoins: number | undefined;
     let grantedItemId: string | undefined;
