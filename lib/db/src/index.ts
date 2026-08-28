@@ -28,8 +28,8 @@ export function resolveDatabaseUrl(): string {
 const rawConnectionString = resolveDatabaseUrl();
 
 if (!rawConnectionString) {
-  throw new Error(
-    "DATABASE_URL (or POSTGRES_URL) must be set. Did you forget to provision a database?",
+  console.error(
+    "[db] DATABASE_URL (or POSTGRES_URL) is not set. All database queries will fail."
   );
 }
 
@@ -53,7 +53,7 @@ function getSslMode(url: string): string | null {
 function stripSslParams(url: string): string {
   try {
     const parsed = new URL(url);
-    for (const param of ["sslmode", "sslrootcert", "sslcert", "sslkey"]) {
+    for (const param of ["sslmode", "sslrootcert", "sslcert", "sslkey", "channel_binding"]) {
       parsed.searchParams.delete(param);
     }
     return parsed.toString();
@@ -79,10 +79,10 @@ const useSsl =
 
 // Only strip SSL params when we're taking over SSL handling.  When useSsl is
 // false (e.g. sslmode=disable or a plain localhost URL) leave the string alone.
-const connectionString = useSsl ? stripSslParams(rawConnectionString) : rawConnectionString;
+const connectionString = (useSsl && rawConnectionString) ? stripSslParams(rawConnectionString) : rawConnectionString;
 
 export const pool = new Pool({
-  connectionString,
+  connectionString: connectionString || undefined,
   max: process.env.VERCEL ? 1 : 10,
   idleTimeoutMillis: 20_000,
   connectionTimeoutMillis: 15_000,
