@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import type { NextFunction, Response } from "express";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { getServerConfig } from "./config";
@@ -60,4 +61,29 @@ export async function getAdminIdentity(req: {
     // ignore
   }
   return { isAdmin: false, method: "none" };
+}
+
+/**
+ * Express middleware form of the admin check.
+ *
+ * IMPORTANT: `checkAdminAuth` above is a *predicate* (returns `Promise<boolean>`)
+ * and must be awaited inside a handler. Passing it straight into a route as
+ * middleware hangs the request forever — Express treats it as
+ * `(req, res, next)` because of its arity, calls it, and the returned promise
+ * is discarded without `next()` ever running. Always mount this instead.
+ */
+export async function requireAdmin(
+  req: { headers: { cookie?: string; authorization?: string } },
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    if (await checkAdminAuth(req)) {
+      next();
+      return;
+    }
+  } catch {
+    // fall through to 403 — never leak internals
+  }
+  res.status(403).json({ error: "Admin access required" });
 }

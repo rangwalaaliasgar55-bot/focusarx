@@ -58,6 +58,7 @@
 // ─── Event Types ─────────────────────────────────────────────────────────────
 
 import { trackEvent } from "@/lib/gtag";
+import { logger } from "./logger";
 
 export type AnalyticsEvent =
   | { event: "landing_page_view"; properties: { source?: string; utm_campaign?: string; utm_medium?: string } }
@@ -113,7 +114,7 @@ export function track(event: AnalyticsEvent["event"], properties: Record<string,
   trackEvent(event, properties);
 
   if (import.meta.env.DEV) {
-    console.debug(`[analytics] ${event}`, properties);
+    logger.debug(`[analytics] ${event}`, properties);
   }
 }
 

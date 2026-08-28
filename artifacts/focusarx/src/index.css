@@ -1914,7 +1914,12 @@ html.light {
 }
 .app-shell {
   min-height: 100dvh;
-  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+}
+/* Same reasoning as .app-main: the fixed bottom nav only exists below md. */
+@media (max-width: 767px) {
+  .app-shell {
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  }
 }
 .bottom-nav {
   padding-bottom: env(safe-area-inset-bottom);
@@ -1966,9 +1971,18 @@ html.light {
   }
 }
 
-/* Ensure app-main has safe-area padding */
-.app-main {
-  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+/*
+ * Bottom-nav clearance for .app-main — MOBILE ONLY.
+ *
+ * This used to be a top-level rule, so it won the cascade at every breakpoint
+ * and (a) added 72px of dead space on desktop, where the bottom nav is
+ * `md:hidden` and never renders, and (b) overrode the deliberate 5rem mobile
+ * value declared above. Scoped to the mobile breakpoint so both are honoured.
+ */
+@media (max-width: 767px) {
+  .app-main {
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  }
 }
 
 /* Hide scrollbar on mobile for cleaner feel but keep accessible */

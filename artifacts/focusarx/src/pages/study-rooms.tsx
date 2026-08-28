@@ -7,6 +7,7 @@ import { Radio, Users, Lock, Globe, Plus, X, Send, MessageCircle, LogIn, LogOut 
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
 import { EmotePicker } from "@/components/EmotePicker";
+import { AdSlot } from "@/components/AdSlot";
 
 interface Room {
   id: string;
@@ -278,6 +279,10 @@ export default function StudyRoomsPage() {
                 </motion.div>
               );
             })}
+
+            {/* In-feed ad after the room list. Deliberately outside the list
+                so it is never mistaken for a joinable room. */}
+            <AdSlot name="studyRoomsInFeed" minHeight={120} />
           </div>
         </PageTransition>
       </main>

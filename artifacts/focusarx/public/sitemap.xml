@@ -1,351 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset
-  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-  xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
-  xmlns:xhtml="http://www.w3.org/1999/xhtml"
->
+<!--
+  FocusArx sitemap INDEX.
 
-  <!-- ══════════════════════════════════════════
-       HOMEPAGE — highest priority
-  ═══════════════════════════════════════════════ -->
-  <url>
-    <loc>https://www.focusarx.site/</loc>
-    <lastmod>2026-08-23</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
-    <image:image>
-      <image:loc>https://www.focusarx.site/opengraph.jpg</image:loc>
-      <image:title>FocusArx — AI Pomodoro Timer &amp; Deep Work Tracker</image:title>
-    </image:image>
-  </url>
+  In production vercel.json rewrites /sitemap.xml to the API function, which
+  emits this same index plus one extra <sitemap> entry per public-profile
+  shard (see artifacts/api-server/src/routes/sitemap.ts). This static copy is
+  the fallback so the root URL never resolves to SPA HTML.
 
-  <!-- ══════════════════════════════════════════
-       AUTH PAGES
-  ═══════════════════════════════════════════════ -->
-  <url>
-    <loc>https://www.focusarx.site/signup</loc>
-    <lastmod>2026-08-23</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/login</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- ══════════════════════════════════════════
-       COMPANY PAGES
-  ═══════════════════════════════════════════════ -->
-  <url>
-    <loc>https://www.focusarx.site/about</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/contact</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/support</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/pricing</loc>
-    <lastmod>2026-08-23</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/premium</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/focus-timer</loc>
-    <lastmod>2026-08-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/roadmap</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.70</priority>
-  </url>
-
-  <!-- ══════════════════════════════════════════
-       PUBLIC CONTENT PAGES (highest SEO value)
-  ═══════════════════════════════════════════════ -->
-  <url>
-    <loc>https://www.focusarx.site/guides</loc>
-    <lastmod>2026-08-24</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.95</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/adhd-focus-tips</loc>
-    <lastmod>2026-08-24</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.95</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/stop-procrastinating</loc>
-    <lastmod>2026-08-24</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.95</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/focus-music</loc>
-    <lastmod>2026-08-24</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.92</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/study-with-me</loc>
-    <lastmod>2026-08-24</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/focus-guide</loc>
-    <lastmod>2026-08-24</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/deep-study-guide</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.92</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/two-hour-study-method</loc>
-    <lastmod>2026-08-24</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.92</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/pomodoro-guide</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/study-techniques</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.88</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/virtual-study-room</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/science-of-deep-work</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.95</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/feynman-technique</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.95</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/study-method-quiz</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.98</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/study-calculator</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.98</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/study-rooms</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.80</priority>
-  </url>
-
-  <!-- ══════════════════════════════════════════
-       PUBLIC GAMIFICATION PAGES
-  ═══════════════════════════════════════════════ -->
-  <url>
-    <loc>https://www.focusarx.site/leaderboard</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.80</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/achievements</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.75</priority>
-  </url>
-
-  <!-- ══════════════════════════════════════════
-       WELLNESS PAGES
-  ═══════════════════════════════════════════════ -->
-  <url>
-    <loc>https://www.focusarx.site/breathe</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.60</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/break-free</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.55</priority>
-  </url>
-
-  <!-- ══════════════════════════════════════════
-       LEGAL PAGES
-  ═══════════════════════════════════════════════ -->
-  <url>
-    <loc>https://www.focusarx.site/privacy</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.65</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/terms</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.65</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/cookie-policy</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.50</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/acceptable-use</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.50</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/ai-policy</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.50</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/comparison/focusarx-vs-forest</loc>
-    <lastmod>2026-08-23</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/comparison/focusarx-vs-focus-todo</loc>
-    <lastmod>2026-08-23</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/exam</loc>
-    <lastmod>2026-08-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/exam/jee-main</loc>
-    <lastmod>2026-08-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/exam/jee-advanced</loc>
-    <lastmod>2026-08-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/exam/neet-ug</loc>
-    <lastmod>2026-08-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/exam/cbse-class-12</loc>
-    <lastmod>2026-08-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/exam/cbse-class-10</loc>
-    <lastmod>2026-08-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/exam/gate</loc>
-    <lastmod>2026-08-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/exam/cat</loc>
-    <lastmod>2026-08-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/exam/upsc-cse</loc>
-    <lastmod>2026-08-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/exam/ssc-cgl</loc>
-    <lastmod>2026-08-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/exam/nda</loc>
-    <lastmod>2026-08-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/exam/ctet</loc>
-    <lastmod>2026-08-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/exam/ibps-po</loc>
-    <lastmod>2026-08-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/exam/exam-anxiety</loc>
-    <lastmod>2026-08-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.70</priority>
-  </url>
-  <url>
-    <loc>https://www.focusarx.site/exam/last-minute-revision</loc>
-    <lastmod>2026-08-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.70</priority>
-  </url>
-</urlset>
+  Canonical host is www.focusarx.site — the previous file and the API
+  disagreed on host, which made every URL a cross-host duplicate.
+-->
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>https://www.focusarx.site/sitemap-core.xml</loc>
+    <lastmod>2026-08-28</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://www.focusarx.site/sitemap-guides.xml</loc>
+    <lastmod>2026-08-28</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://www.focusarx.site/sitemap-exams.xml</loc>
+    <lastmod>2026-08-28</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://www.focusarx.site/sitemap-compare.xml</loc>
+    <lastmod>2026-08-28</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://www.focusarx.site/sitemap-legal.xml</loc>
+    <lastmod>2026-08-28</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://www.focusarx.site/sitemap-profiles-1.xml</loc>
+    <lastmod>2026-08-28</lastmod>
+  </sitemap>
+</sitemapindex>

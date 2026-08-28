@@ -12,6 +12,7 @@
 import { db, pool, aiBudgetStateTable, aiCallLogTable, platformMetaTable } from "@workspace/db";
 import { eq, sql, and, gte } from "drizzle-orm";
 import { providerCap, COST_PER_1K, MODELS, istDayKey, type AiProvider } from "./aiBudgetCore";
+import { logger } from "./logger";
 
 export { providerCap, COST_PER_1K, MODELS, istDayKey, type AiProvider };
 
@@ -64,7 +65,7 @@ export async function recordCall(entry: {
     });
   } catch (err) {
     // Budget metering must never take down a request path.
-    console.error("[aiBudget] call log insert failed", err);
+    logger.error({ err }, "[aiBudget] call log insert failed");
   }
   try {
     // Increment (upsert if the row doesn't exist yet) via raw SQL —
@@ -77,7 +78,7 @@ export async function recordCall(entry: {
       [entry.provider, day, providerCap(entry.provider)]
     );
   } catch (err) {
-    console.error("[aiBudget] counter bump failed", err);
+    logger.error({ err }, "[aiBudget] counter bump failed");
   }
 }
 
@@ -99,7 +100,7 @@ export async function recordRateLimit(provider: AiProvider, now: Date = new Date
       [metaKey, JSON.stringify({ streak })]
     );
   } catch (err) {
-    console.error("[aiBudget] 429 streak bump failed", err);
+    logger.error({ err }, "[aiBudget] 429 streak bump failed");
   }
   const backoffMin = Math.min(5 ** streak, 120);
   const coolUntil = new Date(now.getTime() + backoffMin * 60_000);
@@ -111,7 +112,7 @@ export async function recordRateLimit(provider: AiProvider, now: Date = new Date
       [provider, day, providerCap(provider), coolUntil]
     );
   } catch (err) {
-    console.error("[aiBudget] rate-limit set failed", err);
+    logger.error({ err }, "[aiBudget] rate-limit set failed");
   }
   return coolUntil;
 }

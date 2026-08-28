@@ -9,7 +9,7 @@ import {
   tokenLedgerTable,
   premiumEntitlementsTable,
 } from "@workspace/db";
-import { eq, desc, and, gte } from "drizzle-orm";
+import { eq, desc, and, gte, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { invalidatePremiumCache } from "../lib/premiumCheck";
 import { getActivePlans, getPlanById, purchasePremiumWithTokens, getEntitlementHistory, hasActivePremium, seedPremiumPlans } from "../lib/premiumPlans";
@@ -212,22 +212,20 @@ router.get("/premium/ledger", authMiddleware, async (req: AuthRequest, res: Resp
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 20));
     const offset = (page - 1) * limit;
 
-    const [entries, totalRow] = await Promise.all([
+    const [entries, countRows] = await Promise.all([
       db.select().from(tokenLedgerTable).where(eq(tokenLedgerTable.userId, req.userId!)).orderBy(desc(tokenLedgerTable.createdAt)).limit(limit).offset(offset),
-      db.select({ count: desc(tokenLedgerTable.createdAt) }).from(tokenLedgerTable).where(eq(tokenLedgerTable.userId, req.userId!)).then(async () => {
-        const { sql } = await import("drizzle-orm");
-        const [r] = await db.select({ count: sql<number>`count(*)::int` }).from(tokenLedgerTable).where(eq(tokenLedgerTable.userId, req.userId!));
-        return r?.count ?? 0;
-      }),
+      db.select({ count: sql<number>`count(*)::int` }).from(tokenLedgerTable).where(eq(tokenLedgerTable.userId, req.userId!)),
     ]);
+
+    const total = Number(countRows[0]?.count ?? 0);
 
     res.json({
       entries,
       pagination: {
         page,
         limit,
-        total: Number(totalRow),
-        totalPages: Math.ceil(Number(totalRow) / limit),
+        total,
+        totalPages: Math.ceil(total / limit),
       },
     });
   } catch (err) {

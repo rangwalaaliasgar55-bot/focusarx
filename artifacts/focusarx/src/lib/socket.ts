@@ -1,5 +1,6 @@
 import { io as ioClient, Socket } from "socket.io-client";
 import { useEffect, useRef, useState } from "react";
+import { logger } from "../lib/logger";
 
 let socket: Socket | null = null;
 let connectionAttempted = false;
@@ -43,7 +44,7 @@ export function connectSocket(token: string) {
   socket.on("connect", () => {
     connectionAttempted = true;
     connectionFailed = false;
-    console.debug("[socket] connected", socket?.id);
+    logger.debug("[socket] connected", socket?.id);
   });
 
   socket.on("connect_error", (err) => {
@@ -52,7 +53,7 @@ export function connectSocket(token: string) {
     // console by only logging once and then giving up.
     if (isVercelServerless()) {
       if (!connectionFailed) {
-        console.info("[socket] realtime unavailable on this host — falling back to polling");
+        logger.info("[socket] realtime unavailable on this host — falling back to polling");
         connectionFailed = true;
         socket?.disconnect();
         socket = null;
@@ -60,11 +61,13 @@ export function connectSocket(token: string) {
       return;
     }
     // Dev / self-hosted: log normally so developers can diagnose
-    console.warn("[socket] connection error:", err.message);
+    // Expected-fallback path: the UI surfaces this via NetworkStatusBanner, so
+    // keep the console clean and leave the detail behind the debug flag.
+    logger.warn("[socket] connection error:", err.message);
   });
 
   socket.on("disconnect", (reason) => {
-    console.debug("[socket] disconnected:", reason);
+    logger.debug("[socket] disconnected:", reason);
   });
 
   return socket;
