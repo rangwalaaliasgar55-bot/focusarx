@@ -137,7 +137,21 @@ async function main() {
     }
 
     const out = [];
-    out.push("-- FocusArx — complete idempotent schema for the Neon SQL editor");
+    out.push("-- FocusArx — COMPLETE website SQL for the Neon SQL editor");
+    out.push("-- ======================================================");
+    out.push("-- HOW TO RUN: Neon Console -> your project -> SQL Editor -> paste THIS");
+    out.push("-- ENTIRE file -> Run. That's it. Nothing else is needed.");
+    out.push("--");
+    out.push("-- SKIP-IF-EXISTS: every statement is idempotent —");
+    out.push("--   * tables:    CREATE TABLE IF NOT EXISTS");
+    out.push("--   * columns:   ADD COLUMN IF NOT EXISTS");
+    out.push("--   * indexes:   CREATE INDEX IF NOT EXISTS");
+    out.push("--   * constraints: DO-block guards that check pg_constraint first");
+    out.push("-- Anything that already exists is SKIPPED, never dropped, never");
+    out.push("-- altered destructively, and NO DATA is touched. Run it as many");
+    out.push("-- times as you like — on an empty database it creates everything,");
+    out.push("-- on a drifted one it fills in what is missing.");
+    out.push("--");
     out.push("-- Generated: " + new Date().toISOString());
     out.push("-- Source: live Postgres catalog introspection (node, no psql)");
     out.push("-- Tables: " + tables.length + " - all CREATEs are IF NOT EXISTS; constraints and indexes");
@@ -162,7 +176,7 @@ async function main() {
       out.push("");
     }
 
-    out.push("-- Verification: expect " + tables.length + " tables");
+    out.push("-- VERIFICATION: after running, this should return " + tables.length + " (one row per table is fine to eyeball too).");
     out.push("SELECT count(*) AS table_count FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE';");
     out.push("");
 

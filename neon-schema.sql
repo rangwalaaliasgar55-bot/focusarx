@@ -1,5 +1,19 @@
--- FocusArx — complete idempotent schema for the Neon SQL editor
--- Generated: 2026-08-28T08:23:03.597Z
+-- FocusArx — COMPLETE website SQL for the Neon SQL editor
+-- ======================================================
+-- HOW TO RUN: Neon Console -> your project -> SQL Editor -> paste THIS
+-- ENTIRE file -> Run. That's it. Nothing else is needed.
+--
+-- SKIP-IF-EXISTS: every statement is idempotent —
+--   * tables:    CREATE TABLE IF NOT EXISTS
+--   * columns:   ADD COLUMN IF NOT EXISTS
+--   * indexes:   CREATE INDEX IF NOT EXISTS
+--   * constraints: DO-block guards that check pg_constraint first
+-- Anything that already exists is SKIPPED, never dropped, never
+-- altered destructively, and NO DATA is touched. Run it as many
+-- times as you like — on an empty database it creates everything,
+-- on a drifted one it fills in what is missing.
+--
+-- Generated: 2026-08-28T08:47:12.746Z
 -- Source: live Postgres catalog introspection (node, no psql)
 -- Tables: 104 - all CREATEs are IF NOT EXISTS; constraints and indexes
 -- are guarded / IF NOT EXISTS. Safe to run repeatedly. No data is modified.
@@ -5063,5 +5077,5 @@ END $$;
 
 CREATE INDEX IF NOT EXISTS wrapped_user_period_idx ON public.wrapped_snapshots USING btree (user_id, period);
 
--- Verification: expect 104 tables
+-- VERIFICATION: after running, this should return 104 (one row per table is fine to eyeball too).
 SELECT count(*) AS table_count FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE';
