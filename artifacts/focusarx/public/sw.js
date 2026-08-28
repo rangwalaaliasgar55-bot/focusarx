@@ -6,7 +6,7 @@
 // - Never cache /api/* (authenticated data must stay fresh).
 // Bump CACHE_NAME on deploy to invalidate stale caches.
 
-const CACHE_NAME = "focusarx-v4";
+const CACHE_NAME = "focusarx-v5";
 
 const APP_SHELL = [
   "/",
@@ -51,11 +51,21 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(event.request)
         .then((resp) => {
-          const clone = resp.clone();
-          caches.open(CACHE_NAME).then((c) => c.put("/", clone));
+          // Only cache successful responses
+          if (resp && resp.ok) {
+            const clone = resp.clone();
+            caches.open(CACHE_NAME).then((c) => c.put("/", clone));
+          }
           return resp;
         })
-        .catch(() => caches.match("/"))
+        .catch(() => {
+          return caches.match("/").then((cached) => {
+            return cached || new Response("<!DOCTYPE html><h1>Offline</h1><p>Please check your connection.</p>", {
+              headers: { "Content-Type": "text/html" },
+              status: 503,
+            });
+          });
+        })
     );
     return;
   }
@@ -63,22 +73,31 @@ self.addEventListener("fetch", (event) => {
   // Hashed build assets: cache-first (they are immutable), then network.
   if (url.pathname.startsWith("/assets/") || url.pathname === "/opengraph.jpg") {
     event.respondWith(
-      caches.match(event.request).then(
-        (cached) =>
-          cached ||
-          fetch(event.request).then((resp) => {
+      caches.match(event.request).then((cached) => {
+        if (cached) return cached;
+        return fetch(event.request).then((resp) => {
+          // Only cache successful responses
+          if (resp && resp.ok) {
             const clone = resp.clone();
             caches.open(CACHE_NAME).then((c) => c.put(event.request, clone));
-            return resp;
-          })
-      )
+          }
+          return resp;
+        }).catch(() => {
+          // For assets, return a 404 Response instead of undefined
+          return new Response("Not Found", { status: 404, statusText: "Not Found" });
+        });
+      })
     );
     return;
   }
 
   // Everything else: network-first, fall back to cache.
   event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+    fetch(event.request).catch(() => {
+      return caches.match(event.request).then((cached) => {
+        return cached || new Response("Offline", { status: 503, statusText: "Service Unavailable" });
+      });
+    })
   );
 });
 

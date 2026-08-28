@@ -871,5 +871,145 @@ router.get("/admin/schema", adminLimiter, async (req, res) => {
   }
 });
 
+// ─── SQL Console (read-only by default, write via unlock phrase) ────────────
+
+let sqlWriteWindow: { unlockedAt: number; by: string } | null = null;
+const SQL_WRITE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const SQL_UNLOCK_PHRASE = process.env.SQL_UNLOCK_PHRASE || "focusarx-admin-unlock";
+
+/** Safe check: is this a read-only statement? */
+function isReadOnlyStatement(sql: string): boolean {
+  const trimmed = sql.trim().replace(/\/\/[\s\S]*$/, "").replace(/--[\s\S]*$/, "");
+  const firstWord = trimmed.split(/\s+/)[0]?.toUpperCase();
+  const readOnlyPrefixes = ["SELECT", "SHOW", "EXPLAIN", "WITH", "TABLE", "\d"];
+  return readOnlyPrefixes.some((p) => firstWord?.startsWith(p));
+}
+
+/** Check if a statement is potentially destructive */
+function isDestructiveStatement(sql: string): boolean {
+  const upper = sql.trim().toUpperCase();
+  return /\b(TRUNCATE|DROP|DELETE\s+FROM|ALTER\s+TABLE|UPDATE\s+\w+\s+SET|INSERT\s+INTO)\b/.test(upper);
+}
+
+/** SQL query log table — created on first use */
+let sqlLogReady = false;
+async function ensureSqlLogTable() {
+  if (sqlLogReady) return;
+  try {
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS admin_sql_log (
+        id text PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        kind text NOT NULL DEFAULT 'read',
+        sql text NOT NULL,
+        rows_affected integer DEFAULT 0,
+        status text DEFAULT 'ok',
+        error text,
+        branch_name text,
+        created_at timestamp DEFAULT now() NOT NULL
+      )
+    `);
+    sqlLogReady = true;
+  } catch { /* table may not exist — that's ok */ }
+}
+
+router.get("/admin/sql/status", async (req, res) => {
+  if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
+  const now = Date.now();
+  const writeActive = sqlWriteWindow && now - sqlWriteWindow.unlockedAt < SQL_WRITE_WINDOW_MS;
+  res.json({
+    enabled: true,
+    writeUnlocked: !!writeActive,
+    remainingMs: writeActive ? SQL_WRITE_WINDOW_MS - (now - sqlWriteWindow!.unlockedAt) : 0,
+    windowMs: SQL_WRITE_WINDOW_MS,
+    unlockPhrase: "***",
+    unlockedBy: writeActive ? sqlWriteWindow!.by : null,
+    hasUnlockRecord: !!sqlWriteWindow,
+  });
+});
+
+router.get("/admin/sql/log", async (req, res) => {
+  if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
+  try {
+    await ensureSqlLogTable();
+    const limit = Math.min(parseInt(String(req.query.limit) || "15"), 100);
+    const rows = await db.execute(sql`SELECT * FROM admin_sql_log ORDER BY created_at DESC LIMIT ${limit}`);
+    res.json({ entries: (rows as any).rows ?? rows });
+  } catch (err) {
+    res.json({ entries: [] });
+  }
+});
+
+router.post("/admin/sql/unlock", async (req, res) => {
+  if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
+  const { phrase } = req.body as { phrase?: string };
+  if (phrase !== SQL_UNLOCK_PHRASE) {
+    res.status(403).json({ error: "Invalid unlock phrase" });
+    return;
+  }
+  const userId = extractUserId(req);
+  sqlWriteWindow = { unlockedAt: Date.now(), by: userId || "admin" };
+  res.json({ ok: true, remainingMs: SQL_WRITE_WINDOW_MS });
+});
+
+router.post("/admin/sql/query", async (req, res) => {
+  if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
+  const { query, branch } = req.body as { query?: string; branch?: string };
+  if (!query || typeof query !== "string" || query.trim().length === 0) {
+    res.status(400).json({ error: "Empty query" });
+    return;
+  }
+  // Log the query attempt
+  await ensureSqlLogTable();
+  const isRead = isReadOnlyStatement(query);
+  const isDestructive = isDestructiveStatement(query);
+  const now = Date.now();
+  const writeActive = sqlWriteWindow && now - sqlWriteWindow.unlockedAt < SQL_WRITE_WINDOW_MS;
+
+  if (!isRead) {
+    // Write mode requires unlock
+    if (!writeActive) {
+      try {
+        const logId = crypto.randomUUID();
+        await db.execute(sql`INSERT INTO admin_sql_log (id, kind, sql, status, error, branch_name) VALUES (${logId}, 'write', ${query}, 'blocked', 'Write mode not unlocked', ${branch || null})`);
+      } catch { /* best effort */ }
+      res.status(403).json({ error: "Write mode not unlocked. Use the unlock phrase first." });
+      return;
+    }
+    if (isDestructive) {
+      // Double-check: destructive statements need extra confirmation
+      const { confirmed } = req.body as { confirmed?: boolean };
+      if (!confirmed) {
+        res.status(400).json({ error: "Destructive statement. Set confirmed: true to proceed.", needsConfirmation: true });
+        return;
+      }
+    }
+  }
+
+  const start = Date.now();
+  try {
+    // Use the raw pool for direct SQL execution
+    const result = await pool.query(query);
+    const durationMs = Date.now() - start;
+    const columns = result.fields?.map((f: any) => f.name) ?? [];
+    const rows = result.rows?.map((r: any) => Object.values(r)) ?? [];
+    const rowCount = result.rowCount ?? rows.length;
+
+    // Log successful query
+    try {
+      const logId = crypto.randomUUID();
+      await db.execute(sql`INSERT INTO admin_sql_log (id, kind, sql, rows_affected, status, branch_name) VALUES (${logId}, ${isRead ? 'read' : 'write'}, ${query}, ${rowCount}, 'ok', ${branch || null})`);
+    } catch { /* best effort */ }
+
+    res.json({ columns, rows, rowCount, truncated: rowCount >= 1000, durationMs });
+  } catch (err: any) {
+    const durationMs = Date.now() - start;
+    try {
+      const logId = crypto.randomUUID();
+      await db.execute(sql`INSERT INTO admin_sql_log (id, kind, sql, status, error, branch_name) VALUES (${logId}, ${isRead ? 'read' : 'write'}, ${query}, 'error', ${err?.message?.slice(0, 500) || 'Unknown error'}, ${branch || null})`);
+    } catch { /* best effort */ }
+    res.status(400).json({ error: err?.message || "Query failed", durationMs });
+  }
+});
+
 export { router as adminRouter };
 
