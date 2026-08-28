@@ -29,16 +29,16 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.cookieyes.com"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.cookieyes.com", "https://pagead2.googlesyndication.com", "https://adservice.google.com", "https://adservice.googleadservices.com"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         imgSrc: ["'self'", "data:", "https:", "https://images.unsplash.com"],
         connectSrc: isDev
           ? ["'self'", "http://localhost:*", "ws://localhost:*", "https:"]
-          : ["'self'", "https:", "wss:"],
+          : ["'self'", "https:", "wss:", "https://pagead2.googlesyndication.com", "https://googleads.g.doubleclick.net"],
         fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
         mediaSrc: ["'self'", "blob:", "data:"],
         workerSrc: ["'self'", "blob:"],
-        frameSrc: ["'none'"],
+        frameSrc: ["'self'", "https://googleads.g.doubleclick.net", "https://tpc.googlesyndication.com"],
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
         formAction: ["'self'"],

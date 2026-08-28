@@ -48,17 +48,17 @@ router.get("/site/community-pulse", async (_req, res) => {
   try {
     const weekAgo = new Date(Date.now() - 7 * 86400000);
     const [membersArr, botsArr, humansArr, studiersArr] = await Promise.all([
-      db.select({ n: sql<number>`count(*)` }).from(usersTable).where(eq(usersTable.isGuest, false)),
-      db.select({ n: sql<number>`count(*)` }).from(usersTable).where(and(eq(usersTable.isGuest, false), eq(usersTable.role, "bot"))),
-      db.select({ n: sql<number>`count(*)` }).from(usersTable).where(and(eq(usersTable.isGuest, false), ne(usersTable.role, "bot"))),
-      db.select({ n: sql<number>`count(distinct ${focusSessionsTable.userId})` })
+      db.select({ n: sql<number>`count(*)::int` }).from(usersTable).where(eq(usersTable.isGuest, false)).catch(() => [{ n: 0 }]),
+      db.select({ n: sql<number>`count(*)::int` }).from(usersTable).where(and(eq(usersTable.isGuest, false), eq(usersTable.role, "bot"))).catch(() => [{ n: 0 }]),
+      db.select({ n: sql<number>`count(*)::int` }).from(usersTable).where(and(eq(usersTable.isGuest, false), ne(usersTable.role, "bot"))).catch(() => [{ n: 0 }]),
+      db.select({ n: sql<number>`count(distinct ${focusSessionsTable.userId})::int` })
         .from(focusSessionsTable)
         .innerJoin(usersTable, eq(usersTable.id, focusSessionsTable.userId))
         .where(and(
           eq(usersTable.isGuest, false),
           ne(usersTable.role, "bot"),
           gte(focusSessionsTable.completedAt, weekAgo),
-        )),
+        )).catch(() => [{ n: 0 }]),
     ]);
 
     const total = Number(membersArr[0]?.n ?? 0);
@@ -89,7 +89,7 @@ router.get("/site/community-pulse", async (_req, res) => {
 router.get("/admin/site/settings", async (req, res) => {
   if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
   try {
-    const [row] = await db.select().from(siteSettingsTable).limit(1);
+    const [row] = await db.select({ id: siteSettingsTable.id, maintenanceMode: siteSettingsTable.maintenanceMode, announcementEnabled: siteSettingsTable.announcementEnabled, brandingName: siteSettingsTable.brandingName }).from(siteSettingsTable).limit(1);
     res.json(row ?? { maintenanceMode: false, announcementEnabled: false, brandingName: "FocusArx" });
   } catch (err) {
     logger.error({ err }, "admin site settings get error");
@@ -108,7 +108,7 @@ router.patch("/admin/site/settings", adminLimiter, async (req, res) => {
   const updates = parsed.data;
 
   try {
-    const [existing] = await db.select().from(siteSettingsTable).limit(1);
+    const [existing] = await db.select({ id: siteSettingsTable.id }).from(siteSettingsTable).limit(1);
     if (existing) {
       const [updated] = await db.update(siteSettingsTable)
         .set({ ...updates, updatedAt: new Date() })

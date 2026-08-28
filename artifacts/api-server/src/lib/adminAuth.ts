@@ -6,10 +6,8 @@ import { extractUserId } from "../routes/auth";
 
 const ADMIN_COOKIE = "focusarx_admin";
 
-function getJwtSecret(): string {
-  const secret = getServerConfig().jwtSecret;
-  if (!secret) throw new Error("AUTH_SECRET is not configured");
-  return secret;
+function getJwtSecret(): string | null {
+  return getServerConfig().jwtSecret;
 }
 
 function isAdminAuthed(req: { headers: { cookie?: string } }): boolean {
@@ -17,8 +15,10 @@ function isAdminAuthed(req: { headers: { cookie?: string } }): boolean {
   const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${ADMIN_COOKIE}=([^;]+)`));
   const token = match?.[1];
   if (!token) return false;
+  const secret = getJwtSecret();
+  if (!secret) return false;
   try {
-    const payload = jwt.verify(token, getJwtSecret(), {
+    const payload = jwt.verify(token, secret, {
       algorithms: ["HS256"],
       issuer: "focusarx-api",
       audience: "focusarx-admin",

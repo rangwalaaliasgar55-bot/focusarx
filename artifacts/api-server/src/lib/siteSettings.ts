@@ -32,7 +32,19 @@ export async function getSiteSettings(): Promise<PublicSiteSettings> {
   if (cache && now - cacheAt < TTL_MS) return cache;
 
   try {
-    const [row] = await db.select().from(siteSettingsTable).limit(1);
+    const [row] = await db.select({
+      maintenanceMode: siteSettingsTable.maintenanceMode,
+      maintenanceMessage: siteSettingsTable.maintenanceMessage,
+      announcementEnabled: siteSettingsTable.announcementEnabled,
+      announcementTitle: siteSettingsTable.announcementTitle,
+      announcementText: siteSettingsTable.announcementText,
+      announcementEmoji: siteSettingsTable.announcementEmoji,
+      brandingName: siteSettingsTable.brandingName,
+      brandingTagline: siteSettingsTable.brandingTagline,
+      heroTitle: siteSettingsTable.heroTitle,
+      heroSubtitle: siteSettingsTable.heroSubtitle,
+      heroCtaText: siteSettingsTable.heroCtaText,
+    }).from(siteSettingsTable).limit(1);
     const settings: PublicSiteSettings = {
       maintenanceMode: row?.maintenanceMode ?? false,
       maintenanceMessage: row?.maintenanceMessage ?? "We're making FocusArx even better. Check back in a few minutes.",

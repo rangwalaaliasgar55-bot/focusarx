@@ -34,6 +34,39 @@ if (!rawConnectionString) {
 }
 
 /**
+ * Convert a Neon pooler URL to the direct (non-pooler) endpoint.
+ *
+ * Neon's `-pooler` hostnames use transaction-mode connection pooling, which
+ * does NOT support PostgreSQL prepared statements.  Drizzle ORM (and the
+ * `pg` driver's automatic statement preparation) rely on prepared statements,
+ * so every query fails on the pooler endpoint.
+ *
+ * The direct endpoint uses session-mode pooling which supports prepared
+ * statements normally.  We detect the `-pooler` hostname and strip the suffix
+ * so the pool connects to the right endpoint.
+ */
+function toNeonDirectUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    // Neon pooler hostnames look like: ep-<name>-pooler.c-<shard>.<region>.aws.neon.tech
+    // Direct hostnames look like:     ep-<name>.<region>.aws.neon.tech
+    if (parsed.hostname.includes("-pooler.")) {
+      // Strip "-pooler" from the hostname, and remove the shard segment (.c-N)
+      // e.g. ep-foo-pooler.c-1.us-east-1.aws.neon.tech → ep-foo.us-east-1.aws.neon.tech
+      const direct = parsed.hostname
+        .replace("-pooler", "")
+        .replace(/\.c-\d+\./, ".");
+      parsed.hostname = direct;
+      console.log(`[db] Converted Neon pooler URL to direct endpoint: ${direct}`);
+      return parsed.toString();
+    }
+  } catch {
+    // Not a URL or can't parse — return as-is
+  }
+  return url;
+}
+
+/**
  * Read the sslmode query param from the URL.
  * Returns null if the URL can't be parsed or the param isn't present.
  */
@@ -62,7 +95,10 @@ function stripSslParams(url: string): string {
   }
 }
 
-const sslMode = getSslMode(rawConnectionString);
+// Auto-convert pooler → direct before resolving SSL.
+const directConnectionString = toNeonDirectUrl(rawConnectionString);
+
+const sslMode = getSslMode(directConnectionString);
 
 // sslmode=disable means the server explicitly does not support SSL — never
 // override that.  For all other cases (require, verify-full, no param, or
@@ -72,14 +108,14 @@ const useSsl =
   sslMode !== "disable" &&
   (
     process.env.VERCEL === "1" ||
-    rawConnectionString.includes("supabase") ||
+    directConnectionString.includes("supabase") ||
     (sslMode !== null && sslMode !== "") ||
-    (!rawConnectionString.includes("localhost") && !rawConnectionString.includes("127.0.0.1"))
+    (!directConnectionString.includes("localhost") && !directConnectionString.includes("127.0.0.1"))
   );
 
 // Only strip SSL params when we're taking over SSL handling.  When useSsl is
 // false (e.g. sslmode=disable or a plain localhost URL) leave the string alone.
-const connectionString = (useSsl && rawConnectionString) ? stripSslParams(rawConnectionString) : rawConnectionString;
+const connectionString = (useSsl && directConnectionString) ? stripSslParams(directConnectionString) : directConnectionString;
 
 export const pool = new Pool({
   connectionString: connectionString || undefined,
@@ -89,7 +125,7 @@ export const pool = new Pool({
   // Verify the server certificate; encryption without identity verification is
   // vulnerable to an active network attacker.
   ssl: useSsl ? { rejectUnauthorized: true } : undefined,
-});
+} as pg.PoolConfig);
 
 export const db = drizzle(pool, { schema });
 

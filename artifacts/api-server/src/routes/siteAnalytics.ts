@@ -37,7 +37,12 @@ function sessionCounterField(eventType: string): keyof typeof analyticsSessionsT
 
 async function findOrCreateSession(visitorId: string, sessionId: string | undefined, now: Date) {
   if (sessionId) {
-    const [existing] = await db.select()
+    const [existing] = await db.select({
+      id: analyticsSessionsTable.id,
+      visitorId: analyticsSessionsTable.visitorId,
+      lastActivityAt: analyticsSessionsTable.lastActivityAt,
+      sessionStart: analyticsSessionsTable.sessionStart,
+    })
       .from(analyticsSessionsTable)
       .where(and(
         eq(analyticsSessionsTable.id, sessionId),
@@ -58,7 +63,12 @@ async function findOrCreateSession(visitorId: string, sessionId: string | undefi
   }
 
   const cutoff = new Date(now.getTime() - SESSION_IDLE_MS);
-  const [recent] = await db.select()
+  const [recent] = await db.select({
+    id: analyticsSessionsTable.id,
+    visitorId: analyticsSessionsTable.visitorId,
+    lastActivityAt: analyticsSessionsTable.lastActivityAt,
+    sessionStart: analyticsSessionsTable.sessionStart,
+  })
     .from(analyticsSessionsTable)
     .where(and(
       eq(analyticsSessionsTable.visitorId, visitorId),
