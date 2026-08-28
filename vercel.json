@@ -6,7 +6,7 @@
   "outputDirectory": "artifacts/focusarx/dist/public",
   "functions": {
     "api/index.mjs": {
-      "includeFiles": "artifacts/api-server/dist/**",
+      "includeFiles": "artifacts/api-server/dist/app.mjs",
       "maxDuration": 30
     }
   },

@@ -1,4 +1,3 @@
-"use client";
 import { useAuth } from "@/lib/auth";
 
 import { useCallback, useEffect, useRef } from "react";

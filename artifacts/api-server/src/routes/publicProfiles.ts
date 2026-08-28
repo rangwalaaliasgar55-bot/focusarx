@@ -17,7 +17,7 @@ export const publicProfilesRouter = Router();
 publicProfilesRouter.get("/u/:username", async (req: AuthRequest, res: Response) => {
   const { username } = req.params as { username: string };
   // Project explicit columns — a bare select couples this to the full users
-  // schema and 500s on schema drift (missing column). See CLAUDE.md rule #1.
+  // schema and 500s on schema drift (missing column).
   const [user] = await db.select({
     id: usersTable.id,
     name: usersTable.name,

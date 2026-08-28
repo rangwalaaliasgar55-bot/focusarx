@@ -1,4 +1,3 @@
-"use client";
 
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";

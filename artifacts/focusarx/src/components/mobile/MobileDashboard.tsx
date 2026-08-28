@@ -1,4 +1,3 @@
-"use client";
 
 import { useMemo, useState, useRef, useCallback } from "react";
 import { Link } from "wouter";

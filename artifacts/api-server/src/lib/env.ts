@@ -43,10 +43,8 @@ const envSchema = z.object({
   SMTP_FROM: z.string().optional(),
 
   // AI
-  ANTHROPIC_API_KEY: z.string().optional(),
   GROQ_API_KEY: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),
-  OPENAI_API_KEY: z.string().optional(),
 
   // Cache / Redis
   UPSTASH_REDIS_REST_URL: z.string().url().optional(),

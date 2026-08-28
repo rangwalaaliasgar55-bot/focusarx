@@ -11,10 +11,6 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@types/bcryptjs": "^3.0.0",
-    "@types/compression": "^1.8.1",
-    "@types/cookie": "^1.0.0",
-    "@types/jsonwebtoken": "^9.0.10",
     "@upstash/redis": "^1.38.2",
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",
@@ -36,9 +32,11 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@types/compression": "^1.8.1",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "catalog:",
     "@types/nodemailer": "^8.0.0",
     "@types/web-push": "^3.6.4",

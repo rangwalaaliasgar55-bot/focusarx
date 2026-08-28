@@ -1,8 +1,0 @@
-uploads = []
-generated = []
-
-[[outputs]]
-id = "u_0tRzCMd75Y5aMs1RGMD"
-uri = "file://focusarx_prod_migration.txt"
-type = "text"
-title = "FocusArx Production DB Migration SQL"

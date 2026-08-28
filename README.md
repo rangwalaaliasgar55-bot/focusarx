@@ -27,49 +27,67 @@
 - **Frontend**: React 19, TypeScript, Vite, Tailwind CSS 4.
 - **3D Engine**: Three.js, React Three Fiber, React Three Drei.
 - **Animation**: Framer Motion.
-- **Backend**: Node.js, Express, Drizzle ORM, PostgreSQL (Neon).
-- **AI Integration**: Gemini 2.5 Flash, Groq, MediaPipe (Vision).
-- **Infrastructure**: Vercel (deployment), Freebuff (dev environment).
+- **Backend**: Node.js, Express 5, Drizzle ORM, PostgreSQL (Neon).
+- **AI Integration**: Gemini 2.5 Flash, Groq (optional — all AI features degrade gracefully without keys), MediaPipe (on-device vision).
+- **Infrastructure**: Vercel (static frontend + serverless API), PWA-ready.
 
 ## 📦 Project Structure
 
 ```text
 /
+├── api/                    # Vercel serverless entry that mounts the API
 ├── artifacts/
-│   ├── focusarx/       # Main frontend application
-│   └── api-server/     # Node.js API backend
+│   ├── focusarx/           # Main frontend application (React + Vite)
+│   └── api-server/         # Express API server (also runs standalone)
+├── docs/                   # Developer documentation
+│   └── ENVIRONMENT.md      # Full environment-variable reference
 ├── lib/
-│   ├── db/             # Database schema and config
-│   └── integrations/   # Third-party API connectors
-├── scripts/            # Build and DevOps scripts
-└── public/             # Static SEO and PWA assets
+│   ├── db/                 # Drizzle schema, migrations, push tooling
+│   ├── api-spec/           # OpenAPI spec + codegen config
+│   ├── api-zod/            # Generated Zod API types
+│   └── api-client-react/   # Generated typed React API client
+└── tests/
+    └── e2e/                # Playwright end-to-end tests
 ```
 
 ## 🏁 Getting Started
 
-1. **Prerequisites**: ensure you have `pnpm` installed.
+1. **Prerequisites**: Node.js 20+ and `pnpm` (`corepack enable`).
 2. **Install dependencies**:
    ```bash
    pnpm install
    ```
-3. **Set environment variables**: copy `.env.example` to `.env` and fill in your keys.
+3. **Set environment variables**: copy `.env.example` to `.env` and fill in what you need.
+   Only `DATABASE_URL` and `AUTH_SECRET` are required to run; see
+   [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) for the complete reference.
 4. **Launch the project**:
    ```bash
-   # Run parallel workflows for frontend and API
-   pnpm run dev
+   pnpm run dev   # API on :8080, frontend on :5000 with /api proxy
    ```
+
+## ✅ Verifying Changes
+
+```bash
+pnpm typecheck   # tsc across all workspaces
+pnpm test        # unit + contract tests (vitest)
+pnpm build       # production builds for frontend, API and libs
+```
 
 ## 📈 SEO & Growth
 
 - **Master schema** — JSON-LD Organization, FAQ, Product and BreadcrumbList.
+- **Build-time prerendering** — every public route ships with real meta tags and content.
 - **PWA ready** — offline support with service workers and a mobile-first manifest.
 - **Viral funnels** — Study Method Quiz and Volume Calculator lead magnets.
 
 ## 🛡️ Security
 
 - **Neural Shield** — advanced bot mitigation and UA filtering.
-- **Strict headers** — COOP, COEP and XSS sanitization.
+- **Strict headers** — CSP, COOP/COEP, nosniff, frame DENY and XSS sanitization.
 - **Private vision** — all webcam processing happens locally on-device.
+- **Anti-cheat** — server-authoritative session timing, idempotent reward grants, budgeted AI calls.
+
+See [SECURITY.md](SECURITY.md) for the vulnerability reporting policy.
 
 ## 🤝 Contributing
 
