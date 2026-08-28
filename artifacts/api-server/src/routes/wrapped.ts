@@ -3,12 +3,13 @@ import { db, focusSessionsTable, tasksTable, userWalletsTable, studyStreaksTable
 import { eq, and, gte, lte, desc } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
+import { sendUnauthorized } from "../lib/httpErrors";
 
 const router = Router();
 
 function authMiddleware(req: any, res: any, next: any) {
   const userId = extractUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!userId) { sendUnauthorized(res); return; }
   req.userId = userId;
   next();
 }

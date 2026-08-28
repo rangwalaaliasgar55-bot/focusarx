@@ -15,6 +15,7 @@ import { seedBots, seedBotsToTarget, deleteAllBots, BOT_PERSONAS, botActivitySta
 import { generatePersona } from "../lib/personas";
 import { templateInventory } from "../lib/botTemplates";
 import { auditLog, getClientIp } from "../lib/auditLog";
+import { sendUnauthorized } from "../lib/httpErrors";
 
 const router = Router();
 const IS_PROD = process.env.NODE_ENV === "production";
@@ -114,7 +115,7 @@ router.delete("/admin/auth", (req, res) => {
 });
 
 router.get("/admin/users", async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   try {
     // Project explicit columns (see CONTRIBUTING «Database query rules»). A bare
     // `db.select().from(usersTable)` asks for all 17 columns, so if the live DB
@@ -210,7 +211,7 @@ router.get("/admin/users", async (req, res) => {
 });
 
 router.get("/admin/stats", async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   try {
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 6 * 86400000);
@@ -294,7 +295,7 @@ router.get("/admin/stats", async (req, res) => {
 });
 
 router.patch("/admin/users/:id/role", async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   const { id } = req.params as { id: string };
   const { role } = req.body as { role?: string };
   if (!role || !["admin", "user", "bot"].includes(role)) {
@@ -315,7 +316,7 @@ router.patch("/admin/users/:id/role", async (req, res) => {
 // Everything the platform knows about one user, in one payload.
 
 router.get("/admin/users/:id/profile", async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   const { id } = req.params as { id: string };
   try {
     // Explicit column projection so schema drift can't 500.
@@ -401,7 +402,7 @@ router.get("/admin/users/:id/profile", async (req, res) => {
 // ─── EDIT CORE PROFILE ────────────────────────────────────────────────────────
 
 router.patch("/admin/users/:id", adminLimiter, async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   const { id } = req.params as { id: string };
   const b = req.body as Record<string, unknown>;
   const patch: Partial<typeof usersTable.$inferInsert> = {};
@@ -436,7 +437,7 @@ router.patch("/admin/users/:id", adminLimiter, async (req, res) => {
 // ─── EDIT STREAK ──────────────────────────────────────────────────────────────
 
 router.patch("/admin/users/:id/streak", adminLimiter, async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   const { id } = req.params as { id: string };
   const b = req.body as { currentStreak?: number; longestStreak?: number };
   const current = typeof b.currentStreak === "number" ? Math.max(0, Math.round(b.currentStreak)) : null;
@@ -473,7 +474,7 @@ router.patch("/admin/users/:id/streak", adminLimiter, async (req, res) => {
 // ─── EDIT WALLET (coins / XP / level) ─────────────────────────────────────────
 
 router.patch("/admin/users/:id/wallet", adminLimiter, async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   const { id } = req.params as { id: string };
   const b = req.body as { coins?: number; totalXp?: number; weeklyXp?: number; level?: number; mode?: "set" | "add" };
   const mode = b.mode === "add" ? "add" : "set";
@@ -547,7 +548,7 @@ router.patch("/admin/users/:id/wallet", adminLimiter, async (req, res) => {
 // generated and returned exactly once — the admin relays it to the user.
 
 router.post("/admin/users/:id/reset-password", adminLimiter, async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   const { id } = req.params as { id: string };
   const bodyPassword = typeof (req.body as any)?.password === "string" ? (req.body as any).password as string : "";
   const password = bodyPassword.trim().length >= 8
@@ -573,7 +574,7 @@ router.post("/admin/users/:id/reset-password", adminLimiter, async (req, res) =>
 // ─── DIRECT NOTIFICATION TO ONE USER ──────────────────────────────────────────
 
 router.post("/admin/users/:id/notification", adminLimiter, async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   const { id } = req.params as { id: string };
   const { title, message, type } = req.body as { title?: string; message?: string; type?: string };
   if (!title?.trim() || !message?.trim()) { res.status(400).json({ error: "title and message required" }); return; }
@@ -594,7 +595,7 @@ router.post("/admin/users/:id/notification", adminLimiter, async (req, res) => {
 // ─── AI RIVALS (labelled bot accounts) ────────────────────────────────────────
 
 router.get("/admin/bots", async (_req, res) => {
-  if (!await checkAuth(_req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(_req)) { sendUnauthorized(res); return; }
   try {
     const [bots, totalArr] = await Promise.all([
       db.select({
@@ -629,7 +630,7 @@ router.get("/admin/bots", async (_req, res) => {
 });
 
 router.post("/admin/bots/seed", adminLimiter, async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   try {
     const target = Math.floor(Number((req.body as { target?: number })?.target) || 12000);
     if (![500, 2000, 12000].includes(target) && (target < 100 || target > 20000)) {
@@ -647,7 +648,7 @@ router.post("/admin/bots/seed", adminLimiter, async (req, res) => {
 });
 
 router.post("/admin/bots/graph", adminLimiter, async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   try {
     // reset=true: wipe the bot follow graph + flag so it can be rebuilt.
     if ((req.body as { reset?: boolean })?.reset) {
@@ -663,7 +664,7 @@ router.post("/admin/bots/graph", adminLimiter, async (req, res) => {
 });
 
 router.delete("/admin/bots", adminLimiter, async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   try {
     const deleted = await deleteAllBots();
     logger.info({ deleted }, "admin removed AI rivals");
@@ -675,7 +676,7 @@ router.delete("/admin/bots", adminLimiter, async (req, res) => {
 });
 
 router.delete("/admin/users/guests", adminLimiter, async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   try {
     const deleted = await db.delete(usersTable)
       .where(eq(usersTable.isGuest, true))
@@ -689,7 +690,7 @@ router.delete("/admin/users/guests", adminLimiter, async (req, res) => {
 });
 
 router.delete("/admin/users/:id", async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   const { id } = req.params as { id: string };
   try {
     await db.delete(usersTable).where(eq(usersTable.id, id));
@@ -701,7 +702,7 @@ router.delete("/admin/users/:id", async (req, res) => {
 });
 
 router.post("/admin/users/:id/premium", async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   const { id } = req.params as { id: string };
   const days = Number(req.body.days ?? 30);
   try {
@@ -727,7 +728,7 @@ router.post("/admin/users/:id/premium", async (req, res) => {
 });
 
 router.get("/admin/missions", async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   try {
     const completions = await db
       .select({
@@ -765,7 +766,7 @@ router.get("/admin/missions", async (req, res) => {
 });
 
 router.get("/admin/retention", async (req, res) => {
-  if (!await checkAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   try {
     const [loginRewardStats] = await db.select({
       totalClaims: sql<number>`coalesce(sum(${loginRewardsTable.totalClaimed}), 0)::int`,

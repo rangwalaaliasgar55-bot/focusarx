@@ -17,6 +17,7 @@ import {
 import { eq, and, gte, desc, sql, count, isNotNull, lte } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { checkAdminAuth } from "../lib/adminAuth";
+import { sendUnauthorized } from "../lib/httpErrors";
 
 const router = Router();
 
@@ -29,7 +30,7 @@ function dayStart(d: Date): Date {
 }
 
 router.get("/admin/analytics/overview", async (req, res) => {
-  if (!await checkAdminAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAdminAuth(req)) { sendUnauthorized(res); return; }
   try {
     const now = new Date();
     const onlineCutoff = new Date(now.getTime() - ONLINE_MS);
@@ -95,7 +96,7 @@ router.get("/admin/analytics/overview", async (req, res) => {
 });
 
 router.get("/admin/analytics/charts", async (req, res) => {
-  if (!await checkAdminAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAdminAuth(req)) { sendUnauthorized(res); return; }
   try {
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 29 * 86400000);
@@ -165,7 +166,7 @@ router.get("/admin/analytics/charts", async (req, res) => {
 });
 
 router.get("/admin/analytics/devices", async (req, res) => {
-  if (!await checkAdminAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAdminAuth(req)) { sendUnauthorized(res); return; }
   try {
     const devices = await db.select({
       name: visitorsTable.deviceType,
@@ -207,7 +208,7 @@ router.get("/admin/analytics/devices", async (req, res) => {
 });
 
 router.get("/admin/analytics/live", async (req, res) => {
-  if (!await checkAdminAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAdminAuth(req)) { sendUnauthorized(res); return; }
   try {
     const since = req.query.since as string | undefined;
     const sinceDate = since ? new Date(since) : new Date(Date.now() - 60 * 60 * 1000);
@@ -280,7 +281,7 @@ router.get("/admin/analytics/live", async (req, res) => {
 
 
 router.get("/admin/analytics/premium-economy", async (req, res) => {
-  if (!await checkAdminAuth(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!await checkAdminAuth(req)) { sendUnauthorized(res); return; }
   try {
     const now = new Date();
     const dayAgo = new Date(now.getTime() - 24*3600*1000);

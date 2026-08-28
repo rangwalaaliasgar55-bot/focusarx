@@ -17,6 +17,7 @@ import {
   BATTLE_PASS_TIERS, battlePassClaimId, currentBattlePassSeason, rolloverBattlePassSeason, battlePassSeasonEndsAt,
   calculateBattlePassTier, nextBattlePassThreshold,
 } from "../lib/battlePass";
+import { sendUnauthorized } from "../lib/httpErrors";
 
 export const retentionRouter = Router();
 
@@ -121,7 +122,7 @@ retentionRouter.post("/retention/freeze-tokens/use", authMiddleware, async (req:
 retentionRouter.get("/retention/reengage/run", async (req: Request, res: Response) => {
   const secret = process.env["CRON_SECRET"];
   if (!secret) return res.status(503).json({ error: "CRON_SECRET not configured" });
-  if (req.headers["authorization"] !== `Bearer ${secret}`) return res.status(401).json({ error: "Unauthorized" });
+  if (req.headers["authorization"] !== `Bearer ${secret}`) return sendUnauthorized(res);
 
   try {
     // IST day keys — must match the day key written by session completion

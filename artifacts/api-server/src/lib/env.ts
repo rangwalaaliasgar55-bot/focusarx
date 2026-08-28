@@ -85,8 +85,18 @@ export function getEnv(): RawEnv {
         "Invalid environment variables:\n" + formatZodErrors(result.error),
       );
     }
-    // In dev, allow parsing with warnings — use partial data
-    parsedEnv = envSchema.parse({});
+    // In dev, recover by dropping ONLY the offending keys and re-parsing, so
+    // one malformed variable doesn't discard every valid one (a full
+    // envSchema.parse({}) here used to zero out the whole config).
+    const scrubbed: Record<string, string | undefined> = { ...process.env };
+    for (const issue of result.error.errors) {
+      const key = issue.path[0];
+      if (typeof key === "string") {
+        delete scrubbed[key];
+        console.warn(`[env] Ignoring invalid ${key} in development`);
+      }
+    }
+    parsedEnv = envSchema.parse(scrubbed);
     return parsedEnv;
   }
 

@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { getServerConfig } from "./config";
+import { logger } from "./logger";
 import { extractUserId } from "../routes/auth";
 
 export const ADMIN_COOKIE = "focusarx_admin";
@@ -38,7 +39,10 @@ export async function checkAdminAuth(req: {
   try {
     const [user] = await db.select({ role: usersTable.role }).from(usersTable).where(eq(usersTable.id, userId));
     return user?.role?.toLowerCase() === "admin";
-  } catch {
+  } catch (err) {
+    // Fail closed, but never silently — a DB outage must not look like a
+    // mere "not an admin" in the logs.
+    logger.error({ err }, "admin auth DB check failed");
     return false;
   }
 }
@@ -56,8 +60,8 @@ export async function getAdminIdentity(req: {
     if (user?.role?.toLowerCase() === "admin") {
       return { isAdmin: true, userId, method: "role" };
     }
-  } catch {
-    // ignore
+  } catch (err) {
+    logger.error({ err }, "admin identity DB check failed");
   }
   return { isAdmin: false, method: "none" };
 }

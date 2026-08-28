@@ -23,6 +23,7 @@ import { rateLimit } from "express-rate-limit";
 import { checkAdminAuth } from "../lib/adminAuth";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
+import { sendUnauthorized } from "../lib/httpErrors";
 
 const router = Router();
 
@@ -47,7 +48,7 @@ const queryLimiter = rateLimit({ windowMs: 60_000, limit: 20, standardHeaders: t
 
 async function guard(req: Request, res: Response): Promise<string | null> {
   if (!(await checkAdminAuth(req))) {
-    res.status(401).json({ error: "Unauthorized" });
+    sendUnauthorized(res);
     return null;
   }
   return extractUserId(req);

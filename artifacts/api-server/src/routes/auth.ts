@@ -12,6 +12,7 @@ import { getServerConfig } from "../lib/config";
 import { authLimiter, forgotPasswordLimiter } from "../lib/rateLimiter";
 import { createRefreshFamily, rotateRefreshToken, revokeRefreshToken, revokeAllUserRefreshTokens } from "../lib/refreshTokens";
 import { issueSocketTicket } from "../lib/socketTickets";
+import { sendUnauthorized } from "../lib/httpErrors";
 
 const loginSchema = z.object({
   email: z.string().email().max(254).toLowerCase().trim(),
@@ -79,13 +80,7 @@ function verifyToken(token: string, secret: string, expectedType: "access" | "re
       audience: "focusarx-web",
     }) as { sub?: unknown; type?: unknown };
     if (typeof payload.sub !== "string") return null;
-    if (payload.type !== expectedType) {
-      // Allow legacy tokens that have type access but we accept for refresh fallback
-      if (expectedType === "access" && payload.type === "access") {
-        return { sub: payload.sub, type: payload.type as string };
-      }
-      return null;
-    }
+    if (payload.type !== expectedType) return null;
     return { sub: payload.sub, type: payload.type as string };
   } catch {
     return null;
@@ -198,7 +193,7 @@ router.get("/auth/session", async (req, res) => {
   if (!jwtSecretOrRespond(res)) return;
   const userId = extractUserId(req);
   if (!userId) {
-    res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Unauthorized" } });
+    sendUnauthorized(res);
     return;
   }
   try {
@@ -213,7 +208,7 @@ router.get("/auth/session", async (req, res) => {
       timezone: usersTable.timezone
     }).from(usersTable).where(eq(usersTable.id, userId));
     if (!user) {
-      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "User not found" } });
+      sendUnauthorized(res, "User not found");
       return;
     }
     res.json({ user });
@@ -356,7 +351,7 @@ router.post("/auth/refresh", refreshLimiter, async (req, res) => {
   const presented = cookies["refresh_token"] ?? (req.body as any)?.refreshToken;
 
   if (!presented || typeof presented !== "string") {
-    res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Refresh token required" } });
+    sendUnauthorized(res, "Refresh token required");
     return;
   }
 
@@ -370,7 +365,7 @@ router.post("/auth/refresh", refreshLimiter, async (req, res) => {
       const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, legacyPayload.sub));
       if (!user) {
         clearAuthCookies(res);
-        res.status(401).json({ error: { code: "UNAUTHORIZED", message: "User not found" } });
+        sendUnauthorized(res, "User not found");
         return;
       }
       const { legacyToken } = await issueRefreshCredentials(res, user.id, secret, req);
@@ -393,7 +388,7 @@ router.post("/auth/refresh", refreshLimiter, async (req, res) => {
     const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, result.userId));
     if (!user) {
       clearAuthCookies(res);
-      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "User not found" } });
+      sendUnauthorized(res, "User not found");
       return;
     }
     const accessToken = makeAccessToken(user.id, secret);
@@ -431,7 +426,7 @@ router.get("/auth/socket-ticket", async (req, res) => {
   if (!secret) return;
   const userId = extractUserId(req);
   if (!userId) {
-    res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Unauthorized" } });
+    sendUnauthorized(res);
     return;
   }
   res.json(issueSocketTicket(userId, secret));
@@ -449,7 +444,7 @@ router.post("/auth/change-password", authLimiter, async (req, res) => {
   if (!secret) return;
   const userId = extractUserId(req);
   if (!userId) {
-    res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Unauthorized" } });
+    sendUnauthorized(res);
     return;
   }
   const parsed = changePasswordSchema.safeParse(req.body);
@@ -500,7 +495,7 @@ router.post("/auth/change-password", authLimiter, async (req, res) => {
 router.delete("/auth/account", authLimiter, async (req, res) => {
   const userId = extractUserId(req);
   if (!userId) {
-    res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Unauthorized" } });
+    sendUnauthorized(res);
     return;
   }
 
@@ -727,7 +722,7 @@ const onboardingSchema = z.object({
 router.post("/auth/onboarding", async (req, res) => {
   const userId = extractUserId(req);
   if (!userId) {
-    res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Unauthorized" } });
+    sendUnauthorized(res);
     return;
   }
   const { data } = req.body as { data?: unknown };
@@ -754,7 +749,7 @@ router.post("/auth/onboarding", async (req, res) => {
 router.patch("/auth/profile", async (req, res) => {
   const userId = extractUserId(req);
   if (!userId) {
-    res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Unauthorized" } });
+    sendUnauthorized(res);
     return;
   }
   const { name, bio, timezone } = req.body as Record<string, unknown>;
