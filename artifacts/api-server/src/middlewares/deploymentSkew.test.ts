@@ -85,6 +85,7 @@ describe("deploymentSkewGuard middleware", () => {
       statusCode: 200,
       headers: {} as Record<string, string>,
       setHeader(key: string, value: string) { this.headers[key] = value; },
+      getHeader(key: string) { return this.headers[key]; },
       status(code: number) { this.statusCode = code; return this; },
       json(body: any) { this.body = body; return this; },
     };

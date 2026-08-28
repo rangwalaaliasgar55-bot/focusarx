@@ -208,8 +208,13 @@ postsRouter.post("/posts", authMiddleware, async (req: AuthRequest, res: Respons
   try {
     const userId = req.userId!;
     const { content, type, imageUrls, metadata, groupId, isPublic } = req.body;
-    if (!content?.trim()) return res.status(400).json({ error: "content required" });
+    if (!content?.trim() || typeof content !== "string") return res.status(400).json({ error: "content required" });
     if (content.length > 2000) return res.status(400).json({ error: "Post too long (max 2000 chars)" });
+    if (Array.isArray(imageUrls) && imageUrls.length > 10) return res.status(400).json({ error: "Too many images (max 10)" });
+    // Validate imageUrls are actually URLs (prevent XSS via javascript: URIs)
+    const safeImageUrls = Array.isArray(imageUrls)
+      ? imageUrls.filter((u: unknown) => typeof u === "string" && /^https?:\/\//i.test(u)).slice(0, 10)
+      : [];
 
     // Automated moderation — reject clear violations, flag borderline ones.
     let moderation = await moderateText(content);
@@ -236,10 +241,10 @@ postsRouter.post("/posts", authMiddleware, async (req: AuthRequest, res: Respons
 
     const [post] = await db.insert(socialPostsTable).values({
       userId, content: content.trim(),
-      type: type || "general",
-      imageUrls: imageUrls || [],
+      type: (typeof type === "string" && ["general", "achievement", "session", "milestone", "question"].includes(type)) ? type : "general",
+      imageUrls: safeImageUrls,
       metadata: metadata || null,
-      groupId: groupId || null,
+      groupId: (typeof groupId === "string" && /^[0-9a-f-]{36}$/i.test(groupId)) ? groupId : null,
       isPublic: isPublic !== false,
       moderationStatus: moderation.status,
       moderationReason: moderation.status === "flagged" ? moderation.reason : null,
@@ -380,6 +385,7 @@ postsRouter.post("/posts/:id/comments", authMiddleware, async (req: AuthRequest,
   if (!visiblePost) return res.status(404).json({ error: "Post not found" });
   const { content, parentId } = req.body;
   if (!content?.trim()) return res.status(400).json({ error: "content required" });
+  if (typeof content !== "string" || content.length > 1000) return res.status(400).json({ error: "Comment too long (max 1000 chars)" });
 
   // Automated moderation on comments too.
   if (parentId) {
