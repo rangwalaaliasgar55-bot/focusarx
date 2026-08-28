@@ -269,8 +269,11 @@ router.post("/sessions", authMiddleware, sessionCompleteLimiter, async (req: Aut
         )).limit(1)
       : await db.select().from(activeSessionsTable).where(eq(activeSessionsTable.userId, req.userId)).limit(1);
 
-    const hasActiveSession = Boolean(activeSession);
-    const wallClockSeconds = activeSession
+    // Only an active session *of the same mode* is evidence for this
+    // completion (a break row started after the fact proves nothing about a
+    // focus session, and vice versa).
+    const hasActiveSession = Boolean(activeSession && activeSession.mode === (mode ?? "focus"));
+    const wallClockSeconds = hasActiveSession && activeSession
       ? Math.max(0, Math.floor((Date.now() - activeSession.startedAt.getTime()) / 1000))
       : 0;
 

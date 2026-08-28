@@ -86,17 +86,26 @@ export function useSocket(): Socket | null {
   const [sock, setSock] = useState<Socket | null>(socket);
 
   useEffect(() => {
-    setSock(socket);
-    if (!socket) return;
-    const onConnect = () => setSock(socket);
-    const onDisconnect = () => setSock(null);
-    socket.on("connect", onConnect);
-    socket.on("disconnect", onDisconnect);
-    return () => {
-      socket?.off("connect", onConnect);
-      socket?.off("disconnect", onDisconnect);
-    };
+    // The module-level `socket` is not reactive: it may be created after this
+    // effect runs (e.g. auth resolves post-mount). A tiny poll catches that
+    // transition; connect/disconnect events handle everything afterwards.
+    const poll = window.setInterval(() => {
+      setSock((prev) => (prev === socket ? prev : socket));
+    }, 1000);
+    return () => window.clearInterval(poll);
   }, []);
+
+  useEffect(() => {
+    if (!sock) return;
+    const onConnect = () => setSock(sock);
+    const onDisconnect = () => setSock(null);
+    sock.on("connect", onConnect);
+    sock.on("disconnect", onDisconnect);
+    return () => {
+      sock.off("connect", onConnect);
+      sock.off("disconnect", onDisconnect);
+    };
+  }, [sock]);
 
   return sock;
 }
@@ -107,11 +116,12 @@ export function useSocketEvent<T = unknown>(
 ) {
   const handlerRef = useRef(handler);
   handlerRef.current = handler;
+  const sock = useSocket();
 
   useEffect(() => {
-    if (!socket) return;
+    if (!sock) return;
     const fn = (data: T) => handlerRef.current(data);
-    socket.on(event, fn);
-    return () => { socket?.off(event, fn); };
-  }, [event]);
+    sock.on(event, fn);
+    return () => { sock.off(event, fn); };
+  }, [sock, event]);
 }

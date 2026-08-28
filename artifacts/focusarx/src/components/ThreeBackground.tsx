@@ -1,4 +1,5 @@
 import { resolveColorToken } from "@/lib/color-tokens";
+import { use3DQuality } from "@/hooks/use3DQuality";
 import { useFrame, useThree, Canvas } from "@react-three/fiber";
 import { useRef, useMemo, Suspense, useState, useEffect } from "react";
 import { motion } from "framer-motion";
@@ -32,7 +33,7 @@ function CssFallbackBackground() {
   );
 }
 
-function Stars({ count = 1200 }) {
+function Stars({ count = 1200, reducedMotion = false }: { count?: number; reducedMotion?: boolean }) {
   const meshRef = useRef<THREE.Points>(null!);
   const [positions, colors] = useMemo(() => {
     const positions = new Float32Array(count * 3);
@@ -57,6 +58,7 @@ function Stars({ count = 1200 }) {
   }, [count]);
 
   useFrame((state) => {
+    if (reducedMotion) return;
     const t = state.clock.getElapsedTime();
     meshRef.current.rotation.y = t * 0.015;
     meshRef.current.rotation.x = t * 0.005;
@@ -132,11 +134,14 @@ function RingedPlanet({ position, color, size }: { position: [number, number, nu
   );
 }
 
-function SceneContent({ isFocusing = false }: { isFocusing?: boolean }) {
+function SceneContent({ isFocusing = false, reducedMotion = false }: { isFocusing?: boolean; reducedMotion?: boolean }) {
   const { mouse, camera } = useThree();
   const targetCameraPos = useRef(new THREE.Vector3(0, 0, 15));
 
   useFrame((state) => {
+    // Reduced motion: keep the composed frame static (no camera drift, no
+    // object spin) — the scene renders once via frameloop="demand".
+    if (reducedMotion) return;
     const targetZ = isFocusing ? 12 : 15;
     const lerpFactor = isFocusing ? 0.02 : 0.05;
 
@@ -153,7 +158,7 @@ function SceneContent({ isFocusing = false }: { isFocusing?: boolean }) {
       <ambientLight intensity={isFocusing ? 0.2 : 0.4} />
       <pointLight position={[10, 10, 10]} intensity={isFocusing ? 2 : 1.5} color={resolveColorToken("--brand-600")} />
       <pointLight position={[-10, -10, -10]} intensity={1} color={resolveColorToken("--palette-4f46e5")} />
-      <Stars count={isFocusing ? 3000 : 2000} />
+      <Stars count={isFocusing ? 3000 : 2000} reducedMotion={reducedMotion} />
       <NebulaCloud position={[-8, 4, -10]} color={resolveColorToken("--brand-600")} scale={isFocusing ? 7 : 6} />
       <NebulaCloud position={[8, -4, -12]} color={resolveColorToken("--palette-4f46e5")} scale={isFocusing ? 9 : 8} />
       <RingedPlanet position={[14, 5, -18]} color={resolveColorToken("--color-info")} size={isFocusing ? 3.4 : 3} />
@@ -164,9 +169,16 @@ function SceneContent({ isFocusing = false }: { isFocusing?: boolean }) {
 
 export default function ThreeBackground({ isFocusing }: { isFocusing?: boolean }) {
   const [webglOk, setWebglOk] = useState<boolean | null>(null);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const { isBattery } = use3DQuality();
 
   useEffect(() => {
     setWebglOk(canUseWebGL());
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReducedMotion(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+    mq.addEventListener?.("change", onChange);
+    return () => mq.removeEventListener?.("change", onChange);
   }, []);
 
   if (webglOk === null) return null;
@@ -176,11 +188,13 @@ export default function ThreeBackground({ isFocusing }: { isFocusing?: boolean }
     <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 0 }} aria-hidden="true">
       <Canvas
         camera={{ position: [0, 0, 15], fov: 60 }}
-        gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-        dpr={[1, 2]}
+        gl={{ antialias: true, alpha: true, powerPreference: isBattery ? "default" : "high-performance" }}
+        dpr={isBattery ? [1, 1.2] : [1, 2]}
+        // Reduced motion: render one composed frame, no animation loop.
+        frameloop={reducedMotion ? "demand" : "always"}
       >
         <Suspense fallback={null}>
-          <SceneContent isFocusing={isFocusing} />
+          <SceneContent isFocusing={isFocusing} reducedMotion={reducedMotion} />
         </Suspense>
       </Canvas>
       <div className="absolute inset-0 bg-[var(--background)]/40 pointer-events-none transition-opacity duration-[var(--duration-slow)]" />

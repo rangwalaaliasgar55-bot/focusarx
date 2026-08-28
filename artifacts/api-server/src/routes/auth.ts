@@ -9,6 +9,7 @@ import { eq, and, gt, isNull } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getServerConfig } from "../lib/config";
 import { authLimiter, forgotPasswordLimiter } from "../lib/rateLimiter";
+import { createRefreshFamily, rotateRefreshToken, revokeRefreshToken } from "../lib/refreshTokens";
 
 const loginSchema = z.object({
   email: z.string().email().max(254).toLowerCase().trim(),
@@ -55,15 +56,6 @@ function makeAccessToken(userId: string, secret: string): string {
     issuer: "focusarx-api",
     audience: "focusarx-web",
     expiresIn: "15m",
-  });
-}
-
-function makeRefreshToken(userId: string, secret: string): string {
-  return jwt.sign({ sub: userId, type: "refresh", jti: crypto.randomUUID() }, secret, {
-    algorithm: "HS256",
-    issuer: "focusarx-api",
-    audience: "focusarx-web",
-    expiresIn: "7d",
   });
 }
 
@@ -154,9 +146,10 @@ function setAuthCookies(res: any, accessToken: string, refreshToken: string) {
     maxAge: 15 * 60 * 1000, // 15 minutes
   });
 
+  // Path is "/" (not /api/auth/refresh) so POST /api/auth/logout can read and
+  // revoke the presented token server-side. Still httpOnly + SameSite=Lax.
   res.cookie("refresh_token", refreshToken, {
     ...baseOpts,
-    path: "/api/auth/refresh",
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 
@@ -175,8 +168,28 @@ function clearAuthCookies(res: any) {
     path: "/",
   };
   res.cookie("access_token", "", { ...baseOpts, maxAge: 0 });
-  res.cookie("refresh_token", "", { ...baseOpts, path: "/api/auth/refresh", maxAge: 0 });
+  res.cookie("refresh_token", "", { ...baseOpts, maxAge: 0 });
   res.cookie("focusarx_token", "", { ...baseOpts, maxAge: 0 });
+}
+
+/**
+ * Issue a DB-backed refresh token (opaque, hashed at rest) + short access
+ * token, and set cookies. Stateless JWT refresh tokens are no longer minted.
+ */
+async function issueRefreshCredentials(
+  res: { cookie: (name: string, value: string, opts: Record<string, unknown>) => void },
+  userId: string,
+  secret: string,
+  req: { headers: { "user-agent"?: string }; ip?: string },
+): Promise<{ accessToken: string; legacyToken: string }> {
+  const refresh = await createRefreshFamily(userId, {
+    userAgent: req.headers["user-agent"] ?? null,
+    ip: req.ip ?? null,
+  });
+  const accessToken = makeAccessToken(userId, secret);
+  const legacyToken = makeLegacyToken(userId, secret); // migrate clients off this gradually
+  setAuthCookies(res, accessToken, refresh.token);
+  return { accessToken, legacyToken };
 }
 
 router.get("/auth/session", async (req, res) => {
@@ -234,11 +247,7 @@ router.post("/auth/login", authLimiter, async (req, res) => {
       res.status(401).json({ error: { code: "INVALID_CREDENTIALS", message: "Invalid credentials" } });
       return;
     }
-    const accessToken = makeAccessToken(user.id, secret);
-    const refreshToken = makeRefreshToken(user.id, secret);
-    const legacyToken = makeLegacyToken(user.id, secret); // for clients still using Bearer
-
-    setAuthCookies(res, accessToken, refreshToken);
+    const { accessToken, legacyToken } = await issueRefreshCredentials(res, user.id, secret, req);
 
     res.json({
       token: legacyToken,
@@ -310,11 +319,7 @@ router.post("/auth/guest", async (req, res) => {
       res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to create guest" } });
       return;
     }
-    const accessToken = makeAccessToken(user.id, secret);
-    const refreshToken = makeRefreshToken(user.id, secret);
-    const legacyToken = makeLegacyToken(user.id, secret);
-
-    setAuthCookies(res, accessToken, refreshToken);
+    const { accessToken, legacyToken } = await issueRefreshCredentials(res, user.id, secret, req);
 
     res.json({
       token: legacyToken,
@@ -332,43 +337,71 @@ router.post("/auth/refresh", async (req, res) => {
   if (!secret) return;
 
   const cookies = (req as any).cookies ?? {};
-  const refreshToken = cookies["refresh_token"] ?? (req.body as any)?.refreshToken;
+  const presented = cookies["refresh_token"] ?? (req.body as any)?.refreshToken;
 
-  if (!refreshToken) {
+  if (!presented || typeof presented !== "string") {
     res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Refresh token required" } });
     return;
   }
 
-  const payload = verifyToken(refreshToken, secret, "refresh");
-  if (!payload?.sub) {
-    clearAuthCookies(res);
-    res.status(401).json({ error: { code: "INVALID_TOKEN", message: "Invalid refresh token" } });
+  const meta = { userAgent: req.headers["user-agent"] ?? null, ip: req.ip ?? null };
+
+  // Legacy stateless JWT refresh cookie (pre-store deployment): exchange it for
+  // a revocable DB-backed family. It expires naturally within 7 days.
+  const legacyPayload = verifyToken(presented, secret, "refresh");
+  if (legacyPayload?.sub) {
+    try {
+      const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, legacyPayload.sub));
+      if (!user) {
+        clearAuthCookies(res);
+        res.status(401).json({ error: { code: "UNAUTHORIZED", message: "User not found" } });
+        return;
+      }
+      const { legacyToken } = await issueRefreshCredentials(res, user.id, secret, req);
+      res.json({ token: legacyToken, accessToken: legacyToken });
+    } catch (err) {
+      logger.error({ err }, "refresh error (legacy exchange)");
+      res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
+    }
     return;
   }
 
   try {
-    const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, payload.sub));
+    const result = await rotateRefreshToken(presented, meta);
+    if (result.status !== "ok") {
+      // unknown / expired / reused (reuse already burned the whole family)
+      clearAuthCookies(res);
+      res.status(401).json({ error: { code: "INVALID_TOKEN", message: "Invalid refresh token" } });
+      return;
+    }
+    const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, result.userId));
     if (!user) {
       clearAuthCookies(res);
       res.status(401).json({ error: { code: "UNAUTHORIZED", message: "User not found" } });
       return;
     }
-
-    // Rotate refresh token
-    const newAccessToken = makeAccessToken(user.id, secret);
-    const newRefreshToken = makeRefreshToken(user.id, secret);
+    const accessToken = makeAccessToken(user.id, secret);
     const legacyToken = makeLegacyToken(user.id, secret);
-
-    setAuthCookies(res, newAccessToken, newRefreshToken);
-
-    res.json({ token: legacyToken, accessToken: newAccessToken });
+    setAuthCookies(res, accessToken, result.token);
+    res.json({ token: legacyToken, accessToken });
   } catch (err) {
     logger.error({ err }, "refresh error");
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 });
 
-router.post("/auth/logout", async (_req, res) => {
+router.post("/auth/logout", async (req, res) => {
+  // Revoke the presented refresh token so a stolen/copied cookie cannot be
+  // replayed after "sign out". Cookies are cleared regardless.
+  const cookies = (req as any).cookies ?? {};
+  const presented = cookies["refresh_token"];
+  if (typeof presented === "string" && presented) {
+    try {
+      await revokeRefreshToken(presented);
+    } catch (err) {
+      logger.warn({ err }, "logout revoke failed (cookies still cleared)");
+    }
+  }
   clearAuthCookies(res);
   res.json({ ok: true });
 });

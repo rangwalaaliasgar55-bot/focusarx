@@ -251,14 +251,19 @@ Dependency posture: pnpm overrides pin patched `qs`/`ws`/`socket.io-parser`; `mi
 
 ## Prioritized remediation plan (this PR series)
 
-**Phase 1 — Economic integrity & focus-session trust (P0)**
-1. `POST /api/sessions`: rewards require server-side active session; verified duration = min(claim, wall-clock, cap); single reward computation inside the tx; idempotent insert-first with `onConflictDoNothing`; no swallowed ledger errors; IST-consistent day keys; completion rate limit.
-2. `POST /api/sessions/sync`: clamp `activeSeconds`/`secondsLeft` to wall-clock budget.
-3. Login/daily reward + battle-pass claims: transactional, race-free.
-4. Unit tests for the new pure completion math + claim guards.
+**Phase 1 — Economic integrity & focus-session trust (P0) — ✅ implemented in this branch**
+1. ✅ `POST /api/sessions`: rewards require server-side active session of the matching mode; verified duration = min(claim, wall-clock + 15 s grace, 4 h cap); single reward computation inside the tx; idempotent insert-first via `onConflictDoNothing` on the nonce constraint (replays return the original row, not a 500); no swallowed ledger errors; wallet rows locked; IST day keys; completion rate limiter.
+2. ✅ `POST /api/sessions/sync`: client `activeSeconds` clamped to wall clock.
+3. ✅ Login/daily-reward + battle-pass claims: transactional with `FOR UPDATE` row locks.
+4. ✅ `lib/sessionCompletionCore.ts` (pure) + 18 unit tests.
 
-**Phase 2 — Auth lifecycle (P0)**
-5. DB-backed refresh-token rotation with reuse detection + family revocation; logout revokes; SPA calls logout and adopts short access tokens with silent refresh; uniform forgot-password response; reset-verify rate limit.
+**Phase 2 — Auth lifecycle (P0) — ✅ implemented in this branch**
+5. ✅ DB-backed refresh-token store (`refresh_tokens`, hashed at rest, family ids); rotation with reuse detection + 30 s multi-tab grace; legacy JWT refresh cookies exchanged transparently; logout now revokes the presented refresh token and the SPA calls it; silent cookie refresh on 401 (single-flight, Web-Locks cross-tab) + 14-min proactive rotation; uniform forgot-password response; reset-verify rate limit; idempotent `refresh_tokens` DDL patch in `cleanup-orphans.mjs` for the Vercel deploy path.
 
-**Phase 3 — Follow-through (P1, tracked)**
-6. Upstash-backed rate limiting (optional env), admin pagination, flashcard count scoping, socket-event attach race, ThreeBackground reduced-motion + quality config, CI workflow, CSP nonce roadmap, table consolidation plan (posts/coins/battle-pass duplicates).
+**Phase 3 — implemented alongside**
+6. ✅ Flashcard deck counts scoped to the user's decks (was: full cross-user table scan ×2).
+7. ✅ `useSocketEvent` attach race fixed (handlers now attach whenever the socket appears).
+8. ✅ `ThreeBackground`: `prefers-reduced-motion` honored (static frame, no animation loop), battery-tier DPR/power preference.
+
+**Phase 4 — tracked follow-ups (P1/P2, not in this change set)**
+9. Upstash-backed rate-limit store (dependency present, not wired); nonce-based CSP; admin `/admin/users` pagination; the retention cron loop's per-user awaits → batched; localStorage-bearer phase-out (socket auth consumes it today); legacy table consolidation (posts/coins/battle-pass duplicates); per-admin SQL-console write unlock; `pnpm audit` + CI workflow (`.github/workflows` is absent — `docs/ci-workflow.example.yml` exists but is not wired).

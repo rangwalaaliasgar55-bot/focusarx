@@ -101,6 +101,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     void refresh();
   }, [refresh]);
 
+  // Keep the httpOnly refresh cookie warm: rotate it every 14 minutes while
+  // signed in, so cookie-based sessions (and the 401-recovery path) stay valid
+  // even when the localStorage bearer token outlives its 7-day window.
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    const id = window.setInterval(() => {
+      void fetch("/api/auth/refresh", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      }).catch(() => undefined);
+    }, 14 * 60 * 1000);
+    return () => window.clearInterval(id);
+  }, [status]);
+
   useEffect(() => {
     if (status === "authenticated" && data?.user?.id) {
       linkAnalyticsUser(data.user.id);
@@ -164,6 +180,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   const signOut = useCallback(async () => {
+    // Revoke the server-side refresh token + clear httpOnly cookies. A local
+    // clear alone used to leave perfectly valid credentials in the browser.
+    try {
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    } catch {
+      // Offline or server unreachable — still clear local state below.
+    }
     clearToken();
     setData(null);
     setStatus("unauthenticated");
