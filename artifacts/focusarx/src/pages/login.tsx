@@ -6,6 +6,7 @@ import { useToast } from "@/components/Toast";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { redirectFromSearch } from "@/lib/safeRedirect";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -17,11 +18,9 @@ export default function LoginPage() {
   const { signIn } = useAuth();
   const { toast } = useToast();
 
-  // Only allow same-app paths (no protocol-relative or cross-origin targets).
-  const redirectTarget = () => {
-    const target = new URLSearchParams(window.location.search).get("redirect");
-    return target && target.startsWith("/") && !target.startsWith("//") ? target : "/dashboard";
-  };
+  // Redirect handling lives in @/lib/safeRedirect (redirectFromSearch), which
+  // also rejects the `/\evil.example` backslash form, control characters and
+  // auth-page loops. A local startsWith("/") check is not enough.
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -42,7 +41,7 @@ export default function LoginPage() {
       return;
     }
     toast("Welcome back", "success");
-    navigate(redirectTarget());
+    navigate(redirectFromSearch());
   };
 
   const continueAsGuest = async () => {
@@ -60,7 +59,7 @@ export default function LoginPage() {
       return;
     }
     toast("Guest workspace ready", "success");
-    navigate(redirectTarget());
+    navigate(redirectFromSearch());
   };
 
   return (

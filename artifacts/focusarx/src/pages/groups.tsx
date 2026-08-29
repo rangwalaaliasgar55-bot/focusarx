@@ -76,16 +76,36 @@ function CreateGroupModal({ onClose, onCreate }: { onClose: () => void; onCreate
             <label className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] block mb-1.5">Description</label>
             <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="What's this group about?" rows={2} className="w-full rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--brand-600)] resize-none" />
           </div>
-          <div className="flex gap-4">
+          {/*
+            Real radio inputs. The previous version used two plain divs with an
+            onClick: unreachable by keyboard, and a screen reader announced the
+            option text with no hint that it was selectable or which was chosen.
+          */}
+          <fieldset className="flex gap-4">
+            <legend className="sr-only">Group visibility</legend>
             <label className="flex items-center gap-2 cursor-pointer">
-              <div onClick={() => setForm(f => ({ ...f, isPublic: true }))} className={`w-4 h-4 rounded-full border-2 ${form.isPublic ? "border-[var(--brand-600)] bg-[var(--brand-600)]" : "border-[var(--palette-2a2d3a)]"}`} />
+              <input
+                type="radio"
+                name="group-visibility"
+                className="peer sr-only"
+                checked={form.isPublic}
+                onChange={() => setForm(f => ({ ...f, isPublic: true }))}
+              />
+              <span aria-hidden="true" className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--ring-focus)] peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-[var(--surface-1)] ${form.isPublic ? "border-[var(--brand-600)] bg-[var(--brand-600)]" : "border-[var(--palette-2a2d3a)]"}`} />
               <span className="text-sm text-[var(--foreground)]">Public</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
-              <div onClick={() => setForm(f => ({ ...f, isPublic: false }))} className={`w-4 h-4 rounded-full border-2 ${!form.isPublic ? "border-[var(--brand-600)] bg-[var(--brand-600)]" : "border-[var(--palette-2a2d3a)]"}`} />
+              <input
+                type="radio"
+                name="group-visibility"
+                className="peer sr-only"
+                checked={!form.isPublic}
+                onChange={() => setForm(f => ({ ...f, isPublic: false }))}
+              />
+              <span aria-hidden="true" className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--ring-focus)] peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-[var(--surface-1)] ${!form.isPublic ? "border-[var(--brand-600)] bg-[var(--brand-600)]" : "border-[var(--palette-2a2d3a)]"}`} />
               <span className="text-sm text-[var(--foreground)]">Private (invite only)</span>
             </label>
-          </div>
+          </fieldset>
           <div className="flex gap-2">
             <button onClick={onClose} className="flex-1 rounded-xl border border-[var(--rgba-255-255-255-0_06)] px-4 py-2 text-sm text-[var(--foreground-subtle)] hover:text-[var(--foreground)]">Cancel</button>
             <button onClick={() => { if (form.name.trim()) onCreate(form); }} disabled={!form.name.trim()} className="flex-1 rounded-xl bg-[var(--brand-600)] px-4 py-2 text-sm font-semibold text-[var(--palette-white)] disabled:opacity-50 hover:bg-[var(--palette-6d31d4)]">Create</button>

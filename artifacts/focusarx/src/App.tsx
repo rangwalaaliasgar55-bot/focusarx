@@ -195,13 +195,21 @@ function PageLoader() {
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { status } = useAuth();
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
+
   useEffect(() => {
-    if (status === "unauthenticated") {
-      // Preserve the deep link so login returns the user to where they were.
-      setLocation(`/login?redirect=${encodeURIComponent(location)}`);
-    }
-  }, [status, location, setLocation]);
+    if (status !== "unauthenticated") return;
+    // Preserve where the user was actually going. Without this, opening a deep
+    // link while signed out bounces you to the dashboard after login and the
+    // original destination is lost — which is exactly the flow that matters
+    // most (shared links, password-resume, push notification targets).
+    const target = window.location.pathname + window.location.search;
+    const safe = target.startsWith("/") ? target : "/";
+    // Never bounce the user back to the login page itself.
+    const redirect = safe === "/login" ? "/" : safe;
+    setLocation(`/login?redirect=${encodeURIComponent(redirect)}`);
+  }, [status, setLocation]);
+
   if (status === "loading") return <PageLoader />;
   if (status === "unauthenticated") return null;
   return <Component />;
