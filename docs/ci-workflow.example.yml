@@ -1,6 +1,9 @@
-# FocusArx CI pipeline.
-# Copy to .github/workflows/ci.yml (grants the app 'workflows' permission on push)
-# once the integration is allowed to manage workflow files.
+# FocusArx CI pipeline (minimal variant; kept as a reference).
+# The active pipeline is .github/workflows/ci.yml (source of truth:
+# docs/ci-workflows/ci.yml). If the committed workflow does not run because it
+# was pushed without the 'workflows' permission, copy this file (or the full
+# one in docs/ci-workflows/) into .github/workflows/ci.yml with your own
+# account — see docs/PRODUCTION_SETUP.md §6.
 name: CI
 
 on:

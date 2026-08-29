@@ -116,6 +116,36 @@ function faqSchema(faq) {
   };
 }
 
+function softwareApplicationSchema(entry, url) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: entry.software.name,
+    applicationCategory: entry.software.category,
+    operatingSystem: "Web",
+    url,
+    description: entry.software.description,
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    // No aggregateRating. Google's review-snippet policy bars self-serving
+    // reviews, and there is no sourced rating to publish. See /evidence.
+  };
+}
+
+function howToSchema(entry) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: entry.howTo.name,
+    description: entry.answerFirst || entry.lead,
+    step: entry.howTo.steps.map((st, i) => ({
+      "@type": "HowToStep",
+      position: i + 1,
+      name: st.name,
+      text: st.text,
+    })),
+  };
+}
+
 // ── prerendered body ───────────────────────────────────────────────
 const SHELL_CSS = `
 /* ── Static SEO shell (seen ONLY by crawlers without JavaScript) ──
@@ -137,6 +167,13 @@ html:not(.fa-js) body{background:#0b0d13}
 .fa-seo .related{margin-top:44px;border-top:1px solid rgba(255,255,255,.08);padding-top:24px}
 .fa-seo .related strong{display:block;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:#8b90a0;margin-bottom:10px}
 .fa-seo .related ul{list-style:none;display:grid;gap:6px}
+.fa-seo .answer{border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.03);border-radius:14px;padding:18px;color:#e7e9ee;font-size:15px;margin-bottom:22px}
+.fa-seo ol.steps{list-style:decimal inside;margin:10px 0 18px;color:#b9bdca;font-size:15px}
+.fa-seo ol.steps li{margin-bottom:8px}
+.fa-seo .sources{margin-top:28px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02);border-radius:14px;padding:16px}
+.fa-seo .sources strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#8b90a0;margin-bottom:8px}
+.fa-seo .sources ul{list-style:none;color:#8b90a0;font-size:13px}
+.fa-seo .sources p{color:#8b90a0;font-size:12px;margin-top:8px}
 .fa-seo .cta{display:inline-block;margin-top:40px;background:linear-gradient(90deg,#7c3aed,#4f46e5);color:#fff;font-weight:700;padding:13px 24px;border-radius:12px;text-decoration:none}
 .fa-noscript{max-width:760px;margin:0 auto;padding:16px 24px;color:#8b90a0;font-size:14px}
 `;
@@ -159,7 +196,34 @@ function renderBody(entry, url) {
   const relatedBlock = related
     ? `<div class="related"><strong>Keep reading</strong><ul>${related}</ul></div>`
     : "";
-  return `<div class="fa-seo"><span class="badge">${SITE_NAME}</span><h1>${escapeHtml(entry.h1)}</h1><p class="lead">${escapeHtml(entry.lead)}</p>${sections}${relatedBlock}<a class="cta" href="/signup">Start focusing free — ${SITE_NAME}</a></div>`;
+
+  // Answer-first block: a self-contained answer that still makes sense if an
+  // AI Overview or featured snippet quotes it out of context.
+  const answerBlock = entry.answerFirst
+    ? `<p class="answer">${escapeHtml(entry.answerFirst)}</p>`
+    : "";
+
+  // Ordered steps, when the page carries a HowTo.
+  const stepsBlock = entry.howTo
+    ? `<h2>${escapeHtml(entry.howTo.name)}</h2><ol class="steps">${entry.howTo.steps
+        .map((st) => `<li><strong>${escapeHtml(st.name)}</strong> — ${escapeHtml(st.text)}</li>`)
+        .join("")}</ol>`
+    : "";
+
+  // Visible attribution. Structured data must describe content the reader can
+  // actually see, so sources are rendered, not just declared.
+  const sourcesBlock = entry.sources?.length
+    ? `<div class="sources"><strong>Sources and attribution</strong><ul>${entry.sources
+        .map((src) => `<li>${escapeHtml(src)}</li>`)
+        .join("")}</ul>${
+          entry.lastReviewed
+            ? `<p>Last reviewed ${escapeHtml(entry.lastReviewed)}.</p>`
+            : ""
+        }</div>`
+    : "";
+
+  const cta = entry.cta || { href: "/signup", label: "Start focusing free" };
+  return `<div class="fa-seo"><span class="badge">${SITE_NAME}</span><h1>${escapeHtml(entry.h1)}</h1><p class="lead">${escapeHtml(entry.lead)}</p>${answerBlock}${stepsBlock}${sections}${sourcesBlock}${relatedBlock}<a class="cta" href="${escapeHtml(cta.href)}">${escapeHtml(cta.label)}</a></div>`;
 }
 
 // ── main ───────────────────────────────────────────────────────────
@@ -207,6 +271,8 @@ function main() {
     // on non-home routes (FAQ/ItemList belong to the landing page).
     const schemas = [breadcrumbSchema(entry.path, fullTitle)];
     if (entry.article) schemas.push(articleSchema(entry, url));
+    if (entry.software) schemas.push(softwareApplicationSchema(entry, url));
+    if (entry.howTo) schemas.push(howToSchema(entry));
     if (entry.faq) schemas.push(faqSchema(entry.faq));
     const ld = schemas.map((s) => `<script type="application/ld+json">${JSON.stringify(s)}</script>`).join("\n");
     if (entry.path !== "") html = stripHomepageOnlySchemas(html);

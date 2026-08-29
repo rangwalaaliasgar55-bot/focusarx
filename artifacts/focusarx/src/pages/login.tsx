@@ -18,6 +18,10 @@ export default function LoginPage() {
   const { signIn } = useAuth();
   const { toast } = useToast();
 
+  // Redirect handling lives in @/lib/safeRedirect (redirectFromSearch), which
+  // also rejects the `/\evil.example` backslash form, control characters and
+  // auth-page loops. A local startsWith("/") check is not enough.
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);

@@ -36,23 +36,19 @@ export function MobileBottomNav({ onMoreClick, hidden }: MobileBottomNavProps) {
   const [location] = useLocation();
   const [isFocusMode, setIsFocusMode] = useState(false);
 
-  // Listen for focus mode events to auto-hide
+  // Listen for focus mode events to auto-hide. Both timer implementations
+  // (Timer.tsx and FocusTimerMobileFirst.tsx) dispatch these events, so no
+  // polling is needed; a one-time mount check covers the case where this nav
+  // mounts while a focus session is already active.
   useEffect(() => {
     const handleFocusStart = () => setIsFocusMode(true);
     const handleFocusStop = () => setIsFocusMode(false);
     window.addEventListener("fx:focus-start", handleFocusStart);
     window.addEventListener("fx:focus-stop", handleFocusStop);
-    // Also check if we are on focus page with running timer via custom event
-    const checkFocusMode = () => {
-      const el = document.querySelector("[data-focus-mode='active']");
-      setIsFocusMode(!!el);
-    };
-    // Poll for focus mode attribute
-    const id = setInterval(checkFocusMode, 1000);
+    setIsFocusMode(!!document.querySelector("[data-focus-mode='active']"));
     return () => {
       window.removeEventListener("fx:focus-start", handleFocusStart);
       window.removeEventListener("fx:focus-stop", handleFocusStop);
-      clearInterval(id);
     };
   }, []);
 
@@ -111,6 +107,24 @@ export function MobileBottomNav({ onMoreClick, hidden }: MobileBottomNavProps) {
           </Link>
         );
       })}
+      {onMoreClick && (
+        <button
+          type="button"
+          onClick={onMoreClick}
+          className={cn(
+            "mobile-tab relative flex min-h-[44px] min-w-[44px] flex-1 flex-col items-center justify-center gap-0.5",
+            "text-[0.625rem] font-semibold transition-colors",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-500)] focus-visible:ring-offset-2",
+            "text-[var(--foreground-subtle)] hover:text-[var(--foreground)]"
+          )}
+          aria-label="More options"
+        >
+          <span className="mobile-tab-icon grid h-8 w-8 place-items-center rounded-[var(--radius-md)] transition-all">
+            <MoreHorizontal size={20} />
+          </span>
+          <span className="leading-none tracking-tight">More</span>
+        </button>
+      )}
     </nav>
   );
 }

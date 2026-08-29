@@ -257,7 +257,21 @@ export default function LandingPage() {
                     <p className="mt-1 text-lg font-bold" style={{ color }}>{value}</p>
                   </div>
                 ))}
-                <p className="text-[10px] text-[var(--foreground-subtle)] text-center">Based on FocusArx user data — 50,000+ sessions analyzed</p>
+                {/* Substantiated claim. Previously read "Based on FocusArx
+                    user data — 50,000+ sessions analyzed", which had no
+                    definition, period or sample anyone could check. The
+                    definition and review date are now inline, and the
+                    underlying figure is tracked on the public claim ledger. */}
+                <p className="text-center text-[10px] leading-relaxed text-[var(--foreground-subtle)]">
+                  FocusArx internal product analytics. "Completion" = a session
+                  that ran to its scheduled end without being abandoned.
+                  Self-selected users, not a controlled comparison — coaching
+                  users also tend to be more engaged to begin with.{" "}
+                  <Link href="/evidence" className="underline underline-offset-2 hover:text-[var(--foreground-muted)]">
+                    See our claim ledger
+                  </Link>
+                  .
+                </p>
               </div>
             </div>
           </div>
@@ -353,7 +367,67 @@ export default function LandingPage() {
             <div className="lg:col-span-2"><Brand /><p className="mt-4 max-w-sm text-sm leading-relaxed text-[var(--foreground-muted)]">A calm operating system for focused work, deliberate study, and sustainable momentum.</p></div>
             {[{ title: "Product", links: [["Dashboard", "/dashboard"], ["Flashcards", "/flashcards"], ["Pricing", "/pricing"]] }, { title: "Learn", links: [["All guides", "/guides"], ["Focus guide", "/focus-guide"], ["Pomodoro guide", "/pomodoro-guide"], ["ADHD focus tips", "/adhd-focus-tips"], ["Stop procrastinating", "/stop-procrastinating"], ["Focus music", "/focus-music"]] }, { title: "Company", links: [["About", "/about"], ["Contact", "/contact"], ["Support", "/support"]] }].map((group) => <div key={group.title}><h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">{group.title}</h2><ul className="mt-4 space-y-3">{group.links.map(([label, href]) => <li key={href}><Link href={href} className="text-sm text-[var(--foreground-muted)] hover:text-[var(--foreground)]">{label}</Link></li>)}</ul></div>)}
           </div>
-          <div className="mt-12 flex flex-col gap-4 border-t border-[var(--border-subtle)] pt-6 text-xs text-[var(--foreground-subtle)] sm:flex-row sm:items-center sm:justify-between"><p>© 2026 FocusArx. Built for deliberate work.</p><div className="flex flex-wrap gap-4"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/cookie-policy">Cookies</Link><Link href="/acceptable-use">Acceptable use</Link></div></div>
+          {/* Footer. Real crawlable <a>/<Link> elements — not buttons with
+              click handlers — because a crawler that does not execute
+              JavaScript discovers the site through this block. Every page
+              here is in the sitemap. */}
+          <div className="mt-12 border-t border-[var(--border-subtle)] pt-8">
+            <div className="grid gap-8 text-xs sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <p className="mb-3 font-bold uppercase tracking-widest text-[var(--foreground-muted)]">Tools</p>
+                <ul className="space-y-2 text-[var(--foreground-subtle)]">
+                  <li><Link href="/pomodoro-timer" className="hover:text-[var(--foreground)]">Pomodoro timer</Link></li>
+                  <li><Link href="/focus-timer" className="hover:text-[var(--foreground)]">Focus timer</Link></li>
+                  <li><Link href="/study-timer" className="hover:text-[var(--foreground)]">Study timer</Link></li>
+                  <li><Link href="/study-calculator" className="hover:text-[var(--foreground)]">Study time calculator</Link></li>
+                  <li><Link href="/break-free" className="hover:text-[var(--foreground)]">60-second scroll reset</Link></li>
+                </ul>
+              </div>
+              <div>
+                <p className="mb-3 font-bold uppercase tracking-widest text-[var(--foreground-muted)]">Guides</p>
+                <ul className="space-y-2 text-[var(--foreground-subtle)]">
+                  <li><Link href="/guides" className="hover:text-[var(--foreground)]">All guides</Link></li>
+                  <li><Link href="/focus-guide" className="hover:text-[var(--foreground)]">How to focus</Link></li>
+                  <li><Link href="/deep-work-guide" className="hover:text-[var(--foreground)]">Deep work guide</Link></li>
+                  <li><Link href="/body-doubling" className="hover:text-[var(--foreground)]">Body doubling</Link></li>
+                  <li><Link href="/exam" className="hover:text-[var(--foreground)]">Exam prep</Link></li>
+                </ul>
+              </div>
+              <div>
+                <p className="mb-3 font-bold uppercase tracking-widest text-[var(--foreground-muted)]">Compare</p>
+                <ul className="space-y-2 text-[var(--foreground-subtle)]">
+                  <li><Link href="/comparison/focusarx-vs-forest" className="hover:text-[var(--foreground)]">vs Forest</Link></li>
+                  <li><Link href="/comparison/focusarx-vs-focusmate" className="hover:text-[var(--foreground)]">vs Focusmate</Link></li>
+                  <li><Link href="/comparison/focusarx-vs-pomofocus" className="hover:text-[var(--foreground)]">vs Pomofocus</Link></li>
+                  <li><Link href="/comparison/focusarx-vs-freedom" className="hover:text-[var(--foreground)]">vs Freedom</Link></li>
+                  <li><Link href="/comparison/focusarx-vs-stayfocusd" className="hover:text-[var(--foreground)]">vs StayFocusd</Link></li>
+                </ul>
+              </div>
+              <div>
+                <p className="mb-3 font-bold uppercase tracking-widest text-[var(--foreground-muted)]">Company &amp; trust</p>
+                <ul className="space-y-2 text-[var(--foreground-subtle)]">
+                  <li><Link href="/about" className="hover:text-[var(--foreground)]">About</Link></li>
+                  <li><Link href="/evidence" className="hover:text-[var(--foreground)]">Evidence &amp; claims</Link></li>
+                  <li><Link href="/camera-data" className="hover:text-[var(--foreground)]">Camera data</Link></li>
+                  <li><Link href="/safety" className="hover:text-[var(--foreground)]">Room safety</Link></li>
+                  <li><Link href="/accessibility" className="hover:text-[var(--foreground)]">Accessibility</Link></li>
+                  <li><Link href="/privacy" className="hover:text-[var(--foreground)]">Privacy</Link></li>
+                  <li><Link href="/terms" className="hover:text-[var(--foreground)]">Terms</Link></li>
+                  <li><Link href="/contact" className="hover:text-[var(--foreground)]">Contact</Link></li>
+                  <li><Link href="/press" className="hover:text-[var(--foreground)]">Press</Link></li>
+                </ul>
+              </div>
+            </div>
+            <div className="mt-8 flex flex-col gap-3 border-t border-[var(--border-subtle)] pt-6 text-xs text-[var(--foreground-subtle)] sm:flex-row sm:items-center sm:justify-between">
+              <p>© 2026 FocusArx. Built for deliberate work.</p>
+              <div className="flex flex-wrap gap-4">
+                <Link href="/cookie-policy">Cookies</Link>
+                <Link href="/acceptable-use">Acceptable use</Link>
+                <Link href="/ai-policy">AI policy</Link>
+                <Link href="/data-deletion">Data deletion</Link>
+              </div>
+            </div>
+          </div>
         </div>
       </footer>
     </div>

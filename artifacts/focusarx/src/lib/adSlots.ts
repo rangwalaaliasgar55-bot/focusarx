@@ -49,6 +49,12 @@ export const AD_SLOTS = {
   comparisonMid: { slot: "1000000008", format: "rectangle" as const },
   /** Mobile-only sticky anchor. */
   mobileAnchor: { slot: "1000000009" },
+  /**
+   * Intent pages rendered by src/pages/seo-landing.tsx (tools, cluster spokes,
+   * trust pages). Rendered after the third body section only, so the page
+   * always opens on content and the unit is never adjacent to the hero CTA.
+   */
+  seoPageInFeed: { slot: "1000000010", format: "fluid" as const },
 } as const;
 
 export type AdSlotKey = keyof typeof AD_SLOTS;

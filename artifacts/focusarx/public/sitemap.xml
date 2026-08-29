@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  FocusArx sitemap INDEX.
+  FocusArx sitemap INDEX — static fallback.
 
   In production vercel.json rewrites /sitemap.xml to the API function, which
   emits this same index plus one extra <sitemap> entry per public-profile
   shard (see artifacts/api-server/src/routes/sitemap.ts). This static copy is
-  the fallback so the root URL never resolves to SPA HTML.
+  the fallback so the root URL never resolves to SPA HTML if the function
+  cold-starts or fails.
+
+  KEEP THIS LIST IDENTICAL TO `SEGMENTS` IN sitemap.ts. The seoContract test
+  fails the build if they drift.
 
   Canonical host is www.focusarx.site — the previous file and the API
   disagreed on host, which made every URL a cross-host duplicate.
@@ -13,26 +17,34 @@
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <sitemap>
     <loc>https://www.focusarx.site/sitemap-core.xml</loc>
-    <lastmod>2026-08-28</lastmod>
+    <lastmod>2026-08-29</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://www.focusarx.site/sitemap-tools.xml</loc>
+    <lastmod>2026-08-29</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://www.focusarx.site/sitemap-guides.xml</loc>
-    <lastmod>2026-08-28</lastmod>
+    <lastmod>2026-08-29</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://www.focusarx.site/sitemap-exams.xml</loc>
-    <lastmod>2026-08-28</lastmod>
+    <lastmod>2026-08-29</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://www.focusarx.site/sitemap-compare.xml</loc>
-    <lastmod>2026-08-28</lastmod>
+    <lastmod>2026-08-29</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://www.focusarx.site/sitemap-trust.xml</loc>
+    <lastmod>2026-08-29</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://www.focusarx.site/sitemap-legal.xml</loc>
-    <lastmod>2026-08-28</lastmod>
+    <lastmod>2026-08-29</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://www.focusarx.site/sitemap-profiles-1.xml</loc>
-    <lastmod>2026-08-28</lastmod>
+    <lastmod>2026-08-29</lastmod>
   </sitemap>
 </sitemapindex>

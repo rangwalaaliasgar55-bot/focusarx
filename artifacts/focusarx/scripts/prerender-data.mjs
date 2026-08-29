@@ -12,6 +12,7 @@
 
 export const SITE_NAME = "FocusArx";
 import { EXAM_GUIDES, EXAM_HUB } from "../src/content/exam/index.mjs";
+import { SEO_PAGES, COMPARISONS, COMPARISON_PATHS } from "../src/content/seo-pages.mjs";
 
 // OG card base for dynamic OG images (serverless /api/og endpoint).
 const OG_BASE = "https://www.focusarx.site";
@@ -706,47 +707,96 @@ export const ROUTES = [
     related: ["/privacy|Privacy policy", "/focus-guide|How to focus guide"],
   },
 
-  // ── Comparison pages ──────────────────────────────────────────
+  // ── Tool landing pages with bespoke components ────────────────
+  // These have hand-written page components rather than the shared
+  // seo-landing renderer, but they still need prerender entries or crawlers
+  // that do not run JavaScript see the homepage <title> on these URLs.
   {
-    path: "/comparison/focusarx-vs-forest",
-    title: "FocusArx vs Forest App: Honest Comparison (2026) | FocusArx",
+    path: "/focus-timer",
+    title: "Free Focus Timer | Pomodoro & Deep Work Sessions | FocusArx",
     description:
-      "FocusArx vs Forest compared — timers, gamification, study rooms, AI coaching, analytics, privacy, and price. An honest look at which focus app fits you.",
-    h1: "FocusArx vs Forest: an honest comparison",
-    lead: "Forest gamifies focus with a growing tree; FocusArx builds a full focus system around the timer. Here's how they compare feature by feature.",
+      "Free focus timer with Pomodoro, deep work sessions, ambient sound and XP. Track completion, streaks and your focus score. No credit card required.",
+    h1: "Free Focus Timer for Deep Work",
+    lead: "Start a Pomodoro or a custom 10–180 minute deep work session. Every completed session is scored, stored and folded into your streak.",
+    answerFirst:
+      "A focus timer bounds a block of work so starting is cheap and stopping is deliberate. FocusArx runs Pomodoro and custom-length sessions in the browser, scores each one, and tracks completion, streaks and focus quality over time.",
+    software: {
+      name: "FocusArx Focus Timer",
+      category: "ProductivityApplication",
+      description:
+        "Focus and deep work timer with session scoring, streaks, ambient sound and progress analytics.",
+    },
     sections: [
       {
-        h: "Where they differ",
-        p: "Forest centers on the don't-leave-the-app tree mechanic with mobile-first design; FocusArx adds focus scoring, AI coaching, live study rooms with body doubling, habit and goal tracking, deep analytics, and a free web-first experience with optional on-device attention monitoring.",
+        h: "What the free timer includes",
+        p: "25-minute Pomodoro sessions, basic task tracking, streaks, one pet, a starter city, daily quests and public study rooms. No credit card and no trial countdown.",
       },
       {
-        h: "Where they agree",
-        p: "Both use immediate gamified rewards to make focusing stick, and both work for students who want a lighter touch than a full productivity suite.",
+        h: "What Premium adds",
+        p: "Custom 10–180 minute presets, session sequences, fullscreen zen mode, sound mixing, intentions and reflections, saved templates, and 180-day analytics with export. Premium is unlocked with Focus Tokens earned from completed sessions rather than purchased.",
+      },
+      {
+        h: "How Focus Tokens work",
+        p: "You earn 50 tokens for each focus session of 25 minutes or more (capped at 10 per day), plus bonuses for daily and weekly quests and streaks. Spend them on Premium, pets and cosmetics. The ledger is server-authoritative and idempotent — no real money is involved anywhere.",
       },
     ],
-    article: true,
-    related: ["/comparison/focusarx-vs-focus-todo|FocusArx vs Focus To-Do", "/pricing|FocusArx pricing", "/guides|All guides"],
+    faq: [
+      ["Is the focus timer free?", "Yes. The core timer, tasks, streaks and public rooms are free forever. Premium unlocks with Focus Tokens earned from completed sessions."],
+      ["How long can a session be?", "The default is 25 minutes. Premium presets allow 10 to 180 minutes for deep-work blocks."],
+      ["Do I need an account?", "Only to save sessions, streaks and analytics. The timer runs without one."],
+    ],
+    cta: { href: "/signup", label: "Start a free focus session" },
+    related: ["/pomodoro-timer|Pomodoro timer", "/study-timer|Study timer", "/deep-work-guide|Deep work guide", "/focus-guide|How to focus"],
+    lastReviewed: "2026-08-29",
   },
   {
-    path: "/comparison/focusarx-vs-focus-todo",
-    title: "FocusArx vs Focus To-Do: Honest Comparison (2026) | FocusArx",
+    path: "/search",
+    title: "Search FocusArx | Guides, Tools and Features",
     description:
-      "FocusArx vs Focus To-Do compared — Pomodoro timers, task management, gamification, study rooms, AI features, analytics, and pricing. Which fits your workflow?",
-    h1: "FocusArx vs Focus To-Do: an honest comparison",
-    lead: "Focus To-Do pairs a Pomodoro timer with a GTD-style task list; FocusArx builds a focus OS around behavioral science. Here's how they stack up.",
+      "Search every FocusArx guide, study tool and feature — Pomodoro timers, study rooms, focus guides, calculators and exam prep.",
+    h1: "Search FocusArx",
+    lead: "Find a guide, a tool or a feature across the whole FocusArx library.",
+    answerFirst:
+      "FocusArx search covers the full guide library, the free tools and the product features. Start with the guide library if you are browsing, or jump straight to the Pomodoro timer if you want to start a session now.",
     sections: [
       {
-        h: "Where they differ",
-        p: "Focus To-Do leans on task/project management with Pomodoro tracking; FocusArx emphasizes session quality (Focus Score), AI coaching, live study rooms, streaks and coins, Focus DNA insights, and a free web-first platform.",
-      },
-      {
-        h: "Where they agree",
-        p: "Both combine timers with task lists and both reward consistency — the difference is whether the timer serves your to-do list or your attention itself.",
+        h: "Popular destinations",
+        p: "The guide library, the Pomodoro timer, the study time calculator, live study rooms, and the exam prep hub.",
       },
     ],
-    article: true,
-    related: ["/comparison/focusarx-vs-forest|FocusArx vs Forest", "/pricing|FocusArx pricing", "/guides|All guides"],
+    cta: { href: "/guides", label: "Browse the guide library" },
+    related: ["/guides|All guides", "/pomodoro-timer|Pomodoro timer", "/exam|Exam prep hub", "/study-rooms|Live study rooms"],
   },
+
+  // ── Comparison / alternative pages ────────────────────────────
+  // Generated from COMPARISONS in src/content/seo-pages.mjs so the
+  // prerendered copy, the rendered page (src/pages/comparison.tsx) and the
+  // sitemap can never disagree about what a comparison says.
+  ...COMPARISON_PATHS.map((path) => {
+    const slug = path.replace(/^\/comparison\//, "");
+    const c = Object.values(COMPARISONS).find((x) => x.slug === slug);
+    return {
+      path,
+      title: c.title,
+      description: c.description,
+      h1: c.title,
+      lead: c.lead,
+      sections: [
+        { h: `When FocusArx is the better fit`, p: c.whenOurs },
+        { h: `When ${c.name} is the better fit`, p: c.whenTheirs },
+      ],
+      faq: [
+        [`When should I choose FocusArx over ${c.name}?`, c.whenOurs],
+        [`When should I choose ${c.name} over FocusArx?`, c.whenTheirs],
+      ],
+      article: true,
+      related: [
+        ...COMPARISON_PATHS.filter((p) => p !== path).slice(0, 3).map((p) => `${p}|${Object.values(COMPARISONS).find((x) => `/comparison/${x.slug}` === p).title}`),
+        "/focus-guide|How to focus",
+        "/guides|All guides",
+      ],
+    };
+  }),
 
   // ── Exam guide cluster (Workstream E) ─────────────────────
   {
@@ -770,5 +820,28 @@ export const ROUTES = [
     article: true,
     ogImage: examOgImage(g.title.replace(/\s*\|\s*FocusArx.*$/i, ""), g.lead),
     related: g.related,
+  })),
+
+  // ── Intent pages: tools, cluster spokes, trust ────────────────
+  // Generated from src/content/seo-pages.mjs. That file is imported by the
+  // client page (src/pages/seo-landing.tsx) as well, so the static HTML a
+  // crawler reads and the page a visitor sees are the same text — no
+  // cloaking, and no second copy to keep in sync.
+  ...Object.entries(SEO_PAGES).map(([path, e]) => ({
+    path,
+    title: e.title,
+    description: e.description,
+    h1: e.h1,
+    lead: e.lead,
+    answerFirst: e.answerFirst,
+    sections: e.sections,
+    faq: e.faq,
+    howTo: e.howTo,
+    software: e.software,
+    article: e.kind === "guide",
+    lastReviewed: e.lastReviewed,
+    sources: e.sources,
+    cta: e.cta,
+    related: e.related,
   })),
 ];

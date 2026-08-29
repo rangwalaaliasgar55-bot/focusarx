@@ -20,6 +20,9 @@ const COLLECTIONS = [
       { href: "/science-of-deep-work", icon: <Atom size={18} />, label: "The Science of Deep Work", blurb: "What happens in your brain during deep work — myelin, neurotransmitters, and the flow state." },
       { href: "/focus-music", icon: <Music size={18} />, label: "Best Music for Studying & Focus", blurb: "What research actually says about focus music, lo-fi, binaural beats, and silence." },
       { href: "/adhd-focus-tips", icon: <Sparkles size={18} />, label: "How to Focus with ADHD", blurb: "15 strategies engineered for ADHD brains — body doubling, the 10-minute rule, and dopamine-friendly systems." },
+      { href: "/deep-work-guide", icon: <Atom size={18} />, label: "Deep Work: A Practical Guide", blurb: "What deep work is, the four scheduling patterns, and how to protect a block once it has started." },
+      { href: "/how-to-focus-while-studying", icon: <BookOpen size={18} />, label: "How to Focus While Studying", blurb: "Nine changes ordered by impact and effort — phone placement, session length, retrieval, spacing." },
+      { href: "/body-doubling", icon: <Users size={18} />, label: "Body Doubling Explained", blurb: "Why working alongside someone else makes starting easier, and how to use it online." },
     ],
   },
   {
@@ -38,6 +41,7 @@ const COLLECTIONS = [
     description: "Starting is the hardest part. These guides make it easier.",
     guides: [
       { href: "/stop-procrastinating", icon: <Flame size={18} />, label: "How to Stop Procrastinating", blurb: "Why you procrastinate (it's not laziness) and 12 proven methods to stop — starting today." },
+      { href: "/stop-scrolling", icon: <Coffee size={18} />, label: "How to Stop Scrolling", blurb: "Why the loop is hard to break, and a 60-second reset that works when willpower does not." },
       { href: "/virtual-study-room", icon: <Users size={18} />, label: "Virtual Study Rooms", blurb: "Study alongside other learners live — accountability and the body-doubling effect." },
       { href: "/study-with-me", icon: <Coffee size={18} />, label: "Study With Me: Live Sessions", blurb: "How live study-with-me sessions work and why they make focusing feel effortless." },
       { href: "/breathe", icon: <Wind size={18} />, label: "2-Minute Breathing Reset", blurb: "A guided breathing tool to reset your nervous system between study blocks." },
@@ -49,6 +53,9 @@ const COLLECTIONS = [
     guides: [
       { href: "/study-method-quiz", icon: <Sparkles size={18} />, label: "Study Method Quiz", blurb: "Two minutes to find which study method fits your brain, schedule, and goals." },
       { href: "/study-calculator", icon: <Calculator size={18} />, label: "Study Time Calculator", blurb: "Enter your exam date and topics — get a personalized, retention-optimized schedule." },
+      { href: "/pomodoro-timer", icon: <Timer size={18} />, label: "Pomodoro Timer", blurb: "Free 25/5 timer in your browser. Custom intervals, session history, streaks — no signup to start." },
+      { href: "/study-timer", icon: <Clock size={18} />, label: "Study Timer", blurb: "Timed study blocks tied to subjects, so revision progress is measurable rather than a feeling." },
+      { href: "/adhd-focus-tools", icon: <Sparkles size={18} />, label: "ADHD-Friendly Focus Tools", blurb: "Visual timers, body doubling rooms and recovery-friendly streaks. Free, no diagnosis required." },
     ],
   },
 ];

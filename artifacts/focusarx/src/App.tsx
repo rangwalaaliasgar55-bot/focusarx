@@ -106,6 +106,23 @@ const SessionReplayPage = lazy(() => import("@/pages/session-replay"));
 const ComparisonPage = lazy(() => import("@/pages/comparison"));
 const DeveloperPage = lazy(() => import("@/pages/developer"));
 
+// ── Intent pages (tools, cluster spokes, trust) ────────────────────
+// Each is a thin wrapper over <SeoLandingPage>, driven by the content in
+// src/content/seo-pages.mjs. That file is also what the build-time
+// prerenderer reads, so static HTML and rendered copy stay identical.
+const PomodoroTimerPage = lazy(() => import("@/pages/pomodoro-timer"));
+const StudyTimerPage = lazy(() => import("@/pages/study-timer"));
+const DeepWorkGuidePage = lazy(() => import("@/pages/deep-work-guide"));
+const BodyDoublingPage = lazy(() => import("@/pages/body-doubling"));
+const HowToFocusWhileStudyingPage = lazy(() => import("@/pages/how-to-focus-while-studying"));
+const AdhdFocusToolsPage = lazy(() => import("@/pages/adhd-focus-tools"));
+const StopScrollingPage = lazy(() => import("@/pages/stop-scrolling"));
+const EvidencePage = lazy(() => import("@/pages/evidence"));
+const CameraDataPage = lazy(() => import("@/pages/camera-data"));
+const SafetyPage = lazy(() => import("@/pages/safety"));
+const AccessibilityPage = lazy(() => import("@/pages/accessibility"));
+const PressPage = lazy(() => import("@/pages/press"));
+
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (error) => window.dispatchEvent(new CustomEvent("focusarx:api-error", { detail: { message: error instanceof Error ? error.message : "Unable to load data." } })),
@@ -302,6 +319,27 @@ function RoutedContent() {
               <Route path="/stop-procrastinating" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StopProcrastinatingPage /></Suspense></ErrorBoundary>} />
               <Route path="/study-with-me" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StudyWithMePage /></Suspense></ErrorBoundary>} />
               <Route path="/focus-music" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><FocusMusicPage /></Suspense></ErrorBoundary>} />
+
+              {/* ── Intent pages: tools, cluster spokes, trust ──────
+                  Public and crawlable — none of these are behind
+                  <ProtectedRoute>, so all of them appear in the sitemap
+                  and in scripts/prerender-data.mjs. seoContract.test.ts
+                  fails the build if those three lists drift apart. */}
+              <Route path="/focus-timer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><FocusTimerPage /></Suspense></ErrorBoundary>} />
+              <Route path="/pomodoro-timer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><PomodoroTimerPage /></Suspense></ErrorBoundary>} />
+              <Route path="/study-timer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StudyTimerPage /></Suspense></ErrorBoundary>} />
+              <Route path="/deep-work-guide" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><DeepWorkGuidePage /></Suspense></ErrorBoundary>} />
+              <Route path="/body-doubling" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><BodyDoublingPage /></Suspense></ErrorBoundary>} />
+              <Route path="/how-to-focus-while-studying" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><HowToFocusWhileStudyingPage /></Suspense></ErrorBoundary>} />
+              <Route path="/adhd-focus-tools" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><AdhdFocusToolsPage /></Suspense></ErrorBoundary>} />
+              <Route path="/stop-scrolling" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StopScrollingPage /></Suspense></ErrorBoundary>} />
+              <Route path="/evidence" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><EvidencePage /></Suspense></ErrorBoundary>} />
+              <Route path="/camera-data" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><CameraDataPage /></Suspense></ErrorBoundary>} />
+              <Route path="/safety" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><SafetyPage /></Suspense></ErrorBoundary>} />
+              <Route path="/accessibility" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><AccessibilityPage /></Suspense></ErrorBoundary>} />
+              <Route path="/press" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><PressPage /></Suspense></ErrorBoundary>} />
+              <Route path="/comparison/:slug" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><ComparisonPage /></Suspense></ErrorBoundary>} />
+
               <Route path="/search" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><SearchPage /></Suspense></ErrorBoundary>} />
               <Route path="/referral" component={() => <ErrorBoundary><ProtectedRoute component={ReferralPage} /></ErrorBoundary>} />
               <Route path="/developer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><DeveloperPage /></Suspense></ErrorBoundary>} />
@@ -341,8 +379,8 @@ function RoutedContent() {
               <Route path="/ai-policy" component={() => <ErrorBoundary><AiPolicyPage /></ErrorBoundary>} />
               <Route path="/data-deletion" component={() => <ErrorBoundary><DataDeletionPage /></ErrorBoundary>} />
               <Route path="/pricing" component={() => <ErrorBoundary><PricingPage /></ErrorBoundary>} />
-              <Route path="/comparison/focusarx-vs-forest" component={() => <ErrorBoundary><ComparisonPage /></ErrorBoundary>} />
-              <Route path="/comparison/focusarx-vs-focus-todo" component={() => <ErrorBoundary><ComparisonPage /></ErrorBoundary>} />
+              {/* Comparison pages are handled by the /comparison/:slug route
+                  above; the slug map lives in src/content/seo-pages.mjs. */}
               <Route path="/premium" component={() => <ErrorBoundary><ProtectedRoute component={PremiumPage} /></ErrorBoundary>} />
               <Route path="/about" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><AboutPage /></Suspense></ErrorBoundary>} />
               <Route path="/contact" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><ContactPage /></Suspense></ErrorBoundary>} />
