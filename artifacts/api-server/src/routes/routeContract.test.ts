@@ -115,7 +115,16 @@ function frontendCalls(): Array<{ method: string; path: string; file: string }> 
           init += c;
         }
       }
-      const method = init.match(/method:\s*["'`]([A-Z]+)["'`]/)?.[1] ?? "GET";
+      // An explicit literal (`method: "POST"`) is checked strictly.
+      // A dynamic method — `method` shorthand, or `method,` a variable with a
+      // default — cannot be resolved statically, so it is recorded as "*" and
+      // matched against any verb. Defaulting those to GET produced a false
+      // positive: `/api/developer/users/${action}` is only ever POST or DELETE,
+      // and the contract test reported a missing "GET /developer/users/:p".
+      // The path still has to exist with the right arity, so the guard keeps
+      // its value; only the verb check is relaxed for the unresolvable cases.
+      const literal = init.match(/method:\s*["'`]([A-Z]+)["'`]/)?.[1];
+      const method = literal ?? (/method\b/.test(init) ? "*" : "GET");
       calls.push({ method, path: buf, file: rel });
     }
   }
@@ -157,7 +166,8 @@ function matches(
   call: { method: string; segments: string[] },
   route: { method: string; segments: string[] },
 ): boolean {
-  if (call.method !== route.method) return false;
+  // "*" = the frontend passes a dynamic method we cannot resolve statically.
+  if (call.method !== "*" && call.method !== route.method) return false;
   if (call.segments.length !== route.segments.length) return false;
   return call.segments.every(
     (segment, i) => segment === ":p" || segment === route.segments[i],

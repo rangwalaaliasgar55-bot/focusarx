@@ -18,11 +18,8 @@ export const EMOTES = [
 ] as const;
 
 const router = Router();
-// Scoped to the /emotes prefix: this router is mounted at the parent's root,
-// so an unscoped `router.use(authMiddleware)` here ran for EVERY request that
-// reached it — 401-ing every route mounted after this router in index.ts
-// (/api/deployment, /api/feature-flags, /api/recommendations, …) for
-// anonymous callers.
+// Scoped to /emotes — a pathless router.use() would leak this middleware onto
+// every router mounted after this one. See the note in routes/flashcards.ts.
 router.use("/emotes", authMiddleware);
 
 router.get("/emotes", async (req: AuthRequest, res: Response) => {

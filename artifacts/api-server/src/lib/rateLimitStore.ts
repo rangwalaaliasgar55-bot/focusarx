@@ -19,15 +19,19 @@
 import { Redis } from "@upstash/redis";
 import type { Store, IncrementResponse } from "express-rate-limit";
 
-// NOTE: read the Upstash vars straight from process.env — NOT via getEnv().
-// getEnv() validates the *entire* environment and throws in production when
-// any single variable is invalid, and this module runs at import time
-// (rateLimiter.ts calls getRateLimitStore() at module scope for every limiter
-// definition, and nearly every route file imports a limiter). Routing through
-// getEnv() here meant one bad, unrelated variable (e.g. a too-short
-// ADMIN_PASSWORD) crashed the whole bundle on cold start and 500'd every
-// route in the deployment. These two vars are all this module needs;
-// @upstash/redis fails loudly on its own if they are malformed.
+/**
+ * Reads `process.env` directly — deliberately NOT `getEnv()` from lib/env.
+ *
+ * `getRateLimitStore()` is called eight times at module-evaluation time from
+ * `lib/rateLimiter.ts`. Routing that through the validated env accessor made
+ * the whole serverless bundle depend on env validation succeeding before it
+ * could even be imported: one malformed variable crashed the module and Vercel
+ * answered every request with HTTP 500.
+ *
+ * These two variables are only ever used together and only when both are
+ * present, so no schema validation is needed here — a missing or malformed
+ * pair simply means "no distributed store", which is a supported configuration.
+ */
 export function isDistributedLimiterConfigured(): boolean {
   return Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 }

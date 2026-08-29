@@ -6,17 +6,29 @@ import { logger } from "../lib/logger";
 import { adminLimiter } from "../lib/rateLimiter";
 import { getSiteSettings, invalidateSiteSettingsCache } from "../lib/siteSettings";
 import { checkAdminAuth } from "../lib/adminAuth";
+import { sendForbidden, sendInternal, sendValidationError } from "../lib/httpErrors";
 
 const router = Router();
 const checkAuth = checkAdminAuth;
 
-/** Public — the frontend reads this to show maintenance mode + announcements. */
+/**
+ * Public — the frontend reads this to show maintenance mode + announcements.
+ *
+ * Deliberately cannot fail. Site settings are decorative: if the database is
+ * unreachable the correct behaviour is to render the app with defaults, not to
+ * turn the whole page into an error state. `getSiteSettings()` already falls
+ * back to defaults internally and reports whether it did, so this route answers
+ * 200 either way and includes `degraded: true` when the stored values could not
+ * be read — honest about the outage, but never fatal.
+ */
 router.get("/site/settings", async (_req, res) => {
   try {
-    res.json(await getSiteSettings());
+    const settings = await getSiteSettings();
+    res.set("Cache-Control", "no-store");
+    res.json(settings);
   } catch (err) {
     logger.error({ err }, "public site settings error");
-    res.status(500).json({ error: "Internal error" });
+    sendInternal(res);
   }
 });
 
@@ -81,28 +93,28 @@ router.get("/site/community-pulse", async (_req, res) => {
     res.json(data);
   } catch (err) {
     logger.error({ err }, "community pulse error");
-    res.status(500).json({ error: "Internal error" });
+    sendInternal(res);
   }
 });
 
 /** Admin — read full settings. */
 router.get("/admin/site/settings", async (req, res) => {
-  if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
+  if (!await checkAuth(req)) { sendForbidden(res); return; }
   try {
     const [row] = await db.select().from(siteSettingsTable).limit(1);
     res.json(row ?? { maintenanceMode: false, announcementEnabled: false, brandingName: "FocusArx" });
   } catch (err) {
     logger.error({ err }, "admin site settings get error");
-    res.status(500).json({ error: "Internal error" });
+    sendInternal(res);
   }
 });
 
 /** Admin — update settings (maintenance mode, announcement, branding). */
 router.patch("/admin/site/settings", adminLimiter, async (req, res) => {
-  if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
+  if (!await checkAuth(req)) { sendForbidden(res); return; }
   const parsed = updateSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Invalid settings", details: parsed.error.errors });
+    sendValidationError(res, "Invalid settings");
     return;
   }
   const updates = parsed.data;
@@ -125,7 +137,7 @@ router.patch("/admin/site/settings", adminLimiter, async (req, res) => {
     }
   } catch (err) {
     logger.error({ err }, "admin site settings update error");
-    res.status(500).json({ error: "Internal error" });
+    sendInternal(res);
   }
 });
 

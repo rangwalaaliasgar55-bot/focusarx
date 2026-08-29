@@ -2,13 +2,80 @@
 
 Complete inventory of every environment variable this app reads, verified against the source code.
 
+---
+
+## ⚠️ Values are validated, not just read — a malformed value is worse than a missing one
+
+Every variable below is parsed by a Zod schema in `artifacts/api-server/src/lib/env.ts`.
+There are two failure modes, and they behave very differently:
+
+| Situation | Result |
+|---|---|
+| Variable **absent** | API returns `503 CONFIG_ERROR` naming exactly what is missing. The app stays up. |
+| Variable **present but invalid** | Before the fix described below: the serverless module crashed at import and **every** `/api/*` route returned HTTP 500. Now: the variable is dropped, logged at ERROR, and reported by the same `503 CONFIG_ERROR` gate. |
+
+### Hard constraints
+
+| Variable | Rule | Invalid examples |
+|---|---|---|
+| `NODE_ENV` | exactly `development`, `test` or `production` | `prod`, `Production`, `prodution` |
+| `AUTH_SECRET` / `SESSION_SECRET` | ≥ 32 characters | any shorter secret |
+| `ADMIN_PASSWORD` | ≥ 8 characters (16+ recommended) | a password under 8 characters |
+| `CRON_SECRET` | ≥ 16 characters | any shorter secret |
+| `DATABASE_URL`, `POSTGRES_URL`, `POSTGRES_URL_NON_POOLING`, `POSTGRES_PRISMA_URL` | a parseable URL — **never an empty string** | `` (empty), missing scheme, a value wrapped in quotes |
+| `APP_URL`, `VITE_APP_URL`, `UPSTASH_REDIS_REST_URL` | a parseable URL | empty string, `example.com` with no `https://` |
+| `PORT`, `SMTP_PORT` | a number | empty string, `abc` |
+
+> **Do not set a variable to an empty string to "disable" it. Delete it instead.**
+> An empty string fails URL/number validation, which is the single most common
+> cause of the 500-on-every-route failure this document now guards against.
+
+### Errors vs. advisories
+
+`ADMIN_PASSWORD` is the one variable where "invalid" and "not ideal" are
+different things, so `lib/env.ts` splits them:
+
+| Length | Result |
+|---|---|
+| under 8 chars | **error** — dropped, feature disabled, named in `503 CONFIG_ERROR` |
+| 8–15 chars | **warning** — accepted, admin login works, logged as "shorter than the recommended 16 characters" |
+| 16+ chars | accepted silently |
+
+Only **errors** reach the config gate. A shorter-but-usable admin password must
+never take the API down: the failure mode of a stricter floor is not a crash
+(that was fixed) but a *silent* one, where the key is dropped, admin login
+stops working, and every health check still reports green.
+
+Look for `[env] Ignoring invalid <VAR>` in the logs — one greppable line per
+rejected variable, with the value never included.
+
+### Diagnosing a misconfigured deployment
+
+Three unauthenticated probes, none of which expose values, hosts or credentials:
+
+```bash
+curl -s https://<host>/api/healthz          # 200 as long as the function loaded
+curl -s https://<host>/api/healthz/config   # { ok, database, authSecret, adminPassword, errors[] }
+curl -s https://<host>/api/healthz/ready    # 200 ready / 503 degraded, incl. a live DB query
+```
+
+`GET /api/healthz/config` returns `200` even when misconfigured — a probe that
+503s on the exact condition you are trying to diagnose is useless. Read
+`ok: false` and the `errors` array.
+
+These three endpoints are exempt from the configuration gate, as are
+`/api/site/settings` (falls back to built-in defaults, flagged `degraded: true`)
+and `/api/deployment` (so users are still told to refresh during an incident).
+
+---
+
 ## ✅ Required (production)
 
 | Variable | Read by | Purpose |
 |---|---|---|
 | `DATABASE_URL` | `lib/db/src/index.ts`, `lib/config.ts` | PostgreSQL connection string. On Vercel, `POSTGRES_URL_NON_POOLING` is preferred first (pooler transaction mode breaks prepared statements). Also accepts `POSTGRES_PRISMA_URL` / `POSTGRES_URL`. |
 | `AUTH_SECRET` | `lib/config.ts` | JWT signing secret (32+ random chars). `SESSION_SECRET` accepted as legacy alias. In dev, an ephemeral secret is generated per boot if unset. |
-| `ADMIN_PASSWORD` | `lib/config.ts`, `routes/admin.ts` | Bootstrap password for `/admin` (**min 8 chars**, same floor as user passwords). Mandatory in production; users with `role=admin` in DB also have access. |
+| `ADMIN_PASSWORD` | `lib/config.ts`, `routes/admin.ts` | Bootstrap password for `/admin`. Mandatory in production; users with `role=admin` in DB also have access. |
 | `APP_URL` | `lib/config.ts` | Canonical public origin — used for password-reset links, CORS allowlist, OAuth redirects. Falls back to `VERCEL_URL`, then `https://focusarx.vercel.app`. |
 
 ## 📧 Email via Resend (recommended)
@@ -91,7 +158,7 @@ assets from one deployment while API requests go to another.
 ```bash
 DATABASE_URL=postgresql://...?sslmode=require
 AUTH_SECRET=<32+ random chars>
-ADMIN_PASSWORD=<strong password, min 8 chars>
+ADMIN_PASSWORD=<strong password>
 APP_URL=https://your-domain.com
 RESEND_API_KEY=re_...
 EMAIL_FROM="FocusArx <noreply@your-domain.com>"

@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { getEnv, getDatabaseUrl, getJwtSecret, getAppUrl } from "./env";
+import { getEnv, getEnvErrors, getDatabaseUrl, getJwtSecret, getAppUrl } from "./env";
 
 export type ServerConfig = {
   jwtSecret: string | null;
@@ -85,7 +85,18 @@ export function getServerConfig(): ServerConfig {
   };
 }
 
-/** Env vars that must be set in production for auth + data routes. */
+/**
+ * Everything that prevents the API from serving authenticated, data-backed
+ * requests. Returned verbatim to the caller by the config gate in `app.ts`, so
+ * every entry must be safe to show a client: variable *names* and validation
+ * *messages* only — never values.
+ *
+ * Two distinct failure classes are reported:
+ *  - missing   — the variable is absent entirely
+ *  - malformed — the variable is present but rejected validation (too short,
+ *                not a URL, not a number). These used to crash the serverless
+ *                module at import time and produce a blanket HTTP 500.
+ */
 export function getConfigErrors(): string[] {
   const missing: string[] = [];
   if (!resolveDatabaseUrl()) {
@@ -99,5 +110,35 @@ export function getConfigErrors(): string[] {
   if (isProduction && !env.ADMIN_PASSWORD) {
     missing.push("ADMIN_PASSWORD");
   }
+  // Errors only. Advisories ("shorter than recommended") must never turn into
+  // a 503 — the value works, it is merely not ideal.
+  for (const issue of getEnvErrors()) {
+    missing.push(`${issue.key} (${issue.message})`);
+  }
   return missing;
+}
+
+/**
+ * Runtime status for the health endpoint. Deliberately coarse: it reports
+ * *whether* the server can do its job, never connection strings or secrets.
+ */
+export function getConfigStatus(): {
+  ok: boolean;
+  environment: string;
+  database: boolean;
+  authSecret: boolean;
+  adminPassword: boolean;
+  errors: string[];
+} {
+  const env = getEnv();
+  const errors = getConfigErrors();
+  return {
+    ok: errors.length === 0,
+    environment: env.NODE_ENV,
+    database: Boolean(resolveDatabaseUrl()),
+    authSecret: Boolean(env.AUTH_SECRET ?? env.SESSION_SECRET),
+    adminPassword: Boolean(env.ADMIN_PASSWORD),
+    // Names + validation messages only.
+    errors,
+  };
 }

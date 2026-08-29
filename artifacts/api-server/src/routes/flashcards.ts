@@ -22,9 +22,15 @@ const createCardSchema = z.object({
 /** Leitner box intervals in days: box 1 → 1d, 2 → 3d, 3 → 7d, 4 → 14d, 5 → 30d. */
 const BOX_INTERVALS_DAYS = [0, 1, 3, 7, 14, 30];
 
-// Scoped to the /flashcards prefix — see the note in emotes.ts: an unscoped
-// router.use(authMiddleware) here leaked auth enforcement to every router
-// mounted after this one in index.ts.
+// Scoped to /flashcards — NOT `router.use(authMiddleware)`.
+//
+// A pathless `router.use()` applies to every request that reaches this router,
+// and because the main router mounts these modules with `router.use(flashcardsRouter)`
+// (no mount path), the middleware also leaked onto every router mounted *after*
+// this one. That silently required authentication for /api/deployment,
+// /api/feature-flags, /api/mobile/*, /api/premium/*, /api/recommendations and
+// more — which is why the deployment-version endpoint answered 401 for
+// anonymous visitors.
 router.use("/flashcards", authMiddleware);
 
 // ─── DECKS ──────────────────────────────────────────────────────────────────

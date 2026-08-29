@@ -50,6 +50,7 @@
  *    - Shows "Update available" badge in navigation
  */
 
+import logger from "./logger";
 import { useEffect, useCallback, useState, useRef } from "react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -144,7 +145,7 @@ export function recordServerVersion(version: string | null | undefined): void {
       serverVersion: version,
     });
 
-    console.warn(
+    logger.warn(
       `[deploy-skew] Version mismatch: frontend=${FRONTEND_DEPLOYMENT_VERSION}, ` +
       `server=${version}${previousVersion ? ` (was ${previousVersion})` : ""}. ` +
       `A new deployment has landed.`
@@ -186,13 +187,13 @@ export async function handleChunkLoadError<T>(
 
     chunkRetryCount++;
     if (chunkRetryCount > MAX_CHUNK_RETRIES) {
-      console.error(`[deploy-skew] Chunk load failed after ${MAX_CHUNK_RETRIES} retries: ${chunkName ?? "unknown"}`);
+      logger.error(`[deploy-skew] Chunk load failed after ${MAX_CHUNK_RETRIES} retries: ${chunkName ?? "unknown"}`);
       // Force a hard refresh — the deployment has changed and chunks are gone
       safeRefresh();
       throw err;
     }
 
-    console.warn(
+    logger.warn(
       `[deploy-skew] Chunk load failed (attempt ${chunkRetryCount}/${MAX_CHUNK_RETRIES}): ${chunkName ?? "unknown"}. ` +
       `Clearing SW cache and retrying...`
     );
@@ -230,7 +231,7 @@ function setupGlobalChunkErrorHandler() {
          err.message?.includes("Loading chunk") ||
          err.message?.includes("error loading dynamically imported module"))) {
       event.preventDefault();
-      console.warn("[deploy-skew] Caught chunk load error — triggering recovery");
+      logger.warn("[deploy-skew] Caught chunk load error — triggering recovery");
 
       // Check if this is likely a deployment skew issue
       if (mismatchDetected) {
@@ -265,7 +266,7 @@ export function queueMutation(mutation: QueuedMutation): void {
     const queue: QueuedMutation[] = raw ? JSON.parse(raw) : [];
 
     if (queue.length >= MAX_QUEUED_MUTATIONS) {
-      console.warn("[deploy-skew] Mutation queue full — dropping oldest entry");
+      logger.warn("[deploy-skew] Mutation queue full — dropping oldest entry");
       queue.shift();
     }
 
@@ -293,13 +294,13 @@ export async function replayQueuedMutations(): Promise<number> {
     for (const mutation of queue) {
       // Only auto-replay idempotent mutations
       if (!mutation.idempotent) {
-        console.warn(`[deploy-skew] Skipping non-idempotent mutation: ${mutation.method} ${mutation.url}`);
+        logger.warn(`[deploy-skew] Skipping non-idempotent mutation: ${mutation.method} ${mutation.url}`);
         continue;
       }
 
       // Skip mutations older than 10 minutes (stale data risk)
       if (Date.now() - mutation.timestamp > 10 * 60 * 1000) {
-        console.warn(`[deploy-skew] Skipping stale mutation (>10min): ${mutation.method} ${mutation.url}`);
+        logger.warn(`[deploy-skew] Skipping stale mutation (>10min): ${mutation.method} ${mutation.url}`);
         continue;
       }
 
@@ -316,12 +317,12 @@ export async function replayQueuedMutations(): Promise<number> {
 
         if (res.ok) {
           replayed++;
-          console.info(`[deploy-skew] Replayed mutation: ${mutation.method} ${mutation.url}`);
+          logger.info(`[deploy-skew] Replayed mutation: ${mutation.method} ${mutation.url}`);
         } else {
-          console.warn(`[deploy-skew] Replay failed (${res.status}): ${mutation.method} ${mutation.url}`);
+          logger.warn(`[deploy-skew] Replay failed (${res.status}): ${mutation.method} ${mutation.url}`);
         }
       } catch {
-        console.warn(`[deploy-skew] Replay network error: ${mutation.method} ${mutation.url}`);
+        logger.warn(`[deploy-skew] Replay network error: ${mutation.method} ${mutation.url}`);
       }
     }
 
@@ -426,7 +427,7 @@ function isUserActivelyTyping(): boolean {
  */
 export function safeRefresh(): void {
   if (refreshAttempted) {
-    console.warn("[deploy-skew] Refresh already attempted — ignoring to prevent loops.");
+    logger.warn("[deploy-skew] Refresh already attempted — ignoring to prevent loops.");
     return;
   }
 
@@ -434,7 +435,7 @@ export function safeRefresh(): void {
   try {
     refreshCount = parseInt(sessionStorage.getItem(STORAGE_KEYS.REFRESH_COUNT) ?? "0", 10);
     if (refreshCount >= MAX_REFRESH_ATTEMPTS) {
-      console.error(
+      logger.error(
         `[deploy-skew] Max refresh attempts (${MAX_REFRESH_ATTEMPTS}) reached. ` +
         `Giving up to prevent infinite refresh loop.`
       );
@@ -447,7 +448,7 @@ export function safeRefresh(): void {
 
   // Don't refresh while user is typing
   if (isUserActivelyTyping()) {
-    console.warn("[deploy-skew] User is actively typing — deferring refresh.");
+    logger.warn("[deploy-skew] User is actively typing — deferring refresh.");
     refreshAttempted = false;
     return;
   }
@@ -640,7 +641,7 @@ export function useDeploymentSkewDetector() {
     restoreFormState();
     replayQueuedMutations().then((count) => {
       if (count > 0) {
-        console.info(`[deploy-skew] Replayed ${count} queued mutation(s) after refresh.`);
+        logger.info(`[deploy-skew] Replayed ${count} queued mutation(s) after refresh.`);
       }
     });
 

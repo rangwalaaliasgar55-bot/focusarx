@@ -159,10 +159,13 @@ describe("console output source contract", () => {
   it("console.warn / console.error are confined to genuine failure paths", () => {
     // These are the ONLY modules allowed to print unconditionally, and each one
     // represents a real failure a developer must see — never routine chatter.
+    //
+    // Deployment skew is deliberately NOT here: every event it logs is either
+    // recoverable or already surfaced to the user as a refresh prompt, so it
+    // routes through lib/logger.ts like other routine diagnostics.
     const ALLOWED = new Set([
       path.join("lib", "logger.ts"),
       path.join("components", "ErrorBoundary.tsx"),
-      path.join("components", "camera", "FloatingCamera.tsx"),
       path.join("hooks", "useLocalStorage.ts"),
       path.join("pages", "messages.tsx"),
     ]);

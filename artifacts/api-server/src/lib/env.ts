@@ -1,18 +1,26 @@
 import { z } from "zod";
 
 /**
- * Centralized environment validation.
+ * Centralized environment access.
  *
- * One invalid variable must never take the whole API down. Recovery model:
- *  - getEnv() ALWAYS recovers: invalid keys are dropped (they are all
- *    optional) with a loud `[env] Ignoring invalid KEY` log line, so the
- *    server keeps serving everything that doesn't depend on the bad key.
- *    (It used to throw in production, which — combined with module-scope
- *    limiter construction — 500'd every route in the deployment.)
- *  - Required-in-production gaps are still enforced, but per-request and
- *    with a clear message: routes/middleware turn them into 503
- *    CONFIG_ERROR responses naming what's missing (see getConfigErrors),
- *    and validateProductionEnv() still fails fast for long-running starts.
+ * ── Design rule: `getEnv()` MUST NEVER THROW. ────────────────────────────────
+ *
+ * This module used to throw whenever Zod rejected *any* variable while
+ * `NODE_ENV === "production"`. Because `getEnv()` is reached at module
+ * evaluation time (routes/auth → lib/rateLimiter → lib/rateLimitStore →
+ * lib/env), a single malformed variable crashed the whole serverless module.
+ * Vercel then answered **every** request with HTTP 500 and emitted no
+ * route-level log — the production incident this file was written to fix.
+ *
+ * The correct semantics are:
+ *   - Absent  variables → the request-time config gate answers 503 CONFIG_ERROR
+ *     naming exactly what is missing (see `getConfigErrors` in lib/config.ts).
+ *   - Malformed variables → recorded in `getEnvIssues()`, logged once at ERROR,
+ *     surfaced by the same gate, and individually dropped so the remaining
+ *     valid configuration still applies.
+ *
+ * A server that boots and reports its own misconfiguration is strictly more
+ * operable than one that 500s on every route.
  */
 
 const envSchema = z.object({
@@ -38,8 +46,15 @@ const envSchema = z.object({
   CORS_ALLOWED_ORIGINS: z.string().optional(),
 
   // Admin
-  // Same floor as regular user passwords (auth.ts registerSchema); the admin
-  // gate is additionally rate-limited and compared in constant time.
+  //
+  // The hard floor is 8 characters, not 16. A stricter floor looks better on
+  // paper but is actively harmful in practice: the real production value is
+  // 13 characters, and because `getEnv()` now drops invalid keys instead of
+  // throwing, a 16-char floor would not crash — it would *silently disable
+  // admin login* while the API reported itself healthy. The correct split is:
+  //   - < 8 chars  → rejected (error): unusable, dropped, reported by the gate
+  //   - 8..15      → accepted (advisory): admin login keeps working, operators
+  //                  get a warning recommending a longer password
   ADMIN_PASSWORD: z.string().min(8, "ADMIN_PASSWORD must be at least 8 characters").optional(),
 
   // OAuth
@@ -82,56 +97,179 @@ const envSchema = z.object({
 
 type RawEnv = z.infer<typeof envSchema>;
 
-function formatZodErrors(error: z.ZodError): string {
-  return error.errors
-    .map((e) => `  - ${e.path.join(".")}: ${e.message}`)
-    .join("\n");
+/**
+ * How badly an environment problem affects the running server.
+ *
+ *  - `error`   — the variable is unusable and has been dropped. The feature it
+ *                powers is disabled, and the config gate names it in a 503.
+ *  - `warning` — the variable parsed and the feature works, but the value is
+ *                weaker than recommended. Never blocks a request.
+ */
+export type EnvSeverity = "error" | "warning";
+
+/** A single rejected or suspect environment variable. Safe to log and to show an operator. */
+export interface EnvIssue {
+  /** Variable name. Never includes the value — values may be secrets. */
+  key: string;
+  /** Human-readable validation message. */
+  message: string;
+  /** `error` blocks the affected feature; `warning` is advisory only. */
+  severity: EnvSeverity;
+}
+
+function formatIssues(issues: EnvIssue[]): string {
+  return issues.map((i) => `  - [${i.severity}] ${i.key}: ${i.message}`).join("\n");
+}
+
+/**
+ * Values that parse successfully but fall short of what we recommend.
+ *
+ * These deliberately do NOT become errors: the production admin password is
+ * 13 characters, and turning a "could be stronger" opinion into a hard failure
+ * is how you lock yourself out of your own admin panel.
+ */
+function collectAdvisories(data: RawEnv): EnvIssue[] {
+  const advisories: EnvIssue[] = [];
+  if (data.ADMIN_PASSWORD && data.ADMIN_PASSWORD.length < 16) {
+    advisories.push({
+      key: "ADMIN_PASSWORD",
+      message: "accepted, but shorter than the recommended 16 characters",
+      severity: "warning",
+    });
+  }
+  return advisories;
+}
+
+/**
+ * `NODE_ENV` is derived independently of Zod so that an unrecognised value
+ * (`prod`, `Production`, `prodution`) can never flip a production deployment
+ * into development mode — which would silently disable secure cookies and JWT
+ * verification.
+ */
+function resolveNodeEnv(): "development" | "test" | "production" {
+  const raw = process.env["NODE_ENV"];
+  if (raw === "production" || raw === "test" || raw === "development") return raw;
+  // Vercel always sets VERCEL_ENV; treat its production signal as authoritative.
+  if (process.env["VERCEL_ENV"] === "production") return "production";
+  return "development";
+}
+
+/**
+ * Parse `process.env`, dropping only the keys that failed validation so one
+ * malformed variable never discards the rest of the configuration.
+ */
+function recover(candidates: Record<string, string | undefined>): {
+  data: RawEnv;
+  issues: EnvIssue[];
+} {
+  const issues: EnvIssue[] = [];
+  const scrubbed: Record<string, string | undefined> = { ...candidates };
+  const nodeEnv = resolveNodeEnv();
+
+  // At most a handful of iterations: each pass either succeeds or removes at
+  // least one key from a finite key set.
+  for (let pass = 0; pass < 8; pass += 1) {
+    const result = envSchema.safeParse(scrubbed);
+    if (result.success) {
+      return { data: { ...result.data, NODE_ENV: nodeEnv }, issues };
+    }
+    const rejected = new Set<string>();
+    for (const error of result.error.errors) {
+      const key = error.path[0];
+      if (typeof key === "string") {
+        if (!rejected.has(key)) {
+          rejected.add(key);
+          issues.push({ key, message: error.message, severity: "error" });
+        }
+        delete scrubbed[key];
+      }
+    }
+    if (rejected.size === 0) break; // nothing left to drop — stop looping
+  }
+
+  // Absolute floor: start from a known-good minimal environment. Keeps the
+  // process alive and lets /api/healthz report the real problems.
+  const minimal: RawEnv = envSchema.parse({
+    NODE_ENV: nodeEnv,
+    PATH: undefined,
+  });
+  return { data: minimal, issues };
 }
 
 let parsedEnv: RawEnv | null = null;
+let envIssues: EnvIssue[] = [];
+let reported = false;
 
+/** Best-effort, never-throwing environment snapshot. Cached after first call. */
 export function getEnv(): RawEnv {
   if (parsedEnv) return parsedEnv;
 
-  const result = envSchema.safeParse(process.env);
-
-  if (!result.success) {
-    console.error("[env] Invalid environment variables:\n" + formatZodErrors(result.error));
-    // Recover by dropping ONLY the offending keys and re-parsing, so one
-    // malformed variable doesn't discard every valid one (a full
-    // envSchema.parse({}) here used to zero out the whole config) — and, in
-    // production, used to throw and 500 every request. Every schema field is
-    // optional, so dropping an invalid key is always safe; if that key was
-    // required in production, getConfigErrors() reports it as a 503
-    // CONFIG_ERROR naming the variable, which is actionable instead of an
-    // opaque INTERNAL_ERROR.
-    const scrubbed: Record<string, string | undefined> = { ...process.env };
-    for (const issue of result.error.errors) {
-      const key = issue.path[0];
-      if (typeof key === "string") {
-        delete scrubbed[key];
-        console.warn(`[env] Ignoring invalid ${key} in ${process.env.NODE_ENV ?? "development"}`);
-      }
-    }
-    parsedEnv = envSchema.parse(scrubbed);
-    return parsedEnv;
+  const direct = envSchema.safeParse(process.env);
+  if (direct.success) {
+    parsedEnv = { ...direct.data, NODE_ENV: resolveNodeEnv() };
+    envIssues = collectAdvisories(parsedEnv);
+  } else {
+    const recovered = recover(process.env as Record<string, string | undefined>);
+    parsedEnv = recovered.data;
+    envIssues = [...recovered.issues, ...collectAdvisories(parsedEnv)];
   }
 
-  parsedEnv = result.data;
+  if (!reported) {
+    reported = true;
+    // One line per variable: greppable in Vercel's log search, and each line
+    // names the exact variable to fix. Values are never logged.
+    for (const issue of envIssues) {
+      if (issue.severity === "error") {
+        console.warn(`[env] Ignoring invalid ${issue.key}: ${issue.message}`);
+      } else {
+        console.warn(`[env] ${issue.key}: ${issue.message}`);
+      }
+    }
+    const errors = envIssues.filter((i) => i.severity === "error");
+    if (errors.length > 0) {
+      console.error(
+        "[env] Rejected environment variable(s) — the affected features are disabled:\n" +
+          formatIssues(errors) +
+          "\n[env] Fix these in your deployment's environment settings. See docs/ENVIRONMENT.md.",
+      );
+    }
+  }
+
   return parsedEnv;
 }
 
 /**
- * Validates that production has all required secrets.
- * Throws with a clear message if missing, so server fails fast.
+ * Variables that failed validation or carry a weaker-than-recommended value.
+ * Exposed so the config gate can tell an operator exactly what is wrong
+ * instead of returning a bare 500/503.
  */
-export function validateProductionEnv(): void {
+export function getEnvIssues(): EnvIssue[] {
+  getEnv(); // ensure parsing has run
+  return envIssues;
+}
+
+/**
+ * Only the issues that actually disable a feature. The config gate turns these
+ * into a 503; advisories are deliberately excluded so a weak-but-usable value
+ * can never take the API down.
+ */
+export function getEnvErrors(): EnvIssue[] {
+  return getEnvIssues().filter((i) => i.severity === "error");
+}
+
+/**
+ * Report what production is missing or has misconfigured.
+ *
+ * Previously this threw, which turned a recoverable misconfiguration into a
+ * boot crash loop (standalone) or a blanket 500 (serverless). It now returns a
+ * list so the caller can log a fatal banner and keep serving — `/api/healthz`
+ * stays up and the config gate returns a precise, actionable 503.
+ */
+export function validateProductionEnv(): string[] {
   const env = getEnv();
-  const isProd = env.NODE_ENV === "production";
+  const problems: string[] = [];
 
-  if (!isProd) return;
-
-  const missing: string[] = [];
+  if (env.NODE_ENV !== "production") return problems;
 
   const hasDb =
     env.DATABASE_URL ||
@@ -139,29 +277,23 @@ export function validateProductionEnv(): void {
     env.POSTGRES_URL_NON_POOLING ||
     env.POSTGRES_PRISMA_URL;
 
-  if (!hasDb) missing.push("DATABASE_URL (or POSTGRES_URL_NON_POOLING)");
-  if (!env.AUTH_SECRET && !env.SESSION_SECRET) missing.push("AUTH_SECRET (min 32 chars)");
-  if (!env.ADMIN_PASSWORD) missing.push("ADMIN_PASSWORD (min 8 chars)");
-  if (!env.APP_URL && !env.VERCEL_URL) missing.push("APP_URL (or VERCEL_URL auto)");
+  if (!hasDb) problems.push("DATABASE_URL (or POSTGRES_URL_NON_POOLING) is not set");
+  if (!env.AUTH_SECRET && !env.SESSION_SECRET) problems.push("AUTH_SECRET (min 32 chars) is not set");
+  if (!env.ADMIN_PASSWORD) problems.push("ADMIN_PASSWORD (min 8 chars) is not set");
+  if (!env.APP_URL && !env.VERCEL_URL) problems.push("APP_URL (or VERCEL_URL auto) is not set");
 
-  if (missing.length > 0) {
-    const message =
-      `[env] Missing required environment variables in production:\n` +
-      missing.map((m) => `  - ${m}`).join("\n") +
-      `\n\nAdd them in your hosting provider's environment settings.\n` +
-      `See .env.example for reference.`;
-
-    console.error(message);
-    throw new Error(message);
-  }
-
-  // Additional strength checks in production
+  // Strength checks — a too-short secret is as dangerous as a missing one.
+  // ADMIN_PASSWORD is intentionally absent: its floor is 8 and anything above
+  // that is an advisory, not a problem (see collectAdvisories).
   if (env.AUTH_SECRET && env.AUTH_SECRET.length < 32) {
-    throw new Error("[env] AUTH_SECRET must be at least 32 characters in production");
+    problems.push("AUTH_SECRET is too short (must be at least 32 characters)");
   }
-  if (env.ADMIN_PASSWORD && env.ADMIN_PASSWORD.length < 8) {
-    throw new Error("[env] ADMIN_PASSWORD must be at least 8 characters in production");
+
+  for (const issue of getEnvErrors()) {
+    problems.push(`${issue.key} is invalid (${issue.message})`);
   }
+
+  return problems;
 }
 
 export function getDatabaseUrl(): string | null {

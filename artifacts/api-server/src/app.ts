@@ -204,33 +204,55 @@ app.use("/api", generalLimiter);
 // Must run before route handlers so every response carries the version.
 app.use("/api", deploymentVersionHeaders);
 app.use("/api", deploymentSkewGuard);
+
+/**
+ * Endpoints that must keep answering during a configuration incident.
+ *
+ * `/healthz`     — the probe an operator (and Vercel) uses to see the server.
+ * `/site/settings` — purely decorative (announcement bar, maintenance banner);
+ *                    `getSiteSettings()` already degrades to defaults, so a
+ *                    missing database must not turn the whole page into an
+ *                    error state.
+ * `/deployment`  — the frontend polls this to detect a new deployment. If it
+ *                  503s during an incident, users are never told to refresh and
+ *                  stay pinned to a stale bundle.
+ */
+const CONFIG_GATE_EXEMPT_PREFIXES = ["/healthz", "/site/settings", "/deployment"];
+
 app.use("/api", (req, res, next) => {
-  if (req.path === "/healthz" || req.path.startsWith("/healthz/")) {
+  if (CONFIG_GATE_EXEMPT_PREFIXES.some((p) => req.path === p || req.path.startsWith(p + "/"))) {
     next();
     return;
   }
+  // getConfigErrors() introspects the environment. If that introspection ever
+  // throws, the failure must not become an opaque 500 — the whole point of this
+  // gate is to explain what is wrong, so it reports 503 with a pointer to the
+  // logs instead.
+  let missing: string[];
   try {
-    const missing = getConfigErrors();
-    if (missing.length > 0) {
-      res.status(503).json({
-        error: {
-          code: "CONFIG_ERROR",
-          message: "Server is missing required configuration",
-          missing,
-          hint: "Add these in your environment variables: " + missing.join(", "),
-          requestId: (req as any).id,
-        },
-      });
-      return;
-    }
+    missing = getConfigErrors();
   } catch (err) {
-    // Never let a config introspection failure become an opaque 500.
-    logger.error({ err }, "config gate failed");
+    logger.error({ err, requestId: (req as any).id }, "config gate failed");
     res.status(503).json({
       error: {
         code: "CONFIG_ERROR",
         message: "Server configuration could not be validated",
         hint: "Check the API server logs for [env] lines naming the invalid variable.",
+        docs: "See docs/ENVIRONMENT.md",
+        requestId: (req as any).id,
+      },
+    });
+    return;
+  }
+
+  if (missing.length > 0) {
+    res.status(503).json({
+      error: {
+        code: "CONFIG_ERROR",
+        message: "Server is missing required configuration",
+        missing,
+        hint: "Fix these in your deployment's environment variables: " + missing.join(", "),
+        docs: "See docs/ENVIRONMENT.md",
         requestId: (req as any).id,
       },
     });
@@ -277,7 +299,22 @@ app.use(sitemapRouter);
 
 app.use("/api", router);
 
-// Centralized error handling — standardized format, no leakage
+// Unknown /api/* paths. Without this, Express's built-in finalhandler answers
+// with an HTML error page, which breaks every client that calls res.json() on
+// the response and makes a typo'd endpoint look like a server crash.
+app.use("/api", (req, res) => {
+  res.status(404).json({
+    error: {
+      code: "NOT_FOUND",
+      message: `Unknown API endpoint: ${req.method} ${req.path}`,
+      requestId: (req as any).id,
+    },
+  });
+});
+
+// ── Centralized error handling ─────────────────────────────────────────────
+// Standardized `{ error: { code, message, requestId } }` envelope for every
+// failure path, with the original exception logged server-side only.
 app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   const requestId = (req as any).id ?? `req_${crypto.randomUUID()}`;
 
@@ -286,6 +323,33 @@ app.use((err: any, req: express.Request, res: express.Response, _next: express.N
       error: {
         code: "CORS_FORBIDDEN",
         message: "Origin not allowed",
+        requestId,
+      },
+    });
+    return;
+  }
+
+  // Body-parser failures. express.json() rejects with these *before* any route
+  // runs, so without this branch a client sending malformed JSON got a 500 —
+  // which is both wrong (it is a client error) and indistinguishable from a
+  // real server fault in the logs.
+  if (err.type === "entity.parse.failed" || err instanceof SyntaxError) {
+    logger.warn({ requestId, url: req.url }, "malformed JSON request body");
+    res.status(400).json({
+      error: {
+        code: "INVALID_JSON",
+        message: "The request body is not valid JSON",
+        requestId,
+      },
+    });
+    return;
+  }
+
+  if (err.type === "entity.too.large") {
+    res.status(413).json({
+      error: {
+        code: "PAYLOAD_TOO_LARGE",
+        message: "The request body is too large",
         requestId,
       },
     });
@@ -310,6 +374,22 @@ app.use((err: any, req: express.Request, res: express.Response, _next: express.N
       error: {
         code: "RATE_LIMITED",
         message: "Too many requests, please try again later",
+        requestId,
+      },
+    });
+    return;
+  }
+
+  // Errors that already carry a deliberate HTTP status (4xx from a helper that
+  // threw rather than responded) keep that status instead of being flattened
+  // into a 500.
+  const errStatus = typeof err.status === "number" ? err.status : 0;
+  if (errStatus >= 400 && errStatus < 500) {
+    logger.warn({ err, requestId, url: req.url, method: req.method }, "client error");
+    res.status(errStatus).json({
+      error: {
+        code: err.code ?? "BAD_REQUEST",
+        message: typeof err.message === "string" && err.expose ? err.message : "The request could not be completed",
         requestId,
       },
     });

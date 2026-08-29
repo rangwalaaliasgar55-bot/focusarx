@@ -6,6 +6,7 @@ import { logger } from "../lib/logger";
 import { trackLimiter } from "../lib/rateLimiter";
 import { isBotUserAgent } from "../lib/botFilter";
 import { parseUserAgent, resolveCountry } from "../lib/parseUserAgent";
+import { sendValidationError } from "../lib/httpErrors";
 import { extractUserId } from "./auth";
 
 const router = Router();
@@ -85,7 +86,7 @@ async function findOrCreateSession(visitorId: string, sessionId: string | undefi
 router.post("/track", trackLimiter, async (req, res) => {
   const parsed = trackSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Invalid tracking payload" });
+    sendValidationError(res, "Invalid tracking payload");
     return;
   }
 
@@ -202,8 +203,19 @@ router.post("/track", trackLimiter, async (req, res) => {
 
     res.json({ ok: true, sessionId: session.id, isNewSession: isNew });
   } catch (err) {
-    logger.error({ err }, "track error");
-    res.status(500).json({ error: "Internal error" });
+    // Analytics is best-effort telemetry, never part of the product contract.
+    //
+    // A 500 here is actively harmful: the client batches events and flushes on
+    // a timer, so failing loudly turns one database blip into a retry storm
+    // from every open tab at exactly the moment the database is already
+    // struggling. Log the real error server-side, answer 503 with `ok: false`
+    // — honest, retryable, distinguishable from success. Nothing in the app
+    // reads this response to decide whether to keep working.
+    logger.warn({ err, visitorId, page }, "track error — analytics event dropped");
+    res.status(503).json({
+      ok: false,
+      error: { code: "TRACK_FAILED", message: "Analytics event could not be recorded" },
+    });
   }
 });
 
