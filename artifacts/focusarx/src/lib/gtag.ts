@@ -1,24 +1,15 @@
 /**
- * Google Analytics 4 (GA4) integration.
+ * Google Analytics 4 (GA4) event helpers.
  *
- * Loads gtag.js lazily and only when a measurement ID is configured via
- * VITE_GA_MEASUREMENT_ID — so there is zero cost (no extra request, no console
- * noise) when analytics isn't set up. Tracks SPA page views and custom events.
+ * The GA4 loader and configuration are installed exactly once in the global
+ * Vite HTML entry point (`artifacts/focusarx/index.html`). Every prerendered
+ * route inherits that document head, and the inline bootstrap creates
+ * `window.gtag` synchronously so events can safely queue while gtag.js loads.
  *
- * Setup:
- *   1. Create a GA4 property at https://analytics.google.com
- *   2. Add VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX to your deployment env
- *      (or edit the fallback below)
- *
- * Active property: G-PXMVX28PL5 (FocusArx web stream, set 2026-08-24).
+ * This module deliberately never injects a script tag. It only forwards SPA
+ * page views and product events to the global Google tag, preventing duplicate
+ * GA4 loaders while preserving client-side route tracking.
  */
-
-/** Production measurement ID. Overridable via VITE_GA_MEASUREMENT_ID env var. */
-const GA4_MEASUREMENT_ID_FALLBACK = "G-PXMVX28PL5";
-
-const MEASUREMENT_ID =
-  ((import.meta.env.VITE_GA_MEASUREMENT_ID as string | undefined) || GA4_MEASUREMENT_ID_FALLBACK).trim() ||
-  undefined;
 
 type Gtag = (command: "config" | "event" | "js" | "set", ...args: unknown[]) => void;
 
@@ -29,45 +20,27 @@ declare global {
   }
 }
 
-let initialized = false;
-
-export function isGAConfigured(): boolean {
-  return Boolean(MEASUREMENT_ID);
-}
-
-export function initGtag(): void {
-  if (!MEASUREMENT_ID || initialized) return;
-  initialized = true;
-
-  window.dataLayer = window.dataLayer || [];
-  window.gtag = function gtag(...args: unknown[]) {
-    window.dataLayer!.push(args);
-  };
-
-  const script = document.createElement("script");
-  script.async = true;
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${MEASUREMENT_ID}`;
-  document.head.appendChild(script);
-
-  window.gtag("js", new Date());
-  window.gtag("config", MEASUREMENT_ID, {
-    send_page_view: false, // SPA — we send page views manually on route change.
-    anonymize_ip: true,
-  });
+function getGtag(): Gtag | undefined {
+  if (typeof window === "undefined") return undefined;
+  return window.gtag;
 }
 
 /** Send a page view for an SPA route. */
 export function trackPageView(path: string): void {
-  if (!MEASUREMENT_ID || !window.gtag) return;
-  window.gtag("event", "page_view", {
+  const gtag = getGtag();
+  if (!gtag) return;
+
+  gtag("event", "page_view", {
     page_path: path,
     page_title: document.title,
     page_location: window.location.href,
   });
 }
 
-/** Send a custom event (e.g. signup, session_start). */
+/** Send a custom event (for example, sign-up or session start). */
 export function trackEvent(name: string, params?: Record<string, unknown>): void {
-  if (!MEASUREMENT_ID || !window.gtag) return;
-  window.gtag("event", name, params ?? {});
+  const gtag = getGtag();
+  if (!gtag) return;
+
+  gtag("event", name, params ?? {});
 }
