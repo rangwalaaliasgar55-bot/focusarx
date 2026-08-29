@@ -5,6 +5,7 @@ import {
   Bell,
   BookOpen,
   Brain,
+  Building2,
   CheckSquare2,
   ChevronDown,
   Flame,
@@ -103,6 +104,9 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
       { href: "/missions", label: "Missions", icon: Target, badge: "missions" },
       { href: "/achievements", label: "Achievements", icon: Medal },
+      // Focus City was only reachable from the mobile "More" sheet; desktop had
+      // no route to a core feature. Both surfaces now expose it.
+      { href: "/city", label: "Focus City", icon: Building2 },
       { href: "/break-free", label: "Break Free", icon: Flame },
       { href: "/social", label: "Community", icon: Users },
     ],
@@ -279,7 +283,9 @@ function UserMenu({ compact = false }: { compact?: boolean }) {
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild><Link href="/profile"><UserRound /> Profile</Link></DropdownMenuItem>
         <DropdownMenuItem asChild><Link href="/notifications"><Bell /> Notifications</Link></DropdownMenuItem>
-        <DropdownMenuItem asChild><Link href="/profile"><Settings /> Settings</Link></DropdownMenuItem>
+        {/* Profile and Settings both pointed at /profile — one of them was a
+            dead duplicate. Settings now deep-links to the Style tab. */}
+        <DropdownMenuItem asChild><Link href="/profile?tab=custom"><Settings /> Settings</Link></DropdownMenuItem>
         <DropdownMenuItem onSelect={() => setTheme(theme === "dark" ? "light" : "dark")}>
           {theme === "dark" ? <Sun /> : <Moon />} {theme === "dark" ? "Light mode" : "Dark mode"}
         </DropdownMenuItem>

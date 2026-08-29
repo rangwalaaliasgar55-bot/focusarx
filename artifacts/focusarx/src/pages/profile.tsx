@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { motion } from "framer-motion";
 import {
   Award,
@@ -283,12 +283,38 @@ function CustomizationTab() {
   );
 }
 
+/** The selectable tabs, in the order they appear. */
+const PROFILE_TABS = ["achievements", "activity", "wallet", "custom"] as const;
+type ProfileTab = (typeof PROFILE_TABS)[number];
+
+function isProfileTab(value: string | null): value is ProfileTab {
+  return value !== null && (PROFILE_TABS as readonly string[]).includes(value);
+}
+
 export default function ProfilePage() {
   const { data: session } = useAuth();
   const { toast } = useToast();
   const [editing, setEditing] = useState(false);
   const [achievementFilter, setAchievementFilter] = useState<"all" | "unlocked" | "locked">("all");
   const [txFilter, setTxFilter] = useState<"all" | "earn" | "spend">("all");
+
+  /*
+    Tab state lives in the URL so it survives a refresh and can be linked to —
+    the header's "Settings" entry points at ?tab=custom rather than duplicating
+    the Profile link. Unknown or missing values fall back to the first tab.
+  */
+  const search = useSearch();
+  const [, navigate] = useLocation();
+  const requestedTab = new URLSearchParams(search).get("tab");
+  const activeTab: ProfileTab = isProfileTab(requestedTab) ? requestedTab : "achievements";
+
+  const selectTab = (value: string) => {
+    if (!isProfileTab(value)) return;
+    // Keep the URL clean for the default tab so a shared profile link stays
+    // short, and use replace so the back button leaves the page rather than
+    // stepping through every tab you opened.
+    navigate(value === "achievements" ? "/profile" : `/profile?tab=${value}`, { replace: true });
+  };
 
   const query = useQuery({
     queryKey: ["profile-overview"],
@@ -354,7 +380,7 @@ export default function ProfilePage() {
       <NotificationSettingsCard />
       <AccountSecuritySection />
 
-      <Tabs defaultValue="achievements">
+      <Tabs value={activeTab} onValueChange={selectTab}>
         <TabsList className="mb-5 grid h-auto w-full max-w-md grid-cols-4"><TabsTrigger value="achievements" className="min-h-11"><Award /> Achievements</TabsTrigger><TabsTrigger value="activity" className="min-h-11"><History /> Activity</TabsTrigger><TabsTrigger value="wallet" className="min-h-11"><WalletCards /> Wallet</TabsTrigger><TabsTrigger value="custom" className="min-h-11"><Palette /> Style</TabsTrigger></TabsList>
 
         <TabsContent value="achievements">

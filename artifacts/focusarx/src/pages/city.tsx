@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
@@ -7,6 +7,8 @@ import { usePremium } from "@/hooks/usePremium";
 import { Link } from "wouter";
 import { PAGE, CARD, STAGGER } from "@/lib/animations";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
+import { ErrorState } from "@/components/ErrorState";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { Building, City, Wallet } from "@/types/gamification";
 
 function authHeaders() {
@@ -30,22 +32,23 @@ const WEATHER_EMOJI: Record<string, string> = {
   fog: "🌫️", wind: "💨", rainbow: "🌈",
 };
 
-function BuildingCard({ building, owned, onBuy, wallet }: {
-  building: Building; owned: boolean; onBuy: (b: Building) => void; wallet: Wallet | null;
+function BuildingCard({ building, owned, onBuy, wallet, busy }: {
+  building: Building; owned: boolean; onBuy: (b: Building) => void; wallet: Wallet | null; busy?: boolean;
 }) {
   const canAfford = wallet ? wallet.coins >= building.coinCost : false;
   const meetsLevel = wallet ? wallet.level >= building.unlockLevel : false;
   const meetsSession = true; // simplified check
 
+  // The whole card used to be clickable *and* contain a Buy button: a nested
+  // interactive control that keyboard users could never reach. The button owns it.
   return (
     <motion.div
       variants={CARD}
-      className={`relative rounded-2xl border p-4 transition-all cursor-pointer ${
+      className={`relative rounded-2xl border p-4 transition-all ${
         owned
           ? "border-[var(--rgba-124-58-237-0_4)] bg-[var(--rgba-124-58-237-0_08)]"
-          : "border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] hover:border-[var(--rgba-124-58-237-0_2)]"
-      }`}
-      onClick={() => !owned && meetsLevel && meetsSession && onBuy(building)}
+          : "border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)]"
+      } ${busy ? "opacity-70" : ""}`}
     >
       {owned && (
         <div className="absolute top-2 right-2 rounded-full bg-[var(--palette-10b981)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--palette-white)]">BUILT</div>
@@ -79,9 +82,15 @@ function BuildingCard({ building, owned, onBuy, wallet }: {
 
       {!owned && (
         <button
-          onClick={(e) => { e.stopPropagation(); meetsLevel && meetsSession && onBuy(building); }}
-          disabled={!canAfford || !meetsLevel || !meetsSession}
-          className="w-full rounded-xl py-1.5 text-xs font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          type="button"
+          onClick={() => { if (meetsLevel && meetsSession && !busy) onBuy(building); }}
+          disabled={!canAfford || !meetsLevel || !meetsSession || busy}
+          aria-label={
+            !meetsLevel ? `${building.name} — unlocks at level ${building.unlockLevel}`
+              : !canAfford ? `${building.name} — costs ${building.coinCost.toLocaleString()} coins, you need ${(building.coinCost - (wallet?.coins ?? 0)).toLocaleString()} more`
+              : `Build ${building.name} for ${building.coinCost.toLocaleString()} coins`
+          }
+          className="flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           style={{
             background: canAfford && meetsLevel ? "var(--rgba-124-58-237-0_2)" : "var(--rgba-255-255-255-0_04)",
             color: canAfford && meetsLevel ? "var(--brand-400)" : "var(--foreground-subtle)",
@@ -89,7 +98,16 @@ function BuildingCard({ building, owned, onBuy, wallet }: {
             borderColor: canAfford && meetsLevel ? "var(--rgba-124-58-237-0_3)" : "var(--rgba-255-255-255-0_06)",
           }}
         >
-          {building.coinCost === 0 ? "Build Free" : `🪙 ${building.coinCost.toLocaleString()}`}
+          {busy ? (
+            <>
+              <span className="inline-block h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" aria-hidden="true" />
+              Building…
+            </>
+          ) : building.coinCost === 0 ? (
+            "Build Free"
+          ) : (
+            `🪙 ${building.coinCost.toLocaleString()}`
+          )}
         </button>
       )}
     </motion.div>
@@ -104,6 +122,9 @@ export default function CityPage() {
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [loading, setLoading] = useState(true);
+  /** Distinguishes "city failed to load" from "city legitimately has no buildings". */
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [building, setBuilding] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
   const [toast, setToast] = useState<string | null>(null);
@@ -112,23 +133,46 @@ export default function CityPage() {
   const [selectedTime, setSelectedTime] = useState<string>("day");
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
       setLoading(true);
+      setLoadFailed(false);
       try {
         const [cr, br, wr] = await Promise.all([
           fetch("/api/city", { headers: authHeaders() }),
           fetch("/api/city/buildings", { headers: authHeaders() }),
           fetch("/api/gamification/wallet", { headers: authHeaders() }),
         ]);
+        if (cancelled) return;
+        // A failed /api/city used to leave `city` null, which renders identically
+        // to a brand-new account instead of surfacing an error.
+        if (!cr.ok && !br.ok) throw new Error("city-unavailable");
         if (cr.ok) setCity(await cr.json());
         if (br.ok) setBuildings(await br.json());
         if (wr.ok) setWallet(await wr.json());
+      } catch {
+        if (!cancelled) setLoadFailed(true);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
-    load();
+    void load();
+    return () => { cancelled = true; };
+  }, [reloadKey]);
+
+  /** Keeps toast timers from stacking — an older timer used to clear a newer message. */
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showToast = useCallback((message: string) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast(message);
+    toastTimer.current = setTimeout(() => setToast(null), 3000);
   }, []);
+  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
+
+  /** Reads a JSON body safely: `res.json()` throws on an empty or HTML error body. */
+  const readBody = async (res: Response): Promise<Record<string, unknown>> => {
+    try { return (await res.json()) as Record<string, unknown>; } catch { return {}; }
+  };
 
   const handleBuy = async (b: Building) => {
     if (building) return;
@@ -138,24 +182,30 @@ export default function CityPage() {
         method: "POST",
         headers: authHeaders(),
       });
-      const data = await res.json();
-      if (!res.ok) { setToast(data.error || "Failed to build"); setTimeout(() => setToast(null), 3000); return; }
-      setCity(data.city);
-      setWallet((w) => w ? { ...w, coins: data.newCoins } : w);
+      const data = await readBody(res);
+      if (!res.ok) { showToast(typeof data.error === "string" ? data.error : "Failed to build"); return; }
+      setCity(data.city as CityView);
+      setWallet((w) => w ? { ...w, coins: (data.newCoins as number) ?? w.coins } : w);
       setBuildings(prev => prev.map(x => x.slug === b.slug ? { ...x, _owned: true } : x));
-      setToast(`${b.icon} ${b.name} built!`);
-      setTimeout(() => setToast(null), 3000);
+      showToast(`${b.icon} ${b.name} built!`);
+    } catch {
+      showToast("Couldn't reach the city service — try again");
     } finally {
       setBuilding(null);
     }
   };
 
   const selectSkin = async (skin: CitySkin) => {
-    if (skin.locked) { setToast("Premium unlocks this city skin"); return; }
-    const response = await fetch("/api/city/skin", { method: "PATCH", headers: authHeaders(), body: JSON.stringify({ skinId: skin.id }) });
-    const data = await response.json();
-    if (!response.ok) { setToast(data.error ?? "Could not change city skin"); return; }
-    setCity((current) => current ? { ...current, ...data.city } : data.city);
+    if (skin.locked) { showToast("Premium unlocks this city skin"); return; }
+    try {
+      const response = await fetch("/api/city/skin", { method: "PATCH", headers: authHeaders(), body: JSON.stringify({ skinId: skin.id }) });
+      const data = await readBody(response);
+      if (!response.ok) { showToast(typeof data.error === "string" ? data.error : "Could not change city skin"); return; }
+      setCity((current) => current ? { ...current, ...(data.city as CityView) } : (data.city as CityView));
+      showToast(`${skin.emoji} ${skin.name} applied`);
+    } catch {
+      showToast("Couldn't reach the city service — try again");
+    }
   };
 
   const tier = city ? TIER_CONFIG[city.tier] ?? TIER_CONFIG.hamlet : TIER_CONFIG.hamlet;
@@ -164,11 +214,32 @@ export default function CityPage() {
   const displayed = filter === "all" ? buildings : buildings.filter((b: any) => b.category === filter);
   const owned = city?.buildings ?? {};
 
-  if (loading) return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--palette-zinc-700)] border-t-[var(--brand-600)]" />
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-5xl space-y-6 px-4 py-8">
+        <Skeleton className="h-40 w-full rounded-2xl" />
+        <Skeleton className="h-64 w-full rounded-2xl" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Skeleton key={index} className="h-52 rounded-2xl" />
+          ))}
+        </div>
+        <span className="sr-only" role="status">Loading your city…</span>
+      </div>
+    );
+  }
+
+  if (loadFailed) {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-8">
+        <ErrorState
+          title="Your city didn't load"
+          message="We couldn't reach the city service. Your progress is safe — try again in a moment."
+          onRetry={() => setReloadKey((k) => k + 1)}
+        />
+      </div>
+    );
+  }
 
   return (
     <PageTransition>
@@ -227,7 +298,7 @@ export default function CityPage() {
                 { id: "sunset", label: "Sunset", icon: Sun, emoji: "🌅", premium: true },
                 { id: "night", label: "Night", icon: Moon, emoji: "🌙", premium: true },
               ].map(({ id, label, emoji, premium }) => (
-                <button key={id} onClick={() => { if (premium && !isPremium) { setToast("Premium unlocks sunset & night modes"); return; } setSelectedTime(id); }}
+                <button key={id} onClick={() => { if (premium && !isPremium) { showToast("Premium unlocks sunset & night modes"); return; } setSelectedTime(id); }}
                   className={`rounded-xl border p-3 text-center ${selectedTime===id ? "border-[var(--brand-400)] bg-[var(--brand-soft)]" : "border-[var(--border)]"} ${premium && !isPremium ? "opacity-60" : ""}`}>
                   <span className="text-xl">{emoji}</span>
                   <span className="mt-1 block text-xs font-semibold">{label}</span>
@@ -251,7 +322,7 @@ export default function CityPage() {
                 { id: "cherry", label: "Cherry Blossom", emoji: "🌸", premium: true },
                 { id: "autumn", label: "Autumn", emoji: "🍂", premium: true },
               ].map((w) => (
-                <button key={w.id} onClick={() => { if (w.premium && !isPremium) { setToast("Premium weather requires Premium"); return; } setSelectedWeather(w.id); }}
+                <button key={w.id} onClick={() => { if (w.premium && !isPremium) { showToast("Premium weather requires Premium"); return; } setSelectedWeather(w.id); }}
                   className={`rounded-xl border p-2 text-center ${selectedWeather===w.id ? "border-[var(--brand-400)] bg-[var(--brand-soft)]" : "border-[var(--border)]"} ${w.premium && !isPremium ? "opacity-60" : ""}`}>
                   <span className="text-lg">{w.emoji}</span>
                   <span className="mt-1 block text-[10px] font-semibold">{w.label}</span>
@@ -279,7 +350,7 @@ export default function CityPage() {
               <p className="text-xs font-bold flex items-center gap-1"><Camera size={12}/> Shareable snapshot</p>
               <p className="text-[10px] text-[var(--foreground-subtle)]">Export your city as image (Premium)</p>
             </div>
-            <button onClick={() => { if (!isPremium) { setToast("Premium unlocks shareable snapshots"); return; } setToast("Snapshot feature — premium skybox captured!"); }}
+            <button onClick={() => { if (!isPremium) { showToast("Premium unlocks shareable snapshots"); return; } showToast("Snapshot feature — premium skybox captured!"); }}
               className={`rounded-full px-4 py-1.5 text-xs font-bold ${isPremium ? "bg-[var(--brand-600)] text-white" : "bg-[var(--palette-amber-500)]/15 text-[var(--palette-amber-400)]"}`}>
               {isPremium ? "Capture" : "Unlock Premium"}
             </button>
@@ -299,15 +370,28 @@ export default function CityPage() {
         {/* Buildings grid */}
         <motion.div variants={STAGGER} initial="initial" animate="animate" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {displayed.map((b: any) => (
-            <BuildingCard key={b.slug} building={b} owned={!!owned[b.slug]} onBuy={handleBuy} wallet={wallet} />
+            <BuildingCard key={b.slug} building={b} owned={!!owned[b.slug]} onBuy={handleBuy} wallet={wallet} busy={building === b.slug} />
           ))}
         </motion.div>
 
-        {/* Empty state */}
-        {buildings.length === 0 && (
+        {/* Empty states — "no buildings at all" and "this category has none" are different messages */}
+        {displayed.length === 0 && (
           <div className="flex flex-col items-center gap-3 py-16 text-center">
             <Building2 size={40} className="text-[var(--foreground-subtle)]" />
-            <p className="text-sm text-[var(--foreground-subtle)]">No buildings available yet</p>
+            {buildings.length === 0 ? (
+              <p className="text-sm text-[var(--foreground-subtle)]">No buildings available yet</p>
+            ) : (
+              <>
+                <p className="text-sm text-[var(--foreground-subtle)]">No buildings in “{filter}” yet</p>
+                <button
+                  type="button"
+                  onClick={() => setFilter("all")}
+                  className="rounded-xl border border-[var(--border)] px-3 py-2 text-xs font-semibold text-[var(--foreground-muted)] transition-colors hover:text-[var(--foreground)]"
+                >
+                  Show all buildings
+                </button>
+              </>
+            )}
           </div>
         )}
 
@@ -315,7 +399,8 @@ export default function CityPage() {
         <AnimatePresence>
           {toast && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-              className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[var(--z-modal)] rounded-2xl border border-[var(--rgba-124-58-237-0_3)] bg-[var(--palette-0d0f1c)] px-5 py-3 text-sm font-semibold text-[var(--brand-400)] shadow-lg">
+              role="status" aria-live="polite"
+              className="pointer-events-none fixed bottom-6 left-1/2 z-[var(--z-modal)] max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-2xl border border-[var(--rgba-124-58-237-0_3)] bg-[var(--palette-0d0f1c)] px-5 py-3 text-center text-sm font-semibold text-[var(--brand-400)] shadow-lg">
               {toast}
             </motion.div>
           )}

@@ -22,11 +22,19 @@ const SUGGESTIONS = [
   "I can't sleep before the exam",
 ];
 
+const OFFLINE_REPLY: Reply = {
+  reply: "I'm here — one small step is enough. Try one 25-minute block.",
+  source: "template",
+  llmRemaining: 30,
+};
+
 export default function AskArx() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [reply, setReply] = useState<Reply | null>(null);
   const [busy, setBusy] = useState(false);
+  /** True when the request reached the server but did not return a usable reply. */
+  const [unavailable, setUnavailable] = useState(false);
 
   const ask = async (text?: string) => {
     const message = (text ?? input).trim();
@@ -34,6 +42,7 @@ export default function AskArx() {
     const full = /^arx[\s,:!-]/i.test(message) ? message : `Arx ${message}`;
     setBusy(true);
     setReply(null);
+    setUnavailable(false);
     try {
       const token = localStorage.getItem("focusarx-auth-token");
       const r = await fetch("/api/arx/chat", {
@@ -41,13 +50,15 @@ export default function AskArx() {
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ message: full }),
       });
-      if (r.ok) {
-        const d = (await r.json()) as Reply;
-        setReply(d);
-        setInput("");
-      }
+      // fetch only rejects on network failure — a 429/500 resolves normally and
+      // used to leave the spinner stopping on silence with no user feedback.
+      if (!r.ok) throw new Error(`arx:${r.status}`);
+      const d = (await r.json()) as Reply;
+      setReply(d);
+      setInput("");
     } catch {
-      setReply({ reply: "I'm here — one small step is enough. Try one 25-minute block.", source: "template", llmRemaining: 30 });
+      setReply(OFFLINE_REPLY);
+      setUnavailable(true);
     } finally {
       setBusy(false);
     }
@@ -70,10 +81,21 @@ export default function AskArx() {
         <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15 }} className="mt-3">
           {reply ? (
             <div className="rounded-xl border border-[var(--rgba-124-58-237-0_25)] bg-[var(--rgba-124-58-237-0_08)] p-3">
-              <p className="text-xs leading-relaxed text-[var(--palette-a5a8ff)]">{reply.reply}</p>
+              <p className="text-xs leading-relaxed text-[var(--palette-a5a8ff)]" aria-live="polite">{reply.reply}</p>
               <p className="mt-2 text-[9px] text-[var(--palette-3a3d4a)]">
-                {reply.source === "llm" ? `Arx · ${reply.llmRemaining} smart replies left today` : "Arx · smart replies done for today — template mode"}
+                {unavailable
+                  ? "Arx is offline right now — here's a nudge instead"
+                  : reply.source === "llm"
+                    ? `Arx · ${reply.llmRemaining} smart replies left today`
+                    : "Arx · smart replies done for today — template mode"}
               </p>
+              <button
+                type="button"
+                onClick={() => { setReply(null); setUnavailable(false); }}
+                className="mt-2 text-[10px] font-semibold text-[var(--palette-5a5f72)] underline-offset-2 transition-colors hover:text-[var(--palette-a5a8ff)] hover:underline"
+              >
+                Ask something else
+              </button>
             </div>
           ) : (
             <div className="space-y-1.5">

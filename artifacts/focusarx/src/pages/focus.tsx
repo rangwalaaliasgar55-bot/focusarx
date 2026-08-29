@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense } from "react";
+import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { AnimatePresence, motion, motion as m } from "framer-motion";
 import { ClipboardList, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -16,6 +16,9 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 import { FocusTimerMobileFirst } from "@/components/mobile/FocusTimerMobileFirst";
 import { NotificationPermissionPrompt } from "@/components/mobile/NotificationPermissionPrompt";
 import { useNotificationPermission } from "@/hooks/useNotificationPermission";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+import { ErrorState } from "@/components/ErrorState";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Heavy features lazy-loaded after main interface is usable
 const MissionsWidget = lazy(() => import("@/components/MissionsWidget"));
@@ -29,9 +32,19 @@ function HeavyWidgetFallback() {
   return <div className="h-20 animate-pulse rounded-2xl bg-[var(--surface-1)]/50" />;
 }
 
+/** Matches the real task row height so the list does not jump when data lands. */
+function TaskRowSkeleton() {
+  return (
+    <div className="flex items-center gap-2 py-1" aria-hidden="true">
+      <Skeleton className="h-3.5 w-3.5 shrink-0 rounded-full" />
+      <Skeleton className="h-2.5 flex-1" />
+    </div>
+  );
+}
+
 function SidePanel() {
   const { focusSessionsToday } = useSessionHistory();
-  const { tasks, activeTasks, completedTasks, toggleDone, addTask } = useTasks();
+  const { tasks, activeTasks, completedTasks, toggleDone, addTask, isLoading, isError, refreshTasks } = useTasks();
   const [newTask, setNewTask] = useState("");
   const [showCompleted, setShowCompleted] = useState(false);
   const { showReview, missedTasks, dismiss } = useMissedTaskReview();
@@ -61,14 +74,23 @@ function SidePanel() {
           )}
           <div className="flex justify-between items-center">
             <span className="text-xs text-[var(--palette-5a5f72)]">Tasks done</span>
-            {tasks.length === 0
-              ? <span className="text-[10px] text-[var(--palette-3a3d4a)] italic">Add a task below ↓</span>
-              : <span className="text-xs font-bold text-[var(--palette-22d387)] font-mono">{completedTasks.length}/{tasks.length}</span>
-            }
+            {isLoading ? (
+              <Skeleton className="h-3 w-9" />
+            ) : isError ? (
+              <span className="text-[10px] text-[var(--palette-3a3d4a)] italic">unavailable</span>
+            ) : tasks.length === 0 ? (
+              <span className="text-[10px] text-[var(--palette-3a3d4a)] italic">Add a task below ↓</span>
+            ) : (
+              <span className="text-xs font-bold text-[var(--palette-22d387)] font-mono">{completedTasks.length}/{tasks.length}</span>
+            )}
           </div>
           <div className="flex justify-between items-center">
             <span className="text-xs text-[var(--palette-5a5f72)]">Active tasks</span>
-            <span className="text-xs font-bold text-[var(--palette-a5a8ff)] font-mono">{activeTasks.length}</span>
+            {isLoading ? (
+              <Skeleton className="h-3 w-5" />
+            ) : (
+              <span className="text-xs font-bold text-[var(--palette-a5a8ff)] font-mono">{activeTasks.length}</span>
+            )}
           </div>
         </div>
       </div>
@@ -77,17 +99,33 @@ function SidePanel() {
         {/* Active Tasks */}
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--palette-4a4f62)] mb-2">Active Tasks</p>
         <div className="space-y-1 max-h-36 overflow-y-auto">
-          {activeTasks.length === 0 && (
-            <p className="text-[11px] text-[var(--palette-3a3d4a)] py-1 italic">✨ Add tasks to unlock your AI Timeline</p>
-          )}
-          {activeTasks.slice(0, 6).map((t) => (
-            <button key={t.id} type="button" onClick={() => toggleDone(t.id)} className="flex items-center gap-2 w-full text-left py-1 group">
-              <span className="w-3.5 h-3.5 rounded-full border border-[var(--palette-2a2d3a)] shrink-0 flex items-center justify-center transition-all group-hover:border-[var(--palette-6c63ff)]" />
-              <span className="text-xs leading-snug text-[var(--palette-6b7080)] group-hover:text-[var(--palette-9095a8)]">{t.title}</span>
-            </button>
-          ))}
-          {activeTasks.length > 6 && (
-            <p className="text-[10px] text-[var(--palette-3a3d4a)] pl-5">+{activeTasks.length - 6} more</p>
+          {isError ? (
+            <ErrorState
+              compact
+              title="Tasks didn't load"
+              message="Your timer still works — this only affects the task list."
+              onRetry={() => { void refreshTasks(); }}
+            />
+          ) : isLoading ? (
+            <div role="status" aria-label="Loading tasks">
+              <span className="sr-only">Loading tasks…</span>
+              {Array.from({ length: 3 }).map((_, i) => <TaskRowSkeleton key={i} />)}
+            </div>
+          ) : (
+            <>
+              {activeTasks.length === 0 && (
+                <p className="text-[11px] text-[var(--palette-3a3d4a)] py-1 italic">✨ Add tasks to unlock your AI Timeline</p>
+              )}
+              {activeTasks.slice(0, 6).map((t) => (
+                <button key={t.id} type="button" onClick={() => toggleDone(t.id)} className="flex items-center gap-2 w-full text-left py-1 group">
+                  <span className="w-3.5 h-3.5 rounded-full border border-[var(--palette-2a2d3a)] shrink-0 flex items-center justify-center transition-all group-hover:border-[var(--palette-6c63ff)]" />
+                  <span className="text-xs leading-snug text-[var(--palette-6b7080)] group-hover:text-[var(--palette-9095a8)]">{t.title}</span>
+                </button>
+              ))}
+              {activeTasks.length > 6 && (
+                <p className="text-[10px] text-[var(--palette-3a3d4a)] pl-5">+{activeTasks.length - 6} more</p>
+              )}
+            </>
           )}
         </div>
 
@@ -257,46 +295,50 @@ const MOTIVATIONAL = [
   "This session counts. Make it matter.",
 ];
 
+/**
+ * Picked once per mount and frozen: picking during render would reshuffle the
+ * text every time the timer ticks, which reads as a glitch rather than a nudge.
+ */
 function MotivationalLine() {
-  const line = MOTIVATIONAL[Math.floor(Math.random() * MOTIVATIONAL.length)];
+  const [line] = useState(() => MOTIVATIONAL[Math.floor(Math.random() * MOTIVATIONAL.length)]);
   return <p className="text-[11px] italic text-[var(--palette-3a3d4a)] text-center mt-1">{line}</p>;
 }
 
 function MobileSidePanelDrawer() {
   const [open, setOpen] = useState(false);
-  const sheetRef = useState<HTMLDivElement | null>(null)[0] as any;
-  const dragRef = useState<{ startY: number; currentY: number } | null>(null)[0] as any;
+  const dragStartY = useRef<number | null>(null);
+
+  // Background must not scroll behind the sheet (iOS ignores overflow:hidden on body).
+  useBodyScrollLock(open);
 
   useEffect(() => {
     if (!open) return;
-    const handleScroll = () => setOpen(false);
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
   // Swipe down to close
   const handleTouchStart = (e: React.TouchEvent) => {
-    const y = e.touches[0]?.clientY ?? 0;
-    (handleTouchStart as any).startY = y;
+    dragStartY.current = e.touches[0]?.clientY ?? 0;
   };
   const handleTouchMove = (e: React.TouchEvent) => {
-    const startY = (handleTouchStart as any).startY;
-    if (startY === undefined) return;
-    const curY = e.touches[0]?.clientY ?? 0;
-    const diff = curY - startY;
+    const startY = dragStartY.current;
+    if (startY === null) return;
+    const diff = (e.touches[0]?.clientY ?? 0) - startY;
     if (diff > 0) {
       const sheet = document.getElementById("mobile-panel-sheet");
       if (sheet) sheet.style.transform = `translateY(${diff}px)`;
     }
   };
   const handleTouchEnd = (e: React.TouchEvent) => {
-    const startY = (handleTouchStart as any).startY;
-    const curY = e.changedTouches[0]?.clientY ?? 0;
-    const diff = curY - (startY ?? 0);
+    const diff = (e.changedTouches[0]?.clientY ?? 0) - (dragStartY.current ?? 0);
     const sheet = document.getElementById("mobile-panel-sheet");
     if (sheet) sheet.style.transform = "";
+    dragStartY.current = null;
     if (diff > 100) setOpen(false);
-    (handleTouchStart as any).startY = undefined;
   };
 
   return (
@@ -334,15 +376,18 @@ function MobileSidePanelDrawer() {
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="mobile-panel-title"
             >
               <div className="mx-auto mt-3 h-1.5 w-16 rounded-full bg-[var(--rgba-255-255-255-0_1)]" />
               <div className="flex items-center justify-between px-5 py-3">
-                <span className="text-sm font-semibold text-[var(--foreground)]">Tasks & Stats</span>
-                <button onClick={() => setOpen(false)} className="min-h-[44px] min-w-[44px] grid place-items-center text-[var(--foreground-subtle)] active:text-[var(--foreground-muted)]" aria-label="Close">
+                <span id="mobile-panel-title" className="text-sm font-semibold text-[var(--foreground)]">Tasks & Stats</span>
+                <button onClick={() => setOpen(false)} className="min-h-[44px] min-w-[44px] grid place-items-center text-[var(--foreground-subtle)] active:text-[var(--foreground-muted)]" aria-label="Close tasks and stats">
                   <X size={16} />
                 </button>
               </div>
-              <div className="overflow-y-auto px-4 pb-8">
+              <div className="overflow-y-auto overscroll-contain px-4 pb-8">
                 <SidePanel />
               </div>
             </m.div>
