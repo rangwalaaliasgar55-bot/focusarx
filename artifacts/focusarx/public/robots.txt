@@ -103,6 +103,51 @@ Disallow: /admin
 Disallow: /api/
 Allow: /api/sitemap.xml
 
+# ── AI assistants / answer engines ────────────────────────────
+# Deliberate ALLOW. A growing share of "how to focus" queries is answered
+# inside an AI Overview or a chat assistant rather than on a results page, so
+# being readable by those systems is distribution, not leakage. The pages we
+# want cited are written answer-first and carry visible attribution
+# (see /evidence), which is what gets a source quoted rather than skipped.
+#
+# Google-Extended is called out separately because it is the ONLY AI-training
+# control Google offers and it does NOT affect normal Search ranking or
+# AI Overviews — blocking it would cost discovery for nothing.
+User-agent: GPTBot
+Allow: /
+Disallow: /api/
+Disallow: /admin
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /api/
+Disallow: /admin
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /api/
+Disallow: /admin
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /api/
+Disallow: /admin
+
+User-agent: Claude-Web
+Allow: /
+Disallow: /api/
+Disallow: /admin
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /api/
+Disallow: /admin
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /api/
+Disallow: /admin
+
 # ── Sitemap ───────────────────────────────────────────────────
 # Host root (rewritten to the API) — canonical host is www.
 Sitemap: https://www.focusarx.site/sitemap.xml

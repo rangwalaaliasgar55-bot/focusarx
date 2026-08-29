@@ -80,16 +80,31 @@ automatically.
 
 ```bash
 pnpm typecheck   # tsc across all workspaces
-pnpm test        # unit + contract tests (vitest)
-pnpm build       # production builds for frontend, API and libs
+pnpm test        # unit + contract tests (vitest), incl. the SEO drift guard
+pnpm build       # production builds for frontend, API and libs + prerendering
+
+# Inspect the crawler view of the production build (mirrors Vercel's
+# filesystem-first resolution — `vite preview` does not):
+pnpm --filter @workspace/focusarx preview:seo
+curl -s localhost:4173/pomodoro-timer | grep -o '<title>[^<]*</title>'
+
 ```
 
 ## 📈 SEO & Growth
 
-- **Master schema** — JSON-LD Organization, FAQ, Product and BreadcrumbList.
-- **Build-time prerendering** — every public route ships with real meta tags and content.
+- **Build-time prerendering** — 69 public routes each ship their own title, description, canonical, OG tags, JSON-LD and real body copy, so crawlers that never run JavaScript still see the page.
+- **One content source** — `src/content/seo-pages.mjs` feeds both the prerenderer and the rendered page, so the static HTML and the live page can never disagree (cloaking is structurally impossible).
+- **Intent pages** — tool wedges (`/pomodoro-timer`, `/study-timer`), cluster spokes (`/deep-work-guide`, `/body-doubling`, `/stop-scrolling`) and six honest comparison pages.
+- **Structured data** — Organization, WebSite, SoftwareApplication, Article, HowTo, FAQPage and BreadcrumbList. No `aggregateRating`: Google's review-snippet policy bars self-serving reviews.
+- **Answer-first + attribution** — every guide opens with a self-contained answer for AI Overviews and carries a visible sources block and last-reviewed date.
+- **Trust pages** — `/evidence` (public claim ledger), `/camera-data`, `/safety`, `/accessibility`, `/press`.
+- **Sitemap index** — 7 themed child sitemaps plus dynamic public-profile shards, with a static fallback if the function cold-starts.
+- **GEO** — `llms.txt` plus explicit AI-crawler policy in `robots.txt`.
+- **Drift guard** — `seoContract.test.ts` fails the build if the sitemap, route table, prerender manifest and `robots.txt` disagree.
 - **PWA ready** — offline support with service workers and a mobile-first manifest.
-- **Viral funnels** — Study Method Quiz and Volume Calculator lead magnets.
+
+See [docs/SEO_SETUP.md](docs/SEO_SETUP.md) for Search Console / Bing / GA4 setup,
+Core Web Vitals targets, the claim ledger and the weekly operating cadence.
 
 ## 🛡️ Security
 

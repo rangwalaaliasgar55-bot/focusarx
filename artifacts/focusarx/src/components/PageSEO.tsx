@@ -140,7 +140,10 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   home: {
     canonical: "/",
     title: "FocusArx — AI Pomodoro Timer & Deep Work Tracker",
-    description: "The AI focus timer 50,000+ people use to build real deep work habits — free, gamified, and built to stick.",
+    // No user count here. "50,000+ people" was unsourced — no counting
+    // definition, no period, no way for a reader to check it. Any number we
+    // publish has to appear on the /evidence claim ledger first.
+    description: "Free AI focus timer and deep work tracker — Pomodoro sessions, focus scores, streaks, live study rooms and an AI coach. No credit card required.",
     keywords: "focus timer, AI focus timer, Pomodoro timer, deep work app, AI productivity coach, focus streak tracker, gamified productivity, free study timer",
   },
   profiles: {

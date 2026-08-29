@@ -87,10 +87,52 @@ const CORE_PAGES: Page[] = [
   { url: "/support", changefreq: "monthly", priority: "0.5" },
 ];
 
+/**
+ * Tool pages — the highest-intent utility queries in the category.
+ *
+ * These are split out from CORE_PAGES because they carry their own schema
+ * (SoftwareApplication / HowTo) and because the audits both identify
+ * "instant, no-signup timer" as the single most important acquisition wedge.
+ * Mirrors the tool entries in
+ * artifacts/focusarx/src/content/seo-pages.mjs; asserted against by
+ * seoContract.test.ts.
+ */
+const TOOL_PAGES: Page[] = [
+  { url: "/pomodoro-timer", changefreq: "weekly", priority: "1.0" },
+  { url: "/focus-timer", changefreq: "weekly", priority: "0.9" },
+  { url: "/study-timer", changefreq: "weekly", priority: "0.9" },
+  { url: "/study-calculator", changefreq: "monthly", priority: "0.8" },
+  { url: "/study-method-quiz", changefreq: "monthly", priority: "0.7" },
+  { url: "/break-free", changefreq: "weekly", priority: "0.7" },
+  { url: "/breathe", changefreq: "monthly", priority: "0.5" },
+];
+
+/**
+ * Trust and transparency pages.
+ *
+ * These exist to substantiate the marketing claims elsewhere on the site and
+ * to answer the privacy, safety and accessibility questions that gate
+ * conversion for a product with an optional webcam feature. They are in the
+ * sitemap on purpose: thin legal pages are not, but a claim ledger and a
+ * camera-data explanation are real content people search for.
+ */
+const TRUST_PAGES: Page[] = [
+  { url: "/evidence", changefreq: "monthly", priority: "0.6" },
+  { url: "/camera-data", changefreq: "monthly", priority: "0.6" },
+  { url: "/safety", changefreq: "monthly", priority: "0.6" },
+  { url: "/accessibility", changefreq: "yearly", priority: "0.4" },
+  { url: "/press", changefreq: "monthly", priority: "0.4" },
+];
+
 const GUIDE_PAGES: Page[] = [
   { url: "/guides", changefreq: "weekly", priority: "0.9" },
   { url: "/focus-guide", changefreq: "monthly", priority: "0.9" },
+  { url: "/deep-work-guide", changefreq: "monthly", priority: "0.9" },
   { url: "/deep-study-guide", changefreq: "monthly", priority: "0.9" },
+  { url: "/how-to-focus-while-studying", changefreq: "monthly", priority: "0.9" },
+  { url: "/body-doubling", changefreq: "monthly", priority: "0.8" },
+  { url: "/adhd-focus-tools", changefreq: "monthly", priority: "0.8" },
+  { url: "/stop-scrolling", changefreq: "monthly", priority: "0.8" },
   { url: "/pomodoro-guide", changefreq: "monthly", priority: "0.9" },
   { url: "/study-techniques", changefreq: "monthly", priority: "0.9" },
   { url: "/two-hour-study-method", changefreq: "monthly", priority: "0.8" },
@@ -101,8 +143,6 @@ const GUIDE_PAGES: Page[] = [
   { url: "/virtual-study-room", changefreq: "weekly", priority: "0.8" },
   { url: "/study-with-me", changefreq: "weekly", priority: "0.8" },
   { url: "/focus-music", changefreq: "weekly", priority: "0.8" },
-  { url: "/study-calculator", changefreq: "monthly", priority: "0.8" },
-  { url: "/study-method-quiz", changefreq: "monthly", priority: "0.7" },
 ];
 
 /**
@@ -122,10 +162,25 @@ const EXAM_PAGES: Page[] = [
   ...EXAM_SLUGS.map<Page>((slug) => ({ url: `/exam/${slug}`, changefreq: "monthly", priority: "0.8" })),
 ];
 
-const COMPARE_PAGES: Page[] = [
-  { url: "/comparison/focusarx-vs-forest", changefreq: "monthly", priority: "0.8" },
-  { url: "/comparison/focusarx-vs-focus-todo", changefreq: "monthly", priority: "0.8" },
+/**
+ * Comparison / alternative pages — high-intent commercial research queries.
+ * Must stay in step with COMPARISON_PATHS in
+ * artifacts/focusarx/src/content/seo-pages.mjs (asserted by seoContract.test.ts).
+ */
+const COMPARISON_SLUGS = [
+  "focusarx-vs-forest",
+  "focusarx-vs-focus-todo",
+  "focusarx-vs-focusmate",
+  "focusarx-vs-pomofocus",
+  "focusarx-vs-freedom",
+  "focusarx-vs-stayfocusd",
 ];
+
+const COMPARE_PAGES: Page[] = COMPARISON_SLUGS.map<Page>((slug) => ({
+  url: `/comparison/${slug}`,
+  changefreq: "monthly",
+  priority: "0.8",
+}));
 
 const LEGAL_PAGES: Page[] = [
   { url: "/privacy", changefreq: "yearly", priority: "0.3" },
@@ -133,15 +188,19 @@ const LEGAL_PAGES: Page[] = [
   { url: "/cookie-policy", changefreq: "yearly", priority: "0.3" },
   { url: "/acceptable-use", changefreq: "yearly", priority: "0.3" },
   { url: "/ai-policy", changefreq: "yearly", priority: "0.3" },
-  { url: "/data-deletion", changefreq: "yearly", priority: "0.3" },
+  // /data-deletion is deliberately absent: PAGE_SEO marks it `noindex`, and
+  // listing a noindex page in the sitemap is a contradictory signal that
+  // wastes crawl budget. It stays reachable from the footer.
 ];
 
 /** The themed child sitemaps, in the order they appear in the index. */
 const SEGMENTS = [
   { file: "sitemap-core.xml", pages: CORE_PAGES },
+  { file: "sitemap-tools.xml", pages: TOOL_PAGES },
   { file: "sitemap-guides.xml", pages: GUIDE_PAGES },
   { file: "sitemap-exams.xml", pages: EXAM_PAGES },
   { file: "sitemap-compare.xml", pages: COMPARE_PAGES },
+  { file: "sitemap-trust.xml", pages: TRUST_PAGES },
   { file: "sitemap-legal.xml", pages: LEGAL_PAGES },
 ] as const;
 
