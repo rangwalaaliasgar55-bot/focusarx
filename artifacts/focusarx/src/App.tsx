@@ -178,10 +178,13 @@ function PageLoader() {
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { status } = useAuth();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   useEffect(() => {
-    if (status === "unauthenticated") setLocation("/login");
-  }, [status, setLocation]);
+    if (status === "unauthenticated") {
+      // Preserve the deep link so login returns the user to where they were.
+      setLocation(`/login?redirect=${encodeURIComponent(location)}`);
+    }
+  }, [status, location, setLocation]);
   if (status === "loading") return <PageLoader />;
   if (status === "unauthenticated") return null;
   return <Component />;

@@ -17,6 +17,12 @@ export default function LoginPage() {
   const { signIn } = useAuth();
   const { toast } = useToast();
 
+  // Only allow same-app paths (no protocol-relative or cross-origin targets).
+  const redirectTarget = () => {
+    const target = new URLSearchParams(window.location.search).get("redirect");
+    return target && target.startsWith("/") && !target.startsWith("//") ? target : "/dashboard";
+  };
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
@@ -36,7 +42,7 @@ export default function LoginPage() {
       return;
     }
     toast("Welcome back", "success");
-    navigate(new URLSearchParams(window.location.search).get("redirect") ?? "/dashboard");
+    navigate(redirectTarget());
   };
 
   const continueAsGuest = async () => {
@@ -54,7 +60,7 @@ export default function LoginPage() {
       return;
     }
     toast("Guest workspace ready", "success");
-    navigate(new URLSearchParams(window.location.search).get("redirect") ?? "/dashboard");
+    navigate(redirectTarget());
   };
 
   return (

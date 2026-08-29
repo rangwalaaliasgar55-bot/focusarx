@@ -1,3 +1,5 @@
+# FocusArx CI pipeline — activated from docs/ci-workflows/ci.yml.
+# See docs/PRODUCTION_SETUP.md §6 for the activation story and secrets.
 name: CI
 
 on:
@@ -20,7 +22,7 @@ env:
 
 jobs:
   # ──────────────────────────────────────────────────────────────────────────────
-  # Job 1: Install, typecheck, test, build, audit (fast feedback)
+  # Job 1: install, typecheck, unit tests, production builds, migration sanity
   # ──────────────────────────────────────────────────────────────────────────────
   validate:
     name: Validate (typecheck + test + build)
@@ -45,7 +47,7 @@ jobs:
         run: pnpm run typecheck
 
       # NOTE: no DATABASE_URL here on purpose. The API integration tests are
-      # gated on that variable and will silently connect + fail against a fake
+      # gated on that variable and would silently connect + fail against a fake
       # URL. Unit + contract tests run green without it; the migrations job
       # exercises the DB-backed suites against a real ephemeral Postgres.
       - name: Unit + contract tests
@@ -65,8 +67,11 @@ jobs:
           duplicates="$(find lib/db/drizzle -maxdepth 1 -name '[0-9][0-9][0-9][0-9]_*.sql' -printf '%f\n' | cut -c1-4 | sort | uniq -d)"
           test -z "$duplicates" || { echo "Duplicate migration versions: $duplicates"; exit 1; }
 
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level high
+
   # ──────────────────────────────────────────────────────────────────────────────
-  # Job 2: Database migration safety and validation against a real Postgres
+  # Job 2: apply the schema to an empty Postgres and prove the DB-gated suites
   # ──────────────────────────────────────────────────────────────────────────────
   migrations:
     name: Database migrations
@@ -116,12 +121,14 @@ jobs:
             echo "No destructive SQL patterns found."
           fi
 
-      - name: Apply all migrations from empty database
+      # `pnpm --filter` runs in lib/db so scripts/push.mjs finds
+      # drizzle.config.ts and drizzle-kit's bin. It fails loudly if drizzle-kit
+      # needs an interactive confirmation (which cannot happen on an empty DB).
+      - name: Apply schema from empty database
         env:
           DATABASE_URL: postgresql://focusarx:focusarx_ci@localhost:5432/focusarx_ci
           AUTH_SECRET: ci-test-secret-that-is-32-chars-long
-        run: |
-          node lib/db/scripts/push.mjs
+        run: pnpm --filter @workspace/db run push
 
       - name: Run DB-gated API integration suites
         env:
@@ -141,14 +148,14 @@ jobs:
                 const { rows } = await pool.query(
                   \"SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name\"
                 );
-                const required = ['users', 'focus_sessions', 'active_sessions', 'tasks', 'goals', 'user_wallets', 'study_streaks'];
+                const required = ['users', 'focus_sessions', 'active_sessions', 'refresh_tokens', 'tasks', 'goals', 'user_wallets', 'study_streaks'];
                 const found = rows.map(r => r.table_name);
                 const missing = required.filter(t => !found.includes(t));
                 if (missing.length > 0) {
-                  console.error('Missing required tables:', missing);
+                  console.error('Missing required tables:', missing.join(', '));
                   process.exit(1);
                 }
-                console.log('All required tables present.');
+                console.log('All required tables present:', found.length, 'tables.');
                 await pool.end();
               } catch (e) {
                 console.error('Integrity check failed:', e.message);
@@ -158,12 +165,12 @@ jobs:
           "
 
   # ──────────────────────────────────────────────────────────────────────────────
-  # Job 3: API contract validation (frontend routes ↔ backend routes)
+  # Job 3: Playwright accessibility scan (desktop + 360px mobile)
   # ──────────────────────────────────────────────────────────────────────────────
-  api-contracts:
-    name: API contract validation
+  a11y:
+    name: Accessibility (Playwright + axe)
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
     needs: validate
     steps:
       - uses: actions/checkout@v4
@@ -180,40 +187,38 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Route contract tests
-        run: pnpm --filter @workspace/api-server run test -- --run
+      - name: Build frontend
+        run: pnpm --filter @workspace/focusarx run build
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run accessibility tests
+        run: pnpm test:a11y
 
   # ──────────────────────────────────────────────────────────────────────────────
-  # Job 4: Security audit
+  # Job 4: secret scanning (gitleaks + regex sweep)
   # ──────────────────────────────────────────────────────────────────────────────
   security:
-    name: Security audit
+    name: Security (secrets + dependency sweep)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
         with:
-          version: ${{ env.PNPM_VERSION }}
+          fetch-depth: 0
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Audit dependencies
-        run: pnpm audit --prod --audit-level=high || echo "Audit completed with advisories"
-
-      - name: Check for secrets in code
+      - name: Check for secrets in source
         run: |
           echo "Scanning for potential secrets..."
-          PATTERNS="sk_live_|sk_test_|gsk_|AIza|password\\s*=\\s*['\\\"]|secret\\s*=\\s*['\\\"]"
+          PATTERNS="sk_live_|sk_test_|gsk_|AIza|password\s*=\s*['\"]|secret\s*=\s*['\"]"
           if grep -rE "$PATTERNS" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.mjs" \
-            --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=coverage artifacts/ lib/ api/ 2>/dev/null; then
+            --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=coverage \
+            --exclude="*.test.*" --exclude="*.spec.*" artifacts/ lib/ api/ 2>/dev/null; then
             echo "::error::Potential secrets found in source code!"
             exit 1
           fi

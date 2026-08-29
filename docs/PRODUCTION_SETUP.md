@@ -206,46 +206,39 @@ npx --yes vercel@latest whoami
 
 ---
 
-## 6. CI/CD in this repo — [Files ready, activation is manual]
+## 6. CI/CD in this repo — [already committed; activation check]
 
-The pipeline definitions live in **[`docs/ci-workflows/`](ci-workflows/)**:
+Both workflows are already committed in **[`.github/workflows/`](../.github/workflows/)**:
 
-- **`ci.yml`**: every PR and push to `main` runs
-  typecheck → unit/contract tests → API build → frontend build → migration
-  naming check → DB migrations against an ephemeral Postgres + DB-gated
-  integration tests → route-contract test → dependency audit → secret scan.
-- **`deploy.yml`**: on push to `main`
-  preflight (`typecheck`/`test`/`build`) → verify production secrets →
-  **acquire migration lock** → **apply DB migrations** → release lock → health
-  check → **deploy to Vercel** → live smoke test.
+- **`ci.yml`** (source of truth in `docs/ci-workflows/ci.yml`): every PR and
+  push to `main` runs typecheck → unit/contract tests → API + frontend builds →
+  migration naming check → `pnpm audit` → DB migrations applied to an
+  **ephemeral Postgres** + DB-gated integration tests + integrity check →
+  Playwright/axe accessibility (desktop + 360 px) → gitleaks + secret sweep.
+- **`deploy.yml`** (source of truth in `docs/ci-workflows/deploy.yml`): on push
+  to `main` → preflight (`typecheck`/`test`/`build`) → verify production
+  secrets → **acquire migration lock** → **apply DB migrations** → release
+  lock → post-migration health check → **deploy to Vercel** (`vercel deploy
+  --prod`) → live smoke test.
 
-### Activate the workflows [MANUAL]
+### If the workflows don't appear in the Actions tab [MANUAL]
 
-The GitHub App used by this sandbox does **not** have permission to create or
-update files under `.github/workflows/`, so GitHub rejects a push containing
-them. You must place the two files in `.github/workflows/` yourself, using one
-of these methods:
-
-**Option A — from your local clone (recommended):**
+GitHub only starts a workflow if the file reaches the repo through a push made
+by an account/App with the **`workflows`** permission. If your integration
+pushed this branch without it, verify in GitHub → repo → **Actions** tab; if
+`CI` / `Production Deploy` are missing, commit the files once from your own
+account:
 
 ```bash
 mkdir -p .github/workflows
-cp docs/ci-workflows/ci.yml   .github/workflows/ci.yml
-cp docs/ci-workflows/deploy.yml .github/workflows/deploy.yml
+cp docs/ci-workflows/ci.yml      .github/workflows/ci.yml
+cp docs/ci-workflows/deploy.yml  .github/workflows/deploy.yml
 git add .github/workflows
 git commit -m "ci: activate FocusArx CI/CD workflows"
 git push origin main
 ```
 
-**Option B — GitHub web UI:**
-
-1. Repo → **Add file → Create new file**.
-2. Name it `.github/workflows/ci.yml`, paste the contents of
-   `docs/ci-workflows/ci.yml`, commit to `main`.
-3. Repeat for `.github/workflows/deploy.yml`.
-
-After the first commit, GitHub Actions will appear under the **Actions** tab and
-run on every PR/push.
+(or paste the files via GitHub web UI → *Add file → Create new file*).
 
 ### What the workflows need
 
@@ -253,6 +246,23 @@ run on every PR/push.
 - `deploy.yml` needs the GitHub secrets from §5: `DATABASE_URL`,
   `POSTGRES_URL_NON_POOLING`, `AUTH_SECRET`, `VERCEL_TOKEN`,
   `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `APP_URL`.
+
+### ⚠️ Avoid double deployments
+
+`deploy.yml` deploys with the Vercel CLI **and** Vercel's Git integration
+auto-deploys `main`. Pick **one**:
+
+- **Use `deploy.yml`** (recommended — migrations are guaranteed to run before
+  the deploy): in Vercel → Project → Settings → Git → disable *"Deploy on push
+  to main"* so only GitHub Actions deploys.
+- **Use Vercel auto-deploy** (simplest): delete `.github/workflows/deploy.yml`,
+  and run `pnpm --filter @workspace/db run push` from your machine before
+  merging schema changes (Vercel's build only applies `cleanup-orphans.mjs`,
+  not `drizzle-kit push`).
+
+Either way, set `CI` + `deploy.yml` secrets (§5) **before** the first push to
+`main`, otherwise the deploy job fails fast with an explicit "Missing required
+env vars" message.
 
 ---
 
@@ -447,13 +457,48 @@ pnpm --filter @workspace/db run seed
 pnpm --filter @workspace/db run seed:clear
 ```
 
-### Legacy table cleanup
+### Legacy table cleanup — exact steps
 
 `docs/TABLE_CONSOLIDATION.md` documents six legacy tables (`posts`,
 `post_likes`, `user_battle_pass_progress`, `study_buddies`, `shared_goals`,
 `leaderboard_snapshots`) that the code no longer reads or writes. Do **not**
-drop them without archiving them first — follow that doc's Step 1 → Step 4
-order, and run the code + schema change to production first.
+drop them without archiving them first:
+
+```bash
+# 1. Archive (keep the .sql OUT of Git, e.g. object storage) — must come first
+pg_dump "$DATABASE_URL" --table=posts --table=post_likes \
+  --table=user_battle_pass_progress --table=study_buddies \
+  --table=shared_goals --table=leaderboard_snapshots \
+  --data-only --column-inserts > legacy_tables_archive_$(date +%F).sql
+grep -c '^INSERT INTO' legacy_tables_archive_$(date +%F).sql
+
+# 2. Pre-flight counts (record for post-drop verification)
+psql "$DATABASE_URL" -c \
+"SELECT 'posts' t, count(*) FROM posts UNION ALL SELECT 'post_likes', count(*) FROM post_likes
+UNION ALL SELECT 'user_battle_pass_progress', count(*) FROM user_battle_pass_progress
+UNION ALL SELECT 'study_buddies', count(*) FROM study_buddies
+UNION ALL SELECT 'shared_goals', count(*) FROM shared_goals
+UNION ALL SELECT 'leaderboard_snapshots', count(*) FROM leaderboard_snapshots;"
+
+# 3. Safe cleanup + patches (idempotent — orphans, dedupe, unique indexes,
+#    bounded purges, refresh_tokens table). On Vercel builds this also runs.
+DATABASE_URL="$DATABASE_URL" node lib/db/scripts/cleanup-orphans.mjs
+
+# 4. Drop the six orphaned tables — only after the current code is live
+psql "$DATABASE_URL" <<'SQL'
+BEGIN;
+SET LOCAL lock_timeout = '5s';
+DROP TABLE IF EXISTS post_likes;
+DROP TABLE IF EXISTS posts;
+DROP TABLE IF EXISTS user_battle_pass_progress;
+DROP TABLE IF EXISTS study_buddies;
+DROP TABLE IF EXISTS shared_goals;
+DROP TABLE IF EXISTS leaderboard_snapshots;
+COMMIT;
+SQL
+```
+
+Rollback is `psql "$DATABASE_URL" < legacy_tables_archive_$(date +%F).sql`.
 
 ### timestamp → timestamptz migration
 
@@ -461,6 +506,18 @@ order, and run the code + schema change to production first.
 `timestamp` → `timestamptz` plan. It is optional; the app is already
 UTC/IST-day-key safe. Apply in a maintenance window if you want to remove the
 latent timezone hazard.
+
+### Backup + maintenance schedule
+
+| Task | When | Command |
+|---|---|---|
+| Schema push | every change to `lib/db/src/schema/*` | `pnpm --filter @workspace/db run push` (local, prod URL) — or let `deploy.yml` do it |
+| `cleanup-orphans.mjs` | every deploy (Vercel build) + monthly manual | `node lib/db/scripts/cleanup-orphans.mjs` |
+| Purges (`password_reset_tokens` > 7 d, `ai_call_log` > 90 d) | in cleanup script | ✅ automated |
+| DB backups | Neon daily/PITR + nightly `pg_dump` | `0 23 * * * pg_dump "$DATABASE_URL" -Fc > /backups/focusarx_$(date +%F).dump` |
+| Dependency audit | CI + monthly manual | `pnpm audit --prod --audit-level high` |
+| Secret rotation | on suspicion | §13 |
+| `SW_VERSION` bump | asset-heavy releases | `public/sw.js` |
 
 ---
 
