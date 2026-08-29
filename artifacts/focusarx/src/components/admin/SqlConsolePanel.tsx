@@ -164,6 +164,23 @@ export function SqlConsolePanel({ authHeaders }: { authHeaders: () => Record<str
     return () => clearInterval(t);
   }, [loadStatus, loadLog, loadSchema]);
 
+  /*
+    Escape must dismiss these dialogs. They gate destructive admin actions, and
+    before this the only ways out were the backdrop and a button — both mouse
+    only. Never close mid-request: dismissing while a mutation is in flight
+    would hide the spinner and leave the operator guessing.
+  */
+  useEffect(() => {
+    if (!unlockOpen && !confirmOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (unlockOpen && !unlockBusy) setUnlockOpen(false);
+      else if (confirmOpen && !busy) setConfirmOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [unlockOpen, confirmOpen, unlockBusy, busy]);
+
   // Live countdown ticker while the write window is open.
   useEffect(() => {
     const active = Boolean(status?.writeUnlocked);
@@ -558,12 +575,15 @@ export function SqlConsolePanel({ authHeaders }: { authHeaders: () => Record<str
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="sql-unlock-title"
             className="w-full max-w-md rounded-3xl border border-[var(--border)] bg-[var(--surface-2,rgba(255,255,255,0.04))] p-6 backdrop-blur-xl"
           >
             <div className="mb-4 flex items-center gap-3">
               <div className="rounded-2xl bg-amber-500/15 p-2.5"><Unlock size={18} className="text-amber-300" /></div>
               <div>
-                <h3 className="text-lg font-black">Unlock write mode</h3>
+                <h3 id="sql-unlock-title" className="text-lg font-black">Unlock write mode</h3>
                 <p className="text-xs text-[var(--foreground-subtle)]">15-minute window · every statement is logged</p>
               </div>
             </div>
@@ -604,12 +624,15 @@ export function SqlConsolePanel({ authHeaders }: { authHeaders: () => Record<str
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="sql-confirm-title"
             className="w-full max-w-lg rounded-3xl border border-red-500/30 bg-[var(--surface-2,rgba(255,255,255,0.04))] p-6 backdrop-blur-xl"
           >
             <div className="mb-4 flex items-center gap-3">
               <div className="rounded-2xl bg-red-500/15 p-2.5"><ShieldAlert size={18} className="text-red-400" /></div>
               <div>
-                <h3 className="text-lg font-black text-red-300">Destructive statement detected</h3>
+                <h3 id="sql-confirm-title" className="text-lg font-black text-red-300">Destructive statement detected</h3>
                 <p className="text-xs text-[var(--foreground-subtle)]">DROP / TRUNCATE / ALTER, or DELETE / UPDATE without WHERE</p>
               </div>
             </div>

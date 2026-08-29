@@ -367,6 +367,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="app-frame">
       <NetworkStatusBanner />
+      {/*
+        Keyboard and screen-reader users otherwise have to tab through the
+        entire sidebar on every page load before reaching the content. The
+        .skip-to-content styling already existed but was never rendered, so the
+        shortcut was styled and unreachable.
+      */}
+      <a href="#main-content" className="skip-to-content">
+        Skip to content
+      </a>
+
       <aside className="app-sidebar hidden md:flex" aria-label="Application sidebar">
         <div className="flex h-[4.5rem] shrink-0 items-center border-b border-[var(--border)] px-5">
           <Brand />

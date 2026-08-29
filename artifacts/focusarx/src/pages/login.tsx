@@ -6,6 +6,7 @@ import { useToast } from "@/components/Toast";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { redirectFromSearch } from "@/lib/safeRedirect";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -36,7 +37,7 @@ export default function LoginPage() {
       return;
     }
     toast("Welcome back", "success");
-    navigate(new URLSearchParams(window.location.search).get("redirect") ?? "/dashboard");
+    navigate(redirectFromSearch());
   };
 
   const continueAsGuest = async () => {
@@ -54,7 +55,7 @@ export default function LoginPage() {
       return;
     }
     toast("Guest workspace ready", "success");
-    navigate(new URLSearchParams(window.location.search).get("redirect") ?? "/dashboard");
+    navigate(redirectFromSearch());
   };
 
   return (

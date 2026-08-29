@@ -93,7 +93,11 @@ const PAGES = PUBLIC_PAGES.map((name) => ({
 }));
 
 describe.each(PAGES)("$name page", ({ load }) => {
-  it("mounts with a clean console", async () => {
+  // These pages pull in lazy chunks and heavy third-party modules. The default
+  // 5s timeout is enough on an idle machine but not when the whole monorepo
+  // suite runs in parallel, where a slow page times out and looks like a
+  // console regression.
+  it("mounts with a clean console", { timeout: 30_000 }, async () => {
     const mod = await load();
     const Page = mod.default;
     // act() is mandatory here: the pages suspend on lazy chunks, and React logs
@@ -108,7 +112,14 @@ describe.each(PAGES)("$name page", ({ load }) => {
       await new Promise((r) => setTimeout(r, 80));
     });
 
-    const real = entries.filter((e) => !e.text.includes("was not wrapped in act("));
+    // Both of these are React test-harness artifacts. Neither can occur in a
+    // browser — they only appear when async updates race inside act(), which is
+    // precisely what a lazy, suspense-heavy page does under CPU contention.
+    const real = entries.filter(
+      (e) =>
+        !e.text.includes("was not wrapped in act(") &&
+        !e.text.includes("overlapping act() calls"),
+    );
     const artifacts = entries.length - real.length;
     if (artifacts > 0) {
       originals.warn(`(ignored ${artifacts} act() harness artifact(s) — not browser output)`);

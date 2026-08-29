@@ -1,4 +1,5 @@
 
+import { useEffect } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -19,6 +20,7 @@ import {
   Library,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 type MenuItem = {
   href: string;
@@ -50,6 +52,20 @@ interface MobileMoreMenuProps {
 }
 
 export function MobileMoreMenu({ open, onClose }: MobileMoreMenuProps) {
+  // Without this the page behind the sheet scrolls under the thumb, and on iOS
+  // it also scrolls the sheet's own list once you reach the end of it.
+  useBodyScrollLock(open);
+
+  // Escape is the only keyboard route out of this sheet.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   return (
     <AnimatePresence>
       {open && (
@@ -94,7 +110,12 @@ export function MobileMoreMenu({ open, onClose }: MobileMoreMenuProps) {
             </div>
 
             {/* Menu grid */}
-            <div className="overflow-y-auto px-3 pb-[calc(1rem+env(safe-area-inset-bottom))]" style={{ maxHeight: "calc(85dvh - 80px)" }}>
+            {/* overscroll-contain keeps a flick at the end of this list from
+                chaining into the page behind the sheet. */}
+            <div
+              className="overflow-y-auto overscroll-contain px-3 pb-[calc(1rem+env(safe-area-inset-bottom))]"
+              style={{ maxHeight: "calc(85dvh - 80px)" }}
+            >
               <div className="grid grid-cols-1 gap-1.5">
                 {SECONDARY_ITEMS.map((item) => {
                   const Icon = item.icon;

@@ -195,12 +195,31 @@ export default function RoadmapPage() {
                     <p className="text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)] mb-4">Saved Protocols</p>
                     <div className="space-y-2 max-h-48 overflow-y-auto pr-2 scrollbar-none">
                        {savedRoadmaps.map((r) => (
-                         <div key={r.id} className="group flex items-center gap-2 p-3 rounded-xl hover:bg-[var(--palette-white)]/5 transition-all cursor-pointer" onClick={() => void loadRoadmap(r.id)}>
-                            <div className="flex-1 min-w-0">
-                               <p className="text-xs font-bold text-[var(--palette-white)] truncate">{r.subject}</p>
-                               <p className="text-[9px] text-[var(--palette-zinc-500)] font-bold uppercase mt-1">{new Date(r.createdAt).toLocaleDateString()}</p>
-                            </div>
-                            <button onClick={(e) => { e.stopPropagation(); deleteRoadmap(r.id); }} className="opacity-0 group-hover:opacity-100 text-[var(--palette-zinc-500)] hover:text-[var(--palette-red-400)] transition-all p-1">
+                         /*
+                           Was a clickable div wrapping another button: the row
+                           could not be reached by keyboard at all, and the
+                           delete control only appeared on hover, so keyboard
+                           users could never delete a saved protocol. Now two
+                           sibling buttons — the row is real, focusable, and
+                           the delete button reveals itself on focus too.
+                         */
+                         <div key={r.id} className="group flex items-center gap-1 rounded-xl transition-all hover:bg-[var(--palette-white)]/5">
+                            <button
+                              type="button"
+                              onClick={() => void loadRoadmap(r.id)}
+                              className="flex min-w-0 flex-1 items-center gap-2 rounded-xl p-3 text-left"
+                            >
+                               <span className="flex-1 min-w-0">
+                                  <span className="block text-xs font-bold text-[var(--palette-white)] truncate">{r.subject}</span>
+                                  <span className="block text-[9px] text-[var(--palette-zinc-500)] font-bold uppercase mt-1">{new Date(r.createdAt).toLocaleDateString()}</span>
+                               </span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => deleteRoadmap(r.id)}
+                              aria-label={`Delete saved protocol: ${r.subject}`}
+                              className="shrink-0 rounded-lg p-1 text-[var(--palette-zinc-500)] opacity-0 transition-all hover:text-[var(--palette-red-400)] group-hover:opacity-100 focus-visible:opacity-100"
+                            >
                                <Trash2 size={12} />
                             </button>
                          </div>
