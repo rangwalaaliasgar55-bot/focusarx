@@ -9,6 +9,10 @@ Canonical host for everything below: **`https://www.focusarx.site`** (the `www`
 subdomain). Every canonical, sitemap URL and OG tag uses it. If you ever serve
 the apex without redirecting to `www`, every URL becomes a cross-host duplicate.
 
+> **Prerequisites:** this guide assumes the app is already deployed — database
+> created, Vercel project wired, domain and DNS pointing at it. That half is
+> covered by [`PRODUCTION_SETUP.md`](PRODUCTION_SETUP.md). Do that first.
+
 ---
 
 ## 0. Before anything else: environment variables

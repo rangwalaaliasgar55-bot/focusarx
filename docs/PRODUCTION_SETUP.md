@@ -425,6 +425,11 @@ Add `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_EMAIL`.
    `artifacts/focusarx/index.html` where the `google-site-verification` comment
    is, then redeploy. The `BingSiteAuth.xml` is already present for Bing.
 
+> **For the full search setup — sitemap submission, URL inspection, Bing Webmaster
+> Tools, Core Web Vitals targets, the claim ledger and the weekly refresh
+> cadence — see [`SEO_SETUP.md`](SEO_SETUP.md).** This section only covers
+> getting the property verified.
+
 ### Ads (optional)
 
 `public/ads.txt` already exists. Edit it with your AdSense publisher ID and
