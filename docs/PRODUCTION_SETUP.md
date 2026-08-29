@@ -415,7 +415,9 @@ Add `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_EMAIL`.
 
 ### Google Analytics 4
 
-`VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX` and redeploy the frontend.
+GA4 is installed globally with measurement ID `G-PXMVX28PL5` in
+`artifacts/focusarx/index.html`; no Vercel environment variable is required.
+After deployment, use GA4 Realtime or Tag Assistant to confirm a page view.
 
 ### Google Search Console
 

@@ -105,9 +105,10 @@ ten minutes.
 
 ## 3. Google Analytics 4 — already connected, needs event checks
 
-GA4 property **`G-PXMVX28PL5`** is already wired into
-`artifacts/focusarx/src/lib/gtag.ts` and loads automatically. What you need to
-do:
+GA4 property **`G-PXMVX28PL5`** is installed once in the global
+`artifacts/focusarx/index.html` document head. `src/lib/gtag.ts` forwards SPA
+page views and product events to that global tag without adding another loader.
+What you need to do:
 
 1. Open GA4 → **Admin → Data Streams** and confirm the web stream's URL is
    `https://www.focusarx.site`.
