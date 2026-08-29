@@ -65,6 +65,16 @@
    pnpm run dev   # API on :8080, frontend on :5000 with /api proxy
    ```
 
+## 🚀 Production deployment
+
+Follow **[docs/PRODUCTION_SETUP.md](docs/PRODUCTION_SETUP.md)** for the full
+step-by-step guide: Neon database, Vercel project + env vars, GitHub Actions
+secrets, domain/DNS, admin user, and every manual task. The CI/CD definitions
+live in **[docs/ci-workflows/](docs/ci-workflows/)** (`ci.yml` + `deploy.yml`);
+copy them into `.github/workflows/` to activate (see the guide's §6). Once the
+required secrets are set, pushes to `main` validate, migrate, deploy, and smoke
+test automatically.
+
 ## ✅ Verifying Changes
 
 ```bash

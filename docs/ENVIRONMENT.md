@@ -2,6 +2,9 @@
 
 Complete inventory of every environment variable this app reads, verified against the source code.
 
+> For the **ordered production launch walkthrough** (Vercel + Neon + GitHub
+> secrets + domain + admin), see **[docs/PRODUCTION_SETUP.md](PRODUCTION_SETUP.md)**.
+
 ---
 
 ## ⚠️ Values are validated, not just read — a malformed value is worse than a missing one

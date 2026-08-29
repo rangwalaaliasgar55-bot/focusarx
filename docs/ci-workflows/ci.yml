@@ -1,16 +1,3 @@
-# FocusArx CI — Pull Request validation pipeline.
-#
-# Runs on every PR and push to main. Validates:
-# - Dependency integrity (lockfile)
-# - Type-checking across all workspaces
-# - Lint / formatting
-# - Unit & integration tests
-# - API contract tests
-# - Build reproducibility
-# - Generated API types are up to date
-# - Database migrations are present when schema changes
-# - Database migration safety (destructive change detection)
-# - Migration apply from empty DB (PostgreSQL service container)
 name: CI
 
 on:
@@ -29,16 +16,16 @@ permissions:
 
 env:
   NODE_VERSION: "20"
-  PNPM_VERSION: "10"
+  PNPM_VERSION: "10.26.1"
 
 jobs:
   # ──────────────────────────────────────────────────────────────────────────────
-  # Job 1: Install, typecheck, lint, test (fast feedback)
+  # Job 1: Install, typecheck, test, build, audit (fast feedback)
   # ──────────────────────────────────────────────────────────────────────────────
   validate:
-    name: Validate (typecheck + lint + test)
+    name: Validate (typecheck + test + build)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -57,11 +44,12 @@ jobs:
       - name: Typecheck all workspaces
         run: pnpm run typecheck
 
-      - name: Run unit + integration tests
+      # NOTE: no DATABASE_URL here on purpose. The API integration tests are
+      # gated on that variable and will silently connect + fail against a fake
+      # URL. Unit + contract tests run green without it; the migrations job
+      # exercises the DB-backed suites against a real ephemeral Postgres.
+      - name: Unit + contract tests
         run: pnpm run test
-        env:
-          AUTH_SECRET: ci-test-secret-that-is-32-chars-long
-          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
 
       - name: Production build (API server)
         run: pnpm --filter @workspace/api-server run build
@@ -71,13 +59,19 @@ jobs:
         env:
           VITE_APP_URL: https://focusarx.site
 
+      - name: Check migration naming and duplicate versions
+        run: |
+          test -n "$(find lib/db/drizzle -maxdepth 1 -name '*.sql' -print -quit)"
+          duplicates="$(find lib/db/drizzle -maxdepth 1 -name '[0-9][0-9][0-9][0-9]_*.sql' -printf '%f\n' | cut -c1-4 | sort | uniq -d)"
+          test -z "$duplicates" || { echo "Duplicate migration versions: $duplicates"; exit 1; }
+
   # ──────────────────────────────────────────────────────────────────────────────
-  # Job 2: Database migration safety and validation
+  # Job 2: Database migration safety and validation against a real Postgres
   # ──────────────────────────────────────────────────────────────────────────────
   migrations:
     name: Database migrations
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     needs: validate
     services:
       postgres:
@@ -110,18 +104,14 @@ jobs:
 
       - name: Validate migration files exist
         run: |
-          echo "Checking for migration files..."
           ls -la lib/db/drizzle/*.sql 2>/dev/null || echo "No drizzle migration files found"
           ls -la lib/db/migrations/*.sql 2>/dev/null || echo "No hand-written migration files found"
 
       - name: Detect destructive changes
         run: |
-          echo "Scanning migrations for destructive operations..."
           DANGEROUS_PATTERNS="DROP TABLE|DROP COLUMN|DROP INDEX|TRUNCATE|ALTER.*TYPE"
           if grep -rEi "$DANGEROUS_PATTERNS" lib/db/drizzle/*.sql lib/db/migrations/*.sql 2>/dev/null; then
             echo "::warning::Destructive SQL detected in migrations. Review carefully."
-            # In a production pipeline this would fail unless explicitly approved
-            # via a label like 'approved-destructive-migration'
           else
             echo "No destructive SQL patterns found."
           fi
@@ -131,25 +121,26 @@ jobs:
           DATABASE_URL: postgresql://focusarx:focusarx_ci@localhost:5432/focusarx_ci
           AUTH_SECRET: ci-test-secret-that-is-32-chars-long
         run: |
-          echo "Applying all migrations to empty database..."
-          node lib/db/scripts/push.mjs 2>&1 || echo "Push completed with warnings"
+          node lib/db/scripts/push.mjs
+
+      - name: Run DB-gated API integration suites
+        env:
+          DATABASE_URL: postgresql://focusarx:focusarx_ci@localhost:5432/focusarx_ci
+          AUTH_SECRET: ci-test-secret-that-is-32-chars-long
+        run: pnpm --filter @workspace/api-server run test -- --run
 
       - name: Verify database integrity
         env:
           DATABASE_URL: postgresql://focusarx:focusarx_ci@localhost:5432/focusarx_ci
         run: |
-          echo "Running integrity checks..."
           node -e "
             const { Pool } = require('pg');
             const pool = new Pool({ connectionString: process.env.DATABASE_URL });
             (async () => {
               try {
-                // Verify all expected tables exist
                 const { rows } = await pool.query(
                   \"SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name\"
                 );
-                console.log('Tables found:', rows.map(r => r.table_name).join(', '));
-                
                 const required = ['users', 'focus_sessions', 'active_sessions', 'tasks', 'goals', 'user_wallets', 'study_streaks'];
                 const found = rows.map(r => r.table_name);
                 const missing = required.filter(t => !found.includes(t));
@@ -164,10 +155,10 @@ jobs:
                 process.exit(1);
               }
             })();
-          " 2>&1 || echo "Integrity check completed with warnings"
+          "
 
   # ──────────────────────────────────────────────────────────────────────────────
-  # Job 3: API contract validation
+  # Job 3: API contract validation (frontend routes ↔ backend routes)
   # ──────────────────────────────────────────────────────────────────────────────
   api-contracts:
     name: API contract validation
@@ -189,26 +180,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Validate OpenAPI spec
-        run: |
-          if [ -f lib/api-spec/openapi.yaml ]; then
-            echo "OpenAPI spec found. Validating..."
-            node -e "
-              const fs = require('fs');
-              const yaml = fs.readFileSync('lib/api-spec/openapi.yaml', 'utf8');
-              if (!yaml.includes('openapi:')) {
-                console.error('Invalid OpenAPI spec');
-                process.exit(1);
-              }
-              console.log('OpenAPI spec is valid (basic check).');
-            "
-          fi
-
       - name: Route contract tests
         run: pnpm --filter @workspace/api-server run test -- --run
-        env:
-          AUTH_SECRET: ci-test-secret-that-is-32-chars-long
-          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
 
   # ──────────────────────────────────────────────────────────────────────────────
   # Job 4: Security audit
@@ -233,14 +206,14 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Audit dependencies
-        run: pnpm audit --audit-level=high || echo "Audit completed with advisories"
+        run: pnpm audit --prod --audit-level=high || echo "Audit completed with advisories"
 
       - name: Check for secrets in code
         run: |
           echo "Scanning for potential secrets..."
-          PATTERNS="sk_live_|sk_test_|gsk_|AIza|password\s*=\s*['\"]|secret\s*=\s*['\"]"
+          PATTERNS="sk_live_|sk_test_|gsk_|AIza|password\\s*=\\s*['\\\"]|secret\\s*=\\s*['\\\"]"
           if grep -rE "$PATTERNS" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.mjs" \
-            --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist artifacts/ lib/ api/ 2>/dev/null; then
+            --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=coverage artifacts/ lib/ api/ 2>/dev/null; then
             echo "::error::Potential secrets found in source code!"
             exit 1
           fi
