@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { reapplyAccentOverrides } from "./accent";
 
 const LS_KEY = "focusarx-theme";
 
@@ -87,6 +88,10 @@ export function applyTheme(theme: Theme) {
       }
     }
   }
+
+  // A user-picked accent outranks theme-provided brand colors. Re-assert it
+  // after the overrides above so the final --brand-* values win.
+  reapplyAccentOverrides();
 
   const themeColor = getComputedStyle(root).getPropertyValue("--brand-600").trim();
   if (themeColor) {
