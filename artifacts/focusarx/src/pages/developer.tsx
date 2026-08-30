@@ -31,8 +31,14 @@ const SchemaExplorer = lazy(() =>
 const ApiDocumentation = lazy(() =>
   import("@/components/developer/ApiDocumentation").then((m) => ({ default: m.ApiDocumentation }))
 );
+const SqlEditor = lazy(() =>
+  import("@/components/developer/SqlEditor").then((m) => ({ default: m.SqlEditor }))
+);
+const DatabaseHealth = lazy(() =>
+  import("@/components/developer/DatabaseHealth").then((m) => ({ default: m.DatabaseHealth }))
+);
 
-type Tab = "overview" | "users" | "economy" | "schema" | "flags" | "ai" | "api" | "flows" | "health";
+type Tab = "overview" | "users" | "economy" | "schema" | "flags" | "ai" | "sql-editor" | "db-health" | "api" | "flows" | "health";
 
 const TABS: { id: Tab; label: string; icon: typeof Code2 }[] = [
   { id: "overview", label: "Overview", icon: BarChart3 },
@@ -41,6 +47,8 @@ const TABS: { id: Tab; label: string; icon: typeof Code2 }[] = [
   { id: "flags", label: "Flags", icon: Flag },
   { id: "ai", label: "AI Budget", icon: Brain },
   { id: "schema", label: "Schema", icon: Database },
+  { id: "sql-editor", label: "SQL Editor", icon: Code2 },
+  { id: "db-health", label: "DB Health", icon: Activity },
   { id: "api", label: "API Docs", icon: Code2 },
   { id: "flows", label: "Call Flows", icon: GitBranch },
   { id: "health", label: "Health", icon: Activity },
@@ -68,7 +76,7 @@ export default function DeveloperPage() {
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-2">
               Developer Console
-              <span className="text-xs px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded-full font-medium">GOD MODE</span>
+              <span className="text-xs px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded-full font-medium">ADMIN</span>
             </h1>
             <p className="text-white/50 text-sm">
               Signed in as <span className="text-amber-300 font-medium">{data?.user?.email}</span>
@@ -106,6 +114,8 @@ export default function DeveloperPage() {
         {tab === "flags" && <FlagsTab />}
         {tab === "ai" && <AiBudgetTab />}
         {tab === "schema" && <SchemaExplorer />}
+        {tab === "sql-editor" && <SqlEditor />}
+        {tab === "db-health" && <DatabaseHealth />}
         {tab === "api" && <ApiDocumentation />}
         {tab === "flows" && <CallFlowsTab />}
         {tab === "health" && <HealthTab />}

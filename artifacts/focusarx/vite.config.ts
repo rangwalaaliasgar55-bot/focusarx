@@ -38,42 +38,35 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    target: "esnext",
+    cssCodeSplit: true,
+    sourcemap: false,
     rollupOptions: {
       output: {
-        // Function form, not the object form. The object form resolved to an
-        // EMPTY `vendor-react` chunk ("Generated an empty chunk: vendor-react"),
-        // which silently inlined react + react-dom into the entry bundle — the
-        // entry sat at 375 kB / 117 kB gzip on every single page, desktop and
-        // mobile alike. The function form matches on the resolved module path,
-        // so the split actually happens and each vendor group becomes its own
-        // long-lived, independently cacheable file.
+        // Optimize chunk loading with modulepreload hints
+        assetFileNames: "assets/[name]-[hash][extname]",
+        chunkFileNames: "assets/[name]-[hash].js",
+        entryFileNames: "assets/[name]-[hash].js",
+        // Function form for accurate module matching
         manualChunks(id) {
           if (!id.includes("node_modules")) return;
 
           const has = (...pkgs: string[]) =>
             pkgs.some((pkg) => id.includes(`/node_modules/${pkg}/`) || id.includes(`${pkg}/`));
 
-          // React core — the single most reused module in the app. Isolated so
-          // an app-code change never invalidates it for returning visitors.
+          // React core — most reused, cached separately
           if (/\/node_modules\/(react|react-dom|scheduler)\//.test(id)) return "vendor-react";
 
           if (has("framer-motion", "motion-dom", "motion-utils")) return "vendor-motion";
           if (has("@tanstack/react-query", "@tanstack/query-core")) return "vendor-query";
           if (has("wouter")) return "vendor-router";
 
-          // Charts pull in the whole d3 stack (~370 kB). Only analytics and
-          // dashboard need it, so it must never sit in the entry chunk.
+          // Charts (~370 kB) — only needed for analytics/dashboard
           if (has("recharts") || /\/node_modules\/d3-/.test(id) || has("victory-vendor")) {
             return "vendor-charts";
           }
 
-          // 3D + vision: three (~600 kB) + react-three-fiber + drei + MediaPipe.
-          // Split from the app so the ~890 kB blob is fetched only by the pages
-          // that actually render a 3D scene or use the camera.
-          // 3D + vision. Split into three parts so the stable, enormous
-          // `three` core is cached separately from the helpers that change
-          // more often, and so a page that only uses MediaPipe never pays for
-          // the 3D stack.
+          // 3D split: three core (600kB) separate from helpers
           if (has("@mediapipe/tasks-vision")) return "vendor-vision";
           if (has("@react-three/fiber", "@react-three/drei")) return "vendor-three-helpers";
           if (/\/node_modules\/three\//.test(id)) return "vendor-three";
@@ -92,6 +85,8 @@ export default defineConfig({
       },
     },
     chunkSizeWarningLimit: 700,
+    minify: "esbuild",
+    cssMinify: true,
   },
   server: {
     port: Number.isNaN(port) ? 5173 : port,
