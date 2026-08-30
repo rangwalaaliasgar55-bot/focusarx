@@ -8,14 +8,13 @@ import { aiCoachLimiter } from "../lib/rateLimiter";
 import { requirePremium, premiumStatusMiddleware } from "../lib/premiumCheck";
 import { getActivePlans } from "../lib/premiumPlans";
 import { getTokenBalance } from "../lib/tokenLedger";
-import { checkBudget, recordCall, recordRateLimit, userPurposeCalls } from "../lib/aiBudget";
+import { userPurposeCalls } from "../lib/aiBudget";
+import { generateAi } from "../lib/aiProvider";
 import {
   sanitizeAiInput,
   detectPromptInjection,
   validateAiOutput,
   checkIpLimit,
-  isSafeFallbackError,
-  MAX_AI_INPUT_LENGTH,
 } from "../lib/aiGuardrails";
 import { z } from "zod";
 
@@ -28,65 +27,6 @@ const coachChatSchema = z.object({
     content: z.string().max(1000),
   })).max(20).optional(),
 });
-
-// Groq API — Llama 3.1 8B Instant
-async function callGroq(
-  systemPrompt: string,
-  messages: Array<{ role: "user" | "assistant"; content: string }>,
-  userMessage: string,
-  maxTokens = 300,
-): Promise<{ text: string | null; tokensIn?: number; tokensOut?: number; fallbackReason?: string }> {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) return { text: null };
-
-  const start = Date.now();
-  try {
-    const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
-        max_tokens: maxTokens,
-        temperature: 0.7,
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...messages,
-          { role: "user", content: userMessage },
-        ],
-      }),
-      signal: AbortSignal.timeout(12_000),
-    });
-
-    if (!resp.ok) {
-      const errText = await resp.text().catch(() => "");
-      const fallback = isSafeFallbackError(`${resp.status} ${errText}`);
-      if (resp.status === 429) {
-        await recordRateLimit("groq").catch(() => {});
-      }
-      return { text: null, fallbackReason: fallback ?? "unknown" };
-    }
-
-    const data = await resp.json() as {
-      choices?: Array<{ message?: { content?: string } }>;
-      usage?: { prompt_tokens?: number; completion_tokens?: number };
-    };
-    const text = data.choices?.[0]?.message?.content?.trim() ?? null;
-    return {
-      text,
-      tokensIn: data.usage?.prompt_tokens,
-      tokensOut: data.usage?.completion_tokens,
-    };
-  } catch (err) {
-    const fallback = isSafeFallbackError(err);
-    return { text: null, fallbackReason: fallback ?? "unknown" };
-  } finally {
-    // latency tracking could be added here
-    void start;
-  }
-}
 
 function builtinReply(userMessage: string): string {
   const msg = userMessage.toLowerCase();
@@ -149,14 +89,6 @@ router.post("/coach/chat", authMiddleware, requirePremium, aiCoachLimiter, async
         return;
       }
     }
-
-    const budget = await checkBudget("groq");
-    if (!budget.available) {
-      logger.warn({ budget }, "groq budget exhausted, using fallback");
-      const reply = builtinReply(sanitized);
-      res.json({ reply, fallback: true, reason: "budget_exceeded" });
-      return;
-    }
   } catch (err) {
     logger.warn({ err }, "budget check failed, continuing with fallback allowed");
   }
@@ -199,48 +131,32 @@ router.post("/coach/chat", authMiddleware, requirePremium, aiCoachLimiter, async
       context.push(`Recent distractions: ${recentDistractions.map(d => d.reason).join(", ")}`);
     }
 
-    const systemPrompt = `You are FocusArx Coach — an expert productivity and deep-work coach powered by neuroscience. You have real-time context about this user below. Be warm, sharp, direct. Under 80 words unless the user asks for more. Never use bullet points.\n\nUser context:\n${context.length > 0 ? context.join("\n") : "No context available yet."}`;
+    const systemPrompt = `You are FocusArx Coach — an expert productivity and deep-work coach powered by neuroscience and Google Gemini. You have real-time context about this user below. Be warm, sharp, direct. Under 80 words unless the user asks for more. Never use bullet points.\n\nUser context:\n${context.length > 0 ? context.join("\n") : "No context available yet."}`;
 
-    const history = (parsed.data.conversationHistory ?? []).slice(-8);
+    const history = (parsed.data.conversationHistory ?? []).slice(-6);
+    const historyFormatted = history.map(h => `${h.role === "user" ? "User" : "Coach"}: ${h.content}`).join("\n");
+    const fullPrompt = historyFormatted ? `${historyFormatted}\nUser: ${sanitized}\nCoach:` : sanitized;
 
-    const start = Date.now();
-    const groqResult = await callGroq(systemPrompt, history, sanitized);
-    const latencyMs = Date.now() - start;
+    const aiResult = await generateAi({
+      purpose: "coach_chat",
+      prompt: fullPrompt,
+      system: systemPrompt,
+      maxTokens: 300,
+      userId: req.userId,
+    });
 
     let reply: string;
     let isFallback = false;
 
-    if (groqResult.text) {
-      const validated = validateAiOutput(groqResult.text, 2000);
+    if (aiResult && aiResult.text) {
+      const validated = validateAiOutput(aiResult.text, 2000);
       reply = validated.sanitized;
-
-      await recordCall({
-        provider: "groq",
-        model: "llama-3.1-8b-instant",
-        purpose: "coach_chat",
-        userId: req.userId,
-        tokensIn: groqResult.tokensIn,
-        tokensOut: groqResult.tokensOut,
-        latencyMs,
-        status: "ok",
-      }).catch(() => {});
     } else {
-      // Safe fallback only for known safe errors
       isFallback = true;
       reply = builtinReply(sanitized);
-
-      await recordCall({
-        provider: "groq",
-        model: "llama-3.1-8b-instant",
-        purpose: "coach_chat",
-        userId: req.userId,
-        latencyMs,
-        status: groqResult.fallbackReason === "rate_limited" ? "rate_limited" : "fallback",
-        fallbackUsed: true,
-      }).catch(() => {});
     }
 
-    res.json({ reply, fallback: isFallback });
+    res.json({ reply, fallback: isFallback, provider: aiResult?.provider ?? "template" });
   } catch (err) {
     logger.error({ err }, "coach chat error");
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
@@ -294,15 +210,22 @@ router.get("/coach/session-tip", authMiddleware, requirePremium, async (req: Aut
       .from(readinessLogsTable)
       .where(and(eq(readinessLogsTable.userId, req.userId), eq(readinessLogsTable.date, today)));
 
-    const systemPrompt = "You are a focus coach. Give ONE ultra-concise focus tip (max 2 sentences, plain text, no bullet points).";
+    const systemPrompt = "You are a focus coach powered by neuroscience and Google Gemini. Give ONE ultra-concise focus tip (max 2 sentences, plain text, no bullet points).";
     const userMessage = `Quick tip for a user about to start a focus session.${readiness ? ` Readiness: ${readiness.score}/100.` : ""}`;
 
-    const groqResult = await callGroq(systemPrompt, [], userMessage, 80);
-    const tip = groqResult.text
-      ? validateAiOutput(groqResult.text, 300).sanitized
+    const aiResult = await generateAi({
+      purpose: "session_tip",
+      prompt: userMessage,
+      system: systemPrompt,
+      maxTokens: 100,
+      userId: req.userId,
+    });
+
+    const tip = aiResult?.text
+      ? validateAiOutput(aiResult.text, 300).sanitized
       : "Start your timer, close every other tab. The hardest part is always the first 2 minutes.";
 
-    res.json({ tip, fallback: !groqResult.text });
+    res.json({ tip, fallback: !aiResult?.text, provider: aiResult?.provider ?? "template" });
   } catch {
     res.json({ tip: "Start your timer, close every other tab." });
   }

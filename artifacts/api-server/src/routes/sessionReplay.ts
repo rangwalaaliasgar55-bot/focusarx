@@ -4,6 +4,7 @@ import { eq, desc } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
 import { sendUnauthorized } from "../lib/httpErrors";
+import { generateAi } from "../lib/aiProvider";
 
 const router = Router();
 
@@ -12,33 +13,6 @@ function auth(req: any, res: any, next: any) {
   if (!userId) { sendUnauthorized(res); return; }
   req.userId = userId;
   next();
-}
-
-// Groq API — fast caption generation
-async function callGroq(prompt: string): Promise<string | null> {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) return null;
-  try {
-    const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
-        max_tokens: 150,
-        temperature: 0.7,
-        messages: [{ role: "user", content: prompt }],
-      }),
-      signal: AbortSignal.timeout(10_000),
-    });
-    if (!resp.ok) return null;
-    const data = await resp.json() as { choices?: Array<{ message?: { content?: string } }> };
-    return data.choices?.[0]?.message?.content?.trim() ?? null;
-  } catch {
-    return null;
-  }
 }
 
 router.get("/session-replay", auth, async (req: any, res) => {
@@ -95,10 +69,18 @@ ${lastDistractionAt > 0 ? `- Last distraction: minute ${lastDistractionAt}` : ""
 ${session.focusScore != null ? `- Focus score: ${session.focusScore}/100` : ""}
 Write like a sports commentator — specific, honest, motivating. Start with the best thing that happened.`;
 
-    const caption = await callGroq(prompt)
+    const aiResult = await generateAi({
+      purpose: "session_replay_caption",
+      prompt,
+      system: "You are a witty, analytical sports commentator for deep work sessions in FocusArx powered by Google Gemini. Keep it punchy, motivating, and strictly under 3 sentences.",
+      maxTokens: 150,
+      userId: req.userId,
+    });
+
+    const caption = aiResult?.text?.trim()
       ?? `You focused for ${durationMin} minutes with ${distractions} distraction${distractions !== 1 ? "s" : ""}. ${longestStreak > 0 ? "Your best unbroken stretch was impressive." : "Every session builds the habit."}`;
 
-    res.json({ caption, durationMin, distractions, pauses, peakFlowAt, longestStreak, lastDistractionAt });
+    res.json({ caption, durationMin, distractions, pauses, peakFlowAt, longestStreak, lastDistractionAt, provider: aiResult?.provider ?? "template" });
   } catch (err) {
     logger.error({ err }, "session-replay caption error");
     res.status(500).json({ error: "Internal error" });

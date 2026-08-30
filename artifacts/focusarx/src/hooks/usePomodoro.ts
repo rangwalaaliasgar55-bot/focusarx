@@ -3,6 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { DEFAULT_CONFIG } from "@/lib/constants";
 import { generateId } from "@/lib/timerUtils";
 import { haptic } from "@/lib/haptics";
+import { createTimerWorker, type TimerWorkerController } from "@/lib/timerWorker";
 import {
   finalizeSessionMetrics,
   resetFocusMonitor,
@@ -149,7 +150,9 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
   useEffect(() => {
     if (status !== "running") return;
 
-    const id = window.setInterval(() => {
+    const worker = createTimerWorker();
+
+    worker.start(() => {
       const now = Date.now();
       if (lastTickRef.current !== null) {
         const delta = (now - lastTickRef.current) / 1000;
@@ -168,9 +171,9 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
         completingRef.current = true;
         queueMicrotask(() => advancePhase(true));
       }
-    }, 200);
+    });
 
-    return () => clearInterval(id);
+    return () => worker.destroy();
   }, [status, advancePhase]);
 
   const toggle = useCallback(() => {

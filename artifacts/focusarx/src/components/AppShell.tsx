@@ -8,6 +8,7 @@ import {
   Building2,
   CheckSquare2,
   ChevronDown,
+  Compass,
   Flame,
   Gift,
   Goal,
@@ -63,6 +64,7 @@ import { usePremium } from "@/hooks/usePremium";
 import { MobileBottomNav } from "@/components/mobile/MobileBottomNav";
 import { MobileMoreMenu } from "@/components/mobile/MobileMoreMenu";
 import { NetworkStatusBanner } from "@/components/mobile/NetworkStatusBanner";
+import { FeatureCompassModal } from "@/components/FeatureCompassModal";
 
 interface NavEntry {
   href: string;
@@ -298,7 +300,7 @@ function UserMenu({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function Topbar({ onMenu }: { onMenu: () => void }) {
+function Topbar({ onMenu, onOpenGuide }: { onMenu: () => void; onOpenGuide: () => void }) {
   const { focusSessionsToday } = useSessionHistory();
   const { data: notificationCount = 0 } = useQuery({
     queryKey: ["notif-count-nav"],
@@ -327,6 +329,18 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
       </button>
 
       <div className="ml-auto flex items-center gap-1 sm:gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onOpenGuide}
+          className="hidden md:inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 border-indigo-500/20 bg-indigo-500/5 hover:bg-indigo-500/10 min-h-[36px]"
+          aria-label="Explore features"
+        >
+          <Compass size={15} className="text-indigo-400" />
+          <span>Guide</span>
+        </Button>
+
         <div className="streak-pill min-h-[36px]" aria-label={`${focusSessionsToday} focus sessions today`}>
           <Flame size={16} aria-hidden="true" />
           <span className="tabular-nums">{focusSessionsToday}</span>
@@ -349,6 +363,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const { status } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
   const [isFocusActive, setIsFocusActive] = useState(false);
 
   useEffect(() => setMobileOpen(false), [location]);
@@ -356,11 +371,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const handleStart = () => setIsFocusActive(true);
     const handleStop = () => setIsFocusActive(false);
+    const handleOpenGuide = () => setGuideOpen(true);
     window.addEventListener("fx:focus-start", handleStart);
     window.addEventListener("fx:focus-stop", handleStop);
+    window.addEventListener("focusarx:open-guide", handleOpenGuide);
     return () => {
       window.removeEventListener("fx:focus-start", handleStart);
       window.removeEventListener("fx:focus-stop", handleStop);
+      window.removeEventListener("focusarx:open-guide", handleOpenGuide);
     };
   }, []);
 
@@ -388,7 +406,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <Brand />
         </div>
         <Navigation />
-        <div className="border-t border-[var(--border)] p-3">
+        <div className="border-t border-[var(--border)] p-3 space-y-2">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setGuideOpen(true)}
+            className="w-full justify-start text-xs text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 gap-2 h-9"
+          >
+            <Compass size={15} /> <span>Feature Guide & Compass</span>
+          </Button>
           <UserMenu />
           <div className="mt-2 flex gap-3 px-2 text-[0.6875rem] text-[var(--foreground-subtle)]">
             <Link href="/support" className="hover:text-[var(--foreground)]">Help</Link>
@@ -398,7 +424,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="app-workspace">
-        <Topbar onMenu={() => setMobileOpen(true)} />
+        <Topbar onMenu={() => setMobileOpen(true)} onOpenGuide={() => setGuideOpen(true)} />
         <main id="main-content" className="app-main" tabIndex={-1}>{children}</main>
       </div>
 
@@ -409,7 +435,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <SheetDescription className="sr-only">Navigate FocusArx</SheetDescription>
           </SheetHeader>
           <Navigation onNavigate={() => setMobileOpen(false)} />
-          <div className="border-t border-[var(--border)] p-3"><UserMenu /></div>
+          <div className="border-t border-[var(--border)] p-3">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => { setMobileOpen(false); setGuideOpen(true); }}
+              className="w-full justify-start text-xs text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 gap-2 h-9 mb-2"
+            >
+              <Compass size={15} /> <span>Feature Guide</span>
+            </Button>
+            <UserMenu />
+          </div>
         </SheetContent>
       </Sheet>
 
@@ -417,6 +453,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <MobileBottomNav hidden={hideBottomNav} onMoreClick={() => setMoreOpen(true)} />
       <MobileMoreMenu open={moreOpen} onClose={() => setMoreOpen(false)} />
       {status === "authenticated" && <CoachPanel />}
+      <FeatureCompassModal open={guideOpen} onClose={() => setGuideOpen(false)} />
     </div>
   );
 }

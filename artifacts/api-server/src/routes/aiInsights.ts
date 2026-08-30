@@ -8,31 +8,10 @@ import {
 } from "@workspace/db";
 import { extractUserId } from "./auth";
 import { isUserPremium } from "../lib/premiumCheck";
+import { generateAi } from "../lib/aiProvider";
 import { eq, and, desc, sql } from "drizzle-orm";
 
 export const aiInsightsRouter = Router();
-
-async function callGroq(systemPrompt: string, userMessage: string, maxTokens = 400): Promise<string | null> {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) return null;
-  try {
-    const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
-        max_tokens: maxTokens,
-        temperature: 0.7,
-        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userMessage }],
-      }),
-    });
-    if (!resp.ok) return null;
-    const data = await resp.json() as any;
-    return data.choices?.[0]?.message?.content ?? null;
-  } catch {
-    return null;
-  }
-}
 
 function daysAgoStr(n: number) {
   const d = new Date(); d.setDate(d.getDate() - n);
@@ -125,7 +104,15 @@ aiInsightsRouter.get("/ai/weekly-report", authMiddleware, async (req: AuthReques
   const stats = await gatherUserStats(userId);
   const prompt = `Generate a personalized weekly productivity report. Stats: ${stats.totalSessions} sessions, ${stats.totalMinutes} min, ${stats.avgFocusScore}% avg score, ${stats.currentStreak} day streak, ${stats.tasksCompleted}/${stats.tasksTotal} tasks. Peak hour: ${stats.peakHour !== null ? `${stats.peakHour}:00` : "unknown"}. Level ${stats.level}. Write 4 sections: Performance, Strengths, Opportunities, Next Week Challenge. 250 words max. Motivating and data-driven.`;
 
-  const aiReport = await callGroq("You are FocusArx AI Coach. Write a concise, motivating productivity report.", prompt, 400);
+  const aiResult = await generateAi({
+    purpose: "weekly_report",
+    prompt,
+    system: "You are FocusArx AI Coach powered by Google Gemini. Write a concise, motivating productivity report in clean markdown without preamble.",
+    maxTokens: 400,
+    userId,
+  });
+
+  const aiReport = aiResult?.text ?? null;
 
   res.json({
     report: aiReport ?? generateFallbackReport(stats),
@@ -223,7 +210,15 @@ aiInsightsRouter.get("/ai/monthly-report", authMiddleware, async (req: AuthReque
 
   const prompt = `Generate a personalized MONTHLY productivity report. Stats over 30 days: ${sessions.length} sessions, ${totalMinutes} minutes total, ${Math.round(avgScore)}% avg focus score, ${activeDays} active days, ${taskStats?.completed ?? 0}/${taskStats?.total ?? 0} tasks completed. Peak hour: ${peakHour !== undefined ? `${peakHour}:00` : "unknown"}. Level ${wallet?.level ?? 1}. Streak: ${streak?.currentStreak ?? 0} days. Write 5 sections: Monthly Overview, Focus Patterns, Strengths, Areas for Growth, Next Month Goals. 350 words max. Analytical and data-driven with actionable recommendations.`;
 
-  const aiReport = await callGroq("You are FocusArx AI Analytics Engine. Write a detailed monthly productivity analysis.", prompt, 600);
+  const aiResult = await generateAi({
+    purpose: "monthly_report",
+    prompt,
+    system: "You are FocusArx AI Analytics Engine powered by Google Gemini. Write a detailed monthly productivity analysis in markdown.",
+    maxTokens: 600,
+    userId,
+  });
+
+  const aiReport = aiResult?.text ?? null;
 
   res.json({
     report: aiReport ?? `## Monthly Overview\n\nOver the past 30 days, you completed ${sessions.length} focus sessions totalling ${totalMinutes} minutes with an average focus score of ${Math.round(avgScore)}%. You were active on ${activeDays} of 30 days (${Math.round((activeDays / 30) * 100)}% consistency).\n\n## Focus Patterns\n\n${peakHour !== undefined ? `Your peak focus hour is ${peakHour}:00. Schedule deep work during this window for maximum productivity.` : "Not enough data to identify your peak focus hour yet."}\n\n## Next Month Goals\n\n🎯 Maintain at least 20 active days this month\n🎯 Target ${Math.max(Math.round(avgScore), 75)}% average focus score\n🎯 Complete ${Math.max((taskStats?.completed ?? 0) + 5, 10)} tasks\n\n_Premium users receive AI-powered insights. Upgrade for personalized recommendations._`,
