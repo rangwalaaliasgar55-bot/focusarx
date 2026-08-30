@@ -293,7 +293,7 @@ export const bounceVariants = {
   },
   in: {
     scale: [0, 1.2, 0.9, 1],
-    rotate: [−180, 10, −5, 0],
+    rotate: [-180, 10, -5, 0],
     transition: {
       duration: 0.6,
       ease: 'easeOut',
