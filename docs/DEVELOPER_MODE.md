@@ -54,6 +54,72 @@ Developer Mode is an admin-only control panel accessible at `/developer`. It pro
 - Average latency
 - Token usage
 
+### SQL Editor (Database Console)
+Professional SQL editor with full database management capabilities:
+
+**Schema Explorer Sidebar**
+- Searchable list of all database tables with approximate row counts
+- Expandable table detail showing columns (name, type, nullable, PK/FK)
+- Index listing per table
+- Foreign key relationship visualization
+- Constraint details (primary keys, unique, check)
+
+**SQL Execution**
+- CSS-based syntax highlighting (keywords, strings, numbers, comments)
+- Line numbers with scroll sync
+- Permission level indicator (READ / WRITE / SCHEMA / DESTRUCTIVE)
+- Keyboard shortcut: Ctrl+Enter to execute, Tab to indent
+- Multi-statement support (up to 10 per run)
+- Server-side query timeout (15 seconds)
+- Result limit (500 rows max) prevents browser crashes
+
+**Permission Levels**
+- **READ** (green): SELECT, EXPLAIN — always allowed
+- **WRITE** (yellow): INSERT, UPDATE, DELETE — requires write-mode unlock
+- **SCHEMA** (amber): CREATE, ALTER — requires write-mode unlock
+- **DESTRUCTIVE** (red): DROP, TRUNCATE, DELETE/UPDATE without WHERE — requires explicit confirmation
+
+**Results**
+- Paginated result tables (50 rows per page)
+- Copy results to clipboard
+- Export as CSV
+- Execution time and row count display
+- NULL value highlighting
+- Error messages with PostgreSQL details
+
+**Query History**
+- Recent 50 queries from audit log
+- Rerun previous queries
+- Status indicators (success/error/blocked)
+- Query type and affected row count
+
+### Database Health
+Real-time database monitoring dashboard:
+
+**Connection Status**
+- Connected/disconnected indicator
+- Query latency (color-coded: green <50ms, yellow <200ms, red >200ms)
+- PostgreSQL version
+- Database name and user
+
+**Metrics**
+- Database size (human-readable)
+- Table count
+- Index count
+- Auto-refresh every 30 seconds
+
+**Migration Status**
+- Lists all Drizzle migrations from journal
+- Applied vs pending status
+- Migration timestamps
+
+**Schema Drift Detection**
+- Compares actual database tables against application schema
+- Reports missing tables (expected but not in DB)
+- Reports extra tables (in DB but not in application)
+- Sync status indicator (IN SYNC / DRIFT DETECTED)
+- Recommendation for resolution (e.g., "Run `pnpm db:push`")
+
 ### Economy Overview
 - Total coins and XP in circulation
 - Average and maximum values
@@ -74,10 +140,17 @@ Developer Mode is an admin-only control panel accessible at `/developer`. It pro
 - No secrets, API keys, or passwords are exposed
 - User passwords/hashed passwords are never shown
 - Destructive actions (user deletion) check for admin targets
-- All admin actions are logged to `audit_logs`
+- SQL Editor write operations require the adminSql unlock mechanism (15-minute window)
+- Destructive SQL queries require explicit confirmation
+- Server-side query timeouts prevent runaway queries
+- Row limits prevent browser crashes
+- All SQL operations logged to `admin_sql_log` (immutable audit trail)
+- Database connection strings never exposed in responses
+- Table name validation prevents SQL injection in introspection endpoints
 
 ## API Endpoints
 
+### Core Developer Mode
 | Method | Path | Description |
 |---|---|---|
 | GET | `/api/developer/overview` | System overview |
@@ -95,3 +168,16 @@ Developer Mode is an admin-only control panel accessible at `/developer`. It pro
 | GET | `/api/developer/ai-budget` | AI budget monitor |
 | GET | `/api/developer/economy` | Economy overview |
 | GET | `/api/developer/health` | System health |
+
+### SQL Editor & Database Intelligence
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/developer/db/health` | Database health (version, size, latency) |
+| GET | `/api/developer/db/schema` | Full schema introspection (tables, columns, indexes, FKs) |
+| GET | `/api/developer/db/schema/:table` | Table detail (columns, types, PK/FK, indexes, constraints) |
+| POST | `/api/developer/db/execute` | Execute SQL (with permission levels and safety checks) |
+| GET | `/api/developer/db/history` | Query history (paginated) |
+| GET | `/api/developer/db/migrations` | Migration listing and status |
+| GET | `/api/developer/db/diff` | Schema drift detection |
+| POST | `/api/developer/db/export` | Export table data (JSON/CSV) |
+| GET | `/api/developer/db/tables/:table/sample` | Sample table data (up to 100 rows) |
