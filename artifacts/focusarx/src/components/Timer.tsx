@@ -801,7 +801,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
 
       {/* Ambient mixer — always visible on desktop, no scrolling needed */}
       <div className="hidden lg:block">
-        <AmbientSoundBar variant="panel" />
+        <AmbientSoundBar />
       </div>
 
       {/* Break Activity Card */}
@@ -876,7 +876,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     </div>
 
     {/* Ambient Sound Bar — floating pill on mobile/tablet (hidden on lg where the panel lives) */}
-    <AmbientSoundBar visible={true} />
+    <AmbientSoundBar />
 
     {/* ── OVERLAYS ──────────────────────────────────────────────────── */}
     <AnimatePresence>

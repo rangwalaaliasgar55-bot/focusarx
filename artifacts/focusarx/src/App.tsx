@@ -102,7 +102,7 @@ const FocusMusicPage = lazy(() => import("@/pages/focus-music"));
 const SearchPage = lazy(() => import("@/pages/search"));
 const FlashcardsPage = lazy(() => import("@/pages/flashcards"));
 const TasksPage = lazy(() => import("@/pages/tasks"));
-const SessionReplayPage = lazy(() => import("@/pages/session-replay"));
+
 const ComparisonPage = lazy(() => import("@/pages/comparison"));
 const DeveloperPage = lazy(() => import("@/pages/developer"));
 
@@ -285,7 +285,7 @@ function RoutedContent() {
               <Route path="/" component={() => <ErrorBoundary><RootPage /></ErrorBoundary>} />
               <Route path="/dashboard" component={() => <ErrorBoundary><ProtectedRoute component={DashboardPage} /></ErrorBoundary>} />
               <Route path="/analytics" component={() => <ErrorBoundary><ProtectedRoute component={AnalyticsPage} /></ErrorBoundary>} />
-              <Route path="/session-replay" component={() => <ErrorBoundary><ProtectedRoute component={SessionReplayPage} /></ErrorBoundary>} />
+
               <Route path="/leaderboard" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><LeaderboardPage /></Suspense></ErrorBoundary>} />
               <Route path="/achievements" component={() => <ErrorBoundary><ProtectedRoute component={AchievementsPage} /></ErrorBoundary>} />
               <Route path="/missions" component={() => <ErrorBoundary><ProtectedRoute component={MissionsPage} /></ErrorBoundary>} />

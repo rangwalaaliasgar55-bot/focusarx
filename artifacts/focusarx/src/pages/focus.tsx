@@ -27,6 +27,8 @@ const FocusCamera = lazy(() => import("@/components/camera/FocusCamera").then(m 
 const DailyGoal = lazy(() => import("@/components/DailyGoal"));
 const FocusMoodWidget = lazy(() => import("@/components/FocusMoodWidget").then(m => ({ default: m.FocusMoodWidget })));
 const AskArx = lazy(() => import("@/components/AskArx"));
+const MonsterBattleArena = lazy(() => import("@/components/MonsterBattleArena"));
+const YouTubeFocusTimer = lazy(() => import("@/components/YouTubeFocusTimer"));
 
 function HeavyWidgetFallback() {
   return <div className="h-20 animate-pulse rounded-2xl bg-[var(--surface-1)]/50" />;
@@ -457,6 +459,24 @@ export default function FocusHomePage() {
                 <Timer onSessionComplete={handleSessionComplete} />
               )}
               <MotivationalLine />
+              
+              {/* Monster Battle Arena & YouTube Player */}
+              <div className="mt-6 w-full max-w-2xl space-y-4">
+                <Suspense fallback={<HeavyWidgetFallback />}>
+                  <MonsterBattleArena
+                    isActive={false}
+                    sessionDuration={0}
+                    sessionProgress={0}
+                    petLevel={1}
+                  />
+                </Suspense>
+                <Suspense fallback={<HeavyWidgetFallback />}>
+                  <YouTubeFocusTimer
+                    isActive={false}
+                    sessionDuration={0}
+                  />
+                </Suspense>
+              </div>
             </div>
           </div>
           {/* Desktop side panel */}
