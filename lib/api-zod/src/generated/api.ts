@@ -320,16 +320,24 @@ export const GetSocketTicketResponse = zod.object({
  */
 export const saveOnboardingBodyDataGoalMax = 200;
 
-export const saveOnboardingBodyDataLevelMax = 50;
+export const saveOnboardingBodyDataChallengeMax = 50;
+
+export const saveOnboardingBodyDataStyleMax = 50;
+
+export const saveOnboardingBodyDataDailyHoursMax = 10;
+
+export const saveOnboardingBodyDataFocusDurationMin = 5;
+export const saveOnboardingBodyDataFocusDurationMax = 120;
 
 
 
 export const SaveOnboardingBody = zod.object({
   "data": zod.object({
   "goal": zod.string().max(saveOnboardingBodyDataGoalMax).optional(),
-  "level": zod.string().max(saveOnboardingBodyDataLevelMax).optional(),
-  "dailyHours": zod.number().optional(),
-  "preferredSessionLength": zod.number().optional()
+  "challenge": zod.string().max(saveOnboardingBodyDataChallengeMax).optional(),
+  "style": zod.string().max(saveOnboardingBodyDataStyleMax).optional(),
+  "dailyHours": zod.string().max(saveOnboardingBodyDataDailyHoursMax).optional(),
+  "focusDuration": zod.number().min(saveOnboardingBodyDataFocusDurationMin).max(saveOnboardingBodyDataFocusDurationMax).optional()
 })
 })
 

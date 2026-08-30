@@ -29,8 +29,10 @@ if (productionProblems.length > 0) {
 // Export app for Vercel serverless
 export default app;
 
-// Only start the HTTP server when PORT is set (local dev / standalone deploy)
-const rawPort = process.env["PORT"];
+// Vercel imports this module without PORT, while local `pnpm dev` should work
+// out of the box with the frontend proxy's documented port. Production
+// standalone hosts still provide PORT themselves.
+const rawPort = process.env["PORT"] ?? (getEnv().NODE_ENV === "production" ? undefined : "8080");
 if (rawPort) {
   const port = Number(rawPort);
   if (Number.isNaN(port) || port <= 0) {
@@ -45,7 +47,7 @@ if (rawPort) {
 
   initVapid();
 
-  httpServer.listen(port, () => {
+  httpServer.listen(port, "0.0.0.0", () => {
     logger.info({ port }, "Server listening");
   });
 

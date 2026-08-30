@@ -1,28 +1,16 @@
 /**
- * Focus-session state machine (§4 of the production-readiness plan) —
- * server-authoritative, pure, unit-testable.
+ * Focus-session lifecycle — server-authoritative and pure.
  *
- * States:
- *   idle       — a row exists but the timer never started
- *   active     — timer running (row.timerStatus = "running")
- *   paused     — timer paused
- *   completed  — terminal (focus_sessions.session_status)
- *   cancelled  — terminal (focus_sessions.session_status)
- *   expired    — terminal (server discovered the session was abandoned)
- *
- * Transitions (the ONLY allowed ones):
- *   idle → active
- *   active → paused | completed | cancelled | expired
- *   paused → active | completed | cancelled | expired
- *   completed | cancelled | expired → (terminal)
- *
- * Expiry semantics (server clock only):
- *   - "running" sessions expire once wall clock exceeds the stored
- *     secondsLeft + grace: the timer must have reached zero, so the session is
- *     auto-COMPLETED with duration = secondsLeft (evidence is server-owned).
- *   - "paused"/"idle" sessions cannot expire by timer (pause freezes time);
- *     they are archived as "expired" (no rewards) after the absolute TTL.
+ * A database row can span pauses.  Its `updatedAt` timestamp is therefore the
+ * last status/clock checkpoint, while `startedAt` is only the row's creation
+ * time.  Running expiry is calculated from that checkpoint, never from total
+ * row lifetime, so resuming after a pause cannot consume the paused interval.
  */
+
+import {
+  deriveActiveSessionTiming,
+  secondsSinceActiveSessionCheckpoint,
+} from "./activeSessionTiming";
 
 export type SessionState =
   | "idle"
@@ -69,8 +57,10 @@ export const PAUSED_SESSION_TTL_MS = 2 * 60 * 60 * 1000;
 export interface ActiveSessionShape {
   timerStatus: string;
   startedAt: Date;
+  updatedAt?: Date | null;
   secondsLeft: number;
   activeSeconds?: number | null;
+  plannedDurationSec?: number | null;
 }
 
 export type SessionEvaluation =
@@ -92,28 +82,31 @@ export function evaluateActiveSession(
   session: ActiveSessionShape,
   nowMs: number,
 ): SessionEvaluation {
-  const wallClockSec = Math.max(0, Math.floor((nowMs - session.startedAt.getTime()) / 1000));
+  const timing = deriveActiveSessionTiming(session, nowMs);
 
   if (session.timerStatus === "running") {
-    const deadlineSec = Math.max(0, session.secondsLeft) + EXPIRY_GRACE_SEC;
-    if (wallClockSec <= deadlineSec) {
+    const runningSinceCheckpoint = secondsSinceActiveSessionCheckpoint(session, nowMs);
+    const deadlineSec = timing.checkpointRemainingSeconds + EXPIRY_GRACE_SEC;
+    if (runningSinceCheckpoint <= deadlineSec) {
       return { state: "active", expired: false };
     }
-    // Timer must have hit zero. Focus time is bounded by the server-stored
-    // secondsLeft; wall clock can only have overrun it.
     return {
       state: "expired",
       expired: true,
       wasRunning: true,
-      maxFocusSec: Math.max(0, Math.min(session.secondsLeft, wallClockSec)),
+      maxFocusSec: timing.plannedDurationSeconds,
     };
   }
 
-  // paused / idle: pause freezes time; only the absolute TTL applies.
-  if (wallClockSec * 1000 <= PAUSED_SESSION_TTL_MS) {
+  // Paused/idle: the countdown freezes. A recently-paused long session must
+  // not expire merely because `startedAt` predates the pause by two hours.
+  const idleForMs = Math.max(0, nowMs - timing.checkpointAtMs);
+  if (idleForMs <= PAUSED_SESSION_TTL_MS) {
     const state = stateFromTimerStatus(session.timerStatus);
     return { state: state === "paused" ? "paused" : "idle", expired: false };
   }
+
+  const wallClockSec = Math.max(0, Math.floor((nowMs - timing.checkpointAtMs) / 1000));
   return {
     state: "expired",
     expired: true,

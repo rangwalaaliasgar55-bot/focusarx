@@ -51,6 +51,11 @@ export function invalidateSiteSettingsCache(): void {
   cacheAt = 0;
 }
 
+/** Last-resort public response for decorative site settings. */
+export function degradedSiteSettings(): PublicSiteSettings {
+  return { ...DEFAULT_SETTINGS, degraded: true };
+}
+
 /** Read the current site settings, falling back to safe defaults. */
 export async function getSiteSettings(): Promise<PublicSiteSettings> {
   const now = Date.now();
@@ -80,7 +85,7 @@ export async function getSiteSettings(): Promise<PublicSiteSettings> {
     return settings;
   } catch (err) {
     logger.warn({ err }, "site settings read failed — returning defaults");
-    const settings: PublicSiteSettings = { ...DEFAULT_SETTINGS, degraded: true };
+    const settings = degradedSiteSettings();
     cache = settings;
     cacheAt = now;
     return settings;

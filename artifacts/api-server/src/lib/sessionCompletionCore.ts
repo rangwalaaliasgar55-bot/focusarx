@@ -14,9 +14,11 @@
  */
 
 export const MAX_VERIFIED_SESSION_SEC = 14_400;
-/** Small grace for client deadline skew + network delay between tick and request. */
-export const WALL_CLOCK_GRACE_SEC = 15;
-/** Focus sessions shorter than this never pay rewards (existing product rule). */
+/** Small grace for a final tick/network delay between checkpoint and request. */
+export const ACTIVE_CHECKPOINT_GRACE_SEC = 15;
+/** @deprecated Alias retained for existing callers/tests that used the old export name. */
+export const WALL_CLOCK_GRACE_SEC = ACTIVE_CHECKPOINT_GRACE_SEC;
+/** Focus sessions shorter than this never pay rewards. */
 export const MIN_REWARD_DURATION_SEC = 60;
 
 export type SessionMode = "focus" | "short_break" | "long_break";
@@ -25,10 +27,12 @@ export type SessionStatus = "completed" | "completed_early" | "cancelled";
 export interface VerifiedDurationInput {
   /** Client-claimed focus seconds (already schema-validated 0..86400). */
   claimedDurationSec: number;
-  /** Whether a server-side active_sessions row existed for this user. */
+  /** Whether a matching server-side active_sessions row existed. */
   hasActiveSession: boolean;
-  /** Seconds elapsed on the server clock since active_sessions.startedAt. */
-  wallClockSeconds: number;
+  /** Legacy wall-clock value retained for older callers. */
+  wallClockSeconds?: number;
+  /** Server-derived active time from the latest checkpoint. */
+  serverActiveSeconds?: number;
 }
 
 /**
@@ -47,11 +51,15 @@ export function computeVerifiedDurationSec(input: VerifiedDurationInput): number
   );
   if (!input.hasActiveSession) return claimed;
 
-  const wallClock = Math.min(
+  const serverActiveSeconds = Math.min(
     MAX_VERIFIED_SESSION_SEC,
-    Math.max(0, Math.floor(input.wallClockSeconds) + WALL_CLOCK_GRACE_SEC),
+    Math.max(0, Math.floor(input.serverActiveSeconds ?? input.wallClockSeconds ?? 0)),
   );
-  return Math.min(claimed, wallClock);
+  const verifiedActiveWindow = Math.min(
+    MAX_VERIFIED_SESSION_SEC,
+    serverActiveSeconds + ACTIVE_CHECKPOINT_GRACE_SEC,
+  );
+  return Math.min(claimed, verifiedActiveWindow);
 }
 
 export interface RewardEligibilityInput {

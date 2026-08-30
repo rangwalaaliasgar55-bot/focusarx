@@ -1,0 +1,206 @@
+# FocusArx CI pipeline — activated from docs/ci-workflows/ci.yml.
+# See docs/PRODUCTION_SETUP.md §6 for the activation story and secrets.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  NODE_VERSION: "20"
+  PNPM_VERSION: "10.26.1"
+
+jobs:
+  validate:
+    name: Validate (typecheck + test + build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck all workspaces
+        run: pnpm run typecheck
+
+      - name: Unit + contract tests
+        run: pnpm run test
+
+      - name: Production build (API server)
+        run: pnpm --filter @workspace/api-server run build
+
+      - name: Production build (frontend)
+        run: pnpm --filter @workspace/focusarx run build
+        env:
+          VITE_APP_URL: https://focusarx.site
+
+      - name: Check migration naming and duplicate versions
+        run: |
+          test -n "$(find lib/db/drizzle -maxdepth 1 -name '*.sql' -print -quit)"
+          duplicates="$(find lib/db/drizzle -maxdepth 1 -name '[0-9][0-9][0-9][0-9]_.sql' -printf '%f\n' | cut -c1-4 | sort | uniq -d)"
+          test -z "$duplicates" || { echo "Duplicate migration versions: $duplicates"; exit 1; }
+
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level high
+
+  migrations:
+    name: Database migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: validate
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: focusarx
+          POSTGRES_PASSWORD: focusarx_ci
+          POSTGRES_DB: focusarx_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate migration files exist
+        run: |
+          ls -la lib/db/drizzle/*.sql 2>/dev/null || echo "No drizzle migration files found"
+          ls -la lib/db/migrations/*.sql 2>/dev/null || echo "No hand-written migration files found"
+
+      - name: Detect destructive changes
+        run: |
+          DANGEROUS_PATTERNS="DROP TABLE|DROP COLUMN|DROP INDEX|TRUNCATE|ALTER.*TYPE"
+          if grep -rEi "$DANGEROUS_PATTERNS" lib/db/drizzle/*.sql lib/db/migrations/*.sql 2>/dev/null; then
+            echo "::warning::Destructive SQL detected in migrations. Review carefully."
+          else
+            echo "No destructive SQL patterns found."
+          fi
+
+      - name: Apply schema from empty database
+        env:
+          DATABASE_URL: postgresql://focusarx:focusarx_ci@localhost:5432/focusarx_ci
+          AUTH_SECRET: ci-test-secret-that-is-32-chars-long
+        run: pnpm --filter @workspace/db run push
+
+      - name: Run DB-gated API integration suites
+        env:
+          DATABASE_URL: postgresql://focusarx:focusarx_ci@localhost:5432/focusarx_ci
+          AUTH_SECRET: ci-test-secret-that-is-32-chars-long
+        run: pnpm --filter @workspace/api-server run test -- --run
+
+      - name: Verify database integrity
+        env:
+          DATABASE_URL: postgresql://focusarx:focusarx_ci@localhost:5432/focusarx_ci
+        run: |
+          node -e "
+            const { Pool } = require('pg');
+            const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+            (async () => {
+              try {
+                const { rows } = await pool.query(
+                  \"SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name\"
+                );
+                const required = ['users', 'focus_sessions', 'active_sessions', 'refresh_tokens', 'tasks', 'goals', 'user_wallets', 'study_streaks'];
+                const found = rows.map(r => r.table_name);
+                const missing = required.filter(t => !found.includes(t));
+                if (missing.length > 0) {
+                  console.error('Missing required tables:', missing.join(', '));
+                  process.exit(1);
+                }
+                console.log('All required tables present:', found.length, 'tables.');
+                await pool.end();
+              } catch (e) {
+                console.error('Integrity check failed:', e.message);
+                process.exit(1);
+              }
+            })();
+          "
+
+  a11y:
+    name: Accessibility (Playwright + axe)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend
+        run: pnpm --filter @workspace/focusarx run build
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run accessibility tests
+        run: pnpm test:a11y
+
+  security:
+    name: Security (secrets + dependency sweep)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check for secrets in source
+        run: |
+          echo "Scanning for potential secrets..."
+          PATTERNS="sk_live_|sk_test_|gsk_|AIza|password\s*=\s*['\"]|secret\s*=\s*['\"]"
+          if grep -rE "$PATTERNS" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.mjs" \
+            --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=coverage \
+            --exclude="*.test.*" --exclude="*.spec.*" artifacts/ lib/ api/ 2>/dev/null; then
+            echo "::error::Potential secrets found in source code!"
+            exit 1
+          fi
+          echo "No obvious secrets found."

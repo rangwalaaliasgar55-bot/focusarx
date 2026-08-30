@@ -74,6 +74,7 @@ export default function OnboardingPage() {
   const prefs = readWelcomePrefs();
   const [step, setStep] = useState<Step>(() => (prefs.goal && prefs.challenge && prefs.style ? "hours" : "intro"));
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [data, setData] = useState<Partial<OnboardingData>>(() => ({ ...prefs }));
 
   const stepIndex = STEPS.indexOf(step);
@@ -96,9 +97,10 @@ export default function OnboardingPage() {
 
   const finish = async () => {
     setSaving(true);
+    setSaveError(null);
     try {
       const token = getToken();
-      await fetch("/api/auth/onboarding", {
+      const response = await fetch("/api/auth/onboarding", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -106,12 +108,16 @@ export default function OnboardingPage() {
         },
         body: JSON.stringify({ data }),
       });
+      if (!response.ok) {
+        throw new Error("We could not save your focus setup. Please try again.");
+      }
       await refresh();
       localStorage.setItem("onboardingComplete", "true");
       localStorage.removeItem("focusarx-welcome-prefs");
       setLocation("/dashboard");
-    } catch {
-      setLocation("/dashboard");
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "We could not save your focus setup. Please try again.");
+      setSaving(false);
     }
   };
 
@@ -261,6 +267,7 @@ export default function OnboardingPage() {
                 {data.dailyHours && <CalibrationTag label={`${data.dailyHours}/day`} />}
               </div>
               <p className="mt-8 text-[var(--muted-fg)] max-w-sm mx-auto">Systems are synced. Your academic civilization is ready for expansion.</p>
+              {saveError && <p role="alert" className="mt-4 text-sm text-[var(--palette-red-400)]">{saveError}</p>}
               <button
                 onClick={() => void finish()}
                 disabled={saving}

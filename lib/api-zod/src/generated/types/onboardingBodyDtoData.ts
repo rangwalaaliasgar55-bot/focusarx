@@ -10,7 +10,14 @@ export type OnboardingBodyDtoData = {
   /** @maxLength 200 */
   goal?: string;
   /** @maxLength 50 */
-  level?: string;
-  dailyHours?: number;
-  preferredSessionLength?: number;
+  challenge?: string;
+  /** @maxLength 50 */
+  style?: string;
+  /** @maxLength 10 */
+  dailyHours?: string;
+  /**
+     * @minimum 5
+     * @maximum 120
+     */
+  focusDuration?: number;
 };
