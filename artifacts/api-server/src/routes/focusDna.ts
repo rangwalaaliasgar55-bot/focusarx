@@ -7,6 +7,7 @@ import {
 import { eq, desc, count } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
+import { generateAi } from "../lib/aiProvider";
 
 const router = Router();
 
@@ -22,36 +23,6 @@ const ARCHETYPES = [
   { name: "Iron Scheduler",  colorPrimary: "#64748B", colorSecondary: "#94A3B8", icon: "🤖" },
   { name: "Spark Chaser",    colorPrimary: "#EC4899", colorSecondary: "#F472B6", icon: "✨" },
 ];
-
-// Groq API — fast description generation
-async function callGroq(systemPrompt: string, userPrompt: string): Promise<string | null> {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) return null;
-  try {
-    const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
-        max_tokens: 120,
-        temperature: 0.8,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-      }),
-      signal: AbortSignal.timeout(10_000),
-    });
-    if (!resp.ok) return null;
-    const data = await resp.json() as { choices?: Array<{ message?: { content?: string } }> };
-    return data.choices?.[0]?.message?.content?.trim() ?? null;
-  } catch {
-    return null;
-  }
-}
 
 router.get("/focus-dna", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
@@ -123,12 +94,16 @@ router.post("/focus-dna/generate", authMiddleware, async (req: AuthRequest, res:
     const archetype = ARCHETYPES[archetypeIdx]!;
     const hrFmt = topHour === 0 ? "12am" : topHour < 12 ? `${topHour}am` : topHour === 12 ? "12pm" : `${topHour - 12}pm`;
 
-    const description = await callGroq(
-      "You write punchy, insightful personality descriptions for a focus productivity app called FocusArx. Keep it under 50 words, no lists, no markdown.",
-      `Write a 2-sentence personality description for someone with the focus archetype "${archetype.name}".
-Their stats: peak focus hour ${hrFmt}, avg session ${avgSessionMin} min, strongest day ${strongestDay}, biggest distraction: ${biggestWeakness}.
-Make it feel like a trading card personality — dramatic, accurate, motivating.`,
-    ) ?? `A ${archetype.name} who dominates at ${hrFmt} with relentless ${avgSessionMin}-minute focus blocks. ${strongestDay}s are your superpower — use them.`;
+    const aiResult = await generateAi({
+      purpose: "focus_dna_desc",
+      prompt: `Write a 2-sentence personality description for someone with the focus archetype "${archetype.name}".\nTheir stats: peak focus hour ${hrFmt}, avg session ${avgSessionMin} min, strongest day ${strongestDay}, biggest distraction: ${biggestWeakness}.\nMake it feel like a trading card personality — dramatic, accurate, motivating.`,
+      system: "You write punchy, insightful personality descriptions for a focus productivity app called FocusArx powered by Google Gemini. Keep it under 50 words, no lists, no markdown.",
+      maxTokens: 120,
+      userId: req.userId,
+    });
+
+    const description = aiResult?.text?.trim()
+      ?? `A ${archetype.name} who dominates at ${hrFmt} with relentless ${avgSessionMin}-minute focus blocks. ${strongestDay}s are your superpower — use them.`;
 
     const [existing] = await db.select().from(focusDnaTable).where(eq(focusDnaTable.userId, req.userId));
 

@@ -5,6 +5,7 @@ import { eq, and, desc, lte, inArray, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { isUserPremium } from "../lib/premiumCheck";
+import { generateAi } from "../lib/aiProvider";
 
 const router = Router();
 
@@ -228,22 +229,27 @@ router.post("/flashcards/decks/:id/generate", async (req: AuthRequest, res) => {
   const [deck] = await db.select({ id: flashcardDecksTable.id }).from(flashcardDecksTable)
     .where(and(eq(flashcardDecksTable.id, deckId), eq(flashcardDecksTable.userId, req.userId))).limit(1);
   if (!deck) return res.status(404).json({ error: "Deck not found" });
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) return res.status(503).json({ error: "AI generation is not configured" });
+
   try {
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST", signal: AbortSignal.timeout(20_000),
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "llama-3.1-8b-instant", temperature: 0.3, response_format: { type: "json_object" }, messages: [{ role: "user", content: `Create ${parsed.data.count} high-quality flashcards from these notes. Return JSON {"cards":[{"front":"question","back":"answer"}]}. Each card tests one idea. Notes:\n${parsed.data.notes}` }] }),
+    const aiResult = await generateAi({
+      purpose: "flashcard_generate",
+      prompt: `Create ${parsed.data.count} high-quality flashcards from these study notes. Return JSON in the format: {"cards":[{"front":"concise question or prompt","back":"clear, accurate answer"}]}. Each card must test exactly one concept.\n\nStudy Notes:\n${parsed.data.notes}`,
+      system: "You are an expert study aid and memory science tutor powered by Google Gemini. Output strictly valid JSON with a 'cards' array of objects with 'front' and 'back' fields.",
+      json: true,
+      maxTokens: 2048,
+      userId: req.userId,
     });
-    if (!response.ok) throw new Error("AI provider failed");
-    const body = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
-    const generated = JSON.parse(body.choices?.[0]?.message?.content ?? "{}") as { cards?: Array<{ front?: string; back?: string }> };
+
+    if (!aiResult || !aiResult.text) {
+      return res.status(503).json({ error: "AI flashcard generation is currently unavailable" });
+    }
+
+    const generated = JSON.parse(aiResult.text) as { cards?: Array<{ front?: string; back?: string }> };
     const cards = (generated.cards ?? []).slice(0, parsed.data.count).filter((card) => card.front?.trim() && card.back?.trim())
       .map((card) => ({ deckId, front: card.front!.trim().slice(0, 500), back: card.back!.trim().slice(0, 1000) }));
-    if (!cards.length) throw new Error("No cards generated");
+    if (!cards.length) throw new Error("No cards parsed from AI output");
     const inserted = await db.insert(flashcardsTable).values(cards).returning();
-    res.status(201).json({ cards: inserted });
+    res.status(201).json({ cards: inserted, provider: aiResult.provider });
   } catch (err) {
     logger.warn({ err }, "AI flashcard generation failed");
     res.status(502).json({ error: "AI flashcards could not be generated" });
