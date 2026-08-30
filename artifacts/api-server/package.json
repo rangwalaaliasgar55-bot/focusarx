@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "NODE_ENV=development tsx watch src/index.ts",
+    "dev": "node scripts/dev.mjs",
     "build": "node ./build.mjs",
-    "start": "NODE_ENV=production node --enable-source-maps ./dist/index.mjs",
+    "start": "node scripts/start.mjs",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

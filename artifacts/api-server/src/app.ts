@@ -15,7 +15,7 @@ import { masterSecurityMiddleware } from "./middlewares/security";
 import { deploymentVersionHeaders, deploymentSkewGuard } from "./middlewares/deploymentSkew";
 import { isMaintenanceMode } from "./lib/siteSettings";
 
-const isDev = process.env.NODE_ENV !== "production";
+const isDev = getEnv().NODE_ENV !== "production";
 const app: Express = express();
 app.set("trust proxy", 1);
 
@@ -173,7 +173,7 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-Request-Id", "X-FocusArx-Deployment"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-Request-Id", "X-FocusArx-Deployment", "Idempotency-Key"],
     exposedHeaders: ["X-Request-Id", "X-FocusArx-Deployment", "X-FocusArx-Deploy-Env"],
     maxAge: 86400,
   }),
@@ -216,8 +216,12 @@ app.use("/api", deploymentSkewGuard);
  * `/deployment`  — the frontend polls this to detect a new deployment. If it
  *                  503s during an incident, users are never told to refresh and
  *                  stay pinned to a stale bundle.
+ * `/auth/session` — an anonymous session check needs no database lookup and
+ *                  must still return the normal 401 rather than a config error.
+ * `/track`       — best-effort telemetry has its own non-blocking 503 contract;
+ *                  it must never become a core-product configuration failure.
  */
-const CONFIG_GATE_EXEMPT_PREFIXES = ["/healthz", "/site/settings", "/deployment"];
+const CONFIG_GATE_EXEMPT_PREFIXES = ["/healthz", "/site/settings", "/deployment", "/auth/session", "/track"];
 
 app.use("/api", (req, res, next) => {
   if (CONFIG_GATE_EXEMPT_PREFIXES.some((p) => req.path === p || req.path.startsWith(p + "/"))) {
@@ -399,7 +403,7 @@ app.use((err: any, req: express.Request, res: express.Response, _next: express.N
   logger.error({ err, requestId, url: req.url, method: req.method }, "unhandled error");
 
   // Never expose stack traces, SQL errors, internal paths, API keys
-  const isProd = process.env.NODE_ENV === "production";
+  const isProd = getEnv().NODE_ENV === "production";
   res.status(500).json({
     error: {
       code: "INTERNAL_ERROR",

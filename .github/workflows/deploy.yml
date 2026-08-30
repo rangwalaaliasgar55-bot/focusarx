@@ -1,0 +1,176 @@
+name: Production Deploy
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  deployments: write
+
+env:
+  NODE_VERSION: "20"
+  PNPM_VERSION: "10.26.1"
+
+jobs:
+  preflight:
+    name: Pre-flight checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      deployment_id: ${{ steps.version.outputs.id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: version
+        name: Generate deployment version
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          echo "id=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "Deployment version: ${SHA}"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Unit + contract tests
+        run: pnpm run test
+
+      - name: Build (API)
+        run: pnpm --filter @workspace/api-server run build
+
+      - name: Build (Frontend)
+        run: pnpm --filter @workspace/focusarx run build
+        env:
+          VITE_APP_URL: https://focusarx.site
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+
+  migrate:
+    name: Database migration
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: preflight
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify production environment
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          APP_URL: ${{ secrets.APP_URL }}
+        run: |
+          MISSING=""
+          [ -z "$DATABASE_URL" ] && MISSING="${MISSING} DATABASE_URL"
+          [ -z "$AUTH_SECRET" ] && MISSING="${MISSING} AUTH_SECRET"
+          [ -z "$ADMIN_PASSWORD" ] && MISSING="${MISSING} ADMIN_PASSWORD"
+          [ -z "$APP_URL" ] && MISSING="${MISSING} APP_URL"
+          if [ -n "$MISSING" ]; then
+            echo "::error::Missing required env vars:${MISSING}"
+            exit 1
+          fi
+          if [ "${#AUTH_SECRET}" -lt 32 ]; then
+            echo "::error::AUTH_SECRET must be at least 32 characters."
+            exit 1
+          fi
+          if [ "${#ADMIN_PASSWORD}" -lt 8 ]; then
+            echo "::error::ADMIN_PASSWORD must be at least 8 characters."
+            exit 1
+          fi
+          case "$APP_URL" in
+            https://*|http://localhost:*) ;;
+            *) echo "::error::APP_URL must be an absolute http(s) URL."; exit 1 ;;
+          esac
+          echo "All required environment variables present."
+
+      - name: Configure database URL
+        id: config
+        env:
+          DB_URL: ${{ secrets.DATABASE_URL }}
+          DB_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
+        run: |
+          if [ -n "$DB_URL_NON_POOLING" ]; then
+            echo "url=${DB_URL_NON_POOLING}" >> "$GITHUB_OUTPUT"
+          else
+            echo "url=${DB_URL}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run database migrations
+        env:
+          DATABASE_URL: ${{ steps.config.outputs.url }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+        run: pnpm --filter @workspace/db run push
+
+  vercel-deploy:
+    name: Vercel production deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: migrate
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify Vercel credentials
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error::VERCEL_TOKEN is not configured. Add it in GitHub Settings → Secrets and Actions."
+            exit 1
+          fi
+          if [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "::error::VERCEL_ORG_ID and VERCEL_PROJECT_ID are required. Run 'vercel link' locally to get them."
+            exit 1
+          fi
+          npx --yes vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN"
+
+  smoke:
+    name: Post-deployment smoke tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: vercel-deploy
+    env:
+      APP_URL: ${{ secrets.APP_URL }}
+    steps:
+      - name: Health endpoint smoke test
+        run: |
+          if [ -z "$APP_URL" ]; then
+            echo "::warning::APP_URL secret not set — skipping live smoke test."
+            exit 0
+          fi
+          echo "Waiting for deployment to propagate..."
+          sleep 30
+          echo "Smoke test: ${APP_URL}/api/healthz"
+          curl -fsS --retry 5 --retry-delay 5 "${APP_URL}/api/healthz"
+          echo
+          echo "Smoke test passed."

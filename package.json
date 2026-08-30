@@ -4,18 +4,18 @@
   "license": "MIT",
   "packageManager": "pnpm@10.26.1",
   "scripts": {
-    "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
-    "build": "pnpm -r --if-present run build",
-    "build:vercel": "pnpm --filter @workspace/db run push:vercel && pnpm --filter @workspace/api-server run build && pnpm --filter @workspace/focusarx run build:vercel",
+    "preinstall": "node -e \"for (const file of ['package-lock.json','yarn.lock']) { try { require('node:fs').rmSync(file); } catch {} } if (!(process.env.npm_config_user_agent || '').startsWith('pnpm/')) { console.error('Use pnpm instead'); process.exit(1); }\"",
+    "build": "corepack pnpm -r --if-present run build",
+    "build:vercel": "corepack pnpm --filter @workspace/db run push:vercel && corepack pnpm --filter @workspace/api-server run build && corepack pnpm --filter @workspace/focusarx run build:vercel",
     "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --if-present run typecheck",
-    "test": "pnpm -r --if-present run test",
+    "typecheck": "corepack pnpm run typecheck:libs && corepack pnpm -r --filter \"./artifacts/**\" --if-present run typecheck",
+    "test": "corepack pnpm -r --if-present run test",
     "test:a11y": "playwright test tests/e2e/accessibility.spec.ts",
     "test:responsive": "playwright test tests/e2e/responsive.spec.ts",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install --with-deps chromium",
-    "db:push": "pnpm --filter @workspace/db run push",
-    "dev": "pnpm --filter @workspace/api-server run dev & sleep 3 && pnpm --filter @workspace/focusarx run dev"
+    "db:push": "corepack pnpm --filter @workspace/db run push",
+    "dev": "corepack pnpm --parallel --filter @workspace/api-server --filter @workspace/focusarx run dev"
   },
   "private": true,
   "devDependencies": {

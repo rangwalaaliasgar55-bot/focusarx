@@ -23,6 +23,7 @@ import {
   stateFromTimerStatus,
   type SessionState,
 } from "../lib/sessionStateMachine";
+import { deriveActiveSessionTiming } from "../lib/activeSessionTiming";
 
 async function maybeDropLootBox(userId: string, sessionCount: number): Promise<boolean> {
   try {
@@ -318,10 +319,15 @@ router.post("/sessions", authMiddleware, sessionCompleteLimiter, async (req: Aut
     // Verified duration = min(client claim, server wall clock + grace, 4h cap).
     // Without an active session the claim is only recorded, never rewarded
     // (anti-farming: see lib/sessionCompletionCore.ts).
+    const serverActiveSeconds = hasActiveSession && activeSession
+      ? deriveActiveSessionTiming(activeSession).activeSeconds
+      : 0;
+
     const finalDuration = computeVerifiedDurationSec({
       claimedDurationSec: durationSec,
       hasActiveSession,
       wallClockSeconds,
+      serverActiveSeconds,
     });
 
     if (!hasActiveSession && durationSec > 0) {

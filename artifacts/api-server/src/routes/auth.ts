@@ -711,9 +711,10 @@ router.get("/auth/reset-password/verify", forgotPasswordLimiter, async (req, res
 
 const onboardingSchema = z.object({
   goal: z.string().max(200).optional(),
-  level: z.string().max(50).optional(),
-  dailyHours: z.number().min(0).max(24).optional(),
-  preferredSessionLength: z.number().min(5).max(120).optional(),
+  challenge: z.string().max(50).optional(),
+  style: z.string().max(50).optional(),
+  dailyHours: z.string().max(10).optional(),
+  focusDuration: z.number().min(5).max(120).optional(),
 }).strict();
 
 router.post("/auth/onboarding", async (req, res) => {
