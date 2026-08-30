@@ -75,7 +75,8 @@ const COACH_AUDIO: Record<string, string> = {
 };
 
 export const playCoachVoice = (key: keyof typeof COACH_AUDIO) => {
-  if (localStorage.getItem("fx-coach-voice") !== "true") return;
+  // Coach voice is enabled by default, only disabled if explicitly set to "false"
+  if (localStorage.getItem("fx-coach-voice") === "false") return;
   const audio = new Audio(COACH_AUDIO[key]);
   audio.volume = 0.6;
   audio.play().catch(() => {});

@@ -5,7 +5,7 @@ import {
   usersTable,
   premiumSubscriptionsTable,
 } from "@workspace/db";
-import { eq, and, isNull, lt, sql } from "drizzle-orm";
+import { eq, and, isNull, lt, sql, ne } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { checkAdminAuth } from "../lib/adminAuth";
 
@@ -349,29 +349,32 @@ router.post("/admin/email/blast", async (req, res) => {
   try {
     let recipients: { id: string; email: string; name: string | null }[] = [];
 
+    // Filter out guest users AND bot users - only send to real users
+    const baseCondition = and(eq(usersTable.isGuest, false), ne(usersTable.role, 'bot'));
+    
     if (audience === "all") {
       recipients = await db.select({ id: usersTable.id, email: usersTable.email, name: usersTable.name })
-        .from(usersTable).where(eq(usersTable.isGuest, false));
+        .from(usersTable).where(baseCondition);
     } else if (audience === "premium") {
       const premiumUsers = await db.select({ userId: premiumSubscriptionsTable.userId })
         .from(premiumSubscriptionsTable).where(eq(premiumSubscriptionsTable.isActive, true));
       const ids = premiumUsers.map(p => p.userId);
       if (ids.length > 0) {
         recipients = await db.select({ id: usersTable.id, email: usersTable.email, name: usersTable.name })
-          .from(usersTable).where(and(eq(usersTable.isGuest, false)));
+          .from(usersTable).where(baseCondition);
         recipients = recipients.filter(u => ids.includes(u.id));
       }
     } else if (audience === "inactive") {
       const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       recipients = await db.select({ id: usersTable.id, email: usersTable.email, name: usersTable.name })
-        .from(usersTable).where(and(eq(usersTable.isGuest, false), lt(usersTable.createdAt, cutoff)));
+        .from(usersTable).where(and(baseCondition, lt(usersTable.createdAt, cutoff)));
     } else if (audience === "selected" && selectedUserIds?.length) {
       recipients = await db.select({ id: usersTable.id, email: usersTable.email, name: usersTable.name })
-        .from(usersTable).where(eq(usersTable.isGuest, false));
+        .from(usersTable).where(baseCondition);
       recipients = recipients.filter(u => selectedUserIds.includes(u.id));
     } else {
       recipients = await db.select({ id: usersTable.id, email: usersTable.email, name: usersTable.name })
-        .from(usersTable).where(eq(usersTable.isGuest, false));
+        .from(usersTable).where(baseCondition);
     }
 
     const tmpl = EMAIL_TEMPLATES[template];
