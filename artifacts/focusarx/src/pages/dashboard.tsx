@@ -5,9 +5,11 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
   BarChart3,
+  Building2,
   CheckCircle2,
   CheckSquare2,
   Clock3,
+  Compass,
   Flame,
   Plus,
   RefreshCw,
@@ -73,12 +75,16 @@ function xpProgress(totalXp = 0) {
 }
 
 function FocusHero({ onStart }: { onStart: () => void }) {
+  const openGuide = () => {
+    window.dispatchEvent(new CustomEvent("focusarx:open-guide"));
+  };
+
   return (
     <Card elevation="glow" className="relative overflow-hidden">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,var(--brand-soft-hover),transparent_60%)]" />
       <CardContent className="relative grid min-h-[22rem] place-items-center px-5 py-10 text-center sm:min-h-[25rem]">
         <div>
-          <Badge><Sparkles /> Ready when you are</Badge>
+          <Badge><Sparkles /> Science-Backed Deep Work</Badge>
           <div className="relative mx-auto mt-7 grid h-48 w-48 place-items-center rounded-full border border-[var(--card-border)] bg-[var(--surface-hover)] shadow-[inset_0_0_0_10px_var(--brand-soft)] sm:h-56 sm:w-56">
             <div className="absolute inset-3 rounded-full border border-dashed border-[var(--border-strong)]" aria-hidden="true" />
             <div>
@@ -86,10 +92,21 @@ function FocusHero({ onStart }: { onStart: () => void }) {
               <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--foreground-subtle)]">Focus block</p>
             </div>
           </div>
-          <h2 className="mt-7 text-xl font-semibold tracking-tight">Protect the next 25 minutes.</h2>
-          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[var(--foreground-muted)]">Choose one task, remove the noise, and let FocusArx handle the rhythm.</p>
-          <Button size="lg" className="mt-6 min-w-44" onClick={onStart}><Timer /> Start focusing</Button>
-          <p className="mt-3 text-xs text-[var(--foreground-subtle)]">You can adjust the session type before the timer begins.</p>
+          <h2 className="mt-7 text-xl font-semibold tracking-tight">Protect your flow state.</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[var(--foreground-muted)]">
+            Choose your task, activate ambient audio, and let FocusArx handle the rhythm.
+          </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <Button size="lg" className="min-w-40" onClick={onStart}>
+              <Timer /> Start Focusing
+            </Button>
+            <Button size="lg" variant="outline" onClick={openGuide} className="border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10">
+              <Compass /> Explore Features Guide
+            </Button>
+          </div>
+          <p className="mt-3 text-xs text-[var(--foreground-subtle)]">
+            Includes Web Worker drift-protection, 3D City growth, and Google Gemini AI coaching.
+          </p>
         </div>
       </CardContent>
     </Card>

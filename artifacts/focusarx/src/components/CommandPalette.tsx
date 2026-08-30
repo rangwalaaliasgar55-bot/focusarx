@@ -4,6 +4,7 @@ import {
   BarChart3,
   Brain,
   CheckSquare2,
+  Compass,
   Flame,
   Goal,
   LayoutDashboard,
@@ -43,17 +44,22 @@ interface Destination {
 const DESTINATIONS: Destination[] = [
   { label: "Focus timer", href: "/", icon: Timer, keywords: "start session pomodoro" },
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, keywords: "home overview" },
+  { label: "Focus City (3D)", href: "/city", icon: Sparkles, keywords: "civilization 3d buildings world" },
+  { label: "Companion Pets (3D)", href: "/pets", icon: Sparkles, keywords: "pet avatar creature evolve" },
   { label: "Tasks", href: "/tasks", icon: CheckSquare2, keywords: "todo work" },
   { label: "Goals", href: "/goals", icon: Goal, keywords: "targets planning" },
-  { label: "Flashcards", href: "/flashcards", icon: Library, keywords: "decks study leitner" },
-  { label: "AI coach", href: "/ai-insights", icon: Brain, keywords: "insights advice", premium: true },
+  { label: "Flashcards", href: "/flashcards", icon: Library, keywords: "decks study leitner memory" },
+  { label: "Feynman Technique", href: "/feynman-technique", icon: Library, keywords: "learn teach simplify" },
+  { label: "AI coach", href: "/ai-insights", icon: Brain, keywords: "insights advice gemini coach", premium: true },
+  { label: "Forge Study Room", href: "/forge", icon: Flame, keywords: "live room multiplayer resonance" },
   { label: "Analytics", href: "/analytics", icon: BarChart3, keywords: "reports stats", premium: true },
+  { label: "Battle Pass", href: "/battle-pass", icon: Trophy, keywords: "season xp tiers rewards" },
   { label: "Achievements", href: "/achievements", icon: Trophy, keywords: "badges rewards" },
   { label: "Missions", href: "/missions", icon: Sparkles, keywords: "quests challenges" },
   { label: "Community", href: "/social", icon: Users, keywords: "friends groups" },
   { label: "Break Free", href: "/break-free", icon: Flame, keywords: "wellbeing mood pledge" },
-  { label: "Profile", href: "/profile", icon: UserRound, keywords: "account xp settings" },
-  { label: "Settings", href: "/profile", icon: Settings, keywords: "preferences theme account" },
+  { label: "Profile & Proof of Work", href: "/profile", icon: UserRound, keywords: "account xp settings resume certificate" },
+  { label: "Settings", href: "/profile?tab=custom", icon: Settings, keywords: "preferences theme account" },
 ];
 
 interface CommandPaletteProps {
@@ -85,6 +91,11 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
     window.setTimeout(() => window.dispatchEvent(new CustomEvent("focusarx:start-focus")), 120);
   };
 
+  const openGuide = () => {
+    close();
+    window.setTimeout(() => window.dispatchEvent(new CustomEvent("focusarx:open-guide")), 120);
+  };
+
   const createTask = async () => {
     const title = query.trim();
     if (!title || creating) return;
@@ -112,6 +123,9 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
             <CommandGroup heading="Quick actions">
               <CommandItem value="start focus session timer" onSelect={startFocus} className="min-h-11 rounded-[var(--radius-md)]">
                 <Timer /> <span>Start focus session</span><CommandShortcut>Enter</CommandShortcut>
+              </CommandItem>
+              <CommandItem value="feature guide tour compass explore help" onSelect={openGuide} className="min-h-11 rounded-[var(--radius-md)]">
+                <Compass className="text-indigo-400" /> <span>Explore FocusArx Features (Interactive Guide)</span>
               </CommandItem>
               {query.trim() && (
                 <CommandItem value={`create task ${query}`} onSelect={() => void createTask()} disabled={creating} className="min-h-11 rounded-[var(--radius-md)]">

@@ -1,4 +1,5 @@
 import { logger } from "./logger";
+import { generateAi } from "./aiProvider";
 
 /**
  * Automated content moderation for social posts and comments.
@@ -7,8 +8,8 @@ import { logger } from "./logger";
  *   1. Keyword heuristic (always on, zero latency, zero cost) — catches the
  *      obvious cases: profanity, slurs, spam patterns, suspicious links, and
  *      self-harm / violence escalation words.
- *   2. Groq LLM (when GROQ_API_KEY is set) — catches the subtle stuff the
- *      keyword list can't (harassment, veiled threats, hate speech, scams).
+ *   2. Gemini / Groq LLM (when keys are set) — catches subtle harassment,
+ *      veiled threats, hate speech, scams.
  *
  * Returns a verdict plus a human-readable reason so admins can review flagged
  * content in the moderation queue without reading every word.
@@ -61,38 +62,17 @@ function keywordModerate(text: string): ModerationResult | null {
 }
 
 async function aiModerate(text: string): Promise<ModerationResult | null> {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) return null;
   try {
-    const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
-        max_tokens: 60,
-        temperature: 0,
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a content moderator for a student productivity app. " +
-              "Classify the user's message as one of: APPROVED, FLAGGED, or REJECTED. " +
-              "REJECTED = clear profanity, hate speech, threats, self-harm, scams, spam, or links to outside platforms. " +
-              "FLAGGED = borderline/ambiguous content that a human should review. " +
-              "APPROVED = everything else (normal study talk, encouragement, questions). " +
-              "Reply with ONLY the verdict word followed by a short reason after a colon, e.g. \"REJECTED: hate speech\".",
-          },
-          { role: "user", content: text },
-        ],
-      }),
-      signal: AbortSignal.timeout(10_000),
+    const aiResult = await generateAi({
+      purpose: "moderation",
+      prompt: `User text to moderate:\n"${text}"`,
+      system: "You are a content moderator for FocusArx student productivity app. Classify the user's message as one of: APPROVED, FLAGGED, or REJECTED.\nREJECTED = clear profanity, hate speech, threats, self-harm, scams, spam, or malicious links.\nFLAGGED = borderline/ambiguous content that a human should review.\nAPPROVED = everything else (normal study talk, encouragement, questions).\nReply with ONLY the verdict word followed by a short reason after a colon, e.g. \"REJECTED: hate speech\".",
+      maxTokens: 60,
     });
-    if (!resp.ok) return null;
-    const data = (await resp.json()) as { choices?: Array<{ message?: { content?: string } }> };
-    const raw = data.choices?.[0]?.message?.content?.trim() ?? "";
+
+    if (!aiResult || !aiResult.text) return null;
+
+    const raw = aiResult.text.trim();
     const verdict = raw.split(":")[0]?.trim().toUpperCase();
     const reason = raw.split(":")[1]?.trim() || "Flagged by AI moderator";
     if (verdict === "REJECTED") return { status: "rejected", reason, method: "ai" };

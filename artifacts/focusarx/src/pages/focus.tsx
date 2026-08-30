@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { AnimatePresence, motion, motion as m } from "framer-motion";
-import { ClipboardList, X } from "lucide-react";
+import { ClipboardList, Compass, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { SessionRecoveryProvider } from "@/components/SessionRecoveryContext";
 import Timer from "@/components/Timer";
@@ -275,6 +275,14 @@ function HomeTopBar() {
         )}
       </div>
       <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent("focusarx:open-guide"))}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-xs font-medium text-indigo-300 hover:bg-indigo-500/20 transition-all"
+        >
+          <Compass size={13} className="text-indigo-400" />
+          <span>Guide</span>
+        </button>
         <CoinXPBar focusSessionsToday={focusSessionsToday} />
         {user && !user.isGuest && (
           <a href="/profile" className="h-7 w-7 rounded-full bg-gradient-to-br from-[var(--palette-6c63ff)] to-[var(--brand-400)] flex items-center justify-center text-[11px] font-bold text-[var(--palette-white)] hover:scale-105 transition-transform shrink-0">
