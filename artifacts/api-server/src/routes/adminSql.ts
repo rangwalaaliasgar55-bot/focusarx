@@ -75,7 +75,7 @@ async function readUnlock(adminId: string): Promise<UnlockState | null> {
   }
 }
 
-async function isWriteUnlocked(adminId: string): Promise<{ unlocked: boolean; remainingMs: number; by: string | null }> {
+export async function isWriteUnlocked(adminId: string): Promise<{ unlocked: boolean; remainingMs: number; by: string | null }> {
   const state = await readUnlock(adminId);
   if (!state) return { unlocked: false, remainingMs: 0, by: null };
   const remainingMs = state.at + UNLOCK_WINDOW_MS - Date.now();

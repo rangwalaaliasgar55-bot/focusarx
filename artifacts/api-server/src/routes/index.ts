@@ -68,6 +68,7 @@ import { deploymentRouter } from "./deployment";
 import { recommendationsRouter } from "./recommendations";
 import { dbHealthRouter } from "./dbHealth";
 import { developerRouter } from "./developer";
+import { developerSqlRouter } from "./developerSql";
 
 const router: IRouter = Router();
 
@@ -140,5 +141,6 @@ router.use(deploymentRouter);
 router.use(recommendationsRouter);
 router.use(dbHealthRouter);
 router.use(developerRouter);
+router.use(developerSqlRouter);
 
 export default router;
