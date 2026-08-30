@@ -68,7 +68,7 @@ export default function DeveloperPage() {
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-2">
               Developer Console
-              <span className="text-xs px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded-full font-medium">GOD MODE</span>
+              <span className="text-xs px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded-full font-medium">ADMIN</span>
             </h1>
             <p className="text-white/50 text-sm">
               Signed in as <span className="text-amber-300 font-medium">{data?.user?.email}</span>
