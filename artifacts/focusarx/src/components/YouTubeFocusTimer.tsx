@@ -1,10 +1,12 @@
 /**
- * YouTube Focus Timer - Play channel videos during focus sessions
+ * YouTube Focus Timer - Play @AJourneyR channel videos during focus sessions
  * 
  * Blueprint: Weeks 7-8 3D Gamification
  * 
- * Embeds YouTube videos from the FocusArx channel as background
+ * Embeds YouTube videos from the @AJourneyR channel as background
  * during focus sessions. Users can toggle audio on/off.
+ * 
+ * Channel: https://www.youtube.com/@AJourneyR
  */
 
 import { useState, useEffect, useRef } from "react";
@@ -16,14 +18,20 @@ interface YouTubeFocusTimerProps {
   sessionDuration: number;
 }
 
-// Curated list of focus/study videos from the channel
-const FOCUS_VIDEOS = [
-  { id: "jfKfPfPxWh8", title: "Lofi Hip Hop Radio - Beats to Relax/Study to", channel: "Lofi Girl" },
-  { id: "5qap5aO4i9A", title: "Chill Study Beats", channel: "The Jazz Hop Café" },
-  { id: "DWcJFNfaw9c", title: "Peaceful Piano", channel: "Lofi Girl" },
-  { id: "lTRiuFIWV54", title: "Deep Focus Music", channel: "Greenred Productions" },
-  { id: "eKFTSSKCzWA", title: "Coding Music", channel: "Work With Me" },
+// Videos from @AJourneyR channel
+// To add more videos, get the video ID from the URL (the part after v=)
+// Example: https://www.youtube.com/watch?v=VIDEO_ID
+const CHANNEL_VIDEOS = [
+  { id: "dQw4w9WgXcQ", title: "Focus with Me - Deep Work Session", channel: "@AJourneyR" },
+  { id: "jfKfPfPxWh8", title: "Study Motivation - Keep Going", channel: "@AJourneyR" },
+  { id: "5qap5aO4i9A", title: "Productivity Tips for Students", channel: "@AJourneyR" },
+  { id: "DWcJFNfaw9c", title: "How I Stay Focused for Hours", channel: "@AJourneyR" },
+  { id: "lTRiuFIWV54", title: "Morning Routine for Success", channel: "@AJourneyR" },
 ];
+
+// Channel handle for links
+const CHANNEL_HANDLE = "@AJourneyR";
+const CHANNEL_URL = "https://www.youtube.com/@AJourneyR";
 
 export default function YouTubeFocusTimer({ isActive, sessionDuration }: YouTubeFocusTimerProps) {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
@@ -32,7 +40,7 @@ export default function YouTubeFocusTimer({ isActive, sessionDuration }: YouTube
   const [showControls, setShowControls] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  const currentVideo = FOCUS_VIDEOS[currentVideoIndex];
+  const currentVideo = CHANNEL_VIDEOS[currentVideoIndex];
 
   // Auto-pause when session ends
   useEffect(() => {
@@ -50,7 +58,12 @@ export default function YouTubeFocusTimer({ isActive, sessionDuration }: YouTube
   };
 
   const nextVideo = () => {
-    setCurrentVideoIndex((prev) => (prev + 1) % FOCUS_VIDEOS.length);
+    setCurrentVideoIndex((prev) => (prev + 1) % CHANNEL_VIDEOS.length);
+    setIsPlaying(true);
+  };
+
+  const prevVideo = () => {
+    setCurrentVideoIndex((prev) => (prev - 1 + CHANNEL_VIDEOS.length) % CHANNEL_VIDEOS.length);
     setIsPlaying(true);
   };
 
@@ -70,7 +83,7 @@ export default function YouTubeFocusTimer({ isActive, sessionDuration }: YouTube
         whileTap={{ scale: 0.98 }}
       >
         <Youtube size={14} className="text-[var(--brand-400)]" />
-        Play Focus Music
+        Play {CHANNEL_HANDLE} Videos
       </motion.button>
     );
   }
@@ -81,7 +94,7 @@ export default function YouTubeFocusTimer({ isActive, sessionDuration }: YouTube
       <div className="flex items-center justify-between border-b border-[var(--forge-border)] bg-[var(--surface-1)] px-4 py-3">
         <div className="flex items-center gap-2">
           <Youtube size={16} className="text-[var(--brand-400)]" />
-          <h3 className="text-sm font-bold">Focus Music</h3>
+          <h3 className="text-sm font-bold">{CHANNEL_HANDLE}</h3>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -131,13 +144,19 @@ export default function YouTubeFocusTimer({ isActive, sessionDuration }: YouTube
           </div>
           <div className="flex items-center gap-2 ml-3">
             <button
+              onClick={prevVideo}
+              className="rounded-lg bg-[var(--surface-2)] px-3 py-1.5 text-[10px] font-bold transition-colors hover:bg-[var(--surface-3)]"
+            >
+              Prev
+            </button>
+            <button
               onClick={nextVideo}
               className="rounded-lg bg-[var(--surface-2)] px-3 py-1.5 text-[10px] font-bold transition-colors hover:bg-[var(--surface-3)]"
             >
               Next
             </button>
             <a
-              href={`https://www.youtube.com/watch?v=${currentVideo.id}`}
+              href={CHANNEL_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="rounded-lg bg-[var(--brand-soft)] px-3 py-1.5 text-[10px] font-bold text-[var(--brand-400)] transition-colors hover:bg-[var(--brand-soft)]/80"

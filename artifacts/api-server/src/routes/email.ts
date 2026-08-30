@@ -334,12 +334,14 @@ router.get("/admin/email/logs", async (req, res) => {
 router.post("/admin/email/blast", async (req, res) => {
   if (!await checkAdminAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
 
-  const { template, audience, customSubject, customHtml, selectedUserIds } = req.body as {
+  const { template, audience, customSubject, customHtml, selectedUserIds, streakMin, newUserDays } = req.body as {
     template: string;
-    audience: "all" | "inactive" | "premium" | "low_activity" | "selected";
+    audience: "all" | "inactive" | "premium" | "low_activity" | "selected" | "streak" | "newUsers";
     customSubject?: string;
     customHtml?: string;
     selectedUserIds?: string[];
+    streakMin?: number;
+    newUserDays?: number;
   };
 
   if (!template && !customSubject) {
@@ -372,6 +374,15 @@ router.post("/admin/email/blast", async (req, res) => {
       recipients = await db.select({ id: usersTable.id, email: usersTable.email, name: usersTable.name })
         .from(usersTable).where(baseCondition);
       recipients = recipients.filter(u => selectedUserIds.includes(u.id));
+    } else if (audience === "streak") {
+      const minStreak = streakMin || 7;
+      recipients = await db.select({ id: usersTable.id, email: usersTable.email, name: usersTable.name })
+        .from(usersTable).where(and(baseCondition, sql`${usersTable.currentStreak} >= ${minStreak}`));
+    } else if (audience === "newUsers") {
+      const days = newUserDays || 7;
+      const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      recipients = await db.select({ id: usersTable.id, email: usersTable.email, name: usersTable.name })
+        .from(usersTable).where(and(baseCondition, sql`${usersTable.createdAt} >= ${cutoff}`));
     } else {
       recipients = await db.select({ id: usersTable.id, email: usersTable.email, name: usersTable.name })
         .from(usersTable).where(baseCondition);

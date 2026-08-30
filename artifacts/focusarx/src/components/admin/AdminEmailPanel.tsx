@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { Send, RefreshCw, CheckCircle, AlertTriangle } from "lucide-react";
+import { Send, RefreshCw, CheckCircle, AlertTriangle, Users, Search } from "lucide-react";
 import { SectionHeader, Badge, MotionTab, LoadingState } from "./AdminHelpers";
 import type { AdminPanelProps } from "./AdminTypes";
 
 export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
   const [template, setTemplate] = useState("welcome");
-  const [audience, setAudience] = useState<"all" | "inactive" | "premium" | "selected">("all");
+  const [audience, setAudience] = useState<"all" | "inactive" | "premium" | "selected" | "streak" | "newUsers">("all");
   const [customSubject, setCustomSubject] = useState("");
   const [customHtml, setCustomHtml] = useState("");
   const [blasting, setBlasting] = useState(false);
@@ -14,8 +14,13 @@ export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
   const [logs, setLogs] = useState<any[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
   const [templates, setTemplates] = useState<{ key: string; subject: string }[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [streakMin, setStreakMin] = useState(7);
+  const [newUserDays, setNewUserDays] = useState(7);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => { loadLogs(); loadTemplates(); }, []);
+  useEffect(() => { loadLogs(); loadTemplates(); loadUsers(); }, []);
 
   async function loadLogs() {
     setLogsLoading(true);
@@ -32,19 +37,42 @@ export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
     } catch { /* ignore */ }
   }
 
+  async function loadUsers() {
+    try {
+      const r = await fetch("/api/admin/users", { headers: authHeaders(), credentials: "include" });
+      if (r.ok) { 
+        const d = await r.json(); 
+        // Filter out bot users
+        const realUsers = (d.users ?? []).filter((u: any) => !u.isBot);
+        setUsers(realUsers); 
+      }
+    } catch { /* ignore */ }
+  }
+
   async function sendBlast() {
     setBlasting(true); setResult(null); setError(null);
     try {
+      const payload: any = {
+        template,
+        audience,
+        customSubject: customSubject || undefined,
+        customHtml: customHtml || undefined,
+      };
+
+      // Add specific parameters based on audience type
+      if (audience === "selected") {
+        payload.selectedUserIds = selectedUserIds;
+      } else if (audience === "streak") {
+        payload.streakMin = streakMin;
+      } else if (audience === "newUsers") {
+        payload.newUserDays = newUserDays;
+      }
+
       const r = await fetch("/api/admin/email/blast", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
         credentials: "include",
-        body: JSON.stringify({
-          template,
-          audience,
-          customSubject: customSubject || undefined,
-          customHtml: customHtml || undefined,
-        }),
+        body: JSON.stringify(payload),
       });
       const d = await r.json();
       if (r.ok) { setResult(d); loadLogs(); }
@@ -52,6 +80,33 @@ export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
     } catch (e: any) { setError(e.message); }
     finally { setBlasting(false); }
   }
+
+  const toggleUserSelection = (userId: string) => {
+    setSelectedUserIds(prev => 
+      prev.includes(userId) 
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
+  const selectAllFilteredUsers = () => {
+    const filteredUsers = users.filter(u => 
+      !searchQuery || 
+      u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setSelectedUserIds(filteredUsers.map(u => u.id));
+  };
+
+  const clearSelection = () => {
+    setSelectedUserIds([]);
+  };
+
+  const filteredUsers = users.filter(u => 
+    !searchQuery || 
+    u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    u.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const TEMPLATES = templates.length > 0 ? templates : [
     { key: "welcome", subject: "Welcome to FocusArx 🎯" },
@@ -81,11 +136,113 @@ export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
           <div>
             <label className="block text-xs text-[var(--palette-zinc-500)] mb-1">Audience</label>
             <select className="admin-input" value={audience} onChange={e => setAudience(e.target.value as any)}>
-              <option value="all">All registered users</option>
+              <option value="all">All registered users (no bots)</option>
               <option value="inactive">Inactive users (7+ days)</option>
               <option value="premium">Premium users only</option>
+              <option value="streak">Users with streak ≥ X days</option>
+              <option value="newUsers">New users (joined in last X days)</option>
+              <option value="selected">Selected users manually</option>
             </select>
           </div>
+
+          {audience === "streak" && (
+            <div>
+              <label className="block text-xs text-[var(--palette-zinc-500)] mb-1">Minimum streak (days)</label>
+              <input 
+                type="number" 
+                className="admin-input" 
+                value={streakMin} 
+                onChange={e => setStreakMin(Number(e.target.value))}
+                min="1"
+                max="365"
+              />
+            </div>
+          )}
+
+          {audience === "newUsers" && (
+            <div>
+              <label className="block text-xs text-[var(--palette-zinc-500)] mb-1">Joined in last (days)</label>
+              <input 
+                type="number" 
+                className="admin-input" 
+                value={newUserDays} 
+                onChange={e => setNewUserDays(Number(e.target.value))}
+                min="1"
+                max="365"
+              />
+            </div>
+          )}
+
+          {audience === "selected" && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs text-[var(--palette-zinc-500)]">Select Users ({selectedUserIds.length} selected)</label>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={selectAllFilteredUsers}
+                    className="text-[10px] text-[var(--palette-sky-400)] hover:text-[var(--palette-sky-300)]"
+                  >
+                    Select All
+                  </button>
+                  <button 
+                    onClick={clearSelection}
+                    className="text-[10px] text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)]"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+              
+              <div className="relative">
+                <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--palette-zinc-500)]" />
+                <input
+                  type="text"
+                  className="admin-input pl-7"
+                  placeholder="Search by name or email..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+              </div>
+
+              <div className="max-h-[300px] overflow-y-auto rounded-lg border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-950)]">
+                {filteredUsers.length === 0 ? (
+                  <div className="p-4 text-center text-xs text-[var(--palette-zinc-500)]">
+                    No users found
+                  </div>
+                ) : (
+                  <div className="divide-y divide-[var(--palette-zinc-800)]">
+                    {filteredUsers.map((user: any) => (
+                      <label 
+                        key={user.id}
+                        className="flex items-center gap-3 px-3 py-2 hover:bg-[var(--palette-zinc-900)] cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedUserIds.includes(user.id)}
+                          onChange={() => toggleUserSelection(user.id)}
+                          className="rounded border-[var(--palette-zinc-700)]"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs text-[var(--palette-zinc-200)] truncate">
+                            {user.name || "Unnamed"}
+                          </div>
+                          <div className="text-[10px] text-[var(--palette-zinc-500)] truncate">
+                            {user.email}
+                          </div>
+                        </div>
+                        {user.isPremium && (
+                          <Badge label="Premium" color="bg-[var(--palette-violet-950)] text-[var(--palette-violet-400)]" />
+                        )}
+                        {user.currentStreak > 0 && (
+                          <Badge label={`${user.currentStreak}🔥`} color="bg-[var(--palette-orange-950)] text-[var(--palette-orange-400)]" />
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block text-xs text-[var(--palette-zinc-500)] mb-1">Custom Subject (optional)</label>
@@ -99,7 +256,7 @@ export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
               value={customHtml} onChange={e => setCustomHtml(e.target.value)} />
           </div>
 
-          <button onClick={() => void sendBlast()} disabled={blasting}
+          <button onClick={() => void sendBlast()} disabled={blasting || (audience === "selected" && selectedUserIds.length === 0)}
             className="w-full flex items-center justify-center gap-2 rounded-lg bg-[var(--palette-sky-700)] hover:bg-[var(--palette-sky-600)] px-4 py-2.5 text-sm font-medium text-[var(--palette-white)] disabled:opacity-50 transition"
           >
             {blasting ? <><RefreshCw size={14} className="animate-spin" /> Sending…</> : <><Send size={14} /> Send Email Blast</>}
@@ -120,7 +277,7 @@ export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
             <div className="flex items-start gap-2 text-[var(--palette-amber-400)]">
               <AlertTriangle size={14} className="shrink-0 mt-0.5" />
               <p className="text-[10px] text-[var(--palette-amber-500)] leading-relaxed">
-                Emails require <code className="bg-[var(--palette-amber-950)] px-1 rounded">RESEND_API_KEY</code> to actually deliver. Max 500 recipients per blast.
+                Emails require <code className="bg-[var(--palette-amber-950)] px-1 rounded">RESEND_API_KEY</code> to actually deliver. Max 500 recipients per blast. Bot users are automatically excluded.
               </p>
             </div>
           </div>
