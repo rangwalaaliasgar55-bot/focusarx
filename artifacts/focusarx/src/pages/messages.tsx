@@ -30,7 +30,7 @@ function IdentityBadges({ isAdmin }: { isAdmin?: boolean }) {
   if (!isAdmin) return null;
   return (
     <span className="inline-flex items-center gap-1">
-      <span className="inline-flex items-center gap-0.5 rounded-full border border-[var(--palette-red-500)]/30 bg-[var(--palette-red-500)]/10 px-1.5 py-px text-[7px] font-black uppercase tracking-widest text-[var(--palette-red-400)]" title="FocusArx admin">
+      <span className="inline-flex items-center gap-0.5 rounded-full border border-[var(--palette-red-500)]/30 bg-[var(--palette-red-500)]/10 px-1.5 py-px text-[7px] font-semibold uppercase tracking-widest text-[var(--palette-red-400)]" title="FocusArx admin">
           <Shield size={7} /> Admin
         </span>
     </span>
@@ -51,7 +51,7 @@ function MessageBubble({ msg, isMe, onReact }: { msg: any; isMe: boolean; onReac
           </div>
         )}
         {msg.replyTo && (
-          <div className="rounded-lg bg-[var(--rgba-255-255-255-0_02)] border border-[var(--rgba-255-255-255-0_06)] px-2 py-1 text-xs text-[var(--foreground-subtle)] mb-1">
+          <div className="rounded-lg bg-[var(--muted)] border border-[var(--border-subtle)] px-2 py-1 text-xs text-[var(--foreground-subtle)] mb-1">
             ↩ {msg.replyTo.content?.slice(0, 50)}…
           </div>
         )}
@@ -63,7 +63,7 @@ function MessageBubble({ msg, isMe, onReact }: { msg: any; isMe: boolean; onReac
           {msg.isEdited && <span className="ml-1 text-[10px] opacity-60">(edited)</span>}
         </div>
         {showReact && (
-          <div className="flex gap-1 bg-[var(--rgba-255-255-255-0_025)] border border-[var(--rgba-255-255-255-0_06)] rounded-full px-2 py-1">
+          <div className="flex gap-1 bg-[var(--surface-hover)] border border-[var(--border-subtle)] rounded-full px-2 py-1">
             {EMOJI_REACTIONS.map(e => (
               <button key={e} onClick={() => { onReact(e); setShowReact(false); }}
                 className="text-base hover:scale-125 transition-transform">{e}</button>
@@ -117,7 +117,7 @@ function ConversationThread({ conv, currentUserId, onBack }: { conv: any; curren
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-3 p-4 border-b border-[var(--rgba-255-255-255-0_06)]">
+      <div className="flex items-center gap-3 p-4 border-b border-[var(--border-subtle)]">
         <button onClick={onBack} className="sm:hidden text-[var(--foreground-subtle)] hover:text-[var(--foreground)]"><ArrowLeft size={18} /></button>
         {conv.type === "group" ? <Users size={22} className="text-[var(--brand-600)]" /> : <Avatar name={otherName} size={36} />}
         <div>
@@ -131,7 +131,7 @@ function ConversationThread({ conv, currentUserId, onBack }: { conv: any; curren
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {isLoading ? (
-          <div className="flex justify-center py-8"><div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--rgba-255-255-255-0_06)] border-t-[var(--brand-600)]" /></div>
+          <div className="flex justify-center py-8"><div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--border-subtle)] border-t-[var(--brand-600)]" /></div>
         ) : msgsError ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <AlertCircle size={28} className="text-[var(--foreground-subtle)] mb-2" />
@@ -151,7 +151,7 @@ function ConversationThread({ conv, currentUserId, onBack }: { conv: any; curren
         <div ref={bottomRef} />
       </div>
 
-      <div className="p-4 border-t border-[var(--rgba-255-255-255-0_06)]">
+      <div className="p-4 border-t border-[var(--border-subtle)]">
         <div className="flex gap-2 pb-[env(safe-area-inset-bottom)]">
           <EmotePicker onSelect={(emoji) => setText((value) => `${value}${emoji}`)} />
           <input
@@ -159,7 +159,7 @@ function ConversationThread({ conv, currentUserId, onBack }: { conv: any; curren
             onChange={e => setText(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && text.trim()) { e.preventDefault(); sendMsg.mutate(); } }}
             placeholder="Type a message…"
-            className="flex-1 rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] px-3 py-2 text-sm text-[var(--foreground)] placeholder-[var(--palette-3a3d4a)] outline-none focus:border-[var(--brand-600)]"
+            className="flex-1 rounded-xl border border-[var(--border-subtle)] bg-[var(--muted)] px-3 py-2 text-sm text-[var(--foreground)] placeholder-[var(--palette-3a3d4a)] outline-none focus:border-[var(--brand-600)]"
           />
           <button
             onClick={() => text.trim() && sendMsg.mutate()}
@@ -192,13 +192,13 @@ function NewConversationModal({ onClose, onStart }: { onClose: () => void; onSta
 
   return (
     <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-[var(--palette-black)]/70 p-4">
-      <div className="w-full max-w-sm rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-5">
+      <div className="w-full max-w-sm rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-[var(--foreground)]">New Message</h3>
           <button onClick={onClose}><X size={16} className="text-[var(--foreground-subtle)]" /></button>
         </div>
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search friends…"
-          className="w-full rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--brand-600)]"
+          className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--muted)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--brand-600)]"
           autoFocus />
         {q.length === 0 && (friends as any[]).length > 0 && (
           <p className="text-[10px] text-[var(--foreground-subtle)] mt-2 mb-1">Your friends</p>
@@ -237,7 +237,7 @@ class MessagesErrorBoundary extends Component<{ children: ReactNode }, { hasErro
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-[var(--rgba-255-255-255-0_02)] flex items-center justify-center p-6">
+        <div className="min-h-screen bg-[var(--muted)] flex items-center justify-center p-6">
           <div className="text-center max-w-sm">
             <AlertCircle size={40} className="text-[var(--foreground-subtle)] mx-auto mb-4" />
             <p className="text-base font-semibold text-[var(--foreground)] mb-2">Something went wrong</p>
@@ -287,12 +287,12 @@ function MessagesPageInner() {
   });
 
   return (
-    <div className="min-h-screen bg-[var(--rgba-255-255-255-0_02)] text-[var(--foreground)] flex h-screen">
+    <div className="min-h-screen bg-[var(--muted)] text-[var(--foreground)] flex h-screen">
       {showNew && <NewConversationModal onClose={() => setShowNew(false)} onStart={(userId) => startDm.mutate(userId)} />}
 
       {/* Sidebar */}
-      <div className={`flex flex-col border-r border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] ${selectedConv ? "hidden sm:flex w-72" : "flex w-full sm:w-72"}`}>
-        <div className="p-4 border-b border-[var(--rgba-255-255-255-0_06)]">
+      <div className={`flex flex-col border-r border-[var(--border-subtle)] bg-[var(--muted)] ${selectedConv ? "hidden sm:flex w-72" : "flex w-full sm:w-72"}`}>
+        <div className="p-4 border-b border-[var(--border-subtle)]">
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-base font-bold text-[var(--foreground)]">Messages</h1>
             <button onClick={() => setShowNew(true)} className="rounded-lg bg-[var(--brand-600)]/20 border border-[var(--brand-600)]/30 p-1.5 text-[var(--brand-400)] hover:bg-[var(--brand-600)]/30 transition-colors">
@@ -302,14 +302,14 @@ function MessagesPageInner() {
           <div className="relative">
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--foreground-subtle)]" />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…"
-              className="w-full rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] pl-8 pr-3 py-1.5 text-xs text-[var(--foreground)] outline-none focus:border-[var(--brand-600)]" />
+              className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] pl-8 pr-3 py-1.5 text-xs text-[var(--foreground)] outline-none focus:border-[var(--brand-600)]" />
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto">
           {isLoading ? (
             <div className="space-y-2 p-3">
-              {[1,2,3].map(i => <div key={i} className="h-14 animate-pulse rounded-xl bg-[var(--rgba-255-255-255-0_025)]" />)}
+              {[1,2,3].map(i => <div key={i} className="h-14 animate-pulse rounded-xl bg-[var(--surface-hover)]" />)}
             </div>
           ) : isError ? (
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
@@ -317,7 +317,7 @@ function MessagesPageInner() {
               <p className="text-sm text-[var(--foreground-subtle)] mb-3">Couldn't load conversations</p>
               <button
                 onClick={() => refetch()}
-                className="flex items-center gap-1.5 rounded-xl border border-[var(--rgba-255-255-255-0_06)] px-3 py-1.5 text-xs text-[var(--brand-400)] hover:bg-[var(--rgba-255-255-255-0_06)] transition-colors"
+                className="flex items-center gap-1.5 rounded-xl border border-[var(--border-subtle)] px-3 py-1.5 text-xs text-[var(--brand-400)] hover:bg-[var(--rgba-255-255-255-0_06)] transition-colors"
               >
                 <RefreshCw size={11} /> Try again
               </button>
@@ -334,7 +334,7 @@ function MessagesPageInner() {
               const isActive = selectedConv?.id === c.id;
               return (
                 <button key={c.id} onClick={() => setSelectedConv(c)}
-                  className={`flex w-full items-center gap-3 px-3 py-3 hover:bg-[var(--rgba-255-255-255-0_025)] transition-colors ${isActive ? "bg-[var(--rgba-255-255-255-0_025)] border-r-2 border-[var(--brand-600)]" : ""}`}>
+                  className={`flex w-full items-center gap-3 px-3 py-3 hover:bg-[var(--surface-hover)] transition-colors ${isActive ? "bg-[var(--surface-hover)] border-r-2 border-[var(--brand-600)]" : ""}`}>
                   {c.type === "group" ? (
                     <div className="h-9 w-9 rounded-full bg-[var(--brand-600)]/20 border border-[var(--brand-600)]/30 flex items-center justify-center shrink-0"><Users size={16} className="text-[var(--brand-400)]" /></div>
                   ) : (

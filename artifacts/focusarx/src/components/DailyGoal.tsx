@@ -93,7 +93,7 @@ export default function DailyGoal() {
         <div className="relative shrink-0">
           <Ring pct={pct} size={68} stroke={6} color={color} />
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-xs font-black text-[var(--foreground)] leading-none">
+            <span className="text-xs font-semibold text-[var(--foreground)] leading-none">
               {Math.min(Math.round(pct), 100)}%
             </span>
           </div>

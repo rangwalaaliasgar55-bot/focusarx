@@ -92,28 +92,28 @@ export default function SearchPage() {
   }, [query]);
 
   return (
-    <div className="min-h-screen bg-[var(--rgba-255-255-255-0_02)] text-[var(--foreground)]">
+    <div className="min-h-screen bg-[var(--muted)] text-[var(--foreground)]">
       <PageSEO {...PAGE_SEO.search} noindex />
       <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
         <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[var(--brand-600)]/30 bg-[var(--brand-600)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--brand-400)]">
           <SearchIcon size={12} /> Search FocusArx
         </div>
-        <h1 className="mb-3 text-3xl font-black text-[var(--foreground)] sm:text-4xl">Find what you need</h1>
+        <h1 className="mb-3 text-3xl font-semibold text-[var(--foreground)] sm:text-4xl">Find what you need</h1>
         <p className="mb-6 text-[var(--foreground-muted)]">Search every guide, tool, and feature — from Pomodoro technique to ADHD focus strategies.</p>
 
         <div className="relative mb-8">
-          <SearchIcon size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--palette-6b7280)]" />
+          <SearchIcon size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--foreground-muted)]" />
           <input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Try 'pomodoro', 'adhd', 'procrastination'…"
             aria-label="Search FocusArx guides and tools"
-            className="w-full rounded-2xl border border-[var(--rgba-255-255-255-0_08)] bg-[var(--rgba-255-255-255-0_03)] py-4 pl-11 pr-4 text-[var(--foreground)] outline-none placeholder:text-[var(--palette-6b7280)] focus:border-[var(--brand-600)]/50"
+            className="w-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] py-4 pl-11 pr-4 text-[var(--foreground)] outline-none placeholder:text-[var(--foreground-muted)] focus:border-[var(--brand-600)]/50"
           />
         </div>
 
-        <p className="mb-4 text-xs font-bold uppercase tracking-widest text-[var(--palette-6b7280)]">
+        <p className="mb-4 text-xs font-bold uppercase tracking-widest text-[var(--foreground-muted)]">
           {query.trim() ? `${results.length} result${results.length === 1 ? "" : "s"} for “${query.trim()}”` : `${results.length} pages`}
         </p>
 
@@ -122,19 +122,19 @@ export default function SearchPage() {
             <Link
               key={r.path}
               href={r.path}
-              className="group block rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-5 transition-all hover:border-[var(--brand-600)]/40 hover:bg-[var(--rgba-124-58-237-0_06)]"
+              className="group block rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-5 transition-all hover:border-[var(--brand-600)]/40 hover:bg-[var(--rgba-124-58-237-0_06)]"
             >
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[var(--brand-400)]">
                 {SECTION_ICONS[r.section]} {r.section}
               </div>
               <p className="mt-1 font-bold text-[var(--foreground)] group-hover:text-[var(--brand-400)]">{r.title}</p>
-              <p className="mt-1 text-sm leading-relaxed text-[var(--palette-6b7280)]">{r.description}</p>
+              <p className="mt-1 text-sm leading-relaxed text-[var(--foreground-muted)]">{r.description}</p>
             </Link>
           ))}
           {results.length === 0 && (
-            <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-8 text-center">
+            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-8 text-center">
               <p className="font-bold text-[var(--foreground)]">No results for “{query}”</p>
-              <p className="mt-1 text-sm text-[var(--palette-6b7280)]">Try “focus”, “study”, “pomodoro”, or browse the <Link href="/guides" className="text-[var(--brand-400)] hover:underline">full guide library</Link>.</p>
+              <p className="mt-1 text-sm text-[var(--foreground-muted)]">Try “focus”, “study”, “pomodoro”, or browse the <Link href="/guides" className="text-[var(--brand-400)] hover:underline">full guide library</Link>.</p>
             </div>
           )}
         </div>

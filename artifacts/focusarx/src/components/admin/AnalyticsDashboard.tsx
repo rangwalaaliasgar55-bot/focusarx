@@ -321,9 +321,9 @@ function MetricCard({ label, value, accent, trend }: { label: string; value: num
          <MousePointer2 size={40} className={color} />
       </div>
       <div className="relative z-[var(--z-content)]">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--palette-zinc-500)] mb-2">{label}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--palette-zinc-500)] mb-2">{label}</p>
         <div className="flex items-end gap-3">
-          <p className={`text-3xl font-black ${color} tracking-tight tabular-nums`}>{value.toLocaleString()}</p>
+          <p className={`text-3xl font-semibold ${color} tracking-tight tabular-nums`}>{value.toLocaleString()}</p>
           {trend !== undefined && (
             <div className={`flex items-center gap-0.5 text-[10px] font-bold mb-1 ${trend >= 0 ? "text-[var(--palette-emerald-400)]" : "text-[var(--palette-rose-400)]"}`}>
                <ArrowUpRight size={10} className={trend < 0 ? "rotate-90" : ""} />

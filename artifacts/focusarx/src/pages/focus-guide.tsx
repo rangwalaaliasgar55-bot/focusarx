@@ -11,7 +11,7 @@ function Section({ id, children, className = "" }: { id?: string; children: Reac
 }
 
 function H2({ children }: { children: React.ReactNode }) {
-  return <h2 className="text-2xl sm:text-3xl font-black text-[var(--foreground)] mt-14 mb-4 leading-tight">{children}</h2>;
+  return <h2 className="text-2xl sm:text-3xl font-semibold text-[var(--foreground)] mt-14 mb-4 leading-tight">{children}</h2>;
 }
 
 function H3({ children }: { children: React.ReactNode }) {
@@ -24,9 +24,9 @@ function P({ children }: { children: React.ReactNode }) {
 
 function FAQ({ q, a }: { q: string; a: string }) {
   return (
-    <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-5">
+    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-5">
       <p className="font-semibold text-[var(--foreground)] mb-2">{q}</p>
-      <p className="text-sm text-[var(--palette-6b7280)] leading-relaxed">{a}</p>
+      <p className="text-sm text-[var(--foreground-muted)] leading-relaxed">{a}</p>
     </div>
   );
 }
@@ -75,19 +75,19 @@ const articleSchema = {
 
 export default function FocusGuidePage() {
   return (
-    <div className="min-h-screen bg-[var(--rgba-255-255-255-0_02)] text-[var(--foreground)]">
+    <div className="min-h-screen bg-[var(--muted)] text-[var(--foreground)]">
       <PageSEO {...PAGE_SEO.focusGuide} structuredData={articleSchema} />
 
       {/* Hero */}
-      <div className="relative overflow-hidden border-b border-[var(--rgba-255-255-255-0_06)]">
+      <div className="relative overflow-hidden border-b border-[var(--border-subtle)]">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,_var(--rgba-124-58-237-0_18),_transparent_70%)]" />
         <Section className="relative py-20 text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-[var(--brand-600)]/30 bg-[var(--brand-600)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--brand-400)] mb-6">
             <Brain size={12} /> Free Guide · Updated 2026
           </div>
-          <h1 className="text-3xl sm:text-5xl font-black text-[var(--foreground)] mb-4 leading-tight">
+          <h1 className="text-3xl sm:text-5xl font-semibold text-[var(--foreground)] mb-4 leading-tight">
             How to Focus: The Complete<br />
-            <span className="bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)] bg-clip-text text-transparent">Science-Based Guide</span>
+            <span className="text-[var(--brand-strong)]">Science-Based Guide</span>
           </h1>
           <p className="max-w-2xl mx-auto text-[var(--foreground-muted)] text-base sm:text-lg">
             Attention is the most valuable resource you own — and the one most under attack. This guide explains why focus is hard, the science behind it, and a practical system to master deep work.
@@ -275,7 +275,7 @@ export default function FocusGuidePage() {
       <Section id="sample-day">
         <H2>A sample deep-work day</H2>
         <P>Here's a realistic template you can adapt. The exact times matter less than the structure: protect your peak hours, batch shallow work, and recharge deliberately.</P>
-        <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-6 space-y-3 font-mono text-sm">
+        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-6 space-y-3 font-mono text-sm">
           {[
             ["07:30", "Wake, hydrate, move (20-min walk or stretch)"],
             ["08:30", "Deep-work block #1 — your hardest task (90 min)"],
@@ -322,18 +322,18 @@ export default function FocusGuidePage() {
             { icon: <Users className="text-[var(--palette-pink-400)]" />, t: "Study together", d: "Live study rooms and leaderboards for accountability." },
             { icon: <CheckCircle className="text-[var(--palette-cyan-400)]" />, t: "Gamified growth", d: "XP, coins, a pet companion, and a city that grows as you do." },
           ].map((f) => (
-            <div key={f.t} className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-5">
+            <div key={f.t} className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-5">
               <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--palette-white)]/5 border border-[var(--palette-white)]/10">{f.icon}</div>
               <p className="font-bold text-[var(--foreground)] mb-1">{f.t}</p>
-              <p className="text-sm text-[var(--palette-6b7280)] leading-relaxed">{f.d}</p>
+              <p className="text-sm text-[var(--foreground-muted)] leading-relaxed">{f.d}</p>
             </div>
           ))}
         </div>
 
         <div className="mt-8 rounded-2xl border border-[var(--brand-600)]/30 bg-gradient-to-br from-[var(--brand-600)]/10 to-transparent p-8 text-center">
-          <h3 className="text-xl font-black text-[var(--foreground)] mb-2">Start your first deep-work session today</h3>
+          <h3 className="text-xl font-semibold text-[var(--foreground)] mb-2">Start your first deep-work session today</h3>
           <p className="text-sm text-[var(--foreground-muted)] mb-6">Free forever. No credit card. One 25-minute session is all it takes to begin.</p>
-          <Link href="/signup" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] px-6 py-3 text-sm font-bold text-[var(--palette-white)] hover:brightness-110 transition-all">
+          <Link href="/signup" className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-500)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]">
             Begin Launch Sequence <ArrowRight size={16} />
           </Link>
         </div>

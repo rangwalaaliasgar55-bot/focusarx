@@ -22,7 +22,7 @@ const ROLE_ICONS: Record<string, React.ReactNode> = {
 function GroupCard({ group, onJoin, isMember }: { group: any; onJoin: (id: string) => void; isMember?: boolean }) {
   const level = Math.floor((group.groupXp ?? 0) / 2000) + 1;
   return (
-    <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-4 hover:border-[var(--brand-600)]/40 transition-all">
+    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4 hover:border-[var(--brand-600)]/40 transition-all">
       <div className="flex items-start gap-3">
         <span className="text-3xl">{group.avatarEmoji || "🎯"}</span>
         <div className="flex-1 min-w-0">
@@ -38,7 +38,7 @@ function GroupCard({ group, onJoin, isMember }: { group: any; onJoin: (id: strin
           </div>
           {(group.tags ?? []).length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
-              {group.tags.slice(0, 3).map((t: string) => <span key={t} className="rounded-full border border-[var(--rgba-255-255-255-0_06)] px-2 py-0.5 text-[9px] text-[var(--foreground-subtle)]">{t}</span>)}
+              {group.tags.slice(0, 3).map((t: string) => <span key={t} className="rounded-full border border-[var(--border-subtle)] px-2 py-0.5 text-[9px] text-[var(--foreground-subtle)]">{t}</span>)}
             </div>
           )}
         </div>
@@ -58,7 +58,7 @@ function CreateGroupModal({ onClose, onCreate }: { onClose: () => void; onCreate
   const emojis = ["🎯", "📚", "💻", "🧠", "🏆", "🚀", "⚡", "🎮", "🔬", "🎨"];
   return (
     <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-[var(--palette-black)]/70 p-4">
-      <div className="w-full max-w-md rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-6">
+      <div className="w-full max-w-md rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-bold text-[var(--foreground)]">Create Study Group</h2>
           <button onClick={onClose} className="text-[var(--foreground-subtle)] hover:text-[var(--foreground)]"><X size={18} /></button>
@@ -70,11 +70,11 @@ function CreateGroupModal({ onClose, onCreate }: { onClose: () => void; onCreate
           </div>
           <div>
             <label className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] block mb-1.5">Name *</label>
-            <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Study group name…" className="w-full rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--brand-600)]" />
+            <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Study group name…" className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--muted)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--brand-600)]" />
           </div>
           <div>
             <label className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] block mb-1.5">Description</label>
-            <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="What's this group about?" rows={2} className="w-full rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--brand-600)] resize-none" />
+            <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="What's this group about?" rows={2} className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--muted)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--brand-600)] resize-none" />
           </div>
           {/*
             Real radio inputs. The previous version used two plain divs with an
@@ -107,7 +107,7 @@ function CreateGroupModal({ onClose, onCreate }: { onClose: () => void; onCreate
             </label>
           </fieldset>
           <div className="flex gap-2">
-            <button onClick={onClose} className="flex-1 rounded-xl border border-[var(--rgba-255-255-255-0_06)] px-4 py-2 text-sm text-[var(--foreground-subtle)] hover:text-[var(--foreground)]">Cancel</button>
+            <button onClick={onClose} className="flex-1 rounded-xl border border-[var(--border-subtle)] px-4 py-2 text-sm text-[var(--foreground-subtle)] hover:text-[var(--foreground)]">Cancel</button>
             <button onClick={() => { if (form.name.trim()) onCreate(form); }} disabled={!form.name.trim()} className="flex-1 rounded-xl bg-[var(--brand-600)] px-4 py-2 text-sm font-semibold text-[var(--palette-white)] disabled:opacity-50 hover:bg-[var(--palette-6d31d4)]">Create</button>
           </div>
         </div>
@@ -176,7 +176,7 @@ export default function GroupsPage() {
   const filtered = allGroups.filter((g: any) => !search || g.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="min-h-screen bg-[var(--rgba-255-255-255-0_02)] text-[var(--foreground)] p-4 sm:p-6 max-w-3xl mx-auto">
+    <div className="min-h-screen bg-[var(--muted)] text-[var(--foreground)] p-4 sm:p-6 max-w-3xl mx-auto">
       {showCreate && <CreateGroupModal onClose={() => setShowCreate(false)} onCreate={d => createGroup.mutate(d)} />}
 
       <div className="flex items-center justify-between mb-6">
@@ -190,12 +190,12 @@ export default function GroupsPage() {
       </div>
 
       {/* Join by invite code */}
-      <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-4 mb-5">
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4 mb-5">
         <p className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-2">Join by Invite Code</p>
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Hash size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--foreground-subtle)]" />
-            <input value={inviteCode} onChange={e => setInviteCode(e.target.value.toUpperCase())} placeholder="Enter 6-digit code…" maxLength={6} className="w-full rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] pl-8 pr-3 py-2 text-sm text-[var(--foreground)] placeholder-[var(--palette-3a3d4a)] outline-none focus:border-[var(--brand-600)] uppercase tracking-widest" />
+            <input value={inviteCode} onChange={e => setInviteCode(e.target.value.toUpperCase())} placeholder="Enter 6-digit code…" maxLength={6} className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--muted)] pl-8 pr-3 py-2 text-sm text-[var(--foreground)] placeholder-[var(--palette-3a3d4a)] outline-none focus:border-[var(--brand-600)] uppercase tracking-widest" />
           </div>
           <button onClick={() => joinInvite.mutate()} disabled={inviteCode.length !== 6 || joinInvite.isPending} className="rounded-xl bg-[var(--brand-600)]/20 border border-[var(--brand-600)]/30 px-4 py-2 text-sm font-semibold text-[var(--brand-400)] disabled:opacity-50 hover:bg-[var(--brand-600)]/30">
             {joinInvite.isPending ? "…" : "Join"}
@@ -204,7 +204,7 @@ export default function GroupsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-4 bg-[var(--rgba-255-255-255-0_025)] rounded-xl border border-[var(--rgba-255-255-255-0_06)] p-1">
+      <div className="flex gap-1 mb-4 bg-[var(--surface-hover)] rounded-xl border border-[var(--border-subtle)] p-1">
         <button onClick={() => setTab("discover")} className={`flex-1 rounded-lg py-2 text-xs font-medium transition-all ${tab === "discover" ? "bg-[var(--brand-600)] text-[var(--palette-white)]" : "text-[var(--foreground-subtle)] hover:text-[var(--foreground)]"}`}>
           <Globe size={12} className="inline mr-1.5" />Discover
         </button>
@@ -218,8 +218,8 @@ export default function GroupsPage() {
 
       {tab === "discover" && (
         <div>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search groups…" className="w-full mb-4 rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] px-3 py-2 text-sm text-[var(--foreground)] placeholder-[var(--palette-3a3d4a)] outline-none focus:border-[var(--brand-600)]" />
-          {isLoading ? <div className="flex justify-center py-12"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--rgba-255-255-255-0_06)] border-t-[var(--brand-600)]" /></div> : (
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search groups…" className="w-full mb-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] px-3 py-2 text-sm text-[var(--foreground)] placeholder-[var(--palette-3a3d4a)] outline-none focus:border-[var(--brand-600)]" />
+          {isLoading ? <div className="flex justify-center py-12"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border-subtle)] border-t-[var(--brand-600)]" /></div> : (
             <div className="space-y-3">
               {filtered.length === 0 && <div className="text-center py-12 text-[var(--foreground-subtle)]"><Users size={40} className="mx-auto mb-3 opacity-30" /><p>No groups found</p></div>}
               {filtered.map((g: any) => <GroupCard key={g.id} group={g} onJoin={(id) => joinGroup.mutate(id)} isMember={myGroupIds.has(g.id)} />)}
@@ -232,7 +232,7 @@ export default function GroupsPage() {
         <div className="space-y-3">
           {myGroups.length === 0 && <div className="text-center py-12 text-[var(--foreground-subtle)]"><Users size={40} className="mx-auto mb-3 opacity-30" /><p>You haven't joined any groups yet</p><button onClick={() => setTab("discover")} className="mt-3 text-xs text-[var(--brand-600)] hover:underline">Discover groups →</button></div>}
           {myGroups.map((g: any) => (
-            <div key={g.id} className="rounded-2xl border border-[var(--brand-600)]/30 bg-[var(--rgba-255-255-255-0_025)] p-4">
+            <div key={g.id} className="rounded-2xl border border-[var(--brand-600)]/30 bg-[var(--surface-hover)] p-4">
               <div className="flex items-center gap-3 mb-3">
                 <span className="text-3xl">{g.avatarEmoji}</span>
                 <div className="flex-1"><p className="font-bold text-[var(--foreground)]">{g.name}</p><p className="text-xs text-[var(--foreground-subtle)]">{g.memberCount} members · {g.groupXp?.toLocaleString() ?? 0} XP</p></div>
@@ -258,7 +258,7 @@ export default function GroupsPage() {
             <div className="relative flex-1">
               <Hash size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--foreground-subtle)]" />
               <input value={joinCode} onChange={e => setJoinCode(e.target.value.toUpperCase())} placeholder="Join by code…" maxLength={6}
-                className="w-full rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] pl-8 pr-3 py-2 text-sm text-[var(--foreground)] uppercase tracking-widest outline-none focus:border-[var(--brand-600)]" />
+                className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] pl-8 pr-3 py-2 text-sm text-[var(--foreground)] uppercase tracking-widest outline-none focus:border-[var(--brand-600)]" />
             </div>
             <button onClick={() => joinRoomByCode.mutate()} disabled={joinCode.length < 4 || joinRoomByCode.isPending}
               className="rounded-xl bg-[var(--brand-600)]/20 border border-[var(--brand-600)]/30 px-3 py-2 text-sm text-[var(--brand-400)] disabled:opacity-50 hover:bg-[var(--brand-600)]/30 font-semibold">
@@ -271,7 +271,7 @@ export default function GroupsPage() {
           </div>
 
           {roomsLoading ? (
-            <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-24 animate-pulse rounded-2xl bg-[var(--rgba-255-255-255-0_025)]" />)}</div>
+            <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-24 animate-pulse rounded-2xl bg-[var(--surface-hover)]" />)}</div>
           ) : (studyRooms as any[]).length === 0 ? (
             <div className="text-center py-16">
               <Radio size={40} className="mx-auto mb-4 text-[var(--brand-600)] opacity-30" />
@@ -285,7 +285,7 @@ export default function GroupsPage() {
           ) : (
             <div className="space-y-3">
               {(studyRooms as any[]).map((r: any) => (
-                <div key={r.id} className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-4 hover:border-[var(--brand-600)]/30 transition-all">
+                <div key={r.id} className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4 hover:border-[var(--brand-600)]/30 transition-all">
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div>
                       <div className="flex items-center gap-2">
@@ -306,7 +306,7 @@ export default function GroupsPage() {
                   {r.participants?.length > 0 && (
                     <div className="flex gap-1 flex-wrap">
                       {r.participants.slice(0, 8).map((p: any) => (
-                        <div key={p.userId} className="text-[10px] bg-[var(--rgba-255-255-255-0_02)] text-[var(--foreground-subtle)] border border-[var(--rgba-255-255-255-0_06)] rounded-lg px-1.5 py-0.5 flex items-center gap-1">
+                        <div key={p.userId} className="text-[10px] bg-[var(--muted)] text-[var(--foreground-subtle)] border border-[var(--border-subtle)] rounded-lg px-1.5 py-0.5 flex items-center gap-1">
                           <div className="h-1.5 w-1.5 rounded-full bg-[var(--palette-emerald-400)]" />
                           {p.name}
                         </div>

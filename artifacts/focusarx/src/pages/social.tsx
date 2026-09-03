@@ -29,7 +29,7 @@ function Avatar({ name, size = 36, level }: { name: string; size?: number, level
       </div>
       {level && (
         <div className="absolute -bottom-1 -right-1 bg-[var(--background)] rounded-full border border-[var(--palette-white)]/10 px-1 py-0.5">
-           <span className="text-[7px] font-black text-[var(--brand-400)] leading-none">{level}</span>
+           <span className="text-[7px] font-semibold text-[var(--brand-400)] leading-none">{level}</span>
         </div>
       )}
     </div>
@@ -40,7 +40,7 @@ function IdentityBadges({ isAdmin, className = "" }: { isAdmin?: boolean; classN
   if (!isAdmin) return null;
   return (
     <span className={`inline-flex items-center gap-0.5 ${className}`}>
-      <span className="inline-flex items-center gap-0.5 rounded-full border border-[var(--palette-red-500)]/30 bg-[var(--palette-red-500)]/10 px-1.5 py-px text-[7px] font-black uppercase tracking-widest text-[var(--palette-red-400)]" title="FocusArx admin">
+      <span className="inline-flex items-center gap-0.5 rounded-full border border-[var(--palette-red-500)]/30 bg-[var(--palette-red-500)]/10 px-1.5 py-px text-[7px] font-semibold uppercase tracking-widest text-[var(--palette-red-400)]" title="FocusArx admin">
           <Shield size={7} /> Admin
         </span>
     </span>
@@ -64,7 +64,7 @@ function FriendCard({ friend }: { friend: any }) {
         <div className="flex items-center gap-1.5">
           <p className="text-sm font-bold text-[var(--palette-white)] truncate">{friend.name}</p>
           {friend.isStudying && (
-            <span className="shrink-0 rounded-full bg-[var(--palette-emerald-500)]/10 border border-[var(--palette-emerald-500)]/20 px-1.5 py-0.5 text-[8px] font-black text-[var(--palette-emerald-400)] uppercase tracking-widest">
+            <span className="shrink-0 rounded-full bg-[var(--palette-emerald-500)]/10 border border-[var(--palette-emerald-500)]/20 px-1.5 py-0.5 text-[8px] font-semibold text-[var(--palette-emerald-400)] uppercase tracking-widest">
               Active Flow
             </span>
           )}
@@ -74,11 +74,11 @@ function FriendCard({ friend }: { friend: any }) {
              {focusMinutes > 0 ? `${focusMinutes}m In deep work` : "Initializing..."}
           </p>
         ) : (
-          <p className="text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)]">LV.{friend.level} · {friend.xp.toLocaleString()} XP</p>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">LV.{friend.level} · {friend.xp.toLocaleString()} XP</p>
         )}
       </div>
       <div className="text-right shrink-0">
-        <p className="text-sm font-black text-[var(--palette-amber-400)] flex items-center gap-1 justify-end">🔥 {friend.streak}</p>
+        <p className="text-sm font-semibold text-[var(--palette-amber-400)] flex items-center gap-1 justify-end">🔥 {friend.streak}</p>
       </div>
     </motion.div>
   );
@@ -94,7 +94,7 @@ function LeaderboardTable({ data }: { data: any[] }) {
            variants={STAGGER_CHILD}
            className={`flex items-center gap-4 rounded-2xl border p-4 transition-all ${e.isMe ? "border-[var(--brand-600)]/30 bg-[var(--brand-600)]/10" : "border-[var(--border)] bg-[var(--palette-white)]/[0.01]"}`}
         >
-          <span className={`w-6 text-center text-sm font-black ${i < 3 ? "text-xl" : "text-[var(--foreground-subtle)]"}`}>{i < 3 ? medals[i] : `${i + 1}`}</span>
+          <span className={`w-6 text-center text-sm font-semibold ${i < 3 ? "text-xl" : "text-[var(--foreground-subtle)]"}`}>{i < 3 ? medals[i] : `${i + 1}`}</span>
           <Avatar name={e.name} size={32} level={e.level} />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-[var(--palette-white)] truncate flex items-center gap-1.5">
@@ -102,11 +102,11 @@ function LeaderboardTable({ data }: { data: any[] }) {
               <IdentityBadges isAdmin={e.isAdmin} />
               {e.isMe && <span className="text-[var(--brand-400)]">(You)</span>}
             </p>
-            <p className="text-[9px] font-black uppercase tracking-widest text-[var(--foreground-subtle)]">LV.{e.level} · {e.streak}d STREAK</p>
+            <p className="text-[9px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">LV.{e.level} · {e.streak}d STREAK</p>
           </div>
           <div className="text-right">
-             <p className="text-sm font-black text-[var(--brand-400)] tabular-nums">{e.xp.toLocaleString()}</p>
-             <p className="text-[8px] font-black text-[var(--foreground-subtle)] uppercase tracking-widest">Points</p>
+             <p className="text-sm font-semibold text-[var(--brand-400)] tabular-nums">{e.xp.toLocaleString()}</p>
+             <p className="text-[8px] font-semibold text-[var(--foreground-subtle)] uppercase tracking-widest">Points</p>
           </div>
         </motion.div>
       ))}
@@ -177,7 +177,7 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post
                   <p className="font-bold text-[var(--palette-white)] leading-none">{post.author?.name || "User"}</p>
                   <IdentityBadges isAdmin={post.author?.isAdmin} />
                 </div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)]">{post.createdAt ? timeAgo(post.createdAt) : ""}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">{post.createdAt ? timeAgo(post.createdAt) : ""}</p>
              </div>
           </div>
           {post.userId === currentUserId && (
@@ -194,7 +194,7 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post
           <div className="mt-4 rounded-2xl bg-[var(--palette-amber-500)]/5 border border-[var(--palette-amber-500)]/10 p-4 flex items-center gap-4 group/medal">
             <div className="h-12 w-12 rounded-xl bg-[var(--palette-amber-500)]/10 flex items-center justify-center text-3xl group-hover/medal:scale-110 transition-transform">{post.metadata.icon || "🏆"}</div>
             <div>
-               <p className="text-xs font-black uppercase tracking-widest text-[var(--palette-amber-400)]">{post.metadata.title || "Achievement"}</p>
+               <p className="text-xs font-semibold uppercase tracking-widest text-[var(--palette-amber-400)]">{post.metadata.title || "Achievement"}</p>
                <p className="text-xs text-[var(--palette-amber-200)]/60 leading-tight mt-0.5">{post.metadata.description}</p>
             </div>
           </div>
@@ -206,7 +206,7 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post
             <button
               onMouseEnter={() => setShowReactions(true)}
               onMouseLeave={() => setShowReactions(false)}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${post.myReaction ? "bg-[var(--brand-600)]/20 text-[var(--brand-400)]" : "bg-[var(--palette-white)]/5 text-[var(--foreground-subtle)] hover:text-[var(--palette-white)]"}`}
+              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-semibold uppercase tracking-widest transition-all ${post.myReaction ? "bg-[var(--brand-600)]/20 text-[var(--brand-400)]" : "bg-[var(--palette-white)]/5 text-[var(--foreground-subtle)] hover:text-[var(--palette-white)]"}`}
             >
               <span>{dominantReaction?.emoji || "🔥"}</span>
               <span>{totalReactions > 0 ? totalReactions : ""}</span>
@@ -232,7 +232,7 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post
           </div>
 
           <button onClick={() => setShowComments(!showComments)}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${showComments ? "bg-[var(--palette-white)]/10 text-[var(--palette-white)]" : "text-[var(--foreground-subtle)] hover:text-[var(--palette-white)]"}`}>
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-semibold uppercase tracking-widest transition-all ${showComments ? "bg-[var(--palette-white)]/10 text-[var(--palette-white)]" : "text-[var(--foreground-subtle)] hover:text-[var(--palette-white)]"}`}>
             <MessageCircleIcon size={14} /> <span>{post.commentCount || ""}</span>
           </button>
       </div>
@@ -259,7 +259,7 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post
                       <div className="flex items-center gap-2 mb-0.5">
                         <p className="text-xs font-bold text-[var(--palette-white)]">{c.author?.name || c.authorName || "User"}</p>
                         <IdentityBadges isAdmin={c.author?.isAdmin ?? (c as any).isAdmin} />
-                        <p className="text-[8px] font-black uppercase tracking-widest text-[var(--foreground-subtle)]">{timeAgo(c.createdAt)}</p>
+                        <p className="text-[8px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">{timeAgo(c.createdAt)}</p>
                       </div>
                       <p className="text-xs text-[var(--palette-zinc-400)] leading-relaxed">{c.content}</p>
                     </div>
@@ -373,8 +373,8 @@ export default function SocialPage() {
                <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-teal)]/10 mb-6">
                   <Users className="text-[var(--brand-teal)]" />
                </div>
-               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--foreground-subtle)] mb-4">Community Hub</p>
-               <h1 className="text-4xl font-black text-[var(--palette-white)] sm:text-6xl tracking-tight leading-none mb-4">The <span className="text-[var(--brand-teal)]">Social Flow</span></h1>
+               <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--foreground-subtle)] mb-4">Community Hub</p>
+               <h1 className="text-4xl font-semibold text-[var(--palette-white)] sm:text-6xl tracking-tight leading-none mb-4">The <span className="text-[var(--brand-teal)]">Social Flow</span></h1>
                <p className="text-[var(--foreground-muted)] leading-relaxed max-w-xl mx-auto">Connect with global deep-workers. Share milestones, compete on boards, and study in sync.</p>
             </motion.div>
         </header>
@@ -391,19 +391,19 @@ export default function SocialPage() {
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
                 className="absolute top-full inset-x-0 mt-2 z-[var(--z-float)] glass-heavy rounded-3xl overflow-hidden shadow-2xl p-2 border border-[var(--border)]">
                 {searchResults.length === 0 ? (
-                  <p className="text-center py-6 text-xs font-black uppercase text-[var(--foreground-subtle)] tracking-widest">No users found</p>
+                  <p className="text-center py-6 text-xs font-semibold uppercase text-[var(--foreground-subtle)] tracking-widest">No users found</p>
                 ) : (
                   searchResults.map((u: any) => (
                     <div key={u.id} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-[var(--palette-white)]/5 transition-all">
                       <Avatar name={u.name} level={u.level} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-[var(--palette-white)] truncate flex items-center gap-1.5">{u.name}<IdentityBadges isAdmin={u.isAdmin} /></p>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)]">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">
                           {u.level != null ? `LV.${u.level} · ${u.streak ?? 0}d Streak` : "Member"}
                         </p>
                       </div>
                       <button onClick={() => sendRequest.mutate(u.id)}
-                        className="rounded-xl bg-[var(--palette-white)] text-[var(--palette-black)] px-4 py-2 text-xs font-black hover:bg-[var(--palette-zinc-200)] transition-all flex items-center gap-2">
+                        className="rounded-xl bg-[var(--palette-white)] text-[var(--palette-black)] px-4 py-2 text-xs font-semibold hover:bg-[var(--palette-zinc-200)] transition-all flex items-center gap-2">
                          <Plus size={14} /> Connect
                       </button>
                     </div>
@@ -424,7 +424,7 @@ export default function SocialPage() {
             { id: "requests", label: "Connects", icon: <Bell size={14} />, badge: incoming.length },
           ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id as any)}
-              className={`flex-1 min-w-fit flex items-center justify-center gap-2 rounded-2xl py-3 px-4 text-[10px] font-black uppercase tracking-widest transition-all ${tab === t.id ? "bg-[var(--brand-teal)] text-[var(--palette-black)] shadow-lg shadow-[var(--brand-teal)]/20" : "text-[var(--foreground-subtle)] hover:bg-[var(--palette-white)]/5 hover:text-[var(--palette-white)]"}`}>
+              className={`flex-1 min-w-fit flex items-center justify-center gap-2 rounded-2xl py-3 px-4 text-[10px] font-semibold uppercase tracking-widest transition-all ${tab === t.id ? "bg-[var(--brand-teal)] text-[var(--palette-black)] shadow-lg shadow-[var(--brand-teal)]/20" : "text-[var(--foreground-subtle)] hover:bg-[var(--palette-white)]/5 hover:text-[var(--palette-white)]"}`}>
               {t.icon} {t.label}
               {t.badge > 0 && <span className="rounded-full bg-[var(--palette-red-500)] text-[var(--palette-white)] w-4 h-4 flex items-center justify-center text-[8px] animate-bounce">{t.badge}</span>}
             </button>
@@ -455,7 +455,7 @@ export default function SocialPage() {
                            <button
                              disabled={!newPost.trim() || createPost.isPending}
                              onClick={() => createPost.mutate()}
-                             className="rounded-2xl bg-[var(--palette-white)] text-[var(--palette-black)] px-8 py-3 text-sm font-black hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                             className="rounded-2xl bg-[var(--palette-white)] text-[var(--palette-black)] px-8 py-3 text-sm font-semibold hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
                            >
                              Share Protocol
                            </button>
@@ -475,7 +475,7 @@ export default function SocialPage() {
           {tab === "friends" && (
             <motion.div key="friends" variants={STAGGER} initial="initial" animate="animate" className="grid gap-4 sm:grid-cols-2">
                {friendsLoading ? <div className="col-span-full py-20 flex justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--brand-teal)] border-t-transparent" /></div> : friends.map((f: any) => <FriendCard key={f.id} friend={f} />)}
-               {!friendsLoading && friends.length === 0 && <div className="col-span-full py-32 text-center opacity-30"><Users size={48} className="mx-auto mb-6" /><p className="text-sm font-black uppercase tracking-widest">No Protocol Mates Found</p></div>}
+               {!friendsLoading && friends.length === 0 && <div className="col-span-full py-32 text-center opacity-30"><Users size={48} className="mx-auto mb-6" /><p className="text-sm font-semibold uppercase tracking-widest">No Protocol Mates Found</p></div>}
             </motion.div>
           )}
 
@@ -483,7 +483,7 @@ export default function SocialPage() {
             <motion.div key="leaderboard" variants={STAGGER} initial="initial" animate="animate">
                <div className="flex gap-2 mb-8 bg-[var(--palette-white)]/[0.01] border border-[var(--border)] p-1 rounded-2xl">
                   {(["daily", "weekly", "monthly", "alltime"] as const).map(p => (
-                    <button key={p} onClick={() => setPeriod(p)} className={`flex-1 rounded-xl py-3 text-[10px] font-black uppercase tracking-widest transition-all ${period === p ? "bg-[var(--palette-white)]/10 text-[var(--palette-white)] shadow-xl" : "text-[var(--foreground-subtle)] hover:text-[var(--palette-zinc-300)]"}`}>{p === "alltime" ? "Infinity" : p}</button>
+                    <button key={p} onClick={() => setPeriod(p)} className={`flex-1 rounded-xl py-3 text-[10px] font-semibold uppercase tracking-widest transition-all ${period === p ? "bg-[var(--palette-white)]/10 text-[var(--palette-white)] shadow-xl" : "text-[var(--foreground-subtle)] hover:text-[var(--palette-zinc-300)]"}`}>{p === "alltime" ? "Infinity" : p}</button>
                   ))}
                </div>
                <LeaderboardTable data={leaderboard} />
@@ -502,7 +502,7 @@ export default function SocialPage() {
                            <p className="text-sm font-bold text-[var(--palette-white)] mb-0.5 flex items-center gap-1.5">
                               {a.userName}
                               <IdentityBadges isAdmin={a.isAdmin} />
-                              <span className="text-[10px] font-black text-[var(--brand-teal)] ml-1">LV.{a.userLevel}</span>
+                              <span className="text-[10px] font-semibold text-[var(--brand-teal)] ml-1">LV.{a.userLevel}</span>
                             </p>
                            <p className="text-xs text-[var(--foreground-subtle)] font-medium leading-tight">
                               {a.type === "session_complete" ? `Completed ${a.data?.durationMin}m Session` : a.type === "badge_unlocked" ? `Earned ${a.data?.badgeId} Badge` : "Updated Protocol"}

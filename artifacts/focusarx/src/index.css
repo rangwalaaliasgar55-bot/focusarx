@@ -1822,6 +1822,33 @@ html.light .glass-subtle {
   --palette-violet-700: oklch(49.1% 0.27 292.581);
   --palette-violet-800: oklch(43.2% 0.232 292.759);
   --palette-white: #fff;
+  /* ── Previously referenced but undefined — styles silently failed ──
+     Defined here so every var() reference resolves. Audited via a
+     used-vs-defined scan across src/ (see arena/01a06806 audit). */
+  --palette-sky-300: oklch(82.8% 0.111 230.318);
+  --palette-blue-300: oklch(80.9% 0.105 251.813);
+  --palette-orange-300: oklch(83.7% 0.128 66.29);
+  --palette-orange-950: oklch(26.6% 0.079 36.259);
+  --palette-red-500-30: rgba(239, 68, 68, 0.30);
+  --palette-red-500-05: rgba(239, 68, 68, 0.05);
+  --palette-b45309: #B45309;
+  --palette-64748b: #64748B;
+  --palette-f59e0b: #F59E0B;
+  --palette-a78bfa: #A78BFA;
+  --palette-f472b6: #F472B6;
+  --palette-94a3b8: #94A3B8;
+  --palette-67e8f9: #67E8F9;
+  --palette-fbbf24: #FBBF24;
+  --text-muted: var(--foreground-muted);
+  --z-popover: var(--z-overlay);
+  --accent: var(--brand-500);
+  --background-card: var(--card);
+  --rgba-251-191-36-0_25: rgba(251, 191, 36, 0.25);
+  --rgba-251-191-36-0_4: rgba(251, 191, 36, 0.4);
+  --rgba-255-255-255-0_10: rgba(255, 255, 255, 0.10);
+  --rgba-167-139-250-0_0: rgba(167, 139, 250, 0);
+  --rgba-167-139-250-0_3: rgba(167, 139, 250, 0.3);
+  --rgba-34-211-135-0_08: rgba(34, 211, 135, 0.08);
   --palette-yellow-300: oklch(90.5% 0.182 98.111);
   --palette-yellow-400: oklch(85.2% 0.199 91.936);
   --palette-yellow-500: oklch(79.5% 0.184 86.047);

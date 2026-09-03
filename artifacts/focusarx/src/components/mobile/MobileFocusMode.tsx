@@ -134,7 +134,7 @@ export function MobileFocusMode({
             className="relative"
           >
             <div
-              className="font-mono text-[5.5rem] font-black leading-none tracking-[-0.05em] sm:text-[6rem]"
+              className="font-mono text-[5.5rem] font-semibold leading-none tracking-[-0.05em] sm:text-[6rem]"
               style={{
                 backgroundImage: `linear-gradient(135deg, var(--foreground), var(--brand-400))`,
                 WebkitBackgroundClip: "text",

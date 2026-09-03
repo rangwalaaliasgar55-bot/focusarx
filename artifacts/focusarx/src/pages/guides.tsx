@@ -62,20 +62,20 @@ const COLLECTIONS = [
 
 export default function GuidesPage() {
   return (
-    <div className="min-h-screen bg-[var(--rgba-255-255-255-0_02)] text-[var(--foreground)]">
+    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       <PageSEO {...PAGE_SEO.guides} />
 
       {/* Hero */}
-      <div className="relative overflow-hidden border-b border-[var(--rgba-255-255-255-0_06)]">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,_var(--rgba-124-58-237-0_18),_transparent_70%)]" />
+      <div className="relative isolate overflow-hidden border-b border-[var(--border-subtle)]">
+        <div className="pointer-events-none absolute left-1/2 top-0 -z-10 h-[30rem] w-[52rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,var(--brand-soft-hover),transparent_68%)] blur-3xl" />
         <div className="relative mx-auto max-w-3xl px-4 py-20 text-center sm:px-6">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--brand-600)]/30 bg-[var(--brand-600)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--brand-400)]">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--card-border)] bg-[var(--brand-soft)] px-3.5 py-1.5 text-xs font-semibold text-[var(--brand-strong)]">
             <BookOpen size={12} /> Free guide library · Updated 2026
           </div>
-          <h1 className="mb-4 text-3xl font-black leading-tight text-[var(--foreground)] sm:text-5xl">
+          <h1 className="mb-4 text-balance text-4xl font-semibold leading-[1.05] tracking-[-0.045em] text-[var(--foreground)] sm:text-6xl">
             Every FocusArx guide,
             <br />
-            <span className="bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)] bg-clip-text text-transparent">in one place</span>
+            <span className="text-[var(--brand-strong)]">in one place.</span>
           </h1>
           <p className="mx-auto max-w-2xl text-base text-[var(--foreground-muted)] sm:text-lg">
             Science-backed guides on focus, deep work, studying, ADHD, procrastination, and study music. No fluff, no paywall — just practical systems you can start using today.
@@ -91,24 +91,24 @@ export default function GuidesPage() {
               opens on content rather than an ad. */}
           {collectionIdx > 0 && collectionIdx % 2 === 0 && <AdSlot name="guidesInFeed" minHeight={120} />}
           <section className="mb-12">
-            <h2 className="mb-1 text-2xl font-black text-[var(--foreground)]">{collection.title}</h2>
+            <h2 className="mb-1 text-2xl font-semibold tracking-[-0.03em] text-[var(--foreground)]">{collection.title}</h2>
             <p className="mb-5 text-sm text-[var(--foreground-muted)]">{collection.description}</p>
             <div className="space-y-3">
               {collection.guides.map((g) => (
                 <Link
                   key={g.href}
                   href={g.href}
-                  className="group block rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-5 transition-all hover:border-[var(--brand-600)]/40 hover:bg-[var(--rgba-124-58-237-0_06)]"
+                  className="group block rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface)] p-5 transition-[border-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:-translate-y-0.5 hover:border-[var(--card-border)] hover:shadow-[var(--shadow-sm)] motion-reduce:hover:translate-y-0"
                 >
                   <div className="flex items-start gap-4">
-                    <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--rgba-255-255-255-0_08)] bg-[var(--rgba-255-255-255-0_04)] text-[var(--brand-400)]">
+                    <div className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--brand-soft)] text-[var(--brand-strong)]">
                       {g.icon}
                     </div>
                     <div>
-                      <p className="font-bold text-[var(--foreground)] group-hover:text-[var(--brand-400)]">{g.label}</p>
-                      <p className="mt-1 text-sm leading-relaxed text-[var(--palette-6b7280)]">{g.blurb}</p>
+                      <p className="font-semibold tracking-tight text-[var(--foreground)] transition-colors group-hover:text-[var(--brand-strong)]">{g.label}</p>
+                      <p className="mt-1 text-sm leading-relaxed text-[var(--foreground-muted)]">{g.blurb}</p>
                     </div>
-                    <ArrowRight size={16} className="ml-auto mt-1 shrink-0 text-[var(--palette-6b7280)] transition-transform group-hover:translate-x-1 group-hover:text-[var(--brand-400)]" />
+                    <ArrowRight size={16} className="ml-auto mt-1 shrink-0 text-[var(--foreground-subtle)] transition-transform duration-[var(--duration-fast)] group-hover:translate-x-0.5 group-hover:text-[var(--brand-strong)] motion-reduce:group-hover:translate-x-0" />
                   </div>
                 </Link>
               ))}
@@ -118,14 +118,14 @@ export default function GuidesPage() {
         ))}
 
         {/* CTA */}
-        <div className="rounded-2xl border border-[var(--brand-600)]/30 bg-gradient-to-br from-[var(--brand-600)]/10 to-transparent p-8 text-center">
-          <h3 className="mb-2 text-xl font-black text-[var(--foreground)]">Turn what you read into what you do</h3>
+        <div className="rounded-[var(--radius-2xl)] border border-[var(--card-border)] bg-[radial-gradient(circle_at_50%_0%,var(--brand-soft-hover),transparent_65%)] p-8 text-center shadow-[var(--shadow-violet-sm)]">
+          <h3 className="mb-2 text-xl font-semibold tracking-[-0.02em] text-[var(--foreground)]">Turn what you read into what you do</h3>
           <p className="mb-6 text-sm text-[var(--foreground-muted)]">
             Every guide works better with a timer, streaks, and an AI coach keeping you honest. FocusArx is free forever.
           </p>
           <Link
             href="/signup"
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] px-6 py-3 text-sm font-bold text-[var(--palette-white)] transition-all hover:brightness-110"
+            className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-500)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]"
           >
             Start focusing free <ArrowRight size={16} />
           </Link>

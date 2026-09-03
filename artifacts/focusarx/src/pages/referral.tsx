@@ -66,7 +66,7 @@ export default function ReferralPage() {
         <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-8 text-center max-w-sm">
           <Gift size={32} className="text-[var(--brand-400)] mx-auto mb-4" />
           <p className="text-[var(--foreground)] font-semibold mb-2">Sign in to refer friends</p>
-          <Link href="/login" className="mt-4 inline-block rounded-xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] px-6 py-2 text-sm font-medium text-[var(--palette-white)]">Sign in</Link>
+          <Link href="/login" className="mt-4 inline-block rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] px-6 py-2 text-sm font-medium text-[var(--palette-white)]">Sign in</Link>
         </div>
       </div>
     );
@@ -88,12 +88,12 @@ export default function ReferralPage() {
             <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4 text-center backdrop-blur-xl">
               <Coins size={22} className="text-[var(--brand-gold)] mx-auto mb-2" />
               <p className="text-xl font-bold text-[var(--brand-gold)]">+200</p>
-              <p className="text-xs text-[var(--palette-6b7280)]">Coins for joinee</p>
+              <p className="text-xs text-[var(--foreground-muted)]">Coins for joinee</p>
             </div>
             <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4 text-center backdrop-blur-xl">
               <Zap size={22} className="text-[var(--brand-400)] mx-auto mb-2" />
               <p className="text-xl font-bold text-[var(--brand-400)]">+500</p>
-              <p className="text-xs text-[var(--palette-6b7280)]">XP for joinee</p>
+              <p className="text-xs text-[var(--foreground-muted)]">XP for joinee</p>
             </div>
           </div>
 
@@ -136,12 +136,12 @@ export default function ReferralPage() {
                     onChange={(e) => setInputCode(e.target.value.toUpperCase())}
                     placeholder="FAX-XXXXXX"
                     maxLength={10}
-                    className="flex-1 rounded-xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-255-255-255-0_03)] px-3 py-2.5 text-sm font-mono text-[var(--foreground)] placeholder-[var(--foreground-subtle)] outline-none focus:border-[var(--rgba-124-58-237-0_5)]"
+                    className="flex-1 rounded-xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--surface-hover)] px-3 py-2.5 text-sm font-mono text-[var(--foreground)] placeholder-[var(--foreground-subtle)] outline-none focus:border-[var(--rgba-124-58-237-0_5)]"
                   />
                   <button
                     onClick={() => applyMut.mutate(inputCode)}
                     disabled={!inputCode.startsWith("FAX-") || applyMut.isPending}
-                    className="rounded-xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] px-4 py-2.5 text-sm font-medium text-[var(--palette-white)] disabled:opacity-40 hover:opacity-90">
+                    className="rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] px-4 py-2.5 text-sm font-medium text-[var(--neutral-0)] disabled:opacity-40">
                     {applyMut.isPending ? "…" : "Apply"}
                   </button>
                 </div>

@@ -47,7 +47,7 @@ function BuildingCard({ building, owned, onBuy, wallet, busy }: {
       className={`relative rounded-2xl border p-4 transition-all ${
         owned
           ? "border-[var(--rgba-124-58-237-0_4)] bg-[var(--rgba-124-58-237-0_08)]"
-          : "border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)]"
+          : "border-[var(--border-subtle)] bg-[var(--muted)]"
       } ${busy ? "opacity-70" : ""}`}
     >
       {owned && (
@@ -361,7 +361,7 @@ export default function CityPage() {
         <div className="flex flex-wrap gap-2">
           {categories.map(c => (
             <button key={c} onClick={() => setFilter(c)}
-              className={`rounded-xl px-3 py-1.5 text-xs font-medium capitalize transition-all ${filter === c ? "bg-[var(--rgba-124-58-237-0_2)] text-[var(--brand-400)] border border-[var(--rgba-124-58-237-0_3)]" : "bg-[var(--rgba-255-255-255-0_04)] text-[var(--muted-fg)] border border-transparent hover:border-[var(--rgba-255-255-255-0_08)]"}`}>
+              className={`rounded-xl px-3 py-1.5 text-xs font-medium capitalize transition-all ${filter === c ? "bg-[var(--rgba-124-58-237-0_2)] text-[var(--brand-400)] border border-[var(--rgba-124-58-237-0_3)]" : "bg-[var(--muted)] text-[var(--muted-fg)] border border-transparent hover:border-[var(--border-subtle)]"}`}>
               {c}
             </button>
           ))}

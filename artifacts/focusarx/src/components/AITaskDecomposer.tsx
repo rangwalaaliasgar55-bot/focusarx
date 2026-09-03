@@ -155,7 +155,7 @@ export default function AITaskDecomposer() {
   return (
     <div className="w-full max-w-lg mx-auto">
       <div className="text-center mb-6">
-        <h3 className="text-lg font-black text-[var(--palette-white)] flex items-center justify-center gap-2">
+        <h3 className="text-lg font-semibold text-[var(--palette-white)] flex items-center justify-center gap-2">
           <Sparkles size={16} className="text-[var(--brand-400)]" />
           AI Task Decomposer
         </h3>

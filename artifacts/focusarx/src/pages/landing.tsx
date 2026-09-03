@@ -324,21 +324,21 @@ export default function LandingPage() {
         <section className="border-y border-[var(--border-subtle)] bg-[var(--surface-hover)] px-4 py-24 sm:px-6 sm:py-32">
           <div className="mx-auto max-w-5xl text-center">
             <p className="page-eyebrow">See how we compare</p>
-            <h2 className="text-balance text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">FocusArx vs Forest, Focus To-Do & Session.</h2>
+            <h2 className="text-balance text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">FocusArx vs Forest, Focusmate & Pomofocus.</h2>
             <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-[var(--foreground-muted)]">We break down what each app does best — and where FocusArx goes further with AI coaching, analytics, and gamification.</p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
               {[
-                { name: "Forest", note: "Tree-planting gamification" },
-                { name: "Focus To-Do", note: "Pomodoro + task manager" },
-                { name: "Session", note: "Mac-native focus timer" },
-              ].map(({ name, note }) => (
-                <div key={name} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-5 py-3 text-left">
-                  <p className="text-sm font-semibold">{name}</p>
+                { name: "Forest", note: "Tree-planting gamification", href: "/comparison/focusarx-vs-forest" },
+                { name: "Focusmate", note: "1-on-1 video coworking", href: "/comparison/focusarx-vs-focusmate" },
+                { name: "Pomofocus", note: "Minimal web Pomodoro timer", href: "/comparison/focusarx-vs-pomofocus" },
+              ].map(({ name, note, href }) => (
+                <Link key={name} href={href} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-5 py-3 text-left transition-[border-color,box-shadow] duration-[var(--duration-fast)] hover:border-[var(--card-border)] hover:shadow-[var(--shadow-xs)]">
+                  <p className="text-sm font-semibold">FocusArx vs {name}</p>
                   <p className="text-xs text-[var(--foreground-subtle)]">{note}</p>
-                </div>
+                </Link>
               ))}
             </div>
-            <Button asChild variant="outline" className="mt-8"><Link href="/pricing">See full comparison <ChevronRight /></Link></Button>
+            <Button asChild variant="outline" className="mt-8"><Link href="/comparison/focusarx-vs-forest">See full comparison <ChevronRight /></Link></Button>
           </div>
         </section>
 
@@ -365,7 +365,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
             <div className="lg:col-span-2"><Brand /><p className="mt-4 max-w-sm text-sm leading-relaxed text-[var(--foreground-muted)]">A calm operating system for focused work, deliberate study, and sustainable momentum.</p></div>
-            {[{ title: "Product", links: [["Dashboard", "/dashboard"], ["Flashcards", "/flashcards"], ["Pricing", "/pricing"]] }, { title: "Learn", links: [["All guides", "/guides"], ["Focus guide", "/focus-guide"], ["Pomodoro guide", "/pomodoro-guide"], ["ADHD focus tips", "/adhd-focus-tips"], ["Stop procrastinating", "/stop-procrastinating"], ["Focus music", "/focus-music"]] }, { title: "Company", links: [["About", "/about"], ["Contact", "/contact"], ["Support", "/support"]] }].map((group) => <div key={group.title}><h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">{group.title}</h2><ul className="mt-4 space-y-3">{group.links.map(([label, href]) => <li key={href}><Link href={href} className="text-sm text-[var(--foreground-muted)] hover:text-[var(--foreground)]">{label}</Link></li>)}</ul></div>)}
+            {[{ title: "Product", links: [["Dashboard", "/dashboard"], ["Virtual study rooms", "/virtual-study-room"], ["Live study rooms", "/study-rooms"], ["Flashcards", "/flashcards"], ["Pricing", "/pricing"]] }, { title: "Learn", links: [["All guides", "/guides"], ["Focus guide", "/focus-guide"], ["Pomodoro guide", "/pomodoro-guide"], ["ADHD focus tips", "/adhd-focus-tips"], ["Stop procrastinating", "/stop-procrastinating"], ["Focus music", "/focus-music"]] }, { title: "Company", links: [["About", "/about"], ["Contact", "/contact"], ["Support", "/support"]] }].map((group) => <div key={group.title}><h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">{group.title}</h2><ul className="mt-4 space-y-3">{group.links.map(([label, href]) => <li key={href}><Link href={href} className="text-sm text-[var(--foreground-muted)] hover:text-[var(--foreground)]">{label}</Link></li>)}</ul></div>)}
           </div>
           {/* Footer. Real crawlable <a>/<Link> elements — not buttons with
               click handlers — because a crawler that does not execute

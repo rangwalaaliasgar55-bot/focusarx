@@ -128,6 +128,43 @@ if (apiServedChildren === 0) {
   }
 }
 
+// ── Broken internal links in the app source ─────────────────────────
+// Every href="/…" (or Link href) in src/ must resolve to a <Route> in
+// App.tsx. Catches dead nav entries and typo'd anchors (e.g. the old
+// /register and /session-replay links) before they ship.
+{
+  const { readdirSync: rd, statSync: st } = await import("node:fs");
+  const SRC = fileURLToPath(new URL("../src", import.meta.url));
+  const appTsx = readFileSync(join(SRC, "App.tsx"), "utf8");
+  const routes = [...appTsx.matchAll(/path="([^"]+)"/g)].map((m) => m[1]);
+  const staticRoutes = new Set(routes.filter((r) => !r.includes(":")));
+  const dynamicRoutes = routes
+    .filter((r) => r.includes(":"))
+    .map((r) => new RegExp(`^${r.replace(/:[^/]+/g, "[^/]+")}$`));
+  const matchesRoute = (p) =>
+    p === "/" || staticRoutes.has(p) || dynamicRoutes.some((rx) => rx.test(p));
+
+  const walkSrc = (dir, acc = []) => {
+    for (const entry of rd(dir)) {
+      const full = join(dir, entry);
+      if (st(full).isDirectory()) walkSrc(full, acc);
+      else if (/\.(tsx|ts|mjs)$/.test(entry) && !/\.test\./.test(entry)) acc.push(full);
+    }
+    return acc;
+  };
+  for (const file of walkSrc(SRC)) {
+    const source = readFileSync(file, "utf8");
+    for (const m of source.matchAll(/(?:href|to)=\{?"(\/[a-z0-9\-/]*)"/g)) {
+      const target = m[1].split("#")[0].split("?")[0];
+      if (!target || target === "/") continue;
+      if (target.startsWith("/api") || target.startsWith("/assets")) continue;
+      if (!matchesRoute(target)) {
+        problems.push(`broken internal link "${m[1]}" in ${relative(SRC, file)}`);
+      }
+    }
+  }
+}
+
 const robots = readFileSync(join(DIST, "robots.txt"), "utf8");
 const sitemapDirective = robots.match(/^Sitemap:\s*(\S+)$/m)?.[1];
 if (!sitemapDirective) problems.push("robots.txt: missing Sitemap directive");

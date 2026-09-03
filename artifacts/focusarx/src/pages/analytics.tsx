@@ -232,7 +232,7 @@ export default function AnalyticsPage() {
                           <p className="text-[10px] text-[var(--foreground-subtle)]">This week</p>
                           <p className="text-sm font-bold text-[var(--foreground)]">{Math.round(wc.thisWeekMinutes / 60)}h {wc.thisWeekMinutes % 60}m</p>
                           <p className="mt-1 text-[10px] text-[var(--foreground-subtle)]">Last week</p>
-                          <p className="text-sm font-bold text-[var(--palette-6b7280)]">{Math.round(wc.lastWeekMinutes / 60)}h {wc.lastWeekMinutes % 60}m</p>
+                          <p className="text-sm font-bold text-[var(--foreground-muted)]">{Math.round(wc.lastWeekMinutes / 60)}h {wc.lastWeekMinutes % 60}m</p>
                         </div>
                       </div>
                     </div>

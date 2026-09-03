@@ -99,7 +99,7 @@ function Countdown({ totalSec, onUnlock }: { totalSec: number; onUnlock: () => v
 
   return (
     <div className="flex flex-col items-center gap-1">
-      <span className="text-5xl font-black tabular-nums text-[var(--palette-teal-300)] font-mono">
+      <span className="text-5xl font-semibold tabular-nums text-[var(--palette-teal-300)] font-mono">
         {mm}:{ss}
       </span>
       <p className="text-xs text-[var(--palette-3a5050)]">hang on — ride the wave</p>

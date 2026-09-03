@@ -49,14 +49,14 @@ export default function ComparisonPage() {
     return (
       <main className="mx-auto max-w-2xl px-4 py-24 text-center">
         <PageSEO title="Comparison not found" description="That comparison page does not exist. See the comparisons we do publish." noindex />
-        <h1 className="text-3xl font-black text-[var(--foreground)]">Comparison not found</h1>
+        <h1 className="text-3xl font-semibold text-[var(--foreground)]">Comparison not found</h1>
         <p className="mt-3 text-sm text-[var(--foreground-muted)]">
           We only publish comparisons we can keep accurate. Here are the ones we have.
         </p>
         <ul className="mx-auto mt-8 grid max-w-sm gap-2 text-left">
           {COMPARISON_PATHS.map((href) => (
             <li key={href}>
-              <Link href={href} className="block rounded-xl border border-[var(--rgba-255-255-255-0_08)] px-4 py-3 text-sm text-[var(--brand-400)] hover:border-[var(--brand-600)]/40">
+              <Link href={href} className="block rounded-xl border border-[var(--border-subtle)] px-4 py-3 text-sm text-[var(--brand-400)] hover:border-[var(--brand-600)]/40">
                 {COMPARISONS[Object.keys(COMPARISONS).find((k) => `/comparison/${COMPARISONS[k]!.slug}` === href)!]!.title}
               </Link>
             </li>
@@ -96,7 +96,7 @@ export default function ComparisonPage() {
       <p className="text-xs font-bold uppercase tracking-widest text-[var(--brand-400)]">
         Product comparison · Updated 2026
       </p>
-      <h1 className="mt-3 text-balance text-3xl font-black tracking-tight text-[var(--foreground)] sm:text-5xl">
+      <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight text-[var(--foreground)] sm:text-5xl">
         {data.title}
       </h1>
       <p className="mt-5 max-w-3xl text-[15px] leading-relaxed text-[var(--foreground-muted)]">
@@ -126,7 +126,7 @@ export default function ComparisonPage() {
 
       {/* ── Honest two-sided verdict ──────────────────────────── */}
       <div className="mt-10 grid gap-4 md:grid-cols-2">
-        <section className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-6">
+        <section className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-6">
           <h2 className="text-lg font-bold text-[var(--foreground)]">When FocusArx is the better fit</h2>
           <p className="mt-3 text-sm leading-relaxed text-[var(--foreground-muted)]">{data.whenOurs}</p>
           <ul className="mt-4 space-y-1.5">
@@ -137,7 +137,7 @@ export default function ComparisonPage() {
             ))}
           </ul>
         </section>
-        <section className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-6">
+        <section className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-6">
           <h2 className="text-lg font-bold text-[var(--foreground)]">When {data.name} is the better fit</h2>
           <p className="mt-3 text-sm leading-relaxed text-[var(--foreground-muted)]">{data.whenTheirs}</p>
           <ul className="mt-4 space-y-1.5">
@@ -164,7 +164,7 @@ export default function ComparisonPage() {
               <Link
                 key={c.slug}
                 href={`/comparison/${c.slug}`}
-                className="rounded-full border border-[var(--rgba-255-255-255-0_08)] px-4 py-2 text-xs font-semibold text-[var(--foreground-muted)] transition-colors hover:border-[var(--brand-600)]/40 hover:text-[var(--foreground)]"
+                className="rounded-full border border-[var(--border-subtle)] px-4 py-2 text-xs font-semibold text-[var(--foreground-muted)] transition-colors hover:border-[var(--brand-600)]/40 hover:text-[var(--foreground)]"
               >
                 FocusArx vs {c.name}
               </Link>

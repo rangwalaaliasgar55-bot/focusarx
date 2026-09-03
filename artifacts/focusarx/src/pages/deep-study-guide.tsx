@@ -53,7 +53,7 @@ export default function DeepStudyGuidePage() {
             <motion.button
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.97 }}
-              className="rounded-xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-e879f9)] px-4 py-1.5 text-xs font-semibold text-[var(--palette-white)]"
+              className="rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] px-4 py-1.5 text-xs font-semibold text-[var(--palette-white)]"
               // Analytics: blog_cta_click
             >
               Try FocusArx Free →
@@ -73,9 +73,9 @@ export default function DeepStudyGuidePage() {
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--palette-purple-500)]/30 bg-[var(--palette-purple-500)]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-[var(--palette-purple-300)]">
             <BookOpen size={11} /> Study Science
           </div>
-          <h1 className="mb-4 text-3xl font-black leading-tight tracking-tight sm:text-4xl lg:text-5xl">
+          <h1 className="mb-4 text-3xl font-semibold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
             How to Study{" "}
-            <span className="bg-gradient-to-r from-[var(--brand-400)] to-[var(--palette-e879f9)] bg-clip-text text-transparent">
+            <span className="text-[var(--brand-strong)]">
               2 Hours Deeply
             </span>{" "}
             Instead of 12 Hours Distracted
@@ -146,8 +146,8 @@ export default function DeepStudyGuidePage() {
             { value: "↑ 40%", label: "better retention with spaced, focused sessions vs. marathon cramming", color: "from-[var(--palette-teal-500)] to-[var(--palette-emerald-600)]" },
           ].map((stat, i) => (
             <div key={i} className="rounded-2xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.03] p-5 text-center">
-              <div className={`mb-2 text-3xl font-black bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>{stat.value}</div>
-              <p className="text-xs leading-relaxed text-[var(--palette-6b7280)]">{stat.label}</p>
+              <div className={`mb-2 text-3xl font-semibold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>{stat.value}</div>
+              <p className="text-xs leading-relaxed text-[var(--foreground-muted)]">{stat.label}</p>
             </div>
           ))}
         </motion.div>
@@ -401,7 +401,7 @@ export default function DeepStudyGuidePage() {
             <motion.button
               whileHover={{ scale: 1.04, boxShadow: "0 0 30px 8px var(--rgba-124-58-237-0_4)" }}
               whileTap={{ scale: 0.97 }}
-              className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-e879f9)] px-8 py-3.5 text-[15px] font-bold text-[var(--palette-white)] shadow-lg shadow-[var(--palette-purple-900)]/30"
+              className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-500)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]"
               // Analytics: blog_cta_click { article: "deep-study-guide", cta: "start-free" }
             >
               Start Your First Session Free <ArrowRight size={16} />

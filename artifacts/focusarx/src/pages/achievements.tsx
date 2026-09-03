@@ -98,7 +98,7 @@ function BadgeCard({ badge, isCelebrating }: { badge: Badge; isCelebrating: bool
       )}
 
       {badge.newlyUnlocked && (
-        <div className="absolute -top-1.5 -right-1.5 z-[var(--z-content)] rounded-full bg-[var(--brand-teal)] px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-[var(--palette-0a0f1e)] shadow-lg">
+        <div className="absolute -top-1.5 -right-1.5 z-[var(--z-content)] rounded-full bg-[var(--brand-teal)] px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider text-[var(--palette-0a0f1e)] shadow-lg">
           NEW
         </div>
       )}
@@ -152,7 +152,7 @@ function BadgeCard({ badge, isCelebrating }: { badge: Badge; isCelebrating: bool
             <span className="text-[9px] text-[var(--palette-1f2937)]">{badge.progress}</span>
             <span className="text-[9px] text-[var(--foreground-subtle)]">{badge.threshold}</span>
           </div>
-          <div className="h-1 w-full overflow-hidden rounded-full bg-[var(--rgba-255-255-255-0_04)]">
+          <div className="h-1 w-full overflow-hidden rounded-full bg-[var(--muted)]">
             <div
               className="h-full rounded-full bg-[var(--rgba-124-58-237-0_35)] transition-all duration-[var(--duration-slow)]"
               style={{ width: `${pct}%` }}
@@ -347,7 +347,7 @@ export default function AchievementsPage() {
                     aria-pressed={active}
                     className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-[var(--duration-fast)] ${
                       active
-                        ? "bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] text-[var(--palette-white)] shadow-[0_0_12px_var(--rgba-124-58-237-0_3)]"
+                        ? "bg-[var(--brand-600)] hover:bg-[var(--brand-500)] text-[var(--palette-white)] shadow-[0_0_12px_var(--rgba-124-58-237-0_3)]"
                         : "border border-[var(--rgba-124-58-237-0_18)] text-[var(--muted-fg)] hover:border-[var(--rgba-124-58-237-0_4)] hover:text-[var(--foreground-muted)] hover:bg-[var(--rgba-124-58-237-0_06)]"
                     }`}
                   >
@@ -373,7 +373,7 @@ export default function AchievementsPage() {
                   className={`rounded-lg px-2.5 py-1 text-[10px] font-semibold capitalize transition-all ${
                     tierFilter === t
                       ? "bg-[var(--rgba-124-58-237-0_3)] text-[var(--brand-400)]"
-                      : "text-[var(--foreground-subtle)] hover:text-[var(--palette-6b7280)]"
+                      : "text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]"
                   }`}
                 >
                   {t === "all" ? "All Tiers" : t}
@@ -389,7 +389,7 @@ export default function AchievementsPage() {
                   className={`rounded-lg px-2.5 py-1 text-[10px] font-semibold capitalize transition-all ${
                     showUnlocked === s
                       ? "bg-[var(--rgba-124-58-237-0_3)] text-[var(--brand-400)]"
-                      : "text-[var(--foreground-subtle)] hover:text-[var(--palette-6b7280)]"
+                      : "text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]"
                   }`}
                 >
                   {s === "all" ? "All" : s === "unlocked" ? "✓ Unlocked" : "🔒 Locked"}

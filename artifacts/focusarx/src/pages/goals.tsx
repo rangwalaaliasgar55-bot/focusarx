@@ -88,7 +88,7 @@ export default function GoalsPage() {
 
       {/* Stats bar */}
       {goals.length > 0 && (
-        <div className="mb-5 rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-4">
+        <div className="mb-5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-[var(--foreground-subtle)]">{completed.length} of {goals.length} goals completed</span>
             <span className="text-xs font-bold text-[var(--brand-600)]">{completionRate}%</span>
@@ -112,7 +112,7 @@ export default function GoalsPage() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             onSubmit={handleSubmit}
-            className="mb-5 rounded-2xl border border-[var(--rgba-124-58-237-0_3)] bg-[var(--rgba-255-255-255-0_025)] p-4 space-y-3 overflow-hidden"
+            className="mb-5 rounded-2xl border border-[var(--rgba-124-58-237-0_3)] bg-[var(--surface-hover)] p-4 space-y-3 overflow-hidden"
           >
             <input
               value={title}
@@ -131,7 +131,7 @@ export default function GoalsPage() {
               className="w-full rounded-xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-124-58-237-0_06)] px-3 py-2.5 text-sm text-[var(--foreground)] placeholder-[var(--palette-4a4f62)] focus:border-[var(--brand-600)] focus:outline-none transition-colors resize-none"
             />
             <div className="flex gap-2">
-              <button type="button" onClick={() => setShowForm(false)} className="flex-1 rounded-xl border border-[var(--rgba-255-255-255-0_06)] py-2 text-sm text-[var(--foreground-subtle)] hover:text-[var(--foreground)] transition-colors">Cancel</button>
+              <button type="button" onClick={() => setShowForm(false)} className="flex-1 rounded-xl border border-[var(--border-subtle)] py-2 text-sm text-[var(--foreground-subtle)] hover:text-[var(--foreground)] transition-colors">Cancel</button>
               <button type="submit" disabled={!title.trim() || createGoal.isPending} className="flex-1 rounded-xl bg-[var(--brand-600)] py-2 text-sm font-semibold text-[var(--palette-white)] hover:bg-[var(--palette-6d31d4)] disabled:opacity-60 transition-colors">
                 {createGoal.isPending ? "Creating…" : "Create Goal"}
               </button>
@@ -142,7 +142,7 @@ export default function GoalsPage() {
 
       {isLoading ? (
         <div className="space-y-3">
-          {[...Array(3)].map((_, i) => <div key={i} className="h-16 animate-pulse rounded-2xl bg-[var(--rgba-255-255-255-0_025)]" />)}
+          {[...Array(3)].map((_, i) => <div key={i} className="h-16 animate-pulse rounded-2xl bg-[var(--surface-hover)]" />)}
         </div>
       ) : (
         <div className="space-y-6">
@@ -199,7 +199,7 @@ function GoalCard({ goal, onToggle, onDelete }: { goal: Goal; onToggle: (id: str
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      className={`flex items-start gap-3 rounded-2xl border p-4 transition-all shadow-3d ${goal.completed ? "border-[var(--palette-emerald-900)]/30 bg-[var(--palette-emerald-900)]/10 opacity-70" : "border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] hover:border-[var(--brand-600)]/30"}`}
+      className={`flex items-start gap-3 rounded-2xl border p-4 transition-all shadow-3d ${goal.completed ? "border-[var(--palette-emerald-900)]/30 bg-[var(--palette-emerald-900)]/10 opacity-70" : "border-[var(--border-subtle)] bg-[var(--surface-hover)] hover:border-[var(--brand-600)]/30"}`}
     >
       <button onClick={() => onToggle(goal.id)} className="mt-0.5 shrink-0 transition-transform hover:scale-110">
         {goal.completed

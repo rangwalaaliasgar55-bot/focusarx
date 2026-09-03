@@ -93,7 +93,7 @@ function RoomChat({ room, onClose }: { room: Room; onClose: () => void }) {
           <MessageCircle size={14} className="text-[var(--brand-400)]" />
           <span className="text-sm font-semibold text-[var(--foreground)]">{room.name}</span>
         </div>
-        <button onClick={onClose} className="rounded-lg p-1.5 text-[var(--palette-6b7280)] hover:text-[var(--foreground)] hover:bg-[var(--rgba-124-58-237-0_1)]">
+        <button onClick={onClose} className="rounded-lg p-1.5 text-[var(--foreground-muted)] hover:text-[var(--foreground)] hover:bg-[var(--rgba-124-58-237-0_1)]">
           <X size={14} />
         </button>
       </div>
@@ -107,7 +107,7 @@ function RoomChat({ room, onClose }: { room: Room; onClose: () => void }) {
         {messages.map((m, i) => (
           <div key={i} className={`flex flex-col gap-0.5 ${m.userId === session?.user?.id ? "items-end" : "items-start"}`}>
             <span className="text-[10px] text-[var(--foreground-subtle)]">{m.userId === session?.user?.id ? "You" : (m.botName ?? `User ${m.userId.slice(0, 6)}`)}</span>
-            <div className={`rounded-xl px-3 py-1.5 text-sm max-w-[80%] ${m.userId === session?.user?.id ? "bg-[var(--rgba-124-58-237-0_25)] text-[var(--foreground)]" : "bg-[var(--rgba-255-255-255-0_05)] text-[var(--foreground)]"}`}>
+            <div className={`rounded-xl px-3 py-1.5 text-sm max-w-[80%] ${m.userId === session?.user?.id ? "bg-[var(--rgba-124-58-237-0_25)] text-[var(--foreground)]" : "bg-[var(--surface-hover)] text-[var(--foreground)]"}`}>
               {m.content}
             </div>
           </div>
@@ -122,7 +122,7 @@ function RoomChat({ room, onClose }: { room: Room; onClose: () => void }) {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
           placeholder="Type a message…"
-          className="flex-1 rounded-xl bg-[var(--rgba-255-255-255-0_05)] border border-[var(--rgba-124-58-237-0_15)] px-3 py-1.5 text-sm text-[var(--foreground)] placeholder-[var(--foreground-subtle)] outline-none focus:border-[var(--rgba-124-58-237-0_4)]"
+          className="flex-1 rounded-xl bg-[var(--surface-hover)] border border-[var(--rgba-124-58-237-0_15)] px-3 py-1.5 text-sm text-[var(--foreground)] placeholder-[var(--foreground-subtle)] outline-none focus:border-[var(--rgba-124-58-237-0_4)]"
         />
         <button onClick={send} disabled={!input.trim()} className="rounded-xl bg-[var(--brand-600)] px-3 py-1.5 text-[var(--palette-white)] disabled:opacity-40 hover:bg-[var(--brand-700)]">
           <Send size={14} />
@@ -177,7 +177,7 @@ export default function StudyRoomsPage() {
             </div>
             {status === "authenticated" ? (
               <button onClick={() => setShowCreate(true)}
-                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] px-4 py-2 text-sm font-medium text-[var(--palette-white)] shadow-[0_0_12px_var(--rgba-124-58-237-0_3)] hover:opacity-90">
+                className="flex items-center gap-2 rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] px-4 py-2 text-sm font-medium text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)]">
                 <Plus size={15} /> New Room
               </button>
             ) : (
@@ -193,21 +193,21 @@ export default function StudyRoomsPage() {
                 className="mb-6 rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
                 <div className="flex items-center justify-between mb-4">
                   <p className="text-sm font-semibold text-[var(--foreground)]">Create Room</p>
-                  <button onClick={() => setShowCreate(false)} className="text-[var(--palette-6b7280)] hover:text-[var(--foreground)]"><X size={16} /></button>
+                  <button onClick={() => setShowCreate(false)} className="text-[var(--foreground-muted)] hover:text-[var(--foreground)]"><X size={16} /></button>
                 </div>
                 <div className="space-y-3">
                   <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
                     placeholder="Room name" maxLength={60}
-                    className="w-full rounded-xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-255-255-255-0_03)] px-3 py-2 text-sm text-[var(--foreground)] placeholder-[var(--foreground-subtle)] outline-none focus:border-[var(--rgba-124-58-237-0_5)]" />
+                    className="w-full rounded-xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--surface-hover)] px-3 py-2 text-sm text-[var(--foreground)] placeholder-[var(--foreground-subtle)] outline-none focus:border-[var(--rgba-124-58-237-0_5)]" />
                   <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
                     placeholder="Description (optional)" rows={2} maxLength={200}
-                    className="w-full rounded-xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-255-255-255-0_03)] px-3 py-2 text-sm text-[var(--foreground)] placeholder-[var(--foreground-subtle)] outline-none focus:border-[var(--rgba-124-58-237-0_5)] resize-none" />
+                    className="w-full rounded-xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--surface-hover)] px-3 py-2 text-sm text-[var(--foreground)] placeholder-[var(--foreground-subtle)] outline-none focus:border-[var(--rgba-124-58-237-0_5)] resize-none" />
                   <label className="flex items-center gap-2 text-sm text-[var(--foreground-muted)] cursor-pointer">
                     <input type="checkbox" checked={form.isPrivate} onChange={(e) => setForm({ ...form, isPrivate: e.target.checked })} className="accent-[var(--brand-600)]" />
                     Private room
                   </label>
                   <button onClick={() => createMut.mutate(form)} disabled={!form.name.trim() || createMut.isPending}
-                    className="w-full rounded-xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] py-2.5 text-sm font-medium text-[var(--palette-white)] disabled:opacity-50">
+                    className="w-full rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] py-2.5 text-sm font-medium text-[var(--palette-white)] disabled:opacity-50">
                     {createMut.isPending ? "Creating…" : "Create Room"}
                   </button>
                 </div>
@@ -225,7 +225,7 @@ export default function StudyRoomsPage() {
             <div className="rounded-2xl border border-dashed border-[var(--rgba-124-58-237-0_2)] p-12 text-center">
               <Radio size={32} className="mx-auto mb-3 text-[var(--foreground-subtle)]" />
               <p className="text-[var(--foreground)] font-medium">No study rooms yet</p>
-              <p className="mt-1 text-sm text-[var(--palette-6b7280)]">Create one and invite friends to study together</p>
+              <p className="mt-1 text-sm text-[var(--foreground-muted)]">Create one and invite friends to study together</p>
             </div>
           )}
 
@@ -241,7 +241,7 @@ export default function StudyRoomsPage() {
                         {room.isPrivate ? <Lock size={12} className="text-[var(--brand-gold)] shrink-0" /> : <Globe size={12} className="text-[var(--brand-teal)] shrink-0" />}
                         <p className="font-semibold text-[var(--foreground)] truncate">{room.name}</p>
                       </div>
-                      {room.description && <p className="text-sm text-[var(--palette-6b7280)] mb-2">{room.description}</p>}
+                      {room.description && <p className="text-sm text-[var(--foreground-muted)] mb-2">{room.description}</p>}
                       <div className="flex items-center gap-3 text-[11px] text-[var(--foreground-subtle)]">
                         <span className="flex items-center gap-1"><Users size={10} />{room.memberCount} members</span>
                         {room.activeCount != null && <span className="flex items-center gap-1 text-[var(--palette-22d387)]">● {room.activeCount} online</span>}
@@ -258,7 +258,7 @@ export default function StudyRoomsPage() {
                           )}
                           <button
                             onClick={() => joined ? leaveMut.mutate(room.id) : joinMut.mutate(room.id)}
-                            className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${joined ? "bg-[var(--rgba-239-68-68-0_1)] text-[var(--palette-f87171)] hover:bg-[var(--rgba-239-68-68-0_2)]" : "bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] text-[var(--palette-white)] hover:opacity-90"}`}>
+                            className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${joined ? "bg-[var(--rgba-239-68-68-0_1)] text-[var(--palette-f87171)] hover:bg-[var(--rgba-239-68-68-0_2)]" : "bg-[var(--brand-600)] hover:bg-[var(--brand-500)] text-[var(--neutral-0)]"}`}>
                             {joined ? <LogOut size={12} /> : <LogIn size={12} />}
                           </button>
                         </>

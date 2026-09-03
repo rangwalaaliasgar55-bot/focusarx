@@ -59,7 +59,7 @@ async function claimMission(key: string): Promise<{ ok: boolean; xpEarned: numbe
 function ProgressBar({ current, target, completed }: { current: number; target: number; completed: boolean }) {
   const pct = completed ? 100 : Math.min(99, Math.round((current / Math.max(target, 1)) * 100));
   return (
-    <div className="h-1.5 w-full rounded-full bg-[var(--rgba-255-255-255-0_025)] overflow-hidden">
+    <div className="h-1.5 w-full rounded-full bg-[var(--surface-hover)] overflow-hidden">
       <motion.div
         className="h-full rounded-full"
         style={{
@@ -88,10 +88,10 @@ function MissionCard({ mission, onClaim, claiming }: { mission: MissionDef; onCl
       exit={{ opacity: 0, y: -8 }}
       className={`relative rounded-2xl border p-4 transition-all duration-[var(--duration-fast)] ${
         mission.rewardClaimed
-          ? "border-[var(--rgba-255-255-255-0_06)] bg-[var(--palette-0d0f1a)] opacity-60"
+          ? "border-[var(--border-subtle)] bg-[var(--palette-0d0f1a)] opacity-60"
           : mission.completed
           ? "border-[var(--rgba-34-211-135-0_35)] bg-[var(--rgba-34-211-135-0_05)]"
-          : "border-[var(--rgba-255-255-255-0_06)] bg-[var(--palette-0d0f1a)] hover:border-[var(--rgba-124-58-237-0_3)]"
+          : "border-[var(--border-subtle)] bg-[var(--palette-0d0f1a)] hover:border-[var(--rgba-124-58-237-0_3)]"
       }`}
     >
       {mission.completed && !mission.rewardClaimed && (
@@ -158,7 +158,7 @@ function StatCard({ label, value, total, icon }: { label: string; value: number;
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
   return (
     <TiltCard intensity={8}>
-      <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--palette-0d0f1a)] p-4 flex flex-col gap-2 shadow-3d">
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--palette-0d0f1a)] p-4 flex flex-col gap-2 shadow-3d">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-[var(--foreground-subtle)]">{icon}<span className="text-[10px] font-semibold uppercase tracking-[0.12em]">{label}</span></div>
           <motion.span
@@ -169,7 +169,7 @@ function StatCard({ label, value, total, icon }: { label: string; value: number;
             transition={{ duration: 0.4 }}
           >{value}/{total}</motion.span>
         </div>
-        <div className="h-1.5 rounded-full bg-[var(--rgba-255-255-255-0_025)] overflow-hidden">
+        <div className="h-1.5 rounded-full bg-[var(--surface-hover)] overflow-hidden">
           <motion.div
             className="h-full rounded-full animate-wave-bar"
             initial={{ width: 0 }}
@@ -250,7 +250,7 @@ export default function MissionsPage() {
         )}
 
         {/* Tab switcher */}
-        <div className="flex rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-1 mb-5">
+        <div className="flex rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-1 mb-5">
           {(["daily", "weekly"] as const).map((t) => (
             <button
               key={t}
@@ -258,7 +258,7 @@ export default function MissionsPage() {
               className={`flex-1 rounded-lg py-2 text-xs font-semibold uppercase tracking-wider transition-all duration-[var(--duration-fast)] ${
                 tab === t
                   ? "bg-[var(--rgba-124-58-237-0_2)] text-[var(--brand-400)] shadow-sm"
-                  : "text-[var(--foreground-subtle)] hover:text-[var(--palette-6b7280)]"
+                  : "text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]"
               }`}
             >
               {t === "daily" ? `⚡ Daily (${hoursLeft}h left)` : `📅 Weekly (${daysToMonday}d left)`}
@@ -286,7 +286,7 @@ export default function MissionsPage() {
 
         {isLoading && (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--rgba-255-255-255-0_06)] border-t-[var(--brand-600)]" />
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border-subtle)] border-t-[var(--brand-600)]" />
             <p className="text-xs text-[var(--foreground-subtle)]">Loading missions…</p>
           </div>
         )}

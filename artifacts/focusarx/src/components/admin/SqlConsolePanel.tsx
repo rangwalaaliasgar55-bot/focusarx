@@ -583,7 +583,7 @@ export function SqlConsolePanel({ authHeaders }: { authHeaders: () => Record<str
             <div className="mb-4 flex items-center gap-3">
               <div className="rounded-2xl bg-amber-500/15 p-2.5"><Unlock size={18} className="text-amber-300" /></div>
               <div>
-                <h3 id="sql-unlock-title" className="text-lg font-black">Unlock write mode</h3>
+                <h3 id="sql-unlock-title" className="text-lg font-semibold">Unlock write mode</h3>
                 <p className="text-xs text-[var(--foreground-subtle)]">15-minute window · every statement is logged</p>
               </div>
             </div>
@@ -632,7 +632,7 @@ export function SqlConsolePanel({ authHeaders }: { authHeaders: () => Record<str
             <div className="mb-4 flex items-center gap-3">
               <div className="rounded-2xl bg-red-500/15 p-2.5"><ShieldAlert size={18} className="text-red-400" /></div>
               <div>
-                <h3 id="sql-confirm-title" className="text-lg font-black text-red-300">Destructive statement detected</h3>
+                <h3 id="sql-confirm-title" className="text-lg font-semibold text-red-300">Destructive statement detected</h3>
                 <p className="text-xs text-[var(--foreground-subtle)]">DROP / TRUNCATE / ALTER, or DELETE / UPDATE without WHERE</p>
               </div>
             </div>

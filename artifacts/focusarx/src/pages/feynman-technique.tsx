@@ -17,7 +17,7 @@ export default function FeynmanTechniquePage() {
           <div className="inline-flex items-center gap-2 rounded-full border border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--palette-emerald-300)] mb-8">
             <GraduationCap size={12} /> Study Methodology
           </div>
-          <h1 className="text-4xl sm:text-7xl font-black tracking-tight mb-6">
+          <h1 className="text-4xl sm:text-7xl font-semibold tracking-tight mb-6">
             The Feynman <br /><span className="text-[var(--palette-emerald-400)]">Technique</span>
           </h1>
           <p className="text-lg text-[var(--foreground-muted)] max-w-2xl mx-auto">
@@ -30,6 +30,8 @@ export default function FeynmanTechniquePage() {
               <img
                 src="https://images.unsplash.com/photo-1454165833767-027ffea9e61b?auto=format&fit=crop&q=80&w=1200"
                 alt="Studying the Feynman Technique"
+                loading="lazy"
+                decoding="async"
                 className="object-cover w-full h-full opacity-60"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[var(--background)] to-transparent" />
@@ -50,7 +52,7 @@ export default function FeynmanTechniquePage() {
             { step: "04", title: "Simplify & Analogize", desc: "Create simple analogies to bridge the gap between complex ideas and common knowledge. Tell a story.", icon: <Clock /> },
           ].map((s, i) => (
             <div key={i} className="flex gap-8 items-start">
-               <div className="text-6xl font-black text-[var(--palette-white)]/[0.05] select-none shrink-0">{s.step}</div>
+               <div className="text-6xl font-semibold text-[var(--palette-white)]/[0.05] select-none shrink-0">{s.step}</div>
                <div className="pt-2">
                  <h3 className="text-2xl font-bold mb-4 text-[var(--palette-white)]">{s.title}</h3>
                  <p className="text-[var(--foreground-muted)] leading-relaxed text-lg">{s.desc}</p>
@@ -62,10 +64,10 @@ export default function FeynmanTechniquePage() {
         <div className="mt-32 rounded-3xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] p-12 text-center relative overflow-hidden group">
            <div className="absolute inset-0 bg-gradient-to-br from-[var(--palette-emerald-500)]/10 to-[var(--palette-blue-500)]/10 opacity-0 group-hover:opacity-100 transition-opacity" />
            <div className="relative z-[var(--z-content)]">
-              <h2 className="text-3xl font-black mb-6">Master it with FocusArx</h2>
+              <h2 className="text-3xl font-semibold mb-6">Master it with FocusArx</h2>
               <p className="text-[var(--muted-fg)] mb-10 max-w-lg mx-auto">Use our "Explain" mode to practice the Feynman Technique while your AI coach monitors your clarity and identifies logical leaps.</p>
               <Link href="/signup">
-                <button className="h-14 px-10 rounded-2xl bg-[var(--palette-white)] text-[var(--palette-black)] font-black hover:bg-[var(--palette-zinc-200)] transition-all shadow-xl">
+                <button className="h-14 px-10 rounded-2xl bg-[var(--palette-white)] text-[var(--palette-black)] font-semibold hover:bg-[var(--palette-zinc-200)] transition-all shadow-xl">
                   Start Learning Now
                 </button>
               </Link>

@@ -126,7 +126,7 @@ export default function FeynmanTutor() {
         <div className="inline-flex items-center gap-2 rounded-full border border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--palette-emerald-300)] mb-4">
           <Brain size={12} /> AI Feynman Tutor
         </div>
-        <h2 className="text-2xl font-black text-[var(--palette-white)]">
+        <h2 className="text-2xl font-semibold text-[var(--palette-white)]">
           Understand Anything
         </h2>
         <p className="text-sm text-[var(--palette-zinc-500)] mt-1">

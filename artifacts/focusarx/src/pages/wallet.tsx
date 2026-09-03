@@ -107,7 +107,7 @@ export default function WalletPage() {
 
         {/* XP bar */}
         {wallet && (
-          <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-255-255-255-0_02)] p-4">
+          <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--muted)] p-4">
             <div className="flex justify-between items-center mb-2">
               <span className="text-xs font-semibold text-[var(--brand-400)]">Level {level} → {level + 1}</span>
               <span className="text-xs text-[var(--foreground-subtle)]">{wallet.totalXp - xpStart} / {xpEnd - xpStart} XP</span>
@@ -141,8 +141,8 @@ export default function WalletPage() {
             <motion.div variants={STAGGER} initial="initial" animate="animate" className="space-y-2">
               {txs.map((tx: any, i: number) => (
                 <motion.div key={tx.id ?? i} variants={CARD}
-                  className="flex items-center gap-3 rounded-xl border border-[var(--rgba-255-255-255-0_04)] bg-[var(--rgba-255-255-255-0_02)] px-4 py-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--rgba-255-255-255-0_04)]">
+                  className="flex items-center gap-3 rounded-xl border border-[var(--rgba-255-255-255-0_04)] bg-[var(--muted)] px-4 py-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--muted)]">
                     {txIcon(tx.type ?? "")}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -156,7 +156,7 @@ export default function WalletPage() {
               ))}
               {hasMore && (
                 <button onClick={() => setPage(p => p + 1)}
-                  className="w-full rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] py-2.5 text-xs text-[var(--muted-fg)] hover:text-[var(--foreground-muted)] transition-colors">
+                  className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--muted)] py-2.5 text-xs text-[var(--muted-fg)] hover:text-[var(--foreground-muted)] transition-colors">
                   Load more…
                 </button>
               )}

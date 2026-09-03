@@ -193,7 +193,7 @@ export default function ConsequencesPage() {
                 </div>
                 <div className="flex gap-2">
                   <button className="flex-1 rounded-xl bg-[var(--palette-orange-500)] py-2 text-xs font-semibold text-[var(--palette-white)]">Share it</button>
-                  <button onClick={() => setShameDismissed(true)} className="flex-1 rounded-xl border border-[var(--rgba-124-58-237-0_3)] py-2 text-xs font-semibold text-[var(--palette-6b7280)]">Skip</button>
+                  <button onClick={() => setShameDismissed(true)} className="flex-1 rounded-xl border border-[var(--rgba-124-58-237-0_3)] py-2 text-xs font-semibold text-[var(--foreground-muted)]">Skip</button>
                 </div>
               </motion.div>
             )}
@@ -260,7 +260,7 @@ export default function ConsequencesPage() {
                   <p className="text-xs text-[var(--foreground-subtle)] mt-1">Set stakes to hold yourself accountable.</p>
                   <button
                     onClick={() => setShowForm(true)}
-                    className="mt-4 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] px-5 py-2.5 text-sm font-semibold text-[var(--palette-white)] shadow-[0_0_20px_var(--rgba-124-58-237-0_25)]"
+                    className="mt-4 inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-500)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]"
                   >
                     <Plus size={14} /> Set Contract
                   </button>
@@ -345,13 +345,13 @@ export default function ConsequencesPage() {
                       <button
                         onClick={() => void save()}
                         disabled={saving}
-                        className="flex-1 rounded-xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] py-2.5 text-sm font-semibold text-[var(--palette-white)] disabled:opacity-50"
+                        className="flex-1 rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] py-2.5 text-sm font-semibold text-[var(--palette-white)] disabled:opacity-50"
                       >
                         {saving ? "Saving…" : "Commit to Contract"}
                       </button>
                       <button
                         onClick={() => setShowForm(false)}
-                        className="rounded-xl border border-[var(--rgba-124-58-237-0_2)] px-4 py-2.5 text-sm text-[var(--palette-6b7280)] hover:text-[var(--foreground-muted)]"
+                        className="rounded-xl border border-[var(--rgba-124-58-237-0_2)] px-4 py-2.5 text-sm text-[var(--foreground-muted)] hover:text-[var(--foreground-muted)]"
                       >
                         Cancel
                       </button>

@@ -93,13 +93,13 @@ export default function BattlePassPage() {
           <div className="relative flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2"><Trophy size={18} className="text-[var(--palette-amber-400)]" /><span className="text-xs font-bold uppercase tracking-widest text-[var(--palette-amber-400)]">Season {data.seasonId}</span><span className="rounded-full bg-[var(--surface-1)] px-2 py-0.5 text-[10px]">{tiers.length} tiers • 28-30 days</span></div>
-              <h1 className="mt-2 text-3xl font-black">Battle Pass</h1>
+              <h1 className="mt-2 text-3xl font-semibold">Battle Pass</h1>
               <p className="mt-1 flex items-center gap-1.5 text-xs text-[var(--foreground-muted)]"><Clock size={12} /><Countdown endsAt={data.countdown?.endsAt ?? data.endDate} graceEndsAt={data.countdown?.graceEndsAt ?? data.graceEndsAt} /></p>
               {data.inGracePeriod && <p className="mt-1 text-xs font-bold text-[var(--palette-amber-400)]">Grace period active — claim your rewards before they expire!</p>}
             </div>
             <div className="text-right">
               <p className="text-[10px] uppercase tracking-wider text-[var(--foreground-subtle)]">Your progress</p>
-              <p className="text-2xl font-black">{seasonXp.toLocaleString()} XP</p>
+              <p className="text-2xl font-semibold">{seasonXp.toLocaleString()} XP</p>
               <p className="text-xs text-[var(--foreground-muted)]">Tier {currentTier} / {tiers.length}</p>
               <div className="mt-2 h-2 w-48 overflow-hidden rounded-full bg-[var(--surface-1)]"><div className="h-full bg-[var(--palette-amber-500)] transition-all" style={{ width: `${progressPct}%` }} /></div>
               <p className="mt-1 text-[10px] text-[var(--foreground-subtle)]">{seasonXp - xpPrev} / {xpForNext - xpPrev} to next tier</p>

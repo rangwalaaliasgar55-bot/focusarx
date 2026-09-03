@@ -154,7 +154,7 @@ export default function OnboardingPage() {
               <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-[var(--brand-600)] to-[var(--brand-pink)] shadow-[0_0_40px_var(--rgba-124-58-237-0_3)]">
                 <Rocket size={32} className="text-[var(--palette-white)]" />
               </div>
-              <h1 className="text-4xl font-black tracking-tight sm:text-5xl">Initialize Your <br /><span className="text-[var(--brand-400)]">Focus DNA</span></h1>
+              <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Initialize Your <br /><span className="text-[var(--brand-400)]">Focus DNA</span></h1>
               <p className="mt-6 text-lg text-[var(--foreground-muted)]">Before we begin, we need to calibrate the environment to your cognitive patterns.</p>
               <button onClick={next} className="mt-12 group flex items-center gap-3 mx-auto rounded-2xl bg-[var(--palette-white)] px-8 py-4 text-lg font-bold text-[var(--palette-black)] hover:scale-105 transition-all">
                 Begin Calibration <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
@@ -204,7 +204,7 @@ export default function OnboardingPage() {
                       <p className="text-sm text-[var(--foreground-subtle)]">{s.sub}</p>
                     </div>
                     <div className="ml-auto text-right">
-                       <span className="text-xs font-black text-[var(--brand-400)] uppercase tracking-widest">{s.duration} MIN</span>
+                       <span className="text-xs font-semibold text-[var(--brand-400)] uppercase tracking-widest">{s.duration} MIN</span>
                     </div>
                   </button>
                 ))}
@@ -225,7 +225,7 @@ export default function OnboardingPage() {
                         : "border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] hover:bg-[var(--palette-white)]/[0.05]"
                     }`}
                   >
-                    <p className="text-2xl font-black text-[var(--palette-white)]">{h.label}</p>
+                    <p className="text-2xl font-semibold text-[var(--palette-white)]">{h.label}</p>
                     <p className="text-xs font-bold uppercase tracking-widest text-[var(--foreground-subtle)] mt-1">{h.sub}</p>
                   </button>
                 ))}
@@ -260,7 +260,7 @@ export default function OnboardingPage() {
                   <Sparkles size={40} className="text-[var(--palette-emerald-400)]" />
                 </motion.div>
               </div>
-              <h1 className="text-4xl font-black tracking-tight sm:text-5xl">Calibration <br /><span className="text-[var(--palette-emerald-400)]">Complete</span></h1>
+              <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Calibration <br /><span className="text-[var(--palette-emerald-400)]">Complete</span></h1>
               <div className="mt-8 flex flex-wrap justify-center gap-2">
                 {data.goal && <CalibrationTag label={GOALS.find(g => g.id === data.goal)?.label ?? data.goal} />}
                 {data.style && <CalibrationTag label={`${data.focusDuration}m Loops`} />}
@@ -271,7 +271,7 @@ export default function OnboardingPage() {
               <button
                 onClick={() => void finish()}
                 disabled={saving}
-                className="mt-12 w-full rounded-2xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] py-5 text-lg font-black text-[var(--palette-white)] shadow-xl hover:scale-105 transition-all disabled:opacity-50"
+                className="mt-12 w-full rounded-2xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] py-5 text-lg font-semibold text-[var(--palette-white)] shadow-xl hover:scale-105 transition-all disabled:opacity-50"
               >
                 {saving ? "Deploying..." : "Enter Command Center"}
               </button>
@@ -282,7 +282,7 @@ export default function OnboardingPage() {
         {stepIndex > 0 && step !== "ready" && (
           <button
             onClick={back}
-            className="mx-auto mt-10 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--foreground-subtle)] hover:text-[var(--palette-white)] transition-colors"
+            className="mx-auto mt-10 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--foreground-subtle)] hover:text-[var(--palette-white)] transition-colors"
           >
             <ArrowLeft size={10} /> Back
           </button>
@@ -296,7 +296,7 @@ function StepWrapper({ title, sub, children }: { title: string; sub: string; chi
   return (
     <motion.div variants={STAGGER} initial="initial" animate="animate" exit="exit" className="space-y-8 text-center">
       <motion.div variants={STAGGER_CHILD}>
-        <h2 className="text-4xl font-black tracking-tight text-[var(--palette-white)]">{title}</h2>
+        <h2 className="text-4xl font-semibold tracking-tight text-[var(--palette-white)]">{title}</h2>
         <p className="mt-2 text-[var(--foreground-muted)] font-medium">{sub}</p>
       </motion.div>
       <motion.div variants={STAGGER_CHILD}>{children}</motion.div>
@@ -322,7 +322,7 @@ function OptionButton({ icon, label, selected, onClick }: { icon: string; label:
 
 function CalibrationTag({ label }: { label: string }) {
   return (
-    <span className="rounded-full bg-[var(--palette-white)]/5 border border-[var(--palette-white)]/10 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-[var(--brand-400)] shadow-lg">
+    <span className="rounded-full bg-[var(--palette-white)]/5 border border-[var(--palette-white)]/10 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-[var(--brand-400)] shadow-lg">
       {label}
     </span>
   );

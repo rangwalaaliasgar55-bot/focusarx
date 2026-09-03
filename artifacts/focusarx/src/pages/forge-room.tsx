@@ -107,24 +107,24 @@ export default function ForgeRoomPage() {
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--brand-teal)]/30 bg-[var(--brand-teal)]/10 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--brand-teal)]"
+              className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--brand-teal)]/30 bg-[var(--brand-teal)]/10 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--brand-teal)]"
             >
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--brand-teal)]" aria-hidden="true" />
               Live Forge Room
             </motion.div>
-            <h1 className="text-4xl font-black tracking-tight sm:text-6xl lg:text-7xl">
+            <h1 className="text-4xl font-semibold tracking-tight sm:text-6xl lg:text-7xl">
               Collective <br /><span className="text-[var(--brand-teal)]">Focus</span>
             </h1>
 
             <div className="mt-8 flex items-center gap-6 sm:gap-8">
               <div className="text-center">
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[var(--foreground-subtle)]">Participants</p>
-                <p className="text-3xl font-black text-[var(--palette-white)]">{selected?.participantCount ?? 0}</p>
+                <p className="text-3xl font-semibold text-[var(--palette-white)]">{selected?.participantCount ?? 0}</p>
               </div>
               <div className="h-10 w-px bg-[var(--palette-white)]/5" aria-hidden="true" />
               <div className="text-center">
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[var(--foreground-subtle)]">Combined focus</p>
-                <p className="text-3xl font-black text-[var(--brand-teal)]">{combinedMinutes}<span className="text-base">m</span></p>
+                <p className="text-3xl font-semibold text-[var(--brand-teal)]">{combinedMinutes}<span className="text-base">m</span></p>
               </div>
             </div>
           </header>
@@ -198,7 +198,7 @@ export default function ForgeRoomPage() {
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex min-w-0 items-center gap-4">
-                              <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-lg font-black ${
+                              <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-lg font-semibold ${
                                 p.userId === myId
                                   ? "bg-[var(--brand-teal)] text-[var(--palette-black)]"
                                   : "bg-[var(--palette-white)]/5 text-[var(--foreground-subtle)]"
@@ -213,7 +213,7 @@ export default function ForgeRoomPage() {
                               </div>
                             </div>
                             <div className="shrink-0 text-right">
-                              <p className="text-xs font-black text-[var(--brand-teal)]">{p.focusMinutes ?? 0}m</p>
+                              <p className="text-xs font-semibold text-[var(--brand-teal)]">{p.focusMinutes ?? 0}m</p>
                               <p className="text-[9px] uppercase tracking-wider text-[var(--foreground-subtle)]">focused</p>
                             </div>
                           </div>
@@ -307,7 +307,7 @@ export default function ForgeRoomPage() {
                     </p>
                     <Link
                       href={iAmHere ? "/" : "/study-rooms"}
-                      className="flex min-h-[44px] w-full items-center justify-center rounded-2xl bg-[var(--palette-white)] px-4 py-4 text-center text-lg font-black text-[var(--palette-black)] transition-transform hover:scale-105"
+                      className="flex min-h-[44px] w-full items-center justify-center rounded-2xl bg-[var(--palette-white)] px-4 py-4 text-center text-lg font-semibold text-[var(--palette-black)] transition-transform hover:scale-105"
                     >
                       {iAmHere ? "Start a session" : "Browse rooms"}
                     </Link>

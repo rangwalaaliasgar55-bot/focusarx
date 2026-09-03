@@ -14,9 +14,9 @@ async function apiFetch(path: string, opts?: RequestInit) {
 
 function StatBubble({ icon: Icon, label, value, color = "var(--brand-600)" }: { icon: React.ComponentType<any>; label: string; value: string | number; color?: string }) {
   return (
-    <div className="flex flex-col items-center rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-4 gap-1">
+    <div className="flex flex-col items-center rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4 gap-1">
       <Icon size={16} style={{ color }} />
-      <p className="text-xl font-black text-[var(--foreground)]">{value}</p>
+      <p className="text-xl font-semibold text-[var(--foreground)]">{value}</p>
       <p className="text-[10px] text-[var(--foreground-subtle)] uppercase tracking-wider text-center">{label}</p>
     </div>
   );
@@ -61,12 +61,12 @@ export default function UserProfilePage() {
 
   if (isLoading) return (
     <div className="flex justify-center items-center min-h-screen">
-      <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--rgba-255-255-255-0_06)] border-t-[var(--brand-600)]" />
+      <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--border-subtle)] border-t-[var(--brand-600)]" />
     </div>
   );
 
   if (error || !profile) return (
-    <div className="min-h-screen bg-[var(--rgba-255-255-255-0_02)] flex flex-col items-center justify-center text-center p-6">
+    <div className="min-h-screen bg-[var(--muted)] flex flex-col items-center justify-center text-center p-6">
       <p className="text-6xl mb-4">👤</p>
       <h1 className="text-2xl font-bold text-[var(--foreground)] mb-2">Profile not found</h1>
       <p className="text-[var(--foreground-subtle)] mb-6">No user with the username "{username}" exists.</p>
@@ -79,9 +79,9 @@ export default function UserProfilePage() {
   const color = colors[initials.charCodeAt(0) % colors.length];
 
   return (
-    <div className="min-h-screen bg-[var(--rgba-255-255-255-0_02)] text-[var(--foreground)]">
+    <div className="min-h-screen bg-[var(--muted)] text-[var(--foreground)]">
       {/* Hero banner */}
-      <div className="relative h-28 sm:h-36 bg-gradient-to-br from-[var(--brand-600)]/30 to-[var(--palette-4f46e5)]/20 border-b border-[var(--rgba-255-255-255-0_06)]">
+      <div className="relative h-28 sm:h-36 bg-gradient-to-br from-[var(--brand-600)]/30 to-[var(--palette-4f46e5)]/20 border-b border-[var(--border-subtle)]">
         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_30%_50%,_var(--brand-600),_transparent_70%)]" />
         <Link href="/" className="absolute top-4 left-4 flex items-center gap-1.5 text-xs text-[var(--foreground-subtle)] hover:text-[var(--foreground)] transition-colors">
           <ArrowLeft size={13} /> Back
@@ -91,7 +91,7 @@ export default function UserProfilePage() {
       <div className="max-w-2xl mx-auto px-4 sm:px-6">
         {/* Avatar */}
         <div className="flex items-end justify-between -mt-12 mb-4">
-          <div className={`h-24 w-24 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center text-3xl font-black text-[var(--palette-white)] border-4 border-[var(--rgba-8-9-20-0_8)] shadow-xl`}>
+          <div className={`h-24 w-24 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center text-3xl font-semibold text-[var(--palette-white)] border-4 border-[var(--rgba-8-9-20-0_8)] shadow-xl`}>
             {initials}
           </div>
           {!isOwnProfile && status === "authenticated" && (
@@ -104,7 +104,7 @@ export default function UserProfilePage() {
         {/* Name + bio */}
         <div className="mb-5">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-2xl font-black text-[var(--foreground)]">{profile.name}</h1>
+            <h1 className="text-2xl font-semibold text-[var(--foreground)]">{profile.name}</h1>
             {profile.isPremium && <span className="flex items-center gap-1 rounded-full border border-[var(--brand-gold)]/40 bg-[var(--brand-gold)]/10 px-2 py-0.5 text-xs text-[var(--brand-gold)] font-bold"><Crown size={10} /> Premium</span>}
             {profile.prestige > 0 && <span className="flex items-center gap-1 rounded-full border border-[var(--palette-amber-500)]/40 bg-[var(--palette-amber-500)]/10 px-2 py-0.5 text-xs text-[var(--palette-amber-400)] font-bold"><Crown size={10} /> Prestige {profile.prestige}</span>}
             {(profile.isBot || profile.role === "bot") && <span className="inline-flex items-center gap-1 rounded-full border border-[var(--forge-border)] bg-[var(--surface-1)] px-2.5 py-1 text-[10px] font-medium text-[var(--foreground-subtle)]" title="Focus Companion — fictional identity for community simulation, not a real person"><span className="h-1.5 w-1.5 rounded-full bg-[var(--foreground-subtle)]"/> Focus Companion</span>}
@@ -120,7 +120,7 @@ export default function UserProfilePage() {
         </div>
 
         {/* Level bar */}
-        <div className="rounded-2xl border border-[var(--brand-600)]/30 bg-[var(--rgba-255-255-255-0_025)] p-4 mb-5">
+        <div className="rounded-2xl border border-[var(--brand-600)]/30 bg-[var(--surface-hover)] p-4 mb-5">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2"><Zap size={15} className="text-[var(--brand-600)]" /><span className="text-sm font-bold text-[var(--foreground)]">Level {level}</span>{profile.prestige > 0 && <span className="text-[10px] font-bold text-[var(--palette-amber-400)]">✦ P{profile.prestige}</span>}</div>
             <span className="text-xs text-[var(--foreground-subtle)]">{xp.toLocaleString()} XP</span>
@@ -142,11 +142,11 @@ export default function UserProfilePage() {
 
         {/* Recent badges */}
         {profile.recentBadges?.length > 0 && (
-          <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-4 mb-8">
+          <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4 mb-8">
             <p className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-3">Recent Badges</p>
             <div className="flex flex-wrap gap-2">
               {profile.recentBadges.map((b: string) => (
-                <div key={b} className="flex items-center gap-1.5 rounded-full border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] px-3 py-1.5 text-sm">
+                <div key={b} className="flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--muted)] px-3 py-1.5 text-sm">
                   <span>{BADGE_EMOJI[b] ?? "🏆"}</span>
                   <span className="text-xs text-[var(--foreground-subtle)] capitalize">{b.replace(/_/g, " ")}</span>
                 </div>

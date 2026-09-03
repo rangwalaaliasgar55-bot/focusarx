@@ -6,7 +6,7 @@ function Section({ id, children, className = "" }: { id?: string; children: Reac
   return <section id={id} className={`mx-auto max-w-3xl px-4 sm:px-6 ${className}`}>{children}</section>;
 }
 function H2({ children }: { children: React.ReactNode }) {
-  return <h2 className="mt-14 mb-4 text-2xl font-black leading-tight text-[var(--foreground)] sm:text-3xl">{children}</h2>;
+  return <h2 className="mt-14 mb-4 text-2xl font-semibold leading-tight text-[var(--foreground)] sm:text-3xl">{children}</h2>;
 }
 function H3({ children }: { children: React.ReactNode }) {
   return <h3 className="mt-8 mb-3 text-xl font-bold text-[var(--foreground)]">{children}</h3>;
@@ -16,9 +16,9 @@ function P({ children }: { children: React.ReactNode }) {
 }
 function FAQ({ q, a }: { q: string; a: string }) {
   return (
-    <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-5">
+    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-5">
       <p className="mb-2 font-semibold text-[var(--foreground)]">{q}</p>
-      <p className="text-sm leading-relaxed text-[var(--palette-6b7280)]">{a}</p>
+      <p className="text-sm leading-relaxed text-[var(--foreground-muted)]">{a}</p>
     </div>
   );
 }
@@ -73,20 +73,20 @@ const faqSchema = {
 
 export default function StopProcrastinatingPage() {
   return (
-    <div className="min-h-screen bg-[var(--rgba-255-255-255-0_02)] text-[var(--foreground)]">
+    <div className="min-h-screen bg-[var(--muted)] text-[var(--foreground)]">
       <PageSEO {...PAGE_SEO.stopProcrastinating} structuredData={[articleSchema, faqSchema]} />
 
       {/* Hero */}
-      <div className="relative overflow-hidden border-b border-[var(--rgba-255-255-255-0_06)]">
+      <div className="relative overflow-hidden border-b border-[var(--border-subtle)]">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,_var(--rgba-124-58-237-0_18),_transparent_70%)]" />
         <Section className="relative py-20 text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--brand-600)]/30 bg-[var(--brand-600)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--brand-400)]">
             <Flame size={12} /> Free Guide · Updated 2026
           </div>
-          <h1 className="mb-4 text-3xl font-black leading-tight text-[var(--foreground)] sm:text-5xl">
+          <h1 className="mb-4 text-3xl font-semibold leading-tight text-[var(--foreground)] sm:text-5xl">
             How to Stop Procrastinating:
             <br />
-            <span className="bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)] bg-clip-text text-transparent">12 Methods That Actually Work</span>
+            <span className="text-[var(--brand-strong)]">12 Methods That Actually Work</span>
           </h1>
           <p className="mx-auto max-w-2xl text-base text-[var(--foreground-muted)] sm:text-lg">
             Procrastination isn't laziness or a time-management glitch — it's your brain avoiding an emotion. Here's the science, and the toolkit.
@@ -164,7 +164,7 @@ export default function StopProcrastinatingPage() {
       {/* 3. System */}
       <Section id="system">
         <H2>The daily anti-procrastination system</H2>
-        <div className="my-6 space-y-3 rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-6">
+        <div className="my-6 space-y-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-6">
           {[
             ["Night before", "Choose tomorrow's ONE important task and write its 2-minute first step. Decide when and where you'll start."],
             ["First block", "Do the 2-minute version immediately — before email, before messages. Extend into a full 25-minute session if momentum shows up (it usually does)."],
@@ -181,9 +181,9 @@ export default function StopProcrastinatingPage() {
           Want to go deeper on structuring the blocks themselves? Read the <Link href="/two-hour-study-method" className="text-[var(--brand-400)] hover:underline">2-hour study method</Link>, the <Link href="/focus-guide" className="text-[var(--brand-400)] hover:underline">complete focus guide</Link>, or — if avoidance feels deeper than normal, with intense restlessness or attention swings — our guide on <Link href="/adhd-focus-tips" className="text-[var(--brand-400)] hover:underline">focusing with ADHD</Link>.
         </P>
         <div className="mt-8 rounded-2xl border border-[var(--brand-600)]/30 bg-gradient-to-br from-[var(--brand-600)]/10 to-transparent p-8 text-center">
-          <h3 className="mb-2 text-xl font-black text-[var(--foreground)]">Beat avoidance with a 2-minute start</h3>
+          <h3 className="mb-2 text-xl font-semibold text-[var(--foreground)]">Beat avoidance with a 2-minute start</h3>
           <p className="mb-6 text-sm text-[var(--foreground-muted)]">Open FocusArx, run one 25-minute session on the thing you're avoiding. Free forever.</p>
-          <Link href="/signup" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] px-6 py-3 text-sm font-bold text-[var(--palette-white)] transition-all hover:brightness-110">
+          <Link href="/signup" className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-500)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]">
             Start free <ArrowRight size={16} />
           </Link>
         </div>
@@ -195,7 +195,7 @@ export default function StopProcrastinatingPage() {
         <div className="space-y-4">
           {FAQS.map((f) => <FAQ key={f.q} {...f} />)}
         </div>
-        <p className="mt-10 text-sm text-[var(--palette-6b7280)]">
+        <p className="mt-10 text-sm text-[var(--foreground-muted)]">
           More in the <Link href="/guides" className="text-[var(--brand-400)] hover:underline">FocusArx guide library</Link>: <Link href="/study-techniques" className="text-[var(--brand-400)] hover:underline">best study techniques</Link>, <Link href="/science-of-deep-work" className="text-[var(--brand-400)] hover:underline">the science of deep work</Link>, and <Link href="/focus-music" className="text-[var(--brand-400)] hover:underline">the truth about focus music</Link>.
         </p>
       </Section>

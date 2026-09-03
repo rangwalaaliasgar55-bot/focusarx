@@ -6,7 +6,7 @@ function Section({ id, children, className = "" }: { id?: string; children: Reac
   return <section id={id} className={`mx-auto max-w-3xl px-4 sm:px-6 ${className}`}>{children}</section>;
 }
 function H2({ children }: { children: React.ReactNode }) {
-  return <h2 className="mt-14 mb-4 text-2xl font-black leading-tight text-[var(--foreground)] sm:text-3xl">{children}</h2>;
+  return <h2 className="mt-14 mb-4 text-2xl font-semibold leading-tight text-[var(--foreground)] sm:text-3xl">{children}</h2>;
 }
 function H3({ children }: { children: React.ReactNode }) {
   return <h3 className="mt-8 mb-3 text-xl font-bold text-[var(--foreground)]">{children}</h3>;
@@ -16,9 +16,9 @@ function P({ children }: { children: React.ReactNode }) {
 }
 function FAQ({ q, a }: { q: string; a: string }) {
   return (
-    <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-5">
+    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-5">
       <p className="mb-2 font-semibold text-[var(--foreground)]">{q}</p>
-      <p className="text-sm leading-relaxed text-[var(--palette-6b7280)]">{a}</p>
+      <p className="text-sm leading-relaxed text-[var(--foreground-muted)]">{a}</p>
     </div>
   );
 }
@@ -73,20 +73,20 @@ const faqSchema = {
 
 export default function AdhdFocusPage() {
   return (
-    <div className="min-h-screen bg-[var(--rgba-255-255-255-0_02)] text-[var(--foreground)]">
+    <div className="min-h-screen bg-[var(--muted)] text-[var(--foreground)]">
       <PageSEO {...PAGE_SEO.adhdFocus} structuredData={[articleSchema, faqSchema]} />
 
       {/* Hero */}
-      <div className="relative overflow-hidden border-b border-[var(--rgba-255-255-255-0_06)]">
+      <div className="relative overflow-hidden border-b border-[var(--border-subtle)]">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,_var(--rgba-124-58-237-0_18),_transparent_70%)]" />
         <Section className="relative py-20 text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--brand-600)]/30 bg-[var(--brand-600)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--brand-400)]">
             <Sparkles size={12} /> Free Guide · Updated 2026
           </div>
-          <h1 className="mb-4 text-3xl font-black leading-tight text-[var(--foreground)] sm:text-5xl">
+          <h1 className="mb-4 text-3xl font-semibold leading-tight text-[var(--foreground)] sm:text-5xl">
             How to Focus with ADHD:
             <br />
-            <span className="bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)] bg-clip-text text-transparent">15 Strategies That Work</span>
+            <span className="text-[var(--brand-strong)]">15 Strategies That Work</span>
           </h1>
           <p className="mx-auto max-w-2xl text-base text-[var(--foreground-muted)] sm:text-lg">
             ADHD isn't a willpower problem — it's a dopamine and attention-regulation difference. These strategies work <em>with</em> your brain instead of against it.
@@ -204,7 +204,7 @@ export default function AdhdFocusPage() {
       <Section id="systems">
         <H2>A daily ADHD focus system in 4 steps</H2>
         <P>Individual tactics fade; a system compounds. Here's a minimal daily loop:</P>
-        <div className="my-6 space-y-3 rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-6">
+        <div className="my-6 space-y-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-6">
           {[
             ["Morning", "Pick ONE most-important task. Shrink its first step to something laughable. One 10-minute session before anything else."],
             ["Work blocks", "10–25 minute timer visible at all times, one tab, phone in another room. After each block: stand up, move, water."],
@@ -232,17 +232,17 @@ export default function AdhdFocusPage() {
             { icon: <Users className="text-[var(--palette-pink-400)]" />, t: "Body doubling built in", d: "Live study rooms with real people focusing beside you, any hour." },
             { icon: <Brain className="text-[var(--palette-emerald-400)]" />, t: "AI coach, zero shame", d: "Your data becomes gentle, specific nudges — not lectures." },
           ].map((f) => (
-            <div key={f.t} className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-5">
+            <div key={f.t} className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-5">
               <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--palette-white)]/10 bg-[var(--palette-white)]/5">{f.icon}</div>
               <p className="mb-1 font-bold text-[var(--foreground)]">{f.t}</p>
-              <p className="text-sm leading-relaxed text-[var(--palette-6b7280)]">{f.d}</p>
+              <p className="text-sm leading-relaxed text-[var(--foreground-muted)]">{f.d}</p>
             </div>
           ))}
         </div>
         <div className="mt-8 rounded-2xl border border-[var(--brand-600)]/30 bg-gradient-to-br from-[var(--brand-600)]/10 to-transparent p-8 text-center">
-          <h3 className="mb-2 text-xl font-black text-[var(--foreground)]">One 10-minute session. Today.</h3>
+          <h3 className="mb-2 text-xl font-semibold text-[var(--foreground)]">One 10-minute session. Today.</h3>
           <p className="mb-6 text-sm text-[var(--foreground-muted)]">Free forever, no credit card. Start absurdly small — that's the strategy.</p>
-          <Link href="/signup" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] px-6 py-3 text-sm font-bold text-[var(--palette-white)] transition-all hover:brightness-110">
+          <Link href="/signup" className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-500)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]">
             Start focusing free <ArrowRight size={16} />
           </Link>
         </div>
@@ -262,7 +262,7 @@ export default function AdhdFocusPage() {
         <div className="space-y-4">
           {FAQS.map((f) => <FAQ key={f.q} {...f} />)}
         </div>
-        <p className="mt-10 text-sm text-[var(--palette-6b7280)]">
+        <p className="mt-10 text-sm text-[var(--foreground-muted)]">
           Looking for more? Browse every guide in the <Link href="/guides" className="text-[var(--brand-400)] hover:underline">FocusArx guide library</Link>, or read our guides on <Link href="/stop-procrastinating" className="text-[var(--brand-400)] hover:underline">how to stop procrastinating</Link> and <Link href="/study-techniques" className="text-[var(--brand-400)] hover:underline">the best study techniques</Link>.
         </p>
       </Section>

@@ -61,7 +61,7 @@ function SidePanel() {
       {/* Missed Task Review modal — fires once per day if there are unreviewed tasks */}
       <MissedTaskReview open={showReview} tasks={missedTasks} onDone={dismiss} />
 
-      <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-4">
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4">
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--palette-4a4f62)] mb-3">Today's Stats</p>
         <div className="space-y-2.5">
           <div className="flex justify-between items-center">
@@ -97,7 +97,7 @@ function SidePanel() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-4">
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4">
         {/* Active Tasks */}
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--palette-4a4f62)] mb-2">Active Tasks</p>
         <div className="space-y-1 max-h-36 overflow-y-auto">
@@ -160,7 +160,7 @@ function SidePanel() {
         )}
 
         <form onSubmit={handleAddTask} className="mt-3 flex gap-1.5">
-          <input value={newTask} onChange={(e) => setNewTask(e.target.value)} placeholder="Add task…" className="flex-1 min-w-0 rounded-lg border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_03)] px-2.5 py-1.5 text-xs text-[var(--foreground)] placeholder-[var(--foreground-subtle)] outline-none focus:border-[var(--palette-6c63ff)] transition-colors" />
+          <input value={newTask} onChange={(e) => setNewTask(e.target.value)} placeholder="Add task…" className="flex-1 min-w-0 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs text-[var(--foreground)] placeholder-[var(--foreground-subtle)] outline-none focus:border-[var(--palette-6c63ff)] transition-colors" />
           <button type="submit" className="rounded-lg border border-[var(--palette-6c63ff)]/50 bg-[var(--palette-6c63ff)]/10 px-2.5 py-1.5 text-xs font-semibold text-[var(--palette-a5a8ff)] hover:bg-[var(--palette-6c63ff)]/20 transition-colors">+</button>
         </form>
       </div>
@@ -181,7 +181,7 @@ function SidePanel() {
         <MissionsWidget />
       </Suspense>
 
-      <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-4">
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4">
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--palette-4a4f62)] mb-3">AI Camera</p>
         <Suspense fallback={<HeavyWidgetFallback />}>
           <FocusCamera />
@@ -240,7 +240,7 @@ function CoinXPBar({ focusSessionsToday }: { focusSessionsToday: number }) {
         <span className="text-[12px] font-bold text-[var(--palette-amber-400)] tabular-nums">{wallet.coins.toLocaleString()}</span>
       </div>
       <div className="flex items-center gap-2 rounded-xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-124-58-237-0_07)] px-2.5 py-1.5">
-        <div className="flex items-center justify-center h-5 w-5 rounded-lg bg-gradient-to-br from-[var(--brand-600)] to-[var(--palette-4f46e5)] text-[10px] font-black text-[var(--palette-white)] shrink-0">
+        <div className="flex items-center justify-center h-5 w-5 rounded-lg bg-gradient-to-br from-[var(--brand-600)] to-[var(--palette-4f46e5)] text-[10px] font-semibold text-[var(--palette-white)] shrink-0">
           {level}
         </div>
         <div className="flex flex-col gap-0.5 min-w-[52px]">
@@ -382,7 +382,7 @@ function MobileSidePanelDrawer() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 300 }}
-              className="fixed inset-x-0 bottom-0 z-[var(--z-modal)] max-h-[85dvh] rounded-t-2xl border-t border-[var(--rgba-255-255-255-0_08)] bg-[var(--palette-0d0f1a)] backdrop-blur-2xl lg:hidden"
+              className="fixed inset-x-0 bottom-0 z-[var(--z-modal)] max-h-[85dvh] rounded-t-2xl border-t border-[var(--border-subtle)] bg-[var(--palette-0d0f1a)] backdrop-blur-2xl lg:hidden"
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}

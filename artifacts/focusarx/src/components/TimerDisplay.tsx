@@ -309,7 +309,7 @@ export function TimerDisplay({
 
           <div className="relative group flex items-center justify-center">
             <motion.span
-              className={`font-mono text-[3.6rem] font-black tabular-nums leading-none tracking-tight select-none ${onEditClick ? "cursor-pointer" : ""}`}
+              className={`font-mono text-[3.6rem] font-semibold tabular-nums leading-none tracking-tight select-none ${onEditClick ? "cursor-pointer" : ""}`}
               style={{
                 backgroundImage: `linear-gradient(135deg, var(--neutral-0), ${cfg.gradient[0]} 40%, ${cfg.gradient[1]})`,
                 WebkitBackgroundClip: "text",

@@ -300,7 +300,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
             key={Math.floor(secondsLeft / 60)}
             initial={{ scale: 0.97 }}
             animate={{ scale: 1 }}
-            className="select-none font-mono text-[5.5rem] font-black leading-none tracking-[-0.06em] sm:text-[6.5rem]"
+            className="select-none font-mono text-[5.5rem] font-semibold leading-none tracking-[-0.06em] sm:text-[6.5rem]"
             style={{
               backgroundImage: `linear-gradient(135deg, var(--foreground) 20%, var(--brand-400) 100%)`,
               WebkitBackgroundClip: "text",

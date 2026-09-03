@@ -159,8 +159,9 @@ html:not(.fa-js) body{background:#0b0d13}
 .fa-seo{max-width:760px;margin:0 auto;padding:72px 24px 96px;color:#e7e9ee;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.65}
 .fa-seo *{margin:0;padding:0;box-sizing:border-box}
 .fa-seo .badge{display:inline-block;border:1px solid rgba(124,58,237,.35);background:rgba(124,58,237,.12);color:#a78bfa;border-radius:999px;padding:4px 12px;font-size:12px;font-weight:600;margin-bottom:20px}
-.fa-seo h1{font-size:34px;font-weight:900;line-height:1.2;letter-spacing:-.02em;margin-bottom:14px}
-.fa-seo h2{font-size:21px;font-weight:800;margin:32px 0 8px}
+.fa-seo h1{font-size:34px;font-weight:700;line-height:1.2;letter-spacing:-.02em;margin-bottom:14px}
+.fa-seo h2{font-size:21px;font-weight:600;margin:32px 0 8px}
+.fa-seo h3{font-size:16px;font-weight:600;margin:20px 0 6px}
 .fa-seo .lead{font-size:17px;color:#b9bdca;margin-bottom:28px}
 .fa-seo p{color:#b9bdca;font-size:15px;margin-bottom:14px}
 .fa-seo a{color:#a78bfa}
@@ -210,6 +211,14 @@ function renderBody(entry, url) {
         .join("")}</ol>`
     : "";
 
+  // Visible FAQ. FAQPage JSON-LD must describe content the reader can see,
+  // so every FAQ pair is rendered into the static body too.
+  const faqBlock = entry.faq?.length
+    ? `<h2>Frequently asked questions</h2>${entry.faq
+        .map(([q, a]) => `<h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p>`)
+        .join("")}`
+    : "";
+
   // Visible attribution. Structured data must describe content the reader can
   // actually see, so sources are rendered, not just declared.
   const sourcesBlock = entry.sources?.length
@@ -223,7 +232,7 @@ function renderBody(entry, url) {
     : "";
 
   const cta = entry.cta || { href: "/signup", label: "Start focusing free" };
-  return `<div class="fa-seo"><span class="badge">${SITE_NAME}</span><h1>${escapeHtml(entry.h1)}</h1><p class="lead">${escapeHtml(entry.lead)}</p>${answerBlock}${stepsBlock}${sections}${sourcesBlock}${relatedBlock}<a class="cta" href="${escapeHtml(cta.href)}">${escapeHtml(cta.label)}</a></div>`;
+  return `<div class="fa-seo"><span class="badge">${SITE_NAME}</span><h1>${escapeHtml(entry.h1)}</h1><p class="lead">${escapeHtml(entry.lead)}</p>${answerBlock}${stepsBlock}${sections}${faqBlock}${sourcesBlock}${relatedBlock}<a class="cta" href="${escapeHtml(cta.href)}">${escapeHtml(cta.label)}</a></div>`;
 }
 
 // ── main ───────────────────────────────────────────────────────────

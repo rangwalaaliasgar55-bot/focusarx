@@ -132,7 +132,7 @@ export default function QuestsPage() {
                 {claimable} ready to claim!
               </span>
             )}
-            <button onClick={load} className="rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] p-2 text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)] transition-colors">
+            <button onClick={load} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--muted)] p-2 text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)] transition-colors">
               <RefreshCw size={14} />
             </button>
           </div>
@@ -152,7 +152,7 @@ export default function QuestsPage() {
                 <span className="text-[10px] text-[var(--foreground-subtle)]">(resets at midnight)</span>
               </div>
               {quests.daily.length === 0 ? (
-                <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] p-6 text-center text-sm text-[var(--foreground-subtle)]">
+                <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--muted)] p-6 text-center text-sm text-[var(--foreground-subtle)]">
                   Daily quests loading… Complete a session to unlock them!
                 </div>
               ) : (
@@ -170,7 +170,7 @@ export default function QuestsPage() {
                 <span className="text-[10px] text-[var(--foreground-subtle)]">(resets Monday)</span>
               </div>
               {quests.weekly.length === 0 ? (
-                <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] p-6 text-center text-sm text-[var(--foreground-subtle)]">
+                <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--muted)] p-6 text-center text-sm text-[var(--foreground-subtle)]">
                   No weekly quests yet. Keep completing sessions to unlock them!
                 </div>
               ) : (
