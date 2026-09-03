@@ -35,8 +35,17 @@ Applied via Helmet middleware:
 ## CORS
 
 - Configured allowlist: app URL + Vercel URLs + `CORS_ALLOWED_ORIGINS`
+- Same-origin requests (`Origin` host === request `Host`, honouring
+  `X-Forwarded-Host`) are always allowed — the SPA and API share one
+  deployment, so a custom domain / `www.` variant / preview alias that isn't
+  in the env config can never 403 the app's own login/refresh/track POSTs
+  while its GETs keep working (browsers only send `Origin` on mutations,
+  which is exactly the failure shape that incident had).
+- `www.`/apex counterparts of every configured origin are allowed (scheme-preserving)
 - Credentials enabled
 - Origin validation is case-insensitive and trailing-slash-tolerant
+- Rejections log `{ origin, requestHost, allowedOrigins }` and keep the
+  `403 { error: { code: "CORS_FORBIDDEN" } }` contract
 
 ## Rate Limiting
 

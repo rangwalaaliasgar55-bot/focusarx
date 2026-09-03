@@ -1,5 +1,4 @@
 import express, { type Express } from "express";
-import cors from "cors";
 import helmet from "helmet";
 import pinoHttp from "pino-http";
 import compression from "compression";
@@ -8,10 +7,11 @@ import crypto from "crypto";
 import router from "./routes";
 import { sitemapRouter } from "./routes/sitemap";
 import { logger } from "./lib/logger";
-import { getConfigErrors, getServerConfig } from "./lib/config";
+import { getConfigErrors } from "./lib/config";
 import { getEnv } from "./lib/env";
 import { generalLimiter } from "./lib/rateLimiter";
 import { masterSecurityMiddleware } from "./middlewares/security";
+import { corsMiddleware } from "./middlewares/cors";
 import { deploymentVersionHeaders, deploymentSkewGuard } from "./middlewares/deploymentSkew";
 import { isMaintenanceMode } from "./lib/siteSettings";
 
@@ -119,65 +119,12 @@ app.use(
   }),
 );
 
-// CORS — locked down in production
-app.use(
-  cors({
-    origin: (origin, cb) => {
-      if (!origin) {
-        cb(null, true);
-        return;
-      }
-      if (isDev) {
-        cb(null, true);
-        return;
-      }
-
-      let configured: string[] = [];
-      try {
-        const env = getEnv();
-        configured = [
-          getServerConfig().appUrl,
-          env.VERCEL_URL ? `https://${env.VERCEL_URL}` : null,
-          env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${env.VERCEL_PROJECT_PRODUCTION_URL}` : null,
-          ...(env.CORS_ALLOWED_ORIGINS?.split(",").map((value) => value.trim()).filter(Boolean) ?? []),
-          ...(process.env.CORS_ALLOWED_ORIGINS?.split(",").map((value) => value.trim()).filter(Boolean) ?? []),
-        ].filter((v): v is string => Boolean(v));
-      } catch {
-        configured = [
-          getServerConfig().appUrl,
-          process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
-          process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null,
-          ...(process.env.CORS_ALLOWED_ORIGINS?.split(",").map((value) => value.trim()).filter(Boolean) ?? []),
-        ].filter((v): v is string => Boolean(v));
-      }
-
-      const toOrigin = (url: string): string => {
-        try {
-          const u = new URL(url);
-          return `${u.protocol}//${u.host}`;
-        } catch {
-          return url.replace(/\/+$/, "");
-        }
-      };
-
-      const allowedOrigins = configured.map(toOrigin);
-      const requestOrigin = toOrigin(origin);
-      const isAllowed = allowedOrigins.includes(requestOrigin);
-
-      if (isAllowed) {
-        cb(null, true);
-      } else {
-        logger.warn({ origin, allowedOrigins }, "CORS origin rejected");
-        cb(new Error("CORS: origin not allowed"));
-      }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-Request-Id", "X-FocusArx-Deployment", "Idempotency-Key"],
-    exposedHeaders: ["X-Request-Id", "X-FocusArx-Deployment", "X-FocusArx-Deploy-Env"],
-    maxAge: 86400,
-  }),
-);
+// CORS — locked down in production, same-origin aware.
+// See middlewares/cors.ts: exact allowlist matches plus www/apex counterparts
+// plus same-origin (Origin host === request Host), so a custom domain or
+// preview alias that isn't in the env config can never 403 the SPA's own
+// login/refresh/track POSTs while its GETs keep working.
+app.use(corsMiddleware);
 
 app.use(cookieParser());
 app.use(express.json({ limit: "100kb" }));

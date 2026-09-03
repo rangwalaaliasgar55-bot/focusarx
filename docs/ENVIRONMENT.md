@@ -79,7 +79,8 @@ and `/api/deployment` (so users are still told to refresh during an incident).
 | `DATABASE_URL` | `lib/db/src/index.ts`, `lib/config.ts` | PostgreSQL connection string. On Vercel, `POSTGRES_URL_NON_POOLING` is preferred first (pooler transaction mode breaks prepared statements). Also accepts `POSTGRES_PRISMA_URL` / `POSTGRES_URL`. |
 | `AUTH_SECRET` | `lib/config.ts` | JWT signing secret (32+ random chars). `SESSION_SECRET` accepted as legacy alias. In dev, an ephemeral secret is generated per boot if unset. |
 | `ADMIN_PASSWORD` | `lib/config.ts`, `routes/admin.ts` | Bootstrap password for `/admin`. Mandatory in production; users with `role=admin` in DB also have access. |
-| `APP_URL` | `lib/config.ts` | Canonical public origin — used for password-reset links, CORS allowlist, OAuth redirects. Falls back to `VERCEL_URL`, then `https://focusarx.vercel.app`. |
+| `APP_URL` | `lib/config.ts` | Canonical public origin — used for password-reset links, CORS allowlist, OAuth redirects. Falls back to `VERCEL_URL`, then `https://focusarx.vercel.app`. **Set this to the custom domain you actually serve (e.g. `https://focusarx.site`) right after attaching it** — otherwise every login/refresh/track POST fails CORS while GETs keep working (see `docs/SECURITY.md` § CORS). |
+| `CORS_ALLOWED_ORIGINS` | `middlewares/cors.ts` | Comma-separated extra CORS origins (e.g. a staging host). Optional — same-origin requests (`Origin` host === request host) and `www.`/apex counterparts of `APP_URL` are always allowed. |
 
 ## 📧 Email via Resend (recommended)
 
@@ -140,7 +141,28 @@ assets from one deployment while API requests go to another.
 | Variable | Read by | Purpose |
 |---|---|---|
 | `VERCEL_DEPLOYMENT_ID` | `lib/deploymentVersion.ts`, `vite.config.ts` | Unique per-deployment identifier. Used as the canonical deployment version. |
-| `VERCEL_GIT_COMMIT_SHA` | `lib/deploymentVersion.ts`, `vite.config.ts` | Git commit SHA (fallback when deployment ID unavailable). |
+| `VERCEL_GIT_COMMIT_SHA` | `lib/deploymentVersion.ts`, `vite.config.ts` | Git commit SHA (also accepted for skew checks, including abbreviated 7+ char prefixes). |
+| `DEPLOYMENT_VERSION` / `VITE_DEPLOYMENT_VERSION` | `lib/deploymentVersion.ts`, `vite.config.ts`, frontend `lib/deploymentSkew.ts` | Explicit override for Docker/custom hosts. **Set both to the same value** (one at API runtime, one at frontend build time) or skew detection cannot work there. |
+
+### Skew protection needs a stable identifier — or it stays off
+
+The guard compares the frontend's baked version against every stable id the
+API knows (`VERCEL_DEPLOYMENT_ID`, 12-char `VERCEL_GIT_COMMIT_SHA`,
+`DEPLOYMENT_VERSION`). Two rules prevent a repeat of the incident where skew
+protection 409'd every mutation while the banner survived every refresh:
+
+- **Fail open, never closed.** With no stable identifier the API answers
+  `unverifiable` (every instance agrees) and lets mutations through instead
+  of blocking the product. Watch for
+  `[deploy-skew] No stable deployment identifier … skew protection is OFF`
+  in the logs — that line means: enable **Settings → Environment Variables
+  → System Environment Variables** on Vercel, or set `DEPLOYMENT_VERSION`
+  (+ matching `VITE_DEPLOYMENT_VERSION` at build time) on custom hosts.
+- **The frontend stays quiet when skew can't be judged** (dev sentinels,
+  `unverifiable`), clears the banner itself when versions agree again, and
+  caps fast polling (~10 min) before dropping back to the normal 2-minute
+  interval — a stuck mismatch can no longer poll `/api/deployment` every
+  30s forever.
 | `VERCEL_ENV` | `lib/deploymentVersion.ts` | `production`, `preview`, or `development`. Controls environment-specific behavior. |
 | `DEPLOYMENT_VERSION` | `lib/deploymentVersion.ts` | Explicit deployment version override (for Docker / custom deploys). |
 | `VITE_DEPLOYMENT_VERSION` | Frontend (via `define`) | Deployment version baked into the frontend at build time. |
