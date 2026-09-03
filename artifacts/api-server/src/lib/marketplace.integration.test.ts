@@ -10,8 +10,8 @@
  *  - bundle: one burn at bundle price, all items granted, partial-own blocks
  *  - ledger invariant: wallet delta == coin_transactions delta (audit)
  */
-import { describe, it, expect, beforeAll } from "vitest";
-import { and, eq, sql } from "drizzle-orm";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 const hasDb = Boolean(process.env.DATABASE_URL);
 
@@ -50,6 +50,15 @@ describe.runIf(hasDb)("marketplace 2.0 (Workstream C)", () => {
         ON CONFLICT (user_id) DO UPDATE SET coins = 100000`, [u]);
     }
   }, 120_000);
+
+  afterAll(async () => {
+    try {
+      await db.delete(userInventoryTable).where(inArr(userInventoryTable.userId, [giver, recipient]));
+      await db.delete(coinTransactionsTable).where(inArr(coinTransactionsTable.userId, [giver, recipient]));
+      await db.delete(userWalletsTable).where(inArr(userWalletsTable.userId, [giver, recipient]));
+      await db.delete(usersTable).where(inArray(usersTable.id, [giver, recipient]));
+    } catch { /* best effort */ }
+  }, 30_000);
 
   function inArr(col: any, ids: string[]) {
     return sql`${col} IN (${sql.join(ids.map((i) => sql`${i}`), sql`, `)})`;

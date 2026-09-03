@@ -10,7 +10,7 @@
  *  - every mint/burn writes a coin_transaction (ledger audit)
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 const hasDb = Boolean(process.env.DATABASE_URL);
 
@@ -60,6 +60,10 @@ describe.runIf(hasDb)("admin drops (Workstream B)", () => {
     try {
       await db.delete(adminDropClaimsTable);
       await db.delete(adminDropsTable);
+      if (testUsers.length) {
+        await db.delete(userWalletsTable).where(inArray(userWalletsTable.userId, testUsers));
+        await db.delete(usersTable).where(inArray(usersTable.id, testUsers));
+      }
     } catch { /* best effort */ }
   }, 30_000);
 
