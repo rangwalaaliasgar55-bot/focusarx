@@ -1,10 +1,13 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
 import { Box, Heart, PawPrint, Zap, Star, Edit2, ArrowRight, CheckCircle, ShoppingBag, CheckSquare, Square, Lock, Crown, Search, Filter, Sparkles, Trophy, Gift, Coins, X, Info } from "lucide-react";
 import { ErrorState } from "@/components/ErrorState";
-import { Pet3D, is3DCapable } from "@/components/Pet3D";
+import { is3DCapable } from "@/lib/webglCapability";
+
+// Lazy so three.js stays out of this page's static chunk graph.
+const Pet3D = lazy(() => import("@/components/Pet3D").then(m => ({ default: m.Pet3D })));
 import { usePremium } from "@/hooks/usePremium";
 import { Link } from "wouter";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
@@ -181,7 +184,9 @@ export default function PetsPage() {
               <div className="text-center">
                 {view3d ? (
                   <div className="mx-auto h-64 max-w-sm">
-                    <Pet3D petType={activePet.catalog?.slug ?? activePet.petType ?? "owl"} mood="happy" evolutionStage={Math.min(3, Math.floor(((activePet.inventory?.level ?? 1) - 1) / 5))} accessories={[]} onCrash={() => setView3d(false)} />
+                    <Suspense fallback={<div className="text-8xl">{activePet.catalog?.thumbnailUrl ? "🐾" : "🦉"}</div>}>
+                      <Pet3D petType={activePet.catalog?.slug ?? activePet.petType ?? "owl"} mood="happy" evolutionStage={Math.min(3, Math.floor(((activePet.inventory?.level ?? 1) - 1) / 5))} accessories={[]} onCrash={() => setView3d(false)} />
+                    </Suspense>
                   </div>
                 ) : (
                   <div className="text-8xl">{activePet.catalog?.thumbnailUrl ? "🐾" : "🦉"}</div>

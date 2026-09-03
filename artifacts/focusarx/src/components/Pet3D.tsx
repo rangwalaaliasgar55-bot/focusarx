@@ -13,29 +13,11 @@
 import { Component, Suspense, useMemo, useRef, type MutableRefObject, type ReactNode } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import { is3DCapable } from "@/lib/webglCapability";
 
 // ── capability + error boundary ─────────────────────────────────────────────
 
-let _webglChecked = false;
-let _webglOk = false;
-
-/** True when a WebGL context can be created AND the user hasn't asked for reduced motion. */
-export function is3DCapable(): boolean {
-  if (_webglChecked) return _webglOk;
-  _webglChecked = true;
-  try {
-    const canvas = document.createElement("canvas");
-    const gl =
-      canvas.getContext("webgl2") ?? canvas.getContext("webgl") ?? canvas.getContext("experimental-webgl");
-    _webglOk = Boolean(gl);
-    if (_webglOk && typeof window !== "undefined") {
-      _webglOk = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    }
-  } catch {
-    _webglOk = false;
-  }
-  return _webglOk;
-}
+export { is3DCapable };
 
 class Pet3DErrorBoundary extends Component<{ onCrash?: () => void; children: ReactNode }, { crashed: boolean }> {
   state = { crashed: false };
