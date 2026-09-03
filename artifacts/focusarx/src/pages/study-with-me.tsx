@@ -52,9 +52,9 @@ const articleSchema = {
   "headline": "Study With Me: Why Live Virtual Study Sessions Work (and How to Start)",
   "description": "How study-with-me sessions and virtual study rooms use the body-doubling effect and synchronized Pomodoro timers to make focusing easier — plus how to join free 24/7 rooms.",
   "author": { "@type": "Organization", "name": "FocusArx" },
-  "publisher": { "@type": "Organization", "name": "FocusArx", "logo": { "@type": "ImageObject", "url": "https://www.focusarx.site/logo.png" } },
+  "publisher": { "@type": "Organization", "name": "FocusArx", "logo": { "@type": "ImageObject", "url": "https://focusarx.site/logo.png" } },
   "dateModified": "2026-08-24",
-  "mainEntityOfPage": "https://www.focusarx.site/study-with-me",
+  "mainEntityOfPage": "https://focusarx.site/study-with-me",
 };
 
 const faqSchema = {

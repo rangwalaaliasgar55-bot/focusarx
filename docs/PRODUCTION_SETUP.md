@@ -8,7 +8,7 @@ notifications**, and **AI**.
 Everything a human has to do manually is marked **[MANUAL]**. Everything else
 is automated by the repo (CI, migrations, build, deploy).
 
-> Canonical host in this repository is **`www.focusarx.site`**
+> Canonical host in this repository is **`focusarx.site`**
 > (`artifacts/focusarx/index.html`, `public/robots.txt`, `public/sitemap.xml`,
 > `public/manifest.json`). Either buy/use that domain, or search-and-replace it
 > with your own domain in those files before going live.
@@ -145,8 +145,8 @@ local previews to work).
 | `POSTGRES_URL_NON_POOLING` | Neon **direct** URL | **Preferred on Vercel** (transaction-mode poolers break prepared statements) |
 | `AUTH_SECRET` | ≥ 32 random characters | Generate: `openssl rand -base64 48` |
 | `ADMIN_PASSWORD` | ≥ 8 chars (**16+ recommended**) | Bootstrap password for `/admin`; also covered by GitHub deploy secret |
-| `APP_URL` | `https://www.focusarx.site` | Canonical origin: password-reset links, CORS, OAuth |
-| `VITE_APP_URL` | `https://www.focusarx.site` | Canonical/OG/sitemap origin; set for the build environment too |
+| `APP_URL` | `https://focusarx.site` | Canonical origin: password-reset links, CORS, OAuth |
+| `VITE_APP_URL` | `https://focusarx.site` | Canonical/OG/sitemap origin; set for the build environment too |
 
 `DATABASE_URL` is required to run; if you only set `POSTGRES_URL_NON_POOLING`,
 things still work (the app prefers it).
@@ -168,7 +168,7 @@ things still work (the app prefers it).
 
 | Variable | Value | Purpose |
 |---|---|---|
-| `VITE_APP_URL` | `https://www.focusarx.site` | SEO canonical/OG/sitemap |
+| `VITE_APP_URL` | `https://focusarx.site` | SEO canonical/OG/sitemap |
 | `VITE_GA_MEASUREMENT_ID` | `G-XXXXXXXXXX` | Google Analytics 4; loads gtag.js + SPA page views |
 | `VERCEL_GIT_COMMIT_SHA`, `VERCEL_DEPLOYMENT_ID` | auto | Deployment-version skew protection (Vercel injects automatically) |
 
@@ -193,7 +193,7 @@ In **GitHub → repo → Settings → Secrets and variables → Actions**, add:
 | `VERCEL_TOKEN` | Vercel → Account → Settings → Tokens → new token | `deploy.yml` deploy step |
 | `VERCEL_ORG_ID` | Vercel → Account/Team → settings → ID | `deploy.yml` deploy step |
 | `VERCEL_PROJECT_ID` | Vercel → Project → Settings → General → Project ID | `deploy.yml` deploy step |
-| `APP_URL` | `https://www.focusarx.site` | `deploy.yml` post-deploy smoke test |
+| `APP_URL` | `https://focusarx.site` | `deploy.yml` post-deploy smoke test |
 
 Getting Vercel IDs quickly:
 
@@ -326,7 +326,7 @@ bootstrap `ADMIN_PASSWORD`.
 
 1. Register/buy the domain (e.g. at Namecheap/GoDaddy/Cloudflare).
 2. In Vercel → **Project → Settings → Domains**, add `focusarx.site` and
-   `www.focusarx.site`.
+   `focusarx.site`.
 3. At your DNS provider, add the records Vercel gives you, typically:
 
 | Type | Name | Value |
@@ -335,8 +335,8 @@ bootstrap `ADMIN_PASSWORD`.
 | `CNAME` | `www` | `cname.vercel-dns.com` |
 
 4. Wait for DNS propagation, then set your **primary domain** to
-   `https://www.focusarx.site` (Vercel → Domains → make it the default).
-5. Because the repo hardcodes `www.focusarx.site` in HTML/robots/sitemap, use
+   `https://focusarx.site` (Vercel → Domains → make it the default).
+5. Because the repo hardcodes `focusarx.site` in HTML/robots/sitemap, use
    that exact host, or update the hardcoded files (see §0).
 
 **HTTPS**: Vercel provisions a certificate automatically.
@@ -349,22 +349,22 @@ After the first deploy, check:
 
 ```bash
 # 1. Function loads without a 500 (this should show config health, not crash)
-curl -s https://www.focusarx.site/api/healthz
-curl -s https://www.focusarx.site/api/healthz/config
-curl -s https://www.focusarx.site/api/healthz/ready
+curl -s https://focusarx.site/api/healthz
+curl -s https://focusarx.site/api/healthz/config
+curl -s https://focusarx.site/api/healthz/ready
 
 # 2. Migrations + tables metadata (no secrets leaked)
-curl -s https://www.focusarx.site/api/healthz/migrations
-curl -s https://www.focusarx.site/api/healthz/tables
+curl -s https://focusarx.site/api/healthz/migrations
+curl -s https://focusarx.site/api/healthz/tables
 
 # 3. Deployment/skew endpoint (public)
-curl -s https://www.focusarx.site/api/deployment
+curl -s https://focusarx.site/api/deployment
 
 # 4. Sitemap is served from the root (not an SPA 200)
-curl -s https://www.focusarx.site/sitemap.xml | head
+curl -s https://focusarx.site/sitemap.xml | head
 
 # 5. Root page loads with brands/meta
-curl -sI https://www.focusarx.site/
+curl -sI https://focusarx.site/
 ```
 
 Open in a browser:
@@ -421,7 +421,7 @@ After deployment, use GA4 Realtime or Tag Assistant to confirm a page view.
 
 ### Google Search Console
 
-1. Search Console → add `www.focusarx.site`.
+1. Search Console → add `focusarx.site`.
 2. Choose DNS verification (simplest) or HTML tag.
 3. If HTML tag: paste the `content` value into
    `artifacts/focusarx/index.html` where the `google-site-verification` comment

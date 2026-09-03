@@ -56,9 +56,9 @@ const articleSchema = {
   "headline": "The Science of Focus Music: What to Listen to While You Work",
   "description": "What research actually says about study music — lyrics, lo-fi, binaural beats, noise colors, and silence — plus how to build a focus playlist that becomes a concentration trigger.",
   "author": { "@type": "Organization", "name": "FocusArx" },
-  "publisher": { "@type": "Organization", "name": "FocusArx", "logo": { "@type": "ImageObject", "url": "https://www.focusarx.site/logo.png" } },
+  "publisher": { "@type": "Organization", "name": "FocusArx", "logo": { "@type": "ImageObject", "url": "https://focusarx.site/logo.png" } },
   "dateModified": "2026-08-24",
-  "mainEntityOfPage": "https://www.focusarx.site/focus-music",
+  "mainEntityOfPage": "https://focusarx.site/focus-music",
 };
 
 const faqSchema = {

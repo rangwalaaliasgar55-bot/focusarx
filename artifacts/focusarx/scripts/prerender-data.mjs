@@ -15,7 +15,7 @@ import { EXAM_GUIDES, EXAM_HUB } from "../src/content/exam/index.mjs";
 import { SEO_PAGES, COMPARISONS, COMPARISON_PATHS } from "../src/content/seo-pages.mjs";
 
 // OG card base for dynamic OG images (serverless /api/og endpoint).
-const OG_BASE = "https://www.focusarx.site";
+const OG_BASE = "https://focusarx.site";
 const examOgImage = (title, subtitle) =>
   `${OG_BASE}/api/og?tag=${encodeURIComponent("EXAM GUIDE")}&title=${encodeURIComponent(title)}&subtitle=${encodeURIComponent(subtitle)}&accent=${encodeURIComponent("#a78bfa")}`;
 export const DEFAULT_OG_IMAGE_PATH = "/opengraph.jpg";

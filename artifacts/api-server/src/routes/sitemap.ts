@@ -48,16 +48,14 @@ interface Page {
 }
 
 /**
- * Canonical base URL.
- *
- * `index.html`, the prerenderer and `public/robots.txt` all use the `www.`
- * host, but this file defaulted to the apex — which meant every URL in the
- * API-generated sitemap was a different host from the canonical one, so Google
- * saw them as duplicate content. `APP_URL` wins when set; otherwise www.
+ * Canonical base URL — the apex host, matching the canonical tag in
+ * `index.html`, the prerenderer and `public/robots.txt`. `APP_URL` wins when
+ * set, but it MUST be the same host as the canonical (https://focusarx.site);
+ * a different host makes every sitemap URL a duplicate of its canonical.
  */
 function baseUrl(): string {
   const fromEnv = process.env.APP_URL?.replace(/\/+$/, "");
-  return fromEnv || "https://www.focusarx.site";
+  return fromEnv || "https://focusarx.site";
 }
 
 function today(): string {

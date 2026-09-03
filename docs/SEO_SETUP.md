@@ -5,9 +5,16 @@ verification, console submissions, and supplying the real data behind claims.
 The code side is already implemented — see [What the code already does](#what-the-code-already-does)
 for what ships automatically.
 
-Canonical host for everything below: **`https://www.focusarx.site`** (the `www`
-subdomain). Every canonical, sitemap URL and OG tag uses it. If you ever serve
-the apex without redirecting to `www`, every URL becomes a cross-host duplicate.
+Canonical host for everything below: **`https://focusarx.site`** (the apex —
+no `www`). Every canonical, sitemap URL and OG tag uses it. `https://www.focusarx.site`
+must redirect here, which is a **Vercel dashboard setting, not code**: in
+Vercel → Project → Settings → Domains, set `focusarx.site` as the **primary
+domain** so every other project domain (`www.focusarx.site`) 307-redirects to
+it. Until that flip happens, every canonical tag points at a URL that
+redirects, and Google reports the sitemap's URLs as "not indexed" — this exact
+mismatch (code canonicalized www while the Search Console property was the
+apex) is why 57 submitted URLs showed 0 indexed. Do the flip in the same
+deploy window as the apex-canonical code, never in between.
 
 > **Prerequisites:** this guide assumes the app is already deployed — database
 > created, Vercel project wired, domain and DNS pointing at it. That half is
@@ -22,18 +29,21 @@ Set these in **Vercel → Project → Settings → Environment Variables** (Prod
 
 | Variable | Value | Why it matters for SEO |
 |---|---|---|
-| `APP_URL` | `https://www.focusarx.site` | Drives every `<loc>` in the API-generated sitemap. Wrong value = every sitemap URL points at the wrong host. |
-| `VITE_APP_URL` | `https://www.focusarx.site` | Drives canonical, `og:url`, `og:image` and the prerenderer's base URL. **Build-time** — changing it requires a redeploy. |
+| `APP_URL` | `https://focusarx.site` | Drives every `<loc>` in the API-generated sitemap. Wrong value = every sitemap URL points at the wrong host. |
+| `VITE_APP_URL` | `https://focusarx.site` | Drives canonical, `og:url`, `og:image` and the prerenderer's base URL. **Build-time** — changing it requires a redeploy. |
 
 Verify after deploy:
 
 ```bash
-curl -s https://www.focusarx.site/sitemap.xml | head -20
-curl -s https://www.focusarx.site/pomodoro-timer | grep -o 'rel="canonical" href="[^"]*"'
+curl -s https://focusarx.site/sitemap.xml | head -20
+curl -s https://focusarx.site/pomodoro-timer | grep -o 'rel="canonical" href="[^"]*"'
 ```
 
-Both must say `https://www.focusarx.site`. If the canonical says the apex or a
-`*.vercel.app` URL, `VITE_APP_URL` is unset and you must redeploy.
+Both must say `https://focusarx.site`. If the canonical says `www.focusarx.site`
+or a `*.vercel.app` URL, `VITE_APP_URL` is unset or wrong and you must redeploy.
+If `https://focusarx.site/` itself answers with a redirect to `www`, the Vercel
+primary domain is still `www` — fix it in the dashboard (see the note above)
+before submitting anything to Search Console.
 
 ---
 
@@ -42,7 +52,7 @@ Both must say `https://www.focusarx.site`. If the canonical says the apex or a
 Nothing else on this list matters until GSC can see your site.
 
 1. Go to <https://search.google.com/search-console> → **Add property**.
-2. Choose **URL prefix** and enter `https://www.focusarx.site`.
+2. Choose **URL prefix** and enter `https://focusarx.site`.
    (The *Domain* option also works and covers apex + www + http/https in one
    property, but it requires a DNS TXT record. Either is fine; URL prefix is
    faster.)
@@ -72,12 +82,12 @@ Nothing else on this list matters until GSC can see your site.
    *Indexing allowed*. Do all of them; each is a different template:
 
    ```
-   https://www.focusarx.site/
-   https://www.focusarx.site/pomodoro-timer
-   https://www.focusarx.site/deep-work-guide
-   https://www.focusarx.site/comparison/focusarx-vs-forest
-   https://www.focusarx.site/evidence
-   https://www.focusarx.site/exam/jee-main
+   https://focusarx.site/
+   https://focusarx.site/pomodoro-timer
+   https://focusarx.site/deep-work-guide
+   https://focusarx.site/comparison/focusarx-vs-forest
+   https://focusarx.site/evidence
+   https://focusarx.site/exam/jee-main
    ```
 
    For each, click **View crawled page** and check the *Rendered HTML* tab.
@@ -98,8 +108,8 @@ ten minutes.
    `artifacts/focusarx/public/BingSiteAuth.xml` containing
    `35228966C9DF3C7E896903CED1530D03`. Confirm that matches the code shown in
    your Bing account; if Bing issued a different one, replace the file contents.
-3. **Sitemaps** → submit `https://www.focusarx.site/sitemap.xml`.
-4. Check <https://www.focusarx.site/BingSiteAuth.xml> returns XML, not HTML.
+3. **Sitemaps** → submit `https://focusarx.site/sitemap.xml`.
+4. Check <https://focusarx.site/BingSiteAuth.xml> returns XML, not HTML.
 
 ---
 
@@ -111,7 +121,7 @@ page views and product events to that global tag without adding another loader.
 What you need to do:
 
 1. Open GA4 → **Admin → Data Streams** and confirm the web stream's URL is
-   `https://www.focusarx.site`.
+   `https://focusarx.site`.
 2. **Admin → Data Settings → Data Retention** → set to **14 months**. The
    default is 2, which silently deletes the history you need to judge whether
    a page is improving.
@@ -134,7 +144,7 @@ What you need to do:
 
 Do not guess at performance work. Measure first:
 
-1. <https://pagespeed.web.dev/> → test `https://www.focusarx.site/pomodoro-timer`
+1. <https://pagespeed.web.dev/> → test `https://focusarx.site/pomodoro-timer`
    on **Mobile**. Do the same for `/` and `/deep-work-guide`.
 2. Record **LCP**, **INP**, **CLS**. Targets: LCP < 2.5s, INP < 200ms, CLS < 0.1.
 3. After ~28 days of real traffic, GSC → **Experience → Core Web Vitals** shows
@@ -269,12 +279,12 @@ Run these after every deploy. All should return 200 and sensible content.
 
 ```bash
 # Crawler-facing files
-curl -sI https://www.focusarx.site/robots.txt
-curl -s  https://www.focusarx.site/robots.txt | grep Sitemap
-curl -s  https://www.focusarx.site/sitemap.xml        | head -20
-curl -s  https://www.focusarx.site/sitemap-tools.xml  | grep -c '<loc>'
-curl -s  https://www.focusarx.site/llms.txt           | head -5
-curl -s  https://www.focusarx.site/ads.txt
+curl -sI https://focusarx.site/robots.txt
+curl -s  https://focusarx.site/robots.txt | grep Sitemap
+curl -s  https://focusarx.site/sitemap.xml        | head -20
+curl -s  https://focusarx.site/sitemap-tools.xml  | grep -c '<loc>'
+curl -s  https://focusarx.site/llms.txt           | head -5
+curl -s  https://focusarx.site/ads.txt
 
 # Every new URL must return its OWN title, not the homepage's
 for p in pomodoro-timer focus-timer study-timer deep-work-guide body-doubling \
@@ -284,14 +294,14 @@ for p in pomodoro-timer focus-timer study-timer deep-work-guide body-doubling \
          comparison/focusarx-vs-pomofocus comparison/focusarx-vs-freedom \
          comparison/focusarx-vs-stayfocusd comparison/focusarx-vs-focus-todo; do
   printf "%-40s " "$p"
-  curl -s "https://www.focusarx.site/$p" | grep -o '<title>[^<]*</title>'
+  curl -s "https://focusarx.site/$p" | grep -o '<title>[^<]*</title>'
 done
 
 # No page may claim a rating in structured data
-curl -s https://www.focusarx.site/ | grep -c aggregateRating   # must print 0
+curl -s https://focusarx.site/ | grep -c aggregateRating   # must print 0
 
-# Host canonicalisation — apex must 301 to www
-curl -sI https://focusarx.site/ | head -5
+# Host canonicalisation — www must redirect to the apex
+curl -sI https://www.focusarx.site/ | head -5   # expect 307/308 → https://focusarx.site/
 ```
 
 Locally, before pushing, you can check the crawler view of the built site:

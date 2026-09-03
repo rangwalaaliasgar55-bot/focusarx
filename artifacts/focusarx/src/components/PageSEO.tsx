@@ -14,7 +14,7 @@ interface PageSEOProps {
 // Single source of truth for the canonical origin. Defaults to the production
 // domain but can be overridden per deployment via VITE_APP_URL so canonical /
 // og:url / og:image URLs never drift out of sync with where the app is hosted.
-const BASE_URL = (import.meta.env.VITE_APP_URL || "https://www.focusarx.site").replace(/\/+$/, "");
+const BASE_URL = (import.meta.env.VITE_APP_URL || "https://focusarx.site").replace(/\/+$/, "");
 const DEFAULT_OG_IMAGE = `${BASE_URL}/opengraph.jpg`;
 
 function setMeta(name: string, content: string, attr: "name" | "property" = "name") {

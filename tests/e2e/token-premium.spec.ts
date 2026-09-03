@@ -82,8 +82,8 @@ test.describe("Premium economy UI", () => {
     const sitemapRes = await page.request.get("/sitemap.xml");
     expect(sitemapRes.ok()).toBeTruthy();
     const sitemapText = await sitemapRes.text();
-    expect(sitemapText).toContain("<loc>https://www.focusarx.site/premium</loc>");
-    expect(sitemapText).toContain("<loc>https://www.focusarx.site/focus-guide</loc>");
+    expect(sitemapText).toContain("<loc>https://focusarx.site/premium</loc>");
+    expect(sitemapText).toContain("<loc>https://focusarx.site/focus-guide</loc>");
   });
 
   test("reduced-motion and 3D fallback", async ({ page }) => {

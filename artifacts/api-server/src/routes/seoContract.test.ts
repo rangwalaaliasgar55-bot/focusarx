@@ -188,7 +188,7 @@ describe("SEO contract: sitemap, routes, prerender manifest and robots.txt agree
 
   it("the static sitemap fallback lists exactly the segments the API emits", () => {
     const xml = fs.readFileSync(STATIC_SITEMAP, "utf8");
-    const declared = [...xml.matchAll(/<loc>https:\/\/www\.focusarx\.site\/(sitemap-[^<]+\.xml)<\/loc>/g)]
+    const declared = [...xml.matchAll(/<loc>https:\/\/focusarx\.site\/(sitemap-[^<]+\.xml)<\/loc>/g)]
       .map((m) => m[1]!)
       .sort();
     const fromApi = SEGMENTS.map((s) => s.file).sort();

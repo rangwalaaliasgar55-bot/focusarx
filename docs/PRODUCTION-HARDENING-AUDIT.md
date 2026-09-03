@@ -224,7 +224,7 @@ respected.
 | 32 | ~200 undeclared CSS variables referenced from TSX (`--palette-*`, `--rgba-*`); they resolve to `unset` → silent visual breakage | `App.tsx:194`, `focus-timer.tsx:34`, `city.tsx:21`, `AppShell.tsx:220`, … |
 | 33 | Three overlapping colour systems (`--brand-violet`, `--brand-600`, `--forge-*`) + two competing token idioms (`var(--x)` vs shadcn semantic classes in `ui/command.tsx`) | `index.css` |
 | 34 | 4 dead `manualChunks` branches for uninstalled packages; `has()` matcher too loose (`id.includes(pkg + "/")`) | `vite.config.ts:53-91` |
-| 35 | Inconsistent canonical domain: `focusarx.app` vs `www.focusarx.site` vs `focusarx.site` | `ShareCardModal.tsx:193`, `index.html:32`, `PageSEO.tsx:17` |
+| 35 | Inconsistent canonical domain: `focusarx.app` vs `focusarx.site` vs `focusarx.site` | `ShareCardModal.tsx:193`, `index.html:32`, `PageSEO.tsx:17` |
 | 36 | `sw.js` is outside Vite's pipeline — `SW_VERSION` must be bumped by hand | `public/sw.js:17` |
 | 37 | `main.tsx:45` SW update `setInterval` never cleared | |
 | 38 | `vitest.config.ts:19` aliases `@assets` to a nonexistent `../../attached_assets` | |

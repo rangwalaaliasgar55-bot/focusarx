@@ -28,7 +28,7 @@ import { ROUTES, SITE_NAME } from "./prerender-data.mjs";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST = path.resolve(__dirname, "..", "dist", "public");
 const TEMPLATE = path.join(DIST, "index.html");
-const BASE_URL = (process.env.VITE_APP_URL || "https://www.focusarx.site").replace(/\/+$/, "");
+const BASE_URL = (process.env.VITE_APP_URL || "https://focusarx.site").replace(/\/+$/, "");
 
 // ── helpers ────────────────────────────────────────────────────────
 const escapeHtml = (s) =>
