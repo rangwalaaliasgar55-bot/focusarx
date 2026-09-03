@@ -16,9 +16,9 @@ export function DeploymentUpdateBanner() {
     <AnimatePresence>
       {mismatch && (
         <motion.div
-          initial={{ y: -50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: -50, opacity: 0 }}
+          initial={{ y: -50 }}
+          animate={{ y: 0 }}
+          exit={{ y: -50 }}
           className="fixed top-0 left-0 right-0 z-[100] bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 shadow-lg"
           role="alert"
           aria-live="polite"
@@ -28,7 +28,7 @@ export function DeploymentUpdateBanner() {
               <RefreshCw className="w-5 h-5 flex-shrink-0" />
               <div>
                 <p className="font-medium text-sm">New version available</p>
-                <p className="text-xs text-blue-100 hidden sm:block">
+                <p className="text-xs text-blue-50 hidden sm:block">
                   A new version of FocusArx has been deployed. Refresh to get the latest features and fixes.
                 </p>
               </div>
