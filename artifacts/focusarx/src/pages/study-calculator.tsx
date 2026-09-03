@@ -23,7 +23,7 @@ export default function StudyMethodCalculator() {
       <div className="max-w-3xl mx-auto">
         <header className="text-center mb-16">
            <Calculator className="mx-auto mb-6 text-[var(--brand-400)]" size={48} />
-           <h1 className="text-4xl font-black mb-4">Study Volume <span className="text-[var(--brand-400)]">Calculator</span></h1>
+           <h1 className="text-4xl font-semibold mb-4">Study Volume <span className="text-[var(--brand-400)]">Calculator</span></h1>
            <p className="text-[var(--foreground-muted)]">Input your constraints to find your optimal study velocity.</p>
         </header>
 
@@ -66,27 +66,27 @@ export default function StudyMethodCalculator() {
            </div>
 
            <div className="flex flex-col justify-center items-center text-center p-8 rounded-3xl border border-[var(--brand-400)]/20 bg-[var(--brand-400)]/5">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--brand-400)] mb-2">Recommended Strategy</p>
-              <h2 className="text-3xl font-black mb-6">{recommendedMethod}</h2>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--brand-400)] mb-2">Recommended Strategy</p>
+              <h2 className="text-3xl font-semibold mb-6">{recommendedMethod}</h2>
 
               <div className="space-y-4 mb-8">
                  <div className="flex items-center gap-3 text-left">
                     <Clock size={20} className="text-[var(--brand-400)]" />
                     <div>
-                       <p className="text-xl font-black text-[var(--palette-white)]">{hoursPerDay} Hours</p>
+                       <p className="text-xl font-semibold text-[var(--palette-white)]">{hoursPerDay} Hours</p>
                        <p className="text-[10px] uppercase text-[var(--foreground-subtle)]">Daily Study Volume</p>
                     </div>
                  </div>
                  <div className="flex items-center gap-3 text-left">
                     <Target size={20} className="text-[var(--brand-400)]" />
                     <div>
-                       <p className="text-xl font-black text-[var(--palette-white)]">{Math.ceil(hoursPerDay * 2.4)} Sessions</p>
+                       <p className="text-xl font-semibold text-[var(--palette-white)]">{Math.ceil(hoursPerDay * 2.4)} Sessions</p>
                        <p className="text-[10px] uppercase text-[var(--foreground-subtle)]">Average Daily Blocks</p>
                     </div>
                  </div>
               </div>
 
-              <button className="w-full rounded-2xl bg-[var(--palette-white)] py-4 text-[var(--palette-black)] font-black hover:scale-105 transition-all flex items-center justify-center gap-2">
+              <button className="w-full rounded-2xl bg-[var(--palette-white)] py-4 text-[var(--palette-black)] font-semibold hover:scale-105 transition-all flex items-center justify-center gap-2">
                  Generate Schedule <ArrowRight size={18} />
               </button>
            </div>

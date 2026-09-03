@@ -138,7 +138,7 @@ export default function ReadinessCheckInModal() {
                   className="flex flex-col items-center py-4 gap-3"
                 >
                   <div
-                    className="flex h-20 w-20 items-center justify-center rounded-full text-3xl font-black"
+                    className="flex h-20 w-20 items-center justify-center rounded-full text-3xl font-semibold"
                     style={{ background: `color-mix(in srgb, ${scoreColor} 9%, transparent)`, color: scoreColor, border: `2px solid color-mix(in srgb, ${scoreColor} 27%, transparent)` }}
                   >
                     {result.score}
@@ -182,7 +182,7 @@ export default function ReadinessCheckInModal() {
                   <button
                     onClick={() => void handleSave()}
                     disabled={saving}
-                    className="mt-6 w-full rounded-xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] py-3 text-sm font-semibold text-[var(--palette-white)] transition hover:opacity-90 disabled:opacity-60"
+                    className="mt-6 w-full rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] py-3 text-sm font-semibold text-[var(--palette-white)] transition hover:opacity-90 disabled:opacity-60"
                   >
                     {saving ? "Saving…" : "Get my focus score"}
                   </button>

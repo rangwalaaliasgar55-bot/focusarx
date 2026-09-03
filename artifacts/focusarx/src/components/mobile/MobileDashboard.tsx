@@ -268,7 +268,7 @@ export function MobileDashboard({ onStartFocus, stats, recentSessions, wallet }:
             <span className="text-sm">🪙</span>
             <span className="text-sm font-bold tabular-nums">{wallet.coins.toLocaleString()}</span>
             <span className="mx-2 h-4 w-px bg-[var(--border-subtle)]" />
-            <span className="grid h-6 w-6 place-items-center rounded-lg bg-[var(--brand-600)] text-[10px] font-black text-white">
+            <span className="grid h-6 w-6 place-items-center rounded-lg bg-[var(--brand-600)] text-[10px] font-semibold text-white">
               {wallet.level}
             </span>
             <span className="text-sm font-medium tabular-nums">{wallet.totalXp.toLocaleString()} XP</span>

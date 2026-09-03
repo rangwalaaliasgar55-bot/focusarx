@@ -196,14 +196,14 @@ export default function BreathePage() {
             <div className="flex gap-3 mt-2">
               <button
                 onClick={() => running ? stop() : setRunning(true)}
-                className="rounded-xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] px-8 py-3 text-sm font-semibold text-[var(--palette-white)] shadow-[0_0_20px_var(--rgba-124-58-237-0_3)] transition-all hover:shadow-[0_0_30px_var(--rgba-124-58-237-0_5)]"
+                className="rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] px-8 py-3 text-sm font-semibold text-[var(--palette-white)] shadow-[0_0_20px_var(--rgba-124-58-237-0_3)] transition-all hover:shadow-[0_0_30px_var(--rgba-124-58-237-0_5)]"
               >
                 {running ? "Stop" : "Start"}
               </button>
               {running && (
                 <button
                   onClick={stop}
-                  className="rounded-xl border border-[var(--rgba-124-58-237-0_2)] px-5 py-3 text-sm text-[var(--palette-6b7280)] hover:text-[var(--foreground-muted)]"
+                  className="rounded-xl border border-[var(--rgba-124-58-237-0_2)] px-5 py-3 text-sm text-[var(--foreground-muted)] hover:text-[var(--foreground-muted)]"
                 >
                   Reset
                 </button>

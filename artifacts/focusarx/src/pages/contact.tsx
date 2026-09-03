@@ -85,7 +85,7 @@ export default function ContactPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="mb-3 text-4xl font-black tracking-tight text-[var(--foreground)]"
+              className="mb-3 text-4xl font-semibold tracking-tight text-[var(--foreground)]"
             >
               We'd love to hear from you
             </motion.h1>
@@ -93,7 +93,7 @@ export default function ContactPage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.2 }}
-              className="text-sm text-[var(--palette-6b7280)]"
+              className="text-sm text-[var(--foreground-muted)]"
             >
               A question, a bug report, or a feature idea — we read every message.
             </motion.p>
@@ -113,7 +113,7 @@ export default function ContactPage() {
                     <span className="text-2xl">✓</span>
                   </div>
                   <p className="font-semibold text-[var(--foreground)]">Message sent!</p>
-                  <p className="text-sm text-[var(--palette-6b7280)]">We'll get back to you soon.</p>
+                  <p className="text-sm text-[var(--foreground-muted)]">We'll get back to you soon.</p>
                   <button onClick={() => setStatus("idle")} className="text-xs text-[var(--brand-400)] hover:underline">Send another message</button>
                 </motion.div>
               ) : (
@@ -125,7 +125,7 @@ export default function ContactPage() {
                         required value={form.name}
                         onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                         placeholder="Your name"
-                        className="w-full rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_04)] px-3.5 py-2.5 text-sm text-[var(--foreground)] placeholder-[var(--rgba-255-255-255-0_20)] outline-none focus:border-[var(--brand-600)] transition-colors"
+                        className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--muted)] px-3.5 py-2.5 text-sm text-[var(--foreground)] placeholder-[var(--rgba-255-255-255-0_20)] outline-none focus:border-[var(--brand-600)] transition-colors"
                       />
                     </div>
                     <div>
@@ -134,7 +134,7 @@ export default function ContactPage() {
                         required type="email" value={form.email}
                         onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                         placeholder="you@example.com"
-                        className="w-full rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_04)] px-3.5 py-2.5 text-sm text-[var(--foreground)] placeholder-[var(--rgba-255-255-255-0_20)] outline-none focus:border-[var(--brand-600)] transition-colors"
+                        className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--muted)] px-3.5 py-2.5 text-sm text-[var(--foreground)] placeholder-[var(--rgba-255-255-255-0_20)] outline-none focus:border-[var(--brand-600)] transition-colors"
                       />
                     </div>
                   </div>
@@ -144,7 +144,7 @@ export default function ContactPage() {
                       required value={form.subject}
                       onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
                       placeholder="What's this about?"
-                      className="w-full rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_04)] px-3.5 py-2.5 text-sm text-[var(--foreground)] placeholder-[var(--rgba-255-255-255-0_20)] outline-none focus:border-[var(--brand-600)] transition-colors"
+                      className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--muted)] px-3.5 py-2.5 text-sm text-[var(--foreground)] placeholder-[var(--rgba-255-255-255-0_20)] outline-none focus:border-[var(--brand-600)] transition-colors"
                     />
                   </div>
                   <div>
@@ -153,7 +153,7 @@ export default function ContactPage() {
                       required rows={5} value={form.message}
                       onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
                       placeholder="Tell us everything…"
-                      className="w-full resize-none rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_04)] px-3.5 py-2.5 text-sm text-[var(--foreground)] placeholder-[var(--rgba-255-255-255-0_20)] outline-none focus:border-[var(--brand-600)] transition-colors"
+                      className="w-full resize-none rounded-xl border border-[var(--border-subtle)] bg-[var(--muted)] px-3.5 py-2.5 text-sm text-[var(--foreground)] placeholder-[var(--rgba-255-255-255-0_20)] outline-none focus:border-[var(--brand-600)] transition-colors"
                     />
                   </div>
                   {status === "error" && (
@@ -164,7 +164,7 @@ export default function ContactPage() {
                     disabled={status === "sending"}
                     whileHover={{ scale: 1.02, boxShadow: "0 0 30px 6px var(--rgba-124-58-237-0_3)" }}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full rounded-xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-e879f9)] py-3 text-sm font-bold text-[var(--palette-white)] disabled:opacity-60"
+                    className="w-full rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] py-3 text-sm font-bold text-[var(--palette-white)] disabled:opacity-60"
                   >
                     {status === "sending" ? "Sending…" : "Send Message →"}
                   </motion.button>
@@ -191,7 +191,7 @@ export default function ContactPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-[var(--foreground)]">{opt.title}</p>
-                    <p className="mt-0.5 text-xs text-[var(--palette-6b7280)]">{opt.desc}</p>
+                    <p className="mt-0.5 text-xs text-[var(--foreground-muted)]">{opt.desc}</p>
                     <p className="mt-1.5 text-xs font-medium text-[var(--brand-400)]">{opt.contact}</p>
                   </div>
                   <span className="text-xs text-[var(--foreground-subtle)] group-hover:text-[var(--brand-400)] transition-colors shrink-0 self-center">→</span>
@@ -200,7 +200,7 @@ export default function ContactPage() {
 
               <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_1)] bg-[var(--rgba-12-14-28-0_6)] p-5">
                 <p className="text-sm font-semibold text-[var(--foreground)] mb-1.5">Response Times</p>
-                <ul className="space-y-1 text-xs text-[var(--palette-6b7280)]">
+                <ul className="space-y-1 text-xs text-[var(--foreground-muted)]">
                   <li>🟢 General enquiries — within 24 hours</li>
                   <li>🟡 Account issues — within 12 hours</li>
                   <li>🔴 Security concerns — within 4 hours</li>

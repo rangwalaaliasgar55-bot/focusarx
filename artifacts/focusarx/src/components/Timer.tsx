@@ -544,7 +544,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--palette-zinc-800)]/80 text-2xl border border-[var(--palette-zinc-700)]/50 shadow-inner">
                 {avatar}
               </div>
-              <div className="absolute -bottom-1 -right-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[var(--palette-violet-600)] text-[10px] font-black text-[var(--palette-white)] px-1 border border-[var(--palette-0d0f17)]">
+              <div className="absolute -bottom-1 -right-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[var(--palette-violet-600)] text-[10px] font-semibold text-[var(--palette-white)] px-1 border border-[var(--palette-0d0f17)]">
                 {level}
               </div>
             </div>
@@ -958,7 +958,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
           >
             <div className="mb-4 text-center">
               <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--rgba-167-139-250-0_15)] ring-1 ring-[var(--rgba-167-139-250-0_3)] text-3xl">🏔️</div>
-              <h3 className="text-sm font-black text-[var(--palette-zinc-100)]">Marathon ahead — {Math.floor(secondsLeft / 60)} minutes</h3>
+              <h3 className="text-sm font-semibold text-[var(--palette-zinc-100)]">Marathon ahead — {Math.floor(secondsLeft / 60)} minutes</h3>
               <p className="mt-1.5 text-xs leading-relaxed text-[var(--palette-zinc-500)]">
                 You're planning <span className="font-bold text-[var(--brand-400)]">more than 2 hours</span> of
                 unbroken focus. Beyond the first 2h, XP and coins pay at 75%, and I'll nudge you for a break at
@@ -1004,7 +1004,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
           >
             <div className="mb-5 text-center">
               <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--palette-amber-500)]/15 ring-1 ring-[var(--palette-amber-500)]/25 text-3xl">⚡</div>
-              <h3 className="text-sm font-black text-[var(--palette-zinc-100)]">End focus session?</h3>
+              <h3 className="text-sm font-semibold text-[var(--palette-zinc-100)]">End focus session?</h3>
               <p className="mt-1 text-xs text-[var(--palette-zinc-500)]">
                 You've focused for{" "}
                 <span className="font-bold text-[var(--palette-emerald-400)]">

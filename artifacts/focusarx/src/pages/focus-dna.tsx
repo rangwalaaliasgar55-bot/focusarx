@@ -71,7 +71,7 @@ function CardFace({
         </div>
 
         <div className="mb-6">
-          <h2 className="text-3xl font-black tracking-tight leading-tight" style={{ color: dna.colorSecondary }}>
+          <h2 className="text-3xl font-semibold tracking-tight leading-tight" style={{ color: dna.colorSecondary }}>
             {dna.archetype}
           </h2>
           <p className="mt-2 text-sm text-[var(--foreground-muted)] leading-relaxed">{dna.description}</p>

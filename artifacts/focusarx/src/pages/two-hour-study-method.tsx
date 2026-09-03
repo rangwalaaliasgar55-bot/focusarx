@@ -34,7 +34,7 @@ const SCHEDULE = [
   { time: "7:50 AM", label: "Active Break (10 min)", desc: "Walk, stretch, hydrate. No phone. Let your brain consolidate.", color: "text-[var(--palette-teal-300)]" },
   { time: "8:00 AM", label: "Deep Block 2 (50 min)", desc: "Second subject or continue first. Switch topics to benefit from interleaving.", color: "text-[var(--palette-violet-300)]" },
   { time: "8:50 AM", label: "Session Debrief (10 min)", desc: "Log what you covered, rate your focus, identify what to revisit.", color: "text-[var(--palette-emerald-300)]" },
-  { time: "9:00 AM", label: "Rest of morning — lighter tasks", desc: "Review notes, watch lecture videos, admin tasks. Not deep work.", color: "text-[var(--palette-6b7280)]" },
+  { time: "9:00 AM", label: "Rest of morning — lighter tasks", desc: "Review notes, watch lecture videos, admin tasks. Not deep work.", color: "text-[var(--foreground-muted)]" },
 ];
 
 export default function TwoHourStudyMethodPage() {
@@ -69,7 +69,7 @@ export default function TwoHourStudyMethodPage() {
             <motion.button
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.97 }}
-              className="rounded-xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-e879f9)] px-4 py-1.5 text-xs font-semibold text-[var(--palette-white)]"
+              className="rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] px-4 py-1.5 text-xs font-semibold text-[var(--palette-white)]"
             >
               Try FocusArx Free →
             </motion.button>
@@ -83,9 +83,9 @@ export default function TwoHourStudyMethodPage() {
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--palette-teal-500)]/30 bg-[var(--palette-teal-500)]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-[var(--palette-teal-300)]">
             <TrendingUp size={11} /> Productivity Method
           </div>
-          <h1 className="mb-4 text-3xl font-black leading-tight tracking-tight sm:text-4xl lg:text-5xl">
+          <h1 className="mb-4 text-3xl font-semibold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
             The{" "}
-            <span className="bg-gradient-to-r from-[var(--brand-teal)] to-[var(--brand-400)] bg-clip-text text-transparent">
+            <span className="text-[var(--brand-strong)]">
               2-Hour Study Method:
             </span>{" "}
             Focused Sessions Always Win
@@ -273,7 +273,7 @@ export default function TwoHourStudyMethodPage() {
                   {item.icon}
                   <p className="text-sm font-bold text-[var(--palette-white)]">{item.metric}</p>
                 </div>
-                <p className="text-[13px] leading-relaxed text-[var(--palette-6b7280)]">{item.desc}</p>
+                <p className="text-[13px] leading-relaxed text-[var(--foreground-muted)]">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -322,7 +322,7 @@ export default function TwoHourStudyMethodPage() {
             <motion.button
               whileHover={{ scale: 1.04, boxShadow: "0 0 30px 8px var(--rgba-6-214-160-0_25)" }}
               whileTap={{ scale: 0.97 }}
-              className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[var(--brand-teal)] to-[var(--brand-600)] px-8 py-3.5 text-[15px] font-bold text-[var(--palette-white)] shadow-lg"
+              className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-500)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]"
             >
               Start Free — No Credit Card <ArrowRight size={16} />
             </motion.button>

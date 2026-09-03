@@ -99,7 +99,7 @@ export default function CoinXPBar() {
       {/* Level badge + XP bar */}
       <div className="flex items-center gap-2" title={`Level ${level} — ${wallet.totalXp.toLocaleString()} XP total`}>
         <div
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--brand-600)] to-[var(--palette-4f46e5)] text-[10px] font-black text-[var(--palette-white)]"
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--brand-600)] to-[var(--palette-4f46e5)] text-[10px] font-semibold text-[var(--palette-white)]"
           style={{ boxShadow: "0 0 8px var(--rgba-124-58-237-0_55)" }}
           aria-label={`Level ${level}`}
         >

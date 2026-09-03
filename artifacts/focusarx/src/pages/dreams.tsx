@@ -124,7 +124,7 @@ export default function DreamsPage() {
                 className={`relative rounded-2xl border p-4 text-left transition-all duration-[var(--duration-fast)] ${
                   selected === dt.id
                     ? "border-[var(--rgba-124-58-237-0_6)] bg-[var(--rgba-124-58-237-0_15)] shadow-[0_0_20px_var(--rgba-124-58-237-0_25)]"
-                    : "border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_03)] hover:border-[var(--rgba-124-58-237-0_3)] hover:bg-[var(--rgba-124-58-237-0_07)]"
+                    : "border-[var(--border-subtle)] bg-[var(--surface-hover)] hover:border-[var(--rgba-124-58-237-0_3)] hover:bg-[var(--rgba-124-58-237-0_07)]"
                 }`}
               >
                 {selected === dt.id && (
@@ -146,7 +146,7 @@ export default function DreamsPage() {
                 <div>
                   <label className="text-xs font-medium text-[var(--foreground-muted)] uppercase tracking-wider mb-2 block">Your Goal</label>
                   <input
-                    className="w-full rounded-xl bg-[var(--rgba-255-255-255-0_05)] border border-[var(--rgba-255-255-255-0_1)] px-3 py-2 text-sm text-[var(--palette-white)] placeholder:text-[var(--foreground-subtle)] focus:outline-none focus:border-[var(--brand-600)]"
+                    className="w-full rounded-xl bg-[var(--surface-hover)] border border-[var(--rgba-255-255-255-0_1)] px-3 py-2 text-sm text-[var(--palette-white)] placeholder:text-[var(--foreground-subtle)] focus:outline-none focus:border-[var(--brand-600)]"
                     placeholder="e.g. Become a product designer at a top startup"
                     value={customGoal}
                     onChange={e => setCustomGoal(e.target.value)}
@@ -157,7 +157,7 @@ export default function DreamsPage() {
                 <label className="text-xs font-medium text-[var(--foreground-muted)] uppercase tracking-wider mb-2 block">Target Date <span className="text-[var(--foreground-subtle)] font-normal">(optional)</span></label>
                 <input
                   type="date"
-                  className="rounded-xl bg-[var(--rgba-255-255-255-0_05)] border border-[var(--rgba-255-255-255-0_1)] px-3 py-2 text-sm text-[var(--palette-white)] focus:outline-none focus:border-[var(--brand-600)]"
+                  className="rounded-xl bg-[var(--surface-hover)] border border-[var(--rgba-255-255-255-0_1)] px-3 py-2 text-sm text-[var(--palette-white)] focus:outline-none focus:border-[var(--brand-600)]"
                   value={targetDate}
                   onChange={e => setTargetDate(e.target.value)}
                   min={new Date().toISOString().slice(0, 10)}
@@ -206,7 +206,7 @@ export default function DreamsPage() {
               </h1>
               {type && <p className="text-[var(--muted-fg)] text-sm mt-1">{type.desc}</p>}
             </div>
-            <button onClick={() => setSelecting(true)} className="flex items-center gap-1.5 rounded-lg border border-[var(--rgba-255-255-255-0_08)] px-3 py-1.5 text-xs text-[var(--muted-fg)] hover:text-[var(--foreground-muted)] hover:border-[var(--rgba-255-255-255-0_15)] transition-all">
+            <button onClick={() => setSelecting(true)} className="flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] px-3 py-1.5 text-xs text-[var(--muted-fg)] hover:text-[var(--foreground-muted)] hover:border-[var(--rgba-255-255-255-0_15)] transition-all">
               <Edit2 size={12} /> Change
             </button>
           </div>
@@ -214,7 +214,7 @@ export default function DreamsPage() {
 
         {/* Progress Hero */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          className="rounded-2xl border border-[var(--rgba-255-255-255-0_08)] bg-[var(--rgba-255-255-255-0_02)] p-6 mb-6">
+          className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--muted)] p-6 mb-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-[var(--foreground-muted)]">Progress toward your goal</span>
             <span className="text-lg font-bold" style={{ color }}>{progressPct}%</span>
@@ -238,7 +238,7 @@ export default function DreamsPage() {
             { label: "Days Left",    value: formatDays(dream.daysLeft ?? null), icon: TrendingUp, color: "var(--brand-400)" },
           ].map((stat, i) => (
             <motion.div key={stat.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 + i * 0.05 }}
-              className="rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] p-4">
+              className="rounded-xl border border-[var(--border-subtle)] bg-[var(--muted)] p-4">
               <stat.icon size={16} style={{ color: stat.color }} className="mb-2" />
               <div className="text-xl font-bold text-[var(--palette-white)]">{stat.value}</div>
               <div className="text-[10px] text-[var(--muted-fg)] uppercase tracking-wider mt-0.5">{stat.label}</div>

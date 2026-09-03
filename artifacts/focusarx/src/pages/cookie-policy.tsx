@@ -52,7 +52,7 @@ export default function CookiePolicyPage() {
             </Section>
 
             <Section title="Managing Your Stored Data">
-              <p>You can clear all locally stored data at any time by clearing your browser's site data for focusarx.app. This will sign you out and reset your local preferences. To delete your account data from our servers, visit the <Link href="/data-deletion" className="text-[var(--brand-400)] hover:underline">Data Deletion page</Link>.</p>
+              <p>You can clear all locally stored data at any time by clearing your browser's site data for focusarx.site. This will sign you out and reset your local preferences. To delete your account data from our servers, visit the <Link href="/data-deletion" className="text-[var(--brand-400)] hover:underline">Data Deletion page</Link>.</p>
             </Section>
           </div>
 

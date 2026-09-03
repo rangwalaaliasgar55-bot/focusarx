@@ -383,7 +383,7 @@ export default function ForgePage() {
                             <p className="text-[11px] text-[var(--foreground-subtle)]">{room.theme}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1.5 rounded-full border border-[var(--rgba-255-255-255-0_08)] bg-[var(--rgba-255-255-255-0_04)] px-2.5 py-1 text-[10px] text-[var(--foreground-muted)]">
+                        <div className="flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--muted)] px-2.5 py-1 text-[10px] text-[var(--foreground-muted)]">
                           <span className="h-1.5 w-1.5 rounded-full bg-[var(--palette-4ade80)] animate-pulse" />
                           {room.occupancy}
                         </div>
@@ -402,7 +402,7 @@ export default function ForgePage() {
                           </div>
                         ))}
                         {room.occupancy > room.users.length && (
-                          <div className="flex h-6 items-center rounded-full bg-[var(--rgba-255-255-255-0_05)] px-1.5 text-[9px] text-[var(--foreground-subtle)]">
+                          <div className="flex h-6 items-center rounded-full bg-[var(--surface-hover)] px-1.5 text-[9px] text-[var(--foreground-subtle)]">
                             +{room.occupancy - room.users.length}
                           </div>
                         )}
@@ -446,7 +446,7 @@ export default function ForgePage() {
                           className={`flex-1 rounded-xl py-1.5 text-xs font-semibold transition-all ${
                             joined
                               ? "bg-[var(--rgba-239-68-68-0_15)] text-[var(--palette-f87171)] hover:bg-[var(--rgba-239-68-68-0_25)]"
-                              : "bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] text-[var(--palette-white)] shadow-[0_0_10px_var(--rgba-124-58-237-0_3)] hover:opacity-90"
+                              : "bg-[var(--brand-600)] hover:bg-[var(--brand-500)] text-[var(--palette-white)] shadow-[0_0_10px_var(--rgba-124-58-237-0_3)] hover:opacity-90"
                           }`}
                         >
                           {joined ? "Leave Room" : "Join Room"}

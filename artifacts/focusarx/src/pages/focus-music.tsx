@@ -6,7 +6,7 @@ function Section({ id, children, className = "" }: { id?: string; children: Reac
   return <section id={id} className={`mx-auto max-w-3xl px-4 sm:px-6 ${className}`}>{children}</section>;
 }
 function H2({ children }: { children: React.ReactNode }) {
-  return <h2 className="mt-14 mb-4 text-2xl font-black leading-tight text-[var(--foreground)] sm:text-3xl">{children}</h2>;
+  return <h2 className="mt-14 mb-4 text-2xl font-semibold leading-tight text-[var(--foreground)] sm:text-3xl">{children}</h2>;
 }
 function H3({ children }: { children: React.ReactNode }) {
   return <h3 className="mt-8 mb-3 text-xl font-bold text-[var(--foreground)]">{children}</h3>;
@@ -16,9 +16,9 @@ function P({ children }: { children: React.ReactNode }) {
 }
 function FAQ({ q, a }: { q: string; a: string }) {
   return (
-    <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-5">
+    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-5">
       <p className="mb-2 font-semibold text-[var(--foreground)]">{q}</p>
-      <p className="text-sm leading-relaxed text-[var(--palette-6b7280)]">{a}</p>
+      <p className="text-sm leading-relaxed text-[var(--foreground-muted)]">{a}</p>
     </div>
   );
 }
@@ -73,20 +73,20 @@ const faqSchema = {
 
 export default function FocusMusicPage() {
   return (
-    <div className="min-h-screen bg-[var(--rgba-255-255-255-0_02)] text-[var(--foreground)]">
+    <div className="min-h-screen bg-[var(--muted)] text-[var(--foreground)]">
       <PageSEO {...PAGE_SEO.focusMusic} structuredData={[articleSchema, faqSchema]} />
 
       {/* Hero */}
-      <div className="relative overflow-hidden border-b border-[var(--rgba-255-255-255-0_06)]">
+      <div className="relative overflow-hidden border-b border-[var(--border-subtle)]">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,_var(--rgba-124-58-237-0_18),_transparent_70%)]" />
         <Section className="relative py-20 text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--brand-600)]/30 bg-[var(--brand-600)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--brand-400)]">
             <Music size={12} /> Free Guide · Updated 2026
           </div>
-          <h1 className="mb-4 text-3xl font-black leading-tight text-[var(--foreground)] sm:text-5xl">
+          <h1 className="mb-4 text-3xl font-semibold leading-tight text-[var(--foreground)] sm:text-5xl">
             Focus Music:
             <br />
-            <span className="bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)] bg-clip-text text-transparent">What Science Actually Says</span>
+            <span className="text-[var(--brand-strong)]">What Science Actually Says</span>
           </h1>
           <p className="mx-auto max-w-2xl text-base text-[var(--foreground-muted)] sm:text-lg">
             "Study music" is a billion-stream genre — but does it help? Here's the honest research verdict, and how to use sound to go deeper.
@@ -129,13 +129,13 @@ export default function FocusMusicPage() {
             { icon: <Brain size={16} />, rank: "Mixed evidence", label: "Binaural beats", blurb: "Harmless; small effects at best in current research. Fine if you enjoy the tone — just don't expect miracles." },
             { icon: <Ban size={16} />, rank: "Avoid during study", label: "Music with lyrics", blurb: "Reliably interferes with reading, writing, and memorization. Save songs with words for breaks and workouts." },
           ].map((o) => (
-            <div key={o.label} className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-5">
+            <div key={o.label} className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-5">
               <div className="mb-1 flex flex-wrap items-center gap-2">
                 <span className="text-[var(--brand-400)]">{o.icon}</span>
-                <span className="text-xs font-bold uppercase tracking-wider text-[var(--palette-6b7280)]">{o.rank}</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-[var(--foreground-muted)]">{o.rank}</span>
               </div>
               <p className="font-bold text-[var(--foreground)]">{o.label}</p>
-              <p className="mt-1 text-sm leading-relaxed text-[var(--palette-6b7280)]">{o.blurb}</p>
+              <p className="mt-1 text-sm leading-relaxed text-[var(--foreground-muted)]">{o.blurb}</p>
             </div>
           ))}
         </div>
@@ -146,7 +146,7 @@ export default function FocusMusicPage() {
 
       <Section id="playlist">
         <H2>Building a playlist that becomes a focus trigger</H2>
-        <div className="my-6 space-y-3 rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-6">
+        <div className="my-6 space-y-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-6">
           {[
             ["1. No words", "Instrumental only — or lyrics in a language you don't speak. Your language centers need to be free."],
             ["2. Flat dynamics", "Steady tempo and volume across the whole queue. You want a floor, not a rollercoaster."],
@@ -168,9 +168,9 @@ export default function FocusMusicPage() {
           Put it all together with a <Link href="/pomodoro-guide" className="text-[var(--brand-400)] hover:underline">Pomodoro-style session</Link>: press play on your focus playlist <em>before</em> the timer starts (the sound cues "work mode"), keep it running through the work interval, and kill it during breaks — silence or a <Link href="/breathe" className="text-[var(--brand-400)] hover:underline">two-minute breathing reset</Link> — so the contrast between work and rest stays sharp. Over a couple of weeks, the playlist does half the focusing for you: it's the cue that tells your nervous system it's time to go deep. For structuring the sessions themselves, see the <Link href="/two-hour-study-method" className="text-[var(--brand-400)] hover:underline">2-hour study method</Link>.
         </P>
         <div className="mt-8 rounded-2xl border border-[var(--brand-600)]/30 bg-gradient-to-br from-[var(--brand-600)]/10 to-transparent p-8 text-center">
-          <h3 className="mb-2 text-xl font-black text-[var(--foreground)]">Press play, start the timer</h3>
+          <h3 className="mb-2 text-xl font-semibold text-[var(--foreground)]">Press play, start the timer</h3>
           <p className="mb-6 text-sm text-[var(--foreground-muted)]">FocusArx pairs your sessions with streaks, scores, and an AI coach. Free forever.</p>
-          <Link href="/signup" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] px-6 py-3 text-sm font-bold text-[var(--palette-white)] transition-all hover:brightness-110">
+          <Link href="/signup" className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-500)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]">
             Start focusing free <ArrowRight size={16} />
           </Link>
         </div>
@@ -181,7 +181,7 @@ export default function FocusMusicPage() {
         <div className="space-y-4">
           {FAQS.map((f) => <FAQ key={f.q} {...f} />)}
         </div>
-        <p className="mt-10 flex items-center gap-2 text-sm text-[var(--palette-6b7280)]">
+        <p className="mt-10 flex items-center gap-2 text-sm text-[var(--foreground-muted)]">
           <Wind size={14} /> More free guides in the <Link href="/guides" className="text-[var(--brand-400)] hover:underline">FocusArx library</Link>.
         </p>
       </Section>

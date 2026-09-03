@@ -31,7 +31,7 @@ const TYPE_COLORS: Record<string, string> = {
   daily_reward: "border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/5",
   level_up: "border-[var(--palette-amber-500)]/30 bg-[var(--palette-amber-500)]/5",
   group_join: "border-[var(--palette-blue-500)]/30 bg-[var(--palette-blue-500)]/5",
-  system: "border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)]",
+  system: "border-[var(--border-subtle)] bg-[var(--surface-hover)]",
 };
 
 export default function NotificationsPage() {
@@ -77,7 +77,7 @@ export default function NotificationsPage() {
   const unread = notifications.filter((n: any) => !n.read).length;
 
   return (
-    <div className="min-h-screen bg-[var(--rgba-255-255-255-0_02)] text-[var(--foreground)] p-4 sm:p-6 max-w-2xl mx-auto">
+    <div className="min-h-screen bg-[var(--muted)] text-[var(--foreground)] p-4 sm:p-6 max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-[var(--foreground)] flex items-center gap-2">
@@ -89,7 +89,7 @@ export default function NotificationsPage() {
         </div>
         <div className="flex gap-2">
           {unread > 0 && (
-            <button onClick={() => markAllRead.mutate()} className="flex items-center gap-1.5 rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] px-3 py-2 text-xs font-medium text-[var(--foreground-subtle)] hover:text-[var(--foreground)] transition-colors">
+            <button onClick={() => markAllRead.mutate()} className="flex items-center gap-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] px-3 py-2 text-xs font-medium text-[var(--foreground-subtle)] hover:text-[var(--foreground)] transition-colors">
               <CheckCheck size={13} /> Mark all read
             </button>
           )}
@@ -111,7 +111,7 @@ export default function NotificationsPage() {
 
       {isLoading && (
         <div className="flex justify-center py-16">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--rgba-255-255-255-0_06)] border-t-[var(--brand-600)]" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border-subtle)] border-t-[var(--brand-600)]" />
         </div>
       )}
 
@@ -127,7 +127,7 @@ export default function NotificationsPage() {
         {notifications.map((n: any) => (
           <div
             key={n.id}
-            className={`relative flex items-start gap-3 rounded-xl border p-3.5 transition-all cursor-pointer hover:brightness-110 ${TYPE_COLORS[n.type] ?? "border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)]"} ${!n.read ? "opacity-100" : "opacity-60"}`}
+            className={`relative flex items-start gap-3 rounded-xl border p-3.5 transition-all cursor-pointer hover:brightness-110 ${TYPE_COLORS[n.type] ?? "border-[var(--border-subtle)] bg-[var(--surface-hover)]"} ${!n.read ? "opacity-100" : "opacity-60"}`}
             onClick={() => !n.read && markRead.mutate(n.id)}
           >
             {!n.read && <span className="absolute top-3 left-2 w-1.5 h-1.5 rounded-full bg-[var(--brand-600)]" />}

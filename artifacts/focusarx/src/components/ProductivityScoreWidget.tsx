@@ -42,7 +42,7 @@ export default function ProductivityScoreWidget() {
               style={{ transition: "stroke-dashoffset 0.8s ease" }}
             />
           </svg>
-          <span className="absolute text-base font-black" style={{ color: scoreColor }}>{Math.round(score)}</span>
+          <span className="absolute text-base font-semibold" style={{ color: scoreColor }}>{Math.round(score)}</span>
         </div>
         <div className="flex-1">
           <p className="text-xs text-[var(--foreground-subtle)] mb-1">

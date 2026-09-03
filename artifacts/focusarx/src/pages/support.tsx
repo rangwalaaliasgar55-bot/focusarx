@@ -95,7 +95,7 @@ export default function SupportPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="mb-3 text-4xl font-black tracking-tight text-[var(--foreground)]"
+              className="mb-3 text-4xl font-semibold tracking-tight text-[var(--foreground)]"
             >
               How can we help?
             </motion.h1>
@@ -103,7 +103,7 @@ export default function SupportPage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.2 }}
-              className="text-sm text-[var(--palette-6b7280)]"
+              className="text-sm text-[var(--foreground-muted)]"
             >
               Browse our FAQ or reach out directly — we usually reply within 24 hours.
             </motion.p>
@@ -128,7 +128,7 @@ export default function SupportPage() {
                 <span className="text-2xl">{c.emoji}</span>
                 <div>
                   <p className="text-sm font-semibold text-[var(--foreground)]">{c.title}</p>
-                  <p className="text-xs text-[var(--palette-6b7280)]">{c.desc}</p>
+                  <p className="text-xs text-[var(--foreground-muted)]">{c.desc}</p>
                 </div>
               </motion.a>
             ))}
@@ -165,12 +165,12 @@ export default function SupportPage() {
           {/* Still need help */}
           <div className="mt-8 rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-gradient-to-br from-[var(--rgba-124-58-237-0_08)] to-transparent p-6 text-center">
             <p className="mb-1.5 font-semibold text-[var(--foreground)]">Still need help?</p>
-            <p className="mb-4 text-sm text-[var(--palette-6b7280)]">Our team is happy to assist. Average response time is under 24 hours.</p>
+            <p className="mb-4 text-sm text-[var(--foreground-muted)]">Our team is happy to assist. Average response time is under 24 hours.</p>
             <Link href="/contact">
               <motion.button
                 whileHover={{ scale: 1.04, boxShadow: "0 0 30px 6px var(--rgba-124-58-237-0_3)" }}
                 whileTap={{ scale: 0.97 }}
-                className="rounded-xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-e879f9)] px-6 py-2.5 text-sm font-bold text-[var(--palette-white)]"
+                className="rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] px-6 py-2.5 text-sm font-bold text-[var(--palette-white)]"
               >
                 Contact Support →
               </motion.button>

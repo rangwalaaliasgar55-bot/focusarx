@@ -25,7 +25,7 @@ import {
   Zap,
 } from "lucide-react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
-import CommunityPulse from "@/components/CommunityPulse";
+import { Reveal, RevealStagger, RevealItem, ScrollScale, HeroScrub, Parallax } from "@/components/motion/Scroll";
 import { AdSlot } from "@/components/AdSlot";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -100,7 +100,7 @@ function MarketingNav() {
 
 function DashboardMockup() {
   return (
-    <div className="relative mx-auto w-full max-w-5xl overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--border-strong)] bg-[var(--surface)] p-2 shadow-[var(--shadow-xl),var(--shadow-violet-md)] sm:p-3">
+    <div className="texture-grain relative mx-auto w-full max-w-5xl overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--border-strong)] bg-[var(--surface)] p-2 shadow-[var(--shadow-xl),var(--shadow-violet-md)] sm:p-3">
       <div className="flex h-10 items-center gap-1.5 border-b border-[var(--border-subtle)] px-3" aria-hidden="true">
         <span className="h-2 w-2 rounded-full bg-[var(--danger)]" /><span className="h-2 w-2 rounded-full bg-[var(--warning)]" /><span className="h-2 w-2 rounded-full bg-[var(--success)]" />
         <span className="ml-3 text-[0.625rem] text-[var(--foreground-subtle)]">FocusArx · Today</span>
@@ -114,7 +114,7 @@ function DashboardMockup() {
           <div><p className="text-[0.625rem] uppercase tracking-widest text-[var(--brand-strong)]">Tuesday · Your workspace</p><p className="mt-1 text-xl font-semibold">Good morning, Alex</p><p className="mt-1 text-xs text-[var(--foreground-muted)]">One clear plan for your focus and momentum.</p></div>
           <div className="mt-5 grid gap-3 lg:grid-cols-[1.25fr_.75fr]">
             <div className="grid min-h-64 place-items-center rounded-[var(--radius-xl)] border border-[var(--card-border)] bg-[radial-gradient(circle_at_center,var(--brand-soft),transparent_66%)] p-5 text-center">
-              <div><div className="mx-auto grid h-32 w-32 place-items-center rounded-full border border-[var(--card-border)] shadow-[inset_0_0_0_8px_var(--brand-soft)]"><span className="font-mono text-3xl font-semibold">25:00</span></div><p className="mt-4 text-xs font-semibold">Protect the next 25 minutes.</p><span className="mt-3 inline-flex min-h-8 items-center rounded-lg bg-[var(--brand-600)] px-4 text-[0.6875rem] font-semibold text-[var(--neutral-0)]">Start focusing</span></div>
+              <div><div className="relative mx-auto grid h-32 w-32 place-items-center rounded-full" style={{ background: "conic-gradient(var(--brand-500) 0deg 252deg, var(--brand-soft) 252deg 360deg)" }}><div className="absolute inset-1.5 rounded-full bg-[var(--surface)] shadow-[var(--shadow-sm)]" /><span className="relative font-mono text-3xl font-semibold tabular-nums">25:00</span></div><p className="mt-4 text-xs font-semibold">Protect the next 25 minutes.</p><span className="mt-3 inline-flex min-h-8 items-center rounded-lg bg-[var(--brand-600)] px-4 text-[0.6875rem] font-semibold text-[var(--neutral-0)]">Start focusing</span></div>
             </div>
             <div className="rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface-raised)] p-4">
               <div className="flex items-center justify-between"><p className="text-xs font-semibold">Next up</p><PlusMock /></div>
@@ -169,8 +169,14 @@ export default function LandingPage() {
       <MarketingNav />
       <main id="main-content">
         <section className="relative isolate overflow-hidden px-4 pb-20 pt-36 sm:px-6 sm:pb-28 sm:pt-44">
-          <div className="pointer-events-none absolute left-1/2 top-0 -z-[var(--z-content)] h-[44rem] w-[64rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,var(--brand-soft-hover),transparent_68%)] blur-3xl" />
-          <div className="mx-auto max-w-5xl text-center">
+          {/* Retro dot-grid field, masked so it fades toward the edges. */}
+          <div className="texture-dotgrid pointer-events-none absolute inset-0 -z-[var(--z-content)]" aria-hidden="true" />
+          <Parallax amount={120} className="pointer-events-none absolute left-1/2 top-0 -z-[var(--z-content)] -translate-x-1/2">
+            <div className="h-[44rem] w-[64rem] rounded-full bg-[radial-gradient(circle,var(--brand-soft-hover),transparent_68%)] blur-3xl" />
+            <div className="glow-aurora absolute left-1/2 top-24 h-[30rem] w-[30rem] -translate-x-1/2 rounded-full opacity-40" aria-hidden="true" />
+          </Parallax>
+          {/* Hero softly recedes as you scroll past — Apple-style scrub. */}
+          <HeroScrub className="mx-auto max-w-5xl text-center">
             <motion.div {...entrance}>
               <Badge className="mb-6"><Sparkles /> AI-powered deep work coaching</Badge>
             </motion.div>
@@ -189,44 +195,45 @@ export default function LandingPage() {
             </motion.p>
             <motion.div {...entrance} className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-[var(--foreground-muted)]">
               <span className="inline-flex items-center gap-2"><Check size={16} className="text-[var(--success)]" /> Free forever tier</span>
+              <span className="inline-flex items-center gap-2"><Lock size={15} className="text-[var(--success)]" /> Privacy-first by design</span>
             </motion.div>
-            {/* Honest scale only — no fabricated counts (guardrail #8). */}
-            <motion.div {...entrance} className="mt-3">
-              <CommunityPulse />
-            </motion.div>
-          </div>
+          </HeroScrub>
         </section>
 
         <section id="product" className="px-4 pb-28 sm:px-6">
-          <div className="mx-auto max-w-7xl"><DashboardMockup /></div>
+          {/* Product shot rises and flattens as it scrolls into view —
+              scrubbed by scroll position like an Apple device reveal. */}
+          <ScrollScale className="mx-auto max-w-7xl"><DashboardMockup /></ScrollScale>
         </section>
 
         {/* ── HOW IT WORKS ──────────────────────────────────────── */}
         <section className="px-4 py-24 sm:px-6 sm:py-32">
           <div className="mx-auto max-w-5xl text-center">
-            <p className="page-eyebrow">How it works</p>
-            <h2 className="text-balance text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">Three steps to focused work.</h2>
-            <div className="mt-14 grid gap-8 sm:grid-cols-3">
+            <Reveal>
+              <p className="page-eyebrow">How it works</p>
+              <h2 className="text-balance text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">Three steps to focused work.</h2>
+            </Reveal>
+            <RevealStagger className="mt-14 grid gap-8 sm:grid-cols-3">
               {[
                 { step: "1", icon: Timer, title: "Set your session", text: "Pick a task, choose your duration, and start a Pomodoro or deep-work block." },
                 { step: "2", icon: Brain, title: "AI coaches you", text: "Real-time guidance adapts to your focus patterns, not generic productivity tips." },
                 { step: "3", icon: Flame, title: "Build your streak", text: "Earn XP, collect coins, and watch your focus streak grow every day you show up." },
               ].map(({ step, icon: Icon, title, text }) => (
-                <div key={step} className="relative rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-8 text-center">
+                <RevealItem key={step} className="relative rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-8 text-center transition-[border-color,box-shadow] duration-[var(--duration-normal)] hover:border-[var(--card-border)] hover:shadow-[var(--shadow-md)]">
                   <span className="absolute -top-4 left-1/2 grid h-8 w-8 -translate-x-1/2 place-items-center rounded-full bg-[var(--brand-600)] text-xs font-bold text-[var(--neutral-0)]">{step}</span>
                   <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[var(--brand-soft)] text-[var(--brand-strong)]"><Icon size={24} /></span>
                   <h3 className="mt-5 text-lg font-semibold">{title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-[var(--foreground-muted)]">{text}</p>
-                </div>
+                </RevealItem>
               ))}
-            </div>
+            </RevealStagger>
           </div>
         </section>
 
         {/* ── AI COACHING DIFFERENTIATOR ────────────────────────── */}
         <section className="border-y border-[var(--border-subtle)] bg-[var(--surface-hover)] px-4 py-24 sm:px-6 sm:py-32">
           <div className="mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-2">
-            <div>
+            <Reveal>
               <p className="page-eyebrow">Why AI coaching beats a plain timer</p>
               <h2 className="text-balance text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">Forest grows trees. FocusArx grows <span className="text-[var(--brand-strong)]">your focus.</span></h2>
               <p className="mt-5 max-w-xl text-base leading-relaxed text-[var(--foreground-muted)]">Most focus timers count down. FocusArx analyzes your session history, identifies your peak hours, and coaches you toward better habits — not just longer sessions.</p>
@@ -245,8 +252,8 @@ export default function LandingPage() {
                   </div>
                 ))}
               </div>
-            </div>
-            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-8">
+            </Reveal>
+            <Reveal delay={0.1} className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-8">
               <div className="grid gap-4">
                 {[
                   { label: "Sessions with AI coaching", value: "92% completion rate", color: "var(--success)" },
@@ -273,41 +280,41 @@ export default function LandingPage() {
                   .
                 </p>
               </div>
-            </div>
+            </Reveal>
           </div>
         </section>
 
         {/* ── FEATURES GRID ─────────────────────────────────────── */}
         <section id="features" className="px-4 py-24 sm:px-6 sm:py-32">
           <div className="mx-auto max-w-7xl">
-            <div className="max-w-2xl">
+            <Reveal className="max-w-2xl">
               <p className="page-eyebrow">Everything you need</p>
               <h2 className="text-balance text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">A complete focus loop.</h2>
               <p className="mt-5 text-base leading-relaxed text-[var(--foreground-muted)]">FocusArx keeps planning, doing, reviewing, and learning in one visual language.</p>
-            </div>
-            <div className="mt-14 grid gap-px overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--border-subtle)] bg-[var(--border-subtle)] md:grid-cols-2 lg:grid-cols-3">
+            </Reveal>
+            <RevealStagger className="mt-14 grid gap-px overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--border-subtle)] bg-[var(--border-subtle)] md:grid-cols-2 lg:grid-cols-3">
               {FEATURES.map(({ icon: Icon, title, description }) => (
-                <article key={title} className="bg-[var(--surface)] p-6 sm:p-8">
-                  <span className="grid h-11 w-11 place-items-center rounded-[var(--radius-lg)] bg-[var(--brand-soft)] text-[var(--brand-strong)]"><Icon size={20} /></span>
+                <RevealItem key={title} className="group bg-[var(--surface)] p-6 transition-colors duration-[var(--duration-normal)] hover:bg-[var(--surface-raised)] sm:p-8">
+                  <span className="grid h-11 w-11 place-items-center rounded-[var(--radius-lg)] bg-[var(--brand-soft)] text-[var(--brand-strong)] transition-transform duration-[var(--duration-fast)] ease-[var(--ease-out)] group-hover:scale-105 motion-reduce:group-hover:scale-100"><Icon size={20} /></span>
                   <h3 className="mt-6 text-lg font-semibold tracking-tight">{title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-[var(--foreground-muted)]">{description}</p>
-                </article>
+                </RevealItem>
               ))}
-            </div>
+            </RevealStagger>
           </div>
         </section>
 
         <section className="px-4 py-24 sm:px-6 sm:py-32">
           <div className="mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-2">
-            <div>
+            <Reveal>
               <p className="page-eyebrow">Designed for the next action</p>
               <h2 className="text-balance text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">Your momentum, visible at a glance.</h2>
               <p className="mt-5 max-w-xl text-base leading-relaxed text-[var(--foreground-muted)]">Today&apos;s Pulse connects streak, XP, active work, and session quality without turning your dashboard into a scoreboard.</p>
               <div className="mt-8 space-y-5">
                 {[{ icon: Flame, title: "Streaks that encourage, not punish", text: "See consistency in context and return without shame after a missed day." }, { icon: Target, title: "Tasks beside the timer", text: "Keep the current priority close enough to act on, never close enough to distract." }, { icon: BarChart3, title: "Review patterns, not vanity metrics", text: "Use session history and focus quality to make tomorrow's plan more realistic." }].map(({ icon: Icon, title, text }) => <div key={title} className="flex gap-4"><span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--surface-raised)] text-[var(--brand-strong)]"><Icon size={18} /></span><div><h3 className="text-sm font-semibold">{title}</h3><p className="mt-1 text-sm leading-relaxed text-[var(--foreground-muted)]">{text}</p></div></div>)}
               </div>
-            </div>
-            <LazyAtmosphere />
+            </Reveal>
+            <Reveal delay={0.1}><LazyAtmosphere /></Reveal>
           </div>
         </section>
 
@@ -323,34 +330,38 @@ export default function LandingPage() {
         {/* ── COMPARISON TEASER ─────────────────────────────────── */}
         <section className="border-y border-[var(--border-subtle)] bg-[var(--surface-hover)] px-4 py-24 sm:px-6 sm:py-32">
           <div className="mx-auto max-w-5xl text-center">
-            <p className="page-eyebrow">See how we compare</p>
-            <h2 className="text-balance text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">FocusArx vs Forest, Focus To-Do & Session.</h2>
-            <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-[var(--foreground-muted)]">We break down what each app does best — and where FocusArx goes further with AI coaching, analytics, and gamification.</p>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+            <Reveal>
+              <p className="page-eyebrow">See how we compare</p>
+              <h2 className="text-balance text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">FocusArx vs Forest, Focusmate & Pomofocus.</h2>
+              <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-[var(--foreground-muted)]">We break down what each app does best — and where FocusArx goes further with AI coaching, analytics, and gamification.</p>
+            </Reveal>
+            <RevealStagger className="mt-8 flex flex-wrap items-center justify-center gap-4">
               {[
-                { name: "Forest", note: "Tree-planting gamification" },
-                { name: "Focus To-Do", note: "Pomodoro + task manager" },
-                { name: "Session", note: "Mac-native focus timer" },
-              ].map(({ name, note }) => (
-                <div key={name} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-5 py-3 text-left">
-                  <p className="text-sm font-semibold">{name}</p>
-                  <p className="text-xs text-[var(--foreground-subtle)]">{note}</p>
-                </div>
+                { name: "Forest", note: "Tree-planting gamification", href: "/comparison/focusarx-vs-forest" },
+                { name: "Focusmate", note: "1-on-1 video coworking", href: "/comparison/focusarx-vs-focusmate" },
+                { name: "Pomofocus", note: "Minimal web Pomodoro timer", href: "/comparison/focusarx-vs-pomofocus" },
+              ].map(({ name, note, href }) => (
+                <RevealItem key={name}>
+                  <Link href={href} className="block rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-5 py-3 text-left transition-[border-color,box-shadow] duration-[var(--duration-fast)] hover:border-[var(--card-border)] hover:shadow-[var(--shadow-xs)]">
+                    <p className="text-sm font-semibold">FocusArx vs {name}</p>
+                    <p className="text-xs text-[var(--foreground-subtle)]">{note}</p>
+                  </Link>
+                </RevealItem>
               ))}
-            </div>
-            <Button asChild variant="outline" className="mt-8"><Link href="/pricing">See full comparison <ChevronRight /></Link></Button>
+            </RevealStagger>
+            <Button asChild variant="outline" className="mt-8"><Link href="/comparison/focusarx-vs-forest">See full comparison <ChevronRight /></Link></Button>
           </div>
         </section>
 
         {/* ── FINAL CTA ─────────────────────────────────────────── */}
         <section className="px-4 pb-24 sm:px-6 sm:pb-32">
-          <div className="mx-auto max-w-5xl overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--card-border)] bg-[radial-gradient(circle_at_50%_0%,var(--brand-soft-hover),transparent_65%)] px-6 py-16 text-center shadow-[var(--shadow-violet-md)] sm:px-12 sm:py-20">
+          <Reveal className="texture-grain mx-auto max-w-5xl overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--card-border)] bg-[radial-gradient(circle_at_50%_0%,var(--brand-soft-hover),transparent_65%)] px-6 py-16 text-center shadow-[var(--shadow-violet-md)] sm:px-12 sm:py-20">
             <span className="mx-auto grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] bg-[var(--brand-soft)] text-[var(--brand-strong)]"><Clock3 /></span>
             <h2 className="mx-auto mt-6 max-w-2xl text-balance text-3xl font-semibold tracking-[-0.04em] sm:text-5xl">Your next focused hour starts now.</h2>
             <p className="mx-auto mt-5 max-w-xl text-base text-[var(--foreground-muted)]">Create a free account, choose one task, and begin with a single focus block. No credit card required.</p>
             <Button asChild size="xl" className="mt-8"><Link href="/signup">Start Focusing Free <ArrowRight /></Link></Button>
             <p className="mt-4 text-xs text-[var(--foreground-subtle)]">Free forever — Premium activated with coins you earn by focusing</p>
-          </div>
+          </Reveal>
         </section>
 
         {/* ── AD SLOT: above the footer ─────────────────────────── */}
@@ -365,7 +376,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
             <div className="lg:col-span-2"><Brand /><p className="mt-4 max-w-sm text-sm leading-relaxed text-[var(--foreground-muted)]">A calm operating system for focused work, deliberate study, and sustainable momentum.</p></div>
-            {[{ title: "Product", links: [["Dashboard", "/dashboard"], ["Flashcards", "/flashcards"], ["Pricing", "/pricing"]] }, { title: "Learn", links: [["All guides", "/guides"], ["Focus guide", "/focus-guide"], ["Pomodoro guide", "/pomodoro-guide"], ["ADHD focus tips", "/adhd-focus-tips"], ["Stop procrastinating", "/stop-procrastinating"], ["Focus music", "/focus-music"]] }, { title: "Company", links: [["About", "/about"], ["Contact", "/contact"], ["Support", "/support"]] }].map((group) => <div key={group.title}><h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">{group.title}</h2><ul className="mt-4 space-y-3">{group.links.map(([label, href]) => <li key={href}><Link href={href} className="text-sm text-[var(--foreground-muted)] hover:text-[var(--foreground)]">{label}</Link></li>)}</ul></div>)}
+            {[{ title: "Product", links: [["Dashboard", "/dashboard"], ["Virtual study rooms", "/virtual-study-room"], ["Live study rooms", "/study-rooms"], ["Flashcards", "/flashcards"], ["Pricing", "/pricing"]] }, { title: "Learn", links: [["All guides", "/guides"], ["Focus guide", "/focus-guide"], ["Pomodoro guide", "/pomodoro-guide"], ["ADHD focus tips", "/adhd-focus-tips"], ["Stop procrastinating", "/stop-procrastinating"], ["Focus music", "/focus-music"]] }, { title: "Company", links: [["About", "/about"], ["Contact", "/contact"], ["Support", "/support"]] }].map((group) => <div key={group.title}><h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">{group.title}</h2><ul className="mt-4 space-y-3">{group.links.map(([label, href]) => <li key={href}><Link href={href} className="text-sm text-[var(--foreground-muted)] hover:text-[var(--foreground)]">{label}</Link></li>)}</ul></div>)}
           </div>
           {/* Footer. Real crawlable <a>/<Link> elements — not buttons with
               click handlers — because a crawler that does not execute

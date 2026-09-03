@@ -294,7 +294,7 @@ export default function ConstellationsPage() {
           {/* Side Panel */}
           <div className="lg:w-64 space-y-4">
             {/* Stats */}
-            <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] p-4 space-y-3">
+            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--muted)] p-4 space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-fg)]">Your Map</h3>
               <div className="space-y-2">
                 {[
@@ -312,14 +312,14 @@ export default function ConstellationsPage() {
 
             {/* Constellations List */}
             {constellations.length > 0 && (
-              <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] p-4">
+              <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--muted)] p-4">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-fg)] mb-3">Your Constellations</h3>
                 <div className="space-y-2">
                   {constellations.map(c => (
                     <motion.div key={c.name}
                       onMouseEnter={() => setHoveredConst(c)}
                       onMouseLeave={() => setHoveredConst(null)}
-                      className="flex items-center justify-between rounded-lg px-2 py-1.5 cursor-pointer transition-all hover:bg-[var(--rgba-255-255-255-0_04)]">
+                      className="flex items-center justify-between rounded-lg px-2 py-1.5 cursor-pointer transition-all hover:bg-[var(--muted)]">
                       <div className="flex items-center gap-2">
                         <div className="h-2 w-2 rounded-full" style={{ background: c.color, boxShadow: `0 0 6px ${c.color}` }} />
                         <span className="text-xs text-[var(--foreground-muted)]">{c.name}</span>
@@ -343,7 +343,7 @@ export default function ConstellationsPage() {
             </div>
 
             {stars.length === 0 && !loading && (
-              <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] p-4 text-center">
+              <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--muted)] p-4 text-center">
                 <p className="text-xs text-[var(--foreground-subtle)]">Complete focus sessions to see your stars appear.</p>
               </div>
             )}

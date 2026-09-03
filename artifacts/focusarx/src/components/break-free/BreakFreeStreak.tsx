@@ -101,7 +101,7 @@ export default function BreakFreeStreak() {
         className="relative flex flex-col items-center mb-6"
       >
         <div
-          className="text-[88px] font-black leading-none tabular-nums"
+          className="text-[88px] font-semibold leading-none tabular-nums"
           style={{
             background: "linear-gradient(135deg, var(--brand-400) 0%, var(--brand-600) 50%, var(--palette-4f46e5) 100%)",
             WebkitBackgroundClip: "text",
@@ -161,7 +161,7 @@ export default function BreakFreeStreak() {
         <button
           onClick={handleStart}
           disabled={startMutation.isPending}
-          className="rounded-2xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] px-8 py-3.5 text-sm font-bold text-[var(--palette-white)] shadow-lg shadow-[var(--rgba-124-58-237-0_4)] hover:opacity-90 transition-opacity disabled:opacity-60"
+          className="rounded-2xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] px-8 py-3.5 text-sm font-bold text-[var(--palette-white)] shadow-lg shadow-[var(--rgba-124-58-237-0_4)] hover:opacity-90 transition-opacity disabled:opacity-60"
         >
           {startMutation.isPending ? "Starting…" : "Start My Journey"}
         </button>

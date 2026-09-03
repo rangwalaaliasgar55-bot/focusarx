@@ -353,7 +353,7 @@ export function LockModePicker({
           <button
             disabled={selected === "hard" && !phrase.trim()}
             onClick={() => onConfirm(selected, phrase)}
-            className="flex-1 rounded-xl bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-4f46e5)] py-2.5 text-sm font-semibold text-[var(--palette-white)] transition hover:opacity-90 disabled:opacity-40"
+            className="flex-1 rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] py-2.5 text-sm font-semibold text-[var(--palette-white)] transition hover:opacity-90 disabled:opacity-40"
           >
             Start session
           </button>

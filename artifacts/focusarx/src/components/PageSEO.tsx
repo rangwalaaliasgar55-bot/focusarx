@@ -221,7 +221,7 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   virtualStudyRoom: {
     canonical: "/virtual-study-room",
     title: "Virtual Study Room | Study with Others Online | FocusArx",
-    description: "Join a virtual study room and study with thousands of other learners online. FocusArx live study rooms add accountability, social focus energy, and real-time productivity.",
+    description: "Join a free virtual study room and focus with other learners online. Synchronized Pomodoro timers, live presence, optional cameras, and 24/7 rooms — no download.",
     keywords: "virtual study room, study with others online, online study room, co-study app, study accountability, group study online, FocusArx study rooms",
   },
   roadmap: {

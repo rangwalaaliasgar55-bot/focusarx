@@ -22,7 +22,7 @@ function HeatmapCell({ date, done }: { date: string; done: boolean }) {
   return (
     <div
       title={date}
-      className={`aspect-square rounded-sm ${done ? "bg-[var(--brand-600)]" : "bg-[var(--rgba-255-255-255-0_04)]"}`}
+      className={`aspect-square rounded-sm ${done ? "bg-[var(--brand-600)]" : "bg-[var(--muted)]"}`}
       style={{ minWidth: 10 }}
     />
   );
@@ -62,7 +62,7 @@ function CreateHabitModal({ onClose, onCreate }: { onClose: () => void; onCreate
 
   return (
     <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-[var(--palette-black)]/70 p-4">
-      <div className="w-full max-w-md rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-6">
+      <div className="w-full max-w-md rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-bold text-[var(--foreground)]">New Habit</h2>
           <button onClick={onClose}><X size={18} className="text-[var(--foreground-subtle)]" /></button>
@@ -74,7 +74,7 @@ function CreateHabitModal({ onClose, onCreate }: { onClose: () => void; onCreate
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               placeholder="e.g. Read for 30 minutes…"
-              className="w-full rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--brand-600)]"
+              className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--muted)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--brand-600)]"
               autoFocus
             />
           </div>
@@ -83,7 +83,7 @@ function CreateHabitModal({ onClose, onCreate }: { onClose: () => void; onCreate
             <div className="flex flex-wrap gap-1.5">
               {ICONS.map(ic => (
                 <button key={ic} onClick={() => setForm(f => ({ ...f, icon: ic }))}
-                  className={`text-xl rounded-lg p-1.5 transition-all ${form.icon === ic ? "bg-[var(--brand-600)]/30 ring-1 ring-[var(--brand-600)]" : "hover:bg-[var(--rgba-255-255-255-0_04)]"}`}>
+                  className={`text-xl rounded-lg p-1.5 transition-all ${form.icon === ic ? "bg-[var(--brand-600)]/30 ring-1 ring-[var(--brand-600)]" : "hover:bg-[var(--muted)]"}`}>
                   {ic}
                 </button>
               ))}
@@ -104,14 +104,14 @@ function CreateHabitModal({ onClose, onCreate }: { onClose: () => void; onCreate
             <div className="flex gap-2">
               {["daily", "weekdays", "weekends"].map(f => (
                 <button key={f} onClick={() => setForm(fr => ({ ...fr, frequency: f }))}
-                  className={`flex-1 rounded-lg py-1.5 text-xs capitalize transition-all ${form.frequency === f ? "bg-[var(--brand-600)] text-[var(--palette-white)]" : "bg-[var(--rgba-255-255-255-0_02)] text-[var(--foreground-subtle)] hover:text-[var(--foreground)] border border-[var(--rgba-255-255-255-0_06)]"}`}>
+                  className={`flex-1 rounded-lg py-1.5 text-xs capitalize transition-all ${form.frequency === f ? "bg-[var(--brand-600)] text-[var(--palette-white)]" : "bg-[var(--muted)] text-[var(--foreground-subtle)] hover:text-[var(--foreground)] border border-[var(--border-subtle)]"}`}>
                   {f}
                 </button>
               ))}
             </div>
           </div>
           <div className="flex gap-2 pt-2">
-            <button onClick={onClose} className="flex-1 rounded-xl border border-[var(--rgba-255-255-255-0_06)] py-2 text-sm text-[var(--foreground-subtle)] hover:text-[var(--foreground)]">Cancel</button>
+            <button onClick={onClose} className="flex-1 rounded-xl border border-[var(--border-subtle)] py-2 text-sm text-[var(--foreground-subtle)] hover:text-[var(--foreground)]">Cancel</button>
             <button
               onClick={() => { if (form.name.trim()) onCreate(form); }}
               disabled={!form.name.trim()}
@@ -130,7 +130,7 @@ function HabitCard({ habit, onComplete, onUncomplete, onDelete }: { habit: any; 
 
   return (
     <TiltCard intensity={6}>
-    <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-4 transition-all hover:border-[var(--brand-600)]/20 shadow-3d">
+    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4 transition-all hover:border-[var(--brand-600)]/20 shadow-3d">
       <div className="flex items-center gap-3">
         <button
           onClick={habit.completedToday ? onUncomplete : onComplete}
@@ -162,7 +162,7 @@ function HabitCard({ habit, onComplete, onUncomplete, onDelete }: { habit: any; 
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
-          <button onClick={() => setShowHeatmap(s => !s)} className="rounded-lg p-1.5 text-[var(--foreground-subtle)] hover:text-[var(--foreground)] hover:bg-[var(--rgba-255-255-255-0_04)] transition-colors">
+          <button onClick={() => setShowHeatmap(s => !s)} className="rounded-lg p-1.5 text-[var(--foreground-subtle)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors">
             {showHeatmap ? <ChevronUp size={14} /> : <BarChart2 size={14} />}
           </button>
           <button onClick={onDelete} className="rounded-lg p-1.5 text-[var(--foreground-subtle)] hover:text-[var(--palette-red-400)] hover:bg-[var(--palette-red-900)]/20 transition-colors">
@@ -172,7 +172,7 @@ function HabitCard({ habit, onComplete, onUncomplete, onDelete }: { habit: any; 
       </div>
 
       {showHeatmap && (
-        <div className="mt-4 pt-4 border-t border-[var(--rgba-255-255-255-0_06)]">
+        <div className="mt-4 pt-4 border-t border-[var(--border-subtle)]">
           <p className="text-[10px] uppercase tracking-wider text-[var(--foreground-subtle)] mb-2">Last 90 days</p>
           <HabitHeatmap dates={habit.recentDates ?? []} color={habit.color} />
         </div>
@@ -248,11 +248,11 @@ export default function HabitsPage() {
 
       {/* Daily progress ring */}
       {totalCount > 0 && (
-        <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-5 mb-5">
+        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-5 mb-5">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">Today's Progress</p>
-              <p className="mt-1 text-3xl font-black" style={{ color: completionPct === 100 ? "var(--palette-4ade80)" : "var(--brand-600)" }}>
+              <p className="mt-1 text-3xl font-semibold" style={{ color: completionPct === 100 ? "var(--palette-4ade80)" : "var(--brand-600)" }}>
                 {completedCount}<span className="text-lg text-[var(--foreground-subtle)] font-normal">/{totalCount}</span>
               </p>
               <p className="text-sm text-[var(--foreground-subtle)]">{completionPct === 100 ? "🎉 All done for today!" : `${totalCount - completedCount} remaining`}</p>
@@ -277,7 +277,7 @@ export default function HabitsPage() {
           </div>
 
           {stats && (
-            <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-[var(--rgba-255-255-255-0_06)]">
+            <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-[var(--border-subtle)]">
               <div className="text-center">
                 <p className="text-lg font-bold text-[var(--palette-amber-400)]">{stats.longestStreak}</p>
                 <p className="text-[10px] text-[var(--foreground-subtle)] uppercase tracking-wider">Best Streak</p>
@@ -298,7 +298,7 @@ export default function HabitsPage() {
       {/* Habits list */}
       {isLoading ? (
         <div className="space-y-3">
-          {[1, 2, 3].map(i => <div key={i} className="h-20 animate-pulse rounded-2xl bg-[var(--rgba-255-255-255-0_025)]" />)}
+          {[1, 2, 3].map(i => <div key={i} className="h-20 animate-pulse rounded-2xl bg-[var(--surface-hover)]" />)}
         </div>
       ) : (habits as any[]).length === 0 ? (
         <div className="text-center py-16">

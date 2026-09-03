@@ -48,7 +48,7 @@ export default function SeoLandingPage({ path }: { path: string }) {
   if (!entry) {
     return (
       <main className="mx-auto max-w-2xl px-4 py-24 text-center">
-        <h1 className="text-2xl font-black text-[var(--foreground)]">Page unavailable</h1>
+        <h1 className="text-2xl font-semibold tracking-[-0.03em] text-[var(--foreground)]">Page unavailable</h1>
         <p className="mt-3 text-sm text-[var(--foreground-muted)]">
           This page is being updated. Try the guide library instead.
         </p>
@@ -73,12 +73,12 @@ export default function SeoLandingPage({ path }: { path: string }) {
       />
 
       {/* ── Hero ─────────────────────────────────────────────── */}
-      <header className="border-b border-[var(--rgba-255-255-255-0_06)] bg-[radial-gradient(ellipse_at_50%_0%,_var(--rgba-124-58-237-0_14),_transparent_70%)]">
+      <header className="border-b border-[var(--border-subtle)] bg-[radial-gradient(ellipse_at_50%_0%,var(--brand-soft-hover),transparent_70%)]">
         <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20">
-          <span className="inline-flex items-center gap-2 rounded-full border border-[var(--brand-600)]/30 bg-[var(--brand-600)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--brand-400)]">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[var(--card-border)] bg-[var(--brand-soft)] px-3.5 py-1.5 text-xs font-semibold text-[var(--brand-strong)]">
             <KindIcon size={12} /> {Kind.label}
           </span>
-          <h1 className="mt-5 text-balance text-3xl font-black leading-tight tracking-tight text-[var(--foreground)] sm:text-5xl">
+          <h1 className="mt-5 text-balance text-3xl font-semibold leading-[1.08] tracking-[-0.04em] text-[var(--foreground)] sm:text-5xl">
             {entry.h1}
           </h1>
           <p className="mt-5 text-base leading-relaxed text-[var(--foreground-muted)] sm:text-lg">
@@ -87,13 +87,13 @@ export default function SeoLandingPage({ path }: { path: string }) {
 
           {/* Answer-first block: stands alone if quoted out of context by an
               AI Overview or a featured snippet. */}
-          <p className="mt-6 rounded-2xl border border-[var(--rgba-255-255-255-0_08)] bg-[var(--rgba-255-255-255-0_03)] p-5 text-[15px] leading-relaxed text-[var(--foreground)]">
+          <p className="mt-6 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 text-[15px] leading-relaxed text-[var(--foreground)]">
             {entry.answerFirst}
           </p>
 
           <Link
             href={entry.cta.href}
-            className="mt-8 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--brand-600)] px-6 text-sm font-bold text-white transition-colors hover:bg-[var(--brand-700)]"
+            className="mt-8 inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-500)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]"
           >
             {entry.cta.label} <ArrowRight size={15} />
           </Link>
@@ -104,17 +104,17 @@ export default function SeoLandingPage({ path }: { path: string }) {
         {/* ── How-to steps, when the page has them ───────────── */}
         {entry.howTo && (
           <section className="mb-12" aria-labelledby="steps-heading">
-            <h2 id="steps-heading" className="text-2xl font-black text-[var(--foreground)]">
+            <h2 id="steps-heading" className="text-2xl font-semibold tracking-[-0.03em] text-[var(--foreground)]">
               {entry.howTo.name}
             </h2>
             <ol className="mt-6 space-y-4">
               {entry.howTo.steps.map((step, i) => (
-                <li key={step.name} className="flex gap-4 rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-5">
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[var(--brand-600)]/15 text-sm font-bold text-[var(--brand-400)]">
+                <li key={step.name} className="flex gap-4 rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface)] p-5">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[var(--radius-sm)] bg-[var(--brand-soft)] text-sm font-semibold text-[var(--brand-strong)]">
                     {i + 1}
                   </span>
                   <div>
-                    <h3 className="text-sm font-bold text-[var(--foreground)]">{step.name}</h3>
+                    <h3 className="text-sm font-semibold text-[var(--foreground)]">{step.name}</h3>
                     <p className="mt-1.5 text-sm leading-relaxed text-[var(--foreground-muted)]">{step.text}</p>
                   </div>
                 </li>
@@ -129,7 +129,7 @@ export default function SeoLandingPage({ path }: { path: string }) {
             {/* One in-feed ad after the third section — never first, so the
                 page always opens on content. */}
             {i === 3 && <AdSlot name="seoPageInFeed" minHeight={120} />}
-            <h2 className="text-2xl font-black text-[var(--foreground)]">{s.h}</h2>
+            <h2 className="text-2xl font-semibold tracking-[-0.03em] text-[var(--foreground)]">{s.h}</h2>
             {paragraph(s.p)}
           </section>
         ))}
@@ -137,13 +137,13 @@ export default function SeoLandingPage({ path }: { path: string }) {
         {/* ── FAQ ────────────────────────────────────────────── */}
         {entry.faq && entry.faq.length > 0 && (
           <section className="mt-14" aria-labelledby="faq-heading">
-            <h2 id="faq-heading" className="text-2xl font-black text-[var(--foreground)]">
+            <h2 id="faq-heading" className="text-2xl font-semibold tracking-[-0.03em] text-[var(--foreground)]">
               Frequently asked questions
             </h2>
-            <dl className="mt-6 divide-y divide-[var(--rgba-255-255-255-0_06)] border-y border-[var(--rgba-255-255-255-0_06)]">
+            <dl className="mt-6 divide-y divide-[var(--border-subtle)] border-y border-[var(--border-subtle)]">
               {entry.faq.map(([q, a]) => (
                 <div key={q} className="py-5">
-                  <dt className="text-sm font-bold text-[var(--foreground)]">{q}</dt>
+                  <dt className="text-sm font-semibold text-[var(--foreground)]">{q}</dt>
                   <dd className="mt-2 text-sm leading-relaxed text-[var(--foreground-muted)]">{a}</dd>
                 </div>
               ))}
@@ -153,8 +153,8 @@ export default function SeoLandingPage({ path }: { path: string }) {
 
         {/* ── Visible evidence / attribution ─────────────────── */}
         {entry.sources && entry.sources.length > 0 && (
-          <section className="mt-10 rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] p-5" aria-labelledby="sources-heading">
-            <h2 id="sources-heading" className="text-xs font-bold uppercase tracking-widest text-[var(--foreground-subtle)]">
+          <section className="mt-10 rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface)] p-5" aria-labelledby="sources-heading">
+            <h2 id="sources-heading" className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--foreground-subtle)]">
               Sources and attribution
             </h2>
             <ul className="mt-3 space-y-1.5 text-xs leading-relaxed text-[var(--foreground-subtle)]">
@@ -165,15 +165,15 @@ export default function SeoLandingPage({ path }: { path: string }) {
             {entry.lastReviewed && (
               <p className="mt-3 text-xs text-[var(--foreground-subtle)]">
                 Last reviewed {entry.lastReviewed}. Corrections:{" "}
-                <Link href="/contact" className="text-[var(--brand-400)] underline">tell us</Link>.
+                <Link href="/contact" className="text-[var(--brand-strong)] underline underline-offset-4">tell us</Link>.
               </p>
             )}
           </section>
         )}
 
         {/* ── Contextual internal links (crawlable HTML anchors) ── */}
-        <nav aria-label="Related pages" className="mt-12 border-t border-[var(--rgba-255-255-255-0_06)] pt-8">
-          <p className="text-xs font-bold uppercase tracking-widest text-[var(--foreground-subtle)]">
+        <nav aria-label="Related pages" className="mt-12 border-t border-[var(--border-subtle)] pt-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--foreground-subtle)]">
             Keep reading
           </p>
           <ul className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -181,7 +181,7 @@ export default function SeoLandingPage({ path }: { path: string }) {
               const [href, label] = String(pair).split("|");
               return (
                 <li key={href}>
-                  <Link href={href!} className="block rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] px-4 py-3 text-sm text-[var(--brand-400)] transition-colors hover:border-[var(--brand-600)]/40">
+                  <Link href={href!} className="block rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3 text-sm font-medium text-[var(--brand-strong)] transition-[border-color,box-shadow] duration-[var(--duration-fast)] hover:border-[var(--card-border)] hover:shadow-[var(--shadow-xs)]">
                     {label || href}
                   </Link>
                 </li>
@@ -191,12 +191,12 @@ export default function SeoLandingPage({ path }: { path: string }) {
         </nav>
 
         {/* ── Closing CTA ────────────────────────────────────── */}
-        <section className="mt-12 rounded-2xl bg-[var(--brand-soft)] p-7 text-center">
-          <h2 className="text-xl font-bold text-[var(--foreground)]">{entry.cta.label}</h2>
+        <section className="mt-12 rounded-[var(--radius-2xl)] border border-[var(--card-border)] bg-[radial-gradient(circle_at_50%_0%,var(--brand-soft-hover),transparent_65%)] p-8 text-center">
+          <h2 className="text-xl font-semibold tracking-[-0.02em] text-[var(--foreground)]">{entry.cta.label}</h2>
           <p className="mt-2 text-sm text-[var(--foreground-muted)]">
             Free forever at the core. No credit card, no trial countdown.
           </p>
-          <Link href={entry.cta.href} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--brand-600)] px-6 text-sm font-bold text-white">
+          <Link href={entry.cta.href} className="mt-5 inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-500)] active:scale-[0.98]">
             {entry.cta.label} <ArrowRight size={15} />
           </Link>
         </section>

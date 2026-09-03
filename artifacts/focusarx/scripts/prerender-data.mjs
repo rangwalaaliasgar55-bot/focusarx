@@ -581,7 +581,7 @@ export const ROUTES = [
     path: "/virtual-study-room",
     title: "Virtual Study Room | Study with Others Online | FocusArx",
     description:
-      "Join a virtual study room and study with thousands of other learners online. Live focus rooms add accountability, social focus energy, and real-time productivity.",
+      "Join a free virtual study room and focus with other learners online. Synchronized Pomodoro timers, live presence, optional cameras, and 24/7 rooms — no download.",
     h1: "Virtual study rooms: study with others online",
     lead: "Join a live room, keep your camera on or off, and study in synchronized silence with learners around the world.",
     sections: [
@@ -593,11 +593,45 @@ export const ROUTES = [
         h: "Why it helps",
         p: "Body doubling and social accountability make starting easier and drift rarer. For many people — especially with ADHD — a room is the difference between intending to study and actually studying.",
       },
+      {
+        h: "Rooms for every subject",
+        p: "Public rooms are organized by subject — JEE and engineering, NEET and medical, UPSC, coding and computer science, language learning, and general study — so you focus alongside people working on the same material.",
+      },
+      {
+        h: "Privacy and safety",
+        p: "Cameras are optional and off by default; nobody sees your screen. Rooms are moderated, with one-tap reporting and clear conduct rules — see the room safety page for the full policy.",
+      },
     ],
     article: true,
+    // Mirrors the visible FAQ rendered by src/pages/virtual-study-room.tsx —
+    // FAQPage JSON-LD must describe content the reader can actually see.
+    faq: [
+      [
+        "What is a virtual study room?",
+        "A virtual study room is an online space where people study at the same time with a shared timer and live presence. You see that others are working, they see that you are — that mutual visibility (often called body doubling) makes it easier to start and to keep going.",
+      ],
+      [
+        "Do I need my camera on?",
+        "No. Cameras are optional and off by default in FocusArx rooms. Most people study with cameras off — presence and the shared timer do the work.",
+      ],
+      [
+        "Is it free?",
+        "Yes. Browsing rooms is free without an account, and joining rooms is free with a free account. There is no trial countdown and no credit card.",
+      ],
+      [
+        "Who are the rooms for?",
+        "Students preparing for exams (JEE, NEET, UPSC, GATE, board exams), university students, self-learners, and remote workers who focus better with company. Rooms are organized by subject so you can study alongside people working on the same thing.",
+      ],
+      [
+        "Is it safe?",
+        "Rooms are moderated, reporting is one tap away, and cameras are off by default. Read the full moderation and safety policy on our room safety page.",
+      ],
+    ],
     related: [
       "/study-with-me|Study with me sessions",
+      "/body-doubling|Body doubling guide",
       "/pomodoro-guide|Pomodoro technique guide",
+      "/safety|Room safety and moderation",
       "/guides|All guides",
     ],
   },

@@ -123,7 +123,7 @@ function XpReward({ amount }: { amount: number }) {
       initial={{ opacity: 0, y: 0, scale: 0.7 }}
       animate={{ opacity: [0, 1, 1, 0], y: [0, -70], scale: [0.7, 1.3, 1.1] }}
       transition={{ duration: 2.2, ease: "easeOut" }}
-      className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 z-[var(--z-modal)] whitespace-nowrap text-xl font-black text-[var(--palette-yellow-300)]"
+      className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 z-[var(--z-modal)] whitespace-nowrap text-xl font-semibold text-[var(--palette-yellow-300)]"
       style={{ textShadow: "0 0 16px var(--rgba-251-191-36-0_9), 0 0 4px var(--rgba-0-0-0-0_8)" }}
     >
       +{amount} Pet XP ⚡
@@ -444,7 +444,7 @@ export default function PetCompanion({
       {/* ── Pet info row ────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-2 mt-1 flex-wrap justify-center">
         <span
-          className="rounded-full px-2.5 py-0.5 text-[10px] font-black border"
+          className="rounded-full px-2.5 py-0.5 text-[10px] font-semibold border"
           style={{ color: petColor, borderColor: `color-mix(in srgb, ${petColor} 27%, transparent)`, background: `color-mix(in srgb, ${petColor} 9%, transparent)` }}
         >
           LVL {pet.petLevel}

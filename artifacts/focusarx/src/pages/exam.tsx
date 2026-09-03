@@ -83,7 +83,7 @@ function FaqAccordion({ faq }: { faq: [string, string][] }) {
   const [open, setOpen] = useState<number | null>(0);
   return (
     <div className="mt-16">
-      <h2 className="text-2xl font-black mb-6 flex items-center gap-2">
+      <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
         <HelpCircle size={20} className="text-[var(--palette-violet-400)]" />
         Frequently asked questions
       </h2>
@@ -110,7 +110,7 @@ function CtaBlock() {
   return (
     <div className="mt-16 rounded-3xl border border-[var(--card-border)] bg-gradient-to-br from-[var(--palette-violet-500)]/10 to-[var(--palette-indigo-500)]/10 p-8 text-center">
       <Timer size={28} className="mx-auto mb-4 text-[var(--palette-violet-400)]" />
-      <h3 className="text-2xl font-black mb-2">Turn the plan into focused hours</h3>
+      <h3 className="text-2xl font-semibold mb-2">Turn the plan into focused hours</h3>
       <p className="text-sm text-[var(--foreground-muted)] max-w-md mx-auto mb-6">
         The plan only works if the sessions happen. FocusArx's free timer runs 25/5 sprints, 90-minute deep blocks, and
         full exam-length mock simulations — and scores every one.
@@ -118,7 +118,7 @@ function CtaBlock() {
       <div className="flex flex-wrap items-center justify-center gap-3">
         <Link
           href="/signup"
-          className="rounded-xl bg-gradient-to-r from-[var(--palette-violet-600)] to-[var(--palette-indigo-600)] px-6 py-3 text-sm font-bold text-white shadow-lg transition-transform hover:scale-[1.02]"
+          className="rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] px-6 py-3 text-sm font-bold text-white shadow-lg transition-transform hover:scale-[1.02]"
         >
           Start focusing free
         </Link>
@@ -140,9 +140,9 @@ export function ExamGuidePage() {
       <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
         <PageSEO title="Exam guide not found | FocusArx" description="This exam guide doesn't exist — browse the full exam guide library instead." canonical="/exam" noindex />
         <div className="max-w-3xl mx-auto px-6 py-32 text-center">
-          <h1 className="text-4xl font-black mb-4">Guide not found</h1>
+          <h1 className="text-4xl font-semibold mb-4">Guide not found</h1>
           <p className="text-[var(--foreground-muted)] mb-8">No exam guide at this address. The full library is one click away.</p>
-          <Link href="/exam" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--palette-violet-600)] to-[var(--palette-indigo-600)] px-6 py-3 text-sm font-bold text-white">
+          <Link href="/exam" className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-500)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]">
             <ArrowLeft size={15} /> All exam guides
           </Link>
         </div>
@@ -172,7 +172,7 @@ export function ExamGuidePage() {
           <div className="inline-flex items-center gap-2 rounded-full border border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--palette-violet-300)] mb-6">
             <GraduationCap size={12} /> {guide.exam ? guide.exam.name : "Universal exam strategy"}
           </div>
-          <h1 className="text-4xl sm:text-5xl font-black tracking-tight leading-tight mb-5">{guide.h1}</h1>
+          <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight leading-tight mb-5">{guide.h1}</h1>
           <p className="text-lg text-[var(--foreground-muted)] leading-relaxed">{guide.lead}</p>
         </header>
 
@@ -215,7 +215,7 @@ export function ExamGuidePage() {
         <article className="space-y-12">
           {guide.sections.map((s, i) => (
             <section key={i}>
-              <h2 className="text-2xl font-black mb-4 tracking-tight">{s.h}</h2>
+              <h2 className="text-2xl font-semibold mb-4 tracking-tight">{s.h}</h2>
               {(Array.isArray(s.p) ? s.p : [s.p]).map((p, j) => (
                 <p key={j} className="mb-4 leading-relaxed text-[var(--foreground-muted)] last:mb-0">
                   {p}
@@ -251,7 +251,7 @@ export function ExamHubPage() {
           <div className="inline-flex items-center gap-2 rounded-full border border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--palette-violet-300)] mb-8">
             <Sparkles size={12} /> Exam guide library
           </div>
-          <h1 className="text-4xl sm:text-6xl font-black tracking-tight mb-6">{EXAM_HUB.h1}</h1>
+          <h1 className="text-4xl sm:text-6xl font-semibold tracking-tight mb-6">{EXAM_HUB.h1}</h1>
           <p className="text-lg text-[var(--foreground-muted)] max-w-2xl mx-auto leading-relaxed">{EXAM_HUB.lead}</p>
         </header>
 
@@ -281,7 +281,7 @@ export function ExamHubPage() {
 
         {EXAM_HUB.sections.map((s, i) => (
           <section key={i} className="mb-10 max-w-3xl mx-auto">
-            <h2 className="text-xl font-black mb-3 tracking-tight">{s.h}</h2>
+            <h2 className="text-xl font-semibold mb-3 tracking-tight">{s.h}</h2>
             {(Array.isArray(s.p) ? s.p : [s.p]).map((p, j) => (
               <p key={j} className="leading-relaxed text-[var(--foreground-muted)] last:mb-0">
                 {p}

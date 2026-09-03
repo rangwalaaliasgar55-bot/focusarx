@@ -40,7 +40,7 @@ function buildShareCardSvg(s: ShareCardStats): string {
     (s.streakDays ?? 0) >= 2
       ? `<g transform="translate(72, 470)">
            <rect x="0" y="0" width="${40 + s.streakDays!.toString().length * 34}" height="52" rx="26" fill="#7C3AED" fill-opacity="0.16" stroke="#8B5CF6" stroke-opacity="0.4"/>
-           <text x="24" y="34" font-family="Inter, system-ui, sans-serif" font-size="26" fill="#C4B5FD">🔥 ${s.streakDays}-day streak</text>
+           <text x="24" y="34" font-family="-apple-system, 'SF Pro Display', 'Geist Variable', Inter, system-ui, sans-serif" font-size="26" fill="#C4B5FD">🔥 ${s.streakDays}-day streak</text>
          </g>`
       : "";
 
@@ -68,31 +68,31 @@ function buildShareCardSvg(s: ShareCardStats): string {
 
   <!-- brand -->
   <g transform="translate(72, 64)">
-    <text font-family="Inter, system-ui, sans-serif" font-size="40" font-weight="800" fill="#A78BFA">⚡ FocusArx</text>
-    <text y="44" font-family="Inter, system-ui, sans-serif" font-size="20" font-weight="600" letter-spacing="4" fill="#6D6A85">DEEP WORK REPORT</text>
+    <text font-family="-apple-system, 'SF Pro Display', 'Geist Variable', Inter, system-ui, sans-serif" font-size="40" font-weight="700" fill="#A78BFA">⚡ FocusArx</text>
+    <text y="44" font-family="-apple-system, 'SF Pro Display', 'Geist Variable', Inter, system-ui, sans-serif" font-size="20" font-weight="600" letter-spacing="4" fill="#6D6A85">DEEP WORK REPORT</text>
   </g>
 
   <!-- headline -->
-  <text x="72" y="290" font-family="Inter, system-ui, sans-serif" font-size="30" fill="#B4B2C8">${name} just locked in</text>
-  <text x="72" y="400" font-family="Inter, system-ui, sans-serif" font-size="118" font-weight="900" fill="#F5F4FF" letter-spacing="-3">${timeLabel}</text>
-  <text x="74" y="446" font-family="Inter, system-ui, sans-serif" font-size="26" fill="#8B88A5">of uninterrupted deep focus</text>
+  <text x="72" y="290" font-family="-apple-system, 'SF Pro Display', 'Geist Variable', Inter, system-ui, sans-serif" font-size="30" fill="#B4B2C8">${name} just locked in</text>
+  <text x="72" y="400" font-family="-apple-system, 'SF Pro Display', 'Geist Variable', Inter, system-ui, sans-serif" font-size="118" font-weight="700" fill="#F5F4FF" letter-spacing="-3">${timeLabel}</text>
+  <text x="74" y="446" font-family="-apple-system, 'SF Pro Display', 'Geist Variable', Inter, system-ui, sans-serif" font-size="26" fill="#8B88A5">of uninterrupted deep focus</text>
 
   ${streakChip}
 
   <!-- stat row -->
   <g transform="translate(72, 530)">
-    <text font-family="Inter, system-ui, sans-serif" font-size="34" font-weight="800" fill="#E4E2F2">${score}</text>
-    <text y="38" font-family="Inter, system-ui, sans-serif" font-size="18" fill="#6D6A85">focus score</text>
-    <text x="300" font-family="Inter, system-ui, sans-serif" font-size="34" font-weight="800" fill="#C4B5FD">+${xp}</text>
-    <text x="300" y="38" font-family="Inter, system-ui, sans-serif" font-size="18" fill="#6D6A85">XP earned</text>
-    <text x="520" font-family="Inter, system-ui, sans-serif" font-size="34" font-weight="800" fill="#FCD34D">+${coins}</text>
-    <text x="520" y="38" font-family="Inter, system-ui, sans-serif" font-size="18" fill="#6D6A85">coins earned</text>
+    <text font-family="-apple-system, 'SF Pro Display', 'Geist Variable', Inter, system-ui, sans-serif" font-size="34" font-weight="700" fill="#E4E2F2">${score}</text>
+    <text y="38" font-family="-apple-system, 'SF Pro Display', 'Geist Variable', Inter, system-ui, sans-serif" font-size="18" fill="#6D6A85">focus score</text>
+    <text x="300" font-family="-apple-system, 'SF Pro Display', 'Geist Variable', Inter, system-ui, sans-serif" font-size="34" font-weight="700" fill="#C4B5FD">+${xp}</text>
+    <text x="300" y="38" font-family="-apple-system, 'SF Pro Display', 'Geist Variable', Inter, system-ui, sans-serif" font-size="18" fill="#6D6A85">XP earned</text>
+    <text x="520" font-family="-apple-system, 'SF Pro Display', 'Geist Variable', Inter, system-ui, sans-serif" font-size="34" font-weight="700" fill="#FCD34D">+${coins}</text>
+    <text x="520" y="38" font-family="-apple-system, 'SF Pro Display', 'Geist Variable', Inter, system-ui, sans-serif" font-size="18" fill="#6D6A85">coins earned</text>
   </g>
 
   <!-- footer -->
   <line x1="72" y1="584" x2="1128" y2="584" stroke="#2A2740" stroke-width="1"/>
-  <text x="72" y="614" font-family="Inter, system-ui, sans-serif" font-size="19" fill="#6D6A85">${esc(dateLabel)}</text>
-  <text x="1128" y="614" text-anchor="end" font-family="Inter, system-ui, sans-serif" font-size="19" font-weight="700" fill="#8B5CF6">focusarx.app</text>
+  <text x="72" y="614" font-family="-apple-system, 'SF Pro Display', 'Geist Variable', Inter, system-ui, sans-serif" font-size="19" fill="#6D6A85">${esc(dateLabel)}</text>
+  <text x="1128" y="614" text-anchor="end" font-family="-apple-system, 'SF Pro Display', 'Geist Variable', Inter, system-ui, sans-serif" font-size="19" font-weight="700" fill="#8B5CF6">focusarx.site</text>
 </svg>`;
 }
 
@@ -173,7 +173,7 @@ export function ShareCardModal({
       const blob = await svgToPngBlob(svg, 1200, 630);
       const file = new File([blob], "focusarx-session.png", { type: "image/png" });
       if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: "My FocusArx session", text: "Just locked in a deep work session on FocusArx ⚡ focusarx.app" });
+        await navigator.share({ files: [file], title: "My FocusArx session", text: "Just locked in a deep work session on FocusArx ⚡ focusarx.site" });
       } else {
         await downloadPng();
       }
@@ -188,9 +188,9 @@ export function ShareCardModal({
     const mins = Math.max(1, Math.round(stats.durationSeconds / 60));
     const scoreText = stats.focusScore != null ? ` · ${Math.round(stats.focusScore)}% focus score` : "";
     const xpText = (stats.earnedXp ?? 0) > 0 ? ` · +${stats.earnedXp} XP` : "";
-    const text = `🎯 Just completed a ${mins}-min focus session on FocusArx${scoreText}${xpText} 🔥\nBuilding the deep work habit one block at a time. focusarx.app`;
+    const text = `🎯 Just completed a ${mins}-min focus session on FocusArx${scoreText}${xpText} 🔥\nBuilding the deep work habit one block at a time. focusarx.site`;
     if (navigator.share) {
-      try { await navigator.share({ text, url: "https://focusarx.app" }); return; } catch { /* cancelled */ }
+      try { await navigator.share({ text, url: "https://focusarx.site" }); return; } catch { /* cancelled */ }
     }
     await navigator.clipboard.writeText(text).catch(() => {});
     setCopied(true);

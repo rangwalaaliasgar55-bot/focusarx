@@ -141,7 +141,7 @@ export default function PremiumPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="flex items-center gap-2 text-2xl font-black tracking-tight">
+            <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
               <Crown className="text-[var(--palette-amber-400)]" /> Premium Membership
             </h1>
             <p className="mt-1 text-sm text-[var(--foreground-muted)]">
@@ -251,7 +251,7 @@ export default function PremiumPage() {
                   <h3 className="text-sm font-bold">{plan.name}</h3>
                   <p className="mt-1 text-xs text-[var(--foreground-muted)]">{plan.description}</p>
                   <div className="mt-4 flex items-baseline gap-1">
-                    <span className="text-2xl font-black tabular-nums">{plan.tokenCost.toLocaleString()}</span>
+                    <span className="text-2xl font-semibold tabular-nums">{plan.tokenCost.toLocaleString()}</span>
                     <span className="text-xs text-[var(--foreground-subtle)]">tokens</span>
                   </div>
                   <p className="text-xs text-[var(--foreground-subtle)]">{plan.durationDays} days • {(plan.tokenCost / plan.durationDays).toFixed(0)} tokens/day</p>

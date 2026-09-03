@@ -37,7 +37,7 @@ export function PremiumGate({
       <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-[var(--palette-amber-500)]/20 to-[var(--palette-amber-600)]/10 mb-6 ring-1 ring-[var(--palette-amber-500)]/20">
         <Lock className="h-8 w-8 text-[var(--palette-amber-400)]" />
       </div>
-      <h2 className="text-2xl font-black tracking-tight text-[var(--foreground)] mb-2">
+      <h2 className="text-2xl font-semibold tracking-tight text-[var(--foreground)] mb-2">
         {feature} is Premium
       </h2>
       <p className="text-sm text-[var(--foreground-muted)] max-w-md mb-6 leading-relaxed">
@@ -87,7 +87,7 @@ export function PremiumGate({
       <div className="mt-8 w-full max-w-sm">
         <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--foreground-subtle)] mb-3 text-left">How to earn Focus Tokens</p>
         <div className="grid grid-cols-3 gap-2">
-          <Link href="/focus" className="rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] p-3 hover:bg-[var(--rgba-255-255-255-0_05)] transition-colors">
+          <Link href="/" className="rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] p-3 hover:bg-[var(--rgba-255-255-255-0_05)] transition-colors">
             <Flame size={18} className="mx-auto mb-1 text-[var(--palette-f97316)]" />
             <p className="text-[11px] font-semibold text-[var(--foreground-muted)]">Focus 25m+</p>
             <p className="text-[10px] text-[var(--brand-400)] font-bold">+50</p>

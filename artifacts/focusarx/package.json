@@ -5,11 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
-    "build": "vite build --config vite.config.ts && node scripts/prerender.mjs",
-    "build:vercel": "vite build --config vite.config.ts && node scripts/prerender.mjs",
+    "build": "vite build --config vite.config.ts && node scripts/prerender.mjs && node scripts/seo-validate.mjs",
+    "build:vercel": "vite build --config vite.config.ts && node scripts/prerender.mjs && node scripts/seo-validate.mjs",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "seo:audit": "echo 'SEO Auditing...' && grep -r 'PageSEO' src",
+    "seo:audit": "node scripts/seo-validate.mjs",
     "test": "vitest run",
     "preview:seo": "node scripts/serve-dist.mjs"
   },

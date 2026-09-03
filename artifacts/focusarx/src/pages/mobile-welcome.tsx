@@ -72,7 +72,7 @@ export default function MobileWelcomePage() {
     <div className="flex min-h-[100dvh] flex-col bg-[var(--palette-zinc-950)] px-5 py-8 overflow-hidden">
       {/* Logo */}
       <div className="mb-8 flex items-center gap-2">
-        <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-[var(--palette-rose-500)] to-[var(--palette-violet-600)] flex items-center justify-center text-xs font-black text-[var(--palette-white)]">F</div>
+        <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-[var(--palette-rose-500)] to-[var(--palette-violet-600)] flex items-center justify-center text-xs font-semibold text-[var(--palette-white)]">F</div>
         <span className="text-sm font-bold text-[var(--palette-zinc-200)] tracking-tight">FocusArx</span>
       </div>
 

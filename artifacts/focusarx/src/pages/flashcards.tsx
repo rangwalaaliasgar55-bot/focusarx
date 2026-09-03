@@ -183,7 +183,7 @@ export default function FlashcardsPage() {
           <div className="inline-flex items-center gap-2 rounded-full border border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--palette-violet-300)] mb-4">
             <Brain size={12} /> FSRS-4.5 Spaced Repetition
           </div>
-          <h1 className="text-3xl sm:text-5xl font-black tracking-tight mb-3">
+          <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight mb-3">
             Smart <span className="text-[var(--palette-violet-400)]">Flashcards</span>
           </h1>
           <p className="text-sm text-[var(--foreground-muted)] max-w-md mx-auto">
@@ -317,7 +317,7 @@ export default function FlashcardsPage() {
             className="rounded-3xl border border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/5 p-12 text-center"
           >
             <div className="text-4xl mb-4">🎉</div>
-            <h2 className="text-xl font-black text-[var(--palette-white)] mb-2">Study Session Complete!</h2>
+            <h2 className="text-xl font-semibold text-[var(--palette-white)] mb-2">Study Session Complete!</h2>
             <p className="text-sm text-[var(--palette-zinc-500)] mb-6">
               You reviewed {cards.length} cards. Your FSRS algorithm has scheduled optimal review times.
             </p>

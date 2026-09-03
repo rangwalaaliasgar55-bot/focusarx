@@ -17,7 +17,7 @@ export default function AboutPage() {
       <PageSEO {...PAGE_SEO.about} />
       <main id="main-content" className="relative z-[var(--z-content)] mx-auto max-w-5xl px-4 py-10 md:py-20">
         <PageTransition>
-          <Link href="/" className="mb-10 inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[var(--foreground-subtle)] hover:text-[var(--brand-400)] transition-colors">
+          <Link href="/" className="mb-10 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] hover:text-[var(--brand-400)] transition-colors">
             <ArrowLeft size={13} /> Back to Hub
           </Link>
 
@@ -27,7 +27,7 @@ export default function AboutPage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.4 }}
-              className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--palette-purple-500)]/30 bg-[var(--palette-purple-500)]/10 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.3em] text-[var(--palette-purple-300)]"
+              className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--palette-purple-500)]/30 bg-[var(--palette-purple-500)]/10 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--palette-purple-300)]"
             >
               Our Mission
             </motion.div>
@@ -35,7 +35,7 @@ export default function AboutPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="mb-8 text-5xl sm:text-7xl font-black tracking-tight text-[var(--palette-white)] leading-[0.9]"
+              className="mb-8 text-5xl sm:text-7xl font-semibold tracking-tight text-[var(--palette-white)] leading-[0.9]"
             >
               Restoring the world's <br />
               <span className="text-gradient">Attention Span.</span>
@@ -74,13 +74,13 @@ export default function AboutPage() {
           <div className="mb-24 grid gap-8 lg:grid-cols-3">
              <div className="lg:col-span-2 space-y-8">
                 <div className="rounded-[32px] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] p-10 glass">
-                   <h2 className="text-2xl font-black text-[var(--palette-white)] mb-6">Verified Information</h2>
+                   <h2 className="text-2xl font-semibold text-[var(--palette-white)] mb-6">Verified Information</h2>
                    <div className="grid sm:grid-cols-2 gap-10">
                       <div className="space-y-6">
                          <div className="flex items-start gap-4">
                             <Globe className="text-[var(--brand-400)] mt-1" size={18} />
                             <div>
-                               <p className="text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Based In</p>
+                               <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Based In</p>
                                <p className="text-sm text-[var(--palette-zinc-300)]">India</p>
                                <p className="text-sm text-[var(--palette-zinc-500)]">Serving learners worldwide</p>
                             </div>
@@ -88,7 +88,7 @@ export default function AboutPage() {
                          <div className="flex items-start gap-4">
                             <ShieldCheck className="text-[var(--brand-400)] mt-1" size={18} />
                             <div>
-                               <p className="text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Privacy</p>
+                               <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Privacy</p>
                                <p className="text-sm text-[var(--palette-zinc-300)]">On-device vision processing</p>
                                <p className="text-sm text-[var(--palette-zinc-500)]">No video ever leaves your browser</p>
                             </div>
@@ -98,7 +98,7 @@ export default function AboutPage() {
                          <div className="flex items-start gap-4">
                             <Mail className="text-[var(--brand-400)] mt-1" size={18} />
                             <div>
-                               <p className="text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Email</p>
+                               <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Email</p>
                                <a href="mailto:focusarx@gmail.com" className="text-sm text-[var(--palette-zinc-300)] hover:text-[var(--brand-400)] transition-colors">focusarx@gmail.com</a>
                                <p className="text-sm text-[var(--palette-zinc-500)]">We reply fast</p>
                             </div>
@@ -106,7 +106,7 @@ export default function AboutPage() {
                          <div className="flex items-start gap-4">
                             <Phone className="text-[var(--brand-400)] mt-1" size={18} />
                             <div>
-                               <p className="text-[10px] font-black uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Phone / WhatsApp</p>
+                               <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Phone / WhatsApp</p>
                                <a href="tel:+917725004639" className="text-sm text-[var(--palette-zinc-300)] hover:text-[var(--brand-400)] transition-colors">+91 77250 04639</a>
                                <p className="text-sm text-[var(--palette-zinc-500)]">Mon–Sat · 9am–7pm IST</p>
                             </div>
@@ -117,10 +117,10 @@ export default function AboutPage() {
              </div>
 
              <div className="rounded-[32px] border border-[var(--palette-white)]/5 bg-gradient-to-br from-[var(--brand-600)]/10 to-[var(--brand-pink)]/5 p-10 flex flex-col justify-center text-center">
-                <h3 className="text-2xl font-black text-[var(--palette-white)] mb-4 italic">Join the Elite.</h3>
+                <h3 className="text-2xl font-semibold text-[var(--palette-white)] mb-4 italic">Join the Elite.</h3>
                 <p className="text-sm text-[var(--foreground-muted)] mb-8">Ready to transform your cognitive output? Start your first session today.</p>
                 <Link href="/signup">
-                  <button className="w-full py-4 rounded-2xl bg-[var(--palette-white)] text-[var(--palette-black)] font-black hover:scale-105 transition-all shadow-xl shadow-[var(--palette-purple-950)]/20">
+                  <button className="w-full py-4 rounded-2xl bg-[var(--palette-white)] text-[var(--palette-black)] font-semibold hover:scale-105 transition-all shadow-xl shadow-[var(--palette-purple-950)]/20">
                     Get Started Free
                   </button>
                 </Link>

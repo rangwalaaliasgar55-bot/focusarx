@@ -169,7 +169,7 @@ export default function MarketplacePage() {
                   <div className="text-[10px] text-[var(--palette-92400e)] uppercase tracking-wider">Focus Coins</div>
                 </div>
               </div>
-              <div className="rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] px-4 py-2.5 flex items-center gap-2">
+              <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--muted)] px-4 py-2.5 flex items-center gap-2">
                 <Package size={14} className="text-[var(--muted-fg)]" />
                 <div>
                   <div className="text-lg font-bold text-[var(--palette-white)]">{owned}</div>
@@ -197,7 +197,7 @@ export default function MarketplacePage() {
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
                 filter === f.id
                   ? "bg-[var(--rgba-124-58-237-0_2)] border border-[var(--rgba-124-58-237-0_4)] text-[var(--brand-400)]"
-                  : "border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] text-[var(--muted-fg)] hover:text-[var(--foreground-muted)]"
+                  : "border border-[var(--border-subtle)] bg-[var(--muted)] text-[var(--muted-fg)] hover:text-[var(--foreground-muted)]"
               }`}>
               <span>{f.icon}</span> {f.label}
             </button>
@@ -270,7 +270,7 @@ export default function MarketplacePage() {
                     <div className="flex items-center gap-1.5 text-sm font-bold text-[var(--color-warning)]">
                       {item.saleDiscountPct ? (
                         <>
-                          <span className="rounded bg-[var(--palette-red-500)]/20 border border-[var(--palette-red-500)]/40 px-1 py-px text-[8px] font-black uppercase tracking-wider text-[var(--palette-red-400)]">-{item.saleDiscountPct}%</span>
+                          <span className="rounded bg-[var(--palette-red-500)]/20 border border-[var(--palette-red-500)]/40 px-1 py-px text-[8px] font-semibold uppercase tracking-wider text-[var(--palette-red-400)]">-{item.saleDiscountPct}%</span>
                           <span className="text-[11px] text-[var(--foreground-subtle)] line-through">🪙 {item.costCoins.toLocaleString()}</span>
                         </>
                       ) : null}
@@ -284,7 +284,7 @@ export default function MarketplacePage() {
                       disabled={purchasing === item.id || !canAfford || item.locked}
                       className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all ${
                         item.locked || !canAfford
-                          ? "bg-[var(--rgba-255-255-255-0_04)] text-[var(--foreground-subtle)] cursor-not-allowed"
+                          ? "bg-[var(--muted)] text-[var(--foreground-subtle)] cursor-not-allowed"
                           : justBought === item.id
                           ? "bg-[var(--rgba-34-211-135-0_2)] text-[var(--palette-22d387)]"
                           : "bg-[var(--rgba-124-58-237-0_2)] text-[var(--brand-400)] hover:bg-[var(--rgba-124-58-237-0_35)] border border-[var(--rgba-124-58-237-0_3)]"
@@ -296,7 +296,7 @@ export default function MarketplacePage() {
                     <button
                       onClick={() => gift(item.id, item.name)}
                       disabled={busyGift === item.id}
-                      className="w-full rounded-lg border border-[var(--rgba-255-255-255-0_08)] px-2 py-1 text-[10px] font-medium text-[var(--foreground-subtle)] transition hover:text-[var(--foreground)] disabled:opacity-50">
+                      className="w-full rounded-lg border border-[var(--border-subtle)] px-2 py-1 text-[10px] font-medium text-[var(--foreground-subtle)] transition hover:text-[var(--foreground)] disabled:opacity-50">
                       {busyGift === item.id ? "Gifting…" : "🎁 Gift to a friend (+5% tax)"}
                     </button>
                   )}

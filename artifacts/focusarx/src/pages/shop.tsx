@@ -76,7 +76,7 @@ export default function ShopPage() {
           const IconComp = meta?.icon;
           return (
             <button key={cat} onClick={() => setActiveCategory(cat)}
-              className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium transition-all border ${activeCategory === cat ? "bg-[var(--brand-600)] text-[var(--palette-white)] border-[var(--brand-600)]" : "border-[var(--rgba-255-255-255-0_06)] text-[var(--foreground-subtle)] hover:text-[var(--foreground)] hover:border-[var(--brand-600)]/40"}`}>
+              className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium transition-all border ${activeCategory === cat ? "bg-[var(--brand-600)] text-[var(--palette-white)] border-[var(--brand-600)]" : "border-[var(--border-subtle)] text-[var(--foreground-subtle)] hover:text-[var(--foreground)] hover:border-[var(--brand-600)]/40"}`}>
               {IconComp && <IconComp size={12} className={meta.color} />}
               {cat === "all" ? "All Items" : meta?.label ?? cat}
             </button>
@@ -86,7 +86,7 @@ export default function ShopPage() {
 
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {[...Array(6)].map((_, i) => <div key={i} className="h-32 animate-pulse rounded-2xl bg-[var(--rgba-255-255-255-0_025)]" />)}
+          {[...Array(6)].map((_, i) => <div key={i} className="h-32 animate-pulse rounded-2xl bg-[var(--surface-hover)]" />)}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -94,7 +94,7 @@ export default function ShopPage() {
             const meta = CATEGORY_META[item.category];
             const canAfford = coins >= item.price;
             return (
-              <div key={item.id} className={`rounded-2xl border p-4 transition-all ${canAfford ? "border-[var(--rgba-255-255-255-0_06)] hover:border-[var(--brand-600)]/40" : "border-[var(--rgba-255-255-255-0_06)]/50 opacity-60"} bg-[var(--rgba-255-255-255-0_025)]`}>
+              <div key={item.id} className={`rounded-2xl border p-4 transition-all ${canAfford ? "border-[var(--border-subtle)] hover:border-[var(--brand-600)]/40" : "border-[var(--border-subtle)]/50 opacity-60"} bg-[var(--surface-hover)]`}>
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex items-center gap-3">
                     <span className="text-3xl">{item.icon}</span>

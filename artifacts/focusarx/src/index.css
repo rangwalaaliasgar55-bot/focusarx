@@ -425,6 +425,9 @@ html {
   min-height: 100dvh;
   overscroll-behavior: none;
   -webkit-text-size-adjust: 100%;
+  /* Apple-smooth anchor jumps (See how it works → #product). The global
+     reduced-motion block below forces this back to `auto`. */
+  scroll-behavior: smooth;
 }
 
 body {
@@ -463,6 +466,61 @@ h1, h2, h3, .font-display, .text-display, .text-h1, .text-h2, .text-h3 {
 .text-h4      { font-size: var(--text-xl);  font-weight: 600; letter-spacing: -0.01em;  line-height: 1.3; }
 .text-body    { font-size: var(--text-base); font-weight: 400; line-height: 1.6; }
 .text-caption { font-size: var(--text-xs);  font-weight: 400; line-height: 1.4; color: var(--muted-fg); }
+
+/* Apple-style optical rendering for large display text: tighter tracking,
+   contextual ligatures, and no synthetic bolding. */
+h1, h2, .text-display, .text-h1 {
+  text-rendering: optimizeLegibility;
+  font-synthesis-weight: none;
+  font-optical-sizing: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MARKETING GRAPHICS — subtle retro texture layers
+   Pure CSS (inline SVG noise + radial dot grid): zero network requests,
+   zero layout cost. Both layers are decorative only (pointer-events none)
+   and quiet enough to keep the Apple-calm look while adding analog warmth.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.texture-grain {
+  position: relative;
+  isolation: isolate;
+}
+.texture-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+
+.texture-dotgrid {
+  background-image: radial-gradient(color-mix(in srgb, var(--foreground) 7%, transparent) 1px, transparent 1px);
+  background-size: 24px 24px;
+  /* Fade the grid out toward the edges so it reads as a soft field,
+     not wallpaper. */
+  -webkit-mask-image: radial-gradient(ellipse 70% 65% at 50% 40%, black 30%, transparent 75%);
+  mask-image: radial-gradient(ellipse 70% 65% at 50% 40%, black 30%, transparent 75%);
+}
+
+/* Soft conic "aurora" ring for hero glows — slow drift, GPU-composited. */
+.glow-aurora {
+  background:
+    conic-gradient(from 180deg at 50% 50%,
+      color-mix(in srgb, var(--brand-500) 22%, transparent),
+      color-mix(in srgb, var(--brand-teal) 12%, transparent),
+      color-mix(in srgb, var(--brand-700) 20%, transparent),
+      color-mix(in srgb, var(--brand-500) 22%, transparent));
+  filter: blur(72px);
+  animation: aurora-spin 36s linear infinite;
+}
+@keyframes aurora-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .glow-aurora { animation: none; }
+}
 
 button, a, [role="button"] { touch-action: manipulation; }
 input, select, textarea { font-size: 16px; }
@@ -1822,6 +1880,33 @@ html.light .glass-subtle {
   --palette-violet-700: oklch(49.1% 0.27 292.581);
   --palette-violet-800: oklch(43.2% 0.232 292.759);
   --palette-white: #fff;
+  /* ── Previously referenced but undefined — styles silently failed ──
+     Defined here so every var() reference resolves. Audited via a
+     used-vs-defined scan across src/ (see arena/01a06806 audit). */
+  --palette-sky-300: oklch(82.8% 0.111 230.318);
+  --palette-blue-300: oklch(80.9% 0.105 251.813);
+  --palette-orange-300: oklch(83.7% 0.128 66.29);
+  --palette-orange-950: oklch(26.6% 0.079 36.259);
+  --palette-red-500-30: rgba(239, 68, 68, 0.30);
+  --palette-red-500-05: rgba(239, 68, 68, 0.05);
+  --palette-b45309: #B45309;
+  --palette-64748b: #64748B;
+  --palette-f59e0b: #F59E0B;
+  --palette-a78bfa: #A78BFA;
+  --palette-f472b6: #F472B6;
+  --palette-94a3b8: #94A3B8;
+  --palette-67e8f9: #67E8F9;
+  --palette-fbbf24: #FBBF24;
+  --text-muted: var(--foreground-muted);
+  --z-popover: var(--z-overlay);
+  --accent: var(--brand-500);
+  --background-card: var(--card);
+  --rgba-251-191-36-0_25: rgba(251, 191, 36, 0.25);
+  --rgba-251-191-36-0_4: rgba(251, 191, 36, 0.4);
+  --rgba-255-255-255-0_10: rgba(255, 255, 255, 0.10);
+  --rgba-167-139-250-0_0: rgba(167, 139, 250, 0);
+  --rgba-167-139-250-0_3: rgba(167, 139, 250, 0.3);
+  --rgba-34-211-135-0_08: rgba(34, 211, 135, 0.08);
   --palette-yellow-300: oklch(90.5% 0.182 98.111);
   --palette-yellow-400: oklch(85.2% 0.199 91.936);
   --palette-yellow-500: oklch(79.5% 0.184 86.047);

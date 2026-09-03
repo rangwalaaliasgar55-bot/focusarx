@@ -41,7 +41,7 @@ function NameBadges({ entry }: { entry: LeaderboardEntry }) {
   return (
     <>
       {entry.isAdmin && (
-        <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full border border-[var(--rgba-239-68-68-0_35)] bg-[var(--rgba-239-68-68-0_12)] px-1.5 py-px text-[8px] font-black uppercase tracking-wider text-[var(--color-error)]" title="FocusArx team">
+        <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full border border-[var(--rgba-239-68-68-0_35)] bg-[var(--rgba-239-68-68-0_12)] px-1.5 py-px text-[8px] font-semibold uppercase tracking-wider text-[var(--color-error)]" title="FocusArx team">
           <Shield size={7} /> Admin
         </span>
       )}
@@ -125,7 +125,7 @@ function PodiumCard({ entry, podiumRank, filter }: { entry: LeaderboardEntry; po
 
       {/* Rank number */}
       <div className="mb-0.5 flex items-center justify-center">
-        <span className="text-[10px] font-black" style={{ color: meta.crown }}>#{podiumRank}</span>
+        <span className="text-[10px] font-semibold" style={{ color: meta.crown }}>#{podiumRank}</span>
       </div>
 
       {/* Name */}
@@ -134,7 +134,7 @@ function PodiumCard({ entry, podiumRank, filter }: { entry: LeaderboardEntry; po
       {entry.isCurrentUser && <span className="text-[9px] text-[var(--brand-400)]">(you)</span>}
 
       {/* XP */}
-      <p className="mt-1.5 text-base font-black" style={{ color: "var(--brand-400)" }}>
+      <p className="mt-1.5 text-base font-semibold" style={{ color: "var(--brand-400)" }}>
         {xp.toLocaleString()}
         <span className="ml-0.5 text-[9px] font-normal text-[var(--foreground-subtle)]">XP</span>
       </p>
@@ -316,7 +316,7 @@ export default function LeaderboardPage() {
                           : "hover:bg-[var(--rgba-124-58-237-0_04)]"
                       } ${i < rest.length - 1 ? "border-b border-[var(--rgba-124-58-237-0_07)]" : ""}`}
                     >
-                      <span className="w-6 text-center text-xs font-black text-[var(--foreground-subtle)]">{entry.rank}</span>
+                      <span className="w-6 text-center text-xs font-semibold text-[var(--foreground-subtle)]">{entry.rank}</span>
                       <div
                         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${getAvatarGradient(entry.name)} text-[11px] font-bold text-[var(--palette-white)]`}
                       >
@@ -355,7 +355,7 @@ export default function LeaderboardPage() {
                     animate={{ opacity: 1, y: 0 }}
                     className="rounded-2xl border border-[var(--brand-600)] bg-[var(--rgba-124-58-237-0_09)] p-4 flex items-center gap-3"
                   >
-                    <span className="text-xs font-black text-[var(--brand-400)]">#{myRow.rank}</span>
+                    <span className="text-xs font-semibold text-[var(--brand-400)]">#{myRow.rank}</span>
                     <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br ${getAvatarGradient(myRow.name)} text-xs font-bold text-[var(--palette-white)]`}>
                       {myRow.name.slice(0, 2).toUpperCase()}
                     </div>

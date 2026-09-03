@@ -15,12 +15,12 @@ async function apiFetch(path: string) {
 
 function StatCard({ label, value, icon: Icon, color = "var(--brand-600)" }: { label: string; value: string | number; icon: React.ComponentType<any>; color?: string }) {
   return (
-    <div className="rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-4">
+    <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4">
       <div className="flex items-center gap-2 mb-2">
         <Icon size={14} style={{ color }} />
         <span className="text-[10px] text-[var(--foreground-subtle)] uppercase tracking-[0.14em] font-semibold">{label}</span>
       </div>
-      <p className="text-2xl font-black text-[var(--foreground)]">{value}</p>
+      <p className="text-2xl font-semibold text-[var(--foreground)]">{value}</p>
     </div>
   );
 }
@@ -33,7 +33,7 @@ function HabitBar({ label, value, max }: { label: string; value: number; max: nu
         <span className="text-[var(--foreground-subtle)]">{label}</span>
         <span className="text-[var(--foreground)] font-medium">{value}</span>
       </div>
-      <div className="h-1.5 rounded-full bg-[var(--rgba-255-255-255-0_05)] overflow-hidden">
+      <div className="h-1.5 rounded-full bg-[var(--surface-hover)] overflow-hidden">
         <div className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)] transition-all" style={{ width: `${pct}%` }} />
       </div>
     </div>
@@ -103,7 +103,7 @@ export default function AiInsightsPage() {
           />
 
           {/* Tab bar */}
-          <div className="flex gap-1 mb-6 rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-1">
+          <div className="flex gap-1 mb-6 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-1">
             {TABS.map((t) => (
               <button
                 key={t.id}
@@ -139,7 +139,7 @@ export default function AiInsightsPage() {
                       const Icon = ICON_MAP[ins.type] ?? Brain;
                       const color = COLOR_MAP[ins.type] ?? "var(--brand-600)";
                       return (
-                        <div key={ins.type} className="rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-4">
+                        <div key={ins.type} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4">
                           <div className="flex items-start gap-3">
                             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl" style={{ background: `color-mix(in srgb, ${color} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${color} 15%, transparent)` }}>
                               {ins.icon}
@@ -157,7 +157,7 @@ export default function AiInsightsPage() {
                     })}
                   </div>
                   {!insights?.insights?.length && !insightsLoading && (
-                    <div className="rounded-2xl border border-dashed border-[var(--rgba-255-255-255-0_08)] bg-[var(--rgba-255-255-255-0_02)] p-10 text-center">
+                    <div className="rounded-2xl border border-dashed border-[var(--border-subtle)] bg-[var(--muted)] p-10 text-center">
                       <Zap size={28} className="mx-auto mb-3 text-[var(--foreground-subtle)]" />
                       <p className="text-sm font-medium text-[var(--foreground-subtle)]">Complete more focus sessions to unlock insights</p>
                       <p className="text-[12px] text-[var(--foreground-subtle)] mt-1">AI needs data to analyze. Start a session now.</p>
@@ -176,7 +176,7 @@ export default function AiInsightsPage() {
                 <button
                   onClick={() => { setReportKey((k) => k + 1); refetchReport(); }}
                   disabled={reportLoading}
-                  className="flex items-center gap-1.5 rounded-xl border border-[var(--rgba-255-255-255-0_07)] bg-[var(--rgba-255-255-255-0_025)] px-3 py-1.5 text-[12px] font-medium text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)] disabled:opacity-50 transition-colors"
+                  className="flex items-center gap-1.5 rounded-xl border border-[var(--rgba-255-255-255-0_07)] bg-[var(--surface-hover)] px-3 py-1.5 text-[12px] font-medium text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)] disabled:opacity-50 transition-colors"
                 >
                   <RefreshCw size={11} className={reportLoading ? "animate-spin" : ""} />
                   Regenerate
@@ -199,7 +199,7 @@ export default function AiInsightsPage() {
                 </div>
               )}
               {!report && !reportLoading && (
-                <div className="rounded-2xl border border-dashed border-[var(--rgba-255-255-255-0_08)] bg-[var(--rgba-255-255-255-0_02)] p-10 text-center">
+                <div className="rounded-2xl border border-dashed border-[var(--border-subtle)] bg-[var(--muted)] p-10 text-center">
                   <Sparkles size={28} className="mx-auto mb-3 text-[var(--foreground-subtle)]" />
                   <p className="text-sm font-medium text-[var(--foreground-subtle)]">No report generated yet</p>
                   <p className="text-[12px] text-[var(--foreground-subtle)] mt-1">Click Regenerate to create your first AI report</p>
@@ -220,7 +220,7 @@ export default function AiInsightsPage() {
                     <StatCard label="Avg Daily Min"     value={habits.avgDailyMinutes}            icon={Clock}      color="var(--color-warning)" />
                     <StatCard label="Longest Session"   value={`${habits.longestSessionMinutes}m`} icon={Brain}    color="var(--info)" />
                   </div>
-                  <div className="rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-4">
+                  <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4">
                     <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--foreground-subtle)] mb-3">Day of Week Distribution</p>
                     <div className="space-y-2.5">
                       {Object.entries(habits.weekdayDistribution ?? {}).map(([day, count]) => (
@@ -228,13 +228,13 @@ export default function AiInsightsPage() {
                       ))}
                     </div>
                   </div>
-                  <div className="rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-4">
+                  <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4">
                     <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--foreground-subtle)] mb-3">Monthly Goal</p>
                     <div className="flex justify-between text-[12px] mb-2">
                       <span className="text-[var(--foreground-subtle)]">20 active days target</span>
                       <span className="text-[var(--foreground)] font-bold">{habits.activeDaysLast30}/20</span>
                     </div>
-                    <div className="h-2.5 rounded-full bg-[var(--rgba-255-255-255-0_05)] overflow-hidden">
+                    <div className="h-2.5 rounded-full bg-[var(--surface-hover)] overflow-hidden">
                       <div
                         className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-22d387)] transition-all duration-[var(--duration-slow)]"
                         style={{ width: `${Math.min(100, habits.monthlyGoalProgress ?? 0)}%` }}
