@@ -26,7 +26,6 @@ import {
 } from "lucide-react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 import { Reveal, RevealStagger, RevealItem, ScrollScale, HeroScrub, Parallax } from "@/components/motion/Scroll";
-import CommunityPulse from "@/components/CommunityPulse";
 import { AdSlot } from "@/components/AdSlot";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -101,7 +100,7 @@ function MarketingNav() {
 
 function DashboardMockup() {
   return (
-    <div className="relative mx-auto w-full max-w-5xl overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--border-strong)] bg-[var(--surface)] p-2 shadow-[var(--shadow-xl),var(--shadow-violet-md)] sm:p-3">
+    <div className="texture-grain relative mx-auto w-full max-w-5xl overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--border-strong)] bg-[var(--surface)] p-2 shadow-[var(--shadow-xl),var(--shadow-violet-md)] sm:p-3">
       <div className="flex h-10 items-center gap-1.5 border-b border-[var(--border-subtle)] px-3" aria-hidden="true">
         <span className="h-2 w-2 rounded-full bg-[var(--danger)]" /><span className="h-2 w-2 rounded-full bg-[var(--warning)]" /><span className="h-2 w-2 rounded-full bg-[var(--success)]" />
         <span className="ml-3 text-[0.625rem] text-[var(--foreground-subtle)]">FocusArx · Today</span>
@@ -115,7 +114,7 @@ function DashboardMockup() {
           <div><p className="text-[0.625rem] uppercase tracking-widest text-[var(--brand-strong)]">Tuesday · Your workspace</p><p className="mt-1 text-xl font-semibold">Good morning, Alex</p><p className="mt-1 text-xs text-[var(--foreground-muted)]">One clear plan for your focus and momentum.</p></div>
           <div className="mt-5 grid gap-3 lg:grid-cols-[1.25fr_.75fr]">
             <div className="grid min-h-64 place-items-center rounded-[var(--radius-xl)] border border-[var(--card-border)] bg-[radial-gradient(circle_at_center,var(--brand-soft),transparent_66%)] p-5 text-center">
-              <div><div className="mx-auto grid h-32 w-32 place-items-center rounded-full border border-[var(--card-border)] shadow-[inset_0_0_0_8px_var(--brand-soft)]"><span className="font-mono text-3xl font-semibold">25:00</span></div><p className="mt-4 text-xs font-semibold">Protect the next 25 minutes.</p><span className="mt-3 inline-flex min-h-8 items-center rounded-lg bg-[var(--brand-600)] px-4 text-[0.6875rem] font-semibold text-[var(--neutral-0)]">Start focusing</span></div>
+              <div><div className="relative mx-auto grid h-32 w-32 place-items-center rounded-full" style={{ background: "conic-gradient(var(--brand-500) 0deg 252deg, var(--brand-soft) 252deg 360deg)" }}><div className="absolute inset-1.5 rounded-full bg-[var(--surface)] shadow-[var(--shadow-sm)]" /><span className="relative font-mono text-3xl font-semibold tabular-nums">25:00</span></div><p className="mt-4 text-xs font-semibold">Protect the next 25 minutes.</p><span className="mt-3 inline-flex min-h-8 items-center rounded-lg bg-[var(--brand-600)] px-4 text-[0.6875rem] font-semibold text-[var(--neutral-0)]">Start focusing</span></div>
             </div>
             <div className="rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface-raised)] p-4">
               <div className="flex items-center justify-between"><p className="text-xs font-semibold">Next up</p><PlusMock /></div>
@@ -170,8 +169,11 @@ export default function LandingPage() {
       <MarketingNav />
       <main id="main-content">
         <section className="relative isolate overflow-hidden px-4 pb-20 pt-36 sm:px-6 sm:pb-28 sm:pt-44">
+          {/* Retro dot-grid field, masked so it fades toward the edges. */}
+          <div className="texture-dotgrid pointer-events-none absolute inset-0 -z-[var(--z-content)]" aria-hidden="true" />
           <Parallax amount={120} className="pointer-events-none absolute left-1/2 top-0 -z-[var(--z-content)] -translate-x-1/2">
             <div className="h-[44rem] w-[64rem] rounded-full bg-[radial-gradient(circle,var(--brand-soft-hover),transparent_68%)] blur-3xl" />
+            <div className="glow-aurora absolute left-1/2 top-24 h-[30rem] w-[30rem] -translate-x-1/2 rounded-full opacity-40" aria-hidden="true" />
           </Parallax>
           {/* Hero softly recedes as you scroll past — Apple-style scrub. */}
           <HeroScrub className="mx-auto max-w-5xl text-center">
@@ -193,10 +195,7 @@ export default function LandingPage() {
             </motion.p>
             <motion.div {...entrance} className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-[var(--foreground-muted)]">
               <span className="inline-flex items-center gap-2"><Check size={16} className="text-[var(--success)]" /> Free forever tier</span>
-            </motion.div>
-            {/* Honest scale only — no fabricated counts (guardrail #8). */}
-            <motion.div {...entrance} className="mt-3">
-              <CommunityPulse />
+              <span className="inline-flex items-center gap-2"><Lock size={15} className="text-[var(--success)]" /> Privacy-first by design</span>
             </motion.div>
           </HeroScrub>
         </section>
@@ -356,7 +355,7 @@ export default function LandingPage() {
 
         {/* ── FINAL CTA ─────────────────────────────────────────── */}
         <section className="px-4 pb-24 sm:px-6 sm:pb-32">
-          <Reveal className="mx-auto max-w-5xl overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--card-border)] bg-[radial-gradient(circle_at_50%_0%,var(--brand-soft-hover),transparent_65%)] px-6 py-16 text-center shadow-[var(--shadow-violet-md)] sm:px-12 sm:py-20">
+          <Reveal className="texture-grain mx-auto max-w-5xl overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--card-border)] bg-[radial-gradient(circle_at_50%_0%,var(--brand-soft-hover),transparent_65%)] px-6 py-16 text-center shadow-[var(--shadow-violet-md)] sm:px-12 sm:py-20">
             <span className="mx-auto grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] bg-[var(--brand-soft)] text-[var(--brand-strong)]"><Clock3 /></span>
             <h2 className="mx-auto mt-6 max-w-2xl text-balance text-3xl font-semibold tracking-[-0.04em] sm:text-5xl">Your next focused hour starts now.</h2>
             <p className="mx-auto mt-5 max-w-xl text-base text-[var(--foreground-muted)]">Create a free account, choose one task, and begin with a single focus block. No credit card required.</p>

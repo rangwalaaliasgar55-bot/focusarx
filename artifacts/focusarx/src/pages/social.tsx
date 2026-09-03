@@ -6,7 +6,6 @@ import { useToast } from "@/components/Toast";
 import { Users, UserPlus, Trophy, Activity, Check, X, Bell, Clock, Rss, Heart, MessageCircle as MessageCircleIcon, Bookmark, Flame, Plus, Send, MoreHorizontal, Image, Edit3, Newspaper, Trash2, ArrowUpRight, Star as StarIcon, Shield } from "lucide-react";
 import { PageTransition } from "@/components/PageTransition";
 import PageHeader from "@/components/PageHeader";
-import CommunityPulse from "@/components/CommunityPulse";
 import { DropBanner } from "@/components/DropBanner";
 import { motion, AnimatePresence } from "framer-motion";
 import { BLUR_IN, STAGGER, STAGGER_CHILD } from "@/lib/animations";
@@ -435,9 +434,6 @@ export default function SocialPage() {
           {tab === "feed" && (
             <motion.div key="feed" variants={STAGGER} initial="initial" animate="animate" exit="exit" className="space-y-6">
                <DropBanner />
-               <div className="flex justify-center">
-                 <CommunityPulse />
-               </div>
                <div className="rounded-[32px] border border-[var(--border)] bg-[var(--palette-white)]/[0.01] p-6 glass-heavy">
                   <div className="flex gap-4">
                      <Avatar name={session?.user?.name || "U"} size={44} level={12} />

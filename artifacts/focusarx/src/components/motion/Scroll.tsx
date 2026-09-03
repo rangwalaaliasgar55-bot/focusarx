@@ -57,6 +57,7 @@ export function Reveal({ delay = 0, distance = 24, as = "div", children, ...rest
       whileInView={{ opacity: 1, y: 0 }}
       viewport={VIEWPORT}
       transition={{ duration: 0.7, delay, ease: EASE_APPLE }}
+      style={{ willChange: "transform, opacity", ...(rest as { style?: React.CSSProperties }).style }}
       {...rest}
     >
       {children}
@@ -122,7 +123,7 @@ export function ScrollScale({
     target: ref,
     offset: ["start 95%", "start 35%"],
   });
-  const smooth = useSpring(scrollYProgress, { stiffness: 90, damping: 24, mass: 0.6 });
+  const smooth = useSpring(scrollYProgress, { stiffness: 80, damping: 26, mass: 0.55 });
   const scale = useTransform(smooth, [0, 1], [0.94, 1]);
   const rotateX = useTransform(smooth, [0, 1], [7, 0]);
   const opacity = useTransform(smooth, [0, 0.55], [0.45, 1]);
@@ -132,7 +133,7 @@ export function ScrollScale({
 
   return (
     <div ref={ref} className={className} style={{ perspective: "1400px" }}>
-      <motion.div style={{ scale, rotateX, opacity, y, transformOrigin: "center 20%" }}>
+      <motion.div style={{ scale, rotateX, opacity, y, transformOrigin: "center 20%", willChange: "transform, opacity" }}>
         {children}
       </motion.div>
     </div>
@@ -162,7 +163,7 @@ export function HeroScrub({
 
   return (
     <div ref={ref} className={className}>
-      <motion.div style={{ opacity, scale, y }}>{children}</motion.div>
+      <motion.div style={{ opacity, scale, y, willChange: "transform, opacity" }}>{children}</motion.div>
     </div>
   );
 }
@@ -191,7 +192,7 @@ export function Parallax({
 
   return (
     <div ref={ref} className={className}>
-      <motion.div style={{ y }}>{children}</motion.div>
+      <motion.div style={{ y, willChange: "transform" }}>{children}</motion.div>
     </div>
   );
 }
