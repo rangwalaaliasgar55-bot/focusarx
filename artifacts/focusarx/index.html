@@ -395,26 +395,6 @@
       crossorigin="anonymous"
       onload="window.__adsbygoogleLoaded=true"></script>
 
-    <!-- ══════════════════════════════════════════════════════════
-         CRITICAL CHUNK PRELOAD — prefetch vendor-react and vendor-motion
-         so they're ready before route navigation triggers import()
-    ══════════════════════════════════════════════════════════════ -->
-    <script>
-      // Preload critical chunks during idle time
-      if ('requestIdleCallback' in window) {
-        requestIdleCallback(() => {
-          const criticalChunks = ['vendor-react', 'vendor-motion', 'vendor-query'];
-          criticalChunks.forEach(name => {
-            const link = document.createElement('link');
-            link.rel = 'modulepreload';
-            link.href = `/assets/${name}-*.js`;
-            // Use fetch to warm the cache for the actual hashed files
-            fetch(import.meta.resolve?.(`./assets/${name}-`) || '', { mode: 'no-cors' }).catch(() => {});
-          });
-        });
-      }
-    </script>
-
     <!-- Production assets are injected by vite build. In dev mode, src/main.tsx is used. -->
   </head>
   <body>
