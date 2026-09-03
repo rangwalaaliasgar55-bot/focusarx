@@ -219,9 +219,9 @@ export default function MobileWelcomePage() {
 function StepSlide({ children }: { children: React.ReactNode }) {
   return (
     <motion.div
-      initial={{ opacity: 0, x: 28 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -28 }}
+      initial={{ x: 28 }}
+      animate={{ x: 0 }}
+      exit={{ x: -28 }}
       transition={{ duration: 0.25, ease: "easeOut" }}
     >
       {children}
