@@ -17,7 +17,7 @@ permissions:
   pull-requests: read
 
 env:
-  NODE_VERSION: "20"
+  NODE_VERSION: "24"
   PNPM_VERSION: "10.26.1"
 
 jobs:
