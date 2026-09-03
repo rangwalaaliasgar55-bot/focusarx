@@ -221,13 +221,13 @@ function buildStructuredData(path: string, entry: SeoPage): object[] {
       headline: entry.h1,
       description: entry.description,
       dateModified: entry.lastReviewed,
-      author: { "@type": "Organization", name: "FocusArx", url: "https://www.focusarx.site" },
+      author: { "@type": "Organization", name: "FocusArx", url: "https://focusarx.site" },
       publisher: {
         "@type": "Organization",
         name: "FocusArx",
-        logo: { "@type": "ImageObject", url: "https://www.focusarx.site/logo.png" },
+        logo: { "@type": "ImageObject", url: "https://focusarx.site/logo.png" },
       },
-      mainEntityOfPage: `https://www.focusarx.site${path}`,
+      mainEntityOfPage: `https://focusarx.site${path}`,
     });
   }
 
@@ -238,7 +238,7 @@ function buildStructuredData(path: string, entry: SeoPage): object[] {
       name: entry.software.name,
       applicationCategory: entry.software.category,
       operatingSystem: "Web",
-      url: `https://www.focusarx.site${path}`,
+      url: `https://focusarx.site${path}`,
       description: entry.software.description,
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
     });

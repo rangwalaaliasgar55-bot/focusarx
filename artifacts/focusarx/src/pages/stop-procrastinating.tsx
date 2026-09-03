@@ -56,9 +56,9 @@ const articleSchema = {
   "headline": "How to Stop Procrastinating: 12 Methods That Actually Work",
   "description": "A science-based guide to beating procrastination — why it's an emotion-regulation problem, and 12 proven methods including the 2-minute rule, temptation bundling, and implementation intentions.",
   "author": { "@type": "Organization", "name": "FocusArx" },
-  "publisher": { "@type": "Organization", "name": "FocusArx", "logo": { "@type": "ImageObject", "url": "https://www.focusarx.site/logo.png" } },
+  "publisher": { "@type": "Organization", "name": "FocusArx", "logo": { "@type": "ImageObject", "url": "https://focusarx.site/logo.png" } },
   "dateModified": "2026-08-24",
-  "mainEntityOfPage": "https://www.focusarx.site/stop-procrastinating",
+  "mainEntityOfPage": "https://focusarx.site/stop-procrastinating",
 };
 
 const faqSchema = {

@@ -14,75 +14,75 @@ with MediaPipe — video is never uploaded.
 Every metric FocusArx publishes appears on the claim ledger with a definition,
 source, sample and date. We publish no ratings, user counts or improvement
 percentages we cannot source, and we make no medical, diagnostic or treatment
-claims. See https://www.focusarx.site/evidence
+claims. See https://focusarx.site/evidence
 
 ## Free tools
 
-- [Pomodoro Timer](https://www.focusarx.site/pomodoro-timer): free 25/5 browser timer with custom intervals from 10–180 minutes, session history and streaks. No signup required to start.
-- [Focus Timer](https://www.focusarx.site/focus-timer): focus and deep work sessions with Focus Tokens, city progression and analytics.
-- [Study Timer](https://www.focusarx.site/study-timer): timed study blocks tied to subjects, for exam revision planning.
-- [Study Time Calculator](https://www.focusarx.site/study-calculator): enter an exam date and topic list, get a dated revision schedule with spaced repeats.
-- [Study Method Quiz](https://www.focusarx.site/study-method-quiz): two minutes to match a study method to your schedule and goals.
-- [60-Second Scroll Reset](https://www.focusarx.site/break-free): a short interruption pattern for breaking a distraction loop.
-- [Breathing Reset](https://www.focusarx.site/breathe): a two-minute guided reset between study blocks.
+- [Pomodoro Timer](https://focusarx.site/pomodoro-timer): free 25/5 browser timer with custom intervals from 10–180 minutes, session history and streaks. No signup required to start.
+- [Focus Timer](https://focusarx.site/focus-timer): focus and deep work sessions with Focus Tokens, city progression and analytics.
+- [Study Timer](https://focusarx.site/study-timer): timed study blocks tied to subjects, for exam revision planning.
+- [Study Time Calculator](https://focusarx.site/study-calculator): enter an exam date and topic list, get a dated revision schedule with spaced repeats.
+- [Study Method Quiz](https://focusarx.site/study-method-quiz): two minutes to match a study method to your schedule and goals.
+- [60-Second Scroll Reset](https://focusarx.site/break-free): a short interruption pattern for breaking a distraction loop.
+- [Breathing Reset](https://focusarx.site/breathe): a two-minute guided reset between study blocks.
 
 ## Guides
 
-- [How to Focus: Complete Guide](https://www.focusarx.site/focus-guide): why focus is hard, the neuroscience of attention, and a system to rebuild concentration.
-- [Deep Work Guide](https://www.focusarx.site/deep-work-guide): what deep work is, the four scheduling patterns, and how to protect a block once it starts.
-- [The Pomodoro Technique](https://www.focusarx.site/pomodoro-guide): how to run 25/5 sprints correctly, and when to use longer intervals instead.
-- [Best Study Techniques](https://www.focusarx.site/study-techniques): active recall, spaced repetition and interleaving, ranked by evidence.
-- [How to Focus While Studying](https://www.focusarx.site/how-to-focus-while-studying): nine changes ordered by impact and effort.
-- [Body Doubling](https://www.focusarx.site/body-doubling): why working alongside someone else makes starting easier, and how to use it online.
-- [How to Focus with ADHD](https://www.focusarx.site/adhd-focus-tips): strategies designed around external structure. Workflow design, not medical advice.
-- [ADHD-Friendly Focus Tools](https://www.focusarx.site/adhd-focus-tools): visual timers, body doubling rooms, task breakdown and recovery-friendly streaks.
-- [How to Stop Procrastinating](https://www.focusarx.site/stop-procrastinating): why procrastination happens and twelve methods to interrupt it.
-- [How to Stop Scrolling](https://www.focusarx.site/stop-scrolling): why the loop persists and a 60-second reset that works.
-- [Best Music for Studying](https://www.focusarx.site/focus-music): what the evidence says about lo-fi, binaural beats and silence.
-- [The Science of Deep Work](https://www.focusarx.site/science-of-deep-work): what happens in the brain during sustained concentration.
-- [The 2-Hour Study Method](https://www.focusarx.site/two-hour-study-method): a structured block — warm-up, deep study, retrieval, review.
-- [The Feynman Technique](https://www.focusarx.site/feynman-technique): learn deeply by explaining in plain language and attacking the gaps.
-- [Guide Library](https://www.focusarx.site/guides): every guide in one place.
+- [How to Focus: Complete Guide](https://focusarx.site/focus-guide): why focus is hard, the neuroscience of attention, and a system to rebuild concentration.
+- [Deep Work Guide](https://focusarx.site/deep-work-guide): what deep work is, the four scheduling patterns, and how to protect a block once it starts.
+- [The Pomodoro Technique](https://focusarx.site/pomodoro-guide): how to run 25/5 sprints correctly, and when to use longer intervals instead.
+- [Best Study Techniques](https://focusarx.site/study-techniques): active recall, spaced repetition and interleaving, ranked by evidence.
+- [How to Focus While Studying](https://focusarx.site/how-to-focus-while-studying): nine changes ordered by impact and effort.
+- [Body Doubling](https://focusarx.site/body-doubling): why working alongside someone else makes starting easier, and how to use it online.
+- [How to Focus with ADHD](https://focusarx.site/adhd-focus-tips): strategies designed around external structure. Workflow design, not medical advice.
+- [ADHD-Friendly Focus Tools](https://focusarx.site/adhd-focus-tools): visual timers, body doubling rooms, task breakdown and recovery-friendly streaks.
+- [How to Stop Procrastinating](https://focusarx.site/stop-procrastinating): why procrastination happens and twelve methods to interrupt it.
+- [How to Stop Scrolling](https://focusarx.site/stop-scrolling): why the loop persists and a 60-second reset that works.
+- [Best Music for Studying](https://focusarx.site/focus-music): what the evidence says about lo-fi, binaural beats and silence.
+- [The Science of Deep Work](https://focusarx.site/science-of-deep-work): what happens in the brain during sustained concentration.
+- [The 2-Hour Study Method](https://focusarx.site/two-hour-study-method): a structured block — warm-up, deep study, retrieval, review.
+- [The Feynman Technique](https://focusarx.site/feynman-technique): learn deeply by explaining in plain language and attacking the gaps.
+- [Guide Library](https://focusarx.site/guides): every guide in one place.
 
 ## Exam preparation (India-first)
 
-- [Exam Prep Hub](https://www.focusarx.site/exam): 14 guides covering JEE Main, JEE Advanced, NEET-UG, CBSE Class 12, CBSE Class 10, GATE, CAT, UPSC CSE, SSC CGL, NDA, CTET, IBPS PO, exam anxiety and last-minute revision.
+- [Exam Prep Hub](https://focusarx.site/exam): 14 guides covering JEE Main, JEE Advanced, NEET-UG, CBSE Class 12, CBSE Class 10, GATE, CAT, UPSC CSE, SSC CGL, NDA, CTET, IBPS PO, exam anxiety and last-minute revision.
 
 ## Study rooms
 
-- [Virtual Study Rooms](https://www.focusarx.site/virtual-study-room): study alongside other learners with a synchronised timer. Camera optional and off by default.
-- [Study With Me](https://www.focusarx.site/study-with-me): how live study-with-me sessions work and why they make starting easier.
-- [Live Study Rooms](https://www.focusarx.site/study-rooms): currently running rooms.
-- [Room Safety and Moderation](https://www.focusarx.site/safety): defaults, reporting, moderation and escalation.
+- [Virtual Study Rooms](https://focusarx.site/virtual-study-room): study alongside other learners with a synchronised timer. Camera optional and off by default.
+- [Study With Me](https://focusarx.site/study-with-me): how live study-with-me sessions work and why they make starting easier.
+- [Live Study Rooms](https://focusarx.site/study-rooms): currently running rooms.
+- [Room Safety and Moderation](https://focusarx.site/safety): defaults, reporting, moderation and escalation.
 
 ## Comparisons
 
-- [FocusArx vs Forest](https://www.focusarx.site/comparison/focusarx-vs-forest)
-- [FocusArx vs Focus To-Do](https://www.focusarx.site/comparison/focusarx-vs-focus-todo)
-- [FocusArx vs Focusmate](https://www.focusarx.site/comparison/focusarx-vs-focusmate)
-- [FocusArx vs Pomofocus](https://www.focusarx.site/comparison/focusarx-vs-pomofocus)
-- [FocusArx vs Freedom](https://www.focusarx.site/comparison/focusarx-vs-freedom)
-- [FocusArx vs StayFocusd](https://www.focusarx.site/comparison/focusarx-vs-stayfocusd)
+- [FocusArx vs Forest](https://focusarx.site/comparison/focusarx-vs-forest)
+- [FocusArx vs Focus To-Do](https://focusarx.site/comparison/focusarx-vs-focus-todo)
+- [FocusArx vs Focusmate](https://focusarx.site/comparison/focusarx-vs-focusmate)
+- [FocusArx vs Pomofocus](https://focusarx.site/comparison/focusarx-vs-pomofocus)
+- [FocusArx vs Freedom](https://focusarx.site/comparison/focusarx-vs-freedom)
+- [FocusArx vs StayFocusd](https://focusarx.site/comparison/focusarx-vs-stayfocusd)
 
 Each comparison states when the other product is the better choice. Competitor
 facts are limited to what those companies state publicly.
 
 ## Trust and transparency
 
-- [Evidence and Claim Policy](https://www.focusarx.site/evidence): the public claim ledger — what we publish, what we removed, and what we will not claim.
-- [Camera Data](https://www.focusarx.site/camera-data): attention monitoring is optional, off by default, processed on-device, and never uploaded.
-- [Accessibility](https://www.focusarx.site/accessibility): WCAG 2.2 AA target, automated axe-core testing, known limitations.
-- [Privacy Policy](https://www.focusarx.site/privacy)
-- [AI Policy](https://www.focusarx.site/ai-policy)
-- [Data Deletion](https://www.focusarx.site/data-deletion)
-- [Acceptable Use](https://www.focusarx.site/acceptable-use)
-- [Press Kit](https://www.focusarx.site/press)
-- [About](https://www.focusarx.site/about)
-- [Contact](https://www.focusarx.site/contact)
+- [Evidence and Claim Policy](https://focusarx.site/evidence): the public claim ledger — what we publish, what we removed, and what we will not claim.
+- [Camera Data](https://focusarx.site/camera-data): attention monitoring is optional, off by default, processed on-device, and never uploaded.
+- [Accessibility](https://focusarx.site/accessibility): WCAG 2.2 AA target, automated axe-core testing, known limitations.
+- [Privacy Policy](https://focusarx.site/privacy)
+- [AI Policy](https://focusarx.site/ai-policy)
+- [Data Deletion](https://focusarx.site/data-deletion)
+- [Acceptable Use](https://focusarx.site/acceptable-use)
+- [Press Kit](https://focusarx.site/press)
+- [About](https://focusarx.site/about)
+- [Contact](https://focusarx.site/contact)
 
 ## Optional
 
-- [Pricing](https://www.focusarx.site/pricing): free forever at the core.
-- [Product Roadmap](https://www.focusarx.site/roadmap)
-- [Developer Docs](https://www.focusarx.site/developer)
-- [Leaderboard](https://www.focusarx.site/leaderboard)
+- [Pricing](https://focusarx.site/pricing): free forever at the core.
+- [Product Roadmap](https://focusarx.site/roadmap)
+- [Developer Docs](https://focusarx.site/developer)
+- [Leaderboard](https://focusarx.site/leaderboard)

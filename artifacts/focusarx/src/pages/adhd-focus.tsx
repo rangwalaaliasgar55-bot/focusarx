@@ -56,9 +56,9 @@ const articleSchema = {
   "headline": "How to Focus with ADHD: 15 Science-Backed Strategies That Actually Work",
   "description": "Practical, science-backed focus strategies for ADHD brains — body doubling, the 10-minute rule, dopamine-friendly rewards, external timers, and habit systems that stick.",
   "author": { "@type": "Organization", "name": "FocusArx" },
-  "publisher": { "@type": "Organization", "name": "FocusArx", "logo": { "@type": "ImageObject", "url": "https://www.focusarx.site/logo.png" } },
+  "publisher": { "@type": "Organization", "name": "FocusArx", "logo": { "@type": "ImageObject", "url": "https://focusarx.site/logo.png" } },
   "dateModified": "2026-08-24",
-  "mainEntityOfPage": "https://www.focusarx.site/adhd-focus-tips",
+  "mainEntityOfPage": "https://focusarx.site/adhd-focus-tips",
 };
 
 const faqSchema = {

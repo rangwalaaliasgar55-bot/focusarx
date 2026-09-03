@@ -17,7 +17,7 @@ import {
 import { PageSEO } from "@/components/PageSEO";
 import { EXAM_GUIDES, EXAM_HUB, findExamGuide } from "@/content/exam/index.mjs";
 
-const BASE_URL = (import.meta.env.VITE_APP_URL || "https://www.focusarx.site").replace(/\/+$/, "");
+const BASE_URL = (import.meta.env.VITE_APP_URL || "https://focusarx.site").replace(/\/+$/, "");
 
 /** Serverless OG card for this guide (Workstream E OG automation). */
 function ogCardUrl(title: string, subtitle: string): string {

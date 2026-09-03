@@ -280,7 +280,7 @@ describe("9. server code logs through pino, not console", () => {
 });
 
 describe("10. sitemap host matches the canonical host", () => {
-  it("sitemap default base is the www host used by index.html", () => {
+  it("sitemap default base matches the canonical host used by index.html", () => {
     const sitemap = read(path.join(API_SRC, "routes/sitemap.ts"));
     const index = read(path.join(FRONTEND, "index.html"));
 
@@ -299,12 +299,12 @@ describe("10. sitemap host matches the canonical host", () => {
     expect(robotsSitemap?.startsWith(canonical!), "robots.txt Sitemap: uses a different host").toBe(true);
   });
 
-  it("the static sitemap index is valid XML and points at www", () => {
+  it("the static sitemap index is valid XML and points at the canonical apex host", () => {
     const xml = read(path.join(FRONTEND, "public/sitemap.xml"));
     expect(xml.startsWith("<?xml")).toBe(true);
     expect(xml).toContain("<sitemapindex");
-    expect(xml).toContain("https://www.focusarx.site/");
-    expect(xml).not.toContain("https://focusarx.site/"); // apex — would duplicate
+    expect(xml).toContain("https://focusarx.site/");
+    expect(xml).not.toContain("//www.focusarx.site"); // www — would cross-host duplicate
     // Balanced elements — strip the XML comment first, since the explanatory
     // header legitimately mentions <sitemap> in prose.
     const body = xml.replace(/<!--[\s\S]*?-->/g, "");

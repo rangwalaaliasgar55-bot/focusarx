@@ -11,40 +11,40 @@
   KEEP THIS LIST IDENTICAL TO `SEGMENTS` IN sitemap.ts. The seoContract test
   fails the build if they drift.
 
-  Canonical host is www.focusarx.site — the previous file and the API
+  Canonical host is focusarx.site — the previous file and the API
   disagreed on host, which made every URL a cross-host duplicate.
 -->
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <sitemap>
-    <loc>https://www.focusarx.site/sitemap-core.xml</loc>
+    <loc>https://focusarx.site/sitemap-core.xml</loc>
     <lastmod>2026-08-29</lastmod>
   </sitemap>
   <sitemap>
-    <loc>https://www.focusarx.site/sitemap-tools.xml</loc>
+    <loc>https://focusarx.site/sitemap-tools.xml</loc>
     <lastmod>2026-08-29</lastmod>
   </sitemap>
   <sitemap>
-    <loc>https://www.focusarx.site/sitemap-guides.xml</loc>
+    <loc>https://focusarx.site/sitemap-guides.xml</loc>
     <lastmod>2026-08-29</lastmod>
   </sitemap>
   <sitemap>
-    <loc>https://www.focusarx.site/sitemap-exams.xml</loc>
+    <loc>https://focusarx.site/sitemap-exams.xml</loc>
     <lastmod>2026-08-29</lastmod>
   </sitemap>
   <sitemap>
-    <loc>https://www.focusarx.site/sitemap-compare.xml</loc>
+    <loc>https://focusarx.site/sitemap-compare.xml</loc>
     <lastmod>2026-08-29</lastmod>
   </sitemap>
   <sitemap>
-    <loc>https://www.focusarx.site/sitemap-trust.xml</loc>
+    <loc>https://focusarx.site/sitemap-trust.xml</loc>
     <lastmod>2026-08-29</lastmod>
   </sitemap>
   <sitemap>
-    <loc>https://www.focusarx.site/sitemap-legal.xml</loc>
+    <loc>https://focusarx.site/sitemap-legal.xml</loc>
     <lastmod>2026-08-29</lastmod>
   </sitemap>
   <sitemap>
-    <loc>https://www.focusarx.site/sitemap-profiles-1.xml</loc>
+    <loc>https://focusarx.site/sitemap-profiles-1.xml</loc>
     <lastmod>2026-08-29</lastmod>
   </sitemap>
 </sitemapindex>

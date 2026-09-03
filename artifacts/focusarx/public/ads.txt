@@ -1,9 +1,9 @@
 # ads.txt — authorized digital sellers for focusarx.site
-# Served at https://www.focusarx.site/ads.txt (Vercel `filesystem` route).
+# Served at https://focusarx.site/ads.txt (Vercel `filesystem` route).
 #
 # Format: <SSP domain>, <publisher id>, <relationship>, <TAG-ID>
 # DIRECT = focusarx.site sells its own inventory through Google AdSense.
 #
 # Verify at: AdSense console → Settings → Site management → ads.txt, or
-#   curl -s https://www.focusarx.site/ads.txt
+#   curl -s https://focusarx.site/ads.txt
 google.com, pub-3831356027941619, DIRECT, f08c47fec0942fa0
