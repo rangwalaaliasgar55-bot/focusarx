@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "ports": {"preview": 3000, "additional": {}},
+  "scripts": {
+    "setup": {
+      "enabled": true,
+      "command": "corepack pnpm install --prefer-offline && (pg_isready -q -h 127.0.0.1 -p 5432 || sudo pg_ctlcluster 16 main start) && (sudo -u postgres psql -tAc \"SELECT 1 FROM pg_roles WHERE rolname='focusarx'\" | grep -q 1 || sudo -u postgres psql -c \"CREATE USER focusarx WITH PASSWORD 'focusarx-dev' CREATEDB\") && (sudo -u postgres psql -tAc \"SELECT 1 FROM pg_database WHERE datname='focusarx'\" | grep -q 1 || sudo -u postgres psql -c \"CREATE DATABASE focusarx OWNER focusarx\") && ([ -f .env ] || printf 'DATABASE_URL=postgresql://focusarx:focusarx-dev@127.0.0.1:5432/focusarx\\nAUTH_SECRET=dev-only-secret-0123456789abcdef0123456789abcdef\\nADMIN_PASSWORD=dev-admin-pass\\nAPP_URL=http://localhost:3000\\nVITE_APP_URL=http://localhost:3000\\nNODE_ENV=development\\n' > .env) && set -a && source .env && set +a && corepack pnpm --filter @workspace/db run push && corepack pnpm --filter @workspace/db run seed"
+    },
+    "run": {
+      "enabled": true,
+      "command": "(pg_isready -q -h 127.0.0.1 -p 5432 || sudo pg_ctlcluster 16 main start); PORT=8080 corepack pnpm --filter @workspace/api-server run dev & PORT=3000 corepack pnpm --filter @workspace/focusarx run dev"
+    },
+    "archive": {"enabled": true, "command": null},
+    "check": {"enabled": true, "command": null}
+  },
+  "mcpServers": []
+}
