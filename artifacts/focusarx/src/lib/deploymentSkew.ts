@@ -29,9 +29,13 @@
  *
  * 5. ADAPTIVE POLLING:
  *    - Polls every 2 min normally, 30s after detecting any version change
+ *    - Fast polling is capped (~10 min) then drops back to normal, so a
+ *      stuck mismatch can never poll /api/deployment every 30s forever
  *    - Backs off exponentially on network errors (up to 10 min)
  *    - Pauses polling when page is hidden (battery saving)
  *    - Resumes immediately on visibility change
+ *    - Unverifiable versions (dev sentinels, backend "unverifiable") never
+ *      raise the banner; a resolved mismatch clears it without a refresh
  *
  * 6. SERVICE WORKER INTEGRATION:
  *    - Validates that the cached index.html matches the current deployment
@@ -81,6 +85,39 @@ const MAX_QUEUED_MUTATIONS = 10;
 /** Max refresh attempts before giving up (prevents infinite loops). */
 const MAX_REFRESH_ATTEMPTS = 3;
 
+/**
+ * Fast-polling cap: after this many 30s polls (~10 min) with the skew still
+ * unresolved, drop back to the normal interval. A stuck mismatch (e.g. a
+ * backend that cannot identify its own deployment) must not hammer
+ * /api/deployment every 30s forever — that poll storm was half of the
+ * "request keeps coming again" complaint.
+ */
+const MAX_FAST_POLLS = 20;
+
+/**
+ * Sentinel the backend answers when it has no stable deployment identifier
+ * (must match UNVERIFIABLE_DEPLOYMENT_VERSION in
+ * artifacts/api-server/src/lib/deploymentVersion.ts).
+ */
+const UNVERIFIABLE_SERVER_VERSION = "unverifiable";
+
+/** Prefix for per-process dev versions (`dev-local`, `dev-<pid>`). */
+const DEV_VERSION_PREFIX = "dev-";
+
+/**
+ * True when a version string can never participate in skew detection: dev
+ * sentinels on either side, or the backend's explicit "I don't know".
+ * Comparing those values as if they were deployment ids is what produced a
+ * permanent, unfixable "Update available" banner.
+ */
+export function isUnverifiableVersion(version: string | null | undefined): boolean {
+  if (!version) return true;
+  const trimmed = version.trim();
+  if (trimmed === "") return true;
+  const lower = trimmed.toLowerCase();
+  return lower.startsWith(DEV_VERSION_PREFIX) || lower === UNVERIFIABLE_SERVER_VERSION;
+}
+
 // ─── Build-time version ──────────────────────────────────────────────────────
 
 /** The deployment version this frontend was built with. */
@@ -99,6 +136,7 @@ let dismissed = false;
 let pollInterval = POLL_INTERVAL_NORMAL;
 let pollBackoff = 1;
 let consecutiveErrors = 0;
+let fastPollCount = 0;
 let isPolling = false;
 const listeners = new Set<() => void>();
 const broadcastChannel = typeof BroadcastChannel !== "undefined"
@@ -120,6 +158,14 @@ function broadcastToAllTabs(type: string, data?: Record<string, unknown>) {
 /**
  * Record the server version from a response header or API body.
  * If it differs from the frontend version, trigger mismatch handling.
+ *
+ * Three cases that used to misbehave:
+ * - Either side is unverifiable (dev sentinels, backend "unverifiable"):
+ *   skew cannot be determined, so stay quiet instead of raising a banner
+ *   that no refresh can ever clear.
+ * - Versions agree after a mismatch (transient overlap during a rolling
+ *   deploy): resolve the flag so the banner hides itself and polling calms
+ *   down — previously the flag latched forever until a manual refresh.
  */
 export function recordServerVersion(version: string | null | undefined): void {
   if (!version) return;
@@ -134,8 +180,27 @@ export function recordServerVersion(version: string | null | undefined): void {
   // Reset backoff on successful version read
   consecutiveErrors = 0;
   pollBackoff = 1;
+  // A new server version restarts the fast-poll budget (see scheduleNextPoll).
+  fastPollCount = 0;
 
-  if (version !== FRONTEND_DEPLOYMENT_VERSION && !mismatchDetected) {
+  // Skew cannot be judged — record quietly and change nothing.
+  if (isUnverifiableVersion(version) || isUnverifiableVersion(FRONTEND_DEPLOYMENT_VERSION)) {
+    return;
+  }
+
+  // Transient skew resolved itself (rolling deploy settled): stand down.
+  if (version === FRONTEND_DEPLOYMENT_VERSION) {
+    if (mismatchDetected) {
+      mismatchDetected = false;
+      dismissed = false;
+      pollInterval = POLL_INTERVAL_NORMAL;
+      notify();
+      logger.info("[deploy-skew] Versions agree again — mismatch resolved without refresh.");
+    }
+    return;
+  }
+
+  if (!mismatchDetected) {
     mismatchDetected = true;
     notify();
 
@@ -456,21 +521,39 @@ export function safeRefresh(): void {
   // Save form data before refreshing
   saveFormState();
 
-  // Clear the service worker cache to ensure fresh assets
-  if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
-    navigator.serviceWorker.controller.postMessage({ type: "CLEAR_CACHE" });
-  }
-
   // Notify other tabs that we're handling the refresh
   broadcastToAllTabs("refresh-started", {
     version: FRONTEND_DEPLOYMENT_VERSION,
   });
 
-  // Perform a hard reload with cache-busting
-  const url = new URL(window.location.href);
-  url.searchParams.set("_v", Date.now().toString());
-  url.searchParams.set("_skew", "1"); // Mark as skew-triggered for analytics
-  window.location.replace(url.toString());
+  // Refreshing only helps if the reload actually loads the new build. The old
+  // code posted CLEAR_CACHE and navigated in the same tick, so the navigation
+  // routinely raced (and lost to) the cache purge and came back stale — the
+  // banner reappeared and "Update now" looked like it did nothing. Sequence
+  // it instead: ask the worker to update itself, purge what the page can
+  // reach, THEN navigate.
+  void (async () => {
+    try {
+      if ("serviceWorker" in navigator) {
+        const registration = await navigator.serviceWorker.getRegistration().catch(() => null);
+        if (registration) {
+          try { registration.active?.postMessage({ type: "CLEAR_CACHE" }); } catch { /* worker gone */ }
+          await registration.update().catch(() => {});
+        }
+      }
+      if ("caches" in window) {
+        const keys = await caches.keys().catch(() => [] as string[]);
+        await Promise.all(keys.map((key) => caches.delete(key).catch(() => false)));
+      }
+    } catch {
+      // Best effort — a failed purge must never block the reload itself.
+    }
+    // Perform a hard reload with cache-busting
+    const url = new URL(window.location.href);
+    url.searchParams.set("_v", Date.now().toString());
+    url.searchParams.set("_skew", "1"); // Mark as skew-triggered for analytics
+    window.location.replace(url.toString());
+  })();
 }
 
 export function resetRefreshGuard(): void {
@@ -575,8 +658,22 @@ export function useDeploymentSkewDetector() {
     if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
 
     const interval = pollInterval * pollBackoff;
+    const wasFastPoll = pollInterval === POLL_INTERVAL_FAST;
     pollTimerRef.current = setTimeout(async () => {
       await checkDeployment();
+      // Cap fast polling: a skew that survives ~10 min of 30s polls is not
+      // going to resolve by polling harder — drop back to the normal
+      // interval instead of requesting /api/deployment forever.
+      if (wasFastPoll && pollInterval === POLL_INTERVAL_FAST) {
+        fastPollCount += 1;
+        if (fastPollCount >= MAX_FAST_POLLS) {
+          fastPollCount = 0;
+          pollInterval = POLL_INTERVAL_NORMAL;
+          logger.warn(
+            "[deploy-skew] Skew unresolved after extended fast polling — backing off to the normal interval."
+          );
+        }
+      }
       scheduleNextPoll(); // Schedule next after completion
     }, interval);
   }, []);

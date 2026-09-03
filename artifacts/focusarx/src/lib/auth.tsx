@@ -162,25 +162,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       let endpoint = "/api/auth/login";
       if (provider === "guest") endpoint = "/api/auth/guest";
 
-      const res = await fetch(endpoint, {
+      const doPost = () => fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(opts),
         credentials: "include",
       });
 
-      // Tolerate non-JSON responses (e.g. a proxy/edge error page) so we can
-      // surface a clean message instead of throwing during JSON parsing.
-      let data: unknown = {};
-      try {
-        data = await res.json();
-      } catch {
-        data = {};
+      const readBody = async (res: Response): Promise<unknown> => {
+        // Tolerate non-JSON responses (e.g. a proxy/edge error page) so we can
+        // surface a clean message instead of throwing during JSON parsing.
+        try {
+          return await res.json();
+        } catch {
+          return {};
+        }
+      };
+
+      let res = await doPost();
+      let data = await readBody(res);
+
+      // A 503 here is usually transient (cold start, rolling deploy, brief
+      // dependency blip): retry once after a short pause. The exception is
+      // CONFIG_ERROR — a persistent misconfiguration no retry can fix, so
+      // surface it immediately instead of burning the rate-limit budget and
+      // making the user wait for an answer we already have.
+      const errorCode = (data as { error?: { code?: unknown } })?.error?.code;
+      if (res.status === 503 && errorCode !== "CONFIG_ERROR") {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        res = await doPost();
+        data = await readBody(res);
       }
+
       if (!res.ok) {
         const fallback = res.status === 429
           ? "Too many attempts. Please wait a moment and try again."
-          : "Authentication failed. Please try again.";
+          : res.status === 503
+            ? "The sign-in service is temporarily unavailable. Please wait a moment and try again."
+            : "Authentication failed. Please try again.";
         return {
           ok: false,
           error: apiErrorMessage(data, fallback),
