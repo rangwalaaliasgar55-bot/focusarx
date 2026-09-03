@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 import { Link } from "wouter";
+import { Reveal, RevealStagger, RevealItem } from "@/components/motion/Scroll";
 import { ArrowRight, Brain, Clock, Flame, Music, Sparkles, Timer, Users, BookOpen, Calculator, HelpCircle, Atom, Layers, Coffee, Wind, GraduationCap } from "lucide-react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 import { AdSlot } from "@/components/AdSlot";
@@ -91,12 +92,14 @@ export default function GuidesPage() {
               opens on content rather than an ad. */}
           {collectionIdx > 0 && collectionIdx % 2 === 0 && <AdSlot name="guidesInFeed" minHeight={120} />}
           <section className="mb-12">
-            <h2 className="mb-1 text-2xl font-semibold tracking-[-0.03em] text-[var(--foreground)]">{collection.title}</h2>
-            <p className="mb-5 text-sm text-[var(--foreground-muted)]">{collection.description}</p>
-            <div className="space-y-3">
+            <Reveal distance={18}>
+              <h2 className="mb-1 text-2xl font-semibold tracking-[-0.03em] text-[var(--foreground)]">{collection.title}</h2>
+              <p className="mb-5 text-sm text-[var(--foreground-muted)]">{collection.description}</p>
+            </Reveal>
+            <RevealStagger className="space-y-3">
               {collection.guides.map((g) => (
+                <RevealItem key={g.href}>
                 <Link
-                  key={g.href}
                   href={g.href}
                   className="group block rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface)] p-5 transition-[border-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:-translate-y-0.5 hover:border-[var(--card-border)] hover:shadow-[var(--shadow-sm)] motion-reduce:hover:translate-y-0"
                 >
@@ -111,8 +114,9 @@ export default function GuidesPage() {
                     <ArrowRight size={16} className="ml-auto mt-1 shrink-0 text-[var(--foreground-subtle)] transition-transform duration-[var(--duration-fast)] group-hover:translate-x-0.5 group-hover:text-[var(--brand-strong)] motion-reduce:group-hover:translate-x-0" />
                   </div>
                 </Link>
+                </RevealItem>
               ))}
-            </div>
+            </RevealStagger>
           </section>
           </Fragment>
         ))}
