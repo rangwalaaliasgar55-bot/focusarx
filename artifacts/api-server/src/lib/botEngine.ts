@@ -169,7 +169,8 @@ async function renameLegacyBots(): Promise<void> {
   }
 }
 
-async function ensureLegacyBots(): Promise<void> {
+async function ensureLegacyBots(): Promise<number> {
+  let created = 0;
   for (const persona of BOT_PERSONAS) {
     const email = `${persona.slug}@${BOT_DOMAIN}`;
     const [existing] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, email));
@@ -187,6 +188,7 @@ async function ensureLegacyBots(): Promise<void> {
       })
       .returning({ id: usersTable.id });
     if (!user) continue;
+    created += 1;
     await db.insert(userWalletsTable)
       .values({
         userId: user.id,
@@ -205,6 +207,7 @@ async function ensureLegacyBots(): Promise<void> {
       })
       .onConflictDoNothing();
   }
+  return created;
 }
 
 /**
@@ -216,7 +219,7 @@ async function ensureLegacyBots(): Promise<void> {
 export async function seedBotsToTarget(target: number): Promise<{ created: number; total: number }> {
   const want = Math.max(36, Math.min(20000, Math.floor(target) || 12000));
 
-  await ensureLegacyBots();
+  const legacyCreated = await ensureLegacyBots();
   await renameLegacyBots();
 
   const [{ count }] = await db
@@ -224,9 +227,11 @@ export async function seedBotsToTarget(target: number): Promise<{ created: numbe
     .from(usersTable)
     .where(eq(usersTable.role, BOT_ROLE));
   const existing = Number(count ?? 0);
-  if (existing >= want) return { created: 0, total: existing };
+  if (existing >= want) return { created: legacyCreated, total: existing };
 
-  let created = 0;
+  // `created` includes the legacy rivals this call inserted above, so the
+  // number reflects every user the call actually created.
+  let created = legacyCreated;
   const reserved = new Set<string>();
   for (let i = existing; i < want; i += 500) {
     const chunk: ReturnType<typeof generatePersona>[] = [];
