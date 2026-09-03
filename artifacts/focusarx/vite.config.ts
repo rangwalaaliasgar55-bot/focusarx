@@ -47,8 +47,23 @@ export default defineConfig({
         assetFileNames: "assets/[name]-[hash][extname]",
         chunkFileNames: "assets/[name]-[hash].js",
         entryFileNames: "assets/[name]-[hash].js",
+        // Rollup's default (true) hoists the transitive static closure of every
+        // dynamically imported chunk into the importing chunk. Because some
+        // lazily-loaded pages lazy-load 3D components, that pulled three.js
+        // (~890 kB with helpers) into the entry chunk's imports — and therefore
+        // into a <link modulepreload> on every prerendered page. Vite's own
+        // __vitePreload already parallel-fetches a dynamic import's real deps
+        // at import time, so hoisting buys nothing here and costs every visitor.
+        hoistTransitiveImports: false,
         // Function form for accurate module matching
         manualChunks(id) {
+          // Vite's __vitePreload helper is shared by every module that does a
+          // dynamic import. Left unassigned, Rollup can park it in a heavy
+          // manual chunk (it landed in vendor-three-helpers), which then made
+          // every dynamic-importing chunk — including the entry — statically
+          // depend on three.js. Keep it in vendor-react, which every chunk
+          // already depends on.
+          if (id.includes("vite/preload-helper")) return "vendor-react";
           if (!id.includes("node_modules")) return;
 
           const has = (...pkgs: string[]) =>
