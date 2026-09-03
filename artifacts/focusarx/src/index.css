@@ -28,9 +28,9 @@
   --color-popover-foreground: var(--foreground);
   --color-destructive:       var(--danger);
   --color-destructive-foreground: var(--neutral-0);
-  --font-sans:               'Geist Variable', system-ui, sans-serif;
-  --font-display:            'Manrope Variable', 'Geist Variable', system-ui, sans-serif;
-  --font-mono:               ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  --font-sans:               -apple-system, 'SF Pro Text', 'SF Pro Display', 'Geist Variable', system-ui, sans-serif;
+  --font-display:            -apple-system, 'SF Pro Display', 'Manrope Variable', 'Geist Variable', system-ui, sans-serif;
+  --font-mono:               ui-monospace, 'SF Mono', 'SFMono-Regular', Consolas, monospace;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -123,17 +123,19 @@
   --color-error:   #EF4444;
   --color-info:    #3B82F6;
 
-  /* ── Elevation / shadow scale ─────────────────────────────────────────── */
-  --shadow-xs: 0 1px 2px rgba(0,0,0,0.30);
-  --shadow-sm: 0 2px 4px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.25);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.40), 0 2px 4px rgba(0,0,0,0.30);
-  --shadow-lg: 0 8px 24px rgba(0,0,0,0.45), 0 4px 8px rgba(0,0,0,0.30);
-  --shadow-xl: 0 16px 48px rgba(0,0,0,0.50), 0 8px 16px rgba(0,0,0,0.35);
-  --shadow-violet-sm: 0 4px 16px rgba(124,58,237,0.20);
-  --shadow-violet-md: 0 8px 32px rgba(124,58,237,0.25), 0 0 0 1px rgba(124,58,237,0.20);
-  --shadow-violet-lg: 0 16px 48px rgba(124,58,237,0.30), 0 0 0 1px rgba(124,58,237,0.25);
-  --shadow-teal-sm:   0 4px 16px rgba(6,214,160,0.18);
-  --shadow-gold-sm:   0 4px 16px rgba(255,184,0,0.20);
+  /* ── Elevation / shadow scale ─────────────────────────────────────────────
+     Apple-style ambient shadows: soft, diffuse, low-opacity — depth comes
+     from blur radius, not from stacking hard multi-layer drop shadows. */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.18);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.22);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.28);
+  --shadow-lg: 0 16px 40px rgba(0,0,0,0.32);
+  --shadow-xl: 0 24px 64px rgba(0,0,0,0.38);
+  --shadow-violet-sm: 0 4px 16px rgba(124,58,237,0.16);
+  --shadow-violet-md: 0 12px 32px rgba(124,58,237,0.20);
+  --shadow-violet-lg: 0 20px 48px rgba(124,58,237,0.24);
+  --shadow-teal-sm:   0 4px 16px rgba(6,214,160,0.16);
+  --shadow-gold-sm:   0 4px 16px rgba(255,184,0,0.18);
 
   /* ── Glow effects (kept for compat) ───────────────────────────────────── */
   --glow-violet: 0 0 20px rgba(124, 58, 237, 0.4), 0 0 60px rgba(124, 58, 237, 0.1);
@@ -141,12 +143,12 @@
   --glow-gold:   0 0 20px rgba(255, 184, 0, 0.4),   0 0 60px rgba(255, 184, 0, 0.1);
 
   /* ── Radius scale ─────────────────────────────────────────────────────── */
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 18px;
-  --radius-2xl: 24px;
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-2xl: 28px;
   --radius-full: 9999px;
   --radius: var(--radius-md);
 
@@ -169,11 +171,11 @@
 
   /* ── Motion tokens ────────────────────────────────────────────────────── */
   --duration-instant: 80ms;
-  --duration-fast:   150ms;
-  --duration-normal: 250ms;
-  --duration-slow:   400ms;
+  --duration-fast:   180ms;
+  --duration-normal: 280ms;
+  --duration-slow:   420ms;
   --duration-slower: 600ms;
-  --ease-spring:  cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring:  cubic-bezier(0.32, 0.72, 0, 1);
   --ease-out:     cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out:  cubic-bezier(0.45, 0, 0.55, 1);
   --ease-bounce:  cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -341,14 +343,14 @@ html.light {
   --forge-border:        var(--card-border);
   --forge-border-bright: rgba(124, 58, 237, 0.35);
 
-  --shadow-xs: 0 1px 2px rgba(0,0,0,0.06);
-  --shadow-sm: 0 2px 4px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.06);
-  --shadow-lg: 0 8px 24px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.07);
-  --shadow-xl: 0 16px 48px rgba(0,0,0,0.14), 0 8px 16px rgba(0,0,0,0.08);
-  --shadow-violet-sm: 0 4px 16px rgba(124,58,237,0.14);
-  --shadow-violet-md: 0 8px 32px rgba(124,58,237,0.18), 0 0 0 1px rgba(124,58,237,0.14);
-  --shadow-violet-lg: 0 16px 48px rgba(124,58,237,0.22), 0 0 0 1px rgba(124,58,237,0.18);
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.08);
+  --shadow-lg: 0 16px 40px rgba(0,0,0,0.10);
+  --shadow-xl: 0 24px 64px rgba(0,0,0,0.12);
+  --shadow-violet-sm: 0 4px 16px rgba(124,58,237,0.10);
+  --shadow-violet-md: 0 12px 32px rgba(124,58,237,0.14);
+  --shadow-violet-lg: 0 20px 48px rgba(124,58,237,0.16);
 
   --brand-soft: rgba(124, 58, 237, 0.09);
   --brand-soft-hover: rgba(124, 58, 237, 0.15);

@@ -7,11 +7,11 @@ import { cn } from "@/lib/utils";
 const buttonVariants = cva(
   [
     "relative inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap",
-    "rounded-[var(--radius-md)] border border-transparent px-4",
+    "rounded-[var(--radius-lg)] border border-transparent px-4",
     "text-sm font-semibold tracking-[-0.01em] select-none",
     "transition-[transform,background-color,border-color,color,box-shadow] duration-[var(--duration-fast)] ease-[var(--ease-out)]",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-500)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]",
-    "active:scale-[0.97] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45",
+    "active:scale-[0.96] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45",
     "[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   ].join(" "),
   {

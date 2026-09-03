@@ -10,10 +10,10 @@ export interface InputProps extends React.ComponentProps<"input"> {
 
 const stateClasses = (error?: boolean, success?: boolean) =>
   error
-    ? "border-[var(--danger)] ring-2 ring-[var(--danger-soft)]"
+    ? "border-[var(--danger)] ring-[3px] ring-[var(--danger-soft)]"
     : success
-      ? "border-[var(--success)] ring-2 ring-[var(--success-soft)]"
-      : "border-[var(--input-border)] focus-within:border-[var(--brand-500)] focus-within:ring-2 focus-within:ring-[var(--ring)] focus:border-[var(--brand-500)] focus:ring-2 focus:ring-[var(--ring)]";
+      ? "border-[var(--success)] ring-[3px] ring-[var(--success-soft)]"
+      : "border-[var(--input-border)] focus-within:border-[var(--brand-500)] focus-within:ring-[3px] focus-within:ring-[var(--ring)] focus:border-[var(--brand-500)] focus:ring-[3px] focus:ring-[var(--ring)]";
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, error, success, leftSlot, rightSlot, "aria-invalid": ariaInvalid, ...props }, ref) => {
