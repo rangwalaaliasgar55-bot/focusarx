@@ -4,8 +4,9 @@ import {
   emailLogsTable,
   usersTable,
   premiumSubscriptionsTable,
+  studyStreaksTable,
 } from "@workspace/db";
-import { eq, and, isNull, lt, sql, ne } from "drizzle-orm";
+import { eq, and, gte, isNull, lt, ne, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { checkAdminAuth } from "../lib/adminAuth";
 
@@ -376,8 +377,13 @@ router.post("/admin/email/blast", async (req, res) => {
       recipients = recipients.filter(u => selectedUserIds.includes(u.id));
     } else if (audience === "streak") {
       const minStreak = streakMin || 7;
-      recipients = await db.select({ id: usersTable.id, email: usersTable.email, name: usersTable.name })
-        .from(usersTable).where(and(baseCondition, sql`${usersTable.currentStreak} >= ${minStreak}`));
+      // Streaks live in study_streaks (one row per user), not on users —
+      // users.current_streak does not exist and would fail at query time.
+      recipients = await db
+        .select({ id: usersTable.id, email: usersTable.email, name: usersTable.name })
+        .from(usersTable)
+        .innerJoin(studyStreaksTable, eq(studyStreaksTable.userId, usersTable.id))
+        .where(and(baseCondition, gte(studyStreaksTable.currentStreak, minStreak)));
     } else if (audience === "newUsers") {
       const days = newUserDays || 7;
       const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
