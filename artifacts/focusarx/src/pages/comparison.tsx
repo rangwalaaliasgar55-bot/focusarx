@@ -104,7 +104,12 @@ export default function ComparisonPage() {
       </p>
 
       {/* ── Feature table ─────────────────────────────────────── */}
-      <div className="mt-10 overflow-x-auto rounded-2xl border border-[var(--border)]">
+      <div
+        role="region"
+        aria-label="Feature comparison table"
+        tabIndex={0}
+        className="mt-10 overflow-x-auto rounded-2xl border border-[var(--border)]"
+      >
         <div className="grid min-w-[30rem] grid-cols-[1.6fr_1fr_1fr] bg-[var(--surface-raised)] p-4 text-sm font-bold text-[var(--foreground)]">
           <span>Capability</span>
           <span className="text-center">FocusArx</span>

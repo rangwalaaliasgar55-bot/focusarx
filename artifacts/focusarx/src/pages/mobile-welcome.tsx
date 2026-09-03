@@ -87,7 +87,7 @@ export default function MobileWelcomePage() {
               transition={{ duration: 0.4, ease: "easeOut" }}
             />
           </div>
-          <p className="mt-2 text-[10px] text-[var(--palette-zinc-600)] text-right">{stepIndex + 1} of {STEPS.length - 1}</p>
+          <p className="mt-2 text-[10px] text-[var(--palette-zinc-400)] text-right">{stepIndex + 1} of {STEPS.length - 1}</p>
         </div>
       )}
 
@@ -97,7 +97,7 @@ export default function MobileWelcomePage() {
           {step === "goal" && (
             <StepSlide key="goal">
               <h2 className="text-2xl font-bold text-[var(--palette-zinc-100)] mb-1">What's your main goal?</h2>
-              <p className="text-sm text-[var(--palette-zinc-500)] mb-6">We'll personalise your experience.</p>
+              <p className="text-sm text-[var(--palette-zinc-400)] mb-6">We'll personalise your experience.</p>
               <div className="grid grid-cols-2 gap-2.5">
                 {GOALS.map((g) => (
                   <OptionBtn
@@ -113,7 +113,7 @@ export default function MobileWelcomePage() {
           {step === "challenge" && (
             <StepSlide key="challenge">
               <h2 className="text-2xl font-bold text-[var(--palette-zinc-100)] mb-1">Biggest focus challenge?</h2>
-              <p className="text-sm text-[var(--palette-zinc-500)] mb-6">Be honest — we've all been there.</p>
+              <p className="text-sm text-[var(--palette-zinc-400)] mb-6">Be honest — we've all been there.</p>
               <div className="grid grid-cols-2 gap-2.5">
                 {CHALLENGES.map((c) => (
                   <OptionBtn
@@ -129,7 +129,7 @@ export default function MobileWelcomePage() {
           {step === "style" && (
             <StepSlide key="style">
               <h2 className="text-2xl font-bold text-[var(--palette-zinc-100)] mb-1">Your focus style?</h2>
-              <p className="text-sm text-[var(--palette-zinc-500)] mb-6">Sets your default session length.</p>
+              <p className="text-sm text-[var(--palette-zinc-400)] mb-6">Sets your default session length.</p>
               <div className="flex flex-col gap-3">
                 {STYLES.map((s) => (
                   <button
@@ -144,7 +144,7 @@ export default function MobileWelcomePage() {
                     <span className="text-2xl">{s.icon}</span>
                     <div className="flex-1">
                       <p className="font-semibold text-[var(--palette-zinc-100)]">{s.label}</p>
-                      <p className="text-sm text-[var(--palette-zinc-500)]">{s.sub}</p>
+                      <p className="text-sm text-[var(--palette-zinc-400)]">{s.sub}</p>
                     </div>
                     <span className="rounded-full bg-[var(--palette-zinc-800)] px-2 py-0.5 text-xs text-[var(--palette-zinc-400)]">{s.duration}m</span>
                   </button>
@@ -160,7 +160,7 @@ export default function MobileWelcomePage() {
                   🎯
                 </div>
                 <h2 className="text-2xl font-bold text-[var(--palette-zinc-100)] mb-2">You're ready to focus.</h2>
-                <p className="text-sm text-[var(--palette-zinc-500)] mb-2 max-w-xs">
+                <p className="text-sm text-[var(--palette-zinc-400)] mb-2 max-w-xs">
                   Create a free account to save your progress, streaks, and AI insights.
                 </p>
 
@@ -188,7 +188,7 @@ export default function MobileWelcomePage() {
                   </motion.button>
                   <button
                     onClick={handleGuest}
-                    className="w-full py-2.5 text-sm text-[var(--palette-zinc-600)] hover:text-[var(--palette-zinc-400)] transition-colors"
+                    className="w-full py-2.5 text-sm text-[var(--palette-zinc-400)] hover:text-[var(--palette-zinc-200)] transition-colors"
                   >
                     Continue as guest →
                   </button>
@@ -207,7 +207,7 @@ export default function MobileWelcomePage() {
       {stepIndex > 0 && step !== "auth" && (
         <button
           onClick={() => setStep(STEPS[stepIndex - 1]!)}
-          className="mt-6 flex items-center gap-1.5 text-xs text-[var(--palette-zinc-600)] hover:text-[var(--palette-zinc-400)] transition"
+          className="mt-6 flex items-center gap-1.5 text-xs text-[var(--palette-zinc-400)] hover:text-[var(--palette-zinc-200)] transition"
         >
           ← Back
         </button>

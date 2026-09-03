@@ -38,7 +38,7 @@ export function CookieConsent() {
                 <p className="mt-1 text-xs leading-relaxed text-[var(--palette-zinc-400)]">
                   FocusArx uses cookies to enhance your experience and analyze platform performance.
                   Vision data for attention tracking never leaves your browser.
-                  By continuing, you agree to our <Link href="/cookie-policy" className="text-[var(--palette-purple-400)] hover:underline">Cookie Policy</Link>.
+                  By continuing, you agree to our <Link href="/cookie-policy" className="text-[var(--palette-purple-400)] underline hover:underline">Cookie Policy</Link>.
                 </p>
               </div>
             </div>
@@ -51,6 +51,7 @@ export function CookieConsent() {
               </button>
               <button
                 onClick={() => setShow(false)}
+                aria-label="Dismiss cookie notice"
                 className="rounded-xl border border-[var(--palette-white)]/10 bg-[var(--palette-white)]/5 p-2.5 text-[var(--palette-zinc-400)] hover:text-[var(--palette-white)] transition-colors"
               >
                 <X size={18} />
