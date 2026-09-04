@@ -59,6 +59,9 @@ const NotificationsPage = lazy(() => import("@/pages/notifications"));
 const GroupsPage = lazy(() => import("@/pages/groups"));
 const BattlePassPage = lazy(() => import("@/pages/battle-pass"));
 const AiInsightsPage = lazy(() => import("@/pages/ai-insights"));
+const AIDashboardPage = lazy(() => import("@/components/social/AIDashboard").then(m => ({ default: m.default })));
+const SocialHubPage = lazy(() => import("@/components/social/SocialHub").then(m => ({ default: m.default })));
+const IntegrationHubPage = lazy(() => import("@/components/integrations/IntegrationHub").then(m => ({ default: m.default })));
 const UserProfilePage = lazy(() => import("@/pages/user-profile"));
 const HabitsPage = lazy(() => import("@/pages/habits"));
 const MessagesPage = lazy(() => import("@/pages/messages"));
@@ -304,6 +307,9 @@ function RoutedContent() {
 
               {/* AI */}
               <Route path="/ai-insights" component={() => <ErrorBoundary><ProtectedRoute component={AiInsightsPage} /></ErrorBoundary>} />
+              <Route path="/ai-dashboard" component={() => <ErrorBoundary><ProtectedRoute component={AIDashboardPage} /></ErrorBoundary>} />
+              <Route path="/social-hub" component={() => <ErrorBoundary><ProtectedRoute component={SocialHubPage} /></ErrorBoundary>} />
+              <Route path="/integrations" component={() => <ErrorBoundary><ProtectedRoute component={IntegrationHubPage} /></ErrorBoundary>} />
 
               {/* Focus tools */}
               <Route path="/forge" component={() => <ErrorBoundary><ProtectedRoute component={ForgePage} /></ErrorBoundary>} />
