@@ -78,7 +78,6 @@ export function MobileFocusMode({
         role="dialog"
         aria-modal="true"
         aria-label="Focus mode"
-        style={{ minHeight: "100dvh" }}
       >
         {/* Header - minimal */}
         <div className="flex items-center justify-between p-4 pt-[calc(0.75rem+env(safe-area-inset-top))]">

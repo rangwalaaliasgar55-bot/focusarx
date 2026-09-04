@@ -16,10 +16,12 @@
 User-agent: *
 Allow: /
 
+# ── Redirect / utility endpoints (thin content, not for the index) ──
+Disallow: /go/
+
 # ── Private / login-walled application surfaces ───────────────
 # Not indexable content: these redirect anonymous visitors to /login.
-Disallow: /admin
-Disallow: /onboarding
+Disallow: /adminDisallow: /onboarding
 Disallow: /profile
 Disallow: /settings
 Disallow: /notifications

@@ -784,6 +784,60 @@ export const ROUTES = [
     lastReviewed: "2026-08-29",
   },
   {
+    path: "/focus",
+    title: "Focus App | Free Online Timer With Tasks & Streaks | FocusArx",
+    description:
+      "The FocusArx focus app: a free online timer with tasks, streaks and session scoring. Deep-linkable (?duration=25&task=…) and guest-friendly — no account needed to start.",
+    h1: "Focus, running in your browser",
+    lead: "One screen: the time that is left, the task you picked, and a Start button. Guests can run a full session with no account; signing in later saves history, streaks and analytics.",
+    answerFirst:
+      "The /focus app is the usable timer itself, not a page about a timer. Open /focus?duration=25&task=Revise+thermo to pre-arm a 25-minute slice with a task attached.",
+    software: {
+      name: "FocusArx Focus App",
+      category: "ProductivityApplication",
+      description:
+        "Guest-first focus timer with tasks, streaks, session scoring and deep links.",
+    },
+    sections: [
+      {
+        h: "How a session works",
+        p: "Pick a duration or follow a link with one baked in. Press Start once — the timer is deadline-based, so background tabs, screen lock and sleep do not skew it. Pausing preserves the slice; completing records minutes, XP and streak progress.",
+      },
+      {
+        h: "Guests and accounts",
+        p: "Guests keep the current session across refresh and close on the same device. Signing in adds cloud history, streaks across devices, the AI coach and study rooms; local history is imported once, never overwritten.",
+      },
+    ],
+    faq: [
+      ["Do I need an account to use /focus?", "No. The timer runs fully for guests. An account adds cloud history, streaks, AI coaching and rooms."],
+      ["Can I link to a pre-set timer?", "Yes. /focus?duration=25&task=Revise+thermo arms a 25-minute slice with the task attached. Links from Instagram use /go/ig."],
+      ["Does the timer survive a locked phone?", "Yes. Remaining time derives from a wall-clock deadline, and the server re-verifies durations on save."],
+    ],
+    cta: { href: "/signup", label: "Save sessions with a free account" },
+    related: ["/focus-timer|Focus timer guide", "/pomodoro-timer|Pomodoro timer", "/study-timer|Study timer", "/pricing|Pricing — free forever"],
+    lastReviewed: "2026-09-04",
+  },
+  {
+    path: "/changelog",
+    title: "Changelog | What Shipped in FocusArx",
+    description:
+      "What shipped in FocusArx lately: timer reliability fixes, streaks in your timezone, the /focus app and Instagram funnel.",
+    h1: "Changelog",
+    lead: "What shipped lately, newest first. Short sentences. No hype.",
+    sections: [
+      {
+        h: "Unreleased",
+        p: "Guest timer sessions survive refresh and close. One tab runs the timer at a time. Streaks use your timezone. The public /focus app accepts deep links, and /go/ig arms it for Instagram traffic.",
+      },
+      {
+        h: "Version 1.0 and earlier",
+        p: "Apple-style interface pass, prerendered SEO pages with exam guides, server-verified sessions, guest accounts, server-only AI with budgets, and an installable PWA shell.",
+      },
+    ],
+    related: ["/focus|Focus app", "/roadmap|Product roadmap", "/pricing|Pricing"],
+    lastReviewed: "2026-09-04",
+  },
+  {
     path: "/search",
     title: "Search FocusArx | Guides, Tools and Features",
     description:

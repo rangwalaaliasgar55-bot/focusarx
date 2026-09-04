@@ -1,4 +1,5 @@
 import { getToken } from "@/lib/auth";
+import { deviceTimeZone } from "@/lib/safeStorage";
 import type { Session } from "@/types/timer";
 
 export type SyncResult = {
@@ -23,6 +24,8 @@ export async function syncFocusSessionToCloud(
 ): Promise<SyncResult> {
   try {
     const token = getToken();
+    // Device zone drives user-local streak/productivity day keys server-side.
+    const tz = deviceTimeZone();
     const res = await fetch("/api/sessions", {
       method: "POST",
       headers: {
@@ -41,6 +44,7 @@ export async function syncFocusSessionToCloud(
         stabilityRating: session.stabilityRating,
         sessionInsights: session.sessionInsights,
         taskId: session.taskId,
+        ...(tz ? { timezone: tz } : {}),
         ...(earlyCompletionData ?? {}),
       }),
     });

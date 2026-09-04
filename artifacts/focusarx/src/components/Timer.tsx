@@ -12,6 +12,7 @@ import { SessionDots } from "./SessionDots";
 import { useToast } from "./Toast";
 import { getModeLabel } from "@/lib/timerUtils";
 import { DEFAULT_CONFIG } from "@/lib/constants";
+import { FOCUS_DEEP_LINK_EVENT } from "@/lib/focusDeepLink";
 import { trackSiteEvent } from "@/lib/site-analytics";
 import { trackSessionStart, trackSessionComplete, trackSessionAbandoned } from "@/lib/analytics";
 import { haptic } from "@/lib/haptics";
@@ -55,6 +56,11 @@ function xpForNextLevel(level: number) { return level ** 2 * 100; }
 const playSessionNotification = (mode: TimerMode) => {
   try {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    // Fired from a Worker tick, not a gesture: resume opportunistically so
+    // the completion chime is not swallowed by the autoplay policy.
+    if (audioContext.state === "suspended") {
+      void audioContext.resume().catch(() => {});
+    }
     const now = audioContext.currentTime;
     const osc = audioContext.createOscillator();
     const gain = audioContext.createGain();
@@ -151,9 +157,12 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
 
   const {
     mode, status, secondsLeft, progress, completedFocusSessions,
-    toggle, reset, skipToNext, selectMode, setCustomDuration,
+    leaderBlocked, toggle, reset, skipToNext, selectMode, setCustomDuration,
     getSnapshot, restoreFromSnapshot, getActiveSeconds,
   } = usePomodoro({
+    // Guest-local snapshot: first sessions (Instagram funnel) survive
+    // refresh/back-swipe/close even before any account exists.
+    persistKey: "focusarx-guest-timer",
     onSessionComplete: async (session) => {
       addSession(session);
       playSessionNotification(session.mode);
@@ -284,6 +293,29 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
   useEffect(() => {
     setNotificationPermission("Notification" in window ? Notification.permission : "unsupported");
   }, []);
+
+  // Another tab won the timer lock: explain why this one stood down.
+  useEffect(() => {
+    if (leaderBlocked) toast("Timer is already running in another tab.", "info");
+  }, [leaderBlocked, toast]);
+
+  // Instagram funnel: pre-arm the idle timer from ?duration= and prefill the
+  // intention from ?task=. Applies only when idle/empty — never mid-session.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ seconds?: number | null; task?: string | null }>).detail;
+      if (!detail) return;
+      if (detail.seconds && getSnapshot().status === "idle") {
+        setCustomDuration("focus", detail.seconds);
+      }
+      if (detail.task) {
+        const t = detail.task;
+        setActiveTaskName((prev) => prev || t);
+      }
+    };
+    window.addEventListener(FOCUS_DEEP_LINK_EVENT, handler);
+    return () => window.removeEventListener(FOCUS_DEEP_LINK_EVENT, handler);
+  }, [getSnapshot, setCustomDuration]);
 
   const requestNotificationAlerts = useCallback(async () => {
     if (!("Notification" in window)) {

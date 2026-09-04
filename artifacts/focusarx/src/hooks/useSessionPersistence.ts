@@ -1,4 +1,5 @@
 import { useAuth } from "@/lib/auth";
+import { deviceTimeZone } from "@/lib/safeStorage";
 
 import { useCallback, useEffect, useRef } from "react";
 import { getFocusQuality } from "@/lib/focusScoreEngine";
@@ -70,6 +71,8 @@ export function useSessionPersistence(options: UseSessionPersistenceOptions) {
     const focusScore = getLiveFocusScore();
     const focusQuality =
       focusScore !== null ? getFocusQuality(focusScore) : null;
+    // Keeps the server-side calendar zone fresh while travelling.
+    const tz = deviceTimeZone();
 
     return {
       sessionId,
@@ -84,6 +87,7 @@ export function useSessionPersistence(options: UseSessionPersistenceOptions) {
       lastSeenFaceAt: monitor.lastSeenFaceAt,
       focusTimeline: monitor.focusTimeline,
       monitorEnabled,
+      ...(tz ? { timezone: tz } : {}),
     };
   }, []);
 

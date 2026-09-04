@@ -5,7 +5,24 @@ function getCtx(): AudioContext | null {
   if (!ctx) {
     try { ctx = new AudioContext(); } catch { return null; }
   }
+  // Completion chimes fire from a Worker tick, not a user gesture. If the
+  // context is still `suspended` (autoplay policy), the chime would play
+  // silently — resume opportunistically; this succeeds once the user has
+  // interacted with the page (sticky activation).
+  if (ctx.state === "suspended") {
+    try { void ctx.resume().catch(() => {}); } catch { /* ignore */ }
+  }
   return ctx;
+}
+
+/** Call from a user gesture (start/pause tap) to unlock the shared context. */
+export function unlockAudio(): void {
+  try {
+    const ac = getCtx();
+    if (ac && ac.state === "suspended") void ac.resume().catch(() => {});
+  } catch {
+    /* ignore */
+  }
 }
 
 function tone(freq: number, duration: number, type: OscillatorType = "sine", volume = 0.15) {

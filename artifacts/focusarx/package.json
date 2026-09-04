@@ -10,6 +10,7 @@
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "seo:audit": "node scripts/seo-validate.mjs",
+    "budget": "node scripts/check-bundle-budget.mjs",
     "test": "vitest run",
     "preview:seo": "node scripts/serve-dist.mjs"
   },

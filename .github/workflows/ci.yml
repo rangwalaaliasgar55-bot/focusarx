@@ -204,3 +204,31 @@ jobs:
             exit 1
           fi
           echo "No obvious secrets found."
+
+  budgets:
+    name: Budgets (bundle + SEO build gates)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend (runs prerender + seo-validate)
+        run: pnpm --filter @workspace/focusarx run build
+        env:
+          VITE_APP_URL: https://focusarx.site
+
+      - name: Bundle budgets (entry/chunk/initial + no-three-preload)
+        run: pnpm --filter @workspace/focusarx run budget

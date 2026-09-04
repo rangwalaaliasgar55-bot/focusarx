@@ -20,6 +20,7 @@ export type AnalyticsEventType =
   | "ai_feature_used"
   | "user_logged_in"
   | "user_signed_up"
+  | "device_context"
   | "page_view";
 
 type PendingEvent = {

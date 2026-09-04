@@ -70,6 +70,7 @@ import { dbHealthRouter } from "./dbHealth";
 import { developerRouter } from "./developer";
 import { developerSqlRouter } from "./developerSql";
 import { aiStreamingRouter } from "./aiStreamingRoutes";
+import { dataExportRouter } from "./dataExport";
 
 const router: IRouter = Router();
 
@@ -144,5 +145,6 @@ router.use(dbHealthRouter);
 router.use(developerRouter);
 router.use(developerSqlRouter);
 router.use(aiStreamingRouter);
+router.use(dataExportRouter);
 
 export default router;

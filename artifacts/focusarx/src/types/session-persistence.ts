@@ -35,4 +35,5 @@ export type SessionSyncPayload = {
   lastSeenFaceAt?: string | null;
   focusTimeline?: FocusTimelinePoint[];
   monitorEnabled?: boolean;
+  timezone?: string;
 };

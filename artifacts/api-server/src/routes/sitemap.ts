@@ -83,6 +83,8 @@ const CORE_PAGES: Page[] = [
   { url: "/about", changefreq: "monthly", priority: "0.6" },
   { url: "/contact", changefreq: "monthly", priority: "0.5" },
   { url: "/support", changefreq: "monthly", priority: "0.5" },
+  { url: "/focus", changefreq: "weekly", priority: "0.9" },
+  { url: "/changelog", changefreq: "weekly", priority: "0.5" },
 ];
 
 /**
@@ -401,6 +403,7 @@ router.get("/robots.txt", (_req, res) => {
     "",
     "# Private application surfaces — not indexable, no crawl value.",
     "Disallow: /admin",
+    "Disallow: /go/",
     "Disallow: /onboarding",
     "Disallow: /reset-password",
     "Disallow: /forgot-password",

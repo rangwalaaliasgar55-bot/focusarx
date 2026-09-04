@@ -989,6 +989,30 @@ html.light .glass-subtle {
 .stagger-6 { animation-delay: 0.30s; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   REACTIVE SCENE (Focus Core meanings, all tiers)
+   Minimal Ring + hidden-tab penalty + one-shot completion burst.
+   Tier C uses opacity fades only; no springs, no loops here.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.scene-stale {
+  filter: saturate(0.25) brightness(0.85);
+  transition: filter 600ms;
+}
+/* One-shot burst: ~40 echo dots scale out and fade once. */
+@keyframes scene-burst-out {
+  0%   { transform: scale(0.55); opacity: 0.9; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+.scene-burst {
+  border-radius: 50%;
+  border: 2px solid var(--brand-400);
+  animation: scene-burst-out 900ms ease-out forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .scene-burst { animation: none; opacity: 0; }
+  .scene-stale { transition: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    PREFERS-REDUCED-MOTION — disable all animations
    ═══════════════════════════════════════════════════════════════════════════ */
 @media (prefers-reduced-motion: reduce) {
@@ -1993,15 +2017,25 @@ html.light {
    MOBILE SAFE-AREA & VIEWPORT FIXES (Serious mobile upgrades)
    ═══════════════════════════════════════════════════════════════════════════ */
 .min-h-screen {
+  min-height: 100vh; /* legacy fallback (iOS 13, Chrome ≤108) */
   min-height: 100dvh;
 }
 .h-screen {
+  height: 100vh; /* legacy fallback */
   height: 100dvh;
 }
 .max-h-screen {
+  max-height: 100vh; /* legacy fallback */
   max-height: 100dvh;
 }
+/* Fixed-offset viewport panel: vh fallback first so browsers without dvh
+   still size correctly instead of collapsing. */
+.viewport-panel {
+  height: calc(100vh - 200px);
+  height: calc(100dvh - 200px);
+}
 .app-shell {
+  min-height: 100vh; /* legacy fallback */
   min-height: 100dvh;
 }
 /* Same reasoning as .app-main: the fixed bottom nav only exists below md. */

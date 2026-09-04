@@ -7,6 +7,15 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { THEME_META, useTheme, type Theme } from "@/lib/theme";
 import { ACCENT_PRESETS, useAccent } from "@/lib/accent";
+import {
+  detectTier,
+  getTierPreference,
+  probeDeviceCaps,
+  setTierPreference,
+  type DeviceTier,
+  type TierPreference,
+} from "@/lib/deviceTier";
+import { SCENE_PRESETS, useScenePreset, type ScenePresetId } from "@/lib/scenePreset";
 import { cn } from "@/lib/utils";
 
 const THEME_ORDER: Theme[] = ["dark", "light", "midnight-gold", "aurora", "crimson"];
@@ -127,6 +136,14 @@ function ThemeAndColorSettings() {
 
 function EffectsSettings() {
   const { quality, appearance, setQuality, setAppearance, effectiveQuality } = use3DQuality();
+  const [tierPref, setTierPrefState] = useState<TierPreference>(() => getTierPreference());
+  const [detectedTier] = useState<DeviceTier>(() => detectTier(probeDeviceCaps()));
+  const [scenePreset, pickScenePreset] = useScenePreset();
+
+  const pickTier = (pref: TierPreference) => {
+    setTierPreference(pref);
+    setTierPrefState(pref);
+  };
 
   return (
     <Card className="mb-5">
@@ -135,6 +152,61 @@ function EffectsSettings() {
         <CardDescription className="text-xs">Control visual effects for performance and battery.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
+        <div className="flex flex-col gap-2">
+          <Label className="text-sm font-medium">Visual quality</Label>
+          <p className="text-xs text-[var(--foreground-subtle)]">Auto-detected: <span className="font-bold capitalize">{detectedTier}</span>. Full = 3D scenes, Lite = 2D scenes, Essential = static ring. Applies to 3D scenes on next page.</p>
+          <div className="grid grid-cols-4 gap-2" role="group" aria-label="Visual quality">
+            {(["auto", "full", "lite", "essential"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => pickTier(t)}
+                className={`min-h-[44px] rounded-xl border px-3 py-2 text-xs font-bold capitalize transition-colors ${
+                  tierPref === t
+                    ? "border-[var(--brand-500)] bg-[var(--brand-soft)] text-[var(--brand-strong)]"
+                    : "border-[var(--border-subtle)] bg-[var(--surface-1)] text-[var(--foreground-subtle)]"
+                }`}
+                aria-pressed={tierPref === t}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label className="text-sm font-medium">Scene</Label>
+          <p className="text-xs text-[var(--foreground-subtle)]">The visual behind the timer. Core and Minimal Ring ship now; the rest are Pro and still in the studio.</p>
+          <div className="grid grid-cols-2 gap-2" role="group" aria-label="Scene preset">
+            {SCENE_PRESETS.map((p) => {
+              const active = scenePreset === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  disabled={!p.available}
+                  onClick={() => pickScenePreset(p.id as ScenePresetId)}
+                  className={`min-h-[44px] rounded-xl border px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                    active
+                      ? "border-[var(--brand-500)] bg-[var(--brand-soft)]"
+                      : "border-[var(--border-subtle)] bg-[var(--surface-1)]"
+                  }`}
+                  aria-pressed={active}
+                  title={p.available ? p.blurb : `${p.blurb} (coming soon)`}
+                >
+                  <span className="block text-xs font-bold text-[var(--foreground)]">
+                    {p.label}
+                    {p.pro && (
+                      <span className="ml-1.5 rounded-full bg-[var(--warning-soft)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--warning)]">
+                        Pro
+                      </span>
+                    )}
+                  </span>
+                  <span className="block text-[11px] text-[var(--foreground-subtle)]">{p.blurb}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
         <div className="flex flex-col gap-2">
           <Label className="text-sm font-medium">3D effects</Label>
           <p className="text-xs text-[var(--foreground-subtle)]">High uses shadows, reflections, and post-processing. Battery saver reduces detail and disables animations.</p>

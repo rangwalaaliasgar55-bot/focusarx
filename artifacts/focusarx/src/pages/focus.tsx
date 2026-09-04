@@ -19,6 +19,8 @@ import { useNotificationPermission } from "@/hooks/useNotificationPermission";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { ErrorState } from "@/components/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
+import { parseFocusDeepLink, dispatchFocusDeepLink } from "@/lib/focusDeepLink";
+import SceneBackdrop from "@/components/SceneBackdrop";
 
 // Heavy features lazy-loaded after main interface is usable
 const MissionsWidget = lazy(() => import("@/components/MissionsWidget"));
@@ -440,9 +442,22 @@ export default function FocusHomePage() {
     feedback.recordSession();
   };
 
+  // Deep-link entry (?duration=&task= from /go/ig and shared links).
+  // Dispatched once on mount; child timers subscribe in their own effects
+  // (which run before this parent effect) and apply it only when idle.
+  useEffect(() => {
+    try {
+      const link = parseFocusDeepLink(window.location.search);
+      if (link.armed) dispatchFocusDeepLink(link);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   return (
     <SessionRecoveryProvider>
-      <div className="flex flex-col min-h-[100dvh] focus-chamber">
+      <div className="flex flex-col min-h-[100dvh] focus-chamber relative">
+        <SceneBackdrop />
         <FocusChamberHeader />
         <StreakNudge />
         <SmartSuggestion />

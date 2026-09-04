@@ -1,4 +1,5 @@
 import { getToken } from "@/lib/auth";
+import { deviceTimeZone } from "@/lib/safeStorage";
 import type { PersistedActiveSession, SessionSyncPayload } from "@/types/session-persistence";
 import type { Session } from "@/types/timer";
 
@@ -32,10 +33,12 @@ export async function createActiveSession(body: {
   monitorEnabled?: boolean;
 }): Promise<PersistedActiveSession | null> {
   try {
+    // Device zone lets the server keep streak/productivity days user-local.
+    const tz = deviceTimeZone();
     const res = await fetch("/api/sessions/active", {
       method: "POST",
       headers: authHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify(body),
+      body: JSON.stringify(tz ? { ...body, timezone: tz } : body),
     });
     if (!res.ok) return null;
     const data = (await res.json()) as { session: PersistedActiveSession };

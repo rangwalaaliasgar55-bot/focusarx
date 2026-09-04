@@ -28,6 +28,7 @@ import { RewardToastProvider } from "@/components/ui/RewardToast";
 import { LiveActivityTicker } from "@/components/LiveActivityTicker";
 import FloatingTimer from "@/components/FloatingTimer";
 import LiveAnnouncer from "@/components/LiveAnnouncer";
+import { InAppBrowserPill } from "@/components/InAppBrowserPill";
 import { FloatingParticles } from "@/components/FloatingParticles";
 import { CookieConsent } from "@/components/CookieConsent";
 import { MaintenanceGate } from "@/components/MaintenanceGate";
@@ -35,6 +36,21 @@ import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 import SeasonalBanner from "@/components/SeasonalBanner";
 import { DeploymentUpdateBanner } from "@/components/DeploymentUpdateBanner";
 import { useDeploymentSkewDetector } from "@/lib/deploymentSkew";
+
+/**
+ * Instagram funnel entry: /go/ig → /focus armed with a 25-min slice and
+ * src attribution. The Core is armed, not auto-started — one "Begin" tap
+ * keeps autoplay policies and user intent intact.
+ */
+function IgEntry() {
+  const [, setLocation] = useLocation();
+  useEffect(() => {
+    setLocation("/focus?duration=25&src=ig");
+  }, [setLocation]);
+  return <PageLoader />;
+}
+
+const ChangelogPage = lazy(() => import("@/pages/changelog"));
 
 const OnboardingPage = lazy(() => import("@/pages/onboarding"));
 const DashboardPage = lazy(() => import("@/pages/dashboard"));
@@ -179,6 +195,9 @@ function MobileWelcomeGate({ children }: { children: React.ReactNode }) {
         "/data-deletion", "/u/",
       ];
       const skip = [...authPaths, ...publicPaths];
+      // Deep-link entry points must never bounce to /welcome: the timer is
+      // the landing for Instagram traffic (guests included).
+      if (path === "/focus" || path.startsWith("/go/")) return;
       if (!skip.some(p => path.startsWith(p))) setLocation("/welcome");
     }
   }, [status, setLocation]);
@@ -283,6 +302,11 @@ function RoutedContent() {
 
               {/* Core — Landing page for guests, Home for authenticated */}
               <Route path="/" component={() => <ErrorBoundary><RootPage /></ErrorBoundary>} />
+              {/* Standalone focus app: public, deep-linkable, guest-first.
+                  This is the Instagram funnel landing (see IgEntry). */}
+              <Route path="/focus" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><FocusHomePage /></Suspense></ErrorBoundary>} />
+              <Route path="/go/ig" component={IgEntry} />
+              <Route path="/changelog" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><ChangelogPage /></Suspense></ErrorBoundary>} />
               <Route path="/dashboard" component={() => <ErrorBoundary><ProtectedRoute component={DashboardPage} /></ErrorBoundary>} />
               <Route path="/analytics" component={() => <ErrorBoundary><ProtectedRoute component={AnalyticsPage} /></ErrorBoundary>} />
 
@@ -454,6 +478,7 @@ function AppWithPalette() {
       <LiveActivityTicker />
       <FloatingTimer />
       <LiveAnnouncer />
+      <InAppBrowserPill />
       <CookieConsent />
       <MaintenanceGate>
         <MobileWelcomeGate>

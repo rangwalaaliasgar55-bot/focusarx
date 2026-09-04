@@ -1,7 +1,7 @@
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router, type Response } from "express";
 import { z } from "zod";
-import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, userWalletsTable, productivityLogsTable, battlePassProgressTable, coinTransactionsTable, focusCitiesTable, userLootBoxesTable, premiumSubscriptionsTable, userPetsTable, type ActiveSession} from "@workspace/db";
+import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, userWalletsTable, productivityLogsTable, battlePassProgressTable, coinTransactionsTable, focusCitiesTable, userLootBoxesTable, premiumSubscriptionsTable, userPetsTable, usersTable, type ActiveSession} from "@workspace/db";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { updateMissionProgress } from "./missions";
@@ -10,12 +10,18 @@ import { computeSessionRewards } from "../lib/sessionRewards";
 import { runDelightCheck } from "../lib/delightEngine";
 import { calculateBattlePassTier, currentBattlePassSeason, rolloverBattlePassSeason } from "../lib/battlePass";
 import { sessionCompleteLimiter } from "../lib/rateLimiter";
-import { istToday } from "../lib/istDate";
+import {
+  dayKeyInZone,
+  isValidTimeZone,
+  resolveUserZone,
+  shiftDayKey,
+  weekStartInZone,
+  LEGACY_FALLBACK_ZONE,
+} from "../lib/timezone";
 import {
   computeVerifiedDurationSec,
   isRewardEligible,
   nextStreakValues,
-  istWeekStartDate,
   MIN_REWARD_DURATION_SEC,
 } from "../lib/sessionCompletionCore";
 import {
@@ -108,6 +114,10 @@ const sessionSchema = z.object({
   clientNonce: z.string().min(8).max(64).regex(/^[a-zA-Z0-9_-]+$/).optional(),
   completedAt: z.string().optional(),
   category: z.string().max(50).optional(),
+  // Device IANA zone (e.g. "America/New_York"). Adopted onto the user row
+  // and used for streak/productivity day keys. Invalid values are ignored —
+  // never a validation error — so old clients keep working.
+  timezone: z.string().max(60).optional(),
 });
 
 const activeCreateSchema = z.object({
@@ -115,6 +125,7 @@ const activeCreateSchema = z.object({
   secondsLeft: z.number().int().min(60).max(14_400).default(1_500),
   timerStatus: z.enum(["running", "paused", "idle"]).default("paused"),
   monitorEnabled: z.boolean().default(false),
+  timezone: z.string().max(60).optional(),
 }).strict();
 
 const activeSyncSchema = z.object({
@@ -130,6 +141,7 @@ const activeSyncSchema = z.object({
   lastSeenFaceAt: z.string().nullable().optional(),
   focusTimeline: z.unknown().optional(),
   monitorEnabled: z.boolean().optional(),
+  timezone: z.string().max(60).optional(),
 });
 
 const router = Router();
@@ -137,6 +149,40 @@ const router = Router();
 function stringOrNullish(value: unknown): string | null | undefined {
   if (value === null || value === undefined) return value;
   return String(value);
+}
+
+/**
+ * Adopt the device IANA zone onto the user row (Phase 5.3 STREAK fix).
+ * Best-effort and silent: invalid zones are ignored, and a DB failure here
+ * must never fail a session write. Once a real zone is stored, streaks,
+ * productivity logs and weekly resets key off it instead of legacy IST.
+ */
+async function adoptTimezone(userId: string, timezone: unknown): Promise<void> {
+  if (typeof timezone !== "string" || !isValidTimeZone(timezone)) return;
+  try {
+    const [user] = await db.select({ timezone: usersTable.timezone })
+      .from(usersTable)
+      .where(eq(usersTable.id, userId))
+      .limit(1);
+    if (user && user.timezone !== timezone) {
+      await db.update(usersTable).set({ timezone }).where(eq(usersTable.id, userId));
+    }
+  } catch (err) {
+    logger.warn({ err, userId }, "adoptTimezone failed (non-fatal)");
+  }
+}
+
+/** Resolve the caller's calendar zone: stored IANA zone, else legacy IST. */
+async function userZone(userId: string): Promise<string> {
+  try {
+    const [user] = await db.select({ timezone: usersTable.timezone })
+      .from(usersTable)
+      .where(eq(usersTable.id, userId))
+      .limit(1);
+    return resolveUserZone(user?.timezone);
+  } catch {
+    return LEGACY_FALLBACK_ZONE;
+  }
 }
 
 router.get("/sessions/active", authMiddleware, async (req: AuthRequest, res) => {
@@ -182,8 +228,10 @@ router.post("/sessions/active", authMiddleware, async (req: AuthRequest, res) =>
     res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid active session" } });
     return;
   }
-  const { mode, secondsLeft, timerStatus, monitorEnabled } = parsed.data;
+  const { mode, secondsLeft, timerStatus, monitorEnabled, timezone } = parsed.data;
   try {
+    // Adopt the device zone so streak/productivity days stay user-local.
+    await adoptTimezone(req.userId, timezone);
     // State machine guard: replacing an existing row is a transition into a
     // fresh session — finalize a stale one first so its (earned) rewards and
     // history are not silently destroyed by the delete below.
@@ -223,8 +271,9 @@ router.post("/sessions/sync", authMiddleware, async (req: AuthRequest, res) => {
     res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid sync payload" } });
     return;
   }
-  const { sessionId, activeSeconds, secondsLeft, timerStatus, mode, focusScore, focusQuality, focusState, distractionCount, lastSeenFaceAt, focusTimeline, monitorEnabled } = parsed.data;
+  const { sessionId, activeSeconds, secondsLeft, timerStatus, mode, focusScore, focusQuality, focusState, distractionCount, lastSeenFaceAt, focusTimeline, monitorEnabled, timezone } = parsed.data;
   try {
+    await adoptTimezone(req.userId, timezone);
     // Verify ownership and prevent replay of old sessions
     const [existing] = await db.select({ id: activeSessionsTable.id, userId: activeSessionsTable.userId, startedAt: activeSessionsTable.startedAt })
       .from(activeSessionsTable)
@@ -295,10 +344,14 @@ router.post("/sessions", authMiddleware, sessionCompleteLimiter, async (req: Aut
   const {
     mode, durationSec, plannedDurationSec, completedEarly, sessionStatus,
     focusScore, focusQuality, stabilityRating, focusTimeline, sessionInsights, category,
-    sessionId, clientNonce,
+    sessionId, clientNonce, timezone,
   } = parsed.data;
 
   try {
+    // Adopt the device zone first so every day key below is user-local.
+    await adoptTimezone(req.userId, timezone);
+    const zone = await userZone(req.userId);
+    const weekStart = weekStartInZone(Date.now(), zone);
     // Fetch the server-side active session — the only trusted evidence that a
     // session actually ran (its startedAt is server-owned).
     const [activeSession] = sessionId
@@ -416,18 +469,18 @@ router.post("/sessions", authMiddleware, sessionCompleteLimiter, async (req: Aut
 
       let streakUpdated = false;
       if (rewardEligible) {
-        // IST day keys — shared transactional streak progression.
-        streakUpdated = await applyStreakProgress(tx, req.userId);
+        // User-zone day keys — shared transactional streak progression.
+        streakUpdated = await applyStreakProgress(tx, req.userId, zone);
       }
 
       // Award XP/coins inside the transaction — atomic, and a ledger failure
       // rolls the whole completion back (never a wallet credit without its
       // ledger row). Shared with expiry auto-completion.
-      await creditSessionRewards(tx, req.userId, earnedXp, earnedCoins);
+      await creditSessionRewards(tx, req.userId, earnedXp, earnedCoins, weekStart);
 
-      // Productivity log (IST day key — matches streaks and missions).
+      // Productivity log (user-zone day key — matches streaks and missions).
       if (finalDuration > 0) {
-        const todayLog = istToday();
+        const todayLog = dayKeyInZone(Date.now(), zone);
         const [existingLog] = await tx.select().from(productivityLogsTable)
           .where(and(eq(productivityLogsTable.userId, req.userId), eq(productivityLogsTable.date, todayLog)));
 
@@ -561,10 +614,17 @@ router.get("/sessions", authMiddleware, handleSessionHistory);
 /**
  * Shared transactional streak progression (used by explicit completion and
  * expiry auto-completion). Returns whether the streak moved forward.
+ *
+ * Day keys come from the user's own IANA zone. `legacyYesterday` is the IST
+ * yesterday key: matching it continues the streak, so adopting a real zone
+ * (or travelling) never silently resets progress earned under legacy IST.
  */
-async function applyStreakProgress(tx: TxLike, userId: string): Promise<boolean> {
-  const today = istToday();
-  const yesterday = istToday(new Date(Date.now() - 86_400_000));
+async function applyStreakProgress(tx: TxLike, userId: string, zone: string): Promise<boolean> {
+  const now = Date.now();
+  const today = dayKeyInZone(now, zone);
+  const yesterday = shiftDayKey(today, -1);
+  const legacyYesterday =
+    zone === LEGACY_FALLBACK_ZONE ? undefined : shiftDayKey(dayKeyInZone(now, LEGACY_FALLBACK_ZONE), -1);
   const [existingStreak] = await tx.select().from(studyStreaksTable)
     .where(eq(studyStreaksTable.userId, userId)).for("update");
   const streak = nextStreakValues({
@@ -573,6 +633,7 @@ async function applyStreakProgress(tx: TxLike, userId: string): Promise<boolean>
     longestStreak: existingStreak?.longestStreak ?? 0,
     today,
     yesterday,
+    legacyYesterday,
   });
   if (!existingStreak) {
     await tx.insert(studyStreaksTable).values({ userId, currentStreak: streak.currentStreak, longestStreak: streak.longestStreak, lastStudyDate: today });
@@ -593,10 +654,11 @@ async function applyStreakProgress(tx: TxLike, userId: string): Promise<boolean>
 /**
  * Shared transactional wallet credit (used by explicit completion and expiry
  * auto-completion). Ledger failures throw → caller's transaction rolls back.
+ * `weekStart` is the caller's zone-aware Monday 00:00 instant.
  */
-async function creditSessionRewards(tx: TxLike, userId: string, earnedXp: number, earnedCoins: number): Promise<void> {
+async function creditSessionRewards(tx: TxLike, userId: string, earnedXp: number, earnedCoins: number, weekStart: Date): Promise<void> {
   if (earnedXp <= 0 && earnedCoins <= 0) return;
-  const monday = istWeekStartDate(new Date());
+  const monday = weekStart;
 
   const [wallet] = await tx.select().from(userWalletsTable)
     .where(eq(userWalletsTable.userId, userId)).for("update");
@@ -663,6 +725,9 @@ async function finalizeExpiredSession(
     throw new Error("finalizeExpiredSession called on a live session");
   }
 
+  const zone = await userZone(userId);
+  const weekStart = weekStartInZone(Date.now(), zone);
+
   const outcome = await db.transaction(async (tx) => {
     // Delete-first guard: only finalize if the row is still present (a racing
     // completion or another instance may have beaten us here).
@@ -682,10 +747,10 @@ async function finalizeExpiredSession(
     let streakUpdated = false;
 
     if (rewardEligible) {
-      streakUpdated = await applyStreakProgress(tx, userId);
+      streakUpdated = await applyStreakProgress(tx, userId, zone);
       earnedXp = computeSessionRewards({ minutes, isPremium: false }).xp;
       earnedCoins = computeSessionRewards({ minutes, isPremium: false }).coins;
-      await creditSessionRewards(tx, userId, earnedXp, earnedCoins);
+      await creditSessionRewards(tx, userId, earnedXp, earnedCoins, weekStart);
     }
 
     const [archived] = await tx.insert(focusSessionsTable).values({

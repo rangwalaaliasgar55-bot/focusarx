@@ -3,7 +3,12 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { DEFAULT_CONFIG } from "@/lib/constants";
 import { generateId } from "@/lib/timerUtils";
 import { haptic } from "@/lib/haptics";
+import { unlockAudio } from "@/lib/soundEngine";
 import { createTimerWorker, type TimerWorkerController } from "@/lib/timerWorker";
+import { safeGetJson, safeSetJson, safeRemove } from "@/lib/safeStorage";
+import { buildSnapshot, readSnapshot } from "@/lib/timerPersistence";
+import { acquireTimerLead } from "@/lib/timerLeader";
+import { publishSceneSnapshot, publishSceneComplete } from "@/lib/sceneBus";
 import {
   finalizeSessionMetrics,
   resetFocusMonitor,
@@ -15,6 +20,21 @@ interface UsePomodoroOptions {
   config?: Partial<TimerConfig>;
   onSessionComplete?: (session: Session) => void;
   onModeChange?: (mode: TimerMode) => void;
+  /**
+   * Guest-local snapshot key (safeStorage JSON). When set, running/paused
+   * slices survive refresh, back-swipe, browser close and system sleep —
+   * including for signed-out users, who have no server row. Server recovery
+   * (when authed) arrives after mount and overwrites this via
+   * `restoreFromSnapshot`, so the two never conflict.
+   */
+  persistKey?: string;
+  /**
+   * Elect a single leading tab while running (default true). A tab that
+   * loses the election stands down to `paused` and reports `leaderBlocked`
+   * so the UI can explain why. The server `clientNonce` idempotency is the
+   * backstop on browsers without `navigator.locks`.
+   */
+  enableLeader?: boolean;
 }
 
 export function usePomodoro(options: UsePomodoroOptions = {}) {
@@ -23,9 +43,24 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
   const onSessionCompleteRef = useRef(options.onSessionComplete);
   const onModeChangeRef = useRef(options.onModeChange);
 
-  const [mode, setMode] = useState<TimerMode>("focus");
-  const [status, setStatus] = useState<TimerStatus>("idle");
+  // One-shot guest restore: a still-valid local snapshot (written by a
+  // previous mount of this hook) seeds the initial state. Runs once, before
+  // the state below so restored values become the initial values.
+  const [restored] = useState(() => {
+    if (!options.persistKey || typeof window === "undefined") return null;
+    try {
+      return readSnapshot(safeGetJson(options.persistKey, null));
+    } catch {
+      return null;
+    }
+  });
+  const persistKeyRef = useRef(options.persistKey ?? null);
+  persistKeyRef.current = options.persistKey ?? null;
+
+  const [mode, setMode] = useState<TimerMode>(() => restored?.mode ?? "focus");
+  const [status, setStatus] = useState<TimerStatus>(() => restored?.status ?? "idle");
   const [customConfigs, setCustomConfigs] = useState<Partial<TimerConfig>>({});
+  const [leaderBlocked, setLeaderBlocked] = useState(false);
 
   const getDuration = useCallback(
     (m: TimerMode) => {
@@ -36,17 +71,37 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
     [config, customConfigs]
   );
 
-  const [secondsLeft, setSecondsLeft] = useState(() => getDuration("focus"));
+  const [secondsLeft, setSecondsLeft] = useState(() => restored?.secondsLeft ?? getDuration("focus"));
   const [completedFocusSessions, setCompletedFocusSessions] = useState(0);
 
   const modeRef = useRef(mode);
   const statusRef = useRef(status);
   const completedRef = useRef(completedFocusSessions);
   const secondsLeftRef = useRef(secondsLeft);
-  const deadlineMsRef = useRef<number | null>(null);
+  // A restored `running` snapshot keeps its original wall-clock deadline, so
+  // resume-after-close/sleep lands on the true remaining time.
+  const deadlineMsRef = useRef<number | null>(
+    restored?.status === "running" ? restored.deadlineMs : null,
+  );
   const completingRef = useRef(false);
-  const activeSecondsRef = useRef(0);
+  const activeSecondsRef = useRef(restored?.activeSeconds ?? 0);
   const lastTickRef = useRef<number | null>(null);
+  const lastGuestSaveRef = useRef(0);
+  const leadReleaseRef = useRef<(() => void) | null>(null);
+  const lastScenePushRef = useRef(0);
+
+  // Publish a reactive-scene snapshot (throttled to 1 Hz). Visuals mirror
+  // real session state; the bus is fire-and-forget so it can never break
+  // the timer.
+  const publishScene = useCallback((status: TimerStatus) => {
+    if (typeof window === "undefined") return;
+    publishSceneSnapshot({
+      mode: modeRef.current,
+      status: status === "running" || status === "paused" ? status : "idle",
+      secondsLeft: Math.max(0, Math.floor(secondsLeftRef.current)),
+      totalSeconds: Math.max(1, Math.floor(getDuration(modeRef.current))),
+    });
+  }, [getDuration]);
 
   useLayoutEffect(() => {
     onSessionCompleteRef.current = options.onSessionComplete;
@@ -93,6 +148,11 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
           activeSecondsRef.current += delta;
           updateFocusSessionDuration(delta);
           lastTickRef.current = now;
+        }
+
+        // Reactive scene: a completed focus phase bursts, then re-forms.
+        if (currentMode === "focus" && typeof window !== "undefined") {
+          publishSceneComplete();
         }
 
         const durationSeconds = Math.floor(activeSecondsRef.current);
@@ -147,6 +207,41 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
     [config.sessionsBeforeLongBreak, getDuration]
   );
 
+  // ── Guest-local snapshot (safeStorage). Written on transitions and at
+  // most every 5 s while running; flushed on pagehide. Never throws.
+  const writeGuestSnapshot = useCallback((force = false) => {
+    const key = persistKeyRef.current;
+    if (!key || typeof window === "undefined") return;
+    const st = statusRef.current;
+    if (st !== "running" && st !== "paused") return;
+    const now = Date.now();
+    if (!force && st === "running" && now - lastGuestSaveRef.current < 5000) return;
+    lastGuestSaveRef.current = now;
+    const snap = buildSnapshot({
+      mode: modeRef.current,
+      status: st,
+      secondsLeft: secondsLeftRef.current,
+      activeSeconds: activeSecondsRef.current,
+      deadlineMs: deadlineMsRef.current,
+      now,
+    });
+    if (snap) safeSetJson(key, snap);
+  }, []);
+
+  useEffect(() => {
+    // Persist transitions synchronously enough to survive a kill/refresh:
+    // pauses always, running slices throttled (see writeGuestSnapshot).
+    writeGuestSnapshot(statusRef.current === "paused");
+  }, [mode, status, secondsLeft, writeGuestSnapshot]);
+
+  useEffect(() => {
+    const key = persistKeyRef.current;
+    if (!key) return;
+    const flush = () => writeGuestSnapshot(true);
+    window.addEventListener("pagehide", flush);
+    return () => window.removeEventListener("pagehide", flush);
+  }, [writeGuestSnapshot]);
+
   useEffect(() => {
     if (status !== "running") return;
 
@@ -167,6 +262,12 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
       const left = Math.max(0, Math.ceil((end - Date.now()) / 1000));
       setSecondsLeft((prev) => (prev !== left ? left : prev));
 
+      // Mirror to reactive visuals at most once per second.
+      if (now - lastScenePushRef.current > 1000) {
+        lastScenePushRef.current = now;
+        publishScene("running");
+      }
+
       if (left <= 0 && !completingRef.current) {
         completingRef.current = true;
         queueMicrotask(() => advancePhase(true));
@@ -186,14 +287,17 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
       }
       clearDeadline();
       setStatus("paused");
+      publishScene("paused");
       haptic("tap");
       return;
     }
 
+    unlockAudio();
     armDeadline();
     setStatus("running");
+    publishScene("running");
     haptic("select");
-  }, [armDeadline, clearDeadline, status]);
+  }, [armDeadline, clearDeadline, publishScene, status]);
 
   const reset = useCallback(
     (keepMode = false) => {
@@ -201,6 +305,8 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
       completingRef.current = false;
       resetFocusMonitor();
       setStatus("idle");
+      publishScene("idle");
+      if (persistKeyRef.current) safeRemove(persistKeyRef.current);
       if (!keepMode) {
         setMode("focus");
         const s = getDuration("focus");
@@ -214,7 +320,7 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
       activeSecondsRef.current = 0;
       lastTickRef.current = null;
     },
-    [clearDeadline, config.focusDuration, getDuration]
+    [clearDeadline, config.focusDuration, getDuration, publishScene]
   );
 
   const skipToNext = useCallback(() => {
@@ -238,6 +344,7 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
   );
 
   const start = useCallback(() => {
+    unlockAudio();
     armDeadline();
     setStatus("running");
   }, [armDeadline]);
@@ -252,6 +359,37 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
     clearDeadline();
     setStatus("paused");
   }, [clearDeadline]);
+
+  const pauseRef = useRef(pause);
+  pauseRef.current = pause;
+
+  // ── Single-leader enforcement. When this tab enters `running`, it races
+  // for the browser-wide timer lock; a tab that loses stands back down to
+  // `paused` (slice preserved) and surfaces `leaderBlocked` for the UI.
+  // The lock auto-releases on tab close/crash — leaders can never go stale.
+  useEffect(() => {
+    if (status !== "running" || options.enableLeader === false) return;
+    let cancelled = false;
+    void acquireTimerLead().then((grant) => {
+      if (cancelled) {
+        grant.release();
+        return;
+      }
+      if (!grant.acquired) {
+        setLeaderBlocked(true);
+        pauseRef.current();
+        return;
+      }
+      setLeaderBlocked(false);
+      leadReleaseRef.current?.();
+      leadReleaseRef.current = grant.release;
+    });
+    return () => {
+      cancelled = true;
+      leadReleaseRef.current?.();
+      leadReleaseRef.current = null;
+    };
+  }, [status, options.enableLeader]);
 
   const totalSeconds = getDuration(mode);
   const progress = totalSeconds > 0 ? 1 - secondsLeft / totalSeconds : 0;
@@ -277,6 +415,7 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
       statusRef.current = snapshot.status;
       secondsLeftRef.current = snapshot.secondsLeft;
       activeSecondsRef.current = snapshot.activeSeconds;
+      setLeaderBlocked(false);
 
       setMode(snapshot.mode);
       setSecondsLeft(snapshot.secondsLeft);
@@ -311,6 +450,7 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
     totalSeconds,
     progress,
     completedFocusSessions,
+    leaderBlocked,
     start,
     pause,
     toggle,

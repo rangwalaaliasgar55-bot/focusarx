@@ -15,6 +15,7 @@ import { haptic } from "@/lib/haptics";
 import { getToken } from "@/lib/auth";
 import { MobileFocusMode } from "./MobileFocusMode";
 import { DEFAULT_CONFIG } from "@/lib/constants";
+import { FOCUS_DEEP_LINK_EVENT } from "@/lib/focusDeepLink";
 import { trackSessionStart, trackSessionComplete } from "@/lib/analytics";
 import { playCoachVoice } from "@/lib/soundEngine";
 
@@ -36,10 +37,15 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [totalPlanned, setTotalPlanned] = useState(25 * 60);
+  // Deep-linked task (?task=) for guests, who have no server task list.
+  const [deepTask, setDeepTask] = useState("");
   const [showSummary, setShowSummary] = useState(false);
   const [summary, setSummary] = useState<{ minutes: number; xp: number; coins: number } | null>(null);
 
-  const currentTask = useMemo(() => activeTasks[0]?.title || "", [activeTasks]);
+  const currentTask = useMemo(
+    () => deepTask || activeTasks[0]?.title || "",
+    [deepTask, activeTasks],
+  );
 
   const {
     mode,
@@ -47,6 +53,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
     secondsLeft,
     progress,
     completedFocusSessions,
+    leaderBlocked,
     toggle,
     reset,
     setCustomDuration,
@@ -54,6 +61,8 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
     restoreFromSnapshot,
     getActiveSeconds,
   } = usePomodoro({
+    // Guest-local snapshot: first sessions survive refresh/close with no account.
+    persistKey: "focusarx-guest-timer",
     onSessionComplete: async (session) => {
       addSession(session);
       if (session.mode === "focus") {
@@ -64,6 +73,9 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
       if (soundEnabled) {
         try {
           const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+          if (ctx.state === "suspended") {
+            void ctx.resume().catch(() => {});
+          }
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.connect(gain);
@@ -137,6 +149,29 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
   const isRunning = status === "running";
   const isPaused = status === "paused";
   const isIdle = status === "idle";
+
+  // Another tab won the timer lock: explain why this one stood down.
+  useEffect(() => {
+    if (leaderBlocked) toast("Timer is already running in another tab.", "info");
+  }, [leaderBlocked, toast]);
+
+  // Instagram funnel: pre-arm the idle timer from ?duration= and prefill the
+  // task line from ?task=. Applies only when idle/empty — never mid-session.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ seconds?: number | null; task?: string | null }>).detail;
+      if (!detail) return;
+      if (detail.seconds && getSnapshot().status === "idle") {
+        setCustomDuration("focus", detail.seconds);
+      }
+      if (detail.task) {
+        const t = detail.task;
+        setDeepTask((prev) => prev || t);
+      }
+    };
+    window.addEventListener(FOCUS_DEEP_LINK_EVENT, handler);
+    return () => window.removeEventListener(FOCUS_DEEP_LINK_EVENT, handler);
+  }, [getSnapshot, setCustomDuration]);
 
   // Wake lock during focus
   const { isLocked: wakeLocked, supported: wakeSupported } = useWakeLock(isRunning && mode === "focus");

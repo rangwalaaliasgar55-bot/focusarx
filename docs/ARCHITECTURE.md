@@ -121,3 +121,57 @@ Browser → Vite dev server → /api proxy → Express API → Drizzle ORM → P
 - **Cache**: Upstash Redis (optional, for shared rate limiting)
 - **Frontend**: Static export + server-side prerendering (69 pages)
 - **API**: Single serverless function at `/api/*`
+
+## Addendum — 2026-09: retention hardening (Phases 5–7)
+
+### Timer engine (`usePomodoro` + Worker + server verify)
+
+- Deadline-based (`deadlineMs = Date.now() + slice`), Worker tick 150 ms
+  recomputes `ceil((end - now)/1000)` — background stalls self-correct.
+- Guest-local snapshot (`focusarx-guest-timer`, `lib/timerPersistence.ts`):
+  stores the *deadline*, so resume-after-close/sleep lands on true
+  remaining. Written on transitions + ≤5 s while running + `pagehide`;
+  cleared on reset. Server recovery (authed) arrives later and wins.
+- Single-leader election (`lib/timerLeader.ts`): `navigator.locks`
+  `ifAvailable` while `running`, auto-released on tab death;
+  `BroadcastChannel` announce-only fallback on legacy browsers. Loser
+  stands down to `paused` and surfaces `leaderBlocked` for the UI toast.
+- Completion is idempotent end-to-end: `completingRef` guard client-side,
+  `(user_id, client_nonce)` unique insert server-side (`sessions.ts`).
+- Chime path: shared `AudioContext` resumed opportunistically
+  (`soundEngine.getCtx`), unlocked on start/pause gestures.
+
+### Streaks in user-local days (`lib/timezone.ts`, `routes/sessions.ts`)
+
+- Day keys via `Intl` in `users.timezone` (adopted from the device
+  `Intl.DateTimeFormat().resolvedOptions().timeZone` on session
+  create/sync/complete). Missing/invalid/`"UTC"`-default → legacy IST.
+- `nextStreakValues` accepts `legacyYesterday`: a match continues the
+  streak, so zone adoption and travel never silently reset progress.
+- Productivity logs and weekly XP resets use the same zone
+  (`dayKeyInZone`, `weekStartInZone`). DST-safe: calendar-string math.
+
+### Capability tiers (`lib/deviceTier.ts`)
+
+- Pure `detectTier(caps)`: full / lite / essential per WebGL2, memory,
+  concurrency, reduced-motion, saveData, effectiveType, and old-OS in-app
+  WebView gating. Unknown memory/concurrency counts as passing.
+- Override in Settings → Appearance (`focusarx-visual-tier`); reported once
+  per tab in the `device_context` analytics event (with `src`).
+- Hero3D never mounts GL on essential; render loop pauses when hidden.
+
+### Reactive scene bus (`lib/sceneBus.ts`, `SceneBackdrop`, `MinimalRing`)
+
+- `usePomodoro` publishes throttled (1 Hz) snapshots + one
+  `scene-complete` event on focus completion. Staleness (>2.5 s) doubles
+  as the hidden-tab signal (desaturate = visible penalty).
+- All tiers render the same meaning: elapsed%, paused, complete, streak
+  satellites (cap 30 → halo), 7 weekly facets, time-of-day hue.
+- Presets (`lib/scenePreset.ts`): Core + Minimal Ring ship; Deep Sea,
+  Study Room, Constellation, Zen Garden are Pro stubs.
+
+### Funnel routes
+
+- `/focus` (public, guest-first, `?duration=&task=&src=`), `/go/ig` →
+  armed `/focus?duration=25&src=ig`, `/changelog`. SEO contract
+  (route/prerender/sitemap/robots) enforced by `seoContract.test.ts`.

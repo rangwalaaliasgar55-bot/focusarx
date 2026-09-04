@@ -3,6 +3,7 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { useRef, useMemo, Suspense, useState, useEffect } from "react";
 import * as THREE from "three";
 import { Float, MeshDistortMaterial, Sphere, PerspectiveCamera, Stars } from "@react-three/drei";
+import { getDeviceTier } from "@/lib/deviceTier";
 
 function canUseWebGL(): boolean {
   try {
@@ -137,13 +138,34 @@ export default function Hero3D() {
   const [webglOk, setWebglOk] = useState<boolean | null>(null);
   const reducedMotion = useReducedMotion();
   const isMobile = useIsMobile();
-  const lowDetail = isMobile || reducedMotion;
+  // Tier C (Essential) never mounts a GL context: old phones, save-data
+  // users and legacy in-app WebViews get a static glow instead.
+  const [tier] = useState(() => {
+    try {
+      return getDeviceTier();
+    } catch {
+      return "full" as const;
+    }
+  });
+  const lowDetail = isMobile || reducedMotion || tier !== "full";
+  const staticOnly = reducedMotion || tier === "essential";
 
   useEffect(() => {
     setWebglOk(canUseWebGL());
     return () => {
       try { THREE.Cache.clear(); } catch {}
     };
+  }, []);
+
+  // Pause the render loop while the tab is hidden — the hero is decorative,
+  // so hidden-tab frames are pure battery drain.
+  const [pageVisible, setPageVisible] = useState(
+    () => typeof document === "undefined" || document.visibilityState === "visible",
+  );
+  useEffect(() => {
+    const onVis = () => setPageVisible(document.visibilityState === "visible");
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
   }, []);
 
   if (webglOk === false) {
@@ -155,8 +177,8 @@ export default function Hero3D() {
   }
   if (webglOk === null) return null;
 
-  // Respect prefers-reduced-motion
-  if (reducedMotion) {
+  // Respect prefers-reduced-motion and Tier C: static glow, zero GPU cost.
+  if (staticOnly) {
     return (
       <div className="absolute inset-0 z-[var(--z-base)] flex items-center justify-center opacity-30">
         <div className="h-[280px] w-[280px] rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)] blur-2xl" />
@@ -168,7 +190,7 @@ export default function Hero3D() {
     <div className="absolute inset-0 z-[var(--z-base)] opacity-70">
       <Canvas
         dpr={[1, 1.5]}
-        frameloop={reducedMotion ? "demand" : "always"}
+        frameloop={pageVisible ? "always" : "never"}
         gl={{
           antialias: false,
           alpha: true,

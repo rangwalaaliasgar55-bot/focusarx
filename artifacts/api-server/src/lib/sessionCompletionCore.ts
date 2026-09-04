@@ -85,11 +85,18 @@ export function isRewardEligible(input: RewardEligibilityInput): boolean {
 }
 
 export interface StreakInput {
-  lastStudyDate: string | null; // YYYY-MM-DD (IST day key)
+  lastStudyDate: string | null; // YYYY-MM-DD (user-zone day key)
   currentStreak: number;
   longestStreak: number;
   today: string;
   yesterday: string;
+  /**
+   * Yesterday's key in the *previous* calendar (legacy IST) when the user's
+   * zone recently changed or was just adopted. A match here continues the
+   * streak instead of silently resetting it — zone switches must never
+   * destroy progress.
+   */
+  legacyYesterday?: string;
 }
 
 export interface StreakResult {
@@ -108,7 +115,10 @@ export function nextStreakValues(input: StreakInput): StreakResult {
       longestStreak: input.longestStreak,
     };
   }
-  const current = input.lastStudyDate === input.yesterday ? input.currentStreak + 1 : 1;
+  const continued =
+    input.lastStudyDate === input.yesterday ||
+    (input.legacyYesterday != null && input.lastStudyDate === input.legacyYesterday);
+  const current = continued ? input.currentStreak + 1 : 1;
   return {
     changed: true,
     currentStreak: current,

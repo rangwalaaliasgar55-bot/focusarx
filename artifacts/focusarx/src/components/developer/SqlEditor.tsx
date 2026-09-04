@@ -634,7 +634,7 @@ export function SqlEditor() {
   const hasError = results.some((r) => !r.ok);
 
   return (
-    <div className="flex h-[calc(100vh-200px)] min-h-[500px] rounded-xl border border-white/10 bg-zinc-950/50 overflow-hidden">
+    <div className="viewport-panel flex min-h-[500px] rounded-xl border border-white/10 bg-zinc-950/50 overflow-hidden">
       {/* Schema Sidebar */}
       {showSchema && (
         <div className="w-64 shrink-0">
