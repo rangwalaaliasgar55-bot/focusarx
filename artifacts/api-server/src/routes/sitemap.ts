@@ -182,6 +182,37 @@ const COMPARE_PAGES: Page[] = COMPARISON_SLUGS.map<Page>((slug) => ({
   priority: "0.8",
 }));
 
+/**
+ * Blog. Mirrors `BLOG_POSTS` slugs in
+ * `artifacts/focusarx/src/content/blog.mjs` (asserted by routeContract).
+ */
+const BLOG_SLUGS = [
+  "why-25-minutes-works",
+  "attention-residue-task-switching",
+  "body-doubling-study-accountability",
+];
+
+const BLOG_PAGES: Page[] = [
+  { url: "/blog", changefreq: "weekly", priority: "0.8" },
+  ...BLOG_SLUGS.map<Page>((slug) => ({ url: `/blog/${slug}`, changefreq: "monthly", priority: "0.7" })),
+];
+
+/**
+ * Programmatic exam funnels (/pomodoro-timer-for/:exam). Mirrors the slugs
+ * in src/content/exam-funnel.mjs — extend there, never here.
+ */
+const FUNNEL_SLUGS = [
+  "jee-main", "jee-advanced", "neet-ug", "upsc-cse", "cat", "gate",
+  "cbse-class-12", "cbse-class-10", "ssc-cgl", "nda", "ctet", "ibps-po",
+  "exam-anxiety", "last-minute-revision",
+];
+
+const FUNNEL_PAGES: Page[] = FUNNEL_SLUGS.map<Page>((slug) => ({
+  url: `/pomodoro-timer-for/${slug}`,
+  changefreq: "monthly",
+  priority: "0.8",
+}));
+
 const LEGAL_PAGES: Page[] = [
   { url: "/privacy", changefreq: "yearly", priority: "0.3" },
   { url: "/terms", changefreq: "yearly", priority: "0.3" },
@@ -198,6 +229,8 @@ const SEGMENTS = [
   { file: "sitemap-core.xml", pages: CORE_PAGES },
   { file: "sitemap-tools.xml", pages: TOOL_PAGES },
   { file: "sitemap-guides.xml", pages: GUIDE_PAGES },
+  { file: "sitemap-blog.xml", pages: BLOG_PAGES },
+  { file: "sitemap-funnel.xml", pages: FUNNEL_PAGES },
   { file: "sitemap-exams.xml", pages: EXAM_PAGES },
   { file: "sitemap-compare.xml", pages: COMPARE_PAGES },
   { file: "sitemap-trust.xml", pages: TRUST_PAGES },

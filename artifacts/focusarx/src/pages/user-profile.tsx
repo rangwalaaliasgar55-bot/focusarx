@@ -1,6 +1,6 @@
 import React from "react";
 import { useParams, Link } from "wouter";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { getToken, useAuth } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
 import { Trophy, Flame, Clock, CheckSquare, Star, Users, Zap, Crown, ArrowLeft, UserPlus } from "lucide-react";
@@ -34,12 +34,27 @@ export default function UserProfilePage() {
   React.useEffect(() => {
     if (username) {
       document.title = `${username} — FocusArx Profile`;
+      const setMeta = (attr: string, name: string, content: string) => {
+        let el = document.querySelector(`meta[${attr}="${name}"]`) as HTMLMetaElement | null;
+        if (!el) {
+          el = document.createElement("meta");
+          el.setAttribute(attr, name);
+          document.head.appendChild(el);
+        }
+        el.setAttribute("content", content);
+      };
+      const desc = `View ${username}'s public study profile on FocusArx — stats, badges, streak, and more.`;
       const meta = document.querySelector('meta[name="description"]');
-      if (meta) meta.setAttribute("content", `View ${username}'s public study profile on FocusArx — stats, badges, streak, and more.`);
+      if (meta) meta.setAttribute("content", desc);
+      // Per-user share card from real public stats (Phase 4.4).
+      const ogImage = `https://focusarx.site/api/og/user?u=${encodeURIComponent(username)}`;
+      setMeta("property", "og:title", `${username} — FocusArx Profile`);
+      setMeta("property", "og:description", desc);
+      setMeta("property", "og:image", ogImage);
+      setMeta("name", "twitter:image", ogImage);
     }
   }, [username]);
   const { toast } = useToast();
-  const qc = useQueryClient();
 
   const { data: profile, isLoading, error } = useQuery({
     queryKey: ["public-profile", username],

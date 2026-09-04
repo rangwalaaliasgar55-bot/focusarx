@@ -1,0 +1,35 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": ["api/index.mjs", "scripts/*.mjs", "playwright.config.ts", "tests/e2e/*.spec.ts"],
+      "project": ["api/**/*.mjs", "scripts/**/*.mjs", "tests/**/*.ts", "docs/runbooks/*.md"]
+    },
+    "artifacts/focusarx": {
+      "entry": [
+        "src/main.tsx",
+        "src/content/**/*.mjs",
+        "scripts/*.mjs",
+        "vite.config.ts",
+        "vitest.config.ts"
+      ],
+      "project": ["src/**/*.{ts,tsx,mjs}", "scripts/**/*.mjs"]
+    },
+    "artifacts/api-server": {
+      "entry": ["src/index.ts", "src/app.ts", "build.mjs"],
+      "project": ["src/**/*.ts"]
+    },
+    "lib/db": {
+      "entry": ["src/index.ts", "scripts/*.mjs"],
+      "project": ["src/**/*.ts", "scripts/**/*.mjs"]
+    }
+  },
+  "ignore": [
+    "**/*.test.{ts,tsx}",
+    "**/*.spec.{ts,tsx}",
+    "artifacts/focusarx/src/pages/**",
+    "artifacts/focusarx/src/content/**",
+    "lib/db/drizzle/**"
+  ],
+  "ignoreDependencies": ["@sentry/react", "@sentry/node"]
+}

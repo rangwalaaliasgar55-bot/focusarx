@@ -8,7 +8,7 @@ import {
   weekStartInZone,
   LEGACY_FALLBACK_ZONE,
 } from "./timezone";
-import { nextStreakValues } from "./sessionCompletionCore";
+import { nextStreakValues, resolveStreakOutcome } from "./sessionCompletionCore";
 
 describe("timezone day keys (Phase 5.3 STREAK regression)", () => {
   it("keys the same instant on different calendar days per zone", () => {
@@ -109,5 +109,67 @@ describe("timezone day keys (Phase 5.3 STREAK regression)", () => {
     });
     expect(res.changed).toBe(false);
     expect(res.currentStreak).toBe(3);
+  });
+
+  it("auto-applies one Shield on exactly one missed day", () => {
+    expect(
+      resolveStreakOutcome({
+        lastStudyDate: "2026-09-02",
+        today: "2026-09-04",
+        yesterday: "2026-09-03",
+        dayBeforeYesterday: "2026-09-02",
+        shieldsAvailable: 2,
+      }),
+    ).toEqual({ action: "shield", consumeShield: true });
+  });
+
+  it("does not burn a Shield when there is nothing to forgive", () => {
+    expect(
+      resolveStreakOutcome({
+        lastStudyDate: "2026-09-03",
+        today: "2026-09-04",
+        yesterday: "2026-09-03",
+        dayBeforeYesterday: "2026-09-02",
+        shieldsAvailable: 2,
+      }),
+    ).toEqual({ action: "continue", consumeShield: false });
+  });
+
+  it("resets (no shield spent) after two missed days", () => {
+    expect(
+      resolveStreakOutcome({
+        lastStudyDate: "2026-09-01",
+        today: "2026-09-04",
+        yesterday: "2026-09-03",
+        dayBeforeYesterday: "2026-09-02",
+        legacyDayBeforeYesterday: "2026-09-02",
+        shieldsAvailable: 3,
+      }),
+    ).toEqual({ action: "reset", consumeShield: false });
+  });
+
+  it("resets when the missed day has no Shield banked", () => {
+    expect(
+      resolveStreakOutcome({
+        lastStudyDate: "2026-09-02",
+        today: "2026-09-04",
+        yesterday: "2026-09-03",
+        dayBeforeYesterday: "2026-09-02",
+        shieldsAvailable: 0,
+      }),
+    ).toEqual({ action: "reset", consumeShield: false });
+  });
+
+  it("honours the legacy calendar for the missed-day check (travellers)", () => {
+    expect(
+      resolveStreakOutcome({
+        lastStudyDate: "2026-09-02",
+        today: "2026-09-05",
+        yesterday: "2026-09-04",
+        dayBeforeYesterday: "2026-09-03",
+        legacyDayBeforeYesterday: "2026-09-02",
+        shieldsAvailable: 1,
+      }),
+    ).toEqual({ action: "shield", consumeShield: true });
   });
 });

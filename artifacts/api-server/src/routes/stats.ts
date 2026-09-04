@@ -1,6 +1,5 @@
-import { Request, Response, NextFunction } from "express";
+import { Router, type Response } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
-import { Router } from "express";
 import {
   db,
   focusSessionsTable,
@@ -11,10 +10,10 @@ import {
   activeSessionsTable,
   userWalletsTable,
   studyRoomMembersTable,
+  freezeTokensTable,
 } from "@workspace/db";
 import { ensureStreakEndangerment } from "../lib/streakEndangerment";
 import { eq, and, gte, lt, gt, desc, count, sql } from "drizzle-orm";
-import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
 import { isUserPremium } from "../lib/premiumCheck";
 
@@ -105,8 +104,6 @@ router.get("/analytics", authMiddleware, async (req: AuthRequest, res: Response)
     // Personal bests
     const longestSession = allSessions.reduce((max, s) => Math.max(max, s.durationSec), 0);
     const bestDayMinutes = Math.max(0, ...Object.values(dayTotals));
-    const totalSessions = allSessions.length;
-    const totalMinutes = allSessions.reduce((acc, s) => acc + s.durationSec, 0) / 60;
 
     // Hour-of-day distribution
     const hourDist = Array.from({ length: 24 }, (_, h) => {
@@ -316,7 +313,12 @@ async function handleStreak(req: AuthRequest, res: Response) {
       longestStreak: studyStreaksTable.longestStreak,
       lastStudyDate: studyStreaksTable.lastStudyDate,
     }).from(studyStreaksTable).where(eq(studyStreaksTable.userId, req.userId!));
-    res.json({ streak: streak ?? { currentStreak: 0, longestStreak: 0, lastStudyDate: null } });
+    const [freeze] = await db.select({ tokens: freezeTokensTable.tokensAvailable })
+      .from(freezeTokensTable).where(eq(freezeTokensTable.userId, req.userId!)).limit(1);
+    res.json({
+      streak: streak ?? { currentStreak: 0, longestStreak: 0, lastStudyDate: null },
+      shieldsAvailable: freeze?.tokens ?? 0,
+    });
   } catch (err) {
     logger.error({ err }, "streak error");
     res.status(500).json({ error: "Internal error" });
@@ -328,5 +330,25 @@ async function handleStreak(req: AuthRequest, res: Response) {
 // /api/stats/streak. Both are served here so neither silently 404s.
 router.get("/streak", authMiddleware, handleStreak);
 router.get("/stats/streak", authMiddleware, handleStreak);
+
+/**
+ * Live "focusing right now" counter (Phase 4.6).
+ *
+ * Public aggregate: rows in `active_sessions` with `timerStatus='running'`.
+ * Those rows exist only while a timer runs (deleted on completion), so the
+ * count is real by construction. Cached 30 s, no PII, fail-open null.
+ */
+router.get("/stats/focusing-now", async (_req, res) => {
+  try {
+    const [row] = await db.select({ count: sql<number>`count(*)::int` })
+      .from(activeSessionsTable)
+      .where(eq(activeSessionsTable.timerStatus, "running"));
+    res.setHeader("Cache-Control", "public, max-age=30, s-maxage=30");
+    res.json({ focusingNow: row?.count ?? 0 });
+  } catch (err) {
+    logger.error({ err }, "focusing-now error");
+    res.json({ focusingNow: null });
+  }
+});
 
 export { router as statsRouter };

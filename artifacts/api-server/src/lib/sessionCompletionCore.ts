@@ -108,22 +108,72 @@ export interface StreakResult {
 
 /** Pure streak progression on calendar-day keys. */
 export function nextStreakValues(input: StreakInput): StreakResult {
-  if (input.lastStudyDate === input.today) {
+  const outcome = resolveStreakOutcome({
+    lastStudyDate: input.lastStudyDate,
+    today: input.today,
+    yesterday: input.yesterday,
+    legacyYesterday: input.legacyYesterday,
+    shieldsAvailable: 0,
+  });
+  if (outcome.action === "same-day") {
     return {
       changed: false,
       currentStreak: input.currentStreak,
       longestStreak: input.longestStreak,
     };
   }
-  const continued =
-    input.lastStudyDate === input.yesterday ||
-    (input.legacyYesterday != null && input.lastStudyDate === input.legacyYesterday);
-  const current = continued ? input.currentStreak + 1 : 1;
+  const current =
+    outcome.action === "continue" || outcome.action === "shield"
+      ? input.currentStreak + 1
+      : 1;
   return {
     changed: true,
     currentStreak: current,
     longestStreak: Math.max(input.longestStreak, current),
   };
+}
+
+export type StreakAction = "same-day" | "continue" | "shield" | "reset";
+
+export interface StreakDecisionInput {
+  lastStudyDate: string | null;
+  today: string;
+  yesterday: string;
+  legacyYesterday?: string;
+  /** Day before yesterday (same calendar) — exactly one missed day. */
+  dayBeforeYesterday?: string;
+  legacyDayBeforeYesterday?: string;
+  shieldsAvailable: number;
+}
+
+/**
+ * Pure streak decision, including Streak Shield auto-apply.
+ *
+ * One Shield per missed day, consumed automatically (max one per
+ * completion): when the last study day is exactly two days back and a
+ * shield is banked, the streak continues instead of resetting. Anything
+ * older still resets — shields forgive a day, not a week.
+ */
+export function resolveStreakOutcome(input: StreakDecisionInput): {
+  action: StreakAction;
+  consumeShield: boolean;
+} {
+  const { lastStudyDate, today, yesterday, legacyYesterday } = input;
+  if (lastStudyDate === today) return { action: "same-day", consumeShield: false };
+  if (
+    lastStudyDate === yesterday ||
+    (legacyYesterday != null && lastStudyDate === legacyYesterday)
+  ) {
+    return { action: "continue", consumeShield: false };
+  }
+  if (input.shieldsAvailable > 0) {
+    const oneMissed =
+      (input.dayBeforeYesterday != null && lastStudyDate === input.dayBeforeYesterday) ||
+      (input.legacyDayBeforeYesterday != null &&
+        lastStudyDate === input.legacyDayBeforeYesterday);
+    if (oneMissed) return { action: "shield", consumeShield: true };
+  }
+  return { action: "reset", consumeShield: false };
 }
 
 /**

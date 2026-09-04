@@ -5,6 +5,7 @@ import type { Session } from "@/types/timer";
 export type SyncResult = {
   success: boolean;
   streakUpdated: boolean;
+  shieldUsed?: boolean;
   sessionId?: string;
   earnedXp?: number;
   earnedCoins?: number;
@@ -54,12 +55,14 @@ export async function syncFocusSessionToCloud(
     const data = await res.json() as {
       session?: { id?: string };
       streakUpdated?: boolean;
+      shieldUsed?: boolean;
       earnedXp?: number;
       earnedCoins?: number;
     };
     return {
       success: true,
       streakUpdated: !!data.streakUpdated,
+      shieldUsed: !!data.shieldUsed,
       sessionId: data.session?.id,
       earnedXp: data.earnedXp ?? 0,
       earnedCoins: data.earnedCoins ?? 0,

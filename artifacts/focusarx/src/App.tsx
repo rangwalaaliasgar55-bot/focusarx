@@ -51,6 +51,9 @@ function IgEntry() {
 }
 
 const ChangelogPage = lazy(() => import("@/pages/changelog"));
+const BlogPage = lazy(() => import("@/pages/blog"));
+const BlogPostPage = lazy(() => import("@/pages/blog-post"));
+const ExamFunnelPage = lazy(() => import("@/pages/exam-funnel"));
 
 const OnboardingPage = lazy(() => import("@/pages/onboarding"));
 const DashboardPage = lazy(() => import("@/pages/dashboard"));
@@ -307,6 +310,9 @@ function RoutedContent() {
               <Route path="/focus" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><FocusHomePage /></Suspense></ErrorBoundary>} />
               <Route path="/go/ig" component={IgEntry} />
               <Route path="/changelog" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><ChangelogPage /></Suspense></ErrorBoundary>} />
+              <Route path="/blog" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><BlogPage /></Suspense></ErrorBoundary>} />
+              <Route path="/blog/:slug" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><BlogPostPage /></Suspense></ErrorBoundary>} />
+              <Route path="/pomodoro-timer-for/:exam" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><ExamFunnelPage /></Suspense></ErrorBoundary>} />
               <Route path="/dashboard" component={() => <ErrorBoundary><ProtectedRoute component={DashboardPage} /></ErrorBoundary>} />
               <Route path="/analytics" component={() => <ErrorBoundary><ProtectedRoute component={AnalyticsPage} /></ErrorBoundary>} />
 

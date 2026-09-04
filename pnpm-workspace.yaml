@@ -32,9 +32,10 @@ onlyBuiltDependencies:
 
 overrides:
   # Security pins: patched transitive versions.
-  qs: '>=6.15.2'
+  qs: '>=6.16.0'
   ws: '>=8.21.0'
   socket.io-parser: '>=4.2.7'
+  fflate: '>=0.6.11'
   # @esbuild-kit/esm-loader is a stale, unmaintained dep of drizzle-kit that
   # carries known advisories; tsx is a maintained drop-in replacement.
   '@esbuild-kit/esm-loader': npm:tsx@^4.21.0

@@ -232,3 +232,51 @@ jobs:
 
       - name: Bundle budgets (entry/chunk/initial + no-three-preload)
         run: pnpm --filter @workspace/focusarx run budget
+
+  lint:
+    name: Lint changed files (strict)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: ESLint on changed files (errors fail the build)
+        run: pnpm lint:changed --base origin/main
+
+  deadcode:
+    name: Knip (unused files + dependencies)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Scoped to files+dependencies: export-level reports are noisy for the
+      # Express router-registration pattern (see knip.json + REMAINING.md).
+      - name: Knip unused files and dependencies
+        run: pnpm exec knip --include files --include dependencies

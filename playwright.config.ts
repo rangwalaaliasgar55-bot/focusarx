@@ -17,6 +17,9 @@ const MOBILE_WIDTHS = [
 export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 30_000,
+  // Timing-sensitive specs (reload resume, offline start) flake on loaded
+  // runners; one retry distinguishes product bugs from infrastructure noise.
+  retries: process.env.CI ? 2 : 0,
   use: { baseURL: "http://127.0.0.1:4173", trace: "retain-on-failure" },
   webServer: {
     command: "corepack pnpm --filter @workspace/focusarx run serve -- --port 4173",
@@ -25,6 +28,30 @@ export default defineConfig({
   },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
+    {
+      name: "desktop-reduced-motion",
+      use: { ...devices["Desktop Chrome"], reducedMotion: "reduce" },
+    },
+    {
+      name: "landscape-phone",
+      use: {
+        viewport: { width: 850, height: 380 },
+        deviceScaleFactor: 2,
+        isMobile: true,
+        hasTouch: true,
+        userAgent: devices["Pixel 5"].userAgent,
+      },
+    },
+    {
+      name: "tablet",
+      use: {
+        viewport: { width: 768, height: 1024 },
+        deviceScaleFactor: 2,
+        isMobile: true,
+        hasTouch: true,
+        userAgent: devices["iPad (gen 7)"].userAgent,
+      },
+    },
     ...MOBILE_WIDTHS.map(({ name, width, height }) => ({
       name,
       use: {

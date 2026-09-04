@@ -59,6 +59,26 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
   });
 }
 
+// Optional crash reporting (Sentry, env-gated): without VITE_SENTRY_DSN
+// the SDK never loads. Dynamic import keeps it out of the entry chunk.
+if (import.meta.env.VITE_SENTRY_DSN) {
+  const dsn = import.meta.env.VITE_SENTRY_DSN as string;
+  void import("@sentry/react")
+    .then((Sentry) =>
+      Sentry.init({
+        dsn,
+        environment: import.meta.env.MODE,
+        release:
+          (import.meta.env.VITE_DEPLOYMENT_VERSION as string | undefined) ?? "dev-local",
+        tracesSampleRate: 0.1,
+        sendDefaultPii: false,
+      }),
+    )
+    .catch((error) => {
+      logger.warn("[sentry] init failed", error);
+    });
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <App />

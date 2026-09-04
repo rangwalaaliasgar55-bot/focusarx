@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
   BarChart3,
-  Building2,
   CheckCircle2,
   CheckSquare2,
   Clock3,
@@ -25,6 +24,8 @@ import { useTasks } from "@/hooks/useTasks";
 import { useSwipeToComplete } from "@/hooks/useSwipeToComplete";
 import { useToast } from "@/components/Toast";
 import StreakFreezeCard from "@/components/dashboard/StreakFreezeCard";
+import WeeklyGoalCard from "@/components/dashboard/WeeklyGoalCard";
+import RecapCard from "@/components/dashboard/RecapCard";
 import CommunityNow from "@/components/dashboard/CommunityNow";
 import WeeklyReviewCard from "@/components/dashboard/WeeklyReviewCard";
 import OnboardingChecklist from "@/components/dashboard/OnboardingChecklist";
@@ -205,6 +206,7 @@ function RecentActivity({ sessions }: { sessions: DashboardStats["recentSessions
         <Button asChild variant="ghost" size="sm"><Link href="/analytics">View analytics <ArrowRight /></Link></Button>
       </CardHeader>
       {sessions.length ? (
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable data region must be keyboard-reachable
         <div className="mt-5 overflow-x-auto" role="region" aria-label="Recent focus activity" tabIndex={0}>
           <table className="w-full min-w-[36rem] text-left text-sm">
             <thead className="bg-[var(--surface-raised)] text-xs uppercase tracking-wider text-[var(--foreground-subtle)]">
@@ -260,14 +262,6 @@ export default function DashboardPage() {
     queryFn: () => apiJson<DashboardStats>("/api/stats"),
     staleTime: 60_000,
     enabled: status === "authenticated",
-  });
-
-  // Mobile lightweight endpoint
-  const mobileStatsQuery = useQuery({
-    queryKey: ["mobile-dashboard"],
-    queryFn: () => apiJson<any>("/api/mobile/dashboard"),
-    staleTime: 30_000,
-    enabled: status === "authenticated" && isMobile,
   });
 
   const walletQuery = useQuery<Wallet>({
@@ -334,6 +328,10 @@ export default function DashboardPage() {
           <TodaysFocus tasks={activeTasks} streak={stats.currentStreak} minutes={stats.totalStudyMinutesToday} onStart={startFocus} />
 
           <StreakFreezeCard />
+
+          <WeeklyGoalCard weekMinutes={stats.chartData.reduce((sum, d) => sum + (d.minutes || 0), 0)} />
+
+          <RecapCard />
 
           {/* Today progress */}
           <section aria-labelledby="pulse-title">

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { AnimatePresence, motion, motion as m } from "framer-motion";
-import { ClipboardList, Compass, X } from "lucide-react";
+import { ClipboardList, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { SessionRecoveryProvider } from "@/components/SessionRecoveryContext";
 import Timer from "@/components/Timer";
@@ -257,44 +257,6 @@ function CoinXPBar({ focusSessionsToday }: { focusSessionsToday: number }) {
         </div>
       </div>
     </motion.div>
-  );
-}
-
-function HomeTopBar() {
-  const { data: session } = useAuth();
-  const { focusSessionsToday } = useSessionHistory();
-  const user = session?.user;
-  const initials = (user?.name?.slice(0, 1) || user?.email?.slice(0, 1) || "?").toUpperCase();
-  return (
-    <div className="hidden md:flex items-center justify-between px-4 sm:px-6 py-3 border-b border-[var(--palette-1a1d24)] shrink-0 bg-[var(--palette-080b14)]/80 backdrop-blur-xl">
-      <div className="flex items-center gap-3">
-        <div className="flex flex-col">
-          <p className="text-[9px] font-mono text-[var(--palette-4a4f62)] uppercase tracking-[0.18em] leading-none">Deep Work</p>
-          <p className="text-base font-bold text-[var(--palette-e8eaf0)] tracking-tight leading-tight">FocusArx</p>
-        </div>
-        {focusSessionsToday > 0 && (
-          <span className="sm:hidden flex items-center gap-1 rounded-full border border-[var(--palette-orange-500)]/20 bg-[var(--palette-orange-500)]/10 px-2 py-0.5 text-[10px] font-semibold text-[var(--palette-orange-400)]">
-            🔥 {focusSessionsToday}
-          </span>
-        )}
-      </div>
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => window.dispatchEvent(new CustomEvent("focusarx:open-guide"))}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-xs font-medium text-indigo-300 hover:bg-indigo-500/20 transition-all"
-        >
-          <Compass size={13} className="text-indigo-400" />
-          <span>Guide</span>
-        </button>
-        <CoinXPBar focusSessionsToday={focusSessionsToday} />
-        {user && !user.isGuest && (
-          <a href="/profile" className="h-7 w-7 rounded-full bg-gradient-to-br from-[var(--palette-6c63ff)] to-[var(--brand-400)] flex items-center justify-center text-[11px] font-bold text-[var(--palette-white)] hover:scale-105 transition-transform shrink-0">
-            {initials}
-          </a>
-        )}
-      </div>
-    </div>
   );
 }
 

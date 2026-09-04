@@ -90,6 +90,25 @@ export const studyStreaksTable = pgTable("study_streaks", {
 
 export type StudyStreak = typeof studyStreaksTable.$inferSelect;
 
+/**
+ * Streak audit trail (never silently reset — every transition is recorded).
+ * Written in the same transaction as the streak row itself.
+ */
+export const streakHistoryTable = pgTable("streak_history", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  date: text("date").notNull(),
+  event: text("event").notNull(),
+  fromStreak: integer("from_streak").notNull().default(0),
+  toStreak: integer("to_streak").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("streak_history_user_idx").on(t.userId),
+  index("streak_history_user_date_idx").on(t.userId, t.date),
+]);
+
+export type StreakHistory = typeof streakHistoryTable.$inferSelect;
+
 export const tasksTable = pgTable("tasks", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),

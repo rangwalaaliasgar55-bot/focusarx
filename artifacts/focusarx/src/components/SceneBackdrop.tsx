@@ -10,7 +10,7 @@
  * Decorative only: aria-hidden, pointer-events-none, zero layout effect.
  */
 
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import MinimalRing, { type RingStatus } from "./MinimalRing";
 import { SCENE_COMPLETE_EVENT, sceneElapsedPct, sceneIsStale, useSceneState } from "@/lib/sceneBus";
 import { getDeviceTier } from "@/lib/deviceTier";
@@ -18,6 +18,11 @@ import { getScenePreset } from "@/lib/scenePreset";
 import { weeklyFacets } from "@/lib/weeklyFacets";
 import { useSessionHistory } from "@/hooks/useSessionHistory";
 import { getToken } from "@/lib/auth";
+
+// Heavy 3D presets stay out of the focus chunk: three.js loads only when a
+// Full-tier user actually picks Deep Sea or Study Room.
+const DeepSeaScene = lazy(() => import("./DeepSeaScene"));
+const StudyRoomScene = lazy(() => import("./StudyRoomScene"));
 
 function timeOfDayHue(): number {
   const h = new Date().getHours();
@@ -42,6 +47,21 @@ export default function SceneBackdrop() {
   const [streak, setStreak] = useState(0);
   const [burstKey, setBurstKey] = useState(0);
   const [, forceStaleTick] = useState(0);
+  const [reducedMotion] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+  const [pageVisible, setPageVisible] = useState(
+    () => typeof document === "undefined" || document.visibilityState === "visible",
+  );
+
+  useEffect(() => {
+    const onVis = () => setPageVisible(document.visibilityState === "visible");
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
 
   useEffect(() => {
     const onPreset = (e: Event) => setPreset((e as CustomEvent).detail);
@@ -73,19 +93,9 @@ export default function SceneBackdrop() {
       .catch(() => {});
   }, []);
 
-  const showRing = tier === "essential" || preset === "minimal-ring";
-  if (!showRing) {
-    const hue = timeOfDayHue();
-    return (
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 z-[var(--z-background)]"
-        style={{
-          background: `radial-gradient(ellipse 60% 45% at 50% 32%, hsla(${hue}, 70%, 60%, 0.10) 0%, transparent 70%)`,
-        }}
-      />
-    );
-  }
+  const showRing = tier === "essential" || preset === "minimal-ring" || reducedMotion;
+  const showSea = preset === "deep-sea" && tier === "full" && !reducedMotion;
+  const showRoom = preset === "study-room" && tier === "full" && !reducedMotion;
 
   const stale = sceneIsStale(snap);
   const pct = sceneElapsedPct(snap);
@@ -100,6 +110,36 @@ export default function SceneBackdrop() {
   const facets = weeklyFacets(
     sessions.map((s) => ({ completedAt: s.completedAt, mode: s.mode })),
   );
+  const paused = status === "paused";
+
+  // Full-tier 3D presets (lazy: three.js loads only on selection).
+  if (showSea || showRoom) {
+    const weekCount = facets.filter(Boolean).length;
+    return (
+      <div aria-hidden className="pointer-events-none absolute inset-0 z-[var(--z-background)] opacity-80">
+        <Suspense fallback={null}>
+          {showSea ? (
+            <DeepSeaScene pct={pct} paused={paused} stale={stale} burstKey={burstKey} streak={streak} visible={pageVisible} />
+          ) : (
+            <StudyRoomScene pct={pct} paused={paused} stale={stale} burstKey={burstKey} streak={streak} weekCount={weekCount} visible={pageVisible} />
+          )}
+        </Suspense>
+      </div>
+    );
+  }
+
+  if (!showRing) {
+    const hue = timeOfDayHue();
+    return (
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-[var(--z-background)]"
+        style={{
+          background: `radial-gradient(ellipse 60% 45% at 50% 32%, hsla(${hue}, 70%, 60%, 0.10) 0%, transparent 70%)`,
+        }}
+      />
+    );
+  }
 
   return (
     <div

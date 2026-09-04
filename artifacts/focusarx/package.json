@@ -20,9 +20,9 @@
     "@mediapipe/tasks-vision": "^0.10.35",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
+    "@sentry/react": "^10.73.0",
     "react-webcam": "^7.2.0",
     "socket.io-client": "^4.8.3",
-    "styled-components": "^6.5.3",
     "three": "^0.184.0"
   },
   "devDependencies": {

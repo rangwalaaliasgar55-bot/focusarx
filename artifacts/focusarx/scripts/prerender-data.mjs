@@ -13,6 +13,8 @@
 export const SITE_NAME = "FocusArx";
 import { EXAM_GUIDES, EXAM_HUB } from "../src/content/exam/index.mjs";
 import { SEO_PAGES, COMPARISONS, COMPARISON_PATHS } from "../src/content/seo-pages.mjs";
+import { BLOG_POSTS } from "../src/content/blog.mjs";
+import { FUNNEL_ANGLES } from "../src/content/exam-funnel.mjs";
 
 // OG card base for dynamic OG images (serverless /api/og endpoint).
 const OG_BASE = "https://focusarx.site";
@@ -909,6 +911,51 @@ export const ROUTES = [
     ogImage: examOgImage(g.title.replace(/\s*\|\s*FocusArx.*$/i, ""), g.lead),
     related: g.related,
   })),
+
+  // ── Blog (one source: src/content/blog.mjs — extend there) ────
+  {
+    path: "/blog",
+    title: "Blog | Focus, Deep Work and Study Science | FocusArx",
+    description:
+      "Short essays on focus, deep work and study science: why 25 minutes works, attention residue, and body doubling.",
+    h1: "Blog",
+    lead: "Short essays on attention and studying. Each one ends in something you can do today.",
+    sections: BLOG_POSTS.map((p) => ({ h: p.h1, p: p.lead })),
+    related: [...BLOG_POSTS.map((p) => `/blog/${p.slug}|${p.h1}`), "/focus|Focus app"],
+    lastReviewed: "2026-09-05",
+  },
+  ...BLOG_POSTS.map((p) => ({
+    path: `/blog/${p.slug}`,
+    title: p.title,
+    description: p.description,
+    h1: p.h1,
+    lead: p.lead,
+    sections: p.sections,
+    faq: p.faq,
+    article: true,
+    related: [
+      ...BLOG_POSTS.filter((q) => q.slug !== p.slug).map((q) => `/blog/${q.slug}|${q.h1}`),
+      "/focus|Focus app",
+    ],
+    lastReviewed: p.date,
+  })),
+
+  // ── Programmatic exam funnels (one source each: exam/*.mjs + exam-funnel.mjs)
+  ...EXAM_GUIDES.filter((g) => FUNNEL_ANGLES[g.slug]).map((g) => {
+    const funnel = FUNNEL_ANGLES[g.slug];
+    const examName = g.exam?.name ?? g.h1;
+    return {
+      path: `/pomodoro-timer-for/${g.slug}`,
+      title: `Pomodoro Timer for ${examName} | Focus Sessions That Count`,
+      description: `Free Pomodoro timer tuned for ${examName}: ${funnel.angle} No account needed to start.`,
+      h1: `Pomodoro timer for ${examName}`,
+      lead: funnel.angle,
+      sections: g.sections.slice(0, 3),
+      faq: g.faq?.slice(0, 3),
+      related: [`/exam/${g.slug}|Full ${examName} guide`, "/focus|Focus app", "/pomodoro-timer|Pomodoro timer"],
+      lastReviewed: "2026-09-05",
+    };
+  }),
 
   // ── Intent pages: tools, cluster spokes, trust ────────────────
   // Generated from src/content/seo-pages.mjs. That file is imported by the

@@ -1,7 +1,7 @@
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router, type Response } from "express";
 import { z } from "zod";
-import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, userWalletsTable, productivityLogsTable, battlePassProgressTable, coinTransactionsTable, focusCitiesTable, userLootBoxesTable, premiumSubscriptionsTable, userPetsTable, usersTable, type ActiveSession} from "@workspace/db";
+import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, streakHistoryTable, freezeTokensTable, userWalletsTable, productivityLogsTable, battlePassProgressTable, coinTransactionsTable, focusCitiesTable, userLootBoxesTable, premiumSubscriptionsTable, userPetsTable, usersTable, type ActiveSession} from "@workspace/db";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { updateMissionProgress } from "./missions";
@@ -22,12 +22,11 @@ import {
   computeVerifiedDurationSec,
   isRewardEligible,
   nextStreakValues,
+  resolveStreakOutcome,
   MIN_REWARD_DURATION_SEC,
 } from "../lib/sessionCompletionCore";
 import {
   evaluateActiveSession,
-  stateFromTimerStatus,
-  type SessionState,
 } from "../lib/sessionStateMachine";
 import { deriveActiveSessionTiming } from "../lib/activeSessionTiming";
 
@@ -187,7 +186,7 @@ async function userZone(userId: string): Promise<string> {
 
 router.get("/sessions/active", authMiddleware, async (req: AuthRequest, res) => {
   try {
-    let [session] = await db.select().from(activeSessionsTable).where(eq(activeSessionsTable.userId, req.userId));
+    const [session] = await db.select().from(activeSessionsTable).where(eq(activeSessionsTable.userId, req.userId));
     if (!session) {
       res.json({ session: null });
       return;
@@ -463,14 +462,16 @@ router.post("/sessions", authMiddleware, sessionCompleteLimiter, async (req: Aut
           eq(focusSessionsTable.userId, req.userId),
           eq(focusSessionsTable.clientNonce, clientNonce ?? ""),
         )).limit(1);
-        return { session: existing ?? null, replay: true as const, streakUpdated: false };
+        return { session: existing ?? null, replay: true as const, streakUpdated: false, shieldUsed: false };
       }
       const session = inserted[0]!;
 
       let streakUpdated = false;
+      let shieldUsed = false;
       if (rewardEligible) {
         // User-zone day keys — shared transactional streak progression.
-        streakUpdated = await applyStreakProgress(tx, req.userId, zone);
+        // A banked Shield auto-applies on exactly one missed day.
+        ({ updated: streakUpdated, shieldUsed } = await applyStreakProgress(tx, req.userId, zone));
       }
 
       // Award XP/coins inside the transaction — atomic, and a ledger failure
@@ -519,11 +520,11 @@ router.post("/sessions", authMiddleware, sessionCompleteLimiter, async (req: Aut
         ));
       }
 
-      return { session, replay: false as const, streakUpdated };
+      return { session, replay: false as const, streakUpdated, shieldUsed };
     });
 
     if (result.replay) {
-      res.json({ session: result.session, streakUpdated: false, earnedXp: 0, earnedCoins: 0, idempotentReplay: true });
+      res.json({ session: result.session, streakUpdated: false, shieldUsed: false, earnedXp: 0, earnedCoins: 0, idempotentReplay: true });
       return;
     }
 
@@ -556,11 +557,11 @@ router.post("/sessions", authMiddleware, sessionCompleteLimiter, async (req: Aut
 
       const delightReward = runDelightCheck();
 
-      res.json({ session: result.session, streakUpdated: result.streakUpdated, earnedXp, earnedCoins, lootBoxDropped, delightReward });
+      res.json({ session: result.session, streakUpdated: result.streakUpdated, shieldUsed: result.shieldUsed, earnedXp, earnedCoins, lootBoxDropped, delightReward });
       return;
     }
 
-    res.json({ session: result.session, streakUpdated: result.streakUpdated, earnedXp: 0, earnedCoins: 0, lootBoxDropped: false, delightReward: null });
+    res.json({ session: result.session, streakUpdated: result.streakUpdated, shieldUsed: result.shieldUsed, earnedXp: 0, earnedCoins: 0, lootBoxDropped: false, delightReward: null });
   } catch (err) {
     logger.error({ err }, "create session error");
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
@@ -619,25 +620,80 @@ router.get("/sessions", authMiddleware, handleSessionHistory);
  * yesterday key: matching it continues the streak, so adopting a real zone
  * (or travelling) never silently resets progress earned under legacy IST.
  */
-async function applyStreakProgress(tx: TxLike, userId: string, zone: string): Promise<boolean> {
+async function applyStreakProgress(tx: TxLike, userId: string, zone: string): Promise<{ updated: boolean; shieldUsed: boolean }> {
   const now = Date.now();
   const today = dayKeyInZone(now, zone);
   const yesterday = shiftDayKey(today, -1);
-  const legacyYesterday =
-    zone === LEGACY_FALLBACK_ZONE ? undefined : shiftDayKey(dayKeyInZone(now, LEGACY_FALLBACK_ZONE), -1);
+  const dayBefore = shiftDayKey(today, -2);
+  const legacy = zone === LEGACY_FALLBACK_ZONE ? null : dayKeyInZone(now, LEGACY_FALLBACK_ZONE);
+  const legacyYesterday = legacy ? shiftDayKey(legacy, -1) : undefined;
+  const legacyDayBefore = legacy ? shiftDayKey(legacy, -2) : undefined;
   const [existingStreak] = await tx.select().from(studyStreaksTable)
     .where(eq(studyStreaksTable.userId, userId)).for("update");
+  const lastStudyDate = existingStreak?.lastStudyDate ?? null;
+  const currentStreak = existingStreak?.currentStreak ?? 0;
+  const longestStreak = existingStreak?.longestStreak ?? 0;
+
+  // Banked shields (Streak Shield / freeze tokens), read with the row lock.
+  const [freeze] = await tx.select({ available: freezeTokensTable.tokensAvailable })
+    .from(freezeTokensTable)
+    .where(eq(freezeTokensTable.userId, userId))
+    .limit(1);
+  const outcome = resolveStreakOutcome({
+    lastStudyDate,
+    today,
+    yesterday,
+    legacyYesterday,
+    dayBeforeYesterday: dayBefore,
+    legacyDayBeforeYesterday: legacyDayBefore,
+    shieldsAvailable: freeze?.available ?? 0,
+  });
+
+  const writeHistory = async (event: string, from: number, to: number) => {
+    try {
+      await tx.insert(streakHistoryTable).values({ userId, date: today, event, fromStreak: from, toStreak: to });
+    } catch (err) {
+      logger.warn({ err, userId }, "streak history insert failed (non-fatal)");
+    }
+  };
+
+  if (outcome.action === "same-day") return { updated: false, shieldUsed: false };
+
+  if (outcome.consumeShield) {
+    // Auto-apply one Shield: forgive exactly one missed day, never more.
+    await tx.update(freezeTokensTable).set({
+      tokensAvailable: (freeze?.available ?? 1) - 1,
+      tokensUsed: sql`coalesce(${freezeTokensTable.tokensUsed}, 0) + 1`,
+      updatedAt: new Date(),
+    }).where(eq(freezeTokensTable.userId, userId));
+    const next = currentStreak + 1;
+    if (!existingStreak) {
+      await tx.insert(studyStreaksTable).values({ userId, currentStreak: next, longestStreak: Math.max(longestStreak, next), lastStudyDate: today });
+    } else {
+      await tx.update(studyStreaksTable).set({
+        currentStreak: next,
+        longestStreak: Math.max(longestStreak, next),
+        lastStudyDate: today,
+        updatedAt: new Date(),
+      }).where(eq(studyStreaksTable.userId, userId));
+    }
+    await writeHistory("shield", currentStreak, next);
+    logger.info({ userId, from: lastStudyDate, to: today }, "streak shield auto-applied");
+    return { updated: true, shieldUsed: true };
+  }
+
   const streak = nextStreakValues({
-    lastStudyDate: existingStreak?.lastStudyDate ?? null,
-    currentStreak: existingStreak?.currentStreak ?? 0,
-    longestStreak: existingStreak?.longestStreak ?? 0,
+    lastStudyDate,
+    currentStreak,
+    longestStreak,
     today,
     yesterday,
     legacyYesterday,
   });
   if (!existingStreak) {
     await tx.insert(studyStreaksTable).values({ userId, currentStreak: streak.currentStreak, longestStreak: streak.longestStreak, lastStudyDate: today });
-    return true;
+    await writeHistory("start", 0, streak.currentStreak);
+    return { updated: true, shieldUsed: false };
   }
   if (streak.changed) {
     await tx.update(studyStreaksTable).set({
@@ -646,9 +702,11 @@ async function applyStreakProgress(tx: TxLike, userId: string, zone: string): Pr
       lastStudyDate: today,
       updatedAt: new Date(),
     }).where(eq(studyStreaksTable.userId, userId));
-    return true;
+    const continued = streak.currentStreak > 1 && lastStudyDate !== null;
+    await writeHistory(continued ? "increment" : "reset", currentStreak, streak.currentStreak);
+    return { updated: true, shieldUsed: false };
   }
-  return false;
+  return { updated: false, shieldUsed: false };
 }
 
 /**
@@ -719,7 +777,7 @@ type TxLike = Parameters<Parameters<typeof db.transaction>[0]>[0];
 async function finalizeExpiredSession(
   userId: string,
   session: ActiveSession,
-): Promise<{ sessionId: string; sessionStatus: string; durationSec: number; earnedXp: number; earnedCoins: number }> {
+): Promise<{ sessionId: string; sessionStatus: string; durationSec: number; earnedXp: number; earnedCoins: number; shieldUsed: boolean }> {
   const evaluation = evaluateActiveSession(session, Date.now());
   if (!evaluation.expired) {
     throw new Error("finalizeExpiredSession called on a live session");
@@ -745,9 +803,10 @@ async function finalizeExpiredSession(
     let earnedXp = 0;
     let earnedCoins = 0;
     let streakUpdated = false;
+    let shieldUsed = false;
 
     if (rewardEligible) {
-      streakUpdated = await applyStreakProgress(tx, userId, zone);
+      ({ updated: streakUpdated, shieldUsed } = await applyStreakProgress(tx, userId, zone));
       earnedXp = computeSessionRewards({ minutes, isPremium: false }).xp;
       earnedCoins = computeSessionRewards({ minutes, isPremium: false }).coins;
       await creditSessionRewards(tx, userId, earnedXp, earnedCoins, weekStart);
@@ -769,11 +828,11 @@ async function finalizeExpiredSession(
       category: "General",
     }).returning();
 
-    return { session: archived, sessionStatus, durationSec, earnedXp, earnedCoins, streakUpdated };
+    return { session: archived, sessionStatus, durationSec, earnedXp, earnedCoins, streakUpdated, shieldUsed };
   });
 
   if (!outcome) {
-    return { sessionId: session.id, sessionStatus: "expired", durationSec: 0, earnedXp: 0, earnedCoins: 0 };
+    return { sessionId: session.id, sessionStatus: "expired", durationSec: 0, earnedXp: 0, earnedCoins: 0, shieldUsed: false };
   }
 
   // Post-transaction best-effort gamification, mirroring explicit completion.
@@ -794,7 +853,7 @@ async function finalizeExpiredSession(
   }
 
   logger.info({ userId, sessionId: session.id, status: outcome.sessionStatus, durationSec: outcome.durationSec }, "expired active session finalized");
-  return { sessionId: outcome.session.id, sessionStatus: outcome.sessionStatus, durationSec: outcome.durationSec, earnedXp: outcome.earnedXp, earnedCoins: outcome.earnedCoins };
+  return { sessionId: outcome.session.id, sessionStatus: outcome.sessionStatus, durationSec: outcome.durationSec, earnedXp: outcome.earnedXp, earnedCoins: outcome.earnedCoins, shieldUsed: outcome.shieldUsed };
 }
 
 async function awardPetXp(userId: string, minutes: number): Promise<void> {

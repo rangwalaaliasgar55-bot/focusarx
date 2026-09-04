@@ -4,7 +4,7 @@ import { DEFAULT_CONFIG } from "@/lib/constants";
 import { generateId } from "@/lib/timerUtils";
 import { haptic } from "@/lib/haptics";
 import { unlockAudio } from "@/lib/soundEngine";
-import { createTimerWorker, type TimerWorkerController } from "@/lib/timerWorker";
+import { createTimerWorker } from "@/lib/timerWorker";
 import { safeGetJson, safeSetJson, safeRemove } from "@/lib/safeStorage";
 import { buildSnapshot, readSnapshot } from "@/lib/timerPersistence";
 import { acquireTimerLead } from "@/lib/timerLeader";
@@ -275,7 +275,7 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
     });
 
     return () => worker.destroy();
-  }, [status, advancePhase]);
+  }, [status, advancePhase, publishScene]);
 
   const toggle = useCallback(() => {
     if (status === "running") {
@@ -367,23 +367,39 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
   // for the browser-wide timer lock; a tab that loses stands back down to
   // `paused` (slice preserved) and surfaces `leaderBlocked` for the UI.
   // The lock auto-releases on tab close/crash — leaders can never go stale.
+  //
+  // Acquisition retries a few times first: lock release propagates
+  // asynchronously, so a remount (or two tabs starting on the same tick)
+  // can observe a stale denial. Only a sustained denial stands the timer
+  // down — genuine second tabs still lose, just ~600 ms later.
   useEffect(() => {
     if (status !== "running" || options.enableLeader === false) return;
     let cancelled = false;
-    void acquireTimerLead().then((grant) => {
-      if (cancelled) {
-        grant.release();
-        return;
-      }
-      if (!grant.acquired) {
-        setLeaderBlocked(true);
-        pauseRef.current();
-        return;
-      }
-      setLeaderBlocked(false);
-      leadReleaseRef.current?.();
-      leadReleaseRef.current = grant.release;
-    });
+    let attempts = 0;
+    const tryAcquire = () => {
+      void acquireTimerLead().then((grant) => {
+        if (cancelled) {
+          grant.release();
+          return;
+        }
+        if (!grant.acquired) {
+          attempts += 1;
+          if (attempts < 4) {
+            window.setTimeout(() => {
+              if (!cancelled) tryAcquire();
+            }, 150);
+            return;
+          }
+          setLeaderBlocked(true);
+          pauseRef.current();
+          return;
+        }
+        setLeaderBlocked(false);
+        leadReleaseRef.current?.();
+        leadReleaseRef.current = grant.release;
+      });
+    };
+    tryAcquire();
     return () => {
       cancelled = true;
       leadReleaseRef.current?.();

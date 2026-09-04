@@ -11,14 +11,13 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@sentry/node": "^10.73.0",
     "@upstash/redis": "^1.38.2",
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",
     "bcryptjs": "^3.0.3",
     "compression": "^1.8.1",
-    "cookie": "^1.1.1",
     "cookie-parser": "^1.4.7",
-    "cors": "^2.8.6",
     "drizzle-orm": "catalog:",
     "express": "^5.2.1",
     "express-rate-limit": "^8.6.2",
@@ -34,7 +33,6 @@
   "devDependencies": {
     "@types/compression": "^1.8.1",
     "@types/cookie-parser": "^1.4.10",
-    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "catalog:",

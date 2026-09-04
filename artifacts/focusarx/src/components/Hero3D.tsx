@@ -1,6 +1,6 @@
 import { resolveColorToken } from "@/lib/color-tokens";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useRef, useMemo, Suspense, useState, useEffect } from "react";
+import { useRef, Suspense, useState, useEffect } from "react";
 import * as THREE from "three";
 import { Float, MeshDistortMaterial, Sphere, PerspectiveCamera, Stars } from "@react-three/drei";
 import { getDeviceTier } from "@/lib/deviceTier";
@@ -15,10 +15,14 @@ function canUseWebGL(): boolean {
 }
 
 function useReducedMotion() {
-  const [reduced, setReduced] = useState(false);
+  const [reduced, setReduced] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mq.matches);
     const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
     mq.addEventListener?.("change", handler);
     return () => mq.removeEventListener?.("change", handler);
@@ -135,7 +139,13 @@ function GeometricHero({ lowDetail }: { lowDetail: boolean }) {
 }
 
 export default function Hero3D() {
-  const [webglOk, setWebglOk] = useState<boolean | null>(null);
+  const [webglOk, setWebglOk] = useState<boolean>(() => {
+    try {
+      return canUseWebGL();
+    } catch {
+      return false;
+    }
+  });
   const reducedMotion = useReducedMotion();
   const isMobile = useIsMobile();
   // Tier C (Essential) never mounts a GL context: old phones, save-data
@@ -150,8 +160,9 @@ export default function Hero3D() {
   const lowDetail = isMobile || reducedMotion || tier !== "full";
   const staticOnly = reducedMotion || tier === "essential";
 
+  // Release GPU caches on unmount. Capability itself is computed once in
+  // the state initializer above (no mount-effect setState).
   useEffect(() => {
-    setWebglOk(canUseWebGL());
     return () => {
       try { THREE.Cache.clear(); } catch {}
     };
@@ -175,7 +186,6 @@ export default function Hero3D() {
       </div>
     );
   }
-  if (webglOk === null) return null;
 
   // Respect prefers-reduced-motion and Tier C: static glow, zero GPU cost.
   if (staticOnly) {

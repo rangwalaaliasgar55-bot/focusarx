@@ -1013,6 +1013,57 @@ html.light .glass-subtle {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   PRINT — weekly report (Phase 6.4)
+   Ink-first: hide chrome, nav, actions and GPU layers; cards become plain
+   bordered blocks; never split a card across pages.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media print {
+  :root { color-scheme: light; }
+  body { background: #fff !important; color: #111 !important; }
+  .app-sidebar,
+  .app-bottom-nav,
+  .app-topbar,
+  nav,
+  aside,
+  video,
+  canvas,
+  button,
+  input,
+  select,
+  [role="dialog"],
+  [aria-hidden="true"],
+  .no-print {
+    display: none !important;
+  }
+  .app-workspace,
+  .app-main,
+  .app-shell {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: auto !important;
+  }
+  .glass,
+  .glass-card,
+  .glass-subtle,
+  .command-card {
+    backdrop-filter: none !important;
+    background: #fff !important;
+    border: 1px solid #ddd !important;
+  }
+  .card,
+  section {
+    break-inside: avoid;
+  }
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+  a { color: #111 !important; text-decoration: underline; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    PREFERS-REDUCED-MOTION — disable all animations
    ═══════════════════════════════════════════════════════════════════════════ */
 @media (prefers-reduced-motion: reduce) {

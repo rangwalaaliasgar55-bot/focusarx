@@ -5,8 +5,6 @@ import {
   Crown,
   Zap,
   Star,
-  Shield,
-  Sparkles,
   Gift,
   BarChart2,
   Brain,
@@ -15,16 +13,13 @@ import {
   AlertTriangle,
   Clock,
   History,
-  Info,
-  ArrowRight,
-  Flame,
   Timer,
   Palette,
-  Users,
   Target,
 } from "lucide-react";
 import { getToken } from "@/lib/auth";
 import { PageSEO } from "@/components/PageSEO";
+import StripeCheckoutCard from "@/components/StripeCheckoutCard";
 import { Link } from "wouter";
 
 async function apiFetch(url: string, opts?: RequestInit) {
@@ -78,15 +73,8 @@ export default function PremiumPage() {
     staleTime: 60_000,
   });
 
-  const { data: benefitsData } = useQuery({
-    queryKey: ["premium-benefits"],
-    queryFn: () => apiFetch("/api/premium/benefits"),
-    staleTime: 300_000,
-  });
-
   const balance: number = status?.balance ?? wallet?.coins ?? 0;
   const isPremium: boolean = status?.isPremium ?? false;
-  const premiumStatus: string = status?.status ?? "inactive";
   const expiresAt: string | null = status?.expiresAt ?? null;
   const plans: any[] = status?.plans ?? [];
   const entitlements: any[] = status?.entitlements ?? [];
@@ -152,6 +140,8 @@ export default function PremiumPage() {
             ← Dashboard
           </Link>
         </div>
+
+        <StripeCheckoutCard />
 
         {/* Current status */}
         {isLoading ? (
@@ -290,7 +280,7 @@ export default function PremiumPage() {
           <div>
             <h3 className="mb-3 text-sm font-bold uppercase tracking-widest text-[var(--foreground-subtle)]">Premium benefits</h3>
             <div className="grid gap-2">
-              {BENEFITS.map((b, i) => (
+              {BENEFITS.map((b) => (
                 <div key={b.label} className="flex items-start gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-1)] p-3">
                   <span className="grid h-8 w-8 place-items-center rounded-lg bg-[var(--brand-soft)] text-[var(--brand-500)]">
                     <b.icon size={16} />

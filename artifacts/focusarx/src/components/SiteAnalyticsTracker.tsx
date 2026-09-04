@@ -3,6 +3,8 @@ import { useLocation } from "wouter";
 import { initSiteAnalytics, trackPageView, trackSiteEvent } from "@/lib/site-analytics";
 import { trackPageView as trackGAPageView } from "@/lib/gtag";
 import { getDeviceTier, markTierReported, probeDeviceCaps } from "@/lib/deviceTier";
+import { captureReferralFromUrl } from "@/lib/referral";
+import { initPlausible, trackPlausiblePageview } from "@/lib/plausible";
 
 /** Report capability tier + acquisition source once per tab session (Phase 6.1/4.5). */
 function reportDeviceContextOnce() {
@@ -38,6 +40,13 @@ export function SiteAnalyticsTracker() {
       const boot = () => {
         initSiteAnalytics();
         reportDeviceContextOnce();
+        initPlausible();
+        // Referral capture (?ref=) — applied after first login.
+        try {
+          captureReferralFromUrl(window.location.search);
+        } catch {
+          /* ignore */
+        }
       };
       if (typeof requestIdleCallback !== "undefined") {
         requestIdleCallback(boot);
@@ -52,6 +61,7 @@ export function SiteAnalyticsTracker() {
     const t = setTimeout(() => {
       trackPageView(path);
       trackGAPageView(path);
+      trackPlausiblePageview(path);
     }, 300);
     return () => clearTimeout(t);
   }, [location]);

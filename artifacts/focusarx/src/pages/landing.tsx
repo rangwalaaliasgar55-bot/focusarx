@@ -29,9 +29,8 @@ import { Reveal, RevealStagger, RevealItem, ScrollScale, HeroScrub, Parallax } f
 import { AdSlot } from "@/components/AdSlot";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { useSiteSettings } from "@/lib/site-settings";
+import FocusingNow from "@/components/FocusingNow";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -150,7 +149,6 @@ function LazyAtmosphere() {
 
 export default function LandingPage() {
   const reduceMotion = useReducedMotion();
-  const settings = useSiteSettings();
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
@@ -196,6 +194,7 @@ export default function LandingPage() {
             <motion.div {...entrance} className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-[var(--foreground-muted)]">
               <span className="inline-flex items-center gap-2"><Check size={16} className="text-[var(--success)]" /> Free forever tier</span>
               <span className="inline-flex items-center gap-2"><Lock size={15} className="text-[var(--success)]" /> Privacy-first by design</span>
+              <FocusingNow />
             </motion.div>
           </HeroScrub>
         </section>

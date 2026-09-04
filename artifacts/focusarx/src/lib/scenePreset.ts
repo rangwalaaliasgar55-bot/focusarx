@@ -30,8 +30,8 @@ export interface ScenePreset {
 export const SCENE_PRESETS: ScenePreset[] = [
   { id: "core", label: "Focus Core", blurb: "Reactive 3D core.", available: true, pro: false },
   { id: "minimal-ring", label: "Minimal Ring", blurb: "Calm CSS ring. Default on low-end devices.", available: true, pro: false },
-  { id: "deep-sea", label: "Deep Sea", blurb: "Longer sessions dive deeper. Pro.", available: false, pro: true },
-  { id: "study-room", label: "Study Room", blurb: "Lamp, window and books track progress. Pro.", available: false, pro: true },
+  { id: "deep-sea", label: "Deep Sea", blurb: "Longer sessions dive deeper.", available: true, pro: true },
+  { id: "study-room", label: "Study Room", blurb: "Lamp, window and books track progress.", available: true, pro: true },
   { id: "constellation", label: "Constellation", blurb: "Sessions become stars. Pro.", available: false, pro: true },
   { id: "zen-garden", label: "Zen Garden", blurb: "Sand rings trace minutes. Pro.", available: false, pro: true },
 ];

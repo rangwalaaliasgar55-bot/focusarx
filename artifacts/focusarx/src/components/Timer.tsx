@@ -13,11 +13,14 @@ import { useToast } from "./Toast";
 import { getModeLabel } from "@/lib/timerUtils";
 import { DEFAULT_CONFIG } from "@/lib/constants";
 import { FOCUS_DEEP_LINK_EVENT } from "@/lib/focusDeepLink";
+import FlowTimer from "./FlowTimer";
+import { SESSION_PRESETS, getPresetById, getSessionPreset, setSessionPreset } from "@/lib/sessionPresets";
+import { isDocumentPipSupported, openMiniTimer, writePipSnapshot } from "@/lib/miniTimer";
 import { trackSiteEvent } from "@/lib/site-analytics";
 import { trackSessionStart, trackSessionComplete, trackSessionAbandoned } from "@/lib/analytics";
 import { haptic } from "@/lib/haptics";
 import type { PersistedActiveSession } from "@/types/session-persistence";
-import type { TimerMode } from "@/types/timer";
+import type { Session, TimerMode } from "@/types/timer";
 import FocusLockOverlay, { LockModePicker } from "./FocusLockOverlay";
 import type { LockMode } from "./FocusLockOverlay";
 import DistractionModal from "./DistractionModal";
@@ -34,10 +37,8 @@ import { XPBurst } from "./XPBurst";
 import { getToken } from "@/lib/auth";
 import { useCoinXP } from "./CoinXPBar";
 import PetCompanion from "./PetCompanion";
-import { TimerRitualsPanel, ReflectionModal, RITUAL_TEMPLATES } from "./TimerRituals";
+import { TimerRitualsPanel, ReflectionModal } from "./TimerRituals";
 import { usePremium } from "@/hooks/usePremium";
-import { Crown, Lock } from "lucide-react";
-import { Link } from "wouter";
 
 const MODES: TimerMode[] = ["focus", "break", "longBreak"];
 
@@ -91,12 +92,13 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
   const { activeTasks, completedTasks, refreshTasks } = useTasks();
   const { wallet, refresh: refreshWallet } = useCoinXP();
   const { isPremium } = usePremium();
-  const [intention, setIntention] = useState("");
+  const [intention] = useState("");
   const [showReflection, setShowReflection] = useState(false);
   const [reflectionDuration, setReflectionDuration] = useState(0);
   const [ritualHistory, setRitualHistory] = useState<Array<{ date: string; template: string; intention: string; duration: number }>>([]);
 
-  const [storageReady, setStorageReady] = useState(false);
+  // SPA-only: localStorage is available on first render, so no mount gate.
+  const [storageReady] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
   const [recoveryReady, setRecoveryReady] = useState(false);
@@ -109,7 +111,9 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
   } | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
-  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">("unsupported");
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">(
+    () => ("Notification" in window ? Notification.permission : "unsupported"),
+  );
   const prevStatusRef = useRef<string>("idle");
   const monitorEnabledRef = useRef(false);
   const persistenceRef = useRef<ReturnType<typeof useSessionPersistence> | null>(null);
@@ -126,6 +130,9 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
   const [overrunTask, setOverrunTask] = useState<{ text: string } | null>(null);
   const [overrunMinutes, setOverrunMinutes] = useState(0);
   const [showMarathonConfirm, setShowMarathonConfirm] = useState(false);
+  // Session-mode preset (9.1): chosen once, remembered. Durations apply
+  // through the normal custom path; Flowtime swaps in the stopwatch.
+  const [presetId, setPresetIdState] = useState<string>(() => getSessionPreset());
   const marathonNudgeRef = useRef(0);
   const prefersReducedMotion = useMemo(
     () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -134,8 +141,6 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
 
   monitorEnabledRef.current = monitorEnabled;
 
-
-  useEffect(() => { setStorageReady(true); }, []);
 
   useEffect(() => {
     const token = getToken();
@@ -155,15 +160,9 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     }
   }, [requestMonitorRecovery, toast]);
 
-  const {
-    mode, status, secondsLeft, progress, completedFocusSessions,
-    leaderBlocked, toggle, reset, skipToNext, selectMode, setCustomDuration,
-    getSnapshot, restoreFromSnapshot, getActiveSeconds,
-  } = usePomodoro({
-    // Guest-local snapshot: first sessions (Instagram funnel) survive
-    // refresh/back-swipe/close even before any account exists.
-    persistKey: "focusarx-guest-timer",
-    onSessionComplete: async (session) => {
+  // Shared completion pipeline: countdown sessions AND Flowtime runs land
+  // here (record → sounds → cloud sync → summary → reflection → notify).
+  const handleSessionRecorded = async (session: Session) => {
       addSession(session);
       playSessionNotification(session.mode);
       if (session.mode === "focus") {
@@ -190,6 +189,9 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
       if (res.offline) {
         toast("Saved locally (offline mode).", "info");
       } else if (res.success) {
+        if (res.shieldUsed) {
+          setTimeout(() => { toast("A Streak Shield covered yesterday. Streak protected.", "info"); }, 900);
+        }
         if (session.mode === "focus" && session.sessionInsights?.summary) {
           setTimeout(() => { toast(session.sessionInsights!.summary, "info"); }, 600);
         }
@@ -204,13 +206,6 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
               .catch(() => {});
           }
         }
-  useEffect(() => {
-    if (status === "running" && mode === "focus") {
-      window.dispatchEvent(new CustomEvent("fx:focus-start"));
-    } else {
-      window.dispatchEvent(new CustomEvent("fx:focus-stop"));
-    }
-  }, [status, mode]);
         void refreshWallet();
       } else {
         toast(`Failed to save: ${res.error || "Unknown"}`, "error");
@@ -258,8 +253,53 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
           }).catch(() => {});
         }
       }
-    },
+  };
+
+  const {
+    mode, status, secondsLeft, progress, completedFocusSessions,
+    leaderBlocked, toggle, reset, skipToNext, selectMode, setCustomDuration,
+    getSnapshot, restoreFromSnapshot, getActiveSeconds,
+  } = usePomodoro({
+    // Guest-local snapshot: first sessions (Instagram funnel) survive
+    // refresh/back-swipe/close even before any account exists.
+    persistKey: "focusarx-guest-timer",
+    onSessionComplete: handleSessionRecorded,
   });
+
+  useEffect(() => {
+    if (status === "running" && mode === "focus") {
+      window.dispatchEvent(new CustomEvent("fx:focus-start"));
+    } else {
+      window.dispatchEvent(new CustomEvent("fx:focus-stop"));
+    }
+  }, [status, mode]);
+
+  const applyPreset = useCallback((id: string) => {
+    const p = getPresetById(id);
+    setSessionPreset(id);
+    setPresetIdState(id);
+    if (!p.flow && p.focusMin && getSnapshot().status === "idle") {
+      setCustomDuration("focus", p.focusMin * 60);
+      if (p.breakMin) setCustomDuration("break", p.breakMin * 60);
+      if (p.longBreakMin) setCustomDuration("longBreak", p.longBreakMin * 60);
+    }
+  }, [getSnapshot, setCustomDuration]);
+
+  // Apply the remembered preset to a fresh idle timer (never over a
+  // restored running/paused snapshot or deep-linked duration). Deferred to
+  // an animation frame so mount stays a pure render (no cascading setState).
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      if (getSnapshot().status !== "idle") return;
+      if (secondsLeft !== DEFAULT_CONFIG.focusDuration) return;
+      const remembered = getSessionPreset();
+      if (remembered && remembered !== "pomodoro" && remembered !== "custom") {
+        applyPreset(remembered);
+      }
+    });
+    return () => cancelAnimationFrame(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const startFromCommand = () => {
@@ -290,14 +330,32 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     }
   }, [status, recoveryReady, persistence]);
 
-  useEffect(() => {
-    setNotificationPermission("Notification" in window ? Notification.permission : "unsupported");
-  }, []);
-
   // Another tab won the timer lock: explain why this one stood down.
   useEffect(() => {
     if (leaderBlocked) toast("Timer is already running in another tab.", "info");
   }, [leaderBlocked, toast]);
+
+  // Document PiP mini-timer (desktop): snapshot the countdown for the
+  // always-on-top window while running.
+  const [pipSupported] = useState(() => isDocumentPipSupported());
+  useEffect(() => {
+    if (status !== "running" || !pipSupported) return;
+    const push = () => {
+      const s = getSnapshot();
+      writePipSnapshot({ secondsLeft: s.secondsLeft, task: activeTaskName, mode: s.mode, status: s.status });
+    };
+    push();
+    const id = window.setInterval(push, 1000);
+    return () => window.clearInterval(id);
+  }, [status, pipSupported, getSnapshot, activeTaskName]);
+
+  const popOutMiniTimer = useCallback(() => {
+    const s = getSnapshot();
+    writePipSnapshot({ secondsLeft: s.secondsLeft, task: activeTaskName, mode: s.mode, status: s.status });
+    void openMiniTimer().then((ok) => {
+      if (!ok) toast("Mini-timer is not supported in this browser.", "error");
+    });
+  }, [getSnapshot, activeTaskName, toast]);
 
   // Instagram funnel: pre-arm the idle timer from ?duration= and prefill the
   // intention from ?task=. Applies only when idle/empty — never mid-session.
@@ -351,8 +409,24 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     return () => window.removeEventListener("keydown", onKey);
   }, [toggle]);
 
+  // Distraction parking (9.4): D jots a thought, hidden until the break.
+  useEffect(() => {
+    const onParkKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== "d" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = e.target as HTMLElement | null;
+      const tag = el?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (el?.isContentEditable) return;
+      e.preventDefault();
+      setShowDistractionModal(true);
+    };
+    window.addEventListener("keydown", onParkKey);
+    return () => window.removeEventListener("keydown", onParkKey);
+  }, []);
+
   const isRunning = status === "running";
   const canPickMode = status !== "running";
+  const isFlow = getPresetById(presetId).flow === true;
   const activeSeconds = isRunning ? getActiveSeconds() : 0;
   // Workstream H: a "marathon" is a running focus session planned beyond 2h.
   const isMarathon = isRunning && mode === "focus" && totalFocusSec > 2 * 60 * 60;
@@ -447,19 +521,6 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     }
   }, [mode, getActiveSeconds, totalFocusSec, persistence, reset, toast, completedTasks.length]);
 
-  const savePartialSessionIfNeeded = useCallback(() => {
-    if (mode !== "focus") return;
-    const activeSeconds = getActiveSeconds();
-    if (activeSeconds < 60) return;
-    const dbSessionId = persistenceRef.current?.getDbSessionId() ?? null;
-    void syncFocusSessionToCloud(
-      { id: `partial-${Date.now()}`, mode: "focus", completedAt: new Date().toISOString(), durationSeconds: Math.floor(activeSeconds), focusScore: null, focusQuality: null, focusTimeline: null, stabilityRating: null, sessionInsights: null },
-      dbSessionId
-    ).then((res) => {
-      if (res.success) toast(`Saved ${Math.floor(activeSeconds / 60)}m of focus time`, "info");
-    });
-  }, [mode, getActiveSeconds, toast]);
-
   const handleReset = useCallback(() => {
     const snap = getSnapshot();
     if (snap.status === "running" && snap.mode === "focus") { setShowExitConfirm(true); return; }
@@ -497,6 +558,8 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
           return;
         }
         setCustomDuration(mode, val * 60);
+        setSessionPreset("custom");
+        setPresetIdState("custom");
       } else toast("Please enter a valid number of minutes (1-240).", "error");
     }
   };
@@ -630,6 +693,15 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
         </div>
 
         {/* ── MODE TABS ───────────────────────────────────────────────── */}
+        {isFlow ? (
+          <div className="relative px-4 pt-4">
+            <FlowTimer
+              taskName={activeTaskName}
+              onFinish={handleSessionRecorded}
+              onExitPreset={() => applyPreset("pomodoro")}
+            />
+          </div>
+        ) : (
         <div className="relative px-4 pt-4">
           <div className="flex gap-1.5 rounded-xl bg-[var(--palette-zinc-950)]/60 p-1 ring-1 ring-[var(--palette-zinc-800)]/50">
             {MODES.map((m) => {
@@ -659,42 +731,45 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
             })}
           </div>
 
-          {/* Workstream H: quick duration chips (focus mode, idle) */}
+          {/* Session presets (9.1): Pomodoro, Extended, Deep, Animedoro, Flow, Custom */}
           {mode === "focus" && status === "idle" && (
-            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            <div className="mt-3 flex flex-wrap items-center gap-1.5" role="group" aria-label="Session mode">
               <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-600)] mr-0.5">
-                {Math.floor(secondsLeft / 60)}m plan
+                Mode
               </span>
-              {[25, 50, 90, 120].map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setCustomDuration("focus", m * 60)}
-                  className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold transition-all ${
-                    Math.floor(secondsLeft / 60) === m
-                      ? "border-[var(--brand-400)]/50 bg-[var(--rgba-124-58-237-0_15)] text-[var(--brand-400)]"
-                      : "border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/60 text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)]"
-                  }`}
-                >
-                  {m}m
-                </button>
-              ))}
+              {SESSION_PRESETS.map((p) => {
+                const active = presetId === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => applyPreset(p.id)}
+                    title={p.blurb}
+                    aria-pressed={active}
+                    className={`rounded-full border px-2.5 py-1 text-[10px] font-bold transition-all min-h-[28px] ${
+                      active
+                        ? "border-[var(--brand-400)]/50 bg-[var(--rgba-124-58-237-0_15)] text-[var(--brand-400)]"
+                        : "border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/60 text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)]"
+                    }`}
+                  >
+                    {p.label}{p.focusMin ? ` ${p.focusMin}m` : ""}
+                  </button>
+                );
+              })}
               <button
                 type="button"
-                onClick={() => setCustomDuration("focus", 240 * 60)}
-                className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold transition-all ${
-                  Math.floor(secondsLeft / 60) === 240
-                    ? "border-[var(--brand-400)]/50 bg-[var(--rgba-167-139-250-0_2)] text-[var(--brand-400)]"
-                    : "border-[var(--rgba-167-139-250-0_3)] bg-[var(--rgba-167-139-250-0_08)] text-[var(--palette-zinc-400)] hover:text-[var(--brand-400)]"
-                }`}
+                onClick={handleEditTime}
+                className="rounded-full border border-dashed border-[var(--palette-zinc-700)] px-2.5 py-1 text-[10px] font-bold text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)] min-h-[28px]"
               >
-                🏔️ Marathon 4h
+                Custom…
               </button>
             </div>
           )}
         </div>
+        )}
 
         {/* ── TIMER DISPLAY ───────────────────────────────────────────── */}
+        {!isFlow && (
         <div className="flex flex-col items-center px-6 pb-2">
           {isRunning && mode === "focus" && (
             <motion.div
@@ -739,6 +814,21 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
               {completedFocusSessions}/{DEFAULT_CONFIG.sessionsBeforeLongBreak} rounds
             </p>
           </div>
+
+          {/* Deep-linked / chosen task — the visible intention line on desktop */}
+          {activeTaskName ? (
+            <div className="mt-2 flex max-w-full items-center gap-2 rounded-full border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/60 px-3 py-1.5">
+              <span className="truncate text-[11px] font-semibold text-[var(--palette-zinc-200)]">{activeTaskName}</span>
+              <button
+                type="button"
+                onClick={() => setActiveTaskName("")}
+                aria-label="Clear current task"
+                className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-200)]"
+              >
+                ×
+              </button>
+            </div>
+          ) : null}
 
           {/* Controls */}
           <TimerControls
@@ -790,7 +880,30 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
             🧘 Zen Mode
             <span className="text-[10px] font-medium text-[var(--palette-zinc-600)]">full-screen focus</span>
           </button>
+
+          {/* Distraction parking — jot it, review at the break */}
+          <button
+            type="button"
+            onClick={() => setShowDistractionModal(true)}
+            title="Park a distracting thought for the break (D)"
+            className="mt-3 flex items-center gap-2 rounded-xl border border-[var(--palette-zinc-800)] px-4 py-2.5 text-xs font-bold text-[var(--palette-zinc-500)] transition-colors hover:border-[var(--palette-zinc-700)] hover:text-[var(--palette-zinc-300)]"
+          >
+            📝 Park a thought
+            <kbd className="rounded border border-[var(--palette-zinc-700)] px-1 text-[10px] font-bold">D</kbd>
+          </button>
+
+          {/* Document PiP mini-timer (desktop Chrome/Edge) */}
+          {pipSupported && status !== "idle" && (
+            <button
+              type="button"
+              onClick={popOutMiniTimer}
+              className="mt-3 flex items-center gap-2 rounded-xl border border-[var(--palette-zinc-800)] px-4 py-2.5 text-xs font-bold text-[var(--palette-zinc-500)] transition-colors hover:border-[var(--palette-zinc-700)] hover:text-[var(--palette-zinc-300)]"
+            >
+              🗔 Pop out mini-timer
+            </button>
+          )}
         </div>
+        )}
 
         {/* ── BOTTOM STRIP ────────────────────────────────────────────── */}
         <div className="flex items-center justify-between border-t border-[var(--palette-zinc-800)]/60 px-5 py-3">

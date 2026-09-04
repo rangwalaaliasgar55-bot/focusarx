@@ -16,6 +16,7 @@ import {
   type TierPreference,
 } from "@/lib/deviceTier";
 import { SCENE_PRESETS, useScenePreset, type ScenePresetId } from "@/lib/scenePreset";
+import { getToken } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 const THEME_ORDER: Theme[] = ["dark", "light", "midnight-gold", "aurora", "crimson"];
@@ -139,10 +140,53 @@ function EffectsSettings() {
   const [tierPref, setTierPrefState] = useState<TierPreference>(() => getTierPreference());
   const [detectedTier] = useState<DeviceTier>(() => detectTier(probeDeviceCaps()));
   const [scenePreset, pickScenePreset] = useScenePreset();
+  const [premium, setPremium] = useState<boolean | null>(null);
+  const [sceneLocked, setSceneLocked] = useState(false);
 
   const pickTier = (pref: TierPreference) => {
     setTierPreference(pref);
     setTierPrefState(pref);
+  };
+
+  // Pro check without react-query (this panel renders outside providers in
+  // tests and must never suspend): direct fetch, cached per mount.
+  const ensurePremium = async (): Promise<boolean> => {
+    if (premium !== null) return premium;
+    try {
+      const token = getToken();
+      const res = await fetch("/api/premium/status", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) {
+        setPremium(false);
+        return false;
+      }
+      const data = await res.json();
+      const ok = data?.isPremium === true;
+      setPremium(ok);
+      return ok;
+    } catch {
+      setPremium(false);
+      return false;
+    }
+  };
+
+  const pickScene = (id: ScenePresetId) => {
+    const preset = SCENE_PRESETS.find((p) => p.id === id);
+    // Pro presets need Pro; everyone else falls back to Core silently.
+    if (preset?.pro) {
+      void ensurePremium().then((ok) => {
+        if (!ok) {
+          setSceneLocked(true);
+          return;
+        }
+        setSceneLocked(false);
+        pickScenePreset(id);
+      });
+      return;
+    }
+    setSceneLocked(false);
+    pickScenePreset(id);
   };
 
   return (
@@ -179,19 +223,20 @@ function EffectsSettings() {
           <div className="grid grid-cols-2 gap-2" role="group" aria-label="Scene preset">
             {SCENE_PRESETS.map((p) => {
               const active = scenePreset === p.id;
+              const locked = !p.available;
               return (
                 <button
                   key={p.id}
                   type="button"
-                  disabled={!p.available}
-                  onClick={() => pickScenePreset(p.id as ScenePresetId)}
+                  disabled={locked}
+                  onClick={() => pickScene(p.id as ScenePresetId)}
                   className={`min-h-[44px] rounded-xl border px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                     active
                       ? "border-[var(--brand-500)] bg-[var(--brand-soft)]"
                       : "border-[var(--border-subtle)] bg-[var(--surface-1)]"
                   }`}
                   aria-pressed={active}
-                  title={p.available ? p.blurb : `${p.blurb} (coming soon)`}
+                  title={p.available ? (p.pro ? `${p.blurb} (Pro)` : p.blurb) : `${p.blurb} (coming soon)`}
                 >
                   <span className="block text-xs font-bold text-[var(--foreground)]">
                     {p.label}
@@ -206,6 +251,11 @@ function EffectsSettings() {
               );
             })}
           </div>
+          {sceneLocked && (
+            <p className="text-xs text-[var(--warning)]" role="status">
+              That scene needs Pro — unlock it with tokens or card on the Premium page.
+            </p>
+          )}
         </div>
         <div className="flex flex-col gap-2">
           <Label className="text-sm font-medium">3D effects</Label>

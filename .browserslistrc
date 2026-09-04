@@ -1,0 +1,20 @@
+# Browserslist floor (Phase 6.2).
+#
+# ">0.3%, not dead" plus explicit floors for the Instagram-funnel devices:
+# iOS 13+ (covers iPhone 7/8 on iOS 15 and older in-app WebViews) and
+# Chrome 80+ (2020-era Android WebViews). Vite + Tailwind read this file
+# for syntax lowering and autoprefixer targets.
+#
+# NOTE: vite.config.ts `target: esnext` currently overrides this for the
+# app bundle. Flipping target to "browserslist" doubles build cost and is
+# tracked in REMAINING.md — check device_context tier data first to size
+# the legacy audience. These entries already drive autoprefixer +812
+# @supports-guarded CSS so legacy browsers degrade instead of blanking.
+
+>0.3%
+not dead
+iOS >= 13
+Chrome >= 80
+Safari >= 13
+Firefox >= 78
+Samsung >= 12

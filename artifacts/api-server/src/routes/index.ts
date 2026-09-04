@@ -71,6 +71,8 @@ import { developerRouter } from "./developer";
 import { developerSqlRouter } from "./developerSql";
 import { aiStreamingRouter } from "./aiStreamingRoutes";
 import { dataExportRouter } from "./dataExport";
+import { stripeRouter } from "./stripe";
+import { recapRouter } from "./recap";
 
 const router: IRouter = Router();
 
@@ -146,5 +148,7 @@ router.use(developerRouter);
 router.use(developerSqlRouter);
 router.use(aiStreamingRouter);
 router.use(dataExportRouter);
+router.use(stripeRouter);
+router.use(recapRouter);
 
 export default router;

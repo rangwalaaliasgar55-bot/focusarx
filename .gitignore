@@ -8,6 +8,11 @@ out-tsc
 .expo
 .expo-shared
 
+# test output (never commit local runs)
+test-results/
+playwright-report/
+eslint-report.json
+
 # dependencies
 node_modules
 

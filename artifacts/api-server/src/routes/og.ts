@@ -1,4 +1,7 @@
 import { Router } from "express";
+import { db, usersTable, userWalletsTable, studyStreaksTable, focusSessionsTable } from "@workspace/db";
+import { eq, and, or, sql } from "drizzle-orm";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -52,7 +55,6 @@ function card({ title, subtitle, tag, accent, site }: {
   accent: string;
   site: string;
 }): string {
-  const t = esc(title || "FocusArx");
   const sub = esc((subtitle || "").slice(0, 110));
   const tagText = esc(tag || "FOCUSARX");
   const lines = wrapTitle(title || "FocusArx");
@@ -96,6 +98,52 @@ router.get("/og", (req, res) => {
   res.setHeader("Content-Type", "image/svg+xml; charset=utf-8");
   res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=86400");
   res.send(card({ title, subtitle, tag, accent: safeAccent, site: "FOCUSARX" }));
+});
+
+/**
+ * Per-user share card (Phase 4.4).
+ *
+ * GET /api/og/user?u=<handle> — the weekly-crystal-plus-stats card rendered
+ * from the same PUBLIC data as /u/:handle (name, level, streak, sessions).
+ * Scrapers fetch it unauthenticated, so nothing private is ever included.
+ * Unknown users get the default brand card (never a 404 image).
+ */
+router.get("/og/user", async (req, res) => {
+  const handle = String(req.query.u ?? "").slice(0, 80);
+  const finish = (title: string, subtitle: string) => {
+    res.setHeader("Content-Type", "image/svg+xml; charset=utf-8");
+    res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=3600");
+    res.send(card({ title, subtitle, tag: "FOCUS PROFILE", accent: "#a78bfa", site: "FOCUSARX" }));
+  };
+  if (!handle) {
+    finish("FocusArx", "AI focus timer and deep work tracker.");
+    return;
+  }
+  try {
+    const [user] = await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email })
+      .from(usersTable)
+      .where(or(eq(usersTable.email, handle), sql`lower(name) = lower(${handle})`))
+      .limit(1);
+    if (!user) {
+      finish("FocusArx", "AI focus timer and deep work tracker.");
+      return;
+    }
+    const [wallet] = await db.select({ level: userWalletsTable.level, totalXp: userWalletsTable.totalXp })
+      .from(userWalletsTable).where(eq(userWalletsTable.userId, user.id)).limit(1);
+    const [streak] = await db.select({ currentStreak: studyStreaksTable.currentStreak })
+      .from(studyStreaksTable).where(eq(studyStreaksTable.userId, user.id)).limit(1);
+    const [sessions] = await db.select({ total: sql<number>`count(*)::int` })
+      .from(focusSessionsTable)
+      .where(and(eq(focusSessionsTable.userId, user.id), sql`completed_at is not null`));
+    const name = user.name || user.email?.split("@")[0] || "Focus learner";
+    finish(
+      `${name} — Level ${wallet?.level ?? 1}`,
+      `${streak?.currentStreak ?? 0}-day streak · ${Number(sessions?.total ?? 0)} sessions · ${(wallet?.totalXp ?? 0).toLocaleString("en-US")} XP`,
+    );
+  } catch (err) {
+    logger.warn({ err }, "og/user fallback to brand card");
+    finish("FocusArx", "AI focus timer and deep work tracker.");
+  }
 });
 
 export const ogRouter = router;

@@ -118,15 +118,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
 
   const refresh = useCallback(async () => {
-    setStatus("loading");
+    // No setStatus("loading") here: status already initializes to "loading",
+    // and a sync setState in the mount effect below trips cascading renders.
     const session = await fetchSession();
     setData(session);
     setStatus(session ? "authenticated" : "unauthenticated");
   }, []);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    // Subscription-style (not sync setState): resolves the session, then
+    // publishes. Cancelled on unmount so late responses never setState.
+    let cancelled = false;
+    void fetchSession().then((session) => {
+      if (cancelled) return;
+      setData(session);
+      setStatus(session ? "authenticated" : "unauthenticated");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Keep the httpOnly refresh cookie warm: rotate it every 14 minutes while
   // signed in. Uses the shared single-flight + Web-Locks helper so concurrent
@@ -142,6 +153,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (status === "authenticated" && data?.user?.id) {
       linkAnalyticsUser(data.user.id);
+      // Referral auto-apply (?ref= captured pre-signup). Fire-and-forget,
+      // idempotent server-side; never blocks auth.
+      void import("./referral").then((m) => m.tryApplyPendingReferral()).catch(() => {});
     }
   }, [status, data?.user?.id]);
 

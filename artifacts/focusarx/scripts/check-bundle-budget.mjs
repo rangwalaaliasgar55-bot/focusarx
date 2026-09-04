@@ -3,7 +3,7 @@
 // Fails CI when the entry shell grows past the Instagram-funnel budget or
 // when three.js leaks into the initial preload graph.
 
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
@@ -34,7 +34,11 @@ const ok = (msg) => console.log(`bundle-budget ok: ${msg}`);
 const gz = (file) => gzipSync(readFileSync(file)).length;
 
 const files = readdirSync(ASSETS).filter((f) => f.endsWith(".js"));
-const entry = files.filter((f) => /^index-.*\.js$/.test(f)).sort().at(-1);
+// The live entry is whatever dist/index.html actually loads — never guess
+// by filename sort (stale hashed files can linger next to the current one).
+const indexHtmlEarly = readFileSync(join(DIST, "index.html"), "utf8");
+const entryMatch = indexHtmlEarly.match(/assets\/(index-[A-Za-z0-9_-]+\.js)/);
+const entry = entryMatch?.[1] ?? files.filter((f) => /^index-.*\.js$/.test(f)).sort().at(-1);
 if (!entry) {
   fail("no entry chunk (index-*.js) found");
 } else {

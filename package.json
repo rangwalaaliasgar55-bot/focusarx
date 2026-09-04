@@ -14,14 +14,22 @@
     "test:responsive": "playwright test tests/e2e/responsive.spec.ts",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install --with-deps chromium",
+    "lint": "eslint .",
+    "lint:changed": "node scripts/lint-changed.mjs",
     "db:push": "corepack pnpm --filter @workspace/db run push",
     "dev": "corepack pnpm --parallel --filter @workspace/api-server --filter @workspace/focusarx run dev"
   },
   "private": true,
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.62.1",
-    "prettier": "^3.8.3",
-    "typescript": "~5.9.3"
+    "eslint": "^10.9.1",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.12.0",
+    "knip": "^6.34.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.69.0"
   }
 }

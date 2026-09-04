@@ -175,3 +175,46 @@ Browser → Vite dev server → /api proxy → Express API → Drizzle ORM → P
 - `/focus` (public, guest-first, `?duration=&task=&src=`), `/go/ig` →
   armed `/focus?duration=25&src=ig`, `/changelog`. SEO contract
   (route/prerender/sitemap/robots) enforced by `seoContract.test.ts`.
+
+## Addendum — 2026-09: features, scenes, gates (second pass)
+
+### Session presets + Flowtime (`sessionPresets.ts`, `FlowTimer.tsx`)
+
+- Named recipes applied via the normal custom-duration path (no engine
+  change); choice persisted. Flowtime is a count-up stopwatch whose Finish
+  builds a `Session` into the shared `handleSessionRecorded` pipeline, so
+  XP/streak/summary semantics match countdown sessions.
+- Timer's completion callback was extracted from inline (also fixing a
+  pre-existing conditional `useEffect` nested inside it).
+
+### Streak Shield (`resolveStreakOutcome`, `streak_history`)
+
+- Pure decision: same-day → continue → shield (exactly one missed day +
+  banked token) → reset. Consumption + history insert happen in the same
+  transaction as the streak row; `shieldUsed` rides completion responses.
+
+### Scenes (`sceneMaps.ts`, `DeepSeaScene`, `StudyRoomScene`)
+
+- Pure mapping layer (depth, creatures, camera, fog, lamp, sky, books)
+  tested without GL. R3F scenes are `lazy()`-split (three.js never enters
+  the focus chunk), mount only on Full tier without reduced-motion, pause
+  when hidden. Lite/essential fall back to Minimal Ring; Lite also serves
+  as the fallback for non-Pro users picking Pro presets.
+
+### Money, recap, referrals
+
+- Stripe: REST Checkout + HMAC webhooks (no SDK), idempotent grants into
+  the existing entitlement tables, 503-dormant without keys.
+- Recap: 7-day aggregate (zone-aware best hour) + share image + 1/day
+  email via the logged Resend helper.
+- Referrals: `?ref=` captured at boot, auto-applied on first auth
+  (server-409 idempotent); manual code entry unchanged.
+
+### Observability + gates
+
+- Plausible (1 KB, env-gated) beside first-party `/api/track`; Sentry
+  lazy on both ends (release-tagged, no PII). Single drizzle snapshot
+  enforced via the OTEL peer (see `sentry.ts` note).
+- ESLint strict (changed-files CI gate; legacy backlog tracked),
+  knip files+deps CI gate, Playwright landscape/tablet/reduced-motion
+  projects + guest timer-survival specs, bundle budgets, `.browserslistrc`.

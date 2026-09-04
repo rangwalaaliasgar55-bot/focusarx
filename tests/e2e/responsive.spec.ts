@@ -16,6 +16,13 @@ import { expect, test, type Page } from "@playwright/test";
 
 const PUBLIC_ROUTES = [
   "/",
+  "/focus",
+  "/go/ig",
+  "/blog",
+  "/changelog",
+  "/pomodoro-timer",
+  "/study-timer",
+  "/exam",
   "/login",
   "/signup",
   "/pricing",

@@ -127,7 +127,14 @@ app.use(
 app.use(corsMiddleware);
 
 app.use(cookieParser());
-app.use(express.json({ limit: "100kb" }));
+// Capture the raw body for HMAC-verified webhooks (Stripe). express.json
+// still parses as usual; only /stripe/webhook reads `req.rawBody`.
+app.use(express.json({
+  limit: "100kb",
+  verify: (req, _res, buf) => {
+    (req as { rawBody?: Buffer }).rawBody = Buffer.from(buf);
+  },
+}));
 app.use(express.urlencoded({ extended: true, limit: "100kb" }));
 
 app.use((req, _res, next) => {
@@ -266,7 +273,7 @@ app.use("/api", (req, res) => {
 // ── Centralized error handling ─────────────────────────────────────────────
 // Standardized `{ error: { code, message, requestId } }` envelope for every
 // failure path, with the original exception logged server-side only.
-app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+app.use(async (err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   const requestId = (req as any).id ?? `req_${crypto.randomUUID()}`;
 
   if (err.message?.startsWith("CORS")) {
@@ -348,6 +355,14 @@ app.use((err: any, req: express.Request, res: express.Response, _next: express.N
   }
 
   logger.error({ err, requestId, url: req.url, method: req.method }, "unhandled error");
+
+  // Optional Sentry report (no-op without SENTRY_DSN; never blocks).
+  try {
+    const { reportError } = await import("./lib/sentry");
+    reportError(err, { requestId, url: req.url?.split("?")[0], method: req.method });
+  } catch {
+    /* reporting must never break responses */
+  }
 
   // Never expose stack traces, SQL errors, internal paths, API keys
   const isProd = getEnv().NODE_ENV === "production";

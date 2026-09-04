@@ -2,7 +2,57 @@
 
 All notable changes to FocusArx. Dates are UTC.
 
-## [Unreleased]
+## [Unreleased] — second pass
+
+### Added (product)
+
+- Session-mode presets (Pomodoro 25/5, Extended 50/10, Deep Work 90/15,
+  Animedoro 40/10, Custom, Flowtime stopwatch), remembered across visits.
+  Flowtime completion flows through the same record→sync→summary pipeline.
+- Distraction parking: `D` key on desktop, park button on mobile, review at
+  the break. Desktop shows the deep-linked task as a visible pill.
+- Weekly goal card on the dashboard (personal target vs server week total).
+- Deep Sea and Study Room scenes, fully data-mapped (progress, pause,
+  hidden-tab penalty, completion burst, streak, weekly facets, time of day),
+  lazy-loaded, Full-tier only, Pro-gated in Settings.
+- Blog (`/blog`, three essays, Article JSON-LD) and programmatic
+  `/pomodoro-timer-for/:exam` funnels (14 exams, unique angles, live timer
+  above the fold). Sitemap + prerender grow with the content files.
+- Per-user OG share cards (`/api/og/user`) wired into public profiles.
+- Live "focusing right now" counter on the landing hero (real aggregate,
+  fail-silent — no fabricated claims).
+- Weekly recap API + dashboard card (summary, share image, 1/day email via
+  Resend when configured).
+- Referral `?ref=` capture with auto-apply on first login (the code-entry
+  fallback still works).
+- Document PiP mini-timer on desktop Chrome/Edge.
+- Card payments via Stripe (env-gated Checkout + verified webhooks granting
+  the same entitlements; token unlocks unchanged; UI appears only when
+  configured).
+
+### Fixed / hardened
+
+- Streak Shield auto-applies on exactly one missed day (banked freeze
+  token consumed transactionally) with a `streak_history` audit trail and
+  `shieldUsed` in completion responses + UI toasts.
+- Leader-election remount race fixed (retry with backoff; e2e-proven).
+- Removed dead code flagged by knip (cross-tab announcer superseded by the
+  leader, orphan motion module) and unused deps (cors, cookie,
+  styled-components, prettier).
+- Patched transitive vulns via overrides (qs ≥6.16, fflate ≥0.6.11).
+- Single drizzle-orm snapshot enforced (OTEL peer alignment for Sentry).
+- Print stylesheet for the weekly report; `vh`-first viewport fallbacks.
+- Observability: Plausible (env-gated, 1 KB) and Sentry client+server
+  (env-gated, release-tagged, no PII).
+- Quality gates: strict ESLint (changed-files gate in CI), knip dead-code
+  gate (files+deps), Playwright device projects (landscape, tablet,
+  reduced-motion) + timer survival e2e (deep links, reload resume,
+  offline start — 10/10 green), `.browserslistrc` floor, LHCI config.
+- Leader retry with backoff (remount-race tolerant, e2e-proven); desktop
+  task pill for deep-linked tasks; auth mount fetch without cascading
+  setState; unused imports/dead components removed.
+
+## [Unreleased] — first pass
 
 ### Fixed (retention P0s)
 

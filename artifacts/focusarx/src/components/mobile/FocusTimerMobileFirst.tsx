@@ -12,12 +12,15 @@ import { useSessionHistory } from "@/hooks/useSessionHistory";
 import { useToast } from "@/components/Toast";
 import { syncFocusSessionToCloud } from "@/lib/sync-focus-session";
 import { haptic } from "@/lib/haptics";
-import { getToken } from "@/lib/auth";
 import { MobileFocusMode } from "./MobileFocusMode";
 import { DEFAULT_CONFIG } from "@/lib/constants";
 import { FOCUS_DEEP_LINK_EVENT } from "@/lib/focusDeepLink";
 import { trackSessionStart, trackSessionComplete } from "@/lib/analytics";
 import { playCoachVoice } from "@/lib/soundEngine";
+import FlowTimer from "@/components/FlowTimer";
+import DistractionModal from "@/components/DistractionModal";
+import { SESSION_PRESETS, getPresetById, getSessionPreset, setSessionPreset } from "@/lib/sessionPresets";
+import type { Session } from "@/types/timer";
 
 function formatTime(totalSeconds: number) {
   const m = Math.floor(totalSeconds / 60);
@@ -27,9 +30,9 @@ function formatTime(totalSeconds: number) {
 
 export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete?: () => void } = {}) {
   const { addSession } = useSessionHistory();
-  const { activeTasks, completedTasks } = useTasks();
+  const { activeTasks } = useTasks();
   const { toast } = useToast();
-  const { isOffline, status: netStatus } = useNetworkStatus();
+  const { isOffline } = useNetworkStatus();
   const { enqueue: enqueueOffline, queueCount } = useOfflineQueue();
 
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -39,6 +42,9 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
   const [totalPlanned, setTotalPlanned] = useState(25 * 60);
   // Deep-linked task (?task=) for guests, who have no server task list.
   const [deepTask, setDeepTask] = useState("");
+  const [showPark, setShowPark] = useState(false);
+  // Session-mode preset (9.1): chosen once, remembered.
+  const [presetId, setPresetIdState] = useState<string>(() => getSessionPreset());
   const [showSummary, setShowSummary] = useState(false);
   const [summary, setSummary] = useState<{ minutes: number; xp: number; coins: number } | null>(null);
 
@@ -47,23 +53,8 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
     [deepTask, activeTasks],
   );
 
-  const {
-    mode,
-    status,
-    secondsLeft,
-    progress,
-    completedFocusSessions,
-    leaderBlocked,
-    toggle,
-    reset,
-    setCustomDuration,
-    getSnapshot,
-    restoreFromSnapshot,
-    getActiveSeconds,
-  } = usePomodoro({
-    // Guest-local snapshot: first sessions survive refresh/close with no account.
-    persistKey: "focusarx-guest-timer",
-    onSessionComplete: async (session) => {
+  // Shared completion pipeline: countdown sessions AND Flowtime runs.
+  const recordMobileSession = async (session: Session) => {
       addSession(session);
       if (session.mode === "focus") {
         trackSessionComplete(session.durationSeconds, session.focusScore ?? 0, 0, false);
@@ -136,6 +127,9 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
       } else if (!res.success) {
         toast(`Failed to save: ${res.error}`, "error");
       } else {
+        if (res.shieldUsed) {
+          setTimeout(() => { toast("A Streak Shield covered yesterday. Streak protected.", "info"); }, 900);
+        }
         setSummary({ minutes: Math.round(session.durationSeconds / 60), xp: res.earnedXp ?? 0, coins: res.earnedCoins ?? 0 });
         setShowSummary(true);
         onSessionComplete?.();
@@ -143,8 +137,54 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
           new Notification("Focus session complete — time for a break.");
         }
       }
-    },
+  };
+
+  const {
+    mode,
+    status,
+    secondsLeft,
+    progress,
+    completedFocusSessions,
+    leaderBlocked,
+    toggle,
+    reset,
+    setCustomDuration,
+    getSnapshot,
+    restoreFromSnapshot,
+    getActiveSeconds,
+  } = usePomodoro({
+    // Guest-local snapshot: first sessions survive refresh/close with no account.
+    persistKey: "focusarx-guest-timer",
+    onSessionComplete: recordMobileSession,
   });
+
+  const applyPreset = useCallback((id: string) => {
+    const p = getPresetById(id);
+    setSessionPreset(id);
+    setPresetIdState(id);
+    if (!p.flow && p.focusMin && getSnapshot().status === "idle") {
+      setCustomDuration("focus", p.focusMin * 60);
+      if (p.breakMin) setCustomDuration("break", p.breakMin * 60);
+      if (p.longBreakMin) setCustomDuration("longBreak", p.longBreakMin * 60);
+    }
+  }, [getSnapshot, setCustomDuration]);
+
+  // Remembered preset onto a fresh idle timer (never over a restore).
+  // Deferred to an animation frame so mount stays a pure render.
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      if (getSnapshot().status !== "idle") return;
+      if (secondsLeft !== DEFAULT_CONFIG.focusDuration) return;
+      const remembered = getSessionPreset();
+      if (remembered && remembered !== "pomodoro" && remembered !== "custom") {
+        applyPreset(remembered);
+      }
+    });
+    return () => cancelAnimationFrame(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const isFlow = getPresetById(presetId).flow === true;
 
   const isRunning = status === "running";
   const isPaused = status === "paused";
@@ -330,6 +370,14 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
         </div>
 
         {/* Large timer text - mobile-first, huge */}
+        {isFlow ? (
+          <FlowTimer
+            taskName={currentTask}
+            onFinish={recordMobileSession}
+            onExitPreset={() => applyPreset("pomodoro")}
+          />
+        ) : (
+        <>
         <div className="relative flex flex-col items-center">
           <motion.div
             key={Math.floor(secondsLeft / 60)}
@@ -402,6 +450,15 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
             >
               {soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
             </button>
+            <button
+              type="button"
+              onClick={() => setShowPark(true)}
+              className="grid min-h-[44px] min-w-[44px] place-items-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-1)] text-[var(--foreground-subtle)]"
+              aria-label="Park a distracting thought for the break"
+              title="Park a thought"
+            >
+              📝
+            </button>
             {isRunning && (
               <button
                 type="button"
@@ -435,21 +492,22 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
 
         {/* Duration chips - numeric keyboard friendly */}
         {isIdle && mode === "focus" && (
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            {[25, 50, 90, 120].map(min => (
+          <div className="flex flex-wrap items-center justify-center gap-2" role="group" aria-label="Session mode">
+            {SESSION_PRESETS.map((p) => (
               <button
-                key={min}
+                key={p.id}
                 type="button"
-                onClick={() => setCustomDuration("focus", min * 60)}
-                className={`min-h-[36px] rounded-full border px-3.5 text-xs font-bold ${Math.floor(secondsLeft / 60) === min ? "border-[var(--brand-500)] bg-[var(--brand-soft)] text-[var(--brand-strong)]" : "border-[var(--border-subtle)] bg-[var(--surface-1)] text-[var(--foreground-subtle)]"}`}
-                inputMode="numeric"
-                aria-label={`Set focus duration to ${min} minutes`}
+                onClick={() => applyPreset(p.id)}
+                aria-pressed={presetId === p.id}
+                className={`min-h-[36px] rounded-full border px-3.5 text-xs font-bold ${presetId === p.id ? "border-[var(--brand-500)] bg-[var(--brand-soft)] text-[var(--brand-strong)]" : "border-[var(--border-subtle)] bg-[var(--surface-1)] text-[var(--foreground-subtle)]"}`}
+                aria-label={p.blurb}
               >
-                {min}m
+                {p.label}{p.focusMin ? ` ${p.focusMin}m` : ""}
               </button>
             ))}
           </div>
         )}
+        </>)}
 
         {/* Offline indicator */}
         {isOffline && (
@@ -506,6 +564,11 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
       </AnimatePresence>
 
       {/* Summary */}
+      <AnimatePresence>
+        {showPark && (
+          <DistractionModal onDone={() => setShowPark(false)} onSkip={() => setShowPark(false)} />
+        )}
+      </AnimatePresence>
       <AnimatePresence>
         {showSummary && summary && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
