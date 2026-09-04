@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "./schema";
+import * as sessionsSchema from "./sessions";
 
 const { Pool } = pg;
 
@@ -127,6 +128,9 @@ export const pool = new Pool({
   ssl: useSsl ? { rejectUnauthorized: true } : undefined,
 } as pg.PoolConfig);
 
-export const db = drizzle(pool, { schema });
+export const db = drizzle(pool, { schema: { ...schema, ...sessionsSchema } });
 
 export * from "./schema";
+export * from "./sessions";
+
+export { sessionsTable, passwordResetTokenRevocationsTable } from "./sessions";

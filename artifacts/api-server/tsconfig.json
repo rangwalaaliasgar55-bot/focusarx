@@ -12,6 +12,9 @@
       "path": "../../lib/db"
     },
     {
+      "path": "../../lib/db-sessions"
+    },
+    {
       "path": "../../lib/api-zod"
     }
   ]
