@@ -347,7 +347,7 @@ export default function AchievementsPage() {
                     aria-pressed={active}
                     className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-[var(--duration-fast)] ${
                       active
-                        ? "bg-[var(--brand-600)] hover:bg-[var(--brand-500)] text-[var(--palette-white)] shadow-[0_0_12px_var(--rgba-124-58-237-0_3)]"
+                        ? "bg-[var(--brand-600)] hover:bg-[var(--brand-700)] text-[var(--palette-white)] shadow-[0_0_12px_var(--rgba-124-58-237-0_3)]"
                         : "border border-[var(--rgba-124-58-237-0_18)] text-[var(--muted-fg)] hover:border-[var(--rgba-124-58-237-0_4)] hover:text-[var(--foreground-muted)] hover:bg-[var(--rgba-124-58-237-0_06)]"
                     }`}
                   >

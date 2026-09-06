@@ -93,7 +93,7 @@ export default function SeoLandingPage({ path }: { path: string }) {
 
           <Link
             href={entry.cta.href}
-            className="mt-8 inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-500)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]"
+            className="mt-8 inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-700)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]"
           >
             {entry.cta.label} <ArrowRight size={15} />
           </Link>
@@ -196,7 +196,7 @@ export default function SeoLandingPage({ path }: { path: string }) {
           <p className="mt-2 text-sm text-[var(--foreground-muted)]">
             Free forever at the core. No credit card, no trial countdown.
           </p>
-          <Link href={entry.cta.href} className="mt-5 inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-500)] active:scale-[0.98]">
+          <Link href={entry.cta.href} className="mt-5 inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-700)] active:scale-[0.98]">
             {entry.cta.label} <ArrowRight size={15} />
           </Link>
         </section>

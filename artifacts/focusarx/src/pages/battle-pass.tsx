@@ -109,7 +109,7 @@ export default function BattlePassPage() {
           <div className="relative mt-4 flex flex-wrap items-center gap-2">
             <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--palette-amber-500)]/20 bg-[var(--palette-amber-500)]/10 px-3 py-1 text-xs font-bold text-[var(--palette-amber-400)]"><Coins size={12} /> {data.tokenBalance?.toLocaleString?.() ?? data.tokenBalance ?? 0} Focus Tokens</div>
             {isPremium ? <span className="inline-flex items-center gap-1 rounded-full bg-[var(--palette-amber-500)] px-3 py-1 text-xs font-bold text-white"><Crown size={12}/> Premium active</span> : <Link href="/premium" className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-1)] px-3 py-1 text-xs font-bold text-[var(--foreground-muted)] hover:text-[var(--palette-amber-400)]"><Crown size={12}/> Unlock premium track with tokens</Link>}
-            <button onClick={() => claimAllMutation.mutate()} disabled={claimAllMutation.isPending} className="ml-auto inline-flex items-center gap-1 rounded-full bg-[var(--brand-600)] px-4 py-1.5 text-xs font-bold text-white hover:bg-[var(--brand-500)] disabled:opacity-50">
+            <button onClick={() => claimAllMutation.mutate()} disabled={claimAllMutation.isPending} className="ml-auto inline-flex items-center gap-1 rounded-full bg-[var(--brand-600)] px-4 py-1.5 text-xs font-bold text-white hover:bg-[var(--brand-700)] disabled:opacity-50">
               <Gift size={12}/> Claim all eligible
             </button>
           </div>

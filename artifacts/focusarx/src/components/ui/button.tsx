@@ -17,12 +17,12 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-[var(--brand-600)] text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] hover:bg-[var(--brand-500)] hover:shadow-[var(--shadow-violet-md)]",
+        default: "bg-[var(--brand-600)] text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] hover:bg-[var(--brand-700)] hover:shadow-[var(--shadow-violet-md)]",
         secondary: "border-[var(--card-border)] bg-[var(--brand-soft)] text-[var(--brand-strong)] hover:bg-[var(--brand-soft-hover)]",
         outline: "border-[var(--border-strong)] bg-[var(--surface)] text-[var(--foreground)] hover:border-[var(--brand-500)] hover:bg-[var(--brand-soft)] hover:text-[var(--brand-strong)]",
         ghost: "bg-transparent text-[var(--foreground-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]",
         destructive: "bg-[var(--danger)] text-[var(--neutral-0)] shadow-[var(--shadow-sm)] hover:brightness-110",
-        glow: "bg-[var(--brand-600)] text-[var(--neutral-0)] shadow-[var(--shadow-violet-md)] hover:bg-[var(--brand-500)] hover:shadow-[var(--shadow-violet-lg)]",
+        glow: "bg-[var(--brand-600)] text-[var(--neutral-0)] shadow-[var(--shadow-violet-md)] hover:bg-[var(--brand-700)] hover:shadow-[var(--shadow-violet-lg)]",
         link: "min-h-0 border-0 bg-transparent p-0 text-[var(--brand-strong)] underline-offset-4 hover:underline",
       },
       size: {

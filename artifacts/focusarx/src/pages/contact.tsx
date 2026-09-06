@@ -164,7 +164,7 @@ export default function ContactPage() {
                     disabled={status === "sending"}
                     whileHover={{ scale: 1.02, boxShadow: "0 0 30px 6px var(--rgba-124-58-237-0_3)" }}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] py-3 text-sm font-bold text-[var(--palette-white)] disabled:opacity-60"
+                    className="w-full rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] py-3 text-sm font-bold text-[var(--palette-white)] disabled:opacity-60"
                   >
                     {status === "sending" ? "Sending…" : "Send Message →"}
                   </motion.button>

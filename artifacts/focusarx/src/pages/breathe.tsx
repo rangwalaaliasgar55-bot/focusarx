@@ -196,7 +196,7 @@ export default function BreathePage() {
             <div className="flex gap-3 mt-2">
               <button
                 onClick={() => running ? stop() : setRunning(true)}
-                className="rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] px-8 py-3 text-sm font-semibold text-[var(--palette-white)] shadow-[0_0_20px_var(--rgba-124-58-237-0_3)] transition-all hover:shadow-[0_0_30px_var(--rgba-124-58-237-0_5)]"
+                className="rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] px-8 py-3 text-sm font-semibold text-[var(--palette-white)] shadow-[0_0_20px_var(--rgba-124-58-237-0_3)] transition-all hover:shadow-[0_0_30px_var(--rgba-124-58-237-0_5)]"
               >
                 {running ? "Stop" : "Start"}
               </button>

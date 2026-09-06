@@ -271,7 +271,7 @@ export default function OnboardingPage() {
               <button
                 onClick={() => void finish()}
                 disabled={saving}
-                className="mt-12 w-full rounded-2xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] py-5 text-lg font-semibold text-[var(--palette-white)] shadow-xl hover:scale-105 transition-all disabled:opacity-50"
+                className="mt-12 w-full rounded-2xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] py-5 text-lg font-semibold text-[var(--palette-white)] shadow-xl hover:scale-105 transition-all disabled:opacity-50"
               >
                 {saving ? "Deploying..." : "Enter Command Center"}
               </button>

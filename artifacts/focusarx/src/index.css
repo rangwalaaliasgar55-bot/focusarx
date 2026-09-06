@@ -57,7 +57,12 @@
   --card-border:   rgba(124, 58, 237, 0.20);
   --border:        rgba(255, 255, 255, 0.07);
   --muted:         rgba(255, 255, 255, 0.04);
-  --muted-fg:      #64748B;
+  /* #6E7D93, not #64748B: the darker grey cleared 4.09:1 against a card and
+     4.32:1 against the page, which is under the 4.5:1 AA bar for body text.
+     This token reaches `--color-muted-foreground`, i.e. every shadcn
+     `text-muted-foreground`, so it was app-wide small-text mush. The
+     `design-tokens.contrast.test.ts` gate holds the line now. */
+  --muted-fg:      #6E7D93;
   --input-bg:      rgba(255, 255, 255, 0.04);
   --input-border:  rgba(255, 255, 255, 0.10);
 
@@ -310,7 +315,10 @@ html.light {
   --background:        #F5F7FA;
   --foreground:        #0F172A;
   --foreground-muted:  #475569;
-  --foreground-subtle: #64748B;
+  /* #627188 rather than the dark theme's #64748B: 4.43:1 on #F5F7FA is a hair
+     under AA, and `text-[var(--foreground-subtle)]` is used 727 times, so that
+     shortfall is the light theme's default body-text colour everywhere. */
+  --foreground-subtle: #627188;
 
   --surface-0:   #F5F7FA;
   --surface-1:   rgba(255, 255, 255, 0.95);
@@ -321,7 +329,11 @@ html.light {
   --card-border:   rgba(124, 58, 237, 0.15);
   --border:        rgba(0, 0, 0, 0.07);
   --muted:         rgba(0, 0, 0, 0.04);
-  --muted-fg:      #94A3B8;
+  /* #677180, not #94A3B8 — the slate the light theme inherited reads at
+     2.39:1 on #F5F7FA, i.e. effectively invisible for any secondary label in
+     Settings, the dashboard and the admin tables that use
+     `text-muted-foreground`. */
+  --muted-fg:      #677180;
   --input-bg:      rgba(255, 255, 255, 0.95);
   --input-border:  rgba(0, 0, 0, 0.12);
 

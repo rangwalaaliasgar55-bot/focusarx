@@ -446,7 +446,7 @@ export default function ForgePage() {
                           className={`flex-1 rounded-xl py-1.5 text-xs font-semibold transition-all ${
                             joined
                               ? "bg-[var(--rgba-239-68-68-0_15)] text-[var(--palette-f87171)] hover:bg-[var(--rgba-239-68-68-0_25)]"
-                              : "bg-[var(--brand-600)] hover:bg-[var(--brand-500)] text-[var(--palette-white)] shadow-[0_0_10px_var(--rgba-124-58-237-0_3)] hover:opacity-90"
+                              : "bg-[var(--brand-600)] hover:bg-[var(--brand-700)] text-[var(--palette-white)] shadow-[0_0_10px_var(--rgba-124-58-237-0_3)] hover:opacity-90"
                           }`}
                         >
                           {joined ? "Leave Room" : "Join Room"}

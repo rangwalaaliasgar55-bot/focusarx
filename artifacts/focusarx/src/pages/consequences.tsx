@@ -260,7 +260,7 @@ export default function ConsequencesPage() {
                   <p className="text-xs text-[var(--foreground-subtle)] mt-1">Set stakes to hold yourself accountable.</p>
                   <button
                     onClick={() => setShowForm(true)}
-                    className="mt-4 inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-500)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]"
+                    className="mt-4 inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-700)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]"
                   >
                     <Plus size={14} /> Set Contract
                   </button>
@@ -345,7 +345,7 @@ export default function ConsequencesPage() {
                       <button
                         onClick={() => void save()}
                         disabled={saving}
-                        className="flex-1 rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] py-2.5 text-sm font-semibold text-[var(--palette-white)] disabled:opacity-50"
+                        className="flex-1 rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] py-2.5 text-sm font-semibold text-[var(--palette-white)] disabled:opacity-50"
                       >
                         {saving ? "Saving…" : "Commit to Contract"}
                       </button>

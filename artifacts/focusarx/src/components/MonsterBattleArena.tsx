@@ -436,7 +436,7 @@ export default function MonsterBattleArena({
               )}
               <button
                 onClick={handleClose}
-                className="mt-6 w-full rounded-xl bg-[var(--brand-600)] py-3 text-sm font-bold text-white transition-all hover:bg-[var(--brand-500)]"
+                className="mt-6 w-full rounded-xl bg-[var(--brand-600)] py-3 text-sm font-bold text-white transition-all hover:bg-[var(--brand-700)]"
               >
                 Continue
               </button>

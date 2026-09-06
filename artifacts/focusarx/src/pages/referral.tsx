@@ -66,7 +66,7 @@ export default function ReferralPage() {
         <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-8 text-center max-w-sm">
           <Gift size={32} className="text-[var(--brand-400)] mx-auto mb-4" />
           <p className="text-[var(--foreground)] font-semibold mb-2">Sign in to refer friends</p>
-          <Link href="/login" className="mt-4 inline-block rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] px-6 py-2 text-sm font-medium text-[var(--palette-white)]">Sign in</Link>
+          <Link href="/login" className="mt-4 inline-block rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] px-6 py-2 text-sm font-medium text-[var(--palette-white)]">Sign in</Link>
         </div>
       </div>
     );
@@ -141,7 +141,7 @@ export default function ReferralPage() {
                   <button
                     onClick={() => applyMut.mutate(inputCode)}
                     disabled={!inputCode.startsWith("FAX-") || applyMut.isPending}
-                    className="rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] px-4 py-2.5 text-sm font-medium text-[var(--neutral-0)] disabled:opacity-40">
+                    className="rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] px-4 py-2.5 text-sm font-medium text-[var(--neutral-0)] disabled:opacity-40">
                     {applyMut.isPending ? "…" : "Apply"}
                   </button>
                 </div>

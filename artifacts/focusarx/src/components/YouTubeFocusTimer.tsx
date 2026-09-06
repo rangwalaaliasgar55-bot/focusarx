@@ -126,7 +126,7 @@ export default function YouTubeFocusTimer({ isActive, sessionDuration }: YouTube
           <div className="grid h-full place-items-center">
             <button
               onClick={togglePlay}
-              className="flex items-center gap-2 rounded-full bg-[var(--brand-600)] px-6 py-3 text-sm font-bold text-white transition-all hover:bg-[var(--brand-500)]"
+              className="flex items-center gap-2 rounded-full bg-[var(--brand-600)] px-6 py-3 text-sm font-bold text-white transition-all hover:bg-[var(--brand-700)]"
             >
               <Play size={16} />
               Play

@@ -142,7 +142,7 @@ export function TimerRitualsPanel({
                     }
                     onCustomDuration(customVal);
                   }}
-                  className="mt-3 w-full rounded-xl bg-[var(--brand-600)] py-2 text-xs font-bold text-white hover:bg-[var(--brand-500)]"
+                  className="mt-3 w-full rounded-xl bg-[var(--brand-600)] py-2 text-xs font-bold text-white hover:bg-[var(--brand-700)]"
                 >
                   Apply {customVal}m
                 </button>
