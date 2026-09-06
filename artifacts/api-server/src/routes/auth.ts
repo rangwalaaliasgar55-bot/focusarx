@@ -70,11 +70,11 @@ router.use("/auth", (_req, res, next) => {
  * account does not exist. Cost 12, so the comparison takes as long as a
  * genuine one and "no such user" is not observable from the response time.
  *
- * It is generated on first use rather than written out as a literal: a
- * hardcoded `$2b$12$…` string is indistinguishable from a leaked password hash
- * to every secret scanner in CI, and the flag buys nothing — the value below is
- * deliberately meaningless. Memoised so the first unknown-email sign-in pays the
- * hashing cost once per process, not once per guess.
+ * It is generated on first use rather than written out as a literal, because a
+ * cost-12 digest pasted into source is indistinguishable from a leaked password
+ * hash to CI's secret scanner — and pasting one buys nothing, since the value
+ * is deliberately meaningless. Memoised so the first unknown-email sign-in pays
+ * the hashing cost once per process, not once per guess.
  */
 const BCRYPT_COST = 12;
 let unknownUserHashPromise: Promise<string> | null = null;

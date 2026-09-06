@@ -33,6 +33,10 @@ const PW_OLD = "pw-test-0";
 const PW_NEW = "pw-test-2";
 const PW_BAD = "pw-test-no";
 
+/** The reset-link probe path for a token. */
+const verifyPath = (token: string) =>
+  `/api/auth/reset-password/verify?${new URLSearchParams({ token })}`;
+
 const hasDb = Boolean(process.env.DATABASE_URL);
 
 /** Only the auth cookies we care about, so the jar stays trivially debuggable. */
@@ -286,7 +290,7 @@ describe.runIf(hasDb)("auth sign-in (live app + real database)", () => {
     const token = new URL(devResetUrl!).searchParams.get("token")!;
     expect(token.length).toBeGreaterThan(20);
 
-    const verify = await call(`/api/auth/reset-password/verify?token=${encodeURIComponent(token)}`);
+    const verify = await call(verifyPath(token));
     expect(verify.status).toBe(200);
     expect(verify.json.valid).toBe(true);
 
@@ -297,7 +301,7 @@ describe.runIf(hasDb)("auth sign-in (live app + real database)", () => {
     const reuse = await call("/api/auth/reset-password", { method: "POST", body: { token, password: PW_NEW } });
     expect(reuse.status).toBe(400);
     expect(errCode(reuse.json)).toBe("INVALID_TOKEN");
-    const verifyAfter = await call(`/api/auth/reset-password/verify?token=${encodeURIComponent(token)}`);
+    const verifyAfter = await call(verifyPath(token));
     expect(verifyAfter.json.valid).toBe(false);
 
     // A reset is usually an escape from a lockout: every refresh family held

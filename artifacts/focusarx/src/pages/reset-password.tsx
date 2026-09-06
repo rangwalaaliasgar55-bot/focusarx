@@ -29,7 +29,8 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
-    void fetch(`/api/auth/reset-password/verify?token=${encodeURIComponent(token)}`, { credentials: "include" })
+    const query = new URLSearchParams({ token });
+    void fetch(`/api/auth/reset-password/verify?${query}`, { credentials: "include" })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`verify responded ${r.status}`))))
       .then((d: { valid?: boolean }) => {
         if (cancelled) return;
