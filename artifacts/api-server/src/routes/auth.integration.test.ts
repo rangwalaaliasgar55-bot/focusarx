@@ -23,6 +23,16 @@ import { eq } from "drizzle-orm";
 import type { AddressInfo } from "node:net";
 import type { Server } from "node:http";
 
+/**
+ * Throwaway fixtures, deliberately short and obviously synthetic: CI's secret
+ * scanner reads realistic-looking passwords in a test file as leaked
+ * credentials, and every row these create is deleted in `afterAll`.
+ */
+const PW = "pw-test-1";
+const PW_OLD = "pw-test-0";
+const PW_NEW = "pw-test-2";
+const PW_BAD = "pw-test-no";
+
 const hasDb = Boolean(process.env.DATABASE_URL);
 
 /** Only the auth cookies we care about, so the jar stays trivially debuggable. */
@@ -110,7 +120,7 @@ describe.runIf(hasDb)("auth sign-in (live app + real database)", () => {
   });
 
   /** Register a throwaway account and remember it for cleanup. */
-  async function makeUser(label: string, password = "Password12345", rawEmail?: string) {
+  async function makeUser(label: string, password = PW, rawEmail?: string) {
     const email = rawEmail ?? `auth-test-${label}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
     const res = await call("/api/auth/register", { method: "POST", body: { email, password } });
     expect(res.status).toBe(201);
@@ -131,14 +141,14 @@ describe.runIf(hasDb)("auth sign-in (live app + real database)", () => {
     // validated the raw string and only trimmed afterwards.
     const register = await call("/api/auth/register", {
       method: "POST",
-      body: { email: `  ${email.toUpperCase()}\n`, password: "Password12345" },
+      body: { email: `  ${email.toUpperCase()}\n`, password: PW },
     });
     expect(register.status).toBe(201);
     track(register);
 
     const login = await call("/api/auth/login", {
       method: "POST",
-      body: { email: ` ${email.toUpperCase()} `, password: "Password12345" },
+      body: { email: ` ${email.toUpperCase()} `, password: PW },
     });
     expect(login.status).toBe(200);
     expect(login.json.accessToken).toBeTypeOf("string");
@@ -146,7 +156,7 @@ describe.runIf(hasDb)("auth sign-in (live app + real database)", () => {
     // Autofill in a mobile WebView appends a newline. Same bug, same fix.
     const withNewline = await call("/api/auth/login", {
       method: "POST",
-      body: { email: `${email}\r\n`, password: "Password12345" },
+      body: { email: `${email}\r\n`, password: PW },
     });
     expect(withNewline.status).toBe(200);
 
@@ -194,7 +204,7 @@ describe.runIf(hasDb)("auth sign-in (live app + real database)", () => {
     // The account is gone from the server's point of view; signing back in must
     // still work, which is the only proof the cookies were the thing that
     // changed and not the credentials.
-    const again = await call("/api/auth/login", { method: "POST", body: { email, password: "Password12345" } });
+    const again = await call("/api/auth/login", { method: "POST", body: { email, password: PW } });
     expect(again.status).toBe(200);
     expect(again.jar.access_token).toBeTruthy();
   }, 30_000);
@@ -218,7 +228,7 @@ describe.runIf(hasDb)("auth sign-in (live app + real database)", () => {
 
     // A usable key still works, and is stable — the same device gets back into
     // the same guest account after a reload.
-    const key = `vitest${Date.now().toString(36)}`; // gitleaks:allow — a synthetic guest id
+    const key = `guest-${Date.now().toString(36)}`;
     const a = await call("/api/auth/guest", { method: "POST", body: { guestKey: key } });
     const b = await call("/api/auth/guest", { method: "POST", body: { guestKey: `  ${key}  ` } });
     expect(a.status).toBe(200);
@@ -236,9 +246,9 @@ describe.runIf(hasDb)("auth sign-in (live app + real database)", () => {
 
     const unknown = await call("/api/auth/login", {
       method: "POST",
-      body: { email: `nope-${Date.now()}@example.com`, password: "Password12345" },
+      body: { email: `nope-${Date.now()}@example.com`, password: PW },
     });
-    const wrongPassword = await call("/api/auth/login", { method: "POST", body: { email, password: "WrongPassword99" } });
+    const wrongPassword = await call("/api/auth/login", { method: "POST", body: { email, password: PW_BAD } });
 
     // Identical status and identical body. The dummy bcrypt compare behind the
     // unknown-email branch also makes them indistinguishable by timing.
@@ -250,19 +260,19 @@ describe.runIf(hasDb)("auth sign-in (live app + real database)", () => {
   it("reports a taken email as 400 EMAIL_EXISTS, never 500", async () => {
     const { email } = await makeUser("duplicate");
 
-    const second = await call("/api/auth/register", { method: "POST", body: { email, password: "AnotherPass123" } });
+    const second = await call("/api/auth/register", { method: "POST", body: { email, password: PW } });
     expect(second.status).toBe(400);
     expect(errCode(second.json)).toBe("EMAIL_EXISTS");
 
     // Case differences must land on the same account rather than slipping past
     // the pre-check into a unique-index violation.
-    const raced = await call("/api/auth/register", { method: "POST", body: { email: email.toUpperCase(), password: "ThirdPass1234" } });
+    const raced = await call("/api/auth/register", { method: "POST", body: { email: email.toUpperCase(), password: PW } });
     expect(raced.status).toBe(400);
     expect(errCode(raced.json)).toBe("EMAIL_EXISTS");
   }, 30_000);
 
   it("resets a password end to end and signs older sessions out", async () => {
-    const { email, res: register } = await makeUser("reset", "OldPassword123");
+    const { email, res: register } = await makeUser("reset", PW_OLD);
 
     const forgot = await call("/api/auth/forgot-password", { method: "POST", body: { email } });
     expect(forgot.status).toBe(200);
@@ -280,11 +290,11 @@ describe.runIf(hasDb)("auth sign-in (live app + real database)", () => {
     expect(verify.status).toBe(200);
     expect(verify.json.valid).toBe(true);
 
-    const reset = await call("/api/auth/reset-password", { method: "POST", body: { token, password: "NewPassword123" } });
+    const reset = await call("/api/auth/reset-password", { method: "POST", body: { token, password: PW_NEW } });
     expect(reset.status).toBe(200);
 
     // Single use: replaying the same link must not set a second password.
-    const reuse = await call("/api/auth/reset-password", { method: "POST", body: { token, password: "ThirdPassword1" } });
+    const reuse = await call("/api/auth/reset-password", { method: "POST", body: { token, password: PW_NEW } });
     expect(reuse.status).toBe(400);
     expect(errCode(reuse.json)).toBe("INVALID_TOKEN");
     const verifyAfter = await call(`/api/auth/reset-password/verify?token=${encodeURIComponent(token)}`);
@@ -304,9 +314,9 @@ describe.runIf(hasDb)("auth sign-in (live app + real database)", () => {
     expect(tokenRows.length).toBeGreaterThan(0);
     expect(tokenRows.every((row) => row.revokedAt !== null)).toBe(true);
 
-    const oldPassword = await call("/api/auth/login", { method: "POST", body: { email, password: "OldPassword123" } });
+    const oldPassword = await call("/api/auth/login", { method: "POST", body: { email, password: PW_OLD } });
     expect(oldPassword.status).toBe(401);
-    const newPassword = await call("/api/auth/login", { method: "POST", body: { email, password: "NewPassword123" } });
+    const newPassword = await call("/api/auth/login", { method: "POST", body: { email, password: PW_NEW } });
     expect(newPassword.status).toBe(200);
   }, 60_000);
 
@@ -320,7 +330,7 @@ describe.runIf(hasDb)("auth sign-in (live app + real database)", () => {
     const { email } = await makeUser("limiter");
 
     const remaining = async (): Promise<number> => {
-      const res = await call("/api/auth/login", { method: "POST", body: { email, password: "Password12345" } });
+      const res = await call("/api/auth/login", { method: "POST", body: { email, password: PW } });
       expect(res.status).toBe(200);
       // draft-6/7 expose `RateLimit-Remaining`; draft-8 folds it into a quoted
       // `RateLimit: "auth"; r=…; t=…` struct field. Accept either.
@@ -332,14 +342,14 @@ describe.runIf(hasDb)("auth sign-in (live app + real database)", () => {
 
     const before = await remaining();
     for (let i = 0; i < 25; i += 1) {
-      const ok = await call("/api/auth/login", { method: "POST", body: { email, password: "Password12345" } });
+      const ok = await call("/api/auth/login", { method: "POST", body: { email, password: PW } });
       expect(ok.status).toBe(200);
     }
     // Reading the counter is itself a successful login, so it must not move.
     expect(await remaining()).toBe(before);
 
     for (let i = 0; i < 4; i += 1) {
-      const bad = await call("/api/auth/login", { method: "POST", body: { email, password: "DefinitelyWrong9" } });
+      const bad = await call("/api/auth/login", { method: "POST", body: { email, password: PW_BAD } });
       expect(bad.status).toBe(401);
     }
     expect(await remaining()).toBeLessThanOrEqual(before - 4);
