@@ -1,7 +1,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Volume2, VolumeX, Pause, Play, Music, Timer } from "lucide-react";
+import { X, Volume2, VolumeX, Pause, Play, Music } from "lucide-react";
 import { useWakeLock } from "@/hooks/useWakeLock";
 import { haptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
@@ -94,7 +94,7 @@ export function MobileFocusMode({
             {wakeLockSupported && (
               <span
                 className={cn(
-                  "rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest",
+                  "rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest",
                   isLocked ? "bg-[var(--success-soft)] text-[var(--success)]" : "bg-[var(--surface-1)] text-[var(--foreground-subtle)]"
                 )}
                 title={isLocked ? "Screen will stay awake" : "Screen may dim"}

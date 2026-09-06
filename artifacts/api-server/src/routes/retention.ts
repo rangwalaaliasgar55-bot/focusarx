@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
@@ -7,9 +7,10 @@ import {
   freezeTokensTable, notificationsTable, battlePassProgressTable,
   usersTable,
 } from "@workspace/db";
-import { extractUserId } from "./auth";
 import { sendPush } from "../lib/pushSender";
 import { logger } from "../lib/logger";
+import { userZone } from "../lib/userZone";
+import { dayKeyInZone, shiftDayKey } from "../lib/timezone";
 import { mintCoins } from "../lib/coinLedger";
 import { istToday } from "../lib/istDate";
 import { and, eq, isNull, sql, lt, gt, gte } from "drizzle-orm";
@@ -31,12 +32,11 @@ const DAILY_REWARDS = [
   { day: 7, coins: 500, xp: 1000, label: "Day 7 MEGA!", icon: "🏆" },
 ];
 
-function todayStr() { return new Date().toISOString().slice(0, 10); }
 
 retentionRouter.get("/retention/login-reward", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
-  const today = todayStr();
-  let [record] = await db.select().from(loginRewardsTable).where(eq(loginRewardsTable.userId, userId)).limit(1);
+  const today = dayKeyInZone(Date.now(), await userZone(userId));
+  const [record] = await db.select().from(loginRewardsTable).where(eq(loginRewardsTable.userId, userId)).limit(1);
   const alreadyClaimed = record?.lastClaimedDate === today;
   const streak = record?.claimStreak ?? 0;
   const nextDay = ((streak % 7) + 1);
@@ -46,7 +46,7 @@ retentionRouter.get("/retention/login-reward", authMiddleware, async (req: AuthR
 
 retentionRouter.post("/retention/login-reward/claim", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
-  const today = todayStr();
+  const today = dayKeyInZone(Date.now(), await userZone(userId));
 
   // Transaction + row lock: two concurrent claims (double-click, two tabs)
   // serialize here; the loser observes the already-claimed date and 400s
@@ -55,9 +55,7 @@ retentionRouter.post("/retention/login-reward/claim", authMiddleware, async (req
     const [record] = await tx.select().from(loginRewardsTable).where(eq(loginRewardsTable.userId, userId)).limit(1).for("update");
     if (record?.lastClaimedDate === today) return null;
 
-    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-    const yStr = yesterday.toISOString().slice(0, 10);
-    const continued = record?.lastClaimedDate === yStr;
+    const continued = record?.lastClaimedDate === shiftDayKey(today, -1);
     const newStreak = continued ? ((record?.claimStreak ?? 0) + 1) : 1;
     const dayIndex = ((newStreak - 1) % 7);
     const reward = DAILY_REWARDS[dayIndex]!;
@@ -69,9 +67,10 @@ retentionRouter.post("/retention/login-reward/claim", authMiddleware, async (req
       await tx.insert(loginRewardsTable).values({ userId, lastClaimedDate: today, claimStreak: 1, totalClaimed: 1 });
     }
 
-    let [wallet] = await tx.select().from(userWalletsTable).where(eq(userWalletsTable.userId, userId)).limit(1).for("update");
+    // Lock (or create) the wallet row so the XP increment below cannot race.
+    const [wallet] = await tx.select().from(userWalletsTable).where(eq(userWalletsTable.userId, userId)).limit(1).for("update");
     if (!wallet) {
-      [wallet] = await tx.insert(userWalletsTable).values({ userId }).returning();
+      await tx.insert(userWalletsTable).values({ userId }).onConflictDoNothing();
     }
     if (reward.coins > 0) {
       await mintCoins(userId, reward.coins, "login_reward", {
@@ -220,7 +219,7 @@ retentionRouter.get("/retention/battle-pass", authMiddleware, async (req: AuthRe
   // a user opening the page after the Monday boundary always sees the live
   // season even if they haven't focused since.
   try { await rolloverBattlePassSeason(userId); } catch { /* best effort */ }
-  let [progress] = await db.select().from(battlePassProgressTable).where(eq(battlePassProgressTable.userId, userId)).limit(1);
+  const [progress] = await db.select().from(battlePassProgressTable).where(eq(battlePassProgressTable.userId, userId)).limit(1);
   const currentTier = calculateBattlePassTier(progress?.seasonXp ?? 0);
   const nextTierXp = nextBattlePassThreshold(currentTier);
   res.json({

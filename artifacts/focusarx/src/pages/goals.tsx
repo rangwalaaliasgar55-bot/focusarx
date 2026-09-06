@@ -4,7 +4,7 @@ import { getToken } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
 import { Target, Plus, Trash2, CheckCircle2, Circle, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { TiltCard, StaggerContainer, StaggerItem } from "@/components/TiltCard";
+import { TiltCard } from "@/components/TiltCard";
 import PageHeader from "@/components/PageHeader";
 
 async function apiFetch(path: string, opts?: RequestInit) {
@@ -209,7 +209,7 @@ function GoalCard({ goal, onToggle, onDelete }: { goal: Goal; onToggle: (id: str
       <div className="flex-1 min-w-0">
         <p className={`text-sm font-semibold ${goal.completed ? "line-through text-[var(--foreground-subtle)]" : "text-[var(--foreground)]"}`}>{goal.title}</p>
         {goal.description && <p className="text-xs text-[var(--foreground-subtle)] mt-0.5 line-clamp-2">{goal.description}</p>}
-        <p className="text-[10px] text-[var(--foreground-subtle)] mt-1">{new Date(goal.createdAt).toLocaleDateString()}</p>
+        <p className="text-[11px] text-[var(--foreground-subtle)] mt-1">{new Date(goal.createdAt).toLocaleDateString()}</p>
       </div>
       <button onClick={() => onDelete(goal.id)} className="shrink-0 text-[var(--foreground-subtle)] hover:text-[var(--palette-red-400)] transition-colors mt-0.5">
         <Trash2 size={14} />

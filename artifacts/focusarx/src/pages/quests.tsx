@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
-import { Target, Zap, Clock, CheckCircle, Lock, RefreshCw, Calendar } from "lucide-react";
+import { Zap, Clock, CheckCircle, RefreshCw, Calendar } from "lucide-react";
 import { PAGE, CARD, STAGGER } from "@/lib/animations";
 
 function authHeaders() {
@@ -35,18 +35,18 @@ function QuestCard({ progress, onClaim, claiming }: { progress: any; onClaim: (i
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <h3 className="text-sm font-semibold text-[var(--foreground)]">{quest.title}</h3>
-            <span className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase" style={{ color: diff.color, background: diff.bg, border: `1px solid ${diff.border}` }}>
+            <span className="rounded-full px-2 py-0.5 text-[11px] font-bold uppercase" style={{ color: diff.color, background: diff.bg, border: `1px solid ${diff.border}` }}>
               {quest.difficulty}
             </span>
-            {isClaimed && <span className="rounded-full bg-[var(--rgba-16-185-129-0_12)] border border-[var(--rgba-16-185-129-0_25)] px-2 py-0.5 text-[9px] font-bold text-[var(--palette-10b981)]">CLAIMED</span>}
+            {isClaimed && <span className="rounded-full bg-[var(--rgba-16-185-129-0_12)] border border-[var(--rgba-16-185-129-0_25)] px-2 py-0.5 text-[11px] font-bold text-[var(--palette-10b981)]">CLAIMED</span>}
           </div>
           <p className="text-[11px] text-[var(--foreground-subtle)] mb-3">{quest.description}</p>
 
           {/* Progress bar */}
           <div className="mb-2">
             <div className="flex justify-between items-center mb-1">
-              <span className="text-[10px] text-[var(--foreground-subtle)]">{progress.current ?? 0} / {quest.target} {quest.metric?.replace(/_/g, " ")}</span>
-              <span className="text-[10px] font-semibold" style={{ color: diff.color }}>{pct}%</span>
+              <span className="text-[11px] text-[var(--foreground-subtle)]">{progress.current ?? 0} / {quest.target} {quest.metric?.replace(/_/g, " ")}</span>
+              <span className="text-[11px] font-semibold" style={{ color: diff.color }}>{pct}%</span>
             </div>
             <div className="h-1.5 rounded-full bg-[var(--rgba-255-255-255-0_06)] overflow-hidden">
               <motion.div
@@ -61,8 +61,8 @@ function QuestCard({ progress, onClaim, claiming }: { progress: any; onClaim: (i
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1 text-[10px] text-[var(--brand-400)]"><Zap size={10} /> +{quest.xpReward} XP</span>
-              <span className="flex items-center gap-1 text-[10px] text-[var(--color-warning)]">🪙 +{quest.coinReward}</span>
+              <span className="flex items-center gap-1 text-[11px] text-[var(--brand-400)]"><Zap size={10} /> +{quest.xpReward} XP</span>
+              <span className="flex items-center gap-1 text-[11px] text-[var(--color-warning)]">🪙 +{quest.coinReward}</span>
             </div>
             {isComplete && !isClaimed && (
               <button
@@ -149,7 +149,7 @@ export default function QuestsPage() {
               <div className="flex items-center gap-2 mb-3">
                 <Clock size={14} className="text-[var(--brand-teal)]" />
                 <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--brand-teal)]">Daily Quests</h2>
-                <span className="text-[10px] text-[var(--foreground-subtle)]">(resets at midnight)</span>
+                <span className="text-[11px] text-[var(--foreground-subtle)]">(resets at midnight)</span>
               </div>
               {quests.daily.length === 0 ? (
                 <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--muted)] p-6 text-center text-sm text-[var(--foreground-subtle)]">
@@ -167,7 +167,7 @@ export default function QuestsPage() {
               <div className="flex items-center gap-2 mb-3">
                 <Calendar size={14} className="text-[var(--brand-400)]" />
                 <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--brand-400)]">Weekly Quests</h2>
-                <span className="text-[10px] text-[var(--foreground-subtle)]">(resets Monday)</span>
+                <span className="text-[11px] text-[var(--foreground-subtle)]">(resets Monday)</span>
               </div>
               {quests.weekly.length === 0 ? (
                 <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--muted)] p-6 text-center text-sm text-[var(--foreground-subtle)]">

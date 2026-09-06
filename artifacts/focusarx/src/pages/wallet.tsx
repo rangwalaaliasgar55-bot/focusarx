@@ -70,7 +70,7 @@ export default function WalletPage() {
               <div className="rounded-2xl border border-[var(--rgba-245-158-11-0_2)] bg-[var(--rgba-245-158-11-0_06)] p-4 shadow-3d-violet">
                 <div className="flex items-center gap-2 mb-2">
                   <motion.span className="text-xl" whileHover={{ scale: 1.3, rotate: 15 }} transition={{ type: "spring", stiffness: 400 }}>🪙</motion.span>
-                  <span className="text-[10px] text-[var(--color-warning)] font-semibold uppercase tracking-wider">Coins</span>
+                  <span className="text-[11px] text-[var(--color-warning)] font-semibold uppercase tracking-wider">Coins</span>
                 </div>
                 <p className="text-2xl font-bold text-[var(--color-warning)]">{wallet.coins.toLocaleString()}</p>
               </div>
@@ -79,7 +79,7 @@ export default function WalletPage() {
               <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-124-58-237-0_06)] p-4 shadow-3d-violet">
                 <div className="flex items-center gap-2 mb-2">
                   <motion.div whileHover={{ scale: 1.2, rotate: -10 }}><Zap size={14} className="text-[var(--brand-400)]" /></motion.div>
-                  <span className="text-[10px] text-[var(--brand-400)] font-semibold uppercase tracking-wider">Total XP</span>
+                  <span className="text-[11px] text-[var(--brand-400)] font-semibold uppercase tracking-wider">Total XP</span>
                 </div>
                 <p className="text-2xl font-bold text-[var(--brand-400)]">{wallet.totalXp.toLocaleString()}</p>
               </div>
@@ -88,7 +88,7 @@ export default function WalletPage() {
               <div className="rounded-2xl border border-[var(--rgba-6-214-160-0_2)] bg-[var(--rgba-6-214-160-0_06)] p-4 shadow-3d-violet">
                 <div className="flex items-center gap-2 mb-2">
                   <motion.div whileHover={{ scale: 1.2, y: -2 }}><TrendingUp size={14} className="text-[var(--brand-teal)]" /></motion.div>
-                  <span className="text-[10px] text-[var(--brand-teal)] font-semibold uppercase tracking-wider">Weekly XP</span>
+                  <span className="text-[11px] text-[var(--brand-teal)] font-semibold uppercase tracking-wider">Weekly XP</span>
                 </div>
                 <p className="text-2xl font-bold text-[var(--brand-teal)]">{wallet.weeklyXp.toLocaleString()}</p>
               </div>
@@ -97,7 +97,7 @@ export default function WalletPage() {
               <div className="rounded-2xl border border-[var(--rgba-255-184-0-0_2)] bg-[var(--rgba-255-184-0-0_06)] p-4 shadow-3d-violet">
                 <div className="flex items-center gap-2 mb-2">
                   <motion.span className="text-xl" animate={{ rotate: [0, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}>🏅</motion.span>
-                  <span className="text-[10px] text-[var(--brand-gold)] font-semibold uppercase tracking-wider">Level</span>
+                  <span className="text-[11px] text-[var(--brand-gold)] font-semibold uppercase tracking-wider">Level</span>
                 </div>
                 <p className="text-2xl font-bold text-[var(--brand-gold)]">{wallet.level}</p>
               </div>
@@ -147,7 +147,7 @@ export default function WalletPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-[var(--foreground)] truncate">{tx.description ?? tx.type ?? "Transaction"}</p>
-                    <p className="text-[10px] text-[var(--foreground-subtle)]">{tx.createdAt ? new Date(tx.createdAt).toLocaleDateString() : ""}</p>
+                    <p className="text-[11px] text-[var(--foreground-subtle)]">{tx.createdAt ? new Date(tx.createdAt).toLocaleDateString() : ""}</p>
                   </div>
                   <span className={`text-sm font-bold tabular-nums ${txColor(tx.type ?? "")}`}>
                     {tx.amount > 0 ? "+" : ""}{tx.amount} 🪙

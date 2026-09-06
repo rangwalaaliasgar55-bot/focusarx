@@ -21,7 +21,7 @@ import {
   studyStreaksTable, tasksTable, goalsTable, notificationsTable,
   premiumSubscriptionsTable, featureFlagsTable,
 } from "@workspace/db";
-import { eq, desc, sql, and, like, count } from "drizzle-orm";
+import { eq, desc, sql, count } from "drizzle-orm";
 import { requireAdmin } from "../lib/adminAuth";
 import { authMiddleware, type AuthRequest } from "../middlewares/auth";
 import { getDeploymentVersion } from "../lib/deploymentVersion";
@@ -348,7 +348,7 @@ router.get("/developer/ai-budget", async (_req: AuthRequest, res) => {
       recentUsage: recentCalls.rows,
       date: today,
     });
-  } catch (err) {
+  } catch {
     // Table might not exist yet
     res.json({ todayBudget: [], recentUsage: [], date: new Date().toISOString().slice(0, 10), error: "AI budget tables may not exist yet" });
   }

@@ -11,7 +11,6 @@ import {
   Award,
   Settings,
   HelpCircle,
-  Sparkles,
   Flame,
   BookOpen,
   Crown,

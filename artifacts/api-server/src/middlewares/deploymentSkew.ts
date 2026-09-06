@@ -23,7 +23,7 @@
  */
 
 import type { Request, Response, NextFunction } from "express";
-import { getDeploymentVersion, isDeploymentCompatible, isLocalDev, isPreviewDeployment } from "../lib/deploymentVersion";
+import { getDeploymentVersion, isDeploymentCompatible, isLocalDev } from "../lib/deploymentVersion";
 import { logger } from "../lib/logger";
 
 /** Header name for the deployment version (request and response). */

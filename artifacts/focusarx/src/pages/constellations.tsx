@@ -10,11 +10,11 @@
  * This is unique to FocusArx — your study history becomes a living star map.
  */
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
-import { Star, Info, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { Star, Info } from "lucide-react";
 
 function authHeaders() {
   const t = getToken();
@@ -141,7 +141,7 @@ export default function ConstellationsPage() {
           <div className="inline-flex items-center gap-2 rounded-full border border-[var(--rgba-124-58-237-0_3)] bg-[var(--rgba-124-58-237-0_1)] px-4 py-1.5 mb-3">
             <Star size={14} className="text-[var(--brand-400)]" />
             <span className="text-xs font-semibold uppercase tracking-wider text-[var(--brand-400)]">Study Constellations</span>
-            <span className="rounded-full bg-[var(--rgba-124-58-237-0_3)] px-2 py-0.5 text-[9px] font-bold text-[var(--brand-400)] uppercase">FocusArx Original</span>
+            <span className="rounded-full bg-[var(--rgba-124-58-237-0_3)] px-2 py-0.5 text-[11px] font-bold text-[var(--brand-400)] uppercase">FocusArx Original</span>
           </div>
           <h1 className="text-3xl font-bold text-[var(--palette-white)] mb-1">Your Star Map</h1>
           <p className="text-[var(--muted-fg)] text-sm max-w-lg">
@@ -284,7 +284,7 @@ export default function ConstellationsPage() {
             </div>
 
             {/* Legend */}
-            <div className="flex items-center gap-4 mt-3 justify-center flex-wrap text-[10px] text-[var(--foreground-subtle)]">
+            <div className="flex items-center gap-4 mt-3 justify-center flex-wrap text-[11px] text-[var(--foreground-subtle)]">
               <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-[var(--palette-white)] opacity-90" style={{ boxShadow: "0 0 6px var(--rgba-167-139-250-0_8)" }} /> Longer session = farther from center</div>
               <div className="flex items-center gap-1.5"><div className="h-3 w-3 rounded-full bg-[var(--palette-white)] opacity-50" style={{ boxShadow: "0 0 4px var(--rgba-167-139-250-0_5)" }} /> Brighter = higher focus score</div>
               <div className="flex items-center gap-1.5"><div className="h-px w-6 border-t border-dashed border-[var(--rgba-124-58-237-0_5)]" /> Constellation</div>
@@ -324,7 +324,7 @@ export default function ConstellationsPage() {
                         <div className="h-2 w-2 rounded-full" style={{ background: c.color, boxShadow: `0 0 6px ${c.color}` }} />
                         <span className="text-xs text-[var(--foreground-muted)]">{c.name}</span>
                       </div>
-                      <span className="text-[10px] text-[var(--foreground-subtle)]">{c.stars.length} ✦</span>
+                      <span className="text-[11px] text-[var(--foreground-subtle)]">{c.stars.length} ✦</span>
                     </motion.div>
                   ))}
                 </div>
@@ -334,7 +334,7 @@ export default function ConstellationsPage() {
             {/* How it works */}
             <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-124-58-237-0_05)] p-4">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--brand-400)] mb-2">How it works</h3>
-              <div className="space-y-1.5 text-[10px] text-[var(--muted-fg)]">
+              <div className="space-y-1.5 text-[11px] text-[var(--muted-fg)]">
                 <p>📍 Position = time of day you studied</p>
                 <p>📏 Distance from center = session length</p>
                 <p>✨ Brightness = focus score</p>

@@ -112,7 +112,7 @@ export function AdminTokensPanel({ authHeaders }: { authHeaders: () => Record<st
         <div className="rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 p-5">
           <div className="mb-3 flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wider text-[var(--palette-zinc-400)]">Recent ledger (immutable audit)</p>
-            <button onClick={() => { setLoading(true); void loadLedger(); }} className="text-[10px] text-[var(--palette-zinc-500)]">Refresh</button>
+            <button onClick={() => { setLoading(true); void loadLedger(); }} className="text-[11px] text-[var(--palette-zinc-500)]">Refresh</button>
           </div>
           <div className="max-h-[400px] space-y-1.5 overflow-auto">
             {ledger.map((e) => (
@@ -122,7 +122,7 @@ export function AdminTokensPanel({ authHeaders }: { authHeaders: () => Record<st
                   <span className="text-[var(--palette-zinc-600)]">{new Date(e.createdAt).toLocaleString()}</span>
                 </div>
                 <p className="text-[var(--palette-zinc-400)]">{e.source} • balance_after {e.balanceAfter} • {e.adminReason ?? e.relatedEntityId ?? ""}</p>
-                <p className="font-mono text-[9px] text-[var(--palette-zinc-600)]">{e.userId.slice(0, 8)}… idemp {e.idempotencyKey?.slice(0, 16) ?? "—"}…</p>
+                <p className="font-mono text-[11px] text-[var(--palette-zinc-600)]">{e.userId.slice(0, 8)}… idemp {e.idempotencyKey?.slice(0, 16) ?? "—"}…</p>
               </div>
             ))}
             {loading ? (

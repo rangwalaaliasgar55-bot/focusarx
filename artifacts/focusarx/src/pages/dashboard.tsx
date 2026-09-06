@@ -1,3 +1,4 @@
+import { RollingClock } from "@/components/RollingClock";
 import { lazy, Suspense, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
@@ -122,7 +123,7 @@ function FocusHero({ onStart, minutes, sessions }: { onStart: () => void; minute
         <div className="relative mx-auto grid h-40 w-40 place-items-center rounded-full sm:h-44 sm:w-44" style={{ background: `conic-gradient(var(--brand-500) ${running ? live.progress : 0}%, var(--brand-soft) 0)` }} aria-hidden="true">
           <div className="absolute inset-2 rounded-full bg-[var(--surface)] shadow-[var(--shadow-sm)]" />
           <div className="relative text-center">
-            <p className="font-mono text-4xl font-semibold tracking-[-0.06em] tabular-nums">{running ? formatClock(live.secondsLeft) : "25:00"}</p>
+            <p className="font-display text-4xl font-semibold tracking-[-0.05em]" style={{ fontFeatureSettings: '"tnum" 1' }}><RollingClock value={running ? formatClock(live.secondsLeft) : "25:00"} /></p>
             <p className="mt-1 text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-[var(--foreground-subtle)]">{running ? (live.mode === "focus" ? "Focus" : "Break") : "Focus block"}</p>
           </div>
         </div>

@@ -100,7 +100,7 @@ export default function ShopPage() {
                     <span className="text-3xl">{item.icon}</span>
                     <div>
                       <p className="text-sm font-bold text-[var(--foreground)]">{item.name}</p>
-                      <span className={`text-[10px] font-semibold uppercase tracking-wider ${meta?.color ?? "text-[var(--foreground-subtle)]"}`}>{item.category}</span>
+                      <span className={`text-[11px] font-semibold uppercase tracking-wider ${meta?.color ?? "text-[var(--foreground-subtle)]"}`}>{item.category}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">

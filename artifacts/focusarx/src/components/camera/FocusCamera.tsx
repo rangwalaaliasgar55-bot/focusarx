@@ -39,7 +39,7 @@ function AttentionSparkline({ timeline }: { timeline: number[] }) {
   const bars = timeline.slice(-45);
   return (
     <div className="flex h-8 items-end gap-[2px]" aria-hidden>
-      {bars.length === 0 && <span className="text-[10px] text-[var(--palette-zinc-600)]">Attention history appears here</span>}
+      {bars.length === 0 && <span className="text-[11px] text-[var(--palette-zinc-600)]">Attention history appears here</span>}
       {bars.map((v, i) => (
         <div
           key={i}
@@ -257,7 +257,7 @@ export function FocusCamera({ className = "" }: FocusCameraProps) {
                   className="h-1.5 w-1.5 rounded-full animate-pulse"
                   style={{ background: ringColor }}
                 />
-                <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--palette-white)]">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--palette-white)]">
                   {stateLabel}
                 </span>
               </div>
@@ -282,7 +282,7 @@ export function FocusCamera({ className = "" }: FocusCameraProps) {
             {/* Stats row */}
             <div className="flex items-end justify-between gap-3">
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-[var(--palette-zinc-500)]">
+                <p className="text-[11px] uppercase tracking-wider text-[var(--palette-zinc-500)]">
                   Focus score
                 </p>
                 <p className={`text-3xl font-semibold tabular-nums ${scoreColor}`}>
@@ -304,7 +304,7 @@ export function FocusCamera({ className = "" }: FocusCameraProps) {
 
             {/* Attention history */}
             <div className="rounded-xl border border-[var(--palette-zinc-800)]/70 bg-[var(--palette-zinc-950)]/40 px-2.5 py-2">
-              <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-600)]">
+              <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-600)]">
                 Attention — last 90s
               </p>
               <AttentionSparkline timeline={tracking.timeline} />
@@ -322,7 +322,7 @@ export function FocusCamera({ className = "" }: FocusCameraProps) {
               {tracking.isFocused && tracking.focusScore >= 85 && <Badge tone="ok">Deep focus 🔥</Badge>}
             </div>
 
-            <p className="text-[9px] leading-relaxed text-[var(--palette-zinc-600)]">
+            <p className="text-[11px] leading-relaxed text-[var(--palette-zinc-600)]">
               🔒 Video never leaves your device — all analysis runs locally in your browser.
             </p>
           </motion.div>
@@ -346,7 +346,7 @@ function Badge({
   };
   return (
     <span
-      className={`rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${styles[tone]}`}
+      className={`rounded-full border px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide ${styles[tone]}`}
     >
       {children}
     </span>

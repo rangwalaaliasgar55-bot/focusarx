@@ -164,7 +164,7 @@ export default function FocusLockOverlay({ mode, exitPhrase, secondsLeft, totalS
 
       {!showExit ? (
         <div className="relative z-[var(--z-sticky)] flex flex-col items-center gap-8 px-6 text-center">
-          <p className="text-[10px] uppercase tracking-widest text-[var(--foreground-subtle)]">Focus Session</p>
+          <p className="text-[11px] uppercase tracking-widest text-[var(--foreground-subtle)]">Focus Session</p>
 
           <div className="relative flex h-[200px] w-[200px] items-center justify-center">
             <svg width="200" height="200" className="absolute -rotate-90">
@@ -188,7 +188,7 @@ export default function FocusLockOverlay({ mode, exitPhrase, secondsLeft, totalS
 
           {taskName && (
             <div className="max-w-xs">
-              <p className="text-[10px] text-[var(--foreground-subtle)] uppercase tracking-widest mb-1">Working on</p>
+              <p className="text-[11px] text-[var(--foreground-subtle)] uppercase tracking-widest mb-1">Working on</p>
               <p className="text-xl font-semibold text-[var(--foreground)]">{taskName}</p>
             </div>
           )}

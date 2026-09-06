@@ -106,9 +106,9 @@ export default function StudyMethodQuiz() {
           {!result ? (
             <motion.div key="quiz" variants={STAGGER} initial="initial" animate="animate" exit="exit" className="space-y-12">
               <header className="text-center">
-                 <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--foreground-subtle)] mb-4">Assessment Engine</p>
+                 <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[var(--foreground-subtle)] mb-4">Assessment Engine</p>
                  <h1 className="text-4xl sm:text-6xl font-semibold tracking-tight">Which Method <br /><span className="text-[var(--brand-400)]">Fits You?</span></h1>
-                 <p className="mt-4 text-[10px] font-bold text-[var(--palette-zinc-500)] uppercase tracking-widest flex items-center justify-center gap-2">
+                 <p className="mt-4 text-[11px] font-bold text-[var(--palette-zinc-500)] uppercase tracking-widest flex items-center justify-center gap-2">
                     <ShieldCheck size={12} className="text-[var(--palette-emerald-500)]" /> Based on cognitive load theory
                  </p>
                  <div className="mt-8 flex justify-center gap-2">
@@ -139,7 +139,7 @@ export default function StudyMethodQuiz() {
                <div className="mx-auto mb-8 h-24 w-24 rounded-3xl bg-[var(--palette-white)]/5 border border-[var(--palette-white)]/10 flex items-center justify-center shadow-2xl">
                   {RESULTS[result].icon}
                </div>
-               <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--foreground-subtle)] mb-2">The Verdict</p>
+               <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[var(--foreground-subtle)] mb-2">The Verdict</p>
                <h2 className={`text-4xl sm:text-6xl font-semibold mb-6 ${RESULTS[result].color}`}>{RESULTS[result].title}</h2>
                <p className="text-lg text-[var(--foreground-muted)] leading-relaxed max-w-xl mx-auto mb-12">
                   {RESULTS[result].desc}

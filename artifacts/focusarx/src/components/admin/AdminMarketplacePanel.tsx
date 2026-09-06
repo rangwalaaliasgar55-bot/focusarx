@@ -158,7 +158,7 @@ export function AdminMarketplacePanel({ authHeaders }: AdminPanelProps) {
                         <td className="px-4 py-3">
                           <span className="mr-1.5">{item.emoji}</span>
                           <span className="text-[var(--palette-zinc-200)] font-medium">{item.name}</span>
-                          <p className="text-[10px] text-[var(--palette-zinc-600)] font-mono">{item.id}</p>
+                          <p className="text-[11px] text-[var(--palette-zinc-600)] font-mono">{item.id}</p>
                         </td>
                         <td className="px-4 py-3 text-[var(--palette-zinc-400)]">{item.type}</td>
                         <td className="px-4 py-3">

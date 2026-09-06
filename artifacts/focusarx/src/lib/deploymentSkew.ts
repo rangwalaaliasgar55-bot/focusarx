@@ -636,7 +636,7 @@ async function checkDeployment(): Promise<void> {
     if (headerVersion) {
       recordServerVersion(headerVersion);
     }
-  } catch (err) {
+  } catch {
     consecutiveErrors++;
     // Exponential backoff on errors: 1x → 2x → 4x → 8x → capped at POLL_BACKOFF_MAX
     pollBackoff = Math.min(pollBackoff * 2, POLL_BACKOFF_MAX / POLL_INTERVAL_NORMAL);

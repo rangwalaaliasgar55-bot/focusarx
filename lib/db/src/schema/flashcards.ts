@@ -1,4 +1,4 @@
-import { pgTable, text, integer, boolean, timestamp, real, index } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, timestamp, real, index } from "drizzle-orm/pg-core";
 import { usersTable as users } from "./focusarx";
 
 /**

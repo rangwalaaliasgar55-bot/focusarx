@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { getToken } from "@/lib/auth";
-import { Bell, Check, CheckCheck, Trash2, X } from "lucide-react";
+import { Bell, CheckCheck, Trash2, X } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { isPushSubscribed, requestPushPermission } from "@/lib/pushNotifications";
 
@@ -127,15 +127,19 @@ export default function NotificationsPage() {
         {notifications.map((n: any) => (
           <div
             key={n.id}
-            className={`relative flex items-start gap-3 rounded-xl border p-3.5 transition-all cursor-pointer hover:brightness-110 ${TYPE_COLORS[n.type] ?? "border-[var(--border-subtle)] bg-[var(--surface-hover)]"} ${!n.read ? "opacity-100" : "opacity-60"}`}
+            role="button"
+            tabIndex={0}
+            aria-pressed={!!n.read}
+            className={`relative flex items-start gap-3 rounded-xl border p-3.5 transition-all cursor-pointer hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-500)] ${TYPE_COLORS[n.type] ?? "border-[var(--border-subtle)] bg-[var(--surface-hover)]"} ${!n.read ? "opacity-100" : "opacity-60"}`}
             onClick={() => !n.read && markRead.mutate(n.id)}
+            onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && !n.read) { e.preventDefault(); markRead.mutate(n.id); } }}
           >
             {!n.read && <span className="absolute top-3 left-2 w-1.5 h-1.5 rounded-full bg-[var(--brand-600)]" />}
             <span className="text-xl shrink-0 mt-0.5">{TYPE_ICONS[n.type] ?? "🔔"}</span>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-[var(--foreground)]">{n.title}</p>
               <p className="text-xs text-[var(--foreground-subtle)] mt-0.5">{n.message}</p>
-              <p className="text-[10px] text-[var(--foreground-subtle)] mt-1">{new Date(n.createdAt).toLocaleString()}</p>
+              <p className="text-[11px] text-[var(--foreground-subtle)] mt-1">{new Date(n.createdAt).toLocaleString()}</p>
             </div>
             <button onClick={e => { e.stopPropagation(); deleteNotif.mutate(n.id); }} className="shrink-0 rounded-lg p-1 text-[var(--foreground-subtle)] hover:text-[var(--palette-red-400)] hover:bg-[var(--palette-red-500)]/10 transition-colors">
               <X size={13} />

@@ -1,10 +1,9 @@
-import { Request, Response, NextFunction } from "express";
+import { Response } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { notificationsTable } from "@workspace/db";
-import { extractUserId } from "./auth";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 
 export const notificationsRouter = Router();
 
@@ -27,7 +26,7 @@ notificationsRouter.get("/notifications", authMiddleware, async (req: AuthReques
       .limit(50);
     const unreadCount = rows.filter(r => !r.read).length;
     res.json({ notifications: rows, unreadCount });
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: "Internal error" });
   }
 });
@@ -39,7 +38,7 @@ notificationsRouter.patch("/notifications/:id/read", authMiddleware, async (req:
       .set({ read: true })
       .where(and(eq(notificationsTable.id, req.params.id as string), eq(notificationsTable.userId, userId)));
     res.json({ ok: true });
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: "Internal error" });
   }
 });
@@ -49,7 +48,7 @@ notificationsRouter.post("/notifications/mark-all-read", authMiddleware, async (
   try {
     await db.update(notificationsTable).set({ read: true }).where(eq(notificationsTable.userId, userId));
     res.json({ ok: true });
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: "Internal error" });
   }
 });
@@ -60,7 +59,7 @@ notificationsRouter.delete("/notifications/:id", authMiddleware, async (req: Aut
     await db.delete(notificationsTable)
       .where(and(eq(notificationsTable.id, req.params.id as string), eq(notificationsTable.userId, userId)));
     res.json({ ok: true });
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: "Internal error" });
   }
 });
@@ -70,7 +69,7 @@ notificationsRouter.delete("/notifications", authMiddleware, async (req: AuthReq
   try {
     await db.delete(notificationsTable).where(eq(notificationsTable.userId, userId));
     res.json({ ok: true });
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: "Internal error" });
   }
 });

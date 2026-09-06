@@ -24,7 +24,6 @@ import {
   userWalletsTable,
   coinTransactionsTable,
   freezeTokensTable,
-  notificationsTable,
   focusSessionsTable,
   marketplaceItemsTable,
   userInventoryTable,

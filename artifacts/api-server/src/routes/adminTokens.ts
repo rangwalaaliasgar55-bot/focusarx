@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authMiddleware, AuthRequest } from "../middlewares/auth";
+import { AuthRequest } from "../middlewares/auth";
 import { db } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 import { tokenLedgerTable } from "@workspace/db";
@@ -48,7 +48,7 @@ router.get("/admin/tokens/ledger", async (req, res) => {
   const { userId, limit = "50" } = req.query as { userId?: string; limit?: string };
   try {
     const lim = Math.min(100, parseInt(limit) || 50);
-    let query = db.select().from(tokenLedgerTable).orderBy(desc(tokenLedgerTable.createdAt)).limit(lim);
+    const query = db.select().from(tokenLedgerTable).orderBy(desc(tokenLedgerTable.createdAt)).limit(lim);
     if (userId) {
       const rows = await db.select().from(tokenLedgerTable).where(eq(tokenLedgerTable.userId, userId)).orderBy(desc(tokenLedgerTable.createdAt)).limit(lim);
       return res.json({ ledger: rows });

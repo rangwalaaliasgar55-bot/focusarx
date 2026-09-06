@@ -1,9 +1,8 @@
 import { useState, useMemo } from "react";
-import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getToken } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
-import { Plus, Flame, CheckCircle2, Circle, BarChart2, Archive, X, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { Plus, Flame, CheckCircle2, Circle, BarChart2, X, ChevronUp, Trash2 } from "lucide-react";
 import { TiltCard } from "@/components/TiltCard";
 import PageHeader from "@/components/PageHeader";
 import { resolveColorToken } from "@/lib/color-tokens";
@@ -69,8 +68,8 @@ function CreateHabitModal({ onClose, onCreate }: { onClose: () => void; onCreate
         </div>
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] block mb-1.5">Name *</label>
-            <input
+            <label htmlFor="name-71" className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] block mb-1.5">Name *</label>
+            <input id="name-71"
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               placeholder="e.g. Read for 30 minutes…"
@@ -79,8 +78,8 @@ function CreateHabitModal({ onClose, onCreate }: { onClose: () => void; onCreate
             />
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] block mb-1.5">Icon</label>
-            <div className="flex flex-wrap gap-1.5">
+            <p id="group-icon-81" className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] block mb-1.5">Icon</p>
+            <div role="group" aria-labelledby="group-icon-81" className="flex flex-wrap gap-1.5">
               {ICONS.map(ic => (
                 <button key={ic} onClick={() => setForm(f => ({ ...f, icon: ic }))}
                   className={`text-xl rounded-lg p-1.5 transition-all ${form.icon === ic ? "bg-[var(--brand-600)]/30 ring-1 ring-[var(--brand-600)]" : "hover:bg-[var(--muted)]"}`}>
@@ -90,8 +89,8 @@ function CreateHabitModal({ onClose, onCreate }: { onClose: () => void; onCreate
             </div>
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] block mb-1.5">Color</label>
-            <div className="flex gap-2">
+            <p id="group-color-92" className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] block mb-1.5">Color</p>
+            <div role="group" aria-labelledby="group-color-92" className="flex gap-2">
               {COLORS.map(c => (
                 <button key={c} onClick={() => setForm(f => ({ ...f, color: c }))}
                   className={`h-7 w-7 rounded-full transition-all ${form.color === c ? "ring-2 ring-[var(--palette-white)] ring-offset-1 ring-offset-[var(--rgba-8-9-20-1)] scale-110" : ""}`}
@@ -100,8 +99,8 @@ function CreateHabitModal({ onClose, onCreate }: { onClose: () => void; onCreate
             </div>
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] block mb-1.5">Frequency</label>
-            <div className="flex gap-2">
+            <p id="group-frequency-102" className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] block mb-1.5">Frequency</p>
+            <div role="group" aria-labelledby="group-frequency-102" className="flex gap-2">
               {["daily", "weekdays", "weekends"].map(f => (
                 <button key={f} onClick={() => setForm(fr => ({ ...fr, frequency: f }))}
                   className={`flex-1 rounded-lg py-1.5 text-xs capitalize transition-all ${form.frequency === f ? "bg-[var(--brand-600)] text-[var(--palette-white)]" : "bg-[var(--muted)] text-[var(--foreground-subtle)] hover:text-[var(--foreground)] border border-[var(--border-subtle)]"}`}>
@@ -152,7 +151,7 @@ function HabitCard({ habit, onComplete, onUncomplete, onDelete }: { habit: any; 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <p className={`text-sm font-semibold truncate ${habit.completedToday ? "line-through text-[var(--foreground-subtle)]" : "text-[var(--foreground)]"}`}>{habit.name}</p>
-            {habit.completedToday && <span className="shrink-0 text-[10px] font-bold text-[var(--palette-emerald-400)] bg-[var(--palette-emerald-500)]/10 border border-[var(--palette-emerald-500)]/20 rounded-full px-2 py-0.5">Done!</span>}
+            {habit.completedToday && <span className="shrink-0 text-[11px] font-bold text-[var(--palette-emerald-400)] bg-[var(--palette-emerald-500)]/10 border border-[var(--palette-emerald-500)]/20 rounded-full px-2 py-0.5">Done!</span>}
           </div>
           <div className="flex items-center gap-3 mt-0.5">
             <span className="text-xs text-[var(--palette-amber-400)] flex items-center gap-1"><Flame size={10} /> {habit.streak}d streak</span>
@@ -173,7 +172,7 @@ function HabitCard({ habit, onComplete, onUncomplete, onDelete }: { habit: any; 
 
       {showHeatmap && (
         <div className="mt-4 pt-4 border-t border-[var(--border-subtle)]">
-          <p className="text-[10px] uppercase tracking-wider text-[var(--foreground-subtle)] mb-2">Last 90 days</p>
+          <p className="text-[11px] uppercase tracking-wider text-[var(--foreground-subtle)] mb-2">Last 90 days</p>
           <HabitHeatmap dates={habit.recentDates ?? []} color={habit.color} />
         </div>
       )}
@@ -280,15 +279,15 @@ export default function HabitsPage() {
             <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-[var(--border-subtle)]">
               <div className="text-center">
                 <p className="text-lg font-bold text-[var(--palette-amber-400)]">{stats.longestStreak}</p>
-                <p className="text-[10px] text-[var(--foreground-subtle)] uppercase tracking-wider">Best Streak</p>
+                <p className="text-[11px] text-[var(--foreground-subtle)] uppercase tracking-wider">Best Streak</p>
               </div>
               <div className="text-center">
                 <p className="text-lg font-bold text-[var(--brand-400)]">{stats.avgStreak}</p>
-                <p className="text-[10px] text-[var(--foreground-subtle)] uppercase tracking-wider">Avg Streak</p>
+                <p className="text-[11px] text-[var(--foreground-subtle)] uppercase tracking-wider">Avg Streak</p>
               </div>
               <div className="text-center">
                 <p className="text-lg font-bold text-[var(--palette-emerald-400)]">{stats.total}</p>
-                <p className="text-[10px] text-[var(--foreground-subtle)] uppercase tracking-wider">Active Habits</p>
+                <p className="text-[11px] text-[var(--foreground-subtle)] uppercase tracking-wider">Active Habits</p>
               </div>
             </div>
           )}

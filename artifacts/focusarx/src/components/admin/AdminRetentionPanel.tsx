@@ -52,7 +52,7 @@ export function AdminRetentionPanel({ data }: { data: any }) {
                       style={{ height: `${Math.round((d.count / maxC) * 100)}%`, minHeight: "2px" }}
                       title={`Tier ${d.tier}: ${d.count} users`}
                     />
-                    {d.tier % 10 === 0 && <span className="text-[9px] text-[var(--palette-zinc-600)]">{d.tier}</span>}
+                    {d.tier % 10 === 0 && <span className="text-[11px] text-[var(--palette-zinc-600)]">{d.tier}</span>}
                   </div>
                 );
               })}

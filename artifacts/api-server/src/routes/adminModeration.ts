@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, socialPostsTable, usersTable, postCommentsTable } from "@workspace/db";
+import { db, socialPostsTable, usersTable } from "@workspace/db";
 import { eq, inArray, desc, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { adminLimiter } from "../lib/rateLimiter";

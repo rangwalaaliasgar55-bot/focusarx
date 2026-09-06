@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { ArrowRight, Timer, Brain, Coffee, BarChart2, Smartphone, Globe, ShieldCheck } from "lucide-react";
+import { ArrowRight, Timer, Brain, Coffee, Smartphone, ShieldCheck } from "lucide-react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 
 function TipCard({ icon: Icon, title, body, color }: { icon: React.ComponentType<any>; title: string; body: string; color: string }) {
@@ -22,7 +22,7 @@ export default function PomodoroGuidePage() {
       <div className="relative overflow-hidden border-b border-[var(--palette-white)]/5">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,_var(--rgba-239-68-68-0_12),_transparent_70%)]" />
         <div className="relative max-w-4xl mx-auto px-6 py-24 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--palette-red-500)]/30 bg-[var(--palette-red-500)]/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--palette-red-400)] mb-8">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--palette-red-500)]/30 bg-[var(--palette-red-500)]/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--palette-red-400)] mb-8">
             <Timer size={12} /> Pomodoro System
           </div>
           <h1 className="text-5xl sm:text-8xl font-semibold text-[var(--palette-white)] mb-6 leading-tight tracking-tight">
@@ -96,7 +96,7 @@ export default function PomodoroGuidePage() {
         </section>
       </div>
 
-      <div className="border-t border-[var(--palette-white)]/5 py-12 text-center flex flex-wrap justify-center gap-8 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--palette-2a2d3a)]">
+      <div className="border-t border-[var(--palette-white)]/5 py-12 text-center flex flex-wrap justify-center gap-8 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--palette-2a2d3a)]">
         <Link href="/" className="hover:text-[var(--palette-white)] transition-colors">Home</Link>
         <Link href="/science-of-deep-work" className="hover:text-[var(--palette-white)] transition-colors">Neuro-Science</Link>
         <Link href="/feynman-technique" className="hover:text-[var(--palette-white)] transition-colors">Feynman Technique</Link>

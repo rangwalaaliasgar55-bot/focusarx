@@ -1,5 +1,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { RollingClock } from "@/components/RollingClock";
 import { motion, AnimatePresence } from "framer-motion";
 import { Pause, Play, RotateCcw, Volume2, VolumeX, CheckCircle, AlertTriangle } from "lucide-react";
 import { usePomodoro } from "@/hooks/usePomodoro";
@@ -371,7 +372,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
             {mode === "focus" ? "Deep Work" : mode === "break" ? "Break" : "Long Break"}
           </span>
           {wakeSupported && (
-            <span className={`text-[10px] ${wakeLocked ? "text-[var(--success)]" : "text-[var(--foreground-subtle)]"}`}>
+            <span className={`text-[11px] ${wakeLocked ? "text-[var(--success)]" : "text-[var(--foreground-subtle)]"}`}>
               {wakeLocked ? "● Screen awake" : "○ Screen may dim"}
             </span>
           )}
@@ -387,22 +388,12 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
         ) : (
         <>
         <div className="relative flex flex-col items-center">
-          <motion.div
-            key={Math.floor(secondsLeft / 60)}
-            initial={{ scale: 0.97 }}
-            animate={{ scale: 1 }}
-            className="select-none font-mono text-[5.5rem] font-semibold leading-none tracking-[-0.06em] sm:text-[6.5rem]"
-            style={{
-              backgroundImage: `linear-gradient(135deg, var(--foreground) 20%, var(--brand-400) 100%)`,
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
-            aria-live="polite"
-            aria-atomic="true"
-            role="timer"
+          <div
+            className="select-none font-display text-[5.25rem] font-semibold leading-none tracking-[-0.055em] text-[var(--foreground)] sm:text-[6.25rem]"
+            style={{ fontFeatureSettings: '"tnum" 1' }}
           >
-            {m}:{s}
-          </motion.div>
+            <RollingClock value={`${m}:${s}`} />
+          </div>
           <div className="mt-2 h-1.5 w-32 overflow-hidden rounded-full bg-[var(--border-subtle)]">
             <motion.div
               className="h-full bg-[var(--brand-500)]"
@@ -430,7 +421,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
         {/* Current task clearly */}
         {currentTask ? (
           <div className="w-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-1)] px-4 py-3.5">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--foreground-subtle)]">Current task</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--foreground-subtle)]">Current task</p>
             <p className="mt-1 line-clamp-2 text-sm font-medium leading-snug">{currentTask}</p>
           </div>
         ) : (

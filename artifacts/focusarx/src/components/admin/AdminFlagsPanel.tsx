@@ -36,7 +36,7 @@ export function AdminFlagsPanel({ authHeaders }: { authHeaders: () => Record<str
                 <p className="text-sm font-semibold">{f.key}</p>
                 <p className="text-[11px] text-[var(--palette-zinc-500)]">{f.description ?? ""} • rollout {f.rolloutPercentage}%</p>
               </div>
-              <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${f.enabled ? "bg-[var(--palette-emerald-950)] text-[var(--palette-emerald-400)]" : "bg-[var(--palette-zinc-800)] text-[var(--palette-zinc-500)]"}`}>{f.enabled ? "ON" : "OFF"}</span>
+              <span className={`rounded-full px-2 py-1 text-[11px] font-bold ${f.enabled ? "bg-[var(--palette-emerald-950)] text-[var(--palette-emerald-400)]" : "bg-[var(--palette-zinc-800)] text-[var(--palette-zinc-500)]"}`}>{f.enabled ? "ON" : "OFF"}</span>
             </div>
           ))}
           {flags.length === 0 && <p className="text-xs text-[var(--palette-zinc-500)]">No flags yet — defaults enabled: premium_timer_rituals, premium_analytics, premium_city_modes, pets_3d, battle_pass</p>}

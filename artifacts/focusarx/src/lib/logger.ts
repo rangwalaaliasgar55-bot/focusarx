@@ -51,10 +51,12 @@ export function __resetLoggerCache(): void {
 export const logger = {
   /** Routine diagnostics. Silent unless debug is enabled. */
   debug(...args: unknown[]): void {
+    // eslint-disable-next-line no-console -- the one sanctioned debug sink
     if (on()) console.debug(...args);
   },
   /** Informational, still not something a healthy load should print. */
   info(...args: unknown[]): void {
+    // eslint-disable-next-line no-console -- the one sanctioned info sink
     if (on()) console.info(...args);
   },
   /**

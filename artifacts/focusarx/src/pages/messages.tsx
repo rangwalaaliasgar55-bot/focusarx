@@ -46,7 +46,7 @@ function MessageBubble({ msg, isMe, onReact }: { msg: any; isMe: boolean; onReac
       <div className={`max-w-[75%] ${isMe ? "items-end" : "items-start"} flex flex-col gap-0.5`}>
         {!isMe && msg.senderIsAdmin && (
           <div className="flex items-center gap-1 mb-0.5">
-            <span className="text-[10px] font-semibold text-[var(--foreground-muted)]">{msg.senderName}</span>
+            <span className="text-[11px] font-semibold text-[var(--foreground-muted)]">{msg.senderName}</span>
             <IdentityBadges isAdmin={msg.senderIsAdmin} />
           </div>
         )}
@@ -60,7 +60,7 @@ function MessageBubble({ msg, isMe, onReact }: { msg: any; isMe: boolean; onReac
           onDoubleClick={() => setShowReact(s => !s)}
         >
           {msg.isDeleted ? <span className="italic text-[var(--foreground-subtle)]">Message deleted</span> : msg.content}
-          {msg.isEdited && <span className="ml-1 text-[10px] opacity-60">(edited)</span>}
+          {msg.isEdited && <span className="ml-1 text-[11px] opacity-60">(edited)</span>}
         </div>
         {showReact && (
           <div className="flex gap-1 bg-[var(--surface-hover)] border border-[var(--border-subtle)] rounded-full px-2 py-1">
@@ -77,7 +77,7 @@ function MessageBubble({ msg, isMe, onReact }: { msg: any; isMe: boolean; onReac
             ))}
           </div>
         )}
-        <span className="text-[9px] text-[var(--foreground-subtle)]">{msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}</span>
+        <span className="text-[11px] text-[var(--foreground-subtle)]">{msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}</span>
       </div>
     </div>
   );
@@ -201,7 +201,7 @@ function NewConversationModal({ onClose, onStart }: { onClose: () => void; onSta
           className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--muted)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--brand-600)]"
           autoFocus />
         {q.length === 0 && (friends as any[]).length > 0 && (
-          <p className="text-[10px] text-[var(--foreground-subtle)] mt-2 mb-1">Your friends</p>
+          <p className="text-[11px] text-[var(--foreground-subtle)] mt-2 mb-1">Your friends</p>
         )}
         <div className="mt-1 space-y-1 max-h-56 overflow-y-auto">
           {displayList.map((u: any) => (
@@ -348,7 +348,7 @@ function MessagesPageInner() {
                     <p className="text-xs text-[var(--foreground-subtle)] truncate">{c.lastMessage?.content || "No messages yet"}</p>
                   </div>
                   {c.unreadCount > 0 && (
-                    <span className="shrink-0 rounded-full bg-[var(--brand-600)] text-[var(--palette-white)] text-[9px] h-4 w-4 flex items-center justify-center font-bold">{c.unreadCount}</span>
+                    <span className="shrink-0 rounded-full bg-[var(--brand-600)] text-[var(--palette-white)] text-[11px] h-4 w-4 flex items-center justify-center font-bold">{c.unreadCount}</span>
                   )}
                 </button>
               );

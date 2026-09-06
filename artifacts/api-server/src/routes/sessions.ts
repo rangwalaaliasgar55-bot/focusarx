@@ -6,6 +6,7 @@ import { eq, and, desc, gte, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { isUserPremium } from "../lib/premiumCheck";
 import { updateMissionProgress } from "./missions";
+import { awardBondXpToActivePet } from "../lib/petBond";
 import { updateQuestProgress } from "../lib/questProgress";
 import { activeDropXpMultiplier } from "../lib/drops";
 import { computeSessionRewards } from "../lib/sessionRewards";
@@ -915,8 +916,10 @@ async function finalizeExpiredSession(
 }
 
 async function awardPetXp(userId: string, minutes: number): Promise<void> {
+  const gain = Math.min(240, Math.max(1, Math.floor(minutes)));
+  // Catalog companion (bond levels + milestone tokens) — 1 bond XP per focus minute.
+  await awardBondXpToActivePet(userId, gain);
   try {
-    const gain = Math.min(240, Math.max(1, Math.floor(minutes)));
     const [pet] = await db
       .select({ id: userPetsTable.id, petXp: userPetsTable.petXp, petLevel: userPetsTable.petLevel })
       .from(userPetsTable)

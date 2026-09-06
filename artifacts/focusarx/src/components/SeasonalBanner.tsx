@@ -12,15 +12,14 @@ function authHeaders() {
 
 export default function SeasonalBanner() {
   const [event, setEvent] = useState<any>(null);
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const d = localStorage.getItem("focusarx-seasonal-banner-dismissed");
+    return !!d && Date.now() - parseInt(d) < 24 * 60 * 60 * 1000;
+  });
 
   useEffect(() => {
-    const key = "focusarx-seasonal-banner-dismissed";
-    const d = localStorage.getItem(key);
-    if (d && Date.now() - parseInt(d) < 24 * 60 * 60 * 1000) {
-      setDismissed(true);
-      return;
-    }
+    if (dismissed) return;
 
     fetch("/api/seasonal/active", { headers: authHeaders() })
       .then((r) => (r.ok ? r.json() : null))
@@ -28,7 +27,7 @@ export default function SeasonalBanner() {
         if (d) setEvent(d);
       })
       .catch(() => {});
-  }, []);
+  }, [dismissed]);
 
   const handleDismiss = () => {
     setDismissed(true);
@@ -75,7 +74,7 @@ export default function SeasonalBanner() {
               <div className="flex flex-wrap items-center gap-1.5">
                 {event.xpMultiplier > 1 && (
                   <span
-                    className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold"
+                    className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold"
                     style={{
                       color,
                       borderColor: `color-mix(in srgb, ${color} 30%, transparent)`,
@@ -86,7 +85,7 @@ export default function SeasonalBanner() {
                     {event.xpMultiplier}x XP
                   </span>
                 )}
-                <span className="text-[10px] font-medium text-[var(--foreground-subtle)]">
+                <span className="text-[11px] font-medium text-[var(--foreground-subtle)]">
                   {daysLeft}d left
                 </span>
               </div>
@@ -99,7 +98,7 @@ export default function SeasonalBanner() {
             {event.locked ? (
               <a
                 href="/premium"
-                className="mt-1.5 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold sm:mt-1"
+                className="mt-1.5 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold sm:mt-1"
                 style={{
                   color,
                   borderColor: `color-mix(in srgb, ${color} 30%, transparent)`,

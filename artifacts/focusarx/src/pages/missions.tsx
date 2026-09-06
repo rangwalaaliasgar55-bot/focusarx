@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getToken } from "@/lib/auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageTransition } from "@/components/PageTransition";
-import { TiltCard, StaggerContainer, StaggerItem } from "@/components/TiltCard";
-import { Target, Zap, CheckCircle2, Lock, Trophy, Flame, Clock, ListTodo, Star, ChevronRight, Gift } from "lucide-react";
+import { TiltCard } from "@/components/TiltCard";
+import { Target, Zap, Trophy, Flame, Clock, ListTodo, Star, Gift } from "lucide-react";
 import { Mission as MissionDef } from "@/types/gamification";
 
 interface MissionsData {
@@ -112,13 +112,13 @@ function MissionCard({ mission, onClaim, claiming }: { mission: MissionDef; onCl
           <div className="flex items-center gap-2 mb-0.5 flex-wrap">
             <span className="text-sm font-semibold text-[var(--foreground)]">{mission.title}</span>
             <span
-              className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+              className="rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider"
               style={{ color: diff.color, background: diff.bg, border: `1px solid ${diff.border}` }}
             >
               {diff.label}
             </span>
             {mission.rewardClaimed && (
-              <span className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--palette-22d387)] bg-[var(--rgba-34-211-135-0_12)] border border-[var(--rgba-34-211-135-0_3)]">
+              <span className="rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-[var(--palette-22d387)] bg-[var(--rgba-34-211-135-0_12)] border border-[var(--rgba-34-211-135-0_3)]">
                 ✓ Done
               </span>
             )}
@@ -128,12 +128,12 @@ function MissionCard({ mission, onClaim, claiming }: { mission: MissionDef; onCl
           <ProgressBar current={mission.currentValue} target={mission.targetValue} completed={mission.completed} />
 
           <div className="flex items-center justify-between mt-2">
-            <span className="text-[10px] text-[var(--foreground-subtle)]">
+            <span className="text-[11px] text-[var(--foreground-subtle)]">
               {mission.completed ? "✓ Complete!" : `${mission.currentValue} / ${mission.targetValue}`}
             </span>
             <div className="flex items-center gap-3">
-              <span className="text-[10px] text-[var(--brand-400)] font-semibold">+{mission.xpReward} XP</span>
-              <span className="text-[10px] text-[var(--color-warning)] font-semibold">+{mission.coinReward} 🪙</span>
+              <span className="text-[11px] text-[var(--brand-400)] font-semibold">+{mission.xpReward} XP</span>
+              <span className="text-[11px] text-[var(--color-warning)] font-semibold">+{mission.coinReward} 🪙</span>
               {canClaim && (
                 <motion.button
                   whileHover={{ scale: 1.04 }}
@@ -160,7 +160,7 @@ function StatCard({ label, value, total, icon }: { label: string; value: number;
     <TiltCard intensity={8}>
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--palette-0d0f1a)] p-4 flex flex-col gap-2 shadow-3d">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-[var(--foreground-subtle)]">{icon}<span className="text-[10px] font-semibold uppercase tracking-[0.12em]">{label}</span></div>
+          <div className="flex items-center gap-2 text-[var(--foreground-subtle)]">{icon}<span className="text-[11px] font-semibold uppercase tracking-[0.12em]">{label}</span></div>
           <motion.span
             className="text-sm font-bold text-[var(--foreground)]"
             key={value}
@@ -231,7 +231,7 @@ export default function MissionsPage() {
               <Target size={18} className="text-[var(--palette-white)]" />
             </div>
             <div>
-              <div className="mb-0.5 inline-flex items-center gap-1.5 rounded-full bg-[var(--rgba-124-58-237-0_1)] border border-[var(--rgba-124-58-237-0_2)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--brand-400)]">
+              <div className="mb-0.5 inline-flex items-center gap-1.5 rounded-full bg-[var(--rgba-124-58-237-0_1)] border border-[var(--rgba-124-58-237-0_2)] px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--brand-400)]">
                 <span className="h-1 w-1 rounded-full bg-[var(--brand-400)] animate-pulse" />
                 Quests
               </div>
@@ -302,7 +302,7 @@ export default function MissionsPage() {
             {/* Claimable */}
             {claimableMissions.length > 0 && (
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--palette-22d387)] mb-2 flex items-center gap-1.5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[var(--palette-22d387)] mb-2 flex items-center gap-1.5">
                   <Gift size={11} /> Ready to Claim ({claimableMissions.length})
                 </p>
                 <div className="space-y-2">
@@ -321,7 +321,7 @@ export default function MissionsPage() {
             {/* Active */}
             {activeMissions.length > 0 && (
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--foreground-subtle)] mb-2 mt-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[var(--foreground-subtle)] mb-2 mt-4">
                   In Progress ({activeMissions.length})
                 </p>
                 <div className="space-y-2">
@@ -340,7 +340,7 @@ export default function MissionsPage() {
             {/* Completed */}
             {completedMissions.length > 0 && (
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--foreground-subtle)] mb-2 mt-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[var(--foreground-subtle)] mb-2 mt-4">
                   Completed ({completedMissions.length})
                 </p>
                 <div className="space-y-2">

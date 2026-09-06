@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "wouter";
-import { motion, AnimatePresence } from "framer-motion";
+import { useLocation } from "wouter";
 import {
   Compass,
   Timer,
@@ -8,15 +7,11 @@ import {
   Sparkles,
   Brain,
   Flame,
-  Users,
   Library,
   Trophy,
   Award,
   ArrowRight,
   CheckCircle2,
-  X,
-  Volume2,
-  Shield,
   Zap,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -281,7 +276,7 @@ export function FeatureCompassModal({ open, onClose }: FeatureCompassModalProps)
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-semibold text-sm text-white truncate">{item.title}</span>
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--surface-2,#1c2033)] text-indigo-300">
+                      <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-[var(--surface-2,#1c2033)] text-indigo-300">
                         {item.badge}
                       </span>
                     </div>

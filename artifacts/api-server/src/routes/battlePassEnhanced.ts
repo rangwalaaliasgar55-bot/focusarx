@@ -2,8 +2,8 @@ import { Router } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { db } from "@workspace/db";
 import { battlePasses, battlePassRewards, battlePassProgressTable } from "@workspace/db";
-import { battlePassClaimsTable, tokenLedgerTable } from "@workspace/db";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { battlePassClaimsTable } from "@workspace/db";
+import { eq, and, desc } from "drizzle-orm";
 import { isUserPremium } from "../lib/premiumCheck";
 import { earnTokens, getTokenBalance } from "../lib/tokenLedger";
 import { logger } from "../lib/logger";
@@ -184,7 +184,7 @@ router.post("/battle-pass/claim", authMiddleware, async (req: AuthRequest, res) 
     let tokenResult;
     try {
       tokenResult = await earnTokens(req.userId!, "battle_pass", idempotencyKey, { description: `bp ${bpId} tier ${tier} premium ${isPremiumReward}` }, tokenReward);
-    } catch (err) {
+    } catch {
       // token already awarded — still success
     }
 

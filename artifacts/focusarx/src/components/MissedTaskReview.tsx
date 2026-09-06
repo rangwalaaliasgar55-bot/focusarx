@@ -118,12 +118,12 @@ export default function MissedTaskReview({ open, tasks, onDone }: Props) {
                   <p className="text-sm font-medium text-[var(--foreground)] leading-snug">{task?.text}</p>
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
                     {task?.category && task.category !== "General" && (
-                      <span className="rounded-full border border-[var(--palette-2a2d3a)] bg-[var(--rgba-255-255-255-0_06)] px-2 py-0.5 text-[10px] text-[var(--foreground-subtle)]">{task.category}</span>
+                      <span className="rounded-full border border-[var(--palette-2a2d3a)] bg-[var(--rgba-255-255-255-0_06)] px-2 py-0.5 text-[11px] text-[var(--foreground-subtle)]">{task.category}</span>
                     )}
                     {task?.priority && (
-                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${priorityColor(task.priority)}`}>{task.priority}</span>
+                      <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${priorityColor(task.priority)}`}>{task.priority}</span>
                     )}
-                    <span className="text-[10px] text-[var(--foreground-subtle)]">
+                    <span className="text-[11px] text-[var(--foreground-subtle)]">
                       Created {new Date(task?.createdAt ?? "").toLocaleDateString()}
                     </span>
                   </div>
@@ -141,7 +141,7 @@ export default function MissedTaskReview({ open, tasks, onDone }: Props) {
                   className={`rounded-xl border p-3 text-left transition-all disabled:opacity-50 ${a.color}`}
                 >
                   <p className="text-xs font-semibold">{a.label}</p>
-                  <p className="text-[10px] opacity-70 mt-0.5">{a.desc}</p>
+                  <p className="text-[11px] opacity-70 mt-0.5">{a.desc}</p>
                 </button>
               ))}
             </div>
@@ -150,7 +150,7 @@ export default function MissedTaskReview({ open, tasks, onDone }: Props) {
 
         {/* Footer */}
         <div className="px-6 pb-5 flex items-center justify-between">
-          <p className="text-[10px] text-[var(--foreground-subtle)]">{doneCount} resolved · {tasks.length - doneCount} remaining</p>
+          <p className="text-[11px] text-[var(--foreground-subtle)]">{doneCount} resolved · {tasks.length - doneCount} remaining</p>
           <button
             onClick={onDone}
             className="text-xs text-[var(--foreground-subtle)] hover:text-[var(--palette-6b7080)] transition-colors"

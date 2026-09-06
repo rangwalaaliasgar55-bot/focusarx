@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getToken } from "@/lib/auth";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
-import { Users, Plus, Globe, Lock, Trophy, ArrowRight, X, Crown, Shield, Hash, Video, Zap, ChevronRight, Radio } from "lucide-react";
+import { Users, Plus, Globe, Lock, ArrowRight, X, Crown, Shield, Hash, Radio } from "lucide-react";
 
 async function apiFetch(path: string, opts?: RequestInit) {
   const token = getToken();
@@ -38,7 +38,7 @@ function GroupCard({ group, onJoin, isMember }: { group: any; onJoin: (id: strin
           </div>
           {(group.tags ?? []).length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
-              {group.tags.slice(0, 3).map((t: string) => <span key={t} className="rounded-full border border-[var(--border-subtle)] px-2 py-0.5 text-[9px] text-[var(--foreground-subtle)]">{t}</span>)}
+              {group.tags.slice(0, 3).map((t: string) => <span key={t} className="rounded-full border border-[var(--border-subtle)] px-2 py-0.5 text-[11px] text-[var(--foreground-subtle)]">{t}</span>)}
             </div>
           )}
         </div>
@@ -47,7 +47,7 @@ function GroupCard({ group, onJoin, isMember }: { group: any; onJoin: (id: strin
             Join <ArrowRight size={11} />
           </button>
         )}
-        {isMember && <span className="shrink-0 text-[10px] font-semibold text-[var(--palette-emerald-400)] bg-[var(--palette-emerald-500)]/10 border border-[var(--palette-emerald-500)]/20 rounded-full px-2 py-0.5">Member</span>}
+        {isMember && <span className="shrink-0 text-[11px] font-semibold text-[var(--palette-emerald-400)] bg-[var(--palette-emerald-500)]/10 border border-[var(--palette-emerald-500)]/20 rounded-full px-2 py-0.5">Member</span>}
       </div>
     </div>
   );
@@ -65,16 +65,16 @@ function CreateGroupModal({ onClose, onCreate }: { onClose: () => void; onCreate
         </div>
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] block mb-1.5">Avatar</label>
-            <div className="flex gap-2 flex-wrap">{emojis.map(e => <button key={e} onClick={() => setForm(f => ({ ...f, avatarEmoji: e }))} className={`text-2xl rounded-lg p-1.5 transition-all ${form.avatarEmoji === e ? "bg-[var(--brand-600)]/30 ring-1 ring-[var(--brand-600)]" : "hover:bg-[var(--rgba-255-255-255-0_06)]"}`}>{e}</button>)}</div>
+            <p id="group-avatar-68" className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] block mb-1.5">Avatar</p>
+            <div role="group" aria-labelledby="group-avatar-68" className="flex gap-2 flex-wrap">{emojis.map(e => <button key={e} onClick={() => setForm(f => ({ ...f, avatarEmoji: e }))} className={`text-2xl rounded-lg p-1.5 transition-all ${form.avatarEmoji === e ? "bg-[var(--brand-600)]/30 ring-1 ring-[var(--brand-600)]" : "hover:bg-[var(--rgba-255-255-255-0_06)]"}`}>{e}</button>)}</div>
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] block mb-1.5">Name *</label>
-            <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Study group name…" className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--muted)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--brand-600)]" />
+            <label htmlFor="name-72" className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] block mb-1.5">Name *</label>
+            <input id="name-72" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Study group name…" className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--muted)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--brand-600)]" />
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] block mb-1.5">Description</label>
-            <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="What's this group about?" rows={2} className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--muted)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--brand-600)] resize-none" />
+            <label htmlFor="description-76" className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] block mb-1.5">Description</label>
+            <textarea id="description-76" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="What's this group about?" rows={2} className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--muted)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--brand-600)] resize-none" />
           </div>
           {/*
             Real radio inputs. The previous version used two plain divs with an
@@ -236,7 +236,7 @@ export default function GroupsPage() {
               <div className="flex items-center gap-3 mb-3">
                 <span className="text-3xl">{g.avatarEmoji}</span>
                 <div className="flex-1"><p className="font-bold text-[var(--foreground)]">{g.name}</p><p className="text-xs text-[var(--foreground-subtle)]">{g.memberCount} members · {g.groupXp?.toLocaleString() ?? 0} XP</p></div>
-                {g.inviteCode && <div className="text-right"><p className="text-[9px] text-[var(--foreground-subtle)] uppercase tracking-wider mb-0.5">Invite</p><p className="text-sm font-bold text-[var(--brand-600)] font-mono tracking-widest">{g.inviteCode}</p></div>}
+                {g.inviteCode && <div className="text-right"><p className="text-[11px] text-[var(--foreground-subtle)] uppercase tracking-wider mb-0.5">Invite</p><p className="text-sm font-bold text-[var(--brand-600)] font-mono tracking-widest">{g.inviteCode}</p></div>}
               </div>
               <div className="space-y-1 max-h-32 overflow-y-auto">
                 {(g.members ?? []).slice(0, 5).map((m: any) => (
@@ -290,7 +290,7 @@ export default function GroupsPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-bold text-[var(--foreground)]">{r.name}</p>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider bg-[var(--palette-emerald-500)]/10 text-[var(--palette-emerald-400)] border border-[var(--palette-emerald-500)]/20 rounded-full px-2 py-0.5">LIVE</span>
+                        <span className="text-[11px] font-semibold uppercase tracking-wider bg-[var(--palette-emerald-500)]/10 text-[var(--palette-emerald-400)] border border-[var(--palette-emerald-500)]/20 rounded-full px-2 py-0.5">LIVE</span>
                       </div>
                       <div className="flex items-center gap-3 mt-1">
                         <span className="text-xs text-[var(--foreground-subtle)] capitalize">{r.mode?.replace("_", " ")}</span>
@@ -306,12 +306,12 @@ export default function GroupsPage() {
                   {r.participants?.length > 0 && (
                     <div className="flex gap-1 flex-wrap">
                       {r.participants.slice(0, 8).map((p: any) => (
-                        <div key={p.userId} className="text-[10px] bg-[var(--muted)] text-[var(--foreground-subtle)] border border-[var(--border-subtle)] rounded-lg px-1.5 py-0.5 flex items-center gap-1">
+                        <div key={p.userId} className="text-[11px] bg-[var(--muted)] text-[var(--foreground-subtle)] border border-[var(--border-subtle)] rounded-lg px-1.5 py-0.5 flex items-center gap-1">
                           <div className="h-1.5 w-1.5 rounded-full bg-[var(--palette-emerald-400)]" />
                           {p.name}
                         </div>
                       ))}
-                      {r.participants.length > 8 && <span className="text-[10px] text-[var(--foreground-subtle)]">+{r.participants.length - 8} more</span>}
+                      {r.participants.length > 8 && <span className="text-[11px] text-[var(--foreground-subtle)]">+{r.participants.length - 8} more</span>}
                     </div>
                   )}
                 </div>

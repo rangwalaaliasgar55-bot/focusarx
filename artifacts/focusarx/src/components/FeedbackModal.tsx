@@ -214,7 +214,7 @@ export default function FeedbackModal({ open, onClose, onSubmit }: FeedbackModal
                     rows={3}
                     className="w-full rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/60 px-3 py-2.5 text-sm text-[var(--foreground)] placeholder:text-[var(--palette-zinc-600)] focus:border-[var(--brand-600)]/50 focus:outline-none resize-none transition-colors"
                   />
-                  <p className="text-[10px] text-[var(--palette-zinc-700)] text-right mt-0.5">{message.length}/500</p>
+                  <p className="text-[11px] text-[var(--palette-zinc-700)] text-right mt-0.5">{message.length}/500</p>
                 </div>
 
                 {/* Submit */}

@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
-import { Target, ChevronRight, Flame, TrendingUp, Calendar, CheckCircle, Edit2, ArrowRight } from "lucide-react";
+import { Target, Flame, TrendingUp, Calendar, CheckCircle, Edit2, ArrowRight } from "lucide-react";
 
 const DREAM_TYPES = [
   { id: "iit",      label: "IIT / JEE",           emoji: "⚙️", color: "var(--color-warning)", desc: "Crack India's toughest engineering exam", target: 360 },
@@ -134,8 +134,8 @@ export default function DreamsPage() {
                 )}
                 <div className="text-2xl mb-2">{dt.emoji}</div>
                 <div className="text-sm font-semibold text-[var(--palette-white)] leading-tight mb-1">{dt.label}</div>
-                <div className="text-[10px] text-[var(--muted-fg)] leading-relaxed">{dt.desc}</div>
-                <div className="mt-2 text-[10px] text-[var(--foreground-subtle)]">~{dt.target}m/day</div>
+                <div className="text-[11px] text-[var(--muted-fg)] leading-relaxed">{dt.desc}</div>
+                <div className="mt-2 text-[11px] text-[var(--foreground-subtle)]">~{dt.target}m/day</div>
               </motion.button>
             ))}
           </div>
@@ -144,8 +144,8 @@ export default function DreamsPage() {
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-124-58-237-0_06)] p-5 mb-6 space-y-4">
               {selected === "custom" && (
                 <div>
-                  <label className="text-xs font-medium text-[var(--foreground-muted)] uppercase tracking-wider mb-2 block">Your Goal</label>
-                  <input
+                  <label htmlFor="your-goal-147" className="text-xs font-medium text-[var(--foreground-muted)] uppercase tracking-wider mb-2 block">Your Goal</label>
+                  <input id="your-goal-147"
                     className="w-full rounded-xl bg-[var(--surface-hover)] border border-[var(--rgba-255-255-255-0_1)] px-3 py-2 text-sm text-[var(--palette-white)] placeholder:text-[var(--foreground-subtle)] focus:outline-none focus:border-[var(--brand-600)]"
                     placeholder="e.g. Become a product designer at a top startup"
                     value={customGoal}
@@ -154,8 +154,8 @@ export default function DreamsPage() {
                 </div>
               )}
               <div>
-                <label className="text-xs font-medium text-[var(--foreground-muted)] uppercase tracking-wider mb-2 block">Target Date <span className="text-[var(--foreground-subtle)] font-normal">(optional)</span></label>
-                <input
+                <label htmlFor="target-date-optional-157" className="text-xs font-medium text-[var(--foreground-muted)] uppercase tracking-wider mb-2 block">Target Date <span className="text-[var(--foreground-subtle)] font-normal">(optional)</span></label>
+                <input id="target-date-optional-157"
                   type="date"
                   className="rounded-xl bg-[var(--surface-hover)] border border-[var(--rgba-255-255-255-0_1)] px-3 py-2 text-sm text-[var(--palette-white)] focus:outline-none focus:border-[var(--brand-600)]"
                   value={targetDate}
@@ -241,7 +241,7 @@ export default function DreamsPage() {
               className="rounded-xl border border-[var(--border-subtle)] bg-[var(--muted)] p-4">
               <stat.icon size={16} style={{ color: stat.color }} className="mb-2" />
               <div className="text-xl font-bold text-[var(--palette-white)]">{stat.value}</div>
-              <div className="text-[10px] text-[var(--muted-fg)] uppercase tracking-wider mt-0.5">{stat.label}</div>
+              <div className="text-[11px] text-[var(--muted-fg)] uppercase tracking-wider mt-0.5">{stat.label}</div>
             </motion.div>
           ))}
         </div>

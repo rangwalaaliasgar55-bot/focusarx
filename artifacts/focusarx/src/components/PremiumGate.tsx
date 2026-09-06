@@ -90,17 +90,17 @@ export function PremiumGate({
           <Link href="/" className="rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] p-3 hover:bg-[var(--rgba-255-255-255-0_05)] transition-colors">
             <Flame size={18} className="mx-auto mb-1 text-[var(--palette-f97316)]" />
             <p className="text-[11px] font-semibold text-[var(--foreground-muted)]">Focus 25m+</p>
-            <p className="text-[10px] text-[var(--brand-400)] font-bold">+50</p>
+            <p className="text-[11px] text-[var(--brand-400)] font-bold">+50</p>
           </Link>
           <Link href="/quests" className="rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] p-3 hover:bg-[var(--rgba-255-255-255-0_05)] transition-colors">
             <Target size={18} className="mx-auto mb-1 text-[var(--palette-22d387)]" />
             <p className="text-[11px] font-semibold text-[var(--foreground-muted)]">Daily Quest</p>
-            <p className="text-[10px] text-[var(--brand-400)] font-bold">+30</p>
+            <p className="text-[11px] text-[var(--brand-400)] font-bold">+30</p>
           </Link>
           <Link href="/dashboard" className="rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] p-3 hover:bg-[var(--rgba-255-255-255-0_05)] transition-colors">
             <Trophy size={18} className="mx-auto mb-1 text-[var(--palette-amber-400)]" />
             <p className="text-[11px] font-semibold text-[var(--foreground-muted)]">Streaks & BP</p>
-            <p className="text-[10px] text-[var(--brand-400)] font-bold">+20-100</p>
+            <p className="text-[11px] text-[var(--brand-400)] font-bold">+20-100</p>
           </Link>
         </div>
         <p className="mt-3 text-[11px] text-[var(--foreground-subtle)] text-center">No real-money. Premium is unlocked purely with earned tokens.</p>

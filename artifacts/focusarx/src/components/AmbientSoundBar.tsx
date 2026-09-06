@@ -301,7 +301,7 @@ export default function AmbientSoundBar() {
                     }}
                   />
                 </div>
-                <span className="text-[10px] font-bold text-[var(--foreground-subtle)] w-8 text-right">
+                <span className="text-[11px] font-bold text-[var(--foreground-subtle)] w-8 text-right">
                   {Math.round(masterVolume * 100)}%
                 </span>
               </div>

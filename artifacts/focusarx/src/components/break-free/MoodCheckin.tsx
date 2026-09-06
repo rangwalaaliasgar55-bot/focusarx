@@ -84,7 +84,7 @@ export default function MoodCheckin() {
                 className="flex flex-col items-center gap-1 flex-1 rounded-xl border border-[var(--rgba-124-58-237-0_1)] bg-[var(--rgba-124-58-237-0_05)] py-2 hover:border-[var(--rgba-124-58-237-0_3)] hover:bg-[var(--rgba-124-58-237-0_1)] transition-all disabled:opacity-60"
               >
                 <span className="text-xl">{emoji}</span>
-                <span className="text-[9px] text-[var(--foreground-subtle)]">{label}</span>
+                <span className="text-[11px] text-[var(--foreground-subtle)]">{label}</span>
               </motion.button>
             ))}
           </div>
@@ -101,7 +101,7 @@ export default function MoodCheckin() {
 
       {/* 7-day chart */}
       <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--palette-0d0f1c)] p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--foreground-subtle)] mb-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--foreground-subtle)] mb-3">
           7-day mood
         </p>
         <ResponsiveContainer width="100%" height={80}>

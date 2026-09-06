@@ -1,13 +1,12 @@
-import { Request, Response, NextFunction } from "express";
+import { Response } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import {
   studyGroupsTable, groupMembersTable, usersTable,
-  userWalletsTable, focusSessionsTable, notificationsTable,
+  userWalletsTable, notificationsTable,
 } from "@workspace/db";
-import { extractUserId } from "./auth";
-import { eq, and, desc, sql, or } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 
 export const groupsRouter = Router();
 

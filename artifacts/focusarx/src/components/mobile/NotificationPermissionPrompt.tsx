@@ -57,7 +57,7 @@ export function NotificationPermissionPrompt() {
                   Not now
                 </button>
               </div>
-              <p className="mt-2 text-[10px] text-[var(--foreground-subtle)]">
+              <p className="mt-2 text-[11px] text-[var(--foreground-subtle)]">
                 We only send session alerts, no spam. You can change this in Settings → Notifications.
               </p>
             </div>

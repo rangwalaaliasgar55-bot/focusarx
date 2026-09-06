@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, integer, jsonb, index } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, boolean, jsonb, index } from 'drizzle-orm/pg-core';
 import { usersTable as users } from './focusarx';
 
 // Phase 4: Real-Time Chat Platform

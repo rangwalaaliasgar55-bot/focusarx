@@ -149,7 +149,7 @@ export function AdminQuestsPanel({ authHeaders }: AdminPanelProps) {
                         <td className="px-4 py-3">
                           <span className="mr-1.5">{q.icon}</span>
                           <span className="text-[var(--palette-zinc-200)] font-medium">{q.title}</span>
-                          {q.description && <p className="text-[var(--palette-zinc-600)] text-[10px] mt-0.5">{q.description}</p>}
+                          {q.description && <p className="text-[var(--palette-zinc-600)] text-[11px] mt-0.5">{q.description}</p>}
                         </td>
                         <td className="px-4 py-3">
                           <Badge label={q.type} color={q.type === "daily" ? "bg-[var(--palette-blue-950)] text-[var(--palette-blue-400)]" : "bg-[var(--palette-purple-950)] text-[var(--palette-purple-400)]"} />

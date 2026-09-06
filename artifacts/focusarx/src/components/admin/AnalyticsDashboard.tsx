@@ -273,7 +273,7 @@ export function AnalyticsDashboard({ authHeaders }: { authHeaders: () => Record<
               <Zap className="h-3 w-3 text-[var(--palette-violet-400)]" />
               {snapshot?.focusingNow ?? 0} focusing
             </span>
-            <span className="text-[10px] font-mono text-[var(--palette-zinc-600)]">
+            <span className="text-[11px] font-mono text-[var(--palette-zinc-600)]">
               {liveError ? "reconnecting…" : lastUpdated ? `updated ${lastUpdated.toLocaleTimeString()}` : "connecting…"}
             </span>
           </div>
@@ -285,7 +285,7 @@ export function AnalyticsDashboard({ authHeaders }: { authHeaders: () => Record<
               <div key={u.userId} className="flex items-center justify-between rounded-lg border border-[var(--palette-zinc-800)]/60 bg-[var(--palette-zinc-950)]/50 px-3 py-2">
                 <div className="min-w-0">
                   <p className="truncate text-sm text-[var(--palette-zinc-200)]">{u.name}</p>
-                  <p className="text-[10px] uppercase tracking-wider text-[var(--palette-zinc-600)]">
+                  <p className="text-[11px] uppercase tracking-wider text-[var(--palette-zinc-600)]">
                     {u.timerStatus === "running" ? "focusing" : u.timerStatus} · {u.mode.replaceAll("_", " ")}
                   </p>
                 </div>
@@ -310,7 +310,7 @@ export function AnalyticsDashboard({ authHeaders }: { authHeaders: () => Record<
                 <span className="h-1.5 w-1.5 rounded-full bg-[var(--palette-emerald-400)] animate-pulse" />
                 <span className="text-sm text-[var(--palette-zinc-300)]">{EVENT_LABELS[ev.eventType] ?? ev.eventType}</span>
               </div>
-              <span className="text-[10px] text-[var(--palette-zinc-600)] font-mono">{relativeTime(ev.createdAt)}</span>
+              <span className="text-[11px] text-[var(--palette-zinc-600)] font-mono">{relativeTime(ev.createdAt)}</span>
             </div>
           ))}
         </div>
@@ -330,11 +330,11 @@ function MetricCard({ label, value, accent, trend }: { label: string; value: num
          <MousePointer2 size={40} className={color} />
       </div>
       <div className="relative z-[var(--z-content)]">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--palette-zinc-500)] mb-2">{label}</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--palette-zinc-500)] mb-2">{label}</p>
         <div className="flex items-end gap-3">
           <p className={`text-3xl font-semibold ${color} tracking-tight tabular-nums`}>{value.toLocaleString()}</p>
           {trend !== undefined && (
-            <div className={`flex items-center gap-0.5 text-[10px] font-bold mb-1 ${trend >= 0 ? "text-[var(--palette-emerald-400)]" : "text-[var(--palette-rose-400)]"}`}>
+            <div className={`flex items-center gap-0.5 text-[11px] font-bold mb-1 ${trend >= 0 ? "text-[var(--palette-emerald-400)]" : "text-[var(--palette-rose-400)]"}`}>
                <ArrowUpRight size={10} className={trend < 0 ? "rotate-90" : ""} />
                {Math.abs(trend)}%
             </div>

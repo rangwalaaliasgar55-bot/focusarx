@@ -19,9 +19,9 @@ import { useAuth, isAdminUser } from "@/lib/auth";
 import { apiJson } from "@/lib/api";
 import { Link } from "wouter";
 import {
-  Code2, Database, Server, Shield, Cpu, Layers, GitBranch,
+  Code2, Database, Shield, GitBranch,
   Users, Coins, Zap, Brain, Flag, Activity, Crown, Search,
-  ChevronRight, RefreshCw, Send, Star, TrendingUp, AlertTriangle,
+  RefreshCw, Star, TrendingUp, AlertTriangle,
   Lock, Gift, Bell, BarChart3, Globe, ArrowUpRight, Timer,
 } from "lucide-react";
 
@@ -150,7 +150,7 @@ function OverviewTab() {
       const result = await apiJson("/api/developer/overview");
       setData(result);
       setError(null);
-    } catch (e) {
+    } catch {
       setError("Failed to load overview");
     }
     setLoading(false);

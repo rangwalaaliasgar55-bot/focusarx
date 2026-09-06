@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Waves } from "lucide-react";
 
@@ -176,7 +176,7 @@ export default function UrgeSurfing() {
 
               {/* Distraction cards */}
               <div className="w-full">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--palette-2a4040)] mb-3 text-center">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--palette-2a4040)] mb-3 text-center">
                   Try one of these instead
                 </p>
                 <div className="grid grid-cols-2 gap-3">
@@ -187,7 +187,7 @@ export default function UrgeSurfing() {
                     >
                       <p className="text-xl mb-1">{d.icon}</p>
                       <p className="text-xs font-semibold text-[var(--palette-teal-200)]">{d.label}</p>
-                      <p className="text-[10px] text-[var(--palette-teal-700)] mt-0.5 leading-snug">{d.sub}</p>
+                      <p className="text-[11px] text-[var(--palette-teal-700)] mt-0.5 leading-snug">{d.sub}</p>
                     </div>
                   ))}
                 </div>

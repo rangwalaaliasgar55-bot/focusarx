@@ -92,17 +92,17 @@ export default function BattlePassPage() {
           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_70%_30%,var(--palette-amber-500),transparent_60%)]" />
           <div className="relative flex flex-wrap items-start justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2"><Trophy size={18} className="text-[var(--palette-amber-400)]" /><span className="text-xs font-bold uppercase tracking-widest text-[var(--palette-amber-400)]">Season {data.seasonId}</span><span className="rounded-full bg-[var(--surface-1)] px-2 py-0.5 text-[10px]">{tiers.length} tiers • 28-30 days</span></div>
+              <div className="flex items-center gap-2"><Trophy size={18} className="text-[var(--palette-amber-400)]" /><span className="text-xs font-bold uppercase tracking-widest text-[var(--palette-amber-400)]">Season {data.seasonId}</span><span className="rounded-full bg-[var(--surface-1)] px-2 py-0.5 text-[11px]">{tiers.length} tiers • 28-30 days</span></div>
               <h1 className="mt-2 text-3xl font-semibold">Battle Pass</h1>
               <p className="mt-1 flex items-center gap-1.5 text-xs text-[var(--foreground-muted)]"><Clock size={12} /><Countdown endsAt={data.countdown?.endsAt ?? data.endDate} graceEndsAt={data.countdown?.graceEndsAt ?? data.graceEndsAt} /></p>
               {data.inGracePeriod && <p className="mt-1 text-xs font-bold text-[var(--palette-amber-400)]">Grace period active — claim your rewards before they expire!</p>}
             </div>
             <div className="text-right">
-              <p className="text-[10px] uppercase tracking-wider text-[var(--foreground-subtle)]">Your progress</p>
+              <p className="text-[11px] uppercase tracking-wider text-[var(--foreground-subtle)]">Your progress</p>
               <p className="text-2xl font-semibold">{seasonXp.toLocaleString()} XP</p>
               <p className="text-xs text-[var(--foreground-muted)]">Tier {currentTier} / {tiers.length}</p>
               <div className="mt-2 h-2 w-48 overflow-hidden rounded-full bg-[var(--surface-1)]"><div className="h-full bg-[var(--palette-amber-500)] transition-all" style={{ width: `${progressPct}%` }} /></div>
-              <p className="mt-1 text-[10px] text-[var(--foreground-subtle)]">{seasonXp - xpPrev} / {xpForNext - xpPrev} to next tier</p>
+              <p className="mt-1 text-[11px] text-[var(--foreground-subtle)]">{seasonXp - xpPrev} / {xpForNext - xpPrev} to next tier</p>
             </div>
           </div>
 
@@ -139,33 +139,33 @@ export default function BattlePassPage() {
               const isMilestone = t.tier % 5 === 0;
               return (
                 <div key={t.tier} onMouseEnter={() => setPreviewTier(t.tier)} onMouseLeave={() => setPreviewTier(null)} className={`relative rounded-2xl border p-4 transition-all ${isMilestone ? "border-[var(--palette-amber-500)]/30 bg-[var(--palette-amber-500)]/5" : "border-[var(--forge-border)] bg-[var(--card)]"} ${!reached ? "opacity-60" : ""} ${previewTier === t.tier ? "ring-2 ring-[var(--brand-400)]/20" : ""}`}>
-                  {isMilestone && <div className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-[var(--palette-amber-500)] px-2 py-0.5 text-[9px] font-bold text-black">MILESTONE</div>}
+                  {isMilestone && <div className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-[var(--palette-amber-500)] px-2 py-0.5 text-[11px] font-bold text-black">MILESTONE</div>}
                   <div className="mb-2 flex items-center justify-between">
                     <span className="text-xs font-bold">Tier {t.tier}</span>
-                    <span className="text-[10px] text-[var(--foreground-subtle)]">{t.xpRequired} XP</span>
+                    <span className="text-[11px] text-[var(--foreground-subtle)]">{t.xpRequired} XP</span>
                     {reached ? <Check size={12} className="text-[var(--palette-emerald-400)]" /> : <Lock size={12} className="text-[var(--foreground-subtle)]" />}
                   </div>
                   {/* Free */}
                   <div className={`mb-2 flex items-center gap-2 rounded-xl p-2.5 ${reached ? "bg-[var(--palette-emerald-500)]/10 border border-[var(--palette-emerald-500)]/20" : "bg-[var(--surface-1)]"}`}>
                     <Gift size={14} className="text-[var(--palette-emerald-400)]" />
                     <div className="flex-1">
-                      <p className="text-[10px] font-bold uppercase text-[var(--foreground-subtle)]">Free</p>
+                      <p className="text-[11px] font-bold uppercase text-[var(--foreground-subtle)]">Free</p>
                       <p className="text-xs font-semibold">{t.freeReward?.label ?? `${t.freeReward?.coins ?? 0} coins`}</p>
-                      {t.freeReward?.tokenAmount && <p className="text-[10px] text-[var(--palette-amber-400)]">🪙 {t.freeReward.tokenAmount} tokens</p>}
+                      {t.freeReward?.tokenAmount && <p className="text-[11px] text-[var(--palette-amber-400)]">🪙 {t.freeReward.tokenAmount} tokens</p>}
                     </div>
-                    {reached && !freeClaimed ? <button onClick={() => claimMutation.mutate({ tier: t.tier })} className="rounded-full bg-[var(--palette-emerald-500)] px-3 py-1 text-[10px] font-bold text-black">Claim</button> : freeClaimed ? <Check size={14} className="text-[var(--palette-emerald-400)]" /> : null}
+                    {reached && !freeClaimed ? <button onClick={() => claimMutation.mutate({ tier: t.tier })} className="rounded-full bg-[var(--palette-emerald-500)] px-3 py-1 text-[11px] font-bold text-black">Claim</button> : freeClaimed ? <Check size={14} className="text-[var(--palette-emerald-400)]" /> : null}
                   </div>
                   {/* Premium */}
                   <div className={`flex items-center gap-2 rounded-xl p-2.5 ${isPremium ? (reached ? "bg-[var(--palette-amber-500)]/10 border border-[var(--palette-amber-500)]/20" : "bg-[var(--surface-1)]") : "bg-[var(--surface-1)] opacity-60"}`}>
                     <Crown size={14} className="text-[var(--palette-amber-400)]" />
                     <div className="flex-1">
-                      <p className="text-[10px] font-bold uppercase text-[var(--foreground-subtle)]">Premium</p>
+                      <p className="text-[11px] font-bold uppercase text-[var(--foreground-subtle)]">Premium</p>
                       <p className="text-xs font-semibold">{t.premiumReward?.label ?? `${t.premiumReward?.coins ?? 0} coins`}</p>
-                      {t.premiumReward?.tokenAmount && <p className="text-[10px] text-[var(--palette-amber-400)]">🪙 {t.premiumReward.tokenAmount} tokens {t.premiumReward?.cosmeticId ? "• Cosmetic" : ""} {t.premiumReward?.petId ? "• Pet" : ""}</p>}
+                      {t.premiumReward?.tokenAmount && <p className="text-[11px] text-[var(--palette-amber-400)]">🪙 {t.premiumReward.tokenAmount} tokens {t.premiumReward?.cosmeticId ? "• Cosmetic" : ""} {t.premiumReward?.petId ? "• Pet" : ""}</p>}
                     </div>
-                    {isPremium ? (reached && !premClaimed ? <button onClick={() => claimMutation.mutate({ tier: t.tier, isPremiumReward: true })} className="rounded-full bg-[var(--palette-amber-500)] px-3 py-1 text-[10px] font-bold text-black">Claim</button> : premClaimed ? <Check size={14} className="text-[var(--palette-emerald-400)]" /> : null) : <Lock size={12} className="text-[var(--foreground-subtle)]" />}
+                    {isPremium ? (reached && !premClaimed ? <button onClick={() => claimMutation.mutate({ tier: t.tier, isPremiumReward: true })} className="rounded-full bg-[var(--palette-amber-500)] px-3 py-1 text-[11px] font-bold text-black">Claim</button> : premClaimed ? <Check size={14} className="text-[var(--palette-emerald-400)]" /> : null) : <Lock size={12} className="text-[var(--foreground-subtle)]" />}
                   </div>
-                  {!isPremium && reached && <Link href="/premium" className="mt-2 flex w-full items-center justify-center gap-1 rounded-xl bg-[var(--surface-1)] py-1.5 text-[10px] font-bold text-[var(--palette-amber-400)]"><Crown size={10}/> Unlock premium track with tokens</Link>}
+                  {!isPremium && reached && <Link href="/premium" className="mt-2 flex w-full items-center justify-center gap-1 rounded-xl bg-[var(--surface-1)] py-1.5 text-[11px] font-bold text-[var(--palette-amber-400)]"><Crown size={10}/> Unlock premium track with tokens</Link>}
                 </div>
               );
             })}

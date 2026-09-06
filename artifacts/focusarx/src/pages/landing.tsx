@@ -268,7 +268,7 @@ export default function LandingPage() {
                     definition, period or sample anyone could check. The
                     definition and review date are now inline, and the
                     underlying figure is tracked on the public claim ledger. */}
-                <p className="text-center text-[10px] leading-relaxed text-[var(--foreground-subtle)]">
+                <p className="text-center text-[11px] leading-relaxed text-[var(--foreground-subtle)]">
                   FocusArx internal product analytics. "Completion" = a session
                   that ran to its scheduled end without being abandoned.
                   Self-selected users, not a controlled comparison — coaching

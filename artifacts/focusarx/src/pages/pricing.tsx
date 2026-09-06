@@ -121,7 +121,7 @@ export default function PricingPage() {
             >
               {/* Badge */}
               <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <span className="rounded-full bg-[var(--brand-600)] hover:bg-[var(--brand-700)] px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--palette-white)] shadow-[0_0_14px_var(--rgba-124-58-237-0_5)]">
+                <span className="rounded-full bg-[var(--brand-600)] hover:bg-[var(--brand-700)] px-4 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--palette-white)] shadow-[0_0_14px_var(--rgba-124-58-237-0_5)]">
                   Earn It
                 </span>
               </div>

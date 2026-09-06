@@ -80,7 +80,7 @@ export function FocusMoodWidget({ onSelect, compact = false }: FocusMoodWidgetPr
                 className="flex flex-col items-center gap-1 rounded-xl px-1.5 py-2 min-w-0 hover:bg-[var(--surface-hover)] transition-colors"
               >
                 <span className="text-xl leading-none">{m.emoji}</span>
-                <span className="text-[8px] text-[var(--foreground-subtle)] whitespace-nowrap">{m.label}</span>
+                <span className="text-[11px] text-[var(--foreground-subtle)] whitespace-nowrap">{m.label}</span>
               </motion.button>
             ))}
           </motion.div>

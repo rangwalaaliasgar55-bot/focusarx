@@ -1,9 +1,11 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { distractionLogsTable } from "@workspace/db";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
+import { clockInZone } from "../lib/timezone";
+import { userZone } from "../lib/userZone";
 import { sendUnauthorized } from "../lib/httpErrors";
 
 const router = Router();
@@ -18,7 +20,7 @@ function auth(req: any, res: any, next: any) {
 router.post("/distractions", auth, async (req: any, res) => {
   const { reason, worthIt, sessionId } = req.body as { reason?: string; worthIt?: boolean; sessionId?: string };
   if (!reason) { res.status(400).json({ error: "reason required" }); return; }
-  const hour = new Date().getHours();
+  const hour = clockInZone(Date.now(), await userZone(req.userId)).hour;
   try {
     const [log] = await db.insert(distractionLogsTable)
       .values({ userId: req.userId, reason, worthIt: worthIt ?? false, sessionId: sessionId ?? null, hour })
@@ -66,7 +68,7 @@ router.get("/distractions/patterns", auth, async (req: any, res) => {
 
 router.get("/distractions/nudge", auth, async (req: any, res) => {
   try {
-    const currentHour = new Date().getHours();
+    const currentHour = clockInZone(Date.now(), await userZone(req.userId)).hour;
     const logs = await db.select({ hour: distractionLogsTable.hour }).from(distractionLogsTable)
       .where(eq(distractionLogsTable.userId, req.userId));
 

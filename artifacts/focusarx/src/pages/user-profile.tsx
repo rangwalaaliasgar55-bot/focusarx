@@ -17,7 +17,7 @@ function StatBubble({ icon: Icon, label, value, color = "var(--brand-600)" }: { 
     <div className="flex flex-col items-center rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4 gap-1">
       <Icon size={16} style={{ color }} />
       <p className="text-xl font-semibold text-[var(--foreground)]">{value}</p>
-      <p className="text-[10px] text-[var(--foreground-subtle)] uppercase tracking-wider text-center">{label}</p>
+      <p className="text-[11px] text-[var(--foreground-subtle)] uppercase tracking-wider text-center">{label}</p>
     </div>
   );
 }
@@ -122,7 +122,7 @@ export default function UserProfilePage() {
             <h1 className="text-2xl font-semibold text-[var(--foreground)]">{profile.name}</h1>
             {profile.isPremium && <span className="flex items-center gap-1 rounded-full border border-[var(--brand-gold)]/40 bg-[var(--brand-gold)]/10 px-2 py-0.5 text-xs text-[var(--brand-gold)] font-bold"><Crown size={10} /> Premium</span>}
             {profile.prestige > 0 && <span className="flex items-center gap-1 rounded-full border border-[var(--palette-amber-500)]/40 bg-[var(--palette-amber-500)]/10 px-2 py-0.5 text-xs text-[var(--palette-amber-400)] font-bold"><Crown size={10} /> Prestige {profile.prestige}</span>}
-            {(profile.isBot || profile.role === "bot") && <span className="inline-flex items-center gap-1 rounded-full border border-[var(--forge-border)] bg-[var(--surface-1)] px-2.5 py-1 text-[10px] font-medium text-[var(--foreground-subtle)]" title="Focus Companion — fictional identity for community simulation, not a real person"><span className="h-1.5 w-1.5 rounded-full bg-[var(--foreground-subtle)]"/> Focus Companion</span>}
+            {(profile.isBot || profile.role === "bot") && <span className="inline-flex items-center gap-1 rounded-full border border-[var(--forge-border)] bg-[var(--surface-1)] px-2.5 py-1 text-[11px] font-medium text-[var(--foreground-subtle)]" title="Focus Companion — fictional identity for community simulation, not a real person"><span className="h-1.5 w-1.5 rounded-full bg-[var(--foreground-subtle)]"/> Focus Companion</span>}
           </div>
           {(profile.isBot || profile.role === "bot") && <p className="mt-2 text-[11px] leading-relaxed text-[var(--foreground-subtle)]">This is a Focus Companion — a fictional community member to make study rooms feel alive. Not a real person, no real testimonials.</p>}
           {profile.bio && <p className="text-sm text-[var(--foreground-subtle)] mt-1.5 leading-relaxed">{profile.bio}</p>}
@@ -137,7 +137,7 @@ export default function UserProfilePage() {
         {/* Level bar */}
         <div className="rounded-2xl border border-[var(--brand-600)]/30 bg-[var(--surface-hover)] p-4 mb-5">
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2"><Zap size={15} className="text-[var(--brand-600)]" /><span className="text-sm font-bold text-[var(--foreground)]">Level {level}</span>{profile.prestige > 0 && <span className="text-[10px] font-bold text-[var(--palette-amber-400)]">✦ P{profile.prestige}</span>}</div>
+            <div className="flex items-center gap-2"><Zap size={15} className="text-[var(--brand-600)]" /><span className="text-sm font-bold text-[var(--foreground)]">Level {level}</span>{profile.prestige > 0 && <span className="text-[11px] font-bold text-[var(--palette-amber-400)]">✦ P{profile.prestige}</span>}</div>
             <span className="text-xs text-[var(--foreground-subtle)]">{xp.toLocaleString()} XP</span>
           </div>
           <div className="h-2 rounded-full bg-[var(--rgba-255-255-255-0_06)] overflow-hidden">

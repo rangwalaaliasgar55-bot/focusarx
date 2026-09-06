@@ -1,11 +1,11 @@
-import { Request, Response, NextFunction } from "express";
+import { Response } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
-import { db, userDreamsTable, focusSessionsTable, userWalletsTable } from "@workspace/db";
-import { eq, and, gte, sum } from "drizzle-orm";
-import { extractUserId } from "./auth";
+import { db, userDreamsTable, focusSessionsTable } from "@workspace/db";
+import { eq, and, gte } from "drizzle-orm";
 import { logger } from "../lib/logger";
-import { z } from "zod";
+import { userZone } from "../lib/userZone";
+import { dayKeyInZone } from "../lib/timezone";
 
 const router = Router();
 
@@ -75,7 +75,7 @@ router.post("/dreams", authMiddleware, async (req: AuthRequest, res: Response) =
   const { dreamType, customGoal, targetDate, dailyTargetMinutes, emoji } = req.body as any;
   if (!dreamType) { res.status(400).json({ error: "dreamType required" }); return; }
   try {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = dayKeyInZone(Date.now(), await userZone(req.userId));
     const type = DREAM_TYPES.find(d => d.id === dreamType);
     const [existing] = await db.select().from(userDreamsTable).where(eq(userDreamsTable.userId, req.userId));
 

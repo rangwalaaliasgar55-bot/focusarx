@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 import {
   Play, Clock, Table2, Key, Link2, Hash, Database, Download,
   Copy, Trash2, ChevronRight, ChevronDown, Search, AlertTriangle,
-  CheckCircle2, XCircle, Loader2, History, Columns3, Eye,
+  CheckCircle2, XCircle, Loader2, History, Columns3,
   ShieldAlert, ShieldCheck, Shield, FileText,
 } from "lucide-react";
 
@@ -225,7 +225,7 @@ function SchemaSidebar({ tables, onSelectTable }: {
             className="w-full pl-7 pr-2 py-1.5 text-xs bg-white/5 border border-white/10 rounded text-white/80 placeholder:text-white/30 focus:outline-none focus:border-violet-500/50"
           />
         </div>
-        <div className="mt-1.5 text-[10px] text-white/40">
+        <div className="mt-1.5 text-[11px] text-white/40">
           {tables.length} tables
         </div>
       </div>
@@ -247,7 +247,7 @@ function SchemaSidebar({ tables, onSelectTable }: {
               )}
               <Table2 size={11} className="shrink-0 text-blue-400/60" />
               <span className="truncate flex-1 font-mono">{table.name}</span>
-              <span className="text-[10px] text-white/30 tabular-nums">
+              <span className="text-[11px] text-white/30 tabular-nums">
                 {formatNumber(table.rowCount)}
               </span>
             </button>
@@ -255,18 +255,18 @@ function SchemaSidebar({ tables, onSelectTable }: {
             {expandedTable === table.name && (
               <div className="px-3 pb-2 pl-8">
                 {loading ? (
-                  <div className="flex items-center gap-1.5 py-2 text-[10px] text-white/40">
+                  <div className="flex items-center gap-1.5 py-2 text-[11px] text-white/40">
                     <Loader2 size={10} className="animate-spin" /> Loading...
                   </div>
                 ) : tableDetail ? (
                   <div className="space-y-2">
                     <div>
-                      <div className="text-[10px] text-white/40 font-semibold uppercase tracking-wider mb-1">
+                      <div className="text-[11px] text-white/40 font-semibold uppercase tracking-wider mb-1">
                         Columns ({tableDetail.columns.length})
                       </div>
                       <div className="space-y-0.5">
                         {tableDetail.columns.map((col) => (
-                          <div key={col.name} className="flex items-center gap-1.5 text-[10px]">
+                          <div key={col.name} className="flex items-center gap-1.5 text-[11px]">
                             {col.isPrimaryKey && <Key size={8} className="text-amber-400 shrink-0" />}
                             {col.isForeignKey && <Link2 size={8} className="text-blue-400 shrink-0" />}
                             {!col.isPrimaryKey && !col.isForeignKey && <Columns3 size={8} className="text-white/20 shrink-0" />}
@@ -279,26 +279,26 @@ function SchemaSidebar({ tables, onSelectTable }: {
                     </div>
                     {tableDetail.indexes.length > 0 && (
                       <div>
-                        <div className="text-[10px] text-white/40 font-semibold uppercase tracking-wider mb-1">
+                        <div className="text-[11px] text-white/40 font-semibold uppercase tracking-wider mb-1">
                           Indexes ({tableDetail.indexes.length})
                         </div>
                         {tableDetail.indexes.slice(0, 5).map((idx) => (
-                          <div key={idx.name} className="text-[10px] text-white/50 font-mono truncate" title={idx.definition}>
+                          <div key={idx.name} className="text-[11px] text-white/50 font-mono truncate" title={idx.definition}>
                             {idx.name}
                           </div>
                         ))}
                         {tableDetail.indexes.length > 5 && (
-                          <div className="text-[10px] text-white/30">+{tableDetail.indexes.length - 5} more</div>
+                          <div className="text-[11px] text-white/30">+{tableDetail.indexes.length - 5} more</div>
                         )}
                       </div>
                     )}
                     {tableDetail.foreignKeys.length > 0 && (
                       <div>
-                        <div className="text-[10px] text-white/40 font-semibold uppercase tracking-wider mb-1">
+                        <div className="text-[11px] text-white/40 font-semibold uppercase tracking-wider mb-1">
                           Foreign Keys ({tableDetail.foreignKeys.length})
                         </div>
                         {tableDetail.foreignKeys.map((fk) => (
-                          <div key={fk.column} className="text-[10px] text-white/50">
+                          <div key={fk.column} className="text-[11px] text-white/50">
                             <span className="text-blue-300">{fk.column}</span>
                             {" → "}
                             <span className="text-emerald-300">{fk.referencedTable}.{fk.referencedColumn}</span>
@@ -308,7 +308,7 @@ function SchemaSidebar({ tables, onSelectTable }: {
                     )}
                   </div>
                 ) : (
-                  <div className="text-[10px] text-white/40 py-2">Failed to load details</div>
+                  <div className="text-[11px] text-white/40 py-2">Failed to load details</div>
                 )}
               </div>
             )}
@@ -348,7 +348,7 @@ function ResultsTable({ result }: { result: StatementResult }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-3 text-[10px] text-white/50">
+        <div className="flex items-center gap-3 text-[11px] text-white/50">
           <span className="flex items-center gap-1">
             <Clock size={10} /> {formatTime(result.durationMs)}
           </span>
@@ -370,7 +370,7 @@ function ResultsTable({ result }: { result: StatementResult }) {
               ].join("\n");
               navigator.clipboard.writeText(text);
             }}
-            className="flex items-center gap-1 px-2 py-1 text-[10px] text-white/50 hover:text-white/80 hover:bg-white/5 rounded transition-colors"
+            className="flex items-center gap-1 px-2 py-1 text-[11px] text-white/50 hover:text-white/80 hover:bg-white/5 rounded transition-colors"
             title="Copy results"
           >
             <Copy size={10} /> Copy
@@ -393,7 +393,7 @@ function ResultsTable({ result }: { result: StatementResult }) {
               a.click();
               URL.revokeObjectURL(url);
             }}
-            className="flex items-center gap-1 px-2 py-1 text-[10px] text-white/50 hover:text-white/80 hover:bg-white/5 rounded transition-colors"
+            className="flex items-center gap-1 px-2 py-1 text-[11px] text-white/50 hover:text-white/80 hover:bg-white/5 rounded transition-colors"
             title="Export as CSV"
           >
             <Download size={10} /> CSV
@@ -405,9 +405,9 @@ function ResultsTable({ result }: { result: StatementResult }) {
         <table className="w-full text-xs">
           <thead className="sticky top-0 bg-zinc-900/90 backdrop-blur">
             <tr>
-              <th className="px-2 py-1.5 text-left text-[10px] text-white/30 font-medium">#</th>
+              <th className="px-2 py-1.5 text-left text-[11px] text-white/30 font-medium">#</th>
               {result.columns.map((col) => (
-                <th key={col} className="px-2 py-1.5 text-left text-[10px] text-white/50 font-semibold font-mono whitespace-nowrap">
+                <th key={col} className="px-2 py-1.5 text-left text-[11px] text-white/50 font-semibold font-mono whitespace-nowrap">
                   {col}
                 </th>
               ))}
@@ -416,7 +416,7 @@ function ResultsTable({ result }: { result: StatementResult }) {
           <tbody>
             {pageRows.map((row, i) => (
               <tr key={i} className="border-t border-white/5 hover:bg-white/[0.02]">
-                <td className="px-2 py-1 text-[10px] text-white/20 tabular-nums">{page * pageSize + i + 1}</td>
+                <td className="px-2 py-1 text-[11px] text-white/20 tabular-nums">{page * pageSize + i + 1}</td>
                 {row.map((cell, j) => (
                   <td key={j} className="px-2 py-1 font-mono text-white/70 whitespace-nowrap max-w-xs truncate" title={cell != null ? String(cell) : "NULL"}>
                     {cell === null ? <span className="text-white/20 italic">NULL</span> : String(cell)}
@@ -429,7 +429,7 @@ function ResultsTable({ result }: { result: StatementResult }) {
       </div>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-2 text-[10px] text-white/40">
+        <div className="flex items-center justify-between mt-2 text-[11px] text-white/40">
           <span>Page {page + 1} of {totalPages}</span>
           <div className="flex gap-1">
             <button
@@ -479,10 +479,10 @@ function QueryHistory({ entries, onRerun }: {
             entry.status === "blocked" && "bg-amber-400",
           )} />
           <div className="flex-1 min-w-0">
-            <pre className="text-[10px] font-mono text-white/60 truncate">
+            <pre className="text-[11px] font-mono text-white/60 truncate">
               {entry.sql.slice(0, 120)}
             </pre>
-            <div className="flex items-center gap-2 mt-0.5 text-[10px] text-white/30">
+            <div className="flex items-center gap-2 mt-0.5 text-[11px] text-white/30">
               <span>{new Date(entry.createdAt).toLocaleString()}</span>
               <span className={cn(
                 entry.kind === "write" && "text-yellow-400/60",
@@ -496,7 +496,7 @@ function QueryHistory({ entries, onRerun }: {
           </div>
           <button
             onClick={() => onRerun(entry.sql)}
-            className="opacity-0 group-hover:opacity-100 px-2 py-0.5 text-[10px] text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 rounded transition-all"
+            className="opacity-0 group-hover:opacity-100 px-2 py-0.5 text-[11px] text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 rounded transition-all"
           >
             Rerun
           </button>
@@ -697,7 +697,7 @@ export function SqlEditor() {
             >
               {executing ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
               {executing ? "Running..." : "Execute"}
-              <span className="text-[9px] opacity-60 ml-1">⌘↵</span>
+              <span className="text-[11px] opacity-60 ml-1">⌘↵</span>
             </button>
           </div>
         </div>
@@ -711,7 +711,7 @@ export function SqlEditor() {
             </div>
             <div className="space-y-1 mb-3">
               {confirmMsg.map((msg, i) => (
-                <pre key={i} className="text-[10px] font-mono text-red-300/70 bg-red-500/10 rounded px-2 py-1 overflow-auto">
+                <pre key={i} className="text-[11px] font-mono text-red-300/70 bg-red-500/10 rounded px-2 py-1 overflow-auto">
                   {msg}
                 </pre>
               ))}
@@ -747,7 +747,7 @@ export function SqlEditor() {
               <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider">Query History</h3>
               <button
                 onClick={loadHistory}
-                className="text-[10px] text-white/40 hover:text-white/60"
+                className="text-[11px] text-white/40 hover:text-white/60"
               >
                 Refresh
               </button>
@@ -804,7 +804,7 @@ export function SqlEditor() {
               {results.length > 0 ? (
                 <div className="space-y-4">
                   {/* Summary */}
-                  <div className="flex items-center gap-4 text-[10px] text-white/40">
+                  <div className="flex items-center gap-4 text-[11px] text-white/40">
                     <span>{results.length} statement{results.length !== 1 ? "s" : ""}</span>
                     <span>Total: {formatTime(totalDuration)}</span>
                     <span>{totalRows} row{totalRows !== 1 ? "s" : ""}</span>
@@ -815,7 +815,7 @@ export function SqlEditor() {
                     <div key={i} className="space-y-2">
                       <div className="flex items-center gap-2">
                         <span className={cn(
-                          "text-[10px] px-1.5 py-0.5 rounded font-semibold",
+                          "text-[11px] px-1.5 py-0.5 rounded font-semibold",
                           result.ok && result.kind === "read" && "bg-emerald-500/20 text-emerald-400",
                           result.ok && result.kind === "write" && "bg-yellow-500/20 text-yellow-400",
                           !result.ok && "bg-red-500/20 text-red-400",
@@ -823,9 +823,9 @@ export function SqlEditor() {
                           {result.ok ? "OK" : "ERR"}
                         </span>
                         {result.destructive && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400">DESTRUCTIVE</span>
+                          <span className="text-[11px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400">DESTRUCTIVE</span>
                         )}
-                        <pre className="text-[10px] font-mono text-white/40 truncate flex-1">{result.statement.slice(0, 100)}</pre>
+                        <pre className="text-[11px] font-mono text-white/40 truncate flex-1">{result.statement.slice(0, 100)}</pre>
                       </div>
                       <ResultsTable result={result} />
                     </div>
@@ -835,7 +835,7 @@ export function SqlEditor() {
                 <div className="flex flex-col items-center justify-center h-full text-white/20">
                   <FileText size={32} className="mb-2" />
                   <p className="text-xs">Execute a query to see results</p>
-                  <p className="text-[10px] mt-1">Press Ctrl+Enter to execute</p>
+                  <p className="text-[11px] mt-1">Press Ctrl+Enter to execute</p>
                 </div>
               )}
             </div>

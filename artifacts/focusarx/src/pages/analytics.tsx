@@ -195,7 +195,7 @@ export default function AnalyticsPage() {
                     className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4 text-center backdrop-blur-xl"
                   >
                     <Icon size={16} className="mx-auto mb-1.5" style={{ color }} />
-                    <p className="text-[10px] text-[var(--foreground-subtle)]">{label}</p>
+                    <p className="text-[11px] text-[var(--foreground-subtle)]">{label}</p>
                     <p className="mt-0.5 text-lg font-bold" style={{ color }}>{value}</p>
                   </motion.div>
                 ))}
@@ -229,9 +229,9 @@ export default function AnalyticsPage() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-[10px] text-[var(--foreground-subtle)]">This week</p>
+                          <p className="text-[11px] text-[var(--foreground-subtle)]">This week</p>
                           <p className="text-sm font-bold text-[var(--foreground)]">{Math.round(wc.thisWeekMinutes / 60)}h {wc.thisWeekMinutes % 60}m</p>
-                          <p className="mt-1 text-[10px] text-[var(--foreground-subtle)]">Last week</p>
+                          <p className="mt-1 text-[11px] text-[var(--foreground-subtle)]">Last week</p>
                           <p className="text-sm font-bold text-[var(--foreground-muted)]">{Math.round(wc.lastWeekMinutes / 60)}h {wc.lastWeekMinutes % 60}m</p>
                         </div>
                       </div>
@@ -292,10 +292,10 @@ export default function AnalyticsPage() {
                       <h2 className="text-sm font-semibold">Focus time by hour and weekday</h2>
                       <p className="mt-1 text-xs text-[var(--foreground-subtle)]">{data.historyDays ?? 60}-day view · hover a cell for session detail</p>
                     </div>
-                    {data.isPremium && <span className="rounded-full bg-[var(--brand-soft)] px-2 py-1 text-[10px] font-bold text-[var(--brand-400)]">180-day Premium</span>}
+                    {data.isPremium && <span className="rounded-full bg-[var(--brand-soft)] px-2 py-1 text-[11px] font-bold text-[var(--brand-400)]">180-day Premium</span>}
                   </div>
                   <div className="overflow-x-auto">
-                    <div className="grid min-w-[42rem] grid-cols-[3rem_repeat(24,1fr)] gap-1 text-[9px]">
+                    <div className="grid min-w-[42rem] grid-cols-[3rem_repeat(24,1fr)] gap-1 text-[11px]">
                       <span />
                       {Array.from({ length: 24 }, (_, hour) => (
                         <span key={hour} className="text-center text-[var(--foreground-subtle)]">{hour % 3 === 0 ? hour : ""}</span>
@@ -350,7 +350,7 @@ export default function AnalyticsPage() {
                               ))}
                             </Pie>
                             <Legend
-                              formatter={(value) => <span className="text-[10px] text-[var(--foreground-muted)]">{value}</span>}
+                              formatter={(value) => <span className="text-[11px] text-[var(--foreground-muted)]">{value}</span>}
                               wrapperStyle={{ fontSize: "10px" }}
                             />
                             <Tooltip
@@ -364,7 +364,7 @@ export default function AnalyticsPage() {
 
                     <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-6 backdrop-blur-xl">
                       <h2 className="mb-4 text-sm font-semibold text-[var(--foreground)]">Activity — last 91 days</h2>
-                      <div className="mb-2 flex gap-1 text-[9px] text-[var(--foreground-subtle)]">
+                      <div className="mb-2 flex gap-1 text-[11px] text-[var(--foreground-subtle)]">
                         {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d) => (
                           <div key={d} className="flex-1 text-center">{d[0]}</div>
                         ))}
@@ -378,7 +378,7 @@ export default function AnalyticsPage() {
                           )
                         )}
                       </div>
-                      <div className="mt-3 flex items-center gap-1.5 text-[9px] text-[var(--foreground-subtle)]">
+                      <div className="mt-3 flex items-center gap-1.5 text-[11px] text-[var(--foreground-subtle)]">
                         <span>Less</span>
                         {[0.08, 0.3, 0.55, 0.8, 0.95].map((a) => (
                           <div key={a} className="h-2.5 w-2.5 rounded-sm" style={{ background: `color-mix(in srgb, var(--brand-600) ${a * 100}%, transparent)` }} />

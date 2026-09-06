@@ -1,4 +1,4 @@
-import { pgTable, text, integer, boolean, timestamp, jsonb, index } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, timestamp, jsonb, index } from 'drizzle-orm/pg-core';
 import { usersTable as users } from './focusarx';
 
 export const focusCitiesTable = pgTable('focus_cities', {

@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Response } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
@@ -7,10 +7,8 @@ import {
   userBadgesTable, focusSessionsTable, tasksTable,
   friendshipsTable,
 } from "@workspace/db";
-import { extractUserId } from "./auth";
 import { isUserPremium } from "../lib/premiumCheck";
-import { premiumSubscriptionsTable } from "@workspace/db";
-import { eq, and, or, sql, desc } from "drizzle-orm";
+import { eq, and, or, sql } from "drizzle-orm";
 
 export const publicProfilesRouter = Router();
 

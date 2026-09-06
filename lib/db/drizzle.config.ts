@@ -1,5 +1,4 @@
 import { defineConfig } from "drizzle-kit";
-import path from "path";
 
 /** Match runtime: prefer direct (non-pooling) URL on Vercel for Drizzle. */
 const connectionUrl = process.env.VERCEL

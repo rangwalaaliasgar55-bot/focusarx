@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authMiddleware, AuthRequest } from "../middlewares/auth";
+import { AuthRequest } from "../middlewares/auth";
 import { db } from "@workspace/db";
 import { featureFlagsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";

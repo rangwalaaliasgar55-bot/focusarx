@@ -6,7 +6,7 @@ import {
   premiumSubscriptionsTable,
   studyStreaksTable,
 } from "@workspace/db";
-import { eq, and, gte, isNull, lt, ne, sql } from "drizzle-orm";
+import { eq, and, gte, lt, ne, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { checkAdminAuth } from "../lib/adminAuth";
 

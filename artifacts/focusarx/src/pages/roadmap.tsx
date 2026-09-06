@@ -6,7 +6,7 @@ import { getToken } from "@/lib/auth";
 import { trackSiteEvent } from "@/lib/site-analytics";
 import { BookmarkPlus, Trash2, Map, Sparkles, Target, Clock, ArrowRight } from "lucide-react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
-import { BLUR_IN, STAGGER, STAGGER_CHILD } from "@/lib/animations";
+import { BLUR_IN, STAGGER } from "@/lib/animations";
 
 type RoadmapDay = {
   day: number;
@@ -147,7 +147,7 @@ export default function RoadmapPage() {
              <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-600)]/10 mb-6">
                 <Map className="text-[var(--brand-400)]" />
              </div>
-             <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--foreground-subtle)] mb-4">Strategic Planning</p>
+             <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[var(--foreground-subtle)] mb-4">Strategic Planning</p>
              <h1 className="text-4xl font-semibold text-[var(--palette-white)] sm:text-6xl tracking-tight leading-none mb-6">AI Study <span className="text-[var(--brand-400)]">Roadmap</span></h1>
              <p className="text-[var(--foreground-muted)] leading-relaxed">Turn your goals into daily actionable deep-work protocols using our advanced generation engine.</p>
           </motion.div>
@@ -161,18 +161,18 @@ export default function RoadmapPage() {
                </h2>
 
                <div>
-                 <label className="block text-[10px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-3">Your Goal</label>
-                 <textarea value={goal} onChange={(e) => setGoal(e.target.value)} rows={3} className="w-full rounded-2xl bg-[var(--palette-white)]/[0.02] border border-[var(--palette-white)]/5 p-4 text-sm text-[var(--palette-white)] focus:border-[var(--brand-400)] outline-none transition-all resize-none" placeholder="e.g. Master React in 30 days" />
+                 <label htmlFor="your-goal-164" className="block text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-3">Your Goal</label>
+                 <textarea id="your-goal-164" value={goal} onChange={(e) => setGoal(e.target.value)} rows={3} className="w-full rounded-2xl bg-[var(--palette-white)]/[0.02] border border-[var(--palette-white)]/5 p-4 text-sm text-[var(--palette-white)] focus:border-[var(--brand-400)] outline-none transition-all resize-none" placeholder="e.g. Master React in 30 days" />
                </div>
 
                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-3">Daily Hours</label>
-                    <input type="number" min={0.5} max={12} step={0.25} value={dailyHours} onChange={(e) => setDailyHours(Number(e.target.value))} className="w-full rounded-2xl bg-[var(--palette-white)]/[0.02] border border-[var(--palette-white)]/5 p-4 text-sm text-[var(--palette-white)] focus:border-[var(--brand-400)] outline-none transition-all" />
+                    <label htmlFor="daily-hours-170" className="block text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-3">Daily Hours</label>
+                    <input id="daily-hours-170" type="number" min={0.5} max={12} step={0.25} value={dailyHours} onChange={(e) => setDailyHours(Number(e.target.value))} className="w-full rounded-2xl bg-[var(--palette-white)]/[0.02] border border-[var(--palette-white)]/5 p-4 text-sm text-[var(--palette-white)] focus:border-[var(--brand-400)] outline-none transition-all" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-3">Level</label>
-                    <select value={level} onChange={(e) => setLevel(e.target.value as typeof level)} className="w-full rounded-2xl bg-[var(--palette-white)]/[0.02] border border-[var(--palette-white)]/5 p-4 text-sm text-[var(--palette-white)] focus:border-[var(--brand-400)] outline-none transition-all">
+                    <label htmlFor="level-174" className="block text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-3">Level</label>
+                    <select id="level-174" value={level} onChange={(e) => setLevel(e.target.value as typeof level)} className="w-full rounded-2xl bg-[var(--palette-white)]/[0.02] border border-[var(--palette-white)]/5 p-4 text-sm text-[var(--palette-white)] focus:border-[var(--brand-400)] outline-none transition-all">
                        <option value="beginner">Beginner</option>
                        <option value="intermediate">Intermediate</option>
                        <option value="advanced">Advanced</option>
@@ -181,18 +181,18 @@ export default function RoadmapPage() {
                </div>
 
                <div>
-                 <label className="block text-[10px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-3">Current Progress</label>
-                 <textarea value={currentProgress} onChange={(e) => setCurrentProgress(e.target.value)} rows={2} className="w-full rounded-2xl bg-[var(--palette-white)]/[0.02] border border-[var(--palette-white)]/5 p-4 text-sm text-[var(--palette-white)] focus:border-[var(--brand-400)] outline-none transition-all resize-none" />
+                 <label htmlFor="current-progress-184" className="block text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-3">Current Progress</label>
+                 <textarea id="current-progress-184" value={currentProgress} onChange={(e) => setCurrentProgress(e.target.value)} rows={2} className="w-full rounded-2xl bg-[var(--palette-white)]/[0.02] border border-[var(--palette-white)]/5 p-4 text-sm text-[var(--palette-white)] focus:border-[var(--brand-400)] outline-none transition-all resize-none" />
                </div>
 
                <button disabled={loading} onClick={() => void generate()} className="w-full h-14 rounded-2xl bg-[var(--palette-white)] text-[var(--palette-black)] font-semibold text-lg hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2">
                  {loading ? "Generating..." : <>Generate <ArrowRight size={18} /></>}
                </button>
-               {error && <p className="text-[10px] text-[var(--palette-red-400)] font-bold uppercase text-center">{error}</p>}
+               {error && <p className="text-[11px] text-[var(--palette-red-400)] font-bold uppercase text-center">{error}</p>}
 
                {authStatus === "authenticated" && savedRoadmaps.length > 0 && (
                  <div className="pt-8 mt-8 border-t border-[var(--palette-white)]/5">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-4">Saved Protocols</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-4">Saved Protocols</p>
                     <div className="space-y-2 max-h-48 overflow-y-auto pr-2 scrollbar-none">
                        {savedRoadmaps.map((r) => (
                          /*
@@ -211,7 +211,7 @@ export default function RoadmapPage() {
                             >
                                <span className="flex-1 min-w-0">
                                   <span className="block text-xs font-bold text-[var(--palette-white)] truncate">{r.subject}</span>
-                                  <span className="block text-[9px] text-[var(--palette-zinc-500)] font-bold uppercase mt-1">{new Date(r.createdAt).toLocaleDateString()}</span>
+                                  <span className="block text-[11px] text-[var(--palette-zinc-500)] font-bold uppercase mt-1">{new Date(r.createdAt).toLocaleDateString()}</span>
                                </span>
                             </button>
                             <button
@@ -236,7 +236,7 @@ export default function RoadmapPage() {
                 <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-32 text-center">
                    <div className="h-16 w-16 rounded-full border-2 border-[var(--palette-white)]/5 border-t-[var(--brand-400)] animate-spin mb-8" />
                    <h3 className="text-2xl font-semibold text-[var(--palette-white)] mb-2">Assembling Protocol</h3>
-                   <p className="text-[var(--foreground-subtle)] uppercase tracking-widest text-[10px] font-bold">Synchronizing with high-performance datasets</p>
+                   <p className="text-[var(--foreground-subtle)] uppercase tracking-widest text-[11px] font-bold">Synchronizing with high-performance datasets</p>
                 </motion.div>
               )}
 
@@ -244,7 +244,7 @@ export default function RoadmapPage() {
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
                    <div className="flex items-center justify-between mb-8">
                       <div className="text-left">
-                         <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Active Roadmap</p>
+                         <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Active Roadmap</p>
                          <h2 className="text-2xl font-semibold text-[var(--palette-white)]">{goal}</h2>
                       </div>
                       {authStatus === "authenticated" && !saved && (
@@ -275,7 +275,7 @@ export default function RoadmapPage() {
                            </div>
                            <div className="p-8 grid gap-8 md:grid-cols-2">
                               <div>
-                                 <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-4">Focus Protocol</p>
+                                 <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-4">Focus Protocol</p>
                                  <ul className="space-y-3">
                                     {day.focusSessions.map((s, i) => (
                                       <li key={i} className="flex gap-3 text-sm text-[var(--palette-zinc-200)]">
@@ -285,7 +285,7 @@ export default function RoadmapPage() {
                                  </ul>
                               </div>
                               <div>
-                                 <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-4">Tactical Tasks</p>
+                                 <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-4">Tactical Tasks</p>
                                  <ul className="space-y-3">
                                     {day.tasks.map((t, i) => (
                                       <li key={i} className="flex items-center gap-3 p-3 rounded-xl bg-[var(--palette-white)]/[0.02] border border-[var(--palette-white)]/5 text-xs text-[var(--palette-zinc-400)] font-bold">
@@ -296,7 +296,7 @@ export default function RoadmapPage() {
                               </div>
                            </div>
                            {(day.milestone || day.progressCheck || day.resources?.length) && <div className="border-t border-[var(--brand-500)]/20 bg-[var(--brand-soft)] p-6">
-                             <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--brand-400)]">Premium depth</p>
+                             <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--brand-400)]">Premium depth</p>
                              {day.milestone && <p className="mt-2 text-sm"><strong>Milestone:</strong> {day.milestone}</p>}
                              {day.progressCheck && <p className="mt-1 text-sm"><strong>Progress check:</strong> {day.progressCheck}</p>}
                              {!!day.resources?.length && <div className="mt-3 flex flex-wrap gap-2">{day.resources.map((resource) => <a key={resource.url} href={resource.url} target="_blank" rel="noreferrer" className="rounded-lg border border-[var(--brand-500)]/30 px-3 py-2 text-xs text-[var(--brand-400)]">{resource.title} ↗</a>)}</div>}

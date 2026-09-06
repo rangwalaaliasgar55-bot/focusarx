@@ -16,7 +16,7 @@
 import { Router, type Response } from "express";
 import { z } from "zod";
 import { db, pool, adminSqlLogTable } from "@workspace/db";
-import { desc, eq, sql, count } from "drizzle-orm";
+import { desc, count } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { authMiddleware, type AuthRequest } from "../middlewares/auth";
 import { requireAdmin } from "../lib/adminAuth";

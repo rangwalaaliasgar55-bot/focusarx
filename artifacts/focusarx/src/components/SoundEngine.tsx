@@ -300,10 +300,10 @@ export function SoundEngine({ sessionActive, sessionMinutesLeft, sessionTotalMin
       {open && (
         <div className="absolute right-0 top-full mt-2 z-[var(--z-modal)] w-56 rounded-2xl border border-[var(--rgba-124-58-237-0_25)] bg-[var(--rgba-8-12-28-0_97)] p-3 shadow-2xl backdrop-blur-xl">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-[10px] uppercase tracking-wider text-[var(--foreground-subtle)]">Sound Engine</p>
+            <p className="text-[11px] uppercase tracking-wider text-[var(--foreground-subtle)]">Sound Engine</p>
             <button
               onClick={() => setEnabled((v) => !v)}
-              className={`rounded-lg px-2 py-0.5 text-[10px] font-semibold transition-colors ${enabled ? "bg-[var(--rgba-124-58-237-0_2)] text-[var(--brand-400)]" : "bg-[var(--rgba-74-222-128-0_1)] text-[var(--palette-4ade80)]"}`}
+              className={`rounded-lg px-2 py-0.5 text-[11px] font-semibold transition-colors ${enabled ? "bg-[var(--rgba-124-58-237-0_2)] text-[var(--brand-400)]" : "bg-[var(--rgba-74-222-128-0_1)] text-[var(--palette-4ade80)]"}`}
             >
               {enabled ? "On" : "Off"}
             </button>
@@ -317,7 +317,7 @@ export function SoundEngine({ sessionActive, sessionMinutesLeft, sessionTotalMin
               >
                 <span>{e.emoji}</span>
                 <span>{e.label}</span>
-                {env === e.id && enabled && <span className="ml-auto text-[9px] text-[var(--brand-600)]">● LIVE</span>}
+                {env === e.id && enabled && <span className="ml-auto text-[11px] text-[var(--brand-600)]">● LIVE</span>}
               </button>
             ))}
           </div>

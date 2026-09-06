@@ -262,7 +262,7 @@ export default function PetCompanion({
       setTimeout(() => setShowConfetti(false), 3500);
       setTimeout(() => setShowXp(false), 3000);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [phase]);
 
   useEffect(() => {
@@ -444,7 +444,7 @@ export default function PetCompanion({
       {/* ── Pet info row ────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-2 mt-1 flex-wrap justify-center">
         <span
-          className="rounded-full px-2.5 py-0.5 text-[10px] font-semibold border"
+          className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold border"
           style={{ color: petColor, borderColor: `color-mix(in srgb, ${petColor} 27%, transparent)`, background: `color-mix(in srgb, ${petColor} 9%, transparent)` }}
         >
           LVL {pet.petLevel}
@@ -460,7 +460,7 @@ export default function PetCompanion({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.8 }}
               transition={{ duration: 0.25 }}
-              className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+              className="rounded-full px-2 py-0.5 text-[11px] font-bold"
               style={{
                 background: phase === "complete" ? "var(--rgba-6-214-160-0_15)" : "var(--rgba-124-58-237-0_12)",
                 color:      phase === "complete" ? "var(--brand-teal)" : "var(--brand-400)",

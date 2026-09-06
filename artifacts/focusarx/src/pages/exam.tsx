@@ -169,7 +169,7 @@ export function ExamGuidePage() {
         </Link>
 
         <header className="mb-12">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--palette-violet-300)] mb-6">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--palette-violet-300)] mb-6">
             <GraduationCap size={12} /> {guide.exam ? guide.exam.name : "Universal exam strategy"}
           </div>
           <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight leading-tight mb-5">{guide.h1}</h1>
@@ -248,7 +248,7 @@ export function ExamHubPage() {
 
       <div className="max-w-5xl mx-auto px-6 py-16 sm:py-24">
         <header className="text-center mb-14">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--palette-violet-300)] mb-8">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--palette-violet-300)] mb-8">
             <Sparkles size={12} /> Exam guide library
           </div>
           <h1 className="text-4xl sm:text-6xl font-semibold tracking-tight mb-6">{EXAM_HUB.h1}</h1>
@@ -264,7 +264,7 @@ export function ExamHubPage() {
             >
               <div className="flex items-center gap-2 mb-3">
                 <BookOpen size={14} className="text-[var(--palette-violet-400)]" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--foreground-subtle)]">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--foreground-subtle)]">
                   {g.exam ? g.exam.name : "Universal"}
                 </span>
               </div>

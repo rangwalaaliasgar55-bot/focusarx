@@ -2,6 +2,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { Pencil } from "lucide-react";
 import { formatTime } from "@/lib/timerUtils";
+import { RollingClock } from "@/components/RollingClock";
 import type { TimerMode } from "@/types/timer";
 
 interface TimerDisplayProps {
@@ -34,36 +35,6 @@ const MODE_CONFIG: Record<TimerMode, { label: string; ring: string; ringSoft: st
   break:     { label: "Break",      ring: "var(--success)",    ringSoft: "var(--success-soft)" },
   longBreak: { label: "Long break", ring: "var(--info)",       ringSoft: "var(--info-soft)" },
 };
-
-/** One glyph that slides vertically when its value changes. */
-function RollingDigit({ value, reduced }: { value: string; reduced: boolean }) {
-  return (
-    <span className="relative inline-block h-[1em] w-[0.62em] overflow-hidden align-baseline">
-      <AnimatePresence initial={false} mode="popLayout">
-        <motion.span
-          key={value}
-          className="absolute inset-0 grid place-items-center"
-          initial={reduced ? false : { y: "0.55em", opacity: 0, filter: "blur(2px)" }}
-          animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
-          exit={reduced ? { opacity: 0 } : { y: "-0.55em", opacity: 0, filter: "blur(2px)" }}
-          transition={{ duration: 0.34, ease: EASE }}
-        >
-          {value}
-        </motion.span>
-      </AnimatePresence>
-    </span>
-  );
-}
-
-function RollingClock({ minutes, seconds, reduced }: { minutes: string; seconds: string; reduced: boolean }) {
-  return (
-    <span className="inline-flex items-baseline">
-      {minutes.split("").map((d, i) => <RollingDigit key={`m${i}`} value={d} reduced={reduced} />)}
-      <span className="mx-[0.02em] inline-block w-[0.32em] text-center opacity-70">:</span>
-      {seconds.split("").map((d, i) => <RollingDigit key={`s${i}`} value={d} reduced={reduced} />)}
-    </span>
-  );
-}
 
 export function TimerDisplay({
   secondsLeft,
@@ -177,7 +148,7 @@ export function TimerDisplay({
             className="font-display text-[4.25rem] font-semibold leading-none tracking-[-0.055em] text-[var(--foreground)] tabular-nums outline-none transition-opacity disabled:cursor-default enabled:hover:opacity-80 focus-visible:ring-2 focus-visible:ring-[var(--brand-500)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--surface)] rounded-md"
             style={{ fontFeatureSettings: '"tnum" 1, "ss01" 1' }}
           >
-            <RollingClock minutes={minutes} seconds={seconds} reduced={reduced} />
+            <RollingClock value={`${minutes}:${seconds}`} />
           </button>
           {onEditClick && !isRunning && (
             <span

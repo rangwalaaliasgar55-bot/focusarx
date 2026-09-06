@@ -1,7 +1,6 @@
 import { getToken } from "@/lib/auth";
 import { deviceTimeZone } from "@/lib/safeStorage";
 import type { PersistedActiveSession, SessionSyncPayload } from "@/types/session-persistence";
-import type { Session } from "@/types/timer";
 
 function authHeaders(extra?: Record<string, string>): Record<string, string> {
   const token = getToken();

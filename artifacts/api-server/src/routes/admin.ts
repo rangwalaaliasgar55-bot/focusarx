@@ -11,7 +11,7 @@ import { extractUserId } from "./auth";
 import { adminLimiter } from "../lib/rateLimiter";
 import { ALL_MISSIONS } from "./missions";
 import { checkAdminAuth, ADMIN_COOKIE } from "../lib/adminAuth";
-import { seedBots, seedBotsToTarget, deleteAllBots, BOT_PERSONAS, botActivityStats, buildBotFollowGraph, istDayKey } from "../lib/botEngine";
+import { seedBotsToTarget, deleteAllBots, BOT_PERSONAS, botActivityStats, buildBotFollowGraph, istDayKey } from "../lib/botEngine";
 import { generatePersona } from "../lib/personas";
 import { templateInventory } from "../lib/botTemplates";
 import { auditLog, getClientIp } from "../lib/auditLog";
@@ -705,6 +705,10 @@ router.post("/admin/users/:id/premium", async (req, res) => {
   if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   const { id } = req.params as { id: string };
   const days = Number(req.body.days ?? 30);
+  if (!Number.isFinite(days) || days < 1 || days > 3650) {
+    res.status(400).json({ error: "days must be between 1 and 3650" });
+    return;
+  }
   try {
     const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
     const [existing] = await db.select().from(premiumSubscriptionsTable)
@@ -1000,7 +1004,7 @@ router.get("/admin/sql/log", async (req, res) => {
     const limit = Math.min(parseInt(String(req.query.limit) || "15"), 100);
     const rows = await db.execute(sql`SELECT * FROM admin_sql_log ORDER BY created_at DESC LIMIT ${limit}`);
     res.json({ entries: (rows as any).rows ?? rows });
-  } catch (err) {
+  } catch {
     res.json({ entries: [] });
   }
 });

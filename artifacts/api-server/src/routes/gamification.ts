@@ -1,7 +1,6 @@
-import { Router, Request, Response, NextFunction } from "express";
+import { Router, Response } from "express";
 import { db, userWalletsTable, userBadgesTable, usersTable, focusSessionsTable, studyStreaksTable, tasksTable, coinTransactionsTable } from "@workspace/db";
-import { eq, desc, and, sql, gte, count } from "drizzle-orm";
-import { extractUserId } from "./auth";
+import { eq, desc, and, sql, count } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 

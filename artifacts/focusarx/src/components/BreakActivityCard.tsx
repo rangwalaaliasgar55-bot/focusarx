@@ -105,7 +105,7 @@ function CountdownRing({ secondsLeft, totalSeconds, color }: { secondsLeft: numb
           {m}:{s}
         </text>
       </svg>
-      <p className="text-[9px] text-[var(--palette-zinc-500)] uppercase tracking-widest">break left</p>
+      <p className="text-[11px] text-[var(--palette-zinc-500)] uppercase tracking-widest">break left</p>
     </div>
   );
 }
@@ -148,7 +148,7 @@ export default function BreakActivityCard({ mode, secondsLeft, breakDurationSeco
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xl">{activity.icon}</span>
               <div>
-                <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--palette-zinc-500)]">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--palette-zinc-500)]">
                   {isLong ? "Long Break" : "Break"} Activity
                 </p>
                 <p className="text-sm font-bold" style={{ color: activity.color }}>{activity.title}</p>
@@ -197,7 +197,7 @@ export default function BreakActivityCard({ mode, secondsLeft, breakDurationSeco
           ))}
           <button
             onClick={() => setActivityIndex((activityIndex + 1) % ACTIVITIES.length)}
-            className="ml-auto text-[10px] text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)] transition-colors"
+            className="ml-auto text-[11px] text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)] transition-colors"
           >
             Next activity →
           </button>

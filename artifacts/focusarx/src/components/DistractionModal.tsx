@@ -53,7 +53,7 @@ export default function DistractionModal({ sessionId, onDone, onSkip }: Props) {
       >
         <div className="mb-2 flex items-center gap-2">
           <span className="text-lg">📓</span>
-          <p className="text-[10px] uppercase tracking-widest text-[var(--foreground-subtle)]">Distraction Journal</p>
+          <p className="text-[11px] uppercase tracking-widest text-[var(--foreground-subtle)]">Distraction Journal</p>
         </div>
 
         <AnimatePresence mode="wait">

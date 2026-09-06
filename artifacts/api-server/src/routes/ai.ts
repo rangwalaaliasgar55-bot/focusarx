@@ -3,8 +3,6 @@ import { logger } from "../lib/logger";
 import { aiRoadmapLimiter } from "../lib/rateLimiter";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { premiumStatusMiddleware } from "../lib/premiumCheck";
-import { getActivePlans } from "../lib/premiumPlans";
-import { getTokenBalance } from "../lib/tokenLedger";
 import { checkBudget, recordCall, recordRateLimit, userPurposeCalls } from "../lib/aiBudget";
 import { sanitizeAiInput, detectPromptInjection, checkIpLimit, isSafeFallbackError } from "../lib/aiGuardrails";
 import { z } from "zod";

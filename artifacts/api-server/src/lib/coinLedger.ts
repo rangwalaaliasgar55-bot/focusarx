@@ -12,7 +12,6 @@
 import { db } from "@workspace/db";
 import { userWalletsTable, coinTransactionsTable } from "@workspace/db";
 import { and, eq, gte, sql, type SQL } from "drizzle-orm";
-import { logger } from "./logger";
 
 type TxOrDb = {
   update: (t: typeof userWalletsTable) => any;

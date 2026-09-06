@@ -350,7 +350,7 @@ export function SqlConsolePanel({ authHeaders }: { authHeaders: () => Record<str
                     {schemaExpanded.has(table) && (
                       <div className="mb-1 space-y-0.5 pl-3">
                         {cols.map((c) => (
-                          <div key={c.column} className="font-mono text-[10px] text-[var(--foreground-subtle)]">
+                          <div key={c.column} className="font-mono text-[11px] text-[var(--foreground-subtle)]">
                             <span className="text-[var(--foreground-muted)]">{c.column}</span> <span className="opacity-60">{c.type}</span>
                           </div>
                         ))}
@@ -469,11 +469,11 @@ export function SqlConsolePanel({ authHeaders }: { authHeaders: () => Record<str
             <div key={i} className={cn("rounded-2xl border p-5", r.ok ? "border-[var(--border)] bg-[var(--card)]" : "border-red-500/40 bg-red-500/5")}>
               <div className="flex flex-wrap items-center gap-2 mb-3">
                 <span className="text-xs font-bold text-[var(--foreground-subtle)]">STMT {i + 1}</span>
-                <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold uppercase", r.kind === "write" ? "bg-amber-500/15 text-amber-300" : "bg-sky-500/15 text-sky-300")}>
+                <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-bold uppercase", r.kind === "write" ? "bg-amber-500/15 text-amber-300" : "bg-sky-500/15 text-sky-300")}>
                   {r.kind}
                 </span>
                 {r.destructive && (
-                  <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-red-300">destructive</span>
+                  <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-[11px] font-bold uppercase text-red-300">destructive</span>
                 )}
                 <span className={cn("ml-auto text-xs font-semibold", r.ok ? "text-emerald-300" : "text-red-400")}>
                   {r.ok ? `${r.rowCount} row${r.rowCount === 1 ? "" : "s"}${r.truncated ? " (truncated)" : ""} · ${r.durationMs} ms` : "failed · " + r.durationMs + " ms"}
@@ -486,7 +486,7 @@ export function SqlConsolePanel({ authHeaders }: { authHeaders: () => Record<str
                     <thead>
                       <tr className="border-b border-[var(--border)] bg-white/[0.03]">
                         {r.columns.map((c) => (
-                          <th key={c} className="px-3 py-2 font-bold text-[var(--foreground-subtle)] uppercase tracking-wider text-[10px] whitespace-nowrap">{c}</th>
+                          <th key={c} className="px-3 py-2 font-bold text-[var(--foreground-subtle)] uppercase tracking-wider text-[11px] whitespace-nowrap">{c}</th>
                         ))}
                       </tr>
                     </thead>
@@ -530,7 +530,7 @@ export function SqlConsolePanel({ authHeaders }: { authHeaders: () => Record<str
             <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
               {log.map((e) => (
                 <div key={e.id} className="rounded-xl border border-[var(--border)]/60 px-3 py-2">
-                  <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
+                  <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider">
                     <span className={e.kind === "write" ? "text-amber-300" : "text-sky-300"}>{e.kind}</span>
                     <span className={e.status === "ok" ? "text-emerald-300" : e.status === "error" ? "text-red-400" : "text-amber-300"}>{e.status}</span>
                     {e.rowsAffected > 0 && <span className="text-[var(--foreground-subtle)]">{e.rowsAffected} rows</span>}
@@ -561,7 +561,7 @@ export function SqlConsolePanel({ authHeaders }: { authHeaders: () => Record<str
                   <div className="flex items-center gap-2 rounded-lg bg-black/30 border border-[var(--border)] px-3 py-2">
                     <code className="flex-1 font-mono text-[11px] text-emerald-300 break-all">{h.cmd}</code>
                     <button onClick={() => copy(h.label, h.cmd)} className="shrink-0 text-[var(--foreground-subtle)] hover:text-[var(--foreground)]" title="Copy">
-                      {copied === h.label ? <span className="text-emerald-300 text-[10px] font-bold">COPIED</span> : <ClipboardCopy size={14} />}
+                      {copied === h.label ? <span className="text-emerald-300 text-[11px] font-bold">COPIED</span> : <ClipboardCopy size={14} />}
                     </button>
                   </div>
                 )}

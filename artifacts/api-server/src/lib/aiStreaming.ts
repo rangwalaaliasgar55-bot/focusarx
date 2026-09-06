@@ -5,7 +5,7 @@
  * Provides sub-200ms first token via Server-Sent Events
  */
 
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
 
 export interface StreamMessage {
   type: 'token' | 'done' | 'error' | 'meta';

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { adminDropsTable, usersTable, marketplaceItemsTable } from "@workspace/db";
+import { adminDropsTable, marketplaceItemsTable } from "@workspace/db";
 import { and, desc, eq, gte, isNull } from "drizzle-orm";
 import { authMiddleware, type AuthRequest } from "../middlewares/auth";
 import { requireAdmin } from "../lib/adminAuth";

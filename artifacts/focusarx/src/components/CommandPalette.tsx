@@ -10,7 +10,6 @@ import {
   LayoutDashboard,
   Library,
   Plus,
-  Search,
   Settings,
   Sparkles,
   Timer,

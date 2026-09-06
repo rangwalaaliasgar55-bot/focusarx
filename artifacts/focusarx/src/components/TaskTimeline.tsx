@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { getToken } from "@/lib/auth";
 import { Clock } from "lucide-react";
 
@@ -69,7 +69,7 @@ export default function TaskTimeline({ tasks: propTasks, elapsedSeconds = 0, isR
   if (tasks.length === 0) {
     return (
       <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
-        <p className="text-[10px] uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Task Timeline</p>
+        <p className="text-[11px] uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Task Timeline</p>
         <p className="text-sm text-[var(--foreground-subtle)] text-center py-4">No pending tasks. Add tasks with time estimates to see the timeline.</p>
       </div>
     );
@@ -85,7 +85,7 @@ export default function TaskTimeline({ tasks: propTasks, elapsedSeconds = 0, isR
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-[var(--foreground-subtle)]">Task Timeline</p>
+          <p className="text-[11px] uppercase tracking-widest text-[var(--foreground-subtle)]">Task Timeline</p>
           <h3 className="mt-0.5 text-sm font-semibold text-[var(--foreground)]">
             {totalMinutes > 0
               ? isRunning
@@ -109,7 +109,7 @@ export default function TaskTimeline({ tasks: propTasks, elapsedSeconds = 0, isR
               transition={{ duration: 0.4 }}
             />
           </div>
-          <div className="flex justify-between text-[9px] text-[var(--foreground-subtle)]">
+          <div className="flex justify-between text-[11px] text-[var(--foreground-subtle)]">
             <span>{Math.round(elapsedMinutes)}m elapsed</span>
             <span>{Math.round(totalElapsedPct)}%</span>
             <span>{totalMinutes}m total</span>
@@ -151,9 +151,9 @@ export default function TaskTimeline({ tasks: propTasks, elapsedSeconds = 0, isR
                       <span className="truncate text-[11px] text-[var(--foreground-muted)] font-medium">{task.text}</span>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="text-[9px] text-[var(--foreground-subtle)]">{startLabel}–{endLabel}</span>
+                      <span className="text-[11px] text-[var(--foreground-subtle)]">{startLabel}–{endLabel}</span>
                       <span
-                        className="rounded-md px-1.5 py-0.5 text-[9px] font-semibold"
+                        className="rounded-md px-1.5 py-0.5 text-[11px] font-semibold"
                         style={{ background: `color-mix(in srgb, ${color} 9%, transparent)`, color }}
                       >
                         {task.estimatedMinutes}m
@@ -183,7 +183,7 @@ export default function TaskTimeline({ tasks: propTasks, elapsedSeconds = 0, isR
                       className="absolute inset-y-0 left-0 flex items-center px-2 pointer-events-none"
                       style={{ width: `${pct}%` }}
                     >
-                      <span className="truncate text-[9px] font-medium" style={{ color }}>
+                      <span className="truncate text-[11px] font-medium" style={{ color }}>
                         {isDone && isRunning ? "✓ " : ""}{task.text}
                       </span>
                     </div>
@@ -240,7 +240,7 @@ export default function TaskTimeline({ tasks: propTasks, elapsedSeconds = 0, isR
               ) : (
                 <button
                   onClick={() => { setEditingId(task.id); setEditVal(task.estimatedMinutes?.toString() ?? ""); }}
-                  className={`flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-[var(--radius-md)] px-1.5 py-0.5 text-[10px] transition-colors ${
+                  className={`flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-[var(--radius-md)] px-1.5 py-0.5 text-[11px] transition-colors ${
                     hasTime
                       ? "font-semibold opacity-100"
                       : "opacity-0 group-hover:opacity-100 text-[var(--foreground-subtle)] hover:text-[var(--brand-400)]"
@@ -283,7 +283,7 @@ export function OverrunModal({ task, overrunMinutes, onReschedule, onDefer, onDr
       >
         <div className="mb-1 flex items-center gap-2">
           <span className="text-lg">⏱️</span>
-          <p className="text-[10px] uppercase tracking-widest text-[var(--rgba-255-184-0-0_8)]">Overrun detected</p>
+          <p className="text-[11px] uppercase tracking-widest text-[var(--rgba-255-184-0-0_8)]">Overrun detected</p>
         </div>
         <h3 className="mb-1 text-base font-bold text-[var(--foreground)]">You're {overrunMinutes}m over on:</h3>
         <p className="mb-5 text-sm text-[var(--foreground-muted)] italic">"{task.text}"</p>

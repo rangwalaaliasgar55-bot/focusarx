@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, roadmapsTable, usersTable } from "@workspace/db";
+import { db, roadmapsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import jwt from "jsonwebtoken";

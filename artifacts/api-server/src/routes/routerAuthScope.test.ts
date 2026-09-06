@@ -59,7 +59,7 @@ describe("router auth scoping", () => {
 
   it("still enforces auth on the scoped prefixes (emotes, flashcards, developer)", async () => {
     for (const path of ["/api/emotes", "/api/flashcards/decks", "/api/developer/overview"]) {
-      // eslint-disable-next-line no-await-in-loop
+       
       const res = await fetch(`${baseUrl}${path}`);
       expect(res.status, path).toBe(401);
     }

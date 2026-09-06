@@ -87,7 +87,7 @@ export default function MobileWelcomePage() {
               transition={{ duration: 0.4, ease: "easeOut" }}
             />
           </div>
-          <p className="mt-2 text-[10px] text-[var(--palette-zinc-400)] text-right">{stepIndex + 1} of {STEPS.length - 1}</p>
+          <p className="mt-2 text-[11px] text-[var(--palette-zinc-400)] text-right">{stepIndex + 1} of {STEPS.length - 1}</p>
         </div>
       )}
 

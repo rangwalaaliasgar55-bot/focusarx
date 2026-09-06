@@ -179,7 +179,7 @@ export default function CoachPanel() {
           >
             <p className="mb-1 text-[11px] font-semibold text-[var(--brand-400)]">Coach tip 🧠</p>
             <p className="text-[11px] leading-relaxed text-[var(--foreground-muted)]">{proactiveMsg}</p>
-            <p className="mt-2 text-[10px] text-[var(--foreground-subtle)]">Tap to reply →</p>
+            <p className="mt-2 text-[11px] text-[var(--foreground-subtle)]">Tap to reply →</p>
           </motion.button>
         )}
       </AnimatePresence>
@@ -215,7 +215,7 @@ export default function CoachPanel() {
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[var(--brand-600)] to-[var(--palette-4f46e5)] text-sm">🧠</div>
               <div>
                 <p className="text-sm font-bold text-[var(--foreground)]">FocusArx Coach</p>
-                <p className="text-[10px] text-[var(--foreground-subtle)]">{isLocked ? "Premium feature" : "Productivity & neuroscience"}</p>
+                <p className="text-[11px] text-[var(--foreground-subtle)]">{isLocked ? "Premium feature" : "Productivity & neuroscience"}</p>
               </div>
               {!isLocked && (
                 <button
@@ -227,7 +227,7 @@ export default function CoachPanel() {
                 </button>
               )}
               {isFallback && !isLocked && (
-                <span className="ml-auto rounded border border-[var(--palette-zinc-800)] px-1.5 py-0.5 text-[9px] text-[var(--palette-zinc-600)]">Basic</span>
+                <span className="ml-auto rounded border border-[var(--palette-zinc-800)] px-1.5 py-0.5 text-[11px] text-[var(--palette-zinc-600)]">Basic</span>
               )}
             </div>
 
@@ -297,7 +297,7 @@ export default function CoachPanel() {
                     Earn tokens through quests <ArrowRight size={14} />
                   </Link>
                 </div>
-                <p className="text-[10px] text-[var(--foreground-subtle)]">No real-money payments. Unlock purely through productivity.</p>
+                <p className="text-[11px] text-[var(--foreground-subtle)]">No real-money payments. Unlock purely through productivity.</p>
               </div>
             ) : (
               <div className="flex flex-1 flex-col overflow-hidden">
@@ -349,7 +349,7 @@ export default function CoachPanel() {
                           setInput(p);
                           setTimeout(() => inputRef.current?.focus(), 0);
                         }}
-                        className="rounded-full border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-124-58-237-0_06)] px-3 py-1 text-[10px] font-medium text-[var(--muted-fg)] transition-all hover:border-[var(--rgba-124-58-237-0_4)] hover:text-[var(--brand-400)]"
+                        className="rounded-full border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-124-58-237-0_06)] px-3 py-1 text-[11px] font-medium text-[var(--muted-fg)] transition-all hover:border-[var(--rgba-124-58-237-0_4)] hover:text-[var(--brand-400)]"
                       >
                         {p}
                       </button>
@@ -370,7 +370,7 @@ export default function CoachPanel() {
                         maxLength={1000}
                         className="w-full rounded-xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-124-58-237-0_05)] px-3 py-2 text-sm text-[var(--foreground)] placeholder-[var(--foreground-subtle)] focus:border-[var(--brand-600)] focus:outline-none"
                       />
-                      {input.length > 800 && <span className="absolute bottom-1 right-2 text-[9px] text-[var(--color-error)]">{1000 - input.length}</span>}
+                      {input.length > 800 && <span className="absolute bottom-1 right-2 text-[11px] text-[var(--color-error)]">{1000 - input.length}</span>}
                     </div>
                     <button
                       onClick={() => void send()}

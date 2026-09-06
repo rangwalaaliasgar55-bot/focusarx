@@ -28,7 +28,7 @@ export function AdminBattlePassPanel({ bpStats }: { bpStats: BattlePassStats }) 
                         style={{ height: `${Math.round((d.count / maxC) * 100)}%`, minHeight: "2px" }}
                         title={`Tier ${d.tier}: ${d.count} users`}
                       />
-                      {d.tier % 10 === 0 && <span className="text-[9px] text-[var(--palette-zinc-600)]">{d.tier}</span>}
+                      {d.tier % 10 === 0 && <span className="text-[11px] text-[var(--palette-zinc-600)]">{d.tier}</span>}
                     </div>
                   );
                 })}
@@ -44,15 +44,15 @@ export function AdminBattlePassPanel({ bpStats }: { bpStats: BattlePassStats }) 
         <p className="text-xs font-medium uppercase tracking-wider text-[var(--palette-zinc-500)] mb-3">Season Configuration</p>
         <div className="grid gap-2 sm:grid-cols-3 text-xs text-[var(--palette-zinc-400)]">
           <div className="rounded-lg border border-[var(--palette-zinc-800)] px-4 py-3">
-            <p className="text-[var(--palette-zinc-500)] text-[10px] uppercase tracking-wider">Season</p>
+            <p className="text-[var(--palette-zinc-500)] text-[11px] uppercase tracking-wider">Season</p>
             <p className="text-[var(--palette-zinc-100)] font-semibold mt-1">Season 1</p>
           </div>
           <div className="rounded-lg border border-[var(--palette-zinc-800)] px-4 py-3">
-            <p className="text-[var(--palette-zinc-500)] text-[10px] uppercase tracking-wider">XP per Tier</p>
+            <p className="text-[var(--palette-zinc-500)] text-[11px] uppercase tracking-wider">XP per Tier</p>
             <p className="text-[var(--palette-violet-400)] font-semibold mt-1">1,000 XP</p>
           </div>
           <div className="rounded-lg border border-[var(--palette-zinc-800)] px-4 py-3">
-            <p className="text-[var(--palette-zinc-500)] text-[10px] uppercase tracking-wider">Max Tiers</p>
+            <p className="text-[var(--palette-zinc-500)] text-[11px] uppercase tracking-wider">Max Tiers</p>
             <p className="text-[var(--palette-amber-400)] font-semibold mt-1">50 Tiers</p>
           </div>
         </div>

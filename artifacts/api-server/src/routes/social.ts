@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction, Router } from "express";
+import { Response, Router } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { db } from "@workspace/db";
 import {
@@ -7,7 +7,7 @@ import {
   notificationsTable, followsTable,
   userMissionProgressTable, socialPostsTable, userBadgesTable,
 } from "@workspace/db";
-import { isUserPremium, isUsersPremium } from "../lib/premiumCheck";
+import { isUsersPremium } from "../lib/premiumCheck";
 import { logger } from "../lib/logger";
 import { ensureDailyBotActivity } from "../lib/botEngine";
 import { eq, or, and, desc, ilike, sql, gte, inArray } from "drizzle-orm";
@@ -425,7 +425,7 @@ socialRouter.post("/social/follow/:userId", authMiddleware, async (req: AuthRequ
     if (existing) { res.json({ ok: true, alreadyFollowing: true }); return; }
     await db.insert(followsTable).values({ followerId: userId, followingId: targetId });
     res.json({ ok: true });
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: "Internal error" });
   }
 });
@@ -503,7 +503,7 @@ socialRouter.get("/social/friends-activity", authMiddleware, async (req: AuthReq
     }));
 
     res.json(activities.slice(0, 5));
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: "Internal error" });
   }
 });

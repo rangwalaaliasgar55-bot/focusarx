@@ -16,13 +16,6 @@ export function useNotificationPermission() {
     return localStorage.getItem("focusarx-notif-soft-dismissed") === "1";
   });
 
-  useEffect(() => {
-    if (!("Notification" in window)) {
-      setPermission("unsupported");
-      return;
-    }
-    setPermission(Notification.permission as PermissionState);
-  }, []);
 
   // Decide if we should show soft prompt: user has completed at least 1 focus session and hasn't granted/denied
   const maybeShowSoftPrompt = useCallback(() => {

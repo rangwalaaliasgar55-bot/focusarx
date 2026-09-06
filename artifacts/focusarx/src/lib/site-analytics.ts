@@ -31,7 +31,7 @@ type PendingEvent = {
 
 let sessionId: string | null = null;
 let lastActivity = 0;
-let pendingEvents: PendingEvent[] = [];
+const pendingEvents: PendingEvent[] = [];
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
 let linkedUserId: string | null = null;
 

@@ -140,18 +140,18 @@ export default function YouTubeFocusTimer({ isActive }: YouTubeFocusTimerProps) 
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold truncate">{currentVideo.title}</p>
-            <p className="text-[10px] text-[var(--foreground-subtle)]">{currentVideo.channel}</p>
+            <p className="text-[11px] text-[var(--foreground-subtle)]">{currentVideo.channel}</p>
           </div>
           <div className="flex items-center gap-2 ml-3">
             <button
               onClick={prevVideo}
-              className="rounded-lg bg-[var(--surface-2)] px-3 py-1.5 text-[10px] font-bold transition-colors hover:bg-[var(--surface-3)]"
+              className="rounded-lg bg-[var(--surface-2)] px-3 py-1.5 text-[11px] font-bold transition-colors hover:bg-[var(--surface-3)]"
             >
               Prev
             </button>
             <button
               onClick={nextVideo}
-              className="rounded-lg bg-[var(--surface-2)] px-3 py-1.5 text-[10px] font-bold transition-colors hover:bg-[var(--surface-3)]"
+              className="rounded-lg bg-[var(--surface-2)] px-3 py-1.5 text-[11px] font-bold transition-colors hover:bg-[var(--surface-3)]"
             >
               Next
             </button>
@@ -159,7 +159,7 @@ export default function YouTubeFocusTimer({ isActive }: YouTubeFocusTimerProps) 
               href={CHANNEL_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-lg bg-[var(--brand-soft)] px-3 py-1.5 text-[10px] font-bold text-[var(--brand-400)] transition-colors hover:bg-[var(--brand-soft)]/80"
+              className="rounded-lg bg-[var(--brand-soft)] px-3 py-1.5 text-[11px] font-bold text-[var(--brand-400)] transition-colors hover:bg-[var(--brand-soft)]/80"
             >
               <ExternalLink size={10} />
             </a>

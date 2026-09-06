@@ -34,7 +34,7 @@ interface MobileBottomNavProps {
 
 export function MobileBottomNav({ onMoreClick, hidden }: MobileBottomNavProps) {
   const [location] = useLocation();
-  const [isFocusMode, setIsFocusMode] = useState(false);
+  const [isFocusMode, setIsFocusMode] = useState(() => typeof document !== "undefined" && !!document.querySelector("[data-focus-mode='active']"));
 
   // Listen for focus mode events to auto-hide. Both timer implementations
   // (Timer.tsx and FocusTimerMobileFirst.tsx) dispatch these events, so no
@@ -45,7 +45,6 @@ export function MobileBottomNav({ onMoreClick, hidden }: MobileBottomNavProps) {
     const handleFocusStop = () => setIsFocusMode(false);
     window.addEventListener("fx:focus-start", handleFocusStart);
     window.addEventListener("fx:focus-stop", handleFocusStop);
-    setIsFocusMode(!!document.querySelector("[data-focus-mode='active']"));
     return () => {
       window.removeEventListener("fx:focus-start", handleFocusStart);
       window.removeEventListener("fx:focus-stop", handleFocusStop);

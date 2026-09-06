@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Response } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
@@ -6,7 +6,6 @@ import {
   conversations, conversationParticipants, messages, messageReactions,
   usersTable, notificationsTable,
 } from "@workspace/db";
-import { extractUserId } from "./auth";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { emitToUser } from "../lib/socketManager";
 import { logger } from "../lib/logger";

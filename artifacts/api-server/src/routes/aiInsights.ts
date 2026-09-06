@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Response } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
@@ -6,20 +6,19 @@ import {
   focusSessionsTable, tasksTable, studyStreaksTable,
   productivityLogsTable, userWalletsTable,
 } from "@workspace/db";
-import { extractUserId } from "./auth";
 import { isUserPremium } from "../lib/premiumCheck";
 import { generateAi } from "../lib/aiProvider";
 import { eq, and, desc, sql } from "drizzle-orm";
+import { clockInZone, dayKeyInZone, shiftDayKey } from "../lib/timezone";
+import { userZone } from "../lib/userZone";
 
 export const aiInsightsRouter = Router();
 
-function daysAgoStr(n: number) {
-  const d = new Date(); d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
-}
+const daysAgoStr = (n: number, zone: string) => shiftDayKey(dayKeyInZone(Date.now(), zone), -n);
 
 async function gatherUserStats(userId: string) {
-  const weekAgo = daysAgoStr(7);
+  const zone = await userZone(userId);
+  const weekAgo = daysAgoStr(7, zone);
   const sessions = await db.select().from(focusSessionsTable)
     .where(and(eq(focusSessionsTable.userId, userId), sql`completed_at >= ${weekAgo}`))
     .orderBy(desc(focusSessionsTable.completedAt)).limit(100);
@@ -40,7 +39,7 @@ async function gatherUserStats(userId: string) {
   const hourBuckets: Record<number, number> = {};
   sessions.forEach(s => {
     if (s.completedAt) {
-      const h = new Date(s.completedAt).getHours();
+      const h = clockInZone(s.completedAt, zone).hour;
       hourBuckets[h] = (hourBuckets[h] ?? 0) + 1;
     }
   });
@@ -147,7 +146,8 @@ aiInsightsRouter.get("/ai/performance-insights", authMiddleware, async (req: Aut
 
 aiInsightsRouter.get("/ai/habit-analysis", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
-  const monthAgo = daysAgoStr(30);
+  const zone = await userZone(userId);
+  const monthAgo = daysAgoStr(30, zone);
   const sessions = await db.select().from(focusSessionsTable)
     .where(and(eq(focusSessionsTable.userId, userId), sql`completed_at >= ${monthAgo}`))
     .orderBy(desc(focusSessionsTable.completedAt));
@@ -155,7 +155,7 @@ aiInsightsRouter.get("/ai/habit-analysis", authMiddleware, async (req: AuthReque
   const dayBuckets: Record<string, number[]> = {};
   sessions.forEach(s => {
     if (s.completedAt) {
-      const day = new Date(s.completedAt).toISOString().slice(0, 10);
+      const day = dayKeyInZone(s.completedAt, zone);
       if (!dayBuckets[day]) dayBuckets[day] = [];
       dayBuckets[day].push(s.durationSec ?? 0);
     }
@@ -163,7 +163,7 @@ aiInsightsRouter.get("/ai/habit-analysis", authMiddleware, async (req: AuthReque
 
   const weekdayMap: Record<string, number> = { Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 };
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  sessions.forEach(s => { if (s.completedAt) weekdayMap[dayNames[new Date(s.completedAt).getDay()]]++; });
+  sessions.forEach(s => { if (s.completedAt) weekdayMap[dayNames[clockInZone(s.completedAt, zone).weekday]!]!++; });
 
   const activeDays = Object.keys(dayBuckets).length;
   const longestSession = sessions.reduce((max, s) => Math.max(max, s.durationSec ?? 0), 0);
@@ -188,7 +188,8 @@ aiInsightsRouter.get("/ai/monthly-report", authMiddleware, async (req: AuthReque
     return res.status(403).json({ error: "Monthly AI Reports require Premium" });
   }
 
-  const monthAgo = daysAgoStr(30);
+  const zone = await userZone(userId);
+  const monthAgo = daysAgoStr(30, zone);
   const sessions = await db.select().from(focusSessionsTable)
     .where(and(eq(focusSessionsTable.userId, userId), sql`completed_at >= ${monthAgo}`))
     .orderBy(desc(focusSessionsTable.completedAt));
@@ -203,9 +204,9 @@ aiInsightsRouter.get("/ai/monthly-report", authMiddleware, async (req: AuthReque
 
   const totalMinutes = sessions.reduce((s, r) => s + Math.round((r.durationSec ?? 0) / 60), 0);
   const avgScore = sessions.length ? sessions.reduce((s, r) => s + (r.focusScore ?? 0), 0) / sessions.length : 0;
-  const activeDays = new Set(sessions.filter(s => s.completedAt).map(s => s.completedAt!.toISOString().slice(0, 10))).size;
+  const activeDays = new Set(sessions.filter(s => s.completedAt).map(s => dayKeyInZone(s.completedAt!, zone))).size;
   const peakHourBuckets: Record<number, number> = {};
-  sessions.forEach(s => { if (s.completedAt) { const h = new Date(s.completedAt).getHours(); peakHourBuckets[h] = (peakHourBuckets[h] ?? 0) + 1; } });
+  sessions.forEach(s => { if (s.completedAt) { const h = clockInZone(s.completedAt, zone).hour; peakHourBuckets[h] = (peakHourBuckets[h] ?? 0) + 1; } });
   const peakHour = Object.entries(peakHourBuckets).sort((a, b) => Number(b[1]) - Number(a[1]))[0]?.[0];
 
   const prompt = `Generate a personalized MONTHLY productivity report. Stats over 30 days: ${sessions.length} sessions, ${totalMinutes} minutes total, ${Math.round(avgScore)}% avg focus score, ${activeDays} active days, ${taskStats?.completed ?? 0}/${taskStats?.total ?? 0} tasks completed. Peak hour: ${peakHour !== undefined ? `${peakHour}:00` : "unknown"}. Level ${wallet?.level ?? 1}. Streak: ${streak?.currentStreak ?? 0} days. Write 5 sections: Monthly Overview, Focus Patterns, Strengths, Areas for Growth, Next Month Goals. 350 words max. Analytical and data-driven with actionable recommendations.`;

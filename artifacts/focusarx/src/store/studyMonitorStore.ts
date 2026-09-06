@@ -3,7 +3,6 @@ import type {
   FaceState,
   FocusTimelinePoint,
   SessionFocusMetrics,
-  SessionInsights,
 } from "@/types/focus";
 import { computeAdaptiveFocusScore } from "@/lib/focusScoreEngine";
 import { computeStabilityRating } from "@/lib/stabilityEngine";

@@ -1,9 +1,8 @@
-import { Request, Response, NextFunction } from "express";
+import { Response } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { pushSubscriptionsTable } from "@workspace/db";
-import { extractUserId } from "./auth";
 import { eq, and } from "drizzle-orm";
 import { initVapid, getVapidPublicKey } from "../lib/pushSender";
 import { logger } from "../lib/logger";

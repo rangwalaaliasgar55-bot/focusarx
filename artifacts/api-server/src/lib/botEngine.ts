@@ -496,7 +496,7 @@ const moderationCache = new Map<string, boolean>();
 async function safeContent(content: string): Promise<boolean> {
   const cached = moderationCache.get(content);
   if (cached !== undefined) return cached;
-  let ok = true;
+  let ok: boolean;
   try {
     const result = await moderateText(content);
     ok = result.status !== "rejected" && result.status !== "flagged";

@@ -1,9 +1,8 @@
-import { Request, Response, NextFunction } from "express";
+import { Response } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db, marketplaceItemsTable, userInventoryTable, userWalletsTable, usersTable, notificationsTable } from "@workspace/db";
-import { eq, and, gte, sql, inArray, desc } from "drizzle-orm";
-import { extractUserId } from "./auth";
+import { eq, and, inArray } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { isUserPremium } from "../lib/premiumCheck";
 import { mintCoins, burnCoins } from "../lib/coinLedger";

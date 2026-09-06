@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useAuth } from "@/lib/auth";
 import { PageTransition } from "@/components/PageTransition";
-import { Dna, RefreshCw, Zap, Clock, Calendar, AlertTriangle, Share2 } from "lucide-react";
+import { Dna, RefreshCw, Zap, Clock, Share2 } from "lucide-react";
 
 type FocusDna = {
   id: string;
@@ -55,10 +55,10 @@ function CardFace({
       <div className="relative z-[var(--z-content)] flex flex-col h-full p-7">
         <div className="flex items-start justify-between mb-6">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.25em]" style={{ color: dna.colorSecondary }}>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.25em]" style={{ color: dna.colorSecondary }}>
               Focus DNA
             </p>
-            <p className="text-[10px] text-[var(--foreground-subtle)] mt-0.5">
+            <p className="text-[11px] text-[var(--foreground-subtle)] mt-0.5">
               After {dna.sessionCountAtGeneration} sessions
             </p>
           </div>
@@ -81,20 +81,20 @@ function CardFace({
           <div className="rounded-xl p-3" style={{ background: `color-mix(in srgb, ${dna.colorPrimary} 7%, transparent)`, border: `1px solid color-mix(in srgb, ${dna.colorPrimary} 13%, transparent)` }}>
             <div className="flex items-center gap-1.5 mb-1">
               <Clock size={11} style={{ color: dna.colorSecondary }} />
-              <span className="text-[9px] uppercase tracking-wider text-[var(--foreground-subtle)]">Peak Hour</span>
+              <span className="text-[11px] uppercase tracking-wider text-[var(--foreground-subtle)]">Peak Hour</span>
             </div>
             <p className="text-base font-bold" style={{ color: dna.colorSecondary }}>{formatHour(dna.topFocusHour)}</p>
           </div>
           <div className="rounded-xl p-3" style={{ background: `color-mix(in srgb, ${dna.colorPrimary} 7%, transparent)`, border: `1px solid color-mix(in srgb, ${dna.colorPrimary} 13%, transparent)` }}>
             <div className="flex items-center gap-1.5 mb-1">
               <Zap size={11} style={{ color: dna.colorSecondary }} />
-              <span className="text-[9px] uppercase tracking-wider text-[var(--foreground-subtle)]">Avg Session</span>
+              <span className="text-[11px] uppercase tracking-wider text-[var(--foreground-subtle)]">Avg Session</span>
             </div>
             <p className="text-base font-bold" style={{ color: dna.colorSecondary }}>{dna.avgSessionMin ?? "—"}m</p>
           </div>
         </div>
 
-        <p className="mt-4 text-[9px] text-[var(--foreground-subtle)] text-center">
+        <p className="mt-4 text-[11px] text-[var(--foreground-subtle)] text-center">
           Updated {new Date(dna.generatedAt).toLocaleDateString()}
         </p>
       </div>

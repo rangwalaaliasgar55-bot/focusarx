@@ -648,7 +648,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--palette-zinc-800)]/80 text-2xl border border-[var(--palette-zinc-700)]/50 shadow-inner">
                 {avatar}
               </div>
-              <div className="absolute -bottom-1 -right-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[var(--palette-violet-600)] text-[10px] font-semibold text-[var(--palette-white)] px-1 border border-[var(--palette-0d0f17)]">
+              <div className="absolute -bottom-1 -right-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[var(--palette-violet-600)] text-[11px] font-semibold text-[var(--palette-white)] px-1 border border-[var(--palette-0d0f17)]">
                 {level}
               </div>
             </div>
@@ -657,7 +657,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-xs font-bold text-[var(--palette-zinc-300)]">Level {level}</span>
-                <span className="text-[10px] text-[var(--palette-zinc-500)]">{totalXp.toLocaleString()} XP</span>
+                <span className="text-[11px] text-[var(--palette-zinc-500)]">{totalXp.toLocaleString()} XP</span>
               </div>
               <div className="h-1.5 w-full rounded-full bg-[var(--palette-zinc-800)] overflow-hidden">
                 <motion.div
@@ -667,7 +667,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
                   transition={{ duration: 0.4, ease: "easeOut" }}
                 />
               </div>
-              <div className="mt-1 flex items-center gap-3 text-[10px] text-[var(--palette-zinc-600)]">
+              <div className="mt-1 flex items-center gap-3 text-[11px] text-[var(--palette-zinc-600)]">
                 <span>{xpEnd - totalXp} XP to level {level + 1}</span>
               </div>
             </div>
@@ -743,7 +743,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
           {/* Session presets (9.1): Pomodoro, Extended, Deep, Animedoro, Flow, Custom */}
           {mode === "focus" && status === "idle" && (
             <div className="mt-3 flex flex-wrap items-center gap-1.5" role="group" aria-label="Session mode">
-              <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-600)] mr-0.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-600)] mr-0.5">
                 Mode
               </span>
               {SESSION_PRESETS.map((p) => {
@@ -755,7 +755,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
                     onClick={() => applyPreset(p.id)}
                     title={p.blurb}
                     aria-pressed={active}
-                    className={`rounded-full border px-2.5 py-1 text-[10px] font-bold transition-all min-h-[28px] ${
+                    className={`rounded-full border px-2.5 py-1 text-[11px] font-bold transition-all min-h-[28px] ${
                       active
                         ? "border-[var(--brand-400)]/50 bg-[var(--rgba-124-58-237-0_15)] text-[var(--brand-400)]"
                         : "border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/60 text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)]"
@@ -768,7 +768,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
               <button
                 type="button"
                 onClick={handleEditTime}
-                className="rounded-full border border-dashed border-[var(--palette-zinc-700)] px-2.5 py-1 text-[10px] font-bold text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)] min-h-[28px]"
+                className="rounded-full border border-dashed border-[var(--palette-zinc-700)] px-2.5 py-1 text-[11px] font-bold text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)] min-h-[28px]"
               >
                 Custom…
               </button>
@@ -786,7 +786,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
               animate={{ opacity: 1, y: 0 }}
               className="mt-3 w-full"
             >
-              <div className="flex items-center justify-between mb-1 text-[10px] font-bold uppercase tracking-wider">
+              <div className="flex items-center justify-between mb-1 text-[11px] font-bold uppercase tracking-wider">
                 <span className="text-[var(--palette-zinc-600)]">Procrastination HP</span>
                 <span className="text-[var(--palette-rose-400)]">{Math.round((1 - progress) * 100)}% defeated</span>
               </div>
@@ -819,7 +819,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
               completed={completedFocusSessions}
               total={DEFAULT_CONFIG.sessionsBeforeLongBreak}
             />
-            <p className="text-[10px] text-[var(--palette-zinc-600)] font-medium">
+            <p className="text-[11px] text-[var(--palette-zinc-600)] font-medium">
               {completedFocusSessions}/{DEFAULT_CONFIG.sessionsBeforeLongBreak} rounds
             </p>
           </div>
@@ -887,7 +887,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
             className="mt-3 flex items-center gap-2 rounded-xl border border-[var(--palette-violet-500)]/25 bg-[var(--palette-violet-500)]/8 px-4 py-2.5 text-xs font-bold text-[var(--palette-violet-400)] transition-all hover:border-[var(--palette-violet-500)]/45 hover:bg-[var(--palette-violet-500)]/15 active:scale-95"
           >
             🧘 Zen Mode
-            <span className="text-[10px] font-medium text-[var(--palette-zinc-600)]">full-screen focus</span>
+            <span className="text-[11px] font-medium text-[var(--palette-zinc-600)]">full-screen focus</span>
           </button>
 
           {/* Distraction parking — jot it, review at the break */}
@@ -898,7 +898,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
             className="mt-3 flex items-center gap-2 rounded-xl border border-[var(--palette-zinc-800)] px-4 py-2.5 text-xs font-bold text-[var(--palette-zinc-500)] transition-colors hover:border-[var(--palette-zinc-700)] hover:text-[var(--palette-zinc-300)]"
           >
             📝 Park a thought
-            <kbd className="rounded border border-[var(--palette-zinc-700)] px-1 text-[10px] font-bold">D</kbd>
+            <kbd className="rounded border border-[var(--palette-zinc-700)] px-1 text-[11px] font-bold">D</kbd>
           </button>
 
           {/* Document PiP mini-timer (desktop Chrome/Edge) */}
@@ -1125,14 +1125,14 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
                 className="w-full rounded-xl border border-[var(--brand-400)]/40 bg-[var(--rgba-124-58-237-0_15)] px-4 py-3 text-left transition-all hover:bg-[var(--rgba-124-58-237-0_25)]"
               >
                 <p className="text-xs font-bold text-[var(--brand-400)]">🏔️ Let's ride the marathon</p>
-                <p className="text-[10px] text-[var(--palette-zinc-500)] mt-0.5">Break nudges on · 75% XP beyond 2h</p>
+                <p className="text-[11px] text-[var(--palette-zinc-500)] mt-0.5">Break nudges on · 75% XP beyond 2h</p>
               </button>
               <button
                 onClick={() => { setShowMarathonConfirm(false); setCustomDuration(mode, 2 * 60 * 60); }}
                 className="w-full rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/60 px-4 py-3 text-left transition-all hover:border-[var(--palette-violet-500)]/30"
               >
                 <p className="text-xs font-bold text-[var(--palette-zinc-200)]"> Cap it at 2 hours</p>
-                <p className="text-[10px] text-[var(--palette-zinc-600)] mt-0.5">Full XP rate the whole way</p>
+                <p className="text-[11px] text-[var(--palette-zinc-600)] mt-0.5">Full XP rate the whole way</p>
               </button>
             </div>
           </motion.div>
@@ -1173,21 +1173,21 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
                 className="w-full rounded-xl border border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/10 px-4 py-3 text-left transition-all hover:bg-[var(--palette-emerald-500)]/18 disabled:opacity-50"
               >
                 <p className="text-xs font-bold text-[var(--palette-emerald-400)]">✅ Complete & Save Progress</p>
-                <p className="text-[10px] text-[var(--palette-emerald-400)]/60 mt-0.5">Earn XP and coins for time spent</p>
+                <p className="text-[11px] text-[var(--palette-emerald-400)]/60 mt-0.5">Earn XP and coins for time spent</p>
               </button>
               <button
                 onClick={() => setShowExitConfirm(false)}
                 className="w-full rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/60 px-4 py-3 text-left transition-all hover:border-[var(--palette-violet-500)]/30"
               >
                 <p className="text-xs font-bold text-[var(--palette-zinc-200)]">▶ Continue Session</p>
-                <p className="text-[10px] text-[var(--palette-zinc-600)] mt-0.5">Keep the timer running</p>
+                <p className="text-[11px] text-[var(--palette-zinc-600)] mt-0.5">Keep the timer running</p>
               </button>
               <button
                 onClick={handleCancelNoSave}
                 className="w-full rounded-xl border border-[var(--palette-red-500)]/15 bg-[var(--palette-red-500)]/8 px-4 py-3 text-left transition-all hover:bg-[var(--palette-red-500)]/15"
               >
                 <p className="text-xs font-bold text-[var(--palette-red-400)]">✕ Abandon Session</p>
-                <p className="text-[10px] text-[var(--palette-red-400)]/60 mt-0.5">Discard all progress</p>
+                <p className="text-[11px] text-[var(--palette-red-400)]/60 mt-0.5">Discard all progress</p>
               </button>
             </div>
           </motion.div>

@@ -1,10 +1,11 @@
-import { Request, Response, NextFunction } from "express";
+import { Response } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { userWalletsTable, usersTable, notificationsTable, coinTransactionsTable } from "@workspace/db";
-import { extractUserId } from "./auth";
+import { userWalletsTable, notificationsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
+
+import { burnCoins } from "../lib/coinLedger";
 
 export const shopRouter = Router();
 
@@ -48,20 +49,24 @@ shopRouter.post("/shop/purchase/:itemId", authMiddleware, async (req: AuthReques
   const item = SHOP_ITEMS.find(i => i.id === itemId);
   if (!item) return res.status(404).json({ error: "Item not found" });
 
-  const [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, userId));
-  if (!wallet) return res.status(400).json({ error: "Wallet not found" });
-  if (wallet.coins < item.price) return res.status(400).json({ error: "Not enough coins" });
-
   let xpGain = 0;
   if (item.id === "xp_bonus_500") xpGain = 500;
   if (item.id === "xp_bonus_2000") xpGain = 2000;
 
-  await db.update(userWalletsTable)
-    .set({
-      coins: sql`${userWalletsTable.coins} - ${item.price}`,
-      ...(xpGain > 0 ? { totalXp: sql`${userWalletsTable.totalXp} + ${xpGain}` } : {}),
-    })
-    .where(eq(userWalletsTable.userId, userId));
+  // Conditional decrement (coins >= price) + ledger row in one call. The old
+  // read-check-then-write let two simultaneous purchases both pass the check
+  // and drive the balance negative.
+  const balanceAfter = await burnCoins(userId, item.price, "shop_purchase", {
+    description: `Purchased: ${item.name}`,
+    metadata: { itemId: item.id, itemName: item.name, category: item.category },
+  });
+  if (balanceAfter === null) return res.status(400).json({ error: "Not enough coins" });
+
+  if (xpGain > 0) {
+    await db.update(userWalletsTable)
+      .set({ totalXp: sql`${userWalletsTable.totalXp} + ${xpGain}`, updatedAt: new Date() })
+      .where(eq(userWalletsTable.userId, userId));
+  }
 
   await db.insert(notificationsTable).values({
     id: crypto.randomUUID(),
@@ -72,15 +77,7 @@ shopRouter.post("/shop/purchase/:itemId", authMiddleware, async (req: AuthReques
     read: false,
   });
 
-  const [updated] = await db.select({ coins: userWalletsTable.coins }).from(userWalletsTable).where(eq(userWalletsTable.userId, userId));
-
-  await db.insert(coinTransactionsTable).values({
-    userId, type: "spend", amount: -item.price,
-    reason: "shop_purchase",
-    description: `Purchased: ${item.name}`,
-    balanceAfter: updated?.coins ?? 0,
-    metadata: { itemId: item.id, itemName: item.name, category: item.category },
-  }).catch(() => {});
+  const updated = { coins: balanceAfter };
 
   res.json({ ok: true, item, coinsRemaining: updated?.coins ?? 0, xpGained: xpGain });
 });
