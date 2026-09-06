@@ -56,7 +56,7 @@ export default defineConfig({
         // at import time, so hoisting buys nothing here and costs every visitor.
         hoistTransitiveImports: false,
         // Function form for accurate module matching
-        manualChunks(id) {
+        manualChunks(id, { getModuleInfo }) {
           // Vite's __vitePreload helper is shared by every module that does a
           // dynamic import. Left unassigned, Rollup can park it in a heavy
           // manual chunk (it landed in vendor-three-helpers), which then made
@@ -85,6 +85,14 @@ export default defineConfig({
           if (has("@mediapipe/tasks-vision")) return "vendor-vision";
           if (has("@react-three/fiber", "@react-three/drei")) return "vendor-three-helpers";
           if (/\/node_modules\/three\//.test(id)) return "vendor-three";
+          // drei's transitive deps (maath, gainmap-js, troika, camera-controls,
+          // three-stdlib, …) import three. If they fall through to vendor-shared
+          // the entry chunk ends up statically depending on three.js and the
+          // bundle budget fails. Anything that imports three rides with the helpers.
+          const info = getModuleInfo(id);
+          if (info?.importedIds.some((dep) => /\/node_modules\/three\//.test(dep))) {
+            return "vendor-three-helpers";
+          }
 
           if (has("react-hook-form", "@hookform/resolvers", "zod")) return "vendor-forms";
           if (has("lucide-react", "react-icons")) return "vendor-icons";
