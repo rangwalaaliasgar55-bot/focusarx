@@ -45,6 +45,9 @@ test.describe("guest session survival", () => {
   test("a started session resumes after reload with remaining time", async ({ page }) => {
     await page.goto("/focus", { waitUntil: "domcontentloaded" });
     await expect(page.getByText("25:00").first()).toBeVisible({ timeout: 10_000 });
+    // The first-visit notice covers the start button on 320px phones. Dismiss
+    // it as a visitor would, rather than bypassing hit testing with force:true.
+    await page.getByRole("button", { name: "Dismiss cookie notice" }).click();
 
     const width = page.viewportSize()?.width;
     if (isMobileWidth(width)) {
@@ -70,6 +73,7 @@ test.describe("guest session survival", () => {
   test("the timer starts while offline", async ({ page, context }) => {
     await page.goto("/focus", { waitUntil: "domcontentloaded" });
     await expect(page.getByText("25:00").first()).toBeVisible({ timeout: 10_000 });
+    await page.getByRole("button", { name: "Dismiss cookie notice" }).click();
     await context.setOffline(true);
     try {
       const width = page.viewportSize()?.width;

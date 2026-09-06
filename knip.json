@@ -1,5 +1,5 @@
 {
-  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "$schema": "https://unpkg.com/knip@6/schema.json",
   "workspaces": {
     ".": {
       "entry": ["api/index.mjs", "scripts/*.mjs", "playwright.config.ts", "tests/e2e/*.spec.ts"],
@@ -20,7 +20,8 @@
       "project": ["src/**/*.ts"]
     },
     "lib/db": {
-      "entry": ["src/index.ts", "scripts/*.mjs"],
+      "entry": ["src/index.ts", "scripts/*.mjs", "drizzle.config.ts"],
+      "drizzle": false,
       "project": ["src/**/*.ts", "scripts/**/*.mjs"]
     }
   },

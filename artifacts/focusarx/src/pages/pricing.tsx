@@ -55,7 +55,7 @@ export default function PricingPage() {
   return (
     <div className="relative min-h-[100dvh] forge-bg-glow">
       <PageSEO {...PAGE_SEO.pricing} structuredData={productSchema} />
-      <div className="pointer-events-none absolute inset-0" aria-hidden>
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
         <div className="absolute left-1/2 top-0 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_center,var(--rgba-124-58-237-0_08),transparent_65%)] blur-3xl" />
       </div>
 

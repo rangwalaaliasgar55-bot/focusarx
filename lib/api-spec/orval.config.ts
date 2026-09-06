@@ -57,6 +57,9 @@ export default defineConfig({
       prettier: true,
       override: {
         zod: {
+          // Catalog references are not a semver range; pin the generator to
+          // the workspace's Zod 3 API instead of auto-detecting Zod 4.
+          version: 3,
           coerce: {
             query: ['boolean', 'number', 'string'],
             param: ['boolean', 'number', 'string'],

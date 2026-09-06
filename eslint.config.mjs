@@ -13,6 +13,7 @@ export default tseslint.config(
       "**/dist/**",
       "**/coverage/**",
       "**/test-results/**",
+      "tmp/**",
       "**/*.d.mts",
       "lib/db/drizzle/**",
     ],

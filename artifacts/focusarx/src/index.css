@@ -2202,11 +2202,9 @@ html.light {
     min-height: 44px;
     min-width: 44px;
   }
-  /* Except for inline elements */
-  .mobile-tab,
-  .nav-item,
-  .inline-flex,
-  .inline {
+  /* Only true inline text links are exempt. Resetting .inline-flex also
+     reset every shared Button and auth navigation link to ~20px tall. */
+  a.inline:not([role="button"]) {
     min-height: auto;
     min-width: auto;
   }

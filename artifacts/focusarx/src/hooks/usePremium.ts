@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getToken } from "@/lib/auth";
+import { getToken, useAuth } from "@/lib/auth";
 
 /**
  * Hook to check whether the current user has an active Premium subscription.
@@ -7,13 +7,17 @@ import { getToken } from "@/lib/auth";
  * No AI model is loaded when not premium - blocked at gate level.
  */
 export function usePremium() {
+  const { status } = useAuth();
   const { data, isLoading } = useQuery({
     queryKey: ["premium-status"],
+    enabled: status === "authenticated",
     queryFn: async () => {
       const token = getToken();
-      if (!token) return { isPremium: false, benefits: [] as string[], balance: 0, cheapestCost: 10000, plans: [] as any[] };
+      // Auth is cookie-first. Missing localStorage credentials do not mean a
+      // signed-in user is free (e.g. private mode or a refreshed cookie session).
       const res = await fetch("/api/premium/status", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: "include",
       });
       if (!res.ok) return { isPremium: false, benefits: [] as string[], balance: 0, cheapestCost: 10000, plans: [] as any[] };
       const json = (await res.json()) as { isPremium: boolean; benefits?: string[]; balance?: number; plans?: any[] };
