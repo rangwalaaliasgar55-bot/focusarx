@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import { logger } from "../lib/logger";
 
 let socket: Socket | null = null;
-let connectionAttempted = false;
 let connectionFailed = false;
 
 /**
@@ -60,13 +59,11 @@ export async function connectSocket(token?: string): Promise<Socket | null> {
   });
 
   socket.on("connect", () => {
-    connectionAttempted = true;
     connectionFailed = false;
     logger.debug("[socket] connected", socket?.id);
   });
 
   socket.on("connect_error", (err) => {
-    connectionAttempted = true;
     // On Vercel production, socket.io will always fail — avoid spamming the
     // console by only logging once and then giving up.
     if (isVercelServerless()) {

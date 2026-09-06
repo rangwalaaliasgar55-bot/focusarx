@@ -17,16 +17,6 @@ async function apiFetch(path: string, opts?: RequestInit) {
 const ICONS = ["⭐", "💪", "📚", "🏃", "🧘", "💧", "🥗", "😴", "📝", "🎯", "🎸", "💻", "🌿", "🧠", "🔥", "⚡", "🎨", "🌅", "☕", "🏋️"];
 const COLORS = ["var(--brand-600)", "var(--palette-4f46e5)", "var(--palette-0891b2)", "var(--palette-059669)", "var(--palette-d97706)", "var(--palette-dc2626)", "var(--palette-db2777)", "var(--palette-9333ea)", "var(--palette-16a34a)", "var(--palette-ea580c)"];
 
-function HeatmapCell({ date, done }: { date: string; done: boolean }) {
-  return (
-    <div
-      title={date}
-      className={`aspect-square rounded-sm ${done ? "bg-[var(--brand-600)]" : "bg-[var(--muted)]"}`}
-      style={{ minWidth: 10 }}
-    />
-  );
-}
-
 function HabitHeatmap({ dates, color }: { dates: string[]; color: string }) {
   const dateSet = new Set(dates);
   const cells = useMemo(() => {

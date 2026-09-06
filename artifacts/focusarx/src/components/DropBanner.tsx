@@ -64,13 +64,12 @@ export function DropBanner() {
     } catch { /* best effort */ }
   }, []);
 
-  useEffect(() => { void refresh(); }, [refresh]);
-
-  // Instant pop when an admin creates a drop (socket), polling fallback.
+  // Initial load + polling fallback; instant pop when an admin creates a drop (socket).
   useSocketEvent("drop:started", () => { void refresh(); });
   useEffect(() => {
     const t = setInterval(() => void refresh(), 60_000);
-    return () => clearInterval(t);
+    const first = setTimeout(() => void refresh(), 0);
+    return () => { clearInterval(t); clearTimeout(first); };
   }, [refresh]);
 
   // 1s countdown while anything is visible.

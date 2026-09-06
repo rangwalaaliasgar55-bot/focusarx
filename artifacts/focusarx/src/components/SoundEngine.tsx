@@ -260,10 +260,13 @@ export function SoundEngine({ sessionActive, sessionMinutesLeft, sessionTotalMin
   // Focus intensifier — boost in final 10 min
   useEffect(() => {
     if (!masterGainRef.current || !ctxRef.current || !enabled) return;
-    const isInFinalStretch = sessionMinutesLeft != null && sessionMinutesLeft <= 10 && sessionMinutesLeft > 0;
+    // Only intensify during an active focus block, and only when the block is
+    // long enough that "last 10 minutes" is meaningfully distinct from the whole.
+    const longEnough = sessionTotalMinutes == null || sessionTotalMinutes > 10;
+    const isInFinalStretch = sessionActive && longEnough && sessionMinutesLeft != null && sessionMinutesLeft <= 10 && sessionMinutesLeft > 0;
     const target = isInFinalStretch ? 1.0 : 0.8;
     masterGainRef.current.gain.linearRampToValueAtTime(target, ctxRef.current.currentTime + 2);
-  }, [sessionMinutesLeft, enabled]);
+  }, [sessionActive, sessionMinutesLeft, sessionTotalMinutes, enabled]);
 
   // Re-entry fade when distracted
   useEffect(() => {

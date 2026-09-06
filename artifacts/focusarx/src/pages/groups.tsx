@@ -127,8 +127,7 @@ export default function GroupsPage() {
 
   const { data: allGroups = [], isLoading } = useQuery({ queryKey: ["groups-all"], queryFn: () => apiFetch("/api/groups"), staleTime: 30_000 });
   const { data: myGroups = [] } = useQuery({ queryKey: ["groups-mine"], queryFn: () => apiFetch("/api/groups/mine"), staleTime: 30_000 });
-  const { data: studyRooms = [], isLoading: roomsLoading, refetch: refetchRooms } = useQuery({ queryKey: ["study-rooms"], queryFn: () => apiFetch("/api/study-rooms"), staleTime: 15_000, enabled: tab === "rooms" });
-  const [showCreateRoom, setShowCreateRoom] = useState(false);
+  const { data: studyRooms = [], isLoading: roomsLoading } = useQuery({ queryKey: ["study-rooms"], queryFn: () => apiFetch("/api/study-rooms"), staleTime: 15_000, enabled: tab === "rooms" });
   const [joinCode, setJoinCode] = useState("");
 
   const joinGroup = useMutation({
@@ -151,7 +150,7 @@ export default function GroupsPage() {
 
   const createRoom = useMutation({
     mutationFn: (data: any) => apiFetch("/api/study-rooms", { method: "POST", body: JSON.stringify(data) }),
-    onSuccess: () => { toast("Study room created! 🚀", "success"); qc.invalidateQueries({ queryKey: ["study-rooms"] }); setShowCreateRoom(false); },
+    onSuccess: () => { toast("Study room created! 🚀", "success"); qc.invalidateQueries({ queryKey: ["study-rooms"] }); },
     onError: (e: any) => toast(e.message, "error"),
   });
 
@@ -298,10 +297,17 @@ export default function GroupsPage() {
                         <span className="text-xs text-[var(--foreground-subtle)]">by {r.hostName}</span>
                       </div>
                     </div>
-                    <button onClick={() => joinRoom.mutate(r.id)} disabled={joinRoom.isPending}
-                      className="shrink-0 rounded-xl bg-[var(--brand-600)] px-3 py-1.5 text-xs font-semibold text-[var(--palette-white)] hover:bg-[var(--palette-6d31d4)] disabled:opacity-50">
-                      Join
-                    </button>
+                    {r.participants?.some((p: any) => p.userId === session?.user?.id) ? (
+                      <button onClick={() => leaveRoom.mutate(r.id)} disabled={leaveRoom.isPending}
+                        className="shrink-0 rounded-xl border border-[var(--border-strong)] px-3 py-1.5 text-xs font-semibold text-[var(--foreground-muted)] hover:text-[var(--foreground)] disabled:opacity-50">
+                        Leave
+                      </button>
+                    ) : (
+                      <button onClick={() => joinRoom.mutate(r.id)} disabled={joinRoom.isPending}
+                        className="shrink-0 rounded-xl bg-[var(--brand-600)] px-3 py-1.5 text-xs font-semibold text-[var(--palette-white)] hover:bg-[var(--palette-6d31d4)] disabled:opacity-50">
+                        Join
+                      </button>
+                    )}
                   </div>
                   {r.participants?.length > 0 && (
                     <div className="flex gap-1 flex-wrap">

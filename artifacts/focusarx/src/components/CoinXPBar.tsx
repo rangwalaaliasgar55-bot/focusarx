@@ -43,9 +43,18 @@ export function useCoinXP() {
   };
 
   useEffect(() => {
-    void fetchWallet();
-    const id = setInterval(fetchWallet, 30000);
-    return () => clearInterval(id);
+    let cancelled = false;
+    const load = async () => {
+      const token = getToken();
+      if (!token) return;
+      try {
+        const res = await fetch("/api/gamification/wallet", { headers: { Authorization: `Bearer ${token}` } });
+        if (res.ok && !cancelled) setWallet(await res.json() as Wallet);
+      } catch {}
+    };
+    void load();
+    const id = setInterval(load, 30000);
+    return () => { cancelled = true; clearInterval(id); };
   }, []);
 
   const showFloat = (text: string, color: string) => {

@@ -135,7 +135,6 @@ let refreshCount = 0;
 let dismissed = false;
 let pollInterval = POLL_INTERVAL_NORMAL;
 let pollBackoff = 1;
-let consecutiveErrors = 0;
 let fastPollCount = 0;
 let isPolling = false;
 const listeners = new Set<() => void>();
@@ -178,7 +177,6 @@ export function recordServerVersion(version: string | null | undefined): void {
   try { localStorage.setItem(STORAGE_KEYS.LAST_KNOWN_VERSION, version); } catch { /* */ }
 
   // Reset backoff on successful version read
-  consecutiveErrors = 0;
   pollBackoff = 1;
   // A new server version restarts the fast-poll budget (see scheduleNextPoll).
   fastPollCount = 0;
@@ -626,8 +624,7 @@ async function checkDeployment(): Promise<void> {
     clearTimeout(timeout);
 
     if (res.ok) {
-      consecutiveErrors = 0;
-      pollBackoff = 1;
+          pollBackoff = 1;
       const data = await res.json();
       recordServerVersion(data.version);
     }
@@ -637,7 +634,6 @@ async function checkDeployment(): Promise<void> {
       recordServerVersion(headerVersion);
     }
   } catch {
-    consecutiveErrors++;
     // Exponential backoff on errors: 1x → 2x → 4x → 8x → capped at POLL_BACKOFF_MAX
     pollBackoff = Math.min(pollBackoff * 2, POLL_BACKOFF_MAX / POLL_INTERVAL_NORMAL);
   } finally {

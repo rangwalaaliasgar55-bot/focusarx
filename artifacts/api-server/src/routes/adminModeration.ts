@@ -6,7 +6,6 @@ import { adminLimiter } from "../lib/rateLimiter";
 import { checkAdminAuth } from "../lib/adminAuth";
 
 const router = Router();
-const ADMIN_COOKIE = "focusarx_admin";
 
 const checkAuth = checkAdminAuth;
 

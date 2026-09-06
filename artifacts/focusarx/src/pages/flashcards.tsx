@@ -293,6 +293,10 @@ export default function FlashcardsPage() {
                   </>
                 )}
               </motion.div>
+            ) : isLoading ? (
+              <div className="rounded-2xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/60 p-8 text-center" aria-busy="true">
+                <p className="text-sm text-[var(--palette-zinc-500)]">Loading cards…</p>
+              </div>
             ) : (
               <div className="rounded-2xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/60 p-8 text-center">
                 <p className="text-sm text-[var(--palette-zinc-500)]">No cards in this deck. Add some to get started!</p>

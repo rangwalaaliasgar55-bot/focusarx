@@ -23,13 +23,6 @@ const PROACTIVE_MESSAGES = [
   "Hydrate. Seriously. Even mild dehydration tanks cognitive performance by 10-15%.",
 ];
 
-const COACH_AUDIO: Record<string, string> = {
-  session_start: "/audio/coach/session_start.mp3",
-  session_complete: "/audio/coach/session_complete.mp3",
-  break_time: "/audio/coach/break_time.mp3",
-  distraction: "/audio/coach/distraction_detected.mp3",
-  forge: "/audio/coach/forge_welcome.mp3",
-};
 
 async function fetchCoachStatus() {
   const token = getToken();
@@ -45,7 +38,7 @@ export default function CoachPanel() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [voiceEnabled, setVoiceEnabled] = useState(() => {
     try {
-      return localStorage.getItem("fx-coach-voice") === "true";
+      return localStorage.getItem("fx-coach-voice") !== "false";
     } catch {
       return false;
     }
@@ -63,12 +56,6 @@ export default function CoachPanel() {
   const isLocked = coachStatus ? !coachStatus.isPremium : !isPremium && !premiumLoading;
   const lockScreen = coachStatus?.lockScreen;
 
-  const playCoachVoice = (key: keyof typeof COACH_AUDIO) => {
-    if (!voiceEnabled) return;
-    const audio = new Audio(COACH_AUDIO[key]);
-    audio.volume = 0.6;
-    audio.play().catch(() => {});
-  };
 
   useEffect(() => {
     try {

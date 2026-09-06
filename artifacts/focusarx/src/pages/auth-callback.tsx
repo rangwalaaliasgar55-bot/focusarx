@@ -5,7 +5,7 @@ import { setToken, getToken, useAuth } from "@/lib/auth";
 export default function AuthCallbackPage() {
   const [, setLocation] = useLocation();
   const { refresh } = useAuth();
-  const [error, setError] = useState<string | null>(null);
+  const [error] = useState<string | null>(() => new URLSearchParams(window.location.search).get("token") ? null : "Authentication failed — no token received.");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -39,8 +39,6 @@ export default function AuthCallbackPage() {
           })
           .catch(() => setLocation("/dashboard"));
       }).catch(() => setLocation("/dashboard"));
-    } else {
-      setError("Authentication failed — no token received.");
     }
   }, [setLocation, refresh]);
 

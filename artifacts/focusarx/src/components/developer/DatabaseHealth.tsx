@@ -105,9 +105,9 @@ export function DatabaseHealth() {
   }, []);
 
   useEffect(() => {
-    loadData();
+    const first = setTimeout(() => void loadData(), 0);
     const interval = setInterval(loadData, 30_000); // Auto-refresh every 30s
-    return () => clearInterval(interval);
+    return () => { clearTimeout(first); clearInterval(interval); };
   }, [loadData]);
 
   if (!health && loading) {

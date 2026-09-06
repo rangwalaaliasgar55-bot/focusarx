@@ -36,10 +36,13 @@ export default function MissedTaskReview({ open, tasks, onDone }: Props) {
   const [current, setCurrent] = useState(0);
   const [pending, setPending] = useState<boolean>(false);
   const [resolved, setResolved] = useState<Record<string, Action>>({});
-
-  useEffect(() => {
+  // Reset the wizard each time it is (re)opened — derived from the `open`
+  // prop transition rather than an effect, so the first render is already clean.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
     if (open) { setCurrent(0); setResolved({}); }
-  }, [open]);
+  }
 
   if (!open || tasks.length === 0) return null;
 

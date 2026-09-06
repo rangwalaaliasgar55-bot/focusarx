@@ -238,8 +238,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (name: string, da
 async function sendEmailViaResend(
   to: string,
   subject: string,
-  html: string,
-  providerId?: string
+  html: string
 ): Promise<{ ok: boolean; id?: string; error?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {

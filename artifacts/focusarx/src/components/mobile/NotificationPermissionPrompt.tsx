@@ -5,7 +5,7 @@ import { useNotificationPermission } from "@/hooks/useNotificationPermission";
 import { useToast } from "@/components/Toast";
 
 export function NotificationPermissionPrompt() {
-  const { permission, showSoftPrompt, isDefault, requestPermission, dismissSoftPrompt } = useNotificationPermission();
+  const { showSoftPrompt, isDefault, requestPermission, dismissSoftPrompt } = useNotificationPermission();
   const { toast } = useToast();
 
   if (!showSoftPrompt || !isDefault) return null;

@@ -172,7 +172,7 @@ export interface PetCompanionProps {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 export default function PetCompanion({
-  isRunning, elapsedSeconds, mode,
+  isRunning, mode,
   progress = 0,
   sessionDurationSeconds = 1500,
 }: PetCompanionProps) {

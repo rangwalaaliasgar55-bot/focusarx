@@ -117,14 +117,17 @@ interface BreakActivityCardProps {
 }
 
 export default function BreakActivityCard({ mode, secondsLeft, breakDurationSeconds }: BreakActivityCardProps) {
-  const [activityIndex, setActivityIndex] = useState(0);
+  // Re-roll the activity whenever the break mode changes (React's
+  // "adjust state when a prop changes" pattern — no effect needed).
+  const [picked, setPicked] = useState(() => ({ mode, index: Math.floor(Math.random() * ACTIVITIES.length) }));
+  if (picked.mode !== mode) {
+    // Rotate to the next activity so consecutive breaks never repeat.
+    setPicked({ mode, index: (picked.index + 1) % ACTIVITIES.length });
+  }
+  const activityIndex = picked.index;
+  const setActivityIndex = (index: number) => setPicked({ mode, index });
   const isBreathingActivity = ACTIVITIES[activityIndex]?.title === "Box Breathe";
   const { scale, label } = useBreathingAnimation(isBreathingActivity);
-
-  useEffect(() => {
-    const idx = Math.floor(Math.random() * ACTIVITIES.length);
-    setActivityIndex(idx);
-  }, [mode]);
 
   const activity = ACTIVITIES[activityIndex]!;
   const isLong = mode === "longBreak";

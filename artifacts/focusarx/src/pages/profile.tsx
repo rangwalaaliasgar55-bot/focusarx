@@ -20,7 +20,6 @@ import {
   Zap,
   Crown,
   Palette,
-  Image as ImageIcon,
 } from "lucide-react";
 import { usePremium } from "@/hooks/usePremium";
 import { useQuery } from "@tanstack/react-query";
@@ -156,7 +155,7 @@ function ActivityHeatmap({ data }: { data: Record<string, number> }) {
 /** Sound preferences (audit L1): persistent toggles for effects + coach voice. */
 function SoundPreferencesCard() {
   const [effectsOn, setEffectsOn] = useState(() => localStorage.getItem("fx_muted") !== "1");
-  const [voiceOn, setVoiceOn] = useState(() => localStorage.getItem("fx-coach-voice") === "true");
+  const [voiceOn, setVoiceOn] = useState(() => localStorage.getItem("fx-coach-voice") !== "false");
 
   const setEffects = (on: boolean) => {
     localStorage.setItem("fx_muted", on ? "0" : "1");
@@ -217,11 +216,6 @@ function CustomizationTab() {
     },
   });
 
-  const equipMutation = useQuery({
-    queryKey: ["equip-mutation-placeholder"],
-    queryFn: async () => null,
-    enabled: false,
-  });
 
   const handleEquip = async (id: string) => {
     const token = getToken();

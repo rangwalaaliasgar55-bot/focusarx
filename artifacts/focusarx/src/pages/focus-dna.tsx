@@ -106,7 +106,8 @@ export default function FocusDnaPage() {
   const { status } = useAuth();
   const [dna, setDna] = useState<FocusDna | null>(null);
   const [totalSessions, setTotalSessions] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [fetching, setFetching] = useState(true);
+  const loading = status === "loading" || (status === "authenticated" && fetching);
   const [generating, setGenerating] = useState(false);
   const [flipped, setFlipped] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -114,8 +115,7 @@ export default function FocusDnaPage() {
   const token = () => localStorage.getItem("focusarx-auth-token");
 
   useEffect(() => {
-    if (status === "loading") return;
-    if (status === "unauthenticated") { setLoading(false); return; }
+    if (status !== "authenticated") return;
     fetch("/api/focus-dna", { headers: { Authorization: `Bearer ${token()}` } })
       .then((r) => r.json())
       .then((d: { dna: FocusDna | null; totalSessions: number }) => {
@@ -124,7 +124,7 @@ export default function FocusDnaPage() {
         if (d.dna) setFlipped(true);
       })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => setFetching(false));
   }, [status]);
 
   const generate = async () => {
@@ -184,6 +184,10 @@ export default function FocusDnaPage() {
                   <RefreshCw size={14} className={generating ? "animate-spin" : ""} />
                   {generating ? "Analyzing..." : "Re-analyze"}
                 </button>
+                {sessionsUntilUpgrade > 0 && sessionsUntilUpgrade < 10 && (
+                  <p className="mt-2 text-[11px] text-[var(--foreground-subtle)] tabular-nums">{sessionsUntilUpgrade} more session{sessionsUntilUpgrade === 1 ? "" : "s"} until your next DNA refresh</p>
+                )}
+                {error && <p role="alert" className="mt-2 text-[11px] font-semibold text-[var(--color-error)]">{error}</p>}
               </div>
             </div>
           ) : (
@@ -193,6 +197,7 @@ export default function FocusDnaPage() {
                {sessionsNeeded === 0 && (
                  <button onClick={generate} disabled={generating} className="mt-6 rounded-xl bg-[var(--brand-600)] px-6 py-3 font-bold text-[var(--palette-white)]">Generate DNA</button>
                )}
+               {error && <p role="alert" className="mt-3 text-[11px] font-semibold text-[var(--color-error)]">{error}</p>}
             </div>
           )}
         </PageTransition>

@@ -139,7 +139,7 @@ aiStreamingRouter.get('/ai/coach/stream', authMiddleware, async (req: Request, r
     return;
   }
 
-  const { prompt, context } = req.query;
+  const { prompt } = req.query;
   if (!prompt || typeof prompt !== 'string' || prompt.length === 0) {
     res.status(400).json({ error: 'Missing prompt parameter' });
     return;

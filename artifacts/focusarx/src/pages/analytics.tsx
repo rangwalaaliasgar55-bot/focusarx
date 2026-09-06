@@ -119,12 +119,12 @@ function PremiumLock({ feature, description }: { feature: string; description: s
 
 export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => Boolean(getToken()));
   const { isPremium } = usePremium();
 
   useEffect(() => {
     const token = getToken();
-    if (!token) { setLoading(false); return; }
+    if (!token) return;
     fetch("/api/analytics", {
       headers: { Authorization: `Bearer ${token}` },
     })

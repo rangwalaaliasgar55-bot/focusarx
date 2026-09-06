@@ -201,13 +201,18 @@ export function useFocusTracking(
       timelineRef.current = [];
       timelineBucketRef.current = -1;
       bucketAccumRef.current = { sum: 0, n: 0 };
-      setSnapshot(IDLE_SNAPSHOT);
+      // Consumers see IDLE_SNAPSHOT via the derived return below; the stored
+      // snapshot is only reset lazily to avoid a synchronous setState here.
       return;
     }
 
     void initVisionProcessor();
 
+    // Drop any snapshot left over from a previous tracking run before the
+    // first new sample lands (scheduled, so it is not a sync setState in effect).
+    let first = true;
     const loop = () => {
+      if (first) { first = false; setSnapshot(IDLE_SNAPSHOT); }
       const video = getVideo();
       if (video && !inFlightRef.current) {
         inFlightRef.current = true;
@@ -248,5 +253,7 @@ export function useFocusTracking(
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, [enabled]);
 
-  return snapshot;
+  // While tracking is disabled always expose the idle snapshot, regardless of
+  // whatever the last live sample was.
+  return enabled ? snapshot : IDLE_SNAPSHOT;
 }

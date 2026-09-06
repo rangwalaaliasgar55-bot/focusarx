@@ -76,7 +76,6 @@ router.get("/pets/inventory", authMiddleware, async (req: AuthRequest, res) => {
 
     // Also include legacy pet from userPetsTable for backward compat
     const [legacy] = await db.select().from(userPetsTable).where(eq(userPetsTable.userId, req.userId!)).limit(1);
-    const legacyEntry = null;
     if (legacy) {
       const cat = await db.select().from(petCatalogTable).where(eq(petCatalogTable.slug, legacy.petType)).limit(1);
       if (cat[0]) {

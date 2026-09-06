@@ -51,7 +51,6 @@ export default function SessionSummaryCard({
   const [showCheck, setShowCheck] = useState(false);
   const [animatedXp, setAnimatedXp] = useState(0);
   const [animatedCoins, setAnimatedCoins] = useState(0);
-  const [copied, setCopied] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const { data: session } = useAuth();
   const user = session?.user ?? null;
@@ -69,8 +68,11 @@ export default function SessionSummaryCard({
   );
 
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+    const timers: Array<ReturnType<typeof setTimeout>> = [];
+    {
       const t = setTimeout(() => setShowCheck(true), 200);
+      timers.push(t);
       // Animate XP and coins count up
       if (earnedXp > 0) {
         const step = Math.ceil(earnedXp / 30);
@@ -80,6 +82,7 @@ export default function SessionSummaryCard({
           setAnimatedXp(cur);
           if (cur >= earnedXp) clearInterval(iv);
         }, 40);
+        timers.push(iv);
       }
       if (earnedCoins > 0) {
         const step = Math.ceil(earnedCoins / 30);
@@ -89,13 +92,16 @@ export default function SessionSummaryCard({
           setAnimatedCoins(cur);
           if (cur >= earnedCoins) clearInterval(iv);
         }, 40);
+        timers.push(iv);
       }
-      return () => clearTimeout(t);
-    } else {
-      setShowCheck(false);
-      setAnimatedXp(0);
-      setAnimatedCoins(0);
     }
+    return () => {
+      // Clear every timer (not just the check-mark delay) so a card closed
+      // mid-animation cannot keep ticking, then reset for the next open.
+      timers.forEach((id) => { clearTimeout(id); clearInterval(id); });
+      timers.length = 0;
+      setTimeout(() => { setShowCheck(false); setAnimatedXp(0); setAnimatedCoins(0); }, 0);
+    };
   }, [open, earnedXp, earnedCoins]);
 
   const mins = Math.floor(durationSeconds / 60);

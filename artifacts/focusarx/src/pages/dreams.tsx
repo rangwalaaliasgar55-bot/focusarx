@@ -67,9 +67,12 @@ export default function DreamsPage() {
       .catch(() => setLoading(false));
   }, []);
 
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   async function saveDream() {
     if (!selected) return;
     setSaving(true);
+    setSaveError(null);
     const type = DREAM_TYPES.find(d => d.id === selected)!;
     try {
       const r = await fetch("/api/dreams", {
@@ -83,12 +86,14 @@ export default function DreamsPage() {
           emoji: type.emoji,
         }),
       });
-      const data = await r.json();
+      if (!r.ok) throw new Error("Failed to save dream");
       // Refetch with progress data
       const r2 = await fetch("/api/dreams", { headers: authHeaders() });
       const data2 = await r2.json();
       setDream(data2.dream);
       setSelecting(false);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Failed to save dream");
     } finally {
       setSaving(false);
     }
@@ -177,6 +182,7 @@ export default function DreamsPage() {
                 {saving ? "Setting dream..." : "Set My Dream"}
                 <ArrowRight size={15} />
               </motion.button>
+              {saveError && <p role="alert" className="text-xs font-semibold text-[var(--color-error)]">{saveError}</p>}
             </div>
           )}
         </div>

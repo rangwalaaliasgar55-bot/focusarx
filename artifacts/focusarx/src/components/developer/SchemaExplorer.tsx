@@ -59,7 +59,7 @@ export function SchemaExplorer() {
         setTables(data.tables);
         setLoading(false);
       })
-      .catch((err) => {
+      .catch(() => {
         setError("Unable to load schema. You may need to be authenticated.");
         setLoading(false);
       });
@@ -67,16 +67,21 @@ export function SchemaExplorer() {
 
   useEffect(() => {
     if (!selectedTable) return;
-    setDetailLoading(true);
-    apiJson<TableDetail>(`/api/healthz/tables/${selectedTable}`)
-      .then((data) => {
-        setTableDetail(data);
-        setDetailLoading(false);
-      })
-      .catch(() => {
-        setTableDetail(null);
-        setDetailLoading(false);
-      });
+    let cancelled = false;
+    (async () => {
+      await Promise.resolve();
+      if (cancelled) return;
+      setDetailLoading(true);
+      try {
+        const data = await apiJson<TableDetail>(`/api/healthz/tables/${selectedTable}`);
+        if (!cancelled) setTableDetail(data);
+      } catch {
+        if (!cancelled) setTableDetail(null);
+      } finally {
+        if (!cancelled) setDetailLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [selectedTable]);
 
   const filteredTables = useMemo(() => {

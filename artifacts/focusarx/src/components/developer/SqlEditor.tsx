@@ -155,14 +155,6 @@ function highlightSql(code: string): string {
   return html;
 }
 
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
-}
-
 function formatNumber(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
   if (n >= 1_000) return (n / 1_000).toFixed(1) + "K";
@@ -516,7 +508,6 @@ export function SqlEditor() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [showSchema, setShowSchema] = useState(true);
-  const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [needsConfirm, setNeedsConfirm] = useState(false);
   const [confirmMsg, setConfirmMsg] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -638,7 +629,14 @@ export function SqlEditor() {
       {/* Schema Sidebar */}
       {showSchema && (
         <div className="w-64 shrink-0">
-          <SchemaSidebar tables={tables} onSelectTable={setSelectedTable} />
+          <SchemaSidebar
+            tables={tables}
+            onSelectTable={(name) => {
+              // Clicking a table seeds a starter query when the editor is empty or
+              // still holds the default placeholder, so exploration is one click.
+              setQuery((q) => (q.trim() === "" || q === "SELECT * FROM users LIMIT 10;") ? `SELECT * FROM ${name} LIMIT 10;` : q);
+            }}
+          />
         </div>
       )}
 

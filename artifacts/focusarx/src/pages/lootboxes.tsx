@@ -151,7 +151,7 @@ export default function LootBoxesPage() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { const t = setTimeout(() => void load(), 0); return () => clearTimeout(t); }, []);
 
   const handleBuy = async (typeId: string) => {
     if (processing) return;

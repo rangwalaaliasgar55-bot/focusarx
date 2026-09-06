@@ -31,7 +31,7 @@ const BLOCKED_PATTERNS: Array<{ re: RegExp; reason: string }> = [
   { re: /\b(shoot (up|them|you)|bomb (them|you)|i will kill)\b/i, reason: "Threat of violence" },
   // Scam / spam / phishing signals.
   { re: /\b(crypto|bitcoin|forex|investment).{0,40}\b(guaranteed|doubl|100%|free money|earn money)\b/i, reason: "Potential scam / spam" },
-  { re: /(telegram|whatsapp|discord)[\s.\-]?(me|gg|com)\/[a-z0-9]+/i, reason: "Off-platform link (spam)" },
+  { re: /(telegram|whatsapp|discord)[\s.-]?(me|gg|com)\/[a-z0-9]+/i, reason: "Off-platform link (spam)" },
   { re: /\b(win (a |an )?(free )?(iphone|gift|prize))\b/i, reason: "Prize / giveaway scam" },
   // Contact farming.
   { re: /\b(call me at|text me at|add me on snap|follow my onlyfans)\b/i, reason: "Contact farming" },

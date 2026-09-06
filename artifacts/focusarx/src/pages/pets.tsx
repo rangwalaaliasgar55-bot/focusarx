@@ -11,7 +11,6 @@ const Pet3D = lazy(() => import("@/components/Pet3D").then(m => ({ default: m.Pe
 import { usePremium } from "@/hooks/usePremium";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 
-const XP_PER_LEVEL = 100; // bond XP: level * 100
 
 const CATEGORY_META: Record<string, { label: string; emoji: string; color: string }> = {
   starter: { label: "Starter", emoji: "🌱", color: "var(--palette-10b981)" },
@@ -91,7 +90,7 @@ export default function PetsPage() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { const t = setTimeout(() => void load(), 0); return () => clearTimeout(t); }, [load]);
 
   const filteredCatalog = useMemo(() => {
     let list = catalog;

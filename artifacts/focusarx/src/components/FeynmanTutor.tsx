@@ -31,13 +31,6 @@ const EXAMPLE_TOPICS = [
   'How Vaccines Work',
 ];
 
-interface FeynmanResponse {
-  whatItIs: string;
-  whyItMatters: string;
-  howItWorks: string;
-  analogy: string;
-}
-
 export default function FeynmanTutor() {
   const [topic, setTopic] = useState('');
   const [level, setLevel] = useState<ComplexityLevel>('teen');

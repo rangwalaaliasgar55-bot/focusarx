@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { AuthRequest } from "../middlewares/auth";
 import { db } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 import { tokenLedgerTable } from "@workspace/db";
@@ -13,7 +12,6 @@ const router = Router();
 router.post("/admin/tokens/grant", async (req, res) => {
   const { checkAdminAuth } = await import("../lib/adminAuth");
   if (!await checkAdminAuth(req)) return res.status(403).json({ error: "Forbidden" });
-  const authReq = req as AuthRequest;
   const { userId, amount, reason, type } = req.body as { userId: string; amount: number; reason: string; type?: "grant" | "remove" };
   if (!userId || !amount || !reason) return res.status(400).json({ error: "userId, amount, reason required" });
   if (reason.length < 5) return res.status(400).json({ error: "Reason must be at least 5 chars" });
@@ -48,7 +46,6 @@ router.get("/admin/tokens/ledger", async (req, res) => {
   const { userId, limit = "50" } = req.query as { userId?: string; limit?: string };
   try {
     const lim = Math.min(100, parseInt(limit) || 50);
-    const query = db.select().from(tokenLedgerTable).orderBy(desc(tokenLedgerTable.createdAt)).limit(lim);
     if (userId) {
       const rows = await db.select().from(tokenLedgerTable).where(eq(tokenLedgerTable.userId, userId)).orderBy(desc(tokenLedgerTable.createdAt)).limit(lim);
       return res.json({ ledger: rows });

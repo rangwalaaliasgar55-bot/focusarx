@@ -17,21 +17,21 @@ interface Props {
 
 export default function TaskTimeline({ tasks: propTasks, elapsedSeconds = 0, isRunning = false, onOverrun, onEstimateChange }: Props) {
   const [apiTasks, setApiTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(!propTasks);
-  const [overrunShown, setOverrunShown] = useState(false);
+  const [apiLoading, setApiLoading] = useState(propTasks === undefined);
+  const loading = propTasks === undefined && apiLoading;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editVal, setEditVal] = useState("");
   const overrunRef = useRef(false);
 
   useEffect(() => {
-    if (propTasks !== undefined) { setLoading(false); return; }
+    if (propTasks !== undefined) return;
     const token = getToken();
     fetch("/api/tasks", {
       headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     })
       .then(r => r.ok ? r.json() : { tasks: [] })
-      .then((d: { tasks?: Task[] }) => { setApiTasks(d.tasks?.filter(t => !t.completed) ?? []); setLoading(false); })
-      .catch(() => setLoading(false));
+      .then((d: { tasks?: Task[] }) => { setApiTasks(d.tasks?.filter(t => !t.completed) ?? []); setApiLoading(false); })
+      .catch(() => setApiLoading(false));
   }, [propTasks]);
 
   const tasks = propTasks?.filter(t => !t.completed) ?? apiTasks;

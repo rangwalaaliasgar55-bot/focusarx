@@ -46,7 +46,6 @@ export default function AITaskDecomposer() {
     try {
       const eventSource = new EventSource(`/api/ai/tasks/decompose/stream?${params}&token=${token}`);
       let fullText = '';
-      const parsed: SubTask[] = [];
 
       eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data);
@@ -92,8 +91,8 @@ export default function AITaskDecomposer() {
           .then(data => {
             if (data.reply) {
               // Parse the response
-              const matches = data.reply.matchAll(/(\d+)\.\s+\*\*(.+?)\*\*\s*(?:\((\d+)[-\s]?(?:min|mins|minutes?)\))?\s*[-:]?\s*(.*?)(?=\n\d+\.|$)/g);
               const parsed: SubTask[] = [];
+              const matches = data.reply.matchAll(/(\d+)\.\s+\*\*(.+?)\*\*\s*(?:\((\d+)[-\s]?(?:min|mins|minutes?)\))?\s*[-:]?\s*(.*?)(?=\n\d+\.|$)/g);
               for (const match of matches) {
                 parsed.push({
                   title: match[2].trim(),

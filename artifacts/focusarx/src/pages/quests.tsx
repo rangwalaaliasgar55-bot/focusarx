@@ -99,7 +99,7 @@ export default function QuestsPage() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { const t = setTimeout(() => void load(), 0); return () => clearTimeout(t); }, []);
 
   const handleClaim = async (questId: string) => {
     setClaiming(questId);

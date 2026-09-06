@@ -57,7 +57,6 @@ const RANK_META = {
 
 function getMsUntilMonday(): number {
   const now = new Date();
-  const msPerDay = 86400000;
   const day = now.getDay(); // 0=Sun, 1=Mon
   const daysUntilMon = day === 0 ? 1 : 8 - day;
   const nextMon = new Date(now);
@@ -174,7 +173,7 @@ export default function LeaderboardPage() {
       .catch(() => { setFetchError(true); setLoading(false); });
   }, [filter, scope]);
 
-  useEffect(() => { loadLeaderboard(); }, [loadLeaderboard]);
+  useEffect(() => { const t = setTimeout(() => loadLeaderboard(), 0); return () => clearTimeout(t); }, [loadLeaderboard]);
 
   const sorted = [...entries]
     .sort((a, b) => filter === "weekly" ? b.weeklyXp - a.weeklyXp : b.totalXp - a.totalXp)

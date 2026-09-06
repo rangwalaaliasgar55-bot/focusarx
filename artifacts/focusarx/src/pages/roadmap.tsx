@@ -181,6 +181,11 @@ export default function RoadmapPage() {
                </div>
 
                <div>
+                 <label htmlFor="roadmap-deadline" className="block text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-3">Deadline <span className="normal-case tracking-normal opacity-60">(optional)</span></label>
+                 <input id="roadmap-deadline" type="date" value={deadline} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setDeadline(e.target.value)} className="w-full rounded-2xl bg-[var(--palette-white)]/[0.02] border border-[var(--palette-white)]/5 p-4 text-sm text-[var(--palette-white)] focus:border-[var(--brand-400)] outline-none transition-all" />
+               </div>
+
+               <div>
                  <label htmlFor="current-progress-184" className="block text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-3">Current Progress</label>
                  <textarea id="current-progress-184" value={currentProgress} onChange={(e) => setCurrentProgress(e.target.value)} rows={2} className="w-full rounded-2xl bg-[var(--palette-white)]/[0.02] border border-[var(--palette-white)]/5 p-4 text-sm text-[var(--palette-white)] focus:border-[var(--brand-400)] outline-none transition-all resize-none" />
                </div>
@@ -190,6 +195,9 @@ export default function RoadmapPage() {
                </button>
                {error && <p className="text-[11px] text-[var(--palette-red-400)] font-bold uppercase text-center">{error}</p>}
 
+               {authStatus === "authenticated" && loadingList && savedRoadmaps.length === 0 && (
+                 <p className="text-[11px] uppercase tracking-widest text-[var(--foreground-subtle)]">Loading saved protocols…</p>
+               )}
                {authStatus === "authenticated" && savedRoadmaps.length > 0 && (
                  <div className="pt-8 mt-8 border-t border-[var(--palette-white)]/5">
                     <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-4">Saved Protocols</p>
@@ -257,10 +265,13 @@ export default function RoadmapPage() {
                    <div className="grid gap-4">
                       {roadmap.map((day) => (
                         <motion.div key={day.day} className="rounded-3xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] overflow-hidden">
-                           <div className="p-6 flex items-center justify-between border-b border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01]">
+                           <button type="button" onClick={() => setOpenDay(openDay === day.day ? null : day.day)} aria-expanded={openDay === day.day} className="w-full p-6 flex items-center justify-between border-b border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] text-left">
                               <div className="flex items-center gap-4">
                                  <div className="h-10 w-10 rounded-xl bg-[var(--palette-white)]/5 flex items-center justify-center text-xs font-semibold">D{day.day}</div>
-                                 <h3 className="font-semibold text-lg text-[var(--palette-white)]">Daily Operations</h3>
+                                 <div>
+                                   <h3 className="font-semibold text-lg text-[var(--palette-white)]">Day {day.day}</h3>
+                                   <p className="text-[11px] text-[var(--foreground-subtle)] tabular-nums">{day.tasks.filter((_, i) => checked.has(`${day.day}:${i}`)).length}/{day.tasks.length} tasks done</p>
+                                 </div>
                               </div>
                               <div className="flex items-center gap-6">
                                  <div className="flex items-center gap-2">
@@ -272,7 +283,8 @@ export default function RoadmapPage() {
                                     <span className="text-xs font-bold text-[var(--palette-zinc-400)]">{day.estimatedTime}m</span>
                                  </div>
                               </div>
-                           </div>
+                           </button>
+                           {openDay === day.day && <>
                            <div className="p-8 grid gap-8 md:grid-cols-2">
                               <div>
                                  <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-4">Focus Protocol</p>
@@ -287,11 +299,18 @@ export default function RoadmapPage() {
                               <div>
                                  <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-4">Tactical Tasks</p>
                                  <ul className="space-y-3">
-                                    {day.tasks.map((t, i) => (
-                                      <li key={i} className="flex items-center gap-3 p-3 rounded-xl bg-[var(--palette-white)]/[0.02] border border-[var(--palette-white)]/5 text-xs text-[var(--palette-zinc-400)] font-bold">
-                                         <div className="h-2 w-2 rounded-full bg-[var(--brand-400)]" /> {t}
-                                      </li>
-                                    ))}
+                                    {day.tasks.map((t, i) => {
+                                      const key = `${day.day}:${i}`;
+                                      const done = checked.has(key);
+                                      return (
+                                        <li key={i}>
+                                          <label className={`flex cursor-pointer items-center gap-3 p-3 rounded-xl border text-xs font-bold transition-colors ${done ? "border-[var(--brand-500)]/40 bg-[var(--brand-soft)] text-[var(--foreground-subtle)] line-through" : "bg-[var(--palette-white)]/[0.02] border-[var(--palette-white)]/5 text-[var(--palette-zinc-400)]"}`}>
+                                            <input type="checkbox" className="accent-[var(--brand-500)]" checked={done} onChange={() => setChecked((prev) => { const next = new Set(prev); if (next.has(key)) next.delete(key); else next.add(key); return next; })} />
+                                            {t}
+                                          </label>
+                                        </li>
+                                      );
+                                    })}
                                  </ul>
                               </div>
                            </div>
@@ -301,6 +320,7 @@ export default function RoadmapPage() {
                              {day.progressCheck && <p className="mt-1 text-sm"><strong>Progress check:</strong> {day.progressCheck}</p>}
                              {!!day.resources?.length && <div className="mt-3 flex flex-wrap gap-2">{day.resources.map((resource) => <a key={resource.url} href={resource.url} target="_blank" rel="noreferrer" className="rounded-lg border border-[var(--brand-500)]/30 px-3 py-2 text-xs text-[var(--brand-400)]">{resource.title} ↗</a>)}</div>}
                            </div>}
+                           </>}
                         </motion.div>
                       ))}
                    </div>

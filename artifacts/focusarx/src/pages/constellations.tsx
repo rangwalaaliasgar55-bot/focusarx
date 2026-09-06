@@ -72,7 +72,7 @@ function sessionToStar(session: any, cx: number, cy: number, maxRadius: number):
 
 const CONSTELLATION_COLORS = ["var(--brand-600)", "var(--color-info)", "var(--color-warning)", "var(--palette-10b981)", "var(--palette-ec4899)", "var(--color-error)", "var(--palette-06b6d4)", "var(--brand-500)"];
 
-function findConstellations(stars: Star[], cx: number, cy: number): Constellation[] {
+function findConstellations(stars: Star[]): Constellation[] {
   if (stars.length < 5) return [];
   // Group stars by hour quadrant (3h blocks = 8 quadrants)
   const quadrants: Record<number, Star[]> = {};
@@ -82,7 +82,7 @@ function findConstellations(stars: Star[], cx: number, cy: number): Constellatio
     quadrants[q]!.push(s);
   }
   const constellations: Constellation[] = [];
-  Object.entries(quadrants).forEach(([qStr, qStars], i) => {
+  Object.values(quadrants).forEach((qStars, i) => {
     if (qStars.length >= 3) {
       const name = CONSTELLATION_NAMES[i % CONSTELLATION_NAMES.length]!;
       const centerX = qStars.reduce((s, st) => s + st.x, 0) / qStars.length;
@@ -125,7 +125,7 @@ export default function ConstellationsPage() {
           .slice(0, 150)
           .map((s: any) => sessionToStar(s, CX, CY, MAX_RADIUS));
         setStars(mapped);
-        setConstellations(findConstellations(mapped, CX, CY));
+        setConstellations(findConstellations(mapped));
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -182,7 +182,7 @@ export default function ConstellationsPage() {
                   ))}
 
                   {/* Hour axes */}
-                  {[0, 3, 6, 9, 12, 15, 18, 21].map((h, i) => {
+                  {[0, 3, 6, 9, 12, 15, 18, 21].map((h) => {
                     const angle = (h / 24) * 2 * Math.PI - Math.PI / 2;
                     return (
                       <line key={h}

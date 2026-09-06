@@ -129,7 +129,7 @@ function MissionCard({ mission, onClaim, claiming }: { mission: MissionDef; onCl
 
           <div className="flex items-center justify-between mt-2">
             <span className="text-[11px] text-[var(--foreground-subtle)]">
-              {mission.completed ? "✓ Complete!" : `${mission.currentValue} / ${mission.targetValue}`}
+              {mission.completed ? "✓ Complete!" : `${mission.currentValue} / ${mission.targetValue} · ${pct}%`}
             </span>
             <div className="flex items-center gap-3">
               <span className="text-[11px] text-[var(--brand-400)] font-semibold">+{mission.xpReward} XP</span>

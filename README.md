@@ -105,7 +105,6 @@ focusarx/
 - [Security](docs/SECURITY.md) — Auth, authorization, and security measures
 - [Deployment](docs/DEPLOYMENT.md) — Production deployment guide
 - [Developer Mode](docs/DEVELOPER_MODE.md) — Admin developer console
-- [Feature Audit](docs/FEATURE_AUDIT.md) — Feature status overview
 - [Microsoft Store](docs/MICROSOFT_STORE.md) — Windows packaging guide
 
 ## Environment Variables

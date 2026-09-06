@@ -5,7 +5,7 @@ import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { useOfflineQueue } from "@/hooks/useOfflineQueue";
 
 export function NetworkStatusBanner() {
-  const { status, isOffline, isSlow } = useNetworkStatus();
+  const { isOffline, isSlow } = useNetworkStatus();
   const { queueCount, syncing, processQueue } = useOfflineQueue();
 
   const showOffline = isOffline;

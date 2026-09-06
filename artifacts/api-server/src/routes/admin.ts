@@ -117,33 +117,28 @@ router.delete("/admin/auth", (req, res) => {
 router.get("/admin/users", async (req, res) => {
   if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   try {
-    // Project explicit columns (see CONTRIBUTING «Database query rules»). A bare
-    // `db.select().from(usersTable)` asks for all 17 columns, so if the live DB
-    // is missing even one (e.g. referral_code after schema drift) the query
-    // throws and this route 500s — which made the admin user list render EMPTY
-    // while the rows were still sitting in the database.
-    const users = await db.select({
-      id: usersTable.id,
-      name: usersTable.name,
-      email: usersTable.email,
-      isGuest: usersTable.isGuest,
-      role: usersTable.role,
-      createdAt: usersTable.createdAt,
-    }).from(usersTable).orderBy(usersTable.createdAt);
-
     // Bounded pagination + server-side search. Legacy callers (no ?page=)
     // still receive the enveloped shape they expect, but the window is capped
-    // so the endpoint can never scan the whole table again.
+    // so the endpoint can never scan the whole table again. Guests and bots
+    // are excluded in SQL so every page is full and `total` matches the rows
+    // the client can actually page through (including when searching).
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = Math.min(500, Math.max(1, parseInt(req.query.limit as string) || 500));
     const offset = (page - 1) * limit;
     const search = typeof req.query.search === "string" ? req.query.search.trim().slice(0, 100) : "";
     const searchPattern = search ? `%${search.replace(/[%_]/g, (m) => `\\${m}`)}%` : null;
+    const visibleUsers = and(
+      eq(usersTable.isGuest, false),
+      sql`coalesce(${usersTable.role}, 'user') <> 'bot'`,
+      searchPattern ? sql`(${usersTable.name} ilike ${searchPattern} or ${usersTable.email} ilike ${searchPattern})` : sql`true`,
+    );
 
     const [{ value: totalCount }] = await db.select({ value: sql<number>`count(*)` })
       .from(usersTable)
-      .where(searchPattern ? sql`(${usersTable.name} ilike ${searchPattern} or ${usersTable.email} ilike ${searchPattern})` : sql`true`);
+      .where(visibleUsers);
 
+    // Project explicit columns (see CONTRIBUTING «Database query rules») so a
+    // single missing column after schema drift cannot 500 the whole list.
     const pageUsers = await db.select({
       id: usersTable.id,
       name: usersTable.name,
@@ -152,7 +147,7 @@ router.get("/admin/users", async (req, res) => {
       role: usersTable.role,
       createdAt: usersTable.createdAt,
     }).from(usersTable)
-      .where(searchPattern ? sql`(${usersTable.name} ilike ${searchPattern} or ${usersTable.email} ilike ${searchPattern})` : sql`true`)
+      .where(visibleUsers)
       .orderBy(desc(usersTable.createdAt))
       .limit(limit)
       .offset(offset);
@@ -175,8 +170,6 @@ router.get("/admin/users", async (req, res) => {
     }).from(activeSessionsTable);
 
     // Global role counts — small dimension (users), full-table counts are fine.
-    const [{ value: registeredCount }] = await db.select({ value: sql<number>`count(*)` })
-      .from(usersTable).where(and(eq(usersTable.isGuest, false), sql`${usersTable.role} <> 'bot'`));
     const [{ value: botCount }] = await db.select({ value: sql<number>`count(*)` })
       .from(usersTable).where(sql`${usersTable.role} = 'bot'`);
     const [{ value: guestCount }] = await db.select({ value: sql<number>`count(*)` })
@@ -186,7 +179,7 @@ router.get("/admin/users", async (req, res) => {
     const streakByUser = new Map(streakRows.map((r) => [r.userId, r.currentStreak]));
 
     res.json({
-      users: pageUsers.filter((u) => !u.isGuest && (u.role ?? "user").toLowerCase() !== "bot").map((u) => ({
+      users: pageUsers.map((u) => ({
         id: u.id, name: u.name, email: u.email, isGuest: false,
         role: u.role ?? "user",
         sessionCount: sessionCountByUser.get(u.id) ?? 0,
@@ -199,9 +192,9 @@ router.get("/admin/users", async (req, res) => {
       pagination: {
         page,
         limit,
-        total: Number(registeredCount ?? 0),
-        totalPages: Math.max(1, Math.ceil(Number(registeredCount ?? 0) / limit)),
-        hasMore: offset + pageUsers.length < Number(registeredCount ?? 0),
+        total: Number(totalCount ?? 0),
+        totalPages: Math.max(1, Math.ceil(Number(totalCount ?? 0) / limit)),
+        hasMore: offset + pageUsers.length < Number(totalCount ?? 0),
       },
     });
   } catch (err) {
@@ -951,7 +944,7 @@ const SQL_UNLOCK_PHRASE = process.env.SQL_UNLOCK_PHRASE || "focusarx-admin-unloc
 function isReadOnlyStatement(sql: string): boolean {
   const trimmed = sql.trim().replace(/\/\/[\s\S]*$/, "").replace(/--[\s\S]*$/, "");
   const firstWord = trimmed.split(/\s+/)[0]?.toUpperCase();
-  const readOnlyPrefixes = ["SELECT", "SHOW", "EXPLAIN", "WITH", "TABLE", "\d"];
+  const readOnlyPrefixes = ["SELECT", "SHOW", "EXPLAIN", "WITH", "TABLE", "\\d"];
   return readOnlyPrefixes.some((p) => firstWord?.startsWith(p));
 }
 

@@ -195,6 +195,12 @@ postsRouter.get("/feed", authMiddleware, async (req: AuthRequest, res: Response)
   }
 
   const enriched = await Promise.all(posts.map(p => enrichPost(p, userId)));
+  // The discover feed is cursor-paginated, so it returns an envelope the client
+  // can page with; the other feeds keep their legacy plain-array shape.
+  if (type === "discover") {
+    res.json({ posts: enriched, nextCursor: enriched.length >= pageLimit ? nextCursor : null });
+    return;
+  }
   res.json(enriched);
   } catch (err) {
     logger.error({ err }, "GET /feed error:");
