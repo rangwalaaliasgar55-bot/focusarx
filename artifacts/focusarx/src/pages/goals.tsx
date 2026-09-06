@@ -1,3 +1,4 @@
+import { QueryError } from "@/components/ui/QueryError";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getToken } from "@/lib/auth";
@@ -29,7 +30,7 @@ export default function GoalsPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
 
-  const { data, isLoading } = useQuery<{ goals: Goal[] }>({
+  const { data, isLoading, isError, refetch, isRefetching } = useQuery<{ goals: Goal[] }>({
     queryKey: ["goals"],
     queryFn: () => apiFetch("/api/goals"),
     staleTime: 60_000,
@@ -144,6 +145,8 @@ export default function GoalsPage() {
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => <div key={i} className="h-16 animate-pulse rounded-2xl bg-[var(--surface-hover)]" />)}
         </div>
+      ) : isError && !data ? (
+        <QueryError what="your goals" onRetry={() => void refetch()} retrying={isRefetching} />
       ) : (
         <div className="space-y-6">
           {/* Active goals */}

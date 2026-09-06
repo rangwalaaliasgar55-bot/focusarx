@@ -27,6 +27,8 @@ export type PomodoroSnapshot = {
   status: TimerStatus;
   secondsLeft: number;
   activeSeconds: number;
+  /** Original phase length; lets the UI rebuild progress after a restore. */
+  plannedSeconds?: number;
 };
 
 type UseSessionPersistenceOptions = {
@@ -149,7 +151,13 @@ export function useSessionPersistence(options: UseSessionPersistenceOptions) {
   }, []);
 
   useEffect(() => {
-    if (authStatus === "loading" || authStatus !== "authenticated") return;
+    if (authStatus === "loading") return;
+    if (authStatus !== "authenticated") {
+      // Guests have no server row: nothing to recover, so do not hold the
+      // timer behind the 5 s fallback skeleton.
+      optionsRef.current.onRecoveryReady?.();
+      return;
+    }
 
     let cancelled = false;
 
@@ -166,15 +174,29 @@ export function useSessionPersistence(options: UseSessionPersistenceOptions) {
             hasRestoredRef.current = true;
             dbSessionIdRef.current = row.id;
             const timerStatus = (row.timerStatus ?? "paused") as TimerStatus;
+            // Prefer the server's pause-aware numbers: `secondsLeft` is only
+            // the last checkpoint, so a running session restored after a
+            // phone lock would otherwise regain the time that already passed.
             const secondsLeft =
-              row.secondsLeft ?? optionsRef.current.getTimerSnapshot().secondsLeft;
+              row.serverRemaining ??
+              row.secondsLeft ??
+              optionsRef.current.getTimerSnapshot().secondsLeft;
+            const activeSeconds = row.serverElapsed ?? row.activeSeconds;
+            const plannedSeconds =
+              row.serverPlannedSeconds ?? Math.max(secondsLeft, activeSeconds + secondsLeft);
 
-            optionsRef.current.restoreTimer({
-              mode: row.mode as TimerMode,
-              status: timerStatus,
-              secondsLeft,
-              activeSeconds: row.activeSeconds,
-            });
+            if (secondsLeft <= 0 && timerStatus === "running") {
+              // Finished while we were away — nothing sensible to resume.
+              void abandonActiveSession();
+            } else {
+              optionsRef.current.restoreTimer({
+                mode: row.mode as TimerMode,
+                status: timerStatus,
+                secondsLeft,
+                activeSeconds,
+                plannedSeconds,
+              });
+            }
 
             restoreStudyMonitorFromPersistence({
               activeSeconds: row.activeSeconds,

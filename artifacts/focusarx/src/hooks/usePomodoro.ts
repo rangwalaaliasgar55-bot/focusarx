@@ -59,7 +59,9 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
 
   const [mode, setMode] = useState<TimerMode>(() => restored?.mode ?? "focus");
   const [status, setStatus] = useState<TimerStatus>(() => restored?.status ?? "idle");
-  const [customConfigs, setCustomConfigs] = useState<Partial<TimerConfig>>({});
+  const [customConfigs, setCustomConfigs] = useState<Partial<TimerConfig>>(() =>
+    restored?.plannedSeconds ? { [`${restored.mode}Duration`]: restored.plannedSeconds } : {},
+  );
   const [leaderBlocked, setLeaderBlocked] = useState(false);
 
   const getDuration = useCallback(
@@ -223,10 +225,11 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
       secondsLeft: secondsLeftRef.current,
       activeSeconds: activeSecondsRef.current,
       deadlineMs: deadlineMsRef.current,
+      plannedSeconds: getDuration(modeRef.current),
       now,
     });
     if (snap) safeSetJson(key, snap);
-  }, []);
+  }, [getDuration]);
 
   useEffect(() => {
     // Persist transitions synchronously enough to survive a kill/refresh:
@@ -425,8 +428,15 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
       status: TimerStatus;
       secondsLeft: number;
       activeSeconds: number;
+      plannedSeconds?: number;
     }) => {
       completingRef.current = false;
+      // Adopt the restored phase length so `progress`/`totalSeconds` reflect
+      // the session that was actually running, not the default preset.
+      if (snapshot.plannedSeconds && snapshot.plannedSeconds > 0) {
+        const planned = Math.floor(snapshot.plannedSeconds);
+        setCustomConfigs((prev) => ({ ...prev, [`${snapshot.mode}Duration`]: planned }));
+      }
       modeRef.current = snapshot.mode;
       statusRef.current = snapshot.status;
       secondsLeftRef.current = snapshot.secondsLeft;

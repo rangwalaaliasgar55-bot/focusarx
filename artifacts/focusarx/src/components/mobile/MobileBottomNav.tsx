@@ -5,25 +5,41 @@ import {
   LayoutDashboard,
   Timer,
   CheckSquare2,
-  BarChart3,
+  Target,
   UserRound,
   MoreHorizontal,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { getToken } from "@/lib/auth";
+import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
+
+async function fetchClaimableMissions(): Promise<number> {
+  if (!getToken()) return 0;
+  const response = await apiFetch("/api/missions");
+  if (!response.ok) return 0;
+  const data = await response.json();
+  return [...(data?.daily ?? []), ...(data?.weekly ?? [])].filter(
+    (m: { completed?: boolean; rewardClaimed?: boolean }) => m.completed && !m.rewardClaimed,
+  ).length;
+}
 
 type Tab = {
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string; size?: number }>;
   primary?: boolean;
+  badge?: "missions";
 };
 
 const PRIMARY_TABS: Tab[] = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
   { href: "/tasks", label: "Plan", icon: CheckSquare2 },
   { href: "/", label: "Timer", icon: Timer, primary: true },
-  { href: "/analytics", label: "Stats", icon: BarChart3 },
+  // Analytics is premium-gated; a primary tab must never land free users on
+  // a paywall. Missions is useful to everyone and carries the claim badge.
+  { href: "/missions", label: "Missions", icon: Target, badge: "missions" },
   { href: "/profile", label: "Profile", icon: UserRound },
 ];
 
@@ -52,6 +68,12 @@ export function MobileBottomNav({ onMoreClick, hidden }: MobileBottomNavProps) {
   }, []);
 
   const shouldHide = hidden || isFocusMode;
+  const { data: claimable = 0 } = useQuery({
+    queryKey: ["missions-badge"],
+    queryFn: fetchClaimableMissions,
+    staleTime: 60_000,
+    refetchInterval: 120_000,
+  });
 
   return (
     <nav
@@ -92,7 +114,7 @@ export function MobileBottomNav({ onMoreClick, hidden }: MobileBottomNavProps) {
             )}
             <span
               className={cn(
-                "mobile-tab-icon grid h-8 w-8 place-items-center rounded-[var(--radius-md)] transition-all",
+                "mobile-tab-icon relative grid h-8 w-8 place-items-center rounded-[var(--radius-md)] transition-all",
                 active && "bg-[var(--brand-soft)]",
                 tab.primary && active && "bg-transparent",
                 tab.primary
@@ -101,6 +123,14 @@ export function MobileBottomNav({ onMoreClick, hidden }: MobileBottomNavProps) {
               )}
             >
               <Icon size={tab.primary ? 22 : 20} />
+              {tab.badge === "missions" && claimable > 0 && (
+                <span
+                  className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--brand-600)] px-1 text-[0.6rem] font-bold leading-none text-white ring-2 ring-[var(--backdrop)]"
+                  aria-label={`${claimable} reward${claimable === 1 ? "" : "s"} to claim`}
+                >
+                  {claimable > 9 ? "9+" : claimable}
+                </span>
+              )}
             </span>
             <span className="leading-none tracking-tight">{tab.label}</span>
           </Link>

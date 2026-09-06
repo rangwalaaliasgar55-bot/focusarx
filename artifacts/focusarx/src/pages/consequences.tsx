@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
+import { useToast } from "@/components/Toast";
 import { PageTransition } from "@/components/PageTransition";
 import { Sword, Heart, Megaphone, Snowflake, CheckCircle, XCircle, Plus } from "lucide-react";
 
@@ -102,6 +103,7 @@ function ContractCard({ contract, weekMinutes }: { contract: Contract; weekMinut
 
 export default function ConsequencesPage() {
   const { status } = useAuth();
+  const { toast } = useToast();
   const [data, setData] = useState<ConsequencesData | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -121,9 +123,9 @@ export default function ConsequencesPage() {
 
   const load = () => {
     fetch("/api/consequences", { headers: { Authorization: `Bearer ${token()}` } })
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
       .then((d: ConsequencesData) => setData(d))
-      .catch(() => {})
+      .catch(() => toast("Couldn't load your contracts. Pull to refresh or try again.", "error"))
       .finally(() => setLoaded(true));
   };
 
@@ -135,7 +137,7 @@ export default function ConsequencesPage() {
   const save = async () => {
     setSaving(true);
     try {
-      await fetch("/api/consequences", {
+      const r = await fetch("/api/consequences", {
         method: "POST",
         headers: { Authorization: `Bearer ${token()}`, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -145,8 +147,16 @@ export default function ConsequencesPage() {
           charityAmount: contractType === "charity" ? charityAmount : undefined,
         }),
       });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        toast(d?.error?.message ?? d?.error ?? "Couldn't save the contract.", "error");
+        return;
+      }
       setShowForm(false);
+      toast("Contract locked in. Good luck this week!", "success");
       load();
+    } catch {
+      toast("Network error — contract not saved.", "error");
     } finally {
       setSaving(false);
     }
@@ -158,11 +168,19 @@ export default function ConsequencesPage() {
   const spendFreeze = async () => {
     setUsingFreeze(true);
     try {
-      await fetch("/api/consequences/use-freeze", {
+      const r = await fetch("/api/consequences/use-freeze", {
         method: "POST",
         headers: { Authorization: `Bearer ${token()}` },
       });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        toast(d?.error?.message ?? d?.error ?? "No freeze available.", "error");
+      } else {
+        toast("Streak freeze used for today.", "success");
+      }
       load();
+    } catch {
+      toast("Network error — freeze not applied.", "error");
     } finally {
       setUsingFreeze(false);
     }

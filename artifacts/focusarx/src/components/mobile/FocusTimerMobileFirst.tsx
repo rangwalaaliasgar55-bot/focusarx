@@ -18,7 +18,7 @@ import { MobileFocusMode } from "./MobileFocusMode";
 import { DEFAULT_CONFIG } from "@/lib/constants";
 import { FOCUS_DEEP_LINK_EVENT } from "@/lib/focusDeepLink";
 import { trackSessionStart, trackSessionComplete } from "@/lib/analytics";
-import { playCoachVoice } from "@/lib/soundEngine";
+import { playCoachVoice, playSessionComplete, playBreakOver, playCoinEarn, isMuted, toggleMute } from "@/lib/soundEngine";
 import FlowTimer from "@/components/FlowTimer";
 import DistractionModal from "@/components/DistractionModal";
 import { SESSION_PRESETS, getPresetById, getSessionPreset, setSessionPreset } from "@/lib/sessionPresets";
@@ -39,9 +39,13 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
 
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showMobileFocus, setShowMobileFocus] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  // Shared with Profile → Sound effects (same `fx_muted` key) so the toggle
+  // survives reloads and is consistent across every timer surface.
+  const [soundEnabled, setSoundEnabled] = useState(() => !isMuted());
   const [isSaving, setIsSaving] = useState(false);
-  const [totalPlanned, setTotalPlanned] = useState(25 * 60);
+  // Planned length of the current run; after a restore this is derived from
+  // the hook's planned duration rather than the 25-min default.
+  const [startedPlanned, setTotalPlanned] = useState(0);
   // Deep-linked task (?task=) for guests, who have no server task list.
   const [deepTask, setDeepTask] = useState("");
   const [showPark, setShowPark] = useState(false);
@@ -64,21 +68,8 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
       // Haptic + sound
       haptic("celebrate");
       if (soundEnabled) {
-        try {
-          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-          if (ctx.state === "suspended") {
-            void ctx.resume().catch(() => {});
-          }
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.frequency.setValueAtTime(800, ctx.currentTime);
-          gain.gain.setValueAtTime(0.3, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-          osc.start();
-          osc.stop(ctx.currentTime + 0.4);
-        } catch {}
+        if (session.mode === "focus") playSessionComplete();
+        else playBreakOver();
       }
 
       setIsSaving(true);
@@ -257,6 +248,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
   useEffect(() => {
     publishFocusState({ mode, status, secondsLeft, totalSeconds });
   }, [mode, status, secondsLeft, totalSeconds]);
+  const totalPlanned = startedPlanned > 0 && status !== "idle" ? startedPlanned : totalSeconds;
   useEffect(() => () => resetFocusState(), []);
 
   // Title update
@@ -402,7 +394,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
             />
           </div>
           <p className="mt-2 text-xs font-medium text-[var(--foreground-subtle)]">
-            {isRunning ? "in progress" : isPaused ? "paused" : "ready"} • {Math.floor(secondsLeft / 60)}m planned
+            {isRunning ? "in progress" : isPaused ? "paused" : "ready"} • {Math.round(totalPlanned / 60)}m {isRunning || isPaused ? "block" : "planned"}
           </p>
         </div>
 
@@ -443,7 +435,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
             </button>
             <button
               type="button"
-              onClick={() => setSoundEnabled(v => !v)}
+              onClick={() => { const nowOn = !toggleMute(); setSoundEnabled(nowOn); if (nowOn) playCoinEarn(); }}
               className="grid min-h-[44px] min-w-[44px] place-items-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-1)] text-[var(--foreground-subtle)]"
               aria-label={soundEnabled ? "Mute sounds" : "Enable sounds"}
             >

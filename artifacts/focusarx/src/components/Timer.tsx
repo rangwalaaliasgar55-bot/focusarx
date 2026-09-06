@@ -26,7 +26,6 @@ import FocusLockOverlay, { LockModePicker } from "./FocusLockOverlay";
 import type { LockMode } from "./FocusLockOverlay";
 import DistractionModal from "./DistractionModal";
 import TaskTimeline, { OverrunModal } from "./TaskTimeline";
-import { SoundEngine } from "./SoundEngine";
 import SessionTypePicker, { type SessionType, SESSION_TYPE_TINTS } from "./SessionTypePicker";
 import AmbientSoundBar from "./AmbientSoundBar";
 import ZenOverlay from "./ZenOverlay";
@@ -55,36 +54,13 @@ function getLevel(xp: number) { return Math.floor(Math.sqrt(xp / 100)) + 1; }
 function xpForLevel(level: number) { return (level - 1) ** 2 * 100; }
 function xpForNextLevel(level: number) { return level ** 2 * 100; }
 
-const playSessionNotification = (mode: TimerMode) => {
-  try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    // Fired from a Worker tick, not a gesture: resume opportunistically so
-    // the completion chime is not swallowed by the autoplay policy.
-    if (audioContext.state === "suspended") {
-      void audioContext.resume().catch(() => {});
-    }
-    const now = audioContext.currentTime;
-    const osc = audioContext.createOscillator();
-    const gain = audioContext.createGain();
-    osc.connect(gain);
-    gain.connect(audioContext.destination);
-    if (mode === "focus") {
-      osc.frequency.setValueAtTime(800, now);
-      osc.frequency.setValueAtTime(600, now + 0.1);
-      gain.gain.setValueAtTime(0.3, now);
-      gain.gain.setValueAtTime(0, now + 0.2);
-    } else {
-      osc.frequency.setValueAtTime(600, now);
-      osc.frequency.setValueAtTime(800, now + 0.1);
-      gain.gain.setValueAtTime(0.25, now);
-      gain.gain.setValueAtTime(0, now + 0.3);
-    }
-    osc.start(now);
-    osc.stop(now + 0.3);
-  } catch { /* silently ignore */ }
-};
+import { playCoachVoice, playSessionComplete, playBreakOver } from "@/lib/soundEngine";
 
-import { playCoachVoice } from "@/lib/soundEngine";
+/** Completion chime via the shared audio context (respects the mute toggle). */
+const playSessionNotification = (mode: TimerMode) => {
+  if (mode === "focus") playSessionComplete();
+  else playBreakOver();
+};
 
 export default function Timer({ onSessionComplete: onSessionCompleteProp }: { onSessionComplete?: () => void } = {}) {
   const { addSession, focusSessionsToday } = useSessionHistory();
@@ -125,7 +101,10 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
   const [lockMode, setLockMode] = useState<LockMode>("none");
   const [exitPhrase, setExitPhrase] = useState("");
   const [activeTaskName, setActiveTaskName] = useState("");
-  const [totalFocusSec, setTotalFocusSec] = useState(0);
+  // Planned length of the current run. Explicitly captured at start; after a
+  // restore (guest snapshot or server row) it is derived from the hook's
+  // planned duration so elapsed/lock/pet visuals are never based on 0.
+  const [startedFocusSec, setTotalFocusSec] = useState(0);
   const [showDistractionModal, setShowDistractionModal] = useState(false);
   const [showZen, setShowZen] = useState(false);
   const [overrunTask, setOverrunTask] = useState<{ text: string } | null>(null);
@@ -266,6 +245,8 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     persistKey: "focusarx-guest-timer",
     onSessionComplete: handleSessionRecorded,
   });
+
+  const totalFocusSec = status !== "idle" && startedFocusSec === 0 ? totalSeconds : startedFocusSec;
 
   useEffect(() => {
     if (status === "running" && mode === "focus") {
@@ -535,6 +516,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     if (snap.status === "running" && snap.mode === "focus") { setShowExitConfirm(true); return; }
     persistence.clearDbSession();
     reset(false);
+    setTotalFocusSec(0);
     setLockMode("none");
     setExitPhrase("");
   }, [status, mode, persistence, reset]);
@@ -916,11 +898,11 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
 
         {/* ── BOTTOM STRIP ────────────────────────────────────────────── */}
         <div className="flex items-center justify-between border-t border-[var(--palette-zinc-800)]/60 px-5 py-3">
-          <SoundEngine
-            sessionActive={isRunning && mode === "focus"}
-            sessionMinutesLeft={Math.floor(secondsLeft / 60)}
-            sessionTotalMinutes={Math.floor(totalFocusSec / 60)}
-          />
+          {/* Ambient mixer on small screens (desktop shows the full panel in the right column). */}
+          <div className="lg:hidden">
+            <AmbientSoundBar variant="pill" />
+          </div>
+          <div className="hidden lg:block" aria-hidden />
           <AnimatePresence mode="wait">
             <motion.p
               key={`${mode}-${status}`}
@@ -954,9 +936,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     <div className="flex w-full max-w-md flex-col gap-4">
 
       {/* Ambient mixer — always visible on desktop, no scrolling needed */}
-      <div className="hidden lg:block">
-        <AmbientSoundBar />
-      </div>
+      <AmbientSoundBar variant="panel" className="hidden lg:block" />
 
       {/* Break Activity Card */}
       <AnimatePresence>
@@ -1028,9 +1008,6 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
       </AnimatePresence>
     </div>
     </div>
-
-    {/* Ambient Sound Bar — floating pill on mobile/tablet (hidden on lg where the panel lives) */}
-    <AmbientSoundBar />
 
     {/* ── OVERLAYS ──────────────────────────────────────────────────── */}
     <AnimatePresence>

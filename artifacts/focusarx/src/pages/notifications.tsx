@@ -1,3 +1,4 @@
+import { QueryError } from "@/components/ui/QueryError";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { getToken } from "@/lib/auth";
@@ -39,7 +40,7 @@ export default function NotificationsPage() {
   const qc = useQueryClient();
   const [pushEnabled, setPushEnabled] = useState(() => isPushSubscribed());
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ["notifications"],
     queryFn: () => apiFetch("/api/notifications"),
     staleTime: 15_000,
@@ -115,7 +116,11 @@ export default function NotificationsPage() {
         </div>
       )}
 
-      {!isLoading && notifications.length === 0 && (
+      {!isLoading && isError && !data && (
+        <QueryError what="notifications" onRetry={() => void refetch()} retrying={isRefetching} />
+      )}
+
+      {!isLoading && !(isError && !data) && notifications.length === 0 && (
         <div className="text-center py-16">
           <Bell size={48} className="mx-auto mb-4 text-[var(--rgba-255-255-255-0_12)]" />
           <p className="text-[var(--foreground-subtle)] text-sm">You're all caught up!</p>

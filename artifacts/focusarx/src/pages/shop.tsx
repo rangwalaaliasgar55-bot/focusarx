@@ -1,3 +1,4 @@
+import { QueryError } from "@/components/ui/QueryError";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getToken } from "@/lib/auth";
@@ -30,7 +31,7 @@ export default function ShopPage() {
   const qc = useQueryClient();
   const [activeCategory, setActiveCategory] = useState<string>("all");
 
-  const { data, isLoading } = useQuery<{ items: ShopItem[], coins: number }>({
+  const { data, isLoading, isError, refetch, isRefetching } = useQuery<{ items: ShopItem[], coins: number }>({
     queryKey: ["shop-items"],
     queryFn: () => apiFetch("/api/shop/items"),
     staleTime: 300_000,
@@ -88,6 +89,8 @@ export default function ShopPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[...Array(6)].map((_, i) => <div key={i} className="h-32 animate-pulse rounded-2xl bg-[var(--surface-hover)]" />)}
         </div>
+      ) : isError && !data ? (
+        <QueryError what="the shop" onRetry={() => void refetch()} retrying={isRefetching} />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {filtered.map((item) => {

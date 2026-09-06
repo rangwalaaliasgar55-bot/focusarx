@@ -2333,3 +2333,37 @@ html.light {
     transition: none !important;
   }
 }
+
+/* ── Range slider (ambient mixer, volume controls) ─────────────────────────
+   Track fill is driven by --fx-range-pct / --fx-range-fill so the filled part
+   matches the thumb in every browser. */
+.fx-range {
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 9999px;
+  background:
+    linear-gradient(to right, var(--fx-range-fill, var(--brand-400)) 0, var(--fx-range-fill, var(--brand-400)) var(--fx-range-pct, 50%), var(--surface-2) var(--fx-range-pct, 50%), var(--surface-2) 100%);
+  outline: none;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+.fx-range::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 16px;
+  width: 16px;
+  border-radius: 9999px;
+  background: var(--foreground);
+  border: 2px solid var(--card);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+}
+.fx-range::-moz-range-thumb {
+  height: 16px;
+  width: 16px;
+  border-radius: 9999px;
+  background: var(--foreground);
+  border: 2px solid var(--card);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+}
+.fx-range::-moz-range-track { background: transparent; }
+.fx-range:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand-400) 40%, transparent); }

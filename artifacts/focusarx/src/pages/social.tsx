@@ -1,3 +1,4 @@
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getToken, useAuth } from "@/lib/auth";
@@ -136,6 +137,7 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post
     mutationFn: () => apiFetch(`/api/posts/${post.id}/save`, { method: "POST" }),
     onSuccess: (r: any) => { toast(r?.saved ? "Saved" : "Removed from saved", "info"); onSaved(); },
   });
+  const confirmDialog = useConfirm();
   const del = useMutation({
     mutationFn: () => apiFetch(`/api/posts/${post.id}`, { method: "DELETE" }),
     onSuccess: onDeleted,
@@ -182,7 +184,7 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post
              </div>
           </div>
           {post.userId === currentUserId && (
-              <button onClick={() => { if (confirm("Delete this post?")) del.mutate(); }}
+              <button onClick={() => { void confirmDialog({ title: "Delete this post?", description: "This can't be undone.", confirmLabel: "Delete", danger: true }).then((ok) => { if (ok) del.mutate(); }); }}
                 className="opacity-0 group-hover:opacity-100 rounded-xl p-2 text-[var(--foreground-subtle)] hover:text-[var(--palette-red-400)] hover:bg-[var(--palette-red-900)]/20 transition-all">
                 <Trash2 size={16} />
               </button>

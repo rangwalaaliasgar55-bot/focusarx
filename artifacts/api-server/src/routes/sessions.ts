@@ -232,17 +232,17 @@ router.get("/sessions/active", authMiddleware, async (req: AuthRequest, res) => 
       return;
     }
 
-    // Server-authoritative remaining calculation — handles tab suspend, phone lock, etc.
-    const elapsed = Date.now() - session.startedAt.getTime();
-    const activeElapsed = Math.floor(elapsed / 1000);
-    // remaining is computed server-side, not trusted from client
-    const remaining = Math.max(0, session.secondsLeft - Math.max(0, activeElapsed - (session.activeSeconds ?? 0)));
+    // Server-authoritative timing — pause-aware (measured from the last
+    // checkpoint, not row creation) so tab suspend / phone lock / resume after
+    // a pause all land on the true remaining time.
+    const timing = deriveActiveSessionTiming(session, Date.now());
 
     res.json({
       session: {
         ...session,
-        serverElapsed: activeElapsed,
-        serverRemaining: remaining,
+        serverElapsed: timing.activeSeconds,
+        serverRemaining: timing.remainingSeconds,
+        serverPlannedSeconds: timing.plannedDurationSeconds,
         serverNow: new Date().toISOString(),
       }
     });

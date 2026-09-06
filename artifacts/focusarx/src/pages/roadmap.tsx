@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
+import { useToast } from "@/components/Toast";
 import { aiRoadmapSchema } from "@/lib/validators";
 import { getToken } from "@/lib/auth";
 import { trackSiteEvent } from "@/lib/site-analytics";
@@ -26,6 +27,7 @@ type SavedRoadmap = {
 
 export default function RoadmapPage() {
   const { status: authStatus } = useAuth();
+  const { toast } = useToast();
   const [goal, setGoal] = useState("Ship a production-ready SaaS MVP");
   const [dailyHours, setDailyHours] = useState(2);
   const [level, setLevel] = useState<"beginner" | "intermediate" | "advanced">("intermediate");
@@ -107,9 +109,12 @@ export default function RoadmapPage() {
       });
       if (res.ok) {
         setSaved(true);
+        toast("Roadmap saved.", "success");
         await fetchSavedList();
+      } else {
+        toast("Couldn't save the roadmap. Try again.", "error");
       }
-    } catch { /* ignore */ }
+    } catch { toast("Network error — roadmap not saved.", "error"); }
     setSaving(false);
   }
 
@@ -123,15 +128,18 @@ export default function RoadmapPage() {
         setOpenDay(1);
         setChecked(new Set());
         setSaved(true);
+      } else {
+        toast("Couldn't open that roadmap.", "error");
       }
-    } catch { /* ignore */ }
+    } catch { toast("Network error — couldn't open the roadmap.", "error"); }
   }
 
   async function deleteRoadmap(id: string) {
     try {
-      await fetch(`/api/roadmap/${id}`, { method: "DELETE", headers: authHeaders() });
+      const res = await fetch(`/api/roadmap/${id}`, { method: "DELETE", headers: authHeaders() });
+      if (!res.ok) { toast("Couldn't delete the roadmap.", "error"); return; }
       setSavedRoadmaps(prev => prev.filter(r => r.id !== id));
-    } catch { /* ignore */ }
+    } catch { toast("Network error — roadmap not deleted.", "error"); }
   }
 
   return (

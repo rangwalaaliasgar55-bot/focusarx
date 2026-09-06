@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, Plus, Brain, Clock, CheckCircle, XCircle, RotateCcw, Sparkles } from 'lucide-react';
 import { PageSEO } from '@/components/PageSEO';
 import { getToken } from '@/lib/auth';
+import { useToast } from '@/components/Toast';
 import { schedule, createNewCard, Grade, type CardState, serializeCard, deserializeCard } from '@/lib/fsrs';
 
 interface Deck {
@@ -43,6 +44,7 @@ export default function FlashcardsPage() {
   const [studyComplete, setStudyComplete] = useState(false);
 
   const token = typeof window !== 'undefined' ? getToken() : null;
+  const { toast } = useToast();
 
   // Load decks
   useEffect(() => {
@@ -58,8 +60,8 @@ export default function FlashcardsPage() {
           dueCount: d.dueCount || 0,
         })));
       })
-      .catch(() => {});
-  }, [token]);
+      .catch(() => toast("Couldn't load your decks. Pull to refresh or try again shortly.", "error"));
+  }, [token, toast]);
 
   // Load cards for active deck
   const loadCards = useCallback(async (deckId: number) => {
@@ -85,10 +87,10 @@ export default function FlashcardsPage() {
         setStudyComplete(false);
       }
     } catch {
-      // Failed to load cards — silently skip
+      toast("Couldn't load cards for this deck.", "error");
     }
     setIsLoading(false);
-  }, [token]);
+  }, [token, toast]);
 
   const handleGrade = useCallback(async (grade: Grade) => {
     const card = cards[currentCardIndex];
@@ -134,11 +136,13 @@ export default function FlashcardsPage() {
         setDecks(prev => [...prev, { id: deck.id, title: deck.title, description: '', cardCount: 0, dueCount: 0 }]);
         setNewDeckTitle('');
         setShowCreateDeck(false);
+      } else {
+        toast("Couldn't create the deck. Please try again.", "error");
       }
     } catch {
-      // Failed to create deck — silently skip
+      toast("Couldn't create the deck. Check your connection.", "error");
     }
-  }, [newDeckTitle, token]);
+  }, [newDeckTitle, token, toast]);
 
   const addCard = useCallback(async () => {
     if (!newCardFront.trim() || !newCardBack.trim() || !token || !activeDeck) return;
@@ -161,11 +165,13 @@ export default function FlashcardsPage() {
         setNewCardFront('');
         setNewCardBack('');
         setShowAddCard(false);
+      } else {
+        toast("Couldn't add the card. Please try again.", "error");
       }
     } catch {
-      // Failed to add card — silently skip
+      toast("Couldn't add the card. Check your connection.", "error");
     }
-  }, [newCardFront, newCardBack, token, activeDeck]);
+  }, [newCardFront, newCardBack, token, activeDeck, toast]);
 
   const currentCard = cards[currentCardIndex];
   const dueCards = cards.filter(c => c.fsrs.dueDate <= new Date() || c.fsrs.state === 'new');

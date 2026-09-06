@@ -109,6 +109,8 @@ export default function ConstellationsPage() {
   const [stars, setStars] = useState<Star[]>([]);
   const [constellations, setConstellations] = useState<Constellation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [hoveredStar, setHoveredStar] = useState<Star | null>(null);
   const [hoveredConst, setHoveredConst] = useState<Constellation | null>(null);
   const [showLabels, setShowLabels] = useState(true);
@@ -127,9 +129,11 @@ export default function ConstellationsPage() {
         setStars(mapped);
         setConstellations(findConstellations(mapped));
       })
-      .catch(() => {})
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
-  }, []);
+  }, [reloadKey]);
+
+  const retry = () => { setLoading(true); setLoadError(false); setReloadKey((k) => k + 1); };
 
   const totalHours = sessions.reduce((s, sess) => s + Math.floor(sess.durationSec / 60), 0) / 60;
 
@@ -159,6 +163,12 @@ export default function ConstellationsPage() {
                     <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--brand-600)] border-t-transparent" />
                     <p className="text-xs text-[var(--foreground-subtle)]">Charting your constellation...</p>
                   </div>
+                </div>
+              ) : loadError ? (
+                <div className="flex items-center justify-center h-[520px] flex-col gap-3" role="alert">
+                  <span className="text-5xl" aria-hidden>☁️</span>
+                  <p className="text-sm text-[var(--foreground-subtle)] text-center max-w-[220px]">Couldn't load your sessions.</p>
+                  <button type="button" onClick={retry} className="min-h-11 rounded-xl border border-[var(--border-strong)] px-4 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)]">Try again</button>
                 </div>
               ) : stars.length === 0 ? (
                 <div className="flex items-center justify-center h-[520px] flex-col gap-3">

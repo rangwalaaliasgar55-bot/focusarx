@@ -69,6 +69,8 @@ export const playCoinEarn         = () => tone(660, 0.08, "sine", 0.1);
 export const playAchievement      = () => chord([523, 659, 784], 0.5, "triangle", 0.3);
 export const playLevelUp          = () => arpeggio([261, 329, 392, 523], 0.08, "square", 0.2);
 export const playSessionComplete  = () => chord([392, 494, 587], 0.8, "sine", 0.25);
+/** Rising two-note cue when a break ends and focus is next. */
+export const playBreakOver        = () => arpeggio([523, 659], 0.12, "triangle", 0.2);
 export const playStreakMilestone  = () => arpeggio([440, 554, 659, 880], 0.06, "sine", 0.3);
 export const playMissionComplete  = () => chord([349, 440, 523, 698], 0.6, "triangle", 0.2);
 export const playError            = () => tone(220, 0.2, "sawtooth", 0.1);

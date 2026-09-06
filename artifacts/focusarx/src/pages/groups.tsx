@@ -1,3 +1,4 @@
+import { QueryError } from "@/components/ui/QueryError";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getToken } from "@/lib/auth";
@@ -125,7 +126,7 @@ export default function GroupsPage() {
   const [inviteCode, setInviteCode] = useState("");
   const [search, setSearch] = useState("");
 
-  const { data: allGroups = [], isLoading } = useQuery({ queryKey: ["groups-all"], queryFn: () => apiFetch("/api/groups"), staleTime: 30_000 });
+  const { data: allGroups = [], isLoading, isError, refetch, isRefetching } = useQuery({ queryKey: ["groups-all"], queryFn: () => apiFetch("/api/groups"), staleTime: 30_000 });
   const { data: myGroups = [] } = useQuery({ queryKey: ["groups-mine"], queryFn: () => apiFetch("/api/groups/mine"), staleTime: 30_000 });
   const { data: studyRooms = [], isLoading: roomsLoading } = useQuery({ queryKey: ["study-rooms"], queryFn: () => apiFetch("/api/study-rooms"), staleTime: 15_000, enabled: tab === "rooms" });
   const [joinCode, setJoinCode] = useState("");
@@ -218,7 +219,9 @@ export default function GroupsPage() {
       {tab === "discover" && (
         <div>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search groups…" className="w-full mb-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] px-3 py-2 text-sm text-[var(--foreground)] placeholder-[var(--palette-3a3d4a)] outline-none focus:border-[var(--brand-600)]" />
-          {isLoading ? <div className="flex justify-center py-12"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border-subtle)] border-t-[var(--brand-600)]" /></div> : (
+          {isLoading ? <div className="flex justify-center py-12"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border-subtle)] border-t-[var(--brand-600)]" /></div> : isError && allGroups.length === 0 ? (
+            <QueryError what="groups" onRetry={() => void refetch()} retrying={isRefetching} />
+          ) : (
             <div className="space-y-3">
               {filtered.length === 0 && <div className="text-center py-12 text-[var(--foreground-subtle)]"><Users size={40} className="mx-auto mb-3 opacity-30" /><p>No groups found</p></div>}
               {filtered.map((g: any) => <GroupCard key={g.id} group={g} onJoin={(id) => joinGroup.mutate(id)} isMember={myGroupIds.has(g.id)} />)}

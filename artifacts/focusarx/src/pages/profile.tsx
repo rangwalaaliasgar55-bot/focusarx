@@ -205,6 +205,7 @@ function AchievementCard({ badge }: { badge: BadgeDef }) {
 }
 
 function CustomizationTab() {
+  const { toast } = useToast();
   const { isPremium } = usePremium();
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["cosmetics-inventory"],
@@ -225,8 +226,9 @@ function CustomizationTab() {
   const handleUnlock = async (id: string) => {
     const token = getToken();
     const res = await fetch(`/api/cosmetics/${id}/unlock`, { method: "POST", headers: { Authorization: `Bearer ${token ?? ""}` } });
-    const json = await res.json();
-    if (!res.ok) alert(json.error || "Failed");
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) toast(json.error || "Couldn't unlock that item.", "error");
+    else toast("Unlocked!", "success");
     refetch();
   };
 

@@ -33,6 +33,8 @@ export interface TimerSnapshotV1 {
   activeSeconds: number;
   /** Wall-clock deadline for `running` snapshots; null for `paused`. */
   deadlineMs: number | null;
+  /** Original phase length, so progress can be rebuilt after a restore. */
+  plannedSeconds?: number;
   savedAt: number;
 }
 
@@ -44,6 +46,7 @@ export function buildSnapshot(input: {
   secondsLeft: number;
   activeSeconds: number;
   deadlineMs: number | null;
+  plannedSeconds?: number;
   now?: number;
 }): TimerSnapshotV1 | null {
   if (input.status !== "running" && input.status !== "paused") return null;
@@ -57,6 +60,7 @@ export function buildSnapshot(input: {
     secondsLeft,
     activeSeconds: Math.max(0, Math.floor(input.activeSeconds)),
     deadlineMs: input.status === "running" ? input.deadlineMs : null,
+    ...(input.plannedSeconds && input.plannedSeconds > 0 ? { plannedSeconds: Math.floor(input.plannedSeconds) } : {}),
     savedAt: input.now ?? Date.now(),
   };
 }
@@ -74,6 +78,8 @@ export function readSnapshot(raw: unknown, now: number = Date.now()): TimerSnaps
   const secondsLeft = Math.floor(Number(s.secondsLeft));
   if (!Number.isFinite(secondsLeft) || secondsLeft <= 0) return null;
   const activeSeconds = Math.max(0, Math.floor(Number(s.activeSeconds) || 0));
+  const plannedRaw = Math.floor(Number(s.plannedSeconds));
+  const planned = Number.isFinite(plannedRaw) && plannedRaw > 0 ? { plannedSeconds: plannedRaw } : {};
 
   if (s.status === "running") {
     // Deadline missing (older writer) → fall back to saved slice; still valid.
@@ -91,6 +97,7 @@ export function readSnapshot(raw: unknown, now: number = Date.now()): TimerSnaps
       secondsLeft: remaining,
       activeSeconds,
       deadlineMs,
+      ...planned,
       savedAt: s.savedAt,
     };
   }
@@ -102,6 +109,7 @@ export function readSnapshot(raw: unknown, now: number = Date.now()): TimerSnaps
     secondsLeft,
     activeSeconds,
     deadlineMs: null,
+    ...planned,
     savedAt: s.savedAt,
   };
 }

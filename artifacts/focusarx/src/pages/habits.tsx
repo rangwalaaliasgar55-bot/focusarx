@@ -1,3 +1,5 @@
+import { QueryError } from "@/components/ui/QueryError";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getToken } from "@/lib/auth";
@@ -177,7 +179,7 @@ export default function HabitsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const today = new Date().toISOString().split("T")[0]!;
 
-  const { data: habits = [], isLoading } = useQuery({
+  const { data: habits = [], isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ["habits"],
     queryFn: () => apiFetch("/api/habits"),
     staleTime: 30_000,
@@ -209,6 +211,8 @@ export default function HabitsPage() {
     mutationFn: (id: string) => apiFetch(`/api/habits/${id}/complete?date=${today}`, { method: "DELETE" }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["habits"] }); qc.invalidateQueries({ queryKey: ["habits-stats"] }); },
   });
+
+  const confirmDialog = useConfirm();
 
   const deleteHabit = useMutation({
     mutationFn: (id: string) => apiFetch(`/api/habits/${id}`, { method: "DELETE" }),
@@ -289,6 +293,8 @@ export default function HabitsPage() {
         <div className="space-y-3">
           {[1, 2, 3].map(i => <div key={i} className="h-20 animate-pulse rounded-2xl bg-[var(--surface-hover)]" />)}
         </div>
+      ) : isError && (habits as any[]).length === 0 ? (
+        <QueryError what="your habits" onRetry={() => void refetch()} retrying={isRefetching} />
       ) : (habits as any[]).length === 0 ? (
         <div className="text-center py-16">
           <p className="text-5xl mb-4">🌱</p>
@@ -306,7 +312,7 @@ export default function HabitsPage() {
               key={h.id} habit={h}
               onComplete={() => completeHabit.mutate(h.id)}
               onUncomplete={() => uncompleteHabit.mutate(h.id)}
-              onDelete={() => { if (confirm(`Delete "${h.name}"?`)) deleteHabit.mutate(h.id); }}
+              onDelete={() => { void confirmDialog({ title: `Delete "${h.name}"?`, description: "Its history and streak will be removed.", confirmLabel: "Delete", danger: true }).then((ok) => { if (ok) deleteHabit.mutate(h.id); }); }}
             />
           ))}
           {/* Completed */}
@@ -318,7 +324,7 @@ export default function HabitsPage() {
                   key={h.id} habit={h}
                   onComplete={() => completeHabit.mutate(h.id)}
                   onUncomplete={() => uncompleteHabit.mutate(h.id)}
-                  onDelete={() => { if (confirm(`Delete "${h.name}"?`)) deleteHabit.mutate(h.id); }}
+                  onDelete={() => { void confirmDialog({ title: `Delete "${h.name}"?`, description: "Its history and streak will be removed.", confirmLabel: "Delete", danger: true }).then((ok) => { if (ok) deleteHabit.mutate(h.id); }); }}
                 />
               ))}
             </div>
