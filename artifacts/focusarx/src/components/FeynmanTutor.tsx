@@ -31,13 +31,6 @@ const EXAMPLE_TOPICS = [
   'How Vaccines Work',
 ];
 
-interface FeynmanResponse {
-  whatItIs: string;
-  whyItMatters: string;
-  howItWorks: string;
-  analogy: string;
-}
-
 export default function FeynmanTutor() {
   const [topic, setTopic] = useState('');
   const [level, setLevel] = useState<ComplexityLevel>('teen');
@@ -123,7 +116,7 @@ export default function FeynmanTutor() {
     <div className="w-full max-w-2xl mx-auto">
       {/* Header */}
       <div className="text-center mb-8">
-        <div className="inline-flex items-center gap-2 rounded-full border border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--palette-emerald-300)] mb-4">
+        <div className="inline-flex items-center gap-2 rounded-full border border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--palette-emerald-300)] mb-4">
           <Brain size={12} /> AI Feynman Tutor
         </div>
         <h2 className="text-2xl font-semibold text-[var(--palette-white)]">
@@ -137,10 +130,10 @@ export default function FeynmanTutor() {
       {/* Input */}
       <div className="rounded-2xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/80 p-6 space-y-4">
         <div>
-          <label className="text-xs font-bold text-[var(--palette-zinc-400)] uppercase tracking-wider mb-2 block">
+          <label htmlFor="field-140" className="text-xs font-bold text-[var(--palette-zinc-400)] uppercase tracking-wider mb-2 block">
             Topic
           </label>
-          <input
+          <input id="field-140"
             type="text"
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
@@ -152,10 +145,10 @@ export default function FeynmanTutor() {
 
         {/* Complexity Level */}
         <div>
-          <label className="text-xs font-bold text-[var(--palette-zinc-400)] uppercase tracking-wider mb-2 block">
+          <p id="group-explain-it-like-i-m-155" className="text-xs font-bold text-[var(--palette-zinc-400)] uppercase tracking-wider mb-2 block">
             Explain it like I'm...
-          </label>
-          <div className="grid grid-cols-3 gap-2">
+          </p>
+          <div role="group" aria-labelledby="group-explain-it-like-i-m-155" className="grid grid-cols-3 gap-2">
             {LEVELS.map((l) => (
               <button
                 key={l.value}
@@ -178,7 +171,7 @@ export default function FeynmanTutor() {
             <button
               key={t}
               onClick={() => setTopic(t)}
-              className="rounded-full border border-[var(--palette-zinc-700)]/50 bg-[var(--palette-zinc-800)]/40 px-2.5 py-1 text-[10px] text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)] transition-colors"
+              className="rounded-full border border-[var(--palette-zinc-700)]/50 bg-[var(--palette-zinc-800)]/40 px-2.5 py-1 text-[11px] text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)] transition-colors"
             >
               {t}
             </button>
@@ -222,7 +215,7 @@ export default function FeynmanTutor() {
               {response && (
                 <button
                   onClick={copyToClipboard}
-                  className="flex items-center gap-1 rounded-lg border border-[var(--palette-zinc-700)] px-2 py-1 text-[10px] text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)]"
+                  className="flex items-center gap-1 rounded-lg border border-[var(--palette-zinc-700)] px-2 py-1 text-[11px] text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)]"
                 >
                   {copied ? <Check size={10} /> : <Copy size={10} />}
                   {copied ? 'Copied' : 'Copy'}

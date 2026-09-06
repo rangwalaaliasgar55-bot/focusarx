@@ -3,16 +3,13 @@ import { Router, Response } from "express";
 import { db } from "@workspace/db";
 import {
   premiumSubscriptionsTable,
-  userWalletsTable,
   notificationsTable,
   battlePassProgressTable,
   tokenLedgerTable,
-  premiumEntitlementsTable,
 } from "@workspace/db";
-import { eq, desc, and, gte, sql } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
-import { invalidatePremiumCache } from "../lib/premiumCheck";
-import { getActivePlans, getPlanById, purchasePremiumWithTokens, getEntitlementHistory, hasActivePremium, seedPremiumPlans } from "../lib/premiumPlans";
+import { getActivePlans, purchasePremiumWithTokens, getEntitlementHistory, hasActivePremium, seedPremiumPlans } from "../lib/premiumPlans";
 import { getTokenBalance } from "../lib/tokenLedger";
 import { z } from "zod";
 
@@ -61,9 +58,9 @@ router.get("/premium/status", authMiddleware, async (req: AuthRequest, res: Resp
     const [oldSub] = await db.select().from(premiumSubscriptionsTable).where(eq(premiumSubscriptionsTable.userId, userId)).limit(1);
 
     let isPremium = activeCheck.active;
-    let expiresAt = activeCheck.expiresAt ?? oldSub?.expiresAt ?? null;
-    let activatedAt = activeCheck.entitlement?.startsAt ?? oldSub?.activatedAt ?? null;
-    let benefits = (activeCheck.entitlement?.benefits as string[]) ?? oldSub?.benefits ?? PREMIUM_BENEFITS;
+    const expiresAt = activeCheck.expiresAt ?? oldSub?.expiresAt ?? null;
+    const activatedAt = activeCheck.entitlement?.startsAt ?? oldSub?.activatedAt ?? null;
+    const benefits = (activeCheck.entitlement?.benefits as string[]) ?? oldSub?.benefits ?? PREMIUM_BENEFITS;
 
     // Expire check
     if (expiresAt && new Date(expiresAt) < new Date()) {

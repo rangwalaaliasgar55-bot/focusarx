@@ -177,7 +177,7 @@ export default function BreathePage() {
                 className={`rounded-xl p-3 text-left border transition-all ${selectedMode.id === m.id ? "border-[var(--rgba-124-58-237-0_5)] bg-[var(--rgba-124-58-237-0_12)]" : "border-[var(--rgba-124-58-237-0_12)] bg-[var(--rgba-124-58-237-0_04)] hover:bg-[var(--rgba-124-58-237-0_08)]"}`}
               >
                 <p className="text-xs font-semibold text-[var(--foreground)] leading-tight">{m.label}</p>
-                <p className="text-[9px] text-[var(--foreground-subtle)] mt-0.5">{m.description.split("—")[0]}</p>
+                <p className="text-[11px] text-[var(--foreground-subtle)] mt-0.5">{m.description.split("—")[0]}</p>
               </button>
             ))}
           </div>
@@ -220,7 +220,7 @@ export default function BreathePage() {
                       background: (phaseIdx % selectedMode.phases.length) === i && running ? p.color : `color-mix(in srgb, ${p.color} 19%, transparent)`,
                     }}
                   />
-                  <span className="text-[9px] text-[var(--foreground-subtle)]">{p.label} {p.seconds}s</span>
+                  <span className="text-[11px] text-[var(--foreground-subtle)]">{p.label} {p.seconds}s</span>
                 </div>
               ))}
             </div>

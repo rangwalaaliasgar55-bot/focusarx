@@ -148,7 +148,7 @@ export default function BreakFreeStreak() {
               >
                 {m.icon}
               </div>
-              <span className={`text-[9px] font-mono ${reached ? "text-[var(--brand-600)]" : "text-[var(--palette-2a3a3a)]"}`}>
+              <span className={`text-[11px] font-mono ${reached ? "text-[var(--brand-600)]" : "text-[var(--palette-2a3a3a)]"}`}>
                 D{m.day}
               </span>
             </div>
@@ -169,11 +169,11 @@ export default function BreakFreeStreak() {
         <div className="flex gap-4 text-center mb-4">
           <div className="rounded-xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--palette-0d0f1c)] px-5 py-3">
             <p className="text-lg font-bold text-[var(--brand-400)]">{streak.longestStreak}</p>
-            <p className="text-[10px] text-[var(--foreground-subtle)] uppercase tracking-wider">Longest</p>
+            <p className="text-[11px] text-[var(--foreground-subtle)] uppercase tracking-wider">Longest</p>
           </div>
           <div className="rounded-xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--palette-0d0f1c)] px-5 py-3">
             <p className="text-lg font-bold text-[var(--brand-400)]">{streak.relapseCount}</p>
-            <p className="text-[10px] text-[var(--foreground-subtle)] uppercase tracking-wider">Restarts</p>
+            <p className="text-[11px] text-[var(--foreground-subtle)] uppercase tracking-wider">Restarts</p>
           </div>
         </div>
       )}

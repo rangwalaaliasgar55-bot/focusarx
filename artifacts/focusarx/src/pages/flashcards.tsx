@@ -10,7 +10,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, Plus, Brain, Clock, CheckCircle, XCircle, RotateCcw, Sparkles } from 'lucide-react';
 import { PageSEO } from '@/components/PageSEO';
 import { getToken } from '@/lib/auth';
-import { schedule, createNewCard, Grade, type CardState, getDueCards, serializeCard, deserializeCard } from '@/lib/fsrs';
+import { useToast } from '@/components/Toast';
+import { schedule, createNewCard, Grade, type CardState, serializeCard, deserializeCard } from '@/lib/fsrs';
 
 interface Deck {
   id: number;
@@ -43,6 +44,7 @@ export default function FlashcardsPage() {
   const [studyComplete, setStudyComplete] = useState(false);
 
   const token = typeof window !== 'undefined' ? getToken() : null;
+  const { toast } = useToast();
 
   // Load decks
   useEffect(() => {
@@ -58,8 +60,8 @@ export default function FlashcardsPage() {
           dueCount: d.dueCount || 0,
         })));
       })
-      .catch(() => {});
-  }, [token]);
+      .catch(() => toast("Couldn't load your decks. Pull to refresh or try again shortly.", "error"));
+  }, [token, toast]);
 
   // Load cards for active deck
   const loadCards = useCallback(async (deckId: number) => {
@@ -84,11 +86,11 @@ export default function FlashcardsPage() {
         setShowAnswer(false);
         setStudyComplete(false);
       }
-    } catch (e) {
-      // Failed to load cards — silently skip
+    } catch {
+      toast("Couldn't load cards for this deck.", "error");
     }
     setIsLoading(false);
-  }, [token]);
+  }, [token, toast]);
 
   const handleGrade = useCallback(async (grade: Grade) => {
     const card = cards[currentCardIndex];
@@ -134,11 +136,13 @@ export default function FlashcardsPage() {
         setDecks(prev => [...prev, { id: deck.id, title: deck.title, description: '', cardCount: 0, dueCount: 0 }]);
         setNewDeckTitle('');
         setShowCreateDeck(false);
+      } else {
+        toast("Couldn't create the deck. Please try again.", "error");
       }
-    } catch (e) {
-      // Failed to create deck — silently skip
+    } catch {
+      toast("Couldn't create the deck. Check your connection.", "error");
     }
-  }, [newDeckTitle, token]);
+  }, [newDeckTitle, token, toast]);
 
   const addCard = useCallback(async () => {
     if (!newCardFront.trim() || !newCardBack.trim() || !token || !activeDeck) return;
@@ -161,11 +165,13 @@ export default function FlashcardsPage() {
         setNewCardFront('');
         setNewCardBack('');
         setShowAddCard(false);
+      } else {
+        toast("Couldn't add the card. Please try again.", "error");
       }
-    } catch (e) {
-      // Failed to add card — silently skip
+    } catch {
+      toast("Couldn't add the card. Check your connection.", "error");
     }
-  }, [newCardFront, newCardBack, token, activeDeck]);
+  }, [newCardFront, newCardBack, token, activeDeck, toast]);
 
   const currentCard = cards[currentCardIndex];
   const dueCards = cards.filter(c => c.fsrs.dueDate <= new Date() || c.fsrs.state === 'new');
@@ -180,7 +186,7 @@ export default function FlashcardsPage() {
 
       <div className="max-w-3xl mx-auto px-6 py-12">
         <header className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--palette-violet-300)] mb-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--palette-violet-300)] mb-4">
             <Brain size={12} /> FSRS-4.5 Spaced Repetition
           </div>
           <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight mb-3">
@@ -218,7 +224,7 @@ export default function FlashcardsPage() {
                     className="rounded-2xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/60 p-5 text-left transition-all hover:border-[var(--palette-violet-500)]/30 hover:bg-[var(--palette-zinc-900)]"
                   >
                     <h3 className="text-sm font-bold text-[var(--palette-white)] mb-1">{deck.title}</h3>
-                    <div className="flex items-center gap-3 text-[10px] text-[var(--palette-zinc-500)]">
+                    <div className="flex items-center gap-3 text-[11px] text-[var(--palette-zinc-500)]">
                       <span>{deck.cardCount} cards</span>
                       {deck.dueCount > 0 && (
                         <span className="text-[var(--palette-orange-400)]">{deck.dueCount} due</span>
@@ -275,24 +281,28 @@ export default function FlashcardsPage() {
                     <div className="grid grid-cols-4 gap-2 w-full max-w-md">
                       <button onClick={() => handleGrade(Grade.Again)} className="rounded-xl border border-[var(--palette-red-500)]/30 bg-[var(--palette-red-500)]/10 p-3 text-center hover:bg-[var(--palette-red-500)]/20 transition-all">
                         <XCircle size={16} className="mx-auto mb-1 text-[var(--palette-red-400)]" />
-                        <span className="text-[10px] font-bold text-[var(--palette-red-300)]">Forgot</span>
+                        <span className="text-[11px] font-bold text-[var(--palette-red-300)]">Forgot</span>
                       </button>
                       <button onClick={() => handleGrade(Grade.Hard)} className="rounded-xl border border-[var(--palette-orange-500)]/30 bg-[var(--palette-orange-500)]/10 p-3 text-center hover:bg-[var(--palette-orange-500)]/20 transition-all">
                         <Clock size={16} className="mx-auto mb-1 text-[var(--palette-orange-400)]" />
-                        <span className="text-[10px] font-bold text-[var(--palette-orange-300)]">Hard</span>
+                        <span className="text-[11px] font-bold text-[var(--palette-orange-300)]">Hard</span>
                       </button>
                       <button onClick={() => handleGrade(Grade.Good)} className="rounded-xl border border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/10 p-3 text-center hover:bg-[var(--palette-emerald-500)]/20 transition-all">
                         <CheckCircle size={16} className="mx-auto mb-1 text-[var(--palette-emerald-400)]" />
-                        <span className="text-[10px] font-bold text-[var(--palette-emerald-300)]">Good</span>
+                        <span className="text-[11px] font-bold text-[var(--palette-emerald-300)]">Good</span>
                       </button>
                       <button onClick={() => handleGrade(Grade.Easy)} className="rounded-xl border border-[var(--palette-blue-500)]/30 bg-[var(--palette-blue-500)]/10 p-3 text-center hover:bg-[var(--palette-blue-500)]/20 transition-all">
                         <Sparkles size={16} className="mx-auto mb-1 text-[var(--palette-blue-400)]" />
-                        <span className="text-[10px] font-bold text-[var(--palette-blue-300)]">Easy</span>
+                        <span className="text-[11px] font-bold text-[var(--palette-blue-300)]">Easy</span>
                       </button>
                     </div>
                   </>
                 )}
               </motion.div>
+            ) : isLoading ? (
+              <div className="rounded-2xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/60 p-8 text-center" aria-busy="true">
+                <p className="text-sm text-[var(--palette-zinc-500)]">Loading cards…</p>
+              </div>
             ) : (
               <div className="rounded-2xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/60 p-8 text-center">
                 <p className="text-sm text-[var(--palette-zinc-500)]">No cards in this deck. Add some to get started!</p>
@@ -387,8 +397,8 @@ export default function FlashcardsPage() {
               >
                 <h3 className="text-lg font-bold">Add New Card</h3>
                 <div>
-                  <label className="text-[10px] font-bold text-[var(--palette-zinc-500)] uppercase tracking-wider">Front</label>
-                  <input
+                  <label htmlFor="front-390" className="text-[11px] font-bold text-[var(--palette-zinc-500)] uppercase tracking-wider">Front</label>
+                  <input id="front-390"
                     type="text"
                     value={newCardFront}
                     onChange={(e) => setNewCardFront(e.target.value)}
@@ -397,8 +407,8 @@ export default function FlashcardsPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-[var(--palette-zinc-500)] uppercase tracking-wider">Back</label>
-                  <textarea
+                  <label htmlFor="back-400" className="text-[11px] font-bold text-[var(--palette-zinc-500)] uppercase tracking-wider">Back</label>
+                  <textarea id="back-400"
                     value={newCardBack}
                     onChange={(e) => setNewCardBack(e.target.value)}
                     placeholder="Answer or definition..."

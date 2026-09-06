@@ -37,7 +37,7 @@ export default function WhyItMatters() {
   return (
     <div className="w-full py-4">
       <div className="flex items-center justify-between px-4 mb-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--palette-2a4040)]">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--palette-2a4040)]">
           The science
         </p>
         <div className="flex gap-2">

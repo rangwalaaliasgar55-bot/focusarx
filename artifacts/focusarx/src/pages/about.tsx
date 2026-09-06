@@ -1,6 +1,6 @@
 import { PageTransition } from "@/components/PageTransition";
 import { Link } from "wouter";
-import { ArrowLeft, Zap, Heart, Globe, Users, ShieldCheck, Mail, Phone, MapPin } from "lucide-react";
+import { ArrowLeft, Zap, Heart, Globe, Users, ShieldCheck, Mail, Phone } from "lucide-react";
 import { motion } from "framer-motion";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 
@@ -27,7 +27,7 @@ export default function AboutPage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.4 }}
-              className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--palette-purple-500)]/30 bg-[var(--palette-purple-500)]/10 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--palette-purple-300)]"
+              className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--palette-purple-500)]/30 bg-[var(--palette-purple-500)]/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.3em] text-[var(--palette-purple-300)]"
             >
               Our Mission
             </motion.div>
@@ -80,7 +80,7 @@ export default function AboutPage() {
                          <div className="flex items-start gap-4">
                             <Globe className="text-[var(--brand-400)] mt-1" size={18} />
                             <div>
-                               <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Based In</p>
+                               <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Based In</p>
                                <p className="text-sm text-[var(--palette-zinc-300)]">India</p>
                                <p className="text-sm text-[var(--palette-zinc-500)]">Serving learners worldwide</p>
                             </div>
@@ -88,7 +88,7 @@ export default function AboutPage() {
                          <div className="flex items-start gap-4">
                             <ShieldCheck className="text-[var(--brand-400)] mt-1" size={18} />
                             <div>
-                               <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Privacy</p>
+                               <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Privacy</p>
                                <p className="text-sm text-[var(--palette-zinc-300)]">On-device vision processing</p>
                                <p className="text-sm text-[var(--palette-zinc-500)]">No video ever leaves your browser</p>
                             </div>
@@ -98,7 +98,7 @@ export default function AboutPage() {
                          <div className="flex items-start gap-4">
                             <Mail className="text-[var(--brand-400)] mt-1" size={18} />
                             <div>
-                               <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Email</p>
+                               <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Email</p>
                                <a href="mailto:focusarx@gmail.com" className="text-sm text-[var(--palette-zinc-300)] hover:text-[var(--brand-400)] transition-colors">focusarx@gmail.com</a>
                                <p className="text-sm text-[var(--palette-zinc-500)]">We reply fast</p>
                             </div>
@@ -106,7 +106,7 @@ export default function AboutPage() {
                          <div className="flex items-start gap-4">
                             <Phone className="text-[var(--brand-400)] mt-1" size={18} />
                             <div>
-                               <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Phone / WhatsApp</p>
+                               <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Phone / WhatsApp</p>
                                <a href="tel:+917725004639" className="text-sm text-[var(--palette-zinc-300)] hover:text-[var(--brand-400)] transition-colors">+91 77250 04639</a>
                                <p className="text-sm text-[var(--palette-zinc-500)]">Mon–Sat · 9am–7pm IST</p>
                             </div>
@@ -128,7 +128,7 @@ export default function AboutPage() {
           </div>
 
           <div className="px-6 py-12 border-t border-[var(--palette-white)]/5 text-center">
-             <p className="text-[10px] text-[var(--palette-zinc-700)] leading-relaxed uppercase tracking-[0.2em] max-w-3xl mx-auto">
+             <p className="text-[11px] text-[var(--palette-zinc-700)] leading-relaxed uppercase tracking-[0.2em] max-w-3xl mx-auto">
                *FocusArx is a productivity app built by an independent team. AI-generated coaching is for educational and motivational purposes only — it is not professional advice. Focus responsibly.
              </p>
           </div>

@@ -1,10 +1,11 @@
+import { QueryError } from "@/components/ui/QueryError";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getToken } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
 import { Target, Plus, Trash2, CheckCircle2, Circle, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { TiltCard, StaggerContainer, StaggerItem } from "@/components/TiltCard";
+import { TiltCard } from "@/components/TiltCard";
 import PageHeader from "@/components/PageHeader";
 
 async function apiFetch(path: string, opts?: RequestInit) {
@@ -29,7 +30,7 @@ export default function GoalsPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
 
-  const { data, isLoading } = useQuery<{ goals: Goal[] }>({
+  const { data, isLoading, isError, refetch, isRefetching } = useQuery<{ goals: Goal[] }>({
     queryKey: ["goals"],
     queryFn: () => apiFetch("/api/goals"),
     staleTime: 60_000,
@@ -144,6 +145,8 @@ export default function GoalsPage() {
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => <div key={i} className="h-16 animate-pulse rounded-2xl bg-[var(--surface-hover)]" />)}
         </div>
+      ) : isError && !data ? (
+        <QueryError what="your goals" onRetry={() => void refetch()} retrying={isRefetching} />
       ) : (
         <div className="space-y-6">
           {/* Active goals */}
@@ -209,7 +212,7 @@ function GoalCard({ goal, onToggle, onDelete }: { goal: Goal; onToggle: (id: str
       <div className="flex-1 min-w-0">
         <p className={`text-sm font-semibold ${goal.completed ? "line-through text-[var(--foreground-subtle)]" : "text-[var(--foreground)]"}`}>{goal.title}</p>
         {goal.description && <p className="text-xs text-[var(--foreground-subtle)] mt-0.5 line-clamp-2">{goal.description}</p>}
-        <p className="text-[10px] text-[var(--foreground-subtle)] mt-1">{new Date(goal.createdAt).toLocaleDateString()}</p>
+        <p className="text-[11px] text-[var(--foreground-subtle)] mt-1">{new Date(goal.createdAt).toLocaleDateString()}</p>
       </div>
       <button onClick={() => onDelete(goal.id)} className="shrink-0 text-[var(--foreground-subtle)] hover:text-[var(--palette-red-400)] transition-colors mt-0.5">
         <Trash2 size={14} />

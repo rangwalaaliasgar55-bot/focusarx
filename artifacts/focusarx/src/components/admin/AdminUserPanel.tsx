@@ -211,7 +211,7 @@ export function AdminUserPanel({ data, stats, authHeaders, onDataChanged, onMana
                 <td className="px-4 py-3">
                   <p className="font-medium text-[var(--palette-zinc-200)]">{user.name ?? "Unnamed"}</p>
                   <p className="text-xs text-[var(--palette-zinc-500)]">{maskEmail(user.email)}</p>
-                  <p className="mt-0.5 font-mono text-[10px] text-[var(--palette-zinc-600)]">{user.id.slice(0, 8)}…</p>
+                  <p className="mt-0.5 font-mono text-[11px] text-[var(--palette-zinc-600)]">{user.id.slice(0, 8)}…</p>
                 </td>
                 <td className="px-4 py-3">
                   {user.isGuest
@@ -232,21 +232,21 @@ export function AdminUserPanel({ data, stats, authHeaders, onDataChanged, onMana
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => onManageUser(user.id)}
-                      className="rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--palette-sky-400)] hover:bg-[var(--palette-sky-950)] transition"
+                      className="rounded-lg px-2 py-1 text-[11px] font-medium text-[var(--palette-sky-400)] hover:bg-[var(--palette-sky-950)] transition"
                     >Manage</button>
                     <button
                       onClick={() => void toggleRole(user)} disabled={roleLoading === user.id}
-                      className="rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--palette-violet-400)] hover:bg-[var(--palette-violet-950)] transition disabled:opacity-50"
+                      className="rounded-lg px-2 py-1 text-[11px] font-medium text-[var(--palette-violet-400)] hover:bg-[var(--palette-violet-950)] transition disabled:opacity-50"
                     >{roleLoading === user.id ? "…" : user.role === "admin" ? "Demote" : "Promote"}</button>
                     {deleteConfirm === user.id ? (
                       <div className="flex items-center gap-1">
-                        <button onClick={() => void deleteUser(user.id)} disabled={deleteLoading === user.id} className="rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--palette-rose-400)] hover:bg-[var(--palette-rose-950)]">
+                        <button onClick={() => void deleteUser(user.id)} disabled={deleteLoading === user.id} className="rounded-lg px-2 py-1 text-[11px] font-medium text-[var(--palette-rose-400)] hover:bg-[var(--palette-rose-950)]">
                           {deleteLoading === user.id ? "…" : "Confirm"}
                         </button>
-                        <button onClick={() => setDeleteConfirm(null)} className="rounded-lg px-2 py-1 text-[10px] text-[var(--palette-zinc-500)]">Cancel</button>
+                        <button onClick={() => setDeleteConfirm(null)} className="rounded-lg px-2 py-1 text-[11px] text-[var(--palette-zinc-500)]">Cancel</button>
                       </div>
                     ) : (
-                      <button onClick={() => setDeleteConfirm(user.id)} className="rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--palette-rose-400)]/70 hover:bg-[var(--palette-rose-950)] transition">Delete</button>
+                      <button onClick={() => setDeleteConfirm(user.id)} className="rounded-lg px-2 py-1 text-[11px] font-medium text-[var(--palette-rose-400)]/70 hover:bg-[var(--palette-rose-950)] transition">Delete</button>
                     )}
                   </div>
                 </td>

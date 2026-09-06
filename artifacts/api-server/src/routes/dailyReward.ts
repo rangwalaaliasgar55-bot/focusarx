@@ -1,7 +1,6 @@
-import { Request, Response, NextFunction } from "express";
+import { Response } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
-import { extractUserId } from "./auth";
 import { db, loginRewardsTable, userWalletsTable, notificationsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { mintCoins } from "../lib/coinLedger";
@@ -97,7 +96,7 @@ dailyRewardRouter.post("/daily-reward/claim", authMiddleware, async (req: AuthRe
     if (!claimed) return res.status(400).json({ error: "Already claimed today" });
 
     res.json({ success: true, streak: claimed.newStreak, reward: claimed.rewardDef });
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: "Failed to claim reward" });
   }
 });

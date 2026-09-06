@@ -18,7 +18,7 @@ function StatCard({ label, value, icon: Icon, color = "var(--brand-600)" }: { la
     <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4">
       <div className="flex items-center gap-2 mb-2">
         <Icon size={14} style={{ color }} />
-        <span className="text-[10px] text-[var(--foreground-subtle)] uppercase tracking-[0.14em] font-semibold">{label}</span>
+        <span className="text-[11px] text-[var(--foreground-subtle)] uppercase tracking-[0.14em] font-semibold">{label}</span>
       </div>
       <p className="text-2xl font-semibold text-[var(--foreground)]">{value}</p>
     </div>
@@ -181,14 +181,14 @@ function AiInsightsContent() {
               {report && !reportLoading && (
                 <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_2)] bg-gradient-to-br from-[var(--rgba-124-58-237-0_06)] to-[var(--rgba-79-70-229-0_03)] p-5">
                   {report.aiPowered && (
-                    <div className="flex items-center gap-2 mb-4 text-[10px] text-[var(--brand-600)] font-bold uppercase tracking-[0.14em]">
+                    <div className="flex items-center gap-2 mb-4 text-[11px] text-[var(--brand-600)] font-bold uppercase tracking-[0.14em]">
                       <Sparkles size={11} /> AI-powered report
                     </div>
                   )}
                   <div className="prose prose-invert max-w-none text-[13px] text-[var(--foreground-muted)] leading-relaxed whitespace-pre-wrap">
                     {report.report}
                   </div>
-                  <p className="text-[10px] text-[var(--foreground-subtle)] mt-4">
+                  <p className="text-[11px] text-[var(--foreground-subtle)] mt-4">
                     Generated {report.generatedAt ? new Date(report.generatedAt).toLocaleString() : "now"}
                   </p>
                 </div>
@@ -216,7 +216,7 @@ function AiInsightsContent() {
                     <StatCard label="Longest Session"   value={`${habits.longestSessionMinutes}m`} icon={Brain}    color="var(--info)" />
                   </div>
                   <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--foreground-subtle)] mb-3">Day of Week Distribution</p>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--foreground-subtle)] mb-3">Day of Week Distribution</p>
                     <div className="space-y-2.5">
                       {Object.entries(habits.weekdayDistribution ?? {}).map(([day, count]) => (
                         <HabitBar key={day} label={day} value={count as number} max={Math.max(...Object.values(habits.weekdayDistribution ?? {}) as number[])} />
@@ -224,7 +224,7 @@ function AiInsightsContent() {
                     </div>
                   </div>
                   <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--foreground-subtle)] mb-3">Monthly Goal</p>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--foreground-subtle)] mb-3">Monthly Goal</p>
                     <div className="flex justify-between text-[12px] mb-2">
                       <span className="text-[var(--foreground-subtle)]">20 active days target</span>
                       <span className="text-[var(--foreground)] font-bold">{habits.activeDaysLast30}/20</span>
@@ -235,7 +235,7 @@ function AiInsightsContent() {
                         style={{ width: `${Math.min(100, habits.monthlyGoalProgress ?? 0)}%` }}
                       />
                     </div>
-                    <p className="text-[10px] text-[var(--foreground-subtle)] mt-1.5">{habits.monthlyGoalProgress}% complete</p>
+                    <p className="text-[11px] text-[var(--foreground-subtle)] mt-1.5">{habits.monthlyGoalProgress}% complete</p>
                   </div>
                 </div>
               )}

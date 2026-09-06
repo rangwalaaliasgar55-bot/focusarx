@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { db } from "@workspace/db";
 import { featureFlagsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
@@ -36,7 +35,6 @@ router.get("/admin/feature-flags", async (req, res) => {
 router.post("/admin/feature-flags", async (req, res) => {
   const { checkAdminAuth } = await import("../lib/adminAuth");
   if (!await checkAdminAuth(req)) return res.status(403).json({ error: "Forbidden" });
-  const authReq = req as AuthRequest;
   const { key, enabled, description, rolloutPercentage } = req.body as { key: string; enabled?: boolean; description?: string; rolloutPercentage?: number };
   if (!key) return res.status(400).json({ error: "key required" });
   try {

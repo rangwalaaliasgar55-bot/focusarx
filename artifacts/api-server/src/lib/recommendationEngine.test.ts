@@ -173,13 +173,14 @@ describe("StudyRecommendationEngine", () => {
     const lowEnergy = engine.generate(baseInput({ energyLevel: 1 }));
     const highEnergy = engine.generate(baseInput({ energyLevel: 5 }));
 
-    const lowSession = lowEnergy.recommendations.find((r) => r.action.suggestedDurationMin);
-    const highSession = highEnergy.recommendations.find((r) => r.action.kind === "start_session");
+    const lowSession = lowEnergy.recommendations.find((r) => r.action.kind === "start_session");
 
-    // Low energy should suggest shorter sessions
-    if (lowSession) {
-      expect(lowSession.action.suggestedDurationMin).toBeLessThanOrEqual(15);
-    }
+    // Low energy must produce an explicit shorter-session recommendation.
+    expect(lowSession).toBeDefined();
+    expect(lowSession!.action.suggestedDurationMin).toBeLessThanOrEqual(15);
+    expect(lowEnergy.signalsUsed).toContain("energy_level");
+    // High energy never nags with a "low energy" card.
+    expect(highEnergy.recommendations.some((r) => r.title === "Low energy detected")).toBe(false);
   });
 
   it("caps recommendations at 5 to avoid overwhelming", () => {

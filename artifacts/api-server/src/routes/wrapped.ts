@@ -1,8 +1,10 @@
 import { Router } from "express";
 import { db, focusSessionsTable, tasksTable, userWalletsTable, studyStreaksTable, wrappedSnapshotsTable, userBadgesTable } from "@workspace/db";
-import { eq, and, gte, lte, desc } from "drizzle-orm";
+import { eq, and, gte, lte } from "drizzle-orm";
 import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
+import { clockInZone, dayKeyInZone } from "../lib/timezone";
+import { userZone } from "../lib/userZone";
 import { sendUnauthorized } from "../lib/httpErrors";
 
 const router = Router();
@@ -57,11 +59,12 @@ router.get("/wrapped/:period", authMiddleware, async (req: any, res) => {
       return;
     }
 
+    const zone = await userZone(req.userId);
     // Best study day
     const byDay: Record<string, { minutes: number; sessions: number }> = {};
     for (const s of sessions) {
       if (!s.completedAt) continue;
-      const day = s.completedAt.toISOString().slice(0, 10);
+      const day = dayKeyInZone(s.completedAt, zone);
       if (!byDay[day]) byDay[day] = { minutes: 0, sessions: 0 };
       byDay[day]!.minutes += Math.floor(s.durationSec / 60);
       byDay[day]!.sessions += 1;
@@ -72,7 +75,7 @@ router.get("/wrapped/:period", authMiddleware, async (req: any, res) => {
     const byHour: Record<number, number> = {};
     for (const s of sessions) {
       if (!s.completedAt) continue;
-      const hour = s.completedAt.getHours();
+      const hour = clockInZone(s.completedAt, zone).hour;
       byHour[hour] = (byHour[hour] ?? 0) + 1;
     }
     const bestHour = Object.entries(byHour).sort((a, b) => Number(b[1]) - Number(a[1]))[0];

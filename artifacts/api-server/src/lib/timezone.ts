@@ -132,3 +132,24 @@ function zoneOffsetAt(utcMs: number, timeZone: string): number {
     return 5.5 * 3_600_000; // legacy IST fallback
   }
 }
+
+/** Hour of day (0–23) and weekday (0=Sun..6=Sat) of an instant in `timeZone`. */
+export function clockInZone(at: Date | number, timeZone: string): { hour: number; weekday: number } {
+  const d = typeof at === "number" ? new Date(at) : at;
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", { timeZone, hour: "numeric", hourCycle: "h23", weekday: "short" }).formatToParts(d);
+    const hour = Number(parts.find(p => p.type === "hour")?.value ?? 0) % 24;
+    const wd = parts.find(p => p.type === "weekday")?.value ?? "Sun";
+    const weekday = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[wd] ?? 0;
+    return { hour, weekday };
+  } catch {
+    return { hour: d.getUTCHours(), weekday: d.getUTCDay() };
+  }
+}
+
+/** Weekday (0=Sun..6=Sat) of a YYYY-MM-DD calendar key. */
+export function weekdayOfDayKey(key: string): number {
+  const m = DAY_KEY_RE.exec(key);
+  if (!m) return 0;
+  return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))).getUTCDay();
+}

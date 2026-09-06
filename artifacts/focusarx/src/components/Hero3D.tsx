@@ -2,7 +2,7 @@ import { resolveColorToken } from "@/lib/color-tokens";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useRef, Suspense, useState, useEffect } from "react";
 import * as THREE from "three";
-import { Float, MeshDistortMaterial, Sphere, PerspectiveCamera, Stars } from "@react-three/drei";
+import { Environment, Lightformer, PerspectiveCamera } from "@react-three/drei";
 import { getDeviceTier } from "@/lib/deviceTier";
 
 function canUseWebGL(): boolean {
@@ -41,100 +41,83 @@ function useIsMobile() {
   return mobile;
 }
 
-const ORBITER_COLORS = [resolveColorToken("--brand-400"), resolveColorToken("--brand-teal"), resolveColorToken("--palette-ec4899"), resolveColorToken("--color-warning"), resolveColorToken("--palette-38bdf8")];
-
 /**
- * A "planet" focal object — a distorted, glowing core wrapped in an orbital
- * ring with a small system of satellites. Mouse movement parallaxes the whole
- * assembly for an immersive, game-like feel.
+ * The hero object — a single physical thing, lit like a product shot.
+ *
+ * It is the timer ring made solid: a brushed-metal torus around a frosted
+ * glass disc, on a studio rig of soft area lights. It rotates very slowly
+ * and tilts a few degrees toward the pointer; nothing orbits, nothing
+ * distorts, nothing twinkles. The restraint is the point — it should read as
+ * an object you could pick up, not a particle effect.
  */
-function GeometricHero({ lowDetail }: { lowDetail: boolean }) {
+function FocusRing({ lowDetail }: { lowDetail: boolean }) {
   const groupRef = useRef<THREE.Group>(null!);
-  const ringRef = useRef<THREE.Mesh>(null!);
-  const orbiters = useRef<(THREE.Mesh | null)[]>([]);
+  const tilt = useRef({ x: 0, y: 0 });
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     if (!groupRef.current) return;
     const t = state.clock.getElapsedTime();
-    const { pointer } = state;
-
-    // Slow, continuous rotation.
-    groupRef.current.rotation.y = t * (lowDetail ? 0.06 : 0.12);
-    if (!lowDetail) {
-      groupRef.current.rotation.x = THREE.MathUtils.lerp(groupRef.current.rotation.x, pointer.y * 0.35, 0.05);
-      groupRef.current.rotation.z = THREE.MathUtils.lerp(groupRef.current.rotation.z, pointer.x * 0.15, 0.05);
-    }
-
-    if (ringRef.current && !lowDetail) {
-      ringRef.current.rotation.z = Math.sin(t * 0.22) * 0.16;
-      ringRef.current.rotation.y = t * 0.06;
-    }
-
-    if (!lowDetail) {
-      orbiters.current.forEach((m, i) => {
-        if (!m) return;
-        const a = t * (0.45 + i * 0.11) + i * 2.09;
-        const radius = 2.9 + (i % 2) * 0.6;
-        m.position.set(Math.cos(a) * radius, Math.sin(a * 0.85) * 1.35, Math.sin(a) * radius);
-        m.rotation.x = t * 0.6;
-        m.rotation.y = t * 0.9;
-      });
-    }
+    // Pointer tilt is damped so it settles like a physical object, and is
+    // capped at ~9° so the ring never shows its back face.
+    const targetX = lowDetail ? 0 : THREE.MathUtils.clamp(-state.pointer.y * 0.16, -0.16, 0.16);
+    const targetY = lowDetail ? 0 : THREE.MathUtils.clamp(state.pointer.x * 0.16, -0.16, 0.16);
+    const k = 1 - Math.exp(-delta * 4);
+    tilt.current.x += (targetX - tilt.current.x) * k;
+    tilt.current.y += (targetY - tilt.current.y) * k;
+    groupRef.current.rotation.x = 0.42 + tilt.current.x;
+    groupRef.current.rotation.y = t * (lowDetail ? 0.05 : 0.09) + tilt.current.y;
+    groupRef.current.position.y = lowDetail ? 0 : Math.sin(t * 0.6) * 0.06;
   });
+
+  const segments = lowDetail ? 48 : 200;
 
   return (
     <group ref={groupRef}>
-      <Float speed={lowDetail ? 0 : 2} rotationIntensity={lowDetail ? 0 : 1.5} floatIntensity={lowDetail ? 0 : 2}>
-        <Sphere args={[1, lowDetail ? 32 : 96, lowDetail ? 32 : 96]} scale={1.65}>
-          <MeshDistortMaterial
-            color={resolveColorToken("--brand-600")}
-            speed={lowDetail ? 0.5 : 2.4}
-            distort={lowDetail ? 0.15 : 0.42}
-            radius={1}
-            emissive={resolveColorToken("--palette-4f46e5")}
-            emissiveIntensity={0.55}
-            metalness={0.85}
-            roughness={0.18}
-          />
-        </Sphere>
-      </Float>
-
-      <mesh ref={ringRef} rotation={[Math.PI / 2.15, 0, 0]}>
-        <torusGeometry args={[2.55, 0.05, 16, lowDetail ? 32 : 160]} />
+      {/* Metal ring */}
+      <mesh>
+        <torusGeometry args={[2.1, 0.26, lowDetail ? 16 : 48, segments]} />
         <meshStandardMaterial
-          color={resolveColorToken("--brand-400")}
-          emissive={resolveColorToken("--brand-600")}
-          emissiveIntensity={0.9}
-          metalness={0.6}
-          roughness={0.3}
+          color={resolveColorToken("--brand-500")}
+          metalness={0.92}
+          roughness={0.28}
+          envMapIntensity={1.4}
         />
       </mesh>
 
+      {/* Frosted glass disc */}
+      <mesh>
+        <cylinderGeometry args={[1.86, 1.86, 0.12, segments]} />
+        <meshPhysicalMaterial
+          color={resolveColorToken("--neutral-0")}
+          transmission={lowDetail ? 0 : 0.92}
+          thickness={0.8}
+          roughness={0.55}
+          ior={1.4}
+          transparent
+          opacity={lowDetail ? 0.14 : 1}
+          envMapIntensity={0.8}
+        />
+      </mesh>
+
+      {/* Hairline highlight on the inner edge of the ring */}
       {!lowDetail && (
-        <mesh rotation={[Math.PI / 1.9, 0.4, 0]}>
-          <torusGeometry args={[3.05, 0.015, 12, 160]} />
-          <meshBasicMaterial color={resolveColorToken("--palette-e879f9")} transparent opacity={0.55} />
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[1.86, 0.008, 8, segments]} />
+          <meshBasicMaterial color={resolveColorToken("--neutral-0")} transparent opacity={0.5} />
         </mesh>
       )}
-
-      {!lowDetail && [...Array(5)].map((_, i) => (
-        <mesh
-          key={i}
-          ref={(el) => {
-            orbiters.current[i] = el as any;
-          }}
-        >
-          <octahedronGeometry args={[0.2]} />
-          <meshStandardMaterial
-            color={ORBITER_COLORS[i % ORBITER_COLORS.length]}
-            emissive={ORBITER_COLORS[i % ORBITER_COLORS.length]}
-            emissiveIntensity={0.5}
-            metalness={0.7}
-            roughness={0.25}
-          />
-        </mesh>
-      ))}
     </group>
+  );
+}
+
+/** Studio rig: three soft area lights, no HDR download. */
+function Studio() {
+  return (
+    <Environment resolution={128} frames={1}>
+      <Lightformer intensity={3} position={[0, 5, -6]} scale={[10, 4, 1]} form="rect" color={resolveColorToken("--neutral-0")} />
+      <Lightformer intensity={1.6} position={[-6, 2, 4]} rotation={[0, Math.PI / 2, 0]} scale={[6, 3, 1]} form="rect" color={resolveColorToken("--brand-300")} />
+      <Lightformer intensity={1.2} position={[6, -1, 3]} rotation={[0, -Math.PI / 2, 0]} scale={[5, 3, 1]} form="rect" color={resolveColorToken("--brand-teal")} />
+    </Environment>
   );
 }
 
@@ -197,12 +180,12 @@ export default function Hero3D() {
   }
 
   return (
-    <div className="absolute inset-0 z-[var(--z-base)] opacity-70">
+    <div className="absolute inset-0 z-[var(--z-base)]">
       <Canvas
         dpr={[1, 1.5]}
         frameloop={pageVisible ? "always" : "never"}
         gl={{
-          antialias: false,
+          antialias: !isMobile,
           alpha: true,
           powerPreference: "high-performance",
           stencil: false,
@@ -217,18 +200,12 @@ export default function Hero3D() {
           });
         }}
       >
-        <PerspectiveCamera makeDefault position={[0, 0, 8]} fov={50} />
-        <ambientLight intensity={lowDetail ? 0.9 : 0.45} />
-        {!lowDetail && (
-          <>
-            <pointLight position={[10, 10, 10]} intensity={1.2} color={resolveColorToken("--brand-600")} />
-            <spotLight position={[-10, 8, 10]} angle={0.2} penumbra={1} intensity={1.4} color={resolveColorToken("--palette-e879f9")} />
-            <pointLight position={[0, -8, -6]} intensity={0.6} color={resolveColorToken("--brand-teal")} />
-          </>
-        )}
+        <PerspectiveCamera makeDefault position={[0, 0, 8]} fov={38} />
+        <ambientLight intensity={lowDetail ? 1.2 : 0.35} />
+        <directionalLight position={[4, 6, 6]} intensity={lowDetail ? 1.5 : 0.9} />
         <Suspense fallback={null}>
-          {!lowDetail && <Stars radius={80} depth={40} count={isMobile ? 600 : 1800} factor={3.5} saturation={0.2} fade speed={0.6} />}
-          <GeometricHero lowDetail={lowDetail} />
+          {!lowDetail && <Studio />}
+          <FocusRing lowDetail={lowDetail} />
         </Suspense>
       </Canvas>
     </div>

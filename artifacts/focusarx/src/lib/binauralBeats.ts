@@ -49,7 +49,7 @@ class BinauralSynthesizer {
       // Stereo merger for binaural effect
       this.merger = this.audioContext.createChannelMerger(2);
       this.merger.connect(this.masterGain);
-    } catch (e) {
+    } catch {
       // AudioContext not available — silently skip
     }
   }

@@ -87,7 +87,7 @@ export default function SessionTypePicker({ open, onClose, onSelect, selected }:
           >
             <div className="flex items-center justify-between mb-5">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">Session mode</p>
+                <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">Session mode</p>
                 <h2 className="text-base font-bold text-[var(--foreground)]">Choose focus type</h2>
               </div>
               <button

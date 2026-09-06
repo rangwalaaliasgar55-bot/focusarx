@@ -1,10 +1,11 @@
-import { Request, Response, NextFunction } from "express";
+import { Response } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db, tasksTable } from "@workspace/db";
-import { eq, and, asc, isNull } from "drizzle-orm";
-import { extractUserId } from "./auth";
+import { eq, and, asc } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import { userZone } from "../lib/userZone";
+import { dayKeyInZone, shiftDayKey } from "../lib/timezone";
 import { updateMissionProgress } from "./missions";
 import { z } from "zod";
 
@@ -93,10 +94,9 @@ router.get("/tasks/stats", authMiddleware, async (req: AuthRequest, res) => {
 // Get tasks that were not completed yesterday (for daily review)
 router.get("/tasks/missed-review", authMiddleware, async (req: AuthRequest, res) => {
   try {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().slice(0, 10);
-    const today = new Date().toISOString().slice(0, 10);
+    const zone = await userZone(req.userId);
+    const today = dayKeyInZone(Date.now(), zone);
+    const yesterdayStr = shiftDayKey(today, -1);
 
     // Tasks created before today, not completed, not already missed/archived
     const tasks = await db.select().from(tasksTable)
@@ -106,7 +106,7 @@ router.get("/tasks/missed-review", authMiddleware, async (req: AuthRequest, res)
       if (t.completed) return false;
       const status = t.status ?? "active";
       if (status === "missed" || status === "archived") return false;
-      const createdDate = t.createdAt.toISOString().slice(0, 10);
+      const createdDate = dayKeyInZone(t.createdAt, zone);
       return createdDate < today;
     });
 
@@ -134,7 +134,7 @@ router.post("/tasks/missed-review", authMiddleware, async (req: AuthRequest, res
       res.json({ ok: true, action });
     } else if (action === "move_today") {
       // Move due date to today
-      const today = now.toISOString().slice(0, 10);
+      const today = dayKeyInZone(now, await userZone(req.userId));
       await db.update(tasksTable).set({ dueDate: today, status: "active" })
         .where(and(eq(tasksTable.id, taskId), eq(tasksTable.userId, req.userId)));
       res.json({ ok: true, action });

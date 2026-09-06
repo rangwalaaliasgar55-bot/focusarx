@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
+import { useToast } from "@/components/Toast";
 import { PageTransition } from "@/components/PageTransition";
 import { Sword, Heart, Megaphone, Snowflake, CheckCircle, XCircle, Plus } from "lucide-react";
 
@@ -61,15 +62,15 @@ function ContractCard({ contract, weekMinutes }: { contract: Contract; weekMinut
             <p className="text-sm font-semibold text-[var(--foreground)]">
               {contract.contractType === "charity" ? "Charity Pledge" : contract.contractType === "shame" ? "Public Accountability" : "Streak Freeze"}
             </p>
-            <p className="text-[10px] text-[var(--foreground-subtle)]">Week of {contract.weekStart}</p>
+            <p className="text-[11px] text-[var(--foreground-subtle)]">Week of {contract.weekStart}</p>
           </div>
         </div>
         {contract.achieved ? (
-          <span className="flex items-center gap-1 rounded-full bg-[var(--rgba-74-222-128-0_1)] border border-[var(--rgba-74-222-128-0_2)] px-2.5 py-0.5 text-[10px] font-semibold text-[var(--palette-4ade80)]">
+          <span className="flex items-center gap-1 rounded-full bg-[var(--rgba-74-222-128-0_1)] border border-[var(--rgba-74-222-128-0_2)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--palette-4ade80)]">
             <CheckCircle size={10} /> Achieved
           </span>
         ) : contract.consequenceTriggered ? (
-          <span className="flex items-center gap-1 rounded-full bg-[var(--rgba-239-68-68-0_1)] border border-[var(--rgba-239-68-68-0_2)] px-2.5 py-0.5 text-[10px] font-semibold text-[var(--palette-red-400)]">
+          <span className="flex items-center gap-1 rounded-full bg-[var(--rgba-239-68-68-0_1)] border border-[var(--rgba-239-68-68-0_2)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--palette-red-400)]">
             <XCircle size={10} /> Consequence
           </span>
         ) : null}
@@ -102,6 +103,7 @@ function ContractCard({ contract, weekMinutes }: { contract: Contract; weekMinut
 
 export default function ConsequencesPage() {
   const { status } = useAuth();
+  const { toast } = useToast();
   const [data, setData] = useState<ConsequencesData | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -121,9 +123,9 @@ export default function ConsequencesPage() {
 
   const load = () => {
     fetch("/api/consequences", { headers: { Authorization: `Bearer ${token()}` } })
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
       .then((d: ConsequencesData) => setData(d))
-      .catch(() => {})
+      .catch(() => toast("Couldn't load your contracts. Pull to refresh or try again.", "error"))
       .finally(() => setLoaded(true));
   };
 
@@ -135,7 +137,7 @@ export default function ConsequencesPage() {
   const save = async () => {
     setSaving(true);
     try {
-      await fetch("/api/consequences", {
+      const r = await fetch("/api/consequences", {
         method: "POST",
         headers: { Authorization: `Bearer ${token()}`, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -145,8 +147,16 @@ export default function ConsequencesPage() {
           charityAmount: contractType === "charity" ? charityAmount : undefined,
         }),
       });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        toast(d?.error?.message ?? d?.error ?? "Couldn't save the contract.", "error");
+        return;
+      }
       setShowForm(false);
+      toast("Contract locked in. Good luck this week!", "success");
       load();
+    } catch {
+      toast("Network error — contract not saved.", "error");
     } finally {
       setSaving(false);
     }
@@ -158,19 +168,32 @@ export default function ConsequencesPage() {
   const spendFreeze = async () => {
     setUsingFreeze(true);
     try {
-      await fetch("/api/consequences/use-freeze", {
+      const r = await fetch("/api/consequences/use-freeze", {
         method: "POST",
         headers: { Authorization: `Bearer ${token()}` },
       });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        toast(d?.error?.message ?? d?.error ?? "No freeze available.", "error");
+      } else {
+        toast("Streak freeze used for today.", "success");
+      }
       load();
+    } catch {
+      toast("Network error — freeze not applied.", "error");
     } finally {
       setUsingFreeze(false);
     }
   };
 
   const cc = data?.currentContract;
-  const weekFailed = cc && !cc.achieved && new Date().getDay() === 0;
-  const showShamePrompt = weekFailed && cc?.contractType === "shame" && !shameDismissed;
+  // The server settles a contract once its week is over, so "failed" means
+  // last week's contract was actually triggered — not "it's Sunday and you
+  // haven't finished yet" (which used to fire with hours still on the clock).
+  const lastWeek = data ? [...data.contracts].filter((c) => c.weekStart < data.weekStart).sort((a, b) => b.weekStart.localeCompare(a.weekStart))[0] : undefined;
+  const lastSettled = lastWeek?.consequenceTriggered ? lastWeek : undefined;
+  const weekFailed = !!lastSettled;
+  const showShamePrompt = weekFailed && lastSettled?.contractType === "shame" && !shameDismissed;
 
   return (
     <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow">
@@ -227,7 +250,7 @@ export default function ConsequencesPage() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-[var(--foreground)]">Freeze Tokens</p>
-                    <p className="text-[10px] text-[var(--foreground-subtle)]">Protect a missed day. 1 token per 5-day streak.</p>
+                    <p className="text-[11px] text-[var(--foreground-subtle)]">Protect a missed day. 1 token per 5-day streak.</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -235,7 +258,7 @@ export default function ConsequencesPage() {
                     {Array.from({ length: Math.max(3, (data.freezeTokens ?? 0) + 1) }).map((_, i) => (
                       <div
                         key={i}
-                        className={`w-5 h-5 rounded-md border flex items-center justify-center text-[10px] ${i < (data.freezeTokens ?? 0) ? "border-[var(--info)] bg-[var(--rgba-96-165-250-0_15)] text-[var(--info)]" : "border-[var(--rgba-124-58-237-0_15)] text-[var(--foreground-subtle)]"}`}
+                        className={`w-5 h-5 rounded-md border flex items-center justify-center text-[11px] ${i < (data.freezeTokens ?? 0) ? "border-[var(--info)] bg-[var(--rgba-96-165-250-0_15)] text-[var(--info)]" : "border-[var(--rgba-124-58-237-0_15)] text-[var(--foreground-subtle)]"}`}
                       >
                         {i < (data.freezeTokens ?? 0) ? "❄" : "·"}
                       </div>
@@ -245,7 +268,7 @@ export default function ConsequencesPage() {
                     <button
                       onClick={() => void spendFreeze()}
                       disabled={usingFreeze}
-                      className="rounded-lg border border-[var(--rgba-96-165-250-0_3)] px-3 py-1 text-[10px] font-semibold text-[var(--info)] hover:bg-[var(--rgba-96-165-250-0_1)]"
+                      className="rounded-lg border border-[var(--rgba-96-165-250-0_3)] px-3 py-1 text-[11px] font-semibold text-[var(--info)] hover:bg-[var(--rgba-96-165-250-0_1)]"
                     >
                       Use
                     </button>
@@ -303,7 +326,7 @@ export default function ConsequencesPage() {
                           >
                             <Icon size={16} style={{ color: ct.color }} className="mb-1.5" />
                             <p className="text-xs font-semibold text-[var(--foreground)]">{ct.label}</p>
-                            <p className="text-[10px] text-[var(--foreground-subtle)] mt-0.5">{ct.desc}</p>
+                            <p className="text-[11px] text-[var(--foreground-subtle)] mt-0.5">{ct.desc}</p>
                           </button>
                         );
                       })}

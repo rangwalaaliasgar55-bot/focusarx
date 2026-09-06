@@ -1,17 +1,17 @@
-import { Request, Response, NextFunction } from "express";
+import { Response } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import {
   socialPostsTable, postReactionsTable, postCommentsTable, postSavesTable,
-  usersTable, userWalletsTable, followsTable, notificationsTable, studyGroupsTable,
+  usersTable, userWalletsTable, followsTable, notificationsTable,
   groupMembersTable,
 } from "@workspace/db";
 import { extractUserId } from "./auth";
-import { eq, and, desc, lt, sql, inArray, or, ne } from "drizzle-orm";
+import { eq, and, desc, lt, sql, inArray, ne } from "drizzle-orm";
 import { moderateText } from "../lib/moderation";
 import { parseLimit, parseOffset } from "../lib/pagination";
-import { ensureDailyBotActivity, maybeBotReply, materializeDueBotReplies, queueBotReplies, queueBotCommentReply } from "../lib/botEngine";
+import { ensureDailyBotActivity, materializeDueBotReplies, queueBotReplies, queueBotCommentReply } from "../lib/botEngine";
 import { logger } from "../lib/logger";
 
 const REPEAT_OFFENDER_THRESHOLD = 3;
@@ -195,6 +195,12 @@ postsRouter.get("/feed", authMiddleware, async (req: AuthRequest, res: Response)
   }
 
   const enriched = await Promise.all(posts.map(p => enrichPost(p, userId)));
+  // The discover feed is cursor-paginated, so it returns an envelope the client
+  // can page with; the other feeds keep their legacy plain-array shape.
+  if (type === "discover") {
+    res.json({ posts: enriched, nextCursor: enriched.length >= pageLimit ? nextCursor : null });
+    return;
+  }
   res.json(enriched);
   } catch (err) {
     logger.error({ err }, "GET /feed error:");

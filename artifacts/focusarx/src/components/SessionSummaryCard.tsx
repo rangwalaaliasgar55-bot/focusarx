@@ -1,7 +1,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState , useMemo} from "react";
-import { Check, Image as ImageIcon, Share2 } from "lucide-react";
+import { Image as ImageIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import ShareCardModal, { type ShareCardStats } from "./ShareCardModal";
 
@@ -51,7 +51,6 @@ export default function SessionSummaryCard({
   const [showCheck, setShowCheck] = useState(false);
   const [animatedXp, setAnimatedXp] = useState(0);
   const [animatedCoins, setAnimatedCoins] = useState(0);
-  const [copied, setCopied] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const { data: session } = useAuth();
   const user = session?.user ?? null;
@@ -69,8 +68,11 @@ export default function SessionSummaryCard({
   );
 
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+    const timers: Array<ReturnType<typeof setTimeout>> = [];
+    {
       const t = setTimeout(() => setShowCheck(true), 200);
+      timers.push(t);
       // Animate XP and coins count up
       if (earnedXp > 0) {
         const step = Math.ceil(earnedXp / 30);
@@ -80,6 +82,7 @@ export default function SessionSummaryCard({
           setAnimatedXp(cur);
           if (cur >= earnedXp) clearInterval(iv);
         }, 40);
+        timers.push(iv);
       }
       if (earnedCoins > 0) {
         const step = Math.ceil(earnedCoins / 30);
@@ -89,13 +92,16 @@ export default function SessionSummaryCard({
           setAnimatedCoins(cur);
           if (cur >= earnedCoins) clearInterval(iv);
         }, 40);
+        timers.push(iv);
       }
-      return () => clearTimeout(t);
-    } else {
-      setShowCheck(false);
-      setAnimatedXp(0);
-      setAnimatedCoins(0);
     }
+    return () => {
+      // Clear every timer (not just the check-mark delay) so a card closed
+      // mid-animation cannot keep ticking, then reset for the next open.
+      timers.forEach((id) => { clearTimeout(id); clearInterval(id); });
+      timers.length = 0;
+      setTimeout(() => { setShowCheck(false); setAnimatedXp(0); setAnimatedCoins(0); }, 0);
+    };
   }, [open, earnedXp, earnedCoins]);
 
   const mins = Math.floor(durationSeconds / 60);
@@ -136,7 +142,7 @@ export default function SessionSummaryCard({
               </AnimatePresence>
             </div>
 
-            <p className="mb-1 text-center text-[10px] uppercase tracking-widest text-[var(--palette-emerald-400)]/70">
+            <p className="mb-1 text-center text-[11px] uppercase tracking-widest text-[var(--palette-emerald-400)]/70">
               {completedEarly ? "Early Completion" : "Session Complete"}
             </p>
             <h2 className="mb-1 text-center text-lg font-bold text-[var(--foreground)]">
@@ -152,17 +158,17 @@ export default function SessionSummaryCard({
             <div className="mb-4 grid grid-cols-3 gap-2">
               <div className="rounded-2xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/3 p-3 text-center">
                 <p className="text-base font-bold text-[var(--palette-emerald-400)]">{timeLabel}</p>
-                <p className="mt-0.5 text-[9px] text-[var(--foreground-subtle)]">Focused</p>
+                <p className="mt-0.5 text-[11px] text-[var(--foreground-subtle)]">Focused</p>
               </div>
               <div className="rounded-2xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/3 p-3 text-center">
                 <p className="text-base font-bold text-[var(--palette-violet-400)]">{completedTaskCount}</p>
-                <p className="mt-0.5 text-[9px] text-[var(--foreground-subtle)]">Tasks done</p>
+                <p className="mt-0.5 text-[11px] text-[var(--foreground-subtle)]">Tasks done</p>
               </div>
               <div className="rounded-2xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/3 p-3 text-center">
                 <p className="text-base font-bold text-[var(--palette-sky-400)]">
                   {focusScore != null ? `${focusScore}%` : "—"}
                 </p>
-                <p className="mt-0.5 text-[9px] text-[var(--foreground-subtle)]">Focus score</p>
+                <p className="mt-0.5 text-[11px] text-[var(--foreground-subtle)]">Focus score</p>
               </div>
             </div>
 
@@ -177,13 +183,13 @@ export default function SessionSummaryCard({
                 {earnedXp > 0 && (
                   <div className="flex-1 rounded-xl border border-[var(--palette-violet-500)]/20 bg-[var(--palette-violet-500)]/10 px-3 py-2 text-center">
                     <p className="text-sm font-bold text-[var(--palette-violet-400)]">+{animatedXp}</p>
-                    <p className="text-[9px] text-[var(--palette-violet-400)]/60">XP earned</p>
+                    <p className="text-[11px] text-[var(--palette-violet-400)]/60">XP earned</p>
                   </div>
                 )}
                 {earnedCoins > 0 && (
                   <div className="flex-1 rounded-xl border border-[var(--palette-amber-500)]/20 bg-[var(--palette-amber-500)]/10 px-3 py-2 text-center">
                     <p className="text-sm font-bold text-[var(--palette-amber-400)]">+{animatedCoins}</p>
-                    <p className="text-[9px] text-[var(--palette-amber-400)]/60">Coins earned</p>
+                    <p className="text-[11px] text-[var(--palette-amber-400)]/60">Coins earned</p>
                   </div>
                 )}
               </motion.div>

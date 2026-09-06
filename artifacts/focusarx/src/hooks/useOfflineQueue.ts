@@ -108,12 +108,13 @@ export function useOfflineQueue() {
   useEffect(() => {
     const handleOnline = () => void processQueue();
     window.addEventListener("online", handleOnline);
-    // Try once on mount
-    void processQueue();
+    // Try once on mount (deferred a tick so it never sets state synchronously in the effect)
+    const first = setTimeout(() => void processQueue(), 0);
     // Periodic retry every 30s
     const id = setInterval(() => void processQueue(), 30000);
     return () => {
       window.removeEventListener("online", handleOnline);
+      clearTimeout(first);
       clearInterval(id);
     };
   }, [processQueue]);

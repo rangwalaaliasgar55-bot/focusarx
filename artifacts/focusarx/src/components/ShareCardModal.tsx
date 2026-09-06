@@ -200,7 +200,7 @@ export function ShareCardModal({
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+        <div role="presentation" className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/70 p-4" onClick={onClose} onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}>
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}

@@ -46,13 +46,12 @@ export default function AITaskDecomposer() {
     try {
       const eventSource = new EventSource(`/api/ai/tasks/decompose/stream?${params}&token=${token}`);
       let fullText = '';
-      const parsed: SubTask[] = [];
 
       eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data);
         
         switch (data.type) {
-          case 'token':
+          case 'token': {
             fullText += data.content;
             // Try to parse numbered items as they come in
             const matches = fullText.matchAll(/(\d+)\.\s+\*\*(.+?)\*\*\s*(?:\((\d+)[-\s]?(?:min|mins|minutes?)\))?\s*[-:]?\s*(.*?)(?=\n\d+\.|$)/g);
@@ -69,6 +68,7 @@ export default function AITaskDecomposer() {
               setSubtasks(newSubtasks);
             }
             break;
+          }
           case 'done':
             eventSource.close();
             setIsLoading(false);
@@ -91,8 +91,8 @@ export default function AITaskDecomposer() {
           .then(data => {
             if (data.reply) {
               // Parse the response
-              const matches = data.reply.matchAll(/(\d+)\.\s+\*\*(.+?)\*\*\s*(?:\((\d+)[-\s]?(?:min|mins|minutes?)\))?\s*[-:]?\s*(.*?)(?=\n\d+\.|$)/g);
               const parsed: SubTask[] = [];
+              const matches = data.reply.matchAll(/(\d+)\.\s+\*\*(.+?)\*\*\s*(?:\((\d+)[-\s]?(?:min|mins|minutes?)\))?\s*[-:]?\s*(.*?)(?=\n\d+\.|$)/g);
               for (const match of matches) {
                 parsed.push({
                   title: match[2].trim(),
@@ -228,10 +228,10 @@ export default function AITaskDecomposer() {
                     {sub.title}
                   </p>
                   {sub.description && (
-                    <p className="text-[10px] text-[var(--palette-zinc-500)] mt-0.5">{sub.description}</p>
+                    <p className="text-[11px] text-[var(--palette-zinc-500)] mt-0.5">{sub.description}</p>
                   )}
                 </div>
-                <span className="text-[10px] text-[var(--palette-zinc-600)] flex-shrink-0">
+                <span className="text-[11px] text-[var(--palette-zinc-600)] flex-shrink-0">
                   {sub.estimatedMinutes}m
                 </span>
               </motion.div>

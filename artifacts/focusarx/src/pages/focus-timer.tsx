@@ -1,7 +1,7 @@
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 import { PageTransition } from "@/components/PageTransition";
 import { Link } from "wouter";
-import { Timer, Crown, Zap, BarChart2, Palette, Sparkles, CheckCircle } from "lucide-react";
+import { Timer, Crown, Zap, BarChart2, Sparkles, CheckCircle } from "lucide-react";
 
 export default function FocusTimerPage() {
   return (

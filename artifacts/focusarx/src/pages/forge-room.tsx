@@ -107,7 +107,7 @@ export default function ForgeRoomPage() {
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--brand-teal)]/30 bg-[var(--brand-teal)]/10 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--brand-teal)]"
+              className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--brand-teal)]/30 bg-[var(--brand-teal)]/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--brand-teal)]"
             >
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--brand-teal)]" aria-hidden="true" />
               Live Forge Room
@@ -118,12 +118,12 @@ export default function ForgeRoomPage() {
 
             <div className="mt-8 flex items-center gap-6 sm:gap-8">
               <div className="text-center">
-                <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[var(--foreground-subtle)]">Participants</p>
+                <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-[var(--foreground-subtle)]">Participants</p>
                 <p className="text-3xl font-semibold text-[var(--palette-white)]">{selected?.participantCount ?? 0}</p>
               </div>
               <div className="h-10 w-px bg-[var(--palette-white)]/5" aria-hidden="true" />
               <div className="text-center">
-                <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[var(--foreground-subtle)]">Combined focus</p>
+                <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-[var(--foreground-subtle)]">Combined focus</p>
                 <p className="text-3xl font-semibold text-[var(--brand-teal)]">{combinedMinutes}<span className="text-base">m</span></p>
               </div>
             </div>
@@ -173,7 +173,7 @@ export default function ForgeRoomPage() {
                     }`}
                   >
                     {room.name}
-                    <span className="ml-2 font-mono text-[10px] opacity-60">{room.participantCount}</span>
+                    <span className="ml-2 font-mono text-[11px] opacity-60">{room.participantCount}</span>
                   </button>
                 ))}
               </div>
@@ -209,12 +209,12 @@ export default function ForgeRoomPage() {
                                 <h3 className="truncate font-bold text-[var(--palette-white)]">
                                   {p.name}{p.userId === myId ? " (You)" : ""}
                                 </h3>
-                                <p className="mt-0.5 text-[10px] uppercase tracking-widest text-[var(--foreground-subtle)]">Level {p.level}</p>
+                                <p className="mt-0.5 text-[11px] uppercase tracking-widest text-[var(--foreground-subtle)]">Level {p.level}</p>
                               </div>
                             </div>
                             <div className="shrink-0 text-right">
                               <p className="text-xs font-semibold text-[var(--brand-teal)]">{p.focusMinutes ?? 0}m</p>
-                              <p className="text-[9px] uppercase tracking-wider text-[var(--foreground-subtle)]">focused</p>
+                              <p className="text-[11px] uppercase tracking-wider text-[var(--foreground-subtle)]">focused</p>
                             </div>
                           </div>
                         </motion.div>

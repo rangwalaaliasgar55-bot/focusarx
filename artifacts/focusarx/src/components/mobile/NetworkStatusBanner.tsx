@@ -1,11 +1,11 @@
 
 import { motion, AnimatePresence } from "framer-motion";
-import { WifiOff, Wifi, AlertTriangle, RefreshCw } from "lucide-react";
+import { WifiOff, AlertTriangle, RefreshCw } from "lucide-react";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { useOfflineQueue } from "@/hooks/useOfflineQueue";
 
 export function NetworkStatusBanner() {
-  const { status, isOffline, isSlow } = useNetworkStatus();
+  const { isOffline, isSlow } = useNetworkStatus();
   const { queueCount, syncing, processQueue } = useOfflineQueue();
 
   const showOffline = isOffline;

@@ -20,6 +20,11 @@ export type PersistedActiveSession = {
   monitorEnabled: boolean;
   durationSec: number;
   taskId: string | null;
+  /** Server-derived (pause-aware) values; present on GET /sessions/active. */
+  serverElapsed?: number;
+  serverRemaining?: number;
+  serverPlannedSeconds?: number;
+  serverNow?: string;
 };
 
 export type SessionSyncPayload = {

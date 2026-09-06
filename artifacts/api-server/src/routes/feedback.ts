@@ -1,10 +1,9 @@
-import { Request, Response, NextFunction } from "express";
+import { Response } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { appFeedbackTable, userWalletsTable } from "@workspace/db";
-import { extractUserId } from "./auth";
-import { eq, desc, avg, count, sql } from "drizzle-orm";
+import { eq, desc, avg, count } from "drizzle-orm";
 import { logger } from "../lib/logger";
 
 function adminAuth(req: any, res: any, next: any) {

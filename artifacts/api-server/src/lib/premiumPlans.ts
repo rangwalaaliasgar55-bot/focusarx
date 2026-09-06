@@ -8,9 +8,8 @@ import {
   premiumPlansTable,
   premiumEntitlementsTable,
   premiumSubscriptionsTable,
-  tokenLedgerTable,
 } from "@workspace/db";
-import { and, eq, desc, gte, lt, sql } from "drizzle-orm";
+import { and, eq, desc, gte, lt } from "drizzle-orm";
 import { logger } from "./logger";
 import { spendTokens } from "./tokenLedger";
 import { invalidatePremiumCache } from "./premiumCheck";
@@ -267,11 +266,9 @@ export async function purchasePremiumWithTokens(
         .orderBy(desc(premiumEntitlementsTable.endsAt))
         .limit(1);
 
-      let startsAt = now;
       let finalEndsAt = endsAt;
       if (active) {
         // Extend existing entitlement
-        startsAt = active.startsAt;
         finalEndsAt = new Date(active.endsAt.getTime() + plan.durationDays * 24 * 60 * 60 * 1000);
         await tx
           .update(premiumEntitlementsTable)
@@ -296,7 +293,7 @@ export async function purchasePremiumWithTokens(
           planId: plan.id.startsWith("fallback_") ? null : plan.id,
           source: "token_unlock",
           status: "active",
-          startsAt,
+          startsAt: now,
           endsAt: finalEndsAt,
           tokenCost: plan.tokenCost,
           idempotencyKey,

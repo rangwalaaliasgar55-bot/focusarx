@@ -16,7 +16,7 @@ import { z } from "zod";
 import {
   db, pool,
   usersTable, focusSessionsTable, coinTransactionsTable,
-  adminDropsTable, socialPostsTable,
+  adminDropsTable,
   aiIdeasTable, aiBriefingsTable, aiActionAuditTable, platformMetaTable,
 } from "@workspace/db";
 import { eq, and, desc, gte, sql, inArray } from "drizzle-orm";

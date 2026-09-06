@@ -1,8 +1,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { RollingClock } from "@/components/RollingClock";
 import { motion, AnimatePresence } from "framer-motion";
 import { Pause, Play, RotateCcw, Volume2, VolumeX, CheckCircle, AlertTriangle } from "lucide-react";
 import { usePomodoro } from "@/hooks/usePomodoro";
+import { publishFocusState, resetFocusState } from "@/lib/focusSessionBus";
 import { useSessionPersistence } from "@/hooks/useSessionPersistence";
 import { useWakeLock } from "@/hooks/useWakeLock";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
@@ -16,7 +18,7 @@ import { MobileFocusMode } from "./MobileFocusMode";
 import { DEFAULT_CONFIG } from "@/lib/constants";
 import { FOCUS_DEEP_LINK_EVENT } from "@/lib/focusDeepLink";
 import { trackSessionStart, trackSessionComplete } from "@/lib/analytics";
-import { playCoachVoice } from "@/lib/soundEngine";
+import { playCoachVoice, playSessionComplete, playBreakOver, playCoinEarn, isMuted, toggleMute } from "@/lib/soundEngine";
 import FlowTimer from "@/components/FlowTimer";
 import DistractionModal from "@/components/DistractionModal";
 import { SESSION_PRESETS, getPresetById, getSessionPreset, setSessionPreset } from "@/lib/sessionPresets";
@@ -37,9 +39,13 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
 
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showMobileFocus, setShowMobileFocus] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  // Shared with Profile → Sound effects (same `fx_muted` key) so the toggle
+  // survives reloads and is consistent across every timer surface.
+  const [soundEnabled, setSoundEnabled] = useState(() => !isMuted());
   const [isSaving, setIsSaving] = useState(false);
-  const [totalPlanned, setTotalPlanned] = useState(25 * 60);
+  // Planned length of the current run; after a restore this is derived from
+  // the hook's planned duration rather than the 25-min default.
+  const [startedPlanned, setTotalPlanned] = useState(0);
   // Deep-linked task (?task=) for guests, who have no server task list.
   const [deepTask, setDeepTask] = useState("");
   const [showPark, setShowPark] = useState(false);
@@ -62,21 +68,8 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
       // Haptic + sound
       haptic("celebrate");
       if (soundEnabled) {
-        try {
-          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-          if (ctx.state === "suspended") {
-            void ctx.resume().catch(() => {});
-          }
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.frequency.setValueAtTime(800, ctx.currentTime);
-          gain.gain.setValueAtTime(0.3, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-          osc.start();
-          osc.stop(ctx.currentTime + 0.4);
-        } catch {}
+        if (session.mode === "focus") playSessionComplete();
+        else playBreakOver();
       }
 
       setIsSaving(true);
@@ -143,6 +136,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
     mode,
     status,
     secondsLeft,
+    totalSeconds,
     progress,
     completedFocusSessions,
     leaderBlocked,
@@ -249,6 +243,13 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
       window.dispatchEvent(new CustomEvent("fx:focus-stop"));
     }
   }, [status, mode]);
+
+  // Share the live block with companions outside this component.
+  useEffect(() => {
+    publishFocusState({ mode, status, secondsLeft, totalSeconds });
+  }, [mode, status, secondsLeft, totalSeconds]);
+  const totalPlanned = startedPlanned > 0 && status !== "idle" ? startedPlanned : totalSeconds;
+  useEffect(() => () => resetFocusState(), []);
 
   // Title update
   useEffect(() => {
@@ -363,7 +364,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
             {mode === "focus" ? "Deep Work" : mode === "break" ? "Break" : "Long Break"}
           </span>
           {wakeSupported && (
-            <span className={`text-[10px] ${wakeLocked ? "text-[var(--success)]" : "text-[var(--foreground-subtle)]"}`}>
+            <span className={`text-[11px] ${wakeLocked ? "text-[var(--success)]" : "text-[var(--foreground-subtle)]"}`}>
               {wakeLocked ? "● Screen awake" : "○ Screen may dim"}
             </span>
           )}
@@ -379,22 +380,12 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
         ) : (
         <>
         <div className="relative flex flex-col items-center">
-          <motion.div
-            key={Math.floor(secondsLeft / 60)}
-            initial={{ scale: 0.97 }}
-            animate={{ scale: 1 }}
-            className="select-none font-mono text-[5.5rem] font-semibold leading-none tracking-[-0.06em] sm:text-[6.5rem]"
-            style={{
-              backgroundImage: `linear-gradient(135deg, var(--foreground) 20%, var(--brand-400) 100%)`,
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
-            aria-live="polite"
-            aria-atomic="true"
-            role="timer"
+          <div
+            className="select-none font-display text-[5.25rem] font-semibold leading-none tracking-[-0.055em] text-[var(--foreground)] sm:text-[6.25rem]"
+            style={{ fontFeatureSettings: '"tnum" 1' }}
           >
-            {m}:{s}
-          </motion.div>
+            <RollingClock value={`${m}:${s}`} />
+          </div>
           <div className="mt-2 h-1.5 w-32 overflow-hidden rounded-full bg-[var(--border-subtle)]">
             <motion.div
               className="h-full bg-[var(--brand-500)]"
@@ -403,7 +394,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
             />
           </div>
           <p className="mt-2 text-xs font-medium text-[var(--foreground-subtle)]">
-            {isRunning ? "in progress" : isPaused ? "paused" : "ready"} • {Math.floor(secondsLeft / 60)}m planned
+            {isRunning ? "in progress" : isPaused ? "paused" : "ready"} • {Math.round(totalPlanned / 60)}m {isRunning || isPaused ? "block" : "planned"}
           </p>
         </div>
 
@@ -422,7 +413,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
         {/* Current task clearly */}
         {currentTask ? (
           <div className="w-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-1)] px-4 py-3.5">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--foreground-subtle)]">Current task</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--foreground-subtle)]">Current task</p>
             <p className="mt-1 line-clamp-2 text-sm font-medium leading-snug">{currentTask}</p>
           </div>
         ) : (
@@ -444,7 +435,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
             </button>
             <button
               type="button"
-              onClick={() => setSoundEnabled(v => !v)}
+              onClick={() => { const nowOn = !toggleMute(); setSoundEnabled(nowOn); if (nowOn) playCoinEarn(); }}
               className="grid min-h-[44px] min-w-[44px] place-items-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-1)] text-[var(--foreground-subtle)]"
               aria-label={soundEnabled ? "Mute sounds" : "Enable sounds"}
             >

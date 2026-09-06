@@ -89,7 +89,7 @@ export function AdminNotifyPanel({ authHeaders }: AdminPanelProps) {
                   className="w-full text-left rounded-lg border border-[var(--palette-zinc-800)] px-3 py-2.5 hover:border-[var(--palette-zinc-600)] hover:bg-[var(--palette-zinc-800)]/50 transition"
                 >
                   <p className="text-xs font-medium text-[var(--palette-zinc-300)]">{t.title}</p>
-                  <p className="text-[10px] text-[var(--palette-zinc-500)] mt-0.5 line-clamp-1">{t.message}</p>
+                  <p className="text-[11px] text-[var(--palette-zinc-500)] mt-0.5 line-clamp-1">{t.message}</p>
                 </button>
               ))}
             </div>
@@ -100,7 +100,7 @@ export function AdminNotifyPanel({ authHeaders }: AdminPanelProps) {
               <AlertTriangle size={14} className="shrink-0 mt-0.5" />
               <div>
                 <p className="text-xs font-semibold">Important</p>
-                <p className="text-[10px] text-[var(--palette-amber-500)] mt-1 leading-relaxed">
+                <p className="text-[11px] text-[var(--palette-amber-500)] mt-1 leading-relaxed">
                   This sends an in-app notification to all registered users. Use sparingly. Guests do not receive notifications.
                 </p>
               </div>

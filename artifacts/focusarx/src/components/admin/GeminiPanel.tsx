@@ -165,7 +165,7 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
                   <Cpu size={13} /> {p}
                 </p>
                 <span className={cn(
-                  "rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                  "rounded-full px-2 py-0.5 text-[11px] font-semibold",
                   !v ? "bg-[var(--surface-hover)] text-[var(--foreground-subtle)]"
                     : v.configured ? "bg-[var(--success-soft)] text-[var(--success)]"
                     : "bg-[var(--surface-hover)] text-[var(--foreground-subtle)]"
@@ -182,7 +182,7 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
                   style={{ width: `${v ? pct(v.used, v.cap) : 0}%` }}
                 />
               </div>
-              <p className="mt-1.5 text-[10px] text-[var(--foreground-subtle)]">{v?.model}</p>
+              <p className="mt-1.5 text-[11px] text-[var(--foreground-subtle)]">{v?.model}</p>
             </div>
           );
         })}
@@ -194,7 +194,7 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
             ${status?.cost.usd ?? 0}
             <span className="ml-1 text-sm font-medium text-[var(--foreground-subtle)]">{status?.cost.calls ?? 0} calls</span>
           </p>
-          <p className="mt-1.5 text-[10px] leading-relaxed text-[var(--foreground-subtle)]">
+          <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--foreground-subtle)]">
             {status
               ? Object.entries(status.cost.byProvider).map(([k, v]) => `${k} $${v}`).join(" · ") || "no calls yet"
               : "display estimate only — never billing"}
@@ -208,7 +208,7 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
             {status?.botFleet.bots ?? "—"}
             <span className="ml-1 text-sm font-medium text-[var(--foreground-subtle)]">bots</span>
           </p>
-          <p className="mt-1.5 text-[10px] text-[var(--foreground-subtle)]">
+          <p className="mt-1.5 text-[11px] text-[var(--foreground-subtle)]">
             {status ? `${status.botFleet.botPosts24h} posts · ${status.botFleet.botComments24h} comments` : "loading…"}
           </p>
         </div>
@@ -224,7 +224,7 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
             {status.purposeUsage.map((u) => (
               <div key={u.purpose} className="rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-hover)]/50 px-3 py-2">
                 <p className="text-xs font-semibold text-[var(--foreground)]">{u.purpose}</p>
-                <p className="text-[10px] text-[var(--foreground-muted)]">
+                <p className="text-[11px] text-[var(--foreground-muted)]">
                   {u.calls} calls · {u.ok} ok · {u.fallback} fallback · ~{u.avgLatencyMs}ms
                 </p>
               </div>
@@ -246,7 +246,7 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
                   key={f}
                   onClick={() => setIdeaStatusFilter(f)}
                   className={cn(
-                    "rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition",
+                    "rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition",
                     ideaStatusFilter === f
                       ? "border-[var(--brand-strong)] bg-[var(--brand-soft)] text-[var(--brand-strong)]"
                       : "border-[var(--border-subtle)] text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
@@ -269,11 +269,11 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
             {ideas.map((idea) => (
               <motion.div key={idea.id} layout className="rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-hover)]/40 p-3">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", CATEGORY_STYLE[idea.category] ?? CATEGORY_STYLE.feature)}>
+                  <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", CATEGORY_STYLE[idea.category] ?? CATEGORY_STYLE.feature)}>
                     {idea.category}
                   </span>
-                  <span className="rounded-full bg-[var(--surface-hover)] px-2 py-0.5 text-[10px] text-[var(--foreground-muted)]">{idea.effort} · impact {idea.impact}</span>
-                  <span className="ml-auto text-[10px] text-[var(--foreground-subtle)]">{idea.source} · {new Date(idea.createdAt).toLocaleDateString("en-IN")}</span>
+                  <span className="rounded-full bg-[var(--surface-hover)] px-2 py-0.5 text-[11px] text-[var(--foreground-muted)]">{idea.effort} · impact {idea.impact}</span>
+                  <span className="ml-auto text-[11px] text-[var(--foreground-subtle)]">{idea.source} · {new Date(idea.createdAt).toLocaleDateString("en-IN")}</span>
                 </div>
                 <p className="mt-1.5 text-sm font-semibold text-[var(--foreground)]">{idea.title}</p>
                 <p className="mt-1 text-xs leading-relaxed text-[var(--foreground-muted)]">{idea.body}</p>
@@ -298,7 +298,7 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
               </motion.div>
             ))}
           </div>
-          <p className="mt-3 text-[10px] leading-relaxed text-[var(--foreground-subtle)]">
+          <p className="mt-3 text-[11px] leading-relaxed text-[var(--foreground-subtle)]">
             Auto-publish is OFF by design: AI-suggested work stays a backlog item until a human approves it. Every decision is written to the immutable AI action audit log.
           </p>
         </section>
@@ -335,7 +335,7 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
                 {genBusy === "botops" ? "Reviewing fleet…" : "Bot ops review (G4)"}
               </button>
               {genResult && <p className="text-[11px] font-medium text-[var(--success)]">{genResult}</p>}
-              <p className="text-[10px] leading-relaxed text-[var(--foreground-subtle)]">
+              <p className="text-[11px] leading-relaxed text-[var(--foreground-subtle)]">
                 {status?.botFleet.guardrail ?? "Guardrail: the AI can suggest but never block, mute, or ban."}
               </p>
             </div>
@@ -359,7 +359,7 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
               {briefings.map((b) => (
                 <details key={b.id} className="rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-hover)]/40 p-3">
                   <summary className="cursor-pointer list-none text-xs font-semibold text-[var(--foreground)]">
-                    <span className={cn("mr-1.5 rounded-full px-1.5 py-0.5 text-[9px] uppercase tracking-wide", b.kind === "daily" ? "bg-[var(--brand-soft)] text-[var(--brand-strong)]" : "bg-[var(--success-soft)] text-[var(--success)]")}>
+                    <span className={cn("mr-1.5 rounded-full px-1.5 py-0.5 text-[11px] uppercase tracking-wide", b.kind === "daily" ? "bg-[var(--brand-soft)] text-[var(--brand-strong)]" : "bg-[var(--success-soft)] text-[var(--success)]")}>
                       {b.kind}
                     </span>
                     {b.day}

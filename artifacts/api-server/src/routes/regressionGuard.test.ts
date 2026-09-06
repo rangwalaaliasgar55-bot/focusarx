@@ -453,7 +453,7 @@ describe("15. mobile layout and build hygiene", () => {
     const s = read(path.join(FRONTEND, "vite.config.ts"));
     // The object form produced "Generated an empty chunk: vendor-react", which
     // inlined react+react-dom into the entry bundle (375 kB on every page).
-    expect(s, "manualChunks must use the function form").toMatch(/manualChunks\s*\(\s*id\s*\)/);
+    expect(s, "manualChunks must use the function form").toMatch(/manualChunks\s*\(\s*id\s*(,[^)]*)?\)/);
     expect(s).toMatch(/return "vendor-react"/);
     // three must be split off — it is ~730 kB and only 3D pages need it.
     expect(s).toMatch(/return "vendor-three"/);

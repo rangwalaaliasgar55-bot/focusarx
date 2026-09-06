@@ -43,9 +43,18 @@ export function useCoinXP() {
   };
 
   useEffect(() => {
-    void fetchWallet();
-    const id = setInterval(fetchWallet, 30000);
-    return () => clearInterval(id);
+    let cancelled = false;
+    const load = async () => {
+      const token = getToken();
+      if (!token) return;
+      try {
+        const res = await fetch("/api/gamification/wallet", { headers: { Authorization: `Bearer ${token}` } });
+        if (res.ok && !cancelled) setWallet(await res.json() as Wallet);
+      } catch {}
+    };
+    void load();
+    const id = setInterval(load, 30000);
+    return () => { cancelled = true; clearInterval(id); };
   }, []);
 
   const showFloat = (text: string, color: string) => {
@@ -99,7 +108,7 @@ export default function CoinXPBar() {
       {/* Level badge + XP bar */}
       <div className="flex items-center gap-2" title={`Level ${level} — ${wallet.totalXp.toLocaleString()} XP total`}>
         <div
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--brand-600)] to-[var(--palette-4f46e5)] text-[10px] font-semibold text-[var(--palette-white)]"
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--brand-600)] to-[var(--palette-4f46e5)] text-[11px] font-semibold text-[var(--palette-white)]"
           style={{ boxShadow: "0 0 8px var(--rgba-124-58-237-0_55)" }}
           aria-label={`Level ${level}`}
         >
@@ -114,7 +123,7 @@ export default function CoinXPBar() {
               transition={{ duration: 0.4, ease: "easeOut" }}
             />
           </div>
-          <p className="text-[9px] text-[var(--foreground-subtle)]">{wallet.weeklyXp.toLocaleString()} XP / week</p>
+          <p className="text-[11px] text-[var(--foreground-subtle)]">{wallet.weeklyXp.toLocaleString()} XP / week</p>
         </div>
       </div>
 
@@ -124,7 +133,7 @@ export default function CoinXPBar() {
           className="hidden sm:flex items-center gap-1 rounded-full border border-[var(--rgba-6-214-160-0_25)] bg-[var(--rgba-6-214-160-0_08)] px-2.5 py-1"
           title="Your leaderboard rank this week"
         >
-          <span className="text-[10px] font-semibold text-[var(--brand-teal)]">#{wallet.rank}</span>
+          <span className="text-[11px] font-semibold text-[var(--brand-teal)]">#{wallet.rank}</span>
         </div>
       )}
     </div>

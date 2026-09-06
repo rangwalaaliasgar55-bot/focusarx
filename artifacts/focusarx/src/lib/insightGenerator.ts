@@ -15,7 +15,6 @@ export function generateSessionInsights(input: {
   const {
     focusScore,
     stabilityRating,
-    longestFocusStreak,
     totalInterruptions,
     averageFocusDuration,
     durationSec,

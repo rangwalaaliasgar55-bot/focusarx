@@ -59,7 +59,8 @@ if (!window.matchMedia) {
 // Scroll / measurement APIs jsdom leaves at 0 or unimplemented.
 w.scrollTo ??= () => {};
 Element.prototype.scrollIntoView ??= function () {};
-if (!Element.prototype.getBoundingClientRect || true) {
+// jsdom ships a stub that returns all zeros; layout-dependent code needs a real box.
+{
   Element.prototype.getBoundingClientRect = function () {
     return { x: 0, y: 0, width: 1024, height: 768, top: 0, left: 0, right: 1024, bottom: 768, toJSON: () => ({}) } as DOMRect;
   };

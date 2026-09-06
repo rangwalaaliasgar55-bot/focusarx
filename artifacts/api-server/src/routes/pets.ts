@@ -1,10 +1,9 @@
-import { Request, Response, NextFunction } from "express";
+import { Response } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
-import { db, userPetsTable, userWalletsTable, focusSessionsTable, studyStreaksTable } from "@workspace/db";
+import { db, userPetsTable, focusSessionsTable, studyStreaksTable } from "@workspace/db";
 import { isUserPremium } from "../lib/premiumCheck";
 import { desc, eq } from "drizzle-orm";
-import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
 
 const router = Router();

@@ -22,6 +22,25 @@ export default function AudioVisualizer({ className = "" }: { className?: string
     let raf = 0;
     let smooth = new Array<number>(BARS).fill(0.06);
     let data: Uint8Array<ArrayBuffer> | null = null;
+    // Canvas can't parse CSS custom properties — resolve the brand colour from
+    // the element's computed style (falls back to violet if the token is missing).
+    let brandTop = "#a78bfa";
+    let brandBottom = "rgba(124, 58, 237, 0.25)";
+    function resolveColors() {
+      const c = canvasRef.current;
+      if (!c) return;
+      const cs = getComputedStyle(c);
+      const top = cs.getPropertyValue("--brand-400").trim();
+      if (top) brandTop = top;
+      const strong = cs.getPropertyValue("--brand-600").trim();
+      const m = /^#([0-9a-f]{6})$/i.exec(strong);
+      if (m) {
+        const n = parseInt(m[1]!, 16);
+        brandBottom = `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, 0.25)`;
+      }
+    }
+    resolveColors();
+    let frame = 0;
 
     function draw() {
       const c = canvasRef.current;
@@ -30,6 +49,8 @@ export default function AudioVisualizer({ className = "" }: { className?: string
       const w = c.width;
       const h = c.height;
       ctx2d!.clearRect(0, 0, w, h);
+      // Re-read the theme colour occasionally so theme switches propagate.
+      if (++frame % 120 === 0) resolveColors();
 
       if (analyser && !reduced) {
         if (!data || data.length !== analyser.frequencyBinCount) {
@@ -61,8 +82,8 @@ export default function AudioVisualizer({ className = "" }: { className?: string
         const x = i * (bw + gap);
         const y = h - bh;
         const grad = ctx2d!.createLinearGradient(0, y, 0, h);
-        grad.addColorStop(0, "var(--brand-400)");
-        grad.addColorStop(1, "var(--rgba-124-58-237-0_25)");
+        grad.addColorStop(0, brandTop);
+        grad.addColorStop(1, brandBottom);
         ctx2d!.fillStyle = grad;
         ctx2d!.fillRect(x, y, bw, bh);
       }

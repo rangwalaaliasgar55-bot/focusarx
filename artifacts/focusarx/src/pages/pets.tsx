@@ -2,17 +2,15 @@ import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
-import { Box, Heart, PawPrint, Zap, Star, Edit2, ArrowRight, CheckCircle, ShoppingBag, CheckSquare, Square, Lock, Crown, Search, Filter, Sparkles, Trophy, Gift, Coins, X, Info } from "lucide-react";
+import { Heart, PawPrint, CheckCircle, Crown, Search, Sparkles, Trophy, X } from "lucide-react";
 import { ErrorState } from "@/components/ErrorState";
 import { is3DCapable } from "@/lib/webglCapability";
 
 // Lazy so three.js stays out of this page's static chunk graph.
 const Pet3D = lazy(() => import("@/components/Pet3D").then(m => ({ default: m.Pet3D })));
 import { usePremium } from "@/hooks/usePremium";
-import { Link } from "wouter";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 
-const XP_PER_LEVEL = 100; // bond XP: level * 100
 
 const CATEGORY_META: Record<string, { label: string; emoji: string; color: string }> = {
   starter: { label: "Starter", emoji: "🌱", color: "var(--palette-10b981)" },
@@ -92,7 +90,7 @@ export default function PetsPage() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { const t = setTimeout(() => void load(), 0); return () => clearTimeout(t); }, [load]);
 
   const filteredCatalog = useMemo(() => {
     let list = catalog;
@@ -200,7 +198,7 @@ export default function PetsPage() {
                 <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-[var(--surface-1)]">
                   <div className="h-full bg-[var(--brand-600)]" style={{ width: `${Math.min(100, ((activePet.inventory?.bondXp ?? 0) / ((activePet.inventory?.level ?? 1) * 100)) * 100)}%` }} />
                 </div>
-                <p className="mt-1 text-[10px] text-[var(--foreground-subtle)]">{activePet.inventory?.bondXp ?? 0} / {(activePet.inventory?.level ?? 1) * 100} XP to next level</p>
+                <p className="mt-1 text-[11px] text-[var(--foreground-subtle)]">{activePet.inventory?.bondXp ?? 0} / {(activePet.inventory?.level ?? 1) * 100} XP to next level</p>
               </div>
               <div>
                 <h3 className="text-sm font-bold">Progression unlocks</h3>
@@ -213,10 +211,10 @@ export default function PetsPage() {
                     if (!unlocks) return null;
                     return (
                       <div key={lvl} className={`flex gap-2 rounded-xl border p-2.5 ${isUnlocked ? "border-[var(--brand-400)]/20 bg-[var(--brand-soft)]" : isNext ? "border-[var(--palette-amber-500)]/20 bg-[var(--palette-amber-950)]/10" : "border-[var(--forge-border)] opacity-60"}`}>
-                        <div className={`grid h-6 w-6 place-items-center rounded-full text-[10px] font-bold ${isUnlocked ? "bg-[var(--brand-600)] text-white" : "bg-[var(--surface-1)] text-[var(--foreground-subtle)]"}`}>{lvl}</div>
+                        <div className={`grid h-6 w-6 place-items-center rounded-full text-[11px] font-bold ${isUnlocked ? "bg-[var(--brand-600)] text-white" : "bg-[var(--surface-1)] text-[var(--foreground-subtle)]"}`}>{lvl}</div>
                         <div className="flex-1">
                           <p className="text-xs font-semibold">Level {lvl}</p>
-                          <p className="text-[10px] text-[var(--foreground-subtle)]">{unlocks.join(" • ")}</p>
+                          <p className="text-[11px] text-[var(--foreground-subtle)]">{unlocks.join(" • ")}</p>
                         </div>
                         {isUnlocked && <CheckCircle size={14} className="text-[var(--brand-400)]" />}
                       </div>
@@ -264,15 +262,15 @@ export default function PetsPage() {
                 const lockedPremium = pet.isPremium && !isPremium;
                 return (
                   <motion.div key={pet.id} layout className={`group relative rounded-2xl border p-4 transition-all ${owned ? "border-[var(--brand-400)]/30 bg-[var(--brand-soft)]" : "border-[var(--forge-border)] bg-[var(--card)] hover:border-[var(--brand-400)]/20"}`}>
-                    {pet.isPremium && <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-[var(--palette-amber-500)]/15 px-2 py-0.5 text-[9px] font-bold text-[var(--palette-amber-400)]"><Crown size={8}/> Premium</span>}
+                    {pet.isPremium && <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-[var(--palette-amber-500)]/15 px-2 py-0.5 text-[11px] font-bold text-[var(--palette-amber-400)]"><Crown size={8}/> Premium</span>}
                     {owned && <span className="absolute left-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-[var(--brand-600)] text-white"><CheckCircle size={12}/></span>}
                     <div className="text-center">
                       <div className="text-4xl">{pet.thumbnailUrl ? "🐾" : CATEGORY_META[pet.category]?.emoji ?? "🐾"}</div>
                       <h3 className="mt-2 text-sm font-bold">{pet.name}</h3>
-                      <p className="mt-0.5 line-clamp-2 text-[10px] text-[var(--foreground-subtle)]">{pet.description}</p>
+                      <p className="mt-0.5 line-clamp-2 text-[11px] text-[var(--foreground-subtle)]">{pet.description}</p>
                       <div className="mt-2 flex justify-center gap-1">
-                        <span className="rounded-full bg-[var(--surface-1)] px-2 py-0.5 text-[9px] font-bold" style={{ color: RARITY_COLOR[pet.rarity] }}>{pet.rarity}</span>
-                        <span className="rounded-full bg-[var(--surface-1)] px-2 py-0.5 text-[9px]">{pet.category}</span>
+                        <span className="rounded-full bg-[var(--surface-1)] px-2 py-0.5 text-[11px] font-bold" style={{ color: RARITY_COLOR[pet.rarity] }}>{pet.rarity}</span>
+                        <span className="rounded-full bg-[var(--surface-1)] px-2 py-0.5 text-[11px]">{pet.category}</span>
                       </div>
                     </div>
                     <div className="mt-3 flex gap-1.5">
@@ -366,12 +364,12 @@ export default function PetsPage() {
                 </div>
                 <p className="mt-4 text-sm text-[var(--foreground-muted)]">{selectedDetail.description}</p>
                 <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                  <div className="rounded-xl bg-[var(--surface-1)] p-3"><p className="text-[10px] text-[var(--foreground-subtle)]">Rarity</p><p className="font-bold" style={{ color: RARITY_COLOR[selectedDetail.rarity] }}>{selectedDetail.rarity}</p></div>
-                  <div className="rounded-xl bg-[var(--surface-1)] p-3"><p className="text-[10px] text-[var(--foreground-subtle)]">Max Level</p><p className="font-bold">{selectedDetail.maxLevel ?? 20}</p></div>
-                  <div className="rounded-xl bg-[var(--surface-1)] p-3"><p className="text-[10px] text-[var(--foreground-subtle)]">Cost</p><p className="font-bold">{selectedDetail.tokenCost ? `🪙 ${selectedDetail.tokenCost}` : "Free"}</p></div>
-                  <div className="rounded-xl bg-[var(--surface-1)] p-3"><p className="text-[10px] text-[var(--foreground-subtle)]">Source</p><p className="font-bold">{selectedDetail.unlockSource}</p></div>
+                  <div className="rounded-xl bg-[var(--surface-1)] p-3"><p className="text-[11px] text-[var(--foreground-subtle)]">Rarity</p><p className="font-bold" style={{ color: RARITY_COLOR[selectedDetail.rarity] }}>{selectedDetail.rarity}</p></div>
+                  <div className="rounded-xl bg-[var(--surface-1)] p-3"><p className="text-[11px] text-[var(--foreground-subtle)]">Max Level</p><p className="font-bold">{selectedDetail.maxLevel ?? 20}</p></div>
+                  <div className="rounded-xl bg-[var(--surface-1)] p-3"><p className="text-[11px] text-[var(--foreground-subtle)]">Cost</p><p className="font-bold">{selectedDetail.tokenCost ? `🪙 ${selectedDetail.tokenCost}` : "Free"}</p></div>
+                  <div className="rounded-xl bg-[var(--surface-1)] p-3"><p className="text-[11px] text-[var(--foreground-subtle)]">Source</p><p className="font-bold">{selectedDetail.unlockSource}</p></div>
                 </div>
-                {selectedDetail.modelUrl && <p className="mt-3 text-[10px] text-[var(--foreground-subtle)]">3D Model: {selectedDetail.modelUrl} — GLB compressed, lazy, mixer, fallback</p>}
+                {selectedDetail.modelUrl && <p className="mt-3 text-[11px] text-[var(--foreground-subtle)]">3D Model: {selectedDetail.modelUrl} — GLB compressed, lazy, mixer, fallback</p>}
                 <div className="mt-5 flex gap-2">
                   <button onClick={() => setSelectedDetail(null)} className="flex-1 rounded-xl border border-[var(--forge-border)] py-2.5 text-xs font-bold">Close</button>
                   {!ownedSlugs.has(selectedDetail.slug) && (

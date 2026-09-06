@@ -107,6 +107,8 @@ export default function ComparisonPage() {
       <div
         role="region"
         aria-label="Feature comparison table"
+        // Scrollable regions must be focusable so keyboard users can scroll them (WCAG 2.1.1).
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
         tabIndex={0}
         className="mt-10 overflow-x-auto rounded-2xl border border-[var(--border)]"
       >

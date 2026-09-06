@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useAuth } from "@/lib/auth";
 import { PageTransition } from "@/components/PageTransition";
-import { Dna, RefreshCw, Zap, Clock, Calendar, AlertTriangle, Share2 } from "lucide-react";
+import { Dna, RefreshCw, Zap, Clock, Share2 } from "lucide-react";
 
 type FocusDna = {
   id: string;
@@ -55,10 +55,10 @@ function CardFace({
       <div className="relative z-[var(--z-content)] flex flex-col h-full p-7">
         <div className="flex items-start justify-between mb-6">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.25em]" style={{ color: dna.colorSecondary }}>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.25em]" style={{ color: dna.colorSecondary }}>
               Focus DNA
             </p>
-            <p className="text-[10px] text-[var(--foreground-subtle)] mt-0.5">
+            <p className="text-[11px] text-[var(--foreground-subtle)] mt-0.5">
               After {dna.sessionCountAtGeneration} sessions
             </p>
           </div>
@@ -81,20 +81,20 @@ function CardFace({
           <div className="rounded-xl p-3" style={{ background: `color-mix(in srgb, ${dna.colorPrimary} 7%, transparent)`, border: `1px solid color-mix(in srgb, ${dna.colorPrimary} 13%, transparent)` }}>
             <div className="flex items-center gap-1.5 mb-1">
               <Clock size={11} style={{ color: dna.colorSecondary }} />
-              <span className="text-[9px] uppercase tracking-wider text-[var(--foreground-subtle)]">Peak Hour</span>
+              <span className="text-[11px] uppercase tracking-wider text-[var(--foreground-subtle)]">Peak Hour</span>
             </div>
             <p className="text-base font-bold" style={{ color: dna.colorSecondary }}>{formatHour(dna.topFocusHour)}</p>
           </div>
           <div className="rounded-xl p-3" style={{ background: `color-mix(in srgb, ${dna.colorPrimary} 7%, transparent)`, border: `1px solid color-mix(in srgb, ${dna.colorPrimary} 13%, transparent)` }}>
             <div className="flex items-center gap-1.5 mb-1">
               <Zap size={11} style={{ color: dna.colorSecondary }} />
-              <span className="text-[9px] uppercase tracking-wider text-[var(--foreground-subtle)]">Avg Session</span>
+              <span className="text-[11px] uppercase tracking-wider text-[var(--foreground-subtle)]">Avg Session</span>
             </div>
             <p className="text-base font-bold" style={{ color: dna.colorSecondary }}>{dna.avgSessionMin ?? "—"}m</p>
           </div>
         </div>
 
-        <p className="mt-4 text-[9px] text-[var(--foreground-subtle)] text-center">
+        <p className="mt-4 text-[11px] text-[var(--foreground-subtle)] text-center">
           Updated {new Date(dna.generatedAt).toLocaleDateString()}
         </p>
       </div>
@@ -106,7 +106,8 @@ export default function FocusDnaPage() {
   const { status } = useAuth();
   const [dna, setDna] = useState<FocusDna | null>(null);
   const [totalSessions, setTotalSessions] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [fetching, setFetching] = useState(true);
+  const loading = status === "loading" || (status === "authenticated" && fetching);
   const [generating, setGenerating] = useState(false);
   const [flipped, setFlipped] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -114,8 +115,7 @@ export default function FocusDnaPage() {
   const token = () => localStorage.getItem("focusarx-auth-token");
 
   useEffect(() => {
-    if (status === "loading") return;
-    if (status === "unauthenticated") { setLoading(false); return; }
+    if (status !== "authenticated") return;
     fetch("/api/focus-dna", { headers: { Authorization: `Bearer ${token()}` } })
       .then((r) => r.json())
       .then((d: { dna: FocusDna | null; totalSessions: number }) => {
@@ -124,7 +124,7 @@ export default function FocusDnaPage() {
         if (d.dna) setFlipped(true);
       })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => setFetching(false));
   }, [status]);
 
   const generate = async () => {
@@ -184,6 +184,10 @@ export default function FocusDnaPage() {
                   <RefreshCw size={14} className={generating ? "animate-spin" : ""} />
                   {generating ? "Analyzing..." : "Re-analyze"}
                 </button>
+                {sessionsUntilUpgrade > 0 && sessionsUntilUpgrade < 10 && (
+                  <p className="mt-2 text-[11px] text-[var(--foreground-subtle)] tabular-nums">{sessionsUntilUpgrade} more session{sessionsUntilUpgrade === 1 ? "" : "s"} until your next DNA refresh</p>
+                )}
+                {error && <p role="alert" className="mt-2 text-[11px] font-semibold text-[var(--color-error)]">{error}</p>}
               </div>
             </div>
           ) : (
@@ -193,6 +197,7 @@ export default function FocusDnaPage() {
                {sessionsNeeded === 0 && (
                  <button onClick={generate} disabled={generating} className="mt-6 rounded-xl bg-[var(--brand-600)] px-6 py-3 font-bold text-[var(--palette-white)]">Generate DNA</button>
                )}
+               {error && <p role="alert" className="mt-3 text-[11px] font-semibold text-[var(--color-error)]">{error}</p>}
             </div>
           )}
         </PageTransition>

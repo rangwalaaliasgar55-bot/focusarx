@@ -16,7 +16,7 @@
  *     path), the auth gate leaked onto every router mounted afterwards —
  *     silently 401-ing /api/deployment, /api/feature-flags and friends.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 
 const ENV_KEYS = [
   "NODE_ENV",

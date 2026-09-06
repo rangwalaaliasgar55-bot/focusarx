@@ -38,7 +38,7 @@ export function AdminCoinsPanel({ authHeaders, users }: AdminPanelProps & { user
           <div>
             <label htmlFor="admincoinspanel-user-id" className="block text-xs text-[var(--palette-zinc-500)] mb-1">User ID</label>
             <input id="admincoinspanel-user-id" className="admin-input font-mono" placeholder="paste user UUID here…" value={userId} onChange={e => setUserId(e.target.value)} />
-            <p className="text-[10px] text-[var(--palette-zinc-600)] mt-1">Find user IDs in the Users tab (grey monospace under each name)</p>
+            <p className="text-[11px] text-[var(--palette-zinc-600)] mt-1">Find user IDs in the Users tab (grey monospace under each name)</p>
           </div>
 
           <div>
@@ -79,7 +79,7 @@ export function AdminCoinsPanel({ authHeaders, users }: AdminPanelProps & { user
                   className={`w-full text-left rounded-lg border px-3 py-2 transition ${userId === u.id ? "border-[var(--palette-amber-700)]/50 bg-[var(--palette-amber-950)]/20" : "border-[var(--palette-zinc-800)] hover:border-[var(--palette-zinc-600)] hover:bg-[var(--palette-zinc-800)]/40"}`}
                 >
                   <p className="text-xs font-medium text-[var(--palette-zinc-300)]">{u.name ?? "Unnamed"}</p>
-                  <p className="text-[10px] text-[var(--palette-zinc-500)] font-mono">{u.id.slice(0, 16)}…</p>
+                  <p className="text-[11px] text-[var(--palette-zinc-500)] font-mono">{u.id.slice(0, 16)}…</p>
                 </button>
               ))}
             </div>

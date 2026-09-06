@@ -404,8 +404,8 @@ html.light body {
 
 html.light .app-sidebar,
 html.light .app-bottom-nav {
-  background: rgba(255, 252, 255, 0.97) !important;
-  border-color: var(--rgba-124-58-237-0_12) !important;
+  background: rgba(255, 252, 255, 0.97);
+  border-color: var(--rgba-124-58-237-0_12);
 }
 
 html.light .forge-bg-glow {
@@ -470,12 +470,27 @@ body {
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }
 
-/* Monospace numerals for data/metrics */
+/* Numerals for data/metrics: SF Pro with tabular (fixed-width) figures, the
+   way iOS renders timers, scores and prices. Digits line up without falling
+   back to a monospace face — `.font-metric` keeps the display stack. */
 .font-metric,
 .tabular-nums {
-  font-variant-numeric: tabular-nums;
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1, 'lnum' 1, 'cv02', 'cv03', 'cv04', 'cv11';
   letter-spacing: -0.01em;
+}
+.font-metric { font-family: var(--font-display); }
+
+/* Apple-style text selection + caret */
+::selection { background: color-mix(in srgb, var(--brand-500) 32%, transparent); color: inherit; }
+:root { caret-color: var(--brand-500); }
+
+/* Overlay scrollbars that stay out of the way (WebKit / Chromium) */
+@media (pointer: fine) {
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--foreground) 18%, transparent); border: 3px solid transparent; background-clip: padding-box; border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background-color: color-mix(in srgb, var(--foreground) 32%, transparent); }
+  ::-webkit-scrollbar-track { background: transparent; }
 }
 
 /* Type scale utilities */
@@ -665,8 +680,10 @@ html.light .glass-subtle {
   top: 0;
   bottom: 0;
   width: var(--sidebar-width);
-  background: linear-gradient(180deg, #07071A 0%, #060610 100%);
-  border-right: 1px solid rgba(255,255,255,0.045);
+  /* Token-driven (was a hardcoded near-black gradient that the light theme had
+     to fight with !important). The V3 block below sets the final surface. */
+  background: var(--surface-1);
+  border-right: 1px solid var(--border-subtle);
   z-index: var(--z-nav);
   flex-direction: column;
   overflow: hidden;
@@ -678,8 +695,8 @@ html.light .glass-subtle {
   position: fixed;
   bottom: 0; left: 0; right: 0;
   height: 60px;
-  background: rgba(6,6,18,0.97);
-  border-top: 1px solid rgba(255,255,255,0.045);
+  background: var(--backdrop);
+  border-top: 1px solid var(--border-subtle);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   z-index: var(--z-nav);
@@ -1293,6 +1310,45 @@ html.light .glass-subtle {
   color: var(--warning);
   font-size: var(--text-xs);
   font-weight: 650;
+}
+
+/* Live block pill — shown in the topbar on every non-timer page while a
+   session runs. Colour follows the block: brand while focusing, success on a
+   break, warning while paused. */
+.live-pill {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: var(--space-2);
+  border: 1px solid color-mix(in srgb, var(--brand-500) 32%, transparent);
+  border-radius: var(--radius-full);
+  background: var(--brand-soft);
+  padding: 0 var(--space-3);
+  color: var(--brand-strong);
+  font-size: var(--text-xs);
+  font-weight: 650;
+  transition: background var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
+}
+.live-pill:hover { background: var(--brand-soft-hover); }
+.live-pill-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radius-full);
+  background: currentColor;
+  animation: live-pill-pulse 1.6s var(--ease-in-out) infinite;
+}
+.live-pill-paused {
+  border-color: color-mix(in srgb, var(--warning) 32%, transparent);
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.live-pill-paused .live-pill-dot { animation: none; opacity: 0.7; }
+@keyframes live-pill-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.8); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-pill-dot { animation: none; }
 }
 
 .notification-dot {
@@ -2277,3 +2333,37 @@ html.light {
     transition: none !important;
   }
 }
+
+/* ── Range slider (ambient mixer, volume controls) ─────────────────────────
+   Track fill is driven by --fx-range-pct / --fx-range-fill so the filled part
+   matches the thumb in every browser. */
+.fx-range {
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 9999px;
+  background:
+    linear-gradient(to right, var(--fx-range-fill, var(--brand-400)) 0, var(--fx-range-fill, var(--brand-400)) var(--fx-range-pct, 50%), var(--surface-2) var(--fx-range-pct, 50%), var(--surface-2) 100%);
+  outline: none;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+.fx-range::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 16px;
+  width: 16px;
+  border-radius: 9999px;
+  background: var(--foreground);
+  border: 2px solid var(--card);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+}
+.fx-range::-moz-range-thumb {
+  height: 16px;
+  width: 16px;
+  border-radius: 9999px;
+  background: var(--foreground);
+  border: 2px solid var(--card);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+}
+.fx-range::-moz-range-track { background: transparent; }
+.fx-range:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand-400) 40%, transparent); }

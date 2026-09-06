@@ -4,6 +4,8 @@ import { db } from "@workspace/db";
 import { usersTable, distractionLogsTable, readinessLogsTable, activeSessionsTable } from "@workspace/db";
 import { eq, desc, and } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import { userZone } from "../lib/userZone";
+import { dayKeyInZone } from "../lib/timezone";
 import { aiCoachLimiter } from "../lib/rateLimiter";
 import { requirePremium, premiumStatusMiddleware } from "../lib/premiumCheck";
 import { getActivePlans } from "../lib/premiumPlans";
@@ -97,7 +99,7 @@ router.post("/coach/chat", authMiddleware, requirePremium, aiCoachLimiter, async
     const [user] = await db.select({ name: usersTable.name, onboardingData: usersTable.onboardingData })
       .from(usersTable).where(eq(usersTable.id, req.userId));
 
-    const today = new Date().toISOString().split("T")[0]!;
+    const today = dayKeyInZone(Date.now(), await userZone(req.userId));
     const [readiness] = await db.select({ score: readinessLogsTable.score, sessionLengthRec: readinessLogsTable.sessionLengthRec })
       .from(readinessLogsTable)
       .where(and(eq(readinessLogsTable.userId, req.userId), eq(readinessLogsTable.date, today)));
@@ -198,14 +200,14 @@ router.get("/coach/status", authMiddleware, premiumStatusMiddleware, async (req:
         plan: cheapest ? { name: cheapest.name, durationDays: cheapest.durationDays, tokenCost: cheapest.tokenCost } : null,
       },
     });
-  } catch (err) {
+  } catch {
     res.json({ isPremium: false });
   }
 });
 
 router.get("/coach/session-tip", authMiddleware, requirePremium, async (req: AuthRequest, res) => {
   try {
-    const today = new Date().toISOString().split("T")[0]!;
+    const today = dayKeyInZone(Date.now(), await userZone(req.userId));
     const [readiness] = await db.select({ score: readinessLogsTable.score })
       .from(readinessLogsTable)
       .where(and(eq(readinessLogsTable.userId, req.userId), eq(readinessLogsTable.date, today)));

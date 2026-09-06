@@ -30,6 +30,7 @@ export function DeploymentUpdateBanner() {
                 <p className="font-medium text-sm">New version available</p>
                 <p className="text-xs text-blue-50 hidden sm:block">
                   A new version of FocusArx has been deployed. Refresh to get the latest features and fixes.
+                  {serverVersion && frontendVersion && <span className="ml-1 opacity-80 tabular-nums">({frontendVersion.slice(0, 7)} → {serverVersion.slice(0, 7)})</span>}
                 </p>
               </div>
             </div>

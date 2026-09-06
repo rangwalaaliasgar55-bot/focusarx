@@ -8,6 +8,7 @@
 
 import { resolveColorToken } from "@/lib/color-tokens";
 import { use3DQuality } from "@/hooks/use3DQuality";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useFrame, useThree, Canvas } from "@react-three/fiber";
 import { useRef, useMemo, Suspense, useState, useEffect } from "react";
 import { motion } from "framer-motion";
@@ -193,20 +194,10 @@ function SceneContent({ isFocusing = false, reducedMotion = false }: { isFocusin
 }
 
 export default function ThreeBackground({ isFocusing }: { isFocusing?: boolean }) {
-  const [webglOk, setWebglOk] = useState<boolean | null>(null);
-  const [reducedMotion, setReducedMotion] = useState(false);
+  const [webglOk] = useState<boolean>(() => (typeof window === "undefined" ? false : canUseWebGL()));
+  const reducedMotion = useReducedMotion();
   const { isBattery } = use3DQuality();
 
-  useEffect(() => {
-    setWebglOk(canUseWebGL());
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReducedMotion(mq.matches);
-    const onChange = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
-    mq.addEventListener?.("change", onChange);
-    return () => mq.removeEventListener?.("change", onChange);
-  }, []);
-
-  if (webglOk === null) return null;
   if (!webglOk) return <CssFallbackBackground />;
 
   return (

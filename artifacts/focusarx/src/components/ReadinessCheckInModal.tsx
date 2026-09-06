@@ -37,7 +37,7 @@ function Slider({ label, emoji, value, onChange, lowLabel, highLabel }: {
           </button>
         ))}
       </div>
-      <div className="flex justify-between text-[9px] text-[var(--foreground-subtle)]">
+      <div className="flex justify-between text-[11px] text-[var(--foreground-subtle)]">
         <span>{lowLabel}</span>
         <span>{highLabel}</span>
       </div>
@@ -152,7 +152,7 @@ export default function ReadinessCheckInModal() {
                 <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                   <div className="mb-5 flex items-start justify-between">
                     <div>
-                      <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">Good morning</p>
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">Good morning</p>
                       <h3 className="mt-0.5 text-base font-bold text-[var(--foreground)]">How are you feeling?</h3>
                       <p className="mt-1 text-xs text-[var(--foreground-subtle)]">A quick check-in personalises your Focus Forecast.</p>
                     </div>

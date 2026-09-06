@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getToken } from "@/lib/auth";
 import { isOnboarded } from "@/lib/onboarding";
-import { Gift, X, Star, CheckCircle } from "lucide-react";
+import { X, CheckCircle } from "lucide-react";
 
 function authHeaders() {
   const t = getToken();
@@ -95,7 +95,7 @@ export default function DailyRewardBanner() {
                   <span className="text-2xl">{STREAK_EMOJIS[(status.streak ?? 0) % 7]}</span>
                   <div>
                     <p className="text-sm font-bold text-[var(--foreground)]">{claimed ? "Reward Claimed! 🎉" : "Daily Reward Available!"}</p>
-                    <p className="text-[10px] text-[var(--foreground-subtle)]">
+                    <p className="text-[11px] text-[var(--foreground-subtle)]">
                       {claimed ? `${status.streak}-day streak!` : `Day ${(status.streak % 7) + 1} — ${status.streak}-day streak`}
                     </p>
                   </div>
@@ -111,7 +111,7 @@ export default function DailyRewardBanner() {
                   <span className="text-2xl">{status.nextReward.icon}</span>
                   <div>
                     <p className="text-xs font-semibold text-[var(--color-warning)]">{status.nextReward.label}</p>
-                    <p className="text-[10px] text-[var(--foreground-muted)]">🪙 {status.nextReward.coins} coins · ⚡ {status.nextReward.xp} XP</p>
+                    <p className="text-[11px] text-[var(--foreground-muted)]">🪙 {status.nextReward.coins} coins · ⚡ {status.nextReward.xp} XP</p>
                   </div>
                 </div>
               )}
@@ -122,7 +122,7 @@ export default function DailyRewardBanner() {
                   <CheckCircle size={20} className="text-[var(--brand-teal)] shrink-0" />
                   <div>
                     <p className="text-xs font-semibold text-[var(--brand-teal)]">+{claimedReward.coins} coins &amp; +{claimedReward.xp} XP added!</p>
-                    <p className="text-[10px] text-[var(--foreground-subtle)]">Come back tomorrow for more rewards</p>
+                    <p className="text-[11px] text-[var(--foreground-subtle)]">Come back tomorrow for more rewards</p>
                   </div>
                 </div>
               )}

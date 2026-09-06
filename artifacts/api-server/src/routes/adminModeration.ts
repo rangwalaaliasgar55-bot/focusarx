@@ -1,12 +1,11 @@
 import { Router } from "express";
-import { db, socialPostsTable, usersTable, postCommentsTable } from "@workspace/db";
+import { db, socialPostsTable, usersTable } from "@workspace/db";
 import { eq, inArray, desc, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { adminLimiter } from "../lib/rateLimiter";
 import { checkAdminAuth } from "../lib/adminAuth";
 
 const router = Router();
-const ADMIN_COOKIE = "focusarx_admin";
 
 const checkAuth = checkAdminAuth;
 

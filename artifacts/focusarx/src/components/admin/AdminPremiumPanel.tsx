@@ -54,7 +54,7 @@ export function AdminPremiumPanel({ authHeaders }: AdminPanelProps) {
           <div>
             <label htmlFor="adminpremiumpanel-user-id" className="block text-xs text-[var(--palette-zinc-500)] mb-1">User ID</label>
             <input id="adminpremiumpanel-user-id" className="admin-input font-mono" placeholder="paste user UUID…" value={grantId} onChange={e => setGrantId(e.target.value)} />
-            <p className="text-[10px] text-[var(--palette-zinc-600)] mt-1">Grants 30 days of premium without deducting coins.</p>
+            <p className="text-[11px] text-[var(--palette-zinc-600)] mt-1">Grants 30 days of premium without deducting coins.</p>
           </div>
           <button onClick={() => void grantPremium()} disabled={granting || !grantId}
             className="w-full flex items-center justify-center gap-2 rounded-lg bg-[var(--palette-amber-700)] hover:bg-[var(--palette-amber-800)] px-4 py-2.5 text-sm font-medium text-[var(--palette-white)] disabled:opacity-50 transition"
@@ -71,11 +71,11 @@ export function AdminPremiumPanel({ authHeaders }: AdminPanelProps) {
           <div className="grid grid-cols-2 gap-3 pt-2">
             <div className="rounded-xl border border-[var(--palette-amber-800)]/30 bg-[var(--palette-amber-950)]/10 px-4 py-3 text-center">
               <p className="text-xl font-bold text-[var(--palette-amber-400)]">{premiumCount}</p>
-              <p className="text-[10px] text-[var(--palette-zinc-500)] mt-0.5">Active premium users</p>
+              <p className="text-[11px] text-[var(--palette-zinc-500)] mt-0.5">Active premium users</p>
             </div>
             <div className="rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/20 px-4 py-3 text-center">
               <p className="text-xl font-bold text-[var(--palette-zinc-200)]">{users.length}</p>
-              <p className="text-[10px] text-[var(--palette-zinc-500)] mt-0.5">Registered users total</p>
+              <p className="text-[11px] text-[var(--palette-zinc-500)] mt-0.5">Registered users total</p>
             </div>
           </div>
         </div>
@@ -83,7 +83,7 @@ export function AdminPremiumPanel({ authHeaders }: AdminPanelProps) {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wider text-[var(--palette-zinc-400)]">User List</p>
-            <button onClick={() => void loadUsers()} className="text-[10px] text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)] flex items-center gap-1"><RefreshCw size={10} /> Refresh</button>
+            <button onClick={() => void loadUsers()} className="text-[11px] text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)] flex items-center gap-1"><RefreshCw size={10} /> Refresh</button>
           </div>
           {loading ? (
             <LoadingState />
@@ -102,14 +102,14 @@ export function AdminPremiumPanel({ authHeaders }: AdminPanelProps) {
                     <tr key={u.id} className="hover:bg-[var(--palette-zinc-900)]/30">
                       <td className="px-3 py-2">
                         <p className="text-[var(--palette-zinc-200)] font-medium truncate max-w-[140px]">{u.name || u.email?.split("@")[0]}</p>
-                        <p className="text-[var(--palette-zinc-600)] text-[10px] font-mono truncate">{u.id.slice(0, 8)}…</p>
+                        <p className="text-[var(--palette-zinc-600)] text-[11px] font-mono truncate">{u.id.slice(0, 8)}…</p>
                       </td>
                       <td className="px-3 py-2">
                         <Badge label={u.role} color={u.role === "admin" ? "bg-[var(--palette-rose-950)] text-[var(--palette-rose-400)]" : "bg-[var(--palette-zinc-800)] text-[var(--palette-zinc-400)]"} />
                       </td>
                       <td className="px-3 py-2">
                         <button onClick={() => { setGrantId(u.id); }}
-                          className="rounded px-2 py-0.5 text-[10px] border border-[var(--palette-amber-800)]/50 text-[var(--palette-amber-400)] hover:bg-[var(--palette-amber-950)]/30 transition"
+                          className="rounded px-2 py-0.5 text-[11px] border border-[var(--palette-amber-800)]/50 text-[var(--palette-amber-400)] hover:bg-[var(--palette-amber-950)]/30 transition"
                         >Select</button>
                       </td>
                     </tr>

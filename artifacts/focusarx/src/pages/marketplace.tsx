@@ -166,14 +166,14 @@ export default function MarketplacePage() {
                 <span className="text-lg">🪙</span>
                 <div>
                   <div className="text-lg font-bold text-[var(--color-warning)]">{wallet?.coins?.toLocaleString() ?? 0}</div>
-                  <div className="text-[10px] text-[var(--palette-92400e)] uppercase tracking-wider">Focus Coins</div>
+                  <div className="text-[11px] text-[var(--palette-92400e)] uppercase tracking-wider">Focus Coins</div>
                 </div>
               </div>
               <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--muted)] px-4 py-2.5 flex items-center gap-2">
                 <Package size={14} className="text-[var(--muted-fg)]" />
                 <div>
                   <div className="text-lg font-bold text-[var(--palette-white)]">{owned}</div>
-                  <div className="text-[10px] text-[var(--foreground-subtle)] uppercase tracking-wider">Owned</div>
+                  <div className="text-[11px] text-[var(--foreground-subtle)] uppercase tracking-wider">Owned</div>
                 </div>
               </div>
             </div>
@@ -215,14 +215,14 @@ export default function MarketplacePage() {
                 <div key={b.id} className="rounded-2xl border border-[var(--rgba-124-58-237-0_25)] bg-[var(--rgba-124-58-237-0_06)] p-4 flex flex-col gap-2">
                   <div className="text-2xl">{b.items.map((i: any) => i.emoji).join("")}</div>
                   <div className="text-sm font-semibold text-[var(--palette-white)]">{b.name}</div>
-                  <div className="text-[10px] text-[var(--muted-fg)] leading-relaxed">{b.description}</div>
-                  <div className="text-[10px] text-[var(--foreground-subtle)]">
+                  <div className="text-[11px] text-[var(--muted-fg)] leading-relaxed">{b.description}</div>
+                  <div className="text-[11px] text-[var(--foreground-subtle)]">
                     {b.items.length} items · worth {b.fullPrice.toLocaleString()} <span className="line-through opacity-60">{b.fullPrice.toLocaleString()}</span>
                   </div>
                   <div className="mt-auto flex items-center justify-between pt-1">
-                    <div className="text-sm font-bold text-[var(--color-warning)]">🪙 {b.price.toLocaleString()} <span className="ml-1 rounded-full bg-[var(--rgba-34-211-135-0_15)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--palette-22d387)]">-{b.discountPct}%</span></div>
+                    <div className="text-sm font-bold text-[var(--color-warning)]">🪙 {b.price.toLocaleString()} <span className="ml-1 rounded-full bg-[var(--rgba-34-211-135-0_15)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--palette-22d387)]">-{b.discountPct}%</span></div>
                     {b.owned ? (
-                      <span className="text-[10px] font-semibold text-[var(--palette-22d387)]">Owned</span>
+                      <span className="text-[11px] font-semibold text-[var(--palette-22d387)]">Owned</span>
                     ) : (
                       <button
                         onClick={() => buyBundle(b)}
@@ -250,19 +250,19 @@ export default function MarketplacePage() {
                 style={{ background: rarity.bg, borderColor: rarity.border, boxShadow: rarity.glow }}>
                 {/* Rarity badge */}
                 <div className="flex items-center justify-between">
-                  <span className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+                  <span className="rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider"
                     style={{ color: rarity.color, background: `color-mix(in srgb, ${rarity.bg} 50%, transparent)`, border: `1px solid ${rarity.border}` }}>
                     {rarity.label}
                   </span>
                   {item.owned ? <CheckCircle size={14} className="text-[var(--palette-22d387)]" /> : item.locked ? (
-                    <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase text-[var(--palette-amber-400)]"><Crown size={12} /> Premium</span>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase text-[var(--palette-amber-400)]"><Crown size={12} /> Premium</span>
                   ) : null}
                 </div>
 
                 <div className="text-4xl text-center">{item.emoji}</div>
                 <div>
                   <div className="text-sm font-semibold text-[var(--palette-white)] leading-tight">{item.name}</div>
-                  <div className="text-[10px] text-[var(--muted-fg)] mt-0.5 leading-relaxed">{item.description}</div>
+                  <div className="text-[11px] text-[var(--muted-fg)] mt-0.5 leading-relaxed">{item.description}</div>
                 </div>
 
                 <div className="mt-auto flex flex-col gap-1.5">
@@ -270,14 +270,14 @@ export default function MarketplacePage() {
                     <div className="flex items-center gap-1.5 text-sm font-bold text-[var(--color-warning)]">
                       {item.saleDiscountPct ? (
                         <>
-                          <span className="rounded bg-[var(--palette-red-500)]/20 border border-[var(--palette-red-500)]/40 px-1 py-px text-[8px] font-semibold uppercase tracking-wider text-[var(--palette-red-400)]">-{item.saleDiscountPct}%</span>
+                          <span className="rounded bg-[var(--palette-red-500)]/20 border border-[var(--palette-red-500)]/40 px-1 py-px text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-red-400)]">-{item.saleDiscountPct}%</span>
                           <span className="text-[11px] text-[var(--foreground-subtle)] line-through">🪙 {item.costCoins.toLocaleString()}</span>
                         </>
                       ) : null}
                       <span>🪙 {priceNow.toLocaleString()}</span>
                     </div>
                     {item.owned ? (
-                      <span className="text-[10px] font-semibold text-[var(--palette-22d387)]">Owned</span>
+                      <span className="text-[11px] font-semibold text-[var(--palette-22d387)]">Owned</span>
                     ) : (
                     <button
                       onClick={() => purchase(item.id)}
@@ -296,7 +296,7 @@ export default function MarketplacePage() {
                     <button
                       onClick={() => gift(item.id, item.name)}
                       disabled={busyGift === item.id}
-                      className="w-full rounded-lg border border-[var(--border-subtle)] px-2 py-1 text-[10px] font-medium text-[var(--foreground-subtle)] transition hover:text-[var(--foreground)] disabled:opacity-50">
+                      className="w-full rounded-lg border border-[var(--border-subtle)] px-2 py-1 text-[11px] font-medium text-[var(--foreground-subtle)] transition hover:text-[var(--foreground)] disabled:opacity-50">
                       {busyGift === item.id ? "Gifting…" : "🎁 Gift to a friend (+5% tax)"}
                     </button>
                   )}
@@ -304,7 +304,7 @@ export default function MarketplacePage() {
                     <button
                       onClick={() => sellBack(item)}
                       disabled={selling === item.id}
-                      className="w-full rounded-lg border border-[var(--rgba-34-211-135-0_25)] px-2 py-1 text-[10px] font-medium text-[var(--palette-22d387)] transition hover:bg-[var(--rgba-34-211-135-0_08)] disabled:opacity-50">
+                      className="w-full rounded-lg border border-[var(--rgba-34-211-135-0_25)] px-2 py-1 text-[11px] font-medium text-[var(--palette-22d387)] transition hover:bg-[var(--rgba-34-211-135-0_08)] disabled:opacity-50">
                       {selling === item.id ? "…" : `Sell back · +${Math.floor(item.costCoins * 0.5).toLocaleString()} coins`}
                     </button>
                   )}

@@ -79,7 +79,7 @@ export default function PledgeWall() {
             Post
           </button>
         </div>
-        <p className="text-right text-[9px] text-[var(--palette-3a3d4a)] px-4 py-1">{msg.length}/100</p>
+        <p className="text-right text-[11px] text-[var(--palette-3a3d4a)] px-4 py-1">{msg.length}/100</p>
 
         {/* Pledge list */}
         <div className="max-h-72 overflow-y-auto px-4 py-3 space-y-2">
@@ -93,7 +93,7 @@ export default function PledgeWall() {
               <p className="text-xs text-[var(--brand-400)]">{breakFreeErrorMessage(error, "Could not load pledges")}</p>
               <button
                 onClick={() => refetch()}
-                className="text-[10px] text-[var(--brand-600)] underline underline-offset-2"
+                className="text-[11px] text-[var(--brand-600)] underline underline-offset-2"
               >
                 Retry
               </button>
@@ -115,7 +115,7 @@ export default function PledgeWall() {
                 className="rounded-xl border border-[var(--rgba-124-58-237-0_1)] bg-[var(--palette-070810)] px-3 py-2.5"
               >
                 <p className="text-xs text-[var(--foreground)] leading-relaxed">"{p.message}"</p>
-                <p className="text-[9px] text-[var(--palette-3a3d4a)] mt-1">{relativeTime(p.postedAt)}</p>
+                <p className="text-[11px] text-[var(--palette-3a3d4a)] mt-1">{relativeTime(p.postedAt)}</p>
               </motion.div>
             ))}
           </AnimatePresence>

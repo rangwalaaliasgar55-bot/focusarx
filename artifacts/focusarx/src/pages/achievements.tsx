@@ -98,7 +98,7 @@ function BadgeCard({ badge, isCelebrating }: { badge: Badge; isCelebrating: bool
       )}
 
       {badge.newlyUnlocked && (
-        <div className="absolute -top-1.5 -right-1.5 z-[var(--z-content)] rounded-full bg-[var(--brand-teal)] px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider text-[var(--palette-0a0f1e)] shadow-lg">
+        <div className="absolute -top-1.5 -right-1.5 z-[var(--z-content)] rounded-full bg-[var(--brand-teal)] px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-0a0f1e)] shadow-lg">
           NEW
         </div>
       )}
@@ -114,7 +114,7 @@ function BadgeCard({ badge, isCelebrating }: { badge: Badge; isCelebrating: bool
       )}
 
       <span
-        className="text-[9px] font-bold uppercase tracking-widest"
+        className="text-[11px] font-bold uppercase tracking-widest"
         style={{ color: badge.unlocked ? tier.text : "var(--palette-1f2937)" }}
       >
         {tier.label}
@@ -128,7 +128,7 @@ function BadgeCard({ badge, isCelebrating }: { badge: Badge; isCelebrating: bool
       </p>
 
       <p
-        className="mt-0.5 text-[10px] leading-snug"
+        className="mt-0.5 text-[11px] leading-snug"
         style={{ color: badge.unlocked ? "var(--muted-fg)" : "var(--palette-1f2937)" }}
       >
         {badge.description}
@@ -136,7 +136,7 @@ function BadgeCard({ badge, isCelebrating }: { badge: Badge; isCelebrating: bool
 
       {typeof badge.unlockRate === "number" && (
         <p
-          className="mt-1 flex items-center gap-1 text-[9px] font-medium"
+          className="mt-1 flex items-center gap-1 text-[11px] font-medium"
           style={{ color: badge.unlocked ? "var(--foreground-subtle)" : "var(--palette-1f2937)" }}
         >
           <Users size={8} />
@@ -149,8 +149,8 @@ function BadgeCard({ badge, isCelebrating }: { badge: Badge; isCelebrating: bool
       {!badge.unlocked && (
         <div className="mt-2.5 w-full">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[9px] text-[var(--palette-1f2937)]">{badge.progress}</span>
-            <span className="text-[9px] text-[var(--foreground-subtle)]">{badge.threshold}</span>
+            <span className="text-[11px] text-[var(--palette-1f2937)]">{badge.progress}</span>
+            <span className="text-[11px] text-[var(--foreground-subtle)]">{badge.threshold}</span>
           </div>
           <div className="h-1 w-full overflow-hidden rounded-full bg-[var(--muted)]">
             <div
@@ -158,12 +158,12 @@ function BadgeCard({ badge, isCelebrating }: { badge: Badge; isCelebrating: bool
               style={{ width: `${pct}%` }}
             />
           </div>
-          <p className="mt-0.5 text-[9px] text-[var(--foreground-subtle)]">{pct}%</p>
+          <p className="mt-0.5 text-[11px] text-[var(--foreground-subtle)]">{pct}%</p>
         </div>
       )}
 
       {badge.unlocked && badge.unlockedAt && (
-        <p className="mt-1.5 flex items-center gap-1 text-[9px]" style={{ color: "var(--foreground-subtle)" }}>
+        <p className="mt-1.5 flex items-center gap-1 text-[11px]" style={{ color: "var(--foreground-subtle)" }}>
           <CheckCircle2 size={8} style={{ color: tier.text }} />
           {new Date(badge.unlockedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
         </p>
@@ -263,8 +263,8 @@ export default function AchievementsPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--brand-400)]">Next Unlock</p>
-                    <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">{nextUnlock.tier}</span>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--brand-400)]">Next Unlock</p>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">{nextUnlock.tier}</span>
                   </div>
                   <p className="text-sm font-semibold text-[var(--foreground)] truncate">{nextUnlock.name}</p>
                   <div className="mt-1.5 flex items-center gap-2">
@@ -274,7 +274,7 @@ export default function AchievementsPage() {
                         style={{ width: `${Math.min(99, Math.round((nextUnlock.progress / nextUnlock.threshold) * 100))}%` }}
                       />
                     </div>
-                    <span className="shrink-0 text-[10px] font-bold text-[var(--brand-400)]">
+                    <span className="shrink-0 text-[11px] font-bold text-[var(--brand-400)]">
                       {nextUnlock.threshold - nextUnlock.progress} {nextUnlock.unit} to go
                     </span>
                   </div>
@@ -335,7 +335,7 @@ export default function AchievementsPage() {
                 <StaggerItem key={label}>
                   <TiltCard intensity={10} className="h-full">
                     <div className="rounded-xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-16-23-50-0_5)] p-3 text-center backdrop-blur-xl shadow-3d-violet">
-                      <p className="text-[9px] font-medium uppercase tracking-wider text-[var(--foreground-subtle)]">{label}</p>
+                      <p className="text-[11px] font-medium uppercase tracking-wider text-[var(--foreground-subtle)]">{label}</p>
                       <p className="mt-1 text-sm font-bold text-[var(--foreground)]">{value}{suffix}</p>
                     </div>
                   </TiltCard>
@@ -366,7 +366,7 @@ export default function AchievementsPage() {
                   >
                     <span aria-hidden>{cfg.icon}</span>
                     {cfg.label}
-                    <span className={`ml-0.5 rounded-full px-1 text-[9px] font-bold ${active ? "bg-[var(--palette-white)]/20 text-[var(--palette-white)]" : "bg-[var(--rgba-124-58-237-0_12)] text-[var(--muted-fg)]"}`}>
+                    <span className={`ml-0.5 rounded-full px-1 text-[11px] font-bold ${active ? "bg-[var(--palette-white)]/20 text-[var(--palette-white)]" : "bg-[var(--rgba-124-58-237-0_12)] text-[var(--muted-fg)]"}`}>
                       {count}
                     </span>
                   </button>
@@ -383,7 +383,7 @@ export default function AchievementsPage() {
                 <button
                   key={t}
                   onClick={() => setTierFilter(t)}
-                  className={`rounded-lg px-2.5 py-1 text-[10px] font-semibold capitalize transition-all ${
+                  className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold capitalize transition-all ${
                     tierFilter === t
                       ? "bg-[var(--rgba-124-58-237-0_3)] text-[var(--brand-400)]"
                       : "text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]"
@@ -399,7 +399,7 @@ export default function AchievementsPage() {
                 <button
                   key={s}
                   onClick={() => setShowUnlocked(s)}
-                  className={`rounded-lg px-2.5 py-1 text-[10px] font-semibold capitalize transition-all ${
+                  className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold capitalize transition-all ${
                     showUnlocked === s
                       ? "bg-[var(--rgba-124-58-237-0_3)] text-[var(--brand-400)]"
                       : "text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]"
@@ -439,7 +439,7 @@ export default function AchievementsPage() {
           {/* Tier legend */}
           {!loading && filtered.length > 0 && (
             <div className="mt-8 rounded-xl border border-[var(--rgba-124-58-237-0_1)] bg-[var(--rgba-16-23-50-0_4)] p-4">
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">Tier Legend</p>
+              <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">Tier Legend</p>
               <div className="flex flex-wrap gap-4">
                 {(Object.keys(TIER_CONFIG) as (keyof typeof TIER_CONFIG)[]).map((tier) => (
                   <div key={tier} className="flex items-center gap-1.5">

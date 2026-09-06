@@ -76,7 +76,7 @@ describe("rate limiter module-load blast radius", () => {
       process.env = { ...ORIGINAL_ENV };
       process.env.NODE_ENV = "production";
       process.env.ADMIN_PASSWORD = value;
-      // eslint-disable-next-line no-await-in-loop
+       
       const fresh = await import("./env");
       expect(fresh.getEnv().ADMIN_PASSWORD).toBe(value);
     }

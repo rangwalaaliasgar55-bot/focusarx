@@ -1,10 +1,10 @@
-import { Request, Response, NextFunction } from "express";
+import { Response } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
-import { extractUserId } from "./auth";
 import { db, lootBoxTypesTable, userLootBoxesTable, userWalletsTable, notificationsTable, coinTransactionsTable, marketplaceItemsTable, userInventoryTable } from "@workspace/db";
 import { isUserPremium } from "../lib/premiumCheck";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
+import { burnCoins } from "../lib/coinLedger";
 
 export const lootboxesRouter = Router();
 
@@ -65,23 +65,15 @@ lootboxesRouter.post("/lootboxes/buy", authMiddleware, async (req: AuthRequest, 
     const result = await db.transaction(async (tx) => {
       // Atomic balance check + deduction to prevent race conditions
       if (boxType.coinCost > 0) {
-        const [wallet] = await tx.select().from(userWalletsTable)
-          .where(eq(userWalletsTable.userId, req.userId))
-          .limit(1);
-        if (!wallet || wallet.coins < boxType.coinCost) {
+        // Conditional decrement + ledger row, inside the same transaction as
+        // the box insert, so a double-submit can never buy two boxes for one.
+        const balanceAfter = await burnCoins(req.userId, boxType.coinCost, "lootbox_purchase", {
+          description: `Purchased ${boxType.name}`,
+          metadata: { boxTypeId: typeId, boxName: boxType.name },
+        }, tx);
+        if (balanceAfter === null) {
           return { error: "Insufficient coins" } as const;
         }
-        const newBalance = wallet.coins - boxType.coinCost;
-        await tx.update(userWalletsTable).set({ coins: newBalance }).where(eq(userWalletsTable.userId, req.userId));
-        await tx.insert(coinTransactionsTable).values({
-          userId: req.userId,
-          type: "spend",
-          amount: -boxType.coinCost,
-          reason: "lootbox_purchase",
-          description: `Purchased ${boxType.name}`,
-          balanceAfter: newBalance,
-          metadata: { boxTypeId: typeId, boxName: boxType.name },
-        }).catch(() => {});
       }
 
       const [box] = await tx.insert(userLootBoxesTable).values({
@@ -97,7 +89,7 @@ lootboxesRouter.post("/lootboxes/buy", authMiddleware, async (req: AuthRequest, 
 
     if ("error" in result) return res.status(400).json({ error: result.error });
     res.json({ box: result.box, newCoins: result.newCoins });
-  } catch (e: any) {
+  } catch {
     res.status(500).json({ error: "Failed to purchase" });
   }
 });
@@ -192,7 +184,7 @@ lootboxesRouter.post("/lootboxes/:boxId/open", authMiddleware, async (req: AuthR
 
     const [w] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.userId)).limit(1);
     res.json({ reward, newCoins: newCoins ?? w?.coins, grantedItemId });
-  } catch (e: any) {
+  } catch {
     res.status(500).json({ error: "Failed to open box" });
   }
 });

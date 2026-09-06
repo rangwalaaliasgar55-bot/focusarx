@@ -13,7 +13,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Headphones, Volume2, VolumeX, Waves } from 'lucide-react';
+import { Headphones, Volume2, VolumeX } from 'lucide-react';
 import { binauralSynth, type BinauralFrequency } from '@/lib/binauralBeats';
 
 const FREQUENCIES: { value: BinauralFrequency; label: string; icon: string; color: string; desc: string }[] = [
@@ -94,7 +94,7 @@ export default function BinauralBeatsPanel() {
             </button>
             <button
               onClick={togglePlay}
-              className={`rounded-xl px-3 py-1.5 text-[10px] font-bold transition-all ${
+              className={`rounded-xl px-3 py-1.5 text-[11px] font-bold transition-all ${
                 isPlaying
                   ? 'border border-[var(--palette-rose-500)]/40 bg-[var(--palette-rose-500)]/15 text-[var(--palette-rose-300)]'
                   : 'border border-[var(--palette-violet-500)]/40 bg-[var(--palette-violet-500)]/15 text-[var(--palette-violet-300)]'
@@ -118,14 +118,14 @@ export default function BinauralBeatsPanel() {
               }`}
             >
               <div className="text-lg mb-0.5">{freq.icon}</div>
-              <div className="text-[9px] font-bold text-[var(--palette-zinc-400)]">{freq.label}</div>
+              <div className="text-[11px] font-bold text-[var(--palette-zinc-400)]">{freq.label}</div>
             </button>
           ))}
         </div>
 
         {/* Current frequency info */}
         <div className="mb-3 text-center">
-          <p className="text-[10px] text-[var(--palette-zinc-500)]">{currentFreqInfo.desc}</p>
+          <p className="text-[11px] text-[var(--palette-zinc-500)]">{currentFreqInfo.desc}</p>
         </div>
 
         {/* Volume slider */}
@@ -168,7 +168,7 @@ export default function BinauralBeatsPanel() {
         )}
 
         {/* Note about headphones */}
-        <p className="mt-3 text-center text-[9px] text-[var(--palette-zinc-600)]">
+        <p className="mt-3 text-center text-[11px] text-[var(--palette-zinc-600)]">
           🎧 Use headphones for binaural effect
         </p>
       </div>

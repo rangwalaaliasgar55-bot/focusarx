@@ -28,7 +28,7 @@ export function AdminCityPanel() {
                   </p>
                 </div>
               </div>
-              <p className="text-[10px] text-[var(--palette-zinc-500)]">{b.desc}</p>
+              <p className="text-[11px] text-[var(--palette-zinc-500)]">{b.desc}</p>
             </div>
           ))}
         </div>

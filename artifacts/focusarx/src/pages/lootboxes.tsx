@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
-import { Gift, Package, Sparkles, Star, Lock, ChevronRight } from "lucide-react";
+import { Gift, Package, Star, Lock } from "lucide-react";
 import { PAGE, CARD, STAGGER, POP } from "@/lib/animations";
 import { ErrorState } from "@/components/ErrorState";
 
@@ -42,17 +42,17 @@ function BoxTypeCard({ boxType, myBoxes, wallet, onBuy, onOpen }: {
           {boxType.icon}
         </motion.div>
         <h3 className="text-sm font-bold text-[var(--foreground)]">{boxType.name}</h3>
-        <span className="inline-block mt-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase" style={{ background: style.bg, color: style.color, border: `1px solid ${style.border}` }}>
+        <span className="inline-block mt-1 rounded-full px-2 py-0.5 text-[11px] font-bold uppercase" style={{ background: style.bg, color: style.color, border: `1px solid ${style.border}` }}>
           {style.label}
         </span>
         {boxType.premiumOnly && (
-          <span className="inline-block mt-1 ml-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase bg-[var(--brand-gold)]/10 text-[var(--brand-gold)] border border-[var(--brand-gold)]/30">
+          <span className="inline-block mt-1 ml-1 rounded-full px-2 py-0.5 text-[11px] font-bold uppercase bg-[var(--brand-gold)]/10 text-[var(--brand-gold)] border border-[var(--brand-gold)]/30">
             <Lock size={8} className="inline -mt-px" /> Premium
           </span>
         )}
       </div>
 
-      <p className="text-[10px] text-[var(--foreground-subtle)] text-center mb-4 leading-relaxed">{boxType.description}</p>
+      <p className="text-[11px] text-[var(--foreground-subtle)] text-center mb-4 leading-relaxed">{boxType.description}</p>
 
       {owned.length > 0 && (
         <div className="mb-3 flex items-center justify-center gap-2 rounded-xl bg-[var(--rgba-6-214-160-0_08)] border border-[var(--rgba-6-214-160-0_2)] py-2">
@@ -78,7 +78,7 @@ function BoxTypeCard({ boxType, myBoxes, wallet, onBuy, onOpen }: {
           </button>
         )}
         {boxType.sessionsRequired > 0 && boxType.coinCost === 0 && (
-          <div className="flex items-center justify-center gap-1 text-[10px] text-[var(--foreground-subtle)]">
+          <div className="flex items-center justify-center gap-1 text-[11px] text-[var(--foreground-subtle)]">
             <Star size={10} /> Earn by completing {boxType.sessionsRequired} sessions
           </div>
         )}
@@ -151,7 +151,7 @@ export default function LootBoxesPage() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { const t = setTimeout(() => void load(), 0); return () => clearTimeout(t); }, []);
 
   const handleBuy = async (typeId: string) => {
     if (processing) return;

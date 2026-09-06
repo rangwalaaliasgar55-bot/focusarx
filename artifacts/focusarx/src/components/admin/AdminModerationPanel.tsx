@@ -100,13 +100,13 @@ export function AdminModerationPanel({ authHeaders }: AdminPanelProps) {
               <div className="flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-start">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                    <span className="rounded-full border border-[color-mix(in_srgb,var(--warning)_26%,transparent)] bg-[var(--warning-soft)] px-2 py-0.5 text-[10px] font-medium text-[var(--warning)]">
+                    <span className="rounded-full border border-[color-mix(in_srgb,var(--warning)_26%,transparent)] bg-[var(--warning-soft)] px-2 py-0.5 text-[11px] font-medium text-[var(--warning)]">
                       {index === 0 ? "First in queue · " : ""}{p.moderationStatus}
                     </span>
-                    <span className="text-[10px] text-[var(--palette-zinc-500)]">
+                    <span className="text-[11px] text-[var(--palette-zinc-500)]">
                       {p.author?.name || p.author?.email || "Unknown"} · {p.type}
                     </span>
-                    <span className="text-[10px] text-[var(--palette-zinc-600)]">
+                    <span className="text-[11px] text-[var(--palette-zinc-600)]">
                       {new Date(p.createdAt).toLocaleString()}
                     </span>
                   </div>

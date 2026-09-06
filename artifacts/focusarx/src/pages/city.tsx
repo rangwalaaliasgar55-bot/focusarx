@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
-import { Building2, Zap, Users, Star, Lock, ShoppingBag, RefreshCw, Crown, Sun, Moon, CloudRain, Sparkles, Camera } from "lucide-react";
+import { Building2, Zap, Users, Lock, Crown, Sun, Moon, Sparkles, Camera } from "lucide-react";
 import { usePremium } from "@/hooks/usePremium";
 import { Link } from "wouter";
 import { PAGE, CARD, STAGGER } from "@/lib/animations";
@@ -31,6 +31,14 @@ const WEATHER_EMOJI: Record<string, string> = {
   clear: "☀️", cloudy: "☁️", rain: "🌧️", storm: "⛈️", snow: "❄️",
   fog: "🌫️", wind: "💨", rainbow: "🌈",
 };
+/** The sky mirrors recent focus (see api-server routes/city.ts deriveCityWeather). */
+const WEATHER_MEANING: Record<string, string> = {
+  rainbow: "Studied today on a 7-day streak",
+  clear: "You focused today",
+  wind: "Yesterday's momentum — focus today to keep it",
+  cloudy: "A few quiet days",
+  rain: "No focus in a while — one session clears the sky",
+};
 
 function BuildingCard({ building, owned, onBuy, wallet, busy }: {
   building: Building; owned: boolean; onBuy: (b: Building) => void; wallet: Wallet | null; busy?: boolean;
@@ -51,30 +59,30 @@ function BuildingCard({ building, owned, onBuy, wallet, busy }: {
       } ${busy ? "opacity-70" : ""}`}
     >
       {owned && (
-        <div className="absolute top-2 right-2 rounded-full bg-[var(--palette-10b981)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--palette-white)]">BUILT</div>
+        <div className="absolute top-2 right-2 rounded-full bg-[var(--palette-10b981)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--palette-white)]">BUILT</div>
       )}
       {!meetsLevel && (
-        <div className="absolute top-2 right-2 flex items-center gap-1 text-[10px] text-[var(--foreground-subtle)]">
+        <div className="absolute top-2 right-2 flex items-center gap-1 text-[11px] text-[var(--foreground-subtle)]">
           <Lock size={9} /> Lv{building.unlockLevel}
         </div>
       )}
       <div className="text-3xl mb-2">{building.icon}</div>
       <h3 className="text-sm font-semibold text-[var(--foreground)] mb-1">{building.name}</h3>
-      <p className="text-[10px] text-[var(--foreground-subtle)] mb-3 leading-relaxed">{building.description}</p>
+      <p className="text-[11px] text-[var(--foreground-subtle)] mb-3 leading-relaxed">{building.description}</p>
 
       <div className="flex flex-wrap gap-1.5 mb-3">
         {building.populationBonus > 0 && (
-          <span className="flex items-center gap-1 rounded-full bg-[var(--rgba-16-185-129-0_12)] border border-[var(--rgba-16-185-129-0_25)] px-1.5 py-0.5 text-[9px] text-[var(--palette-10b981)]">
+          <span className="flex items-center gap-1 rounded-full bg-[var(--rgba-16-185-129-0_12)] border border-[var(--rgba-16-185-129-0_25)] px-1.5 py-0.5 text-[11px] text-[var(--palette-10b981)]">
             <Users size={8} /> +{building.populationBonus} pop
           </span>
         )}
         {building.xpBonusPerSession > 0 && (
-          <span className="flex items-center gap-1 rounded-full bg-[var(--rgba-124-58-237-0_12)] border border-[var(--rgba-124-58-237-0_25)] px-1.5 py-0.5 text-[9px] text-[var(--brand-400)]">
+          <span className="flex items-center gap-1 rounded-full bg-[var(--rgba-124-58-237-0_12)] border border-[var(--rgba-124-58-237-0_25)] px-1.5 py-0.5 text-[11px] text-[var(--brand-400)]">
             <Zap size={8} /> +{building.xpBonusPerSession} XP/session
           </span>
         )}
         {building.coinBonusPerSession > 0 && (
-          <span className="flex items-center gap-1 rounded-full bg-[var(--rgba-245-158-11-0_12)] border border-[var(--rgba-245-158-11-0_25)] px-1.5 py-0.5 text-[9px] text-[var(--color-warning)]">
+          <span className="flex items-center gap-1 rounded-full bg-[var(--rgba-245-158-11-0_12)] border border-[var(--rgba-245-158-11-0_25)] px-1.5 py-0.5 text-[11px] text-[var(--color-warning)]">
             🪙 +{building.coinBonusPerSession}/session
           </span>
         )}
@@ -252,7 +260,7 @@ export default function CityPage() {
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <h1 className="text-2xl font-bold text-[var(--foreground)]">{tier.label}</h1>
-                <span className="rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase" style={{ color: tier.color, borderColor: `color-mix(in srgb, ${tier.color} 25%, transparent)`, background: `color-mix(in srgb, ${tier.color} 7%, transparent)` }}>
+                <span className="rounded-full border px-2 py-0.5 text-[11px] font-bold uppercase" style={{ color: tier.color, borderColor: `color-mix(in srgb, ${tier.color} 25%, transparent)`, background: `color-mix(in srgb, ${tier.color} 7%, transparent)` }}>
                   {city?.tier ?? "hamlet"}
                 </span>
               </div>
@@ -266,9 +274,10 @@ export default function CityPage() {
                   <Building2 size={12} className="text-[var(--brand-400)]" />
                   <span><strong className="text-[var(--brand-400)]">{city?.totalBuildings ?? 0}</strong> buildings</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-xs text-[var(--foreground-muted)]">
-                  <span className="text-lg">{WEATHER_EMOJI[city?.weather ?? "clear"]}</span>
+                <div className="flex items-center gap-1.5 text-xs text-[var(--foreground-muted)]" title={WEATHER_MEANING[city?.weather ?? "clear"]}>
+                  <span className="text-lg" aria-hidden>{WEATHER_EMOJI[city?.weather ?? "clear"]}</span>
                   <span className="capitalize">{city?.weather ?? "Clear"}</span>
+                  <span className="hidden text-[var(--foreground-subtle)] sm:inline">· {WEATHER_MEANING[city?.weather ?? "clear"]}</span>
                 </div>
               </div>
             </div>
@@ -276,7 +285,7 @@ export default function CityPage() {
               <div className="text-right">
                 <p className="text-xs text-[var(--foreground-subtle)]">Your coins</p>
                 <p className="text-2xl font-bold text-[var(--color-warning)]">🪙 {wallet.coins.toLocaleString()}</p>
-                <p className="text-[10px] text-[var(--foreground-subtle)]">Level {wallet.level}</p>
+                <p className="text-[11px] text-[var(--foreground-subtle)]">Level {wallet.level}</p>
               </div>
             )}
           </div>
@@ -286,12 +295,12 @@ export default function CityPage() {
         <section className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-semibold flex items-center gap-2"><Sparkles size={14} /> City appearance & modes</h2>
-            {!isPremium && <Link href="/premium" className="inline-flex items-center gap-1 rounded-full bg-[var(--palette-amber-500)]/15 px-2.5 py-1 text-[10px] font-bold text-[var(--palette-amber-400)]"><Crown size={10} /> Premium unlocks night/sunset/weather</Link>}
+            {!isPremium && <Link href="/premium" className="inline-flex items-center gap-1 rounded-full bg-[var(--palette-amber-500)]/15 px-2.5 py-1 text-[11px] font-bold text-[var(--palette-amber-400)]"><Crown size={10} /> Premium unlocks night/sunset/weather</Link>}
           </div>
 
           {/* Time of day */}
           <div className="mb-4">
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">Time of day</p>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">Time of day</p>
             <div className="grid grid-cols-3 gap-2">
               {[
                 { id: "day", label: "Day", icon: Sun, emoji: "☀️", premium: false },
@@ -302,7 +311,7 @@ export default function CityPage() {
                   className={`rounded-xl border p-3 text-center ${selectedTime===id ? "border-[var(--brand-400)] bg-[var(--brand-soft)]" : "border-[var(--border)]"} ${premium && !isPremium ? "opacity-60" : ""}`}>
                   <span className="text-xl">{emoji}</span>
                   <span className="mt-1 block text-xs font-semibold">{label}</span>
-                  {premium && !isPremium && <span className="text-[9px] text-[var(--palette-amber-400)] flex items-center justify-center gap-1"><Lock size={8}/> Premium</span>}
+                  {premium && !isPremium && <span className="text-[11px] text-[var(--palette-amber-400)] flex items-center justify-center gap-1"><Lock size={8}/> Premium</span>}
                 </button>
               ))}
             </div>
@@ -310,7 +319,7 @@ export default function CityPage() {
 
           {/* Weather */}
           <div className="mb-4">
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">Weather & seasons</p>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">Weather & seasons</p>
             <div className="grid grid-cols-4 gap-2">
               {[
                 { id: "clear", label: "Clear", emoji: "☀️", premium: false },
@@ -325,7 +334,7 @@ export default function CityPage() {
                 <button key={w.id} onClick={() => { if (w.premium && !isPremium) { showToast("Premium weather requires Premium"); return; } setSelectedWeather(w.id); }}
                   className={`rounded-xl border p-2 text-center ${selectedWeather===w.id ? "border-[var(--brand-400)] bg-[var(--brand-soft)]" : "border-[var(--border)]"} ${w.premium && !isPremium ? "opacity-60" : ""}`}>
                   <span className="text-lg">{w.emoji}</span>
-                  <span className="mt-1 block text-[10px] font-semibold">{w.label}</span>
+                  <span className="mt-1 block text-[11px] font-semibold">{w.label}</span>
                 </button>
               ))}
             </div>
@@ -334,11 +343,11 @@ export default function CityPage() {
           {/* Skins from server */}
           {city?.skins?.length ? (
             <div>
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">City skins</p>
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">City skins</p>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {city.skins.map((skin) => <button key={skin.id} type="button" onClick={() => void selectSkin(skin)} aria-pressed={city.selectedSkin === skin.id}
                   className={`min-h-20 rounded-xl border p-3 text-left ${city.selectedSkin === skin.id ? "border-[var(--brand-400)] bg-[var(--brand-soft)]" : "border-[var(--border)]"} ${skin.locked ? "opacity-55" : ""}`}>
-                  <span className="text-2xl">{skin.emoji}</span><span className="mt-1 block text-xs font-semibold">{skin.name}</span>{skin.locked && <span className="text-[10px] text-[var(--color-warning)] flex items-center gap-1"><Lock size={8}/> Premium</span>}
+                  <span className="text-2xl">{skin.emoji}</span><span className="mt-1 block text-xs font-semibold">{skin.name}</span>{skin.locked && <span className="text-[11px] text-[var(--color-warning)] flex items-center gap-1"><Lock size={8}/> Premium</span>}
                 </button>)}
               </div>
             </div>
@@ -348,7 +357,7 @@ export default function CityPage() {
           <div className="mt-4 flex items-center justify-between rounded-xl border border-[var(--forge-border)] bg-[var(--surface-1)] p-3">
             <div>
               <p className="text-xs font-bold flex items-center gap-1"><Camera size={12}/> Shareable snapshot</p>
-              <p className="text-[10px] text-[var(--foreground-subtle)]">Export your city as image (Premium)</p>
+              <p className="text-[11px] text-[var(--foreground-subtle)]">Export your city as image (Premium)</p>
             </div>
             <button onClick={() => { if (!isPremium) { showToast("Premium unlocks shareable snapshots"); return; } showToast("Snapshot feature — premium skybox captured!"); }}
               className={`rounded-full px-4 py-1.5 text-xs font-bold ${isPremium ? "bg-[var(--brand-600)] text-white" : "bg-[var(--palette-amber-500)]/15 text-[var(--palette-amber-400)]"}`}>

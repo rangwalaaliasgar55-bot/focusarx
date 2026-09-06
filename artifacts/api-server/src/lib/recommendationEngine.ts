@@ -26,7 +26,6 @@
  * unit-tested thoroughly and its behavior is auditable.
  */
 
-import { z } from "zod";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -279,7 +278,6 @@ export class StudyRecommendationEngine {
     }
 
     // ── 7. Streak protection ──────────────────────────────────────
-    const today = this.toDateStr(now);
     const studiedToday = recentSessionToday.length > 0;
     if (!studiedToday && input.currentStreak > 0 && hour >= 18) {
       signalsUsed.push("streak_protection", "time_of_day");

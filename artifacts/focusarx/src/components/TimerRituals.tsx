@@ -47,7 +47,7 @@ export function TimerRitualsPanel({
           <Sparkles size={12} /> Rituals
         </h3>
         {!isPremium && (
-          <Link href="/premium" className="inline-flex items-center gap-1 rounded-full bg-[var(--palette-amber-500)]/15 px-2 py-0.5 text-[10px] font-bold text-[var(--palette-amber-400)]">
+          <Link href="/premium" className="inline-flex items-center gap-1 rounded-full bg-[var(--palette-amber-500)]/15 px-2 py-0.5 text-[11px] font-bold text-[var(--palette-amber-400)]">
             <Crown size={10} /> Premium
           </Link>
         )}
@@ -55,7 +55,7 @@ export function TimerRitualsPanel({
 
       {/* Intention — free */}
       <div className="mb-4">
-        <label htmlFor="timer-rituals-intention" className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">
+        <label htmlFor="timer-rituals-intention" className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">
           <Target size={10} /> Session intention
         </label>
         <input
@@ -65,12 +65,12 @@ export function TimerRitualsPanel({
           placeholder="What will you focus on? (e.g. Write chapter 3)"
           className="w-full rounded-xl border border-[var(--forge-border)] bg-[var(--surface-1)] px-3 py-2 text-xs text-[var(--foreground)] placeholder:text-[var(--foreground-subtle)] outline-none focus:border-[var(--brand-400)]/40"
         />
-        <p className="mt-1 text-[10px] text-[var(--foreground-subtle)]">Visible during focus for accountability.</p>
+        <p className="mt-1 text-[11px] text-[var(--foreground-subtle)]">Visible during focus for accountability.</p>
       </div>
 
       {/* Templates */}
       <div className="mb-4">
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">Templates</p>
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">Templates</p>
         <div className="grid grid-cols-2 gap-2">
           {RITUAL_TEMPLATES.map((t) => {
             const locked = t.premium && !isPremium;
@@ -92,7 +92,7 @@ export function TimerRitualsPanel({
                   <span className="text-sm">{t.icon}</span>
                   <span className="text-[11px] font-bold">{t.name}</span>
                 </div>
-                <p className="mt-0.5 text-[10px] text-[var(--foreground-subtle)]">{t.description}</p>
+                <p className="mt-0.5 text-[11px] text-[var(--foreground-subtle)]">{t.description}</p>
               </button>
             );
           })}
@@ -102,10 +102,10 @@ export function TimerRitualsPanel({
       {/* Custom duration — premium 10-180 */}
       <div>
         <div className="mb-2 flex items-center justify-between">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">Custom duration</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">Custom duration</p>
           <button
             onClick={() => setShowCustom((v) => !v)}
-            className="rounded-full border border-[var(--forge-border)] px-2.5 py-1 text-[10px] font-semibold text-[var(--foreground-muted)] hover:bg-[var(--surface-2)]"
+            className="rounded-full border border-[var(--forge-border)] px-2.5 py-1 text-[11px] font-semibold text-[var(--foreground-muted)] hover:bg-[var(--surface-2)]"
           >
             {showCustom ? "Hide" : "Set custom"}
           </button>
@@ -118,7 +118,7 @@ export function TimerRitualsPanel({
                 <div className="mb-2 flex items-center justify-between">
                   <span className="text-xs font-bold">{customVal}m</span>
                   {!isPremium && customVal > 50 && customVal !== 25 && customVal !== 15 && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--palette-amber-500)]/15 px-2 py-0.5 text-[10px] font-bold text-[var(--palette-amber-400)]">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--palette-amber-500)]/15 px-2 py-0.5 text-[11px] font-bold text-[var(--palette-amber-400)]">
                       <Lock size={10} /> Premium 10-180m
                     </span>
                   )}
@@ -132,7 +132,7 @@ export function TimerRitualsPanel({
                   onChange={(e) => setCustomVal(parseInt(e.target.value))}
                   className="w-full accent-[var(--brand-600)]"
                 />
-                <div className="mt-2 flex justify-between text-[10px] text-[var(--foreground-subtle)]">
+                <div className="mt-2 flex justify-between text-[11px] text-[var(--foreground-subtle)]">
                   <span>10m</span><span>60m</span><span>120m</span><span>180m</span>
                 </div>
                 <button
@@ -148,7 +148,7 @@ export function TimerRitualsPanel({
                   Apply {customVal}m
                 </button>
                 {!isPremium && (
-                  <p className="mt-2 text-center text-[10px] text-[var(--foreground-subtle)]">
+                  <p className="mt-2 text-center text-[11px] text-[var(--foreground-subtle)]">
                     Free: 15, 25, 50 min. <Link href="/premium" className="font-bold text-[var(--palette-amber-400)]">Unlock 10-180m with Premium</Link>
                   </p>
                 )}
@@ -162,7 +162,7 @@ export function TimerRitualsPanel({
       {!isPremium && (
         <div className="mt-4 rounded-xl border border-[var(--palette-amber-500)]/20 bg-gradient-to-br from-[var(--palette-amber-950)]/20 to-[var(--surface-1)] p-3">
           <p className="flex items-center gap-1 text-[11px] font-bold"><Crown size={12} className="text-[var(--palette-amber-400)]" /> Premium rituals</p>
-          <ul className="mt-1.5 space-y-1 text-[10px] text-[var(--foreground-muted)]">
+          <ul className="mt-1.5 space-y-1 text-[11px] text-[var(--foreground-muted)]">
             <li>• Sequences (focus → break chains)</li>
             <li>• Fullscreen zen with animations</li>
             <li>• Sound mixing + ambient layers</li>

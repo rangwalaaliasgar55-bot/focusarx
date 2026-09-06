@@ -126,9 +126,9 @@ function TaskRow({
           <Trash2 size={20} />
         </div>
       )}
-      <label className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center" aria-label={`Select ${task.title}`}>
+      <span className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center" aria-label={`Select ${task.title}`}>
         <Checkbox checked={selected} onCheckedChange={onSelect} aria-label={`Select ${task.title}`} />
-      </label>
+      </span>
       <button type="button" onClick={onToggle} className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[var(--foreground-subtle)] hover:bg-[var(--surface-hover)] hover:text-[var(--brand-strong)]" aria-label={task.done ? `Mark ${task.title} active` : `Complete ${task.title}`}>
         <span className={cn("grid h-6 w-6 place-items-center rounded-full border-2 border-[var(--border-strong)]", task.done && "border-[var(--success)] bg-[var(--success)] text-[var(--neutral-0)]")}>
           {task.done && <Check size={14} strokeWidth={3} />}
@@ -290,7 +290,7 @@ export default function TasksPage() {
                   selected={selected.has(task.id)}
                   onSelect={() => setSelected((current) => {
                     const next = new Set(current);
-                    next.has(task.id) ? next.delete(task.id) : next.add(task.id);
+                    if (next.has(task.id)) next.delete(task.id); else next.add(task.id);
                     return next;
                   })}
                   onToggle={() => toggle(task)}

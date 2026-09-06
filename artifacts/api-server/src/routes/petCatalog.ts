@@ -1,11 +1,10 @@
 import { Router } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { db } from "@workspace/db";
-import { petCatalogTable, userPetInventoryTable, assetCatalogTable } from "@workspace/db";
+import { petCatalogTable, userPetInventoryTable } from "@workspace/db";
 import { userPetsTable } from "@workspace/db";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { isUserPremium } from "../lib/premiumCheck";
-import { earnTokens } from "../lib/tokenLedger";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -77,7 +76,6 @@ router.get("/pets/inventory", authMiddleware, async (req: AuthRequest, res) => {
 
     // Also include legacy pet from userPetsTable for backward compat
     const [legacy] = await db.select().from(userPetsTable).where(eq(userPetsTable.userId, req.userId!)).limit(1);
-    let legacyEntry = null;
     if (legacy) {
       const cat = await db.select().from(petCatalogTable).where(eq(petCatalogTable.slug, legacy.petType)).limit(1);
       if (cat[0]) {
@@ -198,44 +196,12 @@ router.post("/pets/inventory/:id/activate", authMiddleware, async (req: AuthRequ
   }
 });
 
-// POST /api/pets/inventory/:id/bond — add bond XP, level 1-20 progression with unlocks
-router.post("/pets/inventory/:id/bond", authMiddleware, async (req: AuthRequest, res) => {
-  const { xp, source } = req.body as { xp: number; source?: string };
-  if (!xp || xp <= 0 || xp > 1000) return res.status(400).json({ error: "Invalid XP" });
-  try {
-    const [inv] = await db.select().from(userPetInventoryTable).where(and(eq(userPetInventoryTable.id, req.params.id as string), eq(userPetInventoryTable.userId, req.userId!))).limit(1);
-    if (!inv) return res.status(404).json({ error: "Pet not found" });
-
-    // Bond XP curve: level 1-20, each level needs level*100 XP
-    let newXp = inv.bondXp + xp;
-    let newLevel = inv.level;
-    const unlocks: number[] = [];
-    while (newLevel < 20) {
-      const needed = newLevel * 100;
-      if (newXp >= needed) {
-        newXp -= needed;
-        newLevel++;
-        unlocks.push(newLevel);
-      } else break;
-    }
-    if (newLevel === 20) newXp = 0; // capped
-
-    const [updated] = await db.update(userPetInventoryTable).set({ level: newLevel, bondXp: newXp, updatedAt: new Date() }).where(eq(userPetInventoryTable.id, inv.id as string)).returning();
-
-    // Token rewards for milestones
-    const milestoneLevels = [3, 5, 8, 10, 15, 20];
-    const earnedMilestones = unlocks.filter(l => milestoneLevels.includes(l));
-    for (const lvl of earnedMilestones) {
-      try {
-        await earnTokens(req.userId!, "pet_milestone", `pet_${inv.id}_lvl_${lvl}`, { description: `pet ${inv.petId} lvl ${lvl}` }, 50 + lvl * 10);
-      } catch {}
-    }
-
-    res.json({ inventory: updated, leveledUp: unlocks, earnedMilestones });
-  } catch (err) {
-    logger.error({ err }, "pet bond error");
-    res.status(500).json({ error: "Failed to add bond XP" });
-  }
+// POST /api/pets/inventory/:id/bond
+// Bond XP is earned only from verified focus sessions (see lib/petBond.ts),
+// never from a client-supplied number. Kept as an explicit 410 so old
+// builds get a clear answer instead of a silent 404.
+router.post("/pets/inventory/:id/bond", authMiddleware, (_req: AuthRequest, res) => {
+  res.status(410).json({ error: "Bond XP is earned automatically from completed focus sessions" });
 });
 
 // GET /api/pets/progression — returns unlock table

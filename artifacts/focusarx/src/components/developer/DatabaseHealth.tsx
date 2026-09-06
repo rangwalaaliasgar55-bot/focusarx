@@ -71,9 +71,9 @@ function StatCard({ icon: Icon, label, value, sub, color = "text-white" }: {
         <Icon size={16} className={color} />
       </div>
       <div>
-        <div className="text-[10px] text-white/40 uppercase tracking-wider">{label}</div>
+        <div className="text-[11px] text-white/40 uppercase tracking-wider">{label}</div>
         <div className={cn("text-sm font-bold tabular-nums", color)}>{value}</div>
-        {sub && <div className="text-[10px] text-white/30">{sub}</div>}
+        {sub && <div className="text-[11px] text-white/30">{sub}</div>}
       </div>
     </div>
   );
@@ -105,9 +105,9 @@ export function DatabaseHealth() {
   }, []);
 
   useEffect(() => {
-    loadData();
+    const first = setTimeout(() => void loadData(), 0);
     const interval = setInterval(loadData, 30_000); // Auto-refresh every 30s
-    return () => clearInterval(interval);
+    return () => { clearTimeout(first); clearInterval(interval); };
   }, [loadData]);
 
   if (!health && loading) {
@@ -136,7 +136,7 @@ export function DatabaseHealth() {
         </div>
         <div className="flex items-center gap-3">
           {lastRefresh && (
-            <span className="text-[10px] text-white/30 flex items-center gap-1">
+            <span className="text-[11px] text-white/30 flex items-center gap-1">
               <Clock size={10} /> Updated {lastRefresh.toLocaleTimeString()}
             </span>
           )}
@@ -211,7 +211,7 @@ export function DatabaseHealth() {
               <GitBranch size={14} className="text-violet-400" />
               <span className="text-sm font-semibold text-white">Migrations</span>
             </div>
-            <div className="flex items-center gap-3 text-[10px]">
+            <div className="flex items-center gap-3 text-[11px]">
               <span className="text-emerald-400">{migrations.appliedCount} applied</span>
               {migrations.pendingCount > 0 && (
                 <span className="text-amber-400">{migrations.pendingCount} pending</span>
@@ -227,9 +227,9 @@ export function DatabaseHealth() {
                   m.applied ? "bg-emerald-400" : "bg-amber-400"
                 )} />
                 <span className="text-xs font-mono text-white/60 flex-1">{m.name}</span>
-                <span className="text-[10px] text-white/30">{new Date(m.timestamp).toLocaleDateString()}</span>
+                <span className="text-[11px] text-white/30">{new Date(m.timestamp).toLocaleDateString()}</span>
                 <span className={cn(
-                  "text-[10px] px-1.5 py-0.5 rounded",
+                  "text-[11px] px-1.5 py-0.5 rounded",
                   m.applied ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
                 )}>
                   {m.applied ? "Applied" : "Pending"}
@@ -249,11 +249,11 @@ export function DatabaseHealth() {
               <span className="text-sm font-semibold text-white">Schema Sync Status</span>
             </div>
             {diff.hasDrift ? (
-              <span className="text-[10px] px-2 py-1 rounded bg-amber-500/20 text-amber-400 flex items-center gap-1">
+              <span className="text-[11px] px-2 py-1 rounded bg-amber-500/20 text-amber-400 flex items-center gap-1">
                 <AlertTriangle size={10} /> DRIFT DETECTED
               </span>
             ) : (
-              <span className="text-[10px] px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 flex items-center gap-1">
+              <span className="text-[11px] px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 flex items-center gap-1">
                 <CheckCircle2 size={10} /> IN SYNC
               </span>
             )}
@@ -262,35 +262,35 @@ export function DatabaseHealth() {
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-center">
               <div className="p-2 rounded bg-white/5">
                 <div className="text-lg font-bold text-white">{diff.summary.expectedTables}</div>
-                <div className="text-[10px] text-white/40">Expected</div>
+                <div className="text-[11px] text-white/40">Expected</div>
               </div>
               <div className="p-2 rounded bg-white/5">
                 <div className="text-lg font-bold text-white">{diff.summary.actualTables}</div>
-                <div className="text-[10px] text-white/40">Actual</div>
+                <div className="text-[11px] text-white/40">Actual</div>
               </div>
               <div className="p-2 rounded bg-white/5">
                 <div className="text-lg font-bold text-emerald-400">{diff.summary.inSync}</div>
-                <div className="text-[10px] text-white/40">In Sync</div>
+                <div className="text-[11px] text-white/40">In Sync</div>
               </div>
               <div className="p-2 rounded bg-white/5">
                 <div className="text-lg font-bold text-red-400">{diff.summary.missingInDb}</div>
-                <div className="text-[10px] text-white/40">Missing in DB</div>
+                <div className="text-[11px] text-white/40">Missing in DB</div>
               </div>
               <div className="p-2 rounded bg-white/5">
                 <div className="text-lg font-bold text-amber-400">{diff.summary.extraInDb}</div>
-                <div className="text-[10px] text-white/40">Extra in DB</div>
+                <div className="text-[11px] text-white/40">Extra in DB</div>
               </div>
             </div>
 
             {diff.missingInDb.length > 0 && (
               <div>
-                <div className="text-[10px] text-red-400 font-semibold mb-1">Missing tables (in application but not in database):</div>
+                <div className="text-[11px] text-red-400 font-semibold mb-1">Missing tables (in application but not in database):</div>
                 <div className="flex flex-wrap gap-1">
                   {diff.missingInDb.slice(0, 10).map((t) => (
-                    <span key={t} className="text-[10px] font-mono px-1.5 py-0.5 bg-red-500/10 text-red-300 rounded">{t}</span>
+                    <span key={t} className="text-[11px] font-mono px-1.5 py-0.5 bg-red-500/10 text-red-300 rounded">{t}</span>
                   ))}
                   {diff.missingInDb.length > 10 && (
-                    <span className="text-[10px] text-red-300/60">+{diff.missingInDb.length - 10} more</span>
+                    <span className="text-[11px] text-red-300/60">+{diff.missingInDb.length - 10} more</span>
                   )}
                 </div>
               </div>
@@ -298,19 +298,19 @@ export function DatabaseHealth() {
 
             {diff.extraInDb.length > 0 && (
               <div>
-                <div className="text-[10px] text-amber-400 font-semibold mb-1">Extra tables (in database but not in application):</div>
+                <div className="text-[11px] text-amber-400 font-semibold mb-1">Extra tables (in database but not in application):</div>
                 <div className="flex flex-wrap gap-1">
                   {diff.extraInDb.slice(0, 10).map((t) => (
-                    <span key={t} className="text-[10px] font-mono px-1.5 py-0.5 bg-amber-500/10 text-amber-300 rounded">{t}</span>
+                    <span key={t} className="text-[11px] font-mono px-1.5 py-0.5 bg-amber-500/10 text-amber-300 rounded">{t}</span>
                   ))}
                   {diff.extraInDb.length > 10 && (
-                    <span className="text-[10px] text-amber-300/60">+{diff.extraInDb.length - 10} more</span>
+                    <span className="text-[11px] text-amber-300/60">+{diff.extraInDb.length - 10} more</span>
                   )}
                 </div>
               </div>
             )}
 
-            <div className="text-[10px] text-white/50 italic">
+            <div className="text-[11px] text-white/50 italic">
               {diff.recommendation}
             </div>
           </div>

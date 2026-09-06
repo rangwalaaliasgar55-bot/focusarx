@@ -10,11 +10,11 @@
  * This is unique to FocusArx — your study history becomes a living star map.
  */
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
-import { Star, Info, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { Star, Info } from "lucide-react";
 
 function authHeaders() {
   const t = getToken();
@@ -72,7 +72,7 @@ function sessionToStar(session: any, cx: number, cy: number, maxRadius: number):
 
 const CONSTELLATION_COLORS = ["var(--brand-600)", "var(--color-info)", "var(--color-warning)", "var(--palette-10b981)", "var(--palette-ec4899)", "var(--color-error)", "var(--palette-06b6d4)", "var(--brand-500)"];
 
-function findConstellations(stars: Star[], cx: number, cy: number): Constellation[] {
+function findConstellations(stars: Star[]): Constellation[] {
   if (stars.length < 5) return [];
   // Group stars by hour quadrant (3h blocks = 8 quadrants)
   const quadrants: Record<number, Star[]> = {};
@@ -82,7 +82,7 @@ function findConstellations(stars: Star[], cx: number, cy: number): Constellatio
     quadrants[q]!.push(s);
   }
   const constellations: Constellation[] = [];
-  Object.entries(quadrants).forEach(([qStr, qStars], i) => {
+  Object.values(quadrants).forEach((qStars, i) => {
     if (qStars.length >= 3) {
       const name = CONSTELLATION_NAMES[i % CONSTELLATION_NAMES.length]!;
       const centerX = qStars.reduce((s, st) => s + st.x, 0) / qStars.length;
@@ -109,6 +109,8 @@ export default function ConstellationsPage() {
   const [stars, setStars] = useState<Star[]>([]);
   const [constellations, setConstellations] = useState<Constellation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [hoveredStar, setHoveredStar] = useState<Star | null>(null);
   const [hoveredConst, setHoveredConst] = useState<Constellation | null>(null);
   const [showLabels, setShowLabels] = useState(true);
@@ -125,11 +127,13 @@ export default function ConstellationsPage() {
           .slice(0, 150)
           .map((s: any) => sessionToStar(s, CX, CY, MAX_RADIUS));
         setStars(mapped);
-        setConstellations(findConstellations(mapped, CX, CY));
+        setConstellations(findConstellations(mapped));
       })
-      .catch(() => {})
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
-  }, []);
+  }, [reloadKey]);
+
+  const retry = () => { setLoading(true); setLoadError(false); setReloadKey((k) => k + 1); };
 
   const totalHours = sessions.reduce((s, sess) => s + Math.floor(sess.durationSec / 60), 0) / 60;
 
@@ -141,7 +145,7 @@ export default function ConstellationsPage() {
           <div className="inline-flex items-center gap-2 rounded-full border border-[var(--rgba-124-58-237-0_3)] bg-[var(--rgba-124-58-237-0_1)] px-4 py-1.5 mb-3">
             <Star size={14} className="text-[var(--brand-400)]" />
             <span className="text-xs font-semibold uppercase tracking-wider text-[var(--brand-400)]">Study Constellations</span>
-            <span className="rounded-full bg-[var(--rgba-124-58-237-0_3)] px-2 py-0.5 text-[9px] font-bold text-[var(--brand-400)] uppercase">FocusArx Original</span>
+            <span className="rounded-full bg-[var(--rgba-124-58-237-0_3)] px-2 py-0.5 text-[11px] font-bold text-[var(--brand-400)] uppercase">FocusArx Original</span>
           </div>
           <h1 className="text-3xl font-bold text-[var(--palette-white)] mb-1">Your Star Map</h1>
           <p className="text-[var(--muted-fg)] text-sm max-w-lg">
@@ -159,6 +163,12 @@ export default function ConstellationsPage() {
                     <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--brand-600)] border-t-transparent" />
                     <p className="text-xs text-[var(--foreground-subtle)]">Charting your constellation...</p>
                   </div>
+                </div>
+              ) : loadError ? (
+                <div className="flex items-center justify-center h-[520px] flex-col gap-3" role="alert">
+                  <span className="text-5xl" aria-hidden>☁️</span>
+                  <p className="text-sm text-[var(--foreground-subtle)] text-center max-w-[220px]">Couldn't load your sessions.</p>
+                  <button type="button" onClick={retry} className="min-h-11 rounded-xl border border-[var(--border-strong)] px-4 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)]">Try again</button>
                 </div>
               ) : stars.length === 0 ? (
                 <div className="flex items-center justify-center h-[520px] flex-col gap-3">
@@ -182,7 +192,7 @@ export default function ConstellationsPage() {
                   ))}
 
                   {/* Hour axes */}
-                  {[0, 3, 6, 9, 12, 15, 18, 21].map((h, i) => {
+                  {[0, 3, 6, 9, 12, 15, 18, 21].map((h) => {
                     const angle = (h / 24) * 2 * Math.PI - Math.PI / 2;
                     return (
                       <line key={h}
@@ -284,7 +294,7 @@ export default function ConstellationsPage() {
             </div>
 
             {/* Legend */}
-            <div className="flex items-center gap-4 mt-3 justify-center flex-wrap text-[10px] text-[var(--foreground-subtle)]">
+            <div className="flex items-center gap-4 mt-3 justify-center flex-wrap text-[11px] text-[var(--foreground-subtle)]">
               <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-[var(--palette-white)] opacity-90" style={{ boxShadow: "0 0 6px var(--rgba-167-139-250-0_8)" }} /> Longer session = farther from center</div>
               <div className="flex items-center gap-1.5"><div className="h-3 w-3 rounded-full bg-[var(--palette-white)] opacity-50" style={{ boxShadow: "0 0 4px var(--rgba-167-139-250-0_5)" }} /> Brighter = higher focus score</div>
               <div className="flex items-center gap-1.5"><div className="h-px w-6 border-t border-dashed border-[var(--rgba-124-58-237-0_5)]" /> Constellation</div>
@@ -324,7 +334,7 @@ export default function ConstellationsPage() {
                         <div className="h-2 w-2 rounded-full" style={{ background: c.color, boxShadow: `0 0 6px ${c.color}` }} />
                         <span className="text-xs text-[var(--foreground-muted)]">{c.name}</span>
                       </div>
-                      <span className="text-[10px] text-[var(--foreground-subtle)]">{c.stars.length} ✦</span>
+                      <span className="text-[11px] text-[var(--foreground-subtle)]">{c.stars.length} ✦</span>
                     </motion.div>
                   ))}
                 </div>
@@ -334,7 +344,7 @@ export default function ConstellationsPage() {
             {/* How it works */}
             <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-124-58-237-0_05)] p-4">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--brand-400)] mb-2">How it works</h3>
-              <div className="space-y-1.5 text-[10px] text-[var(--muted-fg)]">
+              <div className="space-y-1.5 text-[11px] text-[var(--muted-fg)]">
                 <p>📍 Position = time of day you studied</p>
                 <p>📏 Distance from center = session length</p>
                 <p>✨ Brightness = focus score</p>

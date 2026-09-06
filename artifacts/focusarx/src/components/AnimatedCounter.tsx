@@ -22,7 +22,6 @@ export function AnimatedCounter({ value, duration = 0.4, decimals = 0, prefix = 
   useEffect(() => {
     if (!isInView) return;
     if (reduceMotion) {
-      setCurrent(value);
       previous.current = value;
       return;
     }
@@ -41,7 +40,8 @@ export function AnimatedCounter({ value, duration = 0.4, decimals = 0, prefix = 
     return () => cancelAnimationFrame(frame.current);
   }, [duration, isInView, reduceMotion, value]);
 
-  return <span ref={ref} className={className}>{prefix}{current.toFixed(decimals)}{suffix}</span>;
+  const shown = reduceMotion ? value : current;
+  return <span ref={ref} className={className}>{prefix}{shown.toFixed(decimals)}{suffix}</span>;
 }
 
 export function PulseNumber({ value, className = "" }: { value: number | string; className?: string }) {

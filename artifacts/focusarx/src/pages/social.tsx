@@ -1,11 +1,10 @@
-import { useState, useRef } from "react";
-import type { ElementType } from "react";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getToken, useAuth } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
-import { Users, UserPlus, Trophy, Activity, Check, X, Bell, Clock, Rss, Heart, MessageCircle as MessageCircleIcon, Bookmark, Flame, Plus, Send, MoreHorizontal, Image, Edit3, Newspaper, Trash2, ArrowUpRight, Star as StarIcon, Shield } from "lucide-react";
+import { Users, UserPlus, Trophy, Activity, Check, Bell, Rss, MessageCircle as MessageCircleIcon, Plus, Send, Image, Trash2, ArrowUpRight, Star as StarIcon, Shield } from "lucide-react";
 import { PageTransition } from "@/components/PageTransition";
-import PageHeader from "@/components/PageHeader";
 import { DropBanner } from "@/components/DropBanner";
 import { motion, AnimatePresence } from "framer-motion";
 import { BLUR_IN, STAGGER, STAGGER_CHILD } from "@/lib/animations";
@@ -63,17 +62,17 @@ function FriendCard({ friend }: { friend: any }) {
         <div className="flex items-center gap-1.5">
           <p className="text-sm font-bold text-[var(--palette-white)] truncate">{friend.name}</p>
           {friend.isStudying && (
-            <span className="shrink-0 rounded-full bg-[var(--palette-emerald-500)]/10 border border-[var(--palette-emerald-500)]/20 px-1.5 py-0.5 text-[8px] font-semibold text-[var(--palette-emerald-400)] uppercase tracking-widest">
+            <span className="shrink-0 rounded-full bg-[var(--palette-emerald-500)]/10 border border-[var(--palette-emerald-500)]/20 px-1.5 py-0.5 text-[11px] font-semibold text-[var(--palette-emerald-400)] uppercase tracking-widest">
               Active Flow
             </span>
           )}
         </div>
         {friend.isStudying ? (
-          <p className="text-[10px] text-[var(--palette-emerald-400)]/80 font-bold uppercase tracking-widest flex items-center gap-1">
+          <p className="text-[11px] text-[var(--palette-emerald-400)]/80 font-bold uppercase tracking-widest flex items-center gap-1">
              {focusMinutes > 0 ? `${focusMinutes}m In deep work` : "Initializing..."}
           </p>
         ) : (
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">LV.{friend.level} · {friend.xp.toLocaleString()} XP</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">LV.{friend.level} · {friend.xp.toLocaleString()} XP</p>
         )}
       </div>
       <div className="text-right shrink-0">
@@ -101,11 +100,11 @@ function LeaderboardTable({ data }: { data: any[] }) {
               <IdentityBadges isAdmin={e.isAdmin} />
               {e.isMe && <span className="text-[var(--brand-400)]">(You)</span>}
             </p>
-            <p className="text-[9px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">LV.{e.level} · {e.streak}d STREAK</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">LV.{e.level} · {e.streak}d STREAK</p>
           </div>
           <div className="text-right">
              <p className="text-sm font-semibold text-[var(--brand-400)] tabular-nums">{e.xp.toLocaleString()}</p>
-             <p className="text-[8px] font-semibold text-[var(--foreground-subtle)] uppercase tracking-widest">Points</p>
+             <p className="text-[11px] font-semibold text-[var(--foreground-subtle)] uppercase tracking-widest">Points</p>
           </div>
         </motion.div>
       ))}
@@ -134,6 +133,11 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post
     onError: (e: any) => toast(e.message, "error"),
   });
 
+  const save = useMutation({
+    mutationFn: () => apiFetch(`/api/posts/${post.id}/save`, { method: "POST" }),
+    onSuccess: (r: any) => { toast(r?.saved ? "Saved" : "Removed from saved", "info"); onSaved(); },
+  });
+  const confirmDialog = useConfirm();
   const del = useMutation({
     mutationFn: () => apiFetch(`/api/posts/${post.id}`, { method: "DELETE" }),
     onSuccess: onDeleted,
@@ -176,11 +180,11 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post
                   <p className="font-bold text-[var(--palette-white)] leading-none">{post.author?.name || "User"}</p>
                   <IdentityBadges isAdmin={post.author?.isAdmin} />
                 </div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">{post.createdAt ? timeAgo(post.createdAt) : ""}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">{post.createdAt ? timeAgo(post.createdAt) : ""}</p>
              </div>
           </div>
           {post.userId === currentUserId && (
-              <button onClick={() => { if (confirm("Delete this post?")) del.mutate(); }}
+              <button onClick={() => { void confirmDialog({ title: "Delete this post?", description: "This can't be undone.", confirmLabel: "Delete", danger: true }).then((ok) => { if (ok) del.mutate(); }); }}
                 className="opacity-0 group-hover:opacity-100 rounded-xl p-2 text-[var(--foreground-subtle)] hover:text-[var(--palette-red-400)] hover:bg-[var(--palette-red-900)]/20 transition-all">
                 <Trash2 size={16} />
               </button>
@@ -205,7 +209,7 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post
             <button
               onMouseEnter={() => setShowReactions(true)}
               onMouseLeave={() => setShowReactions(false)}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-semibold uppercase tracking-widest transition-all ${post.myReaction ? "bg-[var(--brand-600)]/20 text-[var(--brand-400)]" : "bg-[var(--palette-white)]/5 text-[var(--foreground-subtle)] hover:text-[var(--palette-white)]"}`}
+              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-[11px] font-semibold uppercase tracking-widest transition-all ${post.myReaction ? "bg-[var(--brand-600)]/20 text-[var(--brand-400)]" : "bg-[var(--palette-white)]/5 text-[var(--foreground-subtle)] hover:text-[var(--palette-white)]"}`}
             >
               <span>{dominantReaction?.emoji || "🔥"}</span>
               <span>{totalReactions > 0 ? totalReactions : ""}</span>
@@ -231,8 +235,12 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post
           </div>
 
           <button onClick={() => setShowComments(!showComments)}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-semibold uppercase tracking-widest transition-all ${showComments ? "bg-[var(--palette-white)]/10 text-[var(--palette-white)]" : "text-[var(--foreground-subtle)] hover:text-[var(--palette-white)]"}`}>
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-[11px] font-semibold uppercase tracking-widest transition-all ${showComments ? "bg-[var(--palette-white)]/10 text-[var(--palette-white)]" : "text-[var(--foreground-subtle)] hover:text-[var(--palette-white)]"}`}>
             <MessageCircleIcon size={14} /> <span>{post.commentCount || ""}</span>
+          </button>
+          <button onClick={() => save.mutate()} disabled={save.isPending} aria-pressed={!!post.isSaved} aria-label={post.isSaved ? "Unsave post" : "Save post"}
+            className={`ml-auto flex items-center gap-2 rounded-xl px-3 py-2 text-[11px] font-semibold uppercase tracking-widest transition-all disabled:opacity-50 ${post.isSaved ? "text-[var(--palette-amber-400)]" : "text-[var(--foreground-subtle)] hover:text-[var(--palette-white)]"}`}>
+            <StarIcon size={14} fill={post.isSaved ? "currentColor" : "none"} />
           </button>
       </div>
 
@@ -258,7 +266,7 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post
                       <div className="flex items-center gap-2 mb-0.5">
                         <p className="text-xs font-bold text-[var(--palette-white)]">{c.author?.name || c.authorName || "User"}</p>
                         <IdentityBadges isAdmin={c.author?.isAdmin ?? (c as any).isAdmin} />
-                        <p className="text-[8px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">{timeAgo(c.createdAt)}</p>
+                        <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">{timeAgo(c.createdAt)}</p>
                       </div>
                       <p className="text-xs text-[var(--palette-zinc-400)] leading-relaxed">{c.content}</p>
                     </div>
@@ -304,7 +312,7 @@ export default function SocialPage() {
     enabled: search.length > 2,
   });
 
-  const { data: friends = [], isLoading: friendsLoading, error: friendsError } = useQuery({
+  const { data: friends = [], isLoading: friendsLoading } = useQuery({
     queryKey: ["friends"], queryFn: () => apiFetch("/api/social/friends"),
     enabled: tab === "friends" || tab === "feed",
   });
@@ -314,17 +322,18 @@ export default function SocialPage() {
     enabled: tab === "requests",
   });
 
-  const { data: leaderboard = [], isLoading: leaderboardLoading, error: leaderboardError } = useQuery({
+  const { data: leaderboard = [] } = useQuery({
     queryKey: ["social-leaderboard", period], queryFn: () => apiFetch(`/api/social/leaderboard?period=${period === "alltime" ? "total" : period}&scope=global`),
     enabled: tab === "leaderboard",
   });
 
-  const { data: activity = [], isLoading: activityLoading, error: activityError } = useQuery({
+  const { data: activity = [] } = useQuery({
     queryKey: ["friends-activity"], queryFn: () => apiFetch("/api/social/activity"),
     enabled: tab === "activity",
   });
 
-  const { data: followingData = { following: [], followers: [] } } = useQuery({
+  // /api/social/following returns a flat array of the people you follow.
+  const { data: following = [], isLoading: followingLoading } = useQuery<any[]>({
     queryKey: ["following-data"], queryFn: () => apiFetch("/api/social/following"),
     enabled: tab === "following",
   });
@@ -359,10 +368,8 @@ export default function SocialPage() {
     onSuccess: () => { toast("Request cancelled", "info"); qc.invalidateQueries({ queryKey: ["friend-requests"] }); },
   });
 
-  const incoming = requests.incoming || [];
-  const outgoing = requests.outgoing || [];
-  const followers = followingData.followers || [];
-  const following = followingData.following || [];
+  const incoming: any[] = requests.incoming || [];
+  const outgoing: any[] = requests.outgoing || [];
 
   return (
     <PageTransition>
@@ -372,7 +379,7 @@ export default function SocialPage() {
                <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-teal)]/10 mb-6">
                   <Users className="text-[var(--brand-teal)]" />
                </div>
-               <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--foreground-subtle)] mb-4">Community Hub</p>
+               <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[var(--foreground-subtle)] mb-4">Community Hub</p>
                <h1 className="text-4xl font-semibold text-[var(--palette-white)] sm:text-6xl tracking-tight leading-none mb-4">The <span className="text-[var(--brand-teal)]">Social Flow</span></h1>
                <p className="text-[var(--foreground-muted)] leading-relaxed max-w-xl mx-auto">Connect with global deep-workers. Share milestones, compete on boards, and study in sync.</p>
             </motion.div>
@@ -397,12 +404,16 @@ export default function SocialPage() {
                       <Avatar name={u.name} level={u.level} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-[var(--palette-white)] truncate flex items-center gap-1.5">{u.name}<IdentityBadges isAdmin={u.isAdmin} /></p>
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">
+                        <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">
                           {u.level != null ? `LV.${u.level} · ${u.streak ?? 0}d Streak` : "Member"}
                         </p>
                       </div>
-                      <button onClick={() => sendRequest.mutate(u.id)}
-                        className="rounded-xl bg-[var(--palette-white)] text-[var(--palette-black)] px-4 py-2 text-xs font-semibold hover:bg-[var(--palette-zinc-200)] transition-all flex items-center gap-2">
+                      <button onClick={() => followUser.mutate(u.id)} disabled={followUser.isPending} aria-label={`Follow ${u.name}`}
+                        className="rounded-xl border border-[var(--border)] px-3 py-2 text-xs font-semibold text-[var(--foreground-subtle)] hover:text-[var(--palette-white)] transition-all disabled:opacity-50">
+                         Follow
+                      </button>
+                      <button onClick={() => sendRequest.mutate(u.id)} disabled={sendRequest.isPending}
+                        className="rounded-xl bg-[var(--palette-white)] text-[var(--palette-black)] px-4 py-2 text-xs font-semibold hover:bg-[var(--palette-zinc-200)] transition-all flex items-center gap-2 disabled:opacity-50">
                          <Plus size={14} /> Connect
                       </button>
                     </div>
@@ -423,9 +434,9 @@ export default function SocialPage() {
             { id: "requests", label: "Connects", icon: <Bell size={14} />, badge: incoming.length },
           ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id as any)}
-              className={`flex-1 min-w-fit flex items-center justify-center gap-2 rounded-2xl py-3 px-4 text-[10px] font-semibold uppercase tracking-widest transition-all ${tab === t.id ? "bg-[var(--brand-teal)] text-[var(--palette-black)] shadow-lg shadow-[var(--brand-teal)]/20" : "text-[var(--foreground-subtle)] hover:bg-[var(--palette-white)]/5 hover:text-[var(--palette-white)]"}`}>
+              className={`flex-1 min-w-fit flex items-center justify-center gap-2 rounded-2xl py-3 px-4 text-[11px] font-semibold uppercase tracking-widest transition-all ${tab === t.id ? "bg-[var(--brand-teal)] text-[var(--palette-black)] shadow-lg shadow-[var(--brand-teal)]/20" : "text-[var(--foreground-subtle)] hover:bg-[var(--palette-white)]/5 hover:text-[var(--palette-white)]"}`}>
               {t.icon} {t.label}
-              {t.badge > 0 && <span className="rounded-full bg-[var(--palette-red-500)] text-[var(--palette-white)] w-4 h-4 flex items-center justify-center text-[8px] animate-bounce">{t.badge}</span>}
+              {(t.badge ?? 0) > 0 && <span className="rounded-full bg-[var(--palette-red-500)] text-[var(--palette-white)] w-4 h-4 flex items-center justify-center text-[11px] animate-bounce">{t.badge}</span>}
             </button>
           ))}
         </div>
@@ -463,7 +474,7 @@ export default function SocialPage() {
                {postsLoading ? (
                  <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-48 animate-pulse rounded-[32px] bg-[var(--palette-white)]/[0.01] border border-[var(--border)]" />)}</div>
                ) : (
-                 posts.map((p: any) => <PostCard key={p.id} post={p} currentUserId={session?.user?.id || ""} onReacted={() => {}} onSaved={() => {}} onDeleted={() => refetchPosts()} />)
+                 posts.map((p: any) => <PostCard key={p.id} post={p} currentUserId={session?.user?.id || ""} onReacted={() => refetchPosts()} onSaved={() => refetchPosts()} onDeleted={() => refetchPosts()} />)
                )}
             </motion.div>
           )}
@@ -479,7 +490,7 @@ export default function SocialPage() {
             <motion.div key="leaderboard" variants={STAGGER} initial="initial" animate="animate">
                <div className="flex gap-2 mb-8 bg-[var(--palette-white)]/[0.01] border border-[var(--border)] p-1 rounded-2xl">
                   {(["daily", "weekly", "monthly", "alltime"] as const).map(p => (
-                    <button key={p} onClick={() => setPeriod(p)} className={`flex-1 rounded-xl py-3 text-[10px] font-semibold uppercase tracking-widest transition-all ${period === p ? "bg-[var(--palette-white)]/10 text-[var(--palette-white)] shadow-xl" : "text-[var(--foreground-subtle)] hover:text-[var(--palette-zinc-300)]"}`}>{p === "alltime" ? "Infinity" : p}</button>
+                    <button key={p} onClick={() => setPeriod(p)} className={`flex-1 rounded-xl py-3 text-[11px] font-semibold uppercase tracking-widest transition-all ${period === p ? "bg-[var(--palette-white)]/10 text-[var(--palette-white)] shadow-xl" : "text-[var(--foreground-subtle)] hover:text-[var(--palette-zinc-300)]"}`}>{p === "alltime" ? "Infinity" : p}</button>
                   ))}
                </div>
                <LeaderboardTable data={leaderboard} />
@@ -498,7 +509,7 @@ export default function SocialPage() {
                            <p className="text-sm font-bold text-[var(--palette-white)] mb-0.5 flex items-center gap-1.5">
                               {a.userName}
                               <IdentityBadges isAdmin={a.isAdmin} />
-                              <span className="text-[10px] font-semibold text-[var(--brand-teal)] ml-1">LV.{a.userLevel}</span>
+                              <span className="text-[11px] font-semibold text-[var(--brand-teal)] ml-1">LV.{a.userLevel}</span>
                             </p>
                            <p className="text-xs text-[var(--foreground-subtle)] font-medium leading-tight">
                               {a.type === "session_complete" ? `Completed ${a.data?.durationMin}m Session` : a.type === "badge_unlocked" ? `Earned ${a.data?.badgeId} Badge` : "Updated Protocol"}
@@ -508,6 +519,61 @@ export default function SocialPage() {
                      <ArrowUpRight size={14} className="text-[var(--foreground-subtle)] group-hover:text-[var(--palette-white)] transition-colors" />
                   </motion.div>
                ))}
+            </motion.div>
+          )}
+
+          {tab === "requests" && (
+            <motion.div key="requests" variants={STAGGER} initial="initial" animate="animate" className="space-y-8">
+              <section>
+                <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">Incoming · {incoming.length}</h2>
+                {incoming.length === 0 ? (
+                  <p className="rounded-2xl border border-[var(--border)] p-6 text-center text-sm text-[var(--foreground-subtle)]">No pending requests.</p>
+                ) : incoming.map((r: any) => (
+                  <motion.div variants={STAGGER_CHILD} key={r.id} className="mb-2 flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--palette-white)]/[0.01] p-4 glass">
+                    <Avatar name={r.otherUser?.name || "User"} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-[var(--palette-white)]">{r.otherUser?.name || r.otherUser?.email || "User"}</p>
+                      <p className="text-[11px] uppercase tracking-widest text-[var(--foreground-subtle)]">wants to connect</p>
+                    </div>
+                    <button onClick={() => acceptRequest.mutate(r.id)} disabled={acceptRequest.isPending} className="rounded-xl bg-[var(--brand-teal)] px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--palette-black)] disabled:opacity-50">Accept</button>
+                    <button onClick={() => rejectRequest.mutate(r.id)} disabled={rejectRequest.isPending} className="rounded-xl border border-[var(--border)] px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] hover:text-[var(--palette-white)] disabled:opacity-50">Decline</button>
+                  </motion.div>
+                ))}
+              </section>
+              <section>
+                <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">Sent · {outgoing.length}</h2>
+                {outgoing.length === 0 ? (
+                  <p className="rounded-2xl border border-[var(--border)] p-6 text-center text-sm text-[var(--foreground-subtle)]">Search above to send a request.</p>
+                ) : outgoing.map((r: any) => (
+                  <motion.div variants={STAGGER_CHILD} key={r.id} className="mb-2 flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--palette-white)]/[0.01] p-4 glass">
+                    <Avatar name={r.otherUser?.name || "User"} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-[var(--palette-white)]">{r.otherUser?.name || r.otherUser?.email || "User"}</p>
+                      <p className="text-[11px] uppercase tracking-widest text-[var(--foreground-subtle)]">pending</p>
+                    </div>
+                    <button onClick={() => cancelRequest.mutate(r.id)} disabled={cancelRequest.isPending} className="rounded-xl border border-[var(--border)] px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] hover:text-[var(--palette-white)] disabled:opacity-50">Cancel</button>
+                  </motion.div>
+                ))}
+              </section>
+            </motion.div>
+          )}
+
+          {tab === "following" && (
+            <motion.div key="following" variants={STAGGER} initial="initial" animate="animate" className="space-y-2">
+              {followingLoading ? (
+                <div className="flex justify-center py-20"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--brand-teal)] border-t-transparent" /></div>
+              ) : following.length === 0 ? (
+                <div className="py-32 text-center opacity-30"><Check size={48} className="mx-auto mb-6" /><p className="text-sm font-semibold uppercase tracking-widest">You are not following anyone yet</p></div>
+              ) : following.map((u: any) => (
+                <motion.div variants={STAGGER_CHILD} key={u.id} className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--palette-white)]/[0.01] p-4 glass">
+                  <Avatar name={u.name} level={u.level} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-[var(--palette-white)]">{u.name}</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">LV.{u.level} · {Number(u.xp ?? 0).toLocaleString()} XP · 🔥 {u.streak}</p>
+                  </div>
+                  <button onClick={() => unfollowUser.mutate(u.id)} disabled={unfollowUser.isPending} className="rounded-xl border border-[var(--border)] px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] hover:text-[var(--palette-white)] disabled:opacity-50">Unfollow</button>
+                </motion.div>
+              ))}
             </motion.div>
           )}
         </AnimatePresence>

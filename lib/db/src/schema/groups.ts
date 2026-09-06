@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, integer, jsonb, index } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, integer, jsonb, index } from 'drizzle-orm/pg-core';
 import { usersTable as users } from './focusarx';
 
 // Extended group metadata (study_groups is the canonical table in focusarx.ts)

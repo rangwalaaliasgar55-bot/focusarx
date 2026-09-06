@@ -1,11 +1,12 @@
-import { Request, Response, NextFunction } from "express";
+import { Response } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { readinessLogsTable } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
-import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
+import { userZone } from "../lib/userZone";
+import { dayKeyInZone } from "../lib/timezone";
 
 const router = Router();
 
@@ -23,7 +24,7 @@ function recLength(score: number): number {
 
 router.get("/readiness/today", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const today = new Date().toISOString().split("T")[0]!;
+    const today = dayKeyInZone(Date.now(), await userZone(req.userId));
     const [log] = await db.select().from(readinessLogsTable)
       .where(and(eq(readinessLogsTable.userId, req.userId), eq(readinessLogsTable.date, today)));
     res.json({ log: log ?? null });
@@ -54,7 +55,7 @@ router.post("/readiness", authMiddleware, async (req: AuthRequest, res: Response
     res.status(400).json({ error: "sleep, stress and energy are required (1-5)" });
     return;
   }
-  const today = new Date().toISOString().split("T")[0]!;
+  const today = dayKeyInZone(Date.now(), await userZone(req.userId));
   const score = calcScore(sleep, stress, energy);
   const sessionLengthRec = recLength(score);
   try {
@@ -92,7 +93,7 @@ router.post("/mood", authMiddleware, async (req: AuthRequest, res: Response) => 
     res.status(400).json({ error: "mood must be an integer from 1 to 5" });
     return;
   }
-  const today = new Date().toISOString().split("T")[0]!;
+  const today = dayKeyInZone(Date.now(), await userZone(req.userId));
   try {
     const [existing] = await db.select({
       id: readinessLogsTable.id,

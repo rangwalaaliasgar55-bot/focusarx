@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Response } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { z } from "zod";
@@ -9,18 +9,19 @@ import {
   breakFreePledgesTable,
 } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
-import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
+import { userZone } from "../lib/userZone";
+import { dayKeyInZone } from "../lib/timezone";
 
 const router = Router();
 
-function calcCurrentStreak(startDate: string): number {
-  const start = new Date(startDate);
-  const now = new Date();
-  start.setHours(0, 0, 0, 0);
-  now.setHours(0, 0, 0, 0);
-  const diffMs = now.getTime() - start.getTime();
-  return Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+/** Whole calendar days since `startDate` (YYYY-MM-DD) as of `today` in the user's zone. */
+function calcCurrentStreak(startDate: string, today: string): number {
+  const [sy, sm, sd] = startDate.slice(0, 10).split("-").map(Number);
+  const [ty, tm, td] = today.split("-").map(Number);
+  if (![sy, sm, sd, ty, tm, td].every(Number.isFinite)) return 0;
+  const diff = (Date.UTC(ty!, tm! - 1, td!) - Date.UTC(sy!, sm! - 1, sd!)) / 86_400_000;
+  return Math.max(0, Math.floor(diff));
 }
 
 const BLOCKLIST = [
@@ -49,7 +50,7 @@ router.get("/break-free/streak", authMiddleware, async (req: AuthRequest, res: R
       return;
     }
 
-    const currentStreak = calcCurrentStreak(row.startDate);
+    const currentStreak = calcCurrentStreak(row.startDate, dayKeyInZone(Date.now(), await userZone(req.userId)));
     const longestStreak = Math.max(currentStreak, row.longestStreak);
 
     if (currentStreak !== row.currentStreak || longestStreak !== row.longestStreak) {
@@ -75,7 +76,7 @@ router.post("/break-free/streak/start", authMiddleware, async (req: AuthRequest,
   }
 
   const { startDate } = parsed.data;
-  const currentStreak = calcCurrentStreak(startDate);
+  const currentStreak = calcCurrentStreak(startDate, dayKeyInZone(Date.now(), await userZone(req.userId)));
 
   try {
     const [existing] = await db.select({ id: breakFreeStreaksTable.id, longestStreak: breakFreeStreaksTable.longestStreak })
@@ -103,14 +104,14 @@ router.post("/break-free/streak/start", authMiddleware, async (req: AuthRequest,
 
 // POST /break-free/streak/relapse
 router.post("/break-free/streak/relapse", authMiddleware, async (req: AuthRequest, res: Response) => {
-  const today = new Date().toISOString().split("T")[0]!;
+  const today = dayKeyInZone(Date.now(), await userZone(req.userId));
 
   try {
     const [existing] = await db.select()
       .from(breakFreeStreaksTable)
       .where(eq(breakFreeStreaksTable.userId, req.userId));
 
-    const prevStreak = existing ? calcCurrentStreak(existing.startDate) : 0;
+    const prevStreak = existing ? calcCurrentStreak(existing.startDate, today) : 0;
     const newLongest = existing ? Math.max(prevStreak, existing.longestStreak) : 0;
 
     let row;
@@ -155,7 +156,7 @@ router.get("/break-free/moods", authMiddleware, async (req: AuthRequest, res: Re
       .orderBy(desc(breakFreeMoodsTable.createdAt))
       .limit(7);
 
-    const today = new Date().toISOString().split("T")[0]!;
+    const today = dayKeyInZone(Date.now(), await userZone(req.userId));
     const todayMood = moods.find(m => m.date === today)?.mood ?? null;
 
     res.json({ moods, todayMood });
@@ -174,7 +175,7 @@ router.post("/break-free/moods", authMiddleware, async (req: AuthRequest, res: R
     return;
   }
 
-  const today = new Date().toISOString().split("T")[0]!;
+  const today = dayKeyInZone(Date.now(), await userZone(req.userId));
 
   try {
     let entry;

@@ -8,7 +8,6 @@ import {
   focusSessionsTable,
   tokenLedgerTable,
   premiumEntitlementsTable,
-  premiumPlansTable,
   userPetInventoryTable,
   petCatalogTable,
   battlePassClaimsTable,

@@ -68,7 +68,7 @@ export default function StudyMethodCalculator() {
            </div>
 
            <div className="flex flex-col justify-center items-center text-center p-8 rounded-3xl border border-[var(--brand-400)]/20 bg-[var(--brand-400)]/5">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--brand-400)] mb-2">Recommended Strategy</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--brand-400)] mb-2">Recommended Strategy</p>
               <h2 className="text-3xl font-semibold mb-6">{recommendedMethod}</h2>
 
               <div className="space-y-4 mb-8">
@@ -76,14 +76,14 @@ export default function StudyMethodCalculator() {
                     <Clock size={20} className="text-[var(--brand-400)]" />
                     <div>
                        <p className="text-xl font-semibold text-[var(--palette-white)]">{hoursPerDay} Hours</p>
-                       <p className="text-[10px] uppercase text-[var(--foreground-subtle)]">Daily Study Volume</p>
+                       <p className="text-[11px] uppercase text-[var(--foreground-subtle)]">Daily Study Volume</p>
                     </div>
                  </div>
                  <div className="flex items-center gap-3 text-left">
                     <Target size={20} className="text-[var(--brand-400)]" />
                     <div>
                        <p className="text-xl font-semibold text-[var(--palette-white)]">{Math.ceil(hoursPerDay * 2.4)} Sessions</p>
-                       <p className="text-[10px] uppercase text-[var(--foreground-subtle)]">Average Daily Blocks</p>
+                       <p className="text-[11px] uppercase text-[var(--foreground-subtle)]">Average Daily Blocks</p>
                     </div>
                  </div>
               </div>

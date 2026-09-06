@@ -383,7 +383,7 @@ export default function ForgePage() {
                             <p className="text-[11px] text-[var(--foreground-subtle)]">{room.theme}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--muted)] px-2.5 py-1 text-[10px] text-[var(--foreground-muted)]">
+                        <div className="flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--muted)] px-2.5 py-1 text-[11px] text-[var(--foreground-muted)]">
                           <span className="h-1.5 w-1.5 rounded-full bg-[var(--palette-4ade80)] animate-pulse" />
                           {room.occupancy}
                         </div>
@@ -394,7 +394,7 @@ export default function ForgePage() {
                         {room.users.map((u) => (
                           <div
                             key={u}
-                            className="flex h-6 w-6 items-center justify-center rounded-full text-[9px] font-bold text-[var(--palette-white)]"
+                            className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold text-[var(--palette-white)]"
                             style={{ background: USER_AVATAR_COLORS[u.charCodeAt(0) % USER_AVATAR_COLORS.length] }}
                             title={u}
                           >
@@ -402,7 +402,7 @@ export default function ForgePage() {
                           </div>
                         ))}
                         {room.occupancy > room.users.length && (
-                          <div className="flex h-6 items-center rounded-full bg-[var(--surface-hover)] px-1.5 text-[9px] text-[var(--foreground-subtle)]">
+                          <div className="flex h-6 items-center rounded-full bg-[var(--surface-hover)] px-1.5 text-[11px] text-[var(--foreground-subtle)]">
                             +{room.occupancy - room.users.length}
                           </div>
                         )}
@@ -416,16 +416,16 @@ export default function ForgePage() {
                         >
                           <div className="flex items-center justify-between">
                             <div>
-                              <p className="text-[10px] text-[var(--brand-400)]">You are studying</p>
+                              <p className="text-[11px] text-[var(--brand-400)]">You are studying</p>
                               <p className="text-lg font-mono font-bold text-[var(--foreground)]">{formatTime(presenceTimer)}</p>
                             </div>
                             <div className="flex gap-1">
                               {SUBJECTS.slice(0, 3).map((s) => (
-                                <span key={s} className="rounded-full bg-[var(--rgba-124-58-237-0_2)] px-2 py-0.5 text-[9px] text-[var(--brand-400)]">{s}</span>
+                                <span key={s} className="rounded-full bg-[var(--rgba-124-58-237-0_2)] px-2 py-0.5 text-[11px] text-[var(--brand-400)]">{s}</span>
                               ))}
                             </div>
                           </div>
-                          <p className="mt-1 text-[9px] text-[var(--foreground-subtle)]">👁 Focus mode: others can see you're here</p>
+                          <p className="mt-1 text-[11px] text-[var(--foreground-subtle)]">👁 Focus mode: others can see you're here</p>
                         </motion.div>
                       )}
 
@@ -496,7 +496,7 @@ export default function ForgePage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-semibold text-[var(--foreground)]">{track.name}</p>
-                          <p className="text-[10px] text-[var(--foreground-subtle)]">{track.description}</p>
+                          <p className="text-[11px] text-[var(--foreground-subtle)]">{track.description}</p>
                         </div>
                         <button
                           onClick={() => toggleTrack(track.id)}
@@ -537,7 +537,7 @@ export default function ForgePage() {
               </div>
 
               {playing.size >= 2 && (
-                <p className="mt-2 text-center text-[10px] text-[var(--brand-400)]">
+                <p className="mt-2 text-center text-[11px] text-[var(--brand-400)]">
                   🎛 Mix mode active — {playing.size} tracks playing
                 </p>
               )}

@@ -63,13 +63,13 @@ export function AdminMissionsPanel({ data }: { data: MissionData }) {
                       <div className="h-1.5 w-16 rounded-full bg-[var(--palette-zinc-800)] overflow-hidden">
                         <div className="h-full rounded-full bg-[var(--palette-violet-500)]/70" style={{ width: `${m.completionRate}%` }} />
                       </div>
-                      <span className="text-[10px] text-[var(--palette-zinc-500)]">{m.completionRate}%</span>
+                      <span className="text-[11px] text-[var(--palette-zinc-500)]">{m.completionRate}%</span>
                     </div>
                   </td>
                   <td className="px-4 py-2.5">
-                    <span className="text-[10px] text-[var(--palette-violet-400)]">+{m.xpReward}xp</span>
-                    <span className="text-[10px] text-[var(--palette-zinc-600)] mx-1">·</span>
-                    <span className="text-[10px] text-[var(--palette-amber-400)]">{m.coinReward}🪙</span>
+                    <span className="text-[11px] text-[var(--palette-violet-400)]">+{m.xpReward}xp</span>
+                    <span className="text-[11px] text-[var(--palette-zinc-600)] mx-1">·</span>
+                    <span className="text-[11px] text-[var(--palette-amber-400)]">{m.coinReward}🪙</span>
                   </td>
                 </tr>
               ))}

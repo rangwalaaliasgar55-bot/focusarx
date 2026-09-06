@@ -1,12 +1,13 @@
-import { Request, Response, NextFunction } from "express";
+import { Response } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import {
   db, focusDnaTable, focusSessionsTable, distractionLogsTable,
 } from "@workspace/db";
 import { eq, desc, count } from "drizzle-orm";
-import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
+import { clockInZone } from "../lib/timezone";
+import { userZone } from "../lib/userZone";
 import { generateAi } from "../lib/aiProvider";
 
 const router = Router();
@@ -63,11 +64,12 @@ router.post("/focus-dna/generate", authMiddleware, async (req: AuthRequest, res:
     const dayCounts: Record<number, number> = {};
     let totalDurationSec = 0;
 
+    const zone = await userZone(req.userId);
     for (const s of sessions) {
       totalDurationSec += s.durationSec;
-      const d = s.completedAt ? new Date(s.completedAt) : new Date(s.createdAt);
-      hourCounts[d.getHours()] = (hourCounts[d.getHours()] ?? 0) + 1;
-      dayCounts[d.getDay()] = (dayCounts[d.getDay()] ?? 0) + 1;
+      const { hour, weekday } = clockInZone(s.completedAt ?? s.createdAt, zone);
+      hourCounts[hour] = (hourCounts[hour] ?? 0) + 1;
+      dayCounts[weekday] = (dayCounts[weekday] ?? 0) + 1;
     }
 
     const topHour = Number(Object.entries(hourCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 12);

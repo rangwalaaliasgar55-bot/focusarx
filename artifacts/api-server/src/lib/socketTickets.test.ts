@@ -1,3 +1,4 @@
+import jwt from "jsonwebtoken";
 import { describe, expect, it } from "vitest";
 import { issueSocketTicket, verifySocketTicket, SOCKET_TICKET_TTL_SEC } from "./socketTickets";
 
@@ -18,7 +19,6 @@ describe("socket tickets", () => {
 
   it("rejects access tokens presented as socket tickets (audience pinning)", () => {
     // An HS256 access token shaped like the auth.ts ones.
-    const jwt = require("jsonwebtoken") as typeof import("jsonwebtoken");
     const accessToken = jwt.sign(
       { sub: "user-1", type: "access" },
       SECRET,
@@ -28,7 +28,6 @@ describe("socket tickets", () => {
   });
 
   it("rejects expired tickets", () => {
-    const jwt = require("jsonwebtoken") as typeof import("jsonwebtoken");
     const expired = jwt.sign(
       { sub: "user-1", type: "socket_ticket" },
       SECRET,

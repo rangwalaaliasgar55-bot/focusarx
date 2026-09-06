@@ -19,7 +19,7 @@ export default function ScienceOfDeepWorkPage() {
       <div className="relative overflow-hidden border-b border-[var(--palette-white)]/5 py-24">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,var(--rgba-124-58-237-0_15),transparent_70%)]" />
         <Section className="relative text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--palette-purple-500)]/30 bg-[var(--palette-purple-500)]/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--palette-purple-300)] mb-8">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--palette-purple-500)]/30 bg-[var(--palette-purple-500)]/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--palette-purple-300)] mb-8">
             <Brain size={12} className="text-[var(--palette-purple-400)]" /> Cognitive Research
           </div>
           <h1 className="text-4xl sm:text-6xl font-semibold tracking-tight mb-6">
@@ -90,7 +90,7 @@ export default function ScienceOfDeepWorkPage() {
              Initialize Deep Work
            </button>
          </Link>
-         <p className="mt-6 text-[10px] uppercase font-bold tracking-[0.2em] text-[var(--foreground-subtle)]">Science-Backed · Free Forever · No Credit Card</p>
+         <p className="mt-6 text-[11px] uppercase font-bold tracking-[0.2em] text-[var(--foreground-subtle)]">Science-Backed · Free Forever · No Credit Card</p>
       </Section>
     </div>
   );

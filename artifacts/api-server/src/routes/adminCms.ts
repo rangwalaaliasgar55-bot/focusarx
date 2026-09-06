@@ -10,7 +10,6 @@ import {
   usersTable,
   userWalletsTable,
   premiumSubscriptionsTable,
-  coinTransactionsTable,
 } from "@workspace/db";
 import { eq, sql, count } from "drizzle-orm";
 import { logger } from "../lib/logger";

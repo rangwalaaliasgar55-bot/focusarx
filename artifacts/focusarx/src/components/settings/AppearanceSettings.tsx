@@ -241,7 +241,7 @@ function EffectsSettings() {
                   <span className="block text-xs font-bold text-[var(--foreground)]">
                     {p.label}
                     {p.pro && (
-                      <span className="ml-1.5 rounded-full bg-[var(--warning-soft)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--warning)]">
+                      <span className="ml-1.5 rounded-full bg-[var(--warning-soft)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--warning)]">
                         Pro
                       </span>
                     )}

@@ -5,7 +5,7 @@ import { useNotificationPermission } from "@/hooks/useNotificationPermission";
 import { useToast } from "@/components/Toast";
 
 export function NotificationPermissionPrompt() {
-  const { permission, showSoftPrompt, isDefault, requestPermission, dismissSoftPrompt } = useNotificationPermission();
+  const { showSoftPrompt, isDefault, requestPermission, dismissSoftPrompt } = useNotificationPermission();
   const { toast } = useToast();
 
   if (!showSoftPrompt || !isDefault) return null;
@@ -57,7 +57,7 @@ export function NotificationPermissionPrompt() {
                   Not now
                 </button>
               </div>
-              <p className="mt-2 text-[10px] text-[var(--foreground-subtle)]">
+              <p className="mt-2 text-[11px] text-[var(--foreground-subtle)]">
                 We only send session alerts, no spam. You can change this in Settings → Notifications.
               </p>
             </div>

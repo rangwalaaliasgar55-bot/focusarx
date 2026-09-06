@@ -34,9 +34,9 @@ type SaveState = { kind: "ok" | "err"; msg: string } | null;
 function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">{label}</span>
+      <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">{label}</span>
       {children}
-      {hint && <span className="mt-1 block text-[10px] text-[var(--palette-zinc-600)]">{hint}</span>}
+      {hint && <span className="mt-1 block text-[11px] text-[var(--palette-zinc-600)]">{hint}</span>}
     </label>
   );
 }
@@ -236,7 +236,7 @@ export function UserManagerDialog({
                   className="flex items-center gap-1.5 rounded-lg bg-[var(--palette-violet-700)] px-4 py-2 text-xs font-semibold text-[var(--palette-white)] hover:bg-[var(--palette-violet-600)] disabled:opacity-50">
                   {busy === "profile" ? <RefreshCw size={12} className="animate-spin" /> : <Save size={12} />} Save profile
                 </button>
-                <span className="text-[10px] text-[var(--palette-zinc-600)]">
+                <span className="text-[11px] text-[var(--palette-zinc-600)]">
                   Referral {u?.referralCode ?? "—"} · Productivity {u?.productivityScore ?? 0} · {u?.hasPassword ? "password login" : "no password set"}
                 </span>
               </div>
@@ -320,7 +320,7 @@ export function UserManagerDialog({
               </div>
               {tempPassword && (
                 <div className="mt-3 rounded-lg border border-[var(--palette-amber-800)]/50 bg-[var(--palette-amber-950)]/20 p-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--palette-amber-400)]">Temporary password — shown once</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-amber-400)]">Temporary password — shown once</p>
                   <div className="mt-1 flex items-center gap-2">
                     <code className="flex-1 rounded bg-[var(--palette-zinc-950)] px-2 py-1.5 font-mono text-sm text-[var(--palette-amber-300)]">{tempPassword}</code>
                     <button
@@ -364,7 +364,7 @@ export function UserManagerDialog({
                         {Math.round((s.durationSec ?? 0) / 60)}m {s.mode}
                         {s.focusScore != null && <span className="ml-2 text-[var(--palette-zinc-500)]">score {Math.round(s.focusScore)}</span>}
                       </span>
-                      <span className="text-[10px] text-[var(--palette-zinc-600)]">
+                      <span className="text-[11px] text-[var(--palette-zinc-600)]">
                         {s.completedAt ? new Date(s.completedAt).toLocaleString() : s.sessionStatus ?? ""}
                       </span>
                     </div>
@@ -373,7 +373,7 @@ export function UserManagerDialog({
               )}
             </section>
 
-            <p className="flex items-center gap-1.5 text-[10px] text-[var(--palette-zinc-600)]">
+            <p className="flex items-center gap-1.5 text-[11px] text-[var(--palette-zinc-600)]">
               <ShieldAlert size={11} /> All changes are logged server-side. Deleting users is available from the Users table.
             </p>
           </div>
@@ -389,7 +389,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 px-3 py-2 text-center">
       <p className="text-sm font-bold text-[var(--palette-zinc-200)]">{value}</p>
-      <p className="mt-0.5 text-[9px] uppercase tracking-wider text-[var(--palette-zinc-500)]">{label}</p>
+      <p className="mt-0.5 text-[11px] uppercase tracking-wider text-[var(--palette-zinc-500)]">{label}</p>
     </div>
   );
 }

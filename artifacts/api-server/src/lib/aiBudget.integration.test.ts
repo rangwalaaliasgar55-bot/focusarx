@@ -11,7 +11,6 @@ const hasDb = Boolean(process.env.DATABASE_URL);
 describe.runIf(hasDb)("ai budget manager (Workstream G)", () => {
   let db: typeof import("@workspace/db").db;
   let pool: typeof import("@workspace/db").pool;
-  let aiBudgetStateTable: typeof import("@workspace/db").aiBudgetStateTable;
   let aiCallLogTable: typeof import("@workspace/db").aiCallLogTable;
   let checkBudget: typeof import("./aiBudget").checkBudget;
   let recordCall: typeof import("./aiBudget").recordCall;
@@ -24,7 +23,6 @@ describe.runIf(hasDb)("ai budget manager (Workstream G)", () => {
     const m = await import("@workspace/db");
     db = m.db;
     pool = m.pool;
-    aiBudgetStateTable = m.aiBudgetStateTable;
     aiCallLogTable = m.aiCallLogTable;
     const b = await import("./aiBudget");
     checkBudget = b.checkBudget;

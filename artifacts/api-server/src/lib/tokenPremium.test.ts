@@ -1,4 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 // Mock DB layer - we test logic invariants without real DB
 // Real DB integration would need postgres, but we test pure logic paths
@@ -119,10 +121,10 @@ describe("Token Premium Economy - invariants", () => {
 
   it("admin roles: super/content/event/moderator/support/analytics", () => {
     const roles = ["super", "content", "event", "moderator", "support", "analytics"];
-    const admin = { role: "super" as string };
-    const canGrantTokens = ["super", "content"].includes(admin.role) || admin.role === "admin";
-    // super should be able to manage tokens, but in current impl checkAdminAuth checks any admin role
+    const canGrantTokens = (role: string) => ["super", "content"].includes(role) || role === "admin";
     expect(roles).toContain("super");
+    expect(canGrantTokens("super")).toBe(true);
+    expect(canGrantTokens("moderator")).toBe(false);
   });
 
   it("pet ownership check", () => {
@@ -152,28 +154,30 @@ describe("Token Premium Economy - invariants", () => {
   });
 
   it("private not indexed: pets, battle-pass, quests, profile, analytics, city, dashboard", () => {
-    const privateRoutes = ["/pets", "/battle-pass", "/quests", "/profile", "/analytics", "/city", "/dashboard"];
-    const noindexMap: Record<string, boolean> = {
-      "/pets": true,
-      "/battle-pass": true,
-      "/quests": true,
-      "/profile": true,
-      "/analytics": true,
-      "/city": false, // city is currently not noindex? But should be private per robots
-      "/dashboard": true,
-    };
-    for (const r of privateRoutes) {
-      // At least robots.txt disallows
-      const disallowed = true; // checked via robots.txt
-      expect(disallowed).toBe(true);
+    const robots = readFileSync(resolve(__dirname, "../../../focusarx/public/robots.txt"), "utf8");
+    const disallowed = new Set(
+      robots.split("\n").map((l) => l.trim()).filter((l) => l.startsWith("Disallow:")).map((l) => l.slice("Disallow:".length).trim()),
+    );
+    for (const r of ["/pets", "/battle-pass", "/quests", "/profile", "/analytics", "/city", "/dashboard"]) {
+      expect(disallowed.has(r), `${r} should be disallowed in robots.txt`).toBe(true);
     }
   });
 
-  it("public metadata: premium, focus-timer, focus-guide, pomodoro-guide have OG, title, canonical", () => {
-    const publicPages = ["/premium", "/focus-timer", "/focus-guide", "/pomodoro-guide"];
-    for (const p of publicPages) {
-      const hasSEO = true; // PageSEO exists for these
-      expect(hasSEO).toBe(true);
+  it("public metadata: focus-timer, focus-guide, pomodoro-guide have SEO title + canonical", () => {
+    const webSrc = resolve(__dirname, "../../../focusarx/src");
+    const presets = readFileSync(resolve(webSrc, "components/PageSEO.tsx"), "utf8");
+    const cases: Array<[page: string, preset: string, canonical: string]> = [
+      ["focus-timer", "focusTimer", "/focus-timer"],
+      ["focus-guide", "focusGuide", "/focus-guide"],
+      ["pomodoro-guide", "pomodoroGuide", "/pomodoro-guide"],
+    ];
+    for (const [page, preset, canonical] of cases) {
+      const src = readFileSync(resolve(webSrc, "pages", `${page}.tsx`), "utf8");
+      expect(src, `${page} should render PageSEO`).toMatch(/<PageSEO/);
+      expect(src, `${page} should use the ${preset} preset`).toContain(`PAGE_SEO.${preset}`);
+      const block = presets.slice(presets.indexOf(`${preset}: {`));
+      expect(block, `${preset} preset should set canonical ${canonical}`).toContain(`canonical: "${canonical}"`);
+      expect(block, `${preset} preset should set a title`).toMatch(/title: "/);
     }
   });
 });

@@ -33,11 +33,12 @@ import {
   UserRound,
   Users,
   WalletCards,
-  X,
   Zap,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth, getToken, isAdminUser } from "@/lib/auth";
+import { apiFetch } from "@/lib/api";
+import { formatClock, useFocusSessionState } from "@/lib/focusSessionBus";
 import { useTheme } from "@/lib/theme";
 import { useSessionHistory } from "@/hooks/useSessionHistory";
 import { cn } from "@/lib/utils";
@@ -83,7 +84,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Workspace",
     entries: [
-      { href: "/", label: "Focus", icon: Timer },
+      { href: "/", label: "Timer", icon: Timer },
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { href: "/tasks", label: "Tasks", icon: CheckSquare2 },
       { href: "/goals", label: "Goals", icon: Goal },
@@ -134,11 +135,12 @@ const NO_SHELL = [
   "/welcome",
 ];
 
+// Both counters go through apiFetch rather than a bare fetch so an expired
+// access token is refreshed silently instead of the badges quietly going to 0
+// for the rest of the session.
 async function fetchMissionCount() {
-  const token = getToken();
-  const response = await fetch("/api/missions", {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
+  if (!getToken()) return 0;
+  const response = await apiFetch("/api/missions");
   if (!response.ok) return 0;
   const data = await response.json();
   return [...(data?.daily ?? []), ...(data?.weekly ?? [])].filter(
@@ -147,11 +149,8 @@ async function fetchMissionCount() {
 }
 
 async function fetchNotificationCount() {
-  const token = getToken();
-  if (!token) return 0;
-  const response = await fetch("/api/notifications", {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  if (!getToken()) return 0;
+  const response = await apiFetch("/api/notifications");
   if (!response.ok) return 0;
   return (await response.json())?.unreadCount ?? 0;
 }
@@ -298,6 +297,29 @@ function UserMenu({ compact = false }: { compact?: boolean }) {
   );
 }
 
+/**
+ * Live block pill. Visible on every page while a focus block runs, so leaving
+ * the timer page to check tasks or the dashboard never means losing sight of
+ * the clock. Clicking returns to the timer.
+ */
+function LiveSessionPill() {
+  const live = useFocusSessionState();
+  const [location] = useLocation();
+  if (live.status === "idle" || location === "/") return null;
+  const paused = live.status === "paused";
+  return (
+    <Link
+      href="/"
+      className={cn("live-pill", paused && "live-pill-paused")}
+      aria-label={`${paused ? "Paused" : "Running"} ${live.mode === "focus" ? "focus" : "break"} block, ${formatClock(live.secondsLeft)} remaining. Return to timer.`}
+    >
+      <span className="live-pill-dot" aria-hidden="true" />
+      <span className="tabular-nums">{formatClock(live.secondsLeft)}</span>
+      <span className="hidden lg:inline">{paused ? "paused" : live.mode === "focus" ? "focusing" : "on break"}</span>
+    </Link>
+  );
+}
+
 function Topbar({ onMenu, onOpenGuide }: { onMenu: () => void; onOpenGuide: () => void }) {
   const { focusSessionsToday } = useSessionHistory();
   const { data: notificationCount = 0 } = useQuery({
@@ -327,15 +349,16 @@ function Topbar({ onMenu, onOpenGuide }: { onMenu: () => void; onOpenGuide: () =
       </button>
 
       <div className="ml-auto flex items-center gap-1 sm:gap-2">
+        <LiveSessionPill />
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           size="sm"
           onClick={onOpenGuide}
-          className="hidden md:inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 border-indigo-500/20 bg-indigo-500/5 hover:bg-indigo-500/10 min-h-[36px]"
+          className="hidden min-h-[36px] items-center gap-1.5 md:inline-flex"
           aria-label="Explore features"
         >
-          <Compass size={15} className="text-indigo-400" />
+          <Compass size={15} />
           <span>Guide</span>
         </Button>
 
@@ -359,12 +382,14 @@ function Topbar({ onMenu, onOpenGuide }: { onMenu: () => void; onOpenGuide: () =
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { status } = useAuth();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  // The drawer remembers which route it was opened on; navigating anywhere
+  // else closes it by derivation, with no location-watching effect needed.
+  const [openedAt, setOpenedAt] = useState<string | null>(null);
+  const mobileOpen = openedAt === location;
+  const setMobileOpen = (open: boolean) => setOpenedAt(open ? location : null);
   const [moreOpen, setMoreOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
   const [isFocusActive, setIsFocusActive] = useState(false);
-
-  useEffect(() => setMobileOpen(false), [location]);
 
   useEffect(() => {
     const handleStart = () => setIsFocusActive(true);
@@ -409,7 +434,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             type="button"
             variant="ghost"
             onClick={() => setGuideOpen(true)}
-            className="w-full justify-start text-xs text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 gap-2 h-9"
+            className="h-9 w-full justify-start gap-2 text-xs text-[var(--brand-strong)] hover:bg-[var(--brand-soft)]"
           >
             <Compass size={15} /> <span>Feature Guide & Compass</span>
           </Button>
@@ -438,7 +463,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               type="button"
               variant="ghost"
               onClick={() => { setMobileOpen(false); setGuideOpen(true); }}
-              className="w-full justify-start text-xs text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 gap-2 h-9 mb-2"
+              className="mb-2 h-9 w-full justify-start gap-2 text-xs text-[var(--brand-strong)] hover:bg-[var(--brand-soft)]"
             >
               <Compass size={15} /> <span>Feature Guide</span>
             </Button>

@@ -90,9 +90,11 @@ export function XPBurst({ active, earnedXp, earnedCoins, originRef }: XPBurstPro
       });
     }
 
-    setParticles(newParticles);
+    // Particles depend on a DOM measurement (origin element), so they are
+    // committed on the next frame rather than synchronously in the effect.
+    const raf = requestAnimationFrame(() => setParticles(newParticles));
     const timer = setTimeout(() => setParticles([]), 1800);
-    return () => clearTimeout(timer);
+    return () => { cancelAnimationFrame(raf); clearTimeout(timer); };
   }, [active]);
 
   if (particles.length === 0) return null;

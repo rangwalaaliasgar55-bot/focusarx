@@ -1,3 +1,4 @@
+import { RollingClock } from "@/components/RollingClock";
 import { lazy, Suspense, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
@@ -5,19 +6,23 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
   BarChart3,
+  Building2,
   CheckCircle2,
   CheckSquare2,
   Clock3,
   Compass,
   Flame,
+  PawPrint,
   Plus,
   RefreshCw,
   Sparkles,
+  Swords,
   Target,
   Timer,
   Trophy,
   Zap,
 } from "lucide-react";
+import { formatClock, useFocusSessionState } from "@/lib/focusSessionBus";
 import { useAuth } from "@/lib/auth";
 import { apiJson } from "@/lib/api";
 import { useTasks } from "@/hooks/useTasks";
@@ -64,6 +69,13 @@ type DashboardStats = {
   }>;
 };
 
+const EXPLORE = [
+  { href: "/quests", title: "Quests", description: "Daily and weekly challenges that pay out Focus Tokens.", cta: "View quests", icon: Target, color: "var(--brand-strong)", soft: "var(--brand-soft)" },
+  { href: "/pets", title: "Companion", description: "Your pet bonds and levels up with every completed block.", cta: "Manage pets", icon: PawPrint, color: "var(--success)", soft: "var(--success-soft)" },
+  { href: "/city", title: "Focus City", description: "Grow a hamlet into a civilization, one session at a time.", cta: "Open city", icon: Building2, color: "var(--info)", soft: "var(--info-soft)" },
+  { href: "/battle-pass", title: "Battle Pass", description: "Thirty tiers of seasonal rewards. Tokens only, no real money.", cta: "View pass", icon: Swords, color: "var(--warning)", soft: "var(--warning-soft)" },
+] as const;
+
 function getLevel(totalXp = 0) {
   return Math.floor(Math.sqrt(totalXp / 100)) + 1;
 }
@@ -75,39 +87,45 @@ function xpProgress(totalXp = 0) {
   return { level, value: ((totalXp - start) / Math.max(1, end - start)) * 100, remaining: end - totalXp };
 }
 
-function FocusHero({ onStart }: { onStart: () => void }) {
+function FocusHero({ onStart, minutes, sessions }: { onStart: () => void; minutes: number; sessions: number }) {
+  const live = useFocusSessionState();
+  const [, navigate] = useLocation();
+  const running = live.status !== "idle";
   const openGuide = () => {
     window.dispatchEvent(new CustomEvent("focusarx:open-guide"));
   };
 
   return (
     <Card elevation="glow" className="relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,var(--brand-soft-hover),transparent_60%)]" />
-      <CardContent className="relative grid min-h-[22rem] place-items-center px-5 py-10 text-center sm:min-h-[25rem]">
-        <div>
-          <Badge><Sparkles /> Science-Backed Deep Work</Badge>
-          <div className="relative mx-auto mt-7 grid h-48 w-48 place-items-center rounded-full border border-[var(--card-border)] bg-[var(--surface-hover)] shadow-[inset_0_0_0_10px_var(--brand-soft)] sm:h-56 sm:w-56">
-            <div className="absolute inset-3 rounded-full border border-dashed border-[var(--border-strong)]" aria-hidden="true" />
-            <div>
-              <p className="font-mono text-5xl font-semibold tracking-[-0.06em] text-[var(--foreground)] sm:text-6xl">25:00</p>
-              <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--foreground-subtle)]">Focus block</p>
-            </div>
-          </div>
-          <h2 className="mt-7 text-xl font-semibold tracking-tight">Protect your flow state.</h2>
-          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[var(--foreground-muted)]">
-            Choose your task, activate ambient audio, and let FocusArx handle the rhythm.
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_80%_at_80%_20%,var(--brand-soft-hover),transparent_70%)]" aria-hidden="true" />
+      <CardContent className="relative grid gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+        <div className="min-w-0">
+          <Badge>{running ? <><span className="live-pill-dot" aria-hidden="true" /> {live.status === "paused" ? "Paused" : "In session"}</> : <><Sparkles /> Ready when you are</>}</Badge>
+          <h2 className="mt-4 text-2xl font-semibold tracking-[-0.03em] sm:text-3xl">
+            {running ? (live.mode === "focus" ? "A focus block is running." : "You're on a break.") : sessions > 0 ? "Keep the momentum going." : "Protect your next 25 minutes."}
+          </h2>
+          <p className="mt-2 max-w-lg text-sm leading-relaxed text-[var(--foreground-muted)]">
+            {running
+              ? `${formatClock(live.secondsLeft)} left in this block. Head back to the timer to stay with it.`
+              : sessions > 0
+                ? `${minutes} minutes protected across ${sessions} ${sessions === 1 ? "block" : "blocks"} today. One more keeps the streak honest.`
+                : "Pick a task, start the timer, and let FocusArx keep the rhythm, the history, and the rewards."}
           </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <Button size="lg" className="min-w-40" onClick={onStart}>
-              <Timer /> Start Focusing
-            </Button>
-            <Button size="lg" variant="outline" onClick={openGuide} className="border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10">
-              <Compass /> Explore Features Guide
-            </Button>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            {running ? (
+              <Button size="lg" className="min-w-40" onClick={() => navigate("/")}><Timer /> Back to timer</Button>
+            ) : (
+              <Button size="lg" className="min-w-40" onClick={onStart}><Timer /> Start focusing</Button>
+            )}
+            <Button size="lg" variant="ghost" onClick={openGuide}><Compass /> Feature guide</Button>
           </div>
-          <p className="mt-3 text-xs text-[var(--foreground-subtle)]">
-            Includes Web Worker drift-protection, 3D City growth, and Google Gemini AI coaching.
-          </p>
+        </div>
+        <div className="relative mx-auto grid h-40 w-40 place-items-center rounded-full sm:h-44 sm:w-44" style={{ background: `conic-gradient(var(--brand-500) ${running ? live.progress : 0}%, var(--brand-soft) 0)` }} aria-hidden="true">
+          <div className="absolute inset-2 rounded-full bg-[var(--surface)] shadow-[var(--shadow-sm)]" />
+          <div className="relative text-center">
+            <p className="font-display text-4xl font-semibold tracking-[-0.05em]" style={{ fontFeatureSettings: '"tnum" 1' }}><RollingClock value={running ? formatClock(live.secondsLeft) : "25:00"} /></p>
+            <p className="mt-1 text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-[var(--foreground-subtle)]">{running ? (live.mode === "focus" ? "Focus" : "Break") : "Focus block"}</p>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -324,59 +342,58 @@ export default function DashboardPage() {
       ) : (
         <div className="space-y-5">
           {/* Priority: Start Focus > today progress > quest > pet > city > battle-pass > analytics > community */}
-          <FocusHero onStart={startFocus} />
+          <FocusHero onStart={startFocus} minutes={stats.totalStudyMinutesToday} sessions={stats.sessionsToday} />
           <TodaysFocus tasks={activeTasks} streak={stats.currentStreak} minutes={stats.totalStudyMinutesToday} onStart={startFocus} />
-
-          <StreakFreezeCard />
-
-          <WeeklyGoalCard weekMinutes={stats.chartData.reduce((sum, d) => sum + (d.minutes || 0), 0)} />
-
-          <RecapCard />
 
           {/* Today progress */}
           <section aria-labelledby="pulse-title">
             <div className="mb-3 flex items-center justify-between">
-              <div><h2 id="pulse-title" className="text-lg font-semibold">Today's Progress</h2><p className="text-sm text-[var(--foreground-muted)]">Live read on your momentum.</p></div>
+              <div><h2 id="pulse-title" className="text-lg font-semibold">Today's progress</h2><p className="text-sm text-[var(--foreground-muted)]">Live read on your momentum.</p></div>
               <Badge variant={stats.sessionsToday > 0 ? "success" : "secondary"}>{stats.sessionsToday > 0 ? "In motion" : "Ready to begin"}</Badge>
             </div>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <PulseCard icon={<Clock3 />} label="Minutes focused" value={stats.totalStudyMinutesToday} detail="minutes protected today" />
               <PulseCard icon={<Flame />} label="Current streak" value={stats.currentStreak} detail={stats.currentStreak ? "days of showing up" : "Start with one session"} tone="warning" />
+              <PulseCard icon={<Target />} label="Focus score" value={stats.avgFocusScore ?? 0} detail={stats.avgFocusScore ? "average session quality" : "complete a session to score"} tone="success" />
               <Card interactive className="min-h-36">
-                <CardContent>
-                  <div className="flex items-start justify-between"><span className="grid h-11 w-11 place-items-center rounded-[var(--radius-lg)] bg-[var(--brand-soft)] text-[var(--brand-strong)]"><Zap /></span><Badge>Level {xp.level}</Badge></div>
-                  <p className="mt-3 text-2xl font-semibold tabular-nums">{(walletQuery.data?.totalXp ?? 0).toLocaleString()} XP</p>
-                  <Progress value={xp.value} className="mt-2" /><p className="mt-1 text-xs text-[var(--foreground-subtle)]">{Math.max(0, xp.remaining)} XP to next level</p>
+                <CardContent className="flex h-full items-start gap-4">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-lg)] bg-[var(--brand-soft)] text-[var(--brand-strong)] [&_svg]:size-5"><Zap /></span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2"><p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--foreground-subtle)]">Level {xp.level}</p><span className="text-xs tabular-nums text-[var(--foreground-subtle)]">{Math.max(0, xp.remaining)} XP to go</span></div>
+                    <p className="mt-2 text-3xl font-semibold tracking-tight tabular-nums">{(walletQuery.data?.totalXp ?? 0).toLocaleString()}<span className="ml-1 text-sm font-medium text-[var(--foreground-muted)]">XP</span></p>
+                    <Progress value={xp.value} className="mt-2" aria-label={`Level ${xp.level} progress`} />
+                  </div>
                 </CardContent>
               </Card>
               <PulseCard icon={<CheckSquare2 />} label="Tasks due" value={activeTasks.length} detail={activeTasks.length ? "active tasks in your queue" : "Nothing waiting"} tone="success" />
+              <PulseCard icon={<Trophy />} label="Tasks completed" value={stats.completedTasks} detail="completed today" tone="warning" />
             </div>
           </section>
 
-          {/* Quest preview */}
-          <Card>
-            <CardHeader className="flex-row items-center justify-between"><div><CardTitle className="flex items-center gap-2"><Target size={16}/> Quests</CardTitle><CardDescription>Daily & weekly challenges for Focus Tokens</CardDescription></div><Button asChild variant="ghost" size="sm"><Link href="/quests">View quests <ArrowRight /></Link></Button></CardHeader>
-            <CardContent><p className="text-xs text-[var(--foreground-muted)]">Complete quests to earn Focus Tokens and unlock Premium. Premium gets more quests & streak token bonuses.</p></CardContent>
-          </Card>
-
-          {/* Pet preview */}
-          <Card>
-            <CardHeader className="flex-row items-center justify-between"><div><CardTitle>Companion</CardTitle><CardDescription>Your active pet grows with focus</CardDescription></div><Button asChild variant="ghost" size="sm"><Link href="/pets">Manage pets <ArrowRight /></Link></Button></CardHeader>
-            <CardContent><p className="text-xs text-[var(--foreground-muted)]">Bond level 1-20, unlocks at 1/3/5/8/10/15/20. Premium pets and 3D models available.</p></CardContent>
-          </Card>
-
-          {/* City preview */}
-          <Card>
-            <CardHeader className="flex-row items-center justify-between"><div><CardTitle>Focus City</CardTitle><CardDescription>Build your civilization</CardDescription></div><Button asChild variant="ghost" size="sm"><Link href="/city">Open city <ArrowRight /></Link></Button></CardHeader>
-            <CardContent><p className="text-xs text-[var(--foreground-muted)]">Premium unlocks night/sunset/weather/seasonal buildings, skyboxes, shareable snapshots.</p></CardContent>
-          </Card>
-
-          {/* Battle-pass preview */}
-          <Card>
-            <CardHeader className="flex-row items-center justify-between"><div><CardTitle>Battle Pass</CardTitle><CardDescription>30 tiers • 28-30 day season</CardDescription></div><Button asChild variant="ghost" size="sm"><Link href="/battle-pass">View pass <ArrowRight /></Link></Button></CardHeader>
-            <CardContent><p className="text-xs text-[var(--foreground-muted)]">Free + Premium tracks, token-only unlock, claim-all, grace period. No real-money.</p></CardContent>
-          </Card>
-
-
+          <section aria-labelledby="explore-title">
+            <div className="mb-3 flex items-end justify-between gap-4">
+              <div><h2 id="explore-title" className="text-lg font-semibold">Grow with every block</h2><p className="text-sm text-[var(--foreground-muted)]">Focus time feeds everything here.</p></div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {EXPLORE.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link key={item.href} href={item.href} className="group block rounded-[var(--radius-xl)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-500)]">
+                    <Card interactive className="h-full">
+                      <CardContent className="flex h-full flex-col gap-3 p-5">
+                        <span className="grid h-10 w-10 place-items-center rounded-[var(--radius-lg)] [&_svg]:size-5" style={{ color: item.color, background: item.soft }}><Icon /></span>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold">{item.title}</p>
+                          <p className="mt-1 text-xs leading-relaxed text-[var(--foreground-muted)]">{item.description}</p>
+                        </div>
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--brand-strong)]">{item.cta} <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" /></span>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
 
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(20rem,.75fr)]">
             <Card>
@@ -386,10 +403,10 @@ export default function DashboardPage() {
             <QuickTasks />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <PulseCard icon={<Clock3 />} label="Minutes focused" value={stats.totalStudyMinutesToday} detail="minutes protected today" />
-            <PulseCard icon={<Target />} label="Focus score" value={stats.avgFocusScore ?? 0} detail={stats.avgFocusScore ? "average session quality" : "complete a session to score"} tone="success" />
-            <PulseCard icon={<Trophy />} label="Tasks completed" value={stats.completedTasks} detail="completed today" tone="warning" />
+          <div className="grid gap-5 lg:grid-cols-3">
+            <WeeklyGoalCard weekMinutes={stats.chartData.reduce((sum, d) => sum + (d.minutes || 0), 0)} />
+            <StreakFreezeCard />
+            <RecapCard />
           </div>
 
           <CommunityNow />

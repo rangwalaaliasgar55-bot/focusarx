@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useRef, useState, createContext, useContext, useCallback } from "react";
+import { useRef, useState, createContext, useContext, useCallback } from "react";
 import { cn } from "@/lib/utils";
 
 type RewardType = "xp" | "coins" | "badge" | "delight" | "lootbox";

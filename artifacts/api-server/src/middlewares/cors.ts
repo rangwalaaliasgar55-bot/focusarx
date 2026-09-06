@@ -191,14 +191,14 @@ export function corsMiddleware(req: Request, res: Response, next: NextFunction):
     return;
   }
 
-  let nodeEnv = "development";
+  let nodeEnv: string;
   try {
     nodeEnv = getEnv().NODE_ENV;
   } catch {
     nodeEnv = process.env.NODE_ENV === "production" ? "production" : "development";
   }
 
-  let allowedOrigins: string[] = [];
+  let allowedOrigins: string[];
   try {
     allowedOrigins = buildAllowedOrigins();
   } catch {

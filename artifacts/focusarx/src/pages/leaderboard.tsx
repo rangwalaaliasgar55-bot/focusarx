@@ -41,7 +41,7 @@ function NameBadges({ entry }: { entry: LeaderboardEntry }) {
   return (
     <>
       {entry.isAdmin && (
-        <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full border border-[var(--rgba-239-68-68-0_35)] bg-[var(--rgba-239-68-68-0_12)] px-1.5 py-px text-[8px] font-semibold uppercase tracking-wider text-[var(--color-error)]" title="FocusArx team">
+        <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full border border-[var(--rgba-239-68-68-0_35)] bg-[var(--rgba-239-68-68-0_12)] px-1.5 py-px text-[11px] font-semibold uppercase tracking-wider text-[var(--color-error)]" title="FocusArx team">
           <Shield size={7} /> Admin
         </span>
       )}
@@ -57,7 +57,6 @@ const RANK_META = {
 
 function getMsUntilMonday(): number {
   const now = new Date();
-  const msPerDay = 86400000;
   const day = now.getDay(); // 0=Sun, 1=Mon
   const daysUntilMon = day === 0 ? 1 : 8 - day;
   const nextMon = new Date(now);
@@ -125,22 +124,22 @@ function PodiumCard({ entry, podiumRank, filter }: { entry: LeaderboardEntry; po
 
       {/* Rank number */}
       <div className="mb-0.5 flex items-center justify-center">
-        <span className="text-[10px] font-semibold" style={{ color: meta.crown }}>#{podiumRank}</span>
+        <span className="text-[11px] font-semibold" style={{ color: meta.crown }}>#{podiumRank}</span>
       </div>
 
       {/* Name */}
       <p className="max-w-[80px] truncate text-xs font-bold text-[var(--foreground)]">{entry.name}</p>
       {entry.isAdmin && <NameBadges entry={entry} />}
-      {entry.isCurrentUser && <span className="text-[9px] text-[var(--brand-400)]">(you)</span>}
+      {entry.isCurrentUser && <span className="text-[11px] text-[var(--brand-400)]">(you)</span>}
 
       {/* XP */}
       <p className="mt-1.5 text-base font-semibold" style={{ color: "var(--brand-400)" }}>
         {xp.toLocaleString()}
-        <span className="ml-0.5 text-[9px] font-normal text-[var(--foreground-subtle)]">XP</span>
+        <span className="ml-0.5 text-[11px] font-normal text-[var(--foreground-subtle)]">XP</span>
       </p>
 
       {/* Streak */}
-      <div className="mt-1 flex items-center gap-1 text-[10px] text-[var(--palette-f97316)]">
+      <div className="mt-1 flex items-center gap-1 text-[11px] text-[var(--palette-f97316)]">
         <Flame size={9} />
         {entry.streak}d
       </div>
@@ -174,7 +173,7 @@ export default function LeaderboardPage() {
       .catch(() => { setFetchError(true); setLoading(false); });
   }, [filter, scope]);
 
-  useEffect(() => { loadLeaderboard(); }, [loadLeaderboard]);
+  useEffect(() => { const t = setTimeout(() => loadLeaderboard(), 0); return () => clearTimeout(t); }, [loadLeaderboard]);
 
   const sorted = [...entries]
     .sort((a, b) => filter === "weekly" ? b.weeklyXp - a.weeklyXp : b.totalXp - a.totalXp)
@@ -223,13 +222,13 @@ export default function LeaderboardPage() {
           {/* Weekly reset chip */}
           <div className="mb-5 flex flex-wrap items-center gap-3">
             <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--rgba-6-214-160-0_2)] bg-[var(--rgba-6-214-160-0_06)] px-3 py-1">
-              <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--brand-teal)]">Weekly reset</span>
-              <span className="text-[10px] font-bold text-[var(--brand-teal)]">{resetCountdown}</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--brand-teal)]">Weekly reset</span>
+              <span className="text-[11px] font-bold text-[var(--brand-teal)]">{resetCountdown}</span>
             </div>
             {fetchError && (
               <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--rgba-239-68-68-0_25)] bg-[var(--rgba-239-68-68-0_06)] px-3 py-1">
                 <Medal size={10} className="text-[var(--color-error)]" />
-                <p className="text-[10px] text-[var(--color-error)]">Could not load rankings</p>
+                <p className="text-[11px] text-[var(--color-error)]">Could not load rankings</p>
               </div>
             )}
 
@@ -327,20 +326,20 @@ export default function LeaderboardPage() {
                           {entry.name}
                           <NameBadges entry={entry} />
                           {entry.isPremium && <Crown size={10} className="ml-1 inline text-[var(--brand-gold)]" aria-label="Premium" />}
-                          {entry.isCurrentUser && <span className="ml-1.5 text-[9px] font-normal text-[var(--brand-400)]">(you)</span>}
+                          {entry.isCurrentUser && <span className="ml-1.5 text-[11px] font-normal text-[var(--brand-400)]">(you)</span>}
                         </p>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="flex items-center gap-0.5 text-[10px] text-[var(--palette-f97316)]">
+                          <span className="flex items-center gap-0.5 text-[11px] text-[var(--palette-f97316)]">
                             <Flame size={9} />{entry.streak}d
                           </span>
-                          <span className="text-[10px] text-[var(--brand-gold)]">🪙{entry.coins.toLocaleString()}</span>
+                          <span className="text-[11px] text-[var(--brand-gold)]">🪙{entry.coins.toLocaleString()}</span>
                         </div>
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-bold text-[var(--brand-400)]">
                           {(filter === "weekly" ? entry.weeklyXp : entry.totalXp).toLocaleString()}
                         </p>
-                        <p className="text-[10px] text-[var(--foreground-subtle)]">XP</p>
+                        <p className="text-[11px] text-[var(--foreground-subtle)]">XP</p>
                       </div>
                     </motion.div>
                   ))}

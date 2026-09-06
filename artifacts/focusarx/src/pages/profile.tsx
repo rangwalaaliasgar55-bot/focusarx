@@ -11,18 +11,15 @@ import {
   History,
   Lock,
   Save,
-  Sparkles,
   Star,
   Target,
   TrendingDown,
   TrendingUp,
   UserRound,
   WalletCards,
-  X,
   Zap,
   Crown,
   Palette,
-  Image as ImageIcon,
 } from "lucide-react";
 import { usePremium } from "@/hooks/usePremium";
 import { useQuery } from "@tanstack/react-query";
@@ -128,7 +125,7 @@ function ProfileDialog({ open, initial, onOpenChange, onSave }: { open: boolean;
             {error && <p className="rounded-lg bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]" role="alert">{error}</p>}
             <div><label htmlFor="profile-name" className="mb-2 block text-sm font-medium">Display name</label><Input id="profile-name" value={fields.name} onChange={(event) => setFields((current) => ({ ...current, name: event.target.value }))} /></div>
             <div><label htmlFor="profile-bio" className="mb-2 block text-sm font-medium">Bio</label><Textarea id="profile-bio" rows={4} value={fields.bio} onChange={(event) => setFields((current) => ({ ...current, bio: event.target.value }))} placeholder="A short note about what you are working toward" /></div>
-            <div><label className="mb-2 block text-sm font-medium">Timezone</label><Select value={fields.timezone} onValueChange={(timezone) => setFields((current) => ({ ...current, timezone }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{TIMEZONES.map((timezone) => <SelectItem key={timezone} value={timezone}>{timezone}</SelectItem>)}</SelectContent></Select></div>
+            <div><p id="profile-timezone-label" className="mb-2 block text-sm font-medium">Timezone</p><Select value={fields.timezone} onValueChange={(timezone) => setFields((current) => ({ ...current, timezone }))}><SelectTrigger aria-labelledby="profile-timezone-label"><SelectValue /></SelectTrigger><SelectContent>{TIMEZONES.map((timezone) => <SelectItem key={timezone} value={timezone}>{timezone}</SelectItem>)}</SelectContent></Select></div>
           </div>
           <DialogFooter><Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button><Button type="submit" loading={saving}><Save /> Save profile</Button></DialogFooter>
         </form>
@@ -158,7 +155,7 @@ function ActivityHeatmap({ data }: { data: Record<string, number> }) {
 /** Sound preferences (audit L1): persistent toggles for effects + coach voice. */
 function SoundPreferencesCard() {
   const [effectsOn, setEffectsOn] = useState(() => localStorage.getItem("fx_muted") !== "1");
-  const [voiceOn, setVoiceOn] = useState(() => localStorage.getItem("fx-coach-voice") === "true");
+  const [voiceOn, setVoiceOn] = useState(() => localStorage.getItem("fx-coach-voice") !== "false");
 
   const setEffects = (on: boolean) => {
     localStorage.setItem("fx_muted", on ? "0" : "1");
@@ -208,6 +205,7 @@ function AchievementCard({ badge }: { badge: BadgeDef }) {
 }
 
 function CustomizationTab() {
+  const { toast } = useToast();
   const { isPremium } = usePremium();
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["cosmetics-inventory"],
@@ -219,11 +217,6 @@ function CustomizationTab() {
     },
   });
 
-  const equipMutation = useQuery({
-    queryKey: ["equip-mutation-placeholder"],
-    queryFn: async () => null,
-    enabled: false,
-  });
 
   const handleEquip = async (id: string) => {
     const token = getToken();
@@ -233,8 +226,9 @@ function CustomizationTab() {
   const handleUnlock = async (id: string) => {
     const token = getToken();
     const res = await fetch(`/api/cosmetics/${id}/unlock`, { method: "POST", headers: { Authorization: `Bearer ${token ?? ""}` } });
-    const json = await res.json();
-    if (!res.ok) alert(json.error || "Failed");
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) toast(json.error || "Couldn't unlock that item.", "error");
+    else toast("Unlocked!", "success");
     refetch();
   };
 
@@ -266,7 +260,7 @@ function CustomizationTab() {
                   return (
                     <div key={c.id} className={`rounded-xl border p-3 ${inv?.equipped ? "border-[var(--brand-400)] bg-[var(--brand-soft)]" : "border-[var(--border-subtle)] bg-[var(--surface-hover)]"}`}>
                       <p className="text-sm font-semibold">{c.name}</p>
-                      <p className="text-[10px] text-[var(--foreground-subtle)]">{c.description ?? c.type} • {c.rarity} {c.premium ? "• Premium" : ""}</p>
+                      <p className="text-[11px] text-[var(--foreground-subtle)]">{c.description ?? c.type} • {c.rarity} {c.premium ? "• Premium" : ""}</p>
                       {c.tokenCost > 0 && <p className="mt-1 text-[11px] font-bold text-[var(--palette-amber-400)]">🪙 {c.tokenCost} tokens</p>}
                       <div className="mt-2 flex gap-1.5">
                         {owned ? <button onClick={() => handleEquip(c.id)} className={`flex-1 rounded-lg py-1.5 text-xs font-bold ${inv?.equipped ? "bg-[var(--surface-1)] text-[var(--brand-400)]" : "bg-[var(--brand-600)] text-white"}`}>{inv?.equipped ? "Equipped" : "Equip"}</button> : <button onClick={() => handleUnlock(c.id)} className="flex-1 rounded-lg bg-[var(--surface-1)] py-1.5 text-xs font-bold">{c.tokenCost > 0 ? "Unlock" : "Claim"}</button>}

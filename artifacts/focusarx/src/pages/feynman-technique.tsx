@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { ArrowRight, Brain, Clock, Zap, CheckCircle, GraduationCap, MessageSquare } from "lucide-react";
+import { Brain, Clock, Zap, GraduationCap, MessageSquare } from "lucide-react";
 import { PageSEO } from "@/components/PageSEO";
 
 export default function FeynmanTechniquePage() {
@@ -14,7 +14,7 @@ export default function FeynmanTechniquePage() {
 
       <div className="max-w-4xl mx-auto px-6 py-24">
         <header className="text-center mb-20">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--palette-emerald-300)] mb-8">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--palette-emerald-300)] mb-8">
             <GraduationCap size={12} /> Study Methodology
           </div>
           <h1 className="text-4xl sm:text-7xl font-semibold tracking-tight mb-6">

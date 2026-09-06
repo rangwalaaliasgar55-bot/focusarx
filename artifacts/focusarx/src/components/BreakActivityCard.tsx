@@ -105,7 +105,7 @@ function CountdownRing({ secondsLeft, totalSeconds, color }: { secondsLeft: numb
           {m}:{s}
         </text>
       </svg>
-      <p className="text-[9px] text-[var(--palette-zinc-500)] uppercase tracking-widest">break left</p>
+      <p className="text-[11px] text-[var(--palette-zinc-500)] uppercase tracking-widest">break left</p>
     </div>
   );
 }
@@ -117,14 +117,17 @@ interface BreakActivityCardProps {
 }
 
 export default function BreakActivityCard({ mode, secondsLeft, breakDurationSeconds }: BreakActivityCardProps) {
-  const [activityIndex, setActivityIndex] = useState(0);
+  // Re-roll the activity whenever the break mode changes (React's
+  // "adjust state when a prop changes" pattern — no effect needed).
+  const [picked, setPicked] = useState(() => ({ mode, index: Math.floor(Math.random() * ACTIVITIES.length) }));
+  if (picked.mode !== mode) {
+    // Rotate to the next activity so consecutive breaks never repeat.
+    setPicked({ mode, index: (picked.index + 1) % ACTIVITIES.length });
+  }
+  const activityIndex = picked.index;
+  const setActivityIndex = (index: number) => setPicked({ mode, index });
   const isBreathingActivity = ACTIVITIES[activityIndex]?.title === "Box Breathe";
   const { scale, label } = useBreathingAnimation(isBreathingActivity);
-
-  useEffect(() => {
-    const idx = Math.floor(Math.random() * ACTIVITIES.length);
-    setActivityIndex(idx);
-  }, [mode]);
 
   const activity = ACTIVITIES[activityIndex]!;
   const isLong = mode === "longBreak";
@@ -148,7 +151,7 @@ export default function BreakActivityCard({ mode, secondsLeft, breakDurationSeco
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xl">{activity.icon}</span>
               <div>
-                <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--palette-zinc-500)]">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--palette-zinc-500)]">
                   {isLong ? "Long Break" : "Break"} Activity
                 </p>
                 <p className="text-sm font-bold" style={{ color: activity.color }}>{activity.title}</p>
@@ -197,7 +200,7 @@ export default function BreakActivityCard({ mode, secondsLeft, breakDurationSeco
           ))}
           <button
             onClick={() => setActivityIndex((activityIndex + 1) % ACTIVITIES.length)}
-            className="ml-auto text-[10px] text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)] transition-colors"
+            className="ml-auto text-[11px] text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)] transition-colors"
           >
             Next activity →
           </button>

@@ -19,9 +19,9 @@ import { useAuth, isAdminUser } from "@/lib/auth";
 import { apiJson } from "@/lib/api";
 import { Link } from "wouter";
 import {
-  Code2, Database, Server, Shield, Cpu, Layers, GitBranch,
+  Code2, Database, Shield, GitBranch,
   Users, Coins, Zap, Brain, Flag, Activity, Crown, Search,
-  ChevronRight, RefreshCw, Send, Star, TrendingUp, AlertTriangle,
+  RefreshCw, Star, TrendingUp, AlertTriangle,
   Lock, Gift, Bell, BarChart3, Globe, ArrowUpRight, Timer,
 } from "lucide-react";
 
@@ -150,13 +150,13 @@ function OverviewTab() {
       const result = await apiJson("/api/developer/overview");
       setData(result);
       setError(null);
-    } catch (e) {
+    } catch {
       setError("Failed to load overview");
     }
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { const t = setTimeout(() => void load(), 0); return () => clearTimeout(t); }, [load]);
 
   if (loading && !data) return <LoadingSkeleton />;
   if (error && !data) return <ErrorBox message={error} onRetry={load} />;
@@ -282,7 +282,7 @@ function UsersTab() {
     setLoading(false);
   }, [search]);
 
-  useEffect(() => { searchUsers(); }, [searchUsers]);
+  useEffect(() => { const t = setTimeout(() => void searchUsers(), 0); return () => clearTimeout(t); }, [searchUsers]);
 
   const loadUserDetails = async (userId: string) => {
     try {
@@ -515,7 +515,7 @@ function EconomyTab() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { const t = setTimeout(() => void load(), 0); return () => clearTimeout(t); }, [load]);
 
   if (loading) return <div className="animate-pulse space-y-4">{[...Array(3)].map((_, i) => <div key={i} className="h-24 bg-white/5 rounded-lg" />)}</div>;
   if (!data) return <ErrorBox message="Failed to load economy data" onRetry={load} />;
@@ -601,7 +601,7 @@ function FlagsTab() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { const t = setTimeout(() => void load(), 0); return () => clearTimeout(t); }, [load]);
 
   const toggleFlag = async (id: string, enabled: boolean) => {
     try {
@@ -654,7 +654,7 @@ function AiBudgetTab() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { const t = setTimeout(() => void load(), 0); return () => clearTimeout(t); }, [load]);
 
   if (loading) return <LoadingSkeleton />;
 
@@ -742,7 +742,7 @@ function HealthTab() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { const t = setTimeout(() => void load(), 0); return () => clearTimeout(t); }, [load]);
 
   if (loading) return <LoadingSkeleton />;
   if (!data) return <div className="text-white/30">Failed to load health data</div>;

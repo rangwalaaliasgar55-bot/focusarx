@@ -135,9 +135,9 @@ export default function OnboardingPage() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-[var(--brand-400)] animate-pulse" />
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">System Calibration</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">System Calibration</p>
             </div>
-            <p className="text-[10px] font-bold text-[var(--foreground-subtle)]">{Math.round(progress)}%</p>
+            <p className="text-[11px] font-bold text-[var(--foreground-subtle)]">{Math.round(progress)}%</p>
           </div>
           <div className="h-1 w-full rounded-full bg-[var(--palette-white)]/5">
             <motion.div
@@ -282,7 +282,7 @@ export default function OnboardingPage() {
         {stepIndex > 0 && step !== "ready" && (
           <button
             onClick={back}
-            className="mx-auto mt-10 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--foreground-subtle)] hover:text-[var(--palette-white)] transition-colors"
+            className="mx-auto mt-10 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--foreground-subtle)] hover:text-[var(--palette-white)] transition-colors"
           >
             <ArrowLeft size={10} /> Back
           </button>
@@ -322,7 +322,7 @@ function OptionButton({ icon, label, selected, onClick }: { icon: string; label:
 
 function CalibrationTag({ label }: { label: string }) {
   return (
-    <span className="rounded-full bg-[var(--palette-white)]/5 border border-[var(--palette-white)]/10 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-[var(--brand-400)] shadow-lg">
+    <span className="rounded-full bg-[var(--palette-white)]/5 border border-[var(--palette-white)]/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-[var(--brand-400)] shadow-lg">
       {label}
     </span>
   );

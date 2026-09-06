@@ -1,10 +1,11 @@
-import { Request, Response, NextFunction } from "express";
+import { Response } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db, readinessLogsTable, focusSessionsTable, studyStreaksTable } from "@workspace/db";
 import { eq, and, desc, gte } from "drizzle-orm";
-import { extractUserId } from "./auth";
 import { logger } from "../lib/logger";
+import { userZone } from "../lib/userZone";
+import { dayKeyInZone, weekdayOfDayKey } from "../lib/timezone";
 
 const router = Router();
 
@@ -65,8 +66,8 @@ const WEATHER_MAP: Record<WeatherState, Omit<WeatherForecast, "recommendedSessio
 
 router.get("/focus-weather", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const today = new Date().toISOString().split("T")[0]!;
-    const dayOfWeek = new Date().getDay(); // 0=Sun
+    const today = dayKeyInZone(Date.now(), await userZone(req.userId));
+    const dayOfWeek = weekdayOfDayKey(today); // 0=Sun, user-local
 
     const [readiness] = await db
       .select()

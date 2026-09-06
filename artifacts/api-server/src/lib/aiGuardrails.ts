@@ -50,6 +50,7 @@ export function sanitizeAiInput(input: string): string {
   // Remove potential injection attempts and trim
   let sanitized = input.trim().slice(0, MAX_AI_INPUT_LENGTH);
   // Remove excessive newlines, control chars
+  // eslint-disable-next-line no-control-regex -- stripping C0/DEL control bytes is the point
   sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
   // Collapse whitespace
   sanitized = sanitized.replace(/\s+/g, " ");

@@ -180,13 +180,13 @@ export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
                 <div className="flex gap-2">
                   <button 
                     onClick={selectAllFilteredUsers}
-                    className="text-[10px] text-[var(--palette-sky-400)] hover:text-[var(--palette-sky-300)]"
+                    className="text-[11px] text-[var(--palette-sky-400)] hover:text-[var(--palette-sky-300)]"
                   >
                     Select All
                   </button>
                   <button 
                     onClick={clearSelection}
-                    className="text-[10px] text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)]"
+                    className="text-[11px] text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)]"
                   >
                     Clear
                   </button>
@@ -226,7 +226,7 @@ export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
                           <div className="text-xs text-[var(--palette-zinc-200)] truncate">
                             {user.name || "Unnamed"}
                           </div>
-                          <div className="text-[10px] text-[var(--palette-zinc-500)] truncate">
+                          <div className="text-[11px] text-[var(--palette-zinc-500)] truncate">
                             {user.email}
                           </div>
                         </div>
@@ -276,7 +276,7 @@ export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
           <div className="rounded-xl border border-[var(--palette-amber-800)]/30 bg-[var(--palette-amber-950)]/10 p-4">
             <div className="flex items-start gap-2 text-[var(--palette-amber-400)]">
               <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-              <p className="text-[10px] text-[var(--palette-amber-500)] leading-relaxed">
+              <p className="text-[11px] text-[var(--palette-amber-500)] leading-relaxed">
                 Emails require <code className="bg-[var(--palette-amber-950)] px-1 rounded">RESEND_API_KEY</code> to actually deliver. Max 500 recipients per blast. Bot users are automatically excluded.
               </p>
             </div>
@@ -286,7 +286,7 @@ export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wider text-[var(--palette-zinc-400)]">Recent Logs</p>
-            <button onClick={() => loadLogs()} className="text-[10px] text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)] flex items-center gap-1">
+            <button onClick={() => loadLogs()} className="text-[11px] text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)] flex items-center gap-1">
               <RefreshCw size={10} /> Refresh
             </button>
           </div>
@@ -313,7 +313,7 @@ export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
                       <td className="px-3 py-2">
                         <Badge label={log.status} color={log.status === "sent" ? "bg-[var(--palette-emerald-950)] text-[var(--palette-emerald-400)]" : log.status === "failed" ? "bg-[var(--palette-red-950)] text-[var(--palette-red-400)]" : "bg-[var(--palette-zinc-800)] text-[var(--palette-zinc-400)]"} />
                       </td>
-                      <td className="px-3 py-2 text-[var(--palette-zinc-600)] text-[10px]">
+                      <td className="px-3 py-2 text-[var(--palette-zinc-600)] text-[11px]">
                         {log.sentAt ? new Date(log.sentAt).toLocaleDateString() : "—"}
                       </td>
                     </tr>

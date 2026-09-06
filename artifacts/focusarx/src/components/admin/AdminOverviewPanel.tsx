@@ -56,7 +56,7 @@ export function AdminOverviewPanel({ stats, data, users, cmsOverview, maxSession
                   style={{ height: `${Math.round((d.sessions / maxSessions) * 100)}%`, minHeight: d.sessions > 0 ? "4px" : "2px" }}
                   title={`${d.sessions} sessions · ${d.minutes}m`}
                 />
-                <span className="text-[10px] text-[var(--palette-zinc-600)]">{d.day}</span>
+                <span className="text-[11px] text-[var(--palette-zinc-600)]">{d.day}</span>
               </div>
             ))}
           </div>

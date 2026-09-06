@@ -101,7 +101,7 @@ export function AdminRivalsPanel({ authHeaders, onManageUser }: AdminPanelProps 
             disabled={busy || !bots.length}
             className="rounded-lg border border-[var(--palette-zinc-700)] px-3 py-2 text-xs text-[var(--palette-zinc-400)] hover:text-[var(--palette-zinc-200)] disabled:opacity-50"
           >+50% more</button>
-          <span className="text-[10px] text-[var(--palette-zinc-500)]">
+          <span className="text-[11px] text-[var(--palette-zinc-500)]">
             {busy ? "Seeding…" : "Idempotent + resumable."}
           </span>
         </div>
@@ -115,8 +115,8 @@ export function AdminRivalsPanel({ authHeaders, onManageUser }: AdminPanelProps 
             {state.preview.map((p, i) => (
               <div key={i} className="rounded-lg border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 p-3">
                 <p className="truncate text-xs font-semibold text-[var(--palette-zinc-200)]">🤖 {p.name}</p>
-                <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-[var(--palette-zinc-500)]">{p.bio}</p>
-                <p className="mt-1 text-[10px] text-[var(--palette-zinc-400)]">{p.xp.toLocaleString()} XP · 🔥{p.streak} · {p.timezone}</p>
+                <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-[var(--palette-zinc-500)]">{p.bio}</p>
+                <p className="mt-1 text-[11px] text-[var(--palette-zinc-400)]">{p.xp.toLocaleString()} XP · 🔥{p.streak} · {p.timezone}</p>
               </div>
             ))}
           </div>
@@ -151,10 +151,10 @@ export function AdminRivalsPanel({ authHeaders, onManageUser }: AdminPanelProps 
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--palette-sky-950)] text-[var(--palette-sky-400)]"><Bot size={16} /></span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-[var(--palette-zinc-200)]">{b.name ?? "Rival"}</p>
-                <p className="truncate text-[10px] font-mono text-[var(--palette-zinc-600)]">{b.email}</p>
+                <p className="truncate text-[11px] font-mono text-[var(--palette-zinc-600)]">{b.email}</p>
               </div>
               <button onClick={() => onManageUser(b.id)}
-                className="rounded-lg border border-[var(--palette-zinc-700)] px-2 py-1 text-[10px] text-[var(--palette-zinc-400)] hover:text-[var(--palette-zinc-200)]"
+                className="rounded-lg border border-[var(--palette-zinc-700)] px-2 py-1 text-[11px] text-[var(--palette-zinc-400)] hover:text-[var(--palette-zinc-200)]"
               >Edit</button>
             </div>
           ))}

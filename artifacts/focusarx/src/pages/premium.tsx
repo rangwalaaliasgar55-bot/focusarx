@@ -234,10 +234,10 @@ export default function PremiumPage() {
                   } ${plan.slug === "premium_90" ? "ring-1 ring-[var(--brand-400)]/20" : ""}`}
                 >
                   {plan.slug === "premium_90" && (
-                    <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-[var(--brand-600)] px-2.5 py-0.5 text-[10px] font-bold text-white">Best Value</span>
+                    <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-[var(--brand-600)] px-2.5 py-0.5 text-[11px] font-bold text-white">Best Value</span>
                   )}
                   {plan.slug === "premium_365" && (
-                    <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-[var(--palette-amber-500)] px-2.5 py-0.5 text-[10px] font-bold text-white">Save 33%</span>
+                    <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-[var(--palette-amber-500)] px-2.5 py-0.5 text-[11px] font-bold text-white">Save 33%</span>
                   )}
                   <h3 className="text-sm font-bold">{plan.name}</h3>
                   <p className="mt-1 text-xs text-[var(--foreground-muted)]">{plan.description}</p>
@@ -365,7 +365,7 @@ export default function PremiumPage() {
                           {new Date(e.startsAt).toLocaleDateString()} → {new Date(e.endsAt).toLocaleDateString()} • {e.status}
                         </p>
                       </div>
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${e.status === "active" ? "bg-[var(--success-soft)] text-[var(--success)]" : "bg-[var(--surface-1)] text-[var(--foreground-subtle)]"}`}>
+                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${e.status === "active" ? "bg-[var(--success-soft)] text-[var(--success)]" : "bg-[var(--surface-1)] text-[var(--foreground-subtle)]"}`}>
                         {e.status}
                       </span>
                     </div>

@@ -1,31 +1,32 @@
-import { Request, Response, NextFunction } from "express";
+import { Response } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import {
-  habitsTable, habitCompletionsTable, userWalletsTable, notificationsTable,
+  habitsTable, habitCompletionsTable, userWalletsTable,
 } from "@workspace/db";
-import { extractUserId } from "./auth";
 import { eq, and, desc, sql, gte } from "drizzle-orm";
 import { mintCoins } from "../lib/coinLedger";
 import { logger } from "../lib/logger";
+import { userZone } from "../lib/userZone";
+import { dayKeyInZone, shiftDayKey } from "../lib/timezone";
 
 export const habitsRouter = Router();
 
-const todayStr = () => new Date().toISOString().split("T")[0]!;
+/** Today's YYYY-MM-DD in the user's own zone (was UTC → habits "reset" at 05:30 IST). */
+const todayFor = async (userId: string) => dayKeyInZone(Date.now(), await userZone(userId));
 
-function calcStreak(completions: { date: string }[]): number {
+export function calcStreak(completions: { date: string }[], today: string): number {
   if (!completions.length) return 0;
   const sorted = [...completions].sort((a, b) => b.date.localeCompare(a.date));
   let streak = 0;
-  const today = todayStr();
-  let current = today;
+  // A streak is still alive if the last completion was yesterday — the user
+  // simply hasn't checked in yet today.
+  let current = sorted[0]!.date === shiftDayKey(today, -1) ? shiftDayKey(today, -1) : today;
   for (const c of sorted) {
     if (c.date === current) {
       streak++;
-      const d = new Date(current);
-      d.setDate(d.getDate() - 1);
-      current = d.toISOString().split("T")[0]!;
+      current = shiftDayKey(current, -1);
     } else if (c.date < current) {
       break;
     }
@@ -40,10 +41,8 @@ habitsRouter.get("/habits", authMiddleware, async (req: AuthRequest, res: Respon
       .where(and(eq(habitsTable.userId, userId), eq(habitsTable.isArchived, false)))
       .orderBy(habitsTable.createdAt);
 
-    const today = todayStr();
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 90);
-    const since = thirtyDaysAgo.toISOString().split("T")[0]!;
+    const today = await todayFor(userId);
+    const since = shiftDayKey(today, -90);
 
     const enriched = await Promise.all(habits.map(async h => {
       const completions = await db.select({ date: habitCompletionsTable.date })
@@ -51,7 +50,7 @@ habitsRouter.get("/habits", authMiddleware, async (req: AuthRequest, res: Respon
         .where(and(eq(habitCompletionsTable.habitId, h.id), gte(habitCompletionsTable.date, since)))
         .orderBy(desc(habitCompletionsTable.date));
       const completedToday = completions.some(c => c.date === today);
-      const streak = calcStreak(completions);
+      const streak = calcStreak(completions, today);
       return { ...h, completedToday, streak, recentDates: completions.map(c => c.date) };
     }));
 
@@ -113,7 +112,7 @@ habitsRouter.delete("/habits/:id", authMiddleware, async (req: AuthRequest, res:
 habitsRouter.post("/habits/:id/complete", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const { date, note } = req.body;
-  const completionDate = date || todayStr();
+  const completionDate = date || await todayFor(userId);
 
   const [habit] = await db.select().from(habitsTable)
     .where(and(eq(habitsTable.id, req.params.id as string), eq(habitsTable.userId, userId))).limit(1);
@@ -132,7 +131,7 @@ habitsRouter.post("/habits/:id/complete", authMiddleware, async (req: AuthReques
   const allCompletions = await db.select({ date: habitCompletionsTable.date })
     .from(habitCompletionsTable).where(eq(habitCompletionsTable.habitId, req.params.id as string))
     .orderBy(desc(habitCompletionsTable.date));
-  const streak = calcStreak(allCompletions);
+  const streak = calcStreak(allCompletions, await todayFor(userId));
 
   await db.update(habitsTable)
     .set({
@@ -157,7 +156,7 @@ habitsRouter.post("/habits/:id/complete", authMiddleware, async (req: AuthReques
 
 habitsRouter.delete("/habits/:id/complete", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
-  const date = (req.query.date as string) || todayStr();
+  const date = (req.query.date as string) || await todayFor(userId);
   await db.delete(habitCompletionsTable)
     .where(and(eq(habitCompletionsTable.habitId, req.params.id as string), eq(habitCompletionsTable.userId, userId), eq(habitCompletionsTable.date, date)));
   await db.update(habitsTable)
@@ -173,9 +172,7 @@ habitsRouter.get("/habits/:id/history", authMiddleware, async (req: AuthRequest,
   if (!habit) return res.status(404).json({ error: "Habit not found" });
 
   const days = parseInt((req.query.days as string) || "90");
-  const since = new Date();
-  since.setDate(since.getDate() - days);
-  const sinceStr = since.toISOString().split("T")[0]!;
+  const sinceStr = shiftDayKey(await todayFor(userId), -days);
 
   const completions = await db.select()
     .from(habitCompletionsTable)
@@ -191,7 +188,7 @@ habitsRouter.get("/habits/stats", authMiddleware, async (req: AuthRequest, res: 
     const habits = await db.select().from(habitsTable)
       .where(and(eq(habitsTable.userId, userId), eq(habitsTable.isArchived, false)));
 
-    const today = todayStr();
+    const today = await todayFor(userId);
     let completedToday = 0;
     let totalStreak = 0;
     for (const h of habits) {
