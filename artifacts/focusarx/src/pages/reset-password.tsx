@@ -6,6 +6,7 @@ import { AuthCard, AuthLink } from "@/components/auth/AuthCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiErrorMessage } from "@/lib/auth";
+import { clearSessionCache } from "@/lib/queryClient";
 
 export default function ResetPasswordPage() {
   const [, setLocation] = useLocation();
@@ -14,23 +15,36 @@ export default function ResetPasswordPage() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm]   = useState("");
   const [loading, setLoading]   = useState(false);
-  const [verifying, setVerifying] = useState(true);
-  const [tokenValid, setTokenValid] = useState(false);
+  // `unknown` is its own state on purpose. The verification probe is a courtesy
+  // check: when it fails (offline, 503, rate limited) the old code treated that
+  // as "the link is expired" and refused the form — so a healthy link was
+  // destroyed by a transient error, and the only way out was to start the whole
+  // reset over. The server is the authority; it re-checks the token on submit.
+  const [verifyState, setVerifyState] = useState<"pending" | "valid" | "invalid" | "unknown">(
+    token ? "pending" : "invalid",
+  );
   const [done, setDone]         = useState(false);
   const [error, setError]       = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token) { setVerifying(false); return; }
-    void fetch(`/api/auth/reset-password/verify?token=${encodeURIComponent(token)}`)
-      .then(r => r.json())
-      .then((d: { valid: boolean }) => setTokenValid(d.valid))
-      .catch(() => setTokenValid(false))
-      .finally(() => setVerifying(false));
+    if (!token) return;
+    let cancelled = false;
+    void fetch(`/api/auth/reset-password/verify?token=${encodeURIComponent(token)}`, { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`verify responded ${r.status}`))))
+      .then((d: { valid?: boolean }) => {
+        if (cancelled) return;
+        setVerifyState(d?.valid ? "valid" : "invalid");
+      })
+      .catch(() => {
+        if (!cancelled) setVerifyState("unknown");
+      });
+    return () => { cancelled = true; };
   }, [token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (!token) { setError("This link is missing its reset token. Request a new one."); return; }
     if (password !== confirm) { setError("Passwords don't match"); return; }
     if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
     setLoading(true);
@@ -39,13 +53,22 @@ export default function ResetPasswordPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, password }),
+        credentials: "include",
       });
-      const data = await res.json() as { ok?: boolean; error?: unknown };
+      // Tolerate a non-JSON body (an edge/proxy error page) — `res.json()`
+      // used to throw here, which skipped the server's real explanation and
+      // showed the generic "Could not reach server" instead.
+      const data = await res.json().catch(() => ({})) as { ok?: boolean; error?: unknown };
       if (!res.ok || !data.ok) {
-        setError(apiErrorMessage(data, "Reset failed. The link may have expired."));
+        setError(apiErrorMessage(data, res.status === 503
+          ? "FocusArx is temporarily unavailable. Your link is still valid — try again in a minute."
+          : "Reset failed. The link may have expired."));
         return;
       }
       setDone(true);
+      // The reset revoked every existing session, so anything this tab still
+      // holds for the old credentials has to go with them.
+      clearSessionCache();
       setTimeout(() => setLocation("/login"), 2500);
     } catch {
       setError("Could not reach server. Try again.");
@@ -54,17 +77,10 @@ export default function ResetPasswordPage() {
     }
   };
 
-  // Loading token verification
-  if (verifying) {
-    return (
-      <div className="flex min-h-[100dvh] items-center justify-center forge-bg-glow">
-        <div className="size-8 animate-spin rounded-full border-2 border-[var(--brand-violet)] border-t-transparent" />
-      </div>
-    );
-  }
-
-  // Invalid or expired token
-  if (!token || !tokenValid) {
+  // A missing or definitively-spent link is the only case where the form is
+  // withheld. While the check is in flight we render the form directly (no
+  // spinner gate) so a slow verify never looks like a broken link.
+  if (verifyState === "invalid") {
     return (
       <AuthCard
         title="Link expired"

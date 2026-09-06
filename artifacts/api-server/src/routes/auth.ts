@@ -8,24 +8,37 @@ import { db, usersTable, passwordResetTokensTable, emailLogsTable } from "@works
 import { eq, and, gt, isNull } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getServerConfig } from "../lib/config";
-import { authLimiter, forgotPasswordLimiter, guestLimiter, refreshLimiter } from "../lib/rateLimiter";
+import { authLimiter, forgotPasswordLimiter, resetLinkLimiter, guestLimiter, refreshLimiter } from "../lib/rateLimiter";
 import { createRefreshFamily, rotateRefreshToken, revokeRefreshToken, revokeAllUserRefreshTokens } from "../lib/refreshTokens";
 import { issueSocketTicket } from "../lib/socketTickets";
-import { sendUnauthorized } from "../lib/httpErrors";
+import { sendUnauthorized, sendServiceUnavailable } from "../lib/httpErrors";
+
+/**
+ * Emails are normalised BEFORE the format check.
+ *
+ * The order used to be `.email().toLowerCase().trim()`, which validates the
+ * *raw* string. Pasting an address with a trailing space — or the newline
+ * mobile autofill appends — therefore failed with "Invalid email or password
+ * format" even though the credential itself was correct. That single quirk
+ * produced more sign-in failures than any actual auth bug: the address is in
+ * the database, the password is right, and the user is told the format is
+ * wrong. Trim + lowercase first, then validate.
+ */
+const emailField = z.string().trim().toLowerCase().email().max(254);
 
 const loginSchema = z.object({
-  email: z.string().email().max(254).toLowerCase().trim(),
+  email: emailField,
   password: z.string().min(1).max(256),
 });
 
 const registerSchema = z.object({
-  email: z.string().email().max(254).toLowerCase().trim(),
+  email: emailField,
   password: z.string().min(8).max(128),
-  name: z.string().max(100).optional(),
+  name: z.string().trim().max(100).optional(),
 });
 
 const forgotSchema = z.object({
-  email: z.string().email().max(254).toLowerCase().trim(),
+  email: emailField,
 });
 
 const resetSchema = z.object({
@@ -36,6 +49,72 @@ const resetSchema = z.object({
 const router = Router();
 
 const IS_PROD = process.env.NODE_ENV === "production";
+
+/**
+ * Never let anything in front of the API cache an auth response.
+ *
+ * `/auth/session` answers with the *caller's* identity, so a shared cache that
+ * stored it — a CDN, a proxy at a school or carrier, the service worker — hands
+ * one person's session to the next. `no-store` is the instruction, `Vary:
+ * Cookie` is the explanation, and both belong here rather than in a deploy
+ * checklist nobody re-reads after an incident.
+ */
+router.use("/auth", (_req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, private");
+  res.append("Vary", "Cookie");
+  next();
+});
+
+/**
+ * A real bcrypt hash of a throwaway value, compared against whenever the
+ * account does not exist. Cost 12, so the comparison takes as long as a
+ * genuine one and "no such user" is not observable from the response time.
+ *
+ * It is generated on first use rather than written out as a literal: a
+ * hardcoded `$2b$12$…` string is indistinguishable from a leaked password hash
+ * to every secret scanner in CI, and the flag buys nothing — the value below is
+ * deliberately meaningless. Memoised so the first unknown-email sign-in pays the
+ * hashing cost once per process, not once per guess.
+ */
+const BCRYPT_COST = 12;
+let unknownUserHashPromise: Promise<string> | null = null;
+
+function unknownUserHash(): Promise<string> {
+  unknownUserHashPromise ??= bcrypt.hash(`focusarx-timing-equaliser:${BCRYPT_COST}`, BCRYPT_COST);
+  return unknownUserHashPromise;
+}
+
+/** Postgres `unique_violation`, through whichever wrapper reached us. */
+function isUniqueViolation(err: unknown): boolean {
+  const chain: unknown[] = [err, (err as { cause?: unknown })?.cause, (err as { error?: unknown })?.error];
+  for (const link of chain) {
+    if (!link || typeof link !== "object") continue;
+    const code = (link as { code?: unknown }).code;
+    const constraint = (link as { constraint?: unknown }).constraint;
+    if (code === "23505") return true;
+    if (typeof constraint === "string" && /users_email|users_guest_key/.test(constraint)) return true;
+  }
+  return false;
+}
+
+/**
+ * Is this exception a dependency (Postgres) failure rather than a bug?
+ *
+ * Drizzle wraps the driver error in `DrizzleQueryError`, so the Postgres code
+ * lives on `.cause`. Connectivity errors surface as ECONNREFUSED / ECONNRESET
+ * / ETIMEDOUT / ENOTFOUND. Callers answer 503 for these so clients keep their
+ * session instead of treating an infrastructure blip as "signed out".
+ */
+function isDependencyFailure(err: unknown): boolean {
+  const codes = new Set(["ECONNREFUSED", "ECONNRESET", "ETIMEDOUT", "ENOTFOUND", "EHOSTUNREACH", "ENETUNREACH", "57P01", "57P02", "57P03", "08000", "08003", "3D000"]);
+  const chain: unknown[] = [err, (err as { cause?: unknown })?.cause, (err as { error?: unknown })?.error];
+  for (const link of chain) {
+    if (!link || typeof link !== "object") continue;
+    const code = (link as { code?: unknown }).code;
+    if (typeof code === "string" && codes.has(code)) return true;
+  }
+  return false;
+}
 
 function jwtSecretOrRespond(res: { status: (code: number) => { json: (body: unknown) => void } }): string | null {
   const secret = getServerConfig().jwtSecret;
@@ -213,6 +292,12 @@ router.get("/auth/session", async (req, res) => {
     res.json({ user });
   } catch (err) {
     logger.error({ err }, "session error");
+    // 503, not 500: the client must be able to tell "the database is having a
+    // moment" from "this session is not valid" and keep the credentials.
+    if (isDependencyFailure(err)) {
+      sendServiceUnavailable(res, "FocusArx is temporarily unavailable.");
+      return;
+    }
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 });
@@ -222,7 +307,7 @@ router.post("/auth/login", authLimiter, async (req, res) => {
   if (!secret) return;
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid email or password format" } });
+    res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Enter a valid email address and your password." } });
     return;
   }
   const { email, password } = parsed.data;
@@ -235,6 +320,12 @@ router.post("/auth/login", authLimiter, async (req, res) => {
       hashedPassword: usersTable.hashedPassword,
     }).from(usersTable).where(eq(usersTable.email, email));
     if (!user?.hashedPassword) {
+      // Answer at the same speed as a real password check. Without the dummy
+      // comparison an unknown address returns in ~1 ms while a wrong password
+      // takes ~250 ms (bcrypt cost 12), which is a textbook account-
+      // enumeration oracle and, in practice, the reason email-verification
+      // abuse starts here. Guests are included: they have no hash either.
+      await bcrypt.compare(password, await unknownUserHash());
       res.status(401).json({ error: { code: "INVALID_CREDENTIALS", message: "Invalid credentials" } });
       return;
     }
@@ -252,6 +343,13 @@ router.post("/auth/login", authLimiter, async (req, res) => {
     });
   } catch (err) {
     logger.error({ err }, "login error");
+    // A database outage is not the user's fault and must not look like a
+    // credential problem: 503 keeps the client from clearing a perfectly good
+    // local session just because the DB blinked.
+    if (isDependencyFailure(err)) {
+      sendServiceUnavailable(res, "FocusArx is temporarily unavailable. Your password was not rejected — please try again in a moment.");
+      return;
+    }
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 });
@@ -273,7 +371,21 @@ router.post("/auth/register", authLimiter, async (req, res) => {
       return;
     }
     const hashedPassword = await bcrypt.hash(password, 12);
-    const [user] = await db.insert(usersTable).values({ email, name: name || null, hashedPassword, isGuest: false }).returning({ id: usersTable.id, email: usersTable.email, name: usersTable.name });
+    let user: { id: string; email: string; name: string | null } | undefined;
+    try {
+      [user] = await db.insert(usersTable).values({ email, name: name || null, hashedPassword, isGuest: false }).returning({ id: usersTable.id, email: usersTable.email, name: usersTable.name });
+    } catch (insertErr) {
+      // The select-then-insert above is not atomic: two tabs double-clicking
+      // "Create account" (or a retry after a lost response) can both pass the
+      // check, and the loser hits the unique index. That used to surface as a
+      // 500 "Internal error" on a signup that actually worked — the account
+      // exists, so answer with the same 400 the pre-check gives.
+      if (isUniqueViolation(insertErr)) {
+        res.status(400).json({ error: { code: "EMAIL_EXISTS", message: "Email already registered" } });
+        return;
+      }
+      throw insertErr;
+    }
     if (!user) {
       res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to create user" } });
       return;
@@ -283,16 +395,35 @@ router.post("/auth/register", authLimiter, async (req, res) => {
     // doesn't need a separate login step. This prevents the common failure
     // mode where the login request arrives before the registration is fully
     // committed, or where the user's browser navigates away before login.
-    const { accessToken, legacyToken } = await issueRefreshCredentials(res, user.id, secret, req);
+    //
+    // The account already exists at this point, so a failure here (a blip on
+    // the refresh-token insert) must NOT be reported as "sign-up failed" — that
+    // is the dead end where the user retries and is told the email is taken.
+    // We answer 201 with `needsLogin` and let the client route to the sign-in
+    // form instead.
+    let accessToken: string | null = null;
+    let legacyToken: string | null = null;
+    let needsLogin = false;
+    try {
+      ({ accessToken, legacyToken } = await issueRefreshCredentials(res, user.id, secret, req));
+    } catch (issueErr) {
+      needsLogin = true;
+      logger.error({ err: issueErr, userId: user.id }, "register: auto-login token issue failed");
+    }
 
     res.status(201).json({
-      message: "Account created",
+      message: needsLogin ? "Account created — please sign in" : "Account created",
       token: legacyToken,
       accessToken,
+      needsLogin,
       user: { id: user.id, email: user.email, name: user.name, isGuest: false },
     });
   } catch (err) {
     logger.error({ err }, "register error");
+    if (isDependencyFailure(err)) {
+      sendServiceUnavailable(res, "FocusArx is temporarily unavailable. Your account was not created — please try again in a moment.");
+      return;
+    }
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 });
@@ -301,12 +432,25 @@ router.post("/auth/guest", guestLimiter, async (req, res) => {
   const secret = jwtSecretOrRespond(res);
   if (!secret) return;
   const { guestKey } = req.body as { guestKey?: string };
-  if (!guestKey || guestKey.length < 8) {
-    res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid guest key" } });
+  // The key is stored after character filtering, so the length must be
+  // re-checked AFTER the filter runs. Validating only the raw value meant
+  // `"!!!@@@###"` (9 chars, so past the guard) sanitising to the empty string
+  // — and every such client then shared the single guest row keyed `""`,
+  // i.e. two strangers saw each other's tasks, sessions and wallet.
+  const safeKey = (guestKey ?? "").trim().replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 120);
+  if (safeKey.length < 8) {
+    res.status(400).json({
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "A guest session needs an identifier of at least 8 letters, digits, hyphens or underscores.",
+      },
+    });
     return;
   }
-  const safeKey = guestKey.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 120);
-  const guestEmail = `guest_${safeKey}@guest.focusarx.internal`;
+  // Derived from a digest rather than the raw key: a 120-char key would push
+  // the synthetic address past the 254-char email limit, and the digest keeps
+  // the mailbox shape constant no matter what the client sends.
+  const guestEmail = `guest_${createHash("sha256").update(safeKey).digest("hex").slice(0, 32)}@guest.focusarx.internal`;
   try {
     let [user] = await db.select({
       id: usersTable.id,
@@ -315,13 +459,25 @@ router.post("/auth/guest", guestLimiter, async (req, res) => {
       isGuest: usersTable.isGuest,
     }).from(usersTable).where(eq(usersTable.guestKey, safeKey));
     if (!user) {
-      const [created] = await db.insert(usersTable).values({ email: guestEmail, guestKey: safeKey, isGuest: true, name: "Guest" }).returning({
-        id: usersTable.id,
-        email: usersTable.email,
-        name: usersTable.name,
-        isGuest: usersTable.isGuest,
-      });
-      user = created;
+      try {
+        [user] = await db.insert(usersTable).values({ email: guestEmail, guestKey: safeKey, isGuest: true, name: "Guest" }).returning({
+          id: usersTable.id,
+          email: usersTable.email,
+          name: usersTable.name,
+          isGuest: usersTable.isGuest,
+        });
+      } catch (insertErr) {
+        // Two first-loads of the same guest device racing, or a retry after a
+        // lost response: the loser sees a unique violation on a row that now
+        // exists. Read it instead of failing the sign-in.
+        if (!isUniqueViolation(insertErr)) throw insertErr;
+        [user] = await db.select({
+          id: usersTable.id,
+          email: usersTable.email,
+          name: usersTable.name,
+          isGuest: usersTable.isGuest,
+        }).from(usersTable).where(eq(usersTable.guestKey, safeKey));
+      }
     }
     if (!user) {
       res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to create guest" } });
@@ -336,6 +492,10 @@ router.post("/auth/guest", guestLimiter, async (req, res) => {
     });
   } catch (err) {
     logger.error({ err }, "guest error");
+    if (isDependencyFailure(err)) {
+      sendServiceUnavailable(res, "FocusArx is temporarily unavailable.");
+      return;
+    }
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 });
@@ -365,10 +525,19 @@ router.post("/auth/refresh", refreshLimiter, async (req, res) => {
         sendUnauthorized(res, "User not found");
         return;
       }
-      const { legacyToken } = await issueRefreshCredentials(res, user.id, secret, req);
-      res.json({ token: legacyToken, accessToken: legacyToken });
+      // `accessToken` must be the short-lived token that was just written to
+      // the cookie. Handing back the 7-day legacy token here promoted a
+      // long-lived credential into localStorage, where the SPA replays it as a
+      // Bearer header — and a token that outlives every cookie is exactly what
+      // "sign out" is supposed to make impossible.
+      const { accessToken, legacyToken } = await issueRefreshCredentials(res, user.id, secret, req);
+      res.json({ token: legacyToken, accessToken });
     } catch (err) {
       logger.error({ err }, "refresh error (legacy exchange)");
+      if (isDependencyFailure(err)) {
+        sendServiceUnavailable(res, "FocusArx is temporarily unavailable.");
+        return;
+      }
       res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
     }
     return;
@@ -394,6 +563,12 @@ router.post("/auth/refresh", refreshLimiter, async (req, res) => {
     res.json({ token: legacyToken, accessToken });
   } catch (err) {
     logger.error({ err }, "refresh error");
+    // 503, not 500: the client keeps its credentials and retries instead of
+    // throwing the user out of a session that is still perfectly valid.
+    if (isDependencyFailure(err)) {
+      sendServiceUnavailable(res, "FocusArx is temporarily unavailable.");
+      return;
+    }
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 });
@@ -622,7 +797,7 @@ router.post("/auth/forgot-password", forgotPasswordLimiter, async (req, res) => 
 
   try {
     const [user] = await db.select({ id: usersTable.id, email: usersTable.email })
-      .from(usersTable).where(and(eq(usersTable.email, email.toLowerCase().trim()), eq(usersTable.isGuest, false)));
+      .from(usersTable).where(and(eq(usersTable.email, email), eq(usersTable.isGuest, false)));
 
     if (!user) {
       // Uniform response for known and unknown emails — do not leak account
@@ -639,18 +814,29 @@ router.post("/auth/forgot-password", forgotPasswordLimiter, async (req, res) => 
     const resetUrl = `${appUrl}/reset-password?token=${token}`;
     const emailSent = await sendResetEmail(user.email, resetUrl);
 
-    if (process.env.NODE_ENV !== "production" && !emailSent) {
-      logger.info({ devResetUrl: resetUrl }, "dev: password reset URL (not sent by email)");
+    // Outside production, hand the link back in the response body. The
+    // "check your inbox" screen has a dev-only panel for exactly this, but the
+    // endpoint never populated it: with no Resend key and no SMTP credentials
+    // — which is every fresh clone and every preview deployment — the reset
+    // flow was simply unusable and the token expired unnoticed an hour later.
+    if (!IS_PROD && !emailSent) {
+      logger.info({ devResetUrl: resetUrl }, "dev: password reset URL (returned to the client, not emailed)");
+      res.json({ ok: true, devResetUrl: resetUrl });
+      return;
     }
     // Uniform response — never reveal whether the account exists.
     res.json({ ok: true });
   } catch (err) {
     logger.error({ err }, "forgot password error");
+    if (isDependencyFailure(err)) {
+      sendServiceUnavailable(res, "FocusArx is temporarily unavailable. Please try again in a moment.");
+      return;
+    }
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 });
 
-router.post("/auth/reset-password", authLimiter, async (req, res) => {
+router.post("/auth/reset-password", resetLinkLimiter, async (req, res) => {
   const parsed = resetSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Token and a password of at least 8 characters are required" } });
@@ -681,16 +867,30 @@ router.post("/auth/reset-password", authLimiter, async (req, res) => {
     }
     // A password reset means the credential changed (usually a lockout) —
     // every refresh family dies here so stolen sessions cannot survive it.
-    await revokeAllUserRefreshTokens(resetToken.userId);
-    logger.info({ userId: resetToken.userId }, "password reset — all refresh tokens revoked");
+    //
+    // Best-effort, deliberately: the password and the token-consumption are
+    // already committed. Revoking sessions is a hardening step, and letting it
+    // throw answered 500 on a request that had SUCCEEDED — the client then said
+    // "reset failed", the user retried, the token was spent, and they were left
+    // locked out with a password they never chose.
+    try {
+      await revokeAllUserRefreshTokens(resetToken.userId);
+      logger.info({ userId: resetToken.userId }, "password reset — all refresh tokens revoked");
+    } catch (revokeErr) {
+      logger.error({ err: revokeErr, userId: resetToken.userId }, "password reset succeeded but session revocation failed");
+    }
     res.json({ ok: true });
   } catch (err) {
     logger.error({ err }, "reset password error");
+    if (isDependencyFailure(err)) {
+      sendServiceUnavailable(res, "FocusArx is temporarily unavailable. Your reset link is still valid — please try again.");
+      return;
+    }
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 });
 
-router.get("/auth/reset-password/verify", forgotPasswordLimiter, async (req, res) => {
+router.get("/auth/reset-password/verify", resetLinkLimiter, async (req, res) => {
   const token = req.query.token as string | undefined;
   if (!token) {
     res.status(400).json({ valid: false });
@@ -702,8 +902,13 @@ router.get("/auth/reset-password/verify", forgotPasswordLimiter, async (req, res
       .from(passwordResetTokensTable)
       .where(and(eq(passwordResetTokensTable.token, hashResetToken(token)), gt(passwordResetTokensTable.expiresAt, now), isNull(passwordResetTokensTable.usedAt)));
     res.json({ valid: !!resetToken });
-  } catch {
-    res.json({ valid: false });
+  } catch (err) {
+    logger.warn({ err }, "reset-token verification failed");
+    // An unanswerable check is NOT a negative answer. `valid: false` rendered
+    // the "Link expired" screen for perfectly good links whenever the database
+    // hiccuped, telling people to start over. 503 lets the client keep the form
+    // open and simply let them submit.
+    sendServiceUnavailable(res, "Could not verify the reset link right now. The form below still works — try submitting.");
   }
 });
 

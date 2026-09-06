@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { AlertCircle, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { safeGet, safeSet } from "@/lib/safeStorage";
 import { useToast } from "@/components/Toast";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/button";
@@ -47,10 +48,12 @@ export default function LoginPage() {
   const continueAsGuest = async () => {
     setError(null);
     setLoading(true);
-    let guestKey = localStorage.getItem("focusarx-guest-key");
+    // safeStorage, not localStorage: a private-mode `setItem` throw here used
+    // to abort the whole guest sign-in before the request was even sent.
+    let guestKey = safeGet("focusarx-guest-key");
     if (!guestKey) {
       guestKey = `g_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
-      localStorage.setItem("focusarx-guest-key", guestKey);
+      safeSet("focusarx-guest-key", guestKey);
     }
     const result = await signIn("guest", { guestKey });
     setLoading(false);

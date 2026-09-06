@@ -6,7 +6,8 @@ const LandingPage = lazy(() => import("@/pages/landing"));
 const FocusHomePage = lazy(() => import("@/pages/focus"));
 import { connectSocket, disconnectSocket } from "@/lib/socket";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
-import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 
 import { AuthProvider, useAuth, getToken } from "@/lib/auth";
 import { ToastProvider } from "@/components/Toast";
@@ -142,30 +143,8 @@ const SafetyPage = lazy(() => import("@/pages/safety"));
 const AccessibilityPage = lazy(() => import("@/pages/accessibility"));
 const PressPage = lazy(() => import("@/pages/press"));
 
-const queryClient = new QueryClient({
-  queryCache: new QueryCache({
-    onError: (error) => window.dispatchEvent(new CustomEvent("focusarx:api-error", { detail: { message: error instanceof Error ? error.message : "Unable to load data." } })),
-  }),
-  mutationCache: new MutationCache({
-    onError: (error) => window.dispatchEvent(new CustomEvent("focusarx:api-error", { detail: { message: error instanceof Error ? error.message : "Unable to save your changes." } })),
-  }),
-  defaultOptions: {
-    queries: {
-      retry: (failureCount, error) => {
-        const err = error as { status?: number; message?: string } | null;
-        if (err?.status === 401 || err?.status === 403) return false;
-        if (err?.message?.includes("401") || err?.message?.includes("403")) return false;
-        return failureCount < 2;
-      },
-      staleTime: 60_000,
-      gcTime: 5 * 60_000,
-      // Live data arrives over Socket.IO, and stale queries refetch on mount,
-      // so re-hammering every endpoint on each window focus was pure waste.
-      refetchOnWindowFocus: false,
-    },
-    mutations: { retry: false },
-  },
-});
+// The QueryClient lives in @/lib/queryClient so the auth provider can clear it
+// on sign-out (cached data from the previous account must not survive).
 
 function isMobileDevice() {
   return window.innerWidth < 768 || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
