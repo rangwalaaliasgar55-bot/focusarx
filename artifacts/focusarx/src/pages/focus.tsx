@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { AnimatePresence, motion, motion as m } from "framer-motion";
-import { ClipboardList, X } from "lucide-react";
+import { Check, ChevronDown, ClipboardList, Coins, Flame, Plus, X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { apiJson } from "@/lib/api";
+import { useFocusSessionState } from "@/lib/focusSessionBus";
 import { useAuth } from "@/lib/auth";
 import { SessionRecoveryProvider } from "@/components/SessionRecoveryContext";
 import Timer from "@/components/Timer";
@@ -46,12 +49,36 @@ function TaskRowSkeleton() {
   );
 }
 
+function StatRow({ label, value, tone = "default" }: { label: string; value: React.ReactNode; tone?: "default" | "success" | "brand" }) {
+  const color = tone === "success" ? "text-[var(--success)]" : tone === "brand" ? "text-[var(--brand-strong)]" : "text-[var(--foreground)]";
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-xs text-[var(--foreground-muted)]">{label}</span>
+      <span className={`text-xs font-semibold tabular-nums ${color}`}>{value}</span>
+    </div>
+  );
+}
+
+function PanelSection({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section className="ui-panel p-4">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h3 className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-[var(--foreground-subtle)]">{title}</h3>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
+
 function SidePanel() {
   const { focusSessionsToday } = useSessionHistory();
   const { tasks, activeTasks, completedTasks, toggleDone, addTask, isLoading, isError, refreshTasks } = useTasks();
   const [newTask, setNewTask] = useState("");
   const [showCompleted, setShowCompleted] = useState(false);
   const { showReview, missedTasks, dismiss } = useMissedTaskReview();
+  const DAILY_TARGET = 8;
+  const blockPct = Math.min(100, (focusSessionsToday / DAILY_TARGET) * 100);
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,50 +86,37 @@ function SidePanel() {
   };
 
   return (
-    <div className="flex flex-col gap-3 w-full lg:w-52 xl:w-56 shrink-0">
+    <div className="flex w-full shrink-0 flex-col gap-3">
       {/* Missed Task Review modal — fires once per day if there are unreviewed tasks */}
       <MissedTaskReview open={showReview} tasks={missedTasks} onDone={dismiss} />
 
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--palette-4a4f62)] mb-3">Today's Stats</p>
+      <PanelSection title="Today">
         <div className="space-y-2.5">
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-[var(--palette-5a5f72)]">Focus blocks</span>
-            <span className="text-xs font-bold text-[var(--palette-e8eaf0)] font-mono">{focusSessionsToday}</span>
-          </div>
-          <div className="h-[3px] bg-[var(--rgba-255-255-255-0_06)] rounded-full overflow-hidden">
-            <div className="h-full bg-[var(--palette-6c63ff)] rounded-full transition-all duration-[var(--duration-slow)]" style={{ width: `${Math.min(100, (focusSessionsToday / 8) * 100)}%` }} />
+          <StatRow label="Focus blocks" value={`${focusSessionsToday} / ${DAILY_TARGET}`} />
+          <div
+            className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-hover)]"
+            role="progressbar"
+            aria-valuenow={focusSessionsToday}
+            aria-valuemin={0}
+            aria-valuemax={DAILY_TARGET}
+            aria-label="Focus blocks completed today"
+          >
+            <div className="h-full rounded-full bg-[var(--brand-500)] transition-[width] duration-[var(--duration-slow)]" style={{ width: `${blockPct}%` }} />
           </div>
           {focusSessionsToday === 0 && (
-            <p className="text-[10px] text-[var(--palette-3a3d4a)] italic">You could hit 8 blocks today! 🚀</p>
+            <p className="text-[0.6875rem] text-[var(--foreground-subtle)]">Eight blocks is a full day of deep work. Start with one.</p>
           )}
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-[var(--palette-5a5f72)]">Tasks done</span>
-            {isLoading ? (
-              <Skeleton className="h-3 w-9" />
-            ) : isError ? (
-              <span className="text-[10px] text-[var(--palette-3a3d4a)] italic">unavailable</span>
-            ) : tasks.length === 0 ? (
-              <span className="text-[10px] text-[var(--palette-3a3d4a)] italic">Add a task below ↓</span>
-            ) : (
-              <span className="text-xs font-bold text-[var(--palette-22d387)] font-mono">{completedTasks.length}/{tasks.length}</span>
-            )}
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-[var(--palette-5a5f72)]">Active tasks</span>
-            {isLoading ? (
-              <Skeleton className="h-3 w-5" />
-            ) : (
-              <span className="text-xs font-bold text-[var(--palette-a5a8ff)] font-mono">{activeTasks.length}</span>
-            )}
-          </div>
+          <StatRow
+            label="Tasks done"
+            tone="success"
+            value={isLoading ? <Skeleton className="h-3 w-9" /> : isError ? <span className="font-normal text-[var(--foreground-subtle)]">unavailable</span> : tasks.length === 0 ? <span className="font-normal text-[var(--foreground-subtle)]">none yet</span> : `${completedTasks.length}/${tasks.length}`}
+          />
+          <StatRow label="Active tasks" tone="brand" value={isLoading ? <Skeleton className="h-3 w-5" /> : activeTasks.length} />
         </div>
-      </div>
+      </PanelSection>
 
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4">
-        {/* Active Tasks */}
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--palette-4a4f62)] mb-2">Active Tasks</p>
-        <div className="space-y-1 max-h-36 overflow-y-auto">
+      <PanelSection title="Active tasks">
+        <div className="max-h-40 space-y-0.5 overflow-y-auto">
           {isError ? (
             <ErrorState
               compact
@@ -118,16 +132,22 @@ function SidePanel() {
           ) : (
             <>
               {activeTasks.length === 0 && (
-                <p className="text-[11px] text-[var(--palette-3a3d4a)] py-1 italic">✨ Add tasks to unlock your AI Timeline</p>
+                <p className="py-1 text-xs text-[var(--foreground-subtle)]">Add a task to give this block a target.</p>
               )}
               {activeTasks.slice(0, 6).map((t) => (
-                <button key={t.id} type="button" onClick={() => toggleDone(t.id)} className="flex items-center gap-2 w-full text-left py-1 group">
-                  <span className="w-3.5 h-3.5 rounded-full border border-[var(--palette-2a2d3a)] shrink-0 flex items-center justify-center transition-all group-hover:border-[var(--palette-6c63ff)]" />
-                  <span className="text-xs leading-snug text-[var(--palette-6b7080)] group-hover:text-[var(--palette-9095a8)]">{t.title}</span>
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => toggleDone(t.id)}
+                  aria-label={`Mark "${t.title}" done`}
+                  className="group flex min-h-9 w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-1.5 text-left transition-colors hover:bg-[var(--surface-hover)]"
+                >
+                  <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full border-2 border-[var(--border-strong)] transition-colors group-hover:border-[var(--brand-500)]" aria-hidden="true" />
+                  <span className="truncate text-xs leading-snug text-[var(--foreground-muted)] group-hover:text-[var(--foreground)]">{t.title}</span>
                 </button>
               ))}
               {activeTasks.length > 6 && (
-                <p className="text-[10px] text-[var(--palette-3a3d4a)] pl-5">+{activeTasks.length - 6} more</p>
+                <p className="pl-7 text-[0.6875rem] text-[var(--foreground-subtle)]">+{activeTasks.length - 6} more</p>
               )}
             </>
           )}
@@ -135,25 +155,26 @@ function SidePanel() {
 
         {/* Completed Tasks — collapsible section */}
         {completedTasks.length > 0 && (
-          <div className="mt-3 border-t border-[var(--palette-1a1d27)] pt-2">
+          <div className="mt-3 border-t border-[var(--border-subtle)] pt-2">
             <button
               type="button"
               onClick={() => setShowCompleted(v => !v)}
-              className="flex items-center gap-1.5 w-full text-left group"
+              aria-expanded={showCompleted}
+              className="flex min-h-8 w-full items-center gap-1.5 text-left"
             >
-              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--palette-3a3d4a)] group-hover:text-[var(--palette-5a5f72)] transition-colors">
+              <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-[var(--foreground-subtle)] transition-colors hover:text-[var(--foreground-muted)]">
                 Completed ({completedTasks.length})
               </span>
-              <span className={`ml-auto text-[10px] text-[var(--palette-3a3d4a)] transition-transform duration-[var(--duration-fast)] ${showCompleted ? "rotate-180" : ""}`}>▾</span>
+              <ChevronDown size={12} className={`ml-auto text-[var(--foreground-subtle)] transition-transform duration-[var(--duration-fast)] ${showCompleted ? "rotate-180" : ""}`} aria-hidden="true" />
             </button>
             {showCompleted && (
-              <div className="space-y-1 mt-1.5 max-h-28 overflow-y-auto">
+              <div className="mt-1 max-h-28 space-y-0.5 overflow-y-auto">
                 {completedTasks.slice(0, 5).map((t) => (
-                  <button key={t.id} type="button" onClick={() => toggleDone(t.id)} className="flex items-center gap-2 w-full text-left py-0.5 group">
-                    <span className="w-3.5 h-3.5 rounded-full border bg-[var(--palette-22d387)] border-[var(--palette-22d387)] shrink-0 flex items-center justify-center">
-                      <svg width="8" height="8" viewBox="0 0 10 10" fill="none"><path d="M1.5 5L4 7.5L8.5 2.5" stroke="var(--palette-white)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  <button key={t.id} type="button" onClick={() => toggleDone(t.id)} aria-label={`Reopen "${t.title}"`} className="group flex min-h-8 w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-1.5 text-left hover:bg-[var(--surface-hover)]">
+                    <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-[var(--success)] text-[var(--neutral-0)]" aria-hidden="true">
+                      <Check size={10} strokeWidth={3} />
                     </span>
-                    <span className="text-xs leading-snug line-through text-[var(--palette-3a3d4a)] group-hover:text-[var(--palette-4a4f62)]">{t.title}</span>
+                    <span className="truncate text-xs leading-snug text-[var(--foreground-subtle)] line-through">{t.title}</span>
                   </button>
                 ))}
               </div>
@@ -162,10 +183,24 @@ function SidePanel() {
         )}
 
         <form onSubmit={handleAddTask} className="mt-3 flex gap-1.5">
-          <input value={newTask} onChange={(e) => setNewTask(e.target.value)} placeholder="Add task…" className="flex-1 min-w-0 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs text-[var(--foreground)] placeholder-[var(--foreground-subtle)] outline-none focus:border-[var(--palette-6c63ff)] transition-colors" />
-          <button type="submit" className="rounded-lg border border-[var(--palette-6c63ff)]/50 bg-[var(--palette-6c63ff)]/10 px-2.5 py-1.5 text-xs font-semibold text-[var(--palette-a5a8ff)] hover:bg-[var(--palette-6c63ff)]/20 transition-colors">+</button>
+          <label htmlFor="focus-quick-task" className="sr-only">Add a task</label>
+          <input
+            id="focus-quick-task"
+            value={newTask}
+            onChange={(e) => setNewTask(e.target.value)}
+            placeholder="Add a task…"
+            className="min-h-9 min-w-0 flex-1 rounded-[var(--radius-md)] border border-[var(--input-border)] bg-[var(--input-bg)] px-3 text-xs text-[var(--foreground)] outline-none transition-colors placeholder:text-[var(--foreground-subtle)] focus-visible:border-[var(--brand-500)] focus-visible:ring-2 focus-visible:ring-[var(--ring-focus)]"
+          />
+          <button
+            type="submit"
+            disabled={!newTask.trim()}
+            aria-label="Add task"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--brand-600)] text-[var(--neutral-0)] transition-colors hover:bg-[var(--brand-700)] disabled:opacity-40"
+          >
+            <Plus size={14} />
+          </button>
         </form>
-      </div>
+      </PanelSection>
 
       <Suspense fallback={<HeavyWidgetFallback />}>
         <FocusMoodWidget />
@@ -183,38 +218,25 @@ function SidePanel() {
         <MissionsWidget />
       </Suspense>
 
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--palette-4a4f62)] mb-3">AI Camera</p>
+      <PanelSection title="AI camera">
         <Suspense fallback={<HeavyWidgetFallback />}>
           <FocusCamera />
         </Suspense>
-      </div>
+      </PanelSection>
     </div>
   );
 }
 
 function useWalletLive() {
   const { status } = useAuth();
-  const [wallet, setWallet] = useState<{ coins: number; totalXp: number; level: number; weeklyXp: number } | null>(null);
-
-  useEffect(() => {
-    if (status !== "authenticated") return;
-    const token = localStorage.getItem("focusarx-auth-token");
-    if (!token) return;
-
-    const fetch_ = () => {
-      fetch("/api/gamification/wallet", { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.ok ? r.json() : null)
-        .then(d => { if (d) setWallet(d); })
-        .catch(() => {});
-    };
-
-    fetch_();
-    const id = setInterval(fetch_, 30000);
-    return () => clearInterval(id);
-  }, [status]);
-
-  return wallet;
+  const query = useQuery<{ coins: number; totalXp: number; level: number; weeklyXp: number }>({
+    queryKey: ["wallet"],
+    queryFn: () => apiJson("/api/gamification/wallet"),
+    enabled: status === "authenticated",
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+  });
+  return query.data ?? null;
 }
 
 function CoinXPBar({ focusSessionsToday }: { focusSessionsToday: number }) {
@@ -233,21 +255,21 @@ function CoinXPBar({ focusSessionsToday }: { focusSessionsToday: number }) {
       className="flex items-center gap-2 sm:gap-3"
     >
       {focusSessionsToday > 0 && (
-        <span className="hidden sm:flex items-center gap-1 rounded-full border border-[var(--palette-orange-500)]/20 bg-[var(--palette-orange-500)]/10 px-2.5 py-1 text-[11px] font-semibold text-[var(--palette-orange-400)]">
-          🔥 {focusSessionsToday}
+        <span className="hidden items-center gap-1 rounded-full border border-[color-mix(in_srgb,var(--warning)_24%,transparent)] bg-[var(--warning-soft)] px-2.5 py-1 text-[0.6875rem] font-semibold text-[var(--warning)] sm:flex">
+          <Flame size={12} aria-hidden="true" /> {focusSessionsToday}
         </span>
       )}
-      <div className="flex items-center gap-1.5 rounded-xl border border-[var(--rgba-255-184-0-0_2)] bg-[var(--rgba-255-184-0-0_07)] px-2.5 py-1.5">
-        <span className="text-sm">🪙</span>
-        <span className="text-[12px] font-bold text-[var(--palette-amber-400)] tabular-nums">{wallet.coins.toLocaleString()}</span>
+      <div className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-[color-mix(in_srgb,var(--brand-gold)_24%,transparent)] bg-[var(--brand-gold-dim)] px-2.5 py-1.5" aria-label={`${wallet.coins} coins`}>
+        <Coins size={14} className="text-[var(--brand-gold)]" aria-hidden="true" />
+        <span className="text-xs font-bold tabular-nums text-[var(--brand-gold)]">{wallet.coins.toLocaleString()}</span>
       </div>
-      <div className="flex items-center gap-2 rounded-xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-124-58-237-0_07)] px-2.5 py-1.5">
-        <div className="flex items-center justify-center h-5 w-5 rounded-lg bg-gradient-to-br from-[var(--brand-600)] to-[var(--palette-4f46e5)] text-[10px] font-semibold text-[var(--palette-white)] shrink-0">
+      <div className="flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--card-border)] bg-[var(--brand-soft)] px-2.5 py-1.5" aria-label={`Level ${level}, ${wallet.weeklyXp} XP this week`}>
+        <div className="grid h-5 w-5 shrink-0 place-items-center rounded-[var(--radius-sm)] bg-[var(--brand-600)] text-[0.625rem] font-semibold text-[var(--neutral-0)]">
           {level}
         </div>
-        <div className="flex flex-col gap-0.5 min-w-[52px]">
-          <span className="text-[10px] font-semibold text-[var(--brand-400)] tabular-nums leading-none">{wallet.weeklyXp.toLocaleString()} <span className="text-[var(--foreground-subtle)]">wk XP</span></span>
-          <div className="h-1 w-full rounded-full bg-[var(--rgba-124-58-237-0_15)] overflow-hidden">
+        <div className="flex min-w-[52px] flex-col gap-0.5">
+          <span className="text-[0.625rem] font-semibold leading-none tabular-nums text-[var(--brand-strong)]">{wallet.weeklyXp.toLocaleString()} <span className="text-[var(--foreground-subtle)]">wk XP</span></span>
+          <div className="h-1 w-full overflow-hidden rounded-full bg-[var(--surface-hover)]">
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)]"
               animate={{ width: `${Math.round(progress * 100)}%` }}
@@ -275,7 +297,32 @@ const MOTIVATIONAL = [
  */
 function MotivationalLine() {
   const [line] = useState(() => MOTIVATIONAL[Math.floor(Math.random() * MOTIVATIONAL.length)]);
-  return <p className="text-[11px] italic text-[var(--palette-3a3d4a)] text-center mt-1">{line}</p>;
+  return <p className="mt-1 text-center text-xs text-[var(--foreground-subtle)]">{line}</p>;
+}
+
+/**
+ * Battle arena + YouTube companion. Both used to be mounted with
+ * `isActive={false}` and `sessionProgress={0}` frozen in, so the arena never
+ * appeared and the video never played — they now follow the live session bus.
+ */
+function SessionCompanions() {
+  const live = useFocusSessionState();
+  const durationSec = live.totalSeconds;
+  return (
+    <div className="mt-6 w-full max-w-2xl space-y-4">
+      <Suspense fallback={<HeavyWidgetFallback />}>
+        <MonsterBattleArena
+          isActive={live.active}
+          sessionDuration={durationSec}
+          sessionProgress={live.active ? live.progress : 0}
+          petLevel={1}
+        />
+      </Suspense>
+      <Suspense fallback={<HeavyWidgetFallback />}>
+        <YouTubeFocusTimer isActive={live.active} sessionDuration={durationSec} />
+      </Suspense>
+    </div>
+  );
 }
 
 function MobileSidePanelDrawer() {
@@ -321,7 +368,7 @@ function MobileSidePanelDrawer() {
       <button
         aria-label="Open tasks & stats"
         onClick={() => setOpen(true)}
-        className="fixed bottom-[76px] md:bottom-5 right-4 z-[var(--z-nav)] flex min-h-11 items-center gap-2 rounded-full border border-[var(--rgba-255-255-255-0_1)] bg-[var(--rgba-15-17-30-0_9)] px-4 py-2.5 text-xs font-semibold text-[var(--palette-a5a8ff)] shadow-lg shadow-[var(--palette-black)]/40 backdrop-blur-xl transition-colors active:bg-[var(--rgba-255-255-255-0_08)] lg:hidden"
+        className="fixed bottom-[76px] right-4 z-[var(--z-nav)] flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--surface-overlay)] px-4 py-2.5 text-xs font-semibold text-[var(--brand-strong)] shadow-[var(--shadow-lg)] backdrop-blur-xl transition-colors active:bg-[var(--surface-hover)] md:bottom-5 lg:hidden"
       >
         <ClipboardList size={14} />
         Tasks & Stats
@@ -336,7 +383,7 @@ function MobileSidePanelDrawer() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[var(--z-modal)] bg-[var(--palette-black)]/70 lg:hidden"
+              className="fixed inset-0 z-[var(--z-modal)] bg-[var(--scrim)] lg:hidden"
               onClick={() => setOpen(false)}
             />
             <m.div
@@ -346,7 +393,7 @@ function MobileSidePanelDrawer() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 300 }}
-              className="fixed inset-x-0 bottom-0 z-[var(--z-modal)] max-h-[85dvh] rounded-t-2xl border-t border-[var(--border-subtle)] bg-[var(--palette-0d0f1a)] backdrop-blur-2xl lg:hidden"
+              className="fixed inset-x-0 bottom-0 z-[var(--z-modal)] flex max-h-[85dvh] flex-col rounded-t-[var(--radius-2xl)] border-t border-[var(--border-subtle)] bg-[var(--surface-overlay)] shadow-[var(--shadow-xl)] backdrop-blur-2xl lg:hidden"
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
@@ -354,14 +401,14 @@ function MobileSidePanelDrawer() {
               aria-modal="true"
               aria-labelledby="mobile-panel-title"
             >
-              <div className="mx-auto mt-3 h-1.5 w-16 rounded-full bg-[var(--rgba-255-255-255-0_1)]" />
+              <div className="modal-handle" aria-hidden="true" />
               <div className="flex items-center justify-between px-5 py-3">
                 <span id="mobile-panel-title" className="text-sm font-semibold text-[var(--foreground)]">Tasks & Stats</span>
                 <button onClick={() => setOpen(false)} className="min-h-[44px] min-w-[44px] grid place-items-center text-[var(--foreground-subtle)] active:text-[var(--foreground-muted)]" aria-label="Close tasks and stats">
                   <X size={16} />
                 </button>
               </div>
-              <div className="overflow-y-auto overscroll-contain px-4 pb-8">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-8">
                 <SidePanel />
               </div>
             </m.div>
@@ -380,12 +427,12 @@ function FocusChamberHeader() {
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const firstName = user?.name?.split(" ")[0] || user?.email?.split("@")[0] || "there";
   return (
-    <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--rgba-255-255-255-0_04)] shrink-0">
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="text-[13px] font-semibold text-[var(--foreground)] hidden sm:block">{greeting}, <span className="text-[var(--brand-400)]">{firstName}</span></span>
+    <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--border-subtle)] px-5 py-3">
+      <div className="flex min-w-0 items-center gap-2">
+        <span className="hidden text-[0.8125rem] font-semibold text-[var(--foreground)] sm:block">{greeting}, <span className="text-[var(--brand-strong)]">{firstName}</span></span>
         {focusSessionsToday > 0 && (
-          <span className="flex items-center gap-1 rounded-full border border-[var(--palette-orange-500)]/20 bg-[var(--palette-orange-500)]/08 px-2 py-0.5 text-[10px] font-bold text-[var(--palette-orange-400)]">
-            🔥 {focusSessionsToday} {focusSessionsToday === 1 ? "session" : "sessions"} today
+          <span className="flex items-center gap-1 rounded-full border border-[color-mix(in_srgb,var(--warning)_24%,transparent)] bg-[var(--warning-soft)] px-2 py-0.5 text-[0.625rem] font-bold text-[var(--warning)]">
+            <Flame size={11} aria-hidden="true" /> {focusSessionsToday} {focusSessionsToday === 1 ? "session" : "sessions"} today
           </span>
         )}
       </div>
@@ -436,30 +483,13 @@ export default function FocusHomePage() {
                 <Timer onSessionComplete={handleSessionComplete} />
               )}
               <MotivationalLine />
-              
-              {/* Monster Battle Arena & YouTube Player */}
-              <div className="mt-6 w-full max-w-2xl space-y-4">
-                <Suspense fallback={<HeavyWidgetFallback />}>
-                  <MonsterBattleArena
-                    isActive={false}
-                    sessionDuration={0}
-                    sessionProgress={0}
-                    petLevel={1}
-                  />
-                </Suspense>
-                <Suspense fallback={<HeavyWidgetFallback />}>
-                  <YouTubeFocusTimer
-                    isActive={false}
-                    sessionDuration={0}
-                  />
-                </Suspense>
-              </div>
+              <SessionCompanions />
             </div>
           </div>
           {/* Desktop side panel */}
-          <div className="hidden lg:flex lg:flex-col lg:w-[300px] xl:w-[320px] shrink-0 border-l border-[var(--rgba-255-255-255-0_04)]">
+          <aside className="hidden shrink-0 border-l border-[var(--border-subtle)] p-4 lg:flex lg:w-[300px] lg:flex-col xl:w-[320px]" aria-label="Session tasks and stats">
             <SidePanel />
-          </div>
+          </aside>
         </div>
         <MobileSidePanelDrawer />
         <ReadinessCheckInModal />

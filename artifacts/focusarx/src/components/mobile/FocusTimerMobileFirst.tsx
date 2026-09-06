@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Pause, Play, RotateCcw, Volume2, VolumeX, CheckCircle, AlertTriangle } from "lucide-react";
 import { usePomodoro } from "@/hooks/usePomodoro";
+import { publishFocusState, resetFocusState } from "@/lib/focusSessionBus";
 import { useSessionPersistence } from "@/hooks/useSessionPersistence";
 import { useWakeLock } from "@/hooks/useWakeLock";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
@@ -143,6 +144,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
     mode,
     status,
     secondsLeft,
+    totalSeconds,
     progress,
     completedFocusSessions,
     leaderBlocked,
@@ -249,6 +251,12 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
       window.dispatchEvent(new CustomEvent("fx:focus-stop"));
     }
   }, [status, mode]);
+
+  // Share the live block with companions outside this component.
+  useEffect(() => {
+    publishFocusState({ mode, status, secondsLeft, totalSeconds });
+  }, [mode, status, secondsLeft, totalSeconds]);
+  useEffect(() => () => resetFocusState(), []);
 
   // Title update
   useEffect(() => {

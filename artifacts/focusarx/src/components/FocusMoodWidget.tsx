@@ -3,11 +3,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getToken } from "@/lib/auth";
 
 const MOODS = [
-  { emoji: "😴", label: "Low energy", value: 1, color: "var(--palette-6b7280)" },
+  { emoji: "😴", label: "Low energy", value: 1, color: "var(--foreground-muted)" },
   { emoji: "😐", label: "Neutral",    value: 2, color: "var(--foreground-muted)" },
   { emoji: "🙂", label: "OK",         value: 3, color: "var(--info)" },
   { emoji: "😊", label: "Good",       value: 4, color: "var(--success)" },
-  { emoji: "🔥", label: "On fire",    value: 5, color: "var(--palette-f97316)" },
+  { emoji: "🔥", label: "On fire",    value: 5, color: "var(--warning)" },
 ];
 
 const ENERGY_TIPS: Record<number, string> = {
@@ -50,7 +50,7 @@ export function FocusMoodWidget({ onSelect, compact = false }: FocusMoodWidgetPr
             whileHover={{ scale: 1.25, y: -2 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => handleSelect(m.value)}
-            className={`rounded-lg p-1.5 text-base transition-all ${selected === m.value ? "bg-[var(--rgba-124-58-237-0_2)] ring-1 ring-[var(--rgba-124-58-237-0_5)]" : "hover:bg-[var(--rgba-255-255-255-0_05)]"}`}
+            className={`rounded-lg p-1.5 text-base transition-all ${selected === m.value ? "bg-[var(--brand-soft-hover)] ring-1 ring-[var(--brand-400)]" : "hover:bg-[var(--surface-hover)]"}`}
             title={m.label}
           >
             {m.emoji}
@@ -66,7 +66,7 @@ export function FocusMoodWidget({ onSelect, compact = false }: FocusMoodWidgetPr
       animate={{ opacity: 1, y: 0 }}
       className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4 backdrop-blur-xl"
     >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--foreground-subtle)] mb-3">Energy Check-in</p>
+      <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.15em] text-[var(--foreground-subtle)] mb-3">Energy Check-in</p>
       <AnimatePresence mode="wait">
         {!submitted ? (
           <motion.div key="picker" exit={{ opacity: 0, scale: 0.95 }} className="flex items-center justify-around gap-0.5">
@@ -77,7 +77,7 @@ export function FocusMoodWidget({ onSelect, compact = false }: FocusMoodWidgetPr
                 whileTap={{ scale: 0.85 }}
                 transition={{ type: "spring", stiffness: 400, damping: 15 }}
                 onClick={() => handleSelect(m.value)}
-                className="flex flex-col items-center gap-1 rounded-xl px-1.5 py-2 min-w-0 hover:bg-[var(--rgba-255-255-255-0_04)] transition-colors"
+                className="flex flex-col items-center gap-1 rounded-xl px-1.5 py-2 min-w-0 hover:bg-[var(--surface-hover)] transition-colors"
               >
                 <span className="text-xl leading-none">{m.emoji}</span>
                 <span className="text-[8px] text-[var(--foreground-subtle)] whitespace-nowrap">{m.label}</span>
@@ -94,7 +94,7 @@ export function FocusMoodWidget({ onSelect, compact = false }: FocusMoodWidgetPr
             <span className="text-2xl shrink-0">{MOODS[selected! - 1]?.emoji}</span>
             <div>
               <p className="text-xs font-medium text-[var(--foreground)]">{MOODS[selected! - 1]?.label}</p>
-              <p className="text-[11px] text-[var(--palette-6b7280)] mt-0.5 leading-relaxed">{ENERGY_TIPS[selected!]}</p>
+              <p className="text-xs text-[var(--foreground-muted)] mt-0.5 leading-relaxed">{ENERGY_TIPS[selected!]}</p>
             </div>
           </motion.div>
         )}

@@ -72,7 +72,7 @@ export default function SmartSuggestion() {
         className="mx-auto flex w-full max-w-md items-center gap-2.5 rounded-xl border border-[var(--palette-violet-500)]/20 bg-[var(--palette-violet-500)]/6 px-4 py-2"
       >
         <Lightbulb size={14} className="shrink-0 text-[var(--brand-400)]" />
-        <p className="min-w-0 flex-1 truncate text-[11px] font-medium text-[var(--foreground-muted)]" title={tip}>
+        <p className="min-w-0 flex-1 truncate text-xs font-medium text-[var(--foreground-muted)]" title={tip}>
           {tip}
         </p>
         <button

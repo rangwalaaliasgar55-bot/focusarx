@@ -65,24 +65,24 @@ export default function AskArx() {
   };
 
   return (
-    <div className="rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] p-4">
+    <div className="ui-panel p-4">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between gap-2"
       >
-        <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--palette-4a4f62)]">
+        <span className="flex items-center gap-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-[var(--foreground-subtle)]">
           <Sparkles size={12} className="text-[var(--brand-400)]" /> Ask Arx
         </span>
-        <span className={`text-[10px] text-[var(--palette-3a3d4a)] transition-transform duration-[var(--duration-fast)] ${open ? "rotate-180" : ""}`}>▾</span>
+        <span className={`text-[0.6875rem] text-[var(--foreground-subtle)] transition-transform duration-[var(--duration-fast)] ${open ? "rotate-180" : ""}`}>▾</span>
       </button>
 
       {open && (
         <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15 }} className="mt-3">
           {reply ? (
-            <div className="rounded-xl border border-[var(--rgba-124-58-237-0_25)] bg-[var(--rgba-124-58-237-0_08)] p-3">
-              <p className="text-xs leading-relaxed text-[var(--palette-a5a8ff)]" aria-live="polite">{reply.reply}</p>
-              <p className="mt-2 text-[9px] text-[var(--palette-3a3d4a)]">
+            <div className="rounded-xl border border-[var(--card-border)] bg-[var(--brand-soft)] p-3">
+              <p className="text-xs leading-relaxed text-[var(--brand-strong)]" aria-live="polite">{reply.reply}</p>
+              <p className="mt-2 text-[0.6875rem] text-[var(--foreground-subtle)]">
                 {unavailable
                   ? "Arx is offline right now — here's a nudge instead"
                   : reply.source === "llm"
@@ -92,7 +92,7 @@ export default function AskArx() {
               <button
                 type="button"
                 onClick={() => { setReply(null); setUnavailable(false); }}
-                className="mt-2 text-[10px] font-semibold text-[var(--palette-5a5f72)] underline-offset-2 transition-colors hover:text-[var(--palette-a5a8ff)] hover:underline"
+                className="mt-2 text-[0.6875rem] font-semibold text-[var(--foreground-muted)] underline-offset-2 transition-colors hover:text-[var(--brand-strong)] hover:underline"
               >
                 Ask something else
               </button>
@@ -105,7 +105,7 @@ export default function AskArx() {
                   type="button"
                   disabled={busy}
                   onClick={() => void ask(s)}
-                  className="w-full rounded-lg border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_03)] px-2.5 py-1.5 text-left text-[11px] text-[var(--palette-6b7080)] transition-colors hover:text-[var(--palette-9095a8)] hover:border-[var(--palette-6c63ff)]/40 disabled:opacity-40"
+                  className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--input-bg)] px-2.5 py-1.5 text-left text-xs text-[var(--foreground-muted)] transition-colors hover:text-[var(--foreground)] hover:border-[var(--brand-500)]/40 disabled:opacity-40"
                 >
                   {s}
                 </button>
@@ -122,14 +122,14 @@ export default function AskArx() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask Arx anything…"
               maxLength={200}
-              className="flex-1 min-w-0 rounded-lg border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_03)] px-2.5 py-1.5 text-xs text-[var(--foreground)] placeholder-[var(--foreground-subtle)] outline-none focus:border-[var(--palette-6c63ff)] transition-colors"
+              className="flex-1 min-w-0 rounded-lg border border-[var(--border-subtle)] bg-[var(--input-bg)] px-2.5 py-1.5 text-xs text-[var(--foreground)] placeholder-[var(--foreground-subtle)] outline-none focus:border-[var(--brand-500)] transition-colors"
             />
             <button
               type="submit"
               disabled={busy || !input.trim()}
-              className="rounded-lg border border-[var(--palette-6c63ff)]/50 bg-[var(--palette-6c63ff)]/10 px-2.5 py-1.5 text-xs font-semibold text-[var(--palette-a5a8ff)] transition-colors hover:bg-[var(--palette-6c63ff)]/20 disabled:opacity-40"
+              className="rounded-lg border border-[var(--brand-500)]/50 bg-[var(--brand-500)]/10 px-2.5 py-1.5 text-xs font-semibold text-[var(--brand-strong)] transition-colors hover:bg-[var(--brand-500)]/20 disabled:opacity-40"
             >
-              {busy ? <span className="inline-block h-3 w-3 animate-spin rounded-full border border-[var(--palette-a5a8ff)] border-t-transparent align-middle" /> : <Send size={12} className="align-middle" />}
+              {busy ? <span className="inline-block h-3 w-3 animate-spin rounded-full border border-[var(--brand-strong)] border-t-transparent align-middle" /> : <Send size={12} className="align-middle" />}
             </button>
           </form>
         </motion.div>

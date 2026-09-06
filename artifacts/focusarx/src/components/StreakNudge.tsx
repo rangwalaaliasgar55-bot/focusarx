@@ -55,14 +55,14 @@ export default function StreakNudge() {
         role="status"
       >
         <span className="text-lg" aria-hidden="true">🔥</span>
-        <p className="min-w-0 flex-1 text-xs text-[var(--palette-e8eaf0)]">
+        <p className="min-w-0 flex-1 text-xs text-[var(--foreground)]">
           Your <span className="font-bold text-[var(--palette-orange-400)]">{streak.currentStreak}-day streak</span> needs
           a session today. Even 5 minutes keeps it alive.
         </p>
         <button
           type="button"
           onClick={start}
-          className="shrink-0 rounded-lg border border-[var(--palette-orange-500)]/40 bg-[var(--palette-orange-500)]/15 px-3 py-1.5 text-[11px] font-bold text-[var(--palette-orange-400)] transition-colors hover:bg-[var(--palette-orange-500)]/25 active:scale-95"
+          className="shrink-0 rounded-lg border border-[var(--palette-orange-500)]/40 bg-[var(--palette-orange-500)]/15 px-3 py-1.5 text-xs font-bold text-[var(--palette-orange-400)] transition-colors hover:bg-[var(--palette-orange-500)]/25 active:scale-95"
         >
           Start
         </button>

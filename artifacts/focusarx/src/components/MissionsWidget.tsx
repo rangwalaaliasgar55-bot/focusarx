@@ -1,8 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Link } from "wouter";
-import { Target, Gift, ChevronRight, Zap } from "lucide-react";
-import { getToken } from "@/lib/auth";
+import { Target, Gift, ChevronRight } from "lucide-react";
+import { apiJson } from "@/lib/api";
 
 interface MissionDef {
   key: string;
@@ -20,32 +20,22 @@ interface MissionDef {
 }
 
 const DIFF_COLOR: Record<string, string> = {
-  easy:   "var(--palette-22d387)",
+  easy:   "var(--success)",
   medium: "var(--color-warning)",
-  hard:   "var(--palette-f87171)",
+  hard:   "var(--danger)",
   epic:   "var(--brand-400)",
 };
 
-async function fetchMissions(): Promise<{ daily: MissionDef[]; weekly: MissionDef[]; stats: any }> {
-  const token = getToken();
-  const res = await fetch("/api/missions", {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
-  if (!res.ok) throw new Error("Failed");
-  return res.json();
+type MissionsData = { daily: MissionDef[]; weekly: MissionDef[]; stats: { dailyCompleted: number; totalDaily: number } | null };
+
+// apiJson rather than a bare fetch: the access token is refreshed silently on
+// 401, so the widget no longer blanks out after the first token rotation.
+function fetchMissions(): Promise<MissionsData> {
+  return apiJson<MissionsData>("/api/missions");
 }
 
-async function claimMission(key: string) {
-  const token = getToken();
-  const res = await fetch(`/api/missions/${key}/claim`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
-  if (!res.ok) throw new Error("Failed to claim");
-  return res.json();
+function claimMission(key: string) {
+  return apiJson(`/api/missions/${key}/claim`, { method: "POST", body: "{}" });
 }
 
 export default function MissionsWidget() {
@@ -68,11 +58,11 @@ export default function MissionsWidget() {
 
   if (isLoading) {
     return (
-      <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-13-15-26-0_6)] p-4 backdrop-blur-xl">
+      <div className="ui-panel p-4">
         <div className="animate-pulse space-y-2">
-          <div className="h-3 w-24 rounded bg-[var(--rgba-255-255-255-0_025)]" />
-          <div className="h-8 w-full rounded bg-[var(--rgba-255-255-255-0_025)]" />
-          <div className="h-8 w-full rounded bg-[var(--rgba-255-255-255-0_025)]" />
+          <div className="h-3 w-24 rounded bg-[var(--surface-hover)]" />
+          <div className="h-8 w-full rounded bg-[var(--surface-hover)]" />
+          <div className="h-8 w-full rounded bg-[var(--surface-hover)]" />
         </div>
       </div>
     );
@@ -86,19 +76,19 @@ export default function MissionsWidget() {
   const displayMissions = claimable.length > 0 ? claimable.slice(0, 2) : active.slice(0, 3);
 
   return (
-    <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-13-15-26-0_6)] p-4 backdrop-blur-xl">
+    <div className="ui-panel p-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Target size={14} className="text-[var(--brand-400)]" />
           <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-400)]">Daily Missions</span>
           {claimable.length > 0 && (
-            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--palette-22d387)] text-[9px] font-bold text-[var(--palette-black)]">
+            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--success)] text-[0.6875rem] font-bold text-[var(--neutral-0)]">
               {claimable.length}
             </span>
           )}
         </div>
-        <Link href="/missions" className="flex items-center gap-1 text-[10px] text-[var(--foreground-subtle)] hover:text-[var(--brand-400)] transition-colors">
+        <Link href="/missions" className="flex items-center gap-1 text-[0.6875rem] text-[var(--foreground-subtle)] hover:text-[var(--brand-400)] transition-colors">
           View all <ChevronRight size={10} />
         </Link>
       </div>
@@ -106,11 +96,11 @@ export default function MissionsWidget() {
       {/* Progress bar */}
       {stats && (
         <div className="mb-3">
-          <div className="flex justify-between text-[9px] text-[var(--foreground-subtle)] mb-1">
+          <div className="flex justify-between text-[0.6875rem] text-[var(--foreground-subtle)] mb-1">
             <span>{stats.dailyCompleted}/{stats.totalDaily} completed</span>
             <span>{Math.round((stats.dailyCompleted / Math.max(stats.totalDaily, 1)) * 100)}%</span>
           </div>
-          <div className="h-1 rounded-full bg-[var(--rgba-255-255-255-0_025)] overflow-hidden">
+          <div className="h-1 rounded-full bg-[var(--surface-hover)] overflow-hidden">
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)]"
               initial={{ width: 0 }}
@@ -127,7 +117,7 @@ export default function MissionsWidget() {
           <div className="text-center py-4">
             <p className="text-2xl mb-1">🎯</p>
             <p className="text-xs text-[var(--foreground-subtle)]">All daily missions done!</p>
-            <Link href="/missions" className="text-[10px] text-[var(--brand-400)] hover:underline">Check weekly missions →</Link>
+            <Link href="/missions" className="text-[0.6875rem] text-[var(--brand-400)] hover:underline">Check weekly missions →</Link>
           </div>
         ) : (
           displayMissions.map((m) => {
@@ -139,8 +129,8 @@ export default function MissionsWidget() {
                 key={m.key}
                 className={`rounded-xl p-3 border transition-colors ${
                   canClaim
-                    ? "border-[var(--rgba-34-211-135-0_3)] bg-[var(--rgba-34-211-135-0_05)]"
-                    : "border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)]"
+                    ? "border-[color-mix(in_srgb,var(--success)_35%,transparent)] bg-[var(--success-soft)]"
+                    : "border-[var(--border-subtle)] bg-[var(--surface-hover)]"
                 }`}
               >
                 <div className="flex items-start gap-2.5">
@@ -149,27 +139,27 @@ export default function MissionsWidget() {
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-xs font-medium text-[var(--foreground)] truncate">{m.title}</span>
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[9px] text-[var(--brand-400)] font-semibold">+{m.xpReward}xp</span>
+                        <span className="text-[0.6875rem] text-[var(--brand-400)] font-semibold">+{m.xpReward}xp</span>
                         {canClaim && (
                           <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => claimMut.mutate(m.key)}
                             disabled={claimMut.isPending}
-                            className="flex items-center gap-1 rounded-lg bg-[var(--rgba-34-211-135-0_2)] border border-[var(--rgba-34-211-135-0_4)] px-2 py-0.5 text-[9px] font-bold text-[var(--palette-22d387)] hover:bg-[var(--rgba-34-211-135-0_3)] transition-colors disabled:opacity-50"
+                            className="flex items-center gap-1 rounded-lg bg-[var(--success-soft)] border border-[color-mix(in_srgb,var(--success)_45%,transparent)] px-2 py-0.5 text-[0.6875rem] font-bold text-[var(--success)] hover:bg-[color-mix(in_srgb,var(--success)_35%,transparent)] transition-colors disabled:opacity-50"
                           >
                             <Gift size={9} /> Claim
                           </motion.button>
                         )}
                       </div>
                     </div>
-                    <div className="mt-1.5 h-1 w-full rounded-full bg-[var(--rgba-255-255-255-0_025)] overflow-hidden">
+                    <div className="mt-1.5 h-1 w-full rounded-full bg-[var(--surface-hover)] overflow-hidden">
                       <motion.div
                         className="h-full rounded-full"
                         style={{
                           background: canClaim
-                            ? "linear-gradient(90deg, var(--palette-22d387), var(--palette-16a34a))"
-                            : `linear-gradient(90deg, ${DIFF_COLOR[m.difficulty] ?? "var(--brand-600)"}, var(--rgba-124-58-237-0_5))`,
+                            ? "linear-gradient(90deg, var(--success), var(--success))"
+                            : `linear-gradient(90deg, ${DIFF_COLOR[m.difficulty] ?? "var(--brand-600)"}, var(--brand-400))`,
                         }}
                         initial={{ width: 0 }}
                         animate={{ width: `${pct}%` }}
@@ -177,10 +167,10 @@ export default function MissionsWidget() {
                       />
                     </div>
                     <div className="flex justify-between mt-0.5">
-                      <span className="text-[9px] text-[var(--foreground-subtle)]">
+                      <span className="text-[0.6875rem] text-[var(--foreground-subtle)]">
                         {m.completed ? "✓ Complete" : `${m.currentValue}/${m.targetValue}`}
                       </span>
-                      <span className="text-[9px]" style={{ color: DIFF_COLOR[m.difficulty] ?? "var(--brand-600)" }}>
+                      <span className="text-[0.6875rem]" style={{ color: DIFF_COLOR[m.difficulty] ?? "var(--brand-600)" }}>
                         {m.difficulty}
                       </span>
                     </div>
@@ -193,14 +183,14 @@ export default function MissionsWidget() {
       </div>
 
       {/* CTA if all done */}
-      {stats?.dailyCompleted === stats?.totalDaily && stats?.totalDaily > 0 && (
+      {stats && stats.totalDaily > 0 && stats.dailyCompleted === stats.totalDaily && (
         <motion.div
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mt-3 rounded-xl border border-[var(--rgba-34-211-135-0_3)] bg-[var(--rgba-34-211-135-0_06)] p-3 text-center"
+          className="mt-3 rounded-xl border border-[color-mix(in_srgb,var(--success)_35%,transparent)] bg-[var(--success-soft)] p-3 text-center"
         >
-          <p className="text-xs font-semibold text-[var(--palette-22d387)]">🏆 All daily missions complete!</p>
-          <Link href="/missions" className="mt-1 block text-[10px] text-[var(--foreground-subtle)] hover:text-[var(--palette-22d387)] transition-colors">
+          <p className="text-xs font-semibold text-[var(--success)]">🏆 All daily missions complete!</p>
+          <Link href="/missions" className="mt-1 block text-[0.6875rem] text-[var(--foreground-subtle)] hover:text-[var(--success)] transition-colors">
             Check weekly missions →
           </Link>
         </motion.div>

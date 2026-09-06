@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { syncFocusSessionToCloud } from "@/lib/sync-focus-session";
 import { useSessionRecovery } from "@/components/SessionRecoveryContext";
 import { usePomodoro } from "@/hooks/usePomodoro";
+import { publishFocusState, resetFocusState } from "@/lib/focusSessionBus";
 import { useSessionHistory } from "@/hooks/useSessionHistory";
 import { useSessionPersistence } from "@/hooks/useSessionPersistence";
 import { TimerDisplay } from "./TimerDisplay";
@@ -256,7 +257,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
   };
 
   const {
-    mode, status, secondsLeft, progress, completedFocusSessions,
+    mode, status, secondsLeft, totalSeconds, progress, completedFocusSessions,
     leaderBlocked, toggle, reset, skipToNext, selectMode, setCustomDuration,
     getSnapshot, restoreFromSnapshot, getActiveSeconds,
   } = usePomodoro({
@@ -273,6 +274,14 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
       window.dispatchEvent(new CustomEvent("fx:focus-stop"));
     }
   }, [status, mode]);
+
+  // Publish the live block to the shared bus so companions (battle arena,
+  // YouTube player, topbar pill) can follow the real session instead of the
+  // hardcoded `isActive={false}` they used to receive.
+  useEffect(() => {
+    publishFocusState({ mode, status, secondsLeft, totalSeconds });
+  }, [mode, status, secondsLeft, totalSeconds]);
+  useEffect(() => () => resetFocusState(), []);
 
   const applyPreset = useCallback((id: string) => {
     const p = getPresetById(id);
