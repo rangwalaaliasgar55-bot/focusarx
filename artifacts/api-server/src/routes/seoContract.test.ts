@@ -108,10 +108,29 @@ async function prerenderPaths(): Promise<Set<string>> {
   return new Set(mod.ROUTES.map((r) => (r.path === "" ? "/" : r.path)));
 }
 
-/** Paths Disallow:ed in robots.txt for the default user-agent. */
-function robotsDisallowed(): string[] {
-  const src = fs.readFileSync(ROBOTS, "utf8");
-  return [...src.matchAll(/^Disallow:\s*(\S+)\s*$/gm)].map((m) => m[1]!.replace(/\/$/, ""));
+/**
+ * The `User-agent: *` group's Disallows, read with the same strict parser the
+ * prerenderer and scripts/seo-validate.mjs use. The regex this function used to
+ * apply matched one directive per line and silently *skipped* a line where two
+ * directives had been glued together (`Disallow: /adminDisallow: /onboarding`) —
+ * so the file read as "nothing private is blocked" while still looking fine.
+ */
+async function robotsDisallowed(): Promise<string[]> {
+  const { parseRobots } = await loadRobotsParser();
+  const { groups } = parseRobots(fs.readFileSync(ROBOTS, "utf8"));
+  return (groups.get("*")?.disallow ?? []).map((p: string) => p.replace(/\/$/, ""));
+}
+
+/**
+ * The frontend's robots parser, shared rather than reimplemented: an assertion about
+ * robots.txt is only worth having if it reads the format the same way the build does.
+ */
+async function loadRobotsParser(): Promise<{
+  parseRobots: (text: string) => { groups: Map<string, { allow: string[]; disallow: string[] }>; errors: Array<{ line: number; raw: string; error?: string }> };
+  parseDirectiveLines: (text: string) => Array<{ line: number; raw: string; field?: string; value?: string; error?: string }>;
+}> {
+  const { pathToFileURL } = await import("node:url");
+  return import(pathToFileURL(path.join(FRONTEND, "src/lib/robots-parse.mjs")).href) as never;
 }
 
 /** Does a robots Disallow pattern block this URL? */
@@ -124,7 +143,7 @@ function isBlocked(url: string, patterns: string[]): string | null {
   return null;
 }
 
-describe("SEO contract: sitemap, routes, prerender manifest and robots.txt agree", () => {
+describe("SEO contract: sitemap, routes, prerender manifest and robots.txt agree", async () => {
   it("every sitemap URL has a public <Route> in App.tsx", () => {
     const routes = appRoutes();
     const missing = [...sitemapUrls()]
@@ -146,7 +165,7 @@ describe("SEO contract: sitemap, routes, prerender manifest and robots.txt agree
     const inSitemap = sitemapUrls();
     const prerendered = await prerenderPaths();
     const { protectedRoutes } = appRoutes();
-    const disallowed = robotsDisallowed();
+    const disallowed = await robotsDisallowed();
 
     // Prerendering a login-walled or robots-disallowed page is correct — a
     // shared link still needs a good social preview — but those URLs are
@@ -163,8 +182,8 @@ describe("SEO contract: sitemap, routes, prerender manifest and robots.txt agree
     ).toEqual([]);
   });
 
-  it("no sitemap URL is Disallow:ed in robots.txt", () => {
-    const patterns = robotsDisallowed();
+  it("no sitemap URL is Disallow:ed in robots.txt", async () => {
+    const patterns = await robotsDisallowed();
     const conflicts = [...sitemapUrls()]
       .map((url) => ({ url, blockedBy: isBlocked(url, patterns) }))
       .filter((c) => c.blockedBy !== null);
@@ -226,5 +245,52 @@ describe("SEO contract: sitemap, routes, prerender manifest and robots.txt agree
     const inSitemap = sitemapUrls();
     const missing = mod.COMPARISON_PATHS.filter((p) => !inSitemap.has(p));
     expect(missing, `Comparison pages missing from the sitemap: ${missing.join(", ")}`).toEqual([]);
+  });
+});
+
+describe("robots.txt: the static copy and the API-generated copy agree", async () => {
+  it("the checked-in file is one directive per line, with no merged or stray lines", async () => {
+    const { parseDirectiveLines } = await loadRobotsParser();
+    const broken = parseDirectiveLines(fs.readFileSync(ROBOTS, "utf8")).filter((entry) => entry.error);
+    expect(
+      broken.map((entry) => `line ${entry.line}: ${entry.raw}`),
+      "robots.txt has lines a crawler cannot parse — every Disallow after the bad one is still honoured, but the bad one blocks nothing"
+    ).toEqual([]);
+  });
+
+  it("the generated file is too", async () => {
+    const { parseDirectiveLines } = await loadRobotsParser();
+    const { buildRobotsTxt } = (await import("./sitemap.ts")) as { buildRobotsTxt: (base: string) => string };
+    const broken = parseDirectiveLines(buildRobotsTxt("https://focusarx.site")).filter((entry) => entry.error);
+    expect(broken.map((entry) => `line ${entry.line}: ${entry.raw}`)).toEqual([]);
+  });
+
+  it("lists the same private paths in both copies", async () => {
+    // Two answers to /robots.txt is already a compromise (the static file wins on the
+    // production host, this route answers for a standalone API); disagreeing about
+    // *which* paths are private is the part that actually hurts — a page one copy
+    // blocks and the other invites is a page that gets crawled and then complained
+    // about, or a login screen that gets indexed.
+    const { parseRobots } = await loadRobotsParser();
+    const { ROBOTS_PRIVATE_PATHS, buildRobotsTxt } = (await import("./sitemap.ts")) as {
+      ROBOTS_PRIVATE_PATHS: readonly string[];
+      buildRobotsTxt: (base: string) => string;
+    };
+    const wildcardDisallows = (text: string) =>
+      new Set(parseRobots(text).groups.get("*")?.disallow ?? []);
+    const staticSet = wildcardDisallows(fs.readFileSync(ROBOTS, "utf8"));
+    const generatedSet = wildcardDisallows(buildRobotsTxt("https://focusarx.site"));
+
+    expect(
+      [...staticSet].filter((path) => !generatedSet.has(path)),
+      "disallowed by public/robots.txt but crawlable per the API's generated copy"
+    ).toEqual([]);
+    expect(
+      [...generatedSet].filter((path) => !staticSet.has(path)),
+      "blocked by the API's generated copy but absent from public/robots.txt"
+    ).toEqual([]);
+    // The list lives in one place, and the generator emits it rather than repeating it.
+    expect(ROBOTS_PRIVATE_PATHS.length).toBe(generatedSet.size);
+    expect(generatedSet.size).toBeGreaterThan(10);
   });
 });

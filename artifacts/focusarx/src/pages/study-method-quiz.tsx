@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
-import { Target, Zap, Brain, Clock, ChevronRight, RefreshCw, Star, ShieldCheck, ArrowRight } from "lucide-react";
+import { Zap, Brain, Clock, ChevronRight, RefreshCw, ShieldCheck } from "lucide-react";
 import { PageSEO } from "@/components/PageSEO";
 import { BLUR_IN, STAGGER, STAGGER_CHILD } from "@/lib/animations";
 
@@ -94,7 +94,7 @@ export default function StudyMethodQuiz() {
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       <PageSEO
-        title="Study Method Quiz | Find Your Perfect Productivity System | FocusArx"
+        title="Study Method Quiz: Find Your System"
         description="Take our 60-second quiz to discover if you should use Pomodoro, Flowtime, or Deep Work blocks. Science-backed study method recommendation."
         canonical="/study-method-quiz"
         keywords="study method quiz, best study technique, pomodoro vs flowtime, deep work test, focus test"

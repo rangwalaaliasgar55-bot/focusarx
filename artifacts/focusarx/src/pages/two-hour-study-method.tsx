@@ -47,7 +47,7 @@ export default function TwoHourStudyMethodPage() {
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--palette-white)]">
       <PageSEO
-        title="The 2-Hour Study Method: Focused Sessions Always Win | FocusArx"
+        title="The 2-Hour Study Method: Focused Sessions Win"
         description="Discover why 2 focused hours beats 12 distracted ones. A practical, science-backed study method for JEE, NEET, UPSC, and college students in India who want real results without burnout."
         canonical="https://focusarx.site/two-hour-study-method"
         keywords="2 hour study method, focused study, pomodoro technique india, study efficiently, jee study schedule, neet preparation tips, upsc study plan, deep work students"

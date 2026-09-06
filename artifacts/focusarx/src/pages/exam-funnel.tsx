@@ -38,7 +38,9 @@ export default function ExamFunnelPage() {
   return (
     <div className="mx-auto w-full max-w-[980px] px-4 py-12 sm:px-6">
       <PageSEO
-        title={`Pomodoro Timer for ${examName} | Focus Sessions That Count`}
+        // No brand suffix and no tagline here on purpose: PageSEO appends `| FocusArx`
+        // and clamps both fields to what search results actually render.
+        title={`Pomodoro timer for ${examName}`}
         description={`Free Pomodoro timer tuned for ${examName}: ${funnel.angle} No account needed to start.`}
         canonical={`https://focusarx.site/pomodoro-timer-for/${guide.slug}`}
       />

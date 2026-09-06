@@ -21,12 +21,30 @@
 // automatically before falling back to the SPA index.html.
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { clampText, composeTitle, DESCRIPTION_BUDGET } from "../src/lib/seo-text.mjs";
+import { parseRobots, robotsMetaFor } from "../src/lib/robots-parse.mjs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ROUTES, SITE_NAME } from "./prerender-data.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 const DIST = path.resolve(__dirname, "..", "dist", "public");
+
+/**
+ * The directives that ship at /robots.txt. vercel.json serves this static file (only
+ * /sitemap*.xml is rewritten to the API), so it — not the app — is what a crawler
+ * reads first. Prerendering must agree with it: a page that robots.txt disallows but
+ * whose HTML says `index, follow` tells Google to keep an entry it cannot describe,
+ * and every login-walled screen in this build did exactly that until the two were
+ * wired together here.
+ */
+const ROBOTS_FILE = [
+  path.join(__dirname, "../public/robots.txt"),
+  path.join(DIST, "robots.txt"),
+].find((candidate) => existsSync(candidate));
+const robotsGroups = parseRobots(ROBOTS_FILE ? readFileSync(ROBOTS_FILE, "utf8") : "").groups;
+
 const TEMPLATE = path.join(DIST, "index.html");
 const BASE_URL = (process.env.VITE_APP_URL || "https://focusarx.site").replace(/\/+$/, "");
 
@@ -179,7 +197,7 @@ html:not(.fa-js) body{background:#0b0d13}
 .fa-noscript{max-width:760px;margin:0 auto;padding:16px 24px;color:#8b90a0;font-size:14px}
 `;
 
-function renderBody(entry, url) {
+function renderBody(entry) {
   const sections = (entry.sections || [])
     .map((s) => {
       const paras = (Array.isArray(s.p) ? s.p : [s.p])
@@ -250,21 +268,31 @@ function main() {
       entry.path === ""
         ? `${BASE_URL}/`
         : `${BASE_URL}${entry.path.startsWith("/") ? entry.path : `/${entry.path}`}`;
-    const fullTitle = entry.title;
+    // Composed here, not in the manifest: the runtime (components/PageSEO.tsx) uses
+    // the same helpers, so the prerendered HTML and the client-rendered head cannot
+    // disagree about the brand suffix or the search-result text budget.
+    const fullTitle = composeTitle(entry.title);
+    const metaDescription = clampText(entry.description, DESCRIPTION_BUDGET);
 
     let html = template;
 
+    // Indexability: derived from robots.txt so the two can never disagree, and
+    // overridable per route in the manifest with `noindex: true`.
+    const routePath = entry.path === "" ? "/" : `/${String(entry.path).replace(/^\/+/, "").replace(/\/+$/, "")}`;
+    const robotsMeta = entry.noindex === true ? "noindex, nofollow" : robotsMetaFor(routePath, robotsGroups);
+    html = setMeta(html, "name", "robots", robotsMeta);
+
     // Title & description
     html = replaceTag(html, /<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(fullTitle)}</title>`);
-    html = setMeta(html, "name", "description", entry.description);
+    html = setMeta(html, "name", "description", metaDescription);
 
     // Canonical + URL-bearing tags
     html = setCanonical(html, url);
     html = setMeta(html, "property", "og:url", url);
     html = setMeta(html, "property", "og:title", fullTitle);
-    html = setMeta(html, "property", "og:description", entry.description);
+    html = setMeta(html, "property", "og:description", metaDescription);
     html = setMeta(html, "name", "twitter:title", fullTitle);
-    html = setMeta(html, "name", "twitter:description", entry.description);
+    html = setMeta(html, "name", "twitter:description", metaDescription);
     if (entry.ogImage) {
       html = setMeta(html, "property", "og:image", entry.ogImage);
       html = setMeta(html, "property", "og:image:secure_url", entry.ogImage);
@@ -288,7 +316,7 @@ function main() {
     html = html.replace("</head>", `  <!-- Route-scoped structured data (prerendered) -->\n  ${ld}\n</head>`);
 
     // Static body content injected into #root (replaced on React mount)
-    const body = renderBody(entry, url);
+    const body = renderBody(entry);
     html = html.replace(
       /<div id="root"\s*><\/div>/i,
       `<div id="root">${body}</div>`,

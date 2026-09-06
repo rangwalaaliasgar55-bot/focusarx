@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { ArrowRight, Brain, Clock, Zap, CheckCircle, Shield, Lightbulb } from "lucide-react";
+import { Brain, Clock, Zap, Shield, Lightbulb } from "lucide-react";
 import { PageSEO } from "@/components/PageSEO";
 
 function Section({ children, className = "" }: { children: React.ReactNode; className?: string }) {
@@ -10,7 +10,7 @@ export default function ScienceOfDeepWorkPage() {
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       <PageSEO
-        title="The Neuro-Science of Deep Work | How Focus Rewires Your Brain"
+        title="The Neuroscience of Deep Work"
         description="Explore the biological mechanisms behind deep work. Learn about myelin, neurotransmitters, and how FocusArx helps you enter the flow state faster."
         canonical="/science-of-deep-work"
         keywords="science of focus, deep work neuroscience, myelin study, flow state biology, FocusArx science"

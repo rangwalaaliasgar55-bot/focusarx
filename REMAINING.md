@@ -57,6 +57,20 @@
     dev/transitive — triage in CI where network is reliable.
 12. `streak_history` backfill for pre-table completions (table writes from
     this release forward).
+13. SEO copy has two authored sources that must be kept equal by hand:
+    `artifacts/focusarx/scripts/prerender-data.mjs` (crawler-facing, built by
+    Node) and the preset table in `components/PageSEO.tsx` (client navigation).
+    Fifth pass aligned 7 stale titles and gated both against the text budgets in
+    `src/lib/seo-text.mjs`, but *content* equality is unenforced — a page can
+    still ship a different `<title>` to a crawler than to a visitor who clicks a
+    link. The fix is to move the table into a `.mjs` both sides import (it lives in
+    a `.tsx` today for one `ReactNode` in a footnote), then delete the manifest's
+    copies and generate `ROUTES` from it. Descriptions have the same duplication
+    and are still aligned only where they were stale. Also unowned: unknown URLs
+    return 200 + the SPA shell (`vercel.json` `/(.*) → /index.html` after
+    `handle: filesystem`); `pages/not-found.tsx` is `noindex` now, which stops the
+    index damage, but a real 404 status needs an edge function in front of every
+    page view — deliberately not bought.
 
 ## Ops checklist (manual, each deploy)
 

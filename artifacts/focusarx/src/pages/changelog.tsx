@@ -9,7 +9,7 @@ export default function ChangelogPage() {
   return (
     <div className="mx-auto w-full max-w-[980px] px-4 py-16 sm:px-6">
       <PageSEO
-        title="Changelog | FocusArx"
+        title="Changelog"
         description="What shipped in FocusArx lately: timer reliability fixes, streaks in your timezone, the /focus app and Instagram funnel."
       />
       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--foreground-subtle)]">

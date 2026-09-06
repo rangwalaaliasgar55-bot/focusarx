@@ -21,7 +21,8 @@ Disallow: /go/
 
 # ── Private / login-walled application surfaces ───────────────
 # Not indexable content: these redirect anonymous visitors to /login.
-Disallow: /adminDisallow: /onboarding
+Disallow: /admin
+Disallow: /onboarding
 Disallow: /profile
 Disallow: /settings
 Disallow: /notifications
