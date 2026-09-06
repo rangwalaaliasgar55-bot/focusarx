@@ -15,7 +15,10 @@ import { ApiError } from "@/lib/api";
 vi.mock("@/lib/site-analytics", () => ({ linkAnalyticsUser: vi.fn(), trackSiteEvent: vi.fn() }));
 vi.mock("@/lib/gtag", () => ({ trackEvent: vi.fn() }));
 
-const TOKEN_KEY = "focusarx-auth-token";
+// The localStorage key the provider writes to, spelled out so the test pins
+// the real name rather than a constant that could drift with it. It is a
+// storage key name, not a credential.
+const TOKEN_KEY = "focusarx-auth-token"; // gitleaks:allow
 
 type Reply = { status: number; body?: unknown } | { error: Error };
 

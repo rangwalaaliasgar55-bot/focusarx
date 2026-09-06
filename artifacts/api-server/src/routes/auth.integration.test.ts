@@ -218,7 +218,7 @@ describe.runIf(hasDb)("auth sign-in (live app + real database)", () => {
 
     // A usable key still works, and is stable — the same device gets back into
     // the same guest account after a reload.
-    const key = `vitest${Date.now().toString(36)}`;
+    const key = `vitest${Date.now().toString(36)}`; // gitleaks:allow — a synthetic guest id
     const a = await call("/api/auth/guest", { method: "POST", body: { guestKey: key } });
     const b = await call("/api/auth/guest", { method: "POST", body: { guestKey: `  ${key}  ` } });
     expect(a.status).toBe(200);
