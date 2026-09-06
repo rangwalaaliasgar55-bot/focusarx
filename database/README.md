@@ -35,17 +35,41 @@ pnpm db:push
 pnpm --filter @workspace/db run push
 ```
 
-### 3. Run Migrations
+### 3. Validate Migrations
 
-Drizzle migrations are in `lib/db/drizzle/`. They are applied sequentially by `drizzle-kit push`.
+`drizzle-kit push` synchronizes the TypeScript schema; it **does not replay**
+the numbered files in `lib/db/drizzle/`. Validate those separately:
 
 ```bash
-# For Neon serverless (Vercel deployment)
-pnpm --filter @workspace/db run push:vercel
+pnpm --filter @workspace/db run validate-migrations
 
-# For local
-pnpm --filter @workspace/db run push
+# Use a newly created, disposable database, never production.
+createdb focusarx_migration_test
+MIGRATION_DATABASE_URL="postgresql://localhost:5432/focusarx_migration_test" \
+  pnpm --filter @workspace/db run test:migrations
 ```
+
+The replay check refuses a non-empty public schema and applies the journal in
+order. It is a test/bootstrap utility, not a production migration-history runner.
+CI exercises both recorded migrations and the canonical schema.
+
+`push:vercel` remains a best-effort patch/cleanup path, not a full migration
+runner. It skips preview deployments. Provision/synchronize the production
+schema separately and review changes before deployment.
+
+### SQL Bootstrap Snapshot
+
+`database/full_schema.sql` is generated from the same TypeScript schema. It
+creates tables before foreign keys and can be reapplied to a compatible schema.
+`IF NOT EXISTS` does **not** update columns in an existing, outdated table.
+
+```bash
+pnpm --filter @workspace/db run schema:export  # regenerate the snapshot
+pnpm --filter @workspace/db run schema:check   # check for drift without a DB
+```
+
+Use reviewed migrations or `db:push` for upgrades; do not assume rerunning the
+snapshot upgrades an older database.
 
 ### 4. Seed (optional)
 
@@ -67,7 +91,7 @@ psql "$DATABASE_URL" -f database/verify.sql
 |---|---|---|
 | **Core Users & Auth** | `users`, `password_reset_tokens`, `refresh_tokens` | Authentication, registration, sessions |
 | **Focus Sessions** | `focus_sessions`, `active_sessions`, `session_ghosts` | Timer state, completed sessions, ghost data |
-| **Streaks** | `study_streaks`, `freeze_tokens` | Daily streak tracking, freeze tokens |
+| **Streaks** | `study_streaks`, `streak_history`, `freeze_tokens` | Daily streak tracking, freeze tokens |
 | **Tasks & Goals** | `tasks`, `goals`, `habits`, `habit_completions` | Productivity management |
 | **Economy** | `user_wallets`, `coin_transactions`, `token_ledger`, `login_rewards` | XP, coins, level progression |
 | **Gamification** | `missions`, `user_mission_progress`, `battle_pass_progress`, `user_badges` | Missions, battle pass, achievements |
@@ -77,7 +101,7 @@ psql "$DATABASE_URL" -f database/verify.sql
 | **City & Forge** | `focus_cities`, `city_building_definitions`, `user_pets`, `marketplace_items`, `user_inventory` | Gamified world |
 | **Loot & Quests** | `loot_box_types`, `user_loot_boxes`, `quest_definitions`, `user_quest_progress` | Rewards |
 | **Seasonal** | `seasonal_events`, `user_seasonal_progress` | Time-limited events |
-| **Flashcards** | `flashcard_decks`, `flashcards` | Study tools with spaced repetition |
+| **Flashcards** | `flashcard_decks`, `flashcards`, `flashcard_reviews` | Study tools with spaced repetition |
 | **Premium** | `premium_subscriptions`, `premium_plans`, `premium_entitlements`, `pet_catalog`, `user_pet_inventory`, `battle_pass_claims`, `feature_flags`, `cosmetic_inventory` | Premium economy |
 | **Profile** | `user_profile_extras`, `wrapped_snapshots`, `app_feedback` | User data |
 | **Analytics** | `visitors`, `analytics_sessions`, `page_views`, `analytics_events` | Web analytics |

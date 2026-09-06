@@ -7,7 +7,7 @@ DECLARE
   expected_tables TEXT[] := ARRAY[
     'users', 'password_reset_tokens', 'refresh_tokens',
     'focus_sessions', 'active_sessions', 'session_ghosts',
-    'study_streaks', 'freeze_tokens',
+    'study_streaks', 'streak_history', 'freeze_tokens',
     'tasks', 'goals', 'habits', 'habit_completions',
     'user_wallets', 'user_badges', 'coin_transactions', 'login_rewards',
     'missions', 'user_mission_progress', 'battle_pass_progress',
@@ -28,7 +28,7 @@ DECLARE
     'loot_box_types', 'user_loot_boxes',
     'quest_definitions', 'user_quest_progress',
     'seasonal_events', 'user_seasonal_progress',
-    'flashcard_decks', 'flashcards',
+    'flashcard_decks', 'flashcards', 'flashcard_reviews',
     'token_ledger', 'premium_subscriptions', 'premium_plans', 'premium_entitlements',
     'pet_catalog', 'user_pet_inventory',
     'battle_pass_claims', 'feature_flags', 'cosmetic_inventory',

@@ -1,105 +1,87 @@
 import { test, expect } from "@playwright/test";
 
-/**
- * Token Premium System E2E checks - covers requirements from spec
- * These are smoke tests for UI behaviors, not full integration (which would need DB)
- * Real unit tests for atomicity live in api-server (see tokenLedger.ts)
- */
-
+/** Browser UI contracts. Ledger atomicity is tested against PostgreSQL, not here. */
 test.describe("Premium economy UI", () => {
-  test("premium page shows benefits and comparison, balance/required/remaining, confirmation", async ({ page }) => {
+  test("premium page requires sign-in for anonymous visitors", async ({ page }) => {
     await page.goto("/premium");
-    // Should show premium page even if unauthenticated? Currently protected, but check redirect or content
-    await page.waitForLoadState("networkidle");
-    const body = await page.textContent("body");
-    // If redirected to login, at least login page loads
-    expect(body).toBeTruthy();
+    await expect(page).toHaveURL(/\/login(?:\?|$)/);
+    await expect(page.getByRole("button", { name: "Sign in", exact: true })).toBeVisible();
   });
 
-  test("AI coach locked screen shows cost/balance/earn actions, blocks model load", async ({ page }) => {
-    await page.goto("/ai-insights");
-    await page.waitForLoadState("networkidle");
-    // If not logged in, redirects to login; if logged in as free user, should show lock
-    // Check that no AI request is made when locked - we intercept /api/ai/*
-    let aiRequested = false;
-    page.on("request", (req) => {
-      if (req.url().includes("/api/ai/")) aiRequested = true;
+  test("free users see cost, balance and earn actions without issuing AI requests", async ({ page }) => {
+    // Fixtures only replace API responses; the real route, auth provider,
+    // premium hook, gate and querying components still run in the browser.
+    await page.route("**/api/auth/session", (route) => route.fulfill({ json: {
+      user: { id: "premium-ui-test", email: "ui@example.invalid", name: "UI Test", role: "user", onboardingCompleted: true },
+    } }));
+    await page.route("**/api/premium/status", (route) => route.fulfill({ json: {
+      isPremium: false, balance: 250, plans: [{ tokenCost: 10000 }], benefits: [],
+    } }));
+    const aiRequests: string[] = [];
+    // Attach BEFORE navigation so a request on mount cannot evade the assertion.
+    page.on("request", (request) => {
+      if (new URL(request.url()).pathname.startsWith("/api/ai/")) aiRequests.push(request.url());
     });
-    await page.waitForTimeout(1000);
-    // For unauthenticated, aiRequested may be false due to redirect
-    // For free user lock screen, requirement is no AI request
-    // This test passes if either redirected or lock screen shown without AI call
-    expect(true).toBeTruthy();
-  });
-
-  test("focus-timer public page has H1, title, meta, canonical, fast load", async ({ page }) => {
-    await page.goto("/focus-timer");
+    await page.goto("/ai-insights");
+    await expect(page.getByRole("heading", { name: "AI Coach is Premium" })).toBeVisible();
+    await expect(page.getByText("Your Balance", { exact: true })).toBeVisible();
+    await expect(page.getByText("Premium Cost", { exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Earn Tokens", exact: true })).toBeVisible();
     await page.waitForLoadState("networkidle");
-    const h1 = await page.locator("h1").first().textContent();
-    expect(h1?.toLowerCase()).toContain("focus timer");
-    const title = await page.title();
-    expect(title.toLowerCase()).toContain("focus timer");
-    const canonical = await page.locator('link[rel="canonical"]').getAttribute("href");
-    expect(canonical).toBeTruthy();
-    // OG
-    const ogTitle = await page.locator('meta[property="og:title"]').getAttribute("content");
-    expect(ogTitle).toBeTruthy();
+    expect(aiRequests).toEqual([]);
   });
 
-  test("private pages not indexed (pets, battle-pass, quests, profile, analytics)", async ({ page }) => {
+  test("focus-timer public page has H1, title, canonical and Open Graph metadata", async ({ page }) => {
+    await page.goto("/focus-timer");
+    await expect(page.locator("h1").first()).toContainText(/focus timer/i);
+    await expect(page).toHaveTitle(/focus timer/i);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\/focus-timer$/);
+    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", /focus timer/i);
+  });
+
+  test("private pages redirect anonymous visitors to sign-in", async ({ page }) => {
     for (const path of ["/pets", "/battle-pass", "/quests", "/profile", "/analytics"]) {
       await page.goto(path);
-      await page.waitForLoadState("networkidle");
-      // If unauthenticated, redirects to login which is not noindex? But protected pages should have noindex when authenticated
-      // We check robots meta if present
-      const robots = await page.locator('meta[name="robots"]').getAttribute("content").catch(() => null);
-      // For protected routes, either noindex or redirect to login (which is allowed)
-      expect(true).toBeTruthy();
+      await expect(page).toHaveURL(/\/login(?:\?|$)/);
+      await expect(page.getByRole("button", { name: "Sign in", exact: true })).toBeVisible();
     }
   });
 
-  test("mobile bottom nav, no horizontal scroll, large controls, safe-area", async ({ page }) => {
+  test("mobile public and protected entry points have no horizontal overflow", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
-    expect(overflow).toBe(false);
-    // Check for bottom nav existence (if authenticated, but at least no overflow)
-    // Large controls min-h-[44px] check on premium page
-    await page.goto("/premium");
-    await page.waitForLoadState("networkidle");
-    const overflow2 = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
-    expect(overflow2).toBe(false);
+    for (const path of ["/", "/premium"]) {
+      await page.goto(path);
+      await page.waitForLoadState("networkidle");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)).toBe(false);
+    }
   });
 
-  test("sitemap and robots exist", async ({ page }) => {
-    const robotsRes = await page.request.get("/robots.txt");
-    expect(robotsRes.ok()).toBeTruthy();
-    const robotsText = await robotsRes.text();
+  test("robots and the segmented sitemap index exist", async ({ page }) => {
+    const robots = await page.request.get("/robots.txt");
+    expect(robots.ok()).toBe(true);
+    const robotsText = await robots.text();
     expect(robotsText).toContain("Disallow: /dashboard");
     expect(robotsText).toContain("Sitemap:");
 
-    const sitemapRes = await page.request.get("/sitemap.xml");
-    expect(sitemapRes.ok()).toBeTruthy();
-    const sitemapText = await sitemapRes.text();
-    expect(sitemapText).toContain("<loc>https://focusarx.site/premium</loc>");
-    expect(sitemapText).toContain("<loc>https://focusarx.site/focus-guide</loc>");
+    const sitemap = await page.request.get("/sitemap.xml");
+    expect(sitemap.ok()).toBe(true);
+    expect(sitemap.headers()["content-type"]).toContain("xml");
+    const xml = await sitemap.text();
+    expect(xml).toContain("<sitemapindex");
+    expect(xml).toContain("<loc>https://focusarx.site/sitemap-core.xml</loc>");
+    expect(xml).toContain("<loc>https://focusarx.site/sitemap-guides.xml</loc>");
+    // Protected account pages do not belong in a public sitemap.
+    expect(xml).not.toContain("<loc>https://focusarx.site/premium</loc>");
   });
 
-  test("reduced-motion and 3D fallback", async ({ page }) => {
+  test("reduced-motion visitors can reach the public focus timer without page errors", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(error.message));
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-    // Should still load without errors
-    const body = await page.textContent("body");
-    expect(body).toBeTruthy();
-  });
-});
-
-test.describe("Token ledger invariants (API contract)", () => {
-  test("API spec documents idempotency, atomic deduct, ledger fields", async () => {
-    // This is a documentation test - ensures routes exist and return proper errors for unauth
-    // Real atomicity tests require DB integration, covered in api-server unit tests
-    expect(true).toBeTruthy();
+    await page.goto("/focus?duration=25");
+    // Match the recovery budget used by timer-persistence.spec.ts: an absent
+    // API can take several seconds to settle into the guest timer.
+    await expect(page.getByText("25:00").first()).toBeVisible({ timeout: 10_000 });
+    expect(errors).toEqual([]);
   });
 });

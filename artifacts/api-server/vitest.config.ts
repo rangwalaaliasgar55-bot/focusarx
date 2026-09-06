@@ -21,12 +21,7 @@ export default defineConfig({
     // default (one worker per core) exhausts resources and the run stalls
     // instead of failing — a hang is much harder to diagnose than a slow pass.
     pool: "forks",
-    poolOptions: {
-      forks: {
-        maxForks: 4,
-        minForks: 1,
-      },
-    },
+    maxWorkers: 4,
     // The DB-gated integration suites (botEngine, drops, marketplace,
     // aiBudget) share one Postgres and several of them assert on global
     // counts. Running test files in parallel lets one suite observe another

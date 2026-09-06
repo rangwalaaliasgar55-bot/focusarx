@@ -50,17 +50,12 @@ const TYPES = {
   ".webmanifest": "application/manifest+json",
 };
 
-if (!existsSync(ROOT)) {
-  console.error(`serve-dist: ${ROOT} not found — run the build first.`);
-  process.exit(1);
-}
-
 /** Resolve a request path to a file on disk, or null. */
-function resolve(urlPath) {
+function resolve(urlPath, root) {
   const clean = decodeURIComponent(urlPath.split("?")[0].split("#")[0]);
   // Block path traversal — the resolved path must stay inside ROOT.
-  const target = path.resolve(ROOT, `.${path.posix.normalize(clean)}`);
-  if (!target.startsWith(ROOT)) return null;
+  const target = path.resolve(root, `.${path.posix.normalize(clean)}`);
+  if (target !== root && !target.startsWith(`${root}${path.sep}`)) return null;
 
   if (existsSync(target) && statSync(target).isFile()) return target;
   const indexFile = path.join(target, "index.html");
@@ -68,30 +63,42 @@ function resolve(urlPath) {
   return null;
 }
 
-const server = createServer((req, res) => {
-  const urlPath = req.url ?? "/";
-  let file = resolve(urlPath);
-  let status = 200;
+export function createStaticServer(root = ROOT) {
+  return createServer((req, res) => {
+    let file;
+    try {
+      file = resolve(req.url ?? "/", root);
+    } catch (error) {
+      // Malformed percent escapes must not crash the entire preview server.
+      res.writeHead(error instanceof URIError ? 400 : 500, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end(error instanceof URIError ? "Malformed request path" : "Unable to read requested file");
+      return;
+    }
 
-  if (!file) {
-    // SPA fallback — same as vercel.json's final `/(.*)` → /index.html route.
-    file = path.join(ROOT, "index.html");
-    status = 200;
-  }
-
-  const ext = path.extname(file).toLowerCase();
-  res.writeHead(status, {
-    "Content-Type": TYPES[ext] ?? "application/octet-stream",
-    "X-Content-Type-Options": "nosniff",
-    "Referrer-Policy": "strict-origin-when-cross-origin",
+    // SPA fallback — same as vercel.json's final /(.*) -> /index.html route.
+    file ??= path.join(root, "index.html");
+    const ext = path.extname(file).toLowerCase();
+    res.writeHead(200, {
+      "Content-Type": TYPES[ext] ?? "application/octet-stream",
+      "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+    });
+    createReadStream(file).on("error", () => res.destroy()).pipe(res);
   });
-  createReadStream(file).pipe(res);
-});
+}
 
-server.listen(PORT, HOST, () => {
-  console.log(`serve-dist: serving ${ROOT}`);
-  console.log(`  → http://${HOST === "0.0.0.0" ? "localhost" : HOST}:${PORT}/`);
-  console.log("");
-  console.log("Check the crawler view of a prerendered page:");
-  console.log(`  curl -s localhost:${PORT}/pomodoro-timer | grep -o '<title>[^<]*</title>'`);
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  if (!existsSync(ROOT)) {
+    console.error(`serve-dist: ${ROOT} not found — run the build first.`);
+    process.exit(1);
+  }
+  const server = createStaticServer();
+  server.listen(PORT, HOST, () => {
+    console.log(`serve-dist: serving ${ROOT}`);
+    console.log(`  → http://${HOST === "0.0.0.0" ? "localhost" : HOST}:${PORT}/`);
+    console.log("");
+    console.log("Check the crawler view of a prerendered page:");
+    console.log(`  curl -s localhost:${PORT}/pomodoro-timer | grep -o '<title>[^<]*</title>'`);
+  });
+
+}

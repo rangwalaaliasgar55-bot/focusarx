@@ -1,1453 +1,1999 @@
--- FocusArx Full Schema (Idempotent)
--- Generated from Drizzle ORM schema definitions.
--- Safe to run against an existing database — uses IF NOT EXISTS everywhere.
--- Never drops or overwrites existing data.
-
--- ────────────────────────────────────────────────────────────────────────────
--- 1. CORE USERS & AUTH
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS users (
-  id TEXT PRIMARY KEY,
-  email TEXT NOT NULL UNIQUE,
-  name TEXT,
-  hashed_password TEXT,
-  guest_key TEXT UNIQUE,
-  is_guest BOOLEAN NOT NULL DEFAULT FALSE,
-  role TEXT NOT NULL DEFAULT 'user',
-  onboarding_completed BOOLEAN NOT NULL DEFAULT FALSE,
-  onboarding_data JSONB,
-  bio TEXT,
-  timezone TEXT DEFAULT 'UTC',
-  productivity_score REAL DEFAULT 0,
-  total_focus_minutes INTEGER DEFAULT 0,
-  referral_code TEXT UNIQUE,
-  referred_by_user_id TEXT,
-  referral_applied_at TIMESTAMP,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS password_reset_tokens (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  token TEXT NOT NULL UNIQUE,
-  expires_at TIMESTAMP NOT NULL,
-  used_at TIMESTAMP,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS refresh_tokens (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  token TEXT NOT NULL UNIQUE,
-  family_id TEXT,
-  expires_at TIMESTAMP NOT NULL,
-  revoked BOOLEAN NOT NULL DEFAULT FALSE,
-  user_agent TEXT,
-  ip_address TEXT,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS refresh_tokens_user_idx ON refresh_tokens(user_id);
-CREATE INDEX IF NOT EXISTS refresh_tokens_family_idx ON refresh_tokens(family_id);
-
--- ────────────────────────────────────────────────────────────────────────────
--- 2. FOCUS SESSIONS & TIMER
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS focus_sessions (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  mode TEXT NOT NULL DEFAULT 'focus',
-  duration_sec INTEGER NOT NULL DEFAULT 0,
-  planned_duration_sec INTEGER,
-  completed_early BOOLEAN DEFAULT FALSE,
-  completion_percentage REAL,
-  session_status TEXT DEFAULT 'completed',
-  completed_at TIMESTAMP,
-  focus_score REAL,
-  focus_quality TEXT,
-  stability_rating TEXT,
-  focus_timeline TEXT,
-  session_insights TEXT,
-  category TEXT DEFAULT 'General',
-  productivity_score REAL,
-  client_nonce TEXT,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS focus_sessions_user_id_idx ON focus_sessions(user_id);
-CREATE UNIQUE INDEX IF NOT EXISTS focus_sessions_user_nonce_unique ON focus_sessions(user_id, client_nonce);
-CREATE INDEX IF NOT EXISTS focus_sessions_completed_at_idx ON focus_sessions(completed_at);
-CREATE INDEX IF NOT EXISTS focus_sessions_user_started_idx ON focus_sessions(user_id, created_at);
-CREATE INDEX IF NOT EXISTS focus_sessions_user_completed_idx ON focus_sessions(user_id, completed_at);
-CREATE INDEX IF NOT EXISTS focus_sessions_user_status_idx ON focus_sessions(user_id, session_status);
-
-CREATE TABLE IF NOT EXISTS active_sessions (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  mode TEXT NOT NULL DEFAULT 'focus',
-  seconds_left INTEGER NOT NULL DEFAULT 1500,
-  timer_status TEXT NOT NULL DEFAULT 'paused',
-  active_seconds INTEGER NOT NULL DEFAULT 0,
-  focus_score REAL,
-  focus_quality TEXT,
-  focus_state TEXT,
-  distraction_count INTEGER DEFAULT 0,
-  last_seen_face_at TEXT,
-  focus_timeline TEXT DEFAULT '[]',
-  monitor_enabled BOOLEAN DEFAULT FALSE,
-  started_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE UNIQUE INDEX IF NOT EXISTS active_session_per_user_idx ON active_sessions(user_id);
-CREATE INDEX IF NOT EXISTS active_sessions_started_at_idx ON active_sessions(started_at);
-
-CREATE TABLE IF NOT EXISTS session_ghosts (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  session_id TEXT NOT NULL REFERENCES focus_sessions(id) ON DELETE CASCADE,
-  ghost_type TEXT NOT NULL DEFAULT 'personal_best',
-  duration_sec INTEGER NOT NULL DEFAULT 0,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
--- ────────────────────────────────────────────────────────────────────────────
--- 3. STUDY STREAKS
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS study_streaks (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-  current_streak INTEGER NOT NULL DEFAULT 0,
-  longest_streak INTEGER NOT NULL DEFAULT 0,
-  last_study_date TEXT,
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS freeze_tokens (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  token_type TEXT NOT NULL DEFAULT 'streak_freeze',
-  source TEXT NOT NULL DEFAULT 'shop',
-  used BOOLEAN NOT NULL DEFAULT FALSE,
-  used_at TIMESTAMP,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
--- ────────────────────────────────────────────────────────────────────────────
--- 4. TASKS & GOALS
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS tasks (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  text TEXT NOT NULL,
-  completed BOOLEAN NOT NULL DEFAULT FALSE,
-  "order" INTEGER DEFAULT 0,
-  estimated_minutes INTEGER,
-  category TEXT DEFAULT 'General',
-  priority TEXT DEFAULT 'medium',
-  tags JSONB DEFAULT '[]',
-  due_date TEXT,
-  recurring TEXT,
-  completed_at TIMESTAMP,
-  status TEXT DEFAULT 'active',
-  missed_at TIMESTAMP,
-  miss_count INTEGER DEFAULT 0,
-  archived_at TIMESTAMP,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS tasks_user_id_idx ON tasks(user_id);
-
-CREATE TABLE IF NOT EXISTS goals (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  description TEXT,
-  completed BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS habits (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  description TEXT,
-  frequency TEXT NOT NULL DEFAULT 'daily',
-  icon TEXT DEFAULT '✅',
-  color TEXT DEFAULT '#7C3AED',
-  streak INTEGER NOT NULL DEFAULT 0,
-  completed_count INTEGER NOT NULL DEFAULT 0,
-  is_active BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS habits_user_idx ON habits(user_id);
-
-CREATE TABLE IF NOT EXISTS habit_completions (
-  id TEXT PRIMARY KEY,
-  habit_id TEXT NOT NULL REFERENCES habits(id) ON DELETE CASCADE,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  completed_date TEXT NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE UNIQUE INDEX IF NOT EXISTS habit_completions_unique ON habit_completions(habit_id, completed_date);
-
--- ────────────────────────────────────────────────────────────────────────────
--- 5. WALLET, ECONOMY & GAMIFICATION
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS user_wallets (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-  coins INTEGER NOT NULL DEFAULT 0,
-  total_xp INTEGER NOT NULL DEFAULT 0,
-  weekly_xp INTEGER NOT NULL DEFAULT 0,
-  weekly_xp_reset_at TIMESTAMP DEFAULT NOW(),
-  level INTEGER NOT NULL DEFAULT 1,
-  prestige INTEGER NOT NULL DEFAULT 0,
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS user_wallets_weekly_xp_idx ON user_wallets(weekly_xp);
-CREATE INDEX IF NOT EXISTS user_wallets_total_xp_idx ON user_wallets(total_xp);
-
-CREATE TABLE IF NOT EXISTS user_badges (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  badge_id TEXT NOT NULL,
-  unlocked_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS coin_transactions (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  type TEXT NOT NULL,
-  amount INTEGER NOT NULL,
-  reason TEXT NOT NULL,
-  description TEXT NOT NULL,
-  balance_after INTEGER NOT NULL DEFAULT 0,
-  metadata JSONB,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS coin_tx_user_idx ON coin_transactions(user_id);
-
-CREATE TABLE IF NOT EXISTS login_rewards (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  day_key TEXT NOT NULL,
-  coins_earned INTEGER NOT NULL DEFAULT 0,
-  xp_earned INTEGER NOT NULL DEFAULT 0,
-  streak_day INTEGER NOT NULL DEFAULT 1,
-  claimed_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE UNIQUE INDEX IF NOT EXISTS login_rewards_user_day_unique ON login_rewards(user_id, day_key);
-
-CREATE TABLE IF NOT EXISTS missions (
-  id TEXT PRIMARY KEY,
-  mission_key TEXT NOT NULL UNIQUE,
-  title TEXT NOT NULL,
-  description TEXT NOT NULL,
-  type TEXT NOT NULL DEFAULT 'daily',
-  category TEXT NOT NULL DEFAULT 'focus',
-  xp_reward INTEGER NOT NULL DEFAULT 100,
-  coin_reward INTEGER NOT NULL DEFAULT 50,
-  target_value INTEGER NOT NULL DEFAULT 1,
-  unit TEXT NOT NULL DEFAULT 'sessions',
-  icon TEXT NOT NULL DEFAULT '🎯',
-  difficulty TEXT NOT NULL DEFAULT 'easy',
-  is_active BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS user_mission_progress (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  mission_key TEXT NOT NULL,
-  period_start TEXT NOT NULL,
-  current_value INTEGER NOT NULL DEFAULT 0,
-  completed BOOLEAN NOT NULL DEFAULT FALSE,
-  completed_at TIMESTAMP,
-  reward_claimed BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS mission_progress_user_period_idx ON user_mission_progress(user_id, period_start);
-
-CREATE TABLE IF NOT EXISTS battle_pass_progress (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  season TEXT NOT NULL,
-  season_xp INTEGER NOT NULL DEFAULT 0,
-  tier INTEGER NOT NULL DEFAULT 0,
-  premium_unlocked BOOLEAN NOT NULL DEFAULT FALSE,
-  claimed_tiers JSONB DEFAULT '[]',
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE UNIQUE INDEX IF NOT EXISTS battle_pass_user_season_unique ON battle_pass_progress(user_id, season);
-
--- ────────────────────────────────────────────────────────────────────────────
--- 6. SOCIAL & COMMUNITY
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS friendships (
-  id TEXT PRIMARY KEY,
-  requester_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  addressee_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  status TEXT NOT NULL DEFAULT 'pending',
-  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS friendships_requester_idx ON friendships(requester_id);
-CREATE INDEX IF NOT EXISTS friendships_addressee_idx ON friendships(addressee_id);
-
-CREATE TABLE IF NOT EXISTS follows (
-  id TEXT PRIMARY KEY,
-  follower_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  following_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE UNIQUE INDEX IF NOT EXISTS follows_unique ON follows(follower_id, following_id);
-
-CREATE TABLE IF NOT EXISTS buddy_requests (
-  id TEXT PRIMARY KEY,
-  sender_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  receiver_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  status TEXT NOT NULL DEFAULT 'pending',
-  message TEXT,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS buddy_requests_receiver_idx ON buddy_requests(receiver_id);
-
-CREATE TABLE IF NOT EXISTS social_posts (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  content TEXT NOT NULL,
-  type TEXT NOT NULL DEFAULT 'general',
-  image_urls JSONB DEFAULT '[]',
-  metadata JSONB,
-  group_id TEXT REFERENCES study_groups(id) ON DELETE SET NULL,
-  is_public BOOLEAN NOT NULL DEFAULT TRUE,
-  view_count INTEGER NOT NULL DEFAULT 0,
-  moderation_status TEXT NOT NULL DEFAULT 'approved',
-  moderation_reason TEXT,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS social_posts_user_idx ON social_posts(user_id);
-CREATE INDEX IF NOT EXISTS social_posts_created_at_idx ON social_posts(created_at);
-CREATE INDEX IF NOT EXISTS social_posts_moderation_idx ON social_posts(moderation_status);
-
-CREATE TABLE IF NOT EXISTS post_reactions (
-  id TEXT PRIMARY KEY,
-  post_id TEXT NOT NULL REFERENCES social_posts(id) ON DELETE CASCADE,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  reaction TEXT NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS post_reactions_post_idx ON post_reactions(post_id);
-
-CREATE TABLE IF NOT EXISTS post_comments (
-  id TEXT PRIMARY KEY,
-  post_id TEXT NOT NULL REFERENCES social_posts(id) ON DELETE CASCADE,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  parent_id TEXT,
-  content TEXT NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS post_comments_post_idx ON post_comments(post_id);
-
-CREATE TABLE IF NOT EXISTS post_saves (
-  id TEXT PRIMARY KEY,
-  post_id TEXT NOT NULL REFERENCES social_posts(id) ON DELETE CASCADE,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS post_saves_post_user_idx ON post_saves(post_id, user_id);
-
-CREATE TABLE IF NOT EXISTS user_emotes (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  emote_id TEXT NOT NULL,
-  equipped BOOLEAN NOT NULL DEFAULT FALSE,
-  unlocked_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE UNIQUE INDEX IF NOT EXISTS user_emotes_user_emote_unique ON user_emotes(user_id, emote_id);
-CREATE INDEX IF NOT EXISTS user_emotes_user_idx ON user_emotes(user_id);
-
-CREATE TABLE IF NOT EXISTS posts (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  content TEXT NOT NULL,
-  type TEXT NOT NULL DEFAULT 'general',
-  image_urls JSONB DEFAULT '[]',
-  achievement_data JSONB,
-  study_log_data JSONB,
-  is_public BOOLEAN NOT NULL DEFAULT TRUE,
-  group_id TEXT,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS posts_user_idx ON posts(user_id);
-CREATE INDEX IF NOT EXISTS posts_created_at_idx ON posts(created_at);
-
-CREATE TABLE IF NOT EXISTS post_likes (
-  id TEXT PRIMARY KEY,
-  post_id TEXT NOT NULL,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS post_likes_post_user_idx ON post_likes(post_id, user_id);
-
--- ────────────────────────────────────────────────────────────────────────────
--- 7. STUDY GROUPS & ROOMS
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS study_groups (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  description TEXT,
-  owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  is_public BOOLEAN NOT NULL DEFAULT TRUE,
-  max_members INTEGER NOT NULL DEFAULT 50,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS group_members (
-  id TEXT PRIMARY KEY,
-  group_id TEXT NOT NULL REFERENCES study_groups(id) ON DELETE CASCADE,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  role TEXT NOT NULL DEFAULT 'member',
-  joined_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE UNIQUE INDEX IF NOT EXISTS group_members_group_user_unique ON group_members(group_id, user_id);
-
-CREATE TABLE IF NOT EXISTS study_rooms (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  description TEXT,
-  owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  max_members INTEGER NOT NULL DEFAULT 20,
-  is_public BOOLEAN NOT NULL DEFAULT TRUE,
-  is_active BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS study_rooms_owner_idx ON study_rooms(owner_id);
-
-CREATE TABLE IF NOT EXISTS study_room_members (
-  id TEXT PRIMARY KEY,
-  room_id TEXT NOT NULL REFERENCES study_rooms(id) ON DELETE CASCADE,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  joined_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  left_at TIMESTAMP
-);
-CREATE INDEX IF NOT EXISTS study_room_members_room_idx ON study_room_members(room_id);
-CREATE INDEX IF NOT EXISTS room_members_room_user_idx ON study_room_members(room_id, user_id);
-CREATE UNIQUE INDEX IF NOT EXISTS study_room_members_room_user_unique ON study_room_members(room_id, user_id);
-
--- ────────────────────────────────────────────────────────────────────────────
--- 8. PRODUCTIVITY & FOCUS TRACKING
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS productivity_logs (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  date TEXT NOT NULL,
-  productivity_score INTEGER,
-  focus_minutes INTEGER DEFAULT 0,
-  sessions_completed INTEGER DEFAULT 0,
-  avg_focus_score REAL,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE UNIQUE INDEX IF NOT EXISTS productivity_logs_user_date_unique ON productivity_logs(user_id, date);
-
-CREATE TABLE IF NOT EXISTS readiness_logs (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  score INTEGER NOT NULL DEFAULT 50,
-  mood TEXT,
-  sleep_hours REAL,
-  energy_level INTEGER,
-  stress_level INTEGER,
-  notes TEXT,
-  logged_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS distraction_logs (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  session_id TEXT,
-  distraction_type TEXT NOT NULL DEFAULT 'phone',
-  noted_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS focus_profiles (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-  focus_type TEXT,
-  peak_hours JSONB,
-  avg_session_minutes INTEGER,
-  best_streak_days INTEGER,
-  total_focus_hours REAL DEFAULT 0,
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS focus_dna (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-  traits JSONB,
-  archetype TEXT,
-  computed_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
--- ────────────────────────────────────────────────────────────────────────────
--- 9. BREAK-FREE (ADDICTION RECOVERY)
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS break_free_streaks (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  habit_type TEXT NOT NULL DEFAULT 'phone',
-  current_streak INTEGER NOT NULL DEFAULT 0,
-  longest_streak INTEGER NOT NULL DEFAULT 0,
-  last_check_in TEXT,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS break_free_moods (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  mood TEXT NOT NULL,
-  intensity INTEGER,
-  logged_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS break_free_pledges (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  pledge_type TEXT NOT NULL,
-  message TEXT,
-  active BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
--- ────────────────────────────────────────────────────────────────────────────
--- 10. CONSEQUENCES & CONTRACTS
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS consequence_contracts (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  description TEXT,
-  consequence_type TEXT NOT NULL DEFAULT 'coin_loss',
-  stake_amount INTEGER NOT NULL DEFAULT 0,
-  is_active BOOLEAN NOT NULL DEFAULT TRUE,
-  completed BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
--- ────────────────────────────────────────────────────────────────────────────
--- 11. ROADMAPS & DREAMS
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS roadmaps (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  topic TEXT NOT NULL,
-  content JSONB NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS user_dreams (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  description TEXT,
-  category TEXT DEFAULT 'general',
-  is_achieved BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
--- ────────────────────────────────────────────────────────────────────────────
--- 12. NOTIFICATIONS & COMMUNICATION
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS notifications (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  type TEXT NOT NULL,
-  title TEXT NOT NULL,
-  message TEXT,
-  data JSONB,
-  read BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS notifications_user_read_idx ON notifications(user_id, read);
-
-CREATE TABLE IF NOT EXISTS push_subscriptions (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  endpoint TEXT NOT NULL,
-  p256dh TEXT NOT NULL,
-  auth TEXT NOT NULL,
-  priority_enabled BOOLEAN NOT NULL DEFAULT FALSE,
-  sound TEXT NOT NULL DEFAULT 'default',
-  expires_at TIMESTAMP,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS push_sub_user_idx ON push_subscriptions(user_id);
-
-CREATE TABLE IF NOT EXISTS email_logs (
-  id TEXT PRIMARY KEY,
-  recipient_id TEXT REFERENCES users(id) ON DELETE SET NULL,
-  recipient_email TEXT NOT NULL,
-  template TEXT NOT NULL,
-  subject TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending',
-  provider_id TEXT,
-  sent_at TIMESTAMP,
-  opened_at TIMESTAMP,
-  clicked_at TIMESTAMP,
-  bounced BOOLEAN DEFAULT FALSE,
-  error TEXT,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS email_logs_recipient_idx ON email_logs(recipient_id);
-CREATE INDEX IF NOT EXISTS email_logs_created_at_idx ON email_logs(created_at);
-
--- ────────────────────────────────────────────────────────────────────────────
--- 13. CHAT / MESSAGING
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS conversations (
-  id TEXT PRIMARY KEY,
-  type TEXT NOT NULL DEFAULT 'direct',
-  name TEXT,
-  group_id TEXT,
-  last_message_at TIMESTAMP,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS conversations_group_idx ON conversations(group_id);
-
-CREATE TABLE IF NOT EXISTS conversation_participants (
-  id TEXT PRIMARY KEY,
-  conversation_id TEXT NOT NULL,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  last_read_at TIMESTAMP,
-  is_admin BOOLEAN NOT NULL DEFAULT FALSE,
-  joined_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS conv_participants_conv_user_idx ON conversation_participants(conversation_id, user_id);
-
-CREATE TABLE IF NOT EXISTS messages (
-  id TEXT PRIMARY KEY,
-  conversation_id TEXT NOT NULL,
-  sender_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  content TEXT NOT NULL,
-  type TEXT DEFAULT 'text',
-  reply_to_id TEXT,
-  is_edited BOOLEAN NOT NULL DEFAULT FALSE,
-  is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
-  metadata JSONB,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS messages_conv_idx ON messages(conversation_id);
-CREATE INDEX IF NOT EXISTS messages_created_at_idx ON messages(created_at);
-
-CREATE TABLE IF NOT EXISTS message_reactions (
-  id TEXT PRIMARY KEY,
-  message_id TEXT NOT NULL,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  emoji TEXT NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS message_reactions_msg_user_idx ON message_reactions(message_id, user_id);
-CREATE INDEX IF NOT EXISTS message_reactions_msg_idx ON message_reactions(message_id);
-
--- ────────────────────────────────────────────────────────────────────────────
--- 14. CITY / FORGE / PETS / MARKETPLACE
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS focus_cities (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-  tier TEXT NOT NULL DEFAULT 'hamlet',
-  tier_name TEXT NOT NULL DEFAULT 'Study Hamlet',
-  population INTEGER NOT NULL DEFAULT 5,
-  total_buildings INTEGER NOT NULL DEFAULT 0,
-  total_sessions INTEGER NOT NULL DEFAULT 0,
-  unlocked_districts JSONB DEFAULT '["downtown"]',
-  buildings JSONB DEFAULT '{}',
-  atmosphere TEXT NOT NULL DEFAULT 'day',
-  selected_skin TEXT NOT NULL DEFAULT 'classic',
-  weather TEXT NOT NULL DEFAULT 'clear',
-  weather_updated_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS focus_cities_user_idx ON focus_cities(user_id);
-
-CREATE TABLE IF NOT EXISTS city_building_definitions (
-  id TEXT PRIMARY KEY,
-  slug TEXT NOT NULL UNIQUE,
-  name TEXT NOT NULL,
-  description TEXT NOT NULL,
-  district TEXT NOT NULL,
-  category TEXT NOT NULL,
-  unlock_level INTEGER NOT NULL DEFAULT 1,
-  unlock_sessions INTEGER NOT NULL DEFAULT 0,
-  coin_cost INTEGER NOT NULL DEFAULT 0,
-  population_bonus INTEGER NOT NULL DEFAULT 10,
-  xp_bonus_per_session INTEGER NOT NULL DEFAULT 0,
-  coin_bonus_per_session INTEGER NOT NULL DEFAULT 0,
-  icon TEXT NOT NULL,
-  tier TEXT NOT NULL DEFAULT 'hamlet',
-  sort_order INTEGER NOT NULL DEFAULT 0
-);
-
-CREATE TABLE IF NOT EXISTS user_pets (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  pet_type TEXT NOT NULL,
-  name TEXT NOT NULL,
-  level INTEGER NOT NULL DEFAULT 1,
-  xp INTEGER NOT NULL DEFAULT 0,
-  mood TEXT NOT NULL DEFAULT 'happy',
-  equipped BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS user_pets_user_idx ON user_pets(user_id);
-
-CREATE TABLE IF NOT EXISTS marketplace_items (
-  id TEXT PRIMARY KEY,
-  seller_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  item_type TEXT NOT NULL,
-  title TEXT NOT NULL,
-  description TEXT,
-  price INTEGER NOT NULL DEFAULT 0,
-  is_sold BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS marketplace_items_seller_idx ON marketplace_items(seller_id);
-
-CREATE TABLE IF NOT EXISTS user_inventory (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  item_type TEXT NOT NULL,
-  item_id TEXT NOT NULL,
-  quantity INTEGER NOT NULL DEFAULT 1,
-  acquired_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS user_inventory_user_idx ON user_inventory(user_id);
-
--- ────────────────────────────────────────────────────────────────────────────
--- 15. LOOT BOXES & QUESTS
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS loot_box_types (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  description TEXT NOT NULL,
-  rarity TEXT NOT NULL,
-  coin_cost INTEGER NOT NULL DEFAULT 0,
-  sessions_required INTEGER NOT NULL DEFAULT 0,
-  premium_only BOOLEAN NOT NULL DEFAULT FALSE,
-  icon TEXT NOT NULL,
-  glow_color TEXT NOT NULL DEFAULT '#7C3AED',
-  possible_rewards JSONB NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS user_loot_boxes (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  box_type_id TEXT NOT NULL REFERENCES loot_box_types(id),
-  status TEXT NOT NULL DEFAULT 'unopened',
-  reward_type TEXT,
-  reward_value JSONB,
-  earned_reason TEXT,
-  opened_at TIMESTAMP,
-  earned_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS user_loot_boxes_user_idx ON user_loot_boxes(user_id);
-
-CREATE TABLE IF NOT EXISTS quest_definitions (
-  id TEXT PRIMARY KEY,
-  title TEXT NOT NULL,
-  description TEXT NOT NULL,
-  type TEXT NOT NULL,
-  difficulty TEXT NOT NULL DEFAULT 'easy',
-  target INTEGER NOT NULL,
-  metric TEXT NOT NULL,
-  xp_reward INTEGER NOT NULL DEFAULT 0,
-  coin_reward INTEGER NOT NULL DEFAULT 0,
-  icon TEXT NOT NULL,
-  is_active BOOLEAN NOT NULL DEFAULT TRUE,
-  rotation_weight INTEGER NOT NULL DEFAULT 10
-);
-
-CREATE TABLE IF NOT EXISTS user_quest_progress (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  quest_id TEXT NOT NULL REFERENCES quest_definitions(id),
-  period TEXT NOT NULL,
-  current INTEGER NOT NULL DEFAULT 0,
-  completed BOOLEAN NOT NULL DEFAULT FALSE,
-  claimed_at TIMESTAMP,
-  assigned_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS user_quest_progress_user_idx ON user_quest_progress(user_id);
-CREATE UNIQUE INDEX IF NOT EXISTS user_quest_progress_unique ON user_quest_progress(user_id, quest_id, period);
-
--- ────────────────────────────────────────────────────────────────────────────
--- 16. SEASONAL EVENTS
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS seasonal_events (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  slug TEXT NOT NULL UNIQUE,
-  description TEXT NOT NULL,
-  theme TEXT NOT NULL,
-  banner_color TEXT NOT NULL DEFAULT '#7C3AED',
-  start_date TIMESTAMP NOT NULL,
-  end_date TIMESTAMP NOT NULL,
-  xp_multiplier REAL NOT NULL DEFAULT 1.0,
-  coin_multiplier REAL NOT NULL DEFAULT 1.0,
-  special_missions JSONB DEFAULT '[]',
-  exclusive_rewards JSONB DEFAULT '[]',
-  premium_only BOOLEAN NOT NULL DEFAULT FALSE,
-  is_active BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS user_seasonal_progress (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  event_id TEXT NOT NULL REFERENCES seasonal_events(id),
-  points INTEGER NOT NULL DEFAULT 0,
-  completed_missions JSONB DEFAULT '[]',
-  rewards_claimed JSONB DEFAULT '[]',
-  rank INTEGER
-);
-CREATE INDEX IF NOT EXISTS user_seasonal_progress_user_idx ON user_seasonal_progress(user_id);
-CREATE UNIQUE INDEX IF NOT EXISTS user_seasonal_progress_unique ON user_seasonal_progress(user_id, event_id);
-
--- ────────────────────────────────────────────────────────────────────────────
--- 17. FLASHCARDS
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS flashcard_decks (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  description TEXT,
-  category TEXT DEFAULT 'General',
-  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS flashcard_decks_user_idx ON flashcard_decks(user_id);
-
-CREATE TABLE IF NOT EXISTS flashcards (
-  id TEXT PRIMARY KEY,
-  deck_id TEXT NOT NULL REFERENCES flashcard_decks(id) ON DELETE CASCADE,
-  front TEXT NOT NULL,
-  back TEXT NOT NULL,
-  box INTEGER NOT NULL DEFAULT 1,
-  next_review_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  correct_count INTEGER NOT NULL DEFAULT 0,
-  incorrect_count INTEGER NOT NULL DEFAULT 0,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS flashcards_deck_idx ON flashcards(deck_id);
-
--- ────────────────────────────────────────────────────────────────────────────
--- 18. PREMIUM ECONOMY (TOKENS, PLANS, ENTITLEMENTS)
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS token_ledger (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  amount INTEGER NOT NULL,
-  transaction_type TEXT NOT NULL,
-  source TEXT NOT NULL,
-  related_entity_id TEXT,
-  idempotency_key TEXT NOT NULL UNIQUE,
-  balance_after INTEGER NOT NULL,
-  admin_reason TEXT,
-  metadata JSONB,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS token_ledger_user_idx ON token_ledger(user_id);
-CREATE INDEX IF NOT EXISTS token_ledger_user_created_idx ON token_ledger(user_id, created_at);
-CREATE INDEX IF NOT EXISTS token_ledger_source_idx ON token_ledger(source);
-CREATE INDEX IF NOT EXISTS token_ledger_type_idx ON token_ledger(transaction_type);
-
-CREATE TABLE IF NOT EXISTS premium_subscriptions (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-  activated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  expires_at TIMESTAMP,
-  coins_cost INTEGER DEFAULT 9000,
-  benefits JSONB DEFAULT '["exclusive_pets","premium_loot_boxes","premium_themes","xp_multiplier","coin_multiplier","premium_analytics","profile_badge","premium_battle_pass"]',
-  is_active BOOLEAN NOT NULL DEFAULT TRUE,
-  granted_by_admin BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS premium_subscriptions_user_idx ON premium_subscriptions(user_id);
-
-CREATE TABLE IF NOT EXISTS premium_plans (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  slug TEXT NOT NULL UNIQUE,
-  description TEXT NOT NULL DEFAULT '',
-  duration_days INTEGER NOT NULL,
-  token_cost INTEGER NOT NULL,
-  is_active BOOLEAN NOT NULL DEFAULT TRUE,
-  sort_order INTEGER NOT NULL DEFAULT 0,
-  benefits JSONB DEFAULT '[]',
-  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS premium_entitlements (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  plan_id TEXT REFERENCES premium_plans(id) ON DELETE SET NULL,
-  source TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'active',
-  starts_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  ends_at TIMESTAMP NOT NULL,
-  token_cost INTEGER NOT NULL DEFAULT 0,
-  idempotency_key TEXT NOT NULL UNIQUE,
-  granted_by_admin_id TEXT REFERENCES users(id) ON DELETE SET NULL,
-  admin_reason TEXT,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS premium_entitlements_user_idx ON premium_entitlements(user_id);
-CREATE INDEX IF NOT EXISTS premium_entitlements_user_status_idx ON premium_entitlements(user_id, status);
-CREATE INDEX IF NOT EXISTS premium_entitlements_ends_idx ON premium_entitlements(ends_at);
-
--- ────────────────────────────────────────────────────────────────────────────
--- 19. PREMIUM TOKEN ECONOMY TABLES
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS pet_catalog (
-  id TEXT PRIMARY KEY,
-  slug TEXT NOT NULL UNIQUE,
-  name TEXT NOT NULL,
-  description TEXT NOT NULL,
-  rarity TEXT NOT NULL DEFAULT 'common',
-  category TEXT NOT NULL DEFAULT 'starter',
-  thumbnail_url TEXT,
-  model_url TEXT,
-  fallback_image_url TEXT,
-  animations JSONB DEFAULT '{}',
-  unlock_source TEXT NOT NULL DEFAULT 'starter',
-  token_cost INTEGER DEFAULT 0,
-  is_premium BOOLEAN NOT NULL DEFAULT FALSE,
-  is_seasonal BOOLEAN NOT NULL DEFAULT FALSE,
-  seasonal_event_id TEXT,
-  available_from TIMESTAMP,
-  available_until TIMESTAMP,
-  is_active BOOLEAN NOT NULL DEFAULT TRUE,
-  sort_order INTEGER NOT NULL DEFAULT 0,
-  max_level INTEGER NOT NULL DEFAULT 20,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS pet_catalog_rarity_idx ON pet_catalog(rarity);
-CREATE INDEX IF NOT EXISTS pet_catalog_category_idx ON pet_catalog(category);
-CREATE INDEX IF NOT EXISTS pet_catalog_active_idx ON pet_catalog(is_active);
-
-CREATE TABLE IF NOT EXISTS user_pet_inventory (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  pet_id TEXT NOT NULL REFERENCES pet_catalog(id) ON DELETE CASCADE,
-  level INTEGER NOT NULL DEFAULT 1,
-  bond_xp INTEGER NOT NULL DEFAULT 0,
-  nickname TEXT,
-  mood TEXT NOT NULL DEFAULT 'happy',
-  is_active BOOLEAN NOT NULL DEFAULT FALSE,
-  acquired_from TEXT NOT NULL DEFAULT 'starter',
-  accessories JSONB DEFAULT '[]',
-  color_variant TEXT DEFAULT 'default',
-  acquired_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS user_pet_inventory_user_idx ON user_pet_inventory(user_id);
-CREATE INDEX IF NOT EXISTS user_pet_inventory_user_active_idx ON user_pet_inventory(user_id, is_active);
-CREATE UNIQUE INDEX IF NOT EXISTS user_pet_inventory_user_pet_unique ON user_pet_inventory(user_id, pet_id);
-
-CREATE TABLE IF NOT EXISTS battle_pass_claims (
-  id TEXT PRIMARY KEY,
-  battle_pass_id TEXT NOT NULL,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  tier INTEGER NOT NULL,
-  reward_id TEXT NOT NULL,
-  is_premium_reward BOOLEAN NOT NULL DEFAULT FALSE,
-  claimed_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS battle_pass_claims_user_idx ON battle_pass_claims(user_id);
-CREATE INDEX IF NOT EXISTS battle_pass_claims_pass_idx ON battle_pass_claims(battle_pass_id);
-CREATE UNIQUE INDEX IF NOT EXISTS battle_pass_claims_unique ON battle_pass_claims(battle_pass_id, user_id, tier, reward_id);
-
-CREATE TABLE IF NOT EXISTS feature_flags (
-  id TEXT PRIMARY KEY,
-  key TEXT NOT NULL UNIQUE,
-  enabled BOOLEAN NOT NULL DEFAULT TRUE,
-  description TEXT,
-  rollout_percentage INTEGER NOT NULL DEFAULT 100,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS feature_flags_enabled_idx ON feature_flags(enabled);
-
-CREATE TABLE IF NOT EXISTS cosmetic_inventory (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  cosmetic_id TEXT NOT NULL,
-  type TEXT NOT NULL,
-  equipped BOOLEAN NOT NULL DEFAULT FALSE,
-  acquired_from TEXT NOT NULL DEFAULT 'starter',
-  acquired_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS cosmetic_inventory_user_idx ON cosmetic_inventory(user_id);
-CREATE INDEX IF NOT EXISTS cosmetic_inventory_user_type_idx ON cosmetic_inventory(user_id, type);
-
-CREATE TABLE IF NOT EXISTS quest_progress (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  quest_id TEXT NOT NULL,
-  progress INTEGER NOT NULL DEFAULT 0,
-  target INTEGER NOT NULL,
-  completed BOOLEAN NOT NULL DEFAULT FALSE,
-  claimed BOOLEAN NOT NULL DEFAULT FALSE,
-  period TEXT NOT NULL,
-  claimed_at TIMESTAMP,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS quest_progress_user_idx ON quest_progress(user_id);
-CREATE UNIQUE INDEX IF NOT EXISTS quest_progress_unique ON quest_progress(user_id, quest_id, period);
-
-CREATE TABLE IF NOT EXISTS token_earning_rules (
-  id TEXT PRIMARY KEY,
-  source TEXT NOT NULL UNIQUE,
-  amount INTEGER NOT NULL,
-  daily_limit INTEGER,
-  description TEXT NOT NULL DEFAULT '',
-  is_active BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS asset_catalog (
-  id TEXT PRIMARY KEY,
-  key TEXT NOT NULL UNIQUE,
-  type TEXT NOT NULL,
-  url TEXT NOT NULL,
-  fallback_url TEXT,
-  size_bytes INTEGER,
-  mime_type TEXT,
-  metadata JSONB,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS asset_catalog_type_idx ON asset_catalog(type);
-
--- ────────────────────────────────────────────────────────────────────────────
--- 20. USER PROFILE EXTRAS & WRAPPED
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS user_profile_extras (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-  banner_url TEXT,
-  banner_gradient TEXT,
-  social_links JSONB DEFAULT '{}',
-  featured_post_ids JSONB DEFAULT '[]',
-  pinned_badge_ids JSONB DEFAULT '[]',
-  is_private BOOLEAN NOT NULL DEFAULT FALSE,
-  custom_status TEXT,
-  status_emoji TEXT,
-  creator_tier TEXT NOT NULL DEFAULT 'learner',
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS wrapped_snapshots (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  year INTEGER NOT NULL,
-  data JSONB NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE UNIQUE INDEX IF NOT EXISTS wrapped_user_year_unique ON wrapped_snapshots(user_id, year);
-
-CREATE TABLE IF NOT EXISTS app_feedback (
-  id TEXT PRIMARY KEY,
-  user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
-  rating INTEGER NOT NULL,
-  message TEXT,
-  category TEXT DEFAULT 'general',
-  session_count INTEGER DEFAULT 0,
-  user_level INTEGER DEFAULT 1,
-  device TEXT,
-  app_version TEXT DEFAULT '1.0',
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS app_feedback_user_idx ON app_feedback(user_id);
-
--- ────────────────────────────────────────────────────────────────────────────
--- 21. SITE SETTINGS & PLATFORM META
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS site_settings (
-  id TEXT PRIMARY KEY DEFAULT 'default',
-  maintenance_mode BOOLEAN NOT NULL DEFAULT FALSE,
-  maintenance_message TEXT,
-  announcement_enabled BOOLEAN NOT NULL DEFAULT FALSE,
-  announcement_title TEXT,
-  announcement_text TEXT,
-  announcement_emoji TEXT,
-  branding_name TEXT NOT NULL DEFAULT 'FocusArx',
-  branding_tagline TEXT,
-  hero_title TEXT,
-  hero_subtitle TEXT,
-  hero_cta_text TEXT,
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS platform_meta (
-  key TEXT PRIMARY KEY,
-  value JSONB,
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
--- ────────────────────────────────────────────────────────────────────────────
--- 22. ANALYTICS (WEB)
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS visitors (
-  id TEXT PRIMARY KEY,
-  visitor_id TEXT NOT NULL,
-  user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
-  first_seen TIMESTAMP NOT NULL DEFAULT NOW(),
-  last_seen TIMESTAMP NOT NULL DEFAULT NOW(),
-  visit_count INTEGER NOT NULL DEFAULT 0,
-  device_type TEXT,
-  browser TEXT,
-  os TEXT,
-  country TEXT,
-  city TEXT,
-  is_bot BOOLEAN NOT NULL DEFAULT FALSE
-);
-CREATE UNIQUE INDEX IF NOT EXISTS visitors_visitor_id_idx ON visitors(visitor_id);
-CREATE INDEX IF NOT EXISTS visitors_last_seen_idx ON visitors(last_seen);
-CREATE INDEX IF NOT EXISTS visitors_user_id_idx ON visitors(user_id);
-
-CREATE TABLE IF NOT EXISTS analytics_sessions (
-  id TEXT PRIMARY KEY,
-  visitor_id TEXT NOT NULL,
-  session_start TIMESTAMP NOT NULL DEFAULT NOW(),
-  session_end TIMESTAMP,
-  duration_sec INTEGER NOT NULL DEFAULT 0,
-  page_views INTEGER NOT NULL DEFAULT 0,
-  focus_sessions_started INTEGER NOT NULL DEFAULT 0,
-  tasks_created INTEGER NOT NULL DEFAULT 0,
-  roadmaps_generated INTEGER NOT NULL DEFAULT 0,
-  ai_features_used INTEGER NOT NULL DEFAULT 0,
-  last_activity_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS analytics_sessions_visitor_id_idx ON analytics_sessions(visitor_id);
-CREATE INDEX IF NOT EXISTS analytics_sessions_last_activity_idx ON analytics_sessions(last_activity_at);
-
-CREATE TABLE IF NOT EXISTS page_views (
-  id TEXT PRIMARY KEY,
-  visitor_id TEXT NOT NULL,
-  session_id TEXT NOT NULL,
-  page TEXT NOT NULL,
-  viewed_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS page_views_visitor_id_idx ON page_views(visitor_id);
-CREATE INDEX IF NOT EXISTS page_views_session_id_idx ON page_views(session_id);
-CREATE INDEX IF NOT EXISTS page_views_viewed_at_idx ON page_views(viewed_at);
-
-CREATE TABLE IF NOT EXISTS analytics_events (
-  id TEXT PRIMARY KEY,
-  event_id TEXT NOT NULL,
-  visitor_id TEXT NOT NULL,
-  session_id TEXT,
-  event_type TEXT NOT NULL,
-  event_data JSONB,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE UNIQUE INDEX IF NOT EXISTS analytics_events_event_id_idx ON analytics_events(event_id);
-CREATE INDEX IF NOT EXISTS analytics_events_created_at_idx ON analytics_events(created_at);
-CREATE INDEX IF NOT EXISTS analytics_events_visitor_id_idx ON analytics_events(visitor_id);
-
--- ────────────────────────────────────────────────────────────────────────────
--- 23. PLATFORM TABLES (AI, DROPS, SQL LOG, BOTS)
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS bot_pending_replies (
-  id TEXT PRIMARY KEY,
-  post_id TEXT NOT NULL REFERENCES social_posts(id) ON DELETE CASCADE,
-  bot_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  content TEXT NOT NULL,
-  parent_id TEXT,
-  due_at TIMESTAMP NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending',
-  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  sent_at TIMESTAMP
-);
-CREATE INDEX IF NOT EXISTS bot_pending_replies_due_idx ON bot_pending_replies(status, due_at);
-CREATE INDEX IF NOT EXISTS bot_pending_replies_post_idx ON bot_pending_replies(post_id);
-
-CREATE TABLE IF NOT EXISTS admin_drops (
-  id TEXT PRIMARY KEY,
-  type TEXT NOT NULL,
-  title TEXT NOT NULL,
-  description TEXT,
-  payload JSONB,
-  pool_total INTEGER NOT NULL DEFAULT 0,
-  pool_claimed INTEGER NOT NULL DEFAULT 0,
-  starts_at TIMESTAMP NOT NULL,
-  ends_at TIMESTAMP NOT NULL,
-  is_active BOOLEAN NOT NULL DEFAULT TRUE,
-  created_by_id TEXT REFERENCES users(id) ON DELETE SET NULL,
-  created_via TEXT NOT NULL DEFAULT 'admin',
-  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  ended_at TIMESTAMP,
-  cancelled_at TIMESTAMP
-);
-CREATE INDEX IF NOT EXISTS admin_drops_window_idx ON admin_drops(starts_at, ends_at);
-CREATE INDEX IF NOT EXISTS admin_drops_active_idx ON admin_drops(is_active);
-
-CREATE TABLE IF NOT EXISTS admin_drop_claims (
-  id TEXT PRIMARY KEY,
-  drop_id TEXT NOT NULL REFERENCES admin_drops(id) ON DELETE CASCADE,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  reward_coins INTEGER NOT NULL DEFAULT 0,
-  reward_xp INTEGER NOT NULL DEFAULT 0,
-  item_granted TEXT,
-  claimed_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE UNIQUE INDEX IF NOT EXISTS admin_drop_claims_drop_user_unique ON admin_drop_claims(drop_id, user_id);
-CREATE INDEX IF NOT EXISTS admin_drop_claims_drop_idx ON admin_drop_claims(drop_id);
-CREATE INDEX IF NOT EXISTS admin_drop_claims_user_idx ON admin_drop_claims(user_id);
-
-CREATE TABLE IF NOT EXISTS admin_sql_log (
-  id TEXT PRIMARY KEY,
-  admin_id TEXT REFERENCES users(id) ON DELETE SET NULL,
-  sql TEXT NOT NULL,
-  kind TEXT NOT NULL DEFAULT 'write',
-  rows_affected INTEGER NOT NULL DEFAULT 0,
-  status TEXT NOT NULL DEFAULT 'ok',
-  error TEXT,
-  branch_name TEXT,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS admin_sql_log_created_idx ON admin_sql_log(created_at);
-
-CREATE TABLE IF NOT EXISTS ai_call_log (
-  id TEXT PRIMARY KEY,
-  provider TEXT NOT NULL,
-  model TEXT NOT NULL,
-  purpose TEXT NOT NULL,
-  user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
-  tokens_in INTEGER NOT NULL DEFAULT 0,
-  tokens_out INTEGER NOT NULL DEFAULT 0,
-  latency_ms INTEGER NOT NULL DEFAULT 0,
-  status TEXT NOT NULL DEFAULT 'ok',
-  fallback_used BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS ai_call_log_created_idx ON ai_call_log(created_at);
-CREATE INDEX IF NOT EXISTS ai_call_log_purpose_idx ON ai_call_log(purpose, created_at);
-CREATE INDEX IF NOT EXISTS ai_call_log_user_purpose_idx ON ai_call_log(user_id, purpose, created_at);
-
-CREATE TABLE IF NOT EXISTS ai_budget_state (
-  id TEXT PRIMARY KEY,
-  provider TEXT NOT NULL DEFAULT 'gemini',
-  day TEXT NOT NULL,
-  calls_used INTEGER NOT NULL DEFAULT 0,
-  cap INTEGER NOT NULL DEFAULT 1500,
-  cool_until TIMESTAMP,
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE UNIQUE INDEX IF NOT EXISTS ai_budget_state_provider_day_unique ON ai_budget_state(provider, day);
-
-CREATE TABLE IF NOT EXISTS ai_ideas (
-  id TEXT PRIMARY KEY,
-  title TEXT NOT NULL,
-  body TEXT NOT NULL,
-  category TEXT NOT NULL DEFAULT 'growth',
-  effort TEXT NOT NULL DEFAULT 'medium',
-  impact TEXT NOT NULL DEFAULT 'medium',
-  source TEXT NOT NULL DEFAULT 'gemini',
-  status TEXT NOT NULL DEFAULT 'backlog',
-  promoted_to_task TEXT,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS ai_ideas_status_idx ON ai_ideas(status, created_at);
-
-CREATE TABLE IF NOT EXISTS ai_briefings (
-  id TEXT PRIMARY KEY,
-  day TEXT NOT NULL,
-  kind TEXT NOT NULL DEFAULT 'daily',
-  data JSONB NOT NULL,
-  summary TEXT NOT NULL DEFAULT '',
-  emailed BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE UNIQUE INDEX IF NOT EXISTS ai_briefings_day_kind_unique ON ai_briefings(day, kind);
-
-CREATE TABLE IF NOT EXISTS ai_action_audit (
-  id TEXT PRIMARY KEY,
-  actor TEXT NOT NULL,
-  actor_role TEXT NOT NULL DEFAULT 'system',
-  model TEXT,
-  action TEXT NOT NULL,
-  payload JSONB,
-  approved_by TEXT REFERENCES users(id) ON DELETE SET NULL,
-  approved_at TIMESTAMP,
-  outcome TEXT NOT NULL DEFAULT 'pending',
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS ai_action_audit_created_idx ON ai_action_audit(created_at);
-CREATE INDEX IF NOT EXISTS ai_action_audit_action_idx ON ai_action_audit(action);
-
--- ────────────────────────────────────────────────────────────────────────────
--- 24. GAMIFICATION EXTENSIONS
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS battle_passes (
-  id TEXT PRIMARY KEY,
-  season TEXT NOT NULL UNIQUE,
-  title TEXT NOT NULL,
-  start_date TIMESTAMP NOT NULL,
-  end_date TIMESTAMP NOT NULL,
-  is_active BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS battle_pass_rewards (
-  id TEXT PRIMARY KEY,
-  battle_pass_id TEXT NOT NULL REFERENCES battle_passes(id) ON DELETE CASCADE,
-  tier INTEGER NOT NULL,
-  type TEXT NOT NULL,
-  value JSONB,
-  required_xp INTEGER NOT NULL,
-  is_premium BOOLEAN NOT NULL DEFAULT FALSE
-);
-
-CREATE TABLE IF NOT EXISTS user_battle_pass_progress (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  battle_pass_id TEXT NOT NULL REFERENCES battle_passes(id) ON DELETE CASCADE,
-  current_xp INTEGER NOT NULL DEFAULT 0,
-  current_tier INTEGER NOT NULL DEFAULT 0,
-  claimed_rewards JSONB DEFAULT '[]',
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS user_battle_pass_user_pass_idx ON user_battle_pass_progress(user_id, battle_pass_id);
-
-CREATE TABLE IF NOT EXISTS study_buddies (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  buddy_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  status TEXT DEFAULT 'active',
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS study_buddies_user_buddy_idx ON study_buddies(user_id, buddy_id);
-
-CREATE TABLE IF NOT EXISTS shared_goals (
-  id TEXT PRIMARY KEY,
-  group_id TEXT,
-  creator_id TEXT NOT NULL REFERENCES users(id),
-  title TEXT NOT NULL,
-  description TEXT,
-  target_value INTEGER NOT NULL,
-  current_value INTEGER NOT NULL DEFAULT 0,
-  deadline TIMESTAMP,
-  status TEXT DEFAULT 'active',
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS shared_goals_group_idx ON shared_goals(group_id);
-
-CREATE TABLE IF NOT EXISTS leaderboard_snapshots (
-  id TEXT PRIMARY KEY,
-  period TEXT NOT NULL,
-  category TEXT NOT NULL,
-  scope TEXT DEFAULT 'global',
-  group_id TEXT,
-  data JSONB NOT NULL,
-  generated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS leaderboard_snapshots_period_category_idx ON leaderboard_snapshots(period, category);
-
--- ────────────────────────────────────────────────────────────────────────────
--- 25. GROUP EXTENSIONS
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS group_invitations (
-  id TEXT PRIMARY KEY,
-  group_id TEXT NOT NULL,
-  inviter_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  invitee_email TEXT,
-  invitee_id TEXT REFERENCES users(id),
-  status TEXT NOT NULL DEFAULT 'pending',
-  expires_at TIMESTAMP,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS group_invitations_group_idx ON group_invitations(group_id);
-
-CREATE TABLE IF NOT EXISTS group_audit_logs (
-  id TEXT PRIMARY KEY,
-  group_id TEXT NOT NULL,
-  actor_id TEXT NOT NULL REFERENCES users(id),
-  action TEXT NOT NULL,
-  target_id TEXT,
-  details JSONB,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS group_audit_logs_group_idx ON group_audit_logs(group_id);
-
-CREATE TABLE IF NOT EXISTS group_challenges (
-  id TEXT PRIMARY KEY,
-  group_id TEXT NOT NULL,
-  creator_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  description TEXT,
-  target_value INTEGER NOT NULL DEFAULT 1,
-  unit TEXT NOT NULL DEFAULT 'sessions',
-  xp_reward INTEGER NOT NULL DEFAULT 500,
-  start_date TEXT NOT NULL,
-  end_date TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'active',
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS group_challenges_group_idx ON group_challenges(group_id);
-
-CREATE TABLE IF NOT EXISTS group_challenge_progress (
-  id TEXT PRIMARY KEY,
-  challenge_id TEXT NOT NULL,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  progress INTEGER NOT NULL DEFAULT 0,
-  completed_at TIMESTAMP,
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS group_challenge_progress_chal_user_idx ON group_challenge_progress(challenge_id, user_id);
-
--- ────────────────────────────────────────────────────────────────────────────
--- 26. AUDIT LOG (ADMIN)
--- ────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS audit_logs (
-  id TEXT PRIMARY KEY,
-  action TEXT NOT NULL,
-  actor_id TEXT,
-  target_id TEXT,
-  details JSONB,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS audit_logs_created_idx ON audit_logs(created_at);
-CREATE INDEX IF NOT EXISTS audit_logs_action_idx ON audit_logs(action);
+-- FocusArx public schema snapshot, generated from lib/db/src/schema/.
+-- Regenerate: pnpm --filter @workspace/db run schema:export
+-- Check drift: pnpm --filter @workspace/db run schema:check
+-- Creates missing objects without dropping data. IF NOT EXISTS does NOT upgrade
+-- columns in existing tables: use reviewed migrations or db:push for upgrades.
+-- Tables are created before foreign keys so a fresh database can bootstrap.
+
+CREATE TABLE IF NOT EXISTS "analytics_events" (
+	"id" text PRIMARY KEY NOT NULL,
+	"event_id" text NOT NULL,
+	"visitor_id" text NOT NULL,
+	"session_id" text,
+	"event_type" text NOT NULL,
+	"event_data" jsonb,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "analytics_sessions" (
+	"id" text PRIMARY KEY NOT NULL,
+	"visitor_id" text NOT NULL,
+	"session_start" timestamp DEFAULT now() NOT NULL,
+	"session_end" timestamp,
+	"duration_sec" integer DEFAULT 0 NOT NULL,
+	"page_views" integer DEFAULT 0 NOT NULL,
+	"focus_sessions_started" integer DEFAULT 0 NOT NULL,
+	"tasks_created" integer DEFAULT 0 NOT NULL,
+	"roadmaps_generated" integer DEFAULT 0 NOT NULL,
+	"ai_features_used" integer DEFAULT 0 NOT NULL,
+	"last_activity_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "page_views" (
+	"id" text PRIMARY KEY NOT NULL,
+	"visitor_id" text NOT NULL,
+	"session_id" text NOT NULL,
+	"page" text NOT NULL,
+	"viewed_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "visitors" (
+	"id" text PRIMARY KEY NOT NULL,
+	"visitor_id" text NOT NULL,
+	"user_id" text,
+	"first_seen" timestamp DEFAULT now() NOT NULL,
+	"last_seen" timestamp DEFAULT now() NOT NULL,
+	"visit_count" integer DEFAULT 0 NOT NULL,
+	"device_type" text,
+	"browser" text,
+	"os" text,
+	"country" text,
+	"city" text,
+	"is_bot" boolean DEFAULT false NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "conversation_participants" (
+	"id" text PRIMARY KEY NOT NULL,
+	"conversation_id" text NOT NULL,
+	"user_id" text NOT NULL,
+	"last_read_at" timestamp,
+	"is_admin" boolean DEFAULT false NOT NULL,
+	"joined_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "conversations" (
+	"id" text PRIMARY KEY NOT NULL,
+	"type" text DEFAULT 'direct' NOT NULL,
+	"name" text,
+	"group_id" text,
+	"last_message_at" timestamp,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "message_reactions" (
+	"id" text PRIMARY KEY NOT NULL,
+	"message_id" text NOT NULL,
+	"user_id" text NOT NULL,
+	"emoji" text NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "messages" (
+	"id" text PRIMARY KEY NOT NULL,
+	"conversation_id" text NOT NULL,
+	"sender_id" text NOT NULL,
+	"content" text NOT NULL,
+	"type" text DEFAULT 'text',
+	"reply_to_id" text,
+	"is_edited" boolean DEFAULT false NOT NULL,
+	"is_deleted" boolean DEFAULT false NOT NULL,
+	"metadata" jsonb,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "city_building_definitions" (
+	"id" text PRIMARY KEY NOT NULL,
+	"slug" text NOT NULL,
+	"name" text NOT NULL,
+	"description" text NOT NULL,
+	"district" text NOT NULL,
+	"category" text NOT NULL,
+	"unlock_level" integer DEFAULT 1 NOT NULL,
+	"unlock_sessions" integer DEFAULT 0 NOT NULL,
+	"coin_cost" integer DEFAULT 0 NOT NULL,
+	"population_bonus" integer DEFAULT 10 NOT NULL,
+	"xp_bonus_per_session" integer DEFAULT 0 NOT NULL,
+	"coin_bonus_per_session" integer DEFAULT 0 NOT NULL,
+	"icon" text NOT NULL,
+	"tier" text DEFAULT 'hamlet' NOT NULL,
+	"sort_order" integer DEFAULT 0 NOT NULL,
+	CONSTRAINT "city_building_definitions_slug_unique" UNIQUE("slug")
+);
+
+CREATE TABLE IF NOT EXISTS "focus_cities" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"tier" text DEFAULT 'hamlet' NOT NULL,
+	"tier_name" text DEFAULT 'Study Hamlet' NOT NULL,
+	"population" integer DEFAULT 5 NOT NULL,
+	"total_buildings" integer DEFAULT 0 NOT NULL,
+	"total_sessions" integer DEFAULT 0 NOT NULL,
+	"unlocked_districts" jsonb DEFAULT '["downtown"]'::jsonb,
+	"buildings" jsonb DEFAULT '{}'::jsonb,
+	"atmosphere" text DEFAULT 'day' NOT NULL,
+	"selected_skin" text DEFAULT 'classic' NOT NULL,
+	"weather" text DEFAULT 'clear' NOT NULL,
+	"weather_updated_at" timestamp DEFAULT now(),
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "focus_cities_user_id_unique" UNIQUE("user_id")
+);
+
+CREATE TABLE IF NOT EXISTS "flashcard_decks" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"title" text NOT NULL,
+	"description" text,
+	"category" text DEFAULT 'General',
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "flashcard_reviews" (
+	"id" text PRIMARY KEY NOT NULL,
+	"card_id" text NOT NULL,
+	"user_id" text NOT NULL,
+	"grade" integer NOT NULL,
+	"interval_before" integer,
+	"interval_after" integer,
+	"stability_before" real,
+	"stability_after" real,
+	"elapsed_days" real,
+	"review_duration_ms" integer,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "flashcards" (
+	"id" text PRIMARY KEY NOT NULL,
+	"deck_id" text NOT NULL,
+	"front" text NOT NULL,
+	"back" text NOT NULL,
+	"box" integer DEFAULT 1 NOT NULL,
+	"next_review_at" timestamp DEFAULT now() NOT NULL,
+	"correct_count" integer DEFAULT 0 NOT NULL,
+	"incorrect_count" integer DEFAULT 0 NOT NULL,
+	"fsrs_difficulty" real DEFAULT 0,
+	"fsrs_stability" real DEFAULT 0,
+	"fsrs_reps" integer DEFAULT 0,
+	"fsrs_lapses" integer DEFAULT 0,
+	"fsrs_last_review" timestamp,
+	"fsrs_due_date" timestamp DEFAULT now(),
+	"fsrs_interval" integer DEFAULT 0,
+	"fsrs_state" text DEFAULT 'new',
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "active_sessions" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"mode" text DEFAULT 'focus' NOT NULL,
+	"seconds_left" integer DEFAULT 1500 NOT NULL,
+	"timer_status" text DEFAULT 'paused' NOT NULL,
+	"active_seconds" integer DEFAULT 0 NOT NULL,
+	"focus_score" real,
+	"focus_quality" text,
+	"focus_state" text,
+	"distraction_count" integer DEFAULT 0,
+	"last_seen_face_at" text,
+	"focus_timeline" text DEFAULT '[]',
+	"monitor_enabled" boolean DEFAULT false,
+	"started_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "active_session_per_user_idx" UNIQUE("user_id")
+);
+
+CREATE TABLE IF NOT EXISTS "app_feedback" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text,
+	"rating" integer NOT NULL,
+	"message" text,
+	"category" text DEFAULT 'general',
+	"session_count" integer DEFAULT 0,
+	"user_level" integer DEFAULT 1,
+	"device" text,
+	"app_version" text DEFAULT '1.0',
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "audit_logs" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text,
+	"action" text NOT NULL,
+	"details" jsonb,
+	"ip" text,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "battle_pass_progress" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"season" integer DEFAULT 1 NOT NULL,
+	"tier" integer DEFAULT 0 NOT NULL,
+	"season_xp" integer DEFAULT 0 NOT NULL,
+	"premium_unlocked" boolean DEFAULT false NOT NULL,
+	"claimed_tiers" jsonb DEFAULT '[]'::jsonb,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "battle_pass_progress_user_id_unique" UNIQUE("user_id")
+);
+
+CREATE TABLE IF NOT EXISTS "break_free_moods" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"mood" integer NOT NULL,
+	"date" text NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "break_free_pledges" (
+	"id" text PRIMARY KEY NOT NULL,
+	"message" text NOT NULL,
+	"posted_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "break_free_streaks" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"start_date" text NOT NULL,
+	"current_streak" integer DEFAULT 0 NOT NULL,
+	"longest_streak" integer DEFAULT 0 NOT NULL,
+	"relapse_count" integer DEFAULT 0 NOT NULL,
+	"last_relapse_date" text,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "break_free_streaks_user_id_unique" UNIQUE("user_id")
+);
+
+CREATE TABLE IF NOT EXISTS "buddy_requests" (
+	"id" text PRIMARY KEY NOT NULL,
+	"sender_id" text NOT NULL,
+	"receiver_id" text NOT NULL,
+	"status" text DEFAULT 'pending' NOT NULL,
+	"message" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "coin_transactions" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"type" text NOT NULL,
+	"amount" integer NOT NULL,
+	"reason" text NOT NULL,
+	"description" text NOT NULL,
+	"balance_after" integer DEFAULT 0 NOT NULL,
+	"metadata" jsonb,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "consequence_contracts" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"week_start" text NOT NULL,
+	"contract_type" text NOT NULL,
+	"target_minutes" integer DEFAULT 0 NOT NULL,
+	"charity_name" text,
+	"charity_amount" integer,
+	"achieved" boolean DEFAULT false NOT NULL,
+	"consequence_triggered" boolean DEFAULT false NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "distraction_logs" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"session_id" text,
+	"reason" text NOT NULL,
+	"worth_it" boolean DEFAULT false NOT NULL,
+	"hour" integer NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "email_logs" (
+	"id" text PRIMARY KEY NOT NULL,
+	"recipient_id" text,
+	"recipient_email" text NOT NULL,
+	"template" text NOT NULL,
+	"subject" text NOT NULL,
+	"status" text DEFAULT 'pending' NOT NULL,
+	"provider_id" text,
+	"sent_at" timestamp,
+	"opened_at" timestamp,
+	"clicked_at" timestamp,
+	"bounced" boolean DEFAULT false,
+	"error" text,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "focus_dna" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"archetype" text NOT NULL,
+	"description" text NOT NULL,
+	"color_primary" text NOT NULL,
+	"color_secondary" text NOT NULL,
+	"icon" text NOT NULL,
+	"top_focus_hour" integer,
+	"avg_session_min" integer,
+	"strongest_day" text,
+	"biggest_weakness" text,
+	"session_count_at_generation" integer DEFAULT 0 NOT NULL,
+	"generated_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "focus_dna_user_id_unique" UNIQUE("user_id")
+);
+
+CREATE TABLE IF NOT EXISTS "focus_profiles" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"name" text NOT NULL,
+	"ssid" text,
+	"blocked_domains" jsonb DEFAULT '[]'::jsonb,
+	"whitelist" jsonb DEFAULT '[]'::jsonb,
+	"is_active" boolean DEFAULT false NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "focus_sessions" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"mode" text DEFAULT 'focus' NOT NULL,
+	"duration_sec" integer DEFAULT 0 NOT NULL,
+	"planned_duration_sec" integer,
+	"completed_early" boolean DEFAULT false,
+	"completion_percentage" real,
+	"session_status" text DEFAULT 'completed',
+	"completed_at" timestamp,
+	"focus_score" real,
+	"focus_quality" text,
+	"stability_rating" text,
+	"focus_timeline" text,
+	"session_insights" text,
+	"category" text DEFAULT 'General',
+	"productivity_score" real,
+	"client_nonce" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "focus_sessions_user_nonce_unique" UNIQUE("user_id","client_nonce")
+);
+
+CREATE TABLE IF NOT EXISTS "follows" (
+	"id" text PRIMARY KEY NOT NULL,
+	"follower_id" text NOT NULL,
+	"following_id" text NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "freeze_tokens" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"tokens_available" integer DEFAULT 0 NOT NULL,
+	"tokens_used" integer DEFAULT 0 NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "freeze_tokens_user_id_unique" UNIQUE("user_id")
+);
+
+CREATE TABLE IF NOT EXISTS "friendships" (
+	"id" text PRIMARY KEY NOT NULL,
+	"requester_id" text NOT NULL,
+	"addressee_id" text NOT NULL,
+	"status" text DEFAULT 'pending' NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "goals" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"title" text NOT NULL,
+	"description" text,
+	"completed" boolean DEFAULT false NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "group_members" (
+	"id" text PRIMARY KEY NOT NULL,
+	"group_id" text NOT NULL,
+	"user_id" text NOT NULL,
+	"role" text DEFAULT 'member' NOT NULL,
+	"xp_contribution" integer DEFAULT 0 NOT NULL,
+	"joined_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "habit_completions" (
+	"id" text PRIMARY KEY NOT NULL,
+	"habit_id" text NOT NULL,
+	"user_id" text NOT NULL,
+	"date" text NOT NULL,
+	"note" text,
+	"completed_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "habits" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"name" text NOT NULL,
+	"icon" text DEFAULT '⭐' NOT NULL,
+	"color" text DEFAULT '#7C3AED' NOT NULL,
+	"frequency" text DEFAULT 'daily' NOT NULL,
+	"target_days" jsonb DEFAULT '[0,1,2,3,4,5,6]'::jsonb,
+	"current_streak" integer DEFAULT 0 NOT NULL,
+	"longest_streak" integer DEFAULT 0 NOT NULL,
+	"total_completions" integer DEFAULT 0 NOT NULL,
+	"is_archived" boolean DEFAULT false NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "login_rewards" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"last_claimed_date" text,
+	"claim_streak" integer DEFAULT 0 NOT NULL,
+	"total_claimed" integer DEFAULT 0 NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "login_rewards_user_id_unique" UNIQUE("user_id")
+);
+
+CREATE TABLE IF NOT EXISTS "marketplace_items" (
+	"id" text PRIMARY KEY NOT NULL,
+	"name" text NOT NULL,
+	"description" text,
+	"type" text DEFAULT 'avatar' NOT NULL,
+	"cost_coins" integer DEFAULT 100 NOT NULL,
+	"rarity" text DEFAULT 'common',
+	"emoji" text DEFAULT '🎁',
+	"data" jsonb,
+	"premium_only" boolean DEFAULT false NOT NULL,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "missions" (
+	"id" text PRIMARY KEY NOT NULL,
+	"mission_key" text NOT NULL,
+	"title" text NOT NULL,
+	"description" text NOT NULL,
+	"type" text DEFAULT 'daily' NOT NULL,
+	"category" text DEFAULT 'focus' NOT NULL,
+	"xp_reward" integer DEFAULT 100 NOT NULL,
+	"coin_reward" integer DEFAULT 50 NOT NULL,
+	"target_value" integer DEFAULT 1 NOT NULL,
+	"unit" text DEFAULT 'sessions' NOT NULL,
+	"icon" text DEFAULT '🎯' NOT NULL,
+	"difficulty" text DEFAULT 'easy' NOT NULL,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "missions_mission_key_unique" UNIQUE("mission_key")
+);
+
+CREATE TABLE IF NOT EXISTS "notifications" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"type" text NOT NULL,
+	"title" text NOT NULL,
+	"message" text NOT NULL,
+	"data" jsonb,
+	"read" boolean DEFAULT false NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "password_reset_tokens" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"token" text NOT NULL,
+	"expires_at" timestamp NOT NULL,
+	"used_at" timestamp,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "password_reset_tokens_token_unique" UNIQUE("token")
+);
+
+CREATE TABLE IF NOT EXISTS "post_comments" (
+	"id" text PRIMARY KEY NOT NULL,
+	"post_id" text NOT NULL,
+	"user_id" text NOT NULL,
+	"parent_id" text,
+	"content" text NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "post_reactions" (
+	"id" text PRIMARY KEY NOT NULL,
+	"post_id" text NOT NULL,
+	"user_id" text NOT NULL,
+	"reaction" text NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "post_saves" (
+	"id" text PRIMARY KEY NOT NULL,
+	"post_id" text NOT NULL,
+	"user_id" text NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "premium_subscriptions" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"activated_at" timestamp DEFAULT now() NOT NULL,
+	"expires_at" timestamp,
+	"coins_cost" integer DEFAULT 9000,
+	"benefits" jsonb DEFAULT '["exclusive_pets","premium_loot_boxes","premium_themes","xp_multiplier","coin_multiplier","premium_analytics","profile_badge","premium_battle_pass"]'::jsonb,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"granted_by_admin" boolean DEFAULT false NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "premium_subscriptions_user_id_unique" UNIQUE("user_id")
+);
+
+CREATE TABLE IF NOT EXISTS "productivity_logs" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"date" text NOT NULL,
+	"focus_minutes" integer DEFAULT 0 NOT NULL,
+	"sessions_completed" integer DEFAULT 0 NOT NULL,
+	"tasks_completed" integer DEFAULT 0 NOT NULL,
+	"avg_focus_score" real,
+	"productivity_score" real,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "push_subscriptions" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"endpoint" text NOT NULL,
+	"p256dh" text NOT NULL,
+	"auth" text NOT NULL,
+	"priority_enabled" boolean DEFAULT false NOT NULL,
+	"sound" text DEFAULT 'default' NOT NULL,
+	"expires_at" timestamp,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "readiness_logs" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"date" text NOT NULL,
+	"sleep" integer NOT NULL,
+	"stress" integer NOT NULL,
+	"energy" integer NOT NULL,
+	"score" integer NOT NULL,
+	"session_length_rec" integer NOT NULL,
+	"hrv" integer,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "refresh_tokens" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"token_hash" text NOT NULL,
+	"family_id" text NOT NULL,
+	"expires_at" timestamp NOT NULL,
+	"revoked_at" timestamp,
+	"replaced_by_token_hash" text,
+	"user_agent" text,
+	"ip" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "refresh_tokens_token_hash_unique" UNIQUE("token_hash")
+);
+
+CREATE TABLE IF NOT EXISTS "roadmaps" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"subject" text NOT NULL,
+	"data" jsonb NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "session_ghosts" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"task_category" text DEFAULT 'General' NOT NULL,
+	"best_duration_sec" integer DEFAULT 0 NOT NULL,
+	"best_unbroken_sec" integer DEFAULT 0 NOT NULL,
+	"session_id" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "social_posts" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"content" text NOT NULL,
+	"type" text DEFAULT 'general' NOT NULL,
+	"image_urls" jsonb DEFAULT '[]'::jsonb,
+	"metadata" jsonb,
+	"group_id" text,
+	"is_public" boolean DEFAULT true NOT NULL,
+	"view_count" integer DEFAULT 0 NOT NULL,
+	"moderation_status" text DEFAULT 'approved' NOT NULL,
+	"moderation_reason" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "streak_history" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"date" text NOT NULL,
+	"event" text NOT NULL,
+	"from_streak" integer DEFAULT 0 NOT NULL,
+	"to_streak" integer DEFAULT 0 NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "study_groups" (
+	"id" text PRIMARY KEY NOT NULL,
+	"name" text NOT NULL,
+	"description" text,
+	"owner_id" text NOT NULL,
+	"group_xp" integer DEFAULT 0 NOT NULL,
+	"group_level" integer DEFAULT 1 NOT NULL,
+	"is_public" boolean DEFAULT true NOT NULL,
+	"invite_code" text NOT NULL,
+	"max_members" integer DEFAULT 20 NOT NULL,
+	"avatar_emoji" text DEFAULT '🎯' NOT NULL,
+	"tags" jsonb DEFAULT '[]'::jsonb,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "study_groups_invite_code_unique" UNIQUE("invite_code")
+);
+
+CREATE TABLE IF NOT EXISTS "study_room_members" (
+	"id" text PRIMARY KEY NOT NULL,
+	"room_id" text NOT NULL,
+	"user_id" text NOT NULL,
+	"joined_at" timestamp DEFAULT now() NOT NULL,
+	"left_at" timestamp,
+	"focus_minutes" integer DEFAULT 0 NOT NULL,
+	"status" text DEFAULT 'active' NOT NULL,
+	CONSTRAINT "study_room_members_room_user_unique" UNIQUE("room_id","user_id")
+);
+
+CREATE TABLE IF NOT EXISTS "study_rooms" (
+	"id" text PRIMARY KEY NOT NULL,
+	"name" text NOT NULL,
+	"group_id" text,
+	"host_id" text NOT NULL,
+	"mode" text DEFAULT 'silent' NOT NULL,
+	"status" text DEFAULT 'active' NOT NULL,
+	"max_participants" integer DEFAULT 50 NOT NULL,
+	"timer_duration" integer DEFAULT 1500 NOT NULL,
+	"ambiance" text DEFAULT 'silence' NOT NULL,
+	"is_public" boolean DEFAULT true NOT NULL,
+	"invite_code" text NOT NULL,
+	"scheduled_for" timestamp,
+	"ended_at" timestamp,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "study_streaks" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"current_streak" integer DEFAULT 0 NOT NULL,
+	"longest_streak" integer DEFAULT 0 NOT NULL,
+	"last_study_date" text,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "study_streaks_user_id_unique" UNIQUE("user_id")
+);
+
+CREATE TABLE IF NOT EXISTS "tasks" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"text" text NOT NULL,
+	"completed" boolean DEFAULT false NOT NULL,
+	"order" integer DEFAULT 0,
+	"estimated_minutes" integer,
+	"category" text DEFAULT 'General',
+	"priority" text DEFAULT 'medium',
+	"tags" jsonb DEFAULT '[]'::jsonb,
+	"due_date" text,
+	"recurring" text,
+	"completed_at" timestamp,
+	"status" text DEFAULT 'active',
+	"missed_at" timestamp,
+	"miss_count" integer DEFAULT 0,
+	"archived_at" timestamp,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "user_badges" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"badge_id" text NOT NULL,
+	"unlocked_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "user_dreams" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"dream_type" text DEFAULT 'custom' NOT NULL,
+	"custom_goal" text,
+	"target_date" text,
+	"daily_target_minutes" integer DEFAULT 120,
+	"total_minutes_logged" integer DEFAULT 0,
+	"start_date" text,
+	"emoji" text DEFAULT '🎯',
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "user_dreams_user_id_unique" UNIQUE("user_id")
+);
+
+CREATE TABLE IF NOT EXISTS "user_emotes" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"emote_id" text NOT NULL,
+	"equipped" boolean DEFAULT false NOT NULL,
+	"unlocked_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "user_emotes_user_emote_unique" UNIQUE("user_id","emote_id")
+);
+
+CREATE TABLE IF NOT EXISTS "user_inventory" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"item_id" text NOT NULL,
+	"acquired_at" timestamp DEFAULT now() NOT NULL,
+	"equipped" boolean DEFAULT false NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "user_mission_progress" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"mission_key" text NOT NULL,
+	"period_start" text NOT NULL,
+	"current_value" integer DEFAULT 0 NOT NULL,
+	"completed" boolean DEFAULT false NOT NULL,
+	"completed_at" timestamp,
+	"reward_claimed" boolean DEFAULT false NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "user_pets" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"pet_type" text DEFAULT 'owl' NOT NULL,
+	"pet_name" text,
+	"pet_level" integer DEFAULT 1 NOT NULL,
+	"pet_xp" integer DEFAULT 0 NOT NULL,
+	"evolution_stage" integer DEFAULT 1 NOT NULL,
+	"mood" text DEFAULT 'happy',
+	"accessories" jsonb DEFAULT '[]'::jsonb,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "user_pets_user_id_unique" UNIQUE("user_id")
+);
+
+CREATE TABLE IF NOT EXISTS "user_profile_extras" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"banner_url" text,
+	"banner_gradient" text,
+	"social_links" jsonb DEFAULT '{}'::jsonb,
+	"featured_post_ids" jsonb DEFAULT '[]'::jsonb,
+	"pinned_badge_ids" jsonb DEFAULT '[]'::jsonb,
+	"is_private" boolean DEFAULT false NOT NULL,
+	"custom_status" text,
+	"status_emoji" text,
+	"creator_tier" text DEFAULT 'learner' NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "user_profile_extras_user_id_unique" UNIQUE("user_id")
+);
+
+CREATE TABLE IF NOT EXISTS "user_wallets" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"coins" integer DEFAULT 0 NOT NULL,
+	"total_xp" integer DEFAULT 0 NOT NULL,
+	"weekly_xp" integer DEFAULT 0 NOT NULL,
+	"weekly_xp_reset_at" timestamp DEFAULT now(),
+	"level" integer DEFAULT 1 NOT NULL,
+	"prestige" integer DEFAULT 0 NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "user_wallets_user_id_unique" UNIQUE("user_id")
+);
+
+CREATE TABLE IF NOT EXISTS "users" (
+	"id" text PRIMARY KEY NOT NULL,
+	"email" text NOT NULL,
+	"name" text,
+	"hashed_password" text,
+	"guest_key" text,
+	"is_guest" boolean DEFAULT false NOT NULL,
+	"role" text DEFAULT 'user' NOT NULL,
+	"onboarding_completed" boolean DEFAULT false NOT NULL,
+	"onboarding_data" jsonb,
+	"bio" text,
+	"timezone" text DEFAULT 'UTC',
+	"productivity_score" real DEFAULT 0,
+	"total_focus_minutes" integer DEFAULT 0,
+	"referral_code" text,
+	"referred_by_user_id" text,
+	"referral_applied_at" timestamp,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "users_email_unique" UNIQUE("email"),
+	CONSTRAINT "users_guest_key_unique" UNIQUE("guest_key"),
+	CONSTRAINT "users_referral_code_unique" UNIQUE("referral_code")
+);
+
+CREATE TABLE IF NOT EXISTS "wrapped_snapshots" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"period" text NOT NULL,
+	"period_type" text DEFAULT 'monthly' NOT NULL,
+	"data" jsonb NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "battle_pass_rewards" (
+	"id" text PRIMARY KEY NOT NULL,
+	"battle_pass_id" text NOT NULL,
+	"tier" integer NOT NULL,
+	"type" text NOT NULL,
+	"value" jsonb,
+	"required_xp" integer NOT NULL,
+	"is_premium" boolean DEFAULT false NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "battle_passes" (
+	"id" text PRIMARY KEY NOT NULL,
+	"season" text NOT NULL,
+	"title" text NOT NULL,
+	"start_date" timestamp NOT NULL,
+	"end_date" timestamp NOT NULL,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "battle_passes_season_unique" UNIQUE("season")
+);
+
+CREATE TABLE IF NOT EXISTS "leaderboard_snapshots" (
+	"id" text PRIMARY KEY NOT NULL,
+	"period" text NOT NULL,
+	"category" text NOT NULL,
+	"scope" text DEFAULT 'global',
+	"group_id" text,
+	"data" jsonb NOT NULL,
+	"generated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "shared_goals" (
+	"id" text PRIMARY KEY NOT NULL,
+	"group_id" text,
+	"creator_id" text NOT NULL,
+	"title" text NOT NULL,
+	"description" text,
+	"target_value" integer NOT NULL,
+	"current_value" integer DEFAULT 0 NOT NULL,
+	"deadline" timestamp,
+	"status" text DEFAULT 'active',
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "study_buddies" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"buddy_id" text NOT NULL,
+	"status" text DEFAULT 'active',
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "user_battle_pass_progress" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"battle_pass_id" text NOT NULL,
+	"current_xp" integer DEFAULT 0 NOT NULL,
+	"current_tier" integer DEFAULT 0 NOT NULL,
+	"claimed_rewards" jsonb DEFAULT '[]'::jsonb,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "group_audit_logs" (
+	"id" text PRIMARY KEY NOT NULL,
+	"group_id" text NOT NULL,
+	"actor_id" text NOT NULL,
+	"action" text NOT NULL,
+	"target_id" text,
+	"details" jsonb,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "group_challenge_progress" (
+	"id" text PRIMARY KEY NOT NULL,
+	"challenge_id" text NOT NULL,
+	"user_id" text NOT NULL,
+	"progress" integer DEFAULT 0 NOT NULL,
+	"completed_at" timestamp,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "group_challenges" (
+	"id" text PRIMARY KEY NOT NULL,
+	"group_id" text NOT NULL,
+	"creator_id" text NOT NULL,
+	"title" text NOT NULL,
+	"description" text,
+	"target_value" integer DEFAULT 1 NOT NULL,
+	"unit" text DEFAULT 'sessions' NOT NULL,
+	"xp_reward" integer DEFAULT 500 NOT NULL,
+	"start_date" text NOT NULL,
+	"end_date" text NOT NULL,
+	"status" text DEFAULT 'active' NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "group_invitations" (
+	"id" text PRIMARY KEY NOT NULL,
+	"group_id" text NOT NULL,
+	"inviter_id" text NOT NULL,
+	"invitee_email" text,
+	"invitee_id" text,
+	"status" text DEFAULT 'pending' NOT NULL,
+	"expires_at" timestamp,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "posts" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"content" text NOT NULL,
+	"type" text DEFAULT 'general' NOT NULL,
+	"image_urls" jsonb DEFAULT '[]'::jsonb,
+	"achievement_data" jsonb,
+	"study_log_data" jsonb,
+	"is_public" boolean DEFAULT true NOT NULL,
+	"group_id" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "post_likes" (
+	"id" text PRIMARY KEY NOT NULL,
+	"post_id" text NOT NULL,
+	"user_id" text NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "loot_box_types" (
+	"id" text PRIMARY KEY NOT NULL,
+	"name" text NOT NULL,
+	"description" text NOT NULL,
+	"rarity" text NOT NULL,
+	"coin_cost" integer DEFAULT 0 NOT NULL,
+	"sessions_required" integer DEFAULT 0 NOT NULL,
+	"premium_only" boolean DEFAULT false NOT NULL,
+	"icon" text NOT NULL,
+	"glow_color" text DEFAULT '#7C3AED' NOT NULL,
+	"possible_rewards" jsonb NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "user_loot_boxes" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"box_type_id" text NOT NULL,
+	"status" text DEFAULT 'unopened' NOT NULL,
+	"reward_type" text,
+	"reward_value" jsonb,
+	"earned_reason" text,
+	"opened_at" timestamp,
+	"earned_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "quest_definitions" (
+	"id" text PRIMARY KEY NOT NULL,
+	"title" text NOT NULL,
+	"description" text NOT NULL,
+	"type" text NOT NULL,
+	"difficulty" text DEFAULT 'easy' NOT NULL,
+	"target" integer NOT NULL,
+	"metric" text NOT NULL,
+	"xp_reward" integer DEFAULT 0 NOT NULL,
+	"coin_reward" integer DEFAULT 0 NOT NULL,
+	"icon" text NOT NULL,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"rotation_weight" integer DEFAULT 10 NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "user_quest_progress" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"quest_id" text NOT NULL,
+	"period" text NOT NULL,
+	"current" integer DEFAULT 0 NOT NULL,
+	"completed" boolean DEFAULT false NOT NULL,
+	"claimed_at" timestamp,
+	"assigned_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "user_quest_progress_unique" UNIQUE("user_id","quest_id","period")
+);
+
+CREATE TABLE IF NOT EXISTS "seasonal_events" (
+	"id" text PRIMARY KEY NOT NULL,
+	"name" text NOT NULL,
+	"slug" text NOT NULL,
+	"description" text NOT NULL,
+	"theme" text NOT NULL,
+	"banner_color" text DEFAULT '#7C3AED' NOT NULL,
+	"start_date" timestamp NOT NULL,
+	"end_date" timestamp NOT NULL,
+	"xp_multiplier" real DEFAULT 1 NOT NULL,
+	"coin_multiplier" real DEFAULT 1 NOT NULL,
+	"special_missions" jsonb DEFAULT '[]'::jsonb,
+	"exclusive_rewards" jsonb DEFAULT '[]'::jsonb,
+	"premium_only" boolean DEFAULT false NOT NULL,
+	"is_active" boolean DEFAULT false NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "seasonal_events_slug_unique" UNIQUE("slug")
+);
+
+CREATE TABLE IF NOT EXISTS "user_seasonal_progress" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"event_id" text NOT NULL,
+	"points" integer DEFAULT 0 NOT NULL,
+	"completed_missions" jsonb DEFAULT '[]'::jsonb,
+	"rewards_claimed" jsonb DEFAULT '[]'::jsonb,
+	"rank" integer,
+	CONSTRAINT "user_seasonal_progress_unique" UNIQUE("user_id","event_id")
+);
+
+CREATE TABLE IF NOT EXISTS "site_settings" (
+	"id" text PRIMARY KEY NOT NULL,
+	"maintenance_mode" boolean DEFAULT false NOT NULL,
+	"maintenance_message" text,
+	"announcement_enabled" boolean DEFAULT false NOT NULL,
+	"announcement_title" text,
+	"announcement_text" text,
+	"announcement_emoji" text,
+	"branding_name" text DEFAULT 'FocusArx' NOT NULL,
+	"branding_tagline" text,
+	"hero_title" text,
+	"hero_subtitle" text,
+	"hero_cta_text" text,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "admin_drop_claims" (
+	"id" text PRIMARY KEY NOT NULL,
+	"drop_id" text NOT NULL,
+	"user_id" text NOT NULL,
+	"reward_coins" integer DEFAULT 0 NOT NULL,
+	"reward_xp" integer DEFAULT 0 NOT NULL,
+	"item_granted" text,
+	"claimed_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "admin_drop_claims_drop_user_unique" UNIQUE("drop_id","user_id")
+);
+
+CREATE TABLE IF NOT EXISTS "admin_drops" (
+	"id" text PRIMARY KEY NOT NULL,
+	"type" text NOT NULL,
+	"title" text NOT NULL,
+	"description" text,
+	"payload" jsonb,
+	"pool_total" integer DEFAULT 0 NOT NULL,
+	"pool_claimed" integer DEFAULT 0 NOT NULL,
+	"starts_at" timestamp NOT NULL,
+	"ends_at" timestamp NOT NULL,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"created_by_id" text,
+	"created_via" text DEFAULT 'admin' NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"ended_at" timestamp,
+	"cancelled_at" timestamp
+);
+
+CREATE TABLE IF NOT EXISTS "admin_sql_log" (
+	"id" text PRIMARY KEY NOT NULL,
+	"admin_id" text,
+	"sql" text NOT NULL,
+	"kind" text DEFAULT 'write' NOT NULL,
+	"rows_affected" integer DEFAULT 0 NOT NULL,
+	"status" text DEFAULT 'ok' NOT NULL,
+	"error" text,
+	"branch_name" text,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "ai_action_audit" (
+	"id" text PRIMARY KEY NOT NULL,
+	"actor" text NOT NULL,
+	"actor_role" text DEFAULT 'system' NOT NULL,
+	"model" text,
+	"action" text NOT NULL,
+	"payload" jsonb,
+	"approved_by" text,
+	"approved_at" timestamp,
+	"outcome" text DEFAULT 'pending' NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "ai_briefings" (
+	"id" text PRIMARY KEY NOT NULL,
+	"day" text NOT NULL,
+	"kind" text DEFAULT 'daily' NOT NULL,
+	"data" jsonb NOT NULL,
+	"summary" text DEFAULT '' NOT NULL,
+	"emailed" boolean DEFAULT false NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "ai_budget_state" (
+	"id" text PRIMARY KEY NOT NULL,
+	"provider" text DEFAULT 'gemini' NOT NULL,
+	"day" text NOT NULL,
+	"calls_used" integer DEFAULT 0 NOT NULL,
+	"cap" integer DEFAULT 1500 NOT NULL,
+	"cool_until" timestamp,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "ai_call_log" (
+	"id" text PRIMARY KEY NOT NULL,
+	"provider" text NOT NULL,
+	"model" text NOT NULL,
+	"purpose" text NOT NULL,
+	"user_id" text,
+	"tokens_in" integer DEFAULT 0 NOT NULL,
+	"tokens_out" integer DEFAULT 0 NOT NULL,
+	"latency_ms" integer DEFAULT 0 NOT NULL,
+	"status" text DEFAULT 'ok' NOT NULL,
+	"fallback_used" boolean DEFAULT false NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "ai_ideas" (
+	"id" text PRIMARY KEY NOT NULL,
+	"title" text NOT NULL,
+	"body" text NOT NULL,
+	"category" text DEFAULT 'growth' NOT NULL,
+	"effort" text DEFAULT 'medium' NOT NULL,
+	"impact" text DEFAULT 'medium' NOT NULL,
+	"source" text DEFAULT 'gemini' NOT NULL,
+	"status" text DEFAULT 'backlog' NOT NULL,
+	"promoted_to_task" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "bot_pending_replies" (
+	"id" text PRIMARY KEY NOT NULL,
+	"post_id" text NOT NULL,
+	"bot_id" text NOT NULL,
+	"content" text NOT NULL,
+	"parent_id" text,
+	"due_at" timestamp NOT NULL,
+	"status" text DEFAULT 'pending' NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"sent_at" timestamp
+);
+
+CREATE TABLE IF NOT EXISTS "platform_meta" (
+	"key" text PRIMARY KEY NOT NULL,
+	"value" jsonb,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "asset_catalog" (
+	"id" text PRIMARY KEY NOT NULL,
+	"key" text NOT NULL,
+	"type" text NOT NULL,
+	"url" text NOT NULL,
+	"fallback_url" text,
+	"size_bytes" integer,
+	"mime_type" text,
+	"metadata" jsonb,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "asset_catalog_key_unique" UNIQUE("key")
+);
+
+CREATE TABLE IF NOT EXISTS "battle_pass_claims" (
+	"id" text PRIMARY KEY NOT NULL,
+	"battle_pass_id" text NOT NULL,
+	"user_id" text NOT NULL,
+	"tier" integer NOT NULL,
+	"reward_id" text NOT NULL,
+	"is_premium_reward" boolean DEFAULT false NOT NULL,
+	"claimed_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "cosmetic_inventory" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"cosmetic_id" text NOT NULL,
+	"type" text NOT NULL,
+	"equipped" boolean DEFAULT false NOT NULL,
+	"acquired_from" text DEFAULT 'starter' NOT NULL,
+	"acquired_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "feature_flags" (
+	"id" text PRIMARY KEY NOT NULL,
+	"key" text NOT NULL,
+	"enabled" boolean DEFAULT true NOT NULL,
+	"description" text,
+	"rollout_percentage" integer DEFAULT 100 NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "feature_flags_key_unique" UNIQUE("key")
+);
+
+CREATE TABLE IF NOT EXISTS "pet_catalog" (
+	"id" text PRIMARY KEY NOT NULL,
+	"slug" text NOT NULL,
+	"name" text NOT NULL,
+	"description" text NOT NULL,
+	"rarity" text DEFAULT 'common' NOT NULL,
+	"category" text DEFAULT 'starter' NOT NULL,
+	"thumbnail_url" text,
+	"model_url" text,
+	"fallback_image_url" text,
+	"animations" jsonb DEFAULT '{}'::jsonb,
+	"unlock_source" text DEFAULT 'starter' NOT NULL,
+	"token_cost" integer DEFAULT 0,
+	"is_premium" boolean DEFAULT false NOT NULL,
+	"is_seasonal" boolean DEFAULT false NOT NULL,
+	"seasonal_event_id" text,
+	"available_from" timestamp,
+	"available_until" timestamp,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"sort_order" integer DEFAULT 0 NOT NULL,
+	"max_level" integer DEFAULT 20 NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "pet_catalog_slug_unique" UNIQUE("slug")
+);
+
+CREATE TABLE IF NOT EXISTS "premium_entitlements" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"plan_id" text,
+	"source" text NOT NULL,
+	"status" text DEFAULT 'active' NOT NULL,
+	"starts_at" timestamp DEFAULT now() NOT NULL,
+	"ends_at" timestamp NOT NULL,
+	"token_cost" integer DEFAULT 0 NOT NULL,
+	"idempotency_key" text NOT NULL,
+	"granted_by_admin_id" text,
+	"admin_reason" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "premium_entitlements_idempotency_key_unique" UNIQUE("idempotency_key")
+);
+
+CREATE TABLE IF NOT EXISTS "premium_plans" (
+	"id" text PRIMARY KEY NOT NULL,
+	"name" text NOT NULL,
+	"slug" text NOT NULL,
+	"description" text DEFAULT '' NOT NULL,
+	"duration_days" integer NOT NULL,
+	"token_cost" integer NOT NULL,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"sort_order" integer DEFAULT 0 NOT NULL,
+	"benefits" jsonb DEFAULT '[]'::jsonb,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "premium_plans_slug_unique" UNIQUE("slug")
+);
+
+CREATE TABLE IF NOT EXISTS "quest_progress" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"quest_id" text NOT NULL,
+	"progress" integer DEFAULT 0 NOT NULL,
+	"target" integer NOT NULL,
+	"completed" boolean DEFAULT false NOT NULL,
+	"claimed" boolean DEFAULT false NOT NULL,
+	"period" text NOT NULL,
+	"claimed_at" timestamp,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "token_earning_rules" (
+	"id" text PRIMARY KEY NOT NULL,
+	"source" text NOT NULL,
+	"amount" integer NOT NULL,
+	"daily_limit" integer,
+	"description" text DEFAULT '' NOT NULL,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "token_earning_rules_source_unique" UNIQUE("source")
+);
+
+CREATE TABLE IF NOT EXISTS "token_ledger" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"amount" integer NOT NULL,
+	"transaction_type" text NOT NULL,
+	"source" text NOT NULL,
+	"related_entity_id" text,
+	"idempotency_key" text NOT NULL,
+	"balance_after" integer NOT NULL,
+	"admin_reason" text,
+	"metadata" jsonb,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "token_ledger_idempotency_key_unique" UNIQUE("idempotency_key")
+);
+
+CREATE TABLE IF NOT EXISTS "user_pet_inventory" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"pet_id" text NOT NULL,
+	"level" integer DEFAULT 1 NOT NULL,
+	"bond_xp" integer DEFAULT 0 NOT NULL,
+	"nickname" text,
+	"mood" text DEFAULT 'happy' NOT NULL,
+	"is_active" boolean DEFAULT false NOT NULL,
+	"acquired_from" text DEFAULT 'starter' NOT NULL,
+	"accessories" jsonb DEFAULT '[]'::jsonb,
+	"color_variant" text DEFAULT 'default',
+	"acquired_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."visitors"'::regclass AND conname = 'visitors_user_id_users_id_fk') THEN
+    ALTER TABLE "visitors" ADD CONSTRAINT "visitors_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."conversation_participants"'::regclass AND conname = 'conversation_participants_user_id_users_id_fk') THEN
+    ALTER TABLE "conversation_participants" ADD CONSTRAINT "conversation_participants_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."message_reactions"'::regclass AND conname = 'message_reactions_user_id_users_id_fk') THEN
+    ALTER TABLE "message_reactions" ADD CONSTRAINT "message_reactions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."messages"'::regclass AND conname = 'messages_sender_id_users_id_fk') THEN
+    ALTER TABLE "messages" ADD CONSTRAINT "messages_sender_id_users_id_fk" FOREIGN KEY ("sender_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."focus_cities"'::regclass AND conname = 'focus_cities_user_id_users_id_fk') THEN
+    ALTER TABLE "focus_cities" ADD CONSTRAINT "focus_cities_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."flashcard_decks"'::regclass AND conname = 'flashcard_decks_user_id_users_id_fk') THEN
+    ALTER TABLE "flashcard_decks" ADD CONSTRAINT "flashcard_decks_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."flashcard_reviews"'::regclass AND conname = 'flashcard_reviews_card_id_flashcards_id_fk') THEN
+    ALTER TABLE "flashcard_reviews" ADD CONSTRAINT "flashcard_reviews_card_id_flashcards_id_fk" FOREIGN KEY ("card_id") REFERENCES "public"."flashcards"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."flashcard_reviews"'::regclass AND conname = 'flashcard_reviews_user_id_users_id_fk') THEN
+    ALTER TABLE "flashcard_reviews" ADD CONSTRAINT "flashcard_reviews_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."flashcards"'::regclass AND conname = 'flashcards_deck_id_flashcard_decks_id_fk') THEN
+    ALTER TABLE "flashcards" ADD CONSTRAINT "flashcards_deck_id_flashcard_decks_id_fk" FOREIGN KEY ("deck_id") REFERENCES "public"."flashcard_decks"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."active_sessions"'::regclass AND conname = 'active_sessions_user_id_users_id_fk') THEN
+    ALTER TABLE "active_sessions" ADD CONSTRAINT "active_sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."app_feedback"'::regclass AND conname = 'app_feedback_user_id_users_id_fk') THEN
+    ALTER TABLE "app_feedback" ADD CONSTRAINT "app_feedback_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."audit_logs"'::regclass AND conname = 'audit_logs_user_id_users_id_fk') THEN
+    ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."battle_pass_progress"'::regclass AND conname = 'battle_pass_progress_user_id_users_id_fk') THEN
+    ALTER TABLE "battle_pass_progress" ADD CONSTRAINT "battle_pass_progress_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."break_free_moods"'::regclass AND conname = 'break_free_moods_user_id_users_id_fk') THEN
+    ALTER TABLE "break_free_moods" ADD CONSTRAINT "break_free_moods_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."break_free_streaks"'::regclass AND conname = 'break_free_streaks_user_id_users_id_fk') THEN
+    ALTER TABLE "break_free_streaks" ADD CONSTRAINT "break_free_streaks_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."buddy_requests"'::regclass AND conname = 'buddy_requests_sender_id_users_id_fk') THEN
+    ALTER TABLE "buddy_requests" ADD CONSTRAINT "buddy_requests_sender_id_users_id_fk" FOREIGN KEY ("sender_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."buddy_requests"'::regclass AND conname = 'buddy_requests_receiver_id_users_id_fk') THEN
+    ALTER TABLE "buddy_requests" ADD CONSTRAINT "buddy_requests_receiver_id_users_id_fk" FOREIGN KEY ("receiver_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."coin_transactions"'::regclass AND conname = 'coin_transactions_user_id_users_id_fk') THEN
+    ALTER TABLE "coin_transactions" ADD CONSTRAINT "coin_transactions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."consequence_contracts"'::regclass AND conname = 'consequence_contracts_user_id_users_id_fk') THEN
+    ALTER TABLE "consequence_contracts" ADD CONSTRAINT "consequence_contracts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."distraction_logs"'::regclass AND conname = 'distraction_logs_user_id_users_id_fk') THEN
+    ALTER TABLE "distraction_logs" ADD CONSTRAINT "distraction_logs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."email_logs"'::regclass AND conname = 'email_logs_recipient_id_users_id_fk') THEN
+    ALTER TABLE "email_logs" ADD CONSTRAINT "email_logs_recipient_id_users_id_fk" FOREIGN KEY ("recipient_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."focus_dna"'::regclass AND conname = 'focus_dna_user_id_users_id_fk') THEN
+    ALTER TABLE "focus_dna" ADD CONSTRAINT "focus_dna_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."focus_profiles"'::regclass AND conname = 'focus_profiles_user_id_users_id_fk') THEN
+    ALTER TABLE "focus_profiles" ADD CONSTRAINT "focus_profiles_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."focus_sessions"'::regclass AND conname = 'focus_sessions_user_id_users_id_fk') THEN
+    ALTER TABLE "focus_sessions" ADD CONSTRAINT "focus_sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."follows"'::regclass AND conname = 'follows_follower_id_users_id_fk') THEN
+    ALTER TABLE "follows" ADD CONSTRAINT "follows_follower_id_users_id_fk" FOREIGN KEY ("follower_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."follows"'::regclass AND conname = 'follows_following_id_users_id_fk') THEN
+    ALTER TABLE "follows" ADD CONSTRAINT "follows_following_id_users_id_fk" FOREIGN KEY ("following_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."freeze_tokens"'::regclass AND conname = 'freeze_tokens_user_id_users_id_fk') THEN
+    ALTER TABLE "freeze_tokens" ADD CONSTRAINT "freeze_tokens_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."friendships"'::regclass AND conname = 'friendships_requester_id_users_id_fk') THEN
+    ALTER TABLE "friendships" ADD CONSTRAINT "friendships_requester_id_users_id_fk" FOREIGN KEY ("requester_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."friendships"'::regclass AND conname = 'friendships_addressee_id_users_id_fk') THEN
+    ALTER TABLE "friendships" ADD CONSTRAINT "friendships_addressee_id_users_id_fk" FOREIGN KEY ("addressee_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."goals"'::regclass AND conname = 'goals_user_id_users_id_fk') THEN
+    ALTER TABLE "goals" ADD CONSTRAINT "goals_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."group_members"'::regclass AND conname = 'group_members_group_id_study_groups_id_fk') THEN
+    ALTER TABLE "group_members" ADD CONSTRAINT "group_members_group_id_study_groups_id_fk" FOREIGN KEY ("group_id") REFERENCES "public"."study_groups"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."group_members"'::regclass AND conname = 'group_members_user_id_users_id_fk') THEN
+    ALTER TABLE "group_members" ADD CONSTRAINT "group_members_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."habit_completions"'::regclass AND conname = 'habit_completions_habit_id_habits_id_fk') THEN
+    ALTER TABLE "habit_completions" ADD CONSTRAINT "habit_completions_habit_id_habits_id_fk" FOREIGN KEY ("habit_id") REFERENCES "public"."habits"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."habit_completions"'::regclass AND conname = 'habit_completions_user_id_users_id_fk') THEN
+    ALTER TABLE "habit_completions" ADD CONSTRAINT "habit_completions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."habits"'::regclass AND conname = 'habits_user_id_users_id_fk') THEN
+    ALTER TABLE "habits" ADD CONSTRAINT "habits_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."login_rewards"'::regclass AND conname = 'login_rewards_user_id_users_id_fk') THEN
+    ALTER TABLE "login_rewards" ADD CONSTRAINT "login_rewards_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."notifications"'::regclass AND conname = 'notifications_user_id_users_id_fk') THEN
+    ALTER TABLE "notifications" ADD CONSTRAINT "notifications_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."password_reset_tokens"'::regclass AND conname = 'password_reset_tokens_user_id_users_id_fk') THEN
+    ALTER TABLE "password_reset_tokens" ADD CONSTRAINT "password_reset_tokens_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."post_comments"'::regclass AND conname = 'post_comments_post_id_social_posts_id_fk') THEN
+    ALTER TABLE "post_comments" ADD CONSTRAINT "post_comments_post_id_social_posts_id_fk" FOREIGN KEY ("post_id") REFERENCES "public"."social_posts"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."post_comments"'::regclass AND conname = 'post_comments_user_id_users_id_fk') THEN
+    ALTER TABLE "post_comments" ADD CONSTRAINT "post_comments_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."post_reactions"'::regclass AND conname = 'post_reactions_post_id_social_posts_id_fk') THEN
+    ALTER TABLE "post_reactions" ADD CONSTRAINT "post_reactions_post_id_social_posts_id_fk" FOREIGN KEY ("post_id") REFERENCES "public"."social_posts"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."post_reactions"'::regclass AND conname = 'post_reactions_user_id_users_id_fk') THEN
+    ALTER TABLE "post_reactions" ADD CONSTRAINT "post_reactions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."post_saves"'::regclass AND conname = 'post_saves_post_id_social_posts_id_fk') THEN
+    ALTER TABLE "post_saves" ADD CONSTRAINT "post_saves_post_id_social_posts_id_fk" FOREIGN KEY ("post_id") REFERENCES "public"."social_posts"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."post_saves"'::regclass AND conname = 'post_saves_user_id_users_id_fk') THEN
+    ALTER TABLE "post_saves" ADD CONSTRAINT "post_saves_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."premium_subscriptions"'::regclass AND conname = 'premium_subscriptions_user_id_users_id_fk') THEN
+    ALTER TABLE "premium_subscriptions" ADD CONSTRAINT "premium_subscriptions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."productivity_logs"'::regclass AND conname = 'productivity_logs_user_id_users_id_fk') THEN
+    ALTER TABLE "productivity_logs" ADD CONSTRAINT "productivity_logs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."push_subscriptions"'::regclass AND conname = 'push_subscriptions_user_id_users_id_fk') THEN
+    ALTER TABLE "push_subscriptions" ADD CONSTRAINT "push_subscriptions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."readiness_logs"'::regclass AND conname = 'readiness_logs_user_id_users_id_fk') THEN
+    ALTER TABLE "readiness_logs" ADD CONSTRAINT "readiness_logs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."refresh_tokens"'::regclass AND conname = 'refresh_tokens_user_id_users_id_fk') THEN
+    ALTER TABLE "refresh_tokens" ADD CONSTRAINT "refresh_tokens_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."roadmaps"'::regclass AND conname = 'roadmaps_user_id_users_id_fk') THEN
+    ALTER TABLE "roadmaps" ADD CONSTRAINT "roadmaps_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."session_ghosts"'::regclass AND conname = 'session_ghosts_user_id_users_id_fk') THEN
+    ALTER TABLE "session_ghosts" ADD CONSTRAINT "session_ghosts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."social_posts"'::regclass AND conname = 'social_posts_user_id_users_id_fk') THEN
+    ALTER TABLE "social_posts" ADD CONSTRAINT "social_posts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."social_posts"'::regclass AND conname = 'social_posts_group_id_study_groups_id_fk') THEN
+    ALTER TABLE "social_posts" ADD CONSTRAINT "social_posts_group_id_study_groups_id_fk" FOREIGN KEY ("group_id") REFERENCES "public"."study_groups"("id") ON DELETE set null ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."streak_history"'::regclass AND conname = 'streak_history_user_id_users_id_fk') THEN
+    ALTER TABLE "streak_history" ADD CONSTRAINT "streak_history_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."study_groups"'::regclass AND conname = 'study_groups_owner_id_users_id_fk') THEN
+    ALTER TABLE "study_groups" ADD CONSTRAINT "study_groups_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."study_room_members"'::regclass AND conname = 'study_room_members_room_id_study_rooms_id_fk') THEN
+    ALTER TABLE "study_room_members" ADD CONSTRAINT "study_room_members_room_id_study_rooms_id_fk" FOREIGN KEY ("room_id") REFERENCES "public"."study_rooms"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."study_room_members"'::regclass AND conname = 'study_room_members_user_id_users_id_fk') THEN
+    ALTER TABLE "study_room_members" ADD CONSTRAINT "study_room_members_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."study_rooms"'::regclass AND conname = 'study_rooms_group_id_study_groups_id_fk') THEN
+    ALTER TABLE "study_rooms" ADD CONSTRAINT "study_rooms_group_id_study_groups_id_fk" FOREIGN KEY ("group_id") REFERENCES "public"."study_groups"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."study_rooms"'::regclass AND conname = 'study_rooms_host_id_users_id_fk') THEN
+    ALTER TABLE "study_rooms" ADD CONSTRAINT "study_rooms_host_id_users_id_fk" FOREIGN KEY ("host_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."study_streaks"'::regclass AND conname = 'study_streaks_user_id_users_id_fk') THEN
+    ALTER TABLE "study_streaks" ADD CONSTRAINT "study_streaks_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."tasks"'::regclass AND conname = 'tasks_user_id_users_id_fk') THEN
+    ALTER TABLE "tasks" ADD CONSTRAINT "tasks_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."user_badges"'::regclass AND conname = 'user_badges_user_id_users_id_fk') THEN
+    ALTER TABLE "user_badges" ADD CONSTRAINT "user_badges_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."user_dreams"'::regclass AND conname = 'user_dreams_user_id_users_id_fk') THEN
+    ALTER TABLE "user_dreams" ADD CONSTRAINT "user_dreams_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."user_emotes"'::regclass AND conname = 'user_emotes_user_id_users_id_fk') THEN
+    ALTER TABLE "user_emotes" ADD CONSTRAINT "user_emotes_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."user_inventory"'::regclass AND conname = 'user_inventory_user_id_users_id_fk') THEN
+    ALTER TABLE "user_inventory" ADD CONSTRAINT "user_inventory_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."user_inventory"'::regclass AND conname = 'user_inventory_item_id_marketplace_items_id_fk') THEN
+    ALTER TABLE "user_inventory" ADD CONSTRAINT "user_inventory_item_id_marketplace_items_id_fk" FOREIGN KEY ("item_id") REFERENCES "public"."marketplace_items"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."user_mission_progress"'::regclass AND conname = 'user_mission_progress_user_id_users_id_fk') THEN
+    ALTER TABLE "user_mission_progress" ADD CONSTRAINT "user_mission_progress_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."user_pets"'::regclass AND conname = 'user_pets_user_id_users_id_fk') THEN
+    ALTER TABLE "user_pets" ADD CONSTRAINT "user_pets_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."user_profile_extras"'::regclass AND conname = 'user_profile_extras_user_id_users_id_fk') THEN
+    ALTER TABLE "user_profile_extras" ADD CONSTRAINT "user_profile_extras_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."user_wallets"'::regclass AND conname = 'user_wallets_user_id_users_id_fk') THEN
+    ALTER TABLE "user_wallets" ADD CONSTRAINT "user_wallets_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."wrapped_snapshots"'::regclass AND conname = 'wrapped_snapshots_user_id_users_id_fk') THEN
+    ALTER TABLE "wrapped_snapshots" ADD CONSTRAINT "wrapped_snapshots_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."battle_pass_rewards"'::regclass AND conname = 'battle_pass_rewards_battle_pass_id_battle_passes_id_fk') THEN
+    ALTER TABLE "battle_pass_rewards" ADD CONSTRAINT "battle_pass_rewards_battle_pass_id_battle_passes_id_fk" FOREIGN KEY ("battle_pass_id") REFERENCES "public"."battle_passes"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."shared_goals"'::regclass AND conname = 'shared_goals_creator_id_users_id_fk') THEN
+    ALTER TABLE "shared_goals" ADD CONSTRAINT "shared_goals_creator_id_users_id_fk" FOREIGN KEY ("creator_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."study_buddies"'::regclass AND conname = 'study_buddies_user_id_users_id_fk') THEN
+    ALTER TABLE "study_buddies" ADD CONSTRAINT "study_buddies_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."study_buddies"'::regclass AND conname = 'study_buddies_buddy_id_users_id_fk') THEN
+    ALTER TABLE "study_buddies" ADD CONSTRAINT "study_buddies_buddy_id_users_id_fk" FOREIGN KEY ("buddy_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."user_battle_pass_progress"'::regclass AND conname = 'user_battle_pass_progress_user_id_users_id_fk') THEN
+    ALTER TABLE "user_battle_pass_progress" ADD CONSTRAINT "user_battle_pass_progress_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."user_battle_pass_progress"'::regclass AND conname = 'user_battle_pass_progress_battle_pass_id_battle_passes_id_fk') THEN
+    ALTER TABLE "user_battle_pass_progress" ADD CONSTRAINT "user_battle_pass_progress_battle_pass_id_battle_passes_id_fk" FOREIGN KEY ("battle_pass_id") REFERENCES "public"."battle_passes"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."group_audit_logs"'::regclass AND conname = 'group_audit_logs_actor_id_users_id_fk') THEN
+    ALTER TABLE "group_audit_logs" ADD CONSTRAINT "group_audit_logs_actor_id_users_id_fk" FOREIGN KEY ("actor_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."group_challenge_progress"'::regclass AND conname = 'group_challenge_progress_user_id_users_id_fk') THEN
+    ALTER TABLE "group_challenge_progress" ADD CONSTRAINT "group_challenge_progress_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."group_challenges"'::regclass AND conname = 'group_challenges_creator_id_users_id_fk') THEN
+    ALTER TABLE "group_challenges" ADD CONSTRAINT "group_challenges_creator_id_users_id_fk" FOREIGN KEY ("creator_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."group_invitations"'::regclass AND conname = 'group_invitations_inviter_id_users_id_fk') THEN
+    ALTER TABLE "group_invitations" ADD CONSTRAINT "group_invitations_inviter_id_users_id_fk" FOREIGN KEY ("inviter_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."group_invitations"'::regclass AND conname = 'group_invitations_invitee_id_users_id_fk') THEN
+    ALTER TABLE "group_invitations" ADD CONSTRAINT "group_invitations_invitee_id_users_id_fk" FOREIGN KEY ("invitee_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."posts"'::regclass AND conname = 'posts_user_id_users_id_fk') THEN
+    ALTER TABLE "posts" ADD CONSTRAINT "posts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."post_likes"'::regclass AND conname = 'post_likes_user_id_users_id_fk') THEN
+    ALTER TABLE "post_likes" ADD CONSTRAINT "post_likes_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."user_loot_boxes"'::regclass AND conname = 'user_loot_boxes_user_id_users_id_fk') THEN
+    ALTER TABLE "user_loot_boxes" ADD CONSTRAINT "user_loot_boxes_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."user_loot_boxes"'::regclass AND conname = 'user_loot_boxes_box_type_id_loot_box_types_id_fk') THEN
+    ALTER TABLE "user_loot_boxes" ADD CONSTRAINT "user_loot_boxes_box_type_id_loot_box_types_id_fk" FOREIGN KEY ("box_type_id") REFERENCES "public"."loot_box_types"("id") ON DELETE no action ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."user_quest_progress"'::regclass AND conname = 'user_quest_progress_user_id_users_id_fk') THEN
+    ALTER TABLE "user_quest_progress" ADD CONSTRAINT "user_quest_progress_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."user_quest_progress"'::regclass AND conname = 'user_quest_progress_quest_id_quest_definitions_id_fk') THEN
+    ALTER TABLE "user_quest_progress" ADD CONSTRAINT "user_quest_progress_quest_id_quest_definitions_id_fk" FOREIGN KEY ("quest_id") REFERENCES "public"."quest_definitions"("id") ON DELETE no action ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."user_seasonal_progress"'::regclass AND conname = 'user_seasonal_progress_user_id_users_id_fk') THEN
+    ALTER TABLE "user_seasonal_progress" ADD CONSTRAINT "user_seasonal_progress_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."user_seasonal_progress"'::regclass AND conname = 'user_seasonal_progress_event_id_seasonal_events_id_fk') THEN
+    ALTER TABLE "user_seasonal_progress" ADD CONSTRAINT "user_seasonal_progress_event_id_seasonal_events_id_fk" FOREIGN KEY ("event_id") REFERENCES "public"."seasonal_events"("id") ON DELETE no action ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."admin_drop_claims"'::regclass AND conname = 'admin_drop_claims_drop_id_admin_drops_id_fk') THEN
+    ALTER TABLE "admin_drop_claims" ADD CONSTRAINT "admin_drop_claims_drop_id_admin_drops_id_fk" FOREIGN KEY ("drop_id") REFERENCES "public"."admin_drops"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."admin_drop_claims"'::regclass AND conname = 'admin_drop_claims_user_id_users_id_fk') THEN
+    ALTER TABLE "admin_drop_claims" ADD CONSTRAINT "admin_drop_claims_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."admin_drops"'::regclass AND conname = 'admin_drops_created_by_id_users_id_fk') THEN
+    ALTER TABLE "admin_drops" ADD CONSTRAINT "admin_drops_created_by_id_users_id_fk" FOREIGN KEY ("created_by_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."admin_sql_log"'::regclass AND conname = 'admin_sql_log_admin_id_users_id_fk') THEN
+    ALTER TABLE "admin_sql_log" ADD CONSTRAINT "admin_sql_log_admin_id_users_id_fk" FOREIGN KEY ("admin_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."ai_action_audit"'::regclass AND conname = 'ai_action_audit_approved_by_users_id_fk') THEN
+    ALTER TABLE "ai_action_audit" ADD CONSTRAINT "ai_action_audit_approved_by_users_id_fk" FOREIGN KEY ("approved_by") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."ai_call_log"'::regclass AND conname = 'ai_call_log_user_id_users_id_fk') THEN
+    ALTER TABLE "ai_call_log" ADD CONSTRAINT "ai_call_log_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."bot_pending_replies"'::regclass AND conname = 'bot_pending_replies_post_id_social_posts_id_fk') THEN
+    ALTER TABLE "bot_pending_replies" ADD CONSTRAINT "bot_pending_replies_post_id_social_posts_id_fk" FOREIGN KEY ("post_id") REFERENCES "public"."social_posts"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."bot_pending_replies"'::regclass AND conname = 'bot_pending_replies_bot_id_users_id_fk') THEN
+    ALTER TABLE "bot_pending_replies" ADD CONSTRAINT "bot_pending_replies_bot_id_users_id_fk" FOREIGN KEY ("bot_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."battle_pass_claims"'::regclass AND conname = 'battle_pass_claims_user_id_users_id_fk') THEN
+    ALTER TABLE "battle_pass_claims" ADD CONSTRAINT "battle_pass_claims_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."cosmetic_inventory"'::regclass AND conname = 'cosmetic_inventory_user_id_users_id_fk') THEN
+    ALTER TABLE "cosmetic_inventory" ADD CONSTRAINT "cosmetic_inventory_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."premium_entitlements"'::regclass AND conname = 'premium_entitlements_user_id_users_id_fk') THEN
+    ALTER TABLE "premium_entitlements" ADD CONSTRAINT "premium_entitlements_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."premium_entitlements"'::regclass AND conname = 'premium_entitlements_plan_id_premium_plans_id_fk') THEN
+    ALTER TABLE "premium_entitlements" ADD CONSTRAINT "premium_entitlements_plan_id_premium_plans_id_fk" FOREIGN KEY ("plan_id") REFERENCES "public"."premium_plans"("id") ON DELETE set null ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."premium_entitlements"'::regclass AND conname = 'premium_entitlements_granted_by_admin_id_users_id_fk') THEN
+    ALTER TABLE "premium_entitlements" ADD CONSTRAINT "premium_entitlements_granted_by_admin_id_users_id_fk" FOREIGN KEY ("granted_by_admin_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."quest_progress"'::regclass AND conname = 'quest_progress_user_id_users_id_fk') THEN
+    ALTER TABLE "quest_progress" ADD CONSTRAINT "quest_progress_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."token_ledger"'::regclass AND conname = 'token_ledger_user_id_users_id_fk') THEN
+    ALTER TABLE "token_ledger" ADD CONSTRAINT "token_ledger_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."user_pet_inventory"'::regclass AND conname = 'user_pet_inventory_user_id_users_id_fk') THEN
+    ALTER TABLE "user_pet_inventory" ADD CONSTRAINT "user_pet_inventory_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."user_pet_inventory"'::regclass AND conname = 'user_pet_inventory_pet_id_pet_catalog_id_fk') THEN
+    ALTER TABLE "user_pet_inventory" ADD CONSTRAINT "user_pet_inventory_pet_id_pet_catalog_id_fk" FOREIGN KEY ("pet_id") REFERENCES "public"."pet_catalog"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+CREATE UNIQUE INDEX IF NOT EXISTS "analytics_events_event_id_idx" ON "analytics_events" USING btree ("event_id");
+CREATE INDEX IF NOT EXISTS "analytics_events_created_at_idx" ON "analytics_events" USING btree ("created_at");
+CREATE INDEX IF NOT EXISTS "analytics_events_visitor_id_idx" ON "analytics_events" USING btree ("visitor_id");
+CREATE INDEX IF NOT EXISTS "analytics_sessions_visitor_id_idx" ON "analytics_sessions" USING btree ("visitor_id");
+CREATE INDEX IF NOT EXISTS "analytics_sessions_last_activity_idx" ON "analytics_sessions" USING btree ("last_activity_at");
+CREATE INDEX IF NOT EXISTS "page_views_visitor_id_idx" ON "page_views" USING btree ("visitor_id");
+CREATE INDEX IF NOT EXISTS "page_views_session_id_idx" ON "page_views" USING btree ("session_id");
+CREATE INDEX IF NOT EXISTS "page_views_viewed_at_idx" ON "page_views" USING btree ("viewed_at");
+CREATE UNIQUE INDEX IF NOT EXISTS "visitors_visitor_id_idx" ON "visitors" USING btree ("visitor_id");
+CREATE INDEX IF NOT EXISTS "visitors_last_seen_idx" ON "visitors" USING btree ("last_seen");
+CREATE INDEX IF NOT EXISTS "visitors_user_id_idx" ON "visitors" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "conv_participants_conv_user_idx" ON "conversation_participants" USING btree ("conversation_id","user_id");
+CREATE INDEX IF NOT EXISTS "conversations_group_idx" ON "conversations" USING btree ("group_id");
+CREATE INDEX IF NOT EXISTS "message_reactions_msg_user_idx" ON "message_reactions" USING btree ("message_id","user_id");
+CREATE INDEX IF NOT EXISTS "message_reactions_msg_idx" ON "message_reactions" USING btree ("message_id");
+CREATE INDEX IF NOT EXISTS "messages_conv_idx" ON "messages" USING btree ("conversation_id");
+CREATE INDEX IF NOT EXISTS "messages_created_at_idx" ON "messages" USING btree ("created_at");
+CREATE INDEX IF NOT EXISTS "city_building_slug_idx" ON "city_building_definitions" USING btree ("slug");
+CREATE INDEX IF NOT EXISTS "focus_cities_user_idx" ON "focus_cities" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "flashcard_decks_user_idx" ON "flashcard_decks" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "flashcard_reviews_card_idx" ON "flashcard_reviews" USING btree ("card_id");
+CREATE INDEX IF NOT EXISTS "flashcard_reviews_user_date_idx" ON "flashcard_reviews" USING btree ("user_id","created_at");
+CREATE INDEX IF NOT EXISTS "flashcards_deck_idx" ON "flashcards" USING btree ("deck_id");
+CREATE INDEX IF NOT EXISTS "flashcards_fsrs_due_idx" ON "flashcards" USING btree ("next_review_at");
+CREATE INDEX IF NOT EXISTS "active_sessions_started_at_idx" ON "active_sessions" USING btree ("started_at");
+CREATE INDEX IF NOT EXISTS "app_feedback_user_idx" ON "app_feedback" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "audit_logs_user_idx" ON "audit_logs" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "buddy_requests_receiver_idx" ON "buddy_requests" USING btree ("receiver_id");
+CREATE INDEX IF NOT EXISTS "coin_tx_user_idx" ON "coin_transactions" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "email_logs_recipient_idx" ON "email_logs" USING btree ("recipient_id");
+CREATE INDEX IF NOT EXISTS "email_logs_created_at_idx" ON "email_logs" USING btree ("created_at");
+CREATE INDEX IF NOT EXISTS "focus_sessions_user_id_idx" ON "focus_sessions" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "focus_sessions_completed_at_idx" ON "focus_sessions" USING btree ("completed_at");
+CREATE INDEX IF NOT EXISTS "focus_sessions_user_started_idx" ON "focus_sessions" USING btree ("user_id","created_at");
+CREATE INDEX IF NOT EXISTS "focus_sessions_user_completed_idx" ON "focus_sessions" USING btree ("user_id","completed_at");
+CREATE INDEX IF NOT EXISTS "focus_sessions_user_status_idx" ON "focus_sessions" USING btree ("user_id","session_status");
+CREATE INDEX IF NOT EXISTS "follows_follower_idx" ON "follows" USING btree ("follower_id");
+CREATE INDEX IF NOT EXISTS "follows_following_idx" ON "follows" USING btree ("following_id");
+CREATE INDEX IF NOT EXISTS "friendships_requester_idx" ON "friendships" USING btree ("requester_id");
+CREATE INDEX IF NOT EXISTS "friendships_addressee_idx" ON "friendships" USING btree ("addressee_id");
+CREATE INDEX IF NOT EXISTS "group_members_group_idx" ON "group_members" USING btree ("group_id");
+CREATE INDEX IF NOT EXISTS "group_members_user_idx" ON "group_members" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "habit_completions_habit_idx" ON "habit_completions" USING btree ("habit_id");
+CREATE INDEX IF NOT EXISTS "habit_completions_user_date_idx" ON "habit_completions" USING btree ("user_id","date");
+CREATE INDEX IF NOT EXISTS "habits_user_idx" ON "habits" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "notifications_user_id_idx" ON "notifications" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "post_comments_post_idx" ON "post_comments" USING btree ("post_id");
+CREATE INDEX IF NOT EXISTS "post_reactions_post_idx" ON "post_reactions" USING btree ("post_id");
+CREATE INDEX IF NOT EXISTS "post_saves_post_user_idx" ON "post_saves" USING btree ("post_id","user_id");
+CREATE INDEX IF NOT EXISTS "premium_subscriptions_user_idx" ON "premium_subscriptions" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "productivity_logs_user_date_idx" ON "productivity_logs" USING btree ("user_id","date");
+CREATE INDEX IF NOT EXISTS "push_sub_user_idx" ON "push_subscriptions" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "refresh_tokens_user_idx" ON "refresh_tokens" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "refresh_tokens_family_idx" ON "refresh_tokens" USING btree ("family_id");
+CREATE INDEX IF NOT EXISTS "social_posts_user_idx" ON "social_posts" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "social_posts_created_at_idx" ON "social_posts" USING btree ("created_at");
+CREATE INDEX IF NOT EXISTS "social_posts_moderation_idx" ON "social_posts" USING btree ("moderation_status");
+CREATE INDEX IF NOT EXISTS "streak_history_user_idx" ON "streak_history" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "streak_history_user_date_idx" ON "streak_history" USING btree ("user_id","date");
+CREATE INDEX IF NOT EXISTS "study_room_members_room_idx" ON "study_room_members" USING btree ("room_id");
+CREATE INDEX IF NOT EXISTS "room_members_room_user_idx" ON "study_room_members" USING btree ("room_id","user_id");
+CREATE INDEX IF NOT EXISTS "study_rooms_host_idx" ON "study_rooms" USING btree ("host_id");
+CREATE INDEX IF NOT EXISTS "study_rooms_status_idx" ON "study_rooms" USING btree ("status");
+CREATE INDEX IF NOT EXISTS "tasks_user_id_idx" ON "tasks" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "user_emotes_user_idx" ON "user_emotes" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "user_inventory_user_idx" ON "user_inventory" USING btree ("user_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "user_inventory_user_item_unique" ON "user_inventory" USING btree ("user_id","item_id");
+CREATE INDEX IF NOT EXISTS "mission_progress_user_period_idx" ON "user_mission_progress" USING btree ("user_id","period_start");
+CREATE INDEX IF NOT EXISTS "user_wallets_weekly_xp_idx" ON "user_wallets" USING btree ("weekly_xp");
+CREATE INDEX IF NOT EXISTS "user_wallets_total_xp_idx" ON "user_wallets" USING btree ("total_xp");
+CREATE INDEX IF NOT EXISTS "wrapped_user_period_idx" ON "wrapped_snapshots" USING btree ("user_id","period");
+CREATE INDEX IF NOT EXISTS "leaderboard_snapshots_period_category_idx" ON "leaderboard_snapshots" USING btree ("period","category");
+CREATE INDEX IF NOT EXISTS "shared_goals_group_idx" ON "shared_goals" USING btree ("group_id");
+CREATE INDEX IF NOT EXISTS "study_buddies_user_buddy_idx" ON "study_buddies" USING btree ("user_id","buddy_id");
+CREATE INDEX IF NOT EXISTS "user_battle_pass_user_pass_idx" ON "user_battle_pass_progress" USING btree ("user_id","battle_pass_id");
+CREATE INDEX IF NOT EXISTS "group_audit_logs_group_idx" ON "group_audit_logs" USING btree ("group_id");
+CREATE INDEX IF NOT EXISTS "group_challenge_progress_chal_user_idx" ON "group_challenge_progress" USING btree ("challenge_id","user_id");
+CREATE INDEX IF NOT EXISTS "group_challenges_group_idx" ON "group_challenges" USING btree ("group_id");
+CREATE INDEX IF NOT EXISTS "group_invitations_group_idx" ON "group_invitations" USING btree ("group_id");
+CREATE INDEX IF NOT EXISTS "posts_user_idx" ON "posts" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "posts_created_at_idx" ON "posts" USING btree ("created_at");
+CREATE INDEX IF NOT EXISTS "post_likes_post_user_idx" ON "post_likes" USING btree ("post_id","user_id");
+CREATE INDEX IF NOT EXISTS "user_loot_boxes_user_idx" ON "user_loot_boxes" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "user_quest_progress_user_idx" ON "user_quest_progress" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "seasonal_events_slug_idx" ON "seasonal_events" USING btree ("slug");
+CREATE INDEX IF NOT EXISTS "user_seasonal_progress_user_idx" ON "user_seasonal_progress" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "admin_drop_claims_drop_idx" ON "admin_drop_claims" USING btree ("drop_id");
+CREATE INDEX IF NOT EXISTS "admin_drop_claims_user_idx" ON "admin_drop_claims" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "admin_drops_window_idx" ON "admin_drops" USING btree ("starts_at","ends_at");
+CREATE INDEX IF NOT EXISTS "admin_drops_active_idx" ON "admin_drops" USING btree ("is_active");
+CREATE INDEX IF NOT EXISTS "admin_sql_log_created_idx" ON "admin_sql_log" USING btree ("created_at");
+CREATE INDEX IF NOT EXISTS "ai_action_audit_created_idx" ON "ai_action_audit" USING btree ("created_at");
+CREATE INDEX IF NOT EXISTS "ai_action_audit_action_idx" ON "ai_action_audit" USING btree ("action");
+CREATE UNIQUE INDEX IF NOT EXISTS "ai_briefings_day_kind_unique" ON "ai_briefings" USING btree ("day","kind");
+CREATE UNIQUE INDEX IF NOT EXISTS "ai_budget_state_provider_day_unique" ON "ai_budget_state" USING btree ("provider","day");
+CREATE INDEX IF NOT EXISTS "ai_call_log_created_idx" ON "ai_call_log" USING btree ("created_at");
+CREATE INDEX IF NOT EXISTS "ai_call_log_purpose_idx" ON "ai_call_log" USING btree ("purpose","created_at");
+CREATE INDEX IF NOT EXISTS "ai_call_log_user_purpose_idx" ON "ai_call_log" USING btree ("user_id","purpose","created_at");
+CREATE INDEX IF NOT EXISTS "ai_ideas_status_idx" ON "ai_ideas" USING btree ("status","created_at");
+CREATE INDEX IF NOT EXISTS "bot_pending_replies_due_idx" ON "bot_pending_replies" USING btree ("status","due_at");
+CREATE INDEX IF NOT EXISTS "bot_pending_replies_post_idx" ON "bot_pending_replies" USING btree ("post_id");
+CREATE INDEX IF NOT EXISTS "asset_catalog_type_idx" ON "asset_catalog" USING btree ("type");
+CREATE INDEX IF NOT EXISTS "battle_pass_claims_user_idx" ON "battle_pass_claims" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "battle_pass_claims_pass_idx" ON "battle_pass_claims" USING btree ("battle_pass_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "battle_pass_claims_unique" ON "battle_pass_claims" USING btree ("battle_pass_id","user_id","tier","reward_id");
+CREATE INDEX IF NOT EXISTS "cosmetic_inventory_user_idx" ON "cosmetic_inventory" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "cosmetic_inventory_user_type_idx" ON "cosmetic_inventory" USING btree ("user_id","type");
+CREATE INDEX IF NOT EXISTS "feature_flags_enabled_idx" ON "feature_flags" USING btree ("enabled");
+CREATE INDEX IF NOT EXISTS "pet_catalog_rarity_idx" ON "pet_catalog" USING btree ("rarity");
+CREATE INDEX IF NOT EXISTS "pet_catalog_category_idx" ON "pet_catalog" USING btree ("category");
+CREATE INDEX IF NOT EXISTS "pet_catalog_active_idx" ON "pet_catalog" USING btree ("is_active");
+CREATE INDEX IF NOT EXISTS "premium_entitlements_user_idx" ON "premium_entitlements" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "premium_entitlements_user_status_idx" ON "premium_entitlements" USING btree ("user_id","status");
+CREATE INDEX IF NOT EXISTS "premium_entitlements_ends_idx" ON "premium_entitlements" USING btree ("ends_at");
+CREATE UNIQUE INDEX IF NOT EXISTS "premium_entitlements_idempotency_unique" ON "premium_entitlements" USING btree ("idempotency_key");
+CREATE INDEX IF NOT EXISTS "premium_plans_active_idx" ON "premium_plans" USING btree ("is_active");
+CREATE INDEX IF NOT EXISTS "quest_progress_user_idx" ON "quest_progress" USING btree ("user_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "quest_progress_unique" ON "quest_progress" USING btree ("user_id","quest_id","period");
+CREATE INDEX IF NOT EXISTS "token_earning_rules_active_idx" ON "token_earning_rules" USING btree ("is_active");
+CREATE INDEX IF NOT EXISTS "token_ledger_user_idx" ON "token_ledger" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "token_ledger_user_created_idx" ON "token_ledger" USING btree ("user_id","created_at");
+CREATE INDEX IF NOT EXISTS "token_ledger_source_idx" ON "token_ledger" USING btree ("source");
+CREATE INDEX IF NOT EXISTS "token_ledger_type_idx" ON "token_ledger" USING btree ("transaction_type");
+CREATE UNIQUE INDEX IF NOT EXISTS "token_ledger_idempotency_unique" ON "token_ledger" USING btree ("idempotency_key");
+CREATE INDEX IF NOT EXISTS "user_pet_inventory_user_idx" ON "user_pet_inventory" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "user_pet_inventory_user_active_idx" ON "user_pet_inventory" USING btree ("user_id","is_active");
+CREATE UNIQUE INDEX IF NOT EXISTS "user_pet_inventory_user_pet_unique" ON "user_pet_inventory" USING btree ("user_id","pet_id");

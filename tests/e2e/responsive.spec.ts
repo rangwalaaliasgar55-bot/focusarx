@@ -74,12 +74,15 @@ test.describe("mobile layout", () => {
   test.skip(({ viewport }) => (viewport?.width ?? 1280) > 500, "mobile-only contract");
 
   test("renders the bottom navigation", async ({ page }) => {
-    await gotoRoute(page, "/login");
+    // Auth routes deliberately omit AppShell. The public focus route exposes
+    // the real mobile navigation without requiring a database fixture.
+    await gotoRoute(page, "/focus");
     await expect(page.locator(BOTTOM_NAV)).toBeVisible();
   });
 
   test("bottom nav targets meet the 44px minimum", async ({ page }) => {
-    await gotoRoute(page, "/login");
+    await gotoRoute(page, "/focus");
+    await expect(page.locator(BOTTOM_NAV)).toBeVisible();
 
     const targets = page.locator(`${BOTTOM_NAV} a, ${BOTTOM_NAV} button`);
     const count = await targets.count();

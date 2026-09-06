@@ -51,7 +51,7 @@ function LoadingSpinner() {
   );
 }
 
-export default function AiInsightsPage() {
+function AiInsightsContent() {
   const [tab, setTab] = useState<"report" | "insights" | "habits">("insights");
   const [reportKey, setReportKey] = useState(0);
 
@@ -82,15 +82,11 @@ export default function AiInsightsPage() {
     { id: "habits",   label: "Habits",    icon: BarChart2 },
   ] as const;
 
-  const ICON_MAP: Record<string, React.ComponentType<any>> = {
-    peak_time: Clock, focus_score: Brain, streak: Flame, task_rate: Target, level: TrendingUp,
-  };
   const COLOR_MAP: Record<string, string> = {
     peak_time: "var(--color-warning)", focus_score: "var(--brand-600)", streak: "var(--palette-f97316)", task_rate: "var(--palette-22d387)", level: "var(--info)",
   };
 
   return (
-    <PremiumGate feature="AI Coach">
     <div className="min-h-screen forge-bg-glow">
       <div className="relative z-[var(--z-content)] mx-auto max-w-3xl px-4 py-8">
         <PageTransition>
@@ -136,7 +132,6 @@ export default function AiInsightsPage() {
                   </div>
                   <div className="space-y-3">
                     {(insights.insights ?? []).map((ins: any) => {
-                      const Icon = ICON_MAP[ins.type] ?? Brain;
                       const color = COLOR_MAP[ins.type] ?? "var(--brand-600)";
                       return (
                         <div key={ins.type} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4">
@@ -249,6 +244,11 @@ export default function AiInsightsPage() {
         </PageTransition>
       </div>
     </div>
-    </PremiumGate>
   );
+}
+
+// The gate must own mounting the querying component, not just its markup.
+// Hooks in the parent run even when PremiumGate hides its children.
+export default function AiInsightsPage() {
+  return <PremiumGate feature="AI Coach"><AiInsightsContent /></PremiumGate>;
 }

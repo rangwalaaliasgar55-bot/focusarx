@@ -16,7 +16,10 @@
     "test:db": "node ./scripts/test-db.mjs",
     "seed": "node ./scripts/seed.mjs",
     "seed:clear": "node ./scripts/seed.mjs --clear",
-    "validate-migrations": "node ./scripts/validate-migrations.mjs"
+    "validate-migrations": "node ./scripts/validate-migrations.mjs",
+    "test:migrations": "node ./scripts/replay-migrations.mjs",
+    "schema:export": "node ./scripts/export-schema.mjs",
+    "schema:check": "node ./scripts/export-schema.mjs --check"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",
