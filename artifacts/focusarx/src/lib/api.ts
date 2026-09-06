@@ -121,10 +121,19 @@ export async function apiFetch(path: string, init: RequestInit = {}, _retried = 
   const serverVersion = response.headers.get("X-FocusArx-Deployment");
   if (serverVersion) recordServerVersion(serverVersion);
 
+  // Parsed early because the 409 branch below has to read the body to recognise
+  // a skew response. Remembering it matters: every *other* 409 (a conflict the
+  // admin routes raise for duplicate keys, live drops, unlocked SQL writes) also
+  // consumed the stream here, and the error path further down then read an empty
+  // body — the server's explanation was discarded and the panel was handed
+  // `Request failed (409)`.
+  let parsedBody: unknown = null;
+
   // ── 409 DEPLOYMENT_SKEW handling ──────────────────────────────────────────
   if (response.status === 409) {
     let body: Record<string, unknown> = {};
     try { body = await response.json() as Record<string, unknown>; } catch { /* */ }
+    parsedBody = body;
 
     const error = (body as { error?: Record<string, unknown> }).error;
     if (error?.code === "DEPLOYMENT_SKEW") {
@@ -178,8 +187,10 @@ export async function apiFetch(path: string, init: RequestInit = {}, _retried = 
   }
 
   if (!response.ok) {
-    let errorData: unknown = null;
-    try { errorData = await response.json(); } catch { /* non-JSON error body */ }
+    let errorData: unknown = parsedBody;
+    if (errorData === null) {
+      try { errorData = await response.json(); } catch { /* non-JSON error body */ }
+    }
     // The old message was `Request failed (429)` — the number means nothing to
     // a user, while the server already said what to do ("Too many sign-in
     // attempts, wait a few minutes"). Prefer the server's own wording and keep

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { SectionHeader, MotionTab, LoadingState } from "./AdminHelpers";
+import { LoadingState, MotionTab, SectionHeader, adminFetch } from "./AdminHelpers";
 import type { AdminPanelProps, SiteSettings } from "./AdminTypes";
 
 export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
@@ -11,7 +11,7 @@ export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
 
   async function load() {
     try {
-      const r = await fetch("/api/admin/site/settings", { headers: authHeaders(), credentials: "include" });
+      const r = await adminFetch("/api/admin/site/settings", { headers: authHeaders(), credentials: "include" });
       if (r.ok) {
         const d = await r.json();
         setSettings({
@@ -35,7 +35,7 @@ export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
     if (!settings) return;
     setSaving(true); setResult(null);
     try {
-      const r = await fetch("/api/admin/site/settings", {
+      const r = await adminFetch("/api/admin/site/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...authHeaders() },
         credentials: "include",
@@ -88,8 +88,8 @@ export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
               <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-[var(--palette-white)] transition-transform ${settings.maintenanceMode ? "translate-x-5" : "translate-x-0.5"}`} />
             </button>
           </div>
-          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">Maintenance message</label>
-          <textarea rows={3} value={settings.maintenanceMessage} onChange={(e) => set({ maintenanceMessage: e.target.value })}
+          <label htmlFor="adminsitepanel-maintenance-message" className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">Maintenance message</label>
+          <textarea id="adminsitepanel-maintenance-message" rows={3} value={settings.maintenanceMessage} onChange={(e) => set({ maintenanceMessage: e.target.value })}
             className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-amber-500)] resize-none" />
         </div>
 
@@ -122,13 +122,13 @@ export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
           <p className="mb-4 text-xs text-[var(--palette-zinc-500)]">Edit the app name and tagline shown across the product.</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">App name</label>
-              <input value={settings.brandingName} onChange={(e) => set({ brandingName: e.target.value })}
+              <label htmlFor="adminsitepanel-app-name" className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">App name</label>
+              <input id="adminsitepanel-app-name" value={settings.brandingName} onChange={(e) => set({ brandingName: e.target.value })}
                 className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]" />
             </div>
             <div>
-              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">Tagline</label>
-              <input value={settings.brandingTagline} onChange={(e) => set({ brandingTagline: e.target.value })}
+              <label htmlFor="adminsitepanel-tagline" className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">Tagline</label>
+              <input id="adminsitepanel-tagline" value={settings.brandingTagline} onChange={(e) => set({ brandingTagline: e.target.value })}
                 className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]" />
             </div>
           </div>
@@ -140,14 +140,14 @@ export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
           <p className="mb-4 text-xs text-[var(--palette-zinc-500)]">Edit the hero headline, subtitle, and CTA on the landing page.</p>
           <div className="space-y-3">
             <div>
-              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">Hero subtitle</label>
-              <textarea rows={2} value={settings.heroSubtitle} onChange={(e) => set({ heroSubtitle: e.target.value })}
+              <label htmlFor="adminsitepanel-hero-subtitle" className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">Hero subtitle</label>
+              <textarea id="adminsitepanel-hero-subtitle" rows={2} value={settings.heroSubtitle} onChange={(e) => set({ heroSubtitle: e.target.value })}
                 placeholder="Strap in, Commander. Every focus session fires your thrusters…"
                 className="w-full resize-none rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]" />
             </div>
             <div>
-              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">CTA button text</label>
-              <input value={settings.heroCtaText} onChange={(e) => set({ heroCtaText: e.target.value })}
+              <label htmlFor="adminsitepanel-cta-button-text" className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">CTA button text</label>
+              <input id="adminsitepanel-cta-button-text" value={settings.heroCtaText} onChange={(e) => set({ heroCtaText: e.target.value })}
                 placeholder="🚀 Begin Launch Sequence"
                 className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]" />
             </div>

@@ -172,6 +172,14 @@ function BadgeCard({ badge, isCelebrating }: { badge: Badge; isCelebrating: bool
   );
 }
 
+type BadgePayload = {
+  badges: Badge[];
+  stats: Stats;
+  unlockedCount: number;
+  totalCount: number;
+  completionPct: number;
+};
+
 export default function AchievementsPage() {
   const [badges, setBadges] = useState<Badge[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -183,12 +191,17 @@ export default function AchievementsPage() {
 
   useEffect(() => {
     const token = getToken();
-    if (!token) { setLoading(false); return; }
-    fetch("/api/gamification/badges", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json() as Promise<{ badges: Badge[]; stats: Stats; unlockedCount: number; totalCount: number; completionPct: number }>)
+    // Both paths resolve through the same promise chain, so nothing here sets
+    // state synchronously in the effect body — the signed-out branch used to
+    // `setLoading(false)` and return, queueing a second render before the page
+    // had anything to show.
+    const request = token
+      ? fetch("/api/gamification/badges", { headers: { Authorization: `Bearer ${token}` } })
+          .then((r) => r.json() as Promise<BadgePayload>)
+      : Promise.resolve(null);
+    request
       .then((d) => {
+        if (!d) return;
         setBadges(d.badges ?? []);
         setStats(d.stats ?? null);
         const newOnes = (d.badges ?? []).filter((b) => b.newlyUnlocked);
@@ -196,9 +209,9 @@ export default function AchievementsPage() {
           setCelebratingId(newOnes[0]!.id);
           setTimeout(() => setCelebratingId(null), 4000);
         }
-        setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => { /* the empty state below already says what happened */ })
+      .finally(() => setLoading(false));
   }, []);
 
   let filtered = filter === "all" ? badges : badges.filter((b) => b.category === filter);

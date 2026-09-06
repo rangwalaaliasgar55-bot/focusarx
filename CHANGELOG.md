@@ -2,6 +2,61 @@
 
 All notable changes to FocusArx. Dates are UTC.
 
+## [Unreleased] — fourth pass
+
+Theme parity for the admin console, and one data layer for it.
+
+**Objective defects, measured first.**
+
+- `html.light` re-declared the neutral ramp (`--palette-zinc-*`) but left out
+  `zinc-950`, and never touched the nine *status* families at all
+  (emerald/rose/red/amber/orange/sky/blue/violet/purple). In Daylight the admin
+  console therefore kept its dark-theme colours: `text-emerald-400` on a white
+  card measured 1.9:1, `text-zinc-400` 1.02:1, and every `bg-*-950` chip rendered
+  as a dark slab on a white page. The light theme now maps each family by role
+  (text steps to the status colour darkened for AA, the 500 step to the status
+  colour itself so white labels hold, 600/700 one shade deeper for hover, and the
+  800/900/950 steps to washes) — 61 declarations, no call site edited.
+  `src/palette-contrast.test.ts` resolves both colour systems per theme, reads the
+  class strings the console actually writes, and requires AA on every pairing.
+- `--color-success/warning/error` were defined once, for the dark theme, and the
+  light theme inherited them verbatim — amber validation copy on a white card at
+  2.1:1. They now point at the status colours the light theme already tunes.
+- The accent scale's fill steps are floored at AA against white (previous pass);
+  `buildAccentScale` also emits `contrastWithWhite` for callers.
+
+**Admin client.**
+
+- 55 requests across 21 files called `fetch` directly, so the console got none of
+  the session machinery: panels died at the 15-minute token expiry until a reload,
+  the deployment-skew header was missing, and server error bodies were thrown
+  away. `adminFetch` in `AdminHelpers` now fronts `apiFetch` and re-materialises a
+  failure as a `Response`, so every `if (!res.ok)` branch keeps working and shows
+  the route's own sentence. Network failures become a 504 rather than an unhandled
+  rejection. AdminGate's password unlock deliberately keeps a bare `fetch`.
+- 20 of 28 panels had no error state at all: a refused write looked like an
+  accepted one. The adapter now announces failures through the `focusarx:api-error`
+  event the toast provider already listens for (deduped, opt-out per call for the
+  three panels that render the failure inline).
+- The Users tab's **Manage** button wrote to a local state nothing read, so it did
+  nothing; it opens the shared `UserManagerDialog` now (`onManageUser`, matching
+  the Rivals panel), and the dialog remounts per user rather than resetting in an
+  effect.
+- `apiFetch` had a self-inflicted wound: the 409 branch consumed the body to
+  recognise a skew response, so every *other* 409 — the admin routes' duplicate-key
+  and conflict errors — reached callers with an empty body and a generic
+  `Request failed (409)`. The parsed body is now reused.
+- Two amber buttons paired a white label with `--palette-amber-600` (3.2:1) and
+  one brightened on hover; all three now use the `amber-700 → 800` convention the
+  other panels already followed.
+
+**Legacy lint, cleared in the changed set** (92 errors → 0): 34 unused imports, 11
+write-only states and dead helpers (one of which — `canBeastExit` — was left over
+from a beast-mode exit that already gates by rendering), 26 form labels now
+associated with their control, an untitled `<iframe>`, two backdrop-only dismisses
+that no keyboard could reach, `useFreeze` (not a hook) renamed, and seven
+setState-in-effect sites restructured to derive or to own a real loading flag.
+
 ## [Unreleased] — third pass
 
 ### Fixed (sign-in)

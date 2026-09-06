@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export type LockMode = "none" | "soft" | "hard" | "beast";
@@ -79,7 +79,6 @@ export default function FocusLockOverlay({ mode, exitPhrase, secondsLeft, totalS
   const [phraseInput, setPhraseInput] = useState("");
   const [beastWait, setBeastWait] = useState(30);
   const [beastPuzzleDone, setBeastPuzzleDone] = useState(false);
-  const [beastReady, setBeastReady] = useState(false);
   const [redBorder, setRedBorder] = useState(false);
   const softRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const beastRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -125,7 +124,7 @@ export default function FocusLockOverlay({ mode, exitPhrase, secondsLeft, totalS
       setBeastWait(30);
       beastRef.current = setInterval(() => {
         setBeastWait(c => {
-          if (c <= 1) { clearInterval(beastRef.current!); setBeastReady(beastPuzzleDone); return 0; }
+          if (c <= 1) { clearInterval(beastRef.current!); return 0; }
           return c - 1;
         });
       }, 1000);
@@ -139,7 +138,6 @@ export default function FocusLockOverlay({ mode, exitPhrase, secondsLeft, totalS
 
   const canSoftExit = mode === "soft" && softCountdown === 0;
   const canHardExit = mode === "hard" && phraseInput.trim().toLowerCase() === exitPhrase.trim().toLowerCase();
-  const canBeastExit = mode === "beast" && beastPuzzleDone && beastWait === 0;
 
   return (
     <motion.div
@@ -257,7 +255,7 @@ export default function FocusLockOverlay({ mode, exitPhrase, secondsLeft, totalS
               {!beastPuzzleDone ? (
                 <>
                   <p className="text-center text-sm text-[var(--foreground-muted)]">Solve 3 math puzzles to exit:</p>
-                  <MathPuzzle onSolved={() => { setBeastPuzzleDone(true); if (beastWait === 0) setBeastReady(true); }} />
+                  <MathPuzzle onSolved={() => { setBeastPuzzleDone(true); }} />
                 </>
               ) : beastWait > 0 ? (
                 <div className="text-center space-y-2">

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth, getToken } from "@/lib/auth";
 import { PageTransition } from "@/components/PageTransition";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Gift, Copy, Check, Users, Coins, Zap, ExternalLink } from "lucide-react";
+import { Gift, Copy, Check, Coins, Zap, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 

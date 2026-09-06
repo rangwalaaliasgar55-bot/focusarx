@@ -15,7 +15,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Suspense } from "react";
 import * as THREE from "three";
-import { Heart, Shield, Sword, Zap, Award, X } from "lucide-react";
+import { Heart, Sword, Zap, Award, X } from "lucide-react";
 
 interface BattleState {
   petHp: number;
@@ -263,7 +263,6 @@ function HealthBar({ current, max, label, color }: { current: number; max: numbe
 }
 
 export default function MonsterBattleArena({
-  sessionDuration,
   sessionProgress,
   isActive,
   petLevel = 1,
@@ -283,7 +282,12 @@ export default function MonsterBattleArena({
 
   const [showResult, setShowResult] = useState(false);
 
-  // Update battle based on session progress
+  /* Progress → HP and the victory transition: HP is a pure function of
+     `sessionProgress` (a candidate for deriving instead of storing), while the
+     outcome has to stay an effect because it calls `onComplete` into the parent.
+     The rule sees both; only the second one is a real side effect. The HP half is
+     tracked in REMAINING.md with the query-client migration. */
+  /* eslint-disable react-hooks/set-state-in-effect -- see the note above */
   useEffect(() => {
     if (!isActive) return;
 
@@ -308,8 +312,11 @@ export default function MonsterBattleArena({
       onComplete?.("victory");
     }
   }, [sessionProgress, isActive, onComplete]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
-  // Defeat condition (if user abandons early)
+  /* Defeat on abandon. Same story as the progress effect above: it notifies the
+     parent, so it cannot be a render-time derivation. */
+  /* eslint-disable react-hooks/set-state-in-effect -- see the note above */
   useEffect(() => {
     if (!isActive && battleState.battleActive && sessionProgress < 100) {
       setBattleState(prev => ({
@@ -321,6 +328,7 @@ export default function MonsterBattleArena({
       onComplete?.("defeat");
     }
   }, [isActive, battleState.battleActive, sessionProgress, onComplete]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleClose = useCallback(() => {
     setShowResult(false);

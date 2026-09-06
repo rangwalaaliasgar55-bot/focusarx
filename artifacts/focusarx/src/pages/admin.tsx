@@ -3,10 +3,8 @@ import { useEffect, useState, useCallback } from "react";
 import { AdminGate } from "@/components/admin/AdminGate";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard";
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
-import { MotionTab, SectionHeader } from "@/components/admin/AdminHelpers";
+import { MotionTab, SectionHeader, adminFetch } from "@/components/admin/AdminHelpers";
 
 // ─── Extracted Panel Components ──────────────────────────────────────────────
 import { AdminOverviewPanel } from "@/components/admin/AdminOverviewPanel";
@@ -40,7 +38,7 @@ import type { AdminStats, AdminData, CmsOverview, Tab } from "@/components/admin
 // ─── Main Page ──────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
-  const { data: session, status: authStatus } = useAuth();
+  const { status: authStatus } = useAuth();
   const [authed, setAuthed] = useState<boolean | null>(null);
   const [data, setData] = useState<AdminData | null>(null);
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -62,18 +60,17 @@ export default function AdminPage() {
     if (authStatus === "loading") return;
     try {
       const [usersRes, statsRes, missionsRes, retentionRes] = await Promise.all([
-        fetch("/api/admin/users", { headers: authHeaders(), credentials: "include" }),
-        fetch("/api/admin/stats", { headers: authHeaders(), credentials: "include" }),
-        fetch("/api/admin/missions", { headers: authHeaders(), credentials: "include" }),
-        fetch("/api/admin/retention", { headers: authHeaders(), credentials: "include" }),
+        adminFetch("/api/admin/users", { headers: authHeaders(), credentials: "include" }),
+        adminFetch("/api/admin/stats", { headers: authHeaders(), credentials: "include" }),
+        adminFetch("/api/admin/missions", { headers: authHeaders(), credentials: "include" }),
+        adminFetch("/api/admin/retention", { headers: authHeaders(), credentials: "include" }),
       ]);
       if (usersRes.status === 401 || usersRes.status === 403) { setAuthed(false); return; }
       if (usersRes.ok) { setData(await usersRes.json() as AdminData); setAuthed(true); }
       if (statsRes.ok) setStats(await statsRes.json() as AdminStats);
       if (missionsRes.ok) setMissionData(await missionsRes.json());
       if (retentionRes.ok) setRetentionData(await retentionRes.json());
-    } catch { setAuthed(false); }
-    finally { setLoading(false); }
+    } finally { setLoading(false); }
   }, [authHeaders, authStatus]);
 
   useEffect(() => { void loadData(); }, [loadData]);
@@ -81,15 +78,15 @@ export default function AdminPage() {
   // Lazy load data when tabs are visited
   useEffect(() => {
     if (tab === "battlepass" && !bpStats.stats) {
-      fetch("/api/admin/cms/battle-pass", { headers: authHeaders(), credentials: "include" })
+      adminFetch("/api/admin/cms/battle-pass", { headers: authHeaders(), credentials: "include" })
         .then(r => r.ok ? r.json() : null).then(d => d && setBpStats(d)).catch(() => {});
     }
     if (tab === "pets" && petStats.stats.length === 0) {
-      fetch("/api/admin/cms/pets", { headers: authHeaders(), credentials: "include" })
+      adminFetch("/api/admin/cms/pets", { headers: authHeaders(), credentials: "include" })
         .then(r => r.ok ? r.json() : null).then(d => d && setPetStats(d)).catch(() => {});
     }
     if (tab === "overview" && !cmsOverview.users) {
-      fetch("/api/admin/cms/overview", { headers: authHeaders(), credentials: "include" })
+      adminFetch("/api/admin/cms/overview", { headers: authHeaders(), credentials: "include" })
         .then(r => r.ok ? r.json() : null).then(d => d && setCmsOverview(d)).catch(() => {});
     }
   }, [tab, authHeaders]);
@@ -138,6 +135,7 @@ export default function AdminPage() {
         stats={stats}
         authHeaders={authHeaders}
         onDataChanged={() => loadData()}
+        onManageUser={(id) => setManagingUserId(id)}
       />
     ),
     moderation: () => <AdminModerationPanel authHeaders={authHeaders} />,
@@ -186,6 +184,7 @@ export default function AdminPage() {
       </div>
 
       <UserManagerDialog
+        key={managingUserId ?? "closed"}
         userId={managingUserId}
         onClose={() => setManagingUserId(null)}
         onChanged={() => void loadData()}

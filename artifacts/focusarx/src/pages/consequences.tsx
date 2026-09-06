@@ -103,7 +103,7 @@ function ContractCard({ contract, weekMinutes }: { contract: Contract; weekMinut
 export default function ConsequencesPage() {
   const { status } = useAuth();
   const [data, setData] = useState<ConsequencesData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loaded, setLoaded] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [contractType, setContractType] = useState("charity");
   const [targetMinutes, setTargetMinutes] = useState(120);
@@ -113,6 +113,10 @@ export default function ConsequencesPage() {
   const [usingFreeze, setUsingFreeze] = useState(false);
   const [shameDismissed, setShameDismissed] = useState(false);
 
+  // Derived, not mirrored in an effect: the flag used to be set from inside the
+  // status-watching effect, which re-rendered the page twice on every load.
+  const loading = status === "loading" || (status === "authenticated" && !loaded);
+
   const token = () => localStorage.getItem("focusarx-auth-token");
 
   const load = () => {
@@ -120,12 +124,11 @@ export default function ConsequencesPage() {
       .then((r) => r.json())
       .then((d: ConsequencesData) => setData(d))
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => setLoaded(true));
   };
 
   useEffect(() => {
-    if (status === "loading") return;
-    if (status === "unauthenticated") { setLoading(false); return; }
+    if (status !== "authenticated") return;
     load();
   }, [status]);
 
@@ -149,7 +152,10 @@ export default function ConsequencesPage() {
     }
   };
 
-  const useFreeze = async () => {
+  // Named like a hook but a plain handler, which is what the lint rule (correctly)
+  // complained about: `useFreeze()` inside an onClick would have been a real
+  // violation of the rules of hooks had it been one.
+  const spendFreeze = async () => {
     setUsingFreeze(true);
     try {
       await fetch("/api/consequences/use-freeze", {
@@ -237,7 +243,7 @@ export default function ConsequencesPage() {
                   </div>
                   {(data.freezeTokens ?? 0) > 0 && (
                     <button
-                      onClick={() => void useFreeze()}
+                      onClick={() => void spendFreeze()}
                       disabled={usingFreeze}
                       className="rounded-lg border border-[var(--rgba-96-165-250-0_3)] px-3 py-1 text-[10px] font-semibold text-[var(--info)] hover:bg-[var(--rgba-96-165-250-0_1)]"
                     >
@@ -305,8 +311,8 @@ export default function ConsequencesPage() {
 
                     <div className="space-y-3 mb-5">
                       <div>
-                        <label className="text-xs text-[var(--foreground-muted)] mb-1.5 block">Weekly focus target (minutes)</label>
-                        <input
+                        <label htmlFor="consequences-weekly-focus-target-minutes" className="text-xs text-[var(--foreground-muted)] mb-1.5 block">Weekly focus target (minutes)</label>
+                        <input id="consequences-weekly-focus-target-minutes"
                           type="number"
                           value={targetMinutes}
                           onChange={(e) => setTargetMinutes(Number(e.target.value))}
@@ -319,8 +325,8 @@ export default function ConsequencesPage() {
                       {contractType === "charity" && (
                         <>
                           <div>
-                            <label className="text-xs text-[var(--foreground-muted)] mb-1.5 block">Charity / cause name</label>
-                            <input
+                            <label htmlFor="consequences-charity-cause-name" className="text-xs text-[var(--foreground-muted)] mb-1.5 block">Charity / cause name</label>
+                            <input id="consequences-charity-cause-name"
                               value={charityName}
                               onChange={(e) => setCharityName(e.target.value)}
                               placeholder="e.g. Red Cross, local shelter…"
@@ -328,8 +334,8 @@ export default function ConsequencesPage() {
                             />
                           </div>
                           <div>
-                            <label className="text-xs text-[var(--foreground-muted)] mb-1.5 block">Pledge amount ($)</label>
-                            <input
+                            <label htmlFor="consequences-pledge-amount" className="text-xs text-[var(--foreground-muted)] mb-1.5 block">Pledge amount ($)</label>
+                            <input id="consequences-pledge-amount"
                               type="number"
                               value={charityAmount}
                               onChange={(e) => setCharityAmount(Number(e.target.value))}

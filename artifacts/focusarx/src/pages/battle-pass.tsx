@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getToken } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
-import { Zap, Lock, Check, Gift, Crown, Trophy, Clock, Coins, Sparkles, ArrowRight } from "lucide-react";
+import { Lock, Check, Gift, Crown, Trophy, Clock, Coins, Sparkles, ArrowRight } from "lucide-react";
 import { PageTransition } from "@/components/PageTransition";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 import { Link } from "wouter";

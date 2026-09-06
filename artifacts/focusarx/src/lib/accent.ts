@@ -247,7 +247,6 @@ const LEGACY_RGBA_400: Array<[suffix: string, alpha: number]> = [
  */
 export function buildAccentOverrides(hex: string, lightMode: boolean): Record<string, string> {
   const scale = buildAccentScale(hex);
-  const c300 = scale[300];
   const c400 = scale[400];
   const c500 = scale[500];
   const c600 = scale[600];

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { MotionTab, SectionHeader } from "@/components/admin/AdminHelpers";
+import { MotionTab, SectionHeader, adminFetch } from "@/components/admin/AdminHelpers";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -14,12 +14,11 @@ type FeatureFlag = {
 
 export function AdminFlagsPanel({ authHeaders }: { authHeaders: () => Record<string, string> }) {
   const [flags, setFlags] = useState<FeatureFlag[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const loadFlags = useCallback(async () => {
-    setLoading(true);
     try {
-      const r = await fetch("/api/admin/feature-flags", { headers: authHeaders(), credentials: "include" });
+      const r = await adminFetch("/api/admin/feature-flags", { headers: authHeaders(), credentials: "include" });
       if (r.ok) { const d = await r.json(); setFlags(d.flags ?? []); }
     } finally { setLoading(false); }
   }, [authHeaders]);

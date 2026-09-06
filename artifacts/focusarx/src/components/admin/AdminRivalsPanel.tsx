@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { RefreshCw, Bot } from "lucide-react";
-import { SectionHeader, StatCard, MotionTab, EmptyState, LoadingState } from "./AdminHelpers";
+import { EmptyState, LoadingState, MotionTab, SectionHeader, StatCard, adminFetch } from "./AdminHelpers";
 import type { AdminPanelProps } from "./AdminTypes";
 
 type BotsState = {
@@ -14,13 +14,12 @@ type BotsState = {
 
 export function AdminRivalsPanel({ authHeaders, onManageUser }: AdminPanelProps & { onManageUser: (id: string) => void }) {
   const [state, setState] = useState<BotsState | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    setLoading(true);
     try {
-      const r = await fetch("/api/admin/bots", { headers: authHeaders(), credentials: "include" });
+      const r = await adminFetch("/api/admin/bots", { headers: authHeaders(), credentials: "include" });
       if (r.ok) setState(await r.json());
     } finally { setLoading(false); }
   }, [authHeaders]);
@@ -30,7 +29,7 @@ export function AdminRivalsPanel({ authHeaders, onManageUser }: AdminPanelProps 
   async function seedRivals(target: number) {
     setBusy(true);
     try {
-      const r = await fetch("/api/admin/bots/seed", {
+      const r = await adminFetch("/api/admin/bots/seed", {
         method: "POST",
         headers: { ...authHeaders(), "Content-Type": "application/json" },
         credentials: "include",
@@ -46,7 +45,7 @@ export function AdminRivalsPanel({ authHeaders, onManageUser }: AdminPanelProps 
     if (!confirm("Remove ALL AI rival accounts and their content?")) return;
     setBusy(true);
     try {
-      const r = await fetch("/api/admin/bots", { method: "DELETE", headers: authHeaders(), credentials: "include" });
+      const r = await adminFetch("/api/admin/bots", { method: "DELETE", headers: authHeaders(), credentials: "include" });
       const d = await r.json();
       alert(r.ok ? `Removed ${d.deleted} AI rivals.` : (d.error ?? "Failed"));
       await load();
@@ -64,7 +63,7 @@ export function AdminRivalsPanel({ authHeaders, onManageUser }: AdminPanelProps 
           sub="A living community of clearly-labelled AI accounts — Indian names, exam goals, real XP curves."
         />
         <div className="flex items-center gap-2">
-          <button onClick={() => void load()} className="rounded-lg border border-[var(--palette-zinc-700)] px-3 py-1.5 text-xs text-[var(--palette-zinc-400)] hover:text-[var(--palette-zinc-200)] transition">
+          <button onClick={() => { setLoading(true); void load(); }} className="rounded-lg border border-[var(--palette-zinc-700)] px-3 py-1.5 text-xs text-[var(--palette-zinc-400)] hover:text-[var(--palette-zinc-200)] transition">
             <RefreshCw size={12} className={`inline mr-1 ${loading ? "animate-spin" : ""}`} />Refresh
           </button>
           {bots.length > 0 && (

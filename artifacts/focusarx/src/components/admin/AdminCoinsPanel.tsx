@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { RefreshCw, CheckCircle, AlertTriangle } from "lucide-react";
-import { SectionHeader, MotionTab } from "./AdminHelpers";
+import { MotionTab, SectionHeader, adminFetch } from "./AdminHelpers";
 import type { AdminPanelProps, AdminUser } from "./AdminTypes";
 
 export function AdminCoinsPanel({ authHeaders, users }: AdminPanelProps & { users: AdminUser[] }) {
@@ -15,12 +15,12 @@ export function AdminCoinsPanel({ authHeaders, users }: AdminPanelProps & { user
     if (!userId || !amount) return;
     setLoading(true); setResult(null); setError(null);
     try {
-      const r = await fetch("/api/admin/cms/grant-coins", {
+      const r = await adminFetch("/api/admin/cms/grant-coins", {
         method: "POST",
         headers: { ...authHeaders(), "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ userId, amount: Number(amount), reason }),
-      });
+      }, { silent: true });
       const d = await r.json();
       if (r.ok) { setResult(d); setUserId(""); setAmount(""); setReason(""); }
       else setError(d.error ?? "Failed");
@@ -36,23 +36,23 @@ export function AdminCoinsPanel({ authHeaders, users }: AdminPanelProps & { user
           <p className="text-xs font-semibold uppercase tracking-wider text-[var(--palette-zinc-400)]">Grant Coins</p>
 
           <div>
-            <label className="block text-xs text-[var(--palette-zinc-500)] mb-1">User ID</label>
-            <input className="admin-input font-mono" placeholder="paste user UUID here…" value={userId} onChange={e => setUserId(e.target.value)} />
+            <label htmlFor="admincoinspanel-user-id" className="block text-xs text-[var(--palette-zinc-500)] mb-1">User ID</label>
+            <input id="admincoinspanel-user-id" className="admin-input font-mono" placeholder="paste user UUID here…" value={userId} onChange={e => setUserId(e.target.value)} />
             <p className="text-[10px] text-[var(--palette-zinc-600)] mt-1">Find user IDs in the Users tab (grey monospace under each name)</p>
           </div>
 
           <div>
-            <label className="block text-xs text-[var(--palette-zinc-500)] mb-1">Amount (coins)</label>
-            <input className="admin-input" type="number" min="1" placeholder="500" value={amount} onChange={e => setAmount(e.target.value)} />
+            <label htmlFor="admincoinspanel-amount-coins" className="block text-xs text-[var(--palette-zinc-500)] mb-1">Amount (coins)</label>
+            <input id="admincoinspanel-amount-coins" className="admin-input" type="number" min="1" placeholder="500" value={amount} onChange={e => setAmount(e.target.value)} />
           </div>
 
           <div>
-            <label className="block text-xs text-[var(--palette-zinc-500)] mb-1">Reason (optional)</label>
-            <input className="admin-input" placeholder="e.g. Bug compensation, contest winner" value={reason} onChange={e => setReason(e.target.value)} />
+            <label htmlFor="admincoinspanel-reason-optional" className="block text-xs text-[var(--palette-zinc-500)] mb-1">Reason (optional)</label>
+            <input id="admincoinspanel-reason-optional" className="admin-input" placeholder="e.g. Bug compensation, contest winner" value={reason} onChange={e => setReason(e.target.value)} />
           </div>
 
           <button onClick={() => void grant()} disabled={loading || !userId || !amount}
-            className="w-full flex items-center justify-center gap-2 rounded-lg bg-[var(--palette-amber-700)] hover:bg-[var(--palette-amber-600)] px-4 py-2.5 text-sm font-medium text-[var(--palette-white)] disabled:opacity-50 transition"
+            className="w-full flex items-center justify-center gap-2 rounded-lg bg-[var(--palette-amber-700)] hover:bg-[var(--palette-amber-800)] px-4 py-2.5 text-sm font-medium text-[var(--palette-white)] disabled:opacity-50 transition"
           >
             {loading ? <><RefreshCw size={14} className="animate-spin" /> Granting…</> : <>🪙 Grant Coins</>}
           </button>

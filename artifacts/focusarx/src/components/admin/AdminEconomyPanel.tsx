@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SectionHeader, StatCard, MotionTab, LoadingState } from "./AdminHelpers";
+import { MotionTab, SectionHeader, StatCard, adminFetch } from "./AdminHelpers";
 import type { AdminPanelProps } from "./AdminTypes";
 
 type EconomyState = {
@@ -21,7 +21,7 @@ export function AdminEconomyPanel({ authHeaders }: AdminPanelProps) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch("/api/admin/economy", { headers: authHeaders(), credentials: "include" });
+      const r = await adminFetch("/api/admin/economy", { headers: authHeaders(), credentials: "include" });
       if (r.ok) setState(await r.json());
     } finally { setLoading(false); }
   }, [authHeaders]);

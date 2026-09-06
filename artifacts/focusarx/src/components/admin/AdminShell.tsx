@@ -1,36 +1,11 @@
 import { Link } from "wouter";
-import {
-  BarChart2,
-  Bell,
-  Bot,
-  Building2,
-  Coins,
-  Crown,
-  Database,
-  Flame,
-  Gift,
-  Heart,
-  TrendingUp,
-  LayoutDashboard,
-  Lock,
-  Mail,
-  Menu,
-  Settings,
-  Shield,
-  ShieldCheck,
-  ShoppingBag,
-  Sparkles,
-  Star,
-  Target,
-  Users,
-  X,
-  Zap,
-} from "lucide-react";
+import { BarChart2, Bell, Bot, Building2, Coins, Crown, Database, Flame, Gift, Heart, TrendingUp, LayoutDashboard, Lock, Mail, Menu, Settings, Shield, ShieldCheck, ShoppingBag, Sparkles, Star, Target, Users, Zap } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { adminFetch } from "./AdminHelpers";
 
 const ADMIN_SECTIONS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard, group: "Platform" },
@@ -88,7 +63,7 @@ export function AdminShell({ children, activeTab, onTabChange }: AdminShellProps
   const active = ADMIN_SECTIONS.find((section) => section.id === activeTab);
 
   const logout = async () => {
-    await fetch("/api/admin/auth", { method: "DELETE", credentials: "include" });
+    await adminFetch("/api/admin/auth", { method: "DELETE", credentials: "include" });
     window.location.reload();
   };
 

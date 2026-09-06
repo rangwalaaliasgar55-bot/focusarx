@@ -41,7 +41,16 @@
 7. Legacy differential bundle (measure `device_context` tiers first).
 8. Knip export-level tuning (currently files+deps gated; 209 export flags
    are mostly router-registration false positives).
-9. ESLint legacy backlog (changed-files gated; full-repo still red).
+9. ESLint legacy backlog (changed-files gated; full-repo still red). Three
+   sites are suppressed inline instead: the admin SQL console's mount poll and
+   the two MonsterBattleArena progress/abandon effects (`set-state-in-effect`).
+   The rule's own remedy is to run them through the query client
+   (`artifacts/focusarx/src/lib/queryClient.ts`), which the admin console does
+   not use yet — migrating those loaders is the real fix, and the console's
+   `adminFetch` adapter already gives them refresh + error reporting to lean on.
+   Related: ~150 user-facing pages still call `fetch` directly rather than
+   `apiFetch`, so they get no silent refresh on a 401; the admin console is now
+   fully converted and can be used as the pattern.
 10. Streak endangerment nudges on user-local timing; push-subscription
     sweeper; missed-day nudge scheduling.
 11. Dependabot 41: prod-surface pins applied (qs/fflate); remainder is

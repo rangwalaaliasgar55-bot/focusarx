@@ -2,7 +2,7 @@ import { useState, lazy, Suspense } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth, getToken } from "@/lib/auth";
-import { Sparkles, Target, Zap, Clock, Rocket, ArrowRight, ArrowLeft } from "lucide-react";
+import { Sparkles, Rocket, ArrowRight, ArrowLeft } from "lucide-react";
 import { BLUR_IN, STAGGER, STAGGER_CHILD } from "@/lib/animations";
 
 const Hero3D = lazy(() => import("@/components/Hero3D"));

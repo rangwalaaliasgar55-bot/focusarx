@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Send, RefreshCw, CheckCircle, AlertTriangle, Users, Search } from "lucide-react";
-import { SectionHeader, Badge, MotionTab, LoadingState } from "./AdminHelpers";
+import { Send, RefreshCw, CheckCircle, AlertTriangle, Search } from "lucide-react";
+import { Badge, LoadingState, MotionTab, SectionHeader, adminFetch } from "./AdminHelpers";
 import type { AdminPanelProps } from "./AdminTypes";
 
 export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
@@ -25,21 +25,21 @@ export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
   async function loadLogs() {
     setLogsLoading(true);
     try {
-      const r = await fetch("/api/admin/email/logs", { headers: authHeaders(), credentials: "include" });
+      const r = await adminFetch("/api/admin/email/logs", { headers: authHeaders(), credentials: "include" }, { silent: true });
       if (r.ok) { const d = await r.json(); setLogs(d.logs ?? []); }
     } finally { setLogsLoading(false); }
   }
 
   async function loadTemplates() {
     try {
-      const r = await fetch("/api/admin/email/templates", { headers: authHeaders(), credentials: "include" });
+      const r = await adminFetch("/api/admin/email/templates", { headers: authHeaders(), credentials: "include" }, { silent: true });
       if (r.ok) { const d = await r.json(); setTemplates(d.templates ?? []); }
     } catch { /* ignore */ }
   }
 
   async function loadUsers() {
     try {
-      const r = await fetch("/api/admin/users", { headers: authHeaders(), credentials: "include" });
+      const r = await adminFetch("/api/admin/users", { headers: authHeaders(), credentials: "include" }, { silent: true });
       if (r.ok) { 
         const d = await r.json(); 
         // Filter out bot users
@@ -68,12 +68,12 @@ export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
         payload.newUserDays = newUserDays;
       }
 
-      const r = await fetch("/api/admin/email/blast", {
+      const r = await adminFetch("/api/admin/email/blast", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
         credentials: "include",
         body: JSON.stringify(payload),
-      });
+      }, { silent: true });
       const d = await r.json();
       if (r.ok) { setResult(d); loadLogs(); }
       else setError(d.error ?? "Failed to send");
@@ -127,15 +127,15 @@ export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
           <p className="text-xs font-semibold uppercase tracking-wider text-[var(--palette-zinc-400)]">Send Email Blast</p>
 
           <div>
-            <label className="block text-xs text-[var(--palette-zinc-500)] mb-1">Template</label>
-            <select className="admin-input" value={template} onChange={e => setTemplate(e.target.value)}>
+            <label htmlFor="adminemailpanel-template" className="block text-xs text-[var(--palette-zinc-500)] mb-1">Template</label>
+            <select id="adminemailpanel-template" className="admin-input" value={template} onChange={e => setTemplate(e.target.value)}>
               {TEMPLATES.map(t => <option key={t.key} value={t.key}>{t.key} — {t.subject}</option>)}
             </select>
           </div>
 
           <div>
-            <label className="block text-xs text-[var(--palette-zinc-500)] mb-1">Audience</label>
-            <select className="admin-input" value={audience} onChange={e => setAudience(e.target.value as any)}>
+            <label htmlFor="adminemailpanel-audience" className="block text-xs text-[var(--palette-zinc-500)] mb-1">Audience</label>
+            <select id="adminemailpanel-audience" className="admin-input" value={audience} onChange={e => setAudience(e.target.value as any)}>
               <option value="all">All registered users (no bots)</option>
               <option value="inactive">Inactive users (7+ days)</option>
               <option value="premium">Premium users only</option>
@@ -147,8 +147,8 @@ export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
 
           {audience === "streak" && (
             <div>
-              <label className="block text-xs text-[var(--palette-zinc-500)] mb-1">Minimum streak (days)</label>
-              <input 
+              <label htmlFor="adminemailpanel-minimum-streak-days" className="block text-xs text-[var(--palette-zinc-500)] mb-1">Minimum streak (days)</label>
+              <input id="adminemailpanel-minimum-streak-days" 
                 type="number" 
                 className="admin-input" 
                 value={streakMin} 
@@ -161,8 +161,8 @@ export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
 
           {audience === "newUsers" && (
             <div>
-              <label className="block text-xs text-[var(--palette-zinc-500)] mb-1">Joined in last (days)</label>
-              <input 
+              <label htmlFor="adminemailpanel-joined-in-last-days" className="block text-xs text-[var(--palette-zinc-500)] mb-1">Joined in last (days)</label>
+              <input id="adminemailpanel-joined-in-last-days" 
                 type="number" 
                 className="admin-input" 
                 value={newUserDays} 
@@ -245,13 +245,13 @@ export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
           )}
 
           <div>
-            <label className="block text-xs text-[var(--palette-zinc-500)] mb-1">Custom Subject (optional)</label>
-            <input className="admin-input" placeholder="Leave blank to use template subject" value={customSubject} onChange={e => setCustomSubject(e.target.value)} />
+            <label htmlFor="adminemailpanel-custom-subject-optional" className="block text-xs text-[var(--palette-zinc-500)] mb-1">Custom Subject (optional)</label>
+            <input id="adminemailpanel-custom-subject-optional" className="admin-input" placeholder="Leave blank to use template subject" value={customSubject} onChange={e => setCustomSubject(e.target.value)} />
           </div>
 
           <div>
-            <label className="block text-xs text-[var(--palette-zinc-500)] mb-1">Custom HTML Body (optional)</label>
-            <textarea className="admin-input resize-none font-mono text-xs" rows={4}
+            <label htmlFor="adminemailpanel-custom-html-body-optional" className="block text-xs text-[var(--palette-zinc-500)] mb-1">Custom HTML Body (optional)</label>
+            <textarea id="adminemailpanel-custom-html-body-optional" className="admin-input resize-none font-mono text-xs" rows={4}
               placeholder="<h1>Hello!</h1><p>Your message here…</p>"
               value={customHtml} onChange={e => setCustomHtml(e.target.value)} />
           </div>

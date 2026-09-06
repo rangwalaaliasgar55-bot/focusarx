@@ -8,9 +8,6 @@ function Section({ id, children, className = "" }: { id?: string; children: Reac
 function H2({ children }: { children: React.ReactNode }) {
   return <h2 className="mt-14 mb-4 text-2xl font-semibold leading-tight text-[var(--foreground)] sm:text-3xl">{children}</h2>;
 }
-function H3({ children }: { children: React.ReactNode }) {
-  return <h3 className="mt-8 mb-3 text-xl font-bold text-[var(--foreground)]">{children}</h3>;
-}
 function P({ children }: { children: React.ReactNode }) {
   return <p className="mb-4 text-[15px] leading-relaxed text-[var(--foreground-muted)]">{children}</p>;
 }

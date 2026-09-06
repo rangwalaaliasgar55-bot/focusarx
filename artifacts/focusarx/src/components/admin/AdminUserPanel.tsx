@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { StatCard, SectionHeader, Badge, MotionTab } from "./AdminHelpers";
+import { Badge, MotionTab, SectionHeader, StatCard, adminFetch } from "./AdminHelpers";
 import { Search } from "lucide-react";
 
 type AdminUser = {
@@ -17,13 +17,16 @@ type AdminData = { users: AdminUser[]; activeCount: number; guestCount?: number;
 type AdminStats = { totalUsers: number; guestCount?: number };
 
 interface AdminUserPanelProps {
+  /** Opens the shared UserManagerDialog. The Users tab had a Manage button that
+   // wrote to a local state nothing read, so it did nothing at all. */
+  onManageUser: (id: string) => void;
   data: AdminData;
   stats: AdminStats | null;
   authHeaders: () => Record<string, string>;
   onDataChanged: () => void;
 }
 
-export function AdminUserPanel({ data, stats, authHeaders, onDataChanged }: AdminUserPanelProps) {
+export function AdminUserPanel({ data, stats, authHeaders, onDataChanged, onManageUser }: AdminUserPanelProps) {
   const [userSearch, setUserSearch] = useState("");
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
@@ -32,7 +35,6 @@ export function AdminUserPanel({ data, stats, authHeaders, onDataChanged }: Admi
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [roleLoading, setRoleLoading] = useState<string | null>(null);
-  const [managingUserId, setManagingUserId] = useState<string | null>(null);
 
   const allUsers = data.users ?? [];
   const users = userSearch.trim()
@@ -70,7 +72,7 @@ export function AdminUserPanel({ data, stats, authHeaders, onDataChanged }: Admi
     setBulkLoading(true);
     setBulkResult(null);
     try {
-      const r = await fetch("/api/admin/cms/grant-coins/bulk", {
+      const r = await adminFetch("/api/admin/cms/grant-coins/bulk", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
         credentials: "include",
@@ -89,7 +91,7 @@ export function AdminUserPanel({ data, stats, authHeaders, onDataChanged }: Admi
     setBulkLoading(true);
     setBulkResult(null);
     try {
-      const r = await fetch("/api/admin/users/bulk-delete", {
+      const r = await adminFetch("/api/admin/users/bulk-delete", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
         credentials: "include",
@@ -106,7 +108,7 @@ export function AdminUserPanel({ data, stats, authHeaders, onDataChanged }: Admi
     const newRole = user.role === "admin" ? "user" : "admin";
     setRoleLoading(user.id);
     try {
-      const res = await fetch(`/api/admin/users/${user.id}/role`, {
+      const res = await adminFetch(`/api/admin/users/${user.id}/role`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...authHeaders() },
         credentials: "include",
@@ -119,7 +121,7 @@ export function AdminUserPanel({ data, stats, authHeaders, onDataChanged }: Admi
   const deleteUser = async (id: string) => {
     setDeleteLoading(id);
     try {
-      const res = await fetch(`/api/admin/users/${id}`, {
+      const res = await adminFetch(`/api/admin/users/${id}`, {
         method: "DELETE", headers: authHeaders(), credentials: "include",
       });
       if (res.ok) onDataChanged();
@@ -132,7 +134,7 @@ export function AdminUserPanel({ data, stats, authHeaders, onDataChanged }: Admi
     if (!window.confirm(`Delete all ${guestCount} guest account(s)?`)) return;
     setPurgeLoading(true);
     try {
-      const res = await fetch("/api/admin/users/guests", {
+      const res = await adminFetch("/api/admin/users/guests", {
         method: "DELETE", headers: authHeaders(), credentials: "include",
       });
       if (res.ok) onDataChanged();
@@ -229,7 +231,7 @@ export function AdminUserPanel({ data, stats, authHeaders, onDataChanged }: Admi
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1.5">
                     <button
-                      onClick={() => setManagingUserId(user.id)}
+                      onClick={() => onManageUser(user.id)}
                       className="rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--palette-sky-400)] hover:bg-[var(--palette-sky-950)] transition"
                     >Manage</button>
                     <button

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { Wind } from "lucide-react";
 
@@ -47,7 +47,6 @@ const MODES: BreathMode[] = [
 function BreathingCircle({
   phase,
   progress,
-  totalSeconds,
 }: {
   phase: { label: string; seconds: number; color: string };
   progress: number;

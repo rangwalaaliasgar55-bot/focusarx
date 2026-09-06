@@ -329,6 +329,17 @@ html.light {
   --card-border:   rgba(124, 58, 237, 0.15);
   --border:        rgba(0, 0, 0, 0.07);
   --muted:         rgba(0, 0, 0, 0.04);
+  /* The `--color-*` status trio is defined once, for the dark theme, and the
+     light theme inherits it verbatim: #F59E0B on a white card is 2.1:1 and
+     #EF4444 is 3.3:1 — the validation and failure copy on the auth pages, the
+     quiz results and the admin tables was amber-on-white. Pointed at the
+     status colours the light theme already tunes (`--success`, `--warning`,
+     `--danger`), which is what `text-[var(--color-warning)]` should have meant
+     all along. */
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--danger);
+
   /* #677180, not #94A3B8 — the slate the light theme inherited reads at
      2.39:1 on #F5F7FA, i.e. effectively invisible for any secondary label in
      Settings, the dashboard and the admin tables that use
@@ -2024,44 +2035,114 @@ html.light {
   --palette-zinc-200: var(--neutral-800);
   --palette-zinc-300: var(--neutral-700);
   --palette-zinc-400: var(--neutral-600);
-  --palette-zinc-500: var(--neutral-500);
-  --palette-zinc-600: var(--neutral-500);
+  /* zinc-500/600 are text-only steps in practice (178 + 58 uses, no surfaces),
+     which is why both land on the theme's own muted greys rather than a neutral
+     step — the dark theme's `.admin-shell` block does the same thing. */
+  --palette-zinc-500: var(--foreground-muted);
+  --palette-zinc-600: var(--foreground-subtle);
   --palette-zinc-700: var(--neutral-300);
   --palette-zinc-800: var(--neutral-200);
   --palette-zinc-900: var(--neutral-100);
   --palette-slate-300: var(--neutral-700);
   --palette-slate-900: var(--neutral-100);
 
-  /* Legacy neutral overlays adapt with the active neutral scale. */
-  --rgba-10-12-24-0_97: color-mix(in srgb, var(--neutral-0) 97%, transparent);
-  --rgba-12-17-40-0_92: color-mix(in srgb, var(--neutral-0) 92%, transparent);
-  --rgba-12-17-40-0_95: color-mix(in srgb, var(--neutral-0) 95%, transparent);
-  --rgba-12-17-40-0_97: color-mix(in srgb, var(--neutral-0) 97%, transparent);
-  --rgba-15-17-30-0_9: color-mix(in srgb, var(--neutral-0) 90%, transparent);
-  --rgba-16-23-50-0_4: color-mix(in srgb, var(--neutral-0) 40%, transparent);
-  --rgba-16-23-50-0_5: color-mix(in srgb, var(--neutral-0) 50%, transparent);
-  --rgba-16-23-50-0_6: color-mix(in srgb, var(--neutral-0) 60%, transparent);
-  --rgba-16-23-50-0_7: color-mix(in srgb, var(--neutral-0) 70%, transparent);
-  --rgba-255-255-255-0_01: color-mix(in srgb, var(--neutral-900) 1%, transparent);
-  --rgba-255-255-255-0_02: color-mix(in srgb, var(--neutral-900) 2%, transparent);
-  --rgba-255-255-255-0_025: color-mix(in srgb, var(--neutral-900) 2.5%, transparent);
-  --rgba-255-255-255-0_03: color-mix(in srgb, var(--neutral-900) 3%, transparent);
-  --rgba-255-255-255-0_04: color-mix(in srgb, var(--neutral-900) 4%, transparent);
-  --rgba-255-255-255-0_05: color-mix(in srgb, var(--neutral-900) 5%, transparent);
-  --rgba-255-255-255-0_06: color-mix(in srgb, var(--neutral-900) 6%, transparent);
-  --rgba-255-255-255-0_07: color-mix(in srgb, var(--neutral-900) 7%, transparent);
-  --rgba-255-255-255-0_08: color-mix(in srgb, var(--neutral-900) 8%, transparent);
-  --rgba-255-255-255-0_1: color-mix(in srgb, var(--neutral-900) 10%, transparent);
-  --rgba-255-255-255-0_12: color-mix(in srgb, var(--neutral-900) 12%, transparent);
-  --rgba-255-255-255-0_15: color-mix(in srgb, var(--neutral-900) 15%, transparent);
-  --rgba-255-255-255-0_20: color-mix(in srgb, var(--neutral-900) 20%, transparent);
-  --rgba-3-3-8-0_4: color-mix(in srgb, var(--neutral-0) 40%, transparent);
-  --rgba-3-3-8-_55: color-mix(in srgb, var(--neutral-0) 55%, transparent);
-  --rgba-8-12-28-0_6: color-mix(in srgb, var(--neutral-0) 60%, transparent);
-  --rgba-8-12-28-0_92: color-mix(in srgb, var(--neutral-0) 92%, transparent);
-  --rgba-8-12-28-0_96: color-mix(in srgb, var(--neutral-0) 96%, transparent);
-  --rgba-8-12-28-0_97: color-mix(in srgb, var(--neutral-0) 97%, transparent);
-  --rgba-8-12-28-0_98: color-mix(in srgb, var(--neutral-0) 98%, transparent);
+  /* `zinc-950` was the one step of that ramp left out, so every
+     `bg-[var(--palette-zinc-950)]` surface — the admin panel cards, the focus
+     chamber's inner slabs, the cookie notice — kept its near-black value and
+     sat on the white page as a dark rectangle. */
+  --palette-zinc-950: var(--neutral-50);
+
+  /* The status families stop at the neutral ramp: emerald/rose/red/amber/orange/
+     sky/blue/violet/purple carry no light values at all, so in Daylight they
+     keep their dark-theme shades — `text-emerald-400` (#34D399) on a white card
+     is 1.9:1, and a `bg-emerald-950` chip inverts into a dark slab. The theme
+     already owns light-tuned values for these meanings (`--success`,
+     `--danger`, `--warning`, `--info`, and the accent's own scale), so each
+     family is aliased by role instead of being re-tuned one call site at a
+     time:
+       · text steps (100-400) → the status colour darkened 45%, which is what
+         clears AA on both the card and the tint below it (measured: 10.6-13.6
+         on the card, 4.6-4.8 on a full-strength tint);
+       · the 500 step → the status colour itself, so white labels on
+         `bg-emerald-500`-style fills sit at 5.0-6.7:1 in both themes;
+       · 600/700 → a shade deeper, keeping hover steps distinguishable;
+       · 800/900 → a 30% wash for borders, 950 → a 55% wash for chip fills.
+     `src/palette-contrast.test.ts` recomputes all of it from the class strings
+     the console actually writes, so a family left out or a pairing that stops
+     clearing AA fails the suite. */
+  /* emerald → --success */
+  --palette-emerald-200: color-mix(in srgb, var(--success) 55%, #000);
+  --palette-emerald-300: color-mix(in srgb, var(--success) 55%, #000);
+  --palette-emerald-400: color-mix(in srgb, var(--success) 55%, #000);
+  --palette-emerald-500: var(--success);
+  --palette-emerald-600: color-mix(in srgb, var(--success) 86%, #000);
+  --palette-emerald-700: color-mix(in srgb, var(--success) 74%, #000);
+  --palette-emerald-800: color-mix(in srgb, var(--success) 62%, #000);
+  --palette-emerald-900: color-mix(in srgb, var(--success) 62%, #000);
+  --palette-emerald-950: color-mix(in srgb, var(--success) 30%, var(--neutral-0));
+  /* rose → --danger */
+  --palette-rose-300: color-mix(in srgb, var(--danger) 55%, #000);
+  --palette-rose-400: color-mix(in srgb, var(--danger) 55%, #000);
+  --palette-rose-500: var(--danger);
+  --palette-rose-600: color-mix(in srgb, var(--danger) 86%, #000);
+  --palette-rose-800: color-mix(in srgb, var(--danger) 62%, #000);
+  --palette-rose-950: color-mix(in srgb, var(--danger) 30%, var(--neutral-0));
+  /* red → --danger */
+  --palette-red-50: color-mix(in srgb, var(--danger) 10%, var(--neutral-0));
+  --palette-red-300: color-mix(in srgb, var(--danger) 55%, #000);
+  --palette-red-400: color-mix(in srgb, var(--danger) 55%, #000);
+  --palette-red-500: var(--danger);
+  --palette-red-600: color-mix(in srgb, var(--danger) 86%, #000);
+  --palette-red-700: color-mix(in srgb, var(--danger) 74%, #000);
+  --palette-red-800: color-mix(in srgb, var(--danger) 62%, #000);
+  --palette-red-900: color-mix(in srgb, var(--danger) 62%, #000);
+  --palette-red-950: color-mix(in srgb, var(--danger) 30%, var(--neutral-0));
+  /* amber → --warning */
+  --palette-amber-200: color-mix(in srgb, var(--warning) 55%, #000);
+  --palette-amber-300: color-mix(in srgb, var(--warning) 55%, #000);
+  --palette-amber-400: color-mix(in srgb, var(--warning) 55%, #000);
+  --palette-amber-500: var(--warning);
+  --palette-amber-600: color-mix(in srgb, var(--warning) 86%, #000);
+  --palette-amber-700: color-mix(in srgb, var(--warning) 74%, #000);
+  --palette-amber-800: color-mix(in srgb, var(--warning) 62%, #000);
+  --palette-amber-900: color-mix(in srgb, var(--warning) 62%, #000);
+  --palette-amber-950: color-mix(in srgb, var(--warning) 30%, var(--neutral-0));
+  /* orange → --warning */
+  --palette-orange-300: color-mix(in srgb, var(--warning) 55%, #000);
+  --palette-orange-400: color-mix(in srgb, var(--warning) 55%, #000);
+  --palette-orange-500: var(--warning);
+  --palette-orange-600: color-mix(in srgb, var(--warning) 86%, #000);
+  --palette-orange-950: color-mix(in srgb, var(--warning) 30%, var(--neutral-0));
+  /* sky → --info */
+  --palette-sky-300: color-mix(in srgb, var(--info) 55%, #000);
+  --palette-sky-400: color-mix(in srgb, var(--info) 55%, #000);
+  --palette-sky-500: var(--info);
+  --palette-sky-600: color-mix(in srgb, var(--info) 86%, #000);
+  --palette-sky-700: color-mix(in srgb, var(--info) 74%, #000);
+  --palette-sky-950: color-mix(in srgb, var(--info) 30%, var(--neutral-0));
+  /* blue → --info */
+  --palette-blue-300: color-mix(in srgb, var(--info) 55%, #000);
+  --palette-blue-400: color-mix(in srgb, var(--info) 55%, #000);
+  --palette-blue-500: var(--info);
+  --palette-blue-700: color-mix(in srgb, var(--info) 74%, #000);
+  --palette-blue-900: color-mix(in srgb, var(--info) 62%, #000);
+  --palette-blue-950: color-mix(in srgb, var(--info) 30%, var(--neutral-0));
+  /* violet → --brand-600 */
+  --palette-violet-200: color-mix(in srgb, var(--brand-600) 55%, #000);
+  --palette-violet-300: color-mix(in srgb, var(--brand-600) 55%, #000);
+  --palette-violet-400: color-mix(in srgb, var(--brand-600) 55%, #000);
+  --palette-violet-500: var(--brand-600);
+  --palette-violet-600: color-mix(in srgb, var(--brand-600) 86%, #000);
+  --palette-violet-700: color-mix(in srgb, var(--brand-600) 74%, #000);
+  --palette-violet-800: color-mix(in srgb, var(--brand-600) 62%, #000);
+  --palette-violet-950: color-mix(in srgb, var(--brand-600) 12%, var(--neutral-0));
+  /* purple → --brand-600 */
+  --palette-purple-300: color-mix(in srgb, var(--brand-600) 55%, #000);
+  --palette-purple-400: color-mix(in srgb, var(--brand-600) 55%, #000);
+  --palette-purple-500: var(--brand-600);
+  --palette-purple-600: color-mix(in srgb, var(--brand-600) 86%, #000);
+  --palette-purple-900: color-mix(in srgb, var(--brand-600) 62%, #000);
+  --palette-purple-950: color-mix(in srgb, var(--brand-600) 12%, var(--neutral-0));
 }
 
 /* Admin controls retain touch-sized targets even in dense operational views. */
