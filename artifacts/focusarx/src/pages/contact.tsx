@@ -120,8 +120,8 @@ export default function ContactPage() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">Name</label>
-                      <input
+                      <label htmlFor="contact-name" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">Name</label>
+                      <input id="contact-name"
                         required value={form.name}
                         onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                         placeholder="Your name"
@@ -129,8 +129,8 @@ export default function ContactPage() {
                       />
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">Email</label>
-                      <input
+                      <label htmlFor="contact-email" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">Email</label>
+                      <input id="contact-email"
                         required type="email" value={form.email}
                         onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                         placeholder="you@example.com"
@@ -139,8 +139,8 @@ export default function ContactPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">Subject</label>
-                    <input
+                    <label htmlFor="contact-subject" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">Subject</label>
+                    <input id="contact-subject"
                       required value={form.subject}
                       onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
                       placeholder="What's this about?"
@@ -148,8 +148,8 @@ export default function ContactPage() {
                     />
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">Message</label>
-                    <textarea
+                    <label htmlFor="contact-message" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">Message</label>
+                    <textarea id="contact-message"
                       required rows={5} value={form.message}
                       onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
                       placeholder="Tell us everything…"
@@ -164,7 +164,7 @@ export default function ContactPage() {
                     disabled={status === "sending"}
                     whileHover={{ scale: 1.02, boxShadow: "0 0 30px 6px var(--rgba-124-58-237-0_3)" }}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] py-3 text-sm font-bold text-[var(--palette-white)] disabled:opacity-60"
+                    className="w-full rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] py-3 text-sm font-bold text-[var(--palette-white)] disabled:opacity-60"
                   >
                     {status === "sending" ? "Sending…" : "Send Message →"}
                   </motion.button>

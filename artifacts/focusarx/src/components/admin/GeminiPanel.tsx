@@ -10,11 +10,10 @@
  *
  * Everything degrades gracefully with zero AI keys (template briefings).
  */
-import { useCallback, useEffect, useState } from "react";
+
+import { adminFetch } from "./AdminHelpers";import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import {
-  Activity, Brain, Cpu, Gauge, Lightbulb, Newspaper, Radio, RefreshCw, Sparkles,
-} from "lucide-react";
+import { Activity, Brain, Cpu, Gauge, Lightbulb, Newspaper, Radio, RefreshCw, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ProviderStatus = {
@@ -73,27 +72,32 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
   const [genBusy, setGenBusy] = useState<string | null>(null);
   const [genResult, setGenResult] = useState<string | null>(null);
 
+  /* `loading` starts true because this loader runs from the mount effect: a
+     `setLoading(true)` as its first statement would make that effect set state
+     synchronously, which is the cascade the react-hooks rule exists to catch. */
   const loadStatus = useCallback(async () => {
-    setLoading(true);
     try {
-      const r = await fetch("/api/admin/gemini/status", { headers: authHeaders(), credentials: "include" });
+      const r = await adminFetch("/api/admin/gemini/status", { headers: authHeaders(), credentials: "include" });
       if (r.ok) setStatus(await r.json());
-    } catch { /* offline */ }
-    finally { setLoading(false); }
+    } finally { setLoading(false); }
   }, [authHeaders]);
 
   const loadIdeas = useCallback(async () => {
     try {
-      const r = await fetch(`/api/admin/gemini/ideas?status=${ideaStatusFilter}`, { headers: authHeaders(), credentials: "include" });
-      if (r.ok) setIdeas((await r.json()).ideas ?? []);
-    } catch { /* offline */ }
+      const r = await adminFetch(`/api/admin/gemini/ideas?status=${ideaStatusFilter}`, { headers: authHeaders(), credentials: "include" });
+      if (r.ok) setIdeas(((await r.json()) as { ideas?: Idea[] }).ideas ?? []);
+    } finally {
+      setLoading(false);
+    }
   }, [authHeaders, ideaStatusFilter]);
 
   const loadBriefings = useCallback(async () => {
     try {
-      const r = await fetch("/api/admin/gemini/briefings", { headers: authHeaders(), credentials: "include" });
-      if (r.ok) setBriefings((await r.json()).briefings ?? []);
-    } catch { /* offline */ }
+      const r = await adminFetch("/api/admin/gemini/briefings", { headers: authHeaders(), credentials: "include" });
+      if (r.ok) setBriefings(((await r.json()) as { briefings?: [] }).briefings ?? []);
+    } finally {
+      setLoading(false);
+    }
   }, [authHeaders]);
 
   useEffect(() => { void loadStatus(); void loadBriefings(); }, [loadStatus, loadBriefings]);
@@ -102,7 +106,7 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
   const decideIdea = async (id: string, decision: "approve" | "reject") => {
     setIdeaBusy(id);
     try {
-      const r = await fetch(`/api/admin/gemini/ideas/${id}/${decision}`, { method: "POST", headers: authHeaders(), credentials: "include" });
+      const r = await adminFetch(`/api/admin/gemini/ideas/${id}/${decision}`, { method: "POST", headers: authHeaders(), credentials: "include" });
       if (r.ok) {
         await loadIdeas();
         await loadStatus();
@@ -114,7 +118,7 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
     setGenBusy(kind);
     setGenResult(null);
     try {
-      const r = await fetch(`/api/admin/gemini/briefings/${kind}`, {
+      const r = await adminFetch(`/api/admin/gemini/briefings/${kind}`, {
         method: "POST",
         headers: { ...authHeaders(), "Content-Type": "application/json" },
         credentials: "include",
@@ -135,7 +139,7 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
     setGenBusy("botops");
     setGenResult(null);
     try {
-      const r = await fetch("/api/admin/gemini/bot-ops", {
+      const r = await adminFetch("/api/admin/gemini/bot-ops", {
         method: "POST",
         headers: authHeaders(),
         credentials: "include",
@@ -251,7 +255,7 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
                   {f}
                 </button>
               ))}
-              <button onClick={() => void loadIdeas()} className="rounded-lg border border-[var(--border-subtle)] p-1.5 text-[var(--foreground-muted)] hover:text-[var(--foreground)]">
+              <button disabled={loading} onClick={() => { setLoading(true); void loadIdeas(); }} className="rounded-lg border border-[var(--border-subtle)] p-1.5 text-[var(--foreground-muted)] hover:text-[var(--foreground)]">
                 <RefreshCw size={12} />
               </button>
             </div>
@@ -342,7 +346,7 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
               <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--foreground-muted)]">
                 <Newspaper size={13} /> Briefings
               </p>
-              <button onClick={() => void loadBriefings()} className="rounded-lg border border-[var(--border-subtle)] p-1.5 text-[var(--foreground-muted)] hover:text-[var(--foreground)]">
+              <button disabled={loading} onClick={() => { setLoading(true); void loadBriefings(); }} className="rounded-lg border border-[var(--border-subtle)] p-1.5 text-[var(--foreground-muted)] hover:text-[var(--foreground)]">
                 <RefreshCw size={12} />
               </button>
             </div>

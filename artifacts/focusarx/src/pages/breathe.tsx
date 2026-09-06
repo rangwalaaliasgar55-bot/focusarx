@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { Wind } from "lucide-react";
 
@@ -47,7 +47,6 @@ const MODES: BreathMode[] = [
 function BreathingCircle({
   phase,
   progress,
-  totalSeconds,
 }: {
   phase: { label: string; seconds: number; color: string };
   progress: number;
@@ -196,7 +195,7 @@ export default function BreathePage() {
             <div className="flex gap-3 mt-2">
               <button
                 onClick={() => running ? stop() : setRunning(true)}
-                className="rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] px-8 py-3 text-sm font-semibold text-[var(--palette-white)] shadow-[0_0_20px_var(--rgba-124-58-237-0_3)] transition-all hover:shadow-[0_0_30px_var(--rgba-124-58-237-0_5)]"
+                className="rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] px-8 py-3 text-sm font-semibold text-[var(--palette-white)] shadow-[0_0_20px_var(--rgba-124-58-237-0_3)] transition-all hover:shadow-[0_0_30px_var(--rgba-124-58-237-0_5)]"
               >
                 {running ? "Stop" : "Start"}
               </button>

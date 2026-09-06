@@ -2,7 +2,7 @@ import { useState, lazy, Suspense } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth, getToken } from "@/lib/auth";
-import { Sparkles, Target, Zap, Clock, Rocket, ArrowRight, ArrowLeft } from "lucide-react";
+import { Sparkles, Rocket, ArrowRight, ArrowLeft } from "lucide-react";
 import { BLUR_IN, STAGGER, STAGGER_CHILD } from "@/lib/animations";
 
 const Hero3D = lazy(() => import("@/components/Hero3D"));
@@ -271,7 +271,7 @@ export default function OnboardingPage() {
               <button
                 onClick={() => void finish()}
                 disabled={saving}
-                className="mt-12 w-full rounded-2xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] py-5 text-lg font-semibold text-[var(--palette-white)] shadow-xl hover:scale-105 transition-all disabled:opacity-50"
+                className="mt-12 w-full rounded-2xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] py-5 text-lg font-semibold text-[var(--palette-white)] shadow-xl hover:scale-105 transition-all disabled:opacity-50"
               >
                 {saving ? "Deploying..." : "Enter Command Center"}
               </button>

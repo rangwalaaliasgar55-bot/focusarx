@@ -2,11 +2,28 @@ import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { ArrowLeft, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PageSEO } from "@/components/PageSEO";
 import { PAGE } from "@/lib/animations";
 
+/**
+ * `noindex`, and no title that could pass for a real page.
+ *
+ * vercel.json answers an unknown URL by serving the SPA shell with status 200 (the
+ * rewrite happens after `handle: filesystem`, and the app owns client routing), so
+ * this component is the *only* thing standing between a mistyped link and a
+ * duplicate of the homepage's metadata in the index — the soft-404 case Google
+ * documents as wasted crawl plus confused canonicals. A real 404 status would need
+ * an edge function for every page view, which is not worth the latency here; what
+ * is worth it is telling crawlers plainly that there is nothing at this address.
+ */
 export default function NotFound() {
   return (
     <div className="relative min-h-screen overflow-hidden forge-bg-glow flex items-center justify-center px-4">
+      <PageSEO
+        title="Page not found"
+        description="That FocusArx page does not exist. Start from the focus timer, the study guides, or the changelog."
+        noindex
+      />
       {/* Ambient glows */}
       <div className="pointer-events-none absolute inset-0 z-[var(--z-base)]" aria-hidden>
         <div className="absolute left-1/4 top-1/4 h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle_at_center,var(--rgba-124-58-237-0_10),transparent_65%)] blur-3xl" />

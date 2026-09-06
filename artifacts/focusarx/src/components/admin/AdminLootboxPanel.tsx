@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Save, X, Plus, Pencil, RefreshCw } from "lucide-react";
-import { SectionHeader, Badge, MotionTab, EmptyState, LoadingState } from "./AdminHelpers";
+import { Badge, EmptyState, LoadingState, MotionTab, SectionHeader, adminFetch } from "./AdminHelpers";
 import type { LootBoxType, AdminPanelProps } from "./AdminTypes";
 
 export function AdminLootboxPanel({ authHeaders }: AdminPanelProps) {
@@ -14,13 +14,13 @@ export function AdminLootboxPanel({ authHeaders }: AdminPanelProps) {
   async function load() {
     setLoading(true);
     try {
-      const r = await fetch("/api/admin/cms/lootboxes", { headers: authHeaders(), credentials: "include" });
+      const r = await adminFetch("/api/admin/cms/lootboxes", { headers: authHeaders(), credentials: "include" });
       if (r.ok) { const d = await r.json(); setTypes(d.types ?? []); }
     } finally { setLoading(false); }
   }
 
   async function save(typeId: string) {
-    const r = await fetch(`/api/admin/cms/lootboxes/${typeId}`, {
+    const r = await adminFetch(`/api/admin/cms/lootboxes/${typeId}`, {
       method: "PATCH",
       headers: { ...authHeaders(), "Content-Type": "application/json" },
       credentials: "include",
@@ -34,7 +34,7 @@ export function AdminLootboxPanel({ authHeaders }: AdminPanelProps) {
   }
 
   async function seedBoxes() {
-    const r = await fetch("/api/admin/cms/seed/lootboxes", { method: "POST", headers: authHeaders(), credentials: "include" });
+    const r = await adminFetch("/api/admin/cms/seed/lootboxes", { method: "POST", headers: authHeaders(), credentials: "include" });
     const d = await r.json();
     alert(`Seeded ${d.seeded ?? 0} new boxes (${d.total ?? 0} total)`);
     load();

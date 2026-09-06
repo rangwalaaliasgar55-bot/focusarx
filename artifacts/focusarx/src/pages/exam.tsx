@@ -118,7 +118,7 @@ function CtaBlock() {
       <div className="flex flex-wrap items-center justify-center gap-3">
         <Link
           href="/signup"
-          className="rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] px-6 py-3 text-sm font-bold text-white shadow-lg transition-transform hover:scale-[1.02]"
+          className="rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] px-6 py-3 text-sm font-bold text-white shadow-lg transition-transform hover:scale-[1.02]"
         >
           Start focusing free
         </Link>
@@ -142,7 +142,7 @@ export function ExamGuidePage() {
         <div className="max-w-3xl mx-auto px-6 py-32 text-center">
           <h1 className="text-4xl font-semibold mb-4">Guide not found</h1>
           <p className="text-[var(--foreground-muted)] mb-8">No exam guide at this address. The full library is one click away.</p>
-          <Link href="/exam" className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-500)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]">
+          <Link href="/exam" className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-700)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]">
             <ArrowLeft size={15} /> All exam guides
           </Link>
         </div>

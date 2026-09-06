@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { AlertCircle, Check, Eye, EyeOff, LockKeyhole, Mail, UserRound } from "lucide-react";
-import { apiErrorMessage, useAuth } from "@/lib/auth";
+import { apiErrorMessage, setToken, useAuth } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [, navigate] = useLocation();
-  const { signIn, refresh } = useAuth();
+  const { refresh } = useAuth();
   const { toast } = useToast();
   const strength = useMemo(() => passwordScore(password), [password]);
   const strengthLabel = ["Add a password", "Weak", "Fair", "Good", "Strong"][strength];
@@ -57,16 +57,29 @@ export default function SignupPage() {
 
       // Register now auto-logs in (returns tokens + sets cookies).
       // Store the access token so subsequent requests work immediately.
-      const responseData = data as { token?: string; accessToken?: string };
+      const responseData = data as { token?: string; accessToken?: string; needsLogin?: boolean };
       const bearerToken = responseData.accessToken ?? responseData.token;
       if (bearerToken) {
-        localStorage.setItem("focusarx-auth-token", bearerToken);
+        setToken(bearerToken);
       }
       // Refresh the auth context to pick up the session.
-      await refresh();
+      const session = await refresh();
 
       trackSiteEvent("user_signed_up", { email: email.split("@")[1] ?? "unknown" });
       trackGAEvent("sign_up", { method: "email" });
+
+      // Two ways this can end short of a live session: the server created the
+      // account but could not mint credentials (`needsLogin`), or the session
+      // read failed. In both cases the account EXISTS, so sending the user to
+      // /onboarding — which a ProtectedRoute immediately kicks back to /login —
+      // reads as "signup failed", and their retry says "email already
+      // registered". Take them to the sign-in form and say why.
+      if (responseData.needsLogin || !session) {
+        toast("Account created. Please sign in to continue.", "success");
+        navigate(`/login?redirect=${encodeURIComponent("/onboarding")}`);
+        return;
+      }
+
       toast("Your FocusArx workspace is ready", "success");
       navigate("/onboarding");
     } catch {

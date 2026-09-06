@@ -8,9 +8,6 @@ function Section({ id, children, className = "" }: { id?: string; children: Reac
 function H2({ children }: { children: React.ReactNode }) {
   return <h2 className="mt-14 mb-4 text-2xl font-semibold leading-tight text-[var(--foreground)] sm:text-3xl">{children}</h2>;
 }
-function H3({ children }: { children: React.ReactNode }) {
-  return <h3 className="mt-8 mb-3 text-xl font-bold text-[var(--foreground)]">{children}</h3>;
-}
 function P({ children }: { children: React.ReactNode }) {
   return <p className="mb-4 text-[15px] leading-relaxed text-[var(--foreground-muted)]">{children}</p>;
 }
@@ -170,7 +167,7 @@ export default function FocusMusicPage() {
         <div className="mt-8 rounded-2xl border border-[var(--brand-600)]/30 bg-gradient-to-br from-[var(--brand-600)]/10 to-transparent p-8 text-center">
           <h3 className="mb-2 text-xl font-semibold text-[var(--foreground)]">Press play, start the timer</h3>
           <p className="mb-6 text-sm text-[var(--foreground-muted)]">FocusArx pairs your sessions with streaks, scores, and an AI coach. Free forever.</p>
-          <Link href="/signup" className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-500)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]">
+          <Link href="/signup" className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-700)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]">
             Start focusing free <ArrowRight size={16} />
           </Link>
         </div>

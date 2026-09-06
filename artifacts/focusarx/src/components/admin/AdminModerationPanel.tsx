@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { RefreshCw } from "lucide-react";
-import { SectionHeader, MotionTab, LoadingState, EmptyState } from "./AdminHelpers";
+import { LoadingState, MotionTab, SectionHeader, adminFetch } from "./AdminHelpers";
 import type { AdminPanelProps } from "./AdminTypes";
 
 export function AdminModerationPanel({ authHeaders }: AdminPanelProps) {
@@ -30,7 +29,7 @@ export function AdminModerationPanel({ authHeaders }: AdminPanelProps) {
   async function loadQueue() {
     setLoading(true);
     try {
-      const r = await fetch("/api/admin/moderation/queue", { headers: authHeaders(), credentials: "include" });
+      const r = await adminFetch("/api/admin/moderation/queue", { headers: authHeaders(), credentials: "include" });
       if (r.ok) {
         const d = await r.json();
         setPosts(d.posts ?? []);
@@ -42,7 +41,7 @@ export function AdminModerationPanel({ authHeaders }: AdminPanelProps) {
   async function moderatePost(postId: string, action: "approve" | "reject") {
     setActionId(postId);
     try {
-      const r = await fetch(`/api/admin/moderation/${postId}/${action}`, {
+      const r = await adminFetch(`/api/admin/moderation/${postId}/${action}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
         credentials: "include",
@@ -58,7 +57,7 @@ export function AdminModerationPanel({ authHeaders }: AdminPanelProps) {
   async function sendDigest() {
     setDigestSending(true); setDigestResult(null);
     try {
-      const r = await fetch("/api/admin/moderation/digest", { method: "POST", headers: authHeaders(), credentials: "include" });
+      const r = await adminFetch("/api/admin/moderation/digest", { method: "POST", headers: authHeaders(), credentials: "include" });
       const d = await r.json();
       if (r.ok) setDigestResult(d.sent ? `Digest emailed with ${d.flaggedCount} flagged post(s).` : (d.reason ?? "Nothing to send."));
       else setDigestResult("Error: " + (d.error ?? "Failed"));

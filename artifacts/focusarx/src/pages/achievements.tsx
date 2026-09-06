@@ -172,6 +172,14 @@ function BadgeCard({ badge, isCelebrating }: { badge: Badge; isCelebrating: bool
   );
 }
 
+type BadgePayload = {
+  badges: Badge[];
+  stats: Stats;
+  unlockedCount: number;
+  totalCount: number;
+  completionPct: number;
+};
+
 export default function AchievementsPage() {
   const [badges, setBadges] = useState<Badge[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -183,12 +191,17 @@ export default function AchievementsPage() {
 
   useEffect(() => {
     const token = getToken();
-    if (!token) { setLoading(false); return; }
-    fetch("/api/gamification/badges", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json() as Promise<{ badges: Badge[]; stats: Stats; unlockedCount: number; totalCount: number; completionPct: number }>)
+    // Both paths resolve through the same promise chain, so nothing here sets
+    // state synchronously in the effect body — the signed-out branch used to
+    // `setLoading(false)` and return, queueing a second render before the page
+    // had anything to show.
+    const request = token
+      ? fetch("/api/gamification/badges", { headers: { Authorization: `Bearer ${token}` } })
+          .then((r) => r.json() as Promise<BadgePayload>)
+      : Promise.resolve(null);
+    request
       .then((d) => {
+        if (!d) return;
         setBadges(d.badges ?? []);
         setStats(d.stats ?? null);
         const newOnes = (d.badges ?? []).filter((b) => b.newlyUnlocked);
@@ -196,9 +209,9 @@ export default function AchievementsPage() {
           setCelebratingId(newOnes[0]!.id);
           setTimeout(() => setCelebratingId(null), 4000);
         }
-        setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => { /* the empty state below already says what happened */ })
+      .finally(() => setLoading(false));
   }, []);
 
   let filtered = filter === "all" ? badges : badges.filter((b) => b.category === filter);
@@ -347,7 +360,7 @@ export default function AchievementsPage() {
                     aria-pressed={active}
                     className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-[var(--duration-fast)] ${
                       active
-                        ? "bg-[var(--brand-600)] hover:bg-[var(--brand-500)] text-[var(--palette-white)] shadow-[0_0_12px_var(--rgba-124-58-237-0_3)]"
+                        ? "bg-[var(--brand-600)] hover:bg-[var(--brand-700)] text-[var(--palette-white)] shadow-[0_0_12px_var(--rgba-124-58-237-0_3)]"
                         : "border border-[var(--rgba-124-58-237-0_18)] text-[var(--muted-fg)] hover:border-[var(--rgba-124-58-237-0_4)] hover:text-[var(--foreground-muted)] hover:bg-[var(--rgba-124-58-237-0_06)]"
                     }`}
                   >

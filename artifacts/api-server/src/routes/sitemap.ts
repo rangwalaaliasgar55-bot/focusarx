@@ -424,40 +424,84 @@ router.get("/sitemap-profiles-:shard.xml", async (req, res) => {
  * disallowed `/api/` (which is where the sitemap lived) and listed `/dashboard`
  * in the sitemap while blocking it here.
  */
-router.get("/robots.txt", (_req, res) => {
-  const base = baseUrl();
-  res.set("Content-Type", "text/plain; charset=utf-8");
-  res.set("Cache-Control", "public, max-age=3600, s-maxage=86400");
-  res.send([
+/**
+ * Private surfaces, in the order and content of artifacts/focusarx/public/robots.txt.
+ *
+ * That static file is what the production host serves (vercel.json rewrites only the
+ * sitemaps to this function); this route is what a standalone API — or any deploy
+ * without the static copy — answers with. Two copies of one policy is only safe if
+ * something checks it, so routes/seoContract.test.ts compares the two sets and fails
+ * on drift in either direction. A path missing *here* is an app screen a crawler can
+ * walk into; a path missing *there* is a page Google is told to skip by one copy and
+ * crawl by the other.
+ */
+export const ROBOTS_PRIVATE_PATHS = [
+  "/go/",
+  "/admin",
+  "/onboarding",
+  "/profile",
+  "/settings",
+  "/notifications",
+  "/messages",
+  "/session-replay",
+  "/replay",
+  "/referral",
+  "/wallet",
+  "/style-guide",
+  "/forgot-password",
+  "/reset-password",
+  "/auth/callback",
+  "/dashboard",
+  "/analytics",
+  "/missions",
+  "/tasks",
+  "/goals",
+  "/habits",
+  "/flashcards",
+  "/achievements",
+  "/social",
+  "/groups",
+  "/shop",
+  "/marketplace",
+  "/lootboxes",
+  "/dreams",
+  "/pets",
+  "/city",
+  "/quests",
+  "/dna",
+  "/focus-dna",
+  "/constellations",
+  "/consequences",
+  "/battle-pass",
+  "/ai-insights",
+  "/forge",
+  "/forge-room",
+  "/premium",
+  "/wrapped",
+  "/ghosts",
+  "/distractions",
+  "/profiles",
+  "/api/",
+  "/*.map$",
+  "/src/",
+] as const;
+
+/** The robots.txt body. Split out from the route so the contract test reads it. */
+export function buildRobotsTxt(base: string): string {
+  return [
     "# FocusArx robots.txt — served by the API and mirrored at the host root.",
     "",
     "User-agent: *",
     "Allow: /",
     "",
     "# Private application surfaces — not indexable, no crawl value.",
-    "Disallow: /admin",
-    "Disallow: /go/",
-    "Disallow: /onboarding",
-    "Disallow: /reset-password",
-    "Disallow: /forgot-password",
-    "Disallow: /auth/callback",
-    "Disallow: /profile",
-    "Disallow: /notifications",
-    "Disallow: /messages",
-    "Disallow: /session-replay",
-    "Disallow: /referral",
-    "Disallow: /wallet",
-    "Disallow: /style-guide",
+    ...ROBOTS_PRIVATE_PATHS.map((p) => `Disallow: ${p}`),
     "",
     "# API — except the SEO endpoints crawlers must reach.",
-    "Disallow: /api/",
     "Allow: /api/sitemap.xml",
     "Allow: /api/sitemap-",
     "Allow: /api/robots.txt",
     "Allow: /api/og",
-    "",
-    "# Build artifacts",
-    "Disallow: /*.map$",
     "",
     "# Advertising — AdSense's crawler must always be allowed.",
     "User-agent: AdsBot-Google",
@@ -477,7 +521,13 @@ router.get("/robots.txt", (_req, res) => {
     "",
     "Sitemap: " + base + "/sitemap.xml",
     "",
-  ].join("\n"));
+  ].join("\n");
+}
+
+router.get("/robots.txt", (_req, res) => {
+  res.set("Content-Type", "text/plain; charset=utf-8");
+  res.set("Cache-Control", "public, max-age=3600, s-maxage=86400");
+  res.send(buildRobotsTxt(baseUrl()));
 });
 
 export { router as sitemapRouter };

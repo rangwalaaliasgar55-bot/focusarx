@@ -2,103 +2,95 @@
 
 All notable changes to FocusArx. Dates are UTC.
 
-## [Unreleased] — second pass
+## [Unreleased] — fifth pass
 
-### Added (product)
+Search results are copy, so copy got a budget, a generator, and a gate.
 
-- Session-mode presets (Pomodoro 25/5, Extended 50/10, Deep Work 90/15,
-  Animedoro 40/10, Custom, Flowtime stopwatch), remembered across visits.
-  Flowtime completion flows through the same record→sync→summary pipeline.
-- Distraction parking: `D` key on desktop, park button on mobile, review at
-  the break. Desktop shows the deep-linked task as a visible pill.
-- Weekly goal card on the dashboard (personal target vs server week total).
-- Deep Sea and Study Room scenes, fully data-mapped (progress, pause,
-  hidden-tab penalty, completion burst, streak, weekly facets, time of day),
-  lazy-loaded, Full-tier only, Pro-gated in Settings.
-- Blog (`/blog`, three essays, Article JSON-LD) and programmatic
-  `/pomodoro-timer-for/:exam` funnels (14 exams, unique angles, live timer
-  above the fold). Sitemap + prerender grow with the content files.
-- Per-user OG share cards (`/api/og/user`) wired into public profiles.
-- Live "focusing right now" counter on the landing hero (real aggregate,
-  fail-silent — no fabricated claims).
-- Weekly recap API + dashboard card (summary, share image, 1/day email via
-  Resend when configured).
-- Referral `?ref=` capture with auto-apply on first login (the code-entry
-  fallback still works).
-- Document PiP mini-timer on desktop Chrome/Edge.
-- Card payments via Stripe (env-gated Checkout + verified webhooks granting
-  the same entitlements; token unlocks unchanged; UI appears only when
-  configured).
+**Objective defects, measured first.** An audit of the 51 prerendered page
+directories in `dist/public` — not a style opinion, a count:
 
-### Fixed / hardened
+- `public/robots.txt` shipped `Disallow: /adminDisallow: /onboarding` on **one
+  line** (an edit had dropped the newline). That is not a syntax error to a lenient
+  parser: it is one `Disallow` for a path no URL can ever match, so the admin
+  console and onboarding were *not* disallowed for the general `User-agent: *`
+  group while the file still looked fine. Split, and now machine-checked.
+- **15 of 51 titles** and **9 of 51 descriptions** were outside the range a search
+  result can display (Google clips a title near 580px ≈ 60 characters and a snippet
+  near 160), worst cases 71 and 180 characters. Every one of those pages loses the
+  end of its own sentence to an ellipsis. Now: 0 and 0, with the same rule enforced
+  at build time.
+- `robots.txt` disallows 48 paths, and **all 51 prerendered pages said
+  `index, follow` in their HTML** — the two of them that are also prerendered
+  (`/premium`, `/achievements`) included. A `Disallow` only stops fetching; a URL Google already knows
+  keeps an entry with no description. `noindex` is the signal that removes it, and
+  it only works on HTML the crawler can read — so the two must agree, not be 48
+  pages apart.
+- The prerender manifest held a **third copy** of the same titles and descriptions
+  (`scripts/prerender-data.mjs` alongside `components/PageSEO.tsx`'s preset table),
+  already stale: 7 routes' crawler-facing title differed from the title the page
+  itself sets, so navigating to `/premium` in the browser showed a different
+  `<title>` than a crawler or a social card received. The 7 are aligned to the
+  page-authored copy; the rest were shortened.
+- Any unknown URL answers 200 with the SPA shell (`vercel.json` rewrites
+  `/(.*) → /index.html` after `handle: filesystem`), and `pages/not-found.tsx` set
+  no metadata at all — so a mistyped link was indexed with the previous route's
+  head, or the homepage's. It now declares itself `noindex`.
 
-- Streak Shield auto-applies on exactly one missed day (banked freeze
-  token consumed transactionally) with a `streak_history` audit trail and
-  `shieldUsed` in completion responses + UI toasts.
-- Leader-election remount race fixed (retry with backoff; e2e-proven).
-- Removed dead code flagged by knip (cross-tab announcer superseded by the
-  leader, orphan motion module) and unused deps (cors, cookie,
-  styled-components, prettier).
-- Patched transitive vulns via overrides (qs ≥6.16, fflate ≥0.6.11).
-- Single drizzle-orm snapshot enforced (OTEL peer alignment for Sentry).
-- Print stylesheet for the weekly report; `vh`-first viewport fallbacks.
-- Observability: Plausible (env-gated, 1 KB) and Sentry client+server
-  (env-gated, release-tagged, no PII).
-- Quality gates: strict ESLint (changed-files gate in CI), knip dead-code
-  gate (files+deps), Playwright device projects (landscape, tablet,
-  reduced-motion) + timer survival e2e (deep links, reload resume,
-  offline start — 10/10 green), `.browserslistrc` floor, LHCI config.
-- Leader retry with backoff (remount-race tolerant, e2e-proven); desktop
-  task pill for deep-linked tasks; auth mount fetch without cascading
-  setState; unused imports/dead components removed.
+**One generator for both renderers.** `src/lib/seo-text.mjs` (new) owns the brand
+mark and the text budgets. `components/PageSEO.tsx` (client) and
+`scripts/prerender.mjs` (build) both call it, which fixes three things at once:
+titles no longer author `| FocusArx` themselves (`title.includes("FocusArx")` used
+to *skip* the suffix, so the brand had three spellings and an unpredictable length),
+a page cannot emit an over-budget title at all, and programmatic copy that cannot
+know its length ahead of time — the `/pomodoro-timer-for/:exam` funnels, built from
+exam names between 8 and 63 characters — is clamped where it is composed, at a
+clause boundary, instead of mid-parenthesis by Google. `clampText` refuses to emit a
+19-character "sentence" just because it ends in a full stop; `MIN_SNIPPET` is the
+same floor the gate fails the build on.
 
-## [Unreleased] — first pass
+**`src/lib/robots-parse.mjs` (new)** is one strict robots.txt reader for the three
+places that have to agree with it: the prerenderer (which now derives each page's
+`robots` meta from the file, so the HTML and the directives cannot drift — 2 pages
+changed, `noindex, nofollow`, and every future prerendered private page gets it for
+free), `scripts/seo-validate.mjs`, and the API's own generated copy. It implements
+prefix matching, `*`, and trailing `$` (`Disallow: /*.map$` blocks source maps,
+`Disallow: /api/` does not block `/api`), and reports a merged or stray line as an
+error rather than absorbing it. `sitemap.ts`'s `robots.txt` route now builds from an
+exported `ROBOTS_PRIVATE_PATHS` list (15 paths → 48, matching the static file) via a
+pure `buildRobotsTxt(base)`; the two copies used to disagree about 33 paths, which
+is the part that actually hurts.
 
-### Fixed (retention P0s)
+**Gates, and proof they bite.** `scripts/seo-validate.mjs` gained: title/description
+budgets against the *unescaped* text as rendered, the same budgets applied to the
+manifest **before** the clamp (so a long string is a build failure, not something
+quietly shortened for you), robots.txt line-shape, and indexability parity in both
+directions. 26 new unit tests in `src/lib/seo-text.test.ts` and
+`src/lib/robots-parse.test.ts` — including the real shipped files, so a
+newline-eating edit to `public/robots.txt` fails the frontend suite — plus 3
+contract tests in `seoContract.test.ts` that read the frontend's parser rather than
+reimplementing it. Falsified deliberately, then reverted: deleting `Disallow:
+/premium` from the generated copy fails the parity test naming `/premium`; setting
+`index, follow` on `/premium`'s HTML fails the gate.
 
-- Guest timer sessions now survive refresh, back-swipe, browser close and
-  system sleep via a local deadline snapshot (`focusarx-guest-timer`).
-  Authenticated server recovery is unchanged and still wins when present.
-- Only one tab can run a timer at a time (`navigator.locks` leader election
-  with `BroadcastChannel` fallback; server `clientNonce` idempotency remains
-  the backstop). The stood-down tab explains itself instead of double-running.
-- Streaks, productivity logs and weekly XP resets are keyed to the user's own
-  IANA timezone (adopted from the device, stored on the profile). Missing or
-  never-set zones keep the legacy IST calendar, and adopting a real zone can
-  never silently reset a streak (legacy-yesterday continuity).
-- Completion chimes now resume a suspended `AudioContext` and the context is
-  unlocked on the start/pause gesture (autoplay-policy fix).
-- `SqlEditor` no longer uses raw `100vh`; viewport utilities ship `vh`
-  fallbacks ahead of `dvh` for legacy browsers.
+**Incidental, in files this pass touched.** `pages/search.tsx` mirrored `?q=` into
+state inside an effect, so the page mounted twice and the input rendered empty on
+the first frame; the query is now read from the location with typed text as an
+override. `pages/study-calculator.tsx` had three `<label>`s attached to no control —
+two now point at their range input, and the third labels a button group, which a
+`<label>` cannot own, so it is the group's `aria-labelledby` instead. Four unused
+icon imports and an unused `renderBody(entry, url)` argument went out with them.
+`lint-changed`: 0 errors (75 warnings, non-fatal), `tsc --noEmit` clean,
+229 frontend tests and 325 API tests green, `pnpm run build` green through the
+extended gate.
 
-### Added
+**Deliberately not done.** The manifest and `PageSEO.tsx`'s table remain two copies
+of the same *strings* — the budgets are enforced on both, content equality is not,
+because making one import the other means moving the preset table out of a `.tsx`
+the API-side scripts can also read. Descriptions are aligned only where they were
+already stale. A real `404` status for unknown routes would need an edge function in
+front of every page view; `noindex` costs nothing instead. `AUDIT.md` item 9's
+`~150 user-facing pages still on raw fetch` is untouched (the admin console's 55
+were the ones with a broken data layer), as is the repo-wide `eslint` backlog of
+1042 problems and the `Knip` failure (`RangeError` inside oxc-parser, upstream).
 
-- `/focus`: public, guest-first focus app, deep-linkable with
-  `?duration=25&task=…&src=…` (duration 1–240 min). `/go/ig` redirects to an
-  armed `/focus?duration=25&src=ig` for the Instagram funnel.
-- Device capability tiers (Full / Lite / Essential): feature-detected,
-  user-overridable in Settings → Appearance, reported once per tab session
-  in the `device_context` analytics event (with `src` attribution).
-- In-app WebView guidance: a single dismissible pill after the first
-  completed session suggests Chrome/Safari for alerts and offline mode.
-  Install/push prompts stay suppressed in WebViews (none exist to fire).
-- 3D hero pauses its render loop while the tab is hidden and never mounts a
-  GL context on Tier Essential.
-- `/changelog` (this page) and `AUDIT.md` / `VERIFICATION.md` in the repo.
-
-## [1.0] — 2026-09-03 and earlier
-
-- Apple-style frontend polish and scroll-motion pass; retro texture layers.
-- SEO hardening: build-time prerender + `seo-validate`, sitemap index with
-  segments, robots coherence tests (`seoContract`), dynamic SVG OG cards
-  (`/api/og`), exam guides (JEE Main/Advanced, NEET, UPSC, CAT, CBSE, GATE…).
-- Server-authoritative sessions: verified durations, `clientNonce`
-  idempotency, lazy expiry finalization, transactional streak + wallet
-  credit, anti-farm reward gating.
-- Auth: JWT access (15 min) + rotating refresh families, guest accounts,
-  per-IP/per-user rate limits (Upstash-backed when configured).
-- AI: server-only Groq/Gemini with daily budgets, per-user quotas, prompt
-  sanitization and injection guards, graceful static fallbacks.
-- PWA shell: versioned service worker, manifest shortcuts, offline-tolerant
-  navigation (API never cached).
-- Removed the fabricated member counter; added claim ledger at `/evidence`.
+## [Unreleased] — fourth pass

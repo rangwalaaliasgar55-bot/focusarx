@@ -10,6 +10,8 @@
  *   node scripts/seo-validate.mjs
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
+import { isDisallowed, parseRobots } from "../src/lib/robots-parse.mjs";
+import { clampText, DESCRIPTION_BUDGET, MIN_SNIPPET, PAGE_TITLE_BUDGET } from "../src/lib/seo-text.mjs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -27,6 +29,15 @@ const NON_SITEMAP_ALLOWLIST = new Set([
   "/404",
 ]);
 
+/**
+ * Routes allowed to carry `noindex` with nothing to say about them in robots.txt.
+ * A signup page is worth ranking; an app screen is not. The prerender manifest is
+ * consulted too (see the ROUTES pass below), so a deliberate `noindex: true` there
+ * never has to be repeated in this list.
+ */
+const manifestNoindex = new Set();
+const NON_INDEXABLE = new Set(["/login", "/signup", "/forgot-password", "/reset-password", "/404"]);
+
 function walkHtml(dir, acc = []) {
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
@@ -36,10 +47,29 @@ function walkHtml(dir, acc = []) {
   return acc;
 }
 
-const files = walkHtml(DIST);
 const problems = [];
 const titles = new Map();
 const descriptions = new Map();
+
+const files = walkHtml(DIST);
+
+// The prerender manifest, read once and reused: its `noindex` flags exempt a route
+// from the indexability parity check below, and its copy is itself gated further down.
+const { ROUTES: manifestRoutes } = await import(new URL("./prerender-data.mjs", import.meta.url).href);
+for (const entry of manifestRoutes) {
+  if (entry.noindex === true) manifestNoindex.add(entry.path === "" ? "/" : `/${String(entry.path).replace(/^\/+/, "")}`);
+}
+
+// One strict parser (src/lib/robots-parse.mjs) for the same file the prerenderer
+// reads, so the gate cannot pass a document the generator would have rejected.
+const robots = readFileSync(join(DIST, "robots.txt"), "utf8");
+const { groups: robotsGroups, errors: robotsErrors } = parseRobots(robots);
+for (const entry of robotsErrors) {
+  problems.push(`robots.txt line ${entry.line}: ${entry.error} (${JSON.stringify(entry.raw)})`);
+}
+const sitemapDirective = robots.match(/^Sitemap:\s*(\S+)$/m)?.[1];
+if (!sitemapDirective) problems.push("robots.txt: missing Sitemap directive");
+else if (!sitemapDirective.startsWith(CANONICAL_HOST)) problems.push(`robots.txt sitemap is not the apex host (${sitemapDirective})`);
 
 for (const file of files) {
   const route = relative(DIST, file).replace(/index\.html$/, "").replace(/\.html$/, "");
@@ -52,6 +82,33 @@ for (const file of files) {
   else titles.set(title, routePath);
 
   const desc = html.match(/<meta\s+name="description"\s+content="([^"]*)"/)?.[1]?.trim();
+
+  // Search-result real estate is measured, not felt. Google clips the title at
+  // roughly 580px (~60 characters) and the description at ~160: a page that runs
+  // past that loses the end of its own sentence to an ellipsis, so the length is
+  // gated here at build time instead of tuned by eye. `composeTitle` in
+  // components/PageSEO.tsx owns the same budget at runtime.
+  if (title) {
+    const unescaped = title.replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/&quot;/g, '"');
+    if (unescaped.length > 60) problems.push(`${routePath}: title is ${unescaped.length} chars, over the 60-char budget and will be clipped — "${unescaped}"`);
+    if (unescaped.length < 10) problems.push(`${routePath}: title is ${unescaped.length} chars, too thin to rank on its own — "${unescaped}"`);
+  }
+  if (desc) {
+    const unescapedDesc = desc.replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/&quot;/g, '"');
+    if (unescapedDesc.length > 160) problems.push(`${routePath}: description is ${unescapedDesc.length} chars, over the 160-char budget and will be clipped`);
+    if (unescapedDesc.length < MIN_SNIPPET) problems.push(`${routePath}: description is ${unescapedDesc.length} chars, below the ${MIN_SNIPPET}-char floor (thin snippet)`);
+  }
+  {
+    // A page robots.txt disallows is not removed from the index — the crawler just
+    // stops fetching it, so any URL it already knows keeps ranking with a
+    // description-less snippet. Disallowed routes must say `noindex` in the HTML
+    // too, which only works for routes it can still reach. The two must agree.
+    const robotsMeta = html.match(/<meta\s+name="robots"\s+content="([^"]*)"/)?.[1] ?? "";
+    const disallowed = isDisallowed(routePath, robotsGroups.get("*"));
+    const noindexed = /noindex/i.test(robotsMeta);
+    if (disallowed && !noindexed) problems.push(`${routePath}: disallowed in robots.txt but indexable — add noindex or remove the Disallow`);
+    if (noindexed && !disallowed && !NON_INDEXABLE.has(routePath) && !manifestNoindex.has(routePath)) problems.push(`${routePath}: marked noindex but not disallowed in robots.txt (it will be crawled and dropped from the index on trust)`);
+  }
   if (!desc) problems.push(`${routePath}: missing meta description`);
   else if (descriptions.has(desc)) problems.push(`${routePath}: duplicate description (also on ${descriptions.get(desc)})`);
   else descriptions.set(desc, routePath);
@@ -81,6 +138,26 @@ for (const file of files) {
   // No www URLs in any machine-readable URL field.
   for (const url of html.matchAll(/(?:href|content)="(https?:\/\/www\.focusarx\.site[^"]*)"/g)) {
     problems.push(`${routePath}: www URL in metadata (${url[1]})`);
+  }
+}
+
+// ── The prerender manifest, before the clamp hides it ──────────────────
+// prerender.mjs runs every manifest string through composeTitle/clampText, so a
+// too-long entry would still emit valid HTML — the copy would just be quietly cut.
+// The manifest is the crawler-facing source of truth (it is what a scraper and a
+// JS-less crawl receive), so it is checked at the source instead.
+{
+  const pageBudget = PAGE_TITLE_BUDGET;
+  for (const entry of manifestRoutes) {
+    const label = `prerender manifest ${entry.path || "/"}`;
+    const stripped = String(entry.title ?? "").replace(/\s*[|—–]\s*FocusArx\s*$/, "").trim();
+    if (clampText(stripped, pageBudget, { fullStop: false }) !== stripped) {
+      problems.push(`${label}: title is ${stripped.length} chars, over the ${pageBudget}-char page budget — write shorter copy rather than letting it be clipped: "${stripped}"`);
+    }
+    const desc = String(entry.description ?? "").replace(/\s+/g, " ").trim();
+    if (clampText(desc, DESCRIPTION_BUDGET) !== desc) {
+      problems.push(`${label}: description is ${desc.length} chars, over the ${DESCRIPTION_BUDGET}-char budget — it is clipped mid-sentence in every search result`);
+    }
   }
 }
 
@@ -164,11 +241,6 @@ if (apiServedChildren === 0) {
     }
   }
 }
-
-const robots = readFileSync(join(DIST, "robots.txt"), "utf8");
-const sitemapDirective = robots.match(/^Sitemap:\s*(\S+)$/m)?.[1];
-if (!sitemapDirective) problems.push("robots.txt: missing Sitemap directive");
-else if (!sitemapDirective.startsWith(CANONICAL_HOST)) problems.push(`robots.txt sitemap is not the apex host (${sitemapDirective})`);
 
 console.log(`seo-validate: ${files.length} pages, ${sitemapUrls.length} sitemap page entries, ${apiServedChildren} child sitemap(s) served by the API in production`);
 if (problems.length > 0) {

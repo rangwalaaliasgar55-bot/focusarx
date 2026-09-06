@@ -47,7 +47,7 @@ export default function TwoHourStudyMethodPage() {
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--palette-white)]">
       <PageSEO
-        title="The 2-Hour Study Method: Focused Sessions Always Win | FocusArx"
+        title="The 2-Hour Study Method: Focused Sessions Win"
         description="Discover why 2 focused hours beats 12 distracted ones. A practical, science-backed study method for JEE, NEET, UPSC, and college students in India who want real results without burnout."
         canonical="https://focusarx.site/two-hour-study-method"
         keywords="2 hour study method, focused study, pomodoro technique india, study efficiently, jee study schedule, neet preparation tips, upsc study plan, deep work students"
@@ -69,7 +69,7 @@ export default function TwoHourStudyMethodPage() {
             <motion.button
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.97 }}
-              className="rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] px-4 py-1.5 text-xs font-semibold text-[var(--palette-white)]"
+              className="rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] px-4 py-1.5 text-xs font-semibold text-[var(--palette-white)]"
             >
               Try FocusArx Free →
             </motion.button>
@@ -322,7 +322,7 @@ export default function TwoHourStudyMethodPage() {
             <motion.button
               whileHover={{ scale: 1.04, boxShadow: "0 0 30px 8px var(--rgba-6-214-160-0_25)" }}
               whileTap={{ scale: 0.97 }}
-              className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-500)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]"
+              className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-700)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]"
             >
               Start Free — No Credit Card <ArrowRight size={16} />
             </motion.button>

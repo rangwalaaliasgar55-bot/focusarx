@@ -17,14 +17,23 @@ export default function ForgotPasswordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    // Trim before sending. "you@example.com " is what autofill and a paste from
+    // an email app actually produce, and it used to come back as a validation
+    // error on a form that only asked for an address.
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail.includes("@")) {
+      setError("Enter a valid email address.");
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: normalizedEmail }),
+        credentials: "include",
       });
-      const data = await res.json() as { ok?: boolean; error?: unknown; devResetUrl?: string };
+      const data = await res.json().catch(() => ({})) as { ok?: boolean; error?: unknown; devResetUrl?: string };
       if (!res.ok || !data.ok) {
         setError(apiErrorMessage(data, "Something went wrong. Try again."));
         return;

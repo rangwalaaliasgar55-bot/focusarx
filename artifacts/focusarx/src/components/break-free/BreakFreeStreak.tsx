@@ -161,7 +161,7 @@ export default function BreakFreeStreak() {
         <button
           onClick={handleStart}
           disabled={startMutation.isPending}
-          className="rounded-2xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] px-8 py-3.5 text-sm font-bold text-[var(--palette-white)] shadow-lg shadow-[var(--rgba-124-58-237-0_4)] hover:opacity-90 transition-opacity disabled:opacity-60"
+          className="rounded-2xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] px-8 py-3.5 text-sm font-bold text-[var(--palette-white)] shadow-lg shadow-[var(--rgba-124-58-237-0_4)] hover:opacity-90 transition-opacity disabled:opacity-60"
         >
           {startMutation.isPending ? "Starting…" : "Start My Journey"}
         </button>

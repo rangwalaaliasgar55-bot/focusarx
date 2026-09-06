@@ -121,7 +121,8 @@ export default function PremiumPage() {
   return (
     <div className="min-h-[100dvh] px-4 py-6 sm:px-6 pb-[calc(6rem+env(safe-area-inset-bottom))]">
       <PageSEO
-        title="Premium Membership — Unlock with Focus Tokens | FocusArx"
+        title="Premium Membership — Unlock with Focus Tokens"
+        noindex
         description="Unlock Premium access using Focus Tokens earned through productivity. AI coach, advanced analytics, premium Focus City, exclusive pets, and more."
         canonical="/premium"
       />

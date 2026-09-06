@@ -93,9 +93,9 @@ export function AnalyticsDashboard({ authHeaders }: { authHeaders: () => Record<
     try {
       const headers = authHeaders();
       const [ov, ch, dev] = await Promise.all([
-        fetch("/api/admin/analytics/overview", { headers, credentials: "include" }),
-        fetch("/api/admin/analytics/charts", { headers, credentials: "include" }),
-        fetch("/api/admin/analytics/devices", { headers, credentials: "include" }),
+        adminFetch("/api/admin/analytics/overview", { headers, credentials: "include" }),
+        adminFetch("/api/admin/analytics/charts", { headers, credentials: "include" }),
+        adminFetch("/api/admin/analytics/devices", { headers, credentials: "include" }),
       ]);
       if (ov.ok) setOverview(await ov.json() as Overview);
       if (ch.ok) setCharts(await ch.json() as Charts);
@@ -111,25 +111,33 @@ export function AnalyticsDashboard({ authHeaders }: { authHeaders: () => Record<
     const url = since
       ? `/api/admin/analytics/live?since=${encodeURIComponent(since)}`
       : "/api/admin/analytics/live";
+    type LivePayload = { events: LiveEvent[]; serverTime: string; live?: LiveSnapshot };
+    let payload: LivePayload | null = null;
     try {
-      const res = await fetch(url, { headers, credentials: "include" });
-      if (!res.ok) { setLiveError(true); return; }
-      setLiveError(false);
-      const json = await res.json() as {
-        events: LiveEvent[]; serverTime: string; live?: LiveSnapshot;
-      };
-      if (json.events.length) {
-        setLive((prev) => {
-          const ids = new Set(prev.map((e) => e.id));
-          const merged = [...json.events.filter((e) => !ids.has(e.id)), ...prev];
-          return merged.slice(0, 40);
-        });
+      const res = await adminFetch(url, { headers, credentials: "include" });
+      if (res.ok) payload = (await res.json()) as LivePayload;
+    } finally {
+      // One exit for both outcomes. This used to be a `catch` that set state and
+      // an early `return` on a non-OK response; the interval effect then had two
+      // synchronously reachable updates to reason about. Merging or degrading now
+      // happens exactly once per poll, and "reconnecting…" can't be left stuck on
+      // screen after a good response.
+      if (payload) {
+        if (payload.events.length) {
+          const events = payload.events;
+          setLive((prev) => {
+            const ids = new Set(prev.map((e) => e.id));
+            const merged = [...events.filter((e) => !ids.has(e.id)), ...prev];
+            return merged.slice(0, 40);
+          });
+        }
+        if (payload.live) setSnapshot(payload.live);
+        setLastUpdated(new Date(payload.serverTime));
+        lastPollRef.current = payload.serverTime;
+        setLiveError(false);
+      } else {
+        setLiveError(true);
       }
-      if (json.live) setSnapshot(json.live);
-      setLastUpdated(new Date(json.serverTime));
-      lastPollRef.current = json.serverTime;
-    } catch {
-      setLiveError(true);
     }
   }, [authHeaders]);
 
@@ -311,7 +319,8 @@ export function AnalyticsDashboard({ authHeaders }: { authHeaders: () => Record<
   );
 }
 
-import { ArrowUpRight, TrendingUp, BarChart2, Zap, LayoutDashboard, MousePointer2 } from "lucide-react";
+import { ArrowUpRight, Zap, MousePointer2 } from "lucide-react";
+import { adminFetch } from "./AdminHelpers";
 
 function MetricCard({ label, value, accent, trend }: { label: string; value: number; accent?: "violet" | "sky" | "rose"; trend?: number }) {
   const color = accent === "violet" ? "text-[var(--palette-violet-400)]" : accent === "sky" ? "text-[var(--palette-sky-400)]" : accent === "rose" ? "text-[var(--palette-rose-400)]" : "text-[var(--palette-zinc-100)]";

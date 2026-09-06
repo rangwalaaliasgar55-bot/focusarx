@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Send, RefreshCw, CheckCircle, AlertTriangle } from "lucide-react";
-import { SectionHeader, MotionTab } from "./AdminHelpers";
+import { MotionTab, SectionHeader, adminFetch } from "./AdminHelpers";
 import type { AdminPanelProps } from "./AdminTypes";
 
 export function AdminNotifyPanel({ authHeaders }: AdminPanelProps) {
@@ -15,12 +15,12 @@ export function AdminNotifyPanel({ authHeaders }: AdminPanelProps) {
     if (!title || !message) return;
     setSending(true); setResult(null); setError(null);
     try {
-      const r = await fetch("/api/admin/cms/notify-all", {
+      const r = await adminFetch("/api/admin/cms/notify-all", {
         method: "POST",
         headers: { ...authHeaders(), "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ title, message, type }),
-      });
+      }, { silent: true });
       const d = await r.json();
       if (r.ok) { setResult(d); setTitle(""); setMessage(""); }
       else setError(d.error ?? "Failed");
@@ -43,8 +43,8 @@ export function AdminNotifyPanel({ authHeaders }: AdminPanelProps) {
           <p className="text-xs font-semibold uppercase tracking-wider text-[var(--palette-zinc-400)]">Compose Message</p>
 
           <div>
-            <label className="block text-xs text-[var(--palette-zinc-500)] mb-1">Notification Type</label>
-            <select className="admin-input" value={type} onChange={e => setType(e.target.value)}>
+            <label htmlFor="adminnotifypanel-notification-type" className="block text-xs text-[var(--palette-zinc-500)] mb-1">Notification Type</label>
+            <select id="adminnotifypanel-notification-type" className="admin-input" value={type} onChange={e => setType(e.target.value)}>
               <option value="system">System</option>
               <option value="announcement">Announcement</option>
               <option value="reward">Reward</option>
@@ -53,13 +53,13 @@ export function AdminNotifyPanel({ authHeaders }: AdminPanelProps) {
           </div>
 
           <div>
-            <label className="block text-xs text-[var(--palette-zinc-500)] mb-1">Title</label>
-            <input className="admin-input" placeholder="e.g. New Feature Alert!" value={title} onChange={e => setTitle(e.target.value)} />
+            <label htmlFor="adminnotifypanel-title" className="block text-xs text-[var(--palette-zinc-500)] mb-1">Title</label>
+            <input id="adminnotifypanel-title" className="admin-input" placeholder="e.g. New Feature Alert!" value={title} onChange={e => setTitle(e.target.value)} />
           </div>
 
           <div>
-            <label className="block text-xs text-[var(--palette-zinc-500)] mb-1">Message</label>
-            <textarea className="admin-input resize-none" rows={4} placeholder="Your message to all users…" value={message} onChange={e => setMessage(e.target.value)} />
+            <label htmlFor="adminnotifypanel-message" className="block text-xs text-[var(--palette-zinc-500)] mb-1">Message</label>
+            <textarea id="adminnotifypanel-message" className="admin-input resize-none" rows={4} placeholder="Your message to all users…" value={message} onChange={e => setMessage(e.target.value)} />
           </div>
 
           <button onClick={() => void send()} disabled={sending || !title || !message}

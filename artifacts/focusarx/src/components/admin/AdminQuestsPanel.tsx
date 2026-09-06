@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Save, X, Plus, Pencil, Trash2, RefreshCw } from "lucide-react";
-import { SectionHeader, Badge, MotionTab, EmptyState, LoadingState } from "./AdminHelpers";
+import { Badge, EmptyState, LoadingState, MotionTab, SectionHeader, adminFetch } from "./AdminHelpers";
 import type { QuestDef, AdminPanelProps } from "./AdminTypes";
 
 const TYPES = ["daily", "weekly"];
@@ -18,7 +18,7 @@ export function AdminQuestsPanel({ authHeaders }: AdminPanelProps) {
   async function load() {
     setLoading(true);
     try {
-      const r = await fetch("/api/admin/cms/quests", { headers: authHeaders(), credentials: "include" });
+      const r = await adminFetch("/api/admin/cms/quests", { headers: authHeaders(), credentials: "include" });
       if (r.ok) { const d = await r.json(); setQuests(d.quests ?? []); }
     } finally { setLoading(false); }
   }
@@ -27,7 +27,7 @@ export function AdminQuestsPanel({ authHeaders }: AdminPanelProps) {
     const url = isNew ? "/api/admin/cms/quests" : `/api/admin/cms/quests/${form.id}`;
     const method = isNew ? "POST" : "PATCH";
     try {
-      const r = await fetch(url, {
+      const r = await adminFetch(url, {
         method, headers: { ...authHeaders(), "Content-Type": "application/json" },
         credentials: "include", body: JSON.stringify(form),
       });
@@ -42,14 +42,14 @@ export function AdminQuestsPanel({ authHeaders }: AdminPanelProps) {
 
   async function deactivateQuest(questId: string) {
     if (!window.confirm("Deactivate this quest?")) return;
-    const r = await fetch(`/api/admin/cms/quests/${questId}`, {
+    const r = await adminFetch(`/api/admin/cms/quests/${questId}`, {
       method: "DELETE", headers: authHeaders(), credentials: "include",
     });
     if (r.ok) setQuests(prev => prev.map(q => q.id === questId ? { ...q, isActive: false } : q));
   }
 
   async function seedQuests() {
-    const r = await fetch("/api/admin/cms/seed/quests", { method: "POST", headers: authHeaders(), credentials: "include" });
+    const r = await adminFetch("/api/admin/cms/seed/quests", { method: "POST", headers: authHeaders(), credentials: "include" });
     const d = await r.json();
     alert(`Seeded ${d.seeded ?? 0} new quests (${d.total ?? 0} total)`);
     load();

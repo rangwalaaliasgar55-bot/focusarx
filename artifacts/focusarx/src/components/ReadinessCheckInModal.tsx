@@ -182,7 +182,7 @@ export default function ReadinessCheckInModal() {
                   <button
                     onClick={() => void handleSave()}
                     disabled={saving}
-                    className="mt-6 w-full rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] py-3 text-sm font-semibold text-[var(--palette-white)] transition hover:opacity-90 disabled:opacity-60"
+                    className="mt-6 w-full rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] py-3 text-sm font-semibold text-[var(--palette-white)] transition hover:opacity-90 disabled:opacity-60"
                   >
                     {saving ? "Saving…" : "Get my focus score"}
                   </button>

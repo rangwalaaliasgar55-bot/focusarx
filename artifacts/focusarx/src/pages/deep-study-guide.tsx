@@ -31,7 +31,7 @@ export default function DeepStudyGuidePage() {
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--palette-white)]">
       <PageSEO
-        title="How to Study 2 Hours Deeply Instead of 12 Hours Distracted | FocusArx"
+        title="How to Study 2 Hours Deeply, Not 12 Distracted"
         description="India's most practical guide to deep work for students. Learn the science behind focused study sessions, eliminate distractions, and achieve more in 2 hours than most students do in an entire day."
         canonical="https://focusarx.site/deep-study-guide"
         keywords="deep study, focused study sessions, how to study effectively, study tips india, jee preparation, neet study tips, upsc focus, deep work students"
@@ -53,7 +53,7 @@ export default function DeepStudyGuidePage() {
             <motion.button
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.97 }}
-              className="rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] px-4 py-1.5 text-xs font-semibold text-[var(--palette-white)]"
+              className="rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] px-4 py-1.5 text-xs font-semibold text-[var(--palette-white)]"
               // Analytics: blog_cta_click
             >
               Try FocusArx Free →
@@ -401,7 +401,7 @@ export default function DeepStudyGuidePage() {
             <motion.button
               whileHover={{ scale: 1.04, boxShadow: "0 0 30px 8px var(--rgba-124-58-237-0_4)" }}
               whileTap={{ scale: 0.97 }}
-              className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-500)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]"
+              className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-700)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]"
               // Analytics: blog_cta_click { article: "deep-study-guide", cta: "start-free" }
             >
               Start Your First Session Free <ArrowRight size={16} />

@@ -11,6 +11,7 @@
 // (client-rendered) page — never fabricated content.
 
 export const SITE_NAME = "FocusArx";
+import { clampText, DESCRIPTION_BUDGET, PAGE_TITLE_BUDGET } from "../src/lib/seo-text.mjs";
 import { EXAM_GUIDES, EXAM_HUB } from "../src/content/exam/index.mjs";
 import { SEO_PAGES, COMPARISONS, COMPARISON_PATHS } from "../src/content/seo-pages.mjs";
 import { BLOG_POSTS } from "../src/content/blog.mjs";
@@ -53,7 +54,7 @@ export const ROUTES = [
     path: "",
     title: "FocusArx — AI Pomodoro Timer & Deep Work Tracker",
     description:
-      "Free AI focus timer that builds real deep-work habits: Pomodoro sessions, focus scores, streaks, live study rooms, and an AI productivity coach. No credit card required.",
+      "Free AI focus timer that builds real deep-work habits: Pomodoro sessions, focus scores, streaks, live study rooms, and an AI coach. No credit card.",
     h1: "FocusArx — AI Pomodoro Timer & Deep Work Tracker",
     lead: "FocusArx is a free, gamified focus platform that combines an adaptive Pomodoro timer, deep-work tracking, an AI productivity coach, and live virtual study rooms — so you don't just plan to focus, you actually do.",
     sections: [
@@ -76,7 +77,7 @@ export const ROUTES = [
   // ── Auth ──────────────────────────────────────────────────────
   {
     path: "/signup",
-    title: "Sign Up Free | FocusArx — AI Focus Timer & Deep Work Tracker",
+    title: "Sign Up Free — AI Focus Timer",
     description:
       "Create your free FocusArx account in 30 seconds. AI Pomodoro timer, focus scores, streaks, live study rooms. No credit card required.",
     h1: "Start focusing free",
@@ -91,7 +92,7 @@ export const ROUTES = [
   },
   {
     path: "/login",
-    title: "Log In | FocusArx — AI Focus Timer & Deep Work Tracker",
+    title: "Log In — AI Focus Timer",
     description:
       "Log in to FocusArx to continue your focus streaks, sessions, study rooms, and AI productivity coaching.",
     h1: "Welcome back",
@@ -103,9 +104,9 @@ export const ROUTES = [
   // ── Company ───────────────────────────────────────────────────
   {
     path: "/about",
-    title: "About FocusArx | Our Mission to Make Deep Work Easy",
+    title: "About FocusArx: Our Mission",
     description:
-      "FocusArx helps students and professionals build unbreakable focus habits with an AI-powered, gamified deep-work platform. Learn about our mission and principles.",
+      "FocusArx helps students and professionals build unbreakable focus habits with an AI-powered, gamified deep-work platform.",
     h1: "About FocusArx",
     lead: "FocusArx exists to make deep work the easiest option — not the hardest. We build tools that turn intention into focused action using behavioral science, AI, and game design.",
     sections: [
@@ -147,7 +148,7 @@ export const ROUTES = [
   },
   {
     path: "/pricing",
-    title: "FocusArx Pricing — Free Forever | Premium with Earned Coins",
+    title: "FocusArx Pricing — Free, or Premium by Coins",
     description:
       "FocusArx is completely free forever. Unlock Premium — advanced AI coaching, exclusive themes, deep insights — with coins you earn by focusing. No subscriptions.",
     h1: "Free forever. Premium by focusing.",
@@ -166,7 +167,7 @@ export const ROUTES = [
   },
   {
     path: "/premium",
-    title: "FocusArx Premium — Advanced AI Coaching & Insights",
+    title: "Premium Membership — Unlock with Focus Tokens",
     description:
       "FocusArx Premium unlocks advanced AI coaching, exclusive themes, deeper Focus DNA insights, and boosts — activated with Focus Coins you earn by focusing.",
     h1: "FocusArx Premium",
@@ -188,9 +189,9 @@ export const ROUTES = [
   // ── Guides & content ──────────────────────────────────────────
   {
     path: "/guides",
-    title: "All Focus & Study Guides | Free Productivity Library | FocusArx",
+    title: "Every Focus & Study Guide, Free",
     description:
-      "Browse every free FocusArx guide — Pomodoro technique, deep work, study techniques, ADHD focus, beating procrastination, study music, and more. Science-backed and practical.",
+      "Browse every free FocusArx guide — Pomodoro technique, deep work, study techniques, ADHD focus, beating procrastination, study music, and more.",
     h1: "The FocusArx guide library",
     lead: "Every FocusArx guide in one place: science-backed, practical, and free. Focus fundamentals, study methods, motivation and habits, and interactive tools.",
     sections: [
@@ -216,9 +217,9 @@ export const ROUTES = [
   },
   {
     path: "/focus-guide",
-    title: "How to Focus: The Complete Science-Based Guide (2026) | FocusArx",
+    title: "How to Focus: A Science-Based Guide",
     description:
-      "Learn how to focus and master deep work. Science-backed methods — Pomodoro technique, time blocking, flow state — plus a practical system to build unbreakable focus habits.",
+      "Learn how to focus and master deep work. Science-backed methods — Pomodoro technique, time blocking, flow state — plus a practical system to build unbreakable.",
     h1: "How to focus: the complete science-based guide",
     lead: "Attention is the most valuable resource you own — and the one most under attack. This guide explains why focus is hard, the science behind it, and a practical system to master deep work.",
     sections: [
@@ -246,9 +247,9 @@ export const ROUTES = [
   },
   {
     path: "/pomodoro-guide",
-    title: "Pomodoro Technique Guide 2026 | Best Free Pomodoro Timer App | FocusArx",
+    title: "The Pomodoro Technique, Step by Step",
     description:
-      "Complete guide to the Pomodoro Technique: how 25/5 focus sprints work, common mistakes, longer deep-work intervals, and the best free Pomodoro timer app with AI coaching.",
+      "Complete guide to the Pomodoro Technique: how 25/5 focus sprints work, common mistakes, longer deep-work intervals, and the best free Pomodoro timer app with AI",
     h1: "The Pomodoro technique: the complete guide",
     lead: "Pomodoro breaks work into 25-minute focused sprints separated by 5-minute breaks. It's the world's most-used focus method — here's how to run it correctly, when to extend it, and the tools that make it stick.",
     sections: [
@@ -275,9 +276,9 @@ export const ROUTES = [
   },
   {
     path: "/study-techniques",
-    title: "Best Study Techniques 2026 | Science-Backed Study Methods | FocusArx",
+    title: "Best Study Techniques, Backed by Science",
     description:
-      "The most effective study techniques ranked by evidence — active recall, spaced repetition, interleaving, elaboration — and how to combine them into a system that works.",
+      "The most effective study techniques ranked by evidence — active recall, spaced repetition, interleaving, elaboration — and how to combine them into a system.",
     h1: "The best study techniques, ranked by evidence",
     lead: "Highlighting and rereading feel productive but barely work. Here's what cognitive science says actually builds durable memory — and how to combine the winners.",
     sections: [
@@ -304,9 +305,9 @@ export const ROUTES = [
   },
   {
     path: "/adhd-focus-tips",
-    title: "How to Focus with ADHD: 15 Science-Backed Strategies (2026) | FocusArx",
+    title: "How to Focus with ADHD: 15 Working Strategies",
     description:
-      "Practical focus strategies that actually work for ADHD brains — body doubling, the 10-minute rule, dopamine-friendly rewards, timers, and how to build study habits that stick.",
+      "Practical focus strategies that actually work for ADHD brains — body doubling, the 10-minute rule, dopamine-friendly rewards, timers, and how to build study.",
     h1: "How to focus with ADHD: 15 strategies that work",
     lead: "ADHD isn't a willpower problem — it's a dopamine and attention-regulation difference. These strategies work with your brain instead of against it.",
     sections: [
@@ -342,7 +343,7 @@ export const ROUTES = [
     path: "/stop-procrastinating",
     title: "How to Stop Procrastinating: 12 Methods That Work | FocusArx",
     description:
-      "Why you procrastinate (it's not laziness) and 12 proven ways to stop — the 2-minute rule, temptation bundling, implementation intentions, and systems that make starting easy.",
+      "Why you procrastinate (it's not laziness) and 12 proven ways to stop — the 2-minute rule, temptation bundling, implementation intentions, and systems that make.",
     h1: "How to stop procrastinating: 12 methods that work",
     lead: "Procrastination isn't laziness or a time-management glitch — it's your brain avoiding an emotion. Here's the science, and the toolkit.",
     sections: [
@@ -377,7 +378,7 @@ export const ROUTES = [
     path: "/study-with-me",
     title: "Study With Me: Live Virtual Study Sessions | FocusArx",
     description:
-      "Study with me and thousands of other learners in live virtual study rooms. Real-time accountability, Pomodoro sync, and the body-doubling effect that makes focusing easier.",
+      "Study with me and thousands of other learners in live virtual study rooms.",
     h1: "Study with me: why focusing together works",
     lead: "Millions of students now study alongside strangers online. It's not a trend gimmick — it's the easiest accountability system ever discovered.",
     sections: [
@@ -410,9 +411,9 @@ export const ROUTES = [
   },
   {
     path: "/focus-music",
-    title: "Best Music for Studying & Focus: What Science Says | FocusArx",
+    title: "Music for Studying: What Science Says",
     description:
-      "Does study music actually help? What the research really says about focus music, lo-fi, binaural beats, noise colors, and silence — plus how to build a playlist that deepens focus.",
+      "Does study music actually help? What the research really says about focus music, lo-fi, binaural beats, noise colors, and silence — plus how to build a playlist",
     h1: "Focus music: what science actually says",
     lead: "'Study music' is a billion-stream genre — but does it help? The honest research verdict, and how to use sound to go deeper.",
     sections: [
@@ -445,7 +446,7 @@ export const ROUTES = [
   },
   {
     path: "/deep-study-guide",
-    title: "Deep Study Guide 2026 | Master Deep Learning Techniques | FocusArx",
+    title: "How to Study 2 Hours Deeply, Not 12 Distracted",
     description:
       "The complete deep study guide: science-backed strategies for sustained concentration, memory retention, and peak academic performance.",
     h1: "The deep study guide",
@@ -470,7 +471,7 @@ export const ROUTES = [
   },
   {
     path: "/two-hour-study-method",
-    title: "The 2-Hour Study Method: Structure Deep Study Sessions | FocusArx",
+    title: "The 2-Hour Study Method: Focused Sessions Win",
     description:
       "Master the 2-hour focused study method: warm-up, intense focused study, retrieval practice, and review — the structure that beats scattered, unfocused hours.",
     h1: "The 2-hour study method",
@@ -495,7 +496,7 @@ export const ROUTES = [
   },
   {
     path: "/science-of-deep-work",
-    title: "The Neuroscience of Deep Work | How Focus Rewires Your Brain",
+    title: "The Neuroscience of Deep Work",
     description:
       "Explore the biological mechanisms behind deep work — myelin, neurotransmitters, attention networks, and how to enter the flow state faster.",
     h1: "The neuroscience of deep work",
@@ -543,9 +544,9 @@ export const ROUTES = [
   },
   {
     path: "/study-method-quiz",
-    title: "Which Study Method Works Best for You? | Free Quiz | FocusArx",
+    title: "Study Method Quiz: Find Your System",
     description:
-      "Take the free 2-minute study method quiz. Discover whether active recall, spaced repetition, Pomodoro, or another technique matches your learning style and schedule.",
+      "Take the free 2-minute study method quiz. Discover whether active recall, spaced repetition, Pomodoro, or another technique matches your learning style and.",
     h1: "Which study method works best for you?",
     lead: "Two minutes, a handful of questions — and a study method matched to your brain, schedule, and goals.",
     sections: [
@@ -562,7 +563,7 @@ export const ROUTES = [
   },
   {
     path: "/study-calculator",
-    title: "Study Time Calculator | Plan Your Study Sessions | FocusArx",
+    title: "Study Method Calculator: Optimise Your Prep",
     description:
       "Free study time calculator: enter your exam date, topics, and available hours to get a personalized, retention-optimized study schedule.",
     h1: "Study time calculator",
@@ -583,7 +584,7 @@ export const ROUTES = [
     path: "/virtual-study-room",
     title: "Virtual Study Room | Study with Others Online | FocusArx",
     description:
-      "Join a free virtual study room and focus with other learners online. Synchronized Pomodoro timers, live presence, optional cameras, and 24/7 rooms — no download.",
+      "Join a free virtual study room and focus with other learners online.",
     h1: "Virtual study rooms: study with others online",
     lead: "Join a live room, keep your camera on or off, and study in synchronized silence with learners around the world.",
     sections: [
@@ -787,9 +788,9 @@ export const ROUTES = [
   },
   {
     path: "/focus",
-    title: "Focus App | Free Online Timer With Tasks & Streaks | FocusArx",
+    title: "Focus App",
     description:
-      "The FocusArx focus app: a free online timer with tasks, streaks and session scoring. Deep-linkable (?duration=25&task=…) and guest-friendly — no account needed to start.",
+      "The FocusArx focus app: a free online timer with tasks, streaks and session scoring.",
     h1: "Focus, running in your browser",
     lead: "One screen: the time that is left, the task you picked, and a Start button. Guests can run a full session with no account; signing in later saves history, streaks and analytics.",
     answerFirst:
@@ -821,7 +822,7 @@ export const ROUTES = [
   },
   {
     path: "/changelog",
-    title: "Changelog | What Shipped in FocusArx",
+    title: "Changelog",
     description:
       "What shipped in FocusArx lately: timer reliability fixes, streaks in your timezone, the /focus app and Instagram funnel.",
     h1: "Changelog",
@@ -901,8 +902,11 @@ export const ROUTES = [
   },
   ...EXAM_GUIDES.map((g) => ({
     path: `/exam/${g.slug}`,
-    title: g.title,
-    description: g.description,
+    // Content files own their headings in full; the search-result copy is bounded
+    // here so an authored 180-character description is clipped by us, at a clause
+    // boundary, instead of mid-sentence by Google.
+    title: clampText(g.title.replace(/\s*[|—–]\s*FocusArx\s*$/, ""), PAGE_TITLE_BUDGET, { fullStop: false }),
+    description: clampText(g.description, DESCRIPTION_BUDGET),
     h1: g.h1,
     lead: g.lead,
     sections: g.sections,
@@ -926,8 +930,8 @@ export const ROUTES = [
   },
   ...BLOG_POSTS.map((p) => ({
     path: `/blog/${p.slug}`,
-    title: p.title,
-    description: p.description,
+    title: clampText(p.title.replace(/\s*[|—–]\s*FocusArx\s*$/, ""), PAGE_TITLE_BUDGET, { fullStop: false }),
+    description: clampText(p.description, DESCRIPTION_BUDGET),
     h1: p.h1,
     lead: p.lead,
     sections: p.sections,
@@ -946,8 +950,14 @@ export const ROUTES = [
     const examName = g.exam?.name ?? g.h1;
     return {
       path: `/pomodoro-timer-for/${g.slug}`,
-      title: `Pomodoro Timer for ${examName} | Focus Sessions That Count`,
-      description: `Free Pomodoro timer tuned for ${examName}: ${funnel.angle} No account needed to start.`,
+      // Composed from exam names of wildly different lengths ("UPSC CSE" to "NDA & NA
+      // (National Defence Academy / Naval Academy)"), so it is clamped here on purpose:
+      // an unbounded title is clipped mid-parenthesis by Google instead.
+      title: clampText(`Pomodoro timer for ${examName}`, PAGE_TITLE_BUDGET, { fullStop: false }),
+      description: clampText(
+        `Free Pomodoro timer tuned for ${examName}: ${funnel.angle} No account needed to start.`,
+        DESCRIPTION_BUDGET
+      ),
       h1: `Pomodoro timer for ${examName}`,
       lead: funnel.angle,
       sections: g.sections.slice(0, 3),

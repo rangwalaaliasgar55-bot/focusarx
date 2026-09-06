@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Crown, Lock, Sparkles, Target, BookOpen, Zap, Coffee, Moon } from "lucide-react";
+import { Crown, Lock, Sparkles, Target, BookOpen } from "lucide-react";
 import { Link } from "wouter";
 import { usePremium } from "@/hooks/usePremium";
 
@@ -55,10 +55,11 @@ export function TimerRitualsPanel({
 
       {/* Intention — free */}
       <div className="mb-4">
-        <label className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">
+        <label htmlFor="timer-rituals-intention" className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">
           <Target size={10} /> Session intention
         </label>
         <input
+          id="timer-rituals-intention"
           value={intention}
           onChange={(e) => setIntention(e.target.value)}
           placeholder="What will you focus on? (e.g. Write chapter 3)"
@@ -142,7 +143,7 @@ export function TimerRitualsPanel({
                     }
                     onCustomDuration(customVal);
                   }}
-                  className="mt-3 w-full rounded-xl bg-[var(--brand-600)] py-2 text-xs font-bold text-white hover:bg-[var(--brand-500)]"
+                  className="mt-3 w-full rounded-xl bg-[var(--brand-600)] py-2 text-xs font-bold text-white hover:bg-[var(--brand-700)]"
                 >
                   Apply {customVal}m
                 </button>

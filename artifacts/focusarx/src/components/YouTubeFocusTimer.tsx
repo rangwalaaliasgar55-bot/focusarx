@@ -9,9 +9,9 @@
  * Channel: https://www.youtube.com/@AJourneyR
  */
 
-import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, Volume2, VolumeX, Youtube, X, ExternalLink } from "lucide-react";
+import { useState, useRef } from "react";
+import { motion } from "framer-motion";
+import { Play, Volume2, VolumeX, Youtube, X, ExternalLink } from "lucide-react";
 
 interface YouTubeFocusTimerProps {
   isActive: boolean;
@@ -33,7 +33,7 @@ const CHANNEL_VIDEOS = [
 const CHANNEL_HANDLE = "@AJourneyR";
 const CHANNEL_URL = "https://www.youtube.com/@AJourneyR";
 
-export default function YouTubeFocusTimer({ isActive, sessionDuration }: YouTubeFocusTimerProps) {
+export default function YouTubeFocusTimer({ isActive }: YouTubeFocusTimerProps) {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -42,12 +42,11 @@ export default function YouTubeFocusTimer({ isActive, sessionDuration }: YouTube
 
   const currentVideo = CHANNEL_VIDEOS[currentVideoIndex];
 
-  // Auto-pause when session ends
-  useEffect(() => {
-    if (!isActive) {
-      setIsPlaying(false);
-    }
-  }, [isActive]);
+  // "Is the video actually running" is the player's intent *and* the session's
+  // state. It used to be one effect that copied `isActive` into `isPlaying` —
+  // an extra render on every session boundary, and it lost the user's choice:
+  // pausing then resuming the session came back playing. Deriving keeps both.
+  const isRunning = isPlaying && isActive;
 
   const togglePlay = () => {
     setIsPlaying(!isPlaying);
@@ -72,7 +71,7 @@ export default function YouTubeFocusTimer({ isActive, sessionDuration }: YouTube
     setShowControls(false);
   };
 
-  if (!showControls && !isPlaying) {
+  if (!showControls && !isRunning) {
     return (
       <motion.button
         initial={{ opacity: 0, scale: 0.9 }}
@@ -114,8 +113,9 @@ export default function YouTubeFocusTimer({ isActive, sessionDuration }: YouTube
 
       {/* Video Player */}
       <div className="relative aspect-video w-full bg-black">
-        {isPlaying ? (
+        {isRunning ? (
           <iframe
+            title="Focus session video"
             ref={iframeRef}
             src={`https://www.youtube.com/embed/${currentVideo.id}?autoplay=1&mute=${isMuted ? 1 : 0}&loop=1&playlist=${currentVideo.id}&controls=0&showinfo=0&rel=0&modestbranding=1`}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -126,7 +126,7 @@ export default function YouTubeFocusTimer({ isActive, sessionDuration }: YouTube
           <div className="grid h-full place-items-center">
             <button
               onClick={togglePlay}
-              className="flex items-center gap-2 rounded-full bg-[var(--brand-600)] px-6 py-3 text-sm font-bold text-white transition-all hover:bg-[var(--brand-500)]"
+              className="flex items-center gap-2 rounded-full bg-[var(--brand-600)] px-6 py-3 text-sm font-bold text-white transition-all hover:bg-[var(--brand-700)]"
             >
               <Play size={16} />
               Play

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Save, X, Plus, Pencil, Trash2, RefreshCw } from "lucide-react";
-import { StatCard, SectionHeader, Badge, MotionTab, EmptyState, LoadingState } from "./AdminHelpers";
+import { Badge, EmptyState, LoadingState, MotionTab, SectionHeader, adminFetch } from "./AdminHelpers";
 import type { MarketplaceItem, AdminPanelProps } from "./AdminTypes";
 
 const RARITIES = ["common", "uncommon", "rare", "epic", "legendary"];
@@ -26,7 +26,7 @@ export function AdminMarketplacePanel({ authHeaders }: AdminPanelProps) {
   async function load() {
     setLoading(true);
     try {
-      const r = await fetch("/api/admin/cms/marketplace", { headers: authHeaders(), credentials: "include" });
+      const r = await adminFetch("/api/admin/cms/marketplace", { headers: authHeaders(), credentials: "include" });
       if (r.ok) { const d = await r.json(); setItems(d.items ?? []); }
     } finally { setLoading(false); }
   }
@@ -35,7 +35,7 @@ export function AdminMarketplacePanel({ authHeaders }: AdminPanelProps) {
     const url = isNew ? "/api/admin/cms/marketplace" : `/api/admin/cms/marketplace/${form.id}`;
     const method = isNew ? "POST" : "PATCH";
     try {
-      const r = await fetch(url, {
+      const r = await adminFetch(url, {
         method, headers: { ...authHeaders(), "Content-Type": "application/json" },
         credentials: "include", body: JSON.stringify(form),
       });
@@ -50,7 +50,7 @@ export function AdminMarketplacePanel({ authHeaders }: AdminPanelProps) {
 
   async function deleteItem(itemId: string) {
     if (!window.confirm("Delete this item?")) return;
-    const r = await fetch(`/api/admin/cms/marketplace/${itemId}`, {
+    const r = await adminFetch(`/api/admin/cms/marketplace/${itemId}`, {
       method: "DELETE", headers: authHeaders(), credentials: "include",
     });
     if (r.ok) setItems(prev => prev.filter(i => i.id !== itemId));

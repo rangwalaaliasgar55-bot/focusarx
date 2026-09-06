@@ -16,6 +16,19 @@ export class ApiError extends Error {
 }
 
 /**
+ * Outcome of a silent refresh attempt.
+ *
+ * The distinction is the whole point. `invalid` means the server looked at the
+ * credential and refused it — the session is over and the client must sign the
+ * user out. `unavailable` means nobody got an answer (network dropped, proxy
+ * 502, cold start, rate limit, database blip) and the session may well still be
+ * valid. Treating the second like the first is what logged people out mid-session
+ * whenever an API instance restarted: the app "detected" an expired session that
+ * had never expired at all.
+ */
+export type RefreshOutcome = "ok" | "invalid" | "unavailable";
+
+/**
  * Single-flight silent refresh. When multiple queries 401 at once, exactly one
  * POST /api/auth/refresh goes out; everyone awaits the same result. The httpOnly
  * refresh cookie rides along via credentials: "include".
@@ -25,10 +38,10 @@ export class ApiError extends Error {
  * second tab reads the freshly-rotated cookie). Falls back to per-tab
  * single-flight where locks are unsupported.
  */
-let refreshInFlight: Promise<boolean> | null = null;
+let refreshInFlight: Promise<RefreshOutcome> | null = null;
 
-export function tryRefreshSession(): Promise<boolean> {
-  const attempt = async (): Promise<boolean> => {
+export function tryRefreshSession(): Promise<RefreshOutcome> {
+  const attempt = async (): Promise<RefreshOutcome> => {
     try {
       const res = await fetch("/api/auth/refresh", {
         method: "POST",
@@ -44,15 +57,19 @@ export function tryRefreshSession(): Promise<boolean> {
         } catch {
           // Non-JSON body — cookies are still the primary credential
         }
-        return true;
+        return "ok";
       }
-      return false;
+      // 401/403 with a structured error is the server's verdict on the token.
+      // Anything else (429, 5xx, an HTML error page from an intermediary) is a
+      // transport problem: keep the session and let the caller retry.
+      if (res.status === 401 || res.status === 403) return "invalid";
+      return "unavailable";
     } catch {
-      return false;
+      return "unavailable";
     }
   };
 
-  const withLock = async (): Promise<boolean> => {
+  const withLock = async (): Promise<RefreshOutcome> => {
     if (typeof navigator !== "undefined" && navigator.locks?.request) {
       try {
         return await navigator.locks.request("focusarx:auth-refresh", attempt);
@@ -96,22 +113,27 @@ export async function apiFetch(path: string, init: RequestInit = {}, _retried = 
   // Attach deployment version header for skew protection.
   headers.set("X-FocusArx-Deployment", FRONTEND_DEPLOYMENT_VERSION);
 
-  let response: Response;
-  try {
-    response = await fetch(path, { ...init, headers, credentials: "include" });
-  } catch (err) {
-    // Network error — could be a chunk load failure if this was a dynamic import
-    throw err;
-  }
+  // A failed fetch (offline, DNS, aborted) rejects and propagates as-is: the
+  // only thing callers need to know is that the request never got an answer.
+  const response = await fetch(path, { ...init, headers, credentials: "include" });
 
   // Record the server's deployment version from the response header.
   const serverVersion = response.headers.get("X-FocusArx-Deployment");
   if (serverVersion) recordServerVersion(serverVersion);
 
+  // Parsed early because the 409 branch below has to read the body to recognise
+  // a skew response. Remembering it matters: every *other* 409 (a conflict the
+  // admin routes raise for duplicate keys, live drops, unlocked SQL writes) also
+  // consumed the stream here, and the error path further down then read an empty
+  // body — the server's explanation was discarded and the panel was handed
+  // `Request failed (409)`.
+  let parsedBody: unknown = null;
+
   // ── 409 DEPLOYMENT_SKEW handling ──────────────────────────────────────────
   if (response.status === 409) {
     let body: Record<string, unknown> = {};
     try { body = await response.json() as Record<string, unknown>; } catch { /* */ }
+    parsedBody = body;
 
     const error = (body as { error?: Record<string, unknown> }).error;
     if (error?.code === "DEPLOYMENT_SKEW") {
@@ -150,20 +172,45 @@ export async function apiFetch(path: string, init: RequestInit = {}, _retried = 
 
   // ── 401: silent refresh + single retry ────────────────────────────────────
   if (response.status === 401 && !_retried && !isAuthPath(path)) {
-    const refreshed = await tryRefreshSession();
-    if (refreshed) return apiFetch(path, init, true);
+    const outcome = await tryRefreshSession();
+    if (outcome === "ok") return apiFetch(path, init, true);
+    if (outcome === "unavailable") {
+      // Nobody refused the session — the network did. Keep the credentials,
+      // keep the user where they are, and surface 503 so React Query retries
+      // the query on its own. Signing the user out here is how a two-second
+      // blip becomes a lost focus session.
+      throw new ApiError(503, "FocusArx is unreachable. Your session is still active — retrying shortly.");
+    }
     clearToken();
     window.dispatchEvent(new CustomEvent("focusarx:auth-expired"));
     throw new ApiError(401, "Your session expired. Please sign in again.");
   }
 
   if (!response.ok) {
-    let errorData: unknown = null;
-    try { errorData = await response.json(); } catch { /* non-JSON error body */ }
-    throw new ApiError(response.status, `Request failed (${response.status})`, errorData);
+    let errorData: unknown = parsedBody;
+    if (errorData === null) {
+      try { errorData = await response.json(); } catch { /* non-JSON error body */ }
+    }
+    // The old message was `Request failed (429)` — the number means nothing to
+    // a user, while the server already said what to do ("Too many sign-in
+    // attempts, wait a few minutes"). Prefer the server's own wording and keep
+    // the status for programmatic handlers.
+    throw new ApiError(response.status, messageFromEnvelope(errorData) ?? `Request failed (${response.status})`, errorData);
   }
 
   return response;
+}
+
+/** `{ error: { code, message } }` or `{ error: "message" }` → the message. */
+function messageFromEnvelope(data: unknown): string | null {
+  if (!data || typeof data !== "object") return null;
+  const error = (data as { error?: unknown }).error;
+  if (typeof error === "string") return error.trim() || null;
+  if (error && typeof error === "object") {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string" && message.trim()) return message.trim();
+  }
+  return null;
 }
 
 export async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {

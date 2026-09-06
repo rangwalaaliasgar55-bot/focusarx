@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { clampText, composeTitle, DESCRIPTION_BUDGET } from "@/lib/seo-text.mjs";
 
 interface PageSEOProps {
   title: string;
@@ -65,19 +66,20 @@ export function PageSEO({
 }: PageSEOProps) {
   useEffect(() => {
     const prevTitle = document.title;
-    const fullTitle = title.includes("FocusArx") ? title : `${title} | FocusArx`;
+    const fullTitle = composeTitle(title);
     const canonicalUrl = canonical ? `${BASE_URL}${canonical}` : BASE_URL;
 
     document.title = fullTitle;
 
-    setMeta("description", description);
+    const finalDescription = clampText(description, DESCRIPTION_BUDGET);
+    setMeta("description", finalDescription);
     setMeta("robots", noindex ? "noindex, nofollow" : "index, follow, max-image-preview:large");
     if (keywords) setMeta("keywords", keywords);
 
     setLink("canonical", canonicalUrl);
 
     setMeta("og:title", fullTitle, "property");
-    setMeta("og:description", description, "property");
+    setMeta("og:description", finalDescription, "property");
     setMeta("og:url", canonicalUrl, "property");
     setMeta("og:image", ogImage, "property");
     setMeta("og:image:width", "1200", "property");
@@ -88,7 +90,7 @@ export function PageSEO({
     setMeta("og:locale", "en_US", "property");
 
     setMeta("twitter:title", fullTitle, "name");
-    setMeta("twitter:description", description, "name");
+    setMeta("twitter:description", finalDescription, "name");
     setMeta("twitter:image", ogImage, "name");
     setMeta("twitter:card", "summary_large_image", "name");
     setMeta("twitter:site", "@focusarx", "name");
@@ -154,7 +156,7 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   },
   about: {
     canonical: "/about",
-    title: "About FocusArx | AI Productivity Platform Mission & Story",
+    title: "The Mission Behind FocusArx",
     description: "Learn about FocusArx — the AI productivity platform built to help students and professionals build deep focus habits. Our mission, values, and team.",
     keywords: "about FocusArx, FocusArx mission, FocusArx team, FocusArx story, AI productivity company",
   },
@@ -173,7 +175,7 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   pricing: {
     canonical: "/pricing",
     title: "FocusArx — Free Forever | Deep Work Features",
-    description: "FocusArx is completely free. Unlock unlimited AI coaching, advanced Focus DNA insights, and exclusive themes with Premium — activated using coins you earn by focusing.",
+    description: "FocusArx is completely free. Unlock unlimited AI coaching, advanced Focus DNA insights, and exclusive themes with Premium — activated using coins you earn by.",
     keywords: "FocusArx free, free focus timer, free study app, deep work features, FocusArx premium coins",
   },
   onboarding: {
@@ -202,26 +204,26 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   },
   focusGuide: {
     canonical: "/focus-guide",
-    title: "How to Focus: The Complete Science-Based Guide (2026) | FocusArx",
-    description: "Learn how to focus and master deep work. Science-backed methods — Pomodoro technique, time blocking, flow state — plus a practical system to build unbreakable focus habits.",
+    title: "How to Focus: A Science-Based Guide",
+    description: "Learn how to focus and master deep work. Science-backed methods — Pomodoro technique, time blocking, flow state — plus a practical system to build unbreakable.",
     keywords: "how to focus, improve focus, deep work, how to concentrate, focus guide, build focus habits, Pomodoro method, flow state, FocusArx focus guide",
   },
   pomodoroGuide: {
     canonical: "/pomodoro-guide",
-    title: "Pomodoro Technique Guide 2026 | Best Pomodoro Timer App | FocusArx",
-    description: "Complete guide to the Pomodoro Technique. Learn how to use the Pomodoro method with FocusArx — the best free AI-powered Pomodoro timer app for students and professionals.",
+    title: "The Pomodoro Technique, Step by Step",
+    description: "Complete guide to the Pomodoro Technique. Learn how to use the Pomodoro method with FocusArx — the best free AI-powered Pomodoro timer app for students and.",
     keywords: "Pomodoro technique, Pomodoro timer, Pomodoro method, best Pomodoro app, Pomodoro guide, FocusArx Pomodoro, study Pomodoro",
   },
   studyTechniques: {
     canonical: "/study-techniques",
-    title: "Best Study Techniques 2026 | Science-Backed Study Methods | FocusArx",
-    description: "Discover the most effective study techniques — active recall, spaced repetition, Feynman technique, and more. Learn how FocusArx supercharges every method with AI.",
+    title: "Best Study Techniques, Backed by Science",
+    description: "Discover the most effective study techniques — active recall, spaced repetition, Feynman technique, and more. Learn how FocusArx supercharges every method.",
     keywords: "study techniques, best study methods, active recall, spaced repetition, effective studying, study tips, student productivity techniques, FocusArx study",
   },
   virtualStudyRoom: {
     canonical: "/virtual-study-room",
     title: "Virtual Study Room | Study with Others Online | FocusArx",
-    description: "Join a free virtual study room and focus with other learners online. Synchronized Pomodoro timers, live presence, optional cameras, and 24/7 rooms — no download.",
+    description: "Join a free virtual study room and focus with other learners online. Synchronized Pomodoro timers, live presence, optional cameras, and 24/7 rooms — no.",
     keywords: "virtual study room, study with others online, online study room, co-study app, study accountability, group study online, FocusArx study rooms",
   },
   roadmap: {
@@ -250,7 +252,7 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   },
   scienceOfDeepWork: {
     canonical: "/science-of-deep-work",
-    title: "The Neuroscience of Deep Work | How Focus Rewires Your Brain",
+    title: "The Neuroscience of Deep Work",
     description: "Explore the biological mechanisms behind deep work. Learn about myelin, neurotransmitters, and how FocusArx helps you enter the flow state faster.",
     keywords: "science of focus, deep work neuroscience, myelin study, flow state biology, FocusArx science",
   },
@@ -262,19 +264,19 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   },
   deepStudyGuide: {
     canonical: "/deep-study-guide",
-    title: "Deep Study Guide 2026 | Master Deep Learning Techniques | FocusArx",
+    title: "Deep Study Guide: Longer, Quieter Sessions",
     description: "The complete deep study guide. Science-backed strategies for sustained concentration, memory retention, and peak academic performance.",
     keywords: "deep study, study guide, how to study effectively, deep learning techniques, concentration tips",
   },
   twoHourStudyMethod: {
     canonical: "/two-hour-study-method",
-    title: "The 2-Hour Study Method: Structure Deep Study Sessions | FocusArx",
+    title: "The 2-Hour Study Method",
     description: "Master the 2-hour focused study method. Structure your sessions for maximum retention with timed intervals, active recall, and strategic breaks.",
     keywords: "2 hour study method, study session structure, timed studying, focus blocks",
   },
   studyMethodQuiz: {
     canonical: "/study-method-quiz",
-    title: "Which Study Method Works Best for You? | Free Quiz | FocusArx",
+    title: "Which Study Method Fits You? Free Quiz",
     description: "Take our free study method quiz. Discover whether active recall, spaced repetition, or the Pomodoro technique matches your learning style.",
     keywords: "study method quiz, which study method, learning style quiz, best study technique quiz",
   },
@@ -323,32 +325,32 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   },
   guides: {
     canonical: "/guides",
-    title: "All Focus & Study Guides | Free Productivity Library | FocusArx",
-    description: "Browse every free FocusArx guide — Pomodoro technique, deep work, study techniques, ADHD focus, beating procrastination, study music, and more. Science-backed and practical.",
+    title: "Every Focus & Study Guide, Free",
+    description: "Browse every free FocusArx guide — Pomodoro technique, deep work, study techniques, ADHD focus, beating procrastination, study music, and more.",
     keywords: "study guides, focus guides, productivity guides, free study resources, how to focus, how to study",
   },
   adhdFocus: {
     canonical: "/adhd-focus-tips",
-    title: "How to Focus with ADHD: 15 Science-Backed Strategies (2026) | FocusArx",
-    description: "Practical focus strategies that actually work for ADHD brains — body doubling, the 10-minute rule, dopamine-friendly rewards, timers, and how to build study habits that stick.",
+    title: "How to Focus with ADHD: 15 Working Strategies",
+    description: "Practical focus strategies that actually work for ADHD brains — body doubling, the 10-minute rule, dopamine-friendly rewards, timers, and how to build study.",
     keywords: "how to focus with ADHD, ADHD study tips, ADHD concentration, focus strategies ADHD, ADHD productivity, ADHD time blindness, body doubling study",
   },
   stopProcrastinating: {
     canonical: "/stop-procrastinating",
     title: "How to Stop Procrastinating: 12 Methods That Work | FocusArx",
-    description: "Why you procrastinate (it's not laziness) and 12 proven ways to stop — the 2-minute rule, temptation bundling, implementation intentions, and systems that make starting easy.",
+    description: "Why you procrastinate (it's not laziness) and 12 proven ways to stop — the 2-minute rule, temptation bundling, implementation intentions, and systems that.",
     keywords: "how to stop procrastinating, stop procrastination, why do I procrastinate, procrastination help, overcome procrastination, 2 minute rule, motivation to study",
   },
   studyWithMe: {
     canonical: "/study-with-me",
     title: "Study With Me: Live Virtual Study Sessions | FocusArx",
-    description: "Study with me and thousands of other learners in live virtual study rooms. Real-time accountability, Pomodoro sync, and the body-doubling effect that makes focusing easier.",
+    description: "Study with me and thousands of other learners in live virtual study rooms. Real-time accountability, Pomodoro sync, and the body-doubling effect that makes.",
     keywords: "study with me, study with me online, virtual study session, body doubling, study live with others, pomodoro study with me, study together online",
   },
   focusMusic: {
     canonical: "/focus-music",
-    title: "Best Music for Studying & Focus: What Science Says | FocusArx",
-    description: "Does study music actually help? What the research really says about focus music, lo-fi, binaural beats, and silence — plus how to build a playlist that deepens concentration.",
+    title: "Music for Studying: What Science Says",
+    description: "Does study music actually help? What the research really says about focus music, lo-fi, binaural beats, and silence — plus how to build a playlist that.",
     keywords: "focus music, study music, music for concentration, lo fi study music, binaural beats focus, best music for studying, music while working",
   },
   search: {

@@ -225,7 +225,7 @@ export default function FeedbackModal({ open, onClose, onSubmit }: FeedbackModal
                   <button
                     onClick={handleSubmit}
                     disabled={rating === 0 || submitting}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] py-2.5 text-sm font-semibold text-[var(--palette-white)] disabled:opacity-40 hover:opacity-90 transition-opacity"
+                    className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] py-2.5 text-sm font-semibold text-[var(--palette-white)] disabled:opacity-40 hover:opacity-90 transition-opacity"
                   >
                     <Send size={14} />
                     {submitting ? "Sending…" : "Send feedback"}

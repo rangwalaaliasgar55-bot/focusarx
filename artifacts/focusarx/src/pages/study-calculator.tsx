@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { Calculator, Target, Clock, Brain, ArrowRight } from "lucide-react";
+
+import { Calculator, Target, Clock, ArrowRight }from "lucide-react";
 import { PageSEO } from "@/components/PageSEO";
 
 export default function StudyMethodCalculator() {
@@ -14,7 +14,7 @@ export default function StudyMethodCalculator() {
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--palette-white)] py-20 px-6">
       <PageSEO
-        title="Study Method Calculator | Optimize Your Prep | FocusArx"
+        title="Study Method Calculator: Optimise Your Prep"
         description="Calculate exactly how many hours you need to study per day and get a science-backed method recommendation based on your exam deadline."
         canonical="/study-calculator"
         keywords="study calculator, exam prep calculator, how many hours to study, study method recommender"
@@ -30,8 +30,9 @@ export default function StudyMethodCalculator() {
         <div className="grid gap-8 md:grid-cols-2">
            <div className="space-y-6 rounded-3xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] p-8 backdrop-blur-xl">
               <div>
-                 <label className="block text-xs font-bold uppercase tracking-widest text-[var(--foreground-subtle)] mb-3">Days until Deadline</label>
+                 <label htmlFor="study-calculator-days" className="block text-xs font-bold uppercase tracking-widest text-[var(--foreground-subtle)] mb-3">Days until Deadline</label>
                  <input
+                   id="study-calculator-days"
                    type="range" min="1" max="180"
                    value={examDays} onChange={(e) => setExamDays(parseInt(e.target.value))}
                    className="w-full accent-[var(--brand-400)]"
@@ -40,8 +41,9 @@ export default function StudyMethodCalculator() {
               </div>
 
               <div>
-                 <label className="block text-xs font-bold uppercase tracking-widest text-[var(--foreground-subtle)] mb-3">Material Volume (Pages/Topics)</label>
+                 <label htmlFor="study-calculator-volume" className="block text-xs font-bold uppercase tracking-widest text-[var(--foreground-subtle)] mb-3">Material Volume (Pages/Topics)</label>
                  <input
+                   id="study-calculator-volume"
                    type="range" min="50" max="2000" step="10"
                    value={materialVolume} onChange={(e) => setMaterialVolume(parseInt(e.target.value))}
                    className="w-full accent-[var(--brand-400)]"
@@ -50,8 +52,8 @@ export default function StudyMethodCalculator() {
               </div>
 
               <div>
-                 <label className="block text-xs font-bold uppercase tracking-widest text-[var(--foreground-subtle)] mb-3">Target Retention</label>
-                 <div className="flex gap-2">
+                 <span id="study-calculator-retention" className="block text-xs font-bold uppercase tracking-widest text-[var(--foreground-subtle)] mb-3">Target Retention</span>
+                 <div role="group" aria-labelledby="study-calculator-retention" className="flex gap-2">
                     {[1, 2, 3].map(v => (
                        <button
                          key={v}

@@ -1,4 +1,5 @@
 import rateLimit from "express-rate-limit";
+import type { Response } from "express";
 import { getRateLimitStore } from "./rateLimitStore";
 
 const isDev = process.env.NODE_ENV !== "production";
@@ -39,23 +40,73 @@ function userKey(req: any): string {
   return token ? `tok:${token}` : `ip:${ipKey(req)}`;
 }
 
+/** Ask a rate-limited response how long the caller must wait (best effort). */
+function retryAfterSeconds(res: Response): number {
+  const value = res.getHeader("Retry-After");
+  const parsed = typeof value === "string" ? Number(value) : typeof value === "number" ? value : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : 60;
+}
+
+/**
+ * Sign-in attempts (login / register / change-password).
+ *
+ * `skipSuccessfulRequests` is the fix for a lockout that had nothing to do with
+ * attackers: the bucket counted *every* request, so a successful sign-in cost
+ * the same as a wrong password. With the old 10-per-15-minutes-per-IP limit,
+ * one school lab, one shared family connection, one office NAT — or one person
+ * who signs in from three devices and refreshes the page twice — burned the
+ * whole window and everyone behind it was told "Too many attempts". Throttling
+ * failures only keeps the brute-force protection (an attacker never produces a
+ * 2xx) while legitimate logins stop costing budget.
+ *
+ * The response is the standard error envelope with `retryAfterSeconds`, so the
+ * form can say *when* to come back instead of "try again later".
+ */
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: isDev ? 100 : 10,
-  store: store(15 * 60 * 1000, "auth"),
-  standardHeaders: true,
+  limit: isDev ? 100 : 20,
+  standardHeaders: "draft-8",
   legacyHeaders: false,
-  message: { error: "Too many attempts, please try again later." },
-  skipSuccessfulRequests: false,
+  skipSuccessfulRequests: true,
+  store: store(15 * 60 * 1000, "auth"),
+  handler: (_req, res) => {
+    res.status(429).json({
+      error: {
+        code: "RATE_LIMITED",
+        message: "Too many sign-in attempts. Wait a few minutes and try again — your account is not locked and your data is safe.",
+        retryAfterSeconds: retryAfterSeconds(res),
+      },
+    });
+  },
 });
 
 export const forgotPasswordLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: isDev ? 50 : 5,
-  store: store(60 * 60 * 1000, "forgot-password"),
-  standardHeaders: true,
+  limit: isDev ? 50 : 8,
+  standardHeaders: "draft-8",
   legacyHeaders: false,
-  message: { error: "Too many password reset requests, please wait an hour." },
+  skipSuccessfulRequests: true,
+  store: store(60 * 60 * 1000, "forgot-password"),
+  message: { error: { code: "RATE_LIMITED", message: "Too many password-reset requests. Please wait an hour and try again." } },
+});
+
+/**
+ * Reset-link work (the `verify` probe + the reset POST).
+ *
+ * These used to share `forgotPasswordLimiter`, so opening the reset page — a
+ * plain GET the SPA fires before the form is even usable — consumed part of the
+ * hourly "send me a reset email" budget. Two refreshes of the reset page plus a
+ * forgotten-password click on a shared IP and the whole network was locked out
+ * of password recovery. Separate window, separate counter, generous enough that
+ * no real user reaches it.
+ */
+export const resetLinkLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: isDev ? 200 : 30,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  store: store(15 * 60 * 1000, "reset-link"),
+  message: { error: { code: "RATE_LIMITED", message: "Too many password-reset attempts. Please wait a few minutes." } },
 });
 
 
@@ -101,13 +152,39 @@ export const refreshLimiter = rateLimit({
   },
 });
 
+/**
+ * Auth endpoints carry their own, stricter limiters (authLimiter, guestLimiter,
+ * refreshLimiter, forgotPasswordLimiter, resetLinkLimiter). They are excluded
+ * from the general bucket on purpose: `generalLimiter` is keyed on IP and
+ * counts EVERY /api call a page makes, so one classroom, one family, or one
+ * office behind a single address — each tab firing a dozen dashboard, session
+ * and notification requests on load — can fill the window with ordinary
+ * browsing. When that happens, the person who did nothing wrong is the one
+ * typing a password, and the app answers their correct credentials with a 429.
+ */
+const SHARED_BUCKET_EXEMPT_AUTH_PATHS = [
+  "/auth/login",
+  "/auth/register",
+  "/auth/guest",
+  "/auth/refresh",
+  "/auth/forgot-password",
+  "/auth/reset-password",
+  "/auth/change-password",
+];
+
+function isOwnLimitedAuthPath(req: { path?: string; url?: string }): boolean {
+  const path = req.path ?? req.url ?? "";
+  return SHARED_BUCKET_EXEMPT_AUTH_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
+}
+
 export const generalLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: isDev ? 500 : 120,
   store: store(60 * 1000, "general"),
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: "Too many requests, slow down." },
+  skip: (req) => isOwnLimitedAuthPath(req as { path?: string; url?: string }),
+  message: { error: { code: "RATE_LIMITED", message: "Too many requests, slow down." } },
 });
 
 export const trackLimiter = rateLimit({

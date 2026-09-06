@@ -1,5 +1,100 @@
 import { motion } from "framer-motion";
 import { RefreshCw } from "lucide-react";
+import { ApiError, apiFetch } from "@/lib/api";
+
+// ─── Data transport ─────────────────────────────────────────────────────────
+
+/**
+ * Every admin request goes through here instead of calling `fetch` directly.
+ *
+ * The console used to hand-roll `fetch(url, { headers: authHeaders(),
+ * credentials: "include" })` in 55 places, which silently opted out of
+ * everything the app's API client does: the access token lasts 15 minutes, so a
+ * panel left open simply stopped working until a reload; a 401 never triggered a
+ * silent refresh; the deployment-skew header was missing, so a write issued
+ * against an old frontend was rejected without being queued for replay; and a
+ * 4xx response body — the server's own explanation, e.g. "Flag key already
+ * exists" — was thrown away in favour of a generic "Request failed".
+ *
+ * A straight swap to `apiFetch` would have been a regression, though: it throws
+ * on every non-2xx, while these panels branch on `res.ok`. So the adapter
+ * catches and re-materialises the failure as a `Response` carrying the status
+ * and the server's envelope. Existing call sites keep working untouched, and
+ * `!res.ok` branches now display the real message. Network-level failures become
+ * a 504 rather than an unhandled rejection that leaves the panel spinning.
+ */
+export async function adminFetch(
+  path: string,
+  init: RequestInit = {},
+  options: { silent?: boolean } = {},
+): Promise<Response> {
+  let response: Response;
+  try {
+    response = await apiFetch(path, init);
+  } catch (err) {
+    if (err instanceof ApiError) {
+      const body =
+        err.data && typeof err.data === "object"
+          ? JSON.stringify(err.data)
+          : JSON.stringify({ error: { code: "REQUEST_FAILED", message: err.message } });
+      response = new Response(body, { status: err.status, headers: { "Content-Type": "application/json" } });
+    } else {
+      response = new Response(
+        JSON.stringify({
+          error: {
+            code: "NETWORK",
+            message: "FocusArx could not be reached. Nothing was changed — try again.",
+          },
+        }),
+        { status: 504, headers: { "Content-Type": "application/json" } },
+      );
+    }
+  }
+
+  // Twenty of the twenty-eight panels have no error state at all: a rejected
+  // write looked exactly like an accepted one, and a failed load looked like an
+  // empty table. `ToastProvider` already listens for this event, so every call
+  // site gets a message without 55 edits — panels that render the failure
+  // inline pass `{ silent: true }` instead of duplicating it. 401 is left to the
+  // session layer, which already tells the user what happened.
+  if (!options.silent && !response.ok && response.status !== 401) {
+    const message = await describeFailure(response);
+    const now = Date.now();
+    if (message && announced.get(message) !== now && (announced.get(message) ?? 0) < now - ANNOUNCE_DEDUPE_MS) {
+      announced.set(message, now);
+      window.dispatchEvent(new CustomEvent("focusarx:api-error", { detail: { message } }));
+    }
+  }
+
+  return response;
+}
+
+const ANNOUNCE_DEDUPE_MS = 1_500;
+const announced = new Map<string, number>();
+
+/** The server's own wording, if it sent one; a plain sentence if it didn't. */
+async function describeFailure(response: Response): Promise<string | null> {
+  const fallback = `That didn't go through (${response.status}).`;
+  const text = await response.clone().text().catch(() => "");
+  if (!text) return fallback;
+  try {
+    const data = JSON.parse(text) as { error?: unknown };
+    const error = data?.error;
+    const message =
+      typeof error === "string" ? error : typeof (error as { message?: unknown })?.message === "string"
+        ? ((error as { message: string }).message ?? "")
+        : "";
+    // `apiFetch` falls back to `Request failed (502)` when a proxy answers with
+    // no envelope at all; that number is a log line, not something to show an
+    // operator. Anything else is the route's own sentence and gets used verbatim.
+    const trimmed = message.trim();
+    if (!trimmed || /^Request failed \(\d+\)$/.test(trimmed)) return fallback;
+    return trimmed;
+  } catch {
+    /* HTML/plain-text error page (proxy, rate limiter) — fall through */
+    return fallback;
+  }
+}
 
 // ─── Stat Card ──────────────────────────────────────────────────────────────
 

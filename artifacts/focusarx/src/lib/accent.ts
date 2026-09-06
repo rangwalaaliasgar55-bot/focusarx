@@ -102,6 +102,64 @@ const rgba = (hex: string, alpha: number) => {
 export type AccentScale = Record<50 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900, string>;
 
 /**
+ * Steps that are used as a *fill under white label text*: `--brand-600` is the
+ * primary button background (and shadcn's `--color-primary`), and 700–900 are
+ * its hover, pressed and selected states. `--brand-500` is deliberately not
+ * here: it is the accent's identity step — rings, focus outlines, progress
+ * fills — where brightness is the point and no text sits on it.
+ */
+const FILL_STEPS = [600, 700, 800, 900] as const;
+
+/** WCAG AA for normal-size text. Button labels are 14px semibold, so it applies. */
+const MIN_LABEL_CONTRAST = 4.5;
+
+export function contrastWithWhite(hex: string): number {
+  const rel = (value: number) => {
+    const c = value / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  const luminance = ({ r, g, b }: { r: number; g: number; b: number }) =>
+    0.2126 * rel(r) + 0.7152 * rel(g) + 0.0722 * rel(b);
+  const rgb = hexToRgb(hex);
+  if (!rgb) return 1;
+  const a = luminance(rgb);
+  const b = luminance({ r: 255, g: 255, b: 255 });
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
+/**
+ * Darken a colour, keeping its hue and saturation, until `ok` holds.
+ *
+ * Bounded and monotone by construction: each step takes 1.5 lightness points
+ * off, and the loop stops at 4% lightness, so a colour that can never satisfy
+ * `ok` still returns a usable near-black rather than hanging.
+ */
+function darkenUntil(hex: string, ok: (candidate: string) => boolean): string {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return hex;
+  const { h, s } = rgbToHsl(rgb);
+  let l = rgbToHsl(rgb).l;
+  let current = hex;
+  for (let i = 0; i < 64 && !ok(current); i += 1) {
+    l = Math.max(4, l - 1.5);
+    current = hslToHex(h, s, l);
+    if (l <= 4) break;
+  }
+  return current;
+}
+
+/** Relative luminance, for keeping the dark end of the ramp in order. */
+function luminanceOf(hex: string): number {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return 0;
+  const rel = (value: number) => {
+    const c = value / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * rel(rgb.r) + 0.7152 * rel(rgb.g) + 0.0722 * rel(rgb.b);
+}
+
+/**
  * Build a full 50–900 tonal scale around the user's color. The chosen color is
  * always step 500; lighter/darker steps are interpolated toward white/black
  * with enforced minimum gaps so the ramp stays monotonic even for extreme
@@ -121,7 +179,7 @@ export function buildAccentScale(hex: string): AccentScale {
     return hslToHex(h, s * satMult, Math.max(Math.min(toward, l - gap), 4));
   };
 
-  return {
+  const scale: AccentScale = {
     50: lighter(0.93, 26, 0.6),
     100: lighter(0.84, 20, 0.72),
     200: lighter(0.7, 14, 0.82),
@@ -133,6 +191,23 @@ export function buildAccentScale(hex: string): AccentScale {
     800: darker(0.63, 15, 0.82),
     900: darker(0.79, 21, 0.74),
   };
+
+  // The eased-lightness ramp above is tuned to *look* graded; it says nothing
+  // about whether a white label is readable on it. Pick Gold (#FFB800) and the
+  // primary button was 2.88:1 — the label of the most important control on the
+  // page, in every accent except a few lucky hues. So the fill steps are
+  // floored at AA against white, and the steps below them are re-ordered to
+  // match so the ramp still gets darker as it goes down.
+  let ceiling: number | null = null;
+  for (const step of FILL_STEPS) {
+    const candidate = scale[step];
+    scale[step] = darkenUntil(candidate, (c) => {
+      if (contrastWithWhite(c) < MIN_LABEL_CONTRAST) return false;
+      return ceiling === null || luminanceOf(c) <= ceiling - 0.004;
+    });
+    ceiling = luminanceOf(scale[step]);
+  }
+  return scale;
 }
 
 function solidScale(hex: string): AccentScale {
@@ -172,7 +247,6 @@ const LEGACY_RGBA_400: Array<[suffix: string, alpha: number]> = [
  */
 export function buildAccentOverrides(hex: string, lightMode: boolean): Record<string, string> {
   const scale = buildAccentScale(hex);
-  const c300 = scale[300];
   const c400 = scale[400];
   const c500 = scale[500];
   const c600 = scale[600];

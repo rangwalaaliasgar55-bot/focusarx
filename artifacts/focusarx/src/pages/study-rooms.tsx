@@ -177,7 +177,7 @@ export default function StudyRoomsPage() {
             </div>
             {status === "authenticated" ? (
               <button onClick={() => setShowCreate(true)}
-                className="flex items-center gap-2 rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] px-4 py-2 text-sm font-medium text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)]">
+                className="flex items-center gap-2 rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] px-4 py-2 text-sm font-medium text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)]">
                 <Plus size={15} /> New Room
               </button>
             ) : (
@@ -207,7 +207,7 @@ export default function StudyRoomsPage() {
                     Private room
                   </label>
                   <button onClick={() => createMut.mutate(form)} disabled={!form.name.trim() || createMut.isPending}
-                    className="w-full rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] py-2.5 text-sm font-medium text-[var(--palette-white)] disabled:opacity-50">
+                    className="w-full rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] py-2.5 text-sm font-medium text-[var(--palette-white)] disabled:opacity-50">
                     {createMut.isPending ? "Creating…" : "Create Room"}
                   </button>
                 </div>
@@ -258,7 +258,7 @@ export default function StudyRoomsPage() {
                           )}
                           <button
                             onClick={() => joined ? leaveMut.mutate(room.id) : joinMut.mutate(room.id)}
-                            className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${joined ? "bg-[var(--rgba-239-68-68-0_1)] text-[var(--palette-f87171)] hover:bg-[var(--rgba-239-68-68-0_2)]" : "bg-[var(--brand-600)] hover:bg-[var(--brand-500)] text-[var(--neutral-0)]"}`}>
+                            className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${joined ? "bg-[var(--rgba-239-68-68-0_1)] text-[var(--palette-f87171)] hover:bg-[var(--rgba-239-68-68-0_2)]" : "bg-[var(--brand-600)] hover:bg-[var(--brand-700)] text-[var(--neutral-0)]"}`}>
                             {joined ? <LogOut size={12} /> : <LogIn size={12} />}
                           </button>
                         </>

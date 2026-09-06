@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SectionHeader, StatusBadge, MotionTab, LoadingState, EmptyState } from "./AdminHelpers";
+import { MotionTab, SectionHeader, StatusBadge, adminFetch } from "./AdminHelpers";
 import type { AdminPanelProps } from "./AdminTypes";
 
 type DropsState = {
@@ -47,14 +47,13 @@ const DEFAULT_FORM: DropForm = {
 
 export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
   const [state, setState] = useState<DropsState | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState<DropForm>(DEFAULT_FORM);
 
   const load = useCallback(async () => {
-    setLoading(true);
     try {
-      const r = await fetch("/api/admin/drops", { headers: authHeaders(), credentials: "include" });
+      const r = await adminFetch("/api/admin/drops", { headers: authHeaders(), credentials: "include" });
       if (r.ok) setState(await r.json());
     } finally { setLoading(false); }
   }, [authHeaders]);
@@ -80,7 +79,7 @@ export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
     try {
       const start = new Date(Date.now() + form.startsInMin * 60 * 1000);
       const end = new Date(start.getTime() + form.durationH * 3600 * 1000);
-      const r = await fetch("/api/admin/drops", {
+      const r = await adminFetch("/api/admin/drops", {
         method: "POST",
         headers: { ...authHeaders(), "Content-Type": "application/json" },
         credentials: "include",
@@ -105,7 +104,7 @@ export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
   async function dropAction(id: string, action: "end" | "cancel" | "duplicate") {
     setBusy(true);
     try {
-      const r = await fetch(`/api/admin/drops/${id}/${action}`, {
+      const r = await adminFetch(`/api/admin/drops/${id}/${action}`, {
         method: "POST", headers: authHeaders(), credentials: "include",
       });
       const d = await r.json();
@@ -121,16 +120,6 @@ export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
   const now = Date.now();
   const currentTemplate = templates.find((t) => t.type === form.type);
 
-  function fmtCountdown(target: number): string {
-    const diff = target - now;
-    if (diff <= 0) return "now";
-    const h = Math.floor(diff / 3600000);
-    const m = Math.floor((diff % 3600000) / 60000);
-    const sec = Math.floor((diff % 60000) / 1000);
-    if (h > 0) return `${h}h ${m}m`;
-    if (m > 0) return `${m}m ${sec}s`;
-    return `${sec}s`;
-  }
 
   const numField = (label: string, key: string, step = 1) => (
     <label className="block">
@@ -231,7 +220,7 @@ export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
         <div className="rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-950)]/40 p-4">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-[var(--palette-zinc-200)]">Drops ({drops.length})</h3>
-            <button onClick={() => void load()} className="text-xs text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)] transition">
+            <button onClick={() => { setLoading(true); void load(); }} className="text-xs text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)] transition">
               <RefreshCw size={12} className={cn("inline mr-1", loading && "animate-spin")} />Refresh
             </button>
           </div>

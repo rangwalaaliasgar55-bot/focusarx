@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  RefreshCw, Save, ShieldAlert, KeyRound, Coins, Flame, Trash2, Bell, Wallet, UserRound, Bot,
-} from "lucide-react";
+import { RefreshCw, Save, ShieldAlert, KeyRound, Coins, Flame, Trash2, Bell, Wallet, UserRound } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { adminFetch } from "./AdminHelpers";
 
 export interface AdminUserProfile {
   user: {
@@ -56,7 +55,7 @@ export function UserManagerDialog({
   authHeaders: () => Record<string, string>;
 }) {
   const [profile, setProfile] = useState<AdminUserProfile | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saveState, setSaveState] = useState<SaveState>(null);
 
   // Editable forms
@@ -70,12 +69,11 @@ export function UserManagerDialog({
 
   const load = useCallback(async () => {
     if (!userId) return;
-    setLoading(true);
-    setSaveState(null);
     try {
-      const r = await fetch(`/api/admin/users/${userId}/profile`, { headers: authHeaders(), credentials: "include" });
+      const r = await adminFetch(`/api/admin/users/${userId}/profile`, { headers: authHeaders(), credentials: "include" });
       if (!r.ok) { setSaveState({ kind: "err", msg: `Failed to load profile (${r.status})` }); return; }
-      const d: AdminUserProfile = await r.json();
+      const d = (await r.json().catch(() => null)) as AdminUserProfile | null;
+      if (!d) { setSaveState({ kind: "err", msg: "The profile response could not be read." }); return; }
       setProfile(d);
       setProfileForm({
         name: d.user.name ?? "",
@@ -94,20 +92,22 @@ export function UserManagerDialog({
         currentStreak: String(d.streak?.currentStreak ?? 0),
         longestStreak: String(d.streak?.longestStreak ?? 0),
       });
-    } catch (e: any) {
-      setSaveState({ kind: "err", msg: e.message });
     } finally {
       setLoading(false);
     }
   }, [userId, authHeaders]);
 
-  useEffect(() => { setTempPassword(null); setPassword(""); setNotify({ title: "", message: "" }); void load(); }, [load]);
+  /* The per-user reset this effect used to perform now lives at the call site as
+     `key={managingUserId}`: remounting per user is how React wants "reset state
+     when a prop changes" expressed, and it means the dialog can never open
+     showing the previous user's profile while the new one loads. */
+  useEffect(() => { void load(); }, [load]);
 
   const call = async (label: string, url: string, method: string, body?: unknown) => {
     setBusy(label);
     setSaveState(null);
     try {
-      const r = await fetch(url, {
+      const r = await adminFetch(url, {
         method,
         headers: { "Content-Type": "application/json", ...authHeaders() },
         credentials: "include",

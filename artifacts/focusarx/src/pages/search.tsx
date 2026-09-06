@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Search as SearchIcon, Timer, BookOpen, Calculator, Info } from "lucide-react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
@@ -12,7 +12,7 @@ interface Entry {
 }
 
 const INDEX: Entry[] = [
-  { path: "/exam", section: "Guides", title: "Exam Prep Guides — JEE, NEET, UPSC, SSC, GATE, CAT, Boards & More", description: "14 practical India-first exam guides: patterns, study plans, daily focus routines, mock protocols, and FAQ.", keywords: "exam preparation jee neet upsc ssc cbse boards gate cat nda ctet ibps study plan india" },
+  { path: "/exam", section: "Guides", title: "Exam Prep Guides: JEE, NEET, UPSC, Boards", description: "14 practical India-first exam guides: patterns, study plans, daily focus routines, mock protocols, and FAQ.", keywords: "exam preparation jee neet upsc ssc cbse boards gate cat nda ctet ibps study plan india" },
   { path: "/exam/jee-main", section: "Guides", title: "JEE Main Study Plan & Prep Guide", description: "JEE Main pattern, 6-month plan, daily focus routine, subject strategy, mock protocol, and the final 30 days.", keywords: "jee main study plan preparation 2027 daily routine tips" },
   { path: "/exam/jee-advanced", section: "Guides", title: "JEE Advanced Study Plan & Strategy", description: "Paper pattern, the mental shift from Main, 12-week post-Main plan, problem strategy under -1/3, exam-day tactics.", keywords: "jee advanced preparation strategy 2027 mocks top rank" },
   { path: "/exam/neet-ug", section: "Guides", title: "NEET UG Study Plan & Prep Guide", description: "NCERT-first method, subject weightage, daily routine for Class 12 and droppers, mock protocol, last 30 days.", keywords: "neet study plan preparation 2027 dropper ncert mock" },
@@ -65,12 +65,17 @@ const SECTION_ICONS: Record<Entry["section"], React.ReactNode> = {
 
 export default function SearchPage() {
   const [location] = useLocation();
-  const [query, setQuery] = useState("");
-
-  useEffect(() => {
-    const q = new URLSearchParams(window.location.search).get("q") || "";
-    setQuery(q);
+  // The URL is the source, and typed text is an override. Copying `?q=` into state
+  // inside an effect mounted the page twice — once with an empty box, once with the
+  // query — and re-synced a value the location object already carries.
+  const urlQuery = useMemo(() => {
+    // wouter's location is the path; the query still lives on window.location. Read
+    // both so the memo legitimately depends on navigation instead of a stale ref.
+    const search = location.includes("?") ? `?${location.split("?").slice(1).join("?")}` : window.location.search;
+    return new URLSearchParams(search).get("q") ?? "";
   }, [location]);
+  const [typed, setTyped] = useState<string | null>(null);
+  const query = typed ?? urlQuery;
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -106,7 +111,7 @@ export default function SearchPage() {
           <input
             type="search"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => setTyped(e.target.value)}
             placeholder="Try 'pomodoro', 'adhd', 'procrastination'…"
             aria-label="Search FocusArx guides and tools"
             className="w-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] py-4 pl-11 pr-4 text-[var(--foreground)] outline-none placeholder:text-[var(--foreground-muted)] focus:border-[var(--brand-600)]/50"

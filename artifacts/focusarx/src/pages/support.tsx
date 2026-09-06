@@ -170,7 +170,7 @@ export default function SupportPage() {
               <motion.button
                 whileHover={{ scale: 1.04, boxShadow: "0 0 30px 6px var(--rgba-124-58-237-0_3)" }}
                 whileTap={{ scale: 0.97 }}
-                className="rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-500)] px-6 py-2.5 text-sm font-bold text-[var(--palette-white)]"
+                className="rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] px-6 py-2.5 text-sm font-bold text-[var(--palette-white)]"
               >
                 Contact Support →
               </motion.button>

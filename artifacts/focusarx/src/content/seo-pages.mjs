@@ -201,7 +201,7 @@ export const SEO_PAGES = {
   "/deep-work-guide": {
     kind: "guide",
     article: true,
-    title: "Deep Work Guide: How to Do Focused, Undistracted Work | FocusArx",
+    title: "Deep Work Guide: Focused, Undistracted Days",
     description:
       "A practical deep work guide — what deep work is, why it is scarce, how to schedule it, and how to protect a block once it starts. With a free timer.",
     h1: "Deep Work: A Practical Guide",
@@ -364,9 +364,9 @@ export const SEO_PAGES = {
   "/adhd-focus-tools": {
     kind: "guide",
     article: true,
-    title: "ADHD-Friendly Focus Tools: Timers, Rooms and Body Doubling | FocusArx",
+    title: "ADHD Focus Tools: Timers, Rooms, Body Doubling",
     description:
-      "Free ADHD-friendly focus tools: visual timers, body doubling rooms, task breakdown and streaks that allow recovery. Built for brains that need external structure.",
+      "Free ADHD-friendly focus tools: visual timers, body doubling rooms, task breakdown and streaks that allow recovery.",
     h1: "ADHD-Friendly Focus Tools",
     lead: "Tools designed around external structure — visible time, immediate feedback, and starting costs made small. Free to use, no diagnosis required.",
     answerFirst:
@@ -421,7 +421,7 @@ export const SEO_PAGES = {
   "/stop-scrolling": {
     kind: "guide",
     article: true,
-    title: "How to Stop Scrolling: Break the Loop in 60 Seconds | FocusArx",
+    title: "Stop Scrolling: Break the Loop in 60 Seconds",
     description:
       "Why endless scrolling is hard to stop, and a practical reset you can run right now — friction, replacement, and a 60-second interruption pattern. Free tool.",
     h1: "How to Stop Scrolling",
@@ -533,7 +533,7 @@ export const SEO_PAGES = {
     kind: "trust",
     title: "How Camera Data Is Handled | FocusArx",
     description:
-      "FocusArx attention monitoring is optional and off by default. Video is processed on your device with MediaPipe and never uploaded. How to disable and delete it.",
+      "FocusArx attention monitoring is optional and off by default. Video is processed on your device with MediaPipe and never uploaded.",
     h1: "Camera and Attention Monitoring: How Your Data Is Handled",
     lead: "Plain-language explanation of what the optional camera feature does, what it does not do, and how to turn it off and delete anything it produced.",
     answerFirst:

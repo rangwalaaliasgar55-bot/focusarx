@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { RefreshCw, CheckCircle, AlertTriangle } from "lucide-react";
-import { SectionHeader, Badge, MotionTab, LoadingState } from "./AdminHelpers";
+import { Badge, LoadingState, MotionTab, SectionHeader, adminFetch } from "./AdminHelpers";
 import type { AdminPanelProps, AdminUser } from "./AdminTypes";
 
 export function AdminPremiumPanel({ authHeaders }: AdminPanelProps) {
@@ -15,7 +15,7 @@ export function AdminPremiumPanel({ authHeaders }: AdminPanelProps) {
   async function loadUsers() {
     setLoading(true);
     try {
-      const r = await fetch("/api/admin/users", { headers: authHeaders(), credentials: "include" });
+      const r = await adminFetch("/api/admin/users", { headers: authHeaders(), credentials: "include" });
       if (r.ok) {
         const d = await r.json();
         setUsers((d.users ?? []).filter((u: any) => u.role !== "guest"));
@@ -27,7 +27,7 @@ export function AdminPremiumPanel({ authHeaders }: AdminPanelProps) {
     if (!grantId) return;
     setGranting(true); setGrantResult(null);
     try {
-      const r = await fetch("/api/admin/users/" + grantId + "/premium", {
+      const r = await adminFetch("/api/admin/users/" + grantId + "/premium", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
         credentials: "include",
@@ -52,12 +52,12 @@ export function AdminPremiumPanel({ authHeaders }: AdminPanelProps) {
         <div className="rounded-xl border border-[var(--palette-zinc-800)]/80 bg-[var(--palette-zinc-900)]/40 p-5 space-y-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-[var(--palette-zinc-400)]">Grant Premium (Admin Override)</p>
           <div>
-            <label className="block text-xs text-[var(--palette-zinc-500)] mb-1">User ID</label>
-            <input className="admin-input font-mono" placeholder="paste user UUID…" value={grantId} onChange={e => setGrantId(e.target.value)} />
+            <label htmlFor="adminpremiumpanel-user-id" className="block text-xs text-[var(--palette-zinc-500)] mb-1">User ID</label>
+            <input id="adminpremiumpanel-user-id" className="admin-input font-mono" placeholder="paste user UUID…" value={grantId} onChange={e => setGrantId(e.target.value)} />
             <p className="text-[10px] text-[var(--palette-zinc-600)] mt-1">Grants 30 days of premium without deducting coins.</p>
           </div>
           <button onClick={() => void grantPremium()} disabled={granting || !grantId}
-            className="w-full flex items-center justify-center gap-2 rounded-lg bg-[var(--palette-amber-600)] hover:bg-[var(--palette-amber-500)] px-4 py-2.5 text-sm font-medium text-[var(--palette-white)] disabled:opacity-50 transition"
+            className="w-full flex items-center justify-center gap-2 rounded-lg bg-[var(--palette-amber-700)] hover:bg-[var(--palette-amber-800)] px-4 py-2.5 text-sm font-medium text-[var(--palette-white)] disabled:opacity-50 transition"
           >
             {granting ? <><RefreshCw size={14} className="animate-spin" /> Granting…</> : <>👑 Grant 30-day Premium</>}
           </button>
