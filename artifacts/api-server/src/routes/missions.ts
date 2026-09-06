@@ -1,9 +1,10 @@
-import { Request, Response, NextFunction, Router } from "express";
+import { Response, Router } from "express";
 import { db, userMissionProgressTable, userWalletsTable, usersTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { mintCoins } from "../lib/coinLedger";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
+import { dayKeyInZone, shiftDayKey, resolveUserZone, LEGACY_FALLBACK_ZONE } from "../lib/timezone";
 
 const router = Router();
 
@@ -51,20 +52,37 @@ export const WEEKLY_MISSIONS: MissionDef[] = [
 
 export const ALL_MISSIONS = [...DAILY_MISSIONS, ...WEEKLY_MISSIONS];
 
-function getPeriodStart(type: "daily" | "weekly"): string {
-  const now = new Date();
-  if (type === "daily") {
-    return now.toISOString().split("T")[0]!;
+/**
+ * Period keys in the user's own calendar zone — the same zone streaks and
+ * productivity logs use. Before this the server's UTC date was used, so a
+ * user in India lost their daily missions at 05:30 in the morning and a user
+ * in California saw "today" roll over at 4-5 pm.
+ */
+function getPeriodStart(type: "daily" | "weekly", zone: string, now: number = Date.now()): string {
+  const today = dayKeyInZone(now, zone);
+  if (type === "daily") return today;
+  let weekday = 1;
+  try {
+    const day = new Intl.DateTimeFormat("en-US", { timeZone: zone, weekday: "short" }).format(new Date(now));
+    weekday = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 }[day] ?? 1;
+  } catch { /* Monday */ }
+  return shiftDayKey(today, -(weekday - 1));
+}
+
+async function zoneFor(userId: string): Promise<string> {
+  try {
+    const [user] = await db.select({ timezone: usersTable.timezone }).from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    return resolveUserZone(user?.timezone);
+  } catch {
+    return LEGACY_FALLBACK_ZONE;
   }
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-  return monday.toISOString().split("T")[0]!;
 }
 
 router.get("/missions", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const today = getPeriodStart("daily");
-    const weekStart = getPeriodStart("weekly");
+    const zone = await zoneFor(req.userId);
+    const today = getPeriodStart("daily", zone);
+    const weekStart = getPeriodStart("weekly", zone);
 
     const progressRows = await db.select().from(userMissionProgressTable)
       .where(and(
@@ -106,7 +124,7 @@ router.post("/missions/:key/claim", authMiddleware, async (req: AuthRequest, res
     const mission = ALL_MISSIONS.find((m) => m.key === key);
     if (!mission) { res.status(404).json({ error: "Mission not found" }); return; }
 
-    const periodStart = getPeriodStart(mission.type as "daily" | "weekly");
+    const periodStart = getPeriodStart(mission.type as "daily" | "weekly", await zoneFor(req.userId));
 
     const [progress] = await db.select().from(userMissionProgressTable).where(and(
       eq(userMissionProgressTable.userId, req.userId),
@@ -117,13 +135,18 @@ router.post("/missions/:key/claim", authMiddleware, async (req: AuthRequest, res
     if (!progress?.completed) { res.status(400).json({ error: "Mission not completed yet" }); return; }
     if (progress.rewardClaimed) { res.status(400).json({ error: "Reward already claimed" }); return; }
 
-    await db.update(userMissionProgressTable).set({ rewardClaimed: true }).where(
+    // Compare-and-set on `reward_claimed = false`: two parallel claims both
+    // passed the read above and both paid out. Only the request that flips
+    // the flag proceeds to mint.
+    const [claimed] = await db.update(userMissionProgressTable).set({ rewardClaimed: true }).where(
       and(
         eq(userMissionProgressTable.userId, req.userId),
         eq(userMissionProgressTable.missionKey, key),
         eq(userMissionProgressTable.periodStart, periodStart),
+        eq(userMissionProgressTable.rewardClaimed, false),
       )
-    );
+    ).returning({ missionKey: userMissionProgressTable.missionKey });
+    if (!claimed) { res.status(400).json({ error: "Reward already claimed" }); return; }
 
     if (mission.coinReward > 0) {
       await mintCoins(req.userId, mission.coinReward, "mission_reward", {
@@ -131,18 +154,18 @@ router.post("/missions/:key/claim", authMiddleware, async (req: AuthRequest, res
         metadata: { missionKey: key, periodStart },
       });
     }
-    const [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.userId));
-    if (wallet) {
-      await db.update(userWalletsTable).set({
-        totalXp: wallet.totalXp + mission.xpReward,
-        weeklyXp: wallet.weeklyXp + mission.xpReward,
+    // Upsert with atomic increments: the read-then-write it replaces could
+    // overwrite XP credited by a session completing in the same instant.
+    await db.insert(userWalletsTable).values({
+      userId: req.userId, coins: 0, totalXp: mission.xpReward, weeklyXp: mission.xpReward,
+    }).onConflictDoUpdate({
+      target: userWalletsTable.userId,
+      set: {
+        totalXp: sql`${userWalletsTable.totalXp} + ${mission.xpReward}`,
+        weeklyXp: sql`${userWalletsTable.weeklyXp} + ${mission.xpReward}`,
         updatedAt: new Date(),
-      }).where(eq(userWalletsTable.userId, req.userId));
-    } else {
-      await db.insert(userWalletsTable).values({
-        userId: req.userId, coins: 0, totalXp: mission.xpReward, weeklyXp: mission.xpReward,
-      });
-    }
+      },
+    });
 
     res.json({ ok: true, xpEarned: mission.xpReward, coinsEarned: mission.coinReward });
   } catch (err) {
@@ -151,15 +174,27 @@ router.post("/missions/:key/claim", authMiddleware, async (req: AuthRequest, res
   }
 });
 
+/**
+ * Advance every mission measured in `unit`.
+ *
+ * `sessions` / `minutes` / `tasks` accumulate. `score` and `days` are levels:
+ * a session's focus score is not summed across sessions, and "days studied
+ * this week" is a count the caller already knows — both use `replace`, which
+ * keeps the highest value seen. Before this the `score` and `days` missions
+ * ("Quality Focus", "Elite Focus", "Streak Keeper", "Perfect Week") were
+ * defined and listed but no code path ever reported to them.
+ */
 export async function updateMissionProgress(
   userId: string,
   unit: "sessions" | "minutes" | "tasks" | "score" | "days",
   value: number,
-  opts?: { replace?: boolean }
+  opts?: { replace?: boolean; zone?: string }
 ) {
   try {
-    const today = getPeriodStart("daily");
-    const weekStart = getPeriodStart("weekly");
+    const zone = opts?.zone ?? await zoneFor(userId);
+    const replace = opts?.replace ?? (unit === "score" || unit === "days");
+    const today = getPeriodStart("daily", zone);
+    const weekStart = getPeriodStart("weekly", zone);
 
     const relevantMissions = ALL_MISSIONS.filter((m) => m.unit === unit);
 
@@ -173,7 +208,7 @@ export async function updateMissionProgress(
       ));
 
       if (!existing) {
-        const newValue = opts?.replace ? value : value;
+        const newValue = value;
         const completed = newValue >= mission.targetValue;
         await db.insert(userMissionProgressTable).values({
           userId, missionKey: mission.key, periodStart,
@@ -181,7 +216,7 @@ export async function updateMissionProgress(
           completedAt: completed ? new Date() : null,
         });
       } else if (!existing.completed) {
-        const newValue = opts?.replace ? Math.max(existing.currentValue, value) : existing.currentValue + value;
+        const newValue = replace ? Math.max(existing.currentValue, value) : existing.currentValue + value;
         const completed = newValue >= mission.targetValue;
         await db.update(userMissionProgressTable).set({
           currentValue: newValue, completed,

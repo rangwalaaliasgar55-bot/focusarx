@@ -16,14 +16,20 @@ import { ensureStreakEndangerment } from "../lib/streakEndangerment";
 import { eq, and, gte, lt, gt, desc, count, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { isUserPremium } from "../lib/premiumCheck";
+import { userZone } from "../lib/userZone";
+import { clockInZone, dayKeyInZone, dayStartInZone, shiftDayKey, weekStartInZone, weekdayOfDayKey } from "../lib/timezone";
 
 const router = Router();
 
 router.get("/stats", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const todayEnd = new Date(todayStart.getTime() + 86400000);
+    // All calendar maths in the user's zone — "today" used to roll over at
+    // server midnight (UTC), i.e. 05:30 for an Indian user.
+    const zone = await userZone(req.userId);
+    const todayKey = dayKeyInZone(now, zone);
+    const todayStart = dayStartInZone(todayKey, zone);
+    const todayEnd = dayStartInZone(shiftDayKey(todayKey, 1), zone);
 
     const todaySessions = await db.select().from(focusSessionsTable)
       .where(and(eq(focusSessionsTable.userId, req.userId), eq(focusSessionsTable.mode, "focus"), gte(focusSessionsTable.completedAt, todayStart), lt(focusSessionsTable.completedAt, todayEnd)));
@@ -39,16 +45,15 @@ router.get("/stats", authMiddleware, async (req: AuthRequest, res: Response) => 
     }
     const dominantStability = Object.entries(stabCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "No data yet";
 
-    const sevenDaysAgo = new Date(todayStart.getTime() - 6 * 86400000);
+    const sevenDaysAgo = dayStartInZone(shiftDayKey(todayKey, -6), zone);
     const weekSessions = await db.select().from(focusSessionsTable)
       .where(and(eq(focusSessionsTable.userId, req.userId), eq(focusSessionsTable.mode, "focus"), gte(focusSessionsTable.completedAt, sevenDaysAgo)));
 
     const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const chartData = Array.from({ length: 7 }, (_, i) => {
-      const date = new Date(sevenDaysAgo.getTime() + i * 86400000);
-      const dateStr = date.toISOString().split("T")[0]!;
-      const daySessions = weekSessions.filter(s => s.completedAt && s.completedAt.toISOString().split("T")[0] === dateStr);
-      return { day: dayLabels[date.getDay()] ?? "?", date: dateStr, minutes: Math.round(daySessions.reduce((acc, s) => acc + (s.durationSec ?? 0), 0) / 60) };
+      const dateStr = shiftDayKey(todayKey, i - 6);
+      const daySessions = weekSessions.filter(s => s.completedAt && dayKeyInZone(s.completedAt, zone) === dateStr);
+      return { day: dayLabels[weekdayOfDayKey(dateStr)] ?? "?", date: dateStr, minutes: Math.round(daySessions.reduce((acc, s) => acc + (s.durationSec ?? 0), 0) / 60) };
     });
 
     const [streak] = await db.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, req.userId));
@@ -77,7 +82,8 @@ router.get("/analytics", authMiddleware, async (req: AuthRequest, res: Response)
     const premium = await isUserPremium(req.userId!);
     const historyDays = premium ? 180 : 60;
     const dateLimit = new Date(now.getTime() - historyDays * 86400000);
-    const fourteenDaysAgo = new Date(now.getTime() - 13 * 86400000);
+    const zone = await userZone(req.userId);
+    const todayKey = dayKeyInZone(now, zone);
 
     const allSessions = await db.select().from(focusSessionsTable)
       .where(and(eq(focusSessionsTable.userId, req.userId), eq(focusSessionsTable.mode, "focus"), gte(focusSessionsTable.completedAt, dateLimit)))
@@ -88,7 +94,7 @@ router.get("/analytics", authMiddleware, async (req: AuthRequest, res: Response)
     const dayTotals: Record<string, number> = {};
     for (const s of allSessions) {
       if (!s.completedAt) continue;
-      const date = s.completedAt.toISOString().split("T")[0]!;
+      const date = dayKeyInZone(s.completedAt, zone);
       const mins = Math.round(s.durationSec / 60);
       heatmap[date] = (heatmap[date] ?? 0) + mins;
       dayTotals[date] = (dayTotals[date] ?? 0) + mins;
@@ -96,8 +102,7 @@ router.get("/analytics", authMiddleware, async (req: AuthRequest, res: Response)
 
     // 14-day chart
     const chartData14 = Array.from({ length: 14 }, (_, i) => {
-      const d = new Date(fourteenDaysAgo.getTime() + i * 86400000);
-      const date = d.toISOString().split("T")[0]!;
+      const date = shiftDayKey(todayKey, i - 13);
       return { date, minutes: heatmap[date] ?? 0 };
     });
 
@@ -106,22 +111,24 @@ router.get("/analytics", authMiddleware, async (req: AuthRequest, res: Response)
     const bestDayMinutes = Math.max(0, ...Object.values(dayTotals));
 
     // Hour-of-day distribution
+    const clocks = allSessions.map(s => ({ s, c: s.completedAt ? clockInZone(s.completedAt, zone) : null }));
     const hourDist = Array.from({ length: 24 }, (_, h) => {
-      const mins = allSessions
-        .filter(s => s.completedAt && s.completedAt.getHours() === h)
-        .reduce((acc, s) => acc + s.durationSec / 60, 0);
+      const mins = clocks
+        .filter(({ c }) => c?.hour === h)
+        .reduce((acc, { s }) => acc + s.durationSec / 60, 0);
       return { hour: h, minutes: Math.round(mins) };
     });
     const timeDayHeatmap = Array.from({ length: 7 }, (_, day) => Array.from({ length: 24 }, (_, hour) => {
-      const matching = allSessions.filter((session) => session.completedAt?.getDay() === day && session.completedAt.getHours() === hour);
+      const matching = clocks.filter(({ c }) => c?.weekday === day && c.hour === hour).map(({ s }) => s);
       return { day, hour, minutes: Math.round(matching.reduce((sum, session) => sum + session.durationSec / 60, 0)), sessions: matching.length };
     })).flat();
 
     const [streak] = await db.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, req.userId));
 
     // Weekly comparison: this week vs last week
-    const thisWeekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
-    const lastWeekStart = new Date(thisWeekStart.getTime() - 7 * 86400000);
+    const thisWeekStart = weekStartInZone(now, zone);
+    const thisWeekStartKey = dayKeyInZone(thisWeekStart, zone);
+    const lastWeekStart = dayStartInZone(shiftDayKey(thisWeekStartKey, -7), zone);
     const thisWeekSessions = allSessions.filter(s => s.completedAt && s.completedAt >= thisWeekStart);
     const lastWeekSessions = await db.select().from(focusSessionsTable)
       .where(and(
@@ -139,9 +146,8 @@ router.get("/analytics", authMiddleware, async (req: AuthRequest, res: Response)
     // Weekly bar chart (last 7 days of week labels)
     const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const weekBarData = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(thisWeekStart.getTime() + i * 86400000);
-      const ds = d.toISOString().split("T")[0]!;
-      return { day: dayLabels[d.getDay()] ?? "?", date: ds, minutes: dayTotals[ds] ?? 0 };
+      const ds = shiftDayKey(thisWeekStartKey, i);
+      return { day: dayLabels[weekdayOfDayKey(ds)] ?? "?", date: ds, minutes: dayTotals[ds] ?? 0 };
     });
 
     // All-time stats (query without date filter for totals)
@@ -175,9 +181,9 @@ router.get("/analytics", authMiddleware, async (req: AuthRequest, res: Response)
 
 router.get("/stats/productivity", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const today = new Date().toISOString().split("T")[0]!;
-    const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().split("T")[0]!;
-    const fourteenDaysAgo = new Date(Date.now() - 14 * 86400000).toISOString().split("T")[0]!;
+    const today = dayKeyInZone(Date.now(), await userZone(req.userId));
+    const sevenDaysAgo = shiftDayKey(today, -7);
+    const fourteenDaysAgo = shiftDayKey(today, -14);
 
     const [todayLog] = await db.select().from(productivityLogsTable)
       .where(and(eq(productivityLogsTable.userId, req.userId), eq(productivityLogsTable.date, today)));

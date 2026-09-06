@@ -2,9 +2,11 @@ import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router, type Response } from "express";
 import { z } from "zod";
 import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, streakHistoryTable, freezeTokensTable, userWalletsTable, productivityLogsTable, battlePassProgressTable, coinTransactionsTable, focusCitiesTable, userLootBoxesTable, premiumSubscriptionsTable, userPetsTable, usersTable, type ActiveSession} from "@workspace/db";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, gte, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import { isUserPremium } from "../lib/premiumCheck";
 import { updateMissionProgress } from "./missions";
+import { updateQuestProgress } from "../lib/questProgress";
 import { activeDropXpMultiplier } from "../lib/drops";
 import { computeSessionRewards } from "../lib/sessionRewards";
 import { runDelightCheck } from "../lib/delightEngine";
@@ -70,6 +72,34 @@ async function updateCityProgress(userId: string): Promise<void> {
       updatedAt: new Date(),
     }).where(eq(focusCitiesTable.userId, userId));
   } catch { /* best effort */ }
+}
+
+/**
+ * Report streak-shaped progress after a streak advanced: the number of
+ * distinct days studied this week (the "Streak Keeper" / "Perfect Week"
+ * missions) and the current streak length (the `streak_days` quest metric).
+ * Both are levels — the caller reports the whole value, not a delta.
+ */
+async function reportStudyDays(userId: string, zone: string): Promise<void> {
+  try {
+    const weekStart = weekStartInZone(Date.now(), zone);
+    const rows = await db.select({ completedAt: focusSessionsTable.completedAt })
+      .from(focusSessionsTable)
+      .where(and(
+        eq(focusSessionsTable.userId, userId),
+        eq(focusSessionsTable.mode, "focus"),
+        gte(focusSessionsTable.completedAt, weekStart),
+      ));
+    const days = new Set<string>();
+    for (const row of rows) if (row.completedAt) days.add(dayKeyInZone(row.completedAt, zone));
+    if (days.size > 0) await updateMissionProgress(userId, "days", days.size, { replace: true, zone });
+
+    const [streak] = await db.select({ current: studyStreaksTable.currentStreak })
+      .from(studyStreaksTable).where(eq(studyStreaksTable.userId, userId)).limit(1);
+    if (streak?.current) await updateQuestProgress(userId, "streak_days", streak.current, zone);
+  } catch (err) {
+    logger.warn({ err, userId }, "reportStudyDays failed (non-fatal)");
+  }
 }
 
 async function advanceBattlePass(userId: string, xpEarned: number) {
@@ -535,11 +565,25 @@ router.post("/sessions", authMiddleware, sessionCompleteLimiter, async (req: Aut
         await awardPetXp(req.userId, minutes);
       }
       if (minutes > 0) {
-        await updateMissionProgress(req.userId, "sessions", 1);
-        await updateMissionProgress(req.userId, "minutes", minutes);
+        await updateMissionProgress(req.userId, "sessions", 1, { zone });
+        await updateMissionProgress(req.userId, "minutes", minutes, { zone });
+        await updateQuestProgress(req.userId, "session_count", 1, zone);
+        await updateQuestProgress(req.userId, "focus_minutes", minutes, zone);
+      }
+      // Quality missions ("80+ / 90+ focus score in any session") are levels,
+      // not sums — report the session's own score and keep the best.
+      if (typeof focusScore === "number") {
+        await updateMissionProgress(req.userId, "score", focusScore, { zone });
+      }
+      if (result.streakUpdated) {
+        await reportStudyDays(req.userId, zone);
       }
       if (earnedXp > 0) {
         await advanceBattlePass(req.userId, earnedXp);
+        await updateQuestProgress(req.userId, "xp_earned", earnedXp, zone);
+      }
+      if (earnedCoins > 0) {
+        await updateQuestProgress(req.userId, "coins_earned", earnedCoins, zone);
       }
 
       let lootBoxDropped = false;
@@ -785,6 +829,10 @@ async function finalizeExpiredSession(
 
   const zone = await userZone(userId);
   const weekStart = weekStartInZone(Date.now(), zone);
+  // Same premium snapshot as explicit completion. Expiry used to hardcode
+  // `isPremium: false`, so a subscriber whose device died mid-block was paid
+  // at the free rate for the very sessions the tier promises to protect.
+  const isPremium = await isUserPremium(userId).catch(() => false);
 
   const outcome = await db.transaction(async (tx) => {
     // Delete-first guard: only finalize if the row is still present (a racing
@@ -807,8 +855,9 @@ async function finalizeExpiredSession(
 
     if (rewardEligible) {
       ({ updated: streakUpdated, shieldUsed } = await applyStreakProgress(tx, userId, zone));
-      earnedXp = computeSessionRewards({ minutes, isPremium: false }).xp;
-      earnedCoins = computeSessionRewards({ minutes, isPremium: false }).coins;
+      const rewards = computeSessionRewards({ minutes, isPremium });
+      earnedXp = rewards.xp;
+      earnedCoins = rewards.coins;
       await creditSessionRewards(tx, userId, earnedXp, earnedCoins, weekStart);
     }
 
@@ -841,11 +890,20 @@ async function finalizeExpiredSession(
     try {
       if (minutes > 0) {
         await awardPetXp(userId, minutes);
-        await updateMissionProgress(userId, "sessions", 1);
-        await updateMissionProgress(userId, "minutes", minutes);
+        await updateMissionProgress(userId, "sessions", 1, { zone });
+        await updateMissionProgress(userId, "minutes", minutes, { zone });
+        await updateQuestProgress(userId, "session_count", 1, zone);
+        await updateQuestProgress(userId, "focus_minutes", minutes, zone);
+      }
+      if (outcome.streakUpdated) {
+        await reportStudyDays(userId, zone);
       }
       if (outcome.earnedXp > 0) {
         await advanceBattlePass(userId, outcome.earnedXp);
+        await updateQuestProgress(userId, "xp_earned", outcome.earnedXp, zone);
+      }
+      if (outcome.earnedCoins > 0) {
+        await updateQuestProgress(userId, "coins_earned", outcome.earnedCoins, zone);
       }
     } catch (err) {
       logger.warn({ err, userId }, "expired-session gamification failed (non-fatal)");

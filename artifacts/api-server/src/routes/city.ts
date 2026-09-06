@@ -1,8 +1,9 @@
-import { Request, Response, NextFunction } from "express";
+import { Response } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Router } from "express";
-import { extractUserId } from "./auth";
-import { db, focusCitiesTable, cityBuildingDefinitionsTable, userWalletsTable } from "@workspace/db";
+import { db, focusCitiesTable, cityBuildingDefinitionsTable, userWalletsTable, usersTable, studyStreaksTable } from "@workspace/db";
+import { logger } from "../lib/logger";
+import { dayKeyInZone, resolveUserZone, shiftDayKey } from "../lib/timezone";
 import { eq } from "drizzle-orm";
 import { isUserPremium } from "../lib/premiumCheck";
 import { burnCoins } from "../lib/coinLedger";
@@ -16,7 +17,55 @@ export const CITY_SKINS = [
 
 export const cityRouter = Router();
 
-const WEATHER_TYPES = ["clear", "clear", "clear", "cloudy", "cloudy", "rain", "wind", "rainbow"];
+export type CityWeather = "clear" | "cloudy" | "rain" | "wind" | "rainbow";
+
+/**
+ * Weather is a reflection of the last few days of focus, not a dice roll
+ * (it used to be `Math.random()` every four hours, so the "your city reacts
+ * to your work" promise was decoration).
+ *
+ *   rainbow — studied today *and* a 7+ day streak is alive
+ *   clear   — studied today
+ *   wind    — studied yesterday but not yet today (momentum, about to turn)
+ *   cloudy  — 2–3 quiet days
+ *   rain    — 4+ quiet days, or never studied
+ *
+ * Pure so it can be unit-tested; the route supplies the day keys.
+ */
+export function deriveCityWeather(input: {
+  lastStudyDate: string | null;
+  currentStreak: number;
+  today: string;
+  yesterday: string;
+}): CityWeather {
+  const { lastStudyDate, currentStreak, today, yesterday } = input;
+  if (!lastStudyDate) return "rain";
+  if (lastStudyDate === today) return currentStreak >= 7 ? "rainbow" : "clear";
+  if (lastStudyDate === yesterday) return "wind";
+  const quietDays = daysBetween(lastStudyDate, today);
+  return quietDays >= 4 ? "rain" : "cloudy";
+}
+
+function daysBetween(fromKey: string, toKey: string): number {
+  const [fy, fm, fd] = fromKey.split("-").map(Number);
+  const [ty, tm, td] = toKey.split("-").map(Number);
+  if (![fy, fm, fd, ty, tm, td].every(Number.isFinite)) return 0;
+  return Math.round((Date.UTC(ty!, tm! - 1, td!) - Date.UTC(fy!, fm! - 1, fd!)) / 86_400_000);
+}
+
+async function currentWeatherFor(userId: string): Promise<CityWeather> {
+  const [user] = await db.select({ timezone: usersTable.timezone }).from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+  const zone = resolveUserZone(user?.timezone);
+  const today = dayKeyInZone(Date.now(), zone);
+  const [streak] = await db.select({ lastStudyDate: studyStreaksTable.lastStudyDate, currentStreak: studyStreaksTable.currentStreak })
+    .from(studyStreaksTable).where(eq(studyStreaksTable.userId, userId)).limit(1);
+  return deriveCityWeather({
+    lastStudyDate: streak?.lastStudyDate ?? null,
+    currentStreak: streak?.currentStreak ?? 0,
+    today,
+    yesterday: shiftDayKey(today, -1),
+  });
+}
 
 function nextTier(sessions: number): string {
   if (sessions >= 350) return "civilization";
@@ -41,7 +90,8 @@ async function getOrCreateCity(userId: string) {
     userId,
     tier: "hamlet",
     tierName: "Study Hamlet",
-    weather: WEATHER_TYPES[Math.floor(Math.random() * WEATHER_TYPES.length)],
+    weather: await currentWeatherFor(userId),
+    weatherUpdatedAt: new Date(),
   }).returning();
   return city;
 }
@@ -49,16 +99,18 @@ async function getOrCreateCity(userId: string) {
 cityRouter.get("/city", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const city = await getOrCreateCity(req.userId);
-    // Rotate weather every 4h
-    const weatherAge = Date.now() - new Date(city.weatherUpdatedAt ?? 0).getTime();
-    if (weatherAge > 4 * 60 * 60 * 1000) {
-      const weather = WEATHER_TYPES[Math.floor(Math.random() * WEATHER_TYPES.length)];
+    // Weather follows behaviour; recompute on every read and persist only when
+    // it actually changes so the row keeps a truthful `weatherUpdatedAt`.
+    const weather = await currentWeatherFor(req.userId);
+    if (weather !== city.weather) {
       await db.update(focusCitiesTable).set({ weather, weatherUpdatedAt: new Date() }).where(eq(focusCitiesTable.id, city.id));
       city.weather = weather;
+      city.weatherUpdatedAt = new Date();
     }
     const premium = await isUserPremium(req.userId);
     res.json({ ...city, premium, skins: CITY_SKINS.map((skin) => ({ ...skin, locked: skin.premiumOnly && !premium })) });
-  } catch (e) {
+  } catch (err) {
+    logger.error({ err }, "city load failed");
     res.status(500).json({ error: "Failed to load city" });
   }
 });
@@ -117,7 +169,8 @@ cityRouter.post("/city/buildings/:slug/build", authMiddleware, async (req: AuthR
 
     const [w] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.userId)).limit(1);
     res.json({ city: updated, newCoins: w?.coins ?? 0 });
-  } catch (e: any) {
+  } catch (err) {
+    logger.error({ err }, "city build failed");
     res.status(500).json({ error: "Failed to build" });
   }
 });

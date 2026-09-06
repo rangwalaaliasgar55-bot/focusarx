@@ -3,6 +3,8 @@ import { authMiddleware, type AuthRequest } from "../middlewares/auth";
 import { db, focusSessionsTable, tasksTable, studyStreaksTable, userWalletsTable, activeSessionsTable } from "@workspace/db";
 import { and, eq, gte, lt, desc, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import { userZone } from "../lib/userZone";
+import { clockInZone, dayKeyInZone, dayStartInZone, shiftDayKey, weekdayOfDayKey } from "../lib/timezone";
 
 const router = Router();
 
@@ -18,8 +20,10 @@ router.get("/mobile/dashboard", authMiddleware, async (req: AuthRequest, res: Re
   try {
     const userId = req.userId!;
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const todayEnd = new Date(todayStart.getTime() + 86400000);
+    const zone = await userZone(userId);
+    const todayKey = dayKeyInZone(now, zone);
+    const todayStart = dayStartInZone(todayKey, zone);
+    const todayEnd = dayStartInZone(shiftDayKey(todayKey, 1), zone);
 
     // Parallel lightweight queries
     const [todaySessions, streakRow, walletRow, activeSession, nextTasks] = await Promise.all([
@@ -58,7 +62,7 @@ router.get("/mobile/dashboard", authMiddleware, async (req: AuthRequest, res: Re
 
     res.json({
       greeting: {
-        hour: now.getHours(),
+        hour: clockInZone(now, zone).hour,
         serverNow,
       },
       today: {
@@ -173,8 +177,9 @@ router.get("/mobile/stats", authMiddleware, async (req: AuthRequest, res: Respon
   try {
     const userId = req.userId!;
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const weekAgo = new Date(todayStart.getTime() - 6 * 86400000);
+    const zone = await userZone(userId);
+    const todayKey = dayKeyInZone(now, zone);
+    const weekAgo = dayStartInZone(shiftDayKey(todayKey, -6), zone);
 
     const [weekSessions, streak] = await Promise.all([
       db.select({ completedAt: focusSessionsTable.completedAt, durationSec: focusSessionsTable.durationSec })
@@ -189,11 +194,10 @@ router.get("/mobile/stats", authMiddleware, async (req: AuthRequest, res: Respon
 
     const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const chartData = Array.from({ length: 7 }, (_, i) => {
-      const date = new Date(weekAgo.getTime() + i * 86400000);
-      const dateStr = date.toISOString().split("T")[0]!;
-      const daySessions = weekSessions.filter(s => s.completedAt && s.completedAt.toISOString().split("T")[0] === dateStr);
+      const dateStr = shiftDayKey(todayKey, i - 6);
+      const daySessions = weekSessions.filter(s => s.completedAt && dayKeyInZone(s.completedAt, zone) === dateStr);
       return {
-        day: dayLabels[date.getDay()] ?? "?",
+        day: dayLabels[weekdayOfDayKey(dateStr)] ?? "?",
         date: dateStr,
         minutes: Math.round(daySessions.reduce((acc, s) => acc + (s.durationSec ?? 0), 0) / 60),
         sessions: daySessions.length,
