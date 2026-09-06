@@ -6,11 +6,13 @@
  * central Express error handler reports 500s with release tags. PII is
  * never attached (no bodies, tokens or SQL text).
  *
- * Dependency note: @sentry/node pulls @opentelemetry/api, which is an
- * optional peer of drizzle-orm. Both @workspace/api-server and
- * @workspace/db declare it so pnpm resolves a SINGLE drizzle snapshot —
- * two snapshots cause cross-package SQL<> type-identity errors
- * (see adminAuth eq() overload failures when they diverge).
+ * Dependency note: @sentry/node pulls @opentelemetry/*, and the api-server
+ * build (build.mjs) bundles those into dist/app.mjs — they must NOT be in its
+ * `external` list (no runtime-resolvable copy exists under the pnpm layout,
+ * and an external bare import crashed every serverless cold start). Only
+ * @workspace/db declares @opentelemetry/api, so pnpm resolves a SINGLE
+ * drizzle snapshot — two snapshots cause cross-package SQL<> type-identity
+ * errors (see adminAuth eq() overload failures when they diverge).
  */
 
 let initAttempted = false;

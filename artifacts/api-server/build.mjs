@@ -16,6 +16,19 @@ const sharedBuildOptions = {
   format: "esm",
   logLevel: "info",
   // Some packages may not be bundleable, so we externalize them, we can add more here as needed.
+  //
+  // ── Do NOT externalize @opentelemetry/* ──────────────────────────────────
+  // esbuild inlines the dynamic `import("@sentry/node")` in lib/sentry.ts into
+  // this single-file bundle, which pulls the OpenTelemetry packages into the
+  // module graph as bare top-level imports. None of them is a direct
+  // dependency of @workspace/api-server, so in the pnpm layout they are
+  // unresolvable from dist/app.mjs at RUNTIME: every serverless cold start
+  // died with ERR_MODULE_NOT_FOUND before Express booted, and Vercel answered
+  // every /api/* request with 500 FUNCTION_INVOCATION_FAILED (the all-API-500
+  // incident). Bundling them keeps the bundle self-contained. If you re-add an
+  // external here, add it to artifacts/api-server/package.json dependencies
+  // AND verify `node -e "import('./dist/app.mjs')"` succeeds from a clean
+  // install before deploying.
   external: [
       "*.node",
       "sharp",
@@ -50,7 +63,6 @@ const sharedBuildOptions = {
       "@swc/*",
       "@aws-sdk/*",
       "@azure/*",
-      "@opentelemetry/*",
       "@google-cloud/*",
       "@google/*",
       "googleapis",
