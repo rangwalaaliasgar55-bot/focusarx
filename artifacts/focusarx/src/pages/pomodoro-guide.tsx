@@ -100,7 +100,7 @@ export default function PomodoroGuidePage() {
         <Link href="/" className="hover:text-[var(--palette-white)] transition-colors">Home</Link>
         <Link href="/science-of-deep-work" className="hover:text-[var(--palette-white)] transition-colors">Neuro-Science</Link>
         <Link href="/feynman-technique" className="hover:text-[var(--palette-white)] transition-colors">Feynman Technique</Link>
-        <Link href="/leaderboard" className="hover:text-[var(--palette-white)] transition-colors">World Board</Link>
+        <Link href="/leaderboard" className="hover:text-[var(--palette-white)] transition-colors">Leaderboard</Link>
       </div>
     </div>
   );

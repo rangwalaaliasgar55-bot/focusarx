@@ -129,8 +129,10 @@ app.use(corsMiddleware);
 app.use(cookieParser());
 // Capture the raw body for HMAC-verified webhooks (Stripe). express.json
 // still parses as usual; only /stripe/webhook reads `req.rawBody`.
+// 1 MB: the active-session sync carries a (server-capped) focus timeline
+// and long sessions used to trip the old 100 kb ceiling with HTTP 413s.
 app.use(express.json({
-  limit: "100kb",
+  limit: "1mb",
   verify: (req, _res, buf) => {
     (req as { rawBody?: Buffer }).rawBody = Buffer.from(buf);
   },

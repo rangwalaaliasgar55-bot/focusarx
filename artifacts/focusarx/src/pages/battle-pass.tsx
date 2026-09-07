@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getToken } from "@/lib/auth";
+import { apiJson } from "@/lib/api";
 import { useToast } from "@/components/Toast";
 import { Lock, Check, Gift, Crown, Trophy, Clock, Coins, Sparkles, ArrowRight } from "lucide-react";
 import { PageTransition } from "@/components/PageTransition";
@@ -8,11 +8,9 @@ import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 import { Link } from "wouter";
 import { usePremium } from "@/hooks/usePremium";
 
-async function apiFetch(path: string, opts?: RequestInit) {
-  const token = getToken();
-  const res = await fetch(path, { ...opts, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(opts?.headers ?? {}) } });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+/** Shared client: cookie-first auth, silent refresh, readable error messages. */
+function apiFetch<T = any>(path: string, opts?: RequestInit): Promise<T> {
+  return apiJson<T>(path, opts);
 }
 
 function Countdown({ endsAt, graceEndsAt }: { endsAt: string; graceEndsAt?: string }) {

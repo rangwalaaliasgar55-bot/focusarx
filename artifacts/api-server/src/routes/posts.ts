@@ -8,7 +8,7 @@ import {
   groupMembersTable,
 } from "@workspace/db";
 import { extractUserId } from "./auth";
-import { eq, and, desc, lt, sql, inArray, ne } from "drizzle-orm";
+import { eq, and, desc, lt, sql, inArray, ne, getTableColumns } from "drizzle-orm";
 import { moderateText } from "../lib/moderation";
 import { parseLimit, parseOffset } from "../lib/pagination";
 import { ensureDailyBotActivity, materializeDueBotReplies, queueBotReplies, queueBotCommentReply } from "../lib/botEngine";
@@ -128,35 +128,46 @@ postsRouter.get("/feed", authMiddleware, async (req: AuthRequest, res: Response)
       cursorDate ? lt(socialPostsTable.createdAt, cursorDate) : undefined,
     );
     const overfetch = pageLimit * 3;
+    // Select the post columns explicitly: a bare `select()` over a join
+    // returns `{ social_posts, users }` row wrappers, which is what used to
+    // crash the sort below (`row.createdAt` was undefined → getTime() threw).
+    const postColumns = getTableColumns(socialPostsTable);
     const [humanRows, botRows] = await Promise.all([
-      db.select().from(socialPostsTable)
+      db.select(postColumns).from(socialPostsTable)
         .innerJoin(usersTable, eq(usersTable.id, socialPostsTable.userId))
-        .where(and(baseWhere, ne(usersTable.role, "bot"), ne(usersTable.role, "admin")))
+        .where(and(baseWhere, ne(usersTable.role, "bot")))
         .orderBy(desc(socialPostsTable.createdAt))
         .limit(overfetch),
-      db.select().from(socialPostsTable)
+      db.select(postColumns).from(socialPostsTable)
         .innerJoin(usersTable, eq(usersTable.id, socialPostsTable.userId))
         .where(and(baseWhere, eq(usersTable.role, "bot")))
         .orderBy(desc(socialPostsTable.createdAt))
         .limit(overfetch),
     ]);
 
+    const toMillis = (value: unknown): number => {
+      if (value instanceof Date) return value.getTime();
+      const parsed = new Date(value as string).getTime();
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
     const merged = [
-      ...humanRows.map((p: any) => ({ post: p, isBot: false })),
-      ...botRows.map((p: any) => ({ post: p, isBot: true })),
-    ].sort((a, b) => (b.post.createdAt as Date).getTime() - (a.post.createdAt as Date).getTime());
+      ...humanRows.map((p) => ({ post: p, isBot: false })),
+      ...botRows.map((p) => ({ post: p, isBot: true })),
+    ].sort((a, b) => toMillis(b.post.createdAt) - toMillis(a.post.createdAt));
 
     const botBudget = Math.ceil(pageLimit * 0.4);
+    const seen = new Set<string>();
     let botCount = 0;
     for (const item of merged) {
       if (posts.length >= pageLimit) break;
+      if (seen.has(item.post.id)) continue;
       if (item.isBot && botCount >= botBudget) continue;
       posts.push(item.post);
+      seen.add(item.post.id);
       if (item.isBot) botCount++;
     }
     // Thin tail: if the mix left the page short (few humans), top up.
     if (posts.length < pageLimit) {
-      const seen = new Set(posts.map((p: any) => p.id));
       for (const item of merged) {
         if (posts.length >= pageLimit) break;
         if (seen.has(item.post.id)) continue;
@@ -164,7 +175,8 @@ postsRouter.get("/feed", authMiddleware, async (req: AuthRequest, res: Response)
         seen.add(item.post.id);
       }
     }
-    nextCursor = posts.length ? (posts[posts.length - 1] as any).createdAt : null;
+    const last = posts[posts.length - 1];
+    nextCursor = last?.createdAt ? new Date(last.createdAt).toISOString() : null;
   } else if (type === "group" && groupId) {
     posts = await db.select().from(socialPostsTable)
       .where(and(

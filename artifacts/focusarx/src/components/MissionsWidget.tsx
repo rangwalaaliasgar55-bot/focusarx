@@ -1,23 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { Target, Gift, ChevronRight } from "lucide-react";
-import { apiJson } from "@/lib/api";
-
-interface MissionDef {
-  key: string;
-  title: string;
-  description: string;
-  type: "daily" | "weekly";
-  xpReward: number;
-  coinReward: number;
-  targetValue: number;
-  icon: string;
-  difficulty: "easy" | "medium" | "hard" | "epic";
-  currentValue: number;
-  completed: boolean;
-  rewardClaimed: boolean;
-}
+import { claimMission, invalidateAfterMissionClaim, useMissionsQuery, type MissionDef } from "@/lib/missionsQuery";
 
 const DIFF_COLOR: Record<string, string> = {
   easy:   "var(--success)",
@@ -26,34 +11,13 @@ const DIFF_COLOR: Record<string, string> = {
   epic:   "var(--brand-400)",
 };
 
-type MissionsData = { daily: MissionDef[]; weekly: MissionDef[]; stats: { dailyCompleted: number; totalDaily: number } | null };
-
-// apiJson rather than a bare fetch: the access token is refreshed silently on
-// 401, so the widget no longer blanks out after the first token rotation.
-function fetchMissions(): Promise<MissionsData> {
-  return apiJson<MissionsData>("/api/missions");
-}
-
-function claimMission(key: string) {
-  return apiJson(`/api/missions/${key}/claim`, { method: "POST", body: "{}" });
-}
-
 export default function MissionsWidget() {
   const qc = useQueryClient();
-  const { data, isLoading } = useQuery({
-    queryKey: ["missions-badge"],
-    queryFn: fetchMissions,
-    staleTime: 60_000,
-    refetchInterval: 120_000,
-  });
+  const { data, isLoading } = useMissionsQuery();
 
   const claimMut = useMutation({
     mutationFn: claimMission,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["missions-badge"] });
-      qc.invalidateQueries({ queryKey: ["missions"] });
-      qc.invalidateQueries({ queryKey: ["wallet"] });
-    },
+    onSuccess: () => invalidateAfterMissionClaim(qc),
   });
 
   if (isLoading) {

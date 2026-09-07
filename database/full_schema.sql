@@ -656,6 +656,15 @@ CREATE TABLE IF NOT EXISTS "study_room_members" (
 	CONSTRAINT "study_room_members_room_user_unique" UNIQUE("room_id","user_id")
 );
 
+CREATE TABLE IF NOT EXISTS "study_room_messages" (
+	"id" text PRIMARY KEY NOT NULL,
+	"room_id" text NOT NULL,
+	"user_id" text,
+	"kind" text DEFAULT 'chat' NOT NULL,
+	"content" text NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS "study_rooms" (
 	"id" text PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
@@ -670,6 +679,9 @@ CREATE TABLE IF NOT EXISTS "study_rooms" (
 	"invite_code" text NOT NULL,
 	"scheduled_for" timestamp,
 	"ended_at" timestamp,
+	"description" text,
+	"topic" text,
+	"last_activity_at" timestamp DEFAULT now(),
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 
@@ -1621,6 +1633,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."study_room_messages"'::regclass AND conname = 'study_room_messages_room_id_study_rooms_id_fk') THEN
+    ALTER TABLE "study_room_messages" ADD CONSTRAINT "study_room_messages_room_id_study_rooms_id_fk" FOREIGN KEY ("room_id") REFERENCES "public"."study_rooms"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."study_room_messages"'::regclass AND conname = 'study_room_messages_user_id_users_id_fk') THEN
+    ALTER TABLE "study_room_messages" ADD CONSTRAINT "study_room_messages_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."study_rooms"'::regclass AND conname = 'study_rooms_group_id_study_groups_id_fk') THEN
     ALTER TABLE "study_rooms" ADD CONSTRAINT "study_rooms_group_id_study_groups_id_fk" FOREIGN KEY ("group_id") REFERENCES "public"."study_groups"("id") ON DELETE cascade ON UPDATE no action;
   END IF;
@@ -1931,6 +1953,7 @@ CREATE INDEX IF NOT EXISTS "streak_history_user_idx" ON "streak_history" USING b
 CREATE INDEX IF NOT EXISTS "streak_history_user_date_idx" ON "streak_history" USING btree ("user_id","date");
 CREATE INDEX IF NOT EXISTS "study_room_members_room_idx" ON "study_room_members" USING btree ("room_id");
 CREATE INDEX IF NOT EXISTS "room_members_room_user_idx" ON "study_room_members" USING btree ("room_id","user_id");
+CREATE INDEX IF NOT EXISTS "study_room_messages_room_created_idx" ON "study_room_messages" USING btree ("room_id","created_at");
 CREATE INDEX IF NOT EXISTS "study_rooms_host_idx" ON "study_rooms" USING btree ("host_id");
 CREATE INDEX IF NOT EXISTS "study_rooms_status_idx" ON "study_rooms" USING btree ("status");
 CREATE INDEX IF NOT EXISTS "tasks_user_id_idx" ON "tasks" USING btree ("user_id");

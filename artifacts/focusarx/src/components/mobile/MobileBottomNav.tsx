@@ -9,21 +9,9 @@ import {
   UserRound,
   MoreHorizontal,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
-import { getToken } from "@/lib/auth";
-import { apiFetch } from "@/lib/api";
+import { useClaimableMissionCount } from "@/lib/missionsQuery";
 import { useEffect, useState } from "react";
-
-async function fetchClaimableMissions(): Promise<number> {
-  if (!getToken()) return 0;
-  const response = await apiFetch("/api/missions");
-  if (!response.ok) return 0;
-  const data = await response.json();
-  return [...(data?.daily ?? []), ...(data?.weekly ?? [])].filter(
-    (m: { completed?: boolean; rewardClaimed?: boolean }) => m.completed && !m.rewardClaimed,
-  ).length;
-}
 
 type Tab = {
   href: string;
@@ -68,12 +56,7 @@ export function MobileBottomNav({ onMoreClick, hidden }: MobileBottomNavProps) {
   }, []);
 
   const shouldHide = hidden || isFocusMode;
-  const { data: claimable = 0 } = useQuery({
-    queryKey: ["missions-badge"],
-    queryFn: fetchClaimableMissions,
-    staleTime: 60_000,
-    refetchInterval: 120_000,
-  });
+  const { data: claimable = 0 } = useClaimableMissionCount();
 
   return (
     <nav

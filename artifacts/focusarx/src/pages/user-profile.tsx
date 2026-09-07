@@ -1,15 +1,14 @@
 import React from "react";
 import { useParams, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getToken, useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
+import { apiJson } from "@/lib/api";
 import { useToast } from "@/components/Toast";
 import { Trophy, Flame, Clock, CheckSquare, Star, Users, Zap, Crown, ArrowLeft, UserPlus } from "lucide-react";
 
-async function apiFetch(path: string, opts?: RequestInit) {
-  const token = getToken();
-  const res = await fetch(path, { ...opts, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(opts?.headers ?? {}) } });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+/** Shared client: cookie-first auth, silent refresh, readable error messages. */
+function apiFetch<T = any>(path: string, opts?: RequestInit): Promise<T> {
+  return apiJson<T>(path, opts);
 }
 
 function StatBubble({ icon: Icon, label, value, color = "var(--brand-600)" }: { icon: React.ComponentType<any>; label: string; value: string | number; color?: string }) {

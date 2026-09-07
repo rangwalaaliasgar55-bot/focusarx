@@ -1,16 +1,14 @@
 import { QueryError } from "@/components/ui/QueryError";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { getToken } from "@/lib/auth";
+import { apiJson } from "@/lib/api";
 import { Bell, CheckCheck, Trash2, X } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { isPushSubscribed, requestPushPermission } from "@/lib/pushNotifications";
 
-async function apiFetch(path: string, opts?: RequestInit) {
-  const token = getToken();
-  const res = await fetch(path, { ...opts, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(opts?.headers ?? {}) } });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+/** Shared client: cookie-first auth, silent refresh, readable error messages. */
+function apiFetch<T = any>(path: string, opts?: RequestInit): Promise<T> {
+  return apiJson<T>(path, opts);
 }
 
 const TYPE_ICONS: Record<string, string> = {
