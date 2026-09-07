@@ -68,7 +68,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
   const { requestMonitorRecovery, monitorEnabled } = useSessionRecovery();
   const { activeTasks, completedTasks, refreshTasks } = useTasks();
   const { wallet, refresh: refreshWallet } = useCoinXP();
-  const { isPremium } = usePremium();
+  const { isPremium, tier: membershipTier } = usePremium();
   const [intention] = useState("");
   const [showReflection, setShowReflection] = useState(false);
   const [reflectionDuration, setReflectionDuration] = useState(0);
@@ -792,6 +792,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
               onEditClick={status === "idle" ? handleEditTime : undefined}
               sessionType={sessionType}
               activeSecondsEarned={activeSeconds}
+              tier={membershipTier}
             />
           </div>
 

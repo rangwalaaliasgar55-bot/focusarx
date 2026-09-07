@@ -15,6 +15,7 @@ const ADMIN_SECTIONS = [
   { id: "rivals", label: "AI rivals", icon: Bot, group: "Platform" },
   { id: "missions", label: "Missions", icon: Target, group: "Platform" },
   { id: "retention", label: "Retention", icon: Heart, group: "Platform" },
+  { id: "breakfree", label: "Break Free", icon: Shield, group: "Platform" },
   { id: "marketplace", label: "Marketplace", icon: ShoppingBag, group: "Content" },
   { id: "pets", label: "Pets", icon: Star, group: "Content" },
   { id: "lootboxes", label: "Loot boxes", icon: Gift, group: "Content" },

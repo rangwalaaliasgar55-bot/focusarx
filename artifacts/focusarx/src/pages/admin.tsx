@@ -25,6 +25,7 @@ import { AdminCoinsPanel } from "@/components/admin/AdminCoinsPanel";
 import { AdminMissionsPanel } from "@/components/admin/AdminMissionsPanel";
 import { AdminRetentionPanel } from "@/components/admin/AdminRetentionPanel";
 import { AdminRivalsPanel } from "@/components/admin/AdminRivalsPanel";
+import { AdminBreakFreePanel } from "@/components/admin/AdminBreakFreePanel";
 import { AdminCityPanel } from "@/components/admin/AdminCityPanel";
 import { AdminTokensPanel } from "@/components/admin/AdminTokensPanel";
 import { AdminFlagsPanel } from "@/components/admin/AdminFlagsPanel";
@@ -151,6 +152,7 @@ export default function AdminPage() {
       </MotionTab>
     ),
     rivals: () => <AdminRivalsPanel authHeaders={authHeaders} onManageUser={(id) => setManagingUserId(id)} />,
+    breakfree: () => <AdminBreakFreePanel authHeaders={authHeaders} onManageUser={(id) => setManagingUserId(id)} />,
     marketplace: () => <AdminMarketplacePanel authHeaders={authHeaders} />,
     pets: () => <AdminPetsPanel petStats={petStats} />,
     lootboxes: () => <AdminLootboxPanel authHeaders={authHeaders} />,

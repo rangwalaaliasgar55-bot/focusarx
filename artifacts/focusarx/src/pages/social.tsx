@@ -1,7 +1,8 @@
 import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getToken, useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
+import { apiJson } from "@/lib/api";
 import { useToast } from "@/components/Toast";
 import { Users, UserPlus, Trophy, Activity, Check, Bell, Rss, MessageCircle as MessageCircleIcon, Plus, Send, Image, Trash2, ArrowUpRight, Star as StarIcon, Shield } from "lucide-react";
 import { PageTransition } from "@/components/PageTransition";
@@ -9,11 +10,13 @@ import { DropBanner } from "@/components/DropBanner";
 import { motion, AnimatePresence } from "framer-motion";
 import { BLUR_IN, STAGGER, STAGGER_CHILD } from "@/lib/animations";
 
-async function apiFetch(path: string, opts?: RequestInit) {
-  const token = getToken();
-  const res = await fetch(path, { ...opts, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(opts?.headers ?? {}) } });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+/**
+ * Thin wrapper over the shared client so every call here gets cookie-first
+ * auth, silent token refresh and a human-readable error message (the old
+ * local helper threw the raw response body, so toasts showed JSON blobs).
+ */
+function apiFetch<T = any>(path: string, opts?: RequestInit): Promise<T> {
+  return apiJson<T>(path, opts);
 }
 
 function Avatar({ name, size = 36, level }: { name: string; size?: number, level?: number }) {
@@ -427,9 +430,9 @@ export default function SocialPage() {
         <div className="flex flex-wrap rounded-[24px] border border-[var(--border)] bg-[var(--palette-white)]/[0.01] p-1.5 mb-12 gap-1">
           {[
             { id: "feed", label: "Public Feed", icon: <Rss size={14} /> },
-            { id: "friends", label: "Protocol Mates", icon: <Users size={14} /> },
-            { id: "leaderboard", label: "World Board", icon: <Trophy size={14} /> },
-            { id: "activity", label: "Live Pulse", icon: <Activity size={14} /> },
+            { id: "friends", label: "Friends", icon: <Users size={14} /> },
+            { id: "leaderboard", label: "Leaderboard", icon: <Trophy size={14} /> },
+            { id: "activity", label: "Activity", icon: <Activity size={14} /> },
             { id: "following", label: "Network", icon: <Check size={14} /> },
             { id: "requests", label: "Connects", icon: <Bell size={14} />, badge: incoming.length },
           ].map(t => (
@@ -464,7 +467,7 @@ export default function SocialPage() {
                              onClick={() => createPost.mutate()}
                              className="rounded-2xl bg-[var(--palette-white)] text-[var(--palette-black)] px-8 py-3 text-sm font-semibold hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
                            >
-                             Share Protocol
+                             Post
                            </button>
                         </div>
                      </div>
@@ -482,7 +485,7 @@ export default function SocialPage() {
           {tab === "friends" && (
             <motion.div key="friends" variants={STAGGER} initial="initial" animate="animate" className="grid gap-4 sm:grid-cols-2">
                {friendsLoading ? <div className="col-span-full py-20 flex justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--brand-teal)] border-t-transparent" /></div> : friends.map((f: any) => <FriendCard key={f.id} friend={f} />)}
-               {!friendsLoading && friends.length === 0 && <div className="col-span-full py-32 text-center opacity-30"><Users size={48} className="mx-auto mb-6" /><p className="text-sm font-semibold uppercase tracking-widest">No Protocol Mates Found</p></div>}
+               {!friendsLoading && friends.length === 0 && <div className="col-span-full py-32 text-center opacity-30"><Users size={48} className="mx-auto mb-6" /><p className="text-sm font-semibold uppercase tracking-widest">No friends yet</p></div>}
             </motion.div>
           )}
 
@@ -512,7 +515,7 @@ export default function SocialPage() {
                               <span className="text-[11px] font-semibold text-[var(--brand-teal)] ml-1">LV.{a.userLevel}</span>
                             </p>
                            <p className="text-xs text-[var(--foreground-subtle)] font-medium leading-tight">
-                              {a.type === "session_complete" ? `Completed ${a.data?.durationMin}m Session` : a.type === "badge_unlocked" ? `Earned ${a.data?.badgeId} Badge` : "Updated Protocol"}
+                              {a.type === "session_complete" ? `Completed ${a.data?.durationMin}m Session` : a.type === "badge_unlocked" ? `Earned ${a.data?.badgeId} Badge` : "New activity"}
                            </p>
                         </div>
                      </div>

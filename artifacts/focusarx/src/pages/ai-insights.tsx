@@ -1,16 +1,14 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getToken } from "@/lib/auth";
+import { apiJson } from "@/lib/api";
 import { Sparkles, Brain, Clock, RefreshCw, BarChart2, Target, Flame, TrendingUp, Zap } from "lucide-react";
 import { PageTransition } from "@/components/PageTransition";
 import PageHeader from "@/components/PageHeader";
 import { PremiumGate } from "@/components/PremiumGate";
 
-async function apiFetch(path: string) {
-  const token = getToken();
-  const res = await fetch(path, { headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+/** Shared client: cookie-first auth, silent refresh, readable error messages. */
+function apiFetch<T = any>(path: string): Promise<T> {
+  return apiJson<T>(path);
 }
 
 function StatCard({ label, value, icon: Icon, color = "var(--brand-600)" }: { label: string; value: string | number; icon: React.ComponentType<any>; color?: string }) {

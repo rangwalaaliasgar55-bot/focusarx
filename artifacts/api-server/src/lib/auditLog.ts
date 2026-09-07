@@ -10,6 +10,9 @@ export type AuditAction =
   | "admin_economy_adjust"
   | "admin_content_moderation"
   | "admin_settings_change"
+  | "admin_bot_settings_change"
+  | "admin_bot_tick"
+  | "admin_break_free_action"
   | "admin_drop_trigger";
 
 interface AuditEntry {

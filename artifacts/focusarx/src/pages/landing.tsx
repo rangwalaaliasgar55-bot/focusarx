@@ -308,7 +308,7 @@ export default function LandingPage() {
             <Reveal>
               <p className="page-eyebrow">Designed for the next action</p>
               <h2 className="text-balance text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">Your momentum, visible at a glance.</h2>
-              <p className="mt-5 max-w-xl text-base leading-relaxed text-[var(--foreground-muted)]">Today&apos;s Pulse connects streak, XP, active work, and session quality without turning your dashboard into a scoreboard.</p>
+              <p className="mt-5 max-w-xl text-base leading-relaxed text-[var(--foreground-muted)]">Your dashboard connects streak, XP, active work, and session quality without turning it into a scoreboard.</p>
               <div className="mt-8 space-y-5">
                 {[{ icon: Flame, title: "Streaks that encourage, not punish", text: "See consistency in context and return without shame after a missed day." }, { icon: Target, title: "Tasks beside the timer", text: "Keep the current priority close enough to act on, never close enough to distract." }, { icon: BarChart3, title: "Review patterns, not vanity metrics", text: "Use session history and focus quality to make tomorrow's plan more realistic." }].map(({ icon: Icon, title, text }) => <div key={title} className="flex gap-4"><span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--surface-raised)] text-[var(--brand-strong)]"><Icon size={18} /></span><div><h3 className="text-sm font-semibold">{title}</h3><p className="mt-1 text-sm leading-relaxed text-[var(--foreground-muted)]">{text}</p></div></div>)}
               </div>

@@ -1,23 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Star, Send, Heart } from "lucide-react";
-import { getToken } from "@/lib/auth";
+import { apiJson } from "@/lib/api";
 
 const STORAGE_KEY = "focusarx_feedback_shown";
 const SESSION_COUNT_KEY = "focusarx_total_sessions";
 
-async function apiFetch(path: string, opts?: RequestInit) {
-  const token = getToken();
-  const res = await fetch(path, {
-    ...opts,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(opts?.headers ?? {}),
-    },
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+/** Shared client: cookie-first auth, silent refresh, readable error messages. */
+function apiFetch<T = any>(path: string, opts?: RequestInit): Promise<T> {
+  return apiJson<T>(path, opts);
 }
 
 export function useFeedbackTrigger() {

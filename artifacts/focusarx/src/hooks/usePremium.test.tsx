@@ -54,3 +54,27 @@ describe("usePremium cookie-first authentication", () => {
     expect(result.current.isPremium).toBe(false);
   });
 });
+
+describe("usePremium membership tier", () => {
+  it("passes through the server tier for premium members", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ isPremium: true, tier: "elite" }))));
+    const { result } = setup();
+    await waitFor(() => expect(result.current.isPremium).toBe(true));
+    expect(result.current.tier).toBe("elite");
+  });
+
+  it("defaults premium members to plus when an older API omits tier", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ isPremium: true }))));
+    const { result } = setup();
+    await waitFor(() => expect(result.current.isPremium).toBe(true));
+    expect(result.current.tier).toBe("plus");
+  });
+
+  it("never reports a paid tier for a non-premium user, whatever the server says", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ isPremium: false, tier: "elite" }))));
+    const { result } = setup();
+    await act(async () => {});
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.tier).toBe("free");
+  });
+});

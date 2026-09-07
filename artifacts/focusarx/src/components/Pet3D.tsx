@@ -14,6 +14,9 @@ import { Component, Suspense, useMemo, useRef, type MutableRefObject, type React
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { is3DCapable } from "@/lib/webglCapability";
+import { installThreeConsoleFilter, onWebGLContextLost } from "@/lib/threeConsole";
+
+installThreeConsoleFilter();
 
 // ── capability + error boundary ─────────────────────────────────────────────
 
@@ -809,7 +812,12 @@ export function Pet3D({ petType, mood = "happy", evolutionStage = 0, accessories
 
   return (
     <Pet3DErrorBoundary onCrash={onCrash}>
-      <Canvas dpr={[1, 1.75]} camera={{ position: [0, 1.5, 4.4], fov: 38 }} gl={{ antialias: true, alpha: true }}>
+      <Canvas
+        dpr={[1, 1.75]}
+        camera={{ position: [0, 1.5, 4.4], fov: 38 }}
+        gl={{ antialias: true, alpha: true }}
+        onCreated={({ gl }) => { onWebGLContextLost(gl.domElement, onCrash); }}
+      >
         <Suspense fallback={null}>{scene}</Suspense>
       </Canvas>
     </Pet3DErrorBoundary>

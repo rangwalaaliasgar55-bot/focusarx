@@ -31,7 +31,8 @@ import {
 import {
   evaluateActiveSession,
 } from "../lib/sessionStateMachine";
-import { deriveActiveSessionTiming } from "../lib/activeSessionTiming";
+import { deriveActiveSessionTiming, reconcileActiveSessionSync } from "../lib/activeSessionTiming";
+import { serializeFocusTimeline } from "../lib/focusTimeline";
 
 async function maybeDropLootBox(userId: string, sessionCount: number): Promise<boolean> {
   try {
@@ -168,13 +169,41 @@ const activeSyncSchema = z.object({
   focusQuality: z.string().max(20).nullable().optional(),
   focusState: z.string().max(30).nullable().optional(),
   distractionCount: z.number().int().min(0).optional(),
-  lastSeenFaceAt: z.string().nullable().optional(),
+  lastSeenFaceAt: z.string().max(64).nullable().optional(),
+  // Untrusted: normalised + capped server-side (see lib/focusTimeline). Kept
+  // as `unknown` so an odd client build can never 400 the whole sync.
   focusTimeline: z.unknown().optional(),
   monitorEnabled: z.boolean().optional(),
   timezone: z.string().max(60).optional(),
-});
+}).passthrough();
 
 const router = Router();
+
+/**
+ * Some legacy rows have more than one active session per user (the unique
+ * index only landed in a later migration). Reading with `.limit(1)` after an
+ * explicit ordering keeps GET /sessions/active deterministic instead of
+ * throwing on the destructure or picking an arbitrary stale row.
+ */
+async function loadActiveSessionForUser(userId: string): Promise<ActiveSession | undefined> {
+  const rows = await db.select().from(activeSessionsTable)
+    .where(eq(activeSessionsTable.userId, userId))
+    .orderBy(desc(activeSessionsTable.updatedAt), desc(activeSessionsTable.startedAt))
+    .limit(5);
+  if (rows.length > 1) {
+    // Best-effort cleanup of duplicates so the unique index can be created.
+    const [keep, ...stale] = rows;
+    for (const row of stale) {
+      try {
+        await db.delete(activeSessionsTable).where(eq(activeSessionsTable.id, row.id));
+      } catch (err) {
+        logger.warn({ err, userId }, "duplicate active session cleanup failed (non-fatal)");
+      }
+    }
+    return keep;
+  }
+  return rows[0];
+}
 
 function stringOrNullish(value: unknown): string | null | undefined {
   if (value === null || value === undefined) return value;
@@ -217,7 +246,7 @@ async function userZone(userId: string): Promise<string> {
 
 router.get("/sessions/active", authMiddleware, async (req: AuthRequest, res) => {
   try {
-    const [session] = await db.select().from(activeSessionsTable).where(eq(activeSessionsTable.userId, req.userId));
+    const session = await loadActiveSessionForUser(req.userId);
     if (!session) {
       res.json({ session: null });
       return;
@@ -227,8 +256,16 @@ router.get("/sessions/active", authMiddleware, async (req: AuthRequest, res) => 
     // serverless — the next read is the tick).
     const evaluation = evaluateActiveSession(session, Date.now());
     if (evaluation.expired) {
-      const finalized = await finalizeExpiredSession(req.userId, session);
-      res.json({ session: null, expiredSession: finalized });
+      try {
+        const finalized = await finalizeExpiredSession(req.userId, session);
+        res.json({ session: null, expiredSession: finalized });
+      } catch (err) {
+        // Finalisation is best-effort: a reward/streak hiccup must never make
+        // the timer page unusable. Drop the dead row and report no session.
+        logger.error({ err, userId: req.userId }, "finalizeExpiredSession failed; discarding stale row");
+        await db.delete(activeSessionsTable).where(eq(activeSessionsTable.id, session.id)).catch(() => undefined);
+        res.json({ session: null });
+      }
       return;
     }
 
@@ -240,6 +277,8 @@ router.get("/sessions/active", authMiddleware, async (req: AuthRequest, res) => 
     res.json({
       session: {
         ...session,
+        // Always hand the client a syntactically valid timeline string.
+        focusTimeline: serializeFocusTimeline(session.focusTimeline),
         serverElapsed: timing.activeSeconds,
         serverRemaining: timing.remainingSeconds,
         serverPlannedSeconds: timing.plannedDurationSeconds,
@@ -265,12 +304,16 @@ router.post("/sessions/active", authMiddleware, async (req: AuthRequest, res) =>
     // State machine guard: replacing an existing row is a transition into a
     // fresh session — finalize a stale one first so its (earned) rewards and
     // history are not silently destroyed by the delete below.
-    const [stale] = await db.select().from(activeSessionsTable).where(eq(activeSessionsTable.userId, req.userId)).limit(1);
+    const stale = await loadActiveSessionForUser(req.userId);
     let expiredSession: Awaited<ReturnType<typeof finalizeExpiredSession>> | null = null;
     if (stale) {
       const evaluation = evaluateActiveSession(stale, Date.now());
       if (evaluation.expired) {
-        expiredSession = await finalizeExpiredSession(req.userId, stale);
+        try {
+          expiredSession = await finalizeExpiredSession(req.userId, stale);
+        } catch (err) {
+          logger.error({ err, userId: req.userId }, "finalizeExpiredSession failed during replace (non-fatal)");
+        }
       }
     }
 
@@ -304,51 +347,62 @@ router.post("/sessions/sync", authMiddleware, async (req: AuthRequest, res) => {
   const { sessionId, activeSeconds, secondsLeft, timerStatus, mode, focusScore, focusQuality, focusState, distractionCount, lastSeenFaceAt, focusTimeline, monitorEnabled, timezone } = parsed.data;
   try {
     await adoptTimezone(req.userId, timezone);
-    // Verify ownership and prevent replay of old sessions
-    const [existing] = await db.select({ id: activeSessionsTable.id, userId: activeSessionsTable.userId, startedAt: activeSessionsTable.startedAt })
-      .from(activeSessionsTable)
+    // Verify ownership and prevent replay of old sessions.
+    const [syncTarget] = await db.select().from(activeSessionsTable)
       .where(and(eq(activeSessionsTable.id, sessionId), eq(activeSessionsTable.userId, req.userId)))
       .limit(1);
 
-    if (!existing) {
+    if (!syncTarget) {
       res.status(404).json({ error: { code: "NOT_FOUND", message: "Active session not found" } });
       return;
     }
 
     // State machine: expired rows cannot transition to anything but archived
     // (sync is not a completion). Finalize and tell the client.
-    const [syncTarget] = await db.select().from(activeSessionsTable).where(and(eq(activeSessionsTable.id, sessionId), eq(activeSessionsTable.userId, req.userId))).limit(1);
     const syncEvaluation = evaluateActiveSession(syncTarget, Date.now());
     if (syncEvaluation.expired) {
-      const finalized = await finalizeExpiredSession(req.userId, syncTarget);
+      let finalized: Awaited<ReturnType<typeof finalizeExpiredSession>> | null = null;
+      try {
+        finalized = await finalizeExpiredSession(req.userId, syncTarget);
+      } catch (err) {
+        logger.error({ err, userId: req.userId }, "finalizeExpiredSession failed during sync (non-fatal)");
+      }
       res.status(409).json({ error: { code: "SESSION_EXPIRED", message: "Session expired and was archived" }, expiredSession: finalized });
       return;
     }
 
-    // Server-side authoritative bounds — the client may only report *less*
-    // focus time than has physically elapsed since startedAt (pauses, tab
-    // suspends). Reported values above wall clock are clamped so they can
-    // never feed inflated numbers into completion-time reward verification.
-    const wallClockSeconds = Math.max(0, Math.floor((Date.now() - existing.startedAt.getTime()) / 1000));
-    const safeActiveSeconds = Math.min(14_400, Math.max(0, activeSeconds ?? 0), wallClockSeconds);
-    const safeSecondsLeft = Math.min(14_400, Math.max(0, secondsLeft ?? 1500));
+    // Server-side authoritative clock — the client can only report *less*
+    // focus time than the server has evidence for (pauses, tab suspends),
+    // never more, so inflated numbers can't reach reward verification.
+    const checkpoint = reconcileActiveSessionSync(syncTarget, { activeSeconds, secondsLeft, timerStatus }, Date.now());
 
-    await db.update(activeSessionsTable).set({
-      activeSeconds: safeActiveSeconds,
-      secondsLeft: safeSecondsLeft,
-      timerStatus: timerStatus ?? "paused",
-      mode: mode ?? "focus",
-      focusScore,
-      focusQuality,
-      focusState,
-      distractionCount,
-      lastSeenFaceAt,
-      focusTimeline: JSON.stringify(focusTimeline ?? []),
-      monitorEnabled: monitorEnabled ?? false,
+    const patch: Partial<typeof activeSessionsTable.$inferInsert> = {
+      activeSeconds: checkpoint.activeSeconds,
+      secondsLeft: checkpoint.secondsLeft,
+      timerStatus: checkpoint.timerStatus,
       updatedAt: new Date(),
-    }).where(and(eq(activeSessionsTable.id, sessionId), eq(activeSessionsTable.userId, req.userId)));
+    };
+    // Partial syncs (heartbeats) must not reset fields they did not send.
+    if (mode !== undefined) patch.mode = mode;
+    if (focusScore !== undefined) patch.focusScore = focusScore;
+    if (focusQuality !== undefined) patch.focusQuality = focusQuality;
+    if (focusState !== undefined) patch.focusState = focusState;
+    if (distractionCount !== undefined) patch.distractionCount = distractionCount;
+    if (lastSeenFaceAt !== undefined) patch.lastSeenFaceAt = lastSeenFaceAt;
+    if (monitorEnabled !== undefined) patch.monitorEnabled = monitorEnabled;
+    if (focusTimeline !== undefined) patch.focusTimeline = serializeFocusTimeline(focusTimeline);
 
-    res.json({ ok: true, serverNow: new Date().toISOString() });
+    await db.update(activeSessionsTable).set(patch)
+      .where(and(eq(activeSessionsTable.id, sessionId), eq(activeSessionsTable.userId, req.userId)));
+
+    const timing = deriveActiveSessionTiming({ ...syncTarget, ...checkpoint, updatedAt: patch.updatedAt as Date }, Date.now());
+    res.json({
+      ok: true,
+      serverNow: new Date().toISOString(),
+      serverElapsed: timing.activeSeconds,
+      serverRemaining: timing.remainingSeconds,
+      serverPlannedSeconds: timing.plannedDurationSeconds,
+    });
   } catch (err) {
     logger.error({ err }, "sync session error");
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
@@ -480,7 +534,7 @@ router.post("/sessions", authMiddleware, sessionCompleteLimiter, async (req: Aut
         focusScore,
         focusQuality,
         stabilityRating: stringOrNullish(stabilityRating),
-        focusTimeline: typeof focusTimeline === "string" ? focusTimeline : JSON.stringify(focusTimeline ?? []),
+        focusTimeline: serializeFocusTimeline(focusTimeline),
         sessionInsights: typeof sessionInsights === "string" ? sessionInsights : JSON.stringify(sessionInsights ?? null),
         category: category ?? "General",
         clientNonce: clientNonce ?? null,
@@ -846,6 +900,9 @@ async function finalizeExpiredSession(
     const wasRunning = evaluation.wasRunning;
     const sessionStatus = wasRunning ? "completed" : "expired";
     const durationSec = evaluation.maxFocusSec;
+    // `secondsLeft` is the *remaining* countdown at the last checkpoint, not
+    // the plan — use the derived plan so completion % and history are right.
+    const plannedSec = deriveActiveSessionTiming(session, Date.now()).plannedDurationSeconds;
     const minutes = Math.floor(durationSec / 60);
     const rewardEligible = wasRunning && session.mode === "focus" && durationSec >= MIN_REWARD_DURATION_SEC;
 
@@ -866,14 +923,14 @@ async function finalizeExpiredSession(
       userId,
       mode: session.mode,
       durationSec,
-      plannedDurationSec: session.secondsLeft,
+      plannedDurationSec: plannedSec > 0 ? plannedSec : null,
       completedEarly: false,
-      completionPercentage: session.secondsLeft > 0
-        ? Math.min(100, Math.round((durationSec / session.secondsLeft) * 100))
+      completionPercentage: plannedSec > 0
+        ? Math.min(100, Math.round((durationSec / plannedSec) * 100))
         : null,
       sessionStatus,
       completedAt: new Date(),
-      focusTimeline: session.focusTimeline ?? "[]",
+      focusTimeline: serializeFocusTimeline(session.focusTimeline),
       sessionInsights: session.focusState ? JSON.stringify({ finalFocusState: session.focusState }) : null,
       category: "General",
     }).returning();

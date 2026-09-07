@@ -16,6 +16,7 @@
     { "idx": 11, "version": "7", "when": 1782000000009, "tag": "0011_focus_sessions_nonce_unique", "breakpoints": true },
     { "idx": 12, "version": "7", "when": 1782000000010, "tag": "0012_token_premium_economy", "breakpoints": true },
     { "idx": 13, "version": "7", "when": 1782000000011, "tag": "0013_blueprint_hardening", "breakpoints": true },
-    { "idx": 14, "version": "7", "when": 1788692400000, "tag": "0014_schema_catchup", "breakpoints": true }
+    { "idx": 14, "version": "7", "when": 1788692400000, "tag": "0014_schema_catchup", "breakpoints": true },
+    { "idx": 15, "version": "7", "when": 1788778800000, "tag": "0015_unique_guards", "breakpoints": true }
   ]
 }

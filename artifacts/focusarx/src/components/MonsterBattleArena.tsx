@@ -16,6 +16,9 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Suspense } from "react";
 import * as THREE from "three";
 import { Heart, Sword, Zap, Award, X } from "lucide-react";
+import { installThreeConsoleFilter, onWebGLContextLost } from "@/lib/threeConsole";
+
+installThreeConsoleFilter();
 
 interface BattleState {
   petHp: number;
@@ -353,7 +356,12 @@ export default function MonsterBattleArena({
 
       {/* 3D Arena */}
       <div className="relative h-64 w-full">
-        <Canvas camera={{ position: [0, 2, 8], fov: 50 }}>
+        <Canvas
+          camera={{ position: [0, 2, 8], fov: 50 }}
+          dpr={[1, 1.5]}
+          gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
+          onCreated={({ gl }) => { onWebGLContextLost(gl.domElement); }}
+        >
           <Suspense fallback={null}>
             <BattleScene battleState={battleState} />
           </Suspense>

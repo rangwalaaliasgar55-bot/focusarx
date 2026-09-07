@@ -29,10 +29,12 @@ import {
   focusSessionsTable,
   botPendingRepliesTable,
   platformMetaTable,
+  notificationsTable,
 } from "@workspace/db";
 import { and, desc, eq, gte, inArray, lte, ne, sql } from "drizzle-orm";
 import { logger } from "./logger";
 import { moderateText } from "./moderation";
+import { getBotSettings, type BotSettings } from "./botSettings";
 import { hashString, mulberry32, generatePersona, levelForXp } from "./personas";
 import {
   POST_TEMPLATES,
@@ -97,14 +99,19 @@ export const BOT_PERSONAS: BotPersona[] = [
 const VIBE_GAIN: Record<BotPersona["vibe"], number> = { grinder: 1.0, scholar: 0.85, sprinter: 0.75, chill: 0.6 };
 const REACTION_TYPES = ["fire", "insightful", "focused", "legendary", "love"] as const;
 
-// Per-bot daily anti-spam caps (A2 spec).
-const CAPS = { post: 1, comment: 3, reaction: 15, follow: 5 } as const;
-// Global bot content caps so the feed stays majority-human at 12k scale.
-const GLOBAL_POSTS_MIN = 6;
-const GLOBAL_POSTS_MAX = 24;
-const GLOBAL_COMMENTS_MIN = 5;
-const GLOBAL_COMMENTS_MAX = 15;
-const GLOBAL_FOLLOWS_MAX = 30;
+// Per-bot daily anti-spam caps. Defaults match the A2 spec
+// (1 post · 3 comments · 15 reactions · 5 follows); admins tune them via
+// /admin/bots/settings (see botSettings.ts). Global daily caps live there too
+// so the feed stays majority-human at 12k scale.
+interface Caps { post: number; comment: number; reaction: number; follow: number }
+function capsFrom(s: BotSettings): Caps {
+  return { post: s.perBotPosts, comment: s.perBotComments, reaction: s.perBotReactions, follow: s.perBotFollows };
+}
+/** Deterministic integer in [min, max] from a unit-interval draw. */
+function between(rng: () => number, min: number, max: number): number {
+  if (max <= min) return min;
+  return min + Math.floor(rng() * (max - min + 1));
+}
 
 // ── time helpers ─────────────────────────────────────────────────────────────
 
@@ -513,6 +520,9 @@ interface ContentCtx {
   day: string;
   usage: BotUsage;
   window: { start: number; end: number };
+  settings: BotSettings;
+  caps: Caps;
+  adminIds: Set<string>;
 }
 
 async function runDailyPosts(ctx: ContentCtx): Promise<void> {
@@ -526,11 +536,13 @@ async function runDailyPosts(ctx: ContentCtx): Promise<void> {
     .where(and(ne(usersTable.role, BOT_ROLE), gte(socialPostsTable.createdAt, new Date(Date.now() - 24 * 3600 * 1000))));
 
   // Global cap scales with human activity: the feed stays majority-human.
-  const globalCap = Math.max(GLOBAL_POSTS_MIN, Math.min(GLOBAL_POSTS_MAX, 6 + Math.floor(Number(humanPosts24h ?? 0) / 2)));
+  const { dailyPostsMin, dailyPostsMax } = ctx.settings;
+  const globalCap = Math.max(dailyPostsMin, Math.min(dailyPostsMax, dailyPostsMin + Math.floor(Number(humanPosts24h ?? 0) / 2)));
   const alreadyPosted = [...ctx.usage.posts.values()].reduce((a, b) => a + b, 0);
-  const want = Math.max(0, Math.min(3 + Math.floor(dayRng() * 6), globalCap - alreadyPosted)); // 3–8
+  const target = between(dayRng, dailyPostsMin, Math.max(dailyPostsMin, Math.round((dailyPostsMin + dailyPostsMax) / 2)));
+  const want = Math.max(0, Math.min(target, globalCap - alreadyPosted));
 
-  const candidates = ctx.bots.filter((b) => (ctx.usage.posts.get(b.id) ?? 0) < CAPS.post);
+  const candidates = ctx.bots.filter((b) => (ctx.usage.posts.get(b.id) ?? 0) < ctx.caps.post);
   const used = new Set<string>();
   for (let p = 0; p < want && candidates.length; p++) {
     const bot = candidates[Math.floor(dayRng() * candidates.length)]!;
@@ -556,7 +568,21 @@ async function runDailyPosts(ctx: ContentCtx): Promise<void> {
 
 async function runDailyThreads(ctx: ContentCtx): Promise<void> {
   const dayRng = mulberry32(hashString(`threads:${ctx.day}`));
-  const threadCount = 1 + Math.floor(dayRng() * 2); // 1–2 per day
+  const threadCount = ctx.settings.dailyThreadsMax <= 0 ? 0 : between(dayRng, 1, ctx.settings.dailyThreadsMax);
+  if (!threadCount) return;
+
+  // Idempotent per day: a forced re-run (admin "run now") must not stack
+  // duplicate threads on top of the ones already created today.
+  const [{ n: existing }] = await db
+    .select({ n: sql<number>`count(*)` })
+    .from(socialPostsTable)
+    .innerJoin(usersTable, eq(usersTable.id, socialPostsTable.userId))
+    .where(and(
+      eq(usersTable.role, BOT_ROLE),
+      eq(socialPostsTable.type, "discussion"),
+      gte(socialPostsTable.createdAt, new Date(ctx.window.start - 60 * 60 * 1000)),
+    ));
+  if (Number(existing ?? 0) >= threadCount) return;
 
   for (let t = 0; t < threadCount; t++) {
     const tRng = mulberry32(hashString(`thread:${ctx.day}:${t}`));
@@ -569,7 +595,7 @@ async function runDailyThreads(ctx: ContentCtx): Promise<void> {
     for (let k = 0; k < lineCount && poolBots.length; k++) {
       const idx = Math.floor(mulberry32(hashString(`spk:${ctx.day}:${t}:${k}`))() * poolBots.length);
       const b = poolBots.splice(idx, 1)[0]!;
-      if ((ctx.usage.posts.get(b.id) ?? 0) < CAPS.post) speakers.push(b);
+      if ((ctx.usage.posts.get(b.id) ?? 0) < ctx.caps.post) speakers.push(b);
     }
     if (speakers.length < 2) continue;
 
@@ -599,7 +625,7 @@ async function runDailyThreads(ctx: ContentCtx): Promise<void> {
         ctx.usage.posts.set(speaker.id, (ctx.usage.posts.get(speaker.id) ?? 0) + 1);
       } else {
         if (!postId) break;
-        if ((ctx.usage.comments.get(speaker.id) ?? 0) >= CAPS.comment) break;
+        if ((ctx.usage.comments.get(speaker.id) ?? 0) >= ctx.caps.comment) break;
         // Local consts: loop-carried lets in .values() confuse drizzle's
         // generic inference (circular type), so snapshot them first.
         const pid: string = postId;
@@ -618,7 +644,8 @@ async function runDailyThreads(ctx: ContentCtx): Promise<void> {
 
 async function runDailyComments(ctx: ContentCtx): Promise<void> {
   const dayRng = mulberry32(hashString(`comments:${ctx.day}`));
-  const want = Math.max(GLOBAL_COMMENTS_MIN, Math.min(GLOBAL_COMMENTS_MAX, GLOBAL_COMMENTS_MIN + Math.floor(dayRng() * (GLOBAL_COMMENTS_MAX - GLOBAL_COMMENTS_MIN))));
+  const want = between(dayRng, ctx.settings.dailyCommentsMin, ctx.settings.dailyCommentsMax);
+  if (!want) return;
 
   const recentPosts = await db
     .select({
@@ -647,7 +674,7 @@ async function runDailyComments(ctx: ContentCtx): Promise<void> {
     if (!(await safeContent(content))) continue;
     const commenter = ctx.bots[Math.floor(postRng() * ctx.bots.length)]!;
     if (commenter.id === post.userId) continue;
-    if ((ctx.usage.comments.get(commenter.id) ?? 0) >= CAPS.comment) continue;
+    if ((ctx.usage.comments.get(commenter.id) ?? 0) >= ctx.caps.comment) continue;
     // Comment lands after the post, never in the future.
     const at = new Date(Math.min(post.createdAt.getTime() + (10 + postRng() * 200) * 60 * 1000, ctx.window.end));
     if (at.getTime() < post.createdAt.getTime()) continue;
@@ -664,14 +691,7 @@ async function runDailyComments(ctx: ContentCtx): Promise<void> {
 
 async function runDailyReactions(ctx: ContentCtx): Promise<void> {
   const dayRng = mulberry32(hashString(`reactions:${ctx.day}`));
-  const bursts = 15 + Math.floor(dayRng() * 16); // 15–30 reaction events
-
-  // Find admin for prioritized reactions.
-  const [adminRow] = await db.select({ id: usersTable.id })
-    .from(usersTable)
-    .where(eq(usersTable.role, "admin"))
-    .limit(1);
-  const adminId = adminRow?.id;
+  const bursts = between(dayRng, ctx.settings.reactionBurstsMin, ctx.settings.reactionBurstsMax);
 
   const recentPosts = await db
     .select({ id: socialPostsTable.id, userId: socialPostsTable.userId })
@@ -685,14 +705,14 @@ async function runDailyReactions(ctx: ContentCtx): Promise<void> {
     .limit(120);
   if (!recentPosts.length) return;
 
-  // Admin posts get extra reactions (3–6 bots each) for liveliness.
-  const adminPosts = adminId ? recentPosts.filter(p => p.userId === adminId) : [];
+  // Admin posts get extra reactions (adminReactionsMin–Max bots each).
+  const adminPosts = ctx.adminIds.size ? recentPosts.filter((p) => ctx.adminIds.has(p.userId)) : [];
   for (const post of adminPosts) {
-    const botsForPost = 3 + Math.floor(dayRng() * 4);
+    const botsForPost = between(dayRng, ctx.settings.adminReactionsMin, ctx.settings.adminReactionsMax);
     for (let k = 0; k < botsForPost; k++) {
       const bot = ctx.bots[Math.floor(dayRng() * ctx.bots.length)]!;
       if (bot.id === post.userId) continue;
-      if ((ctx.usage.reactions.get(bot.id) ?? 0) >= CAPS.reaction) continue;
+      if ((ctx.usage.reactions.get(bot.id) ?? 0) >= ctx.caps.reaction) continue;
       const type = REACTION_TYPES[Math.floor(dayRng() * REACTION_TYPES.length)]!;
       try {
         await db.insert(postReactionsTable).values({ postId: post.id, userId: bot.id, reaction: type });
@@ -707,7 +727,7 @@ async function runDailyReactions(ctx: ContentCtx): Promise<void> {
     for (let k = 0; k < botsForPost; k++) {
       const bot = ctx.bots[Math.floor(dayRng() * ctx.bots.length)]!;
       if (bot.id === post.userId) continue;
-      if ((ctx.usage.reactions.get(bot.id) ?? 0) >= CAPS.reaction) continue;
+      if ((ctx.usage.reactions.get(bot.id) ?? 0) >= ctx.caps.reaction) continue;
       const type = REACTION_TYPES[Math.floor(dayRng() * REACTION_TYPES.length)]!;
       try {
         await db.insert(postReactionsTable).values({ postId: post.id, userId: bot.id, reaction: type });
@@ -722,15 +742,8 @@ async function runDailyReactions(ctx: ContentCtx): Promise<void> {
 async function runDailyFollows(ctx: ContentCtx): Promise<void> {
   const dayRng = mulberry32(hashString(`follows:${ctx.day}`));
   const alreadyToday = [...ctx.usage.follows.values()].reduce((a, b) => a + b, 0);
-  const want = Math.max(0, Math.min(GLOBAL_FOLLOWS_MAX, GLOBAL_FOLLOWS_MAX - alreadyToday));
+  const want = Math.max(0, ctx.settings.dailyFollowsMax - alreadyToday);
   if (!want) return;
-
-  // Find the admin user (role='admin') — bots should always follow the admin.
-  const [adminRow] = await db.select({ id: usersTable.id })
-    .from(usersTable)
-    .where(eq(usersTable.role, "admin"))
-    .limit(1);
-  const adminId = adminRow?.id;
 
   // Targets: active humans (studied in last 72h) + high-XP bots.
   const [activeHumans, topBots] = await Promise.all([
@@ -753,8 +766,8 @@ async function runDailyFollows(ctx: ContentCtx): Promise<void> {
   ]);
 
   const targetIds: string[] = [];
-  // Admin always first in the follow target list.
-  if (adminId) targetIds.push(adminId);
+  // Admins always first in the follow target list.
+  for (const id of ctx.adminIds) targetIds.push(id);
   for (const h of activeHumans) if (!targetIds.includes(h.id)) targetIds.push(h.id);
   for (const b of topBots) if (!targetIds.includes(b.userId)) targetIds.push(b.userId);
   if (!targetIds.length) return;
@@ -765,17 +778,36 @@ async function runDailyFollows(ctx: ContentCtx): Promise<void> {
   while (added < want && usedTargets.size < targetIds.length && guard < want * 6) {
     guard++;
     const bot = ctx.bots[Math.floor(dayRng() * ctx.bots.length)]!;
-    if ((ctx.usage.follows.get(bot.id) ?? 0) >= CAPS.follow) continue;
+    if ((ctx.usage.follows.get(bot.id) ?? 0) >= ctx.caps.follow) continue;
     const targetId = targetIds[Math.floor(dayRng() * targetIds.length)]!;
     if (targetId === bot.id || usedTargets.has(targetId)) continue;
     try {
-      await db.insert(followsTable).values({ followerId: bot.id, followingId: targetId });
+      const inserted = await db.insert(followsTable).values({ followerId: bot.id, followingId: targetId }).onConflictDoNothing().returning({ id: followsTable.followerId });
       ctx.usage.follows.set(bot.id, (ctx.usage.follows.get(bot.id) ?? 0) + 1);
       usedTargets.add(targetId);
-      added++;
+      if (inserted.length) {
+        added++;
+        // Only humans get a notification (bots following bots is just decoration).
+        if (!ctx.bots.some(b => b.id === targetId)) await notifyNewFollower(targetId, bot.id, bot.name);
+      }
     } catch {
       /* skip */
     }
+  }
+}
+
+/** Best-effort "new follower" notification for a human user. */
+async function notifyNewFollower(userId: string, followerId: string, followerName: string | null | undefined): Promise<void> {
+  try {
+    await db.insert(notificationsTable).values({
+      userId,
+      type: "new_follower",
+      title: "New follower",
+      message: `${(followerName ?? "").trim() || "Someone"} started following you`,
+      data: { followerId },
+    });
+  } catch (err) {
+    logger.debug({ err, userId }, "new_follower notification skipped");
   }
 }
 
@@ -797,24 +829,109 @@ export async function ensureDailyBotActivity(force = false): Promise<void> {
   lastTickDay = day;
 
   try {
-    const bots = await loadBots();
-    if (bots.length === 0) return;
-
-    await materializeDueBotReplies();
-
-    const usage = await botUsageToday(bots.map((b) => b.id));
-    const plan = planDay(bots, day);
-    await batchWalletTick(plan);
-    await batchStreakTick(plan, day);
-
-    const ctx: ContentCtx = { bots, day, usage, window: contentWindow() };
-    await runDailyPosts(ctx);
-    await runDailyThreads(ctx);
-    await runDailyComments(ctx);
-    await runDailyReactions(ctx);
-    await runDailyFollows(ctx);
+    await runBotTick({ day, force });
   } catch (err) {
     logger.warn({ err }, "bot daily activity failed (non-fatal)");
+  }
+}
+
+export interface BotTickReport {
+  day: string;
+  skipped: "disabled" | "no-bots" | null;
+  bots: number;
+  posts: number;
+  comments: number;
+  reactions: number;
+  follows: number;
+  ms: number;
+}
+
+/** Ids of every admin account (bots always engage with these). */
+async function loadAdminIds(): Promise<Set<string>> {
+  const rows = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.role, "admin"));
+  return new Set(rows.map((r) => r.id));
+}
+
+/**
+ * The actual daily work, factored out so admins can run it on demand
+ * (POST /admin/bots/tick) and see what changed. Idempotent: per-bot usage is
+ * re-read from the DB, so running it twice on the same day only tops up to
+ * the configured caps.
+ */
+export async function runBotTick(opts: { day?: string; force?: boolean } = {}): Promise<BotTickReport> {
+  const t0 = Date.now();
+  const day = opts.day ?? istDayKey();
+  const settings = await getBotSettings();
+  const bots = await loadBots();
+  const base = { day, bots: bots.length, posts: 0, comments: 0, reactions: 0, follows: 0 };
+  if (!settings.enabled) return { ...base, skipped: "disabled", ms: Date.now() - t0 };
+  if (bots.length === 0) return { ...base, skipped: "no-bots", ms: Date.now() - t0 };
+
+  await materializeDueBotReplies();
+
+  const before = await botUsageToday(bots.map((b) => b.id));
+  const plan = planDay(bots, day);
+  await batchWalletTick(plan);
+  await batchStreakTick(plan, day);
+
+  const ctx: ContentCtx = {
+    bots, day, usage: before, window: contentWindow(),
+    settings, caps: capsFrom(settings), adminIds: await loadAdminIds(),
+  };
+  const sum = (m: Map<string, number>) => [...m.values()].reduce((a, b) => a + b, 0);
+  const start = { posts: sum(before.posts), comments: sum(before.comments), reactions: sum(before.reactions), follows: sum(before.follows) };
+  await runDailyPosts(ctx);
+  await runDailyThreads(ctx);
+  await runDailyComments(ctx);
+  await runDailyReactions(ctx);
+  await runDailyFollows(ctx);
+  return {
+    ...base,
+    skipped: null,
+    posts: sum(ctx.usage.posts) - start.posts,
+    comments: sum(ctx.usage.comments) - start.comments,
+    reactions: sum(ctx.usage.reactions) - start.reactions,
+    follows: sum(ctx.usage.follows) - start.follows,
+    ms: Date.now() - t0,
+  };
+}
+
+/**
+ * A brand-new human should not stare at "0 followers". Right after sign-up
+ * (or the first completed session) `followsPerNewHuman` rivals follow them —
+ * deterministic per user, idempotent (unique follower/following pair), and
+ * exempt from the per-bot daily follow cap because it is a one-off welcome.
+ */
+export async function welcomeNewHuman(userId: string): Promise<number> {
+  try {
+    const settings = await getBotSettings();
+    if (!settings.enabled || settings.followsPerNewHuman <= 0) return 0;
+    const [user] = await db.select({ role: usersTable.role, isGuest: usersTable.isGuest })
+      .from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    if (!user || user.isGuest || (user.role ?? "").toLowerCase() === BOT_ROLE) return 0;
+    const bots = await loadBots();
+    if (!bots.length) return 0;
+    const rng = mulberry32(hashString(`welcome:${userId}`));
+    const picked = new Set<string>();
+    let guard = 0;
+    while (picked.size < Math.min(settings.followsPerNewHuman, bots.length) && guard++ < 200) {
+      picked.add(bots[Math.floor(rng() * bots.length)]!.id);
+    }
+    let created = 0;
+    for (const botId of picked) {
+      try {
+        const inserted = await db.insert(followsTable).values({ followerId: botId, followingId: userId }).onConflictDoNothing().returning({ id: followsTable.followerId });
+        if (inserted.length) {
+          created++;
+          const bot = bots.find(b => b.id === botId);
+          await notifyNewFollower(userId, botId, bot?.name ?? null);
+        }
+      } catch { /* already following */ }
+    }
+    return created;
+  } catch (err) {
+    logger.warn({ err, userId }, "welcome follows failed (non-fatal)");
+    return 0;
   }
 }
 
@@ -827,30 +944,58 @@ export async function ensureDailyBotActivity(force = false): Promise<void> {
  */
 export async function queueBotReplies(postId: string, authorId: string, content: string, authorIsBot = false): Promise<void> {
   try {
+    const settings = await getBotSettings();
+    if (!settings.enabled) return;
     const rng = mulberry32(hashString(`replyq:${postId}`));
-    if (authorIsBot && rng() > 0.25) return; // bot posts: 25% get a bot reply
-    if (!authorIsBot && rng() < 0.35) return; // human posts: 65% get replies
+
+    // Admin posts are the community's announcements: they always get a
+    // guaranteed, quick set of replies (adminRepliesMin–Max within
+    // adminReplyDelayMaxMinutes).
+    let authorIsAdmin = false;
+    if (!authorIsBot) {
+      const [author] = await db.select({ role: usersTable.role }).from(usersTable).where(eq(usersTable.id, authorId)).limit(1);
+      authorIsAdmin = (author?.role ?? "").toLowerCase() === "admin";
+    }
+
+    if (authorIsBot && rng() > settings.replyChanceBotPost) return;
+    if (!authorIsBot && !authorIsAdmin && rng() > settings.replyChanceHuman) return;
 
     const bots = await loadBots();
     if (bots.length < 2) return;
     const topic = topicForContent(content);
     const family = COMMENT_REPLIES[topic] ?? COMMENT_REPLIES.general!;
 
-    const count = 1 + (rng() < 0.45 ? 1 : 0); // 1–2
+    const count = authorIsAdmin
+      ? between(rng, settings.adminRepliesMin, settings.adminRepliesMax)
+      : between(rng, 1, settings.repliesPerHumanPostMax);
     const now = Date.now();
+    const used = new Set<string>();
+    const usedLines = new Set<string>();
     for (let i = 0; i < count; i++) {
       const bot = bots[Math.floor(rng() * bots.length)]!;
-      if (bot.id === authorId) continue;
-      const line = family[Math.floor(rng() * family.length)]!;
+      if (bot.id === authorId || used.has(bot.id)) continue;
+      let line = family[Math.floor(rng() * family.length)]!;
+      if (usedLines.has(line)) line = COMMENT_REPLIES.general![Math.floor(rng() * COMMENT_REPLIES.general!.length)]!;
+      if (usedLines.has(line)) continue;
       if (!(await safeContent(line))) continue;
-      // One reply fast (5–25 min), the other slow (1–8h) — natural trickle.
-      const delayMs = i === 0 ? (5 + rng() * 20) * 60 * 1000 : (1 + rng() * 7) * 3600 * 1000;
+      // Admin: every reply lands quickly. Others: first reply fast
+      // (replyFast window), the rest slow (replySlow window) — natural trickle.
+      let delayMs: number;
+      if (authorIsAdmin) {
+        delayMs = (1 + rng() * Math.max(1, settings.adminReplyDelayMaxMinutes)) * 60 * 1000;
+      } else if (i === 0) {
+        delayMs = (settings.replyFastMinMinutes + rng() * (settings.replyFastMaxMinutes - settings.replyFastMinMinutes)) * 60 * 1000;
+      } else {
+        delayMs = (settings.replySlowMinHours + rng() * (settings.replySlowMaxHours - settings.replySlowMinHours)) * 3600 * 1000;
+      }
       await db.insert(botPendingRepliesTable).values({
         postId,
         botId: bot.id,
         content: line,
-        dueAt: new Date(now + delayMs),
+        dueAt: new Date(now + Math.max(30_000, delayMs)),
       });
+      used.add(bot.id);
+      usedLines.add(line);
     }
   } catch (err) {
     logger.warn({ err }, "queue bot replies failed (non-fatal)");
@@ -878,15 +1023,17 @@ export async function maybeBotReply(postId: string, authorId: string): Promise<v
  */
 export async function queueBotCommentReply(commentId: string, postId: string, authorId: string): Promise<void> {
   try {
+    const settings = await getBotSettings();
+    if (!settings.enabled) return;
     const rng = mulberry32(hashString(`replyc:${commentId}`));
-    if (rng() > 0.35) return;
+    if (rng() > settings.commentReplyChance) return;
     const bots = await loadBots();
     if (bots.length < 2) return;
     const bot = bots[Math.floor(rng() * bots.length)]!;
     if (bot.id === authorId) return;
     const line = COMMENT_REPLIES.general![Math.floor(rng() * COMMENT_REPLIES.general!.length)]!;
     if (!(await safeContent(line))) return;
-    const delayMs = (1 + rng() * 7) * 3600 * 1000;
+    const delayMs = Math.max(60_000, (settings.replySlowMinHours + rng() * (settings.replySlowMaxHours - settings.replySlowMinHours)) * 3600 * 1000);
     await db.insert(botPendingRepliesTable).values({
       postId,
       botId: bot.id,
@@ -905,6 +1052,9 @@ export async function queueBotCommentReply(commentId: string, postId: string, au
  */
 export async function materializeDueBotReplies(): Promise<void> {
   try {
+    const settings = await getBotSettings();
+    if (!settings.enabled) return; // queued replies wait until bots are re-enabled
+    const caps = capsFrom(settings);
     const due = await db
       .select()
       .from(botPendingRepliesTable)
@@ -915,7 +1065,7 @@ export async function materializeDueBotReplies(): Promise<void> {
 
     for (const reply of due) {
       const usage = await botUsageToday([reply.botId]);
-      if ((usage.comments.get(reply.botId) ?? 0) >= CAPS.comment) {
+      if ((usage.comments.get(reply.botId) ?? 0) >= caps.comment) {
         await db.update(botPendingRepliesTable).set({ status: "skipped" }).where(eq(botPendingRepliesTable.id, reply.id));
         continue;
       }
@@ -936,6 +1086,30 @@ export async function materializeDueBotReplies(): Promise<void> {
   } catch (err) {
     logger.warn({ err }, "materialize bot replies failed (non-fatal)");
   }
+}
+
+/**
+ * Admin "make them talk now": pull every pending reply's due time to now and
+ * materialise in batches. Returns how many comments landed.
+ */
+export async function flushPendingBotReplies(limit = 500): Promise<number> {
+  const [{ n: before }] = await db.select({ n: sql<number>`count(*)` })
+    .from(botPendingRepliesTable).where(eq(botPendingRepliesTable.status, "pending"));
+  if (!Number(before)) return 0;
+  await db.update(botPendingRepliesTable)
+    .set({ dueAt: new Date() })
+    .where(eq(botPendingRepliesTable.status, "pending"));
+  let rounds = 0;
+  while (rounds++ < Math.ceil(limit / 50)) {
+    await materializeDueBotReplies();
+    const [{ n }] = await db.select({ n: sql<number>`count(*)` })
+      .from(botPendingRepliesTable)
+      .where(and(eq(botPendingRepliesTable.status, "pending"), lte(botPendingRepliesTable.dueAt, new Date())));
+    if (!Number(n)) break;
+  }
+  const [{ n: after }] = await db.select({ n: sql<number>`count(*)` })
+    .from(botPendingRepliesTable).where(eq(botPendingRepliesTable.status, "pending"));
+  return Number(before) - Number(after);
 }
 
 // ── follow graph bootstrap (one-shot, versioned) ─────────────────────────────
@@ -999,10 +1173,13 @@ export async function buildBotFollowGraph(): Promise<{ followsCreated: number }>
       params.push(f, s);
     }
     // `id` has no DB default (client-side $defaultFn in drizzle), so the raw
-    // insert generates UUIDs server-side.
+    // insert generates UUIDs server-side. Pairs that already exist (welcome
+    // follows, a previous partial run) are skipped — `follows` has a unique
+    // (follower_id, following_id) index.
     const res = await pool.query(
       `INSERT INTO follows (id, follower_id, following_id)
-       VALUES ${chunk.map((_, k) => `(gen_random_uuid(), $${k * 2 + 1}::text, $${k * 2 + 2}::text)`).join(", ")}`,
+       VALUES ${chunk.map((_, k) => `(gen_random_uuid(), $${k * 2 + 1}::text, $${k * 2 + 2}::text)`).join(", ")}
+       ON CONFLICT DO NOTHING`,
       params,
     );
     followsCreated += res.rowCount ?? 0;

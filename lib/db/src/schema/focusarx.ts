@@ -608,6 +608,7 @@ export const followsTable = pgTable("follows", {
 }, (t) => [
   index("follows_follower_idx").on(t.followerId),
   index("follows_following_idx").on(t.followingId),
+  uniqueIndex("follows_follower_following_unique").on(t.followerId, t.followingId),
 ]);
 
 export type Follow = typeof followsTable.$inferSelect;
@@ -662,6 +663,10 @@ export const studyRoomsTable = pgTable("study_rooms", {
   inviteCode: text("invite_code").notNull(),
   scheduledFor: timestamp("scheduled_for"),
   endedAt: timestamp("ended_at"),
+  // Added in migration 0015 — nullable so old rows keep working.
+  description: text("description"),
+  topic: text("topic"),
+  lastActivityAt: timestamp("last_activity_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   index("study_rooms_host_idx").on(t.hostId),
@@ -669,6 +674,24 @@ export const studyRoomsTable = pgTable("study_rooms", {
 ]);
 
 export type StudyRoom = typeof studyRoomsTable.$inferSelect;
+
+/**
+ * Persisted study-room chat. Production runs on serverless functions where
+ * Socket.IO has no long-lived process, so rooms poll this table over REST.
+ * `kind` distinguishes human chat from system notices and bot banter.
+ */
+export const studyRoomMessagesTable = pgTable("study_room_messages", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  roomId: text("room_id").notNull().references(() => studyRoomsTable.id, { onDelete: "cascade" }),
+  userId: text("user_id").references(() => usersTable.id, { onDelete: "set null" }),
+  kind: text("kind").notNull().default("chat"),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("study_room_messages_room_created_idx").on(t.roomId, t.createdAt),
+]);
+
+export type StudyRoomMessage = typeof studyRoomMessagesTable.$inferSelect;
 
 export const studyRoomMembersTable = pgTable("study_room_members", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),

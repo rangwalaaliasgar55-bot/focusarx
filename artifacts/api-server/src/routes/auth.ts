@@ -7,6 +7,7 @@ import { z } from "zod";
 import { db, usersTable, passwordResetTokensTable, emailLogsTable } from "@workspace/db";
 import { eq, and, gt, isNull } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import { welcomeNewHuman } from "../lib/botEngine";
 import { getServerConfig } from "../lib/config";
 import { authLimiter, forgotPasswordLimiter, resetLinkLimiter, guestLimiter, refreshLimiter } from "../lib/rateLimiter";
 import { createRefreshFamily, rotateRefreshToken, revokeRefreshToken, revokeAllUserRefreshTokens } from "../lib/refreshTokens";
@@ -418,6 +419,10 @@ router.post("/auth/register", authLimiter, async (req, res) => {
       needsLogin,
       user: { id: user.id, email: user.email, name: user.name, isGuest: false },
     });
+
+    // A few AI rivals follow the newcomer so their first profile view is not
+    // an empty room. Fire-and-forget: never delays or fails the sign-up.
+    void welcomeNewHuman(user.id);
   } catch (err) {
     logger.error({ err }, "register error");
     if (isDependencyFailure(err)) {

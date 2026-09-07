@@ -38,6 +38,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { useAuth, getToken, isAdminUser } from "@/lib/auth";
 import { apiFetch } from "@/lib/api";
+import { useClaimableMissionCount } from "@/lib/missionsQuery";
 import { formatClock, useFocusSessionState } from "@/lib/focusSessionBus";
 import { useTheme } from "@/lib/theme";
 import { useSessionHistory } from "@/hooks/useSessionHistory";
@@ -135,19 +136,10 @@ const NO_SHELL = [
   "/welcome",
 ];
 
-// Both counters go through apiFetch rather than a bare fetch so an expired
-// access token is refreshed silently instead of the badges quietly going to 0
-// for the rest of the session.
-async function fetchMissionCount() {
-  if (!getToken()) return 0;
-  const response = await apiFetch("/api/missions");
-  if (!response.ok) return 0;
-  const data = await response.json();
-  return [...(data?.daily ?? []), ...(data?.weekly ?? [])].filter(
-    (mission: { completed?: boolean; rewardClaimed?: boolean }) => mission.completed && !mission.rewardClaimed,
-  ).length;
-}
-
+// Counters go through apiFetch rather than a bare fetch so an expired access
+// token is refreshed silently instead of the badges quietly going to 0 for
+// the rest of the session. (Mission counts come from lib/missionsQuery so the
+// badge shares one cache entry — and one data shape — with the widget/page.)
 async function fetchNotificationCount() {
   if (!getToken()) return 0;
   const response = await apiFetch("/api/notifications");
@@ -184,12 +176,7 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
   const [location] = useLocation();
   const { data: user } = useAuth();
   const { isPremium } = usePremium();
-  const { data: missionCount = 0 } = useQuery({
-    queryKey: ["missions-badge"],
-    queryFn: fetchMissionCount,
-    staleTime: 60_000,
-    refetchInterval: 120_000,
-  });
+  const { data: missionCount = 0 } = useClaimableMissionCount();
 
   return (
     <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5" aria-label="Primary navigation">

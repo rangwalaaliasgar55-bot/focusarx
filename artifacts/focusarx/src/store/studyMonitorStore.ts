@@ -56,11 +56,60 @@ function elapsedSessionSec(): number {
   return Math.floor(studyMonitorState.activeSessionDuration);
 }
 
+/**
+ * Upper bound on timeline points kept in memory / sent to the server. One
+ * point per 15 s bucket for a 4 h session is 960; transitions on top of that
+ * are collapsed so a flapping camera can never grow the payload without
+ * bound (the raw list used to exceed the API body limit → HTTP 413).
+ */
+export const MAX_TIMELINE_POINTS = 960;
+
+/**
+ * Collapse consecutive same-state samples and downsample to `maxPoints`
+ * while keeping the first and last sample. Pure; safe to call on any list.
+ */
+export function compactFocusTimeline(
+  timeline: readonly FocusTimelinePoint[],
+  maxPoints = MAX_TIMELINE_POINTS,
+): FocusTimelinePoint[] {
+  const collapseRuns = (points: readonly FocusTimelinePoint[]): FocusTimelinePoint[] => {
+    const out: FocusTimelinePoint[] = [];
+    for (const point of points) {
+      const previous = out[out.length - 1];
+      if (previous && previous.state === point.state) continue;
+      out.push(point);
+    }
+    return out;
+  };
+  const clean: FocusTimelinePoint[] = [];
+  for (const point of timeline) {
+    if (!point || !Number.isFinite(point.t)) continue;
+    if (point.state !== "focus" && point.state !== "distracted") continue;
+    clean.push({ t: Math.max(0, Math.floor(point.t)), state: point.state });
+  }
+  const collapsed = collapseRuns(clean);
+  if (collapsed.length <= maxPoints) return collapsed;
+  const sampled: FocusTimelinePoint[] = [];
+  const stride = (collapsed.length - 1) / (maxPoints - 1);
+  for (let i = 0; i < maxPoints; i++) {
+    const candidate = collapsed[Math.min(collapsed.length - 1, Math.round(i * stride))]!;
+    const previous = sampled[sampled.length - 1];
+    if (previous && previous.t === candidate.t) continue;
+    sampled.push(candidate);
+  }
+  return collapseRuns(sampled);
+}
+
 function appendTimeline(state: "focus" | "distracted") {
   const t = elapsedSessionSec();
   const last = studyMonitorState.focusTimeline.at(-1);
-  if (last?.state === state && last.t === t) return;
+  // Only state *changes* carry information; a repeated same-state sample
+  // (15 s bucket, duplicate transition) would just inflate the payload.
+  if (last?.state === state) return;
   studyMonitorState.focusTimeline.push({ t, state });
+  if (studyMonitorState.focusTimeline.length > MAX_TIMELINE_POINTS * 2) {
+    studyMonitorState.focusTimeline = compactFocusTimeline(studyMonitorState.focusTimeline);
+  }
 }
 
 function maybeBucketTimeline() {
@@ -316,7 +365,7 @@ export function finalizeSessionMetrics(
 
   const timeline =
     studyMonitorState.focusTimeline.length > 0
-      ? [...studyMonitorState.focusTimeline]
+      ? compactFocusTimeline(studyMonitorState.focusTimeline)
       : [{ t: 0, state: "focus" as const }];
 
   return {
@@ -428,7 +477,7 @@ export function getMonitorPersistenceSnapshot(
       studyMonitorState.lastSeenFaceTimestamp > 0
         ? new Date(studyMonitorState.lastSeenFaceTimestamp).toISOString()
         : null,
-    focusTimeline: [...studyMonitorState.focusTimeline],
+    focusTimeline: compactFocusTimeline(studyMonitorState.focusTimeline),
     monitorEnabled,
     scoringActive: studyMonitorState.scoringActive,
   };
@@ -441,7 +490,9 @@ export function restoreStudyMonitorFromPersistence(
   studyMonitorState.activeSessionDuration = snapshot.activeSeconds;
   studyMonitorState.sessionElapsedSec = snapshot.activeSeconds;
   studyMonitorState.distractionCount = snapshot.distractionCount;
-  studyMonitorState.focusTimeline = [...snapshot.focusTimeline];
+  studyMonitorState.focusTimeline = compactFocusTimeline(
+    Array.isArray(snapshot.focusTimeline) ? snapshot.focusTimeline : []
+  );
   studyMonitorState.lastTimelineBucket = Math.floor(
     snapshot.activeSeconds / TIMELINE_INTERVAL_SEC
   );

@@ -11,7 +11,8 @@ import { extractUserId } from "./auth";
 import { adminLimiter } from "../lib/rateLimiter";
 import { ALL_MISSIONS } from "./missions";
 import { checkAdminAuth, ADMIN_COOKIE } from "../lib/adminAuth";
-import { seedBotsToTarget, deleteAllBots, BOT_PERSONAS, botActivityStats, buildBotFollowGraph, istDayKey } from "../lib/botEngine";
+import { seedBotsToTarget, deleteAllBots, BOT_PERSONAS, botActivityStats, buildBotFollowGraph, istDayKey, runBotTick, flushPendingBotReplies } from "../lib/botEngine";
+import { getBotSettings, saveBotSettings, resetBotSettings, botSettingsPatchSchema, DEFAULT_BOT_SETTINGS } from "../lib/botSettings";
 import { generatePersona } from "../lib/personas";
 import { templateInventory } from "../lib/botTemplates";
 import { auditLog, getClientIp } from "../lib/auditLog";
@@ -652,6 +653,74 @@ router.post("/admin/bots/graph", adminLimiter, async (req, res) => {
     res.json({ ok: true, ...result });
   } catch (err) {
     logger.error({ err }, "admin build bot graph error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// ── Bot talking controls (admin-tunable engine settings) ─────────────────────
+
+router.get("/admin/bots/settings", async (req, res) => {
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
+  try {
+    const settings = await getBotSettings();
+    res.json({ settings, defaults: DEFAULT_BOT_SETTINGS });
+  } catch (err) {
+    logger.error({ err }, "admin bot settings read error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+router.put("/admin/bots/settings", adminLimiter, async (req, res) => {
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
+  const parsed = botSettingsPatchSchema.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid settings", issues: parsed.error.issues });
+    return;
+  }
+  try {
+    const settings = await saveBotSettings(parsed.data);
+    auditLog({ action: "admin_bot_settings_change", ip: getClientIp(req), details: { patch: parsed.data } });
+    res.json({ ok: true, settings });
+  } catch (err) {
+    logger.error({ err }, "admin bot settings write error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+router.post("/admin/bots/settings/reset", adminLimiter, async (req, res) => {
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
+  try {
+    const settings = await resetBotSettings();
+    auditLog({ action: "admin_bot_settings_change", ip: getClientIp(req), details: { reset: true } });
+    res.json({ ok: true, settings });
+  } catch (err) {
+    logger.error({ err }, "admin bot settings reset error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+/** Run today's bot activity now (idempotent: tops up to the configured caps). */
+router.post("/admin/bots/tick", adminLimiter, async (req, res) => {
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
+  try {
+    const report = await runBotTick({ force: true });
+    auditLog({ action: "admin_bot_tick", ip: getClientIp(req), details: { ...report } });
+    res.json({ ok: true, ...report });
+  } catch (err) {
+    logger.error({ err }, "admin bot tick error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+/** Deliver every queued bot reply immediately ("make them talk now"). */
+router.post("/admin/bots/flush-replies", adminLimiter, async (req, res) => {
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
+  try {
+    const delivered = await flushPendingBotReplies();
+    auditLog({ action: "admin_bot_tick", ip: getClientIp(req), details: { flushReplies: true, delivered } });
+    res.json({ ok: true, delivered });
+  } catch (err) {
+    logger.error({ err }, "admin bot flush error");
     res.status(500).json({ error: "Internal error" });
   }
 });

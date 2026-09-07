@@ -114,7 +114,7 @@ export const MAX_LAYERS = 4;
 
 // ── noise buffers ─────────────────────────────────────────────────────────────
 
-type NoiseColor = "white" | "pink" | "brown";
+export type NoiseColor = "white" | "pink" | "brown";
 
 const bufferCache = new Map<string, AudioBuffer>();
 
@@ -123,66 +123,114 @@ function rnd(min: number, max: number) {
   return min + Math.random() * (max - min);
 }
 
+/** Fill `d` with `n` samples of the requested noise colour (independent per channel). */
+function fillNoise(d: Float32Array, n: number, color: NoiseColor) {
+  if (color === "white") {
+    for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    return;
+  }
+  if (color === "brown") {
+    // Leaky integrator. The first ~0.3 s are a warm-up so the loop never
+    // starts from the (silent) zero state — see the pre-roll below.
+    let last = 0;
+    for (let i = 0; i < n; i++) {
+      const w = Math.random() * 2 - 1;
+      last = (last + 0.02 * w) / 1.02;
+      d[i] = last * 3.2;
+    }
+    return;
+  }
+  // pink — Paul Kellet's refined filter
+  let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+  for (let i = 0; i < n; i++) {
+    const w = Math.random() * 2 - 1;
+    b0 = 0.99886 * b0 + w * 0.0555179;
+    b1 = 0.99332 * b1 + w * 0.0750759;
+    b2 = 0.969 * b2 + w * 0.153852;
+    b3 = 0.8665 * b3 + w * 0.3104856;
+    b4 = 0.55 * b4 + w * 0.5329522;
+    b5 = -0.7616 * b5 - w * 0.016898;
+    d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11;
+    b6 = w * 0.115926;
+  }
+}
+
 /**
- * Generate a loop-friendly noise buffer. The last `xf` seconds are
- * cross-faded with the beginning so looping doesn't click.
+ * Generate a noise buffer.
+ *
+ * Loop buffers (≥ 1 s) are made genuinely seamless: we synthesise `len + xf`
+ * samples and equal-power cross-fade the overhang back into the head, so the
+ * sample after the loop point is the one that would have come next. The old
+ * approach faded the tail to silence, which put an audible 0.5 s "dip" in
+ * every rain/ocean/wind bed every 6–8 seconds — the periodic pulse people
+ * reported as low quality. Equal-power (sin/cos) weights keep the RMS flat
+ * through the cross-fade, where a linear fade of two uncorrelated signals
+ * drops 3 dB in the middle.
+ *
+ * One-shot buffers (< 1 s, used for droplets/ticks/crackles) just get a
+ * 2 ms edge fade so `start()`/`stop()` never click.
  */
 function makeNoiseBuffer(ctx: AudioContext, color: NoiseColor, seconds = 6): AudioBuffer {
   const key = `${color}:${seconds}:${ctx.sampleRate}`;
   const cached = bufferCache.get(key);
   if (cached) return cached;
 
-  const len = Math.floor(ctx.sampleRate * seconds);
-  const buf = ctx.createBuffer(2, len, ctx.sampleRate);
-  for (let ch = 0; ch < 2; ch++) {
-    const d = buf.getChannelData(ch);
-    if (color === "white") {
-      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-    } else if (color === "brown") {
-      let last = 0;
-      for (let i = 0; i < len; i++) {
-        const w = Math.random() * 2 - 1;
-        last = (last + 0.02 * w) / 1.02;
-        d[i] = last * 3.2;
-      }
-    } else {
-      // pink — Paul Kellet's refined filter
-      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-      for (let i = 0; i < len; i++) {
-        const w = Math.random() * 2 - 1;
-        b0 = 0.99886 * b0 + w * 0.0555179;
-        b1 = 0.99332 * b1 + w * 0.0750759;
-        b2 = 0.969 * b2 + w * 0.153852;
-        b3 = 0.8665 * b3 + w * 0.3104856;
-        b4 = 0.55 * b4 + w * 0.5329522;
-        b5 = -0.7616 * b5 - w * 0.016898;
-        d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11;
-        b6 = w * 0.115926;
-      }
-    }
-    // Crossfade the tail into the head for a seamless loop.
-    const xf = Math.min(Math.floor(ctx.sampleRate * 0.5), Math.floor(len / 4));
-    for (let i = 0; i < xf; i++) {
-      const t = i / xf;
-      const head = d[i] ?? 0;
-      const tail = d[len - xf + i] ?? 0;
-      d[i] = head * t + tail * (1 - t);
-    }
-    // Short fade on the very end so the loop point has matching silence ramp.
-    for (let i = 0; i < xf; i++) {
-      const t = i / xf;
-      const idx = len - xf + i;
-      d[idx] = (d[idx] ?? 0) * (1 - t);
-    }
-  }
+  const sr = ctx.sampleRate;
+  const len = Math.floor(sr * seconds);
+  const buf = ctx.createBuffer(2, len, sr);
+  for (let ch = 0; ch < 2; ch++) renderNoiseChannel(buf.getChannelData(ch), sr, color, seconds);
   bufferCache.set(key, buf);
   return buf;
 }
 
+/**
+ * Render one channel of noise into `d` (length = floor(sr * seconds)).
+ * Exported for the seam test — no AudioContext needed.
+ */
+export function renderNoiseChannel(d: Float32Array, sr: number, color: NoiseColor, seconds: number): void {
+  const len = d.length;
+  const isLoop = seconds >= 1;
+  // Coloured generators need a pre-roll so the loop does not begin at zero.
+  const preRoll = color === "white" ? 0 : Math.floor(sr * 0.3);
+  const xf = isLoop ? Math.min(Math.floor(sr * 1.0), Math.floor(len / 4)) : 0;
+
+  if (!isLoop) {
+    const tmp = new Float32Array(len + preRoll);
+    fillNoise(tmp, len + preRoll, color);
+    d.set(tmp.subarray(preRoll));
+    const edge = Math.min(Math.floor(sr * 0.002), Math.floor(len / 4));
+    for (let i = 0; i < edge; i++) {
+      const t = i / edge;
+      d[i] = (d[i] ?? 0) * t;
+      d[len - 1 - i] = (d[len - 1 - i] ?? 0) * t;
+    }
+    return;
+  }
+  const tmp = new Float32Array(preRoll + len + xf);
+  fillNoise(tmp, tmp.length, color);
+  const g = tmp.subarray(preRoll); // len + xf usable samples
+  d.set(g.subarray(0, len));
+  // Cross-fade the overhang g[len..len+xf) into the head d[0..xf).
+  for (let i = 0; i < xf; i++) {
+    const t = i / xf;
+    const wIn = Math.sin(t * Math.PI * 0.5);   // head weight  0 → 1
+    const wOut = Math.cos(t * Math.PI * 0.5);  // overhang     1 → 0
+    d[i] = (g[i] ?? 0) * wIn + (g[len + i] ?? 0) * wOut;
+  }
+}
+
+/**
+ * Looping noise source. Every instance starts at a random offset into the
+ * (shared, cached) buffer so two layers built on the same colour — rain body
+ * and monsoon roof, say — never play sample-locked copies of each other,
+ * which used to sum into a phasey, narrow, oddly louder mix.
+ */
 function noiseSource(ctx: AudioContext, color: NoiseColor, seconds = 6): AudioBufferSourceNode {
   const src = ctx.createBufferSource();
   src.buffer = makeNoiseBuffer(ctx, color, seconds);
   src.loop = true;
+  const nativeStart = src.start.bind(src);
+  src.start = (when?: number) => nativeStart(when ?? 0, rnd(0, Math.max(0, (src.buffer?.duration ?? 0) - 0.01)));
   return src;
 }
 
@@ -401,8 +449,9 @@ function buildStorm(ctx: AudioContext): BuilderResult {
     const now = ctx.currentTime;
     const dur = rnd(2.2, 5.5);
     const near = Math.random() < 0.4;
-    // rumble body
-    const src = noiseSource(ctx, "brown", 0.2);
+    // rumble body (a real seamless loop — a 0.2 s buffer looped at 5 Hz
+    // gave every clap a faint flutter)
+    const src = noiseSource(ctx, "brown", 3);
     const lp = makeFilter(ctx, "lowpass", near ? 220 : 120, 0.5);
     lp.frequency.setValueAtTime(near ? 320 : 160, now);
     lp.frequency.exponentialRampToValueAtTime(near ? 60 : 45, now + dur);
@@ -1243,6 +1292,7 @@ export class AmbientEngine {
   private highShelf: BiquadFilterNode | null = null;
   private focusLp: BiquadFilterNode | null = null;
   private analyser: AnalyserNode | null = null;
+  private trim: GainNode | null = null;
   private reactiveLfo: OscillatorNode | null = null;
   private reactiveDepth: GainNode | null = null;
   private reactiveOn = false;
@@ -1295,9 +1345,20 @@ export class AmbientEngine {
   private ensureCtx(): AudioContext {
     if (!this.ctx) {
       this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      // master → low shelf → high shelf → focus lowpass → analyser → comp → out
+      // master → trim → DC block → low shelf → high shelf → focus lowpass
+      //        → analyser → safety limiter → out
       this.master = this.ctx.createGain();
       this.master.gain.value = this.masterVolume;
+      // Layer trim keeps the summed level stable as layers are stacked
+      // (n^-0.25), so four beds don't slam the limiter and pump.
+      this.trim = this.ctx.createGain();
+      this.trim.gain.value = 1;
+      // Brown/rumble beds carry a lot of energy below 20 Hz that is inaudible
+      // but eats headroom and makes phone speakers buzz — cut it once here.
+      const dcBlock = this.ctx.createBiquadFilter();
+      dcBlock.type = "highpass";
+      dcBlock.frequency.value = 24;
+      dcBlock.Q.value = 0.5;
       this.lowShelf = this.ctx.createBiquadFilter();
       this.lowShelf.type = "lowshelf";
       this.lowShelf.frequency.value = 200;
@@ -1311,13 +1372,20 @@ export class AmbientEngine {
       this.focusLp.frequency.value = 20000; // "bypass" until a preset engages
       this.analyser = this.ctx.createAnalyser();
       this.analyser.fftSize = 128;
+      // Safety limiter, not a tone shaper. The previous -18 dB / 4:1 stage
+      // sat on the whole mix, breathed on every thunder clap and droplet,
+      // and (because browsers add automatic make-up gain) lifted the noise
+      // floor by ~8 dB. High threshold + fast, high-ratio knee only catches
+      // real peaks when several layers stack.
       const comp = this.ctx.createDynamicsCompressor();
-      comp.threshold.value = -18;
-      comp.knee.value = 20;
-      comp.ratio.value = 4;
-      comp.attack.value = 0.004;
-      comp.release.value = 0.2;
-      this.master.connect(this.lowShelf);
+      comp.threshold.value = -4;
+      comp.knee.value = 4;
+      comp.ratio.value = 16;
+      comp.attack.value = 0.002;
+      comp.release.value = 0.18;
+      this.master.connect(this.trim);
+      this.trim.connect(dcBlock);
+      dcBlock.connect(this.lowShelf);
       this.lowShelf.connect(this.highShelf);
       this.highShelf.connect(this.focusLp);
       this.focusLp.connect(this.analyser);
@@ -1328,8 +1396,27 @@ export class AmbientEngine {
       this.applyEqState(EQ_PRESETS.find(p => p.id === this.eqId) ?? EQ_PRESETS[0]!);
       this.eqApplied = true;
     }
-    if (this.ctx.state === "suspended") void this.ctx.resume();
+    if (this.ctx.state !== "running") void this.ctx.resume().catch(() => {});
     return this.ctx;
+  }
+
+  /** Smoothly re-balance the master trim for the current layer count. */
+  private updateTrim() {
+    if (!this.ctx || !this.trim) return;
+    const n = Math.max(1, this.layers.size);
+    this.trim.gain.setTargetAtTime(Math.pow(n, -0.25), this.ctx.currentTime, 0.6);
+  }
+
+  /**
+   * iOS/Android suspend the context after a call, Siri, or a long time in the
+   * background and it does not always come back on its own — call this when
+   * the page becomes visible again (AmbientSoundBar does) so the mix resumes
+   * instead of staying silent until the user toggles a layer.
+   */
+  resumeIfNeeded() {
+    if (this.ctx && this.layers.size > 0 && this.ctx.state !== "running") {
+      void this.ctx.resume().catch(() => {});
+    }
   }
 
   /** Apply an EQ preset to the whole mix (smooth ~0.2s transitions). */
@@ -1388,22 +1475,24 @@ export class AmbientEngine {
     return this.reactiveOn;
   }
 
-  play(id: SoundId, volume = 0.5, fadeSec = 0.8): boolean {
+  play(id: SoundId, volume = 0.5, fadeSec = 1.4): boolean {
     if (this.layers.has(id)) return true;
     if (this.layers.size >= MAX_LAYERS) return false; // 4-layer cap
     const ctx = this.ensureCtx();
     const result = BUILDERS[id](ctx);
     const gain = ctx.createGain();
+    // Perceptually even fade-in: exponential in amplitude ≈ linear in dB.
     gain.gain.setValueAtTime(0.0001, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, volume), ctx.currentTime + fadeSec);
     result.output.connect(gain);
     gain.connect(this.master!);
     this.layers.set(id, { result, gain, volume });
+    this.updateTrim();
     this.emit();
     return true;
   }
 
-  stop(id: SoundId, fadeSec = 0.6) {
+  stop(id: SoundId, fadeSec = 1.0) {
     const layer = this.layers.get(id);
     if (!layer || !this.ctx) return;
     const ctx = this.ctx;
@@ -1411,6 +1500,7 @@ export class AmbientEngine {
     layer.gain.gain.setValueAtTime(Math.max(0.0001, layer.gain.gain.value), ctx.currentTime);
     layer.gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + fadeSec);
     this.layers.delete(id);
+    this.updateTrim();
     this.emit();
     setTimeout(() => {
       try { layer.result.output.disconnect(); } catch {}
@@ -1445,7 +1535,7 @@ export class AmbientEngine {
     if (!layer || !this.ctx) return;
     layer.volume = vol;
     layer.gain.gain.cancelScheduledValues(this.ctx.currentTime);
-    layer.gain.gain.setTargetAtTime(Math.max(0.0001, vol), this.ctx.currentTime, 0.05);
+    layer.gain.gain.setTargetAtTime(Math.max(0.0001, vol), this.ctx.currentTime, 0.08);
     this.emit();
   }
 
@@ -1461,6 +1551,7 @@ export class AmbientEngine {
   setVisible(visible: boolean) {
     this.visible = visible;
     if (!this.ctx || !this.master) return;
+    if (visible) this.resumeIfNeeded();
     const target = visible ? this.masterVolume : 0;
     this.master.gain.setTargetAtTime(Math.max(0.0001, target), this.ctx.currentTime, 0.4);
     // The reactive breath must not leak through when the mix is ducked.

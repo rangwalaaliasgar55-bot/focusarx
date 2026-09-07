@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getToken } from "@/lib/auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { claimMission as claimSharedMission, fetchMissions as fetchSharedMissions, invalidateAfterMissionClaim } from "@/lib/missionsQuery";
 import { PageTransition } from "@/components/PageTransition";
 import { TiltCard } from "@/components/TiltCard";
 import { Target, Zap, Trophy, Flame, Clock, ListTodo, Star, Gift } from "lucide-react";
@@ -34,26 +34,25 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   special: <Target size={14} className="text-[var(--palette-rose-400)]" />,
 };
 
+// Shared fetch/claim helpers: the page, the dashboard widget and the nav
+// badges all read the same `["missions"]` cache entry via lib/missionsQuery.
 async function fetchMissions(): Promise<MissionsData> {
-  const token = getToken();
-  const res = await fetch("/api/missions", {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
-  if (!res.ok) throw new Error("Failed to fetch missions");
-  return res.json();
+  const data = await fetchSharedMissions();
+  return {
+    daily: data.daily as MissionDef[],
+    weekly: data.weekly as MissionDef[],
+    stats: {
+      dailyCompleted: data.stats?.dailyCompleted ?? 0,
+      totalDaily: data.stats?.totalDaily ?? data.daily.length,
+      weeklyCompleted: data.stats?.weeklyCompleted ?? data.weekly.filter((m) => m.completed).length,
+      totalWeekly: data.stats?.totalWeekly ?? data.weekly.length,
+    },
+  };
 }
 
 async function claimMission(key: string): Promise<{ ok: boolean; xpEarned: number; coinsEarned: number }> {
-  const token = getToken();
-  const res = await fetch(`/api/missions/${key}/claim`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
-  if (!res.ok) throw new Error("Failed to claim mission");
-  return res.json();
+  const result = await claimSharedMission(key);
+  return { ok: true, xpEarned: result.xpEarned ?? 0, coinsEarned: result.coinsEarned ?? 0 };
 }
 
 function ProgressBar({ current, target, completed }: { current: number; target: number; completed: boolean }) {
@@ -200,8 +199,7 @@ export default function MissionsPage() {
     onMutate: (key) => setClaimingKey(key),
     onSuccess: (result) => {
       setClaimedReward({ xp: result.xpEarned, coins: result.coinsEarned });
-      qc.invalidateQueries({ queryKey: ["missions"] });
-      qc.invalidateQueries({ queryKey: ["wallet"] });
+      invalidateAfterMissionClaim(qc);
       setTimeout(() => setClaimedReward(null), 3000);
     },
     onSettled: () => setClaimingKey(null),
