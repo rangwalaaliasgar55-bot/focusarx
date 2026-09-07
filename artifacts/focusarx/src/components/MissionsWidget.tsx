@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { Target, Gift, ChevronRight } from "lucide-react";
-import { claimMission, invalidateAfterMissionClaim, useMissionsQuery, type MissionDef } from "@/lib/missionsQuery";
+import { claimMission, invalidateAfterMissionClaim, useMissionsQuery } from "@/lib/missionsQuery";
 
 const DIFF_COLOR: Record<string, string> = {
   easy:   "var(--success)",

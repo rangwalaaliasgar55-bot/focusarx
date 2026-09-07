@@ -19,6 +19,7 @@
  * via `onWebGLContextLost` below — they just no longer spam the console.
  */
 import { setConsoleFunction } from "three";
+import { logger } from "@/lib/logger";
 
 const SILENCED: ReadonlyArray<RegExp> = [
   /^THREE\.WebGLRenderer: Context (Lost|Restored)\.?$/,
@@ -32,8 +33,12 @@ export function installThreeConsoleFilter(): void {
   installed = true;
   setConsoleFunction((level, message, ...rest) => {
     if (typeof message === "string" && SILENCED.some((re) => re.test(message))) return;
-    const fn = (console as unknown as Record<string, (...a: unknown[]) => void>)[level] ?? console.log;
-    fn(message, ...rest);
+    // three only ever emits log/warn/error here. Errors are real failures and
+    // always print; warnings and info lines are routine renderer diagnostics
+    // and go through the project logger (visible with focusarx:debug=1).
+    if (level === "error") logger.error(message, ...rest);
+    else if (level === "warn") logger.warn(message, ...rest);
+    else logger.info(message, ...rest);
   });
 }
 

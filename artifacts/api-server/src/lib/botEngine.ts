@@ -1173,10 +1173,13 @@ export async function buildBotFollowGraph(): Promise<{ followsCreated: number }>
       params.push(f, s);
     }
     // `id` has no DB default (client-side $defaultFn in drizzle), so the raw
-    // insert generates UUIDs server-side.
+    // insert generates UUIDs server-side. Pairs that already exist (welcome
+    // follows, a previous partial run) are skipped — `follows` has a unique
+    // (follower_id, following_id) index.
     const res = await pool.query(
       `INSERT INTO follows (id, follower_id, following_id)
-       VALUES ${chunk.map((_, k) => `(gen_random_uuid(), $${k * 2 + 1}::text, $${k * 2 + 2}::text)`).join(", ")}`,
+       VALUES ${chunk.map((_, k) => `(gen_random_uuid(), $${k * 2 + 1}::text, $${k * 2 + 2}::text)`).join(", ")}
+       ON CONFLICT DO NOTHING`,
       params,
     );
     followsCreated += res.rowCount ?? 0;

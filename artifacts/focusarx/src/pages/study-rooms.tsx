@@ -122,16 +122,12 @@ function timeAgo(iso: string): string {
 
 // ─── Room timer (shared plan; ticks locally) ─────────────────────────────────
 
+// Mounted with `key={room.id}-${room.timerDuration}` so a room switch (or a
+// host changing the plan) remounts it with fresh state — no reset-in-effect.
 function RoomTimer({ room }: { room: Room }) {
   const [secondsLeft, setSecondsLeft] = useState(room.timerDuration);
   const [running, setRunning] = useState(false);
   const [phase, setPhase] = useState<"focus" | "break">("focus");
-
-  useEffect(() => {
-    setSecondsLeft(room.timerDuration);
-    setRunning(false);
-    setPhase("focus");
-  }, [room.id, room.timerDuration]);
 
   useEffect(() => {
     if (!running) return;
@@ -181,10 +177,13 @@ function RoomTimer({ room }: { room: Room }) {
 
 function RoomChat({ room, onLeft }: { room: Room; onLeft: () => void }) {
   const { toast } = useToast();
-  const [messages, setMessages] = useState<RoomMessage[]>([]);
+  // `loaded` lives with the messages so a poll result is one state update
+  // (applied from the fetch callback, never synchronously in the effect body).
+  const [chat, setChat] = useState<{ messages: RoomMessage[]; loaded: boolean }>({ messages: [], loaded: false });
+  const { messages, loaded } = chat;
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+  const loadedRef = useRef(false);
   const lastTsRef = useRef<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -198,40 +197,46 @@ function RoomChat({ room, onLeft }: { room: Room; onLeft: () => void }) {
       const params = new URLSearchParams();
       if (lastTsRef.current) params.set("after", lastTsRef.current);
       const data = await apiJson<{ messages: RoomMessage[] }>(`/api/study-rooms/${room.id}/messages?${params.toString()}`);
+      const wasLoaded = loadedRef.current;
+      loadedRef.current = true;
       if (data.messages.length > 0) {
         const nearBottom = !listRef.current || listRef.current.scrollHeight - listRef.current.scrollTop - listRef.current.clientHeight < 120;
-        setMessages((prev) => {
-          const seen = new Set(prev.map((m) => m.id));
-          const next = [...prev, ...data.messages.filter((m) => !seen.has(m.id))];
-          return next.slice(-300);
-        });
         lastTsRef.current = data.messages[data.messages.length - 1]!.createdAt;
-        if (nearBottom) scrollToBottom(loaded);
+        setChat((prev) => {
+          const seen = new Set(prev.messages.map((m) => m.id));
+          const next = [...prev.messages, ...data.messages.filter((m) => !seen.has(m.id))];
+          return { messages: next.slice(-300), loaded: true };
+        });
+        if (nearBottom) scrollToBottom(wasLoaded);
+      } else if (!wasLoaded) {
+        setChat((prev) => (prev.loaded ? prev : { ...prev, loaded: true }));
       }
-      setLoaded(true);
     } catch {
       /* transient — next poll retries */
     }
-  }, [room.id, scrollToBottom, loaded]);
+  }, [room.id, scrollToBottom]);
 
-  // Initial load + polling while the tab is visible.
+  // Initial load + polling while the tab is visible. The component is keyed
+  // by room id, so a room switch remounts it with empty state.
   useEffect(() => {
-    lastTsRef.current = null;
-    setMessages([]);
-    setLoaded(false);
-    void poll();
-    let id = window.setInterval(() => { if (document.visibilityState === "visible") void poll(); }, 5000);
+    const tick = () => { if (document.visibilityState === "visible") void poll(); };
+    // First fetch on the next tick (after commit), then every 5 s while visible.
+    let first: number | null = window.setTimeout(() => { first = null; tick(); }, 0);
+    let id = window.setInterval(tick, 5000);
     const onVis = () => {
       window.clearInterval(id);
       if (document.visibilityState === "visible") {
-        void poll();
-        id = window.setInterval(() => { if (document.visibilityState === "visible") void poll(); }, 5000);
+        tick();
+        id = window.setInterval(tick, 5000);
       }
     };
     document.addEventListener("visibilitychange", onVis);
-    return () => { window.clearInterval(id); document.removeEventListener("visibilitychange", onVis); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [room.id]);
+    return () => {
+      if (first !== null) window.clearTimeout(first);
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [poll]);
 
   // Presence heartbeat every 45 s.
   useEffect(() => {
@@ -247,7 +252,7 @@ function RoomChat({ room, onLeft }: { room: Room; onLeft: () => void }) {
     setSending(true);
     try {
       const msg = await apiJson<RoomMessage>(`/api/study-rooms/${room.id}/messages`, { method: "POST", body: JSON.stringify({ content }) });
-      setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
+      setChat((prev) => (prev.messages.some((m) => m.id === msg.id) ? prev : { messages: [...prev.messages, msg], loaded: true }));
       lastTsRef.current = msg.createdAt;
       setInput("");
       scrollToBottom();
@@ -527,9 +532,9 @@ function RoomCard({ room, expanded, authed, onToggle, onJoin, onLeave, onEnd, bu
         {expanded && room.isMember && (
           <motion.div key="room-body" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
             <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_18rem]">
-              <RoomChat room={room} onLeft={onLeave} />
+              <RoomChat key={room.id} room={room} onLeft={onLeave} />
               <div className="space-y-4">
-                <RoomTimer room={room} />
+                <RoomTimer key={`${room.id}-${room.timerDuration}`} room={room} />
                 <ParticipantList room={room} />
                 <div className="flex flex-wrap gap-2">
                   {amb.preset && <Button size="sm" variant="outline" onClick={playAmbiance}>{amb.emoji} Play {amb.label}</Button>}

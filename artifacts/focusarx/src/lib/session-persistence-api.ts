@@ -93,7 +93,8 @@ export async function syncActiveSession(payload: SessionSyncPayload): Promise<bo
     // A body-too-large response must never wedge the session: the timer
     // clock is what matters, so retry once without the (optional) timeline.
     if (res.status === 413 && payload.focusTimeline && payload.focusTimeline.length > 0) {
-      const { focusTimeline: _dropped, ...slim } = payload;
+      const slim = { ...payload };
+      delete slim.focusTimeline;
       const retry = await post(slim);
       return retry.ok;
     }
