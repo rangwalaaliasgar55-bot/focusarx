@@ -5,6 +5,7 @@ import { X, Volume2, VolumeX, Pause, Play, Music } from "lucide-react";
 import { useWakeLock } from "@/hooks/useWakeLock";
 import { haptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
+import { getTimerSkin, skinTextGradient, type MembershipTier } from "@/lib/membershipSkin";
 
 interface MobileFocusModeProps {
   isActive: boolean;
@@ -20,6 +21,8 @@ interface MobileFocusModeProps {
   isRunning: boolean;
   ambientSoundEnabled?: boolean;
   onToggleSound?: () => void;
+  /** Cosmetic membership tier — tints the digits/ring. Defaults to free. */
+  tier?: MembershipTier;
 }
 
 function formatTimeDisplay(totalSeconds: number) {
@@ -42,8 +45,13 @@ export function MobileFocusMode({
   isRunning,
   ambientSoundEnabled,
   onToggleSound,
+  tier = "free",
 }: MobileFocusModeProps) {
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const skin = getTimerSkin(tier);
+  const skinned = skin.tier !== "free" && mode === "focus";
+  const accent = skinned ? skin.ring : "var(--brand-500)";
+  const accentAlt = skinned ? skin.ringAlt : "var(--brand-400)";
   const { supported: wakeLockSupported, isLocked } = useWakeLock(isActive && isRunning);
 
   // Prevent accidental back navigation
@@ -119,10 +127,23 @@ export function MobileFocusMode({
         <div className="flex flex-1 flex-col items-center justify-center px-6 py-8">
           {/* Mode indicator */}
           <div className="mb-6 flex items-center gap-2">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-[var(--brand-500)]" />
-            <span className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--brand-strong)]">
+            <span className="h-2 w-2 animate-pulse rounded-full" style={{ background: accent }} />
+            <span className="text-xs font-bold uppercase tracking-[0.2em]" style={{ color: skinned ? accent : "var(--brand-strong)" }}>
               {mode === "focus" ? "Deep Work" : mode === "break" ? "Break" : "Long Break"}
             </span>
+            {skinned && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full px-2 py-[2px] text-[10px] font-bold uppercase tracking-[0.14em]"
+                style={{
+                  background: `color-mix(in srgb, ${accent} 16%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${accent} 40%, transparent)`,
+                  color: accent,
+                }}
+              >
+                {skin.glyph && <span aria-hidden className="leading-none">{skin.glyph}</span>}
+                {skin.label}
+              </span>
+            )}
           </div>
 
           {/* Huge timer */}
@@ -135,10 +156,13 @@ export function MobileFocusMode({
             <div
               className="font-mono text-[5.5rem] font-semibold leading-none tracking-[-0.05em] sm:text-[6rem]"
               style={{
-                backgroundImage: `linear-gradient(135deg, var(--foreground), var(--brand-400))`,
+                backgroundImage: skinned && skin.metallicDigits
+                  ? skinTextGradient(skin)
+                  : `linear-gradient(135deg, var(--foreground), ${accentAlt})`,
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",
+                filter: skinned ? `drop-shadow(0 0 18px color-mix(in srgb, ${accent} ${Math.round(skin.glow * 60)}%, transparent))` : undefined,
               }}
               aria-live="off"
               aria-atomic="true"
@@ -147,19 +171,27 @@ export function MobileFocusMode({
             </div>
             {/* Subtle progress ring */}
             <svg className="pointer-events-none absolute inset-0 -z-10 h-full w-full" viewBox="0 0 100 100" aria-hidden="true">
+              {skinned && skin.gradient && (
+                <defs>
+                  <linearGradient id="mobile-focus-ring-grad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor={skin.ring} />
+                    <stop offset="100%" stopColor={skin.ringAlt} />
+                  </linearGradient>
+                </defs>
+              )}
               <circle cx="50" cy="50" r="48" fill="none" stroke="var(--border-subtle)" strokeWidth="0.5" />
               <circle
                 cx="50"
                 cy="50"
                 r="48"
                 fill="none"
-                stroke="var(--brand-500)"
-                strokeWidth="1"
+                stroke={skinned && skin.gradient ? "url(#mobile-focus-ring-grad)" : accent}
+                strokeWidth={skinned ? 1.5 : 1}
                 strokeDasharray={`${progress * 301} 301`}
                 strokeLinecap="round"
                 transform="rotate(-90 50 50)"
                 className="transition-all duration-1000"
-                opacity={0.3}
+                opacity={skinned ? 0.55 : 0.3}
               />
             </svg>
           </motion.div>
@@ -175,9 +207,9 @@ export function MobileFocusMode({
               )}
               style={{
                 background: isRunning
-                  ? "linear-gradient(135deg, var(--brand-500), var(--brand-700))"
+                  ? (skinned ? `linear-gradient(135deg, ${skin.ring}, ${skin.ringAlt})` : "linear-gradient(135deg, var(--brand-500), var(--brand-700))")
                   : "linear-gradient(135deg, var(--success), #059669)",
-                boxShadow: `0 0 0 8px ${isRunning ? "var(--brand-soft)" : "var(--success-soft)"}, 0 12px 32px rgba(0,0,0,0.3)`,
+                boxShadow: `0 0 0 8px ${isRunning ? (skinned ? `color-mix(in srgb, ${skin.ring} 18%, transparent)` : "var(--brand-soft)") : "var(--success-soft)"}, 0 12px 32px rgba(0,0,0,0.3)`,
               }}
               aria-label={isRunning ? "Pause focus session" : "Resume focus session"}
             >

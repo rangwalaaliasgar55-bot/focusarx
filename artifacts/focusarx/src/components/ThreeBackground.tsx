@@ -13,6 +13,9 @@ import { useFrame, useThree, Canvas } from "@react-three/fiber";
 import { useRef, useMemo, Suspense, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import * as THREE from "three";
+import { installThreeConsoleFilter, onWebGLContextLost } from "@/lib/threeConsole";
+
+installThreeConsoleFilter();
 
 function canUseWebGL(): boolean {
   try {
@@ -194,7 +197,7 @@ function SceneContent({ isFocusing = false, reducedMotion = false }: { isFocusin
 }
 
 export default function ThreeBackground({ isFocusing }: { isFocusing?: boolean }) {
-  const [webglOk] = useState<boolean>(() => (typeof window === "undefined" ? false : canUseWebGL()));
+  const [webglOk, setWebglOk] = useState<boolean>(() => (typeof window === "undefined" ? false : canUseWebGL()));
   const reducedMotion = useReducedMotion();
   const { isBattery } = use3DQuality();
 
@@ -207,6 +210,7 @@ export default function ThreeBackground({ isFocusing }: { isFocusing?: boolean }
         gl={{ antialias: false, alpha: true, powerPreference: isBattery ? "default" : "high-performance" }}
         dpr={isBattery ? [1, 1.2] : [1, 1.5]}
         frameloop={reducedMotion ? "demand" : "always"}
+        onCreated={({ gl }) => { onWebGLContextLost(gl.domElement, () => setWebglOk(false)); }}
       >
         <Suspense fallback={null}>
           <SceneContent isFocusing={isFocusing} reducedMotion={reducedMotion} />

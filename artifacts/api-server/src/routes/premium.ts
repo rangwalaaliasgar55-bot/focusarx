@@ -9,7 +9,7 @@ import {
 } from "@workspace/db";
 import { eq, desc, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
-import { getActivePlans, purchasePremiumWithTokens, getEntitlementHistory, hasActivePremium, seedPremiumPlans } from "../lib/premiumPlans";
+import { getActivePlans, purchasePremiumWithTokens, getEntitlementHistory, hasActivePremium, seedPremiumPlans, resolveMembershipTier, type MembershipTier } from "../lib/premiumPlans";
 import { getTokenBalance } from "../lib/tokenLedger";
 import { z } from "zod";
 
@@ -83,8 +83,19 @@ router.get("/premium/status", authMiddleware, async (req: AuthRequest, res: Resp
       status = "active";
     }
 
+    // Cosmetic tier (timer skin, badge). Never a gate — see premiumPlans.ts.
+    let tier: MembershipTier = "free";
+    if (isPremium) {
+      try {
+        tier = await resolveMembershipTier(activeCheck.entitlement ?? oldSub ?? null);
+      } catch {
+        tier = "plus";
+      }
+    }
+
     res.json({
       isPremium,
+      tier,
       status,
       activatedAt,
       expiresAt,

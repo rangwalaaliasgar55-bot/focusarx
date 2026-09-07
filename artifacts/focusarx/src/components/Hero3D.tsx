@@ -4,6 +4,9 @@ import { useRef, Suspense, useState, useEffect } from "react";
 import * as THREE from "three";
 import { Environment, Lightformer, PerspectiveCamera } from "@react-three/drei";
 import { getDeviceTier } from "@/lib/deviceTier";
+import { installThreeConsoleFilter, onWebGLContextLost } from "@/lib/threeConsole";
+
+installThreeConsoleFilter();
 
 function canUseWebGL(): boolean {
   try {
@@ -193,11 +196,7 @@ export default function Hero3D() {
         }}
         shadows={false}
         onCreated={({ gl }) => {
-          const canvas = gl.domElement;
-          canvas.addEventListener("webglcontextlost", (e) => {
-            e.preventDefault();
-            setWebglOk(false);
-          });
+          onWebGLContextLost(gl.domElement, () => setWebglOk(false));
         }}
       >
         <PerspectiveCamera makeDefault position={[0, 0, 8]} fov={38} />

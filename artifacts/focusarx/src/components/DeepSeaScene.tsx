@@ -12,6 +12,9 @@ import { useMemo, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { seaCameraY, seaCreatures, seaDepth, seaFogDensity } from "@/lib/sceneMaps";
+import { installThreeConsoleFilter, onWebGLContextLost } from "@/lib/threeConsole";
+
+installThreeConsoleFilter();
 
 export interface DeepSeaProps {
   pct: number;
@@ -194,6 +197,7 @@ export default function DeepSeaScene({ pct, paused, stale, burstKey, streak, vis
         frameloop={visible ? "always" : "never"}
         gl={{ antialias: false, alpha: true, powerPreference: "high-performance", stencil: false, depth: true }}
         camera={{ position: [0, 2, 7], fov: 55 }}
+        onCreated={({ gl }) => { onWebGLContextLost(gl.domElement); }}
       >
         <color attach="background" args={[bg]} />
         <fog attach="fog" args={[bg, 4, 4 + (1 - fog) * 60]} />

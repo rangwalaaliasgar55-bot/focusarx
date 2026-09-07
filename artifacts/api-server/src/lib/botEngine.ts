@@ -29,6 +29,7 @@ import {
   focusSessionsTable,
   botPendingRepliesTable,
   platformMetaTable,
+  notificationsTable,
 } from "@workspace/db";
 import { and, desc, eq, gte, inArray, lte, ne, sql } from "drizzle-orm";
 import { logger } from "./logger";
@@ -781,13 +782,32 @@ async function runDailyFollows(ctx: ContentCtx): Promise<void> {
     const targetId = targetIds[Math.floor(dayRng() * targetIds.length)]!;
     if (targetId === bot.id || usedTargets.has(targetId)) continue;
     try {
-      await db.insert(followsTable).values({ followerId: bot.id, followingId: targetId });
+      const inserted = await db.insert(followsTable).values({ followerId: bot.id, followingId: targetId }).onConflictDoNothing().returning({ id: followsTable.followerId });
       ctx.usage.follows.set(bot.id, (ctx.usage.follows.get(bot.id) ?? 0) + 1);
       usedTargets.add(targetId);
-      added++;
+      if (inserted.length) {
+        added++;
+        // Only humans get a notification (bots following bots is just decoration).
+        if (!ctx.bots.some(b => b.id === targetId)) await notifyNewFollower(targetId, bot.id, bot.name);
+      }
     } catch {
       /* skip */
     }
+  }
+}
+
+/** Best-effort "new follower" notification for a human user. */
+async function notifyNewFollower(userId: string, followerId: string, followerName: string | null | undefined): Promise<void> {
+  try {
+    await db.insert(notificationsTable).values({
+      userId,
+      type: "new_follower",
+      title: "New follower",
+      message: `${(followerName ?? "").trim() || "Someone"} started following you`,
+      data: { followerId },
+    });
+  } catch (err) {
+    logger.debug({ err, userId }, "new_follower notification skipped");
   }
 }
 
@@ -900,8 +920,12 @@ export async function welcomeNewHuman(userId: string): Promise<number> {
     let created = 0;
     for (const botId of picked) {
       try {
-        await db.insert(followsTable).values({ followerId: botId, followingId: userId }).onConflictDoNothing();
-        created++;
+        const inserted = await db.insert(followsTable).values({ followerId: botId, followingId: userId }).onConflictDoNothing().returning({ id: followsTable.followerId });
+        if (inserted.length) {
+          created++;
+          const bot = bots.find(b => b.id === botId);
+          await notifyNewFollower(userId, botId, bot?.name ?? null);
+        }
       } catch { /* already following */ }
     }
     return created;

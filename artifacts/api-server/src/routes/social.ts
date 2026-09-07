@@ -423,9 +423,23 @@ socialRouter.post("/social/follow/:userId", authMiddleware, async (req: AuthRequ
     if (!target) { res.status(404).json({ error: "User not found" }); return; }
     const [existing] = await db.select().from(followsTable).where(and(eq(followsTable.followerId, userId), eq(followsTable.followingId, targetId))).limit(1);
     if (existing) { res.json({ ok: true, alreadyFollowing: true }); return; }
-    await db.insert(followsTable).values({ followerId: userId, followingId: targetId });
+    await db.insert(followsTable).values({ followerId: userId, followingId: targetId }).onConflictDoNothing();
+    // Tell the person they have a new follower (best effort — never fails the follow).
+    try {
+      const [me] = await db.select({ name: usersTable.name, email: usersTable.email }).from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+      const who = me?.name?.trim() || me?.email?.split("@")[0] || "Someone";
+      await db.insert(notificationsTable).values({
+        userId: targetId, type: "new_follower",
+        title: "New follower",
+        message: `${who} started following you`,
+        data: { followerId: userId },
+      });
+    } catch (err) {
+      logger.warn({ err }, "follow notification failed (non-fatal)");
+    }
     res.json({ ok: true });
-  } catch {
+  } catch (err) {
+    logger.error({ err }, "POST /social/follow error");
     res.status(500).json({ error: "Internal error" });
   }
 });

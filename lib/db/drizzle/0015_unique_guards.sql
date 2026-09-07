@@ -87,3 +87,20 @@ ALTER TABLE "study_rooms" ADD COLUMN IF NOT EXISTS "description" text;
 ALTER TABLE "study_rooms" ADD COLUMN IF NOT EXISTS "topic" text;
 --> statement-breakpoint
 ALTER TABLE "study_rooms" ADD COLUMN IF NOT EXISTS "last_activity_at" timestamp DEFAULT now();
+--> statement-breakpoint
+
+-- follows: one row per (follower, following). Dedupe first (keep the oldest
+-- row per pair), then add the unique index the schema declares.
+DO $$
+BEGIN
+  IF to_regclass('public.follows') IS NOT NULL THEN
+    DELETE FROM public.follows a
+      USING public.follows b
+      WHERE a.follower_id = b.follower_id AND a.following_id = b.following_id
+        AND (a.created_at > b.created_at OR (a.created_at = b.created_at AND a.ctid > b.ctid));
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'follows_follower_following_unique')
+       AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'follows_follower_following_unique') THEN
+      CREATE UNIQUE INDEX follows_follower_following_unique ON public.follows (follower_id, following_id);
+    END IF;
+  END IF;
+END $$;

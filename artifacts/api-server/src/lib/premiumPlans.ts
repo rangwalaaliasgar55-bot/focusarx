@@ -183,6 +183,67 @@ export async function getPlanById(idOrSlug: string) {
 }
 
 /**
+ * Membership tier — a coarse label derived from the *active* entitlement.
+ *
+ *   free  → no active premium
+ *   plus  → 30-day plan (or any grant < 60 days)
+ *   pro   → 90-day plan (or a grant of 60–179 days)
+ *   elite → 365-day plan (or a grant ≥ 180 days) — also the founder tier
+ *
+ * The frontend uses this for cosmetic differentiation (timer skin, badge).
+ * Access checks must keep using `hasActivePremium` / `isUserPremium` — tier
+ * is never a gate, only a flavour.
+ */
+export type MembershipTier = "free" | "plus" | "pro" | "elite";
+
+export function tierFromDurationDays(days: number): MembershipTier {
+  if (!Number.isFinite(days) || days <= 0) return "free";
+  if (days >= 180) return "elite";
+  if (days >= 60) return "pro";
+  return "plus";
+}
+
+export function tierFromPlanSlug(slug: string | null | undefined): MembershipTier | null {
+  if (!slug) return null;
+  if (slug === "premium_365") return "elite";
+  if (slug === "premium_90") return "pro";
+  if (slug === "premium_30") return "plus";
+  return null;
+}
+
+/**
+ * Resolve the membership tier for an entitlement row (new table) or a legacy
+ * subscription row. Falls back to the entitlement's own duration when the
+ * plan row is gone or it was an admin grant with no plan.
+ */
+export async function resolveMembershipTier(
+  entitlement: { planId?: string | null; startsAt?: Date | null; endsAt?: Date | null; activatedAt?: Date | null; expiresAt?: Date | null } | null | undefined,
+): Promise<MembershipTier> {
+  if (!entitlement) return "free";
+  try {
+    if (entitlement.planId) {
+      const [plan] = await db
+        .select({ slug: premiumPlansTable.slug, durationDays: premiumPlansTable.durationDays })
+        .from(premiumPlansTable)
+        .where(eq(premiumPlansTable.id, entitlement.planId))
+        .limit(1);
+      if (plan) return tierFromPlanSlug(plan.slug) ?? tierFromDurationDays(plan.durationDays);
+    }
+  } catch (err) {
+    logger.warn({ err }, "resolveMembershipTier plan lookup failed");
+  }
+  const start = entitlement.startsAt ?? entitlement.activatedAt ?? null;
+  const end = entitlement.endsAt ?? entitlement.expiresAt ?? null;
+  if (start && end) {
+    const days = (new Date(end).getTime() - new Date(start).getTime()) / 86_400_000;
+    return tierFromDurationDays(days);
+  }
+  // Legacy lifetime rows (no expiry) are the oldest supporters — treat as elite.
+  if (start && !end) return "elite";
+  return "plus";
+}
+
+/**
  * Check if user has active premium entitlement
  */
 export async function hasActivePremium(userId: string): Promise<{ active: boolean; entitlement?: any; expiresAt?: Date }> {

@@ -608,6 +608,7 @@ export const followsTable = pgTable("follows", {
 }, (t) => [
   index("follows_follower_idx").on(t.followerId),
   index("follows_following_idx").on(t.followingId),
+  uniqueIndex("follows_follower_following_unique").on(t.followerId, t.followingId),
 ]);
 
 export type Follow = typeof followsTable.$inferSelect;

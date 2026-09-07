@@ -23,6 +23,8 @@ import FlowTimer from "@/components/FlowTimer";
 import DistractionModal from "@/components/DistractionModal";
 import { SESSION_PRESETS, getPresetById, getSessionPreset, setSessionPreset } from "@/lib/sessionPresets";
 import type { Session } from "@/types/timer";
+import { usePremium } from "@/hooks/usePremium";
+import { getTimerSkin, skinTextGradient } from "@/lib/membershipSkin";
 
 function formatTime(totalSeconds: number) {
   const m = Math.floor(totalSeconds / 60);
@@ -51,6 +53,9 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
   const [showPark, setShowPark] = useState(false);
   // Session-mode preset (9.1): chosen once, remembered.
   const [presetId, setPresetIdState] = useState<string>(() => getSessionPreset());
+  // Membership skin — cosmetic only (see lib/membershipSkin.ts).
+  const { tier: membershipTier } = usePremium();
+  const skin = getTimerSkin(membershipTier);
   const [showSummary, setShowSummary] = useState(false);
   const [summary, setSummary] = useState<{ minutes: number; xp: number; coins: number } | null>(null);
 
@@ -360,8 +365,22 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
       <div className="flex w-full max-w-sm flex-col items-center gap-6 px-4 py-6">
         {/* Mode + task context */}
         <div className="flex w-full items-center justify-between">
-          <span className="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-[var(--brand-strong)]">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--brand-soft)] px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-[var(--brand-strong)]">
             {mode === "focus" ? "Deep Work" : mode === "break" ? "Break" : "Long Break"}
+            {skin.tier !== "free" && mode === "focus" && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full px-1.5 py-[1px] text-[9px] tracking-[0.12em]"
+                style={{
+                  background: `color-mix(in srgb, ${skin.ring} 16%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${skin.ring} 40%, transparent)`,
+                  color: skin.ring,
+                }}
+                title={`${skin.label} member timer`}
+              >
+                {skin.glyph && <span aria-hidden className="leading-none">{skin.glyph}</span>}
+                {skin.label}
+              </span>
+            )}
           </span>
           {wakeSupported && (
             <span className={`text-[11px] ${wakeLocked ? "text-[var(--success)]" : "text-[var(--foreground-subtle)]"}`}>
@@ -379,16 +398,48 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
           />
         ) : (
         <>
-        <div className="relative flex flex-col items-center">
+        <div className="relative flex flex-col items-center" data-tier={skin.tier}>
+          {/* Membership halo behind the digits — focus mode only, never for free */}
+          {skin.tier !== "free" && mode === "focus" && (
+            <motion.div
+              aria-hidden
+              className="pointer-events-none absolute -inset-x-10 -inset-y-6 rounded-[3rem]"
+              style={{
+                background: `radial-gradient(ellipse at 50% 55%, color-mix(in srgb, ${skin.ring} ${Math.round(skin.glow * 70)}%, transparent) 0%, color-mix(in srgb, ${skin.ringAlt} ${Math.round(skin.glow * 40)}%, transparent) 40%, transparent 72%)`,
+                filter: "blur(22px)",
+              }}
+              animate={isRunning ? { opacity: [0.55, 0.95, 0.55] } : { opacity: 0.4 }}
+              transition={isRunning ? { duration: 4.2, repeat: Infinity, ease: "easeInOut" } : { duration: 0.5 }}
+            />
+          )}
           <div
-            className="select-none font-display text-[5.25rem] font-semibold leading-none tracking-[-0.055em] text-[var(--foreground)] sm:text-[6.25rem]"
-            style={{ fontFeatureSettings: '"tnum" 1' }}
+            className="relative select-none font-display text-[5.25rem] font-semibold leading-none tracking-[-0.055em] text-[var(--foreground)] sm:text-[6.25rem]"
+            style={{
+              fontFeatureSettings: '"tnum" 1',
+              ...(skin.metallicDigits && mode === "focus"
+                ? {
+                    backgroundImage: skinTextGradient(skin),
+                    WebkitBackgroundClip: "text",
+                    backgroundClip: "text",
+                    color: "transparent",
+                    WebkitTextFillColor: "transparent",
+                  }
+                : {}),
+            }}
           >
             <RollingClock value={`${m}:${s}`} />
           </div>
-          <div className="mt-2 h-1.5 w-32 overflow-hidden rounded-full bg-[var(--border-subtle)]">
+          <div className="relative mt-2 h-1.5 w-32 overflow-hidden rounded-full bg-[var(--border-subtle)]">
             <motion.div
-              className="h-full bg-[var(--brand-500)]"
+              className="h-full"
+              style={{
+                background: mode !== "focus"
+                  ? (mode === "break" ? "var(--success)" : "var(--info)")
+                  : skin.gradient
+                    ? `linear-gradient(90deg, ${skin.ring}, ${skin.ringAlt})`
+                    : "var(--brand-500)",
+                boxShadow: skin.tier !== "free" && mode === "focus" ? `0 0 10px color-mix(in srgb, ${skin.ringAlt} 60%, transparent)` : undefined,
+              }}
               animate={{ width: `${progress * 100}%` }}
               transition={{ duration: 0.5 }}
             />
@@ -524,6 +575,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
         isRunning={isRunning}
         ambientSoundEnabled={soundEnabled}
         onToggleSound={() => setSoundEnabled(v => !v)}
+        tier={membershipTier}
       />
 
       {/* Exit confirmation - prevents accidental completion */}

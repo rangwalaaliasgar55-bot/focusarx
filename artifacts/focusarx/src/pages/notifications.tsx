@@ -11,26 +11,64 @@ function apiFetch<T = any>(path: string, opts?: RequestInit): Promise<T> {
   return apiJson<T>(path, opts);
 }
 
+// Every notification `type` the API emits, with a glyph. Unknown types fall
+// back to the bell so a new server type never renders blank.
 const TYPE_ICONS: Record<string, string> = {
   friend_request: "👥",
   friend_accepted: "🤝",
+  new_follower: "➕",
   badge: "🏆",
+  badge_unlocked: "🏆",
   mission: "🎯",
+  mission_claimed: "🎯",
   daily_reward: "🎁",
+  gift: "🎁",
+  lootbox_reward: "📦",
   level_up: "⚡",
+  streak: "🔥",
+  streak_endangerment: "⚠️",
   group_join: "🏫",
+  post_comment: "💬",
+  post_reaction: "❤️",
+  dm: "✉️",
+  premium: "👑",
+  referral: "🔗",
+  reengage: "👋",
+  admin_message: "🛡️",
   system: "📢",
 };
 
+const BLUE = "border-[var(--palette-blue-500)]/30 bg-[var(--palette-blue-500)]/5";
+const GREEN = "border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/5";
+const AMBER = "border-[var(--palette-amber-500)]/30 bg-[var(--palette-amber-500)]/5";
+const VIOLET = "border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/5";
+const PINK = "border-[var(--palette-pink-500)]/30 bg-[var(--palette-pink-500)]/5";
+const RED = "border-[var(--palette-red-500)]/30 bg-[var(--palette-red-500)]/5";
+const NEUTRAL = "border-[var(--border-subtle)] bg-[var(--surface-hover)]";
+
 const TYPE_COLORS: Record<string, string> = {
-  friend_request: "border-[var(--palette-blue-500)]/30 bg-[var(--palette-blue-500)]/5",
-  friend_accepted: "border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/5",
-  badge: "border-[var(--palette-amber-500)]/30 bg-[var(--palette-amber-500)]/5",
-  mission: "border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/5",
-  daily_reward: "border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/5",
-  level_up: "border-[var(--palette-amber-500)]/30 bg-[var(--palette-amber-500)]/5",
-  group_join: "border-[var(--palette-blue-500)]/30 bg-[var(--palette-blue-500)]/5",
-  system: "border-[var(--border-subtle)] bg-[var(--surface-hover)]",
+  friend_request: BLUE,
+  friend_accepted: GREEN,
+  new_follower: BLUE,
+  badge: AMBER,
+  badge_unlocked: AMBER,
+  mission: VIOLET,
+  mission_claimed: VIOLET,
+  daily_reward: GREEN,
+  gift: GREEN,
+  lootbox_reward: VIOLET,
+  level_up: AMBER,
+  streak: AMBER,
+  streak_endangerment: RED,
+  group_join: BLUE,
+  post_comment: PINK,
+  post_reaction: PINK,
+  dm: BLUE,
+  premium: AMBER,
+  referral: GREEN,
+  reengage: NEUTRAL,
+  admin_message: VIOLET,
+  system: NEUTRAL,
 };
 
 export default function NotificationsPage() {

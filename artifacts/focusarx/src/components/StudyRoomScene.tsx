@@ -12,6 +12,9 @@ import { useMemo, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { bookStack, lampIntensity, windowSky } from "@/lib/sceneMaps";
+import { installThreeConsoleFilter, onWebGLContextLost } from "@/lib/threeConsole";
+
+installThreeConsoleFilter();
 
 export interface StudyRoomProps {
   pct: number;
@@ -129,6 +132,7 @@ export default function StudyRoomScene({ pct, paused, stale, burstKey, streak, w
         frameloop={visible ? "always" : "never"}
         gl={{ antialias: false, alpha: true, powerPreference: "high-performance", stencil: false, depth: true }}
         camera={{ position: [0, 0.4, 6.4], fov: 50 }}
+        onCreated={({ gl }) => { onWebGLContextLost(gl.domElement); }}
       >
         <color attach="background" args={[wall]} />
         <ambientLight intensity={0.35} />
