@@ -39,6 +39,15 @@ native-tools material that works in both app themes, a crisp header with
 session identity, and a segmented section bar replacing the amber "God Mode"
 language.
 
+The overview panel was rebuilt on design tokens (ui-panel surfaces that theme
+correctly in light and dark, violet session bars with per-day counts, h/m
+duration formatting, flame icon in place of the streak emoji, themed admin
+chips), and section headers shed the danger-red eyebrow. The database layer
+got a real fix: CI `schema:check` was red because `database/full_schema.sql`
+had never been regenerated after the schema gained the
+`follows(follower_id, following_id)` unique index; the snapshot is now
+canonical again.
+
 ## [Unreleased] — fifth pass
 
 Search results are copy, so copy got a budget, a generator, and a gate.
