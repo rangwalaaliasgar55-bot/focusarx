@@ -1930,6 +1930,7 @@ CREATE INDEX IF NOT EXISTS "focus_sessions_user_completed_idx" ON "focus_session
 CREATE INDEX IF NOT EXISTS "focus_sessions_user_status_idx" ON "focus_sessions" USING btree ("user_id","session_status");
 CREATE INDEX IF NOT EXISTS "follows_follower_idx" ON "follows" USING btree ("follower_id");
 CREATE INDEX IF NOT EXISTS "follows_following_idx" ON "follows" USING btree ("following_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "follows_follower_following_unique" ON "follows" USING btree ("follower_id","following_id");
 CREATE INDEX IF NOT EXISTS "friendships_requester_idx" ON "friendships" USING btree ("requester_id");
 CREATE INDEX IF NOT EXISTS "friendships_addressee_idx" ON "friendships" USING btree ("addressee_id");
 CREATE INDEX IF NOT EXISTS "group_members_group_idx" ON "group_members" USING btree ("group_id");
