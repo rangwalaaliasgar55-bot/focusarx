@@ -2,6 +2,43 @@
 
 All notable changes to FocusArx. Dates are UTC.
 
+## [Unreleased] — v2 design system pass
+
+**Brand, rebuilt.** FocusArx has a new identity: an "iris tile" mark — a
+liquid-glass squircle in a violet→azure gradient holding a calm focus reticle
+(ring + luminous point). One authored SVG (`public/brand/focusarx-mark.svg`)
+feeds the whole raster set through a committed generator
+(`scripts/generate-brand-assets.sh`): favicon, apple-touch icon (now 180px,
+previously pointed at the 192 app icon), PWA icons incl. a properly inset
+maskable, the org logo, and a redesigned 1200×630 social card. The old Zap
+glyph is gone from the app shell, marketing header/footer, auth layout and
+admin/developer consoles; the JSON-LD, manifest, service-worker cache and OG
+references were all verified against the new files.
+
+**Design system v4 — Liquid Glass materials.** Theme-aware translucent
+materials with real backdrop blur + saturation boost, specular hairline edges
+and soft depth now back `.glass` panels, app chrome (sidebar, bottom nav) and
+new `.glass-strong/.glass-chrome/.glass-chip` surfaces; `@supports` fallbacks
+keep them opaque where backdrop-filter is unavailable and
+`prefers-reduced-transparency` is honoured. Light mode's auth/settings glass
+no longer renders as a dark slab, adaptive `--backdrop` values are glassier,
+and brand tiles use the new continuous-corner iris gradient.
+
+**Error paths hardened.** `ErrorBoundary` and `ErrorState` never surface raw
+`Error.message` to visitors (SQL/tokens/paths can leak through them), show
+offline-aware copy with queue reassurance, offer a support path, and only
+expose technical details under the opt-in debug flag. Boundaries support
+reset keys (tab retries) and a dark variant for the developer console.
+
+**Admin console, rebuilt.** New "System Settings"-style shell: searchable
+grouped navigation, brand lockup, calm neutral identity (the old danger-red
+console chrome is gone), glass content header, mobile drawer parity, branded
+skeleton loading, and an error boundary per section that recovers without a
+full page reload. The developer console got the same treatment: a dark
+native-tools material that works in both app themes, a crisp header with
+session identity, and a segmented section bar replacing the amber "God Mode"
+language.
+
 ## [Unreleased] — fifth pass
 
 Search results are copy, so copy got a budget, a generator, and a gate.

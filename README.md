@@ -1,5 +1,9 @@
 # FocusArx
 
+<div align="center">
+  <img src="artifacts/focusarx/public/brand/focusarx-mark.svg" width="108" height="108" alt="FocusArx — iris focus mark" />
+</div>
+
 A production-grade productivity and focus platform with real-time features, gamification, and community tools.
 
 ## Features
