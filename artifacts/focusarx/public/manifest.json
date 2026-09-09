@@ -1,5 +1,5 @@
 {
-  "name": "FocusArx – AI Productivity Platform & Focus Timer",
+  "name": "FocusArx \u2014 Focus Timer & Deep Work Platform",
   "short_name": "FocusArx",
   "description": "FocusArx is a free AI-powered focus timer and productivity OS. Pomodoro sessions, deep work tracking, AI coaching, gamification (XP/badges/missions), habit building, and virtual study rooms for students and professionals.",
   "start_url": "/",
@@ -40,7 +40,7 @@
       "sizes": "1200x630",
       "type": "image/jpeg",
       "form_factor": "wide",
-      "label": "FocusArx — AI Deep Work OS"
+      "label": "FocusArx \u2014 AI Deep Work OS"
     }
   ],
   "shortcuts": [
@@ -151,6 +151,6 @@
   ],
   "related_applications": [],
   "prefer_related_applications": false,
-  "theme_color": "#7C3AED",
-  "background_color": "#030308"
+  "theme_color": "#6C6CFF",
+  "background_color": "#0A0C14"
 }

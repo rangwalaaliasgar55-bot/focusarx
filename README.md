@@ -1,5 +1,9 @@
 # FocusArx
 
+<div align="center">
+  <img src="artifacts/focusarx/public/brand/focusarx-mark.svg" width="108" height="108" alt="FocusArx — iris focus mark" />
+</div>
+
 A production-grade productivity and focus platform with real-time features, gamification, and community tools.
 
 ## Features
@@ -29,6 +33,10 @@ A production-grade productivity and focus platform with real-time features, gami
 | Auth | JWT (access + refresh tokens, httpOnly cookies) |
 | Deployment | Vercel (serverless functions + static) |
 | Testing | Vitest (unit), Playwright (E2E) |
+
+## Brand & design
+
+Identity, logo assets and usage rules live in [`docs/BRAND.md`](docs/BRAND.md).
 
 ## Quick Start
 

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { AlertCircle, LockKeyhole, Shield } from "lucide-react";
+import { AlertCircle, LockKeyhole } from "lucide-react";
+import { BrandMark } from "@/components/ui/brand";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -30,8 +31,8 @@ export function AdminGate({ onUnlocked }: { onUnlocked?: () => void }) {
     <main className="grid min-h-[100dvh] place-items-center bg-[var(--background)] px-4 py-12">
       <Card elevation="elevated" className="w-full max-w-md">
         <CardContent className="p-7 sm:p-8">
-          <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] bg-[var(--danger-soft)] text-[var(--danger)]"><Shield /></span>
-          <p className="page-eyebrow mt-6">Restricted area</p><h1 className="text-2xl font-semibold tracking-tight">Admin access</h1><p className="mt-2 text-sm leading-relaxed text-[var(--foreground-muted)]">Enter the admin password to open the FocusArx command center.</p>
+          <BrandMark className="h-12 w-12" />
+          <p className="page-eyebrow mt-6">Restricted area</p><h1 className="text-2xl font-semibold tracking-tight">Admin console</h1><p className="mt-2 text-sm leading-relaxed text-[var(--foreground-muted)]">Enter the admin password to open the FocusArx command center. Sessions lock after 15 minutes of inactivity.</p>
           <form onSubmit={submit} className="mt-6">
             {error && <p className="mb-4 flex gap-2 rounded-lg bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]" role="alert"><AlertCircle className="mt-0.5 shrink-0" size={16} />{error}</p>}
             <label htmlFor="admin-password" className="mb-2 block text-sm font-medium">Password</label>

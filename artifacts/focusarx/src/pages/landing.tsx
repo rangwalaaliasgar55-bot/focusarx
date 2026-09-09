@@ -22,8 +22,8 @@ import {
   Timer,
   Users,
   X,
-  Zap,
 } from "lucide-react";
+import { BrandMark, BrandWordmark } from "@/components/ui/brand";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 import { Reveal, RevealStagger, RevealItem, ScrollScale, HeroScrub, Parallax } from "@/components/motion/Scroll";
 import { AdSlot } from "@/components/AdSlot";
@@ -48,8 +48,8 @@ const FEATURES = [
 function Brand() {
   return (
     <Link href="/" className="flex items-center gap-2.5" aria-label="FocusArx home">
-      <span className="brand-mark"><Zap size={17} fill="currentColor" /></span>
-      <span className="text-sm font-semibold tracking-tight">FocusArx</span>
+      <BrandMark className="h-8 w-8" />
+      <BrandWordmark className="text-[0.9375rem]" />
     </Link>
   );
 }
@@ -106,7 +106,7 @@ function DashboardMockup() {
       </div>
       <div className="grid min-h-[28rem] md:grid-cols-[11rem_1fr]">
         <aside className="hidden border-r border-[var(--border-subtle)] p-3 md:block">
-          <div className="mb-5 flex items-center gap-2 px-2"><span className="brand-mark h-7 w-7 rounded-lg"><Zap size={12} /></span><span className="text-xs font-semibold">FocusArx</span></div>
+          <div className="mb-5 flex items-center gap-2 px-2"><BrandMark className="h-6 w-6" /><span className="text-xs font-semibold">FocusArx</span></div>
           {["Dashboard", "Tasks", "Focus", "Flashcards", "Analytics"].map((item, index) => <div key={item} className={cn("mb-1 flex min-h-9 items-center rounded-lg px-3 text-[0.6875rem] text-[var(--foreground-subtle)]", index === 0 && "bg-[var(--brand-soft)] text-[var(--brand-strong)]")}>{item}</div>)}
         </aside>
         <div className="p-3 sm:p-5">

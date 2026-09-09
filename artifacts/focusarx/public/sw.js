@@ -14,7 +14,7 @@
 // Bump SW_VERSION when the service worker logic itself changes — this forces
 // the browser to install the new worker and purge old caches.
 
-const SW_VERSION = "focusarx-sw-v7";
+const SW_VERSION = "focusarx-sw-v8";
 const CACHE_NAME = SW_VERSION;
 
 const APP_SHELL = [
@@ -24,6 +24,7 @@ const APP_SHELL = [
   "/icon-192.png",
   "/icon-512.png",
   "/icon-maskable-512.png",
+  "/icon-180.png",
 ];
 
 // Listen for messages from the frontend (e.g. deployment skew handler)

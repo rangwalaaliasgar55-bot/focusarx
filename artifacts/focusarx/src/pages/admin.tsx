@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 
 import { AdminGate } from "@/components/admin/AdminGate";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard";
 import { useAuth } from "@/lib/auth";
@@ -96,9 +98,7 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--palette-zinc-700)] border-t-[var(--palette-rose-400)]" />
-      </div>
+      <AdminLoading />
     );
   }
 
@@ -181,17 +181,40 @@ export default function AdminPage() {
 
   return (
     <AdminShell activeTab={tab} onTabChange={(t) => setTab(t as Tab)}>
-      <div key={tab}>
-        {TAB_RENDER[tab]?.() ?? null}
-      </div>
+      <ErrorBoundary key={`tab-${tab}`} resetKey={tab} onReset={() => setLoading(true)} fallbackTitle={`${tab} console section`}>
+        <div key={tab}>
+          {TAB_RENDER[tab]?.() ?? null}
+        </div>
 
-      <UserManagerDialog
-        key={managingUserId ?? "closed"}
-        userId={managingUserId}
-        onClose={() => setManagingUserId(null)}
-        onChanged={() => void loadData()}
-        authHeaders={authHeaders}
-      />
+        <UserManagerDialog
+          key={managingUserId ?? "closed"}
+          userId={managingUserId}
+          onClose={() => setManagingUserId(null)}
+          onChanged={() => void loadData()}
+          authHeaders={authHeaders}
+        />
+      </ErrorBoundary>
     </AdminShell>
+  );
+}
+
+function AdminLoading() {
+  return (
+    <div className="min-h-[100dvh] bg-[var(--background)] p-4 text-[var(--foreground)] sm:p-6 lg:p-8">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-6 flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-2.5 w-40" />
+            <Skeleton className="h-5 w-64" />
+          </div>
+          <Skeleton className="h-6 w-28" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <Skeleton key={index} className="h-28" />
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }

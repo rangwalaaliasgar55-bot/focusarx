@@ -16,13 +16,16 @@
  */
 import { useState, useEffect, lazy, Suspense, useCallback } from "react";
 import { useAuth, isAdminUser } from "@/lib/auth";
+import { BrandMark, BrandLockup } from "@/components/ui/brand";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { Skeleton } from "@/components/ui/skeleton";
 import { apiJson } from "@/lib/api";
 import { Link } from "wouter";
 import {
   Code2, Database, Shield, GitBranch,
   Users, Coins, Zap, Brain, Flag, Activity, Crown, Search,
   RefreshCw, Star, TrendingUp, AlertTriangle,
-  Lock, Gift, Bell, BarChart3, Globe, ArrowUpRight, Timer,
+  Gift, Bell, BarChart3, Globe, ArrowUpRight, Timer,
 } from "lucide-react";
 
 const SchemaExplorer = lazy(() =>
@@ -59,79 +62,108 @@ export default function DeveloperPage() {
   const [tab, setTab] = useState<Tab>("overview");
 
   // Gate: only admins can see this page
-  if (status === "loading") return <div className="page-container py-20 text-center text-white/40">Loading...</div>;
+  if (status === "loading") {
+    return (
+      <div className="page-container flex min-h-[50vh] items-center justify-center">
+        <Skeleton className="h-28 w-full max-w-xl" />
+      </div>
+    );
+  }
   if (status === "unauthenticated") return <NotAdminMessage reason="Please sign in to access the developer console." />;
   if (!isAdminUser(data?.user)) return <NotAdminMessage reason="Developer mode requires admin role. Contact an administrator." />;
 
   return (
-    <div className="page-container max-w-7xl mx-auto py-6 px-4">
+    <div className="page-container max-w-7xl py-6">
       <title>Developer Console — FocusArx</title>
 
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="p-2 rounded-xl bg-gradient-to-br from-amber-500/20 to-red-500/20 border border-amber-500/20">
-            <Crown className="w-6 h-6 text-amber-400" />
+      {/* The console runs on its own dark material in both app themes — like a
+          native tools surface (Xcode / Terminal), where focus belongs to the
+          data, not to page chrome. */}
+      <div className="dev-console overflow-hidden rounded-[var(--radius-2xl)]">
+        {/* Console header */}
+        <header className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-white/8 px-5 py-4 sm:px-7">
+          <BrandLockup compact tagline="Developer tools" ariaLabel="FocusArx developer console" markClassName="h-8 w-8" />
+          <div className="min-w-0 flex-1" />
+          <div className="flex items-center gap-2 text-xs text-white/45">
+            <span className="hidden items-center gap-1.5 sm:inline-flex">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
+              Signed in
+            </span>
+            <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 font-medium text-white/70">
+              {data?.user?.email}
+            </span>
+            <span className="rounded-full border border-[var(--brand-400)]/25 bg-[var(--brand-400)]/10 px-2.5 py-1 font-semibold text-[var(--brand-400)]">
+              Admin
+            </span>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              Developer Console
-              <span className="text-xs px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded-full font-medium">ADMIN</span>
-            </h1>
-            <p className="text-white/50 text-sm">
-              Signed in as <span className="text-amber-300 font-medium">{data?.user?.email}</span>
-            </p>
-          </div>
+        </header>
+
+        {/* Tab navigation */}
+        <nav className="flex gap-1 overflow-x-auto border-b border-white/8 px-3 py-2 sm:px-5" aria-label="Developer console sections">
+          {TABS.map((t) => {
+            const Icon = t.icon;
+            const active = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTab(t.id)}
+                aria-current={active ? "page" : undefined}
+                className={`flex min-h-9 shrink-0 items-center gap-2 rounded-[var(--radius-lg)] px-3.5 text-[0.8125rem] font-medium whitespace-nowrap transition-colors ${
+                  active
+                    ? "bg-white/10 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]"
+                    : "text-white/45 hover:bg-white/5 hover:text-white/75"
+                }`}
+              >
+                <Icon className="h-4 w-4" aria-hidden />
+                {t.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Console body */}
+        <div className="px-5 py-6 sm:px-7 sm:py-8">
+          <ErrorBoundary key={tab} variant="dark" fallbackTitle="This console section hit a snag">
+            <Suspense
+              fallback={
+                <div className="animate-pulse space-y-4" aria-hidden>
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="h-16 rounded-lg bg-white/5" />
+                  ))}
+                </div>
+              }
+            >
+              {tab === "overview" && <OverviewTab />}
+              {tab === "users" && <UsersTab />}
+              {tab === "economy" && <EconomyTab />}
+              {tab === "flags" && <FlagsTab />}
+              {tab === "ai" && <AiBudgetTab />}
+              {tab === "schema" && <SchemaExplorer />}
+              {tab === "sql-editor" && <SqlEditor />}
+              {tab === "db-health" && <DatabaseHealth />}
+              {tab === "api" && <ApiDocumentation />}
+              {tab === "flows" && <CallFlowsTab />}
+              {tab === "health" && <HealthTab />}
+            </Suspense>
+          </ErrorBoundary>
         </div>
       </div>
-
-      {/* Tab Navigation */}
-      <div className="flex gap-1 mb-6 overflow-x-auto pb-2 border-b border-white/10">
-        {TABS.map((t) => {
-          const Icon = t.icon;
-          return (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                tab === t.id
-                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                  : "text-white/50 hover:text-white/70 hover:bg-white/5"
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {t.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Tab Content */}
-      <Suspense fallback={<div className="animate-pulse space-y-4">{[...Array(5)].map((_, i) => <div key={i} className="h-16 bg-white/5 rounded-lg" />)}</div>}>
-        {tab === "overview" && <OverviewTab />}
-        {tab === "users" && <UsersTab />}
-        {tab === "economy" && <EconomyTab />}
-        {tab === "flags" && <FlagsTab />}
-        {tab === "ai" && <AiBudgetTab />}
-        {tab === "schema" && <SchemaExplorer />}
-        {tab === "sql-editor" && <SqlEditor />}
-        {tab === "db-health" && <DatabaseHealth />}
-        {tab === "api" && <ApiDocumentation />}
-        {tab === "flows" && <CallFlowsTab />}
-        {tab === "health" && <HealthTab />}
-      </Suspense>
     </div>
   );
 }
 
 function NotAdminMessage({ reason }: { reason: string }) {
   return (
-    <div className="page-container flex flex-col items-center justify-center min-h-[60vh] text-center">
-      <Lock className="w-12 h-12 text-white/20 mb-4" />
-      <h2 className="text-xl font-semibold text-white mb-2">Admin Access Required</h2>
-      <p className="text-white/50 mb-6 max-w-md">{reason}</p>
-      <Link href="/login" className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors">
-        Sign In
+    <div className="page-container flex min-h-[60vh] flex-col items-center justify-center text-center">
+      <BrandMark className="h-12 w-12" />
+      <h2 className="mt-6 text-xl font-semibold tracking-tight text-[var(--foreground)]">Developer mode is locked</h2>
+      <p className="mb-6 mt-2 max-w-md text-sm leading-relaxed text-[var(--foreground-muted)]">{reason}</p>
+      <Link
+        href="/login"
+        className="inline-flex min-h-10 items-center rounded-xl bg-[var(--brand-600)] px-5 text-sm font-semibold text-[var(--neutral-0)] hover:bg-[var(--brand-700)]"
+      >
+        Sign in
       </Link>
     </div>
   );

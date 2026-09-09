@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!--
+    FocusArx reticle glyph — the mark's white reticle on a transparent field,
+    sized for the 24-unit grid so it can sit on any surface (buttons, the
+    admin console, favicon contexts). Current-color friendly: replace both
+    strokes below with `stroke="currentColor"` when inlining in UI code.
+  -->
+  <circle cx="12" cy="12" r="7.4" fill="none" stroke="#FFFFFF"
+          stroke-width="2.3" stroke-linecap="round"/>
+  <circle cx="12" cy="12" r="1.7" fill="#FFFFFF"/>
+</svg>

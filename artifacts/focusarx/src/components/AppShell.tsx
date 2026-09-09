@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
+import { BrandMark } from "@/components/ui/brand";
 import {
   BarChart3,
   Bell,
@@ -33,7 +34,6 @@ import {
   UserRound,
   Users,
   WalletCards,
-  Zap,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth, getToken, isAdminUser } from "@/lib/auth";
@@ -150,9 +150,7 @@ async function fetchNotificationCount() {
 function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <Link href="/dashboard" className="flex min-w-0 items-center gap-3" aria-label="FocusArx dashboard">
-      <span className="brand-mark" aria-hidden="true">
-        <Zap size={compact ? 16 : 18} fill="currentColor" />
-      </span>
+      <BrandMark className={compact ? "h-8 w-8" : "h-9 w-9"} />
       {!compact && (
         <span className="min-w-0">
           <span className="block truncate text-sm font-semibold tracking-tight text-[var(--foreground)]">FocusArx</span>
