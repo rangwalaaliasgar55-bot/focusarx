@@ -1,5 +1,6 @@
 import { Link } from "wouter";
-import { ArrowLeft, Flame, ShieldCheck, Sparkles, Timer, Zap } from "lucide-react";
+import { ArrowLeft, Flame, ShieldCheck, Sparkles, Timer } from "lucide-react";
+import { BrandMark } from "@/components/ui/brand";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface AuthLayoutProps {
@@ -30,8 +31,8 @@ export function AuthLayout({ eyebrow, title, subtitle, children, footer }: AuthL
         {/* Brand panel */}
         <section className="hidden flex-col justify-between border-r border-[var(--border-subtle)] px-10 py-10 lg:flex xl:px-14" aria-label="About FocusArx">
           <Link href="/" className="inline-flex items-center gap-3" aria-label="FocusArx home">
-            <span className="brand-mark"><Zap size={18} fill="currentColor" /></span>
-            <span className="text-sm font-semibold tracking-tight">FocusArx</span>
+            <BrandMark className="h-9 w-9" />
+            <span className="text-[0.9375rem] font-semibold tracking-tight">FocusArx</span>
           </Link>
 
           <div>
@@ -63,7 +64,7 @@ export function AuthLayout({ eyebrow, title, subtitle, children, footer }: AuthL
             <span className="inline-flex items-center gap-2 text-xs text-[var(--foreground-subtle)]"><ShieldCheck size={14} /> Secure access</span>
           </div>
           <div className="mb-6 text-center lg:hidden">
-            <span className="brand-mark mx-auto"><Zap size={18} fill="currentColor" /></span>
+            <BrandMark className="mx-auto h-10 w-10" />
             <p className="mt-3 text-sm font-semibold">FocusArx</p>
           </div>
 

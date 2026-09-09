@@ -5,7 +5,8 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
-import { ArrowLeft, Zap } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { BrandMark } from "@/components/ui/brand";
 import { cn } from "@/lib/utils";
 import { PAGE } from "@/lib/animations";
 
@@ -14,7 +15,6 @@ interface AuthCardProps {
   subtitle?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
-  icon?: React.ReactNode;
   onBack?: () => void;
   isLoading?: boolean;
   className?: string;
@@ -25,7 +25,6 @@ export function AuthCard({
   subtitle,
   children,
   footer,
-  icon,
   onBack,
   isLoading = false,
   className,
@@ -46,9 +45,7 @@ export function AuthCard({
       >
         {/* Logo */}
         <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-xl)] bg-gradient-to-br from-[var(--brand-violet)] to-[var(--palette-4f46e5)] shadow-[var(--shadow-violet-md)] logo-pulse">
-            {icon ?? <Zap size={22} className="text-[var(--palette-white)]" fill="var(--palette-white)" />}
-          </div>
+          <BrandMark className="logo-pulse h-14 w-14" />
           <div className="text-center">
             <p className="text-lg font-bold tracking-tight text-[var(--foreground)]">FocusArx</p>
           </div>

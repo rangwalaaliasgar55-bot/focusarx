@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!--
+    FocusArx brand mark — "iris tile" concept.
+
+    A liquid-glass squircle in the brand iris gradient (violet → azure) holds a
+    calm focus reticle: a precise ring with a luminous center point. The tile's
+    diagonal sheen and soft inner glow give it the refraction of Liquid Glass;
+    the reticle says exactly what the product does — one thing, in focus.
+
+    Geometry is normalized so the raster assets (favicon, icons, OG card) are
+    generated from this single source with ImageMagick, e.g.:
+
+      convert -background none focusarx-mark.svg -resize 512x512 icon-512.png
+
+    Gradient stops: #8A5CFF (violet) → #4E7CFF (azure).
+  -->
+  <defs>
+    <linearGradient id="iris" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8A5CFF"/>
+      <stop offset="1" stop-color="#4E7CFF"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="0.62">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.44" r="0.62">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="tile">
+      <rect x="0" y="0" width="1024" height="1024" rx="228"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#tile)">
+    <rect x="0" y="0" width="1024" height="1024" fill="url(#iris)"/>
+    <rect x="0" y="0" width="1024" height="1024" fill="url(#glow)"/>
+    <rect x="0" y="0" width="1024" height="1024" fill="url(#sheen)"/>
+  </g>
+
+  <!-- Reticle -->
+  <circle cx="512" cy="512" r="316" fill="none" stroke="#FFFFFF" stroke-opacity="0.96"
+          stroke-width="98" stroke-linecap="round"/>
+  <circle cx="512" cy="512" r="73" fill="#FFFFFF"/>
+</svg>
