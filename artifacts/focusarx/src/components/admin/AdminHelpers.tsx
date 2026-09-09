@@ -125,9 +125,8 @@ export function StatCard({ label, value, accent, sub }: { label: string; value: 
 
 export function SectionHeader({ title, sub }: { title: string; sub?: string }) {
   return (
-    <header className="mb-6 border-b border-[var(--border-subtle)] pb-5">
-      <p className="mb-1 text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-[var(--danger)]">Administration</p>
-      <h1 className="text-balance text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-3xl">{title}</h1>
+    <header className="mb-6">
+      <h1 className="text-balance text-2xl font-semibold tracking-[-0.03em] text-[var(--foreground)] sm:text-[1.75rem]">{title}</h1>
       {sub && <p className="mt-1.5 max-w-3xl text-sm leading-6 text-[var(--foreground-muted)]">{sub}</p>}
     </header>
   );

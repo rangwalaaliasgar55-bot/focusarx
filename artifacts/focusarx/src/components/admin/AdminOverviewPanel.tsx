@@ -1,3 +1,4 @@
+import { Flame, TrendingUp } from "lucide-react";
 import { SectionHeader, StatCard, MotionTab } from "./AdminHelpers";
 import type { AdminStats, AdminData, CmsOverview, AdminUser } from "./AdminTypes";
 
@@ -6,6 +7,17 @@ function maskEmail(email: string) {
   if (!local || !domain) return email;
   if (email.endsWith("@guest.focusarx.internal")) return "guest";
   return local.slice(0, 2) + "***@" + domain;
+}
+
+function displayName(user: { name?: string | null; email?: string | null }) {
+  return user.name || (user.email ? maskEmail(user.email) : "") || "Unnamed";
+}
+
+function formatDuration(minutes: number) {
+  if (!Number.isFinite(minutes) || minutes <= 0) return "0m";
+  if (minutes < 60) return `${Math.round(minutes)}m`;
+  const hours = minutes / 60;
+  return `${hours >= 10 ? Math.round(hours) : hours.toFixed(1)}h`;
 }
 
 interface OverviewPanelProps {
@@ -18,6 +30,9 @@ interface OverviewPanelProps {
 }
 
 export function AdminOverviewPanel({ stats, data, users, cmsOverview, maxSessions, onNavigateToUsers }: OverviewPanelProps) {
+  const chart = stats?.dailyChart ?? [];
+  const weekTotal = chart.reduce((sum, day) => sum + (day.sessions || 0), 0);
+
   return (
     <MotionTab>
       <SectionHeader title="Platform Overview" sub="Real-time snapshot of platform health and user activity." />
@@ -26,7 +41,7 @@ export function AdminOverviewPanel({ stats, data, users, cmsOverview, maxSession
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <StatCard label="Registered users" value={String(stats?.totalUsers ?? users.length)} />
         <StatCard label="New this week" value={String(stats?.newUsersThisWeek ?? 0)} accent="sky" />
-        <StatCard label="Active sessions" value={String(stats?.activeSessions ?? data.activeCount ?? 0)} accent="rose" />
+        <StatCard label="Active sessions" value={String(stats?.activeSessions ?? data.activeCount ?? 0)} accent="emerald" />
         <StatCard label="Total focus hrs" value={String(stats?.totalFocusHours ?? 0)} accent="violet" />
         <StatCard label="Total sessions" value={String(stats?.totalSessions ?? 0)} />
         <StatCard label="Guest accounts" value={String(stats?.guestCount ?? data.guestCount ?? 0)} accent="amber" />
@@ -44,70 +59,102 @@ export function AdminOverviewPanel({ stats, data, users, cmsOverview, maxSession
 
       <div className="grid gap-4 lg:grid-cols-5">
         {/* Activity chart */}
-        <div className="lg:col-span-3 rounded-xl border border-[var(--palette-zinc-800)]/80 bg-[var(--palette-zinc-900)]/40 p-5">
-          <p className="text-xs font-medium uppercase tracking-wider text-[var(--palette-zinc-500)]">Platform activity — last 7 days</p>
-          <div className="mt-4 flex items-end gap-1.5 h-32">
-            {(stats?.dailyChart ?? Array.from({ length: 7 }, (_, i) => ({
-              day: ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][i] ?? "?", date: "", sessions: 0, minutes: 0,
-            }))).map((d, index) => (
-              <div key={`${d.date || d.day}-${index}`} className="flex flex-1 flex-col items-center gap-1">
-                <div
-                  className="w-full rounded-t-md bg-[var(--palette-rose-500)]/70 hover:bg-[var(--palette-rose-400)]/90 transition-all"
-                  style={{ height: `${Math.round((d.sessions / maxSessions) * 100)}%`, minHeight: d.sessions > 0 ? "4px" : "2px" }}
-                  title={`${d.sessions} sessions · ${d.minutes}m`}
-                />
-                <span className="text-[11px] text-[var(--palette-zinc-600)]">{d.day}</span>
-              </div>
-            ))}
+        <div className="ui-panel lg:col-span-3 p-5">
+          <div className="flex items-baseline justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold tracking-tight text-[var(--foreground)]">Sessions — last 7 days</p>
+              <p className="mt-0.5 text-xs text-[var(--foreground-subtle)]">Server-verified focus completions</p>
+            </div>
+            <p className="inline-flex items-center gap-1.5 text-xs font-semibold tabular-nums text-[var(--brand-strong)]">
+              <TrendingUp size={13} aria-hidden /> {weekTotal.toLocaleString()} total
+            </p>
+          </div>
+          <div className="mt-5 flex h-36 items-end gap-2" role="img" aria-label="Bar chart of focus sessions per day for the last seven days">
+            {chart.length === 0 && (
+              <p className="pb-6 text-sm text-[var(--foreground-subtle)]">No session data yet — it appears here as soon as users finish focus blocks.</p>
+            )}
+            {chart.map((d, index) => {
+              const ratio = d.sessions > 0 ? Math.max(0.04, d.sessions / maxSessions) : 0;
+              return (
+                <div key={`${d.date || d.day}-${index}`} className="flex min-w-0 flex-1 flex-col items-center gap-1.5" title={`${d.sessions} sessions · ${d.minutes}m on ${d.day}`}>
+                  <span className="text-[0.625rem] font-medium tabular-nums text-[var(--foreground-subtle)]">
+                    {d.sessions > 0 ? d.sessions : ""}
+                  </span>
+                  <div
+                    className="w-full rounded-full bg-[linear-gradient(180deg,var(--brand-400),var(--brand-600))] opacity-90 transition-opacity hover:opacity-100"
+                    style={{ height: `calc(${Math.round(ratio * 100)}% - 1.25rem)` }}
+                  />
+                  <span className="text-[0.6875rem] tabular-nums text-[var(--foreground-muted)]">{d.day}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
         {/* Top users */}
-        <div className="lg:col-span-2 rounded-xl border border-[var(--palette-zinc-800)]/80 bg-[var(--palette-zinc-900)]/40 p-5">
-          <p className="text-xs font-medium uppercase tracking-wider text-[var(--palette-zinc-500)]">Top focusers</p>
-          <div className="mt-3 space-y-2.5">
-            {(stats?.topUsers ?? []).length === 0 && <p className="text-sm text-[var(--palette-zinc-600)]">No sessions yet.</p>}
-            {(stats?.topUsers ?? []).map((u, i) => (
-              <div key={u.id} className="flex items-center gap-3">
-                <span className={`w-5 shrink-0 text-center text-xs font-bold ${i === 0 ? "text-[var(--palette-amber-400)]" : i === 1 ? "text-[var(--palette-zinc-300)]" : i === 2 ? "text-[var(--palette-orange-600)]" : "text-[var(--palette-zinc-600)]"}`}>{i + 1}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm text-[var(--palette-zinc-200)]">{u.name || maskEmail(u.email)}</p>
-                  <p className="text-xs text-[var(--palette-zinc-500)]">{u.minutes}m focused</p>
+        <div className="ui-panel p-5 lg:col-span-2">
+          <p className="text-sm font-semibold tracking-tight text-[var(--foreground)]">Top focusers</p>
+          <p className="mt-0.5 text-xs text-[var(--foreground-subtle)]">By verified minutes this week</p>
+          <div className="mt-4 space-y-3">
+            {(stats?.topUsers ?? []).length === 0 && <p className="text-sm text-[var(--foreground-subtle)]">No sessions yet.</p>}
+            {(stats?.topUsers ?? []).map((u, i) => {
+              const leader = Math.max(1, stats?.topUsers?.[0]?.minutes ?? 1);
+              const rank = i === 0 ? "text-[var(--palette-amber-500)]" : i === 1 ? "text-[var(--foreground-muted)]" : i === 2 ? "text-[var(--palette-orange-500)]" : "text-[var(--foreground-subtle)]";
+              return (
+                <div key={u.id} className="flex items-center gap-3">
+                  <span className={`w-5 shrink-0 text-center text-xs font-bold tabular-nums ${rank}`}>{i + 1}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-[var(--foreground)]">{displayName(u)}</p>
+                    <p className="text-xs text-[var(--foreground-subtle)]">{formatDuration(u.minutes)} focused</p>
+                  </div>
+                  <div className="h-1.5 w-16 shrink-0 overflow-hidden rounded-full bg-[var(--surface-hover)]">
+                    <div
+                      className="h-full rounded-full bg-[linear-gradient(90deg,var(--brand-500),var(--brand-400))]"
+                      style={{ width: `${Math.round((u.minutes / leader) * 100)}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="h-1.5 w-16 shrink-0 overflow-hidden rounded-full bg-[var(--palette-zinc-800)]">
-                  <div className="h-full rounded-full bg-[var(--palette-violet-500)]/70"
-                    style={{ width: `${Math.round((u.minutes / Math.max(1, stats?.topUsers[0]?.minutes ?? 1)) * 100)}%` }} />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
 
       {/* Recent signups */}
-      <div className="rounded-xl border border-[var(--palette-zinc-800)]/80 bg-[var(--palette-zinc-900)]/40 p-5">
-        <p className="text-xs font-medium uppercase tracking-wider text-[var(--palette-zinc-500)] mb-3">Recent signups</p>
-        <div className="divide-y divide-[var(--palette-zinc-800)]/60">
-          {users.slice(0, 5).map(u => (
-            <div key={u.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
-              <div>
-                <span className="text-sm text-[var(--palette-zinc-200)]">{u.name ?? "Unnamed"}</span>
-                <span className="ml-2 text-xs text-[var(--palette-zinc-500)]">{maskEmail(u.email)}</span>
+      <div className="ui-panel p-5">
+        <div className="mb-2 flex items-baseline justify-between gap-3">
+          <p className="text-sm font-semibold tracking-tight text-[var(--foreground)]">Recent signups</p>
+          {users.length > 5 && (
+            <button
+              type="button"
+              onClick={onNavigateToUsers}
+              className="text-xs font-medium text-[var(--brand-strong)] transition-colors hover:underline"
+            >
+              View all {users.length} users →
+            </button>
+          )}
+        </div>
+        <div className="divide-y divide-[var(--border-subtle)]">
+          {users.slice(0, 5).map((u) => (
+            <div key={u.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2.5">
+              <div className="min-w-0">
+                <span className="truncate text-sm font-medium text-[var(--foreground)]">{displayName(u)}</span>
+                <span className="ml-2 text-xs text-[var(--foreground-subtle)]">{maskEmail(u.email)}</span>
               </div>
-              <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-xs text-[var(--palette-zinc-500)]">
-                <span>{u.sessionCount} sessions</span>
-                <span>{u.streak} 🔥</span>
-                <span>{new Date(u.createdAt).toLocaleDateString()}</span>
-                {u.role === "admin" && <span className="rounded-full bg-[var(--palette-violet-950)] px-2 py-0.5 text-[var(--palette-violet-300)]">Admin</span>}
+              <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-xs text-[var(--foreground-muted)]">
+                <span className="tabular-nums">{u.sessionCount} sessions</span>
+                <span className="inline-flex items-center gap-1 tabular-nums">
+                  <Flame size={12} className={u.streak > 0 ? "text-[var(--palette-orange-500)]" : "text-[var(--foreground-subtle)]"} aria-hidden />
+                  {u.streak}
+                </span>
+                <span className="tabular-nums">{new Date(u.createdAt).toLocaleDateString()}</span>
+                {u.role === "admin" && (
+                  <span className="rounded-full bg-[var(--brand-soft)] px-2 py-0.5 font-medium text-[var(--brand-strong)]">Admin</span>
+                )}
               </div>
             </div>
           ))}
         </div>
-        {users.length > 5 && (
-          <button onClick={onNavigateToUsers} className="mt-3 text-xs text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)] transition">
-            View all {users.length} users →
-          </button>
-        )}
       </div>
     </MotionTab>
   );
