@@ -25,7 +25,7 @@ import {
   Code2, Database, Shield, GitBranch,
   Users, Coins, Zap, Brain, Flag, Activity, Crown, Search,
   RefreshCw, Star, TrendingUp, AlertTriangle,
-  Lock, Gift, Bell, BarChart3, Globe, ArrowUpRight, Timer,
+  Gift, Bell, BarChart3, Globe, ArrowUpRight, Timer,
 } from "lucide-react";
 
 const SchemaExplorer = lazy(() =>
