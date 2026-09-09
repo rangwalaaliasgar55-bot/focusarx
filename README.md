@@ -34,6 +34,10 @@ A production-grade productivity and focus platform with real-time features, gami
 | Deployment | Vercel (serverless functions + static) |
 | Testing | Vitest (unit), Playwright (E2E) |
 
+## Brand & design
+
+Identity, logo assets and usage rules live in [`docs/BRAND.md`](docs/BRAND.md).
+
 ## Quick Start
 
 ```bash
