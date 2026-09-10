@@ -25,6 +25,7 @@ import { SESSION_PRESETS, getPresetById, getSessionPreset, setSessionPreset } fr
 import type { Session } from "@/types/timer";
 import { usePremium } from "@/hooks/usePremium";
 import { getTimerSkin, skinTextGradient } from "@/lib/membershipSkin";
+import { LeaderMirrorChip } from "@/components/LeaderMirrorChip";
 
 function formatTime(totalSeconds: number) {
   const m = Math.floor(totalSeconds / 60);
@@ -145,6 +146,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
     progress,
     completedFocusSessions,
     leaderBlocked,
+    mirror,
     toggle,
     reset,
     setCustomDuration,
@@ -388,6 +390,9 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
             </span>
           )}
         </div>
+
+        {/* Another tab is leading: mirror its live clock, don't run a second one. */}
+        {!isFlow && !isRunning && mirror && <LeaderMirrorChip mirror={mirror} />}
 
         {/* Large timer text - mobile-first, huge */}
         {isFlow ? (

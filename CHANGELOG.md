@@ -2,6 +2,24 @@
 
 All notable changes to FocusArx. Dates are UTC.
 
+## [Unreleased] — P0.3 cross-tab single timer
+
+**Two tabs run one timer now.** The leader election (`navigator.locks`)
+already existed; this finishes the contract:
+
+- The leading tab broadcasts a 1 Hz heartbeat; every other tab mirrors the
+  live session in a calm glass chip ("Running in another tab · Focus
+  24:31") on both desktop and mobile, instead of a dead duplicate clock.
+  Crashed leaders are detected by missed heartbeats (locks auto-release, so
+  no resign ever arrives).
+- Only the leader completes: a tab denied while a completion was already
+  queued stands down silently instead of recording a phantom session. The
+  server `clientNonce` idempotency remains the backstop.
+- 9 new unit tests (protocol + two-tab hook contract) and a Playwright
+  two-tab spec. Full-completion 2-tab e2e deliberately left out — deep
+  links min out at 1 minute, so a completion race would be a 60 s+ flaky
+  test; the guarantee is pinned at unit level instead.
+
 ## [Unreleased] — P0.2 user-local calendar completion
 
 **Daily rewards and the streak nudge now follow the user's own day.** Two

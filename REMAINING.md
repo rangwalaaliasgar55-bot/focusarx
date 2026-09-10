@@ -1,5 +1,31 @@
 # Remaining work (truthful tracker — done items stay listed as done)
 
+## Done 2026-09-10 — P0.3 cross-tab single timer (this branch, in review)
+
+- New `lib/crossTabSync.ts`: leader 1 Hz heartbeat (`state`) + `complete` /
+  `resign` protocol on the shared `focusarx-timer` channel (single source of
+  truth — `timerLeader` now imports the channel name from it). Validated,
+  clamped, never-throw; stale after 3 missed beats (crashed leaders send no
+  resign); wall-clock countdown derivation.
+- `usePomodoro`: stable tabId; grant-holder-only broadcast (no flapping in
+  the ~600 ms race); follower `mirror` state (display-only, cleared on
+  resign/complete/stale/takeover); **only-leader-completes guard**
+  (`leadDeniedRef` — a tab denied while a completion microtask was queued
+  stands down instead of recording; tabs still racing record normally).
+- Shared `LeaderMirrorChip` ("Running in another tab · Focus 24:31",
+  `role=status` + `aria-live`) wired into desktop `Timer` and
+  `FocusTimerMobileFirst` whenever the local clock isn't running.
+- Tests: 7 protocol unit tests + 2 two-tab hook tests (shared mock
+  `navigator.locks`: loser stands down, only leader records, handoff after
+  release) + new Playwright `cross-tab-leader.spec.ts` (2 pages, one
+  context). Frontend 250 → 259. E2E runs in CI (no browser in sandbox).
+- Gates: typecheck 0, API 364, frontend 259, 89 pages + seo PASS,
+  schema:check PASS, lint-changed 0 errors (9 pre-existing warnings).
+- Follow-up (P3, not this workstream): cross-*device* session handoff via
+  leader lock + push confirm; full-completion 2-tab e2e (needs a ≤60 s
+  session — deep links min out at 1 min, so single-completion is enforced at
+  unit level + server `clientNonce` backstop).
+
 ## Done 2026-09-10 — P0.2 user-local calendar completion (this branch, in review)
 
 - Daily rewards (`/daily-reward/status|claim`) keyed to the user's own IANA

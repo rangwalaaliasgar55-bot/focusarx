@@ -38,6 +38,7 @@ import { getToken } from "@/lib/auth";
 import { useCoinXP } from "./CoinXPBar";
 import PetCompanion from "./PetCompanion";
 import { TimerRitualsPanel, ReflectionModal } from "./TimerRituals";
+import { LeaderMirrorChip } from "./LeaderMirrorChip";
 import { usePremium } from "@/hooks/usePremium";
 
 const MODES: TimerMode[] = ["focus", "break", "longBreak"];
@@ -237,7 +238,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
 
   const {
     mode, status, secondsLeft, totalSeconds, progress, completedFocusSessions,
-    leaderBlocked, toggle, reset, skipToNext, selectMode, setCustomDuration,
+    leaderBlocked, mirror, toggle, reset, skipToNext, selectMode, setCustomDuration,
     getSnapshot, restoreFromSnapshot, getActiveSeconds,
   } = usePomodoro({
     // Guest-local snapshot: first sessions (Instagram funnel) survive
@@ -762,6 +763,12 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
         {/* ── TIMER DISPLAY ───────────────────────────────────────────── */}
         {!isFlow && (
         <div className="flex flex-col items-center px-6 pb-2">
+          {/* Another tab is leading: mirror its live clock, don't run a second one. */}
+          {!isRunning && mirror && (
+            <div className="mt-3 flex justify-center">
+              <LeaderMirrorChip mirror={mirror} />
+            </div>
+          )}
           {isRunning && mode === "focus" && (
             <motion.div
               initial={{ opacity: 0, y: -4 }}
