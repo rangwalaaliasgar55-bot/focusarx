@@ -2,6 +2,25 @@
 
 All notable changes to FocusArx. Dates are UTC.
 
+## [Unreleased] — P0.2 user-local calendar completion
+
+**Daily rewards and the streak nudge now follow the user's own day.** Two
+surfaces were still on the legacy IST calendar while sessions, habits and
+missions had already moved to per-user IANA zones:
+
+- `GET/POST /daily-reward/status|claim` derive today/yesterday in
+  `users.timezone` (legacy IST fallback until a real zone is adopted, so
+  existing streaks never shift), with DST-safe string math — subtracting
+  86,400,000 ms across a spring-forward lands on the wrong day, and there is
+  now a test proving the old math wrong on 2026-03-09 in `America/New_York`.
+- The lazy streak-endangerment nudge on `/api/streak` fires after 16:00
+  **user-local** with a DST-safe local-day throttle window, and the copy no
+  longer says "midnight IST" to someone in another hemisphere.
+
+10 new unit tests (API 354 → 364). No schema change. Deliberately not done:
+`streak_history` backfill for pre-table completions, and per-user zones for
+the batch `/retention/reengage/run` cron (needs a per-candidate lookup).
+
 ## [Unreleased] — v2 design system pass
 
 **Brand, rebuilt.** FocusArx has a new identity: an "iris tile" mark — a

@@ -1,5 +1,22 @@
 # Remaining work (truthful tracker — done items stay listed as done)
 
+## Done 2026-09-10 — P0.2 user-local calendar completion (this branch, in review)
+
+- Daily rewards (`/daily-reward/status|claim`) keyed to the user's own IANA
+  zone (`users.timezone` via `userZone`, fallback legacy IST): `rewardDayKeys`
+  + `isConsecutiveRewardDay` in `routes/dailyReward.ts`, DST-safe string math
+  (`shiftDayKey`, never `-86_400_000`). 4 pure unit tests incl. a
+  spring-forward case the old ms math gets wrong.
+- Streak-endangerment nudge (`lib/streakEndangerment.ts`, lazy on
+  `/api/streak`) fires on user-local evening (after 16:00 in-zone) with a
+  DST-safe local-day throttle window; copy drops the hardcoded "midnight IST".
+  Pure `endangermentDue` helper + 6 zone/DST unit tests.
+- Gates: typecheck 0, API 364 passed (354 + 10 new), frontend 250, 89 pages +
+  seo-validate PASS, schema:check PASS (no schema change), lint-changed clean.
+- Still open from P0.2: `streak_history` backfill for pre-table completions
+  (item 12 below); batch `/retention/reengage/run` still uses IST day keys
+  (per-user zones need a per-candidate lookup — noted, not started).
+
 ## Done this pass (shipped, tested, in main)
 
 - Session presets + Flowtime + remembered choice; distraction parking (D +
@@ -51,8 +68,9 @@
    Related: ~150 user-facing pages still call `fetch` directly rather than
    `apiFetch`, so they get no silent refresh on a 401; the admin console is now
    fully converted and can be used as the pattern.
-10. Streak endangerment nudges on user-local timing; push-subscription
-    sweeper; missed-day nudge scheduling.
+10. ~~Streak endangerment nudges on user-local timing~~ (done 2026-09-10,
+    incl. user-local daily rewards — see top of file); still open:
+    push-subscription sweeper; missed-day nudge scheduling.
 11. Dependabot 41: prod-surface pins applied (qs/fflate); remainder is
     dev/transitive — triage in CI where network is reliable.
 12. `streak_history` backfill for pre-table completions (table writes from
