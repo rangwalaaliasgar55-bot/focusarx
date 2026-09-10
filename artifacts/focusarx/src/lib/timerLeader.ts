@@ -1,10 +1,10 @@
 /**
  * Cross-tab timer leader election (Phase 5.3 TIMER fix).
  *
- * `crossTabSync` only *announces* timer events — nothing stopped two tabs
- * from running two timers and double-submitting sessions (saved from double
- * rewards only by the `clientNonce` backstop). This module elects a single
- * leader tab while a timer runs:
+ * Before this module, tabs only *announced* timer events — nothing stopped
+ * two tabs from running two timers and double-submitting sessions (saved
+ * from double rewards only by the `clientNonce` backstop). This module
+ * elects a single leader tab while a timer runs:
  *
  * - Modern browsers: `navigator.locks` (`ifAvailable`) — the lock is held by
  *   the leader and auto-releases if the tab crashes or closes, so there are
@@ -12,10 +12,15 @@
  * - Older browsers (no `navigator.locks`, e.g. legacy WebViews): announce
  *   via `BroadcastChannel` and grant locally. Enforcement is best-effort
  *   there; the server-side `clientNonce` idempotency remains the backstop.
+ *
+ * Follower tabs mirror the leader's live state via `crossTabSync` (same
+ * channel) instead of running a duplicate clock.
  */
 
+import { TIMER_SYNC_CHANNEL } from "./crossTabSync";
+
 const LEAD_LOCK_NAME = "focusarx-timer-leader";
-const ANNOUNCE_CHANNEL = "focusarx-timer";
+const ANNOUNCE_CHANNEL = TIMER_SYNC_CHANNEL;
 
 export interface LeadGrant {
   acquired: boolean;

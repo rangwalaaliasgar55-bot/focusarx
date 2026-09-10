@@ -8,6 +8,13 @@ import { createTimerWorker } from "@/lib/timerWorker";
 import { safeGetJson, safeSetJson, safeRemove } from "@/lib/safeStorage";
 import { buildSnapshot, readSnapshot } from "@/lib/timerPersistence";
 import { acquireTimerLead } from "@/lib/timerLeader";
+import {
+  broadcastLeaderComplete,
+  broadcastLeaderState,
+  isMirrorStale,
+  subscribeToLeader,
+  type LeaderMirror,
+} from "@/lib/crossTabSync";
 import { publishSceneSnapshot, publishSceneComplete } from "@/lib/sceneBus";
 import {
   finalizeSessionMetrics,
@@ -39,6 +46,13 @@ interface UsePomodoroOptions {
 
 export function usePomodoro(options: UsePomodoroOptions = {}) {
   const config: TimerConfig = { ...DEFAULT_CONFIG, ...options.config };
+  const enableLeader = options.enableLeader !== false;
+
+  // Stable per-mount tab identity for the cross-tab protocol (heartbeats
+  // and election announcements both carry it; own messages are ignored).
+  const [tabId] = useState(
+    () => `tab_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+  );
 
   const onSessionCompleteRef = useRef(options.onSessionComplete);
   const onModeChangeRef = useRef(options.onModeChange);
@@ -63,6 +77,12 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
     restored?.plannedSeconds ? { [`${restored.mode}Duration`]: restored.plannedSeconds } : {},
   );
   const [leaderBlocked, setLeaderBlocked] = useState(false);
+  /**
+   * Live state mirrored from the leading tab (another tab/window running
+   * the timer). Set only while this tab is NOT leading; cleared on resign,
+   * remote completion, staleness, or when this tab takes the lead.
+   */
+  const [mirror, setMirror] = useState<LeaderMirror | null>(null);
 
   const getDuration = useCallback(
     (m: TimerMode) => {
@@ -90,7 +110,11 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
   const lastTickRef = useRef<number | null>(null);
   const lastGuestSaveRef = useRef(0);
   const leadReleaseRef = useRef<(() => void) | null>(null);
+  /** Set once the election is *sustainably* lost (not while still racing). */
+  const leadDeniedRef = useRef(false);
   const lastScenePushRef = useRef(0);
+  /** Current phase length, mirrored to a ref so the worker tick can broadcast it. */
+  const totalSecondsRef = useRef(0);
 
   // Publish a reactive-scene snapshot (throttled to 1 Hz). Visuals mirror
   // real session state; the bus is fire-and-forget so it can never break
@@ -115,7 +139,8 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
     statusRef.current = status;
     completedRef.current = completedFocusSessions;
     secondsLeftRef.current = secondsLeft;
-  }, [mode, status, completedFocusSessions, secondsLeft]);
+    totalSecondsRef.current = getDuration(mode);
+  }, [mode, status, completedFocusSessions, secondsLeft, getDuration]);
 
 
 
@@ -175,6 +200,8 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
           sessionInsights: metrics?.sessionInsights ?? null,
         };
         onSessionCompleteRef.current?.(session);
+        // Followers clear their mirror; next-phase heartbeats resume below.
+        if (leadReleaseRef.current) broadcastLeaderComplete(tabId, currentMode);
         resetFocusMonitor();
       } else {
         resetFocusMonitor();
@@ -206,7 +233,7 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
       deadlineMsRef.current = Date.now() + nextSeconds * 1000;
       setStatus("running");
     },
-    [config.sessionsBeforeLongBreak, getDuration]
+    [config.sessionsBeforeLongBreak, getDuration, tabId]
   );
 
   // ── Guest-local snapshot (safeStorage). Written on transitions and at
@@ -245,6 +272,20 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
     return () => window.removeEventListener("pagehide", flush);
   }, [writeGuestSnapshot]);
 
+  const pause = useCallback(() => {
+    const end = deadlineMsRef.current;
+    if (end != null) {
+      const left = Math.max(0, Math.ceil((end - Date.now()) / 1000));
+      setSecondsLeft(left);
+      secondsLeftRef.current = left;
+    }
+    clearDeadline();
+    setStatus("paused");
+  }, [clearDeadline]);
+
+  const pauseRef = useRef(pause);
+  pauseRef.current = pause;
+
   useEffect(() => {
     if (status !== "running") return;
 
@@ -265,20 +306,43 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
       const left = Math.max(0, Math.ceil((end - Date.now()) / 1000));
       setSecondsLeft((prev) => (prev !== left ? left : prev));
 
-      // Mirror to reactive visuals at most once per second.
+      // Mirror to reactive visuals + follower tabs at most once per second.
       if (now - lastScenePushRef.current > 1000) {
         lastScenePushRef.current = now;
         publishScene("running");
+        // Only the grant holder broadcasts: during the ~600 ms election race
+        // the doomed tab stays silent so followers never flap between clocks.
+        if (leadReleaseRef.current) {
+          broadcastLeaderState(tabId, {
+            mode: modeRef.current,
+            status: "running",
+            secondsLeft: left,
+            deadlineMs: end,
+            totalSeconds: Math.max(1, Math.floor(totalSecondsRef.current)),
+          });
+        }
       }
 
       if (left <= 0 && !completingRef.current) {
         completingRef.current = true;
-        queueMicrotask(() => advancePhase(true));
+        queueMicrotask(() => {
+          // Only the leader completes. A tab that lost the election while a
+          // completion microtask was already queued stands down silently —
+          // the leader records the session; the server `clientNonce` is the
+          // backstop. Tabs still *racing* (denial not decided) record
+          // normally, so a slow grant can never eat a real session.
+          if (enableLeader && leadDeniedRef.current) {
+            completingRef.current = false;
+            pauseRef.current();
+            return;
+          }
+          advancePhase(true);
+        });
       }
     });
 
     return () => worker.destroy();
-  }, [status, advancePhase, publishScene]);
+  }, [status, advancePhase, publishScene, enableLeader, tabId]);
 
   const toggle = useCallback(() => {
     if (status === "running") {
@@ -306,6 +370,7 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
     (keepMode = false) => {
       clearDeadline();
       completingRef.current = false;
+      leadDeniedRef.current = false;
       resetFocusMonitor();
       setStatus("idle");
       publishScene("idle");
@@ -352,20 +417,6 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
     setStatus("running");
   }, [armDeadline]);
 
-  const pause = useCallback(() => {
-    const end = deadlineMsRef.current;
-    if (end != null) {
-      const left = Math.max(0, Math.ceil((end - Date.now()) / 1000));
-      setSecondsLeft(left);
-      secondsLeftRef.current = left;
-    }
-    clearDeadline();
-    setStatus("paused");
-  }, [clearDeadline]);
-
-  const pauseRef = useRef(pause);
-  pauseRef.current = pause;
-
   // ── Single-leader enforcement. When this tab enters `running`, it races
   // for the browser-wide timer lock; a tab that loses stands back down to
   // `paused` (slice preserved) and surfaces `leaderBlocked` for the UI.
@@ -376,11 +427,12 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
   // can observe a stale denial. Only a sustained denial stands the timer
   // down — genuine second tabs still lose, just ~600 ms later.
   useEffect(() => {
-    if (status !== "running" || options.enableLeader === false) return;
+    if (status !== "running" || !enableLeader) return;
+    leadDeniedRef.current = false;
     let cancelled = false;
     let attempts = 0;
     const tryAcquire = () => {
-      void acquireTimerLead().then((grant) => {
+      void acquireTimerLead(tabId).then((grant) => {
         if (cancelled) {
           grant.release();
           return;
@@ -393,11 +445,17 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
             }, 150);
             return;
           }
+          // Sustainably denied: stand down and never record from this run.
+          // A heartbeat mirror (if any) stays up so the tab shows the
+          // leader's live clock instead of a frozen duplicate.
+          leadDeniedRef.current = true;
           setLeaderBlocked(true);
           pauseRef.current();
           return;
         }
+        leadDeniedRef.current = false;
         setLeaderBlocked(false);
+        setMirror(null);
         leadReleaseRef.current?.();
         leadReleaseRef.current = grant.release;
       });
@@ -408,7 +466,32 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
       leadReleaseRef.current?.();
       leadReleaseRef.current = null;
     };
-  }, [status, options.enableLeader]);
+  }, [status, enableLeader, tabId]);
+
+  // ── Follower mirror. While this tab is not leading its own run, adopt the
+  // leader's heartbeat so the UI can show the live session. Never touches
+  // the local clock — display only.
+  useEffect(() => {
+    return subscribeToLeader({
+      ownTabId: tabId,
+      onMirror: (next) => {
+        if (statusRef.current === "running" && leadReleaseRef.current) return;
+        setMirror(next);
+      },
+      onResign: (id) => setMirror((prev) => (prev && prev.tabId === id ? null : prev)),
+      onComplete: (id) => setMirror((prev) => (prev && prev.tabId === id ? null : prev)),
+    });
+  }, [tabId]);
+
+  // A crashed leader sends no resign (the lock just releases) — sweep the
+  // mirror once its heartbeats stop.
+  useEffect(() => {
+    if (!mirror) return;
+    const id = window.setInterval(() => {
+      setMirror((prev) => (prev && isMirrorStale(prev) ? null : prev));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [mirror]);
 
   const totalSeconds = getDuration(mode);
   const progress = totalSeconds > 0 ? 1 - secondsLeft / totalSeconds : 0;
@@ -441,7 +524,10 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
       statusRef.current = snapshot.status;
       secondsLeftRef.current = snapshot.secondsLeft;
       activeSecondsRef.current = snapshot.activeSeconds;
+      // A restored run re-races the election from scratch.
+      leadDeniedRef.current = false;
       setLeaderBlocked(false);
+      setMirror(null);
 
       setMode(snapshot.mode);
       setSecondsLeft(snapshot.secondsLeft);
@@ -477,6 +563,8 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
     progress,
     completedFocusSessions,
     leaderBlocked,
+    /** Live leader state mirrored from another tab; null when none. Display-only. */
+    mirror,
     start,
     pause,
     toggle,

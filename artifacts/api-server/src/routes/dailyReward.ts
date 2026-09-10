@@ -4,7 +4,8 @@ import { Router } from "express";
 import { db, loginRewardsTable, userWalletsTable, notificationsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { mintCoins } from "../lib/coinLedger";
-import { istToday } from "../lib/istDate";
+import { dayKeyInZone, shiftDayKey } from "../lib/timezone";
+import { userZone } from "../lib/userZone";
 
 export const dailyRewardRouter = Router();
 
@@ -18,15 +19,26 @@ const STREAK_REWARDS = [
   { day: 7, coins: 200, xp: 400, label: "Week 🎉", icon: "🏆" },
 ];
 
-// IST day keys — the canonical calendar shared with session streaks,
-// missions and the retention login-reward endpoint (lib/istDate.ts).
-function getToday() { return istToday(); }
-function yesterday() { return istToday(new Date(Date.now() - 86_400_000)); }
+// User-local day keys, shared with session streaks, missions and habits
+// (lib/timezone.ts). Users without an adopted zone keep the legacy IST
+// calendar via resolveUserZone, so existing streaks never shift. "Yesterday"
+// is DST-safe string math — subtracting 86_400_000 ms across a DST
+// transition lands on the wrong calendar day.
+export function rewardDayKeys(now: Date | number, zone: string): { today: string; yesterday: string } {
+  const today = dayKeyInZone(now, zone);
+  return { today, yesterday: shiftDayKey(today, -1) };
+}
+
+/** True when the last claim was exactly the user's previous calendar day. */
+export function isConsecutiveRewardDay(lastClaimedDate: string | null, today: string): boolean {
+  if (!lastClaimedDate) return false;
+  return lastClaimedDate === shiftDayKey(today, -1);
+}
 
 dailyRewardRouter.get("/daily-reward/status", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     let [reward] = await db.select().from(loginRewardsTable).where(eq(loginRewardsTable.userId, req.userId)).limit(1);
-    const today = getToday();
+    const { today } = rewardDayKeys(Date.now(), await userZone(req.userId));
 
     if (!reward) {
       [reward] = await db.insert(loginRewardsTable).values({ userId: req.userId }).returning();
@@ -47,9 +59,9 @@ dailyRewardRouter.post("/daily-reward/claim", authMiddleware, async (req: AuthRe
     // Transaction + row lock: concurrent claims (double-click, second tab, or
     // the parallel /retention/login-reward/claim endpoint on the same row)
     // serialize; the loser sees the already-claimed date and 400s.
+    const { today } = rewardDayKeys(Date.now(), await userZone(req.userId));
     const claimed = await db.transaction(async (tx) => {
       let [reward] = await tx.select().from(loginRewardsTable).where(eq(loginRewardsTable.userId, req.userId)).limit(1).for("update");
-      const today = getToday();
 
       if (!reward) {
         [reward] = await tx.insert(loginRewardsTable).values({ userId: req.userId }).returning();
@@ -57,7 +69,7 @@ dailyRewardRouter.post("/daily-reward/claim", authMiddleware, async (req: AuthRe
 
       if (reward.lastClaimedDate === today) return null;
 
-      const isConsecutive = reward.lastClaimedDate === yesterday();
+      const isConsecutive = isConsecutiveRewardDay(reward.lastClaimedDate, today);
       const newStreak = isConsecutive ? (reward.claimStreak + 1) : 1;
       const rewardDef = STREAK_REWARDS[(newStreak - 1) % 7] ?? STREAK_REWARDS[0];
 
