@@ -106,6 +106,10 @@ rewards — a working timer plus the exam-specific angle:
 - [FocusArx vs Pomofocus](https://www.focusarx.site/comparison/focusarx-vs-pomofocus)
 - [FocusArx vs Freedom](https://www.focusarx.site/comparison/focusarx-vs-freedom)
 - [FocusArx vs StayFocusd](https://www.focusarx.site/comparison/focusarx-vs-stayfocusd)
+- [FocusArx vs Anki](https://www.focusarx.site/comparison/focusarx-vs-anki): spaced-repetition flashcards against a focus system — and how to use both.
+- [FocusArx vs Notion](https://www.focusarx.site/comparison/focusarx-vs-notion): an all-in-one workspace against a timer that scores the session.
+- [FocusArx vs Todoist](https://www.focusarx.site/comparison/focusarx-vs-todoist): task capture and projects against timed, scored focus sessions.
+- [FocusArx vs Toggl Track](https://www.focusarx.site/comparison/focusarx-vs-toggl-track): recording where time went against structuring where it goes next.
 
 Each comparison states when the other product is the better choice. Competitor
 facts are limited to what those companies state publicly.

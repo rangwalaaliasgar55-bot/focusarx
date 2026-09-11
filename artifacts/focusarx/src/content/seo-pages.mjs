@@ -876,6 +876,120 @@ export const COMPARISONS = {
     whenTheirs:
       "Choose StayFocusd when the specific problem is a handful of websites eating hours inside Chrome, and you want them capped with minimal setup. Pair it with a timer for the block itself.",
   },
+
+  // ── Workstream 7c: adjacent-category comparisons ────────────────────
+  // Anki, Notion, Todoist and Toggl Track are not focus timers, and the
+  // pages say so plainly. People search "focusarx vs anki" while deciding
+  // which tool owns their study workflow, so the honest answer — including
+  // "use both" — ranks better and converts better than a win-column table.
+  // Facts are limited to what those products state publicly; no invented
+  // weaknesses (see the editorial rules at the top of this file).
+  anki: {
+    slug: "focusarx-vs-anki",
+    name: "Anki",
+    title: "FocusArx vs Anki: Recall Tool or Focus System?",
+    description:
+      "FocusArx vs Anki compared: spaced-repetition flashcards against a focus timer, study analytics and exam guides. Which to use, and how to use both.",
+    lead: "Anki is the best-known spaced-repetition flashcard program in the world, and it is genuinely good at one job: making you recall a fact at the right moment. FocusArx is a focus and study system — timed sessions, tasks, analytics, study rooms and exam guides. They overlap on recall and barely overlap on anything else, which is why most serious students end up using both.",
+    ours: ["Timed focus and Pomodoro sessions with scoring", "Tasks, habits, goals and streaks", "Session analytics and focus score", "Live study rooms for body doubling", "Exam prep guides for 23 exams", "Built-in flashcards and active-recall tools", "AI coach and study roadmap", "Browser-based, nothing to install"],
+    theirs: ["Mature spaced-repetition scheduler", "Free and open source on desktop", "Huge shared deck library", "Powerful card templates and add-ons", "Works fully offline", "AnkiDroid free on Android"],
+    rows: [
+      ["Spaced-repetition flashcards", "Basic built-in decks", "The core product"],
+      ["Focus timer with intervals", true, false],
+      ["Task and goal tracking", true, false],
+      ["Session analytics", "Focus score, trends, breakdown", false],
+      ["Live study rooms", true, false],
+      ["Exam prep guides", "23 exams", false],
+      ["Custom card templates and add-ons", false, true],
+      ["Shared deck library", false, "Large community library"],
+      ["Fully offline", "PWA after first load", true],
+      ["Open source", false, true],
+      ["Install required", "No — browser based", "Desktop app (mobile apps separate)"],
+    ],
+    whenOurs:
+      "Choose FocusArx when the problem is getting focused hours to happen: a timer that scores the session, tasks attached to it, analytics that show where the hours actually go, and study rooms when you need someone working beside you.",
+    whenTheirs:
+      "Choose Anki when you already have the hours and the problem is long-term retention of a large volume of facts — medical school, law, languages, anything with thousands of items to remember. Its scheduler is more mature than ours and its deck library is enormous. Use both: Anki for the cards, FocusArx to run the session in which you review them.",
+  },
+  notion: {
+    slug: "focusarx-vs-notion",
+    name: "Notion",
+    title: "FocusArx vs Notion: Focus System or Workspace?",
+    description:
+      "FocusArx vs Notion compared: a timed focus and study system against an all-in-one workspace of pages, databases and tasks. Which one, or both?",
+    lead: "Notion is a workspace: pages, databases, wikis and task boards that you assemble yourself. FocusArx is a focus system with an opinion already baked in — a timer that scores sessions, tasks tied to those sessions, analytics and study rooms. Notion can hold your study plan; it cannot run your focus session.",
+    ours: ["Timer that starts in one click and scores the session", "Focus analytics without building a dashboard", "Live study rooms and body doubling", "Exam prep guides and study content", "Streaks, quests and gamified progress", "No setup required — works out of the box"],
+    theirs: ["Fully customisable pages and databases", "Wikis, docs and collaborative notes", "Templates for almost any workflow", "Native desktop and mobile apps", "Team workspaces and permissions", "Notion AI as a paid add-on"],
+    rows: [
+      ["Built-in focus timer", true, "Via embeds and widgets"],
+      ["Session scoring and focus analytics", true, "Only if you build it"],
+      ["Tasks and projects", true, true],
+      ["Custom databases and pages", false, true],
+      ["Collaborative docs and wikis", false, true],
+      ["Live study rooms", true, false],
+      ["Exam prep content", true, false],
+      ["Setup time before it is useful", "None", "You build the system first"],
+      ["Native apps", "PWA (installable)", true],
+      ["Free core", true, "Free personal plan"],
+    ],
+    whenOurs:
+      "Choose FocusArx when you want the focus loop working today: start a timer, attach a task, get a score and a streak, see the week's pattern without configuring anything. There is nothing to build before it is useful.",
+    whenTheirs:
+      "Choose Notion when what you need is a workspace — course notes, a thesis wiki, shared team docs, databases that link to each other — and you are happy to design the system yourself. Many people keep their notes in Notion and run their sessions in FocusArx; the two do not compete for the same job.",
+  },
+  todoist: {
+    slug: "focusarx-vs-todoist",
+    name: "Todoist",
+    title: "FocusArx vs Todoist: Task List vs Timed Focus",
+    description:
+      "FocusArx vs Todoist compared: natural-language task capture and projects against a focus timer, session analytics and study tools. Which fits your day?",
+    lead: "Todoist is one of the best task managers available: fast natural-language capture, reliable recurring dates, projects and labels that scale. It tells you what to do. FocusArx is about doing it — a timer that scores the session, tasks attached to those sessions, analytics that show where your focused hours went, and study rooms when you need company.",
+    ours: ["Focus timer that scores every session", "Tasks measured by focused time, not just completion", "Session analytics, focus score and trends", "Live study rooms for accountability", "Exam guides, flashcards and study content", "Streaks and quests that reward execution"],
+    theirs: ["Natural-language task capture", "Mature recurring dates and reminders", "Projects, labels, filters and views", "Karma and completion streaks", "Native apps on every platform", "Integrations with calendars and trackers"],
+    rows: [
+      ["Task lists and projects", true, true],
+      ["Natural-language task entry", "Basic", true],
+      ["Recurring dates and reminders", true, true],
+      ["Built-in focus timer", true, false],
+      ["Time scored per task", true, false],
+      ["Session analytics", "Focus score, trends, breakdown", false],
+      ["Live study rooms", true, false],
+      ["Study and exam content", true, false],
+      ["Native apps everywhere", "PWA (installable)", true],
+      ["Free core", true, "Free plan, paid Pro tier"],
+    ],
+    whenOurs:
+      "Choose FocusArx when the list is not the problem — you know what to do, and what is missing is protected time to do it in, plus evidence afterwards that the time was spent.",
+    whenTheirs:
+      "Choose Todoist when the real bottleneck is capture and organisation: dozens of commitments across work and life, recurring dates that must not slip, and a task system you want on every device with integrations into the rest of your stack. It is excellent at that, and it does not try to be a timer.",
+  },
+  toggl: {
+    slug: "focusarx-vs-toggl-track",
+    name: "Toggl Track",
+    title: "FocusArx vs Toggl Track: Making Time Count",
+    description:
+      "FocusArx vs Toggl Track compared: accurate time tracking and client reports against a focus timer that structures and scores study sessions.",
+    lead: "Toggl Track records where your time went — one click to start, projects and clients, reports good enough to bill from. FocusArx structures where your time goes next: interval timers, tasks, session scoring and analytics about your attention rather than your hours. Tracking and focusing are different jobs, and the tools are built for different ones.",
+    ours: ["Interval timers that structure the work, not just record it", "Session scoring and focus analytics", "Tasks, goals, habits and streaks", "Live study rooms", "Exam prep guides and study tools", "AI coach suggestions from your history"],
+    theirs: ["One-click time tracking on any device", "Projects, clients and billable hours", "Detailed exportable reports", "Team tracking and timesheet approval", "Browser extension and calendar integration", "Free for small teams"],
+    rows: [
+      ["Time tracking", "Per session, with a focus score", "Per entry, to the second"],
+      ["Billable hours and clients", false, true],
+      ["Exportable time reports", "Session analytics", "Full reporting suite"],
+      ["Interval timer with breaks", true, "Pomodoro option in the extension"],
+      ["Session scoring and attention analytics", true, false],
+      ["Tasks and goals", true, "Basic"],
+      ["Team and timesheet management", "Live study rooms", true],
+      ["Study and exam content", true, false],
+      ["Native apps everywhere", "PWA (installable)", true],
+      ["Free core", true, "Free for small teams"],
+    ],
+    whenOurs:
+      "Choose FocusArx when the goal is to change how the hours are spent — intervals, breaks, scoring, streaks and analytics that tell you when your attention is actually best, rather than a record of what already happened.",
+    whenTheirs:
+      "Choose Toggl Track when you need to account for your time: freelancers billing clients, agencies approving timesheets, or anyone whose requirement is an accurate, exportable record per project. It is the strongest tool in that category, and pairing it with a focus timer is a normal setup.",
+  },
+
 };
 
 /** Flat list of comparison paths, consumed by prerender + sitemap + tests. */

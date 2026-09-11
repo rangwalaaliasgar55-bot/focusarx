@@ -208,6 +208,12 @@ const COMPARISON_SLUGS = [
   "focusarx-vs-pomofocus",
   "focusarx-vs-freedom",
   "focusarx-vs-stayfocusd",
+  // Adjacent-category comparisons (Workstream 7c): recall, workspace, task
+  // and time-tracking tools people weigh against a focus system.
+  "focusarx-vs-anki",
+  "focusarx-vs-notion",
+  "focusarx-vs-todoist",
+  "focusarx-vs-toggl-track",
 ];
 
 const COMPARE_PAGES: Page[] = COMPARISON_SLUGS.map<Page>((slug) => ({
