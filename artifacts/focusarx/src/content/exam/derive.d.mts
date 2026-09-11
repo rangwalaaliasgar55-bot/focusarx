@@ -7,7 +7,11 @@ import type { ExamGuide, ExamHub } from "./index.mjs";
 export const EXAM_SLUG_ORDER: string[];
 export const EXAM_NAMES: Record<string, string>;
 export function examDisplayName(slug: string): string;
-export function examTimerLabel(slug: string): string;
+/** Short label used by /pomodoro-timer-for/:exam titles ("CAT", "NDA & NA"). */
+export function funnelLabel(slug: string): string;
+export function funnelTitle(slug: string): string;
+export function funnelHeading(slug: string): string;
+export function funnelDescription(slug: string): string;
 export function withTimerPageLink(guide: ExamGuide): ExamGuide;
 export function withSiblingLinks(guide: ExamGuide): ExamGuide;
 export function decorateExamGuide(guide: ExamGuide): ExamGuide;

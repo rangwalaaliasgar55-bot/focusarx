@@ -11,7 +11,7 @@
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { isDisallowed, parseRobots } from "../src/lib/robots-parse.mjs";
-import { clampText, DESCRIPTION_BUDGET, HREFLANG_LOCALES, MIN_SNIPPET, PAGE_TITLE_BUDGET } from "../src/lib/seo-text.mjs";
+import { clampText, composeTitle, DESCRIPTION_BUDGET, HREFLANG_LOCALES, MIN_SNIPPET, PAGE_TITLE_BUDGET, TITLE_BUDGET } from "../src/lib/seo-text.mjs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -711,6 +711,66 @@ for (const file of files) {
   }
 }
 
+// ── title truncation ───────────────────────────────────────────────────────
+// A title longer than the budget is not "a bit long": clampText cuts it, and
+// the cut lands mid-phrase. Ten funnel pages shipped reading "Pomodoro timer
+// for NDA & NA (National Defence" — an unbalanced parenthesis in a SERP is the
+// visible signature of exactly that. Both are checked per manifest entry.
+for (const entry of manifestRoutes) {
+  const title = entry.title ?? "";
+  // Measured after the brand suffix is removed: composeTitle strips it before
+  // clamping, so "| FocusArx" in the source string costs nothing.
+  const own = title.replace(/\s*\|\s*FocusArx\s*$/i, "").trim();
+  if (own.length > PAGE_TITLE_BUDGET) {
+    problems.push(`${entry.path}: title is ${own.length} chars of its own, over the ${PAGE_TITLE_BUDGET}-char page budget, so composeTitle will clamp it — "${title}"`);
+  }
+  const open = (own.match(/\(/g) ?? []).length;
+  const close = (own.match(/\)/g) ?? []).length;
+  if (open !== close) {
+    problems.push(`${entry.path}: title has unbalanced parentheses, which is how a clamped title reads — "${title}"`);
+  }
+  const composed = composeTitle(title);
+  if (composed.length > TITLE_BUDGET) {
+    problems.push(`${entry.path}: composed title is ${composed.length} chars, over the ${TITLE_BUDGET}-char SERP budget — "${composed}"`);
+  }
+  if (/[,:\-—–]$/.test(own)) {
+    problems.push(`${entry.path}: title ends on punctuation, which reads as a truncated snippet — "${title}"`);
+  }
+}
+
+// ── PageSEO ↔ prerender manifest agreement ─────────────────────────────────
+// Every page is titled twice: once in the prerendered document (from
+// scripts/prerender-data.mjs) and once by components/PageSEO.tsx after
+// hydration, from its own PAGE_SEO map. Google renders JavaScript, so the
+// second title is what it ends up seeing — and the two used to disagree on 13
+// pages (/pricing said "Free Forever | Deep Work Features" in one and
+// "Pricing — Free, or Premium by Coins" in the other). Comparing composed
+// titles catches it without caring which side omits the brand suffix.
+{
+  const pageSeoSrc = readFileSync(
+    fileURLToPath(new URL("../src/components/PageSEO.tsx", import.meta.url)),
+    "utf8",
+  );
+  const entryRe = /canonical:\s*"([^"]+)",\s*\n\s*title:\s*"([^"]*)",?\s*\n\s*description:\s*"([^"]*)"/g;
+  const manifestByPath = new Map(manifestRoutes.map((r) => [r.path, r]));
+  let compared = 0;
+  for (const m of pageSeoSrc.matchAll(entryRe)) {
+    const [, canonical, title, description] = m;
+    const entry = manifestByPath.get(canonical);
+    if (!entry) continue;
+    compared += 1;
+    if (composeTitle(title) !== composeTitle(entry.title ?? "")) {
+      problems.push(`${canonical}: PageSEO title "${composeTitle(title)}" disagrees with the prerendered title "${composeTitle(entry.title ?? "")}"`);
+    }
+    if (description !== (entry.description ?? "")) {
+      problems.push(`${canonical}: PageSEO description disagrees with the prerendered one — the SERP snippet changes after hydration`);
+    }
+  }
+  if (compared === 0) {
+    problems.push("PageSEO drift gate matched no entries — the PAGE_SEO map shape changed and the gate needs updating");
+  }
+}
+
 console.log(`seo-validate: ${files.length} pages, ${sitemapUrls.length} sitemap page entries, ${apiServedChildren} child sitemap(s) served by the API in production`);
 if (problems.length > 0) {
   console.error(`FAIL — ${problems.length} problem(s):`);
@@ -718,5 +778,5 @@ if (problems.length > 0) {
   process.exit(1);
 }
 console.log(
-  "PASS — titles, descriptions, canonicals, JSON-LD, sitemap, robots, internal-link depth, cannibalisation, llms.txt and consent wiring, breadcrumb trails and jump links all consistent",
+  "PASS — titles, descriptions, canonicals, JSON-LD, sitemap, robots, internal-link depth, cannibalisation, llms.txt and consent wiring, breadcrumbs, jump links, title budgets and PageSEO agreement all consistent",
 );

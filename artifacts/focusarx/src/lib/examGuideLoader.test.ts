@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { EXAM_GUIDES, findExamGuide } from "@/content/exam/index.mjs";
-import { EXAM_NAMES, EXAM_SLUG_ORDER, decorateExamGuide, examDisplayName, examTimerLabel } from "@/content/exam/derive.mjs";
+import { EXAM_NAMES, EXAM_SLUG_ORDER, decorateExamGuide, examDisplayName, funnelDescription, funnelHeading, funnelLabel, funnelTitle } from "@/content/exam/derive.mjs";
+import { FUNNEL_ANGLES } from "@/content/exam-funnel.mjs";
+import { DESCRIPTION_BUDGET, PAGE_TITLE_BUDGET } from "@/lib/seo-text.mjs";
 import { loadAllExamGuides, loadExamGuide } from "@/lib/examGuideLoader";
 
 /**
@@ -30,11 +32,27 @@ describe("exam cluster derived data", () => {
     expect(Object.keys(EXAM_NAMES)).toHaveLength(EXAM_GUIDES.length);
   });
 
-  it("keeps the short timer label for the two universal guides", () => {
-    // Those two have no exam factbox, so their display name is a full headline.
-    expect(examTimerLabel("exam-anxiety")).toBe("exam-anxiety");
-    expect(examTimerLabel("last-minute-revision")).toBe("last-minute-revision");
-    expect(examTimerLabel("jee-main")).toBe("JEE Main");
+  it("gives every funnel page a label short enough to title it", () => {
+    // The two universal guides have no exam factbox, so their display name is a
+    // full headline; the funnel label is what a reader should see instead.
+    expect(funnelLabel("exam-anxiety")).toBe("exam anxiety");
+    expect(funnelLabel("last-minute-revision")).toBe("last-minute revision");
+    expect(funnelLabel("jee-main")).toBe("JEE Main");
+    // Parentheticals are guide-body detail and fatal in a 49-character title.
+    expect(funnelLabel("nda")).toBe("NDA & NA");
+    expect(funnelLabel("cat")).toBe("CAT");
+
+    for (const slug of Object.keys(FUNNEL_ANGLES)) {
+      const title = funnelTitle(slug);
+      const description = funnelDescription(slug);
+      expect(title.length, `funnel title for ${slug}`).toBeLessThanOrEqual(PAGE_TITLE_BUDGET);
+      expect(title.endsWith(")"), `funnel title for ${slug} must keep its year`).toBe(true);
+      expect(description.length, `funnel description for ${slug}`).toBeLessThanOrEqual(DESCRIPTION_BUDGET);
+      // A description cut mid-list reads as a broken page in the SERP.
+      expect(description.endsWith("."), `funnel description for ${slug}`).toBe(true);
+      expect(description, `funnel description for ${slug}`).not.toMatch(/(\band|\bthe|\bis|\bof|,)\.$/);
+      expect(funnelHeading(slug)).toBe(`Pomodoro timer for ${funnelLabel(slug)}`);
+    }
   });
 
   it("falls back to the slug for an unknown exam", () => {

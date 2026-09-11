@@ -1,7 +1,13 @@
 import { Suspense, useEffect } from "react";
 import { Link, useParams } from "wouter";
 import { PageSEO } from "@/components/PageSEO";
-import { EXAM_SLUG_ORDER, examDisplayName } from "@/content/exam/derive.mjs";
+import {
+  EXAM_SLUG_ORDER,
+  funnelDescription,
+  funnelHeading,
+  funnelLabel,
+  funnelTitle,
+} from "@/content/exam/derive.mjs";
 import { FUNNEL_ANGLES, getFunnelAngle } from "@/content/exam-funnel.mjs";
 import { useExamGuide } from "@/lib/examGuideLoader";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
@@ -54,7 +60,12 @@ function ExamFunnelBody({ exam }: { exam: string }) {
     );
   }
 
-  const examName = examDisplayName(guide.slug);
+  // Title, H1 and description come from the same derivation the prerenderer
+  // uses (exam/derive.mjs), so the static document and this page say the same
+  // thing. The label is the exam's short name — the full one does not fit a
+  // title budget and used to be clamped mid-parenthesis.
+  const examName = funnelLabel(guide.slug);
+  const heading = funnelHeading(guide.slug);
   const siblings = EXAM_SLUG_ORDER.filter((slug) => FUNNEL_ANGLES[slug] && slug !== guide.slug).slice(0, 6);
 
   return (
@@ -62,20 +73,20 @@ function ExamFunnelBody({ exam }: { exam: string }) {
       <PageSEO
         // No brand suffix and no tagline here on purpose: PageSEO appends `| FocusArx`
         // and clamps both fields to what search results actually render.
-        title={`Pomodoro timer for ${examName}`}
-        description={`Free Pomodoro timer tuned for ${examName}: ${funnel.angle} No account needed to start.`}
+        title={funnelTitle(guide.slug)}
+        description={funnelDescription(guide.slug)}
         canonical={`/pomodoro-timer-for/${guide.slug}`}
-        breadcrumbLabel={`Pomodoro timer for ${examName}`}
+        breadcrumbLabel={heading}
       />
       <Breadcrumbs
         path={`/pomodoro-timer-for/${guide.slug}`}
-        title={`Pomodoro timer for ${examName}`}
+        title={heading}
         className="mb-6"
       />
       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--foreground-subtle)]">
         Pomodoro timer · {examName}
       </p>
-      <h1 className="text-h1 mt-2">Pomodoro timer for {examName}</h1>
+      <h1 className="text-h1 mt-2">{heading}</h1>
       <p className="text-body mt-3 max-w-2xl text-[17px] text-[var(--foreground-muted)]">{funnel.angle}</p>
 
       <div className="mt-8 w-full max-w-sm">
@@ -115,7 +126,7 @@ function ExamFunnelBody({ exam }: { exam: string }) {
                 href={`/pomodoro-timer-for/${slug}`}
                 className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--brand-strong)] hover:underline"
               >
-                {examDisplayName(slug)}
+                {funnelLabel(slug)}
               </Link>
             </li>
           ))}

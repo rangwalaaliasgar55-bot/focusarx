@@ -90,15 +90,76 @@ export function examDisplayName(slug) {
 
 /**
  * The two universal guides have no exam factbox, so their display name is a
- * full headline. That reads fine as "X study plan" and badly as "Pomodoro
- * timer for X", which is why the hub's timer links use the slug for them —
- * this preserves the labels the cluster has always shipped.
+ * full headline ("Exam anxiety: what it is, and the 12 techniques that work").
+ * That reads fine as "X study plan" and badly as "Pomodoro timer for X", which
+ * is what FUNNEL_LABELS below gives them instead.
  */
-const UNIVERSAL_GUIDE_SLUGS = ["exam-anxiety", "last-minute-revision"];
 
-/** Label for "Pomodoro timer for …" links in the hub. */
-export function examTimerLabel(slug) {
-  return UNIVERSAL_GUIDE_SLUGS.includes(slug) ? slug : examDisplayName(slug);
+/**
+ * Short label for the funnel pages at /pomodoro-timer-for/:exam.
+ *
+ * `examDisplayName` is written for a guide body, where "NDA & NA (National
+ * Defence Academy / Naval Academy)" is genuinely useful. In a 49-character
+ * title it is fatal: the composed title got clamped and shipped reading
+ * "Pomodoro timer for NDA & NA (National Defence" — a title cut mid-word is
+ * worse than a plain one, both for click-through and for trust.
+ *
+ * So the funnel label drops parentheticals, and the handful of names that are
+ * still too long get an explicit short form. Every result is asserted to fit
+ * the title budget in examGuideLoader.test.ts, so a new exam cannot reintroduce
+ * the truncation by arriving with a long name.
+ */
+const FUNNEL_LABELS = {
+  "exam-anxiety": "exam anxiety",
+  "last-minute-revision": "last-minute revision",
+  "upsc-cse": "UPSC CSE",
+  "cuet-ug": "CUET UG",
+  "cbse-class-12": "CBSE Class 12",
+  "cbse-class-10": "CBSE Class 10",
+};
+
+/** "CAT (IIM Management Admission Test)" → "CAT". */
+export function funnelLabel(slug) {
+  if (FUNNEL_LABELS[slug]) return FUNNEL_LABELS[slug];
+  return examDisplayName(slug)
+    .replace(/\s*\([^)]*\)/g, "")
+    .trim();
+}
+
+/** <title> for the funnel page — fits the budget without clamping. */
+export function funnelTitle(slug) {
+  return `Pomodoro timer for ${funnelLabel(slug)} (2026)`;
+}
+
+/** H1 and last breadcrumb crumb for the funnel page. */
+export function funnelHeading(slug) {
+  return `Pomodoro timer for ${funnelLabel(slug)}`;
+}
+
+/**
+ * Meta description for the funnel page: the promise, then the exam's own angle,
+ * then the friction remover. Built from the first sentence of the angle so the
+ * result fits 160 characters by construction — a description clamped mid-list
+ * ("…formula sheets, error.") reads as a broken page in the SERP.
+ */
+export function funnelDescription(slug) {
+  const funnel = FUNNEL_ANGLES[slug] ?? {};
+  const promise = `Free Pomodoro timer for ${funnelLabel(slug)}.`;
+  const closer = "No account needed to start.";
+
+  // The angle's first sentence is the specific thing worth putting in a SERP
+  // snippet — but only when it survives intact. Seven of them do not, and
+  // clamping one produces "…where every question is worth.", which reads like a
+  // broken page. Those get a hand-written `pitch` in exam-funnel.mjs instead.
+  const body =
+    funnel.pitch ??
+    String(funnel.angle ?? "")
+      .split(/(?<=\.)\s/)
+      .map((part) => part.trim())
+      .filter(Boolean)[0] ??
+    "";
+
+  return [promise, body, closer].filter(Boolean).join(" ");
 }
 
 /**
@@ -110,8 +171,7 @@ export function examTimerLabel(slug) {
  */
 export function withTimerPageLink(guide) {
   if (!FUNNEL_ANGLES[guide.slug]) return guide;
-  const examName = examDisplayName(guide.slug);
-  const link = `/pomodoro-timer-for/${guide.slug}|Pomodoro timer for ${examName}`;
+  const link = `/pomodoro-timer-for/${guide.slug}|${funnelHeading(guide.slug)}`;
   const related = guide.related || [];
   if (related.some((pair) => String(pair).startsWith(`/pomodoro-timer-for/${guide.slug}|`))) {
     return guide;
@@ -155,7 +215,7 @@ export function decorateExamGuide(guide) {
  */
 export const EXAM_HUB = {
   slug: "exam",
-  title: "Exam Prep Guides — JEE, NEET, UPSC, Boards & More | FocusArx",
+  title: "23 exam prep guides: JEE, NEET, UPSC (2026)",
   description:
     "Free exam prep guides for JEE, NEET, UPSC, GATE, CAT, BITSAT, KCET, MHT-CET, WBJEE, CUET, CLAT, CA Foundation, GRE, GMAT and CBSE boards — 23 study plans.",
   h1: "Exam prep, built around your focus",
@@ -194,6 +254,6 @@ export const EXAM_HUB = {
   ],
   related: EXAM_SLUG_ORDER.flatMap((slug) => [
     `/exam/${slug}|${examDisplayName(slug)} study plan`,
-    ...(FUNNEL_ANGLES[slug] ? [`/pomodoro-timer-for/${slug}|Pomodoro timer for ${examTimerLabel(slug)}`] : []),
+    ...(FUNNEL_ANGLES[slug] ? [`/pomodoro-timer-for/${slug}|${funnelHeading(slug)}`] : []),
   ]),
 };

@@ -14,7 +14,7 @@ export default function StudyMethodCalculator() {
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--palette-white)] py-20 px-6">
       <PageSEO
-        title="Study Method Calculator: Optimise Your Prep"
+        title="Study time calculator: plan your sessions (2026)"
         description="Calculate exactly how many hours you need to study per day and get a science-backed method recommendation based on your exam deadline."
         canonical="/study-calculator"
         keywords="study calculator, exam prep calculator, how many hours to study, study method recommender"

@@ -66,6 +66,9 @@ export const FUNNEL_ANGLES = {
     minutes: 25,
   },
   bitsat: {
+    // Short enough to survive intact in a 160-character description; the
+    // angle's first sentence is not (see funnelDescription in exam/derive.mjs).
+    pitch: "BITSAT is 130 questions in 3 hours, so pace matters more than depth.",
     angle:
       "BITSAT asks 130 questions in 3 hours — about 83 seconds each, with a quarter of the marks in English and Logical Reasoning. Train throughput: 20-question sets in 20 minutes, daily, plus 20 minutes of vocabulary and reasoning patterns nobody else prepares.",
     minutes: 40,
@@ -76,6 +79,9 @@ export const FUNNEL_ANGLES = {
     minutes: 40,
   },
   "mht-cet": {
+    // Short enough to survive intact in a 160-character description; the
+    // angle's first sentence is not (see funnelDescription in exam/derive.mjs).
+    pitch: "MHT-CET puts two thirds of its marks in two one-hour Maths papers.",
     angle:
       "MHT-CET puts two thirds of its marks in two one-hour Maths papers where every question is worth double, and 80% of the syllabus is Class 12. Run 50-minute Maths blocks with no calculator — arithmetic throughput is the binding constraint, not concepts.",
     minutes: 50,
@@ -86,6 +92,9 @@ export const FUNNEL_ANGLES = {
     minutes: 50,
   },
   "cuet-ug": {
+    // Short enough to survive intact in a 160-character description; the
+    // angle's first sentence is not (see funnelDescription in exam/derive.mjs).
+    pitch: "CUET sections run 45 minutes and let you skip questions, so pace wins.",
     angle:
       "CUET sections are 45 minutes long and let you answer fewer questions than you are given — the skill is choosing the best 35 of 45, not attempting all of them. Rehearse at exactly 45 minutes, then log every question you attempted that you should have skipped.",
     minutes: 45,
@@ -96,16 +105,25 @@ export const FUNNEL_ANGLES = {
     minutes: 60,
   },
   "ca-foundation": {
+    // Short enough to survive intact in a 160-character description; the
+    // angle's first sentence is not (see funnelDescription in exam/derive.mjs).
+    pitch: "CA Foundation needs 40% in every paper, not one big score.",
     angle:
       "CA Foundation needs 40% in every paper plus a 50% aggregate, so your weakest paper decides the result. Give it the first block of every day, do 25 objective problems with the negative penalty applied to your practice score, and write two full answers by hand each week.",
     minutes: 50,
   },
   gre: {
+    // Short enough to survive intact in a 160-character description; the
+    // angle's first sentence is not (see funnelDescription in exam/derive.mjs).
+    pitch: "The GRE is section-adaptive, so the first section sets your ceiling.",
     angle:
       "The GRE is section-adaptive, so your first Verbal and first Quant section set the ceiling for the second. Do not experiment with pace early, and never leave a blank — there is no penalty for a wrong answer, only for an empty one.",
     minutes: 40,
   },
   gmat: {
+    // Short enough to survive intact in a 160-character description; the
+    // angle's first sentence is not (see funnelDescription in exam/derive.mjs).
+    pitch: "GMAT Focus is 64 questions in 2h15m, roughly two minutes each.",
     angle:
       "GMAT Focus is 64 questions in 2h15m, so each one is worth more and two minutes each is enough to be careful. Drill Data Insights type by type — data sufficiency, two-part analysis, table analysis — because the switching cost between types is what makes the section feel hard.",
     minutes: 45,
@@ -116,6 +134,9 @@ export const FUNNEL_ANGLES = {
     minutes: 25,
   },
   "last-minute-revision": {
+    // Short enough to survive intact in a 160-character description; the
+    // angle's first sentence is not (see funnelDescription in exam/derive.mjs).
+    pitch: "In the final days, stop learning and start retrieving.",
     angle:
       "In the final days, stop learning and start retrieving: formula sheets, error logs and timed mixed sets only. New material now costs more than it earns.",
     minutes: 25,

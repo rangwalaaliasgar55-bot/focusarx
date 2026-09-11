@@ -3,7 +3,7 @@ import { EXAM_CORE_LINKS } from "./links.mjs";
 
 export const cuetUg = {
   slug: "cuet-ug",
-  title: "CUET (UG) Study Plan & Subject Choice Guide | FocusArx",
+  title: "CUET UG study plan: subjects and prep (2026)",
   description:
     "CUET UG guide: Section IA/IB languages, domain subjects and the General Test explained, +5/−1 marking, attempt-any-40 rules, choosing five subjects and a daily revision plan.",
   h1: "CUET (UG): the exam where subject choice is half the strategy",

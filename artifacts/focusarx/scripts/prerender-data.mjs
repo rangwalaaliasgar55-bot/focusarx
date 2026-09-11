@@ -16,6 +16,11 @@ import { EXAM_GUIDES, EXAM_HUB } from "../src/content/exam/index.mjs";
 import { SEO_PAGES, COMPARISONS, COMPARISON_PATHS } from "../src/content/seo-pages.mjs";
 import { BLOG_POSTS } from "../src/content/blog.mjs";
 import { FUNNEL_ANGLES } from "../src/content/exam-funnel.mjs";
+import {
+  funnelDescription,
+  funnelHeading,
+  funnelTitle,
+} from "../src/content/exam/derive.mjs";
 
 // OG card base for dynamic OG images (serverless /api/og endpoint).
 // Canonical host is www — the apex 308-redirects here (vercel.json).
@@ -194,7 +199,7 @@ export const ROUTES = [
   // ── Company ───────────────────────────────────────────────────
   {
     path: "/about",
-    title: "About Us: Our Mission",
+    title: "About FocusArx: why we built a focus timer",
     description:
       "FocusArx helps students and professionals build unbreakable focus habits with an AI-powered, gamified deep-work platform.",
     h1: "About FocusArx",
@@ -223,7 +228,7 @@ export const ROUTES = [
   },
   {
     path: "/support",
-    title: "FocusArx Help Center | FAQ & Support",
+    title: "Help centre: FAQs, fixes and how to reach us",
     description:
       "Answers to common questions about FocusArx — the Pomodoro timer, focus sessions and scores, AI coaching, streaks and coins, study rooms, accounts, and privacy.",
     h1: "FocusArx Help Center",
@@ -238,7 +243,7 @@ export const ROUTES = [
   },
   {
     path: "/pricing",
-    title: "FocusArx Pricing — Free, or Premium by Coins",
+    title: "FocusArx pricing: free plan, or premium coins",
     description:
       "FocusArx is completely free forever. Unlock Premium — advanced AI coaching, exclusive themes, deep insights — with coins you earn by focusing. No subscriptions.",
     h1: "Free forever. Premium by focusing.",
@@ -279,7 +284,7 @@ export const ROUTES = [
   // ── Guides & content ──────────────────────────────────────────
   {
     path: "/guides",
-    title: "Every Focus & Study Guide, Free",
+    title: "23 free focus and study guides (2026)",
     description:
       "Browse every free FocusArx guide — Pomodoro technique, deep work, study techniques, ADHD focus, beating procrastination, study music, and more.",
     h1: "The FocusArx guide library",
@@ -309,7 +314,7 @@ export const ROUTES = [
   },
   {
     path: "/focus-guide",
-    title: "How to Focus: A Science-Based Guide",
+    title: "How to focus: a science-based system (2026)",
     description:
       "Learn how to focus and master deep work — Pomodoro technique, time blocking, and flow state — plus a practical system to build unbreakable focus.",
     h1: "How to focus: the complete science-based guide",
@@ -339,7 +344,7 @@ export const ROUTES = [
   },
   {
     path: "/pomodoro-guide",
-    title: "The Pomodoro Technique, Step by Step",
+    title: "Pomodoro technique: the complete guide (2026)",
     description:
       "Complete guide to the Pomodoro Technique: how 25/5 sprints work, mistakes to avoid, longer deep-work intervals, and the best free timer app.",
     h1: "The Pomodoro technique: the complete guide",
@@ -368,7 +373,7 @@ export const ROUTES = [
   },
   {
     path: "/study-techniques",
-    title: "Best Study Techniques, Backed by Science",
+    title: "Best study techniques, ranked by evidence (2026)",
     description:
       "The most effective study techniques ranked by evidence — active recall, spaced repetition, interleaving, elaboration — and how to combine them into a system.",
     h1: "The best study techniques, ranked by evidence",
@@ -468,7 +473,7 @@ export const ROUTES = [
   },
   {
     path: "/study-with-me",
-    title: "Study With Me: Live Virtual Study Sessions | FocusArx",
+    title: "Study with me: free live sessions, 24/7",
     description:
       "Study with me alongside thousands of learners in live virtual rooms — silent body doubling, synced Pomodoro timers, and free 24/7 accountability.",
     h1: "Study with me: why focusing together works",
@@ -503,7 +508,7 @@ export const ROUTES = [
   },
   {
     path: "/focus-music",
-    title: "Music for Studying: What Science Says",
+    title: "Focus music: what science actually says (2026)",
     description:
       "Does study music actually help? What research says about lo-fi, binaural beats, noise colors, and silence — plus how to build a playlist that works.",
     h1: "Focus music: what science actually says",
@@ -588,7 +593,7 @@ export const ROUTES = [
   },
   {
     path: "/science-of-deep-work",
-    title: "The Neuroscience of Deep Work",
+    title: "The neuroscience of deep work, explained (2026)",
     description:
       "Explore the biological mechanisms behind deep work — myelin, neurotransmitters, attention networks, and how to enter the flow state faster.",
     h1: "The neuroscience of deep work",
@@ -612,7 +617,7 @@ export const ROUTES = [
   },
   {
     path: "/feynman-technique",
-    title: "The Feynman Technique | Master Any Subject Faster | FocusArx",
+    title: "The Feynman technique: learn any subject faster",
     description:
       "Learn the Feynman Technique — the ultimate method for rapid learning. Four simple steps to understand complex topics by explaining them simply.",
     h1: "The Feynman technique",
@@ -636,7 +641,7 @@ export const ROUTES = [
   },
   {
     path: "/study-method-quiz",
-    title: "Study Method Quiz: Find Your System",
+    title: "3-question study method quiz: find your system",
     description:
       "Take the free 2-minute study method quiz. Discover whether active recall, spaced repetition, or Pomodoro best matches your learning style.",
     h1: "Which study method works best for you?",
@@ -655,7 +660,7 @@ export const ROUTES = [
   },
   {
     path: "/study-calculator",
-    title: "Study Method Calculator: Optimise Your Prep",
+    title: "Study time calculator: plan your sessions (2026)",
     description:
       "Free study time calculator: enter your exam date, topics, and available hours to get a personalized, retention-optimized study schedule.",
     h1: "Study time calculator",
@@ -674,7 +679,7 @@ export const ROUTES = [
   },
   {
     path: "/virtual-study-room",
-    title: "Virtual Study Room | Study with Others Online | FocusArx",
+    title: "Virtual study room: focus with others, free",
     description:
       "Join a free virtual study room and focus with other learners online. Synchronized Pomodoro timers, live presence, 24/7 rooms, cameras optional.",
     h1: "Virtual study rooms: study with others online",
@@ -734,7 +739,7 @@ export const ROUTES = [
   // ── Public gamification / wellness ────────────────────────────
   {
     path: "/study-rooms",
-    title: "Live Study Rooms | Focus Alongside Others | FocusArx",
+    title: "Live study rooms: focus alongside others free",
     description:
       "Browse and join live FocusArx study rooms — synchronized Pomodoro timers, live presence, and instant accountability. Free, 24/7.",
     h1: "Live study rooms",
@@ -744,7 +749,7 @@ export const ROUTES = [
   },
   {
     path: "/leaderboard",
-    title: "Focus Leaderboard | Top Focus Champions | FocusArx",
+    title: "Focus leaderboard: rank your deep work free",
     description:
       "See who's leading the FocusArx leaderboard — top focus champions ranked by XP, streaks, and total focused time. Updated live.",
     h1: "FocusArx leaderboard",
@@ -754,7 +759,7 @@ export const ROUTES = [
   },
   {
     path: "/achievements",
-    title: "Achievements, Badges & Milestones | FocusArx",
+    title: "Achievements and badges for focused work",
     description:
       "Explore FocusArx achievements — 65+ badges across focus time, streaks, session quality, missions, social, and special milestones.",
     h1: "FocusArx achievements",
@@ -779,7 +784,7 @@ export const ROUTES = [
   },
   {
     path: "/break-free",
-    title: "Break Free From a Distraction Spiral | FocusArx",
+    title: "Break free from a distraction spiral (free)",
     description:
       "Caught in a scroll spiral? A free 60-second reset that gets you out of the loop and back into your work — no shame, just a protocol.",
     h1: "Break free from the distraction spiral",
@@ -842,7 +847,7 @@ export const ROUTES = [
   // that do not run JavaScript see the homepage <title> on these URLs.
   {
     path: "/focus-timer",
-    title: "Free Focus Timer | Pomodoro & Deep Work Sessions | FocusArx",
+    title: "Free focus timer: Pomodoro and deep work (2026)",
     description:
       "Free focus timer with Pomodoro, deep work sessions, ambient sound and XP. Track completion, streaks and your focus score. No credit card required.",
     h1: "Free Focus Timer for Deep Work",
@@ -880,7 +885,7 @@ export const ROUTES = [
   },
   {
     path: "/focus",
-    title: "Focus App",
+    title: "FocusArx focus timer: start a session free",
     description:
       "The FocusArx focus app: a free online timer with tasks, streaks and session scoring.",
     h1: "Focus, running in your browser",
@@ -1020,7 +1025,7 @@ export const ROUTES = [
   // ── Blog (one source: src/content/blog.mjs — extend there) ────
   {
     path: "/blog",
-    title: "Blog | Focus, Deep Work and Study Science | FocusArx",
+    title: "FocusArx blog: focus, deep work, study science",
     description:
       "Short essays on focus, deep work and study science: why 25 minutes works, attention residue, and body doubling.",
     h1: "Blog",
@@ -1053,17 +1058,17 @@ export const ROUTES = [
   ...EXAM_GUIDES.filter((g) => FUNNEL_ANGLES[g.slug]).map((g) => {
     const funnel = FUNNEL_ANGLES[g.slug];
     const examName = g.exam?.name ?? g.h1;
+    // Title, H1 and description all come from exam/derive.mjs, which the client
+    // page renders from too — one derivation, so the static document and the
+    // hydrated page cannot disagree. The label is the exam's short name: the
+    // full one ("NDA & NA (National Defence Academy / Naval Academy)") used to
+    // be clamped into a title reading "…(National Defence", and a title cut
+    // mid-parenthesis is worse in the SERP than a plainer one.
     return {
       path: `/pomodoro-timer-for/${g.slug}`,
-      // Composed from exam names of wildly different lengths ("UPSC CSE" to "NDA & NA
-      // (National Defence Academy / Naval Academy)"), so it is clamped here on purpose:
-      // an unbounded title is clipped mid-parenthesis by Google instead.
-      title: clampText(`Pomodoro timer for ${examName}`, PAGE_TITLE_BUDGET, { fullStop: false }),
-      description: clampText(
-        `Free Pomodoro timer tuned for ${examName}: ${funnel.angle} No account needed to start.`,
-        DESCRIPTION_BUDGET
-      ),
-      h1: `Pomodoro timer for ${examName}`,
+      title: funnelTitle(g.slug),
+      description: funnelDescription(g.slug),
+      h1: funnelHeading(g.slug),
       lead: funnel.angle,
       sections: g.sections.slice(0, 3),
       faq: g.faq?.slice(0, 3),
@@ -1078,7 +1083,7 @@ export const ROUTES = [
           "/focus|Focus app",
         ],
         EXAM_GUIDES.filter((other) => FUNNEL_ANGLES[other.slug] && other.slug !== g.slug).map(
-          (other) => `/pomodoro-timer-for/${other.slug}|Pomodoro timer for ${other.exam?.name ?? other.slug}`,
+          (other) => `/pomodoro-timer-for/${other.slug}|${funnelHeading(other.slug)}`,
         ),
       ),
       lastReviewed: "2026-09-05",

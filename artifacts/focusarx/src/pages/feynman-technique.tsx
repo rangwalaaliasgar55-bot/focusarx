@@ -6,7 +6,7 @@ export default function FeynmanTechniquePage() {
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       <PageSEO
-        title="The Feynman Technique | Master Any Subject Faster | FocusArx"
+        title="The Feynman technique: learn any subject faster"
         description="Learn the Feynman Technique — the ultimate method for rapid learning. 4 simple steps to understand complex topics by teaching them to others."
         canonical="/feynman-technique"
         keywords="feynman technique, rapid learning, study methods, richard feynman, how to learn anything"

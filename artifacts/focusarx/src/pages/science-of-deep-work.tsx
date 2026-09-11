@@ -10,7 +10,7 @@ export default function ScienceOfDeepWorkPage() {
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       <PageSEO
-        title="The Neuroscience of Deep Work"
+        title="The neuroscience of deep work, explained (2026)"
         description="Explore the biological mechanisms behind deep work. Learn about myelin, neurotransmitters, and how FocusArx helps you enter the flow state faster."
         canonical="/science-of-deep-work"
         keywords="science of focus, deep work neuroscience, myelin study, flow state biology, FocusArx science"
