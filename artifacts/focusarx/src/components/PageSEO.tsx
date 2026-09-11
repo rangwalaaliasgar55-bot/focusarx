@@ -64,7 +64,7 @@ function setHreflang(url: string | null) {
     return el && el.getAttribute("hreflang") === locale ? el : null;
   });
   if (inOrder.every((el) => el !== null) && existing.length === HREFLANG_LOCALES.length) {
-    inOrder.forEach((el, i) => el!.setAttribute("href", url));
+    inOrder.forEach((el) => el!.setAttribute("href", url));
     return;
   }
 
