@@ -3,6 +3,11 @@
 // an entry here. Everything downstream (blog index, /blog/:slug pages,
 // prerender manifest, sitemap) derives from BLOG_POSTS, so one edit ships
 // the post everywhere. Keep copy unique per post — no templated filler.
+//
+// `related` is "path|Label": the tools, guides and exam pages this essay
+// actually argues for. Every post links two or three of them, which is what
+// turns an essay into an entry point instead of a dead end — and it is the link
+// path the orphan gate in scripts/seo-validate.mjs measures.
 // ══════════════════════════════════════════════════════════════════
 
 export const BLOG_POSTS = [
@@ -37,6 +42,11 @@ export const BLOG_POSTS = [
       ["Is 25 minutes backed by science?", "Indirectly. No study proves 25 is optimal, but sustained-attention research supports short bounded intervals with real breaks, and the low commitment reliably defeats start-up procrastination."],
       ["Should I skip breaks when I am in flow?", "Finish the thought, then take the break anyway. Flow returns faster after rest; grinding through it borrows tomorrow's focus."],
     ],
+    related: [
+      "/pomodoro-timer|Pomodoro timer — start a 25-minute block",
+      "/pomodoro-guide|The Pomodoro technique, done right",
+      "/study-techniques|Best study techniques, ranked by evidence",
+    ],
   },
   {
     slug: "attention-residue-task-switching",
@@ -65,6 +75,11 @@ export const BLOG_POSTS = [
       ["Does music count as task switching?", "Steady instrumental sound is fine for most people; lyrical or novel audio competes for the same verbal channel as reading. If comprehension drops, drop the lyrics first."],
       ["What about planned breaks?", "Breaks between bounded blocks are recovery, not switching — the block ended deliberately, so there is no open thread leaving residue."],
     ],
+    related: [
+      "/focus-timer|Focus timer for deep work blocks",
+      "/deep-work-guide|Deep work guide",
+      "/stop-scrolling|How to stop scrolling",
+    ],
   },
   {
     slug: "body-doubling-study-accountability",
@@ -92,6 +107,11 @@ export const BLOG_POSTS = [
     faq: [
       ["Do cameras need to be on?", "They help a lot — the effect scales with perceived presence. If cameras are off for privacy, a shared timer and stated goals preserve most of it."],
       ["Is chatting during breaks okay?", "Yes, and it helps: social breaks are more restorative than scrolling ones. Keep it inside the break window."],
+    ],
+    related: [
+      "/virtual-study-room|Virtual study rooms",
+      "/study-with-me|Study with me sessions",
+      "/body-doubling|Body doubling explained",
     ],
   },
 ];

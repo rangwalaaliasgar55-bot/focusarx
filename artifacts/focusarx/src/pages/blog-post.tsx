@@ -1,12 +1,17 @@
 import { Link, useParams } from "wouter";
 import { PageSEO } from "@/components/PageSEO";
-import { getBlogPost } from "@/content/blog.mjs";
+import { BLOG_POSTS, getBlogPost } from "@/content/blog.mjs";
 import { fmtDate } from "@/lib/locale";
 
 /** Blog article (Phase 4.1 + Article JSON-LD via the prerender manifest). */
 export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
   const post = getBlogPost(slug ?? "");
+  // Two sibling essays, newest first, so the block never repeats the same order
+  // on every post and never links the post to itself.
+  const relatedPosts = BLOG_POSTS.filter((other) => other.slug !== slug)
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)))
+    .slice(0, 2);
 
   if (!post) {
     return (
@@ -53,6 +58,50 @@ export default function BlogPostPage() {
           ))}
         </section>
       )}
+      {/* Related reading: the other essays plus the tools and guides this one
+          argues for. A post that ends in a dead link back to the index keeps its
+          readers and its link equity to itself; this is what turns one article
+          into an entry point. */}
+      {relatedPosts.length > 0 && (
+        <section className="mt-12 max-w-2xl" aria-labelledby="related-essays">
+          <h2 id="related-essays" className="text-h3">Related essays</h2>
+          <ul className="mt-4 grid gap-3">
+            {relatedPosts.map((other) => (
+              <li key={other.slug}>
+                <Link
+                  href={`/blog/${other.slug}`}
+                  className="block min-h-[44px] rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] px-4 py-3 transition-colors hover:border-[var(--card-border)]"
+                >
+                  <span className="block text-sm font-semibold text-[var(--foreground)]">{other.h1}</span>
+                  <span className="mt-1 block text-xs text-[var(--foreground-muted)]">{other.description}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {(post.related?.length ?? 0) > 0 && (
+        <section className="mt-10 max-w-2xl" aria-labelledby="related-tools">
+          <h2 id="related-tools" className="text-h3">Try it now</h2>
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {(post.related ?? []).map((pair: string) => {
+              const [href, label] = String(pair).split("|");
+              return (
+                <li key={href}>
+                  <Link
+                    href={href}
+                    className="inline-flex min-h-[44px] items-center rounded-full border border-[var(--border)] px-4 text-sm font-medium text-[var(--foreground-muted)] transition-colors hover:border-[var(--card-border)] hover:text-[var(--foreground)]"
+                  >
+                    {label || href}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
       <div className="mt-12">
         <Link
           href="/focus"

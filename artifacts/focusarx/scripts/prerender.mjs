@@ -26,6 +26,8 @@ import { parseRobots, robotsMetaFor } from "../src/lib/robots-parse.mjs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ROUTES, SITE_NAME } from "./prerender-data.mjs";
+import { BLOG_POSTS } from "../src/content/blog.mjs";
+import { LAST_REVIEWED } from "../src/content/seo-pages.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -197,6 +199,177 @@ html:not(.fa-js) body{background:#0b0d13}
 .fa-noscript{max-width:760px;margin:0 auto;padding:16px 24px;color:#8b90a0;font-size:14px}
 `;
 
+// ── the 404 document ───────────────────────────────────────────────
+/**
+ * Emit `dist/public/404.html` — the document vercel.json serves (with a real
+ * HTTP 404 status) for every URL that is not a file and not a known SPA route.
+ *
+ * Why a dedicated file instead of the SPA shell:
+ *   Before this existed the catch-all route rewrote *any* unknown path to
+ *   `/index.html` with status 200, so `/totally-fake-page-xyz` answered with
+ *   the homepage prerender — homepage title, homepage description and
+ *   `<link rel="canonical" href="https://www.focusarx.site/">`. That is the
+ *   textbook soft-404: Google indexes the garbage URL as a duplicate of the
+ *   homepage and then picks the homepage as canonical, which is exactly the
+ *   "Duplicate, Google chose different canonical" state in Search Console.
+ *
+ * The document therefore:
+ *   - carries `noindex, nofollow` (so a crawler that ignores the status still
+ *     drops it),
+ *   - has NO canonical at all — a 404 must not point at any live URL, and
+ *     pointing it at "/" is what created the duplicate-canonical signal,
+ *   - has NO og:url for the same reason,
+ *   - keeps its own unique title/description (the build gate rejects a page
+ *     that borrows another page's copy),
+ *   - ships real, useful navigation: a search box that works without
+ *     JavaScript (`GET /search?q=`) plus links to the highest-value pages.
+ *
+ * React still mounts on top of it (same bundle, same `#root`), so a human
+ * lands on the interactive `pages/not-found.tsx` — the static body is only
+ * what a no-JS crawler sees, and it is hidden by `.fa-js` the moment any
+ * browser starts executing scripts.
+ */
+const NOT_FOUND_TITLE = "Page not found";
+const NOT_FOUND_DESCRIPTION =
+  "That FocusArx page does not exist. Search the site, or jump to the Pomodoro timer, study guides, exam plans and the blog.";
+const NOT_FOUND_LINKS = [
+  ["/pomodoro-timer", "Pomodoro timer"],
+  ["/focus-timer", "Focus timer"],
+  ["/study-timer", "Study timer"],
+  ["/guides", "All study and focus guides"],
+  ["/exam", "Exam study plans"],
+  ["/blog", "Blog"],
+  ["/pricing", "Pricing"],
+  ["/support", "Help center"],
+];
+
+function renderNotFoundBody() {
+  const links = NOT_FOUND_LINKS.map(
+    ([href, label]) => `<li><a href="${escapeHtml(href)}">${escapeHtml(label)}</a></li>`,
+  ).join("");
+  return `<div class="fa-seo"><span class="badge">${SITE_NAME}</span><h1>Page not found</h1><p class="lead">Nothing lives at this address. The page may have moved, or the link may have a typo in it.</p>` +
+    `<form class="answer" action="/search" method="get" role="search">` +
+    `<label for="fa-404-q"><strong>Search FocusArx</strong></label>` +
+    `<input id="fa-404-q" name="q" type="search" placeholder="Try “pomodoro”, “JEE”, “deep work”" autocomplete="off" />` +
+    `<button class="cta" type="submit">Search</button></form>` +
+    `<div class="related"><strong>Popular pages</strong><ul>${links}</ul></div>` +
+    `<a class="cta" href="/">Back to the homepage</a></div>`;
+}
+
+function buildNotFoundPage(template) {
+  let html = template;
+
+  html = setMeta(html, "name", "robots", "noindex, nofollow");
+  html = replaceTag(
+    html,
+    /<title>[\s\S]*?<\/title>/i,
+    `<title>${escapeHtml(composeTitle(NOT_FOUND_TITLE))}</title>`,
+  );
+  html = setMeta(html, "name", "description", NOT_FOUND_DESCRIPTION);
+
+  // A 404 must not canonicalize to anything — pointing it at "/" is what made
+  // Google treat every unknown URL as a homepage duplicate.
+  html = html.replace(/<link\s+[^>]*rel=["']canonical["'][^>]*>\s*/gi, "");
+  html = html.replace(/<meta\s+[^>]*property=["']og:url["'][^>]*>\s*/gi, "");
+  html = html.replace(/<meta\s+[^>]*property=["']al:web:url["'][^>]*>\s*/gi, "");
+
+  html = setMeta(html, "property", "og:title", composeTitle(NOT_FOUND_TITLE));
+  html = setMeta(html, "property", "og:description", NOT_FOUND_DESCRIPTION);
+  html = setMeta(html, "name", "twitter:title", composeTitle(NOT_FOUND_TITLE));
+  html = setMeta(html, "name", "twitter:description", NOT_FOUND_DESCRIPTION);
+
+  // Drop every route-scoped and homepage-only schema. What stays is the
+  // site-wide Organization/WebSite block (the search box on this page is a
+  // real sitelinks search target), so the document still carries JSON-LD.
+  html = html.replace(
+    /<script type="application\/ld\+json">[\s\S]*?<\/script>\s*/g,
+    (block) => (/"@type":\s*"(FAQPage|ItemList|BreadcrumbList|Article|HowTo|SoftwareApplication)"/.test(block) ? "" : block),
+  );
+
+  html = html.replace(/<div id="root"\s*><\/div>/i, `<div id="root">${renderNotFoundBody()}</div>`);
+  html = html.replace("</head>", `  <style>${SHELL_CSS}${NOT_FOUND_CSS}</style>\n</head>`);
+  html = html.replace(
+    "<head>",
+    `<head>\n    <script>document.documentElement.classList.add("fa-js")</script>`,
+  );
+  return html;
+}
+
+const NOT_FOUND_CSS = `
+.fa-seo form.answer{display:grid;gap:10px}
+.fa-seo form.answer label strong{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:#8b90a0}
+.fa-seo form.answer input{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 14px;color:#e7e9ee;font-size:15px}
+.fa-seo form.answer .cta{margin-top:4px;justify-self:start;border:0;cursor:pointer;font-size:15px}
+`;
+
+// ── RSS feed ───────────────────────────────────────────────────────
+/**
+ * Build `/feed.xml` at compile time.
+ *
+ * Generated here rather than by the API for the same reason the pages are
+ * prerendered: every item is a page this build already knows about, so the
+ * feed can never list a URL that 404s, never needs a database, and costs one
+ * static file instead of a cold function invocation. The `lastBuildDate` is
+ * genuinely the build time, which is the honest value for a static site.
+ *
+ * Items come from two sources that both live in the prerender manifest:
+ *   - blog posts   (`category: blog`)   — dated, by slug
+ *   - article pages (`category: guide`) — the evergreen guides, dated by their
+ *     visible "last reviewed" value so the feed agrees with the page.
+ */
+function buildFeedXml({ posts, articles, buildDate }) {
+  const escapeXml = (s) =>
+    String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
+  const rfc822 = (iso) => {
+    const at = new Date(`${iso}T00:00:00Z`);
+    return Number.isFinite(at.getTime()) ? at.toUTCString() : buildDate;
+  };
+  const item = ({ url, title, description, date, category }) => [
+    "    <item>",
+    `      <title>${escapeXml(title)}</title>`,
+    `      <link>${escapeXml(`${BASE_URL}${url}`)}</link>`,
+    `      <guid isPermaLink="true">${escapeXml(`${BASE_URL}${url}`)}</guid>`,
+    `      <description>${escapeXml(description)}</description>`,
+    `      <pubDate>${rfc822(date)}</pubDate>`,
+    `      <category>${escapeXml(category)}</category>`,
+    "    </item>",
+  ].join("\n");
+
+  const items = [
+    ...posts.map((p) => ({
+      url: `/blog/${p.slug}`,
+      title: p.title,
+      description: p.description,
+      date: p.date,
+      category: "blog",
+    })),
+    ...articles.map((a) => ({ ...a, category: "guide" })),
+  ].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">',
+    "  <channel>",
+    `    <title>${escapeXml(`${SITE_NAME} — focus and study articles`)}</title>`,
+    `    <link>${escapeXml(`${BASE_URL}/blog`)}</link>`,
+    `    <atom:link href="${escapeXml(`${BASE_URL}/feed.xml`)}" rel="self" type="application/rss+xml" />`,
+    "    <description>Science-backed articles on focus, deep work, revision and exam preparation from FocusArx.</description>",
+    "    <language>en-in</language>",
+    `    <lastBuildDate>${buildDate}</lastBuildDate>`,
+    `    <copyright>© ${new Date(buildDate).getUTCFullYear()} ${SITE_NAME}</copyright>`,
+    "    <ttl>360</ttl>",
+    ...items.map(item),
+    "  </channel>",
+    "</rss>",
+    "",
+  ].join("\n");
+}
+
 function renderBody(entry) {
   const sections = (entry.sections || [])
     .map((s) => {
@@ -347,7 +520,34 @@ function main() {
     written++;
   }
 
-  console.log(`prerender: wrote ${written} static pages to dist/public`);
+  // The unknown-URL document. Written last so it can never be mistaken for a
+  // manifest route, and skipped when the template is missing (same guard as
+  // the loop above).
+  writeFileSync(path.join(DIST, "404.html"), buildNotFoundPage(template));
+  written++;
+
+  // /feed.xml — RSS for the blog and the evergreen guides. Every item is a URL
+  // this build also prerendered, so the feed cannot advertise a dead link.
+  const feedArticles = ROUTES.filter((entry) => entry.article === true)
+    .slice(0, 20)
+    .map((entry) => ({
+      url: entry.path.startsWith("/") ? entry.path : `/${entry.path}`,
+      title: String(entry.title).replace(/\s*[|—–]\s*FocusArx\s*$/i, "").trim(),
+      description: entry.description,
+      date: entry.lastReviewed || LAST_REVIEWED,
+    }));
+  writeFileSync(
+    path.join(DIST, "feed.xml"),
+    buildFeedXml({
+      posts: BLOG_POSTS,
+      articles: feedArticles,
+      buildDate: new Date().toUTCString(),
+    }),
+  );
+
+  console.log(
+    `prerender: wrote ${written} static pages to dist/public (incl. 404.html and feed.xml)`,
+  );
 }
 
 main();

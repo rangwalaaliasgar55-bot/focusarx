@@ -4,6 +4,7 @@
   "installCommand": "pnpm install",
   "buildCommand": "pnpm run build:vercel",
   "outputDirectory": "artifacts/focusarx/dist/public",
+  "trailingSlash": false,
   "functions": {
     "api/index.mjs": {
       "includeFiles": "artifacts/api-server/dist/app.mjs",
@@ -40,8 +41,25 @@
       }
     },
     {
-      "src": "/(.*)",
+      "src": "/assets/.*",
+      "status": 404
+    },
+    {
+      "src": "/(?:.*/)?[^/]*\\.[A-Za-z0-9]{1,10}$",
+      "status": 404
+    },
+    {
+      "src": "/([-A-Za-z0-9._~%/@]*[A-Z][-A-Za-z0-9._~%/@]*)",
+      "dest": "/api/index.mjs?canonicalize=/$1"
+    },
+    {
+      "src": "/(admin|ai-insights|analytics|auth/callback|battle-pass|city|consequences|constellations|dashboard|data-deletion|developer|dna|dreams|flashcards|focus-dna|forge|forge-room|forgot-password|go/ig|goals|groups|habits|lootboxes|marketplace|messages|missions|notifications|onboarding|pets|profile|quests|referral|reset-password|shop|social|tasks|wallet|welcome)",
       "dest": "/index.html"
+    },
+    {
+      "src": "/(.*)",
+      "status": 404,
+      "dest": "/404.html"
     }
   ],
   "redirects": [
@@ -86,7 +104,7 @@
       ]
     },
     {
-      "source": "/(manifest\\.json|ads\\.txt|BingSiteAuth\\.xml|llms\\.txt|humans\\.txt)",
+      "source": "/(manifest\\.json|ads\\.txt|BingSiteAuth\\.xml|llms\\.txt|humans\\.txt|feed\\.xml)",
       "headers": [
         {
           "key": "Cache-Control",
@@ -117,6 +135,14 @@
         {
           "key": "Referrer-Policy",
           "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(self), microphone=(self), geolocation=(self), interest-cohort=(), browsing-topics=(), payment=(), usb=()"
         }
       ]
     }

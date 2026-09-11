@@ -22,6 +22,7 @@ import { examAnxiety } from "./exam-anxiety.mjs";
 import { lastMinuteRevision } from "./last-minute-revision.mjs";
 
 import { EXAM_CORE_LINKS } from "./links.mjs";
+import { FUNNEL_ANGLES } from "../exam-funnel.mjs";
 export { EXAM_CORE_LINKS };
 const _unused = [
   "/focus-guide|How to focus: the complete guide",
@@ -31,7 +32,7 @@ const _unused = [
   "/study-calculator|Study time calculator",
 ];
 void _unused;
-export const EXAM_GUIDES = [
+const EXAM_GUIDE_SOURCES = [
   jeeMain,
   jeeAdvanced,
   neetUg,
@@ -47,6 +48,59 @@ export const EXAM_GUIDES = [
   examAnxiety,
   lastMinuteRevision,
 ];
+
+/**
+ * Link each exam guide to its own dedicated timer page, and back.
+ *
+ * `/pomodoro-timer-for/<exam>` used to be reachable only by typing the URL: the
+ * funnel pages linked *out* to their exam guide, but nothing in the cluster
+ * linked *in*, so all 14 were orphans — discoverable from the sitemap and
+ * nothing else. A page whose only inbound link is a sitemap entry gets crawled
+ * rarely and ranks as if it were optional. Doing it here (one place, derived
+ * from FUNNEL_ANGLES) keeps the client page and the prerendered HTML in step, so
+ * the link a crawler sees is the link a visitor sees.
+ */
+const withTimerPageLink = (guides) =>
+  guides.map((guide) => {
+    if (!FUNNEL_ANGLES[guide.slug]) return guide;
+    const examName = guide.exam?.name ?? guide.h1;
+    const link = `/pomodoro-timer-for/${guide.slug}|Pomodoro timer for ${examName}`;
+    const related = guide.related || [];
+    if (related.some((pair) => String(pair).startsWith(`/pomodoro-timer-for/${guide.slug}|`))) {
+      return guide;
+    }
+    return { ...guide, related: [...related, link] };
+  });
+
+/**
+ * Rotate two sibling exam guides into every guide's related list.
+ *
+ * Each guide hand-picked two or three siblings (JEE Main → JEE Advanced, and so
+ * on), which left the exams nobody hand-picked — CAT and CTET — reachable only
+ * from the hub and the sitemap. Rotating deterministically by index gives every
+ * exam the same inbound depth without anyone having to maintain a link matrix,
+ * and it is a genuinely useful link for a reader: "another exam, same system".
+ */
+const withSiblingLinks = (guides) =>
+  guides.map((guide, index) => {
+    const siblings = guides.filter((other) => other.slug !== guide.slug);
+    if (siblings.length === 0) return guide;
+    const picks = [siblings[index % siblings.length], siblings[(index + 5) % siblings.length]];
+    const existing = new Set((guide.related || []).map((pair) => String(pair).split("|")[0]));
+    const added = picks
+      .filter(Boolean)
+      .map((sibling) => `/exam/${sibling.slug}|${sibling.exam?.name ?? sibling.h1} study plan`)
+      .filter((pair) => {
+        const href = pair.split("|")[0];
+        if (existing.has(href)) return false;
+        existing.add(href);
+        return true;
+      });
+    if (added.length === 0) return guide;
+    return { ...guide, related: [...(guide.related || []), ...added] };
+  });
+
+export const EXAM_GUIDES = withSiblingLinks(withTimerPageLink(EXAM_GUIDE_SOURCES));
 
 export function findExamGuide(slug) {
   return EXAM_GUIDES.find((g) => g.slug === slug) || null;
@@ -91,5 +145,10 @@ export const EXAM_HUB = {
       "Yes. The timer works for 25-minute Pomodoro sprints, 90-minute deep blocks, and full 3-hour20 minute mock-paper simulations. Your focus score and streak track every session, so you can see whether your plan is actually being executed.",
     ],
   ],
-  related: [],
+  // Derived, not hand-written: every exam guide plus its timer page, so the hub
+  // stays in sync when a new exam is added to EXAM_GUIDE_SOURCES.
+  related: EXAM_GUIDES.flatMap((g) => [
+    `/exam/${g.slug}|${g.exam?.name ?? g.h1} study plan`,
+    ...(FUNNEL_ANGLES[g.slug] ? [`/pomodoro-timer-for/${g.slug}|Pomodoro timer for ${g.exam?.name ?? g.slug}`] : []),
+  ]),
 };

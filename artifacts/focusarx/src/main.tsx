@@ -6,14 +6,16 @@ import { setAuthTokenGetter } from "@workspace/api-client-react";
 import { getToken } from "@/lib/auth";
 import { getTheme, applyTheme, registerPremiumChecker } from "@/lib/theme";
 import { installChunkRecovery } from "@/lib/chunkRecovery";
+import { FRONTEND_DEPLOYMENT_VERSION } from "@/lib/deploymentSkew";
 import { logger } from "./lib/logger";
 
 // Apply saved theme before first paint (prevents flash of wrong theme)
 applyTheme(getTheme());
 
 // Recover automatically from stale lazy chunks after a deploy instead of
-// forcing the user to reload to reach a page.
-installChunkRecovery();
+// forcing the user to reload to reach a page. The build version is passed so the
+// reload coordinator can verify the reload actually delivered a new build.
+installChunkRecovery(FRONTEND_DEPLOYMENT_VERSION);
 // Keep the recent-reload guard in sessionStorage until it naturally expires.
 // Clearing it before React renders can create a reload loop when a genuinely
 // broken lazy chunk fails again during route hydration.

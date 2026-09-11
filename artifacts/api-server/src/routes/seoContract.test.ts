@@ -103,9 +103,33 @@ function routeCovers(url: string, routes: AppRoutes): boolean {
 
 /** Paths in the prerender manifest, resolved through the dynamic imports. */
 async function prerenderPaths(): Promise<Set<string>> {
-  const mod = (await import(PRERENDER_MJS)) as { ROUTES: Array<{ path: string }> };
-  // The manifest uses "" for the homepage; the sitemap uses "/".
-  return new Set(mod.ROUTES.map((r) => (r.path === "" ? "/" : r.path)));
+  const { paths } = await prerenderManifest();
+  return paths;
+}
+
+/**
+ * The manifest's paths *and* its `noindex` flags.
+ *
+ * A prerendered page is not automatically an indexable page. `/search` is built
+ * as a document (so a shared link gets a real title instead of the homepage's)
+ * but is flagged `noindex: true`, because internal search results are thin,
+ * near-duplicate pages with an unbounded `?q=` space. Treating "prerendered"
+ * as "must be in the sitemap" is what made that flag impossible to set: the
+ * contract test failed the moment the page was correctly de-indexed.
+ */
+async function prerenderManifest(): Promise<{ paths: Set<string>; noindex: Set<string> }> {
+  const mod = (await import(PRERENDER_MJS)) as {
+    ROUTES: Array<{ path: string; noindex?: boolean }>;
+  };
+  const paths = new Set<string>();
+  const noindex = new Set<string>();
+  for (const entry of mod.ROUTES) {
+    // The manifest uses "" for the homepage; the sitemap uses "/".
+    const url = entry.path === "" ? "/" : entry.path;
+    paths.add(url);
+    if (entry.noindex === true) noindex.add(url);
+  }
+  return { paths, noindex };
 }
 
 /**
@@ -163,22 +187,37 @@ describe("SEO contract: sitemap, routes, prerender manifest and robots.txt agree
 
   it("every PUBLIC prerendered page is in the sitemap", async () => {
     const inSitemap = sitemapUrls();
-    const prerendered = await prerenderPaths();
+    const { paths: prerendered, noindex } = await prerenderManifest();
     const { protectedRoutes } = appRoutes();
     const disallowed = await robotsDisallowed();
 
-    // Prerendering a login-walled or robots-disallowed page is correct — a
-    // shared link still needs a good social preview — but those URLs are
+    // Prerendering a login-walled, robots-disallowed or noindex page is correct —
+    // a shared link still needs a good social preview — but those URLs are
     // intentionally OUT of the sitemap. Only indexable public pages must be in.
     const orphaned = [...prerendered]
       .filter((url) => !inSitemap.has(url))
       .filter((url) => !protectedRoutes.has(url))
+      .filter((url) => !noindex.has(url))
       .filter((url) => isBlocked(url, disallowed) === null)
       .sort();
 
     expect(
       orphaned,
       `Indexable prerendered pages missing from the sitemap (discovery falls back to internal links alone): ${orphaned.join(", ")}`,
+    ).toEqual([]);
+  });
+
+  it("no noindex page is offered in the sitemap", async () => {
+    const { noindex } = await prerenderManifest();
+    const inSitemap = sitemapUrls();
+    const contradictory = [...noindex].filter((url) => inSitemap.has(url)).sort();
+
+    // Asking Google to drop a URL and simultaneously handing it the same URL in
+    // the sitemap wastes crawl budget and makes the intent unreadable. The two
+    // lists must stay disjoint.
+    expect(
+      contradictory,
+      `noindex pages that are also in the sitemap (contradictory signals): ${contradictory.join(", ")}`,
     ).toEqual([]);
   });
 

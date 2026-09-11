@@ -15,6 +15,12 @@ export interface BlogPost {
   lead: string;
   sections: BlogSection[];
   faq?: [string, string][];
+  /**
+   * "path|Label" internal links to the tools, guides and exam pages the essay
+   * argues for. Rendered by src/pages/blog-post.tsx and mirrored into the
+   * prerender manifest, so a post is an entry point rather than a dead end.
+   */
+  related?: string[];
 }
 
 export const BLOG_POSTS: BlogPost[];

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { PageSEO } from "@/components/PageSEO";
 import { EXAM_GUIDES, EXAM_HUB, findExamGuide } from "@/content/exam/index.mjs";
+import { FUNNEL_ANGLES } from "@/content/exam-funnel.mjs";
 
 const BASE_URL = (import.meta.env.VITE_APP_URL || "https://www.focusarx.site").replace(/\/+$/, "");
 
@@ -278,6 +279,28 @@ export function ExamHubPage() {
             </Link>
           ))}
         </div>
+
+        <section className="mb-16" aria-labelledby="exam-timers-heading">
+          <h2 id="exam-timers-heading" className="text-xl font-semibold mb-2 tracking-tight">
+            Pomodoro timer for each exam
+          </h2>
+          <p className="text-sm text-[var(--foreground-muted)] mb-6 max-w-2xl">
+            The same timer, tuned to the interval each paper actually rewards — no signup needed to start one.
+          </p>
+          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {EXAM_GUIDES.filter((g) => FUNNEL_ANGLES[g.slug]).map((g) => (
+              <li key={`timer-${g.slug}`}>
+                <Link
+                  href={`/pomodoro-timer-for/${g.slug}`}
+                  className="flex min-h-11 items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm font-medium transition-colors hover:border-[var(--card-border)]"
+                >
+                  <Timer size={14} className="text-[var(--palette-violet-400)] flex-shrink-0" />
+                  Pomodoro timer for {g.exam?.name ?? g.slug}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
 
         {EXAM_HUB.sections.map((s, i) => (
           <section key={i} className="mb-10 max-w-3xl mx-auto">

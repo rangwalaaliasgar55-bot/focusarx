@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import { Link, useParams } from "wouter";
 import { PageSEO } from "@/components/PageSEO";
-import { findExamGuide } from "@/content/exam/index.mjs";
-import { getFunnelAngle } from "@/content/exam-funnel.mjs";
+import { EXAM_GUIDES, findExamGuide } from "@/content/exam/index.mjs";
+import { FUNNEL_ANGLES, getFunnelAngle } from "@/content/exam-funnel.mjs";
 import { dispatchFocusDeepLink } from "@/lib/focusDeepLink";
 import { FocusTimerMobileFirst } from "@/components/mobile/FocusTimerMobileFirst";
 
@@ -70,6 +70,32 @@ export default function ExamFunnelPage() {
           Read the full {examName} guide →
         </Link>
       </div>
+
+      {/* Sibling timer pages. These are real navigation, not filler: every
+          /pomodoro-timer-for/<exam> page used to link out to its guide and the
+          hub, but nothing linked back in, so the whole cluster was reachable
+          only from the sitemap. Cross-linking the set both ways is what makes
+          the pages crawlable and gives a student one click to the next exam. */}
+      <nav aria-label="Pomodoro timers for other exams" className="mt-12 max-w-2xl">
+        <h2 className="text-h4 text-[var(--foreground-subtle)]">Pomodoro timer for another exam</h2>
+        <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+          {EXAM_GUIDES.filter((g) => FUNNEL_ANGLES[g.slug] && g.slug !== guide.slug)
+            .slice(0, 6)
+            .map((g) => (
+              <li key={g.slug}>
+                <Link
+                  href={`/pomodoro-timer-for/${g.slug}`}
+                  className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--brand-strong)] hover:underline"
+                >
+                  {g.exam?.name ?? g.h1}
+                </Link>
+              </li>
+            ))}
+        </ul>
+        <Link href="/exam" className="mt-4 inline-block text-sm font-semibold text-[var(--foreground-muted)] hover:text-[var(--foreground)]">
+          All exam prep guides →
+        </Link>
+      </nav>
     </div>
   );
 }

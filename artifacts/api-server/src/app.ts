@@ -13,6 +13,7 @@ import { generalLimiter } from "./lib/rateLimiter";
 import { masterSecurityMiddleware } from "./middlewares/security";
 import { corsMiddleware } from "./middlewares/cors";
 import { deploymentVersionHeaders, deploymentSkewGuard } from "./middlewares/deploymentSkew";
+import { canonicalUrlRedirect } from "./middlewares/canonicalUrl";
 import { isMaintenanceMode } from "./lib/siteSettings";
 
 const isDev = getEnv().NODE_ENV !== "production";
@@ -154,6 +155,12 @@ app.use((_req, res, next) => {
   if (reqId) res.setHeader("X-Request-Id", reqId);
   next();
 });
+
+// Canonical URL: 301 uppercase page paths (/Blog/, /POMODORO-TIMER) to the one
+// lowercase spelling this site serves. vercel.json routes those requests here
+// after a filesystem miss; see middlewares/canonicalUrl.ts for why a
+// path-to-regexp `redirects` entry cannot express it.
+app.use(canonicalUrlRedirect);
 
 app.use("/api", generalLimiter);
 // Deployment skew protection — attach version headers and guard mutations.

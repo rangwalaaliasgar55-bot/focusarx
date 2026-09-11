@@ -96,7 +96,12 @@ const CORE_PAGES: Page[] = [
   { url: "/roadmap", changefreq: "weekly", priority: "0.7" },
   { url: "/breathe", changefreq: "monthly", priority: "0.5" },
   { url: "/break-free", changefreq: "weekly", priority: "0.6" },
-  { url: "/search", changefreq: "daily", priority: "0.4" },
+  // /search is deliberately absent: internal search results are thin,
+  // near-duplicate pages with an unbounded ?q= parameter space. It is
+  // noindex in both the prerender manifest and PAGE_SEO.search, and a URL that
+  // is noindex must not also be offered in the sitemap — the two signals
+  // contradict each other and waste crawl budget on pages we asked Google to
+  // drop.
   { url: "/about", changefreq: "monthly", priority: "0.6" },
   { url: "/contact", changefreq: "monthly", priority: "0.5" },
   { url: "/support", changefreq: "monthly", priority: "0.5" },

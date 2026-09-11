@@ -56,6 +56,14 @@
 
 import logger from "./logger";
 import { useEffect, useCallback, useState, useRef } from "react";
+import {
+  cleanReloadParams,
+  noteBoot,
+  purgeCaches,
+  reloadsRemaining,
+  requestCoordinatedReload,
+} from "./reloadCoordinator";
+import { isChunkLoadError } from "./chunkRecovery";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -118,6 +126,63 @@ export function isUnverifiableVersion(version: string | null | undefined): boole
   return lower.startsWith(DEV_VERSION_PREFIX) || lower === UNVERIFIABLE_SERVER_VERSION;
 }
 
+/**
+ * Mirror of the backend's compatibility rule (artifacts/api-server/src/lib/
+ * deploymentVersion.ts → isDeploymentCompatible).
+ *
+ * The two sides used to disagree, and that disagreement — not a real skew — was
+ * what put users on `/dashboard?_v=<ts>&_skew=1`:
+ *
+ *   • the **backend** accepted any of the deployment's known ids
+ *     (VERCEL_DEPLOYMENT_ID, the 12-char commit SHA, DEPLOYMENT_VERSION) and
+ *     treated an abbreviated SHA as a prefix match, failing open when it knew
+ *     no stable id at all;
+ *   • the **frontend** compared one string for strict equality against
+ *     `/api/deployment`'s primary `version`.
+ *
+ * On Vercel the build-time version is usually a git SHA (vite.config.ts falls
+ * back to `git rev-parse --short HEAD`) while the runtime primary version is
+ * `VERCEL_DEPLOYMENT_ID` — two different strings for one deployment. The result
+ * was a permanent mismatch: a banner on every page, an "Update now" that
+ * reloaded into the same mismatch, 30 s polling forever, and refresh confusion.
+ *
+ * Rules, in the backend's order:
+ *   1. either side unverifiable (dev sentinel, "unverifiable", blank) → true;
+ *   2. the server knows no stable id → true (fail open, never loop);
+ *   3. exact match against any known id → true;
+ *   4. abbreviated-SHA prefix match in either direction → true;
+ *   5. otherwise → false, this really is a different deployment.
+ */
+export function isVersionCompatible(
+  frontendVersion: string | null | undefined,
+  knownIds: ReadonlyArray<string | null | undefined> | string | null | undefined,
+): boolean {
+  if (isUnverifiableVersion(frontendVersion)) return true;
+
+  const candidates = (Array.isArray(knownIds) ? knownIds : [knownIds])
+    .filter((id): id is string => typeof id === "string")
+    .map((id) => id.trim())
+    .filter((id) => id !== "" && !isUnverifiableVersion(id));
+
+  // Fail open: a server that cannot identify its own deployment must not put
+  // every visitor in a refresh loop.
+  if (candidates.length === 0) return true;
+
+  const mine = String(frontendVersion).trim();
+  if (candidates.some((id) => id === mine || id.toLowerCase() === mine.toLowerCase())) return true;
+
+  const shaLike = /^[0-9a-f]{7,40}$/i;
+  if (shaLike.test(mine)) {
+    const lower = mine.toLowerCase();
+    // Build-time short SHA vs runtime 12-char slice, in either direction:
+    // one is a prefix of the other only when they are the same commit.
+    if (candidates.some((id) => shaLike.test(id) && id.toLowerCase().startsWith(lower))) return true;
+    if (candidates.some((id) => shaLike.test(id) && lower.startsWith(id.toLowerCase()))) return true;
+  }
+
+  return false;
+}
+
 // ─── Build-time version ──────────────────────────────────────────────────────
 
 /** The deployment version this frontend was built with. */
@@ -129,7 +194,11 @@ export const FRONTEND_DEPLOYMENT_VERSION: string =
 // ─── Global state (shared across all hook instances) ─────────────────────────
 
 let serverVersion: string | null = null;
+let serverKnownIds: string[] = [];
 let mismatchDetected = false;
+/** True once the reload budget is spent: the banner must say so instead of
+ *  offering an "Update now" that cannot work. */
+let reloadBlocked = false;
 let refreshAttempted = false;
 let refreshCount = 0;
 let dismissed = false;
@@ -166,9 +235,15 @@ function broadcastToAllTabs(type: string, data?: Record<string, unknown>) {
  *   deploy): resolve the flag so the banner hides itself and polling calms
  *   down — previously the flag latched forever until a manual refresh.
  */
-export function recordServerVersion(version: string | null | undefined): void {
+export function recordServerVersion(
+  version: string | null | undefined,
+  knownIds?: ReadonlyArray<string | null | undefined>,
+): void {
+  if (knownIds && knownIds.length > 0) {
+    serverKnownIds = [...new Set(knownIds.filter((id): id is string => typeof id === "string" && id.trim() !== ""))];
+  }
   if (!version) return;
-  if (serverVersion === version) return;
+  if (serverVersion === version && (knownIds === undefined || knownIds.length === 0)) return;
 
   const previousVersion = serverVersion;
   serverVersion = version;
@@ -186,14 +261,15 @@ export function recordServerVersion(version: string | null | undefined): void {
     return;
   }
 
-  // Transient skew resolved itself (rolling deploy settled): stand down.
-  if (version === FRONTEND_DEPLOYMENT_VERSION) {
+  // Compatible with this build — a rolling deploy settled, or the server simply
+  // answered with a different (but equivalent) identifier for the same deploy.
+  if (isVersionCompatible(FRONTEND_DEPLOYMENT_VERSION, [...serverKnownIds, version])) {
     if (mismatchDetected) {
       mismatchDetected = false;
       dismissed = false;
       pollInterval = POLL_INTERVAL_NORMAL;
       notify();
-      logger.info("[deploy-skew] Versions agree again — mismatch resolved without refresh.");
+      logger.info("[deploy-skew] Versions are compatible again — mismatch resolved without refresh.");
     }
     return;
   }
@@ -224,14 +300,19 @@ export function recordServerVersion(version: string | null | undefined): void {
 let chunkRetryCount = 0;
 
 /**
- * Handle dynamic import() failures caused by stale chunk references.
- * When a deployment changes, old JS chunks get new hashed names, so
- * importing an old chunk returns 404.
+ * Retry a dynamic import that failed on a stale chunk.
  *
- * Strategy:
- * 1. Clear service worker cache
- * 2. Retry the import with a cache-busting query parameter
- * 3. If retry fails, trigger a full page refresh
+ * When a deployment changes, old JS chunks get new hashed names, so importing
+ * an old chunk 404s. Strategy: purge the caches that can still be serving the
+ * stale document (the shared coordinator purge, not an ad-hoc copy), retry the
+ * import once, and if it fails again ask for the one coordinated reload.
+ *
+ * Detection uses `chunkRecovery.isChunkLoadError`, the same predicate as the
+ * global handlers, so this path and the `vite:preloadError` path can never
+ * disagree about what counts as a chunk failure. The old inline check required
+ * a `TypeError` and missed the Firefox/Safari wording ("Importing a module
+ * script failed", "Failed to load module script"), which is how some browsers
+ * ended up with a broken route and no recovery at all.
  */
 export async function handleChunkLoadError<T>(
   importFn: () => Promise<T>,
@@ -240,39 +321,25 @@ export async function handleChunkLoadError<T>(
   try {
     return await importFn();
   } catch (err) {
-    const isChunkError = err instanceof TypeError &&
-      (err.message.includes("Failed to fetch dynamically imported module") ||
-       err.message.includes("Loading chunk") ||
-       err.message.includes("Loading CSS chunk") ||
-       err.message.includes("error loading dynamically imported module"));
-
-    if (!isChunkError) throw err;
+    if (!isChunkLoadError(err)) throw err;
 
     chunkRetryCount++;
     if (chunkRetryCount > MAX_CHUNK_RETRIES) {
       logger.error(`[deploy-skew] Chunk load failed after ${MAX_CHUNK_RETRIES} retries: ${chunkName ?? "unknown"}`);
-      // Force a hard refresh — the deployment has changed and chunks are gone
+      // The deployment has changed and the chunks are gone: reload through the
+      // shared budget rather than reloading on our own counter.
       safeRefresh();
       throw err;
     }
 
     logger.warn(
       `[deploy-skew] Chunk load failed (attempt ${chunkRetryCount}/${MAX_CHUNK_RETRIES}): ${chunkName ?? "unknown"}. ` +
-      `Clearing SW cache and retrying...`
+      `Purging caches and retrying...`
     );
 
-    // Clear service worker cache
-    if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({ type: "CLEAR_CACHE" });
-    }
+    await purgeCaches();
 
-    // Also clear all browser caches
-    if ("caches" in window) {
-      const keys = await caches.keys();
-      await Promise.all(keys.map((k) => caches.delete(k)));
-    }
-
-    // Brief delay for SW to process the clear message
+    // Give the worker a tick to finish its own purge before the retry fetches.
     await new Promise((r) => setTimeout(r, 200));
 
     // Retry the import
@@ -281,31 +348,21 @@ export async function handleChunkLoadError<T>(
 }
 
 /**
- * Global chunk error listener — catches unhandled promise rejections from
- * dynamic imports and triggers recovery.
+ * Chunk-load failures are handled by `lib/chunkRecovery.ts`, which owns the
+ * `vite:preloadError` and `unhandledrejection` listeners and routes both through
+ * reloadCoordinator. This module used to install a second `unhandledrejection`
+ * listener that also reloaded the page, so one stale chunk could trigger two
+ * reloads from two independent counters. What survives here is the part that is
+ * genuinely about skew: when a chunk fails, start polling faster so a new
+ * deployment is confirmed (or ruled out) quickly.
  */
-function setupGlobalChunkErrorHandler() {
-  if (typeof window === "undefined") return;
+function onChunkFailureHint(): void {
+  pollInterval = POLL_INTERVAL_FAST;
+  pollBackoff = 1;
+}
 
-  window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
-    const err = event.reason;
-    if (err instanceof TypeError &&
-        (err.message?.includes("Failed to fetch dynamically imported module") ||
-         err.message?.includes("Loading chunk") ||
-         err.message?.includes("error loading dynamically imported module"))) {
-      event.preventDefault();
-      logger.warn("[deploy-skew] Caught chunk load error — triggering recovery");
-
-      // Check if this is likely a deployment skew issue
-      if (mismatchDetected) {
-        safeRefresh();
-      } else {
-        // Might just be a network blip — record version and check
-        recordServerVersion(null); // Force re-check on next poll
-        pollInterval = POLL_INTERVAL_FAST;
-      }
-    }
-  });
+if (typeof window !== "undefined") {
+  window.addEventListener("fx:chunk-recovered", onChunkFailureHint);
 }
 
 // ─── Mutation queue ──────────────────────────────────────────────────────────
@@ -488,24 +545,21 @@ function isUserActivelyTyping(): boolean {
  * Perform a safe refresh to pick up the new deployment.
  * Includes loop protection — max MAX_REFRESH_ATTEMPTS before giving up.
  */
-export function safeRefresh(): void {
+export function safeRefresh(): boolean {
   if (refreshAttempted) {
     logger.warn("[deploy-skew] Refresh already attempted — ignoring to prevent loops.");
-    return;
+    return false;
   }
 
-  // Count refreshes across page loads
-  try {
-    refreshCount = parseInt(sessionStorage.getItem(STORAGE_KEYS.REFRESH_COUNT) ?? "0", 10);
-    if (refreshCount >= MAX_REFRESH_ATTEMPTS) {
-      logger.error(
-        `[deploy-skew] Max refresh attempts (${MAX_REFRESH_ATTEMPTS}) reached. ` +
-        `Giving up to prevent infinite refresh loop.`
-      );
-      return;
-    }
-    sessionStorage.setItem(STORAGE_KEYS.REFRESH_COUNT, String(refreshCount + 1));
-  } catch { /* */ }
+  // The loop guard lives in reloadCoordinator (one budget shared with stale-chunk
+  // recovery, persisted across the reload, verified against the build that comes
+  // back). This counter only stops the same tick asking twice.
+  if (reloadsRemaining() <= 0) {
+    reloadBlocked = true;
+    notify();
+    logger.error("[deploy-skew] Reload budget spent — not refreshing again this window.");
+    return false;
+  }
 
   refreshAttempted = true;
 
@@ -513,46 +567,34 @@ export function safeRefresh(): void {
   if (isUserActivelyTyping()) {
     logger.warn("[deploy-skew] User is actively typing — deferring refresh.");
     refreshAttempted = false;
-    return;
+    return false;
   }
 
   // Save form data before refreshing
   saveFormState();
 
-  // Notify other tabs that we're handling the refresh
-  broadcastToAllTabs("refresh-started", {
-    version: FRONTEND_DEPLOYMENT_VERSION,
-  });
+  // Notify other tabs that we're handling the refresh — the coordinator also
+  // holds a cross-tab lock, so siblings stand down instead of reloading too.
+  broadcastToAllTabs("refresh-started", { version: FRONTEND_DEPLOYMENT_VERSION });
 
-  // Refreshing only helps if the reload actually loads the new build. The old
-  // code posted CLEAR_CACHE and navigated in the same tick, so the navigation
-  // routinely raced (and lost to) the cache purge and came back stale — the
-  // banner reappeared and "Update now" looked like it did nothing. Sequence
-  // it instead: ask the worker to update itself, purge what the page can
-  // reach, THEN navigate.
-  void (async () => {
-    try {
-      if ("serviceWorker" in navigator) {
-        const registration = await navigator.serviceWorker.getRegistration().catch(() => null);
-        if (registration) {
-          try { registration.active?.postMessage({ type: "CLEAR_CACHE" }); } catch { /* worker gone */ }
-          await registration.update().catch(() => {});
-        }
-      }
-      if ("caches" in window) {
-        const keys = await caches.keys().catch(() => [] as string[]);
-        await Promise.all(keys.map((key) => caches.delete(key).catch(() => false)));
-      }
-    } catch {
-      // Best effort — a failed purge must never block the reload itself.
-    }
-    // Perform a hard reload with cache-busting
-    const url = new URL(window.location.href);
-    url.searchParams.set("_v", Date.now().toString());
-    url.searchParams.set("_skew", "1"); // Mark as skew-triggered for analytics
-    window.location.replace(url.toString());
-  })();
+  const owned = requestCoordinatedReload({
+    reason: "deployment-skew",
+    fromVersion: FRONTEND_DEPLOYMENT_VERSION,
+    cacheBust: true,
+  });
+  if (!owned) {
+    refreshAttempted = false;
+    reloadBlocked = reloadsRemaining() <= 0;
+    notify();
+  }
+  return owned;
 }
+
+/**
+ * Purge the caches without navigating. Used by the chunk-recovery path when it
+ * can retry an import instead of reloading the page.
+ */
+export { purgeCaches };
 
 export function resetRefreshGuard(): void {
   refreshAttempted = false;
@@ -574,20 +616,36 @@ function clearRefreshCounter(): void {
 
 // ─── React hooks ─────────────────────────────────────────────────────────────
 
+export interface DeploymentSkewState {
+  mismatch: boolean;
+  serverVersion: string | null;
+  frontendVersion: string;
+  /** Every identifier the server says it answers to. */
+  knownIds: string[];
+  /** True when the reload budget is spent — "Update now" cannot work, so the
+   *  banner must say the update will apply on the next visit instead. */
+  reloadBlocked: boolean;
+  /** The reload we just came back from did not change the build. */
+  reloadIneffective: boolean;
+}
+
+let lastBootIneffective = false;
+
 export function useDeploymentSkew() {
-  const [state, setState] = useState({
+  const snapshot = (): DeploymentSkewState => ({
     mismatch: mismatchDetected && !dismissed,
     serverVersion,
     frontendVersion: FRONTEND_DEPLOYMENT_VERSION,
+    knownIds: [...serverKnownIds],
+    reloadBlocked: reloadBlocked || reloadsRemaining() <= 0,
+    reloadIneffective: lastBootIneffective,
   });
+
+  const [state, setState] = useState<DeploymentSkewState>(snapshot);
 
   useEffect(() => {
     const handler = () => {
-      setState({
-        mismatch: mismatchDetected && !dismissed,
-        serverVersion,
-        frontendVersion: FRONTEND_DEPLOYMENT_VERSION,
-      });
+      setState(snapshot());
     };
     listeners.add(handler);
     return () => { listeners.delete(handler); };
@@ -624,14 +682,19 @@ async function checkDeployment(): Promise<void> {
     clearTimeout(timeout);
 
     if (res.ok) {
-          pollBackoff = 1;
-      const data = await res.json();
-      recordServerVersion(data.version);
+      pollBackoff = 1;
+      const data = (await res.json()) as { version?: string; knownIds?: string[] };
+      // `knownIds` is every identifier this deployment answers to (deployment
+      // id, commit SHA, explicit version). Without it the frontend compared
+      // one string against a build-time SHA and saw a permanent mismatch.
+      recordServerVersion(data.version, data.knownIds);
     }
 
+    // The header carries a single id, so it is only evidence *for* a match —
+    // never overwrite the richer known-id set with it.
     const headerVersion = res.headers.get(DEPLOYMENT_HEADER);
     if (headerVersion) {
-      recordServerVersion(headerVersion);
+      recordServerVersion(headerVersion, serverKnownIds);
     }
   } catch {
     // Exponential backoff on errors: 1x → 2x → 4x → 8x → capped at POLL_BACKOFF_MAX
@@ -677,11 +740,28 @@ export function useDeploymentSkewDetector() {
   useEffect(() => {
     mountedRef.current = true;
 
+    // Reconcile the reload we may have just come back from, and get the
+    // cache-busting params out of the address bar before anything reads them
+    // (analytics page_location, canonical tags, a user copying the URL).
+    const boot = noteBoot(FRONTEND_DEPLOYMENT_VERSION);
+    if (boot.reloaded) {
+      lastBootIneffective = !boot.buildChanged;
+      if (!boot.buildChanged) {
+        // The reload did not deliver a new build — the service worker or the
+        // edge cache answered again. Do not ask for another one.
+        reloadBlocked = boot.remaining <= 0;
+        logger.warn(
+          "[deploy-skew] returned from a reload on the same build — standing down instead of reloading again.",
+        );
+      } else {
+        logger.info(`[deploy-skew] reload delivered a new build (${boot.reason}).`);
+      }
+    }
+    cleanReloadParams();
+
     // Clear refresh counter if versions match (successful previous refresh)
     clearRefreshCounter();
 
-    // Setup global chunk load error handler
-    setupGlobalChunkErrorHandler();
 
     // Initial check after a short delay (don't block initial load)
     const initialTimer = setTimeout(async () => {
@@ -757,6 +837,20 @@ export function hasMismatch(): boolean { return mismatchDetected; }
 export function isDismissed(): boolean { return dismissed; }
 export function dismissMismatch(): void { dismissed = true; notify(); }
 export function getServerVersion(): string | null { return serverVersion; }
+export function getServerKnownIds(): string[] { return [...serverKnownIds]; }
+/** Test hook: forget everything learned about the server version. */
+export function __resetSkewState(): void {
+  serverVersion = null;
+  serverKnownIds = [];
+  mismatchDetected = false;
+  refreshAttempted = false;
+  dismissed = false;
+  reloadBlocked = false;
+  lastBootIneffective = false;
+  pollInterval = POLL_INTERVAL_NORMAL;
+  pollBackoff = 1;
+  fastPollCount = 0;
+}
 
 // Type declaration for __DEPLOYMENT_VERSION__ injected at build time.
 declare const __DEPLOYMENT_VERSION__: string | undefined;

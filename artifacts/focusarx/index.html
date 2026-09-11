@@ -46,6 +46,11 @@
          currently not indexed" backlog.
     ══════════════════════════════════════════════════════════════ -->
     <link rel="canonical" href="https://www.focusarx.site/" />
+    <!-- RSS. Generated at build time by scripts/prerender.mjs, so every item is
+         a page this build also prerendered — the feed can never advertise a URL
+         that answers 404. Declaring it here is what lets feed readers and
+         browsers autodiscover it. -->
+    <link rel="alternate" type="application/rss+xml" title="FocusArx — focus and study articles" href="/feed.xml" />
 
     <!-- ══════════════════════════════════════════════════════════
          OPEN GRAPH — Facebook, LinkedIn, Discord, WhatsApp, Slack
@@ -132,8 +137,8 @@
         "availableLanguage": "English"
       },
       "sameAs": [
-        "https://twitter.com/focusarx",
-        "https://www.focusarx.site"
+        "https://www.youtube.com/@AJourneyR",
+        "https://github.com/rangwalaaliasgar55-bot/focusarx"
       ]
     }
     </script>
@@ -388,6 +393,40 @@
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
+
+      // ── Consent Mode v2 ────────────────────────────────────────────
+      // Must run BEFORE `config`, or the first hit is sent with no consent
+      // state at all and Google treats it as "no signal" instead of an
+      // explicit choice.
+      //
+      //   ad_storage / ad_user_data / ad_personalization → denied.
+      //     FocusArx runs no Google Ads today and AdSense (which is on this
+      //     page) does its own TCF consent. Declaring these denied keeps the
+      //     door open for Google Ads later without ever implying consent we
+      //     did not collect — the requirement behind India's DPDP Act and the
+      //     EEA/UK rules Google enforces from March 2024.
+      //   analytics_storage → granted.
+      //     First-party measurement only: IP is anonymised below, no cross-site
+      //     identifier is set, the notice is shown on first visit
+      //     (components/CookieConsent.tsx) and "Essential only" flips this to
+      //     denied. Denying it by default instead would silently drop the
+      //     sign_up / session_complete key events for every visitor who never
+      //     interacts with the banner.
+      //
+      // CookieConsent.tsx calls `gtag("consent", "update", …)` from the same
+      // shared helper (src/lib/consent.ts) when the visitor chooses — the two
+      // files must not grow separate consent logic.
+      gtag("consent", "default", {
+        ad_storage: "denied",
+        ad_user_data: "denied",
+        ad_personalization: "denied",
+        analytics_storage: "granted",
+        functionality_storage: "granted",
+        personalization_storage: "denied",
+        security_storage: "granted",
+        wait_for_update: 500,
+      });
+
       gtag("js", new Date());
       // SPA route changes are reported by SiteAnalyticsTracker. Disabling the
       // automatic view here prevents the initial route from being counted twice.

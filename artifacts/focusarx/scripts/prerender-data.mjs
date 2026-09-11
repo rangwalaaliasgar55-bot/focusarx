@@ -37,6 +37,95 @@ export const DEFAULT_OG_IMAGE_PATH = "/opengraph.jpg";
  * @property {string[]} [related]    — related internal links (path|Label)
  */
 
+/**
+ * Policy link set — mirrors `LegalFooter()` in the live policy pages
+ * (privacy / terms / cookie-policy / acceptable-use / ai-policy /
+ * data-deletion), so the prerendered body and the rendered page carry the same
+ * links. Policy pages used to dead-end: the prerender gave each of them one or
+ * two "keep reading" links, which left /cookie-policy and /accessibility
+ * reachable only from the sitemap.
+ */
+const POLICY_LINKS = [
+  "/privacy|Privacy policy",
+  "/terms|Terms of service",
+  "/cookie-policy|Cookie policy",
+  "/acceptable-use|Acceptable use policy",
+  "/ai-policy|AI policy",
+  "/data-deletion|Delete your data",
+  "/accessibility|Accessibility statement",
+  "/camera-data|How camera data is handled",
+  "/safety|Study room safety and moderation",
+  "/evidence|Evidence and claim policy",
+];
+
+/** Company/trust link set — mirrors the live landing footer columns. */
+const COMPANY_LINKS = [
+  "/|FocusArx home",
+  "/about|About FocusArx",
+  "/contact|Contact us",
+  "/support|Help center",
+  "/blog|Blog",
+  "/guides|All guides",
+  "/press|Press kit",
+  "/roadmap|Product roadmap",
+  "/changelog|Changelog",
+  "/pricing|Pricing",
+];
+
+/**
+ * The full guide/tool index — mirrors what `/guides` actually renders
+ * (src/pages/guides.tsx lists every one of these). The prerender used to carry
+ * eight of them, so nine real pages looked orphaned to a crawler that does not
+ * run JavaScript.
+ */
+const ALL_GUIDE_LINKS = [
+  "/focus-guide|How to focus: the complete guide",
+  "/deep-work-guide|Deep work guide",
+  "/pomodoro-guide|The Pomodoro technique",
+  "/study-techniques|Best study techniques, ranked by evidence",
+  "/how-to-focus-while-studying|How to focus while studying",
+  "/body-doubling|Body doubling explained",
+  "/stop-procrastinating|How to stop procrastinating",
+  "/stop-scrolling|How to stop scrolling",
+  "/adhd-focus-tips|How to focus with ADHD",
+  "/adhd-focus-tools|ADHD-friendly focus tools",
+  "/focus-music|Best music for studying",
+  "/science-of-deep-work|The science of deep work",
+  "/two-hour-study-method|The 2-hour study method",
+  "/deep-study-guide|Deep study guide",
+  "/feynman-technique|The Feynman technique",
+  "/exam|Exam prep guides",
+  "/blog|Blog",
+  "/study-method-quiz|Study method quiz",
+  "/study-calculator|Study time calculator",
+  "/pomodoro-timer|Pomodoro timer",
+  "/study-timer|Study timer",
+  "/focus-timer|Focus timer",
+  "/virtual-study-room|Virtual study rooms",
+  "/study-with-me|Study with me sessions",
+  "/study-rooms|Live study rooms",
+  "/breathe|2-minute breathing reset",
+  "/break-free|60-second scroll reset",
+];
+
+/**
+ * Build a `related` list from link groups without ever linking a page to itself
+ * and without duplicates. Order matters: the first group is the most relevant.
+ */
+const relatedFor = (path, ...groups) => {
+  const seen = new Set();
+  const out = [];
+  for (const group of groups) {
+    for (const pair of group || []) {
+      const href = String(pair).split("|")[0];
+      if (!href || href === path || seen.has(href)) continue;
+      seen.add(href);
+      out.push(pair);
+    }
+  }
+  return out;
+};
+
 const GUIDE_LINKS = [
   "/guides|All FocusArx guides",
   "/focus-guide|How to focus: complete guide",
@@ -120,7 +209,7 @@ export const ROUTES = [
         p: "FocusArx is free forever at its core, privacy-first (optional attention monitoring runs entirely on-device), and built around measurable focus depth rather than vanity metrics.",
       },
     ],
-    related: ["/contact|Contact us", "/roadmap|Product roadmap", "/pricing|Pricing"],
+    related: relatedFor("/about", COMPANY_LINKS, ["/achievements|Achievements"], POLICY_LINKS.slice(0, 3)),
   },
   {
     path: "/contact",
@@ -130,7 +219,7 @@ export const ROUTES = [
     h1: "Contact FocusArx",
     lead: "Questions, feedback, or partnership ideas? Reach the team at focusarx@gmail.com or through the contact form — we usually reply within 24 hours.",
     sections: [],
-    related: ["/support|Help center & FAQ", "/about|About FocusArx"],
+    related: relatedFor("/contact", COMPANY_LINKS, POLICY_LINKS.slice(0, 3)),
   },
   {
     path: "/support",
@@ -145,7 +234,7 @@ export const ROUTES = [
         p: "How focus sessions and the Focus Score work; how streaks, XP, and Focus Coins are earned and spent; how live study rooms and leaderboards work; how optional on-device attention monitoring protects privacy; and how to manage or delete your account data.",
       },
     ],
-    related: ["/contact|Contact us", "/privacy|Privacy policy"],
+    related: relatedFor("/support", COMPANY_LINKS, POLICY_LINKS.slice(0, 4)),
   },
   {
     path: "/pricing",
@@ -164,7 +253,7 @@ export const ROUTES = [
         p: "Advanced AI coaching, exclusive themes and cosmetics, deeper Focus DNA insights, and productivity boosts — all purchased with Focus Coins earned during sessions.",
       },
     ],
-    related: ["/signup|Start free", "/premium|Premium overview"],
+    related: relatedFor("/pricing", ["/signup|Start free", "/premium|Premium overview"], COMPANY_LINKS),
   },
   {
     path: "/premium",
@@ -174,7 +263,7 @@ export const ROUTES = [
     h1: "FocusArx Premium",
     lead: "Premium amplifies everything that works about FocusArx — smarter coaching, richer insights, exclusive cosmetics — and it's earned with focus, not bought.",
     sections: [],
-    related: ["/pricing|Pricing", "/signup|Start free"],
+    related: relatedFor("/premium", ["/pricing|Pricing", "/signup|Start free", "/leaderboard|Leaderboard", "/achievements|Achievements"], COMPANY_LINKS),
   },
   {
     path: "/roadmap",
@@ -184,7 +273,7 @@ export const ROUTES = [
     h1: "FocusArx product roadmap",
     lead: "What's shipped, what's next, and what we're exploring — updated weekly.",
     sections: [],
-    related: ["/about|About", "/contact|Send feedback"],
+    related: relatedFor("/roadmap", ["/changelog|Changelog", "/about|About", "/contact|Send feedback"], COMPANY_LINKS),
   },
 
   // ── Guides & content ──────────────────────────────────────────
@@ -214,7 +303,9 @@ export const ROUTES = [
       },
     ],
     article: true,
-    related: GUIDE_LINKS.slice(1),
+    // The live hub lists every guide and tool; the prerender must not claim
+    // fewer, or a no-JS crawl sees nine pages nothing links to.
+    related: relatedFor("/guides", ALL_GUIDE_LINKS, COMPANY_LINKS.slice(0, 1)),
   },
   {
     path: "/focus-guide",
@@ -659,7 +750,7 @@ export const ROUTES = [
     h1: "FocusArx leaderboard",
     lead: "Top focus champions ranked by XP, streaks, and total focused time — updated live.",
     sections: [],
-    related: ["/signup|Join and compete", "/achievements|Achievements"],
+    related: relatedFor("/leaderboard", ["/signup|Join and compete", "/achievements|Achievements", "/premium|Premium"], COMPANY_LINKS.slice(0, 6)),
   },
   {
     path: "/achievements",
@@ -669,7 +760,7 @@ export const ROUTES = [
     h1: "FocusArx achievements",
     lead: "65+ badges across focus time, streaks, session quality, missions, social, and special milestones.",
     sections: [],
-    related: ["/leaderboard|Leaderboard", "/signup|Start earning badges"],
+    related: relatedFor("/achievements", ["/leaderboard|Leaderboard", "/signup|Start earning badges", "/premium|Premium"], COMPANY_LINKS.slice(0, 6)),
   },
   {
     path: "/breathe",
@@ -684,7 +775,7 @@ export const ROUTES = [
         p: "Breaks that stimulate (scrolling) don't restore attention; breaks that down-regulate arousal do. Slow exhale-weighted breathing shifts you toward the rest-and-digest state, lowering the friction of restarting.",
       },
     ],
-    related: ["/focus-guide|How to focus: complete guide", "/focus-music|Focus music guide", "/guides|All guides"],
+    related: relatedFor("/breathe", ["/break-free|60-second scroll reset", "/focus-guide|How to focus: complete guide", "/focus-music|Focus music guide", "/guides|All guides"], COMPANY_LINKS.slice(0, 1)),
   },
   {
     path: "/break-free",
@@ -694,7 +785,7 @@ export const ROUTES = [
     h1: "Break free from the distraction spiral",
     lead: "You're 60 seconds of deliberate action away from ending the scroll loop. No shame — just a protocol that works.",
     sections: [],
-    related: ["/stop-procrastinating|How to stop procrastinating", "/breathe|Breathing reset", "/guides|All guides"],
+    related: relatedFor("/break-free", ["/stop-scrolling|How to stop scrolling", "/stop-procrastinating|How to stop procrastinating", "/breathe|Breathing reset", "/guides|All guides"], COMPANY_LINKS.slice(0, 1)),
   },
 
   // ── Legal ─────────────────────────────────────────────────────
@@ -706,7 +797,7 @@ export const ROUTES = [
     h1: "FocusArx privacy policy",
     lead: "What data FocusArx collects, how it's used, and the choices you control — including the principle that optional attention monitoring never uploads video.",
     sections: [],
-    related: ["/terms|Terms of service", "/ai-policy|AI policy", "/contact|Contact us"],
+    related: relatedFor("/privacy", POLICY_LINKS, ["/contact|Contact us"], COMPANY_LINKS.slice(0, 1)),
   },
   {
     path: "/terms",
@@ -715,7 +806,7 @@ export const ROUTES = [
     h1: "FocusArx terms of service",
     lead: "The agreement between you and FocusArx when you use the platform.",
     sections: [],
-    related: ["/privacy|Privacy policy", "/acceptable-use|Acceptable use policy"],
+    related: relatedFor("/terms", POLICY_LINKS, COMPANY_LINKS.slice(0, 1)),
   },
   {
     path: "/cookie-policy",
@@ -724,7 +815,7 @@ export const ROUTES = [
     h1: "FocusArx cookie policy",
     lead: "We use the minimum number of cookies needed to keep you signed in and improve the product.",
     sections: [],
-    related: ["/privacy|Privacy policy"],
+    related: relatedFor("/cookie-policy", POLICY_LINKS, COMPANY_LINKS.slice(0, 1)),
   },
   {
     path: "/acceptable-use",
@@ -733,7 +824,7 @@ export const ROUTES = [
     h1: "FocusArx acceptable use policy",
     lead: "The short list of things that keep FocusArx safe and useful for everyone.",
     sections: [],
-    related: ["/terms|Terms of service", "/contact|Report a problem"],
+    related: relatedFor("/acceptable-use", POLICY_LINKS, ["/contact|Report a problem"], COMPANY_LINKS.slice(0, 1)),
   },
   {
     path: "/ai-policy",
@@ -742,7 +833,7 @@ export const ROUTES = [
     h1: "How FocusArx uses AI",
     lead: "Where AI appears in the product, what it does and doesn't touch, and the privacy-first rules it operates under.",
     sections: [],
-    related: ["/privacy|Privacy policy", "/focus-guide|How to focus guide"],
+    related: relatedFor("/ai-policy", POLICY_LINKS, ["/focus-guide|How to focus guide"], COMPANY_LINKS.slice(0, 1)),
   },
 
   // ── Tool landing pages with bespoke components ────────────────
@@ -843,6 +934,9 @@ export const ROUTES = [
   },
   {
     path: "/search",
+    // Mirrors PAGE_SEO.search: internal search results stay out of the index
+    // and out of the sitemap (see artifacts/api-server/src/routes/sitemap.ts).
+    noindex: true,
     title: "Search Guides, Tools & Features",
     description:
       "Search every FocusArx guide, study tool and feature — Pomodoro timers, study rooms, focus guides, calculators and exam prep.",
@@ -882,11 +976,15 @@ export const ROUTES = [
         [`When should I choose ${c.name} over FocusArx?`, c.whenTheirs],
       ],
       article: true,
-      related: [
-        ...COMPARISON_PATHS.filter((p) => p !== path).slice(0, 3).map((p) => `${p}|${Object.values(COMPARISONS).find((x) => `/comparison/${x.slug}` === p).title}`),
-        "/focus-guide|How to focus",
-        "/guides|All guides",
-      ],
+      // Every sibling comparison, not the first three. The live page
+      // (src/pages/comparison.tsx) already renders the full set; truncating it
+      // here meant two of the six comparisons had no inbound link at all in the
+      // prerendered HTML.
+      related: relatedFor(
+        path,
+        COMPARISON_PATHS.map((p) => `${p}|${Object.values(COMPARISONS).find((x) => `/comparison/${x.slug}` === p).title}`),
+        ["/focus-guide|How to focus", "/guides|All guides", "/pomodoro-timer|Pomodoro timer"],
+      ),
     };
   }),
 
@@ -899,7 +997,9 @@ export const ROUTES = [
     lead: EXAM_HUB.lead,
     sections: EXAM_HUB.sections,
     faq: EXAM_HUB.faq,
-    related: EXAM_GUIDES.map((g) => `/exam/${g.slug}|${g.h1}`),
+    // EXAM_HUB.related is derived in src/content/exam/index.mjs: every exam
+    // guide plus its dedicated timer page.
+    related: relatedFor("/exam", EXAM_HUB.related, COMPANY_LINKS.slice(0, 1)),
   },
   ...EXAM_GUIDES.map((g) => ({
     path: `/exam/${g.slug}`,
@@ -926,7 +1026,7 @@ export const ROUTES = [
     h1: "Blog",
     lead: "Short essays on attention and studying. Each one ends in something you can do today.",
     sections: BLOG_POSTS.map((p) => ({ h: p.h1, p: p.lead })),
-    related: [...BLOG_POSTS.map((p) => `/blog/${p.slug}|${p.h1}`), "/focus|Focus app"],
+    related: relatedFor("/blog", [...BLOG_POSTS.map((p) => `/blog/${p.slug}|${p.h1}`), "/focus|Focus app"], ALL_GUIDE_LINKS.slice(0, 6), COMPANY_LINKS.slice(0, 1)),
     lastReviewed: "2026-09-05",
   },
   ...BLOG_POSTS.map((p) => ({
@@ -940,6 +1040,10 @@ export const ROUTES = [
     article: true,
     related: [
       ...BLOG_POSTS.filter((q) => q.slug !== p.slug).map((q) => `/blog/${q.slug}|${q.h1}`),
+      // The tools and guides the essay argues for — mirrors `post.related`
+      // rendered by src/pages/blog-post.tsx, so the prerendered document and the
+      // live page carry the same outbound links.
+      ...(p.related || []),
       "/focus|Focus app",
     ],
     lastReviewed: p.date,
@@ -963,7 +1067,20 @@ export const ROUTES = [
       lead: funnel.angle,
       sections: g.sections.slice(0, 3),
       faq: g.faq?.slice(0, 3),
-      related: [`/exam/${g.slug}|Full ${examName} guide`, "/focus|Focus app", "/pomodoro-timer|Pomodoro timer"],
+      // Its own guide, the other exam timers, and the hub — mirroring the
+      // sibling list src/pages/exam-funnel.tsx renders.
+      related: relatedFor(
+        `/pomodoro-timer-for/${g.slug}`,
+        [
+          `/exam/${g.slug}|Full ${examName} guide`,
+          "/exam|Exam prep hub",
+          "/pomodoro-timer|Pomodoro timer",
+          "/focus|Focus app",
+        ],
+        EXAM_GUIDES.filter((other) => FUNNEL_ANGLES[other.slug] && other.slug !== g.slug).map(
+          (other) => `/pomodoro-timer-for/${other.slug}|Pomodoro timer for ${other.exam?.name ?? other.slug}`,
+        ),
+      ),
       lastReviewed: "2026-09-05",
     };
   }),
@@ -991,3 +1108,47 @@ export const ROUTES = [
     related: e.related,
   })),
 ];
+
+// ── Discovery links ──────────────────────────────────────────────────
+/**
+ * Valuable pages that are easy to orphan, rotated across every prerendered
+ * route.
+ *
+ * A page whose only inbound links are a sitemap entry is crawled rarely and
+ * ranks as though it were optional — that is what the orphan gate in
+ * scripts/seo-validate.mjs exists to catch. Rotating two of these into each
+ * route's "Keep reading" block spreads link equity deterministically (index
+ * order, so builds are reproducible) instead of relying on every author to
+ * remember the thin pages. These are real pages with real copy, and the same
+ * `related` array is what src/pages/seo-landing.tsx renders for visitors.
+ */
+const DISCOVERY_ROTATION = [
+  "/stop-scrolling|How to stop scrolling",
+  "/adhd-focus-tools|ADHD-friendly focus tools",
+  "/feynman-technique|The Feynman technique",
+  "/leaderboard|Focus leaderboard",
+  "/two-hour-study-method|The 2-hour study method",
+  "/body-doubling|Body doubling explained",
+  "/blog|FocusArx blog",
+  "/achievements|Achievements and badges",
+  "/study-method-quiz|Study method quiz",
+  "/break-free|60-second scroll reset",
+];
+
+{
+  ROUTES.forEach((entry, index) => {
+    const path = entry.path === "" ? "/" : entry.path;
+    const existing = new Set((entry.related || []).map((pair) => String(pair).split("|")[0]));
+    existing.add(path);
+    const picks = [
+      DISCOVERY_ROTATION[index % DISCOVERY_ROTATION.length],
+      DISCOVERY_ROTATION[(index + 4) % DISCOVERY_ROTATION.length],
+    ].filter((pair) => {
+      const href = String(pair).split("|")[0];
+      if (existing.has(href)) return false;
+      existing.add(href);
+      return true;
+    });
+    if (picks.length > 0) entry.related = [...(entry.related || []), ...picks];
+  });
+}

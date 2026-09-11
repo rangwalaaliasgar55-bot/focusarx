@@ -375,6 +375,10 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
     title: "Search Guides, Tools & Features",
     description: "Search all FocusArx guides, study tools, and features — from Pomodoro timers and study rooms to focus guides and calculators.",
     keywords: "search FocusArx, find study guides, focus tools",
+    // Internal search results are thin, near-duplicate and unbounded (?q=…) —
+    // the classic facet-crawl trap. Keep the page useful for people, out of the
+    // index for crawlers, and out of the sitemap.
+    noindex: true,
   },
   premium: {
     canonical: "/premium",
