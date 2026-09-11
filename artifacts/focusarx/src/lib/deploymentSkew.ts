@@ -90,9 +90,6 @@ const MAX_CHUNK_RETRIES = 2;
 /** Max queued mutations to replay after refresh. */
 const MAX_QUEUED_MUTATIONS = 10;
 
-/** Max refresh attempts before giving up (prevents infinite loops). */
-const MAX_REFRESH_ATTEMPTS = 3;
-
 /**
  * Fast-polling cap: after this many 30s polls (~10 min) with the skew still
  * unresolved, drop back to the normal interval. A stuck mismatch (e.g. a
@@ -200,7 +197,6 @@ let mismatchDetected = false;
  *  offering an "Update now" that cannot work. */
 let reloadBlocked = false;
 let refreshAttempted = false;
-let refreshCount = 0;
 let dismissed = false;
 let pollInterval = POLL_INTERVAL_NORMAL;
 let pollBackoff = 1;
@@ -542,8 +538,17 @@ function isUserActivelyTyping(): boolean {
 }
 
 /**
- * Perform a safe refresh to pick up the new deployment.
- * Includes loop protection — max MAX_REFRESH_ATTEMPTS before giving up.
+ * Ask for the reload that picks up the new deployment.
+ *
+ * Loop protection is not local any more: `reloadCoordinator` owns one budget
+ * shared with stale-chunk recovery, persisted across the reload and verified
+ * against the build that actually comes back. What stays here is the cheap
+ * same-tick guard, the "don't refresh while the user is typing" deferral, and
+ * the mutation/form state that has to be saved before we navigate.
+ *
+ * Returns false when the reload did not happen (already attempted, the user is
+ * typing, another tab owns the lock, or the budget is spent) so the banner can
+ * say something honest instead of offering a button that does nothing.
  */
 export function safeRefresh(): boolean {
   if (refreshAttempted) {
@@ -601,15 +606,19 @@ export function resetRefreshGuard(): void {
 }
 
 /**
- * Clear the refresh counter (called after a successful page load with matching versions).
+ * Drop the legacy per-tab refresh counter.
+ *
+ * Older builds counted refresh attempts in sessionStorage and gave up after
+ * three; the reload coordinator's budget replaced that counter (persisted,
+ * shared with chunk recovery, verified against the build that comes back). The
+ * key is still removed on boot so a value written by an older deployment cannot
+ * be misread by anything that looks for it.
  */
 function clearRefreshCounter(): void {
   try {
     const lastVersion = localStorage.getItem(STORAGE_KEYS.LAST_KNOWN_VERSION);
     if (lastVersion === FRONTEND_DEPLOYMENT_VERSION) {
-      // Same version as last time — reset the counter
       sessionStorage.removeItem(STORAGE_KEYS.REFRESH_COUNT);
-      refreshCount = 0;
     }
   } catch { /* */ }
 }

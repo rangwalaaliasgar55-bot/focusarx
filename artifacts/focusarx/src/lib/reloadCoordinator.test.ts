@@ -35,8 +35,6 @@ import {
 
 // ─── Environment ─────────────────────────────────────────────────────────────
 
-type LocationLike = { href: string; replace: (url: string) => void };
-
 let replaceSpy: ReturnType<typeof vi.fn>;
 let realLocation: Location;
 

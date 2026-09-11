@@ -16,7 +16,7 @@ import { getBotSettings } from "../lib/botSettings";
 import { sendForbidden, sendInternal, sendNotFound, sendUnauthorized, sendValidationError } from "../lib/httpErrors";
 import { BANTER } from "../lib/botTemplates";
 import { hashString, mulberry32 } from "../lib/personas";
-import { describeDrift, queryOrFallback, selectableColumns, selectResilient } from "../lib/schemaDrift";
+import { describeDrift, queryOrFallback, selectResilient } from "../lib/schemaDrift";
 
 /**
  * Study rooms — REST-first.
