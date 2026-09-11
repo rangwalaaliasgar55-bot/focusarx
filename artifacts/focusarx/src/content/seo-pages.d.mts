@@ -55,6 +55,8 @@ export interface Comparison {
 }
 
 export const LAST_REVIEWED: string;
+/** "path|Label" links for the minute-length timer pages (/5-minute-timer …). */
+export const MINUTE_TIMERS: string[];
 export const SEO_PAGES: Record<string, SeoPage>;
 export const COMPARISONS: Record<string, Comparison>;
 export const COMPARISON_PATHS: string[];

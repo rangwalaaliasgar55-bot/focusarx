@@ -45,6 +45,18 @@
 
 export const LAST_REVIEWED = "2026-08-29";
 
+import { MINUTE_TIMER_DURATIONS, MINUTE_TIMER_PAGES } from "./minute-timers.mjs";
+
+/**
+ * Minute-length timer pages (/5-minute-timer …). Content lives in
+ * ./minute-timers.mjs so each duration keeps its own copy in one file; the
+ * entries are merged into SEO_PAGES below, which is what the prerenderer,
+ * the route table and the SEO contract tests all read.
+ */
+export const MINUTE_TIMERS = MINUTE_TIMER_DURATIONS.map(
+  (m) => `/${m}-minute-timer|${m} minute timer`,
+);
+
 /** Reusable related-link sets, so internal linking is dense and consistent. */
 const TOOLS = [
   "/pomodoro-timer|Pomodoro timer",
@@ -136,7 +148,7 @@ export const SEO_PAGES = {
       ["Does the timer work offline?", "FocusArx is installable as a PWA, so the timer keeps running after it has loaded. Session history syncs when you are back online."],
     ],
     cta: { href: "/signup", label: "Start a free Pomodoro session" },
-    related: ["/pomodoro-guide|Pomodoro technique: complete guide", ...TOOLS.slice(1), ...GUIDES.slice(0, 3)],
+    related: ["/pomodoro-guide|Pomodoro technique: complete guide", ...MINUTE_TIMERS, ...TOOLS.slice(1), ...GUIDES.slice(0, 3)],
     lastReviewed: LAST_REVIEWED,
     sources: [
       "Francesco Cirillo, The Pomodoro Technique (late 1980s) — origin of the 25/5 interval.",
@@ -188,7 +200,7 @@ export const SEO_PAGES = {
       ["Can I study with friends?", "Yes. Public and private study rooms run synchronised timers, so a group works the same block together."],
     ],
     cta: { href: "/study-calculator", label: "Build a revision schedule free" },
-    related: ["/study-calculator|Study time calculator", "/exam|Exam prep guides", ...TOOLS.slice(0, 2), ...ROOMS.slice(0, 2), "/study-techniques|Best study techniques", ...GUIDES.slice(3, 5)],
+    related: ["/study-calculator|Study time calculator", "/exam|Exam prep guides", ...MINUTE_TIMERS.slice(2), ...TOOLS.slice(0, 2), ...ROOMS.slice(0, 2), "/study-techniques|Best study techniques", ...GUIDES.slice(3, 5)],
     lastReviewed: LAST_REVIEWED,
     sources: [
       "Hermann Ebbinghaus, forgetting curve and spacing (1885); replicated across the modern spacing-effect literature.",
@@ -245,7 +257,7 @@ export const SEO_PAGES = {
       ["How do I know if I am doing deep work?", "If you could do it while checking messages, it is not deep work. Deep work requires your full attention and produces something you could not produce distracted."],
     ],
     cta: { href: "/signup", label: "Track your deep work hours free" },
-    related: ["/science-of-deep-work|The science of deep work", "/focus-guide|How to focus", ...TOOLS.slice(0, 2), ...GUIDES.slice(3, 5)],
+    related: ["/science-of-deep-work|The science of deep work", "/focus-guide|How to focus", ...MINUTE_TIMERS.slice(3), ...TOOLS.slice(0, 2), ...GUIDES.slice(3, 5)],
     lastReviewed: LAST_REVIEWED,
     sources: [
       "Cal Newport, Deep Work (2016) — definition and the four scheduling philosophies.",
@@ -706,6 +718,10 @@ export const SEO_PAGES = {
     lastReviewed: LAST_REVIEWED,
   },
 };
+
+// Minute-length timer pages join the same map, so every consumer
+// (prerender manifest, seo-landing, contract tests, sitemap) reads one list.
+Object.assign(SEO_PAGES, MINUTE_TIMER_PAGES);
 
 /**
  * Comparison pages. Rendered by src/pages/comparison.tsx and mirrored in

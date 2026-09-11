@@ -127,6 +127,14 @@ const TOOL_PAGES: Page[] = [
   { url: "/study-method-quiz", changefreq: "monthly", priority: "0.7" },
   { url: "/break-free", changefreq: "weekly", priority: "0.7" },
   { url: "/breathe", changefreq: "monthly", priority: "0.5" },
+  // Minute-length timers. Each duration is its own search intent ("15 minute
+  // timer", "45 minute timer online") with its own copy, FAQ and pre-armed
+  // countdown — see artifacts/focusarx/src/content/minute-timers.mjs.
+  { url: "/5-minute-timer", changefreq: "monthly", priority: "0.8" },
+  { url: "/10-minute-timer", changefreq: "monthly", priority: "0.8" },
+  { url: "/15-minute-timer", changefreq: "monthly", priority: "0.8" },
+  { url: "/30-minute-timer", changefreq: "monthly", priority: "0.8" },
+  { url: "/45-minute-timer", changefreq: "monthly", priority: "0.8" },
 ];
 
 /**

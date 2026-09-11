@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { PageSEO } from "@/components/PageSEO";
 import { AdSlot } from "@/components/AdSlot";
 import { Link } from "wouter";
@@ -39,7 +40,14 @@ function paragraph(p: string | string[]) {
   ));
 }
 
-export default function SeoLandingPage({ path }: { path: string }) {
+/**
+ * `heroSlot` renders inside the hero, directly under the answer-first block:
+ * the minute-timer pages put a *working* countdown there so the page is the
+ * tool and not a description of it. The prerendered HTML has no slot (it is
+ * static by construction) and React adds the live timer on hydration — the
+ * copy crawlers read is unchanged, so there is no content divergence.
+ */
+export default function SeoLandingPage({ path, heroSlot }: { path: string; heroSlot?: ReactNode }) {
   const entry = SEO_PAGES[path] as SeoPage | undefined;
 
   // Every path here is statically registered in App.tsx, so a miss means the
@@ -90,6 +98,8 @@ export default function SeoLandingPage({ path }: { path: string }) {
           <p className="mt-6 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 text-[15px] leading-relaxed text-[var(--foreground)]">
             {entry.answerFirst}
           </p>
+
+          {heroSlot}
 
           <Link
             href={entry.cta.href}

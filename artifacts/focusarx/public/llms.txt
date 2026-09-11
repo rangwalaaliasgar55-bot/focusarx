@@ -24,6 +24,11 @@ claims. See https://www.focusarx.site/evidence
 - [Pomodoro Timer](https://www.focusarx.site/pomodoro-timer): free 25/5 browser timer with custom intervals from 10–180 minutes, session history and streaks. No signup required to start.
 - [Focus Timer](https://www.focusarx.site/focus-timer): focus and deep work sessions with Focus Tokens, city progression and analytics.
 - [Study Timer](https://www.focusarx.site/study-timer): timed study blocks tied to subjects, for exam revision planning.
+- [5 Minute Timer](https://www.focusarx.site/5-minute-timer): pre-armed five-minute countdown for micro-breaks, task transitions and the two-minute rule.
+- [10 Minute Timer](https://www.focusarx.site/10-minute-timer): pre-armed ten-minute countdown built around the ten-minute rule for starting tasks you are avoiding.
+- [15 Minute Timer](https://www.focusarx.site/15-minute-timer): pre-armed fifteen-minute countdown for active-recall revision sprints — flashcards, past-paper questions, formula drills.
+- [30 Minute Timer](https://www.focusarx.site/30-minute-timer): pre-armed half-hour countdown for repeatable one-task deep work blocks, scored and logged.
+- [45 Minute Timer](https://www.focusarx.site/45-minute-timer): pre-armed forty-five-minute countdown matching a school period or one exam section, for mock-paper practice.
 - [Study Time Calculator](https://www.focusarx.site/study-calculator): enter an exam date and topic list, get a dated revision schedule with spaced repeats.
 - [Study Method Quiz](https://www.focusarx.site/study-method-quiz): two minutes to match a study method to your schedule and goals.
 - [60-Second Scroll Reset](https://www.focusarx.site/break-free): a short interruption pattern for breaking a distraction loop.

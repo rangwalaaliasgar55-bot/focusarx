@@ -260,7 +260,14 @@ describe("SEO contract: sitemap, routes, prerender manifest and robots.txt agree
     const prerendered = await prerenderPaths();
     const routes = appRoutes();
     const reachable = new Set([...prerendered, ...routes.publicRoutes]);
-    const isReachable = (t: string) => reachable.has(t) || routeCovers(t, routes);
+    // Compare on the path only: a CTA may carry a deep-link query
+    // (`/focus?duration=45` pre-arms the timer), which resolves to the /focus
+    // route. The query is intent, not a different page — scripts/seo-validate.mjs
+    // strips it the same way before checking for broken links.
+    const isReachable = (t: string) => {
+      const path = t.split(/[?#]/)[0] || "/";
+      return reachable.has(path) || routeCovers(path, routes);
+    };
 
     const mod = (await import(SEO_PAGES_MJS)) as {
       SEO_PAGES: Record<string, { related: string[]; cta: { href: string } }>;

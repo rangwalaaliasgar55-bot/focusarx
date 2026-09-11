@@ -2,6 +2,7 @@ import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 import { PageTransition } from "@/components/PageTransition";
 import { Link } from "wouter";
 import { Timer, Crown, Zap, BarChart2, Sparkles, CheckCircle } from "lucide-react";
+import { MINUTE_TIMERS } from "@/content/seo-pages.mjs";
 
 export default function FocusTimerPage() {
   return (
@@ -62,6 +63,31 @@ export default function FocusTimerPage() {
               ].map((t) => (
                 <div key={t} className="flex items-start gap-2"><CheckCircle size={14} className="text-[var(--success)] mt-0.5 shrink-0" /><span className="text-[var(--foreground-muted)]">{t}</span></div>
               ))}
+            </div>
+          </div>
+
+          {/* Timer lengths — each duration is its own page with its own copy
+              and a countdown pre-armed to that length. Linked from here (and
+              from /pomodoro-timer + /study-timer) so no length is reachable
+              only through the sitemap. */}
+          <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-1)] p-6">
+            <h2 className="text-lg font-bold mb-2 flex items-center gap-2"><Timer size={18} className="text-[var(--brand-400)]" /> Start at a set length</h2>
+            <p className="text-sm text-[var(--foreground-muted)] mb-4">
+              Each length opens the timer already set to it — no configuration step.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {MINUTE_TIMERS.map((pair) => {
+                const [href, label] = String(pair).split("|");
+                return (
+                  <Link
+                    key={href}
+                    href={href!}
+                    className="min-h-[44px] inline-flex items-center rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] px-4 text-sm font-semibold text-[var(--foreground)] hover:border-[var(--brand-500)] hover:text-[var(--brand-strong)]"
+                  >
+                    {label}
+                  </Link>
+                );
+              })}
             </div>
           </div>
 
