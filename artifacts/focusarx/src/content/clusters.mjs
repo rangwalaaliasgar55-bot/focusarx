@@ -91,6 +91,8 @@ export const CLUSTERS = [
       { path: "/study-techniques", label: "Best study techniques" },
       { path: "/study-method-quiz", label: "Study method quiz" },
       { path: "/adhd-focus-tools", label: "ADHD-friendly focus tools" },
+      { path: "/study-timer-for-medical-students", label: "Study timer for medical students" },
+      { path: "/focus-timer-for-programmers", label: "Focus timer for programmers" },
       // One dedicated timer page per exam that has a guide.
       ...EXAM_SLUG_ORDER.filter((slug) => FUNNEL_ANGLES[slug]).map((slug) => ({
         path: `/pomodoro-timer-for/${slug}`,
@@ -124,6 +126,7 @@ export const CLUSTERS = [
       { path: "/study-with-me", label: "Study with me sessions" },
       { path: "/virtual-study-room", label: "Virtual study room" },
       { path: "/study-rooms", label: "Live study rooms" },
+      { path: "/focus-timer-for-programmers", label: "Focus timer for programmers" },
       ...comparisonSpokes("deep-work"),
       ...blogSpokes("deep-work"),
       { path: "/guides", label: "Every guide" },
@@ -149,6 +152,7 @@ export const CLUSTERS = [
       { path: "/feynman-technique", label: "The Feynman technique" },
       { path: "/study-method-quiz", label: "Study method quiz" },
       { path: "/study-calculator", label: "Study time calculator" },
+      { path: "/study-timer-for-medical-students", label: "Study timer for medical students" },
       { path: "/study-timer", label: "Study timer" },
       ...comparisonSpokes("exams"),
       { path: "/guides", label: "Every guide" },

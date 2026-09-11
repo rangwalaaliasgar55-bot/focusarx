@@ -485,6 +485,162 @@ export const SEO_PAGES = {
   // ══════════════════════════════════════════════════════════════
   // TRUST PAGES — the substantiation the audits require
   // ══════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════════
+  // AUDIENCE PAGES — the same timer, described in the reader's own day
+  // ══════════════════════════════════════════════════════════════
+  // "study timer" is a head term with a thousand intents behind it. Someone in
+  // their second year of MBBS and someone debugging a race condition both want
+  // a timer, but neither is served by copy that talks about neither of them.
+  // These pages are not variants: each one is written around the shape of that
+  // reader's day, and each links to the tools and guides that day actually uses.
+  "/study-timer-for-medical-students": {
+    kind: "guide",
+    title: "Study timer for medical students (2026)",
+    description:
+      "A free study timer for MBBS, NEET PG and USMLE prep: 50-minute blocks for question banks, 10-minute card bursts, and a log of what you actually covered.",
+    h1: "Study timer for medical students",
+    lead: "Medical prep is volume under a clock — thousands of cards, a fixed exam date, and clinical duties that eat the day. This timer is set up for exactly that: long blocks for question banks, short bursts for spaced repetition, and a record of what you covered rather than how long you sat.",
+    answerFirst:
+      "Use 50-minute blocks for question banks and 10-minute bursts for spaced-repetition cards. Each block should end with recall, not rereading: closing the book and writing what you remembered is what makes the next pass faster. FocusArx runs both lengths free in the browser and logs what you covered.",
+    sections: [
+      {
+        h: "How long should a study block be in MBBS or NEET PG prep?",
+        p: [
+          "Fifty minutes is the useful default. It is long enough to get through a set of 20 to 30 questions with explanations, which is the unit that actually builds exam-day pattern recognition, and short enough that a ward call or a family interruption does not cost the whole session.",
+          "Drop to 25 minutes when you are reviewing material you already know, and go to 90 only for full-length mock sections — the length should match the paper, not your ambition. A three-hour 'study day' with no structure produces far fewer retrieval reps than four timed blocks with breaks.",
+        ],
+      },
+      {
+        h: "How do you fit card reviews around clinical rotations?",
+        p: [
+          "Reviews are small and frequent, so they fit into the gaps: ten minutes before rounds, ten after lunch, ten before bed. What matters is that they happen on the day the cards are due, because the spacing effect depends on the interval, not on the total time spent.",
+          "Keep a separate block once a day for new material. Mixing new cards into a gap slot is how a ten-minute review becomes forty minutes and then does not happen at all.",
+        ],
+      },
+      {
+        h: "Why does rereading feel productive and score badly?",
+        p: [
+          "Rereading produces fluency — the page looks familiar, so it feels learned. Familiarity is not retrieval, and exams ask for retrieval. In the studies that compared techniques, practice testing and distributed practice came out on top while rereading and highlighting ranked near the bottom.",
+          "The fix is cheap: end every block by writing down what you can recall without the book, then check. That single step converts a reading session into a testing session.",
+        ],
+      },
+      {
+        h: "How should you time a mock paper?",
+        p: [
+          "Time it the way the exam runs it. If the paper gives 180 minutes for 200 questions, run a 180-minute block with no pausing, no phone and the same start time as the real exam. Practising at 9 AM when the paper is at 9 AM trains the alertness, not just the content.",
+          "Score it afterwards, then spend a separate block on the errors only. The mock tells you what is broken; the error block is what fixes it.",
+        ],
+      },
+      {
+        h: "What is worth logging after each block?",
+        p: [
+          "Two numbers: the topic and the accuracy. Hours logged feel like progress and tell you nothing; 'Cardiology, 24 of 30 correct' tells you what to schedule next.",
+          "FocusArx stores the task against the completed session, so a week of blocks turns into a list you can read rather than a feeling you have to guess at.",
+        ],
+      },
+    ],
+    faq: [
+      ["Is the study timer free?", "Yes. The timer, task list, streaks and session history are free and stay free. Premium features such as custom 10 to 180-minute presets and longer analytics are unlocked with Focus Tokens earned from completed sessions — there is no payment step."],
+      ["Can I set 50/10 blocks instead of 25/5?", "Yes. Custom intervals run from 10 to 180 minutes, so 50/10 for question banks and 90 or 180 for mock sections both work."],
+      ["Does it work offline in a hospital?", "FocusArx is installable as a PWA, so once it has loaded the timer keeps running without a connection. Sessions sync when you are back online — useful on a campus where the ward wifi does not reach."],
+      ["Is it useful for USMLE or PLAB prep as well as NEET PG?", "The method is the same anywhere: timed question blocks, spaced cards and error review. What changes is the block length, which you set to match the section timing of the exam you are sitting."],
+      ["Can I study alongside other people in the same block?", "Yes. Public study rooms run shared intervals with other people working at the same time, which is the body-doubling effect — cameras are optional and rooms are moderated."],
+    ],
+    cta: { href: "/signup", label: "Start a study block free" },
+    related: [
+      "/study-timer|Study timer",
+      "/pomodoro-timer|Pomodoro timer",
+      "/30-minute-timer|30 minute timer",
+      "/exam/neet-ug|NEET UG study plan",
+      "/two-hour-study-method|The 2-hour study method",
+      "/study-techniques|Best study techniques",
+      "/study-calculator|Study time calculator",
+      "/body-doubling|Body doubling explained",
+      "/adhd-focus-tools|ADHD-friendly focus tools",
+      "/focus-timer-for-programmers|Focus timer for programmers",
+    ],
+    lastReviewed: LAST_REVIEWED,
+    sources: [
+      "Dunlosky et al., 'Improving Students' Learning With Effective Learning Techniques' (2013) — practice testing and distributed practice rated highest-utility, rereading and highlighting lowest.",
+      "Karpicke & Roediger, 'The Critical Importance of Retrieval for Learning', Science (2008) — repeated retrieval beat repeated study for long-term recall.",
+      "Cepeda et al., 'Distributed Practice in Verbal Recall Tasks' (2006) — the spacing effect across 254 studies involving 14,000 learners.",
+    ],
+  },
+
+  "/focus-timer-for-programmers": {
+    kind: "guide",
+    title: "Focus timer for programmers (2026)",
+    description:
+      "A free focus timer for coding: 50 to 90-minute deep work blocks, break reminders that wait for a green build, and a log of which hours produced work.",
+    h1: "Focus timer for programmers",
+    lead: "Code has a ramp-up cost. Reloading the shape of a system into your head takes ten minutes or more before you write anything useful, which is why a timer that ends at 25 minutes can cost more than it returns. This one is built for long blocks and for protecting them.",
+    answerFirst:
+      "Programmers need 50 to 90-minute blocks, not 25. Reloading the shape of a codebase takes ten minutes or more, so a short interval ends just as the work becomes cheap. Write the task down before the block, silence notifications, and let the break wait for a green build.",
+    sections: [
+      {
+        h: "Why is 25 minutes usually too short for code?",
+        p: [
+          "The Pomodoro interval was designed for tasks that are easy to start and easy to stop. Debugging is neither: by minute twenty you have usually just built the mental model of the failure, and the timer then asks you to drop it.",
+          "Use 25-minute sprints for the work that is genuinely granular — triaging issues, writing tests for one function, reviewing a small diff. Use 50 to 90 minutes for anything where the state lives in your head.",
+        ],
+      },
+      {
+        h: "How long does it take to get back into a codebase after an interruption?",
+        p: [
+          "Gloria Mark's interruption research puts the resumption lag at roughly twenty minutes, and the interrupted work tends to be finished faster but under measurably more stress and effort. For code the lag is worse, because the state you are holding is not a document position but a hypothesis about a system.",
+          "The practical implication is that a block is only as good as its perimeter. One notification in minute forty can cost the remaining twenty.",
+        ],
+      },
+      {
+        h: "How do you protect a block from messages and standups?",
+        p: [
+          "Batch them. Put the block on the calendar as if it were a meeting, set your status once at the start, and answer everything in the break. If a message truly cannot wait twenty minutes, it is an incident, and incidents deserve their own process rather than your attention.",
+          "Write the task down before you start — one sentence, specific enough that you could hand it to someone else. A block spent deciding what to work on is a block that gets interrupted.",
+        ],
+      },
+      {
+        h: "What should you do in the break between blocks?",
+        p: [
+          "Anything that is not a screen with a feed. Stand up, walk, get water, look at something far away. The point is to let attention residue decay rather than to replace one stream of input with another.",
+          "If you are mid-thought, write one line about where you stopped before you stand up. Re-entry after a break costs far less when the state is on paper.",
+        ],
+      },
+      {
+        h: "How do you know which hours actually produced work?",
+        p: [
+          "Log the task against the block. After a week you can see whether the 9 AM block shipped code and the 4 PM block produced tabs, which is more useful than any estimate of how many hours you 'worked'.",
+          "FocusArx scores each completed session and keeps the history, so the pattern is visible rather than something you have to remember. Teams that work the same hours can differ by a factor of two in how many of them were uninterrupted.",
+        ],
+      },
+    ],
+    faq: [
+      ["Is the focus timer free?", "Yes. The timer, tasks, streaks and session history are free. Custom 10 to 180-minute presets and longer analytics unlock with Focus Tokens earned from completed sessions rather than money."],
+      ["Can I run 90-minute or 2-hour blocks?", "Yes. Intervals run from 10 to 180 minutes, so 50/10, 90/20 and a full two-hour deep block are all one setting."],
+      ["Does it work without a connection?", "FocusArx installs as a PWA and keeps timing offline, which matters on a train, in a data centre or anywhere the network is worse than your laptop."],
+      ["Does it record which task a block went to?", "Yes. Each session is stored against the task you set, so the log reads as work completed rather than time elapsed."],
+      ["Is there a way to work alongside other people?", "Public study rooms run shared intervals with others working at the same time — the body-doubling effect, without a call. Cameras are optional."],
+    ],
+    cta: { href: "/signup", label: "Start a deep work block free" },
+    related: [
+      "/focus-timer|Free focus timer",
+      "/deep-work-guide|Deep work guide",
+      "/science-of-deep-work|Neuroscience of deep work",
+      "/45-minute-timer|45 minute timer",
+      "/30-minute-timer|30 minute timer",
+      "/two-hour-study-method|The 2-hour study method",
+      "/stop-scrolling|How to stop scrolling",
+      "/body-doubling|Body doubling explained",
+      "/comparison/focusarx-vs-toggl-track|FocusArx vs Toggl Track",
+      "/study-timer-for-medical-students|Study timer for medical students",
+    ],
+    lastReviewed: LAST_REVIEWED,
+    sources: [
+      "Mark, Gudith & Klocke, 'The Cost of Interrupted Work: More Speed and Stress', CHI (2008) — interrupted work finishes faster but costs more stress, effort and time pressure.",
+      "Leroy, 'Why Is It So Hard to Do My Work?', Journal of Vocational Behavior (2009) — attention residue persists after switching away from a task.",
+      "Newport, Deep Work (2016) — the ramp-up cost of shallow work and the case for long uninterrupted blocks.",
+    ],
+  },
+
   "/evidence": {
     kind: "trust",
     title: "Our Evidence and Claim Policy | FocusArx",

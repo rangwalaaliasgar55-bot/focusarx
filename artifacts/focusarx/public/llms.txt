@@ -44,6 +44,8 @@ claims. See https://www.focusarx.site/evidence
 - [Body Doubling](https://www.focusarx.site/body-doubling): why working alongside someone else makes starting easier, and how to use it online.
 - [How to Focus with ADHD](https://www.focusarx.site/adhd-focus-tips): strategies designed around external structure. Workflow design, not medical advice.
 - [ADHD-Friendly Focus Tools](https://www.focusarx.site/adhd-focus-tools): visual timers, body doubling rooms, task breakdown and recovery-friendly streaks.
+- [Study Timer for Medical Students](https://www.focusarx.site/study-timer-for-medical-students): 50-minute blocks for question banks, 10-minute card bursts and mock-paper timing — MBBS, NEET PG and USMLE prep.
+- [Focus Timer for Programmers](https://www.focusarx.site/focus-timer-for-programmers): 50–90 minute deep work blocks, how to protect them from interruptions, and which hours actually produced work.
 - [How to Stop Procrastinating](https://www.focusarx.site/stop-procrastinating): why procrastination happens and twelve methods to interrupt it.
 - [How to Stop Scrolling](https://www.focusarx.site/stop-scrolling): why the loop persists and a 60-second reset that works.
 - [Best Music for Studying](https://www.focusarx.site/focus-music): what the evidence says about lo-fi, binaural beats and silence.

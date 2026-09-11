@@ -404,21 +404,41 @@ export const ROUTES = [
     path: "/adhd-focus-tips",
     title: "How to Focus with ADHD: 15 Working Strategies",
     description:
-      "Practical focus strategies that actually work for ADHD brains — body doubling, the 10-minute rule, dopamine-friendly rewards, timers, and structure.",
+      "Practical focus strategies that work with an ADHD brain — body doubling, the ten-minute rule, visible timers, immediate rewards and structure.",
     h1: "How to focus with ADHD: 15 strategies that work",
     lead: "ADHD isn't a willpower problem — it's a dopamine and attention-regulation difference. These strategies work with your brain instead of against it.",
+    // Answer-first: the whole method in one quotable block, matching the
+    // paragraph the page renders above its table of contents.
+    answerFirst:
+      "Focus with ADHD improves when starting is made cheap, time is made visible and finishing is rewarded immediately. Practically that means a ten-minute first block, a timer you can see, one tab open, body doubling where possible, and a real break afterwards. The fifteen strategies below are ordered by how much of that they solve.",
     sections: [
       {
-        h: "Why ADHD focus feels different",
-        p: "ADHD affects task initiation, working memory, time perception, and motivation regulation. Interest, novelty, urgency, and challenge — not importance — engage the ADHD brain, and weak dopamine signaling makes boring tasks neurologically hard to start.",
+        h: "Why does focus feel different with ADHD?",
+        p: [
+          "ADHD affects the executive functions: task initiation, working memory, time perception, and the regulation of attention and motivation. Two things follow. First, interest, novelty, urgency and challenge engage the ADHD brain — importance does not. A boring-but-critical task can feel impossible to start while a fascinating one absorbs you for hours.",
+          "Second, dopamine signalling typically runs lower, so the reward for starting something tedious feels distant and weak. That is why shame-based motivation backfires: the problem was never effort or character. The fix is engineering — an environment where starting is easy, stimulation is managed and finishing is rewarded.",
+        ],
       },
       {
-        h: "The core strategies",
-        p: "Body doubling (working alongside someone), the 10-minute rule, external visible timers for time blindness, immediate rewards, one-tab environments, laughably small first steps, designed urgency (not panic), capture lists instead of memory, protected sleep, movement before blocks, implementation intentions, real non-phone breaks, energy-matched scheduling, accountability partners — and professional treatment where appropriate.",
+        h: "Which 15 strategies actually work?",
+        p: [
+          "The ones that lower the cost of starting: body doubling (working alongside someone, in person or in a study room), the ten-minute rule, laughably small first steps, and capture lists so working memory is not holding the plan.",
+          "The ones that make time visible: an external timer you can see rather than a phone clock, alarms as bookends around a block, and calendar time blocking instead of a to-do list with no hours attached.",
+          "The ones that supply dopamine on schedule: immediate rewards at the end of a block, designed urgency that is chosen rather than panicked, novelty in the environment, and accountability to a person who will notice.",
+          "And the ones that protect capacity: sleep at a consistent wake time, movement before a block, single-tab working, real non-phone breaks, energy-matched scheduling of hard tasks, implementation intentions written the night before, and professional treatment where appropriate.",
+        ],
       },
       {
-        h: "A daily ADHD focus system",
-        p: "One 10-minute morning session before anything else, visible timer blocks with real breaks, a two-minute evening review, and a consistent wake time. Start absurdly small; grow the loop weekly.",
+        h: "How do you build a daily focus system in 4 steps?",
+        p: [
+          "One ten-minute session before anything else, a visible timer around each block with a real break after it, a two-minute evening review that writes down tomorrow's first step, and a consistent wake time. Start absurdly small and grow the loop weekly — a system that survives a bad day is worth more than one that needs a good one.",
+        ],
+      },
+      {
+        h: "Which ADHD focus myths should you drop?",
+        p: [
+          "“Try harder” — effort is not the missing ingredient; structure and dopamine are. “You just need discipline” — discipline is finite in every brain and ADHD taxes it twice. “Hyperfocus means you can focus when you want to” — hyperfocus is interest-driven and involuntary, and it burns out the evening it swallows. “Music and video always distract” — for some ADHD brains a controlled level of background stimulation improves regulation, so experiment and measure.",
+        ],
       },
     ],
     article: true,
@@ -428,12 +448,25 @@ export const ROUTES = [
       ["How long should a Pomodoro be with ADHD?", "Start with 10–15 minutes — short enough that starting feels safe — and extend gradually toward 25. The timer's job is to get you started, not to stop you."],
       ["Why do I procrastinate so much with ADHD?", "ADHD procrastination is mostly a dopamine and task-initiation problem, not laziness. Solutions lower activation energy (tiny first steps, the 2-minute rule) or add dopamine (rewards, novelty, urgency, accountability)."],
       ["What is time blindness and how do I manage it?", "Time blindness is difficulty sensing elapsed time or task duration. Externalize it: visible timers, alarms as bookends, calendar time blocking, and short commitments."],
+      ["Is this medical advice?", "No. It is workflow design drawn from the clinical literature on executive function. Diagnosis and treatment belong with a clinician who knows you."],
     ],
     related: [
       "/stop-procrastinating|How to stop procrastinating",
+      "/adhd-focus-tools|ADHD-friendly focus tools",
+      "/body-doubling|Body doubling explained",
+      "/10-minute-timer|10 minute timer",
       "/study-with-me|Study with me sessions",
       "/focus-guide|How to focus: complete guide",
+      "/study-timer-for-medical-students|Study timer for medical students",
+      "/focus-timer-for-programmers|Focus timer for programmers",
       "/guides|All guides",
+    ],
+    lastReviewed: "2026-08-29",
+    sources: [
+      "Russell A. Barkley, Taking Charge of ADHD (3rd ed., Guilford Press, 2020) — ADHD as a disorder of self-regulation and executive function rather than of effort.",
+      "Volkow N.D. et al., 'Dopamine transporter densities in adults with attention deficit hyperactivity disorder', American Journal of Psychiatry (2009) — reduced dopamine signalling.",
+      "American Academy of Pediatrics, Clinical Practice Guideline for the Diagnosis, Evaluation, and Treatment of ADHD (2019) — behavioural interventions alongside medication where prescribed.",
+      "Fabiano G.A. et al., 'A meta-analysis of behavioral treatments for attention-deficit/hyperactivity disorder' (2009) — structure, immediate feedback and external cues as the active ingredients.",
     ],
   },
   {

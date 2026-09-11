@@ -81,7 +81,7 @@ export default function AdhdFocusPage() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,_var(--rgba-124-58-237-0_18),_transparent_70%)]" />
         <Section className="relative py-20 text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--brand-600)]/30 bg-[var(--brand-600)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--brand-400)]">
-            <Sparkles size={12} /> Free Guide · Updated 2026
+            <Sparkles size={12} /> Free guide · Last updated 29 August 2026
           </div>
           <h1 className="mb-4 text-3xl font-semibold leading-tight text-[var(--foreground)] sm:text-5xl">
             How to Focus with ADHD:
@@ -94,12 +94,24 @@ export default function AdhdFocusPage() {
         </Section>
       </div>
 
+      {/* Answer first — the whole method in one block, quotable out of context
+          by an AI Overview or a featured snippet. */}
+      <Section className="py-8">
+        <p className="rounded-2xl border border-[var(--rgba-124-58-237-0_18)] bg-[var(--rgba-124-58-237-0_05)] p-6 text-base leading-relaxed text-[var(--foreground)]">
+          Focus with ADHD improves when starting is made cheap, time is made
+          visible and finishing is rewarded immediately. Practically that means
+          a ten-minute first block, a timer you can see, one tab open, body
+          doubling where possible, and a real break afterwards. The fifteen
+          strategies below are ordered by how much of that they solve.
+        </p>
+      </Section>
+
       {/* TOC */}
       <Section className="py-8">
         <nav aria-label="Table of contents" className="rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-124-58-237-0_04)] p-6">
           <p className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[var(--brand-400)]"><ListChecks size={14} /> In this guide</p>
           <ol className="grid gap-x-6 gap-y-2 text-sm text-[var(--foreground-muted)] sm:grid-cols-2">
-            {[["#why", "1. Why ADHD focus feels different"], ["#strategies", "2. The 15 strategies"], ["#systems", "3. Building a daily system"], ["#tools", "4. Tools that carry the load"], ["#myths", "5. Myths to drop"], ["#faq", "6. FAQ"]].map(([href, label]) => (
+            {[["#why", "1. Why does focus feel different?"], ["#strategies", "2. Which 15 strategies work?"], ["#systems", "3. How do you build a daily system?"], ["#tools", "4. Which tools carry the load?"], ["#myths", "5. Which myths should you drop?"], ["#sources", "6. Sources"], ["#faq", "7. FAQ"]].map(([href, label]) => (
               <li key={href}><a href={href} className="transition-colors hover:text-[var(--brand-400)]">{label}</a></li>
             ))}
           </ol>
@@ -108,7 +120,7 @@ export default function AdhdFocusPage() {
 
       {/* 1. Why */}
       <Section id="why">
-        <H2>Why ADHD focus feels different</H2>
+        <H2>Why does focus feel different with ADHD?</H2>
         <P>
           ADHD affects the brain's executive functions — task initiation, working memory, time perception, and the regulation of attention and motivation. Two things follow from this. First, <strong className="text-[var(--foreground)]">interest, novelty, urgency, and challenge</strong> are what engage the ADHD brain, not importance. A boring-but-critical task can feel neurologically impossible to start, while a fascinating one can absorb you for hours (hyperfocus).
         </P>
@@ -122,7 +134,7 @@ export default function AdhdFocusPage() {
 
       {/* 2. Strategies */}
       <Section id="strategies">
-        <H2>The 15 strategies</H2>
+        <H2>Which 15 strategies actually work?</H2>
 
         <H3><span className="flex items-center gap-2"><Users size={18} className="text-[var(--brand-400)]" /> 1. Body doubling</span></H3>
         <P>
@@ -202,7 +214,7 @@ export default function AdhdFocusPage() {
 
       {/* 3. System */}
       <Section id="systems">
-        <H2>A daily ADHD focus system in 4 steps</H2>
+        <H2>How do you build a daily focus system in 4 steps?</H2>
         <P>Individual tactics fade; a system compounds. Here's a minimal daily loop:</P>
         <div className="my-6 space-y-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-6">
           {[
@@ -224,7 +236,7 @@ export default function AdhdFocusPage() {
 
       {/* 4. Tools */}
       <Section id="tools">
-        <H2>How FocusArx is built for ADHD brains</H2>
+        <H2>Which tools carry the load for an ADHD brain?</H2>
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           {[
             { icon: <Timer className="text-[var(--palette-purple-400)]" />, t: "Flexible short sessions", d: "Start at 10 minutes and grow. The timer is visible, external, and judgment-free." },
@@ -250,9 +262,72 @@ export default function AdhdFocusPage() {
 
       {/* 5. Myths */}
       <Section id="myths">
-        <H2>ADHD focus myths to drop</H2>
+        <H2>Which ADHD focus myths should you drop?</H2>
         <P>
           <strong className="text-[var(--foreground)]">"Try harder."</strong> Effort isn't the missing ingredient; structure and dopamine are. Systems beat willpower, every time. <strong className="text-[var(--foreground)]">"You just need discipline."</strong> Discipline is a finite resource in every brain, and ADHD taxes it doubly — the goal is to need less of it. <strong className="text-[var(--foreground)]">"Hyperfocus means you can focus when you want to."</strong> Hyperfocus is interest-driven and involuntary; it can't be aimed at boring tasks, and it burns you out when it swallows your evening. <strong className="text-[var(--foreground)]">"Music/videos always distract."</strong> For some ADHD brains, the right level of background stimulation (like <Link href="/focus-music" className="text-[var(--brand-400)] hover:underline">certain focus music</Link>) actually improves regulation — experiment and measure.
+        </P>
+      </Section>
+
+      {/* Sources — visible attribution. Every claim above that is not
+          product description comes from one of these. */}
+      <Section id="sources">
+        <H2>What is this guide based on?</H2>
+        <P>
+          The strategies here are drawn from the clinical and educational
+          literature on ADHD as an executive-function disorder, not from
+          productivity folklore. Four sources do most of the work:
+        </P>
+        <ul className="mt-4 space-y-3 text-sm leading-relaxed text-[var(--foreground-muted)]">
+          <li>
+            Russell A. Barkley, <em>Taking Charge of ADHD</em> (3rd ed., Guilford
+            Press, 2020) — ADHD as a disorder of self-regulation and executive
+            function rather than of effort or knowledge.{" "}
+            <a
+              href="https://chadd.org/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[var(--brand-400)] hover:underline"
+            >
+              CHADD overview ↗
+            </a>
+          </li>
+          <li>
+            Volkow N.D. et al., “Dopamine transporter densities in adults with
+            attention deficit hyperactivity disorder”, <em>American Journal of
+            Psychiatry</em> (2009) — reduced dopamine signalling, which is why
+            interest and urgency beat importance.{" "}
+            <a
+              href="https://pubmed.ncbi.nlm.nih.gov/?term=Volkow+dopamine+transporter+densities+ADHD"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[var(--brand-400)] hover:underline"
+            >
+              PubMed ↗
+            </a>
+          </li>
+          <li>
+            American Academy of Pediatrics, <em>Clinical Practice Guideline for
+            the Diagnosis, Evaluation, and Treatment of ADHD in Children and
+            Adolescents</em> (2019) — behavioural interventions alongside
+            medication where prescribed.{" "}
+            <a
+              href="https://www.aap.org/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[var(--brand-400)] hover:underline"
+            >
+              AAP ↗
+            </a>
+          </li>
+          <li>
+            Fabiano G.A. et al., “A meta-analysis of behavioral treatments for
+            attention-deficit/hyperactivity disorder” (2009) — structure,
+            immediate feedback and external cues as the active ingredients.
+          </li>
+        </ul>
+        <P>
+          This page is workflow design, not medical advice. Diagnosis and
+          treatment belong with a clinician who knows you.
         </P>
       </Section>
 
@@ -263,7 +338,7 @@ export default function AdhdFocusPage() {
           {FAQS.map((f) => <FAQ key={f.q} {...f} />)}
         </div>
         <p className="mt-10 text-sm text-[var(--foreground-muted)]">
-          Looking for more? Browse every guide in the <Link href="/guides" className="text-[var(--brand-400)] hover:underline">FocusArx guide library</Link>, or read our guides on <Link href="/stop-procrastinating" className="text-[var(--brand-400)] hover:underline">how to stop procrastinating</Link> and <Link href="/study-techniques" className="text-[var(--brand-400)] hover:underline">the best study techniques</Link>.
+          Looking for more? Try <Link href="/adhd-focus-tools" className="text-[var(--brand-400)] hover:underline">ADHD-friendly focus tools</Link>, <Link href="/body-doubling" className="text-[var(--brand-400)] hover:underline">body doubling</Link> and the <Link href="/10-minute-timer" className="text-[var(--brand-400)] hover:underline">10-minute timer</Link> for starting. If you are studying for medicine or writing code all day, see the <Link href="/study-timer-for-medical-students" className="text-[var(--brand-400)] hover:underline">study timer for medical students</Link> and the <Link href="/focus-timer-for-programmers" className="text-[var(--brand-400)] hover:underline">focus timer for programmers</Link>. Every guide lives in the <Link href="/guides" className="text-[var(--brand-400)] hover:underline">FocusArx guide library</Link>.
         </p>
       </Section>
     </div>

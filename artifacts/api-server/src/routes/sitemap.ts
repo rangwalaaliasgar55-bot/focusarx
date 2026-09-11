@@ -173,6 +173,10 @@ const GUIDE_PAGES: Page[] = [
   { url: "/virtual-study-room", changefreq: "weekly", priority: "0.8" },
   { url: "/study-with-me", changefreq: "weekly", priority: "0.8" },
   { url: "/focus-music", changefreq: "weekly", priority: "0.8" },
+  // Audience pages (WS8d): one reader's day, described properly, instead of a
+  // head term that serves nobody in particular.
+  { url: "/study-timer-for-medical-students", changefreq: "monthly", priority: "0.8" },
+  { url: "/focus-timer-for-programmers", changefreq: "monthly", priority: "0.8" },
 ];
 
 /**

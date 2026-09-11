@@ -391,7 +391,7 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   adhdFocus: {
     canonical: "/adhd-focus-tips",
     title: "How to Focus with ADHD: 15 Working Strategies",
-    description: "Practical focus strategies that actually work for ADHD brains — body doubling, the 10-minute rule, dopamine-friendly rewards, timers, and structure.",
+    description: "Practical focus strategies that work with an ADHD brain — body doubling, the ten-minute rule, visible timers, immediate rewards and structure.",
     keywords: "how to focus with ADHD, ADHD study tips, ADHD concentration, focus strategies ADHD, ADHD productivity, ADHD time blindness, body doubling study",
   },
   stopProcrastinating: {
