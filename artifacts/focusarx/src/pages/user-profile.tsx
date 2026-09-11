@@ -45,12 +45,31 @@ export default function UserProfilePage() {
       const desc = `View ${username}'s public study profile on FocusArx — stats, badges, streak, and more.`;
       const meta = document.querySelector('meta[name="description"]');
       if (meta) meta.setAttribute("content", desc);
+      // Kept out of the index on purpose. This page is client-rendered and not
+      // in the prerender manifest, so the HTML a crawler fetches is the
+      // homepage shell (canonical "/"), and even rendered it is a default
+      // template — 0 sessions / 0 badges / no bio for the vast majority of
+      // accounts. The load-bearing signal is the `X-Robots-Tag: noindex` header
+      // that vercel.json sets on /u/… (a crawler that never runs JS only sees
+      // that); this tag covers SPA navigation and any host that serves the app
+      // without that edge rule. Profiles stay reachable and shareable.
+      const robotsEl = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
+      const prevRobots = robotsEl?.getAttribute("content");
+      setMeta("name", "robots", "noindex, nofollow");
       // Per-user share card from real public stats (Phase 4.4).
       const ogImage = `https://www.focusarx.site/api/og/user?u=${encodeURIComponent(username)}`;
       setMeta("property", "og:title", `${username} — FocusArx Profile`);
       setMeta("property", "og:description", desc);
       setMeta("property", "og:image", ogImage);
       setMeta("name", "twitter:image", ogImage);
+
+      return () => {
+        // PageSEO rewrites this tag on the next page, but not every route uses
+        // it — restore the previous value so a profile visit cannot leak
+        // `noindex` onto whatever the user opens next.
+        const el = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
+        if (el && prevRobots) el.setAttribute("content", prevRobots);
+      };
     }
   }, [username]);
   const { toast } = useToast();
