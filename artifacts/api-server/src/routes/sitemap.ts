@@ -1,6 +1,4 @@
 import { Router } from "express";
-import { db, usersTable } from "@workspace/db";
-import { and, eq, isNotNull, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -29,16 +27,34 @@ const router = Router();
  *   /sitemap-exams.xml           exam prep cluster
  *   /sitemap-compare.xml         comparison / alternative pages
  *   /sitemap-legal.xml           policy pages
- *   /sitemap-profiles-<n>.xml    public profiles, straight from Postgres
  *
- * The profile segment is the one that scales: it is generated from the users
- * table at request time, so the sitemap grows with real, crawlable profiles
- * instead of a hand-maintained list. Google's hard limits are 50,000 URLs and
- * 50MB per file; we shard at 45,000 to stay clear of both.
+ * ── Why there is no profile segment ───────────────────────────────
+ * A `sitemap-profiles-<n>.xml` shard used to be generated from the users table
+ * (one `/u/<name>` URL per non-guest account — 11,978 of them against ~89
+ * indexable pages everywhere else). It is gone on purpose:
+ *
+ *   1. **The HTML at /u/<name> is the homepage.** The route is client-rendered
+ *      and is not in the prerender manifest, so Vercel's SPA fallback serves
+ *      `index.html` — homepage title, description, JSON-LD and a
+ *      `<link rel="canonical" href="https://www.focusarx.site/">`. Twelve
+ *      thousand URLs all canonicalising to the homepage is exactly the
+ *      "Discovered – currently not indexed" backlog, not growth.
+ *   2. **The rendered content is a default template.** Even with JS, a typical
+ *      profile shows a name, "0 friends", Level 1, 0 sessions, 0 focus hours,
+ *      0 badges and no bio. There is no unique text for Google to rank, and
+ *      the data it would need lives behind `/api/u/…`, which robots.txt
+ *      disallows — so a crawler cannot even fetch it.
+ *   3. **Most of the emitted URLs 404.** The shard slugified names
+ *      (`Varun Warrier` → `Varun-Warrier`) while `/api/u/:username` resolves
+ *      on the raw name (`lower(name) = lower(:username)`), so every multi-word
+ *      name produced a dead link in the sitemap.
+ *   4. Nothing in the app links to `/u/<name>` — discovery was 100% sitemap.
+ *
+ * `/u/:username` stays a working product surface (share links, Add Friend,
+ * per-user OG card); it is just kept out of the index and out of the sitemap.
+ * See `vercel.json` (X-Robots-Tag: noindex on `/u/…`) and
+ * `src/pages/user-profile.tsx` (meta robots) for the de-indexing half.
  */
-
-/** Google allows 50,000 URLs per sitemap; shard below that with headroom. */
-const URLS_PER_SHARD = 45_000;
 
 interface Page {
   url: string;
@@ -286,94 +302,21 @@ function sitemapIndexXml(entries: Array<{ loc: string; lastmod: string }>): stri
   ].join("\n");
 }
 
-// ── profile segment (dynamic) ──────────────────────────────────────
-
-/**
- * Count of indexable public profiles. Cached briefly — this is a COUNT over
- * the users table and the sitemap is re-fetched far more often than users
- * sign up.
- */
-let profileCountCache: { value: number; at: number } | null = null;
-const PROFILE_COUNT_TTL_MS = 10 * 60 * 1000;
-
-async function countProfiles(): Promise<number> {
-  if (profileCountCache && Date.now() - profileCountCache.at < PROFILE_COUNT_TTL_MS) {
-    return profileCountCache.value;
-  }
-  const [row] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(usersTable)
-    .where(and(eq(usersTable.isGuest, false), isNotNull(usersTable.name)));
-  const value = Number(row?.count ?? 0);
-  profileCountCache = { value, at: Date.now() };
-  return value;
-}
-
-/**
- * A public profile is addressed by `/u/<name>` (see publicProfiles.ts, which
- * matches on email or a case-insensitive name). We slugify the name the same
- * way a visitor would arrive at it.
- */
-function profileSlug(name: string): string {
-  return name.trim().replace(/\s+/g, "-");
-}
-
-/**
- * Fetch one shard of profile URLs, newest first so a partial crawl still
- * reaches the most recent accounts.
- */
-async function fetchProfileShard(shard: number): Promise<Page[]> {
-  const limit = URLS_PER_SHARD;
-  const offset = (shard - 1) * limit;
-  const rows = await db
-    .select({ name: usersTable.name })
-    .from(usersTable)
-    .where(and(eq(usersTable.isGuest, false), isNotNull(usersTable.name)))
-    .orderBy(sql`${usersTable.createdAt} desc`)
-    .limit(limit)
-    .offset(offset);
-
-  const seen = new Set<string>();
-  const pages: Page[] = [];
-  for (const r of rows) {
-    if (!r.name) continue;
-    const slug = profileSlug(r.name);
-    if (!slug || seen.has(slug.toLowerCase())) continue;
-    seen.add(slug.toLowerCase());
-    pages.push({
-      url: `/u/${encodeURIComponent(slug)}`,
-      changefreq: "weekly",
-      priority: "0.5",
-    });
-  }
-  return pages;
-}
-
 // ── routes ─────────────────────────────────────────────────────────
 
 /**
  * Sitemap index. Mounted at BOTH `/api/sitemap.xml` and `/sitemap.xml`
  * (app.ts mounts this router twice) so crawlers find it at the host root.
  */
-router.get("/sitemap.xml", async (_req, res) => {
+router.get("/sitemap.xml", (_req, res) => {
   try {
     const now = today();
     const base = baseUrl();
+    // Static, synchronous, database-free: every listed URL is a page we
+    // prerender at build time. (This used to append one entry per
+    // `/u/<name>` profile shard read from Postgres — see the file header for
+    // why those URLs are out of the sitemap.)
     const entries = SEGMENTS.map((s) => ({ loc: `${base}/${s.file}`, lastmod: now }));
-
-    // Add one index entry per profile shard. A COUNT(*) is cheap and cached.
-    // If the database is unreachable we still emit the static segments rather
-    // than failing the whole index — a partial sitemap is far better for
-    // crawlers than a 500.
-    let profileShards = 0;
-    try {
-      profileShards = Math.max(1, Math.ceil((await countProfiles()) / URLS_PER_SHARD));
-    } catch (err) {
-      logger.warn({ err }, "profile count failed — emitting sitemap index without profile shards");
-    }
-    for (let i = 1; i <= profileShards; i++) {
-      entries.push({ loc: `${base}/sitemap-profiles-${i}.xml`, lastmod: now });
-    }
 
     res.set("Content-Type", "application/xml; charset=utf-8");
     res.set("Cache-Control", "public, max-age=3600, s-maxage=21600, stale-while-revalidate=86400");
@@ -395,26 +338,31 @@ for (const segment of SEGMENTS) {
   });
 }
 
-/** Dynamic public-profile shards. */
-router.get("/sitemap-profiles-:shard.xml", async (req, res) => {
+/**
+ * Deprecated profile shard — kept as an empty urlset.
+ *
+ * `/sitemap-profiles-1.xml` was advertised by the sitemap index (and by the
+ * static fallback) until profiles were dropped from the sitemap, so Google
+ * still has the URL and will re-request it for a while. Answering with a
+ * valid, empty `<urlset/>` lets it retire the file cleanly; a 404 would show
+ * up as "Couldn't fetch" in Search Console for a sitemap that is supposed to
+ * be going away quietly. An empty sitemap is explicitly allowed by the
+ * sitemaps protocol and costs nothing to serve.
+ *
+ * Safe to delete once the profile shard no longer appears in the Search
+ * Console sitemaps report.
+ */
+router.get("/sitemap-profiles-:shard.xml", (req, res) => {
   const shard = Number.parseInt(req.params.shard as string, 10);
   if (!Number.isFinite(shard) || shard < 1 || shard > 10_000) {
     res.status(400).type("application/xml").send('<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"/>');
     return;
   }
-  try {
-    const pages = await fetchProfileShard(shard);
-    res.set("Content-Type", "application/xml; charset=utf-8");
-    res.set("Cache-Control", "public, max-age=1800, s-maxage=43200, stale-while-revalidate=86400");
-    res.set("X-Robots-Tag", "all");
-    res.send(urlsetXml(pages));
-  } catch (err) {
-    // Never 500 a sitemap — an empty urlset keeps the index valid.
-    logger.error({ err, shard }, "profile sitemap shard failed");
-    res.set("Content-Type", "application/xml; charset=utf-8");
-    res.set("Cache-Control", "no-store");
-    res.send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"/>');
-  }
+  res.set("Content-Type", "application/xml; charset=utf-8");
+  // Short cache: this is a tombstone, and a stale copy in a CDN edge is fine.
+  res.set("Cache-Control", "public, max-age=1800, s-maxage=43200, stale-while-revalidate=86400");
+  res.set("X-Robots-Tag", "all");
+  res.send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"/>');
 });
 
 /**
@@ -532,4 +480,4 @@ router.get("/robots.txt", (_req, res) => {
 });
 
 export { router as sitemapRouter };
-export { EXAM_SLUGS, SEGMENTS, URLS_PER_SHARD };
+export { EXAM_SLUGS, SEGMENTS };

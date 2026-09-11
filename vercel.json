@@ -33,6 +33,13 @@
       "handle": "filesystem"
     },
     {
+      "src": "/u/[^/]+",
+      "dest": "/index.html",
+      "headers": {
+        "X-Robots-Tag": "noindex, nofollow"
+      }
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }

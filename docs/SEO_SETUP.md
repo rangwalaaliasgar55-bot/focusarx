@@ -78,9 +78,11 @@ Nothing else on this list matters until GSC can see your site.
    > `googleXXXX.html` file GSC offers into `artifacts/focusarx/public/`.
 5. Commit, push, wait for the Vercel deploy, then click **Verify** in GSC.
 6. **Sitemaps** (left nav) → enter `sitemap.xml` → **Submit**.
-   Expected state: *Success*, with a discovered-URL count that grows over the
-   next few days. It should settle around **69 URLs plus one entry per public
-   profile**.
+   Expected state: *Success*, with a discovered-URL count of **89 URLs across
+   9 child sitemaps** — core, tools, guides, blog, funnel, exams, compare,
+   trust, legal. Nothing else: `/u/<name>` profiles are deliberately absent
+   (see *Public profiles* below). If the count is in the thousands, something
+   re-added the profile shard.
 7. **URL inspection** — paste each of these and confirm *URL is on Google* or
    *Indexing allowed*. Do all of them; each is a different template:
 
@@ -345,10 +347,10 @@ So you do not redo it by hand:
 
 | Done | Where |
 |---|---|
-| Sitemap index + 7 themed child sitemaps + dynamic profile shards | `artifacts/api-server/src/routes/sitemap.ts` |
+| Sitemap index + 9 themed child sitemaps (89 URLs, no profile shard) | `artifacts/api-server/src/routes/sitemap.ts` |
 | Static sitemap fallback (survives a function cold start) | `artifacts/focusarx/public/sitemap.xml` |
 | `robots.txt` — app surfaces blocked, AI crawlers allowed, sitemap declared | `artifacts/focusarx/public/robots.txt` |
-| Build-time prerendering: 69 pages, each with its own title, description, canonical, OG tags, JSON-LD and real body copy | `scripts/prerender.mjs`, `scripts/prerender-data.mjs` |
+| Build-time prerendering: 89 pages, each with its own title, description, canonical, OG tags, JSON-LD and real body copy | `scripts/prerender.mjs`, `scripts/prerender-data.mjs` |
 | One content source shared by prerender + client render (no cloaking) | `src/content/seo-pages.mjs` |
 | Schema: Organization, WebSite, SoftwareApplication, Article, HowTo, FAQPage, BreadcrumbList | `index.html`, `scripts/prerender.mjs`, `src/pages/seo-landing.tsx` |
 | Answer-first blocks for AI Overviews | `answerFirst` on every intent page |
@@ -359,6 +361,32 @@ So you do not redo it by hand:
 | Drift guard — build fails if sitemap / routes / prerender / robots disagree | `artifacts/api-server/src/routes/seoContract.test.ts` |
 | PWA manifest, service worker, icon set | `public/manifest.json`, `public/sw.js` |
 | GA4 + AdSense ads.txt + Bing verification file | `src/lib/gtag.ts`, `public/ads.txt`, `public/BingSiteAuth.xml` |
+
+### Public profiles (`/u/<name>`) — noindexed, out of the sitemap
+
+A decision worth knowing before someone "restores" it:
+
+| Question | Answer |
+|---|---|
+| In the sitemap? | **No.** `sitemap-profiles-*.xml` is gone; the index lists only the 9 static segments. |
+| Indexable? | **No** — `X-Robots-Tag: noindex, nofollow` on `/u/…` (`vercel.json`) plus a matching meta robots tag in `src/pages/user-profile.tsx`. |
+| Blocked in robots.txt? | **No, on purpose.** Google can only act on a noindex it is allowed to crawl; blocking the path leaves the URLs listed as "Indexed, though blocked by robots.txt". |
+| Still usable? | **Yes** — share links, Add Friend and the per-user OG card are untouched. |
+
+Why: the route is client-rendered and not in the prerender manifest, so the
+document a crawler fetches is the **homepage** shell — homepage title, homepage
+JSON-LD, `<link rel="canonical" href="https://www.focusarx.site/">`. The
+11,978 URLs that shard used to list were 11,978 copies of one page, which is
+what the "Discovered – currently not indexed" backlog looks like from the
+inside. Rendered with JS they are no richer: a name, "0 friends", Level 1,
+0 sessions, 0 focus hours, 0 badges, no bio — and the data lives behind
+`/api/u/…`, which robots.txt disallows. Most of the URLs did not even resolve:
+the shard slugified names (`Varun Warrier` → `Varun-Warrier`) while
+`/api/u/:username` matches the raw name, so every multi-word name 404'd.
+
+Revisit only if profiles become real public pages — prerendered per user, with
+genuine content — and then they belong in a segment of their own, still not
+mixed into the core sitemaps.
 
 ### Fixed along the way
 

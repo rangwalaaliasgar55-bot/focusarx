@@ -294,3 +294,109 @@ describe("robots.txt: the static copy and the API-generated copy agree", async (
     expect(generatedSet.size).toBeGreaterThan(10);
   });
 });
+
+/**
+ * Public profiles (/u/<name>) — out of the sitemap, de-indexed at the edge.
+ * ══════════════════════════════════════════════════════════════════
+ * `sitemap-profiles-1.xml` used to list 11,978 `/u/<name>` URLs against ~89
+ * real pages. Every one of them served the *homepage* document: the route is
+ * client-rendered and absent from the prerender manifest, so Vercel's SPA
+ * fallback answered with index.html — homepage title, homepage JSON-LD and
+ * `<link rel="canonical" href="https://www.focusarx.site/">`. Twelve thousand
+ * URLs canonicalising to one page is not extra coverage, it is the
+ * "Discovered – currently not indexed" backlog, and it burns the crawl budget
+ * the 89 pages that can rank actually need.
+ *
+ * Rendered, they are no better: a typical profile is a name, "0 friends",
+ * Level 1, 0 sessions, 0 focus hours, 0 badges and no bio, and the data would
+ * come from `/api/u/…`, which robots.txt disallows — a crawler cannot fetch it
+ * even when it does run JS. Most of the emitted URLs did not resolve at all:
+ * the shard slugified names (`Varun Warrier` → `Varun-Warrier`) while
+ * `/api/u/:username` matches the raw name, so every multi-word name 404'd.
+ *
+ * The decision these tests pin down: profiles are noindexed (not merely
+ * unlisted) and stay crawlable so Google can see the noindex.
+ */
+describe("public profiles: out of the sitemap, noindexed, still crawlable", async () => {
+  const VERCEL = path.join(FRONTEND, "../../vercel.json");
+
+  it("no segment lists a /u/ profile URL", () => {
+    const profileUrls = [...sitemapUrls()].filter((url) => url === "/u" || url.startsWith("/u/"));
+    expect(
+      profileUrls,
+      "Profile URLs are thin, client-rendered duplicates of the homepage shell — " +
+        `they must not be in the sitemap: ${profileUrls.join(", ")}`,
+    ).toEqual([]);
+  });
+
+  it("the emitted sitemap index advertises the static segments and no profile shard", async () => {
+    // Asserted over HTTP rather than by reading the source: the index is what
+    // Google actually fetches, and the shard entries used to be appended at
+    // request time from a COUNT(*) over the users table.
+    const express = (await import("express")).default;
+    const { sitemapRouter } = (await import("./sitemap.ts")) as {
+      sitemapRouter: import("express").Router;
+    };
+    const app = express();
+    app.use(sitemapRouter);
+    const server = app.listen(0);
+    try {
+      const address = server.address();
+      if (!address || typeof address === "string") throw new Error("no port");
+      const base = `http://127.0.0.1:${address.port}`;
+
+      const index = await (await fetch(`${base}/sitemap.xml`)).text();
+      const locs = [...index.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]!);
+      expect(locs.map((l) => l.replace(/^https:\/\/www\.focusarx\.site\//, "")).sort())
+        .toEqual(SEGMENTS.map((s) => s.file).sort());
+
+      // The retired shard must still answer 200 with an empty urlset while
+      // Search Console holds the URL — a 404 there reads as "Couldn't fetch".
+      const res = await fetch(`${base}/sitemap-profiles-1.xml`);
+      expect(res.status, "retired profile shard should not 404").toBe(200);
+      const body = await res.text();
+      expect(body).toContain("<urlset");
+      expect([...body.matchAll(/<loc>/g)], "retired profile shard must be empty").toEqual([]);
+    } finally {
+      server.close();
+    }
+  });
+
+  it("robots.txt leaves /u/ crawlable so the noindex can be seen", async () => {
+    // Deliberate: Google only honours a noindex on a page it may fetch. Adding
+    // `Disallow: /u/` would stop the crawl and leave the URLs listed as
+    // "Indexed, though blocked by robots.txt".
+    const patterns = await robotsDisallowed();
+    const blocking = patterns.filter((p) => p === "/u" || p.startsWith("/u/"));
+    expect(
+      blocking,
+      `/u/ must stay crawlable — it is de-indexed with X-Robots-Tag, not blocked: ${blocking.join(", ")}`,
+    ).toEqual([]);
+  });
+
+  it("vercel.json de-indexes /u/ with an X-Robots-Tag header", () => {
+    // The HTML at /u/<name> is the homepage shell, which carries
+    // `robots: index, follow` — the header is the only signal a crawler that
+    // does not execute JS can act on, so it has to come from the edge.
+    const cfg = JSON.parse(fs.readFileSync(VERCEL, "utf8")) as {
+      routes?: Array<{ src?: string; dest?: string; headers?: Record<string, string> }>;
+    };
+    const route = (cfg.routes ?? []).find(
+      (r) => r.src?.startsWith("/u/") && /noindex/.test(r.headers?.["X-Robots-Tag"] ?? ""),
+    );
+    expect(route, "no vercel.json route sets X-Robots-Tag: noindex for /u/<name>").toBeTruthy();
+    // It must serve the SPA like the catch-all does, and sit after the
+    // filesystem handler so a future prerendered profile page still wins.
+    expect(route?.dest).toBe("/index.html");
+    const srcs = (cfg.routes ?? []).map((r) => r.src);
+    const fsIdx = (cfg.routes ?? []).findIndex((r) => (r as { handle?: string }).handle === "filesystem");
+    expect(srcs.indexOf(route?.src)).toBeGreaterThan(fsIdx);
+  });
+
+  it("the profile page sets a matching meta robots tag", () => {
+    const src = fs.readFileSync(path.join(FRONTEND, "src/pages/user-profile.tsx"), "utf8");
+    expect(src).toContain('"noindex, nofollow"');
+    // …and must not undo it when the user navigates on to an indexable page.
+    expect(src).toMatch(/prevRobots/);
+  });
+});

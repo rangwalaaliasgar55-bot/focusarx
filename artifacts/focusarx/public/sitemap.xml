@@ -3,16 +3,19 @@
   FocusArx sitemap INDEX — static fallback.
 
   In production vercel.json rewrites /sitemap.xml to the API function, which
-  emits this same index plus one extra <sitemap> entry per public-profile
-  shard (see artifacts/api-server/src/routes/sitemap.ts). This static copy is
-  the fallback so the root URL never resolves to SPA HTML if the function
-  cold-starts or fails.
+  emits this same index (see artifacts/api-server/src/routes/sitemap.ts).
+  This static copy is the fallback so the root URL never resolves to SPA HTML
+  if the function cold-starts or fails.
 
   KEEP THIS LIST IDENTICAL TO `SEGMENTS` IN sitemap.ts. The seoContract test
   fails the build if they drift.
 
   Canonical host is www.focusarx.site — the static file and the API
   must agree on host, or every URL becomes a cross-host duplicate.
+
+  There is deliberately NO sitemap-profiles-*.xml entry here: /u/<name>
+  profiles are noindex and out of the sitemap (see the header comment in
+  sitemap.ts for the evidence behind that call).
 -->
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <sitemap>
@@ -49,10 +52,6 @@
   </sitemap>
   <sitemap>
     <loc>https://www.focusarx.site/sitemap-legal.xml</loc>
-    <lastmod>2026-08-29</lastmod>
-  </sitemap>
-  <sitemap>
-    <loc>https://www.focusarx.site/sitemap-profiles-1.xml</loc>
     <lastmod>2026-08-29</lastmod>
   </sitemap>
 </sitemapindex>

@@ -2,6 +2,43 @@
 
 All notable changes to FocusArx. Dates are UTC.
 
+## [Unreleased] — SEO: 11,978 profile URLs out of the sitemap, /u/ noindexed
+
+**The sitemap is 89 URLs again, not 12,067.** `sitemap-profiles-1.xml` listed
+one `/u/<name>` URL per non-guest account — 11,978 of them against 89 real
+pages — and every one served the *homepage* document: the route is
+client-rendered and absent from the prerender manifest, so the SPA fallback
+answered with `index.html` (homepage title, homepage JSON-LD, canonical `/`).
+Twelve thousand URLs canonicalising to one page is the "Discovered – currently
+not indexed" backlog, and it spent the crawl budget the pages that can rank
+need.
+
+- Removed the dynamic profile shard from `sitemap.ts` (the `COUNT(*)` over
+  `users`, the slug helper, the shard route and its index entries) and the
+  `sitemap-profiles-1.xml` entry from the static fallback index. The retired
+  shard still answers **200 with an empty `<urlset/>`** so Search Console
+  retires it cleanly instead of reporting "Couldn't fetch".
+- **Decision: profiles are noindexed, not merely unlisted.** Even rendered they
+  are a default template (0 sessions, 0 badges, no bio) and their data comes
+  from `/api/u/…`, which robots.txt disallows — a crawler cannot fetch it. The
+  shard URLs were also mostly dead: it slugified names (`Varun Warrier` →
+  `Varun-Warrier`) while `/api/u/:username` matches the raw name, so every
+  multi-word name 404'd. `/u/:username` keeps working for humans — share links,
+  Add Friend, per-user OG card.
+- `X-Robots-Tag: noindex, nofollow` on `/u/…` in `vercel.json` (the only signal
+  a non-JS crawler can act on) plus a matching meta robots tag in
+  `user-profile.tsx`, restored on unmount so it cannot leak onto the next page.
+  `/u/` stays **crawlable** in robots.txt on purpose — Google cannot honour a
+  noindex on a page it is not allowed to fetch — with a comment there saying so.
+- `seoContract.test.ts` gains 5 assertions pinning all of the above: no `/u/`
+  URL in any segment, the emitted index advertises exactly the 9 static
+  segments, the retired shard is empty rather than 404, robots.txt does not
+  block `/u/`, and the edge header is present. Verified by re-introducing each
+  defect.
+
+Post-deploy: in Search Console the submitted sitemap should drop to 89
+discovered URLs; the `/u/` URLs leave the index over the following crawls.
+
 ## [Unreleased] — SEO + analytics: www canonical, title dedupe, GA4 key events
 
 **One canonical host, one brand mark per title, explicit GA4 identity.**

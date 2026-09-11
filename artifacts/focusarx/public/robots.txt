@@ -68,6 +68,15 @@ Disallow: /ghosts
 Disallow: /distractions
 Disallow: /profiles
 
+# ── Public profiles (/u/<name>) — deliberately NOT disallowed ────
+# These are kept out of the sitemap and carry `X-Robots-Tag: noindex,
+# nofollow` (vercel.json) plus a matching meta robots tag in the page, so they
+# are de-indexed but still crawlable. That combination is the point: Google can
+# only honour a noindex on a page it is allowed to fetch. Adding
+# `Disallow: /u/` here would stop the crawl and leave the URLs eligible to be
+# listed as "Indexed, though blocked by robots.txt" — the opposite of the
+# intent. Do not "fix" this by blocking the path.
+
 # ── API ───────────────────────────────────────────────────────
 # Blocked wholesale except the SEO endpoints crawlers must reach.
 # The sitemap is rewritten to the host root, so /api/sitemap.xml only needs
