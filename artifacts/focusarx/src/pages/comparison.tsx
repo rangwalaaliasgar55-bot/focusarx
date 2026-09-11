@@ -3,6 +3,9 @@ import { Link, useLocation } from "wouter";
 import { PageSEO } from "@/components/PageSEO";
 import { AdSlot } from "@/components/AdSlot";
 import { COMPARISONS, COMPARISON_PATHS } from "@/content/seo-pages.mjs";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { ContentTOC } from "@/components/ContentTOC";
+import { headingAnchors } from "@/lib/heading-id.mjs";
 import type { Comparison } from "@/content/seo-pages.mjs";
 
 /**
@@ -68,6 +71,13 @@ export default function ComparisonPage() {
 
   const data: Comparison = COMPARISONS[key]!;
   const canonical = `/comparison/${data.slug}`;
+  // The two verdicts are the sections a reader jumps to; ids come from the same
+  // slugger scripts/prerender.mjs uses for the static document.
+  const verdictHeadings = [
+    "When FocusArx is the better fit",
+    `When ${data.name} is the better fit`,
+  ];
+  const anchorFor = new Map(headingAnchors(verdictHeadings).map((a) => [a.label, a.id]));
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-12 sm:py-16">
@@ -75,6 +85,7 @@ export default function ComparisonPage() {
         title={`${data.title} | FocusArx`}
         description={data.description}
         canonical={canonical}
+        breadcrumbLabel={data.title}
         structuredData={{
           "@context": "https://schema.org",
           "@type": "FAQPage",
@@ -93,6 +104,8 @@ export default function ComparisonPage() {
         }}
       />
 
+      <Breadcrumbs path={canonical} title={data.title} className="mb-6" />
+
       <p className="text-xs font-bold uppercase tracking-widest text-[var(--brand-400)]">
         Product comparison · Updated 2026
       </p>
@@ -102,6 +115,8 @@ export default function ComparisonPage() {
       <p className="mt-5 max-w-3xl text-[15px] leading-relaxed text-[var(--foreground-muted)]">
         {data.lead}
       </p>
+
+      <ContentTOC headings={verdictHeadings} label="On this page" className="mt-8" />
 
       {/* ── Feature table ─────────────────────────────────────── */}
       <div
@@ -129,7 +144,7 @@ export default function ComparisonPage() {
       {/* ── Honest two-sided verdict ──────────────────────────── */}
       <div className="mt-10 grid gap-4 md:grid-cols-2">
         <section className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-6">
-          <h2 className="text-lg font-bold text-[var(--foreground)]">When FocusArx is the better fit</h2>
+          <h2 id={anchorFor.get("When FocusArx is the better fit")} className="text-lg font-bold text-[var(--foreground)]">When FocusArx is the better fit</h2>
           <p className="mt-3 text-sm leading-relaxed text-[var(--foreground-muted)]">{data.whenOurs}</p>
           <ul className="mt-4 space-y-1.5">
             {data.ours.map((f) => (
@@ -140,7 +155,7 @@ export default function ComparisonPage() {
           </ul>
         </section>
         <section className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-6">
-          <h2 className="text-lg font-bold text-[var(--foreground)]">When {data.name} is the better fit</h2>
+          <h2 id={anchorFor.get(`When ${data.name} is the better fit`)} className="text-lg font-bold text-[var(--foreground)]">When {data.name} is the better fit</h2>
           <p className="mt-3 text-sm leading-relaxed text-[var(--foreground-muted)]">{data.whenTheirs}</p>
           <ul className="mt-4 space-y-1.5">
             {data.theirs.map((f) => (

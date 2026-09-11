@@ -2,8 +2,27 @@ import { Link, useParams } from "wouter";
 import { PageSEO } from "@/components/PageSEO";
 import { BLOG_POSTS, getBlogPost } from "@/content/blog.mjs";
 import { fmtDate } from "@/lib/locale";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { ContentTOC } from "@/components/ContentTOC";
+import { headingAnchors } from "@/lib/heading-id.mjs";
 
 /** Blog article (Phase 4.1 + Article JSON-LD via the prerender manifest). */
+const FAQ_HEADING = "Frequently asked questions";
+
+/**
+ * Headings in document order, matching the list scripts/prerender.mjs builds for
+ * the same post — sections first, then the FAQ heading when the post has one.
+ */
+function postTocHeadings(post: { sections: { h: string }[]; faq?: [string, string][] }) {
+  const headings = post.sections.map((s) => s.h);
+  if ((post.faq?.length ?? 0) > 0) headings.push(FAQ_HEADING);
+  return headings;
+}
+
+function headingIdFor(post: { sections: { h: string }[]; faq?: [string, string][] }, heading: string) {
+  return headingAnchors(postTocHeadings(post)).find((a) => a.label === heading)?.id;
+}
+
 export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
   const post = getBlogPost(slug ?? "");
@@ -32,24 +51,28 @@ export default function BlogPostPage() {
         title={post.title}
         description={post.description}
         canonical={`/blog/${post.slug}`}
+        breadcrumbLabel={post.h1}
       />
-      <Link href="/blog" className="text-sm font-semibold text-[var(--brand-strong)]">
-        ← Blog
-      </Link>
+      <Breadcrumbs path={`/blog/${post.slug}`} title={post.h1} />
       <p className="mt-6 text-xs text-[var(--foreground-subtle)]">
         {fmtDate(post.date)} · {post.readMin} min read
       </p>
       <h1 className="text-h1 mt-2">{post.h1}</h1>
       <p className="text-body mt-4 max-w-2xl text-[17px] text-[var(--foreground-muted)]">{post.lead}</p>
+
+      {/* Jump links. Headings are slugged by the same function the prerenderer
+          uses, so an anchor works in the static document and after hydration. */}
+      <ContentTOC headings={postTocHeadings(post)} className="mt-8 max-w-2xl" />
+
       {post.sections.map((s) => (
         <section key={s.h} className="mt-8 max-w-2xl">
-          <h2 className="text-h3">{s.h}</h2>
+          <h2 id={headingIdFor(post, s.h)} className="text-h3">{s.h}</h2>
           <p className="text-body mt-2 text-[var(--foreground-muted)]">{s.p}</p>
         </section>
       ))}
       {(post.faq?.length ?? 0) > 0 && (
-        <section className="mt-10 max-w-2xl" aria-label="Questions">
-          <h2 className="text-h3">Questions</h2>
+        <section className="mt-10 max-w-2xl" aria-labelledby="blog-faq-heading">
+          <h2 id={headingIdFor(post, FAQ_HEADING)} className="text-h3">{FAQ_HEADING}</h2>
           {(post.faq ?? []).map(([q, a]) => (
             <div key={q} className="mt-4">
               <h3 className="text-h4">{q}</h3>

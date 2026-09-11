@@ -626,6 +626,91 @@ const isAppRoute = (p) =>
   }
 }
 
+// ── jump links (featured-snippet TOC) + visible breadcrumbs ────────────────
+// Two on-page ranking mechanics fail silently, so both are gated:
+//   1. An "On this page" jump link whose heading has no id scrolls nowhere. The
+//      ids come from the same slugger in the static document and in the React
+//      tree, but a page that renders headings differently would never notice —
+//      so every href="#x" must resolve to an id in the same document.
+//   2. BreadcrumbList structured data with no visible trail on the page, or a
+//      trail whose crumbs disagree with the schema. Google compares the two and
+//      drops the rich result when they differ, which is why the labels are
+//      derived once (lib/breadcrumbs.mjs) and checked here per document.
+const sitemapPathSet = new Set(sitemapUrls);
+// Route matcher for crumb links: a <Route> in App.tsx, or a document that
+// actually ships in dist/public. Same derivation the broken-link gate uses.
+const breadcrumbRouteSet = (() => {
+  const appTsx = readFileSync(fileURLToPath(new URL("../src/App.tsx", import.meta.url)), "utf8");
+  const routes = [...appTsx.matchAll(/path="([^"]+)"/g)].map((m) => m[1]);
+  const staticRoutes = new Set(routes.filter((r) => !r.includes(":")));
+  const dynamicRoutes = routes
+    .filter((r) => r.includes(":"))
+    .map((r) => new RegExp(`^${r.replace(/:[^/]+/g, "[^/]+")}$`));
+  return (target) =>
+    target === "/" ||
+    staticRoutes.has(target) ||
+    dynamicRoutes.some((rx) => rx.test(target)) ||
+    existsSync(join(DIST, target.replace(/^\//, ""), "index.html"));
+})();
+
+for (const file of files) {
+  const route = relative(DIST, file).replace(/index\.html$/, "").replace(/\.html$/, "");
+  const routePath = route ? `/${route}`.replace(/\/+$/, "") : "/";
+  const html = readFileSync(file, "utf8");
+
+  const ids = new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]));
+  for (const m of html.matchAll(/href="#([^"]+)"/g)) {
+    if (!ids.has(m[1])) problems.push(`${routePath}: jump link "#${m[1]}" has no matching heading id in the document`);
+  }
+
+  const navMatch = html.match(/<nav[^>]*aria-label="Breadcrumb"[^>]*>([\s\S]*?)<\/nav>/);
+  const isNested = routePath.split("/").filter(Boolean).length > 1;
+  if (sitemapPathSet.has(routePath) && isNested && !navMatch) {
+    problems.push(`${routePath}: nested indexable page has no visible breadcrumb trail — BreadcrumbList in the head alone is not enough`);
+  }
+  if (!navMatch) continue;
+
+  // A crumb that links must land on a route the app actually serves; a trail
+  // full of 404s is worse than no trail.
+  for (const m of navMatch[1].matchAll(/<a[^>]+href="([^"]+)"/g)) {
+    const target = m[1].split("?")[0].split("#")[0].replace(/\/+$/, "") || "/";
+    if (!breadcrumbRouteSet(target)) problems.push(`${routePath}: breadcrumb links to ${m[1]}, which is neither a route in App.tsx nor a prerendered page`);
+  }
+
+  // Crumb text is HTML-escaped in the document ("NDA &amp; NA") but plain in
+  // the schema, so decode before comparing — otherwise every ampersand fails.
+  const decodeEntities = (t) =>
+    t
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#0?39;/g, "'")
+      .replace(/&nbsp;/g, " ");
+  const visibleCrumbs = [...navMatch[1].matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)]
+    .map((m) => decodeEntities(m[1].replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+  const breadcrumbSchema = [...html.matchAll(/<script\s+type="application\/ld\+json"\s*>([\s\S]*?)<\/script>/g)]
+    .map((m) => { try { return JSON.parse(m[1]); } catch { return null; } })
+    .filter(Boolean)
+    .flat()
+    .find((o) => o && o["@type"] === "BreadcrumbList");
+  if (!breadcrumbSchema) {
+    problems.push(`${routePath}: visible breadcrumb trail has no BreadcrumbList structured data`);
+    continue;
+  }
+  const schemaCrumbs = (breadcrumbSchema.itemListElement || []).map((c) => String(c.name ?? "").trim());
+  const shown = visibleCrumbs.join(" > ").replace(/\s+/g, " ");
+  const declared = schemaCrumbs.join(" > ").replace(/\s+/g, " ");
+  if (shown !== declared) {
+    problems.push(`${routePath}: breadcrumb trail "${shown}" does not match BreadcrumbList "${declared}"`);
+  }
+  const rootItem = String(breadcrumbSchema.itemListElement?.[0]?.item ?? "");
+  if (schemaCrumbs.length > 1 && !rootItem.endsWith("/")) {
+    problems.push(`${routePath}: BreadcrumbList root item should be the site root with a trailing slash (got "${rootItem}")`);
+  }
+}
+
 console.log(`seo-validate: ${files.length} pages, ${sitemapUrls.length} sitemap page entries, ${apiServedChildren} child sitemap(s) served by the API in production`);
 if (problems.length > 0) {
   console.error(`FAIL — ${problems.length} problem(s):`);
@@ -633,5 +718,5 @@ if (problems.length > 0) {
   process.exit(1);
 }
 console.log(
-  "PASS — titles, descriptions, canonicals, JSON-LD, sitemap, robots, internal-link depth, cannibalisation, llms.txt and consent wiring all consistent",
+  "PASS — titles, descriptions, canonicals, JSON-LD, sitemap, robots, internal-link depth, cannibalisation, llms.txt and consent wiring, breadcrumb trails and jump links all consistent",
 );

@@ -22,6 +22,8 @@
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { clampText, composeTitle, DESCRIPTION_BUDGET, HREFLANG_LOCALES } from "../src/lib/seo-text.mjs";
+import { breadcrumbListSchema, breadcrumbTrail } from "../src/lib/breadcrumbs.mjs";
+import { headingAnchors } from "../src/lib/heading-id.mjs";
 import { parseRobots, robotsMetaFor } from "../src/lib/robots-parse.mjs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -123,20 +125,13 @@ function stripHomepageOnlySchemas(html) {
   );
 }
 
+/**
+ * BreadcrumbList for a route. Labels come from src/lib/breadcrumbs.mjs — the
+ * same module the visible trail (components/Breadcrumbs.tsx) and the runtime
+ * schema (components/PageSEO.tsx) use, so the three cannot disagree.
+ */
 function breadcrumbSchema(routePath, title) {
-  const parts = routePath.split("/").filter(Boolean);
-  const items = [{ "@type": "ListItem", position: 1, name: "Home", item: BASE_URL }];
-  parts.forEach((p, i) => {
-    items.push({
-      "@type": "ListItem",
-      position: i + 2,
-      name: p.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-      item: `${BASE_URL}/${parts.slice(0, i + 1).join("/")}`,
-    });
-  });
-  // The last crumb should be labeled with the real page title.
-  if (items.length > 1) items[items.length - 1].name = title.replace(/\s*\|\s*FocusArx.*$/i, "");
-  return { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: items };
+  return breadcrumbListSchema(breadcrumbTrail(routePath, { title }), BASE_URL);
 }
 
 function articleSchema(entry, url) {
@@ -227,6 +222,15 @@ html:not(.fa-js) body{background:#0b0d13}
 .fa-seo .sources strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#8b90a0;margin-bottom:8px}
 .fa-seo .sources ul{list-style:none;color:#8b90a0;font-size:13px}
 .fa-seo .sources p{color:#8b90a0;font-size:12px;margin-top:8px}
+.fa-seo .breadcrumbs{margin-bottom:20px}
+.fa-seo .breadcrumbs ol{list-style:none;display:flex;flex-wrap:wrap;gap:6px;font-size:12px;color:#8b90a0}
+.fa-seo .breadcrumbs li+li:before{content:"/";margin-right:6px;opacity:.5}
+.fa-seo .breadcrumbs li:last-child{color:#b9bdca}
+.fa-seo .toc{border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02);border-radius:14px;padding:16px;margin-bottom:28px}
+.fa-seo .toc strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#8b90a0;margin-bottom:8px}
+.fa-seo .toc ol{list-style:none;display:grid;gap:4px}
+.fa-seo .toc a{font-size:14px;text-decoration:none}
+.fa-seo h2{scroll-margin-top:24px}
 .fa-seo .cta{display:inline-block;margin-top:40px;background:linear-gradient(90deg,#7c3aed,#4f46e5);color:#fff;font-weight:700;padding:13px 24px;border-radius:12px;text-decoration:none}
 .fa-noscript{max-width:760px;margin:0 auto;padding:16px 24px;color:#8b90a0;font-size:14px}
 `;
@@ -321,7 +325,15 @@ function buildNotFoundPage(template) {
     (block) => (/"@type":\s*"(FAQPage|ItemList|BreadcrumbList|Article|HowTo|SoftwareApplication)"/.test(block) ? "" : block),
   );
 
-  html = html.replace(/<div id="root"\s*><\/div>/i, `<div id="root">${renderNotFoundBody()}</div>`);
+  // The shell's skip link (index.html) targets #main-content, which only React
+    // adds when AppShell mounts — so in the static document it pointed at
+    // nothing. Wrapping the prerendered body in that landmark makes the skip
+    // link work before hydration and for crawlers that never run JS. React
+    // replaces #root's contents, so there is never a duplicate id.
+    html = html.replace(
+      /<div id="root"\s*><\/div>/i,
+      `<div id="root">${staticLandmark(renderNotFoundBody())}</div>`,
+    );
   html = html.replace("</head>", `  <style>${SHELL_CSS}${NOT_FOUND_CSS}</style>\n</head>`);
   html = html.replace(
     "<head>",
@@ -405,13 +417,59 @@ function buildFeedXml({ posts, articles, buildDate }) {
   ].join("\n");
 }
 
+/**
+ * Wrap prerendered markup in the landmark the shell's skip link points at.
+ * `tabindex="-1"` makes the target focusable, which is what a skip link needs.
+ */
+function staticLandmark(inner) {
+  return `<main id="main-content" tabindex="-1">${inner}</main>`;
+}
+
 function renderBody(entry) {
+  // Heading anchors: the table of contents below and the ids on these h2s come
+  // from one slugger (src/lib/heading-id.mjs) that components/ContentTOC.tsx
+  // also uses, so a jump link in the static HTML and the heading the hydrated
+  // page renders always match.
+  const tocHeadings = [
+    entry.howTo ? entry.howTo.name : null,
+    ...(entry.sections || []).map((s) => s.h),
+    entry.faq?.length ? "Frequently asked questions" : null,
+  ].filter(Boolean);
+  const anchors = headingAnchors(tocHeadings);
+  const anchorFor = new Map(anchors.map((a) => [a.label, a.id]));
+
+  // Visible breadcrumbs on nested pages. The BreadcrumbList JSON-LD in the head
+  // has always described this trail; showing it is what makes the structured
+  // data describe something a reader can actually see and click.
+  // Last crumb = the page's own headline. `entry.title` is clamped to the
+  // search-result budget (blog posts especially), which used to surface as a
+  // breadcrumb reading "Why 25 Minutes Works | The Science of the".
+  const crumbLabel = entry.h1 || entry.title;
+  const trail = breadcrumbTrail(entry.path || "/", { title: crumbLabel });
+  const breadcrumbsBlock =
+    trail.length > 1
+      ? `<nav aria-label="Breadcrumb" class="breadcrumbs"><ol>${trail
+          .map((crumb) =>
+            crumb.linkable || crumb.path === "/"
+              ? `<li><a href="${escapeHtml(crumb.path)}">${escapeHtml(crumb.name)}</a></li>`
+              : `<li>${escapeHtml(crumb.name)}</li>`,
+          )
+          .join("")}</ol></nav>`
+      : "";
+
+  const tocBlock = anchors.length > 1
+    ? `<nav aria-label="On this page" class="toc"><strong>On this page</strong><ol>${anchors
+        .map((a) => `<li><a href="#${escapeHtml(a.id)}">${escapeHtml(a.label)}</a></li>`)
+        .join("")}</ol></nav>`
+    : "";
+
   const sections = (entry.sections || [])
     .map((s) => {
       const paras = (Array.isArray(s.p) ? s.p : [s.p])
         .map((p) => `<p>${escapeHtml(p)}</p>`)
         .join("\n");
-      return `<h2>${escapeHtml(s.h)}</h2>${paras}`;
+      const id = anchorFor.get(s.h);
+      return `<h2${id ? ` id="${escapeHtml(id)}"` : ""}>${escapeHtml(s.h)}</h2>${paras}`;
     })
     .join("\n");
   const related = (entry.related || [])
@@ -431,16 +489,18 @@ function renderBody(entry) {
     : "";
 
   // Ordered steps, when the page carries a HowTo.
+  const stepsId = entry.howTo ? anchorFor.get(entry.howTo.name) : undefined;
   const stepsBlock = entry.howTo
-    ? `<h2>${escapeHtml(entry.howTo.name)}</h2><ol class="steps">${entry.howTo.steps
+    ? `<h2${stepsId ? ` id="${escapeHtml(stepsId)}"` : ""}>${escapeHtml(entry.howTo.name)}</h2><ol class="steps">${entry.howTo.steps
         .map((st) => `<li><strong>${escapeHtml(st.name)}</strong> — ${escapeHtml(st.text)}</li>`)
         .join("")}</ol>`
     : "";
 
   // Visible FAQ. FAQPage JSON-LD must describe content the reader can see,
   // so every FAQ pair is rendered into the static body too.
+  const faqId = anchorFor.get("Frequently asked questions");
   const faqBlock = entry.faq?.length
-    ? `<h2>Frequently asked questions</h2>${entry.faq
+    ? `<h2${faqId ? ` id="${escapeHtml(faqId)}"` : ""}>Frequently asked questions</h2>${entry.faq
         .map(([q, a]) => `<h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p>`)
         .join("")}`
     : "";
@@ -458,7 +518,7 @@ function renderBody(entry) {
     : "";
 
   const cta = entry.cta || { href: "/signup", label: "Start focusing free" };
-  return `<div class="fa-seo"><span class="badge">${SITE_NAME}</span><h1>${escapeHtml(entry.h1)}</h1><p class="lead">${escapeHtml(entry.lead)}</p>${answerBlock}${stepsBlock}${sections}${faqBlock}${sourcesBlock}${relatedBlock}<a class="cta" href="${escapeHtml(cta.href)}">${escapeHtml(cta.label)}</a></div>`;
+  return `<div class="fa-seo">${breadcrumbsBlock}<span class="badge">${SITE_NAME}</span><h1>${escapeHtml(entry.h1)}</h1><p class="lead">${escapeHtml(entry.lead)}</p>${answerBlock}${tocBlock}${stepsBlock}${sections}${faqBlock}${sourcesBlock}${relatedBlock}<a class="cta" href="${escapeHtml(cta.href)}">${escapeHtml(cta.label)}</a></div>`;
 }
 
 // ── main ───────────────────────────────────────────────────────────
@@ -519,7 +579,10 @@ function main() {
 
     // Route-scoped structured data + strip homepage-only global schemas
     // on non-home routes (FAQ/ItemList belong to the landing page).
-    const schemas = [breadcrumbSchema(entry.path, fullTitle)];
+    // Same last-crumb label the visible trail in renderBody() uses: the page's
+    // own headline, not the search-result-clamped title.
+    const crumbLabel = entry.h1 || fullTitle;
+    const schemas = [breadcrumbSchema(entry.path, crumbLabel)];
     if (entry.article) schemas.push(articleSchema(entry, url));
     if (entry.software) schemas.push(softwareApplicationSchema(entry, url));
     if (entry.howTo) schemas.push(howToSchema(entry));
@@ -532,7 +595,7 @@ function main() {
     const body = renderBody(entry);
     html = html.replace(
       /<div id="root"\s*><\/div>/i,
-      `<div id="root">${body}</div>`,
+      `<div id="root">${staticLandmark(body)}</div>`,
     );
 
     // Minimal critical CSS so the prerendered shell looks intentional

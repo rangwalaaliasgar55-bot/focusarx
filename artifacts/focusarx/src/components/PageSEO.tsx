@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { clampText, composeTitle, DESCRIPTION_BUDGET, HREFLANG_LOCALES } from "@/lib/seo-text.mjs";
+import { breadcrumbListSchema, breadcrumbTrail } from "@/lib/breadcrumbs.mjs";
 
 interface PageSEOProps {
   title: string;
@@ -8,6 +9,13 @@ interface PageSEOProps {
   ogImage?: string;
   ogType?: string;
   keywords?: string;
+  /**
+   * Label for the last breadcrumb crumb — pass the page's H1. Defaults to the
+   * composed title with the brand suffix stripped, which is often too long and
+   * sometimes mid-sentence (a manifest title is clamped for search results).
+   * The visible trail in components/Breadcrumbs.tsx must say the same thing.
+   */
+  breadcrumbLabel?: string;
   noindex?: boolean;
   structuredData?: object | object[];
 }
@@ -108,6 +116,7 @@ export function PageSEO({
   ogImage = DEFAULT_OG_IMAGE,
   ogType = "website",
   keywords,
+  breadcrumbLabel,
   noindex = false,
   structuredData,
 }: PageSEOProps) {
@@ -157,28 +166,16 @@ export function PageSEO({
       arr.forEach((sd, i) => setStructuredData(`page-sd-${i}`, sd));
     }
 
-    // Add Breadcrumb Schema automatically based on path
+    // Breadcrumb schema, derived from the same trail the visible breadcrumbs
+    // render (components/Breadcrumbs.tsx) and the same trail the prerenderer
+    // writes into the static document. Three renderers, one derivation — a
+    // visible trail that disagrees with the structured data is how the rich
+    // result gets dropped.
     if (canonical && canonical !== "/") {
-      const parts = canonical.split("/").filter(Boolean);
-      const breadcrumbs = {
-        "@context": "https://schema.org",
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-          {
-            "@type": "ListItem",
-            "position": 1,
-            "name": "Home",
-            "item": BASE_URL
-          },
-          ...parts.map((p, i) => ({
-            "@type": "ListItem",
-            "position": i + 2,
-            "name": p.charAt(0).toUpperCase() + p.slice(1).replace(/-/g, " "),
-            "item": `${BASE_URL}/${parts.slice(0, i + 1).join("/")}`
-          }))
-        ]
-      };
-      setStructuredData("breadcrumb-sd", breadcrumbs);
+      setStructuredData(
+        "breadcrumb-sd",
+        breadcrumbListSchema(breadcrumbTrail(canonical, { title: breadcrumbLabel ?? title }), BASE_URL),
+      );
     }
 
     return () => {
@@ -189,7 +186,7 @@ export function PageSEO({
       }
       removeStructuredData("breadcrumb-sd");
     };
-  }, [title, description, canonical, ogImage, ogType, keywords, noindex, structuredData]);
+  }, [title, description, canonical, ogImage, ogType, keywords, breadcrumbLabel, noindex, structuredData]);
 
   return null;
 }

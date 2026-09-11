@@ -18,6 +18,9 @@ import { PageSEO } from "@/components/PageSEO";
 import { EXAM_HUB } from "@/content/exam/derive.mjs";
 import { FUNNEL_ANGLES } from "@/content/exam-funnel.mjs";
 import { useAllExamGuides, useExamGuide } from "@/lib/examGuideLoader";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { ContentTOC } from "@/components/ContentTOC";
+import { headingAnchors } from "@/lib/heading-id.mjs";
 import type { ExamGuide } from "@/content/exam/index.mjs";
 
 const BASE_URL = (import.meta.env.VITE_APP_URL || "https://www.focusarx.site").replace(/\/+$/, "");
@@ -82,11 +85,11 @@ function RelatedLinks({ related }: { related: string[] }) {
   );
 }
 
-function FaqAccordion({ faq }: { faq: [string, string][] }) {
+function FaqAccordion({ faq, headingId }: { faq: [string, string][]; headingId?: string }) {
   const [open, setOpen] = useState<number | null>(0);
   return (
     <div className="mt-16">
-      <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
+      <h2 id={headingId} className="text-2xl font-semibold mb-6 flex items-center gap-2">
         <HelpCircle size={20} className="text-[var(--palette-violet-400)]" />
         Frequently asked questions
       </h2>
@@ -182,12 +185,18 @@ function ExamGuideBody({ slug }: { slug: string }) {
   }
 
   const title = guide.title;
+  // Same heading list, in the same order, as scripts/prerender.mjs builds for
+  // the static document — so a jump link works whether or not the JS has run.
+  const tocHeadings = [...guide.sections.map((sec) => sec.h), "Frequently asked questions"];
+  const anchorFor = new Map(headingAnchors(tocHeadings).map((a) => [a.label, a.id]));
+
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       <PageSEO
         title={title}
         description={guide.description}
         canonical={`/exam/${guide.slug}`}
+        breadcrumbLabel={guide.h1}
         keywords={guide.keywords}
         ogImage={ogCardUrl(guide.title, guide.lead)}
         ogType="article"
@@ -195,9 +204,7 @@ function ExamGuideBody({ slug }: { slug: string }) {
       />
 
       <div className="max-w-3xl mx-auto px-6 py-16 sm:py-24">
-        <Link href="/exam" className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--foreground-subtle)] hover:text-[var(--foreground)] mb-8">
-          <ArrowLeft size={14} /> All exam guides
-        </Link>
+        <Breadcrumbs path={`/exam/${guide.slug}`} title={guide.h1} className="mb-6" />
 
         <header className="mb-12">
           <div className="inline-flex items-center gap-2 rounded-full border border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--palette-violet-300)] mb-6">
@@ -243,10 +250,12 @@ function ExamGuideBody({ slug }: { slug: string }) {
           </div>
         )}
 
+        <ContentTOC headings={tocHeadings} className="mb-14" />
+
         <article className="space-y-12">
           {guide.sections.map((s, i) => (
             <section key={i}>
-              <h2 className="text-2xl font-semibold mb-4 tracking-tight">{s.h}</h2>
+              <h2 id={anchorFor.get(s.h)} className="text-2xl font-semibold mb-4 tracking-tight">{s.h}</h2>
               {(Array.isArray(s.p) ? s.p : [s.p]).map((p, j) => (
                 <p key={j} className="mb-4 leading-relaxed text-[var(--foreground-muted)] last:mb-0">
                   {p}
@@ -256,7 +265,7 @@ function ExamGuideBody({ slug }: { slug: string }) {
           ))}
         </article>
 
-        <FaqAccordion faq={guide.faq} />
+        <FaqAccordion faq={guide.faq} headingId={anchorFor.get("Frequently asked questions")} />
         <CtaBlock />
         <RelatedLinks related={guide.related} />
       </div>
@@ -346,6 +355,7 @@ export function ExamHubPage() {
 
       <div className="max-w-5xl mx-auto px-6 py-16 sm:py-24">
         <header className="text-center mb-14">
+          <Breadcrumbs path="/exam" title={EXAM_HUB.h1} className="mb-8 flex justify-center [&>ol]:justify-center" />
           <div className="inline-flex items-center gap-2 rounded-full border border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--palette-violet-300)] mb-8">
             <Sparkles size={12} /> Exam guide library
           </div>

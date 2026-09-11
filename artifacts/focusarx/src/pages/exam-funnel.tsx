@@ -4,6 +4,7 @@ import { PageSEO } from "@/components/PageSEO";
 import { EXAM_SLUG_ORDER, examDisplayName } from "@/content/exam/derive.mjs";
 import { FUNNEL_ANGLES, getFunnelAngle } from "@/content/exam-funnel.mjs";
 import { useExamGuide } from "@/lib/examGuideLoader";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { dispatchFocusDeepLink } from "@/lib/focusDeepLink";
 import { FocusTimerMobileFirst } from "@/components/mobile/FocusTimerMobileFirst";
 
@@ -64,6 +65,12 @@ function ExamFunnelBody({ exam }: { exam: string }) {
         title={`Pomodoro timer for ${examName}`}
         description={`Free Pomodoro timer tuned for ${examName}: ${funnel.angle} No account needed to start.`}
         canonical={`/pomodoro-timer-for/${guide.slug}`}
+        breadcrumbLabel={`Pomodoro timer for ${examName}`}
+      />
+      <Breadcrumbs
+        path={`/pomodoro-timer-for/${guide.slug}`}
+        title={`Pomodoro timer for ${examName}`}
+        className="mb-6"
       />
       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--foreground-subtle)]">
         Pomodoro timer · {examName}
