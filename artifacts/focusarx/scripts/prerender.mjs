@@ -46,7 +46,7 @@ const ROBOTS_FILE = [
 const robotsGroups = parseRobots(ROBOTS_FILE ? readFileSync(ROBOTS_FILE, "utf8") : "").groups;
 
 const TEMPLATE = path.join(DIST, "index.html");
-const BASE_URL = (process.env.VITE_APP_URL || "https://focusarx.site").replace(/\/+$/, "");
+const BASE_URL = (process.env.VITE_APP_URL || "https://www.focusarx.site").replace(/\/+$/, "");
 
 // ── helpers ────────────────────────────────────────────────────────
 const escapeHtml = (s) =>

@@ -52,7 +52,7 @@ jobs:
       - name: Production build (frontend)
         run: pnpm --filter @workspace/focusarx run build
         env:
-          VITE_APP_URL: https://focusarx.site
+          VITE_APP_URL: https://www.focusarx.site
 
       - name: Check migration naming and duplicate versions
         run: |
@@ -228,7 +228,7 @@ jobs:
       - name: Build frontend (runs prerender + seo-validate)
         run: pnpm --filter @workspace/focusarx run build
         env:
-          VITE_APP_URL: https://focusarx.site
+          VITE_APP_URL: https://www.focusarx.site
 
       - name: Bundle budgets (entry/chunk/initial + no-three-preload)
         run: pnpm --filter @workspace/focusarx run budget

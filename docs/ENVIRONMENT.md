@@ -79,7 +79,7 @@ and `/api/deployment` (so users are still told to refresh during an incident).
 | `DATABASE_URL` | `lib/db/src/index.ts`, `lib/config.ts` | PostgreSQL connection string. On Vercel, `POSTGRES_URL_NON_POOLING` is preferred first (pooler transaction mode breaks prepared statements). Also accepts `POSTGRES_PRISMA_URL` / `POSTGRES_URL`. |
 | `AUTH_SECRET` | `lib/config.ts` | JWT signing secret (32+ random chars). `SESSION_SECRET` accepted as legacy alias. In dev, an ephemeral secret is generated per boot if unset. |
 | `ADMIN_PASSWORD` | `lib/config.ts`, `routes/admin.ts` | Bootstrap password for `/admin`. Mandatory in production; users with `role=admin` in DB also have access. |
-| `APP_URL` | `lib/config.ts` | Canonical public origin — used for password-reset links, CORS allowlist, OAuth redirects. Falls back to `VERCEL_URL`, then `https://focusarx.vercel.app`. **Set this to the custom domain you actually serve (e.g. `https://focusarx.site`) right after attaching it** — otherwise every login/refresh/track POST fails CORS while GETs keep working (see `docs/SECURITY.md` § CORS). |
+| `APP_URL` | `lib/config.ts` | Canonical public origin — used for password-reset links, CORS allowlist, OAuth redirects. Falls back to `VERCEL_URL`, then `https://focusarx.vercel.app`. **Set this to the custom domain you actually serve (e.g. `https://www.focusarx.site`) right after attaching it** — otherwise every login/refresh/track POST fails CORS while GETs keep working (see `docs/SECURITY.md` § CORS). |
 | `CORS_ALLOWED_ORIGINS` | `middlewares/cors.ts` | Comma-separated extra CORS origins (e.g. a staging host). Optional — same-origin requests (`Origin` host === request host) and `www.`/apex counterparts of `APP_URL` are always allowed. |
 
 ## 📧 Email via Resend (recommended)
@@ -117,7 +117,7 @@ Without Resend or SMTP: admin blasts/moderation digests are skipped (logged), pa
 
 | Variable | Read by | Purpose |
 |---|---|---|
-| `VITE_APP_URL` | SEO/meta code | Canonical origin for `<link rel=canonical>`, og:url, sitemap. Defaults to `https://focusarx.site`. |
+| `VITE_APP_URL` | SEO/meta code | Canonical origin for `<link rel=canonical>`, og:url, sitemap. Defaults to `https://www.focusarx.site`. |
 | `VITE_GA_MEASUREMENT_ID` | `src/lib/gtag.ts` | GA4 measurement ID (`G-...`). Loads gtag.js + SPA page-view events when set. |
 
 ## ⏰ Scheduled jobs (optional)

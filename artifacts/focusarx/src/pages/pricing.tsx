@@ -44,7 +44,7 @@ export default function PricingPage() {
     "@context": "https://schema.org/",
     "@type": "Product",
     "name": "FocusArx Premium",
-    "image": "https://focusarx.site/logo.png",
+    "image": "https://www.focusarx.site/logo.png",
     "description": "Unlock unlimited AI coaching, Focus DNA insights, multipliers, and exclusive themes with FocusArx Premium — activated with in-app coins.",
     "brand": {
       "@type": "Brand",

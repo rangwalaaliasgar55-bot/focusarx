@@ -9,6 +9,11 @@
  * This module deliberately never injects a script tag. It only forwards SPA
  * page views and product events to the global Google tag, preventing duplicate
  * GA4 loaders while preserving client-side route tracking.
+ *
+ * Key events (mark these as Key events in GA4 Admin → Data display → Events):
+ *   sign_up                email registration (pages/signup.tsx)
+ *   session_complete       any focus session completed (lib/analytics.ts)
+ *   first_session_complete first-ever completion per browser (lib/analytics.ts)
  */
 
 type Gtag = (command: "config" | "event" | "js" | "set", ...args: unknown[]) => void;

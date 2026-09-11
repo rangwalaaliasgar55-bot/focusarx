@@ -2,6 +2,39 @@
 
 All notable changes to FocusArx. Dates are UTC.
 
+## [Unreleased] — SEO + analytics: www canonical, title dedupe, GA4 key events
+
+**One canonical host, one brand mark per title, explicit GA4 identity.**
+Driven by live Search Console data (53 "Discovered – currently not indexed",
+cross-host duplicate flags) and GA4 (100% new users, 0 key events, all-direct
+attribution):
+
+- Canonical host is now **`https://www.focusarx.site`** everywhere — the site
+  serves www, so the apex-canonical tags/sitemap/OG were pointing every page
+  at a redirect. Apex → www 308 via a host-conditioned `redirects` entry in
+  `vercel.json` (coexists with legacy `routes`) plus the Vercel primary-domain
+  setting; `APP_URL`/`VITE_APP_URL` and all docs follow.
+- `composeTitle` no longer appends `| FocusArx` to titles that already lead
+  with the brand — the homepage used to render
+  "FocusArx — AI Pomodoro Timer & Deep Work Tracker | FocusArx" on client nav
+  (the double title in the GA4 page-title report). Mid-title brand mentions
+  rewritten in `PAGE_SEO` and the prerender manifest; 8 truncated meta
+  descriptions completed.
+- Fixed four pages passing absolute URLs to `PageSEO canonical` (blog,
+  exam funnel, two guides), which rendered `https://…https://…` canonicals;
+  `PageSEO` now also accepts absolute URLs defensively. Removed the stray
+  client-side `noindex` on `/search` (sitemap-listed) and the dead `noindex`
+  on the `/focus` entry.
+- GA4: explicit cookie config (`cookie_domain auto`, 2-year expiry,
+  `SameSite=Lax;Secure`, `cookie_update`), new `first_session_complete` key
+  event alongside the existing `sign_up` / `session_complete` (mark all three
+  as Key events in GA4 Admin — UI-only toggle), and a documented decision to
+  stay on direct gtag.js instead of GTM. Runtime SEO added to `/signup` and
+  `/login` so SPA navigations report correct page titles.
+
+Post-deploy checklist in the PR description: Vercel primary domain, `APP_URL`
+secret/env, Search Console sitemap resubmit, GA4 key-event toggles.
+
 ## [Unreleased] — P0.3 cross-tab single timer
 
 **Two tabs run one timer now.** The leader election (`navigator.locks`)

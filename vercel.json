@@ -37,6 +37,19 @@
       "dest": "/index.html"
     }
   ],
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "focusarx.site"
+        }
+      ],
+      "destination": "https://www.focusarx.site/:path*",
+      "permanent": true
+    }
+  ],
   "headers": [
     {
       "source": "/assets/(.*)",

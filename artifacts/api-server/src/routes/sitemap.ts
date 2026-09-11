@@ -48,14 +48,15 @@ interface Page {
 }
 
 /**
- * Canonical base URL — the apex host, matching the canonical tag in
+ * Canonical base URL — the www host, matching the canonical tag in
  * `index.html`, the prerenderer and `public/robots.txt`. `APP_URL` wins when
- * set, but it MUST be the same host as the canonical (https://focusarx.site);
- * a different host makes every sitemap URL a duplicate of its canonical.
+ * set, but it MUST be the same host as the canonical
+ * (https://www.focusarx.site); a different host makes every sitemap URL a
+ * duplicate of its canonical.
  */
 function baseUrl(): string {
   const fromEnv = process.env.APP_URL?.replace(/\/+$/, "");
-  return fromEnv || "https://focusarx.site";
+  return fromEnv || "https://www.focusarx.site";
 }
 
 function today(): string {

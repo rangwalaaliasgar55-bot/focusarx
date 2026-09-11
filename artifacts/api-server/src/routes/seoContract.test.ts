@@ -207,7 +207,7 @@ describe("SEO contract: sitemap, routes, prerender manifest and robots.txt agree
 
   it("the static sitemap fallback lists exactly the segments the API emits", () => {
     const xml = fs.readFileSync(STATIC_SITEMAP, "utf8");
-    const declared = [...xml.matchAll(/<loc>https:\/\/focusarx\.site\/(sitemap-[^<]+\.xml)<\/loc>/g)]
+    const declared = [...xml.matchAll(/<loc>https:\/\/www\.focusarx\.site\/(sitemap-[^<]+\.xml)<\/loc>/g)]
       .map((m) => m[1]!)
       .sort();
     const fromApi = SEGMENTS.map((s) => s.file).sort();
@@ -261,7 +261,7 @@ describe("robots.txt: the static copy and the API-generated copy agree", async (
   it("the generated file is too", async () => {
     const { parseDirectiveLines } = await loadRobotsParser();
     const { buildRobotsTxt } = (await import("./sitemap.ts")) as { buildRobotsTxt: (base: string) => string };
-    const broken = parseDirectiveLines(buildRobotsTxt("https://focusarx.site")).filter((entry) => entry.error);
+    const broken = parseDirectiveLines(buildRobotsTxt("https://www.focusarx.site")).filter((entry) => entry.error);
     expect(broken.map((entry) => `line ${entry.line}: ${entry.raw}`)).toEqual([]);
   });
 
@@ -279,7 +279,7 @@ describe("robots.txt: the static copy and the API-generated copy agree", async (
     const wildcardDisallows = (text: string) =>
       new Set(parseRobots(text).groups.get("*")?.disallow ?? []);
     const staticSet = wildcardDisallows(fs.readFileSync(ROBOTS, "utf8"));
-    const generatedSet = wildcardDisallows(buildRobotsTxt("https://focusarx.site"));
+    const generatedSet = wildcardDisallows(buildRobotsTxt("https://www.focusarx.site"));
 
     expect(
       [...staticSet].filter((path) => !generatedSet.has(path)),

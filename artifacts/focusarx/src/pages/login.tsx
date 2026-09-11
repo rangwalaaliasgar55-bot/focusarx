@@ -8,6 +8,7 @@ import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { redirectFromSearch } from "@/lib/safeRedirect";
+import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -66,7 +67,9 @@ export default function LoginPage() {
   };
 
   return (
-    <AuthLayout
+    <>
+      <PageSEO {...PAGE_SEO.login} />
+      <AuthLayout
       eyebrow="Welcome back"
       title="Return to your focus."
       subtitle="Sign in to recover your tasks, sessions, decks, and progress."
@@ -95,6 +98,7 @@ export default function LoginPage() {
       </form>
       <div className="my-5 flex items-center gap-3"><span className="h-px flex-1 bg-[var(--border-subtle)]" /><span className="text-xs uppercase tracking-wider text-[var(--foreground-subtle)]">or</span><span className="h-px flex-1 bg-[var(--border-subtle)]" /></div>
       <Button type="button" variant="outline" size="lg" className="w-full" loading={loading} onClick={() => void continueAsGuest()}>Continue as guest</Button>
-    </AuthLayout>
+      </AuthLayout>
+    </>
   );
 }

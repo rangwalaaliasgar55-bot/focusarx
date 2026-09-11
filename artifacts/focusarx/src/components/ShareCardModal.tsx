@@ -92,7 +92,7 @@ function buildShareCardSvg(s: ShareCardStats): string {
   <!-- footer -->
   <line x1="72" y1="584" x2="1128" y2="584" stroke="#2A2740" stroke-width="1"/>
   <text x="72" y="614" font-family="-apple-system, 'SF Pro Display', 'Geist Variable', Inter, system-ui, sans-serif" font-size="19" fill="#6D6A85">${esc(dateLabel)}</text>
-  <text x="1128" y="614" text-anchor="end" font-family="-apple-system, 'SF Pro Display', 'Geist Variable', Inter, system-ui, sans-serif" font-size="19" font-weight="700" fill="#8B5CF6">focusarx.site</text>
+  <text x="1128" y="614" text-anchor="end" font-family="-apple-system, 'SF Pro Display', 'Geist Variable', Inter, system-ui, sans-serif" font-size="19" font-weight="700" fill="#8B5CF6">www.focusarx.site</text>
 </svg>`;
 }
 
@@ -173,7 +173,7 @@ export function ShareCardModal({
       const blob = await svgToPngBlob(svg, 1200, 630);
       const file = new File([blob], "focusarx-session.png", { type: "image/png" });
       if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: "My FocusArx session", text: "Just locked in a deep work session on FocusArx ⚡ focusarx.site" });
+        await navigator.share({ files: [file], title: "My FocusArx session", text: "Just locked in a deep work session on FocusArx ⚡ www.focusarx.site" });
       } else {
         await downloadPng();
       }
@@ -188,9 +188,9 @@ export function ShareCardModal({
     const mins = Math.max(1, Math.round(stats.durationSeconds / 60));
     const scoreText = stats.focusScore != null ? ` · ${Math.round(stats.focusScore)}% focus score` : "";
     const xpText = (stats.earnedXp ?? 0) > 0 ? ` · +${stats.earnedXp} XP` : "";
-    const text = `🎯 Just completed a ${mins}-min focus session on FocusArx${scoreText}${xpText} 🔥\nBuilding the deep work habit one block at a time. focusarx.site`;
+    const text = `🎯 Just completed a ${mins}-min focus session on FocusArx${scoreText}${xpText} 🔥\nBuilding the deep work habit one block at a time. www.focusarx.site`;
     if (navigator.share) {
-      try { await navigator.share({ text, url: "https://focusarx.site" }); return; } catch { /* cancelled */ }
+      try { await navigator.share({ text, url: "https://www.focusarx.site" }); return; } catch { /* cancelled */ }
     }
     await navigator.clipboard.writeText(text).catch(() => {});
     setCopied(true);

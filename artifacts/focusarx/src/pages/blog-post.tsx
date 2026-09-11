@@ -26,7 +26,7 @@ export default function BlogPostPage() {
       <PageSEO
         title={post.title}
         description={post.description}
-        canonical={`https://focusarx.site/blog/${post.slug}`}
+        canonical={`/blog/${post.slug}`}
       />
       <Link href="/blog" className="text-sm font-semibold text-[var(--brand-strong)]">
         ← Blog

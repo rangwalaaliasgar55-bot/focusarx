@@ -85,7 +85,7 @@ function card({ title, subtitle, tag, accent, site }: {
     ${titleBlock}
   ${sub ? `<text x="80" y="${subY}" font-family="ui-sans-serif,system-ui,sans-serif" font-size="30" fill="#b9bdca">${sub}</text>` : ""}
   <rect x="80" y="560" width="1040" height="2" fill="#ffffff" opacity="0.08"/>
-  <text x="80" y="596" font-family="ui-sans-serif,system-ui,sans-serif" font-size="22" fill="#8b90a0">${esc(site) || "focusarx.site"}</text>
+  <text x="80" y="596" font-family="ui-sans-serif,system-ui,sans-serif" font-size="22" fill="#8b90a0">${esc(site) || "www.focusarx.site"}</text>
 </svg>`;
 }
 

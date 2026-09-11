@@ -57,7 +57,7 @@ jobs:
       - name: Build (Frontend)
         run: pnpm --filter @workspace/focusarx run build
         env:
-          VITE_APP_URL: https://focusarx.site
+          VITE_APP_URL: https://www.focusarx.site
           VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
 
   migrate:

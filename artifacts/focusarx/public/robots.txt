@@ -1,6 +1,6 @@
 # ══════════════════════════════════════════════════════════════
 # FocusArx robots.txt
-# Domain: https://focusarx.site
+# Domain: https://www.focusarx.site (canonical host — the apex 308-redirects here)
 #
 # This file MUST stay consistent with the sitemap. Every URL listed in
 # /sitemap.xml is allowed below, and nothing allowed here is missing from the
@@ -152,5 +152,5 @@ Disallow: /api/
 Disallow: /admin
 
 # ── Sitemap ───────────────────────────────────────────────────
-# Host root (rewritten to the API) — canonical host is the apex.
-Sitemap: https://focusarx.site/sitemap.xml
+# Host root (rewritten to the API) — canonical host is www.
+Sitemap: https://www.focusarx.site/sitemap.xml

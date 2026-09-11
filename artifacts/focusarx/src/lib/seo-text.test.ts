@@ -35,6 +35,30 @@ describe("composeTitle", () => {
     expect(composeTitle("About FocusArx: Our Mission")).toBe("About FocusArx: Our Mission | FocusArx");
   });
 
+  it.each([
+    ["FocusArx — AI Pomodoro Timer & Deep Work Tracker", "FocusArx — AI Pomodoro Timer & Deep Work Tracker"],
+    ["FocusArx Help Center | FAQ & Support", "FocusArx Help Center | FAQ & Support"],
+    ["FocusArx vs Forest: Honest Comparison", "FocusArx vs Forest: Honest Comparison"],
+    ["FocusArx", "FocusArx"],
+  ])("leaves a leading brand mark alone instead of appending a second one (%s)", (input, expected) => {
+    expect(composeTitle(input)).toBe(expected);
+  });
+
+  it("strips a trailing mark before noticing the leading one", () => {
+    // The shape comparison.tsx passes at runtime: brand at both ends in.
+    expect(composeTitle("FocusArx vs Forest: Honest Comparison | FocusArx")).toBe(
+      "FocusArx vs Forest: Honest Comparison",
+    );
+  });
+
+  it("clamps a leading-brand title to the full budget rather than the page budget", () => {
+    const long = "FocusArx — AI Pomodoro Timer & Deep Work Tracker With An Extra Long Tail That Runs Past Sixty Characters";
+    const result = composeTitle(long);
+    expect(result.length).toBeLessThanOrEqual(TITLE_BUDGET);
+    expect(result.startsWith("FocusArx")).toBe(true);
+    expect(result.endsWith(`| ${BRAND}`)).toBe(false);
+  });
+
   it("never emits a title over the search-result budget, whatever it is given", () => {
     const long = "Pomodoro Timer for NDA & NA (National Defence Academy / Naval Academy Entrance Examination) | Focus Sessions That Count";
     const result = composeTitle(long);

@@ -46,7 +46,7 @@ export default function UserProfilePage() {
       const meta = document.querySelector('meta[name="description"]');
       if (meta) meta.setAttribute("content", desc);
       // Per-user share card from real public stats (Phase 4.4).
-      const ogImage = `https://focusarx.site/api/og/user?u=${encodeURIComponent(username)}`;
+      const ogImage = `https://www.focusarx.site/api/og/user?u=${encodeURIComponent(username)}`;
       setMeta("property", "og:title", `${username} — FocusArx Profile`);
       setMeta("property", "og:description", desc);
       setMeta("property", "og:image", ogImage);

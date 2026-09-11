@@ -7,6 +7,7 @@ import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trackSiteEvent } from "@/lib/site-analytics";
+import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 import { trackEvent as trackGAEvent } from "@/lib/gtag";
 import { cn } from "@/lib/utils";
 
@@ -90,7 +91,9 @@ export default function SignupPage() {
   };
 
   return (
-    <AuthLayout
+    <>
+      <PageSEO {...PAGE_SEO.signup} />
+      <AuthLayout
       eyebrow="Start free"
       title="Build a calmer work rhythm."
       subtitle="Create one account for your tasks, study tools, sessions, and progress."
@@ -114,6 +117,7 @@ export default function SignupPage() {
         <Button type="submit" size="lg" className="w-full" loading={loading}>Create account <span aria-hidden="true">→</span></Button>
       </form>
       <p className="mt-5 text-xs leading-relaxed text-[var(--foreground-subtle)]">By creating an account, you agree to the <Link href="/terms" className="underline hover:text-[var(--foreground)]">Terms</Link> and acknowledge the <Link href="/privacy" className="underline hover:text-[var(--foreground)]">Privacy Policy</Link>.</p>
-    </AuthLayout>
+      </AuthLayout>
+    </>
   );
 }

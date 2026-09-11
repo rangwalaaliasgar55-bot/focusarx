@@ -15,7 +15,10 @@ interface PageSEOProps {
 // Single source of truth for the canonical origin. Defaults to the production
 // domain but can be overridden per deployment via VITE_APP_URL so canonical /
 // og:url / og:image URLs never drift out of sync with where the app is hosted.
-const BASE_URL = (import.meta.env.VITE_APP_URL || "https://focusarx.site").replace(/\/+$/, "");
+// Canonical host is www: the apex 308-redirects here (vercel.json + the Vercel
+// primary-domain setting), so every canonical must be www or it points at a
+// redirect and Google drops the page.
+const BASE_URL = (import.meta.env.VITE_APP_URL || "https://www.focusarx.site").replace(/\/+$/, "");
 const DEFAULT_OG_IMAGE = `${BASE_URL}/opengraph.jpg`;
 
 function setMeta(name: string, content: string, attr: "name" | "property" = "name") {
@@ -67,7 +70,15 @@ export function PageSEO({
   useEffect(() => {
     const prevTitle = document.title;
     const fullTitle = composeTitle(title);
-    const canonicalUrl = canonical ? `${BASE_URL}${canonical}` : BASE_URL;
+    // `canonical` is a path ("/blog/x"). If a caller passes an absolute URL by
+    // mistake, use it as-is — prepending the base would emit a garbage
+    // "https://www.…https://…" canonical (shipped once on the blog, funnel and
+    // two guide pages before the call sites were fixed to paths).
+    const canonicalUrl = !canonical
+      ? BASE_URL
+      : /^https?:\/\//i.test(canonical)
+        ? canonical
+        : `${BASE_URL}${canonical}`;
 
     document.title = fullTitle;
 
@@ -156,13 +167,13 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   },
   about: {
     canonical: "/about",
-    title: "The Mission Behind FocusArx",
+    title: "Our Mission & Story",
     description: "Learn about FocusArx — the AI productivity platform built to help students and professionals build deep focus habits. Our mission, values, and team.",
     keywords: "about FocusArx, FocusArx mission, FocusArx team, FocusArx story, AI productivity company",
   },
   contact: {
     canonical: "/contact",
-    title: "Contact FocusArx | Support, Feedback & Enquiries",
+    title: "Contact & Support",
     description: "Get in touch with the FocusArx team for support, feedback, feature requests, or business enquiries. We reply within 24 hours.",
     keywords: "contact FocusArx, FocusArx support, FocusArx email, FocusArx help",
   },
@@ -175,7 +186,7 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   pricing: {
     canonical: "/pricing",
     title: "FocusArx — Free Forever | Deep Work Features",
-    description: "FocusArx is completely free. Unlock unlimited AI coaching, advanced Focus DNA insights, and exclusive themes with Premium — activated using coins you earn by.",
+    description: "FocusArx is completely free. Unlock Premium — advanced AI coaching, exclusive themes, deep insights — with coins you earn by focusing.",
     keywords: "FocusArx free, free focus timer, free study app, deep work features, FocusArx premium coins",
   },
   onboarding: {
@@ -205,13 +216,13 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   focusGuide: {
     canonical: "/focus-guide",
     title: "How to Focus: A Science-Based Guide",
-    description: "Learn how to focus and master deep work. Science-backed methods — Pomodoro technique, time blocking, flow state — plus a practical system to build unbreakable.",
+    description: "Learn how to focus and master deep work — Pomodoro technique, time blocking, and flow state — plus a practical system to build unbreakable focus.",
     keywords: "how to focus, improve focus, deep work, how to concentrate, focus guide, build focus habits, Pomodoro method, flow state, FocusArx focus guide",
   },
   pomodoroGuide: {
     canonical: "/pomodoro-guide",
     title: "The Pomodoro Technique, Step by Step",
-    description: "Complete guide to the Pomodoro Technique. Learn how to use the Pomodoro method with FocusArx — the best free AI-powered Pomodoro timer app for students and.",
+    description: "Complete guide to the Pomodoro Technique: how 25/5 sprints work, mistakes to avoid, longer deep-work intervals, and the best free timer app.",
     keywords: "Pomodoro technique, Pomodoro timer, Pomodoro method, best Pomodoro app, Pomodoro guide, FocusArx Pomodoro, study Pomodoro",
   },
   studyTechniques: {
@@ -223,12 +234,12 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   virtualStudyRoom: {
     canonical: "/virtual-study-room",
     title: "Virtual Study Room | Study with Others Online | FocusArx",
-    description: "Join a free virtual study room and focus with other learners online. Synchronized Pomodoro timers, live presence, optional cameras, and 24/7 rooms — no.",
+    description: "Join a free virtual study room and focus with other learners online. Synchronized Pomodoro timers, live presence, 24/7 rooms, cameras optional.",
     keywords: "virtual study room, study with others online, online study room, co-study app, study accountability, group study online, FocusArx study rooms",
   },
   roadmap: {
     canonical: "/roadmap",
-    title: "Product Roadmap | What's Next for FocusArx",
+    title: "Product Roadmap | What's Next",
     description: "Explore the FocusArx product roadmap. See upcoming features, recent releases, and how we're building the world's best AI productivity platform.",
     keywords: "FocusArx roadmap, FocusArx features, FocusArx upcoming, FocusArx future",
   },
@@ -240,7 +251,7 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   },
   dashboard: {
     canonical: "/dashboard",
-    title: "Your Command Center | FocusArx Dashboard",
+    title: "Dashboard | Your Command Center",
     description: "Manage your deep focus sessions, track daily goals, and see your academic city grow in real-time from your FocusArx dashboard.",
     keywords: "productivity dashboard, focus command center, daily goals, FocusArx home",
   },
@@ -307,7 +318,7 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   },
   aiPolicy: {
     canonical: "/ai-policy",
-    title: "AI Policy | How FocusArx Uses AI | FocusArx",
+    title: "AI Policy | How We Use AI",
     description: "How FocusArx uses artificial intelligence. Our AI features, data handling, and privacy-first approach to machine learning.",
     keywords: "FocusArx AI, FocusArx artificial intelligence, AI privacy, how AI works FocusArx",
   },
@@ -323,6 +334,12 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
     description: "Create your free FocusArx account. No credit card required. Start tracking your focus sessions in 30 seconds.",
     keywords: "sign up FocusArx, create account, free focus app registration",
   },
+  login: {
+    canonical: "/login",
+    title: "Log In | FocusArx",
+    description: "Log in to FocusArx to continue your streaks, sessions, study rooms, and AI productivity coaching.",
+    keywords: "log in FocusArx, sign in, FocusArx login",
+  },
   guides: {
     canonical: "/guides",
     title: "Every Focus & Study Guide, Free",
@@ -332,30 +349,30 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   adhdFocus: {
     canonical: "/adhd-focus-tips",
     title: "How to Focus with ADHD: 15 Working Strategies",
-    description: "Practical focus strategies that actually work for ADHD brains — body doubling, the 10-minute rule, dopamine-friendly rewards, timers, and how to build study.",
+    description: "Practical focus strategies that actually work for ADHD brains — body doubling, the 10-minute rule, dopamine-friendly rewards, timers, and structure.",
     keywords: "how to focus with ADHD, ADHD study tips, ADHD concentration, focus strategies ADHD, ADHD productivity, ADHD time blindness, body doubling study",
   },
   stopProcrastinating: {
     canonical: "/stop-procrastinating",
     title: "How to Stop Procrastinating: 12 Methods That Work | FocusArx",
-    description: "Why you procrastinate (it's not laziness) and 12 proven ways to stop — the 2-minute rule, temptation bundling, implementation intentions, and systems that.",
+    description: "Why you procrastinate (it's not laziness) and 12 proven ways to stop — the 2-minute rule, temptation bundling, and implementation intentions.",
     keywords: "how to stop procrastinating, stop procrastination, why do I procrastinate, procrastination help, overcome procrastination, 2 minute rule, motivation to study",
   },
   studyWithMe: {
     canonical: "/study-with-me",
     title: "Study With Me: Live Virtual Study Sessions | FocusArx",
-    description: "Study with me and thousands of other learners in live virtual study rooms. Real-time accountability, Pomodoro sync, and the body-doubling effect that makes.",
+    description: "Study with me alongside thousands of learners in live virtual rooms — silent body doubling, synced Pomodoro timers, and free 24/7 accountability.",
     keywords: "study with me, study with me online, virtual study session, body doubling, study live with others, pomodoro study with me, study together online",
   },
   focusMusic: {
     canonical: "/focus-music",
     title: "Music for Studying: What Science Says",
-    description: "Does study music actually help? What the research really says about focus music, lo-fi, binaural beats, and silence — plus how to build a playlist that.",
+    description: "Does study music actually help? What research says about lo-fi, binaural beats, noise colors, and silence — plus how to build a playlist that works.",
     keywords: "focus music, study music, music for concentration, lo fi study music, binaural beats focus, best music for studying, music while working",
   },
   search: {
     canonical: "/search",
-    title: "Search FocusArx | Find Guides, Features & Tools",
+    title: "Search Guides, Tools & Features",
     description: "Search all FocusArx guides, study tools, and features — from Pomodoro timers and study rooms to focus guides and calculators.",
     keywords: "search FocusArx, find study guides, focus tools",
   },
@@ -390,7 +407,8 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
     title: "Focus Timer | Start Deep Work Now | FocusArx",
     description: "Start a focus session now — 25m Pomodoro or custom 10-180m deep work. Earn Focus Tokens, level pets, build city.",
     keywords: "focus timer, deep work, pomodoro",
-    noindex: true,
+    // Indexable: /focus is in sitemap-core.xml, the prerender manifest and
+    // robots Allow. A noindex here would deindex a sitemap-listed page.
   },
   quests: {
     canonical: "/quests",

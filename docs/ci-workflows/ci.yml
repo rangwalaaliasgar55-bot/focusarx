@@ -59,7 +59,7 @@ jobs:
       - name: Production build (frontend)
         run: pnpm --filter @workspace/focusarx run build
         env:
-          VITE_APP_URL: https://focusarx.site
+          VITE_APP_URL: https://www.focusarx.site
 
       - name: Check migration naming and duplicate versions
         run: |

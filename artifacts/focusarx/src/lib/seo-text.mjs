@@ -77,9 +77,24 @@ export function clampText(text, limit, { fullStop = true } = {}) {
  * is stripped and the canonical one re-appended after the page part is clamped to
  * the remaining budget: both authoring styles render identically, and no title can
  * be emitted over budget.
+ *
+ * A title that already LEADS with the brand ("FocusArx — AI Pomodoro Timer…",
+ * "FocusArx vs Forest: Honest Comparison") is returned as-is (clamped to the full
+ * budget) instead of gaining a second brand mark at the tail. That double-brand
+ * form ("…Tracker | FocusArx") is what showed up next to the raw homepage title
+ * in the GA4 page-title report.
  */
 export function composeTitle(raw) {
-  const stripped = String(raw ?? "").replace(new RegExp(`\\s*[|—–]\\s*${BRAND}\\s*$`), "");
+  const stripped = String(raw ?? "").replace(new RegExp(`\\s*[|—–]\\s*${BRAND}\\s*$`), "").trim();
+  // Already branded at the front: do not append a second mark at the back.
+  // Word-boundaried so "FocusArxual…" (or a future "FocusArxPro") still gets one.
+  if (new RegExp(`^${BRAND}(?=\\s|$|[|:—–-])`).test(stripped)) {
+    const branded = clampText(stripped, TITLE_BUDGET, { fullStop: false });
+    if (import.meta.env?.DEV && stripped !== branded) {
+      console.warn(`[seo] title was too long for search results and got clipped: "${stripped}"`);
+    }
+    return branded;
+  }
   const page = clampText(stripped, PAGE_TITLE_BUDGET, { fullStop: false });
   if (import.meta.env?.DEV && stripped.trim() !== page) {
     console.warn(`[seo] title was too long for search results and got clipped: "${stripped}"`);

@@ -33,7 +33,7 @@ export default function DeepStudyGuidePage() {
       <PageSEO
         title="How to Study 2 Hours Deeply, Not 12 Distracted"
         description="India's most practical guide to deep work for students. Learn the science behind focused study sessions, eliminate distractions, and achieve more in 2 hours than most students do in an entire day."
-        canonical="https://focusarx.site/deep-study-guide"
+        canonical="/deep-study-guide"
         keywords="deep study, focused study sessions, how to study effectively, study tips india, jee preparation, neet study tips, upsc focus, deep work students"
         ogType="article"
       />
