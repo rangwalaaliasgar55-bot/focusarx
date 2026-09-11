@@ -3,7 +3,7 @@
  *
  * Complements the route/sitemap/robots contract tests (seoContract,
  * regressionGuard) by checking the actual emitted HTML: every page needs a
- * unique title and description, an apex-host canonical, parseable JSON-LD,
+ * unique title and description, a www-host canonical, parseable JSON-LD,
  * and the sitemap must not reference pages that were never prerendered.
  *
  * Run after `vite build && node scripts/prerender.mjs`:
@@ -16,7 +16,7 @@ import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const DIST = fileURLToPath(new URL("../dist/public", import.meta.url));
-const CANONICAL_HOST = "https://focusarx.site";
+const CANONICAL_HOST = "https://www.focusarx.site";
 
 /** Routes that are intentionally not in the sitemap (auth/private screens). */
 const NON_SITEMAP_ALLOWLIST = new Set([
@@ -69,7 +69,7 @@ for (const entry of robotsErrors) {
 }
 const sitemapDirective = robots.match(/^Sitemap:\s*(\S+)$/m)?.[1];
 if (!sitemapDirective) problems.push("robots.txt: missing Sitemap directive");
-else if (!sitemapDirective.startsWith(CANONICAL_HOST)) problems.push(`robots.txt sitemap is not the apex host (${sitemapDirective})`);
+else if (!sitemapDirective.startsWith(CANONICAL_HOST)) problems.push(`robots.txt sitemap is not the www host (${sitemapDirective})`);
 
 for (const file of files) {
   const route = relative(DIST, file).replace(/index\.html$/, "").replace(/\.html$/, "");
@@ -114,16 +114,16 @@ for (const file of files) {
   else descriptions.set(desc, routePath);
 
   for (const canonical of html.matchAll(/<link\s+rel="canonical"\s+href="([^"]*)"/g)) {
-    if (canonical[1].startsWith("www.") || canonical[1].includes("://www.")) {
-      problems.push(`${routePath}: canonical points at www host (${canonical[1]})`);
+    if (/^https?:\/\/focusarx\.site(\/|$)/.test(canonical[1])) {
+      problems.push(`${routePath}: canonical points at the apex host (${canonical[1]}) — canonical host is www`);
     }
     if (!canonical[1].startsWith(CANONICAL_HOST)) {
-      problems.push(`${routePath}: canonical is not the apex host (${canonical[1]})`);
+      problems.push(`${routePath}: canonical is not the www host (${canonical[1]})`);
     }
   }
 
   for (const og of html.matchAll(/<meta\s+property="og:url"\s+content="([^"]*)"/g)) {
-    if (!og[1].startsWith(CANONICAL_HOST)) problems.push(`${routePath}: og:url is not the apex host (${og[1]})`);
+    if (!og[1].startsWith(CANONICAL_HOST)) problems.push(`${routePath}: og:url is not the www host (${og[1]})`);
   }
 
   // JSON-LD blocks must parse.
@@ -135,9 +135,9 @@ for (const file of files) {
     }
   }
 
-  // No www URLs in any machine-readable URL field.
-  for (const url of html.matchAll(/(?:href|content)="(https?:\/\/www\.focusarx\.site[^"]*)"/g)) {
-    problems.push(`${routePath}: www URL in metadata (${url[1]})`);
+  // No apex URLs in any machine-readable URL field (canonical host is www).
+  for (const url of html.matchAll(/(?:href|content)="(https?:\/\/focusarx\.site[^"]*)"/g)) {
+    problems.push(`${routePath}: apex URL in metadata (${url[1]})`);
   }
 }
 
@@ -182,7 +182,7 @@ if (/<sitemapindex/i.test(sitemapXml)) {
   sitemapUrls = [];
   for (const child of childUrls) {
     if (!child.startsWith(CANONICAL_HOST) || !/^\/sitemap-[^/]+\.xml$/.test(toPath(child))) {
-      problems.push(`sitemap index entry is not an apex-host child sitemap: ${child}`);
+      problems.push(`sitemap index entry is not a www-host child sitemap: ${child}`);
       continue;
     }
     const childFile = join(DIST, toPath(child).replace(/^\//, ""));
@@ -194,8 +194,8 @@ const sitemapPaths = new Set(sitemapUrls.map(toPath));
 const prerenderedPaths = new Set(files.map((f) => toPath(`/${relative(DIST, f).replace(/index\.html$/, "").replace(/\.html$/, "")}`)));
 
 for (const url of sitemapUrls) {
-  if (url.includes("://www.")) problems.push(`sitemap URL uses www host: ${url}`);
-  if (!url.startsWith(CANONICAL_HOST)) problems.push(`sitemap URL is not the apex host: ${url}`);
+  if (/^https?:\/\/focusarx\.site(\/|$)/.test(url)) problems.push(`sitemap URL uses the apex host: ${url}`);
+  if (!url.startsWith(CANONICAL_HOST)) problems.push(`sitemap URL is not the www host: ${url}`);
   if (!prerenderedPaths.has(toPath(url))) problems.push(`sitemap lists a page that was not prerendered: ${url}`);
 }
 if (apiServedChildren === 0) {

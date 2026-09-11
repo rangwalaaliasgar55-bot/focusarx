@@ -106,15 +106,18 @@ psql "$DATABASE_URL" -f database/verify.sql
 
 ## Canonical domain (www vs apex) — ops requirement
 
-The app canonical is the apex `https://focusarx.site` (`artifacts/focusarx/index.html`,
-`robots.txt`, sitemap). `vercel.json` uses legacy `routes`, which cannot carry
-`redirects`, so the www→apex 301 lives in the Vercel dashboard, not in code:
+The app canonical is `https://www.focusarx.site` (`artifacts/focusarx/index.html`,
+`robots.txt`, sitemap). The apex → www 308 lives in **two** places that must
+agree — the top-level `redirects` entry in `vercel.json` (host-conditioned on
+the apex, so previews are unaffected; Vercel applies `redirects` alongside
+legacy `routes`) **and** the Vercel dashboard:
 
-1. Vercel → Project → Settings → Domains: set `focusarx.site` as **Primary**.
-2. `www.focusarx.site` then 307-redirects to the apex automatically.
-3. Verify: `curl -sI https://www.focusarx.site | grep -i location` must point
-   at the apex, and every sitemap `<loc>` must return 200 (not a redirect).
+1. Vercel → Project → Settings → Domains: set `www.focusarx.site` as **Primary**.
+2. `focusarx.site` then 308-redirects to www automatically at the edge.
+3. Verify: `curl -sI https://focusarx.site | grep -i location` must point
+   at www, and every sitemap `<loc>` must return 200 (not a redirect).
 
-If the primary ever flips back to `www`, every canonical points at a redirect
-and Google drops the pages. The SEO contract tests (`seoContract.test.ts`)
-guard route/sitemap/prerender agreement, not DNS — this step is manual.
+If the primary ever flips back to the apex, every canonical points at a
+redirect and Google drops the pages. The SEO contract tests
+(`seoContract.test.ts`) guard route/sitemap/prerender agreement, not DNS —
+the dashboard half of this step is manual.

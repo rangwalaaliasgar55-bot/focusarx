@@ -98,7 +98,7 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-screen bg-[var(--muted)] text-[var(--foreground)]">
-      <PageSEO {...PAGE_SEO.search} noindex />
+      <PageSEO {...PAGE_SEO.search} />
       <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
         <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[var(--brand-600)]/30 bg-[var(--brand-600)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--brand-400)]">
           <SearchIcon size={12} /> Search FocusArx

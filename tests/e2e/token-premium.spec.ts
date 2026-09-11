@@ -68,10 +68,10 @@ test.describe("Premium economy UI", () => {
     expect(sitemap.headers()["content-type"]).toContain("xml");
     const xml = await sitemap.text();
     expect(xml).toContain("<sitemapindex");
-    expect(xml).toContain("<loc>https://focusarx.site/sitemap-core.xml</loc>");
-    expect(xml).toContain("<loc>https://focusarx.site/sitemap-guides.xml</loc>");
+    expect(xml).toContain("<loc>https://www.focusarx.site/sitemap-core.xml</loc>");
+    expect(xml).toContain("<loc>https://www.focusarx.site/sitemap-guides.xml</loc>");
     // Protected account pages do not belong in a public sitemap.
-    expect(xml).not.toContain("<loc>https://focusarx.site/premium</loc>");
+    expect(xml).not.toContain("<loc>https://www.focusarx.site/premium</loc>");
   });
 
   test("reduced-motion visitors can reach the public focus timer without page errors", async ({ page }) => {

@@ -58,7 +58,7 @@ Option A — PWABuilder (recommended):
 
 Option B — Manual with @pwa-builder/cli:
 ```bash
-npx @pwa-builder/cli package --platform windows --url https://focusarx.site
+npx @pwa-builder/cli package --platform windows --url https://www.focusarx.site
 ```
 
 ### 3. App Identity

@@ -68,9 +68,9 @@ const articleSchema = {
   "headline": "How to Focus: The Complete Science-Based Guide to Deep Work",
   "description": "A comprehensive, research-backed guide to improving focus and entering deep work — covering the science of attention, proven methods like Pomodoro and Deep Work, and a practical system you can start today.",
   "author": { "@type": "Organization", "name": "FocusArx" },
-  "publisher": { "@type": "Organization", "name": "FocusArx", "logo": { "@type": "ImageObject", "url": "https://focusarx.site/logo.png" } },
+  "publisher": { "@type": "Organization", "name": "FocusArx", "logo": { "@type": "ImageObject", "url": "https://www.focusarx.site/logo.png" } },
   "dateModified": "2026-08-16",
-  "mainEntityOfPage": "https://focusarx.site/focus-guide",
+  "mainEntityOfPage": "https://www.focusarx.site/focus-guide",
 };
 
 export default function FocusGuidePage() {

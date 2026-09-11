@@ -18,7 +18,8 @@ import { BLOG_POSTS } from "../src/content/blog.mjs";
 import { FUNNEL_ANGLES } from "../src/content/exam-funnel.mjs";
 
 // OG card base for dynamic OG images (serverless /api/og endpoint).
-const OG_BASE = "https://focusarx.site";
+// Canonical host is www — the apex 308-redirects here (vercel.json).
+const OG_BASE = "https://www.focusarx.site";
 const examOgImage = (title, subtitle) =>
   `${OG_BASE}/api/og?tag=${encodeURIComponent("EXAM GUIDE")}&title=${encodeURIComponent(title)}&subtitle=${encodeURIComponent(subtitle)}&accent=${encodeURIComponent("#a78bfa")}`;
 export const DEFAULT_OG_IMAGE_PATH = "/opengraph.jpg";
@@ -104,7 +105,7 @@ export const ROUTES = [
   // ── Company ───────────────────────────────────────────────────
   {
     path: "/about",
-    title: "About FocusArx: Our Mission",
+    title: "About Us: Our Mission",
     description:
       "FocusArx helps students and professionals build unbreakable focus habits with an AI-powered, gamified deep-work platform.",
     h1: "About FocusArx",
@@ -123,7 +124,7 @@ export const ROUTES = [
   },
   {
     path: "/contact",
-    title: "Contact FocusArx | Support, Feedback & Enquiries",
+    title: "Contact & Support",
     description:
       "Get in touch with the FocusArx team for support, feedback, feature requests, or business enquiries. We reply within 24 hours.",
     h1: "Contact FocusArx",
@@ -219,7 +220,7 @@ export const ROUTES = [
     path: "/focus-guide",
     title: "How to Focus: A Science-Based Guide",
     description:
-      "Learn how to focus and master deep work. Science-backed methods — Pomodoro technique, time blocking, flow state — plus a practical system to build unbreakable.",
+      "Learn how to focus and master deep work — Pomodoro technique, time blocking, and flow state — plus a practical system to build unbreakable focus.",
     h1: "How to focus: the complete science-based guide",
     lead: "Attention is the most valuable resource you own — and the one most under attack. This guide explains why focus is hard, the science behind it, and a practical system to master deep work.",
     sections: [
@@ -249,7 +250,7 @@ export const ROUTES = [
     path: "/pomodoro-guide",
     title: "The Pomodoro Technique, Step by Step",
     description:
-      "Complete guide to the Pomodoro Technique: how 25/5 focus sprints work, common mistakes, longer deep-work intervals, and the best free Pomodoro timer app with AI",
+      "Complete guide to the Pomodoro Technique: how 25/5 sprints work, mistakes to avoid, longer deep-work intervals, and the best free timer app.",
     h1: "The Pomodoro technique: the complete guide",
     lead: "Pomodoro breaks work into 25-minute focused sprints separated by 5-minute breaks. It's the world's most-used focus method — here's how to run it correctly, when to extend it, and the tools that make it stick.",
     sections: [
@@ -307,7 +308,7 @@ export const ROUTES = [
     path: "/adhd-focus-tips",
     title: "How to Focus with ADHD: 15 Working Strategies",
     description:
-      "Practical focus strategies that actually work for ADHD brains — body doubling, the 10-minute rule, dopamine-friendly rewards, timers, and how to build study.",
+      "Practical focus strategies that actually work for ADHD brains — body doubling, the 10-minute rule, dopamine-friendly rewards, timers, and structure.",
     h1: "How to focus with ADHD: 15 strategies that work",
     lead: "ADHD isn't a willpower problem — it's a dopamine and attention-regulation difference. These strategies work with your brain instead of against it.",
     sections: [
@@ -343,7 +344,7 @@ export const ROUTES = [
     path: "/stop-procrastinating",
     title: "How to Stop Procrastinating: 12 Methods That Work | FocusArx",
     description:
-      "Why you procrastinate (it's not laziness) and 12 proven ways to stop — the 2-minute rule, temptation bundling, implementation intentions, and systems that make.",
+      "Why you procrastinate (it's not laziness) and 12 proven ways to stop — the 2-minute rule, temptation bundling, and implementation intentions.",
     h1: "How to stop procrastinating: 12 methods that work",
     lead: "Procrastination isn't laziness or a time-management glitch — it's your brain avoiding an emotion. Here's the science, and the toolkit.",
     sections: [
@@ -378,7 +379,7 @@ export const ROUTES = [
     path: "/study-with-me",
     title: "Study With Me: Live Virtual Study Sessions | FocusArx",
     description:
-      "Study with me and thousands of other learners in live virtual study rooms.",
+      "Study with me alongside thousands of learners in live virtual rooms — silent body doubling, synced Pomodoro timers, and free 24/7 accountability.",
     h1: "Study with me: why focusing together works",
     lead: "Millions of students now study alongside strangers online. It's not a trend gimmick — it's the easiest accountability system ever discovered.",
     sections: [
@@ -413,7 +414,7 @@ export const ROUTES = [
     path: "/focus-music",
     title: "Music for Studying: What Science Says",
     description:
-      "Does study music actually help? What the research really says about focus music, lo-fi, binaural beats, noise colors, and silence — plus how to build a playlist",
+      "Does study music actually help? What research says about lo-fi, binaural beats, noise colors, and silence — plus how to build a playlist that works.",
     h1: "Focus music: what science actually says",
     lead: "'Study music' is a billion-stream genre — but does it help? The honest research verdict, and how to use sound to go deeper.",
     sections: [
@@ -546,7 +547,7 @@ export const ROUTES = [
     path: "/study-method-quiz",
     title: "Study Method Quiz: Find Your System",
     description:
-      "Take the free 2-minute study method quiz. Discover whether active recall, spaced repetition, Pomodoro, or another technique matches your learning style and.",
+      "Take the free 2-minute study method quiz. Discover whether active recall, spaced repetition, or Pomodoro best matches your learning style.",
     h1: "Which study method works best for you?",
     lead: "Two minutes, a handful of questions — and a study method matched to your brain, schedule, and goals.",
     sections: [
@@ -584,7 +585,7 @@ export const ROUTES = [
     path: "/virtual-study-room",
     title: "Virtual Study Room | Study with Others Online | FocusArx",
     description:
-      "Join a free virtual study room and focus with other learners online.",
+      "Join a free virtual study room and focus with other learners online. Synchronized Pomodoro timers, live presence, 24/7 rooms, cameras optional.",
     h1: "Virtual study rooms: study with others online",
     lead: "Join a live room, keep your camera on or off, and study in synchronized silence with learners around the world.",
     sections: [
@@ -736,7 +737,7 @@ export const ROUTES = [
   },
   {
     path: "/ai-policy",
-    title: "AI Policy | How FocusArx Uses AI | FocusArx",
+    title: "AI Policy | How We Use AI",
     description: "How FocusArx uses artificial intelligence — our AI features, data handling, and privacy-first approach to machine learning.",
     h1: "How FocusArx uses AI",
     lead: "Where AI appears in the product, what it does and doesn't touch, and the privacy-first rules it operates under.",
@@ -842,7 +843,7 @@ export const ROUTES = [
   },
   {
     path: "/search",
-    title: "Search FocusArx | Guides, Tools and Features",
+    title: "Search Guides, Tools & Features",
     description:
       "Search every FocusArx guide, study tool and feature — Pomodoro timers, study rooms, focus guides, calculators and exam prep.",
     h1: "Search FocusArx",

@@ -22,7 +22,7 @@ const SAMPLE = [
   "User-agent: AdsBot-Google",
   "Allow: /",
   "",
-  "Sitemap: https://focusarx.site/sitemap.xml",
+  "Sitemap: https://www.focusarx.site/sitemap.xml",
 ].join("\n");
 
 describe("parseDirectiveLines", () => {

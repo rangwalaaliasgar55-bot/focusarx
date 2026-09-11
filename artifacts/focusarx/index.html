@@ -37,23 +37,25 @@
 
     <!-- ══════════════════════════════════════════════════════════
          CANONICAL — Single source of truth
-         Canonical host is the apex: https://focusarx.site
+         Canonical host is www: https://www.focusarx.site
          Deployment requirement: the Vercel primary domain must be
-         focusarx.site so www 307-redirects here. If the primary domain
-         stays www, every canonical below points at a redirect and
-         Google refuses to index the pages (57 submitted / 0 indexed).
+         www.focusarx.site so the apex 308-redirects here (see the
+         `redirects` entry in vercel.json). If a canonical below ever
+         points at the apex, it points at a redirect and Google refuses
+         to index the page — the failure mode behind the "Discovered –
+         currently not indexed" backlog.
     ══════════════════════════════════════════════════════════════ -->
-    <link rel="canonical" href="https://focusarx.site/" />
+    <link rel="canonical" href="https://www.focusarx.site/" />
 
     <!-- ══════════════════════════════════════════════════════════
          OPEN GRAPH — Facebook, LinkedIn, Discord, WhatsApp, Slack
     ══════════════════════════════════════════════════════════════ -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://focusarx.site/" />
+    <meta property="og:url" content="https://www.focusarx.site/" />
     <meta property="og:title" content="FocusArx — AI Pomodoro Timer & Deep Work Tracker" />
     <meta property="og:description" content="Free AI focus timer and deep work tracker — Pomodoro sessions, focus scores, streaks, live study rooms and an AI coach. No credit card required." />
-    <meta property="og:image" content="https://focusarx.site/opengraph.jpg" />
-    <meta property="og:image:secure_url" content="https://focusarx.site/opengraph.jpg" />
+    <meta property="og:image" content="https://www.focusarx.site/opengraph.jpg" />
+    <meta property="og:image:secure_url" content="https://www.focusarx.site/opengraph.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="FocusArx — AI Focus Timer & Deep Work Platform" />
@@ -70,14 +72,14 @@
     <meta name="twitter:creator" content="@focusarx" />
     <meta name="twitter:title" content="FocusArx — AI Pomodoro Timer & Deep Work Tracker" />
     <meta name="twitter:description" content="Free AI focus timer and deep work tracker — Pomodoro sessions, focus scores, streaks, live study rooms and an AI coach. No credit card required." />
-    <meta name="twitter:image" content="https://focusarx.site/opengraph.jpg" />
+    <meta name="twitter:image" content="https://www.focusarx.site/opengraph.jpg" />
     <meta name="twitter:image:alt" content="FocusArx — AI Focus Timer" />
-    <meta name="twitter:domain" content="focusarx.site" />
+    <meta name="twitter:domain" content="www.focusarx.site" />
 
     <!-- ══════════════════════════════════════════════════════════
          ADDITIONAL PLATFORM META
     ══════════════════════════════════════════════════════════════ -->
-    <meta property="al:web:url" content="https://focusarx.site/" />
+    <meta property="al:web:url" content="https://www.focusarx.site/" />
 
     <!-- ══════════════════════════════════════════════════════════
          PWA / APP METADATA
@@ -102,19 +104,19 @@
     {
       "@context": "https://schema.org",
       "@type": "Organization",
-      "@id": "https://focusarx.site/#organization",
+      "@id": "https://www.focusarx.site/#organization",
       "name": "FocusArx",
       "legalName": "FocusArx",
       "alternateName": ["Focus Arx", "FocusArx AI", "FocusArx Productivity Platform", "FocusArx Study Timer"],
-      "url": "https://focusarx.site",
+      "url": "https://www.focusarx.site",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://focusarx.site/logo.png",
+        "url": "https://www.focusarx.site/logo.png",
         "width": 512,
         "height": 512,
         "caption": "FocusArx Logo"
       },
-      "image": "https://focusarx.site/opengraph.jpg",
+      "image": "https://www.focusarx.site/opengraph.jpg",
       "description": "FocusArx is an AI-powered productivity platform and focus timer that combines Pomodoro technique, deep work tracking, AI coaching, gamification, and habit building to help students and professionals achieve peak performance.",
       "foundingDate": "2024",
       "knowsAbout": [
@@ -126,12 +128,12 @@
         "@type": "ContactPoint",
         "contactType": "customer support",
         "email": "focusarx@gmail.com",
-        "url": "https://focusarx.site/contact",
+        "url": "https://www.focusarx.site/contact",
         "availableLanguage": "English"
       },
       "sameAs": [
         "https://twitter.com/focusarx",
-        "https://focusarx.site"
+        "https://www.focusarx.site"
       ]
     }
     </script>
@@ -143,19 +145,19 @@
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      "@id": "https://focusarx.site/#website",
+      "@id": "https://www.focusarx.site/#website",
       "name": "FocusArx",
       "alternateName": "FocusArx AI Productivity Platform",
-      "url": "https://focusarx.site",
+      "url": "https://www.focusarx.site",
       "description": "AI-powered focus timer, deep work tracker, habit builder, and productivity OS for students and professionals.",
-      "publisher": { "@id": "https://focusarx.site/#organization" },
+      "publisher": { "@id": "https://www.focusarx.site/#organization" },
       "inLanguage": "en-US",
       "copyrightYear": "2026",
       "potentialAction": {
         "@type": "SearchAction",
         "target": {
           "@type": "EntryPoint",
-          "urlTemplate": "https://focusarx.site/search?q={search_term_string}"
+          "urlTemplate": "https://www.focusarx.site/search?q={search_term_string}"
         },
         "query-input": "required name=search_term_string"
       }
@@ -181,7 +183,7 @@
       "name": "FocusArx",
       "applicationCategory": "ProductivityApplication",
       "operatingSystem": "Web, iOS, Android",
-      "url": "https://focusarx.site",
+      "url": "https://www.focusarx.site",
       "description": "AI-powered Pomodoro timer, deep work tracker, habit builder, and gamified productivity platform for students and professionals.",
       "offers": {
         "@type": "Offer",
@@ -200,11 +202,11 @@
         "Weekly AI performance reports",
         "Webcam-based attention monitoring"
       ],
-      "screenshot": "https://focusarx.site/opengraph.jpg",
+      "screenshot": "https://www.focusarx.site/opengraph.jpg",
       "softwareVersion": "1.0",
       "datePublished": "2024-01-01",
       "author": {
-        "@id": "https://focusarx.site/#organization"
+        "@id": "https://www.focusarx.site/#organization"
       }
     }
     </script>
@@ -319,49 +321,49 @@
           "@type": "ListItem",
           "position": 1,
           "name": "Adaptive Pomodoro Timer",
-          "url": "https://focusarx.site/pomodoro-guide"
+          "url": "https://www.focusarx.site/pomodoro-guide"
         },
         {
           "@type": "ListItem",
           "position": 2,
           "name": "AI Productivity Coach",
-          "url": "https://focusarx.site/"
+          "url": "https://www.focusarx.site/"
         },
         {
           "@type": "ListItem",
           "position": 3,
           "name": "Deep Work Tracking",
-          "url": "https://focusarx.site/science-of-deep-work"
+          "url": "https://www.focusarx.site/science-of-deep-work"
         },
         {
           "@type": "ListItem",
           "position": 4,
           "name": "Virtual Study Rooms",
-          "url": "https://focusarx.site/virtual-study-room"
+          "url": "https://www.focusarx.site/virtual-study-room"
         },
         {
           "@type": "ListItem",
           "position": 5,
           "name": "Gamified Streaks & Rewards",
-          "url": "https://focusarx.site/premium"
+          "url": "https://www.focusarx.site/premium"
         },
         {
           "@type": "ListItem",
           "position": 6,
           "name": "Focus DNA Insights",
-          "url": "https://focusarx.site/focus-guide"
+          "url": "https://www.focusarx.site/focus-guide"
         },
         {
           "@type": "ListItem",
           "position": 7,
           "name": "Habit Building",
-          "url": "https://focusarx.site/study-techniques"
+          "url": "https://www.focusarx.site/study-techniques"
         },
         {
           "@type": "ListItem",
           "position": 8,
           "name": "Study Method Quiz",
-          "url": "https://focusarx.site/study-method-quiz"
+          "url": "https://www.focusarx.site/study-method-quiz"
         }
       ]
     }
@@ -377,7 +379,11 @@
     <link rel="dns-prefetch" href="https://tpc.googlesyndication.com" />
     <link rel="dns-prefetch" href="https://images.unsplash.com" />
 
-    <!-- Google tag (gtag.js) — installed once for every FocusArx route. -->
+    <!-- Google tag (gtag.js) — installed once for every FocusArx route.
+         Direct gtag.js is a deliberate choice, not a missing GTM install: one
+         tag, no container round-trip, no duplicate loader. Do NOT add a GTM
+         container snippet without removing this block — two Google tags on one
+         page double-count page views and fight over the _ga cookie. -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-PXMVX28PL5"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
@@ -385,7 +391,17 @@
       gtag("js", new Date());
       // SPA route changes are reported by SiteAnalyticsTracker. Disabling the
       // automatic view here prevents the initial route from being counted twice.
-      gtag("config", "G-PXMVX28PL5", { send_page_view: false, anonymize_ip: true });
+      // Cookie fields are explicit (not relying on gtag defaults) so identity
+      // survives across www/apex and long gaps between visits: the _ga cookie
+      // lives on the root domain for the full 2 years GA4 allows.
+      gtag("config", "G-PXMVX28PL5", {
+        send_page_view: false,
+        anonymize_ip: true,
+        cookie_domain: "auto",
+        cookie_expires: 63072000,
+        cookie_flags: "SameSite=Lax;Secure",
+        cookie_update: true,
+      });
     </script>
 
     <!-- ══════════════════════════════════════════════════════════

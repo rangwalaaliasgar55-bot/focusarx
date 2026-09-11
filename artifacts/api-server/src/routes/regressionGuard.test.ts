@@ -299,12 +299,12 @@ describe("10. sitemap host matches the canonical host", () => {
     expect(robotsSitemap?.startsWith(canonical!), "robots.txt Sitemap: uses a different host").toBe(true);
   });
 
-  it("the static sitemap index is valid XML and points at the canonical apex host", () => {
+  it("the static sitemap index is valid XML and points at the canonical www host", () => {
     const xml = read(path.join(FRONTEND, "public/sitemap.xml"));
     expect(xml.startsWith("<?xml")).toBe(true);
     expect(xml).toContain("<sitemapindex");
-    expect(xml).toContain("https://focusarx.site/");
-    expect(xml).not.toContain("//www.focusarx.site"); // www — would cross-host duplicate
+    expect(xml).toContain("https://www.focusarx.site/");
+    expect(xml).not.toMatch(/https:\/\/focusarx\.site\//); // apex — would cross-host duplicate
     // Balanced elements — strip the XML comment first, since the explanatory
     // header legitimately mentions <sitemap> in prose.
     const body = xml.replace(/<!--[\s\S]*?-->/g, "");

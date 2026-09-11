@@ -618,7 +618,7 @@ export const SEO_PAGES = {
 
   "/accessibility": {
     kind: "trust",
-    title: "Accessibility at FocusArx",
+    title: "Accessibility Statement",
     description:
       "FocusArx accessibility: keyboard navigation, screen-reader support, contrast, reduced motion, captions and how to report a barrier.",
     h1: "Accessibility",

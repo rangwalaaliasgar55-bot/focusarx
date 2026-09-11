@@ -68,6 +68,7 @@ export type AnalyticsEvent =
   | { event: "onboarding_complete"; properties: { goal: string; focus_style: string; daily_target_hours: number } }
   | { event: "session_started"; properties: { session_type: string; planned_duration: number; has_task: boolean } }
   | { event: "session_complete"; properties: { duration_seconds: number; focus_score: number; xp_earned: number; early: boolean } }
+  | { event: "first_session_complete"; properties: { duration_seconds: number; focus_score: number } }
   | { event: "session_abandoned"; properties: { duration_seconds: number; reason?: string } }
   | { event: "habit_checked"; properties: { habit_id: string; streak_count: number } }
   | { event: "streak_achieved"; properties: { streak_days: number } }
@@ -172,9 +173,23 @@ export function trackSessionStart(sessionType: string, plannedDuration: number, 
 }
 
 /** Call when a focus session completes normally.
- *  Place in: Timer.tsx handleSessionComplete */
+ *  Place in: Timer.tsx handleSessionComplete
+ *
+ * Also emits `first_session_complete` once per browser (localStorage-guarded)
+ * so "first focus session completed" is directly markable as a GA4 key event.
+ * Mark `sign_up`, `session_complete` and `first_session_complete` as Key
+ * events in GA4 Admin → Data display → Events — that toggle lives in the GA4
+ * UI and cannot be set from code. */
 export function trackSessionComplete(durationSeconds: number, focusScore: number, xpEarned: number, early: boolean) {
   track("session_complete", { duration_seconds: durationSeconds, focus_score: focusScore, xp_earned: xpEarned, early });
+  try {
+    if (typeof localStorage !== "undefined" && !localStorage.getItem("focusarx:first-session-tracked")) {
+      localStorage.setItem("focusarx:first-session-tracked", new Date().toISOString());
+      track("first_session_complete", { duration_seconds: durationSeconds, focus_score: focusScore });
+    }
+  } catch {
+    /* private mode: the repeat event above already fired, nothing is lost */
+  }
 }
 
 /** Call when a session is abandoned before completion.

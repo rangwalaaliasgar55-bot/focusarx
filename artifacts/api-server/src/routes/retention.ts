@@ -305,7 +305,7 @@ retentionRouter.get("/referral/my-code", authMiddleware, async (req: AuthRequest
     }
     if (!user.referralCode) return res.status(500).json({ error: "Unable to create referral code" });
 
-    const baseUrl = (process.env["APP_URL"] || "https://focusarx.site").replace(/\/$/, "");
+    const baseUrl = (process.env["APP_URL"] || "https://www.focusarx.site").replace(/\/$/, "");
     res.json({
       code: user.referralCode,
       shareUrl: `${baseUrl}/?ref=${encodeURIComponent(user.referralCode)}`,

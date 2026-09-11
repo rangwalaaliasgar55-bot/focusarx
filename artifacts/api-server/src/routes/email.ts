@@ -65,9 +65,9 @@ function emailLayout(preheader: string, body: string): string {
       <div class="footer">
         <p class="footer-text">You're receiving this because you created a FocusArx account. We respect your inbox.</p>
         <div class="footer-links">
-          <a href="https://focusarx.site/privacy">Privacy Policy</a>
-          <a href="https://focusarx.site/unsubscribe">Unsubscribe</a>
-          <a href="https://focusarx.site/support">Support</a>
+          <a href="https://www.focusarx.site/privacy">Privacy Policy</a>
+          <a href="https://www.focusarx.site/unsubscribe">Unsubscribe</a>
+          <a href="https://www.focusarx.site/support">Support</a>
         </div>
         <div class="privacy-badge">🔒 Your data is never sold. Ever.</div>
       </div>
@@ -100,9 +100,9 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (name: string, da
           <li>Deep analytics: Focus Score, Focus DNA, session history</li>
           <li>Study Rooms: focus alongside thousands of learners live</li>
         </ul>
-        <a href="https://focusarx.site/dashboard" class="cta-btn">→ Start My First Session</a>
+        <a href="https://www.focusarx.site/dashboard" class="cta-btn">→ Start My First Session</a>
         <hr class="divider" />
-        <p style="font-size:13px;color:#4b5563;margin:0;">Questions? Reply to this email or visit <a href="https://focusarx.site/support" style="color:#7c3aed;">our support page</a>. We reply within 24 hours.</p>
+        <p style="font-size:13px;color:#4b5563;margin:0;">Questions? Reply to this email or visit <a href="https://www.focusarx.site/support" style="color:#7c3aed;">our support page</a>. We reply within 24 hours.</p>
       </div>`
     ),
   },
@@ -141,9 +141,9 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (name: string, da
           <li>${data.suggestion2 || "Check your Focus DNA to see which time of day you score highest"}</li>
           <li>${data.suggestion3 || "Complete 3 daily missions to unlock bonus XP multipliers"}</li>
         </ul>
-        <a href="https://focusarx.site/analytics" class="cta-btn">→ See Full Analytics</a>
+        <a href="https://www.focusarx.site/analytics" class="cta-btn">→ See Full Analytics</a>
         <hr class="divider" />
-        <p style="font-size:13px;color:#4b5563;margin:0;line-height:1.6;">Your data is private and never sold. <a href="https://focusarx.site/privacy" style="color:#7c3aed;">Privacy Policy</a></p>
+        <p style="font-size:13px;color:#4b5563;margin:0;line-height:1.6;">Your data is private and never sold. <a href="https://www.focusarx.site/privacy" style="color:#7c3aed;">Privacy Policy</a></p>
       </div>`
     ),
   },
@@ -181,7 +181,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (name: string, da
           <li><strong style="color:#fff;">Complete a session now</strong> — even 5 minutes saves your streak and earns XP</li>
           <li><strong style="color:#fff;">Use a Freeze Token</strong> — if you have one, protect today's streak automatically from the app</li>
         </ul>
-        <a href="https://focusarx.site/dashboard" class="cta-btn" style="background:linear-gradient(135deg,#ea580c,#f97316);">→ Save My Streak Now</a>
+        <a href="https://www.focusarx.site/dashboard" class="cta-btn" style="background:linear-gradient(135deg,#ea580c,#f97316);">→ Save My Streak Now</a>
         <hr class="divider" />
         <p style="font-size:13px;color:#4b5563;margin:0;">Streak resets are permanent but your XP, badges, and history are always kept. This is just a reminder — not pressure. You've got this.</p>
       </div>`
@@ -196,7 +196,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (name: string, da
       `<div class="body">
         <h1 class="headline">Hey ${name || "there"} 👋</h1>
         <p class="subline">You've been away for a while. Your XP, streaks, and sessions are all still here waiting for you.</p>
-        <a href="https://focusarx.site/dashboard" class="cta-btn">→ Pick Up Where You Left Off</a>
+        <a href="https://www.focusarx.site/dashboard" class="cta-btn">→ Pick Up Where You Left Off</a>
       </div>`
     ),
   },
@@ -207,7 +207,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (name: string, da
       `<div class="body">
         <h1 class="headline">New Features Just Dropped ✨</h1>
         <p class="subline">Hi ${name || "there"}! We've been building hard. Here's what's new on FocusArx.</p>
-        <a href="https://focusarx.site/dashboard" class="cta-btn">→ Explore New Features</a>
+        <a href="https://www.focusarx.site/dashboard" class="cta-btn">→ Explore New Features</a>
       </div>`
     ),
   },
@@ -218,7 +218,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (name: string, da
       `<div class="body">
         <h1 class="headline">Your Month in Focus, ${name || "Scholar"} 🎁</h1>
         <p class="subline">Your monthly achievements and wrapped stats are ready to view in the app.</p>
-        <a href="https://focusarx.site/wrapped" class="cta-btn">→ See My Monthly Wrapped</a>
+        <a href="https://www.focusarx.site/wrapped" class="cta-btn">→ See My Monthly Wrapped</a>
       </div>`
     ),
   },
@@ -229,7 +229,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (name: string, da
       `<div class="body">
         <h1 class="headline">Go Premium, ${name || "Scholar"} 👑</h1>
         <p class="subline">Unlock exclusive pets, XP multipliers, premium loot boxes, and unlimited AI coaching.</p>
-        <a href="https://focusarx.site/pricing" class="cta-btn">→ See Premium Plans</a>
+        <a href="https://www.focusarx.site/pricing" class="cta-btn">→ See Premium Plans</a>
       </div>`
     ),
   },

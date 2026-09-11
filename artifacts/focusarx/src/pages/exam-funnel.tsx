@@ -42,7 +42,7 @@ export default function ExamFunnelPage() {
         // and clamps both fields to what search results actually render.
         title={`Pomodoro timer for ${examName}`}
         description={`Free Pomodoro timer tuned for ${examName}: ${funnel.angle} No account needed to start.`}
-        canonical={`https://focusarx.site/pomodoro-timer-for/${guide.slug}`}
+        canonical={`/pomodoro-timer-for/${guide.slug}`}
       />
       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--foreground-subtle)]">
         Pomodoro timer · {examName}

@@ -25,7 +25,7 @@ function appBaseUrl(): string {
   if (configured) return configured;
   const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
   if (vercel) return `https://${vercel}`;
-  return "https://focusarx.site";
+  return "https://www.focusarx.site";
 }
 
 /** Public: does card checkout exist right now? (Drives the /premium UI.) */
