@@ -11,7 +11,7 @@
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { isDisallowed, parseRobots } from "../src/lib/robots-parse.mjs";
-import { clampText, DESCRIPTION_BUDGET, MIN_SNIPPET, PAGE_TITLE_BUDGET } from "../src/lib/seo-text.mjs";
+import { clampText, DESCRIPTION_BUDGET, HREFLANG_LOCALES, MIN_SNIPPET, PAGE_TITLE_BUDGET } from "../src/lib/seo-text.mjs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -127,6 +127,53 @@ for (const file of files) {
 
   for (const og of html.matchAll(/<meta\s+property="og:url"\s+content="([^"]*)"/g)) {
     if (!og[1].startsWith(CANONICAL_HOST)) problems.push(`${routePath}: og:url is not the www host (${og[1]})`);
+  }
+
+  {
+    // ── Hreflang + lang attribute ────────────────────────────────────
+    // One English edition, four audience annotations (x-default, en, en-IN,
+    // en-GB), all resolving to this page's own canonical. Two ways this breaks
+    // in practice, both silent:
+    //   • a page keeps the homepage's cluster because prerender did not rewrite
+    //     it — then Google is told four languages of the homepage live at this
+    //     URL, and the page competes with itself;
+    //   • a page that is not indexable (the 404, /search) still declares a
+    //     cluster, and every alternate in a cluster is supposed to be live and
+    //     indexable.
+    // The locale list is imported from src/lib/seo-text.mjs — the same list
+    // index.html, prerender.mjs and PageSEO.tsx use — so this gate cannot drift
+    // from what the build emits.
+    const canonicalHref = html.match(/<link\s+rel="canonical"\s+href="([^"]*)"/)?.[1] ?? null;
+    const alternates = [...html.matchAll(/<link\s+rel="alternate"\s+hreflang="([^"]*)"\s+href="([^"]*)"/g)]
+      .map((m) => ({ locale: m[1], href: m[2] }));
+    const robotsMetaHreflang = html.match(/<meta\s+name="robots"\s+content="([^"]*)"/)?.[1] ?? "";
+    const isNoindex = /noindex/i.test(robotsMetaHreflang) || routePath === "/404";
+
+    if (isNoindex) {
+      if (alternates.length > 0) {
+        problems.push(`${routePath}: not indexable but declares ${alternates.length} hreflang alternate(s) — every alternate in a cluster must be indexable`);
+      }
+    } else {
+      const locales = alternates.map((a) => a.locale);
+      const missing = HREFLANG_LOCALES.filter((l) => !locales.includes(l));
+      const unexpected = locales.filter((l) => !HREFLANG_LOCALES.includes(l));
+      if (missing.length > 0 || unexpected.length > 0) {
+        problems.push(`${routePath}: hreflang cluster is [${locales.join(", ")}], expected [${HREFLANG_LOCALES.join(", ")}]${missing.length ? ` — missing ${missing.join(", ")}` : ""}${unexpected.length ? ` — unexpected ${unexpected.join(", ")}` : ""}`);
+      }
+      for (const alt of alternates) {
+        if (alt.href !== canonicalHref) {
+          problems.push(`${routePath}: hreflang="${alt.locale}" points at ${alt.href}, not this page's canonical (${canonicalHref}) — a cluster must be self-consistent`);
+        }
+      }
+    }
+
+    // Consistent language declaration: one English edition, so every document
+    // says `lang="en"`. Screen readers and translate prompts read this, and a
+    // page whose lang disagrees with its hreflang is a signal conflict.
+    const langAttr = html.match(/<html[^>]*\slang="([^"]*)"/)?.[1] ?? null;
+    if (langAttr !== "en") {
+      problems.push(`${routePath}: <html lang> is ${langAttr === null ? "missing" : `"${langAttr}"`}, expected "en"`);
+    }
   }
 
   // JSON-LD blocks must parse.

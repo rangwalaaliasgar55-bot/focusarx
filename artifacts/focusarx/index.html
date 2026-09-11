@@ -46,6 +46,32 @@
          currently not indexed" backlog.
     ══════════════════════════════════════════════════════════════ -->
     <link rel="canonical" href="https://www.focusarx.site/" />
+    <!-- ══════════════════════════════════════════════════════════
+         HREFLANG — audience annotations for a single English edition
+         FocusArx publishes ONE English edition: there are no /in/ or /uk/
+         URL trees, so every alternate below resolves to the same canonical.
+         That is deliberate and it is what Google's documentation allows for
+         a single-URL language edition — the annotations declare the intended
+         audiences (India first, then the wider English-speaking world) and
+         x-default is the fallback. Two rules keep this honest:
+
+           • all alternates in the cluster must be self-consistent and point
+             at a live 200 URL, never at a redirect — scripts/prerender.mjs
+             rewrites all four per page and scripts/seo-validate.mjs fails the
+             build if any page's cluster disagrees with its canonical;
+           • if locale-specific URLs are ever added (a real /in/ edition, not
+             a query parameter), these must be repointed at them, because a
+             cluster of four identical URLs is a signal, not a duplicate-content
+             workaround.
+
+         scripts/prerender.mjs replaces this block per prerendered page;
+         src/components/PageSEO.tsx keeps it current on client-side
+         navigation so the DOM and the static HTML never disagree.
+    ══════════════════════════════════════════════════════════════ -->
+    <link rel="alternate" hreflang="x-default" href="https://www.focusarx.site/" />
+    <link rel="alternate" hreflang="en" href="https://www.focusarx.site/" />
+    <link rel="alternate" hreflang="en-IN" href="https://www.focusarx.site/" />
+    <link rel="alternate" hreflang="en-GB" href="https://www.focusarx.site/" />
     <!-- RSS. Generated at build time by scripts/prerender.mjs, so every item is
          a page this build also prerendered — the feed can never advertise a URL
          that answers 404. Declaring it here is what lets feed readers and

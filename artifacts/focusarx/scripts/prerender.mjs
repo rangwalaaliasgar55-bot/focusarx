@@ -21,7 +21,7 @@
 // automatically before falling back to the SPA index.html.
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { clampText, composeTitle, DESCRIPTION_BUDGET } from "../src/lib/seo-text.mjs";
+import { clampText, composeTitle, DESCRIPTION_BUDGET, HREFLANG_LOCALES } from "../src/lib/seo-text.mjs";
 import { parseRobots, robotsMetaFor } from "../src/lib/robots-parse.mjs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -79,6 +79,38 @@ function setCanonical(html, url) {
     html,
     /<link\s+[^>]*rel=["']canonical["'][^>]*>/i,
     `<link rel="canonical" href="${escapeHtml(url)}" />`,
+  );
+}
+
+/**
+ * Hreflang cluster for one English edition.
+ *
+ * FocusArx publishes a single English site: there are no locale URL trees, so
+ * all four alternates resolve to this page's own canonical. The annotations
+ * declare the intended audiences — India first, then the wider English-speaking
+ * world — with x-default as the fallback. index.html carries the same four
+ * links for the homepage; this rewrites them per prerendered page so no page
+ * ever advertises another page's URLs, and scripts/seo-validate.mjs fails the
+ * build if the cluster and the canonical disagree.
+ */
+
+function hreflangLinks(url) {
+  return HREFLANG_LOCALES.map(
+    (locale) => `<link rel="alternate" hreflang="${locale}" href="${escapeHtml(url)}" />`,
+  ).join("\n    ");
+}
+
+function setHreflang(html, url) {
+  // Replace the whole existing cluster in one pass: matching the first
+  // alternate and appending would leave the previous page's three behind.
+  const cluster = /(?:\s*<link\s+[^>]*rel=["']alternate["'][^>]*hreflang=["'][^"']*["'][^>]*>)+/i;
+  return replaceTag(html, cluster, `\n    ${hreflangLinks(url)}`);
+}
+
+function stripHreflang(html) {
+  return html.replace(
+    /\s*<link\s+[^>]*rel=["']alternate["'][^>]*hreflang=["'][^"']*["'][^>]*>/gi,
+    "",
   );
 }
 
@@ -271,6 +303,9 @@ function buildNotFoundPage(template) {
   // Google treat every unknown URL as a homepage duplicate.
   html = html.replace(/<link\s+[^>]*rel=["']canonical["'][^>]*>\s*/gi, "");
   html = html.replace(/<meta\s+[^>]*property=["']og:url["'][^>]*>\s*/gi, "");
+  // A 404 has no canonical, so it must not claim a language cluster either:
+  // alternates pointing at a page that answers 404 would be a broken cluster.
+  html = stripHreflang(html);
   html = html.replace(/<meta\s+[^>]*property=["']al:web:url["'][^>]*>\s*/gi, "");
 
   html = setMeta(html, "property", "og:title", composeTitle(NOT_FOUND_TITLE));
@@ -461,6 +496,11 @@ function main() {
 
     // Canonical + URL-bearing tags
     html = setCanonical(html, url);
+    // Every alternate in a hreflang cluster must be live and indexable, so any
+    // page carrying a noindex — whether the manifest asked for it (/search) or
+    // robots.txt implies it (/premium, /achievements) — drops the cluster
+    // instead of advertising four languages of a page Google will not index.
+    html = /noindex/i.test(robotsMeta) ? stripHreflang(html) : setHreflang(html, url);
     html = setMeta(html, "property", "og:url", url);
     html = setMeta(html, "property", "og:title", fullTitle);
     html = setMeta(html, "property", "og:description", metaDescription);

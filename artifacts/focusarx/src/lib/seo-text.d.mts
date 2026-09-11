@@ -6,6 +6,7 @@ export declare const SEPARATOR: " | ";
 export declare const TITLE_BUDGET: number;
 export declare const DESCRIPTION_BUDGET: number;
 export declare const MIN_SNIPPET: number;
+export declare const HREFLANG_LOCALES: string[];
 export declare const PAGE_TITLE_BUDGET: number;
 export declare function clampText(text: string, limit: number, options?: { fullStop?: boolean }): string;
 export declare function composeTitle(raw: string): string;

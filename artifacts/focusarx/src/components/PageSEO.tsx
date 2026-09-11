@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { clampText, composeTitle, DESCRIPTION_BUDGET } from "@/lib/seo-text.mjs";
+import { clampText, composeTitle, DESCRIPTION_BUDGET, HREFLANG_LOCALES } from "@/lib/seo-text.mjs";
 
 interface PageSEOProps {
   title: string;
@@ -39,6 +39,50 @@ function setLink(rel: string, href: string) {
     document.head.appendChild(el);
   }
   el.setAttribute("href", href);
+}
+
+// Audience annotations for the single English edition: India first, then the
+// wider English-speaking world, with x-default as the fallback. All four point
+// at the current page because there is one edition, not four — index.html and
+// scripts/prerender.mjs emit the same cluster, so the DOM after navigation and
+// the static HTML a crawler reads can never disagree.
+function setHreflang(url: string | null) {
+  const existing = Array.from(
+    document.querySelectorAll<HTMLLinkElement>('link[rel="alternate"][hreflang]'),
+  );
+
+  if (url === null) {
+    existing.forEach((el) => el.remove());
+    return;
+  }
+
+  // Fast path: the cluster is already there in the right order (the static
+  // build wrote it, or a previous route did), so a navigation only rewrites
+  // four href attributes.
+  const inOrder = HREFLANG_LOCALES.map((locale, i) => {
+    const el = existing[i];
+    return el && el.getAttribute("hreflang") === locale ? el : null;
+  });
+  if (inOrder.every((el) => el !== null) && existing.length === HREFLANG_LOCALES.length) {
+    inOrder.forEach((el, i) => el!.setAttribute("href", url));
+    return;
+  }
+
+  // Otherwise rebuild the whole cluster, in locale order, immediately after
+  // the canonical — which is where the prerendered documents put it. Inserting
+  // each element after the canonical instead of after the previous one reverses
+  // the cluster, so the anchor moves as we go.
+  existing.forEach((el) => el.remove());
+  let anchor: Element | null = document.querySelector('link[rel="canonical"]');
+  for (const locale of HREFLANG_LOCALES) {
+    const el = document.createElement("link");
+    el.setAttribute("rel", "alternate");
+    el.setAttribute("hreflang", locale);
+    el.setAttribute("href", url);
+    if (anchor?.nextSibling) anchor.parentNode?.insertBefore(el, anchor.nextSibling);
+    else document.head.appendChild(el);
+    anchor = el;
+  }
 }
 
 function setStructuredData(id: string, data: object) {
@@ -88,6 +132,7 @@ export function PageSEO({
     if (keywords) setMeta("keywords", keywords);
 
     setLink("canonical", canonicalUrl);
+    setHreflang(noindex ? null : canonicalUrl);
 
     setMeta("og:title", fullTitle, "property");
     setMeta("og:description", finalDescription, "property");
