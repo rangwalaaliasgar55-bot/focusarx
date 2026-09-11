@@ -7,6 +7,7 @@ import type { SeoPage } from "@/content/seo-pages.mjs";
 import { ArrowRight, BookOpen, ShieldCheck, Wrench } from "lucide-react";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ContentTOC } from "@/components/ContentTOC";
+import { ClusterLinks } from "@/components/ClusterLinks";
 import { headingAnchors } from "@/lib/heading-id.mjs";
 
 /**
@@ -218,6 +219,13 @@ export default function SeoLandingPage({ path, heroSlot }: { path: string; heroS
             })}
           </ul>
         </nav>
+
+        {/* ── Pillar/cluster wiring: the way back up, and the neighbours ── */}
+        <ClusterLinks
+          path={path}
+          exclude={entry.related.map((pair) => String(pair).split("|")[0])}
+          className="mt-10"
+        />
 
         {/* ── Closing CTA ────────────────────────────────────── */}
         <section className="mt-12 rounded-[var(--radius-2xl)] border border-[var(--card-border)] bg-[radial-gradient(circle_at_50%_0%,var(--brand-soft-hover),transparent_65%)] p-8 text-center">

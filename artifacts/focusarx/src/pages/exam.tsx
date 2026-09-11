@@ -20,6 +20,7 @@ import { FUNNEL_ANGLES } from "@/content/exam-funnel.mjs";
 import { useAllExamGuides, useExamGuide } from "@/lib/examGuideLoader";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ContentTOC } from "@/components/ContentTOC";
+import { ClusterLinks } from "@/components/ClusterLinks";
 import { headingAnchors } from "@/lib/heading-id.mjs";
 import type { ExamGuide } from "@/content/exam/index.mjs";
 
@@ -268,6 +269,11 @@ function ExamGuideBody({ slug }: { slug: string }) {
         <FaqAccordion faq={guide.faq} headingId={anchorFor.get("Frequently asked questions")} />
         <CtaBlock />
         <RelatedLinks related={guide.related} />
+        <ClusterLinks
+          path={`/exam/${guide.slug}`}
+          exclude={guide.related.map((pair) => String(pair).split("|")[0])}
+          className="mt-10"
+        />
       </div>
     </div>
   );
@@ -379,6 +385,15 @@ export function ExamHubPage() {
         ))}
 
         <FaqAccordion faq={EXAM_HUB.faq} />
+
+        {/* The exam pillar links out to every page in its cluster — guides,
+            their dedicated timers and the study tools that support them. */}
+        <ClusterLinks
+          path="/exam"
+          exclude={EXAM_HUB.related.map((pair) => String(pair).split("|")[0])}
+          className="mt-10"
+        />
+
         <CtaBlock />
       </div>
     </div>

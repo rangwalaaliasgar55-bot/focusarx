@@ -126,6 +126,24 @@ export function funnelLabel(slug) {
     .trim();
 }
 
+/**
+ * Label for a link to /exam/:slug — "CAT study plan", not
+ * "CAT (IIM Management Admission Test) study plan".
+ *
+ * The hub used to build these from the full display name, which produced link
+ * text like "The last-minute revision protocol (72h / 48h / 24h) study plan" —
+ * a phrase nobody would write, wrapping to three lines in a link grid.
+ */
+const PLAN_LABELS = {
+  "exam-anxiety": "Beat exam anxiety",
+  "last-minute-revision": "Last-minute revision protocol",
+};
+
+export function examPlanLabel(slug) {
+  if (PLAN_LABELS[slug]) return PLAN_LABELS[slug];
+  return `${funnelLabel(slug)} study plan`;
+}
+
 /** <title> for the funnel page — fits the budget without clamping. */
 export function funnelTitle(slug) {
   return `Pomodoro timer for ${funnelLabel(slug)} (2026)`;
@@ -253,7 +271,7 @@ export const EXAM_HUB = {
     ],
   ],
   related: EXAM_SLUG_ORDER.flatMap((slug) => [
-    `/exam/${slug}|${examDisplayName(slug)} study plan`,
+    `/exam/${slug}|${examPlanLabel(slug)}`,
     ...(FUNNEL_ANGLES[slug] ? [`/pomodoro-timer-for/${slug}|${funnelHeading(slug)}`] : []),
   ]),
 };

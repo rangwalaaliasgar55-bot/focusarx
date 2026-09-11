@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { ArrowRight, Timer, Brain, Coffee, Smartphone, ShieldCheck } from "lucide-react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
+import { ClusterLinks } from "@/components/ClusterLinks";
 
 function TipCard({ icon: Icon, title, body, color }: { icon: React.ComponentType<any>; title: string; body: string; color: string }) {
   return (
@@ -94,6 +95,12 @@ export default function PomodoroGuidePage() {
             </div>
           </div>
         </section>
+      </div>
+
+      {/* This page is the Pomodoro pillar: it links out to every timer,
+          interval tool and guide in the cluster, and they all link back. */}
+      <div className="max-w-5xl mx-auto px-6 pb-14">
+        <ClusterLinks path="/pomodoro-guide" />
       </div>
 
       <div className="border-t border-[var(--palette-white)]/5 py-12 text-center flex flex-wrap justify-center gap-8 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--palette-2a2d3a)]">

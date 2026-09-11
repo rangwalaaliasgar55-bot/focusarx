@@ -23,6 +23,11 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { clampText, composeTitle, DESCRIPTION_BUDGET, HREFLANG_LOCALES } from "../src/lib/seo-text.mjs";
 import { breadcrumbListSchema, breadcrumbTrail } from "../src/lib/breadcrumbs.mjs";
+import {
+  pillarCluster,
+  pillarLinksFor,
+  siblingSpokes,
+} from "../src/content/clusters.mjs";
 import { headingAnchors } from "../src/lib/heading-id.mjs";
 import { parseRobots, robotsMetaFor } from "../src/lib/robots-parse.mjs";
 import path from "node:path";
@@ -222,6 +227,12 @@ html:not(.fa-js) body{background:#0b0d13}
 .fa-seo .sources strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#8b90a0;margin-bottom:8px}
 .fa-seo .sources ul{list-style:none;color:#8b90a0;font-size:13px}
 .fa-seo .sources p{color:#8b90a0;font-size:12px;margin-top:8px}
+.fa-seo .cluster{margin-top:28px;border-top:1px solid #2a2d3a;padding-top:20px}
+.fa-seo .cluster strong{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#8b90a0}
+.fa-seo .cluster p{margin:8px 0 0;font-size:14px;color:#b9bdca}
+.fa-seo .cluster ul{list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:4px 20px;margin:12px 0 0;padding:0}
+.fa-seo .cluster a{display:block;padding:6px 0;font-size:14px;color:#c9a7ff;text-decoration:none}
+.fa-seo .cluster a.pillar{font-weight:600}
 .fa-seo .breadcrumbs{margin-bottom:20px}
 .fa-seo .breadcrumbs ol{list-style:none;display:flex;flex-wrap:wrap;gap:6px;font-size:12px;color:#8b90a0}
 .fa-seo .breadcrumbs li+li:before{content:"/";margin-right:6px;opacity:.5}
@@ -418,6 +429,43 @@ function buildFeedXml({ posts, articles, buildDate }) {
 }
 
 /**
+ * Pillar/cluster block — the same map components/ClusterLinks.tsx renders from.
+ *
+ * On a pillar this is the whole cluster; on a spoke it is the way back up plus
+ * a few neighbours. Paths the page already links to are skipped, so a page
+ * never offers the same destination twice.
+ */
+function renderClusterBlock(path, exclude) {
+  const link = (href, label, cls = "") =>
+    `<li><a${cls ? ` class="${cls}"` : ""} href="${escapeHtml(href)}">${escapeHtml(label)}</a></li>`;
+
+  const pillar = pillarCluster(path);
+  if (pillar) {
+    const spokes = pillar.spokes.filter((spoke) => !exclude.has(spoke.path));
+    if (spokes.length === 0) return "";
+    return `<nav aria-label="All ${escapeHtml(pillar.label)} pages" class="cluster"><strong>The ${escapeHtml(
+      pillar.label.toLowerCase(),
+    )} cluster</strong><p>${escapeHtml(pillar.blurb)}</p><ul>${spokes
+      .map((spoke) => link(spoke.path, spoke.label))
+      .join("")}</ul></nav>`;
+  }
+
+  const all = pillarLinksFor(path);
+  const pillars = all.filter((p) => !exclude.has(p.href));
+  const siblings = siblingSpokes(path, 6, [...exclude, ...all.map((p) => p.href)]);
+  if (pillars.length === 0 && siblings.length === 0) return "";
+  // Named from every cluster the page belongs to, not just the ones still
+  // needing a link: a page that already links its pillar in "Keep reading"
+  // should still say which cluster the neighbours below belong to.
+  const names = all.map((p) => p.cluster).join(" and ");
+  return `<nav aria-label="Topic clusters" class="cluster">${
+    names ? `<strong>The ${escapeHtml(names)} cluster</strong>` : ""
+  }<ul>${pillars.map((p) => link(p.href, `${p.label} →`, "pillar")).join("")}${siblings
+    .map((spoke) => link(spoke.path, spoke.label))
+    .join("")}</ul></nav>`;
+}
+
+/**
  * Wrap prerendered markup in the landmark the shell's skip link points at.
  * `tabindex="-1"` makes the target focusable, which is what a skip link needs.
  */
@@ -482,6 +530,11 @@ function renderBody(entry) {
     ? `<div class="related"><strong>Keep reading</strong><ul>${related}</ul></div>`
     : "";
 
+  const clusterBlock = renderClusterBlock(
+    entry.path || "/",
+    new Set((entry.related || []).map((pair) => String(pair).split("|")[0])),
+  );
+
   // Answer-first block: a self-contained answer that still makes sense if an
   // AI Overview or featured snippet quotes it out of context.
   const answerBlock = entry.answerFirst
@@ -518,7 +571,7 @@ function renderBody(entry) {
     : "";
 
   const cta = entry.cta || { href: "/signup", label: "Start focusing free" };
-  return `<div class="fa-seo">${breadcrumbsBlock}<span class="badge">${SITE_NAME}</span><h1>${escapeHtml(entry.h1)}</h1><p class="lead">${escapeHtml(entry.lead)}</p>${answerBlock}${tocBlock}${stepsBlock}${sections}${faqBlock}${sourcesBlock}${relatedBlock}<a class="cta" href="${escapeHtml(cta.href)}">${escapeHtml(cta.label)}</a></div>`;
+  return `<div class="fa-seo">${breadcrumbsBlock}<span class="badge">${SITE_NAME}</span><h1>${escapeHtml(entry.h1)}</h1><p class="lead">${escapeHtml(entry.lead)}</p>${answerBlock}${tocBlock}${stepsBlock}${sections}${faqBlock}${sourcesBlock}${relatedBlock}${clusterBlock}<a class="cta" href="${escapeHtml(cta.href)}">${escapeHtml(cta.label)}</a></div>`;
 }
 
 // ── main ───────────────────────────────────────────────────────────

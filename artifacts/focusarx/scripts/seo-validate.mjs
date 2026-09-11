@@ -11,6 +11,7 @@
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { isDisallowed, parseRobots } from "../src/lib/robots-parse.mjs";
+import { CLUSTERS } from "../src/content/clusters.mjs";
 import { clampText, composeTitle, DESCRIPTION_BUDGET, HREFLANG_LOCALES, MIN_SNIPPET, PAGE_TITLE_BUDGET, TITLE_BUDGET } from "../src/lib/seo-text.mjs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -59,6 +60,19 @@ const { ROUTES: manifestRoutes } = await import(new URL("./prerender-data.mjs", 
 for (const entry of manifestRoutes) {
   if (entry.noindex === true) manifestNoindex.add(entry.path === "" ? "/" : `/${String(entry.path).replace(/^\/+/, "")}`);
 }
+
+/**
+ * Paths a crawler is meant to index. The sitemap cannot answer this locally —
+ * sitemap.xml is an index whose children the API serves in production, so the
+ * set built from dist is empty and every "indexable page" check below would
+ * silently skip. The prerender manifest is the authority: it is what generated
+ * the documents in the first place.
+ */
+const indexablePaths = new Set(
+  manifestRoutes
+    .map((entry) => (entry.path === "" ? "/" : `/${String(entry.path).replace(/^\/+/, "")}`))
+    .filter((path) => !manifestNoindex.has(path) && !NON_INDEXABLE.has(path)),
+);
 
 // One strict parser (src/lib/robots-parse.mjs) for the same file the prerenderer
 // reads, so the gate cannot pass a document the generator would have rejected.
@@ -636,7 +650,6 @@ const isAppRoute = (p) =>
 //      trail whose crumbs disagree with the schema. Google compares the two and
 //      drops the rich result when they differ, which is why the labels are
 //      derived once (lib/breadcrumbs.mjs) and checked here per document.
-const sitemapPathSet = new Set(sitemapUrls);
 // Route matcher for crumb links: a <Route> in App.tsx, or a document that
 // actually ships in dist/public. Same derivation the broken-link gate uses.
 const breadcrumbRouteSet = (() => {
@@ -665,7 +678,7 @@ for (const file of files) {
 
   const navMatch = html.match(/<nav[^>]*aria-label="Breadcrumb"[^>]*>([\s\S]*?)<\/nav>/);
   const isNested = routePath.split("/").filter(Boolean).length > 1;
-  if (sitemapPathSet.has(routePath) && isNested && !navMatch) {
+  if (indexablePaths.has(routePath) && isNested && !navMatch) {
     problems.push(`${routePath}: nested indexable page has no visible breadcrumb trail — BreadcrumbList in the head alone is not enough`);
   }
   if (!navMatch) continue;
@@ -771,6 +784,48 @@ for (const entry of manifestRoutes) {
   }
 }
 
+// ── pillar/cluster wiring ──────────────────────────────────────────────────
+// A cluster only works if the wiring is two-way: the pillar links out to every
+// page in it, and every page links back to the pillar. Half of it is the common
+// failure — a hub that lists 50 pages nobody lists back, or spokes that only
+// ever point at the homepage. Both directions are checked per prerendered
+// document, from the same map the pages render from (src/content/clusters.mjs).
+{
+  const docFor = (routePath) => {
+    const rel = routePath.replace(/^\//, "");
+    const file = join(DIST, rel, "index.html");
+    if (!existsSync(file)) return existsSync(join(DIST, `${rel}.html`)) ? readFileSync(join(DIST, `${rel}.html`), "utf8") : null;
+    return readFileSync(file, "utf8");
+  };
+  const linksIn = (html) => new Set([...html.matchAll(/<a[^>]+href="(\/[^"#?]*)"/g)].map((m) => m[1].replace(/\/+$/, "") || "/"));
+
+  let spokesChecked = 0;
+  for (const cluster of CLUSTERS) {
+    const pillarHtml = docFor(cluster.pillar);
+    if (pillarHtml === null) {
+      problems.push(`cluster "${cluster.id}": pillar ${cluster.pillar} has no prerendered document`);
+      continue;
+    }
+    const pillarLinks = linksIn(pillarHtml);
+    for (const spoke of cluster.spokes) {
+      if (!indexablePaths.has(spoke.path)) continue;
+      spokesChecked += 1;
+      if (!pillarLinks.has(spoke.path)) {
+        problems.push(`cluster "${cluster.id}": pillar ${cluster.pillar} does not link to ${spoke.path}`);
+      }
+      const spokeHtml = docFor(spoke.path);
+      if (spokeHtml === null) {
+        problems.push(`cluster "${cluster.id}": spoke ${spoke.path} has no prerendered document`);
+        continue;
+      }
+      if (!linksIn(spokeHtml).has(cluster.pillar)) {
+        problems.push(`cluster "${cluster.id}": ${spoke.path} has no link back to its pillar ${cluster.pillar}`);
+      }
+    }
+  }
+  if (spokesChecked === 0) problems.push("cluster gate checked no spokes — src/content/clusters.mjs may be empty");
+}
+
 console.log(`seo-validate: ${files.length} pages, ${sitemapUrls.length} sitemap page entries, ${apiServedChildren} child sitemap(s) served by the API in production`);
 if (problems.length > 0) {
   console.error(`FAIL — ${problems.length} problem(s):`);
@@ -778,5 +833,5 @@ if (problems.length > 0) {
   process.exit(1);
 }
 console.log(
-  "PASS — titles, descriptions, canonicals, JSON-LD, sitemap, robots, internal-link depth, cannibalisation, llms.txt and consent wiring, breadcrumbs, jump links, title budgets and PageSEO agreement all consistent",
+  "PASS — titles, descriptions, canonicals, JSON-LD, sitemap, robots, internal-link depth, cannibalisation, llms.txt and consent wiring, breadcrumbs, jump links, title budgets, PageSEO agreement and pillar/cluster wiring all consistent",
 );

@@ -11,6 +11,7 @@ import {
 import { FUNNEL_ANGLES, getFunnelAngle } from "@/content/exam-funnel.mjs";
 import { useExamGuide } from "@/lib/examGuideLoader";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { ClusterLinks } from "@/components/ClusterLinks";
 import { dispatchFocusDeepLink } from "@/lib/focusDeepLink";
 import { FocusTimerMobileFirst } from "@/components/mobile/FocusTimerMobileFirst";
 
@@ -135,6 +136,15 @@ function ExamFunnelBody({ exam }: { exam: string }) {
           All exam prep guides →
         </Link>
       </nav>
+
+      <ClusterLinks
+        path={`/pomodoro-timer-for/${guide.slug}`}
+        exclude={[
+          ...guide.related.map((pair) => String(pair).split("|")[0]),
+          ...siblings.map((slug) => `/pomodoro-timer-for/${slug}`),
+        ]}
+        className="mt-10"
+      />
     </div>
   );
 }

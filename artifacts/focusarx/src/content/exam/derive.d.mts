@@ -9,6 +9,8 @@ export const EXAM_NAMES: Record<string, string>;
 export function examDisplayName(slug: string): string;
 /** Short label used by /pomodoro-timer-for/:exam titles ("CAT", "NDA & NA"). */
 export function funnelLabel(slug: string): string;
+/** Link label for /exam/:slug — "CAT study plan", "Beat exam anxiety". */
+export function examPlanLabel(slug: string): string;
 export function funnelTitle(slug: string): string;
 export function funnelHeading(slug: string): string;
 export function funnelDescription(slug: string): string;

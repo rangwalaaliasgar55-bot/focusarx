@@ -4,6 +4,7 @@ import { BLOG_POSTS, getBlogPost } from "@/content/blog.mjs";
 import { fmtDate } from "@/lib/locale";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ContentTOC } from "@/components/ContentTOC";
+import { ClusterLinks } from "@/components/ClusterLinks";
 import { headingAnchors } from "@/lib/heading-id.mjs";
 
 /** Blog article (Phase 4.1 + Article JSON-LD via the prerender manifest). */
@@ -124,6 +125,12 @@ export default function BlogPostPage() {
           </ul>
         </section>
       )}
+
+      <ClusterLinks
+        path={`/blog/${post.slug}`}
+        exclude={(post.related ?? []).map((pair: string) => String(pair).split("|")[0])}
+        className="mt-10"
+      />
 
       <div className="mt-12">
         <Link

@@ -6,6 +6,7 @@ import { COMPARISONS, COMPARISON_PATHS } from "@/content/seo-pages.mjs";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ContentTOC } from "@/components/ContentTOC";
 import { headingAnchors } from "@/lib/heading-id.mjs";
+import { ClusterLinks } from "@/components/ClusterLinks";
 import type { Comparison } from "@/content/seo-pages.mjs";
 
 /**
@@ -197,6 +198,20 @@ export default function ComparisonPage() {
         <Link className="text-[var(--brand-400)]" href="/study-techniques">Study techniques</Link>
         <Link className="text-[var(--brand-400)]" href="/evidence">Our claim policy</Link>
       </nav>
+
+      {/* ── Pillar/cluster wiring ─────────────────────────────── */}
+      <ClusterLinks
+        path={canonical}
+        exclude={[
+          "/focus-guide",
+          "/deep-work-guide",
+          "/pomodoro-guide",
+          "/study-techniques",
+          "/evidence",
+          ...Object.values(COMPARISONS).map((c) => `/comparison/${c.slug}`),
+        ]}
+        className="mt-8"
+      />
 
       {/* ── CTA ───────────────────────────────────────────────── */}
       <section className="mt-10 rounded-2xl bg-[var(--brand-soft)] p-7">
