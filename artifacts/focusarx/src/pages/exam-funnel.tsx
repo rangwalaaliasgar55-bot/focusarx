@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { Link, useParams } from "wouter";
 import { PageSEO } from "@/components/PageSEO";
-import { EXAM_GUIDES, findExamGuide } from "@/content/exam/index.mjs";
+import { EXAM_SLUG_ORDER, examDisplayName } from "@/content/exam/derive.mjs";
 import { FUNNEL_ANGLES, getFunnelAngle } from "@/content/exam-funnel.mjs";
+import { useExamGuide } from "@/lib/examGuideLoader";
 import { dispatchFocusDeepLink } from "@/lib/focusDeepLink";
 import { FocusTimerMobileFirst } from "@/components/mobile/FocusTimerMobileFirst";
 
@@ -11,17 +12,35 @@ import { FocusTimerMobileFirst } from "@/components/mobile/FocusTimerMobileFirst
  * The page IS the tool — a live, usable timer above the fold — followed by
  * the exam-specific angle and the full guide content. Extend via
  * src/content/exam-funnel.mjs (angle) + src/content/exam/*.mjs (guide).
+ *
+ * The guide body loads one slug at a time through src/lib/examGuideLoader.ts,
+ * so this route ships its own exam's prose instead of the whole cluster. The
+ * deep-link dispatch lives inside the suspended body on purpose: the timer
+ * subscribes to the event in its own effect, and child effects run before
+ * parent effects, so dispatching here still lands after the listener exists.
+ * Dispatching from outside the boundary would fire before the timer chunk had
+ * rendered and silently lose the pre-armed duration.
  */
-export default function ExamFunnelPage() {
-  const { exam } = useParams<{ exam: string }>();
-  const guide = findExamGuide(exam ?? "");
-  const funnel = getFunnelAngle(exam ?? "");
+
+function FunnelSkeleton() {
+  return (
+    <div className="mx-auto w-full max-w-[980px] px-4 py-12 sm:px-6 space-y-4" aria-hidden="true">
+      <div className="h-4 w-40 rounded-lg bg-[var(--surface-1)] animate-pulse" />
+      <div className="h-9 w-2/3 rounded-lg bg-[var(--surface-1)] animate-pulse" />
+      <div className="h-64 w-full max-w-sm rounded-2xl bg-[var(--surface-1)] animate-pulse" />
+    </div>
+  );
+}
+
+function ExamFunnelBody({ exam }: { exam: string }) {
+  const guide = useExamGuide(exam);
+  const funnel = getFunnelAngle(exam);
 
   useEffect(() => {
     if (funnel) {
       dispatchFocusDeepLink({ durationSeconds: funnel.minutes * 60, task: null, src: null, armed: true });
     }
-  }, [exam]);
+  }, [exam, funnel]);
 
   if (!guide || !funnel) {
     return (
@@ -34,7 +53,9 @@ export default function ExamFunnelPage() {
     );
   }
 
-  const examName = guide.exam?.name ?? guide.h1;
+  const examName = examDisplayName(guide.slug);
+  const siblings = EXAM_SLUG_ORDER.filter((slug) => FUNNEL_ANGLES[slug] && slug !== guide.slug).slice(0, 6);
+
   return (
     <div className="mx-auto w-full max-w-[980px] px-4 py-12 sm:px-6">
       <PageSEO
@@ -75,27 +96,36 @@ export default function ExamFunnelPage() {
           /pomodoro-timer-for/<exam> page used to link out to its guide and the
           hub, but nothing linked back in, so the whole cluster was reachable
           only from the sitemap. Cross-linking the set both ways is what makes
-          the pages crawlable and gives a student one click to the next exam. */}
+          the pages crawlable and gives a student one click to the next exam.
+          Names come from the derived slug → name map, so this list costs no
+          guide-body bytes. */}
       <nav aria-label="Pomodoro timers for other exams" className="mt-12 max-w-2xl">
         <h2 className="text-h4 text-[var(--foreground-subtle)]">Pomodoro timer for another exam</h2>
         <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-          {EXAM_GUIDES.filter((g) => FUNNEL_ANGLES[g.slug] && g.slug !== guide.slug)
-            .slice(0, 6)
-            .map((g) => (
-              <li key={g.slug}>
-                <Link
-                  href={`/pomodoro-timer-for/${g.slug}`}
-                  className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--brand-strong)] hover:underline"
-                >
-                  {g.exam?.name ?? g.h1}
-                </Link>
-              </li>
-            ))}
+          {siblings.map((slug) => (
+            <li key={slug}>
+              <Link
+                href={`/pomodoro-timer-for/${slug}`}
+                className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--brand-strong)] hover:underline"
+              >
+                {examDisplayName(slug)}
+              </Link>
+            </li>
+          ))}
         </ul>
         <Link href="/exam" className="mt-4 inline-block text-sm font-semibold text-[var(--foreground-muted)] hover:text-[var(--foreground)]">
           All exam prep guides →
         </Link>
       </nav>
     </div>
+  );
+}
+
+export default function ExamFunnelPage() {
+  const { exam } = useParams<{ exam: string }>();
+  return (
+    <Suspense fallback={<FunnelSkeleton />}>
+      <ExamFunnelBody exam={exam ?? ""} />
+    </Suspense>
   );
 }

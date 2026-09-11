@@ -65,6 +65,51 @@ export const FUNNEL_ANGLES = {
       "Bank PO prelims are a speed filter: 100 questions, 60 minutes. Train at 130% pace in 25-minute bursts so the real paper feels slow.",
     minutes: 25,
   },
+  bitsat: {
+    angle:
+      "BITSAT asks 130 questions in 3 hours — about 83 seconds each, with a quarter of the marks in English and Logical Reasoning. Train throughput: 20-question sets in 20 minutes, daily, plus 20 minutes of vocabulary and reasoning patterns nobody else prepares.",
+    minutes: 40,
+  },
+  kcet: {
+    angle:
+      "KCET is four 80-minute papers with no negative marking, set from the Karnataka board textbook. Practise at half-paper length — 30 questions in 40 minutes — and never leave a bubble empty, because on this paper a blank is the only guaranteed zero.",
+    minutes: 40,
+  },
+  "mht-cet": {
+    angle:
+      "MHT-CET puts two thirds of its marks in two one-hour Maths papers where every question is worth double, and 80% of the syllabus is Class 12. Run 50-minute Maths blocks with no calculator — arithmetic throughput is the binding constraint, not concepts.",
+    minutes: 50,
+  },
+  wbjee: {
+    angle:
+      "WBJEE is two 2-hour papers in one day, half the score in Mathematics, and three marking categories. Practise Category 3 separately: mark only the options you can confirm, because there is no partial credit and a hopeful third option is negative expected value.",
+    minutes: 50,
+  },
+  "cuet-ug": {
+    angle:
+      "CUET sections are 45 minutes long and let you answer fewer questions than you are given — the skill is choosing the best 35 of 45, not attempting all of them. Rehearse at exactly 45 minutes, then log every question you attempted that you should have skipped.",
+    minutes: 45,
+  },
+  clat: {
+    angle:
+      "CLAT is 120 questions in 2 hours and almost every one arrives with a passage. Train comprehension speed, not reading speed: one unseen passage a day timed at eight minutes, then score yourself on accuracy. Skimming loses exactly the qualifiers the questions ask about.",
+    minutes: 60,
+  },
+  "ca-foundation": {
+    angle:
+      "CA Foundation needs 40% in every paper plus a 50% aggregate, so your weakest paper decides the result. Give it the first block of every day, do 25 objective problems with the negative penalty applied to your practice score, and write two full answers by hand each week.",
+    minutes: 50,
+  },
+  gre: {
+    angle:
+      "The GRE is section-adaptive, so your first Verbal and first Quant section set the ceiling for the second. Do not experiment with pace early, and never leave a blank — there is no penalty for a wrong answer, only for an empty one.",
+    minutes: 40,
+  },
+  gmat: {
+    angle:
+      "GMAT Focus is 64 questions in 2h15m, so each one is worth more and two minutes each is enough to be careful. Drill Data Insights type by type — data sufficiency, two-part analysis, table analysis — because the switching cost between types is what makes the section feel hard.",
+    minutes: 45,
+  },
   "exam-anxiety": {
     angle:
       "Anxiety shrinks working memory, which is exactly what exams tax. Shorter 25-minute blocks with real breaks keep the nervous system regulated — and regulated brains recall more.",

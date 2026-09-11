@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { Link, useParams } from "wouter";
 import {
   ArrowLeft,
@@ -15,8 +15,10 @@ import {
   Timer,
 } from "lucide-react";
 import { PageSEO } from "@/components/PageSEO";
-import { EXAM_GUIDES, EXAM_HUB, findExamGuide } from "@/content/exam/index.mjs";
+import { EXAM_HUB } from "@/content/exam/derive.mjs";
 import { FUNNEL_ANGLES } from "@/content/exam-funnel.mjs";
+import { useAllExamGuides, useExamGuide } from "@/lib/examGuideLoader";
+import type { ExamGuide } from "@/content/exam/index.mjs";
 
 const BASE_URL = (import.meta.env.VITE_APP_URL || "https://www.focusarx.site").replace(/\/+$/, "");
 
@@ -131,10 +133,38 @@ function CtaBlock() {
   );
 }
 
+/**
+ * Suspense fallbacks. Sized to roughly match what replaces them so a
+ * client-side navigation does not jump the layout. On a prerendered page these
+ * never paint: React keeps the server HTML visible while the guide chunk loads
+ * and hydrates the boundary once it resolves (see src/lib/examGuideLoader.ts).
+ */
+function GuideSkeleton() {
+  return (
+    <div className="min-h-screen bg-[var(--background)]">
+      <div className="max-w-3xl mx-auto px-6 py-16 space-y-4" aria-hidden="true">
+        <div className="h-8 w-2/3 rounded-lg bg-[var(--card)] animate-pulse" />
+        <div className="h-4 w-full rounded-lg bg-[var(--card)] animate-pulse" />
+        <div className="h-4 w-5/6 rounded-lg bg-[var(--card)] animate-pulse" />
+        <div className="h-32 w-full rounded-2xl bg-[var(--card)] animate-pulse" />
+      </div>
+    </div>
+  );
+}
+
+function HubGridSkeleton() {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-16" aria-hidden="true">
+      {Array.from({ length: 9 }, (_, i) => (
+        <div key={i} className="h-44 rounded-2xl border border-[var(--border)] bg-[var(--card)] animate-pulse" />
+      ))}
+    </div>
+  );
+}
+
 // ── Single exam guide (/exam/:slug) ─────────────────────────────────
-export function ExamGuidePage() {
-  const { slug } = useParams<{ slug: string }>();
-  const guide = findExamGuide(slug || "");
+function ExamGuideBody({ slug }: { slug: string }) {
+  const guide = useExamGuide(slug);
 
   if (!guide) {
     return (
@@ -234,7 +264,74 @@ export function ExamGuidePage() {
   );
 }
 
+export function ExamGuidePage() {
+  const { slug } = useParams<{ slug: string }>();
+  return (
+    <Suspense fallback={<GuideSkeleton />}>
+      <ExamGuideBody slug={slug || ""} />
+    </Suspense>
+  );
+}
+
 // ── Exam hub (/exam) ───────────────────────────────────────────────
+/**
+ * The two guide-derived blocks of the hub (the card grid and the timer list).
+ * Split out so the hub's own copy renders immediately and only this part
+ * suspends on the per-slug chunks.
+ */
+function ExamHubGuides() {
+  const guides = useAllExamGuides();
+  return (
+    <>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-16">
+        {guides.map((g: ExamGuide) => (
+          <Link
+            key={g.slug}
+            href={`/exam/${g.slug}`}
+            className="group flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 transition-all hover:border-[var(--card-border)] hover:-translate-y-0.5"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <BookOpen size={14} className="text-[var(--palette-violet-400)]" />
+              <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--foreground-subtle)]">
+                {g.exam ? g.exam.name : "Universal"}
+              </span>
+            </div>
+            <h2 className="text-base font-bold mb-2 group-hover:text-[var(--palette-violet-300)] transition-colors leading-snug">
+              {g.h1}
+            </h2>
+            <p className="text-xs leading-relaxed text-[var(--foreground-muted)] line-clamp-3">{g.lead}</p>
+            <span className="mt-4 inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--palette-violet-400)]">
+              Read the guide <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
+            </span>
+          </Link>
+        ))}
+      </div>
+
+      <section className="mb-16" aria-labelledby="exam-timers-heading">
+        <h2 id="exam-timers-heading" className="text-xl font-semibold mb-2 tracking-tight">
+          Pomodoro timer for each exam
+        </h2>
+        <p className="text-sm text-[var(--foreground-muted)] mb-6 max-w-2xl">
+          The same timer, tuned to the interval each paper actually rewards — no signup needed to start one.
+        </p>
+        <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {guides.filter((g: ExamGuide) => FUNNEL_ANGLES[g.slug]).map((g: ExamGuide) => (
+            <li key={`timer-${g.slug}`}>
+              <Link
+                href={`/pomodoro-timer-for/${g.slug}`}
+                className="flex min-h-11 items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm font-medium transition-colors hover:border-[var(--card-border)]"
+              >
+                <Timer size={14} className="text-[var(--palette-violet-400)] flex-shrink-0" />
+                Pomodoro timer for {g.exam?.name ?? g.slug}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </>
+  );
+}
+
 export function ExamHubPage() {
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
@@ -256,51 +353,9 @@ export function ExamHubPage() {
           <p className="text-lg text-[var(--foreground-muted)] max-w-2xl mx-auto leading-relaxed">{EXAM_HUB.lead}</p>
         </header>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-16">
-          {EXAM_GUIDES.map((g) => (
-            <Link
-              key={g.slug}
-              href={`/exam/${g.slug}`}
-              className="group flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 transition-all hover:border-[var(--card-border)] hover:-translate-y-0.5"
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <BookOpen size={14} className="text-[var(--palette-violet-400)]" />
-                <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--foreground-subtle)]">
-                  {g.exam ? g.exam.name : "Universal"}
-                </span>
-              </div>
-              <h2 className="text-base font-bold mb-2 group-hover:text-[var(--palette-violet-300)] transition-colors leading-snug">
-                {g.h1}
-              </h2>
-              <p className="text-xs leading-relaxed text-[var(--foreground-muted)] line-clamp-3">{g.lead}</p>
-              <span className="mt-4 inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--palette-violet-400)]">
-                Read the guide <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
-              </span>
-            </Link>
-          ))}
-        </div>
-
-        <section className="mb-16" aria-labelledby="exam-timers-heading">
-          <h2 id="exam-timers-heading" className="text-xl font-semibold mb-2 tracking-tight">
-            Pomodoro timer for each exam
-          </h2>
-          <p className="text-sm text-[var(--foreground-muted)] mb-6 max-w-2xl">
-            The same timer, tuned to the interval each paper actually rewards — no signup needed to start one.
-          </p>
-          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {EXAM_GUIDES.filter((g) => FUNNEL_ANGLES[g.slug]).map((g) => (
-              <li key={`timer-${g.slug}`}>
-                <Link
-                  href={`/pomodoro-timer-for/${g.slug}`}
-                  className="flex min-h-11 items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm font-medium transition-colors hover:border-[var(--card-border)]"
-                >
-                  <Timer size={14} className="text-[var(--palette-violet-400)] flex-shrink-0" />
-                  Pomodoro timer for {g.exam?.name ?? g.slug}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <Suspense fallback={<HubGridSkeleton />}>
+          <ExamHubGuides />
+        </Suspense>
 
         {EXAM_HUB.sections.map((s, i) => (
           <section key={i} className="mb-10 max-w-3xl mx-auto">

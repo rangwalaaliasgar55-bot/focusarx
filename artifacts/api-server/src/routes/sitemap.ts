@@ -184,6 +184,10 @@ const GUIDE_PAGES: Page[] = [
 const EXAM_SLUGS = [
   "jee-main", "jee-advanced", "neet-ug", "cbse-class-12", "cbse-class-10",
   "gate", "cat", "upsc-cse", "ssc-cgl", "nda", "ctet", "ibps-po",
+  // State, professional and international exams (Workstream 7b). Mirrors
+  // EXAM_GUIDES in artifacts/focusarx/src/content/exam/index.mjs.
+  "bitsat", "kcet", "mht-cet", "wbjee", "cuet-ug", "clat", "ca-foundation",
+  "gre", "gmat",
   "exam-anxiety", "last-minute-revision",
 ];
 
@@ -234,6 +238,8 @@ const BLOG_PAGES: Page[] = [
 const FUNNEL_SLUGS = [
   "jee-main", "jee-advanced", "neet-ug", "upsc-cse", "cat", "gate",
   "cbse-class-12", "cbse-class-10", "ssc-cgl", "nda", "ctet", "ibps-po",
+  "bitsat", "kcet", "mht-cet", "wbjee", "cuet-ug", "clat", "ca-foundation",
+  "gre", "gmat",
   "exam-anxiety", "last-minute-revision",
 ];
 

@@ -39,4 +39,9 @@ export interface ExamHub {
 export const EXAM_CORE_LINKS: string[];
 export const EXAM_GUIDES: ExamGuide[];
 export const EXAM_HUB: ExamHub;
+export const EXAM_NAMES: Record<string, string>;
+export const EXAM_SLUG_ORDER: string[];
+export function examDisplayName(slug: string): string;
+export function examTimerLabel(slug: string): string;
+export function decorateExamGuide(guide: ExamGuide): ExamGuide;
 export function findExamGuide(slug: string): ExamGuide | null;

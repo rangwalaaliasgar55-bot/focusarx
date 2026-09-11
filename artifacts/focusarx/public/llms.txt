@@ -55,7 +55,7 @@ claims. See https://www.focusarx.site/evidence
 
 ## Exam preparation (India-first)
 
-- [Exam Prep Hub](https://www.focusarx.site/exam): 14 guides covering JEE Main, JEE Advanced, NEET-UG, CBSE Class 12, CBSE Class 10, GATE, CAT, UPSC CSE, SSC CGL, NDA, CTET, IBPS PO, exam anxiety and last-minute revision.
+- [Exam Prep Hub](https://www.focusarx.site/exam): 23 guides covering JEE Main, JEE Advanced, NEET-UG, CBSE Class 12, CBSE Class 10, GATE, CAT, UPSC CSE, SSC CGL, NDA, CTET, IBPS PO, BITSAT, KCET, MHT-CET, WBJEE, CUET (UG), CLAT, CA Foundation, GRE, GMAT, exam anxiety and last-minute revision.
 
 Each exam also has a Pomodoro timer page tuned to the interval that paper
 rewards — a working timer plus the exam-specific angle:
@@ -72,6 +72,15 @@ rewards — a working timer plus the exam-specific angle:
 - [Pomodoro timer for NDA](https://www.focusarx.site/pomodoro-timer-for/nda)
 - [Pomodoro timer for CTET](https://www.focusarx.site/pomodoro-timer-for/ctet)
 - [Pomodoro timer for IBPS PO](https://www.focusarx.site/pomodoro-timer-for/ibps-po)
+- [Pomodoro timer for BITSAT](https://www.focusarx.site/pomodoro-timer-for/bitsat)
+- [Pomodoro timer for KCET](https://www.focusarx.site/pomodoro-timer-for/kcet)
+- [Pomodoro timer for MHT-CET](https://www.focusarx.site/pomodoro-timer-for/mht-cet)
+- [Pomodoro timer for WBJEE](https://www.focusarx.site/pomodoro-timer-for/wbjee)
+- [Pomodoro timer for CUET (UG)](https://www.focusarx.site/pomodoro-timer-for/cuet-ug)
+- [Pomodoro timer for CLAT](https://www.focusarx.site/pomodoro-timer-for/clat)
+- [Pomodoro timer for CA Foundation](https://www.focusarx.site/pomodoro-timer-for/ca-foundation)
+- [Pomodoro timer for GRE](https://www.focusarx.site/pomodoro-timer-for/gre)
+- [Pomodoro timer for GMAT](https://www.focusarx.site/pomodoro-timer-for/gmat)
 - [Pomodoro timer for exam anxiety](https://www.focusarx.site/pomodoro-timer-for/exam-anxiety)
 - [Pomodoro timer for last-minute revision](https://www.focusarx.site/pomodoro-timer-for/last-minute-revision)
 
