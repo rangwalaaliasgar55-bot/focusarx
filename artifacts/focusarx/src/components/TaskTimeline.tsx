@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { getToken } from "@/lib/auth";
 import { Clock } from "lucide-react";
+import { CalendarDays, RefreshCw } from "lucide-react";
 
 type Task = { id: string; text: string; completed: boolean; estimatedMinutes: number | null; order: number };
 
@@ -106,7 +107,7 @@ export default function TaskTimeline({ tasks: propTasks, elapsedSeconds = 0, isR
             <motion.div
               className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-06b6d4)]"
               animate={{ width: `${totalElapsedPct}%` }}
-              transition={{ duration: 0.4 }}
+              transition={{ duration: 0.25}}
             />
           </div>
           <div className="flex justify-between text-[11px] text-[var(--foreground-subtle)]">
@@ -167,7 +168,7 @@ export default function TaskTimeline({ tasks: propTasks, elapsedSeconds = 0, isR
                       style={{ width: `${pct}%`, backgroundColor: `color-mix(in srgb, ${color} 9%, transparent)`, borderLeft: `2px solid color-mix(in srgb, ${color} 27%, transparent)` }}
                       initial={{ width: 0 }}
                       animate={{ width: `${pct}%` }}
-                      transition={{ duration: 0.4, ease: "easeOut" }}
+                      transition={{ duration: 0.25, ease: "easeOut" }}
                     />
                     {/* Progress overlay */}
                     {isRunning && (
@@ -175,7 +176,7 @@ export default function TaskTimeline({ tasks: propTasks, elapsedSeconds = 0, isR
                         className="absolute inset-y-0 left-0 rounded-lg"
                         style={{ backgroundColor: `color-mix(in srgb, ${color} ${isDone ? 33 : 19}%, transparent)`, maxWidth: `${pct}%` }}
                         animate={{ width: `${Math.min(blockElapsedPct, 100) * pct / 100}%` }}
-                        transition={{ duration: 0.4 }}
+                        transition={{ duration: 0.25}}
                       />
                     )}
                     {/* Task name inside bar */}
@@ -292,7 +293,7 @@ export function OverrunModal({ task, overrunMinutes, onReschedule, onDefer, onDr
           <button onClick={onReschedule}
             className="flex w-full items-center gap-3 rounded-xl border border-[var(--rgba-255-184-0-0_3)] bg-[var(--rgba-255-184-0-0_06)] px-4 py-3 text-left transition hover:bg-[var(--rgba-255-184-0-0_12)]"
           >
-            <span>🔄</span>
+            <span><RefreshCw size={16} aria-hidden="true" /></span>
             <div>
               <p className="text-sm font-semibold text-[var(--foreground)]">Compress & reschedule</p>
               <p className="text-[11px] text-[var(--foreground-subtle)]">Shift remaining tasks to fit today</p>
@@ -301,7 +302,7 @@ export function OverrunModal({ task, overrunMinutes, onReschedule, onDefer, onDr
           <button onClick={onDefer}
             className="flex w-full items-center gap-3 rounded-xl border border-[var(--rgba-124-58-237-0_2)] px-4 py-3 text-left transition hover:bg-[var(--rgba-124-58-237-0_08)]"
           >
-            <span>📅</span>
+            <span><CalendarDays size={16} aria-hidden="true" /></span>
             <div>
               <p className="text-sm font-semibold text-[var(--foreground)]">Move to tomorrow</p>
               <p className="text-[11px] text-[var(--foreground-subtle)]">Defer remaining tasks</p>

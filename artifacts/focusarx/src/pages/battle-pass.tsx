@@ -137,7 +137,7 @@ export default function BattlePassPage() {
               const isMilestone = t.tier % 5 === 0;
               return (
                 <div key={t.tier} onMouseEnter={() => setPreviewTier(t.tier)} onMouseLeave={() => setPreviewTier(null)} className={`relative rounded-2xl border p-4 transition-all ${isMilestone ? "border-[var(--palette-amber-500)]/30 bg-[var(--palette-amber-500)]/5" : "border-[var(--forge-border)] bg-[var(--card)]"} ${!reached ? "opacity-60" : ""} ${previewTier === t.tier ? "ring-2 ring-[var(--brand-400)]/20" : ""}`}>
-                  {isMilestone && <div className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-[var(--palette-amber-500)] px-2 py-0.5 text-[11px] font-bold text-black">MILESTONE</div>}
+                  {isMilestone && <div className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-[var(--palette-amber-500)] px-2 py-0.5 text-[11px] font-bold text-black">Milestone</div>}
                   <div className="mb-2 flex items-center justify-between">
                     <span className="text-xs font-bold">Tier {t.tier}</span>
                     <span className="text-[11px] text-[var(--foreground-subtle)]">{t.xpRequired} XP</span>

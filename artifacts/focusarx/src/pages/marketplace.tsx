@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
+import { CheckCircle, Coins, Crown, Lock, Package, ShoppingBag, ShoppingCart, Sparkles, User, Zap } from "lucide-react";
 import { haptic } from "@/lib/haptics";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
-import { ShoppingBag, CheckCircle, Package, Zap, Crown, Lock } from "lucide-react";
 
 const RARITY_STYLES: Record<string, { label: string; color: string; bg: string; border: string; glow: string }> = {
   common:    { label: "Common",    color: "var(--foreground-muted)", bg: "var(--rgba-148-163-184-0_08)", border: "var(--rgba-148-163-184-0_2)", glow: "0 0 0 transparent" },
@@ -14,13 +14,13 @@ const RARITY_STYLES: Record<string, { label: string; color: string; bg: string; 
 };
 
 const TYPE_FILTERS = [
-  { id: "all",       label: "All",        icon: "🛒" },
+  { id: "all",       label: "All",        icon: <ShoppingCart size={16} aria-hidden="true" /> },
   { id: "frame",     label: "Frames",     icon: "🖼️" },
-  { id: "avatar",    label: "Avatars",    icon: "👤" },
-  { id: "effect",    label: "Effects",    icon: "✨" },
-  { id: "accessory", label: "Accessories",icon: "👑" },
+  { id: "avatar",    label: "Avatars",    icon: <User size={16} aria-hidden="true" /> },
+  { id: "effect",    label: "Effects",    icon: <Sparkles size={16} aria-hidden="true" /> },
+  { id: "accessory", label: "Accessories",icon: <Crown size={16} aria-hidden="true" /> },
   { id: "decoration",label: "City Decor", icon: "🏙️" },
-  { id: "booster",   label: "Boosters",   icon: "⚡" },
+  { id: "booster",   label: "Boosters",   icon: <Zap size={16} aria-hidden="true" /> },
 ];
 
 function authHeaders() {
@@ -163,7 +163,7 @@ export default function MarketplacePage() {
             </div>
             <div className="flex items-center gap-4">
               <div className="rounded-xl border border-[var(--rgba-245-158-11-0_25)] bg-[var(--rgba-245-158-11-0_08)] px-4 py-2.5 flex items-center gap-2">
-                <span className="text-lg">🪙</span>
+                <span className="text-lg"><Coins size={16} aria-hidden="true" /></span>
                 <div>
                   <div className="text-lg font-bold text-[var(--color-warning)]">{wallet?.coins?.toLocaleString() ?? 0}</div>
                   <div className="text-[11px] text-[var(--palette-92400e)] uppercase tracking-wider">Focus Coins</div>

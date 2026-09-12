@@ -39,7 +39,7 @@ function CardFace({
       className="absolute inset-0 rounded-3xl overflow-hidden"
       style={{ backfaceVisibility: "hidden" }}
       animate={{ rotateY: flipped ? 0 : 180 }}
-      transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+      transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
     >
       {/* Gradient background */}
       <div

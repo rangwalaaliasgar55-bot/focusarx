@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { clampText, composeTitle, DESCRIPTION_BUDGET } from "@/lib/seo-text.mjs";
+import { clampText, composeTitle, DESCRIPTION_BUDGET, HREFLANG_LOCALES } from "@/lib/seo-text.mjs";
+import { breadcrumbListSchema, breadcrumbTrail } from "@/lib/breadcrumbs.mjs";
 
 interface PageSEOProps {
   title: string;
@@ -8,6 +9,13 @@ interface PageSEOProps {
   ogImage?: string;
   ogType?: string;
   keywords?: string;
+  /**
+   * Label for the last breadcrumb crumb — pass the page's H1. Defaults to the
+   * composed title with the brand suffix stripped, which is often too long and
+   * sometimes mid-sentence (a manifest title is clamped for search results).
+   * The visible trail in components/Breadcrumbs.tsx must say the same thing.
+   */
+  breadcrumbLabel?: string;
   noindex?: boolean;
   structuredData?: object | object[];
 }
@@ -41,6 +49,50 @@ function setLink(rel: string, href: string) {
   el.setAttribute("href", href);
 }
 
+// Audience annotations for the single English edition: India first, then the
+// wider English-speaking world, with x-default as the fallback. All four point
+// at the current page because there is one edition, not four — index.html and
+// scripts/prerender.mjs emit the same cluster, so the DOM after navigation and
+// the static HTML a crawler reads can never disagree.
+function setHreflang(url: string | null) {
+  const existing = Array.from(
+    document.querySelectorAll<HTMLLinkElement>('link[rel="alternate"][hreflang]'),
+  );
+
+  if (url === null) {
+    existing.forEach((el) => el.remove());
+    return;
+  }
+
+  // Fast path: the cluster is already there in the right order (the static
+  // build wrote it, or a previous route did), so a navigation only rewrites
+  // four href attributes.
+  const inOrder = HREFLANG_LOCALES.map((locale, i) => {
+    const el = existing[i];
+    return el && el.getAttribute("hreflang") === locale ? el : null;
+  });
+  if (inOrder.every((el) => el !== null) && existing.length === HREFLANG_LOCALES.length) {
+    inOrder.forEach((el) => el!.setAttribute("href", url));
+    return;
+  }
+
+  // Otherwise rebuild the whole cluster, in locale order, immediately after
+  // the canonical — which is where the prerendered documents put it. Inserting
+  // each element after the canonical instead of after the previous one reverses
+  // the cluster, so the anchor moves as we go.
+  existing.forEach((el) => el.remove());
+  let anchor: Element | null = document.querySelector('link[rel="canonical"]');
+  for (const locale of HREFLANG_LOCALES) {
+    const el = document.createElement("link");
+    el.setAttribute("rel", "alternate");
+    el.setAttribute("hreflang", locale);
+    el.setAttribute("href", url);
+    if (anchor?.nextSibling) anchor.parentNode?.insertBefore(el, anchor.nextSibling);
+    else document.head.appendChild(el);
+    anchor = el;
+  }
+}
+
 function setStructuredData(id: string, data: object) {
   let el = document.querySelector(`script[data-seo-id="${id}"]`) as HTMLScriptElement | null;
   if (!el) {
@@ -64,6 +116,7 @@ export function PageSEO({
   ogImage = DEFAULT_OG_IMAGE,
   ogType = "website",
   keywords,
+  breadcrumbLabel,
   noindex = false,
   structuredData,
 }: PageSEOProps) {
@@ -88,6 +141,7 @@ export function PageSEO({
     if (keywords) setMeta("keywords", keywords);
 
     setLink("canonical", canonicalUrl);
+    setHreflang(noindex ? null : canonicalUrl);
 
     setMeta("og:title", fullTitle, "property");
     setMeta("og:description", finalDescription, "property");
@@ -112,28 +166,16 @@ export function PageSEO({
       arr.forEach((sd, i) => setStructuredData(`page-sd-${i}`, sd));
     }
 
-    // Add Breadcrumb Schema automatically based on path
+    // Breadcrumb schema, derived from the same trail the visible breadcrumbs
+    // render (components/Breadcrumbs.tsx) and the same trail the prerenderer
+    // writes into the static document. Three renderers, one derivation — a
+    // visible trail that disagrees with the structured data is how the rich
+    // result gets dropped.
     if (canonical && canonical !== "/") {
-      const parts = canonical.split("/").filter(Boolean);
-      const breadcrumbs = {
-        "@context": "https://schema.org",
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-          {
-            "@type": "ListItem",
-            "position": 1,
-            "name": "Home",
-            "item": BASE_URL
-          },
-          ...parts.map((p, i) => ({
-            "@type": "ListItem",
-            "position": i + 2,
-            "name": p.charAt(0).toUpperCase() + p.slice(1).replace(/-/g, " "),
-            "item": `${BASE_URL}/${parts.slice(0, i + 1).join("/")}`
-          }))
-        ]
-      };
-      setStructuredData("breadcrumb-sd", breadcrumbs);
+      setStructuredData(
+        "breadcrumb-sd",
+        breadcrumbListSchema(breadcrumbTrail(canonical, { title: breadcrumbLabel ?? title }), BASE_URL),
+      );
     }
 
     return () => {
@@ -144,7 +186,7 @@ export function PageSEO({
       }
       removeStructuredData("breadcrumb-sd");
     };
-  }, [title, description, canonical, ogImage, ogType, keywords, noindex, structuredData]);
+  }, [title, description, canonical, ogImage, ogType, keywords, breadcrumbLabel, noindex, structuredData]);
 
   return null;
 }
@@ -167,8 +209,8 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   },
   about: {
     canonical: "/about",
-    title: "Our Mission & Story",
-    description: "Learn about FocusArx — the AI productivity platform built to help students and professionals build deep focus habits. Our mission, values, and team.",
+    title: "About FocusArx: why we built a focus timer",
+    description: "FocusArx helps students and professionals build unbreakable focus habits with an AI-powered, gamified deep-work platform.",
     keywords: "about FocusArx, FocusArx mission, FocusArx team, FocusArx story, AI productivity company",
   },
   contact: {
@@ -179,14 +221,14 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   },
   support: {
     canonical: "/support",
-    title: "FocusArx Help Center | FAQ & Support",
-    description: "Find answers to common questions about FocusArx — Pomodoro timer, focus sessions, AI coaching, account, and more. Get help fast.",
+    title: "Help centre: FAQs, fixes and how to reach us",
+    description: "Answers to common questions about FocusArx — the Pomodoro timer, focus sessions and scores, AI coaching, streaks and coins, study rooms, accounts, and privacy.",
     keywords: "FocusArx help, FocusArx FAQ, FocusArx support center, FocusArx questions, how to use FocusArx",
   },
   pricing: {
     canonical: "/pricing",
-    title: "FocusArx — Free Forever | Deep Work Features",
-    description: "FocusArx is completely free. Unlock Premium — advanced AI coaching, exclusive themes, deep insights — with coins you earn by focusing.",
+    title: "FocusArx pricing: free plan, or premium coins",
+    description: "FocusArx is completely free forever. Unlock Premium — advanced AI coaching, exclusive themes, deep insights — with coins you earn by focusing. No subscriptions.",
     keywords: "FocusArx free, free focus timer, free study app, deep work features, FocusArx premium coins",
   },
   onboarding: {
@@ -204,43 +246,43 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   privacy: {
     canonical: "/privacy",
     title: "Privacy Policy | FocusArx",
-    description: "FocusArx Privacy Policy. How we collect, use, and protect your data. Webcam data never leaves your device. Read our full privacy policy.",
+    description: "How FocusArx collects, uses, and protects your data. Optional webcam attention monitoring is processed on-device — video never leaves your browser.",
     keywords: "FocusArx privacy policy, FocusArx data, FocusArx GDPR",
   },
   terms: {
     canonical: "/terms",
     title: "Terms of Service | FocusArx",
-    description: "FocusArx Terms of Service. Read the full terms governing your use of the FocusArx AI productivity platform.",
+    description: "The terms governing your use of the FocusArx AI productivity platform.",
     keywords: "FocusArx terms of service, FocusArx terms, FocusArx conditions",
   },
   focusGuide: {
     canonical: "/focus-guide",
-    title: "How to Focus: A Science-Based Guide",
+    title: "How to focus: a science-based system (2026)",
     description: "Learn how to focus and master deep work — Pomodoro technique, time blocking, and flow state — plus a practical system to build unbreakable focus.",
     keywords: "how to focus, improve focus, deep work, how to concentrate, focus guide, build focus habits, Pomodoro method, flow state, FocusArx focus guide",
   },
   pomodoroGuide: {
     canonical: "/pomodoro-guide",
-    title: "The Pomodoro Technique, Step by Step",
+    title: "Pomodoro technique: the complete guide (2026)",
     description: "Complete guide to the Pomodoro Technique: how 25/5 sprints work, mistakes to avoid, longer deep-work intervals, and the best free timer app.",
     keywords: "Pomodoro technique, Pomodoro timer, Pomodoro method, best Pomodoro app, Pomodoro guide, FocusArx Pomodoro, study Pomodoro",
   },
   studyTechniques: {
     canonical: "/study-techniques",
-    title: "Best Study Techniques, Backed by Science",
-    description: "Discover the most effective study techniques — active recall, spaced repetition, Feynman technique, and more. Learn how FocusArx supercharges every method.",
+    title: "Best study techniques, ranked by evidence (2026)",
+    description: "The most effective study techniques ranked by evidence — active recall, spaced repetition, interleaving, elaboration — and how to combine them into a system.",
     keywords: "study techniques, best study methods, active recall, spaced repetition, effective studying, study tips, student productivity techniques, FocusArx study",
   },
   virtualStudyRoom: {
     canonical: "/virtual-study-room",
-    title: "Virtual Study Room | Study with Others Online | FocusArx",
+    title: "Virtual study room: focus with others, free",
     description: "Join a free virtual study room and focus with other learners online. Synchronized Pomodoro timers, live presence, 24/7 rooms, cameras optional.",
     keywords: "virtual study room, study with others online, online study room, co-study app, study accountability, group study online, FocusArx study rooms",
   },
   roadmap: {
     canonical: "/roadmap",
-    title: "Product Roadmap | What's Next",
-    description: "Explore the FocusArx product roadmap. See upcoming features, recent releases, and how we're building the world's best AI productivity platform.",
+    title: "FocusArx Product Roadmap | What's Next",
+    description: "See what's shipping next on FocusArx — upcoming features, recent releases, and the direction of the platform. Updated weekly.",
     keywords: "FocusArx roadmap, FocusArx features, FocusArx upcoming, FocusArx future",
   },
   analytics: {
@@ -263,38 +305,38 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   },
   scienceOfDeepWork: {
     canonical: "/science-of-deep-work",
-    title: "The Neuroscience of Deep Work",
-    description: "Explore the biological mechanisms behind deep work. Learn about myelin, neurotransmitters, and how FocusArx helps you enter the flow state faster.",
+    title: "The neuroscience of deep work, explained (2026)",
+    description: "Explore the biological mechanisms behind deep work — myelin, neurotransmitters, attention networks, and how to enter the flow state faster.",
     keywords: "science of focus, deep work neuroscience, myelin study, flow state biology, FocusArx science",
   },
   feynmanTechnique: {
     canonical: "/feynman-technique",
-    title: "The Feynman Technique | Master Any Subject Faster | FocusArx",
-    description: "Learn the Feynman Technique — the ultimate method for rapid learning. 4 simple steps to understand complex topics by teaching them to others.",
+    title: "The Feynman technique: learn any subject faster",
+    description: "Learn the Feynman Technique — the ultimate method for rapid learning. Four simple steps to understand complex topics by explaining them simply.",
     keywords: "feynman technique, rapid learning, study methods, richard feynman, how to learn anything",
   },
   deepStudyGuide: {
     canonical: "/deep-study-guide",
-    title: "Deep Study Guide: Longer, Quieter Sessions",
-    description: "The complete deep study guide. Science-backed strategies for sustained concentration, memory retention, and peak academic performance.",
+    title: "How to Study 2 Hours Deeply, Not 12 Distracted",
+    description: "The complete deep study guide: science-backed strategies for sustained concentration, memory retention, and peak academic performance.",
     keywords: "deep study, study guide, how to study effectively, deep learning techniques, concentration tips",
   },
   twoHourStudyMethod: {
     canonical: "/two-hour-study-method",
-    title: "The 2-Hour Study Method",
-    description: "Master the 2-hour focused study method. Structure your sessions for maximum retention with timed intervals, active recall, and strategic breaks.",
+    title: "The 2-Hour Study Method: Focused Sessions Win",
+    description: "Master the 2-hour focused study method: warm-up, intense focused study, retrieval practice, and review — the structure that beats scattered, unfocused hours.",
     keywords: "2 hour study method, study session structure, timed studying, focus blocks",
   },
   studyMethodQuiz: {
     canonical: "/study-method-quiz",
-    title: "Which Study Method Fits You? Free Quiz",
-    description: "Take our free study method quiz. Discover whether active recall, spaced repetition, or the Pomodoro technique matches your learning style.",
+    title: "3-question study method quiz: find your system",
+    description: "Take the free 2-minute study method quiz. Discover whether active recall, spaced repetition, or Pomodoro best matches your learning style.",
     keywords: "study method quiz, which study method, learning style quiz, best study technique quiz",
   },
   studyCalculator: {
     canonical: "/study-calculator",
-    title: "Study Time Calculator | Plan Your Study Sessions | FocusArx",
-    description: "Free study time calculator. Input your exam date, topics, and hours available — get a personalized study schedule optimized for retention.",
+    title: "Study time calculator: plan your sessions (2026)",
+    description: "Free study time calculator: enter your exam date, topics, and available hours to get a personalized, retention-optimized study schedule.",
     keywords: "study time calculator, study schedule planner, exam study planner, how many hours to study",
   },
   dataDeletion: {
@@ -307,49 +349,49 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   cookiePolicy: {
     canonical: "/cookie-policy",
     title: "Cookie Policy | FocusArx",
-    description: "How FocusArx uses cookies. We use minimal cookies for authentication and analytics — no third-party tracking cookies.",
+    description: "How FocusArx uses cookies — minimal, for authentication and analytics. No third-party tracking cookies.",
     keywords: "FocusArx cookies, FocusArx cookie policy",
   },
   acceptableUse: {
     canonical: "/acceptable-use",
     title: "Acceptable Use Policy | FocusArx",
-    description: "FocusArx Acceptable Use Policy. Guidelines for responsible use of the platform and community standards.",
+    description: "Guidelines for responsible use of the FocusArx platform and community standards.",
     keywords: "FocusArx acceptable use, FocusArx community guidelines",
   },
   aiPolicy: {
     canonical: "/ai-policy",
     title: "AI Policy | How We Use AI",
-    description: "How FocusArx uses artificial intelligence. Our AI features, data handling, and privacy-first approach to machine learning.",
+    description: "How FocusArx uses artificial intelligence — our AI features, data handling, and privacy-first approach to machine learning.",
     keywords: "FocusArx AI, FocusArx artificial intelligence, AI privacy, how AI works FocusArx",
   },
   leaderboard: {
     canonical: "/leaderboard",
-    title: "Leaderboard | Top Focus Champions | FocusArx",
-    description: "See who's leading the FocusArx leaderboard. Top focus champions ranked by XP, streaks, and total focus time.",
+    title: "Focus leaderboard: rank your deep work free",
+    description: "See who's leading the FocusArx leaderboard — top focus champions ranked by XP, streaks, and total focused time. Updated live.",
     keywords: "FocusArx leaderboard, top students, focus champions, productivity ranking",
   },
   signup: {
     canonical: "/signup",
-    title: "Sign Up Free | FocusArx",
-    description: "Create your free FocusArx account. No credit card required. Start tracking your focus sessions in 30 seconds.",
+    title: "Sign Up Free — AI Focus Timer",
+    description: "Create your free FocusArx account in 30 seconds. AI Pomodoro timer, focus scores, streaks, live study rooms. No credit card required.",
     keywords: "sign up FocusArx, create account, free focus app registration",
   },
   login: {
     canonical: "/login",
-    title: "Log In | FocusArx",
-    description: "Log in to FocusArx to continue your streaks, sessions, study rooms, and AI productivity coaching.",
+    title: "Log In — AI Focus Timer",
+    description: "Log in to FocusArx to continue your focus streaks, sessions, study rooms, and AI productivity coaching.",
     keywords: "log in FocusArx, sign in, FocusArx login",
   },
   guides: {
     canonical: "/guides",
-    title: "Every Focus & Study Guide, Free",
+    title: "23 free focus and study guides (2026)",
     description: "Browse every free FocusArx guide — Pomodoro technique, deep work, study techniques, ADHD focus, beating procrastination, study music, and more.",
     keywords: "study guides, focus guides, productivity guides, free study resources, how to focus, how to study",
   },
   adhdFocus: {
     canonical: "/adhd-focus-tips",
     title: "How to Focus with ADHD: 15 Working Strategies",
-    description: "Practical focus strategies that actually work for ADHD brains — body doubling, the 10-minute rule, dopamine-friendly rewards, timers, and structure.",
+    description: "Practical focus strategies that work with an ADHD brain — body doubling, the ten-minute rule, visible timers, immediate rewards and structure.",
     keywords: "how to focus with ADHD, ADHD study tips, ADHD concentration, focus strategies ADHD, ADHD productivity, ADHD time blindness, body doubling study",
   },
   stopProcrastinating: {
@@ -360,26 +402,30 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   },
   studyWithMe: {
     canonical: "/study-with-me",
-    title: "Study With Me: Live Virtual Study Sessions | FocusArx",
+    title: "Study with me: free live sessions, 24/7",
     description: "Study with me alongside thousands of learners in live virtual rooms — silent body doubling, synced Pomodoro timers, and free 24/7 accountability.",
     keywords: "study with me, study with me online, virtual study session, body doubling, study live with others, pomodoro study with me, study together online",
   },
   focusMusic: {
     canonical: "/focus-music",
-    title: "Music for Studying: What Science Says",
+    title: "Focus music: what science actually says (2026)",
     description: "Does study music actually help? What research says about lo-fi, binaural beats, noise colors, and silence — plus how to build a playlist that works.",
     keywords: "focus music, study music, music for concentration, lo fi study music, binaural beats focus, best music for studying, music while working",
   },
   search: {
     canonical: "/search",
     title: "Search Guides, Tools & Features",
-    description: "Search all FocusArx guides, study tools, and features — from Pomodoro timers and study rooms to focus guides and calculators.",
+    description: "Search every FocusArx guide, study tool and feature — Pomodoro timers, study rooms, focus guides, calculators and exam prep.",
     keywords: "search FocusArx, find study guides, focus tools",
+    // Internal search results are thin, near-duplicate and unbounded (?q=…) —
+    // the classic facet-crawl trap. Keep the page useful for people, out of the
+    // index for crawlers, and out of the sitemap.
+    noindex: true,
   },
   premium: {
     canonical: "/premium",
-    title: "Premium Membership | Unlock with Focus Tokens | FocusArx",
-    description: "Unlock Premium with Focus Tokens — no real money. Custom timer rituals, advanced analytics, premium city modes, pets, and more. Earn tokens by focusing.",
+    title: "Premium Membership — Unlock with Focus Tokens",
+    description: "FocusArx Premium unlocks advanced AI coaching, exclusive themes, deeper Focus DNA insights, and boosts — activated with Focus Coins you earn by focusing.",
     keywords: "FocusArx premium, focus tokens, premium membership, productivity premium, token economy",
   },
   pets: {
@@ -398,14 +444,14 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   },
   focusTimer: {
     canonical: "/focus-timer",
-    title: "Free Focus Timer | Pomodoro & Deep Work | FocusArx",
-    description: "Free focus timer with Pomodoro, custom rituals, ambient sounds, and XP. Premium unlocks 10-180 min presets, sequences, fullscreen zen, and reflections.",
+    title: "Free focus timer: Pomodoro and deep work (2026)",
+    description: "Free focus timer with Pomodoro, deep work sessions, ambient sound and XP. Track completion, streaks and your focus score. No credit card required.",
     keywords: "focus timer, pomodoro timer, deep work timer, free focus app",
   },
   focus: {
     canonical: "/focus",
-    title: "Focus Timer | Start Deep Work Now | FocusArx",
-    description: "Start a focus session now — 25m Pomodoro or custom 10-180m deep work. Earn Focus Tokens, level pets, build city.",
+    title: "FocusArx focus timer: start a session free",
+    description: "The FocusArx focus app: a free online timer with tasks, streaks and session scoring.",
     keywords: "focus timer, deep work, pomodoro",
     // Indexable: /focus is in sitemap-core.xml, the prerender manifest and
     // robots Allow. A noindex here would deindex a sitemap-listed page.

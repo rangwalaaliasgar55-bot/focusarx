@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Flame, Gem, Sprout, Star, Trophy, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -12,12 +13,12 @@ import { useBreakFreeAuthReady } from "@/hooks/useBreakFreeAuthReady";
 import { breakFreeErrorMessage } from "@/lib/break-free-errors";
 
 const MILESTONES = [
-  { day: 3,  icon: "🌱", label: "Your brain is already adapting." },
-  { day: 7,  icon: "⚡", label: "One week — dopamine is rebalancing." },
-  { day: 14, icon: "🔥", label: "Two weeks! Focus and sleep are improving." },
-  { day: 30, icon: "🏆", label: "One month. You've rewired your reward system." },
-  { day: 60, icon: "💎", label: "Two months. Relationships and confidence soar here." },
-  { day: 90, icon: "🌟", label: "90 days. You've genuinely changed your brain." },
+  { day: 3,  icon: <Sprout size={16} aria-hidden="true" />, label: "Your brain is already adapting." },
+  { day: 7,  icon: <Zap size={16} aria-hidden="true" />, label: "One week — dopamine is rebalancing." },
+  { day: 14, icon: <Flame size={16} aria-hidden="true" />, label: "Two weeks! Focus and sleep are improving." },
+  { day: 30, icon: <Trophy size={16} aria-hidden="true" />, label: "One month. You've rewired your reward system." },
+  { day: 60, icon: <Gem size={16} aria-hidden="true" />, label: "Two months. Relationships and confidence soar here." },
+  { day: 90, icon: <Star size={16} aria-hidden="true" />, label: "90 days. You've genuinely changed your brain." },
 ];
 
 function getMilestone(days: number) {
@@ -124,7 +125,7 @@ export default function BreakFreeStreak() {
             initial={{ opacity: 0, y: 10, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.25}}
             className="flex items-center gap-2.5 rounded-2xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-124-58-237-0_1)] px-5 py-3 mb-8 shadow-[0_0_24px_var(--rgba-124-58-237-0_15)]"
           >
             <span className="text-2xl">{milestone.icon}</span>

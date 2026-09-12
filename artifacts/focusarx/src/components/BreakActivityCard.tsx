@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
+import { Droplets, Flower2, PersonStanding, Eye, Footprints, Smile } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { TimerMode } from "@/types/timer";
 
 const ACTIVITIES = [
   {
-    icon: "💧",
+    icon: <Droplets size={20} aria-hidden="true" />,
     title: "Hydrate",
     instruction: "Drink a full glass of water",
     tip: "Staying hydrated sharpens focus and reduces fatigue.",
@@ -13,7 +14,7 @@ const ACTIVITIES = [
     border: "var(--rgba-56-189-248-0_2)",
   },
   {
-    icon: "🧘",
+    icon: <Flower2 size={20} aria-hidden="true" />,
     title: "Box Breathe",
     instruction: "Inhale 4s · Hold 4s · Exhale 4s · Hold 4s",
     tip: "Resets your nervous system and clears mental fog.",
@@ -22,7 +23,7 @@ const ACTIVITIES = [
     border: "var(--rgba-167-139-250-0_2)",
   },
   {
-    icon: "🤸",
+    icon: <PersonStanding size={20} aria-hidden="true" />,
     title: "Stretch",
     instruction: "Roll your neck, stretch your shoulders and back",
     tip: "Sitting hunched compresses your spine. Fix it now.",
@@ -31,7 +32,7 @@ const ACTIVITIES = [
     border: "var(--rgba-52-211-153-0_2)",
   },
   {
-    icon: "👁️",
+    icon: <Eye size={20} aria-hidden="true" />,
     title: "Eye Rest",
     instruction: "Look at something 20 ft away for 20 seconds",
     tip: "The 20-20-20 rule prevents digital eye strain.",
@@ -40,7 +41,7 @@ const ACTIVITIES = [
     border: "var(--rgba-251-191-36-0_2)",
   },
   {
-    icon: "🚶",
+    icon: <Footprints size={20} aria-hidden="true" />,
     title: "Walk",
     instruction: "Take a short stroll — even just around the room",
     tip: "Movement resets your brain for the next focus block.",
@@ -49,7 +50,7 @@ const ACTIVITIES = [
     border: "var(--rgba-249-115-22-0_2)",
   },
   {
-    icon: "😌",
+    icon: <Smile size={20} aria-hidden="true" />,
     title: "Relax",
     instruction: "Close your eyes, drop your shoulders, breathe slow",
     tip: "True rest between sessions amplifies your next block.",

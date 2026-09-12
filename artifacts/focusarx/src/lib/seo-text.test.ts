@@ -37,7 +37,7 @@ describe("composeTitle", () => {
 
   it.each([
     ["FocusArx — AI Pomodoro Timer & Deep Work Tracker", "FocusArx — AI Pomodoro Timer & Deep Work Tracker"],
-    ["FocusArx Help Center | FAQ & Support", "FocusArx Help Center | FAQ & Support"],
+    ["FocusArx pricing: free plan, or premium coins", "FocusArx pricing: free plan, or premium coins"],
     ["FocusArx vs Forest: Honest Comparison", "FocusArx vs Forest: Honest Comparison"],
     ["FocusArx", "FocusArx"],
   ])("leaves a leading brand mark alone instead of appending a second one (%s)", (input, expected) => {

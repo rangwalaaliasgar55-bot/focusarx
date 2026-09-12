@@ -3,7 +3,7 @@ import { EXAM_CORE_LINKS } from "./links.mjs";
 
 export const examAnxiety = {
   slug: "exam-anxiety",
-  title: "How to Beat Exam Anxiety: Science-Backed Guide | FocusArx",
+  title: "Beat exam anxiety: 12 techniques that work (2026)",
   description:
     "Why exam anxiety happens, the physiology of test panic, and 12 practical techniques — box breathing, the pre-exam routine, the in-exam panic protocol, sleep, and when to get help.",
   h1: "Exam anxiety: what it is, and the 12 techniques that work",

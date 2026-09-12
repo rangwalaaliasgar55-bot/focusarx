@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getToken } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
 import { ShoppingBag, Zap, Palette, Star, Crown, LucideIcon } from "lucide-react";
+import { Coins } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { ShopItem } from "@/types/gamification";
 
@@ -64,7 +65,7 @@ export default function ShopPage() {
         subtitle="Spend your hard-earned coins on boosts and cosmetics"
         actions={
           <div className="flex items-center gap-1.5 rounded-xl border border-[var(--palette-amber-500)]/20 bg-[var(--palette-amber-500)]/10 px-4 py-2">
-            <span className="text-base">🪙</span>
+            <span className="text-base"><Coins size={16} aria-hidden="true" /></span>
             <span className="text-sm font-bold text-[var(--palette-amber-400)]">{coins.toLocaleString()}</span>
           </div>
         }
@@ -107,7 +108,7 @@ export default function ShopPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <span className="text-base">🪙</span>
+                    <span className="text-base"><Coins size={16} aria-hidden="true" /></span>
                     <span className={`text-sm font-bold ${canAfford ? "text-[var(--palette-amber-400)]" : "text-[var(--foreground-subtle)]"}`}>{item.price.toLocaleString()}</span>
                   </div>
                 </div>

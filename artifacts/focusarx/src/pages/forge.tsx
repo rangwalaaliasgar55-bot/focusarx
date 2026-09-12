@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Users, Volume2, VolumeX, Play, Square, Headphones } from "lucide-react";
+import { BookOpen, Brain, Coffee, Leaf, Music, NotebookPen, Palette, Swords } from "lucide-react";
 import { PageTransition } from "@/components/PageTransition";
 
 // ---- Audio Engine ----
@@ -10,17 +11,17 @@ interface TrackDef {
   id: AudioTrackId;
   name: string;
   description: string;
-  icon: string;
+  icon: React.ReactNode;
   color: string;
 }
 
 const TRACKS: TrackDef[] = [
   { id: "whitenoise", name: "White Noise",    description: "Pure focus frequency",   icon: "〰️", color: "var(--foreground-muted)" },
-  { id: "binaural",   name: "Deep Focus",     description: "Binaural beats 40Hz",    icon: "🧠", color: "var(--brand-400)" },
+  { id: "binaural",   name: "Deep Focus",     description: "Binaural beats 40Hz",    icon: <Brain size={16} aria-hidden="true" />, color: "var(--brand-400)" },
   { id: "rain",       name: "Rain & Thunder", description: "Calming rain ambience",   icon: "🌧️", color: "var(--info)" },
-  { id: "lofi",       name: "Lo-Fi Static",   description: "Warm analog texture",    icon: "🎵", color: "var(--color-warning)" },
-  { id: "forest",     name: "Forest",         description: "Nature sounds & birds",   icon: "🌿", color: "var(--palette-4ade80)" },
-  { id: "coffee",     name: "Coffee Shop",    description: "Ambient café noise",     icon: "☕", color: "var(--palette-d97706)" },
+  { id: "lofi",       name: "Lo-Fi Static",   description: "Warm analog texture",    icon: <Music size={16} aria-hidden="true" />, color: "var(--color-warning)" },
+  { id: "forest",     name: "Forest",         description: "Nature sounds & birds",   icon: <Leaf size={16} aria-hidden="true" />, color: "var(--palette-4ade80)" },
+  { id: "coffee",     name: "Coffee Shop",    description: "Ambient café noise",     icon: <Coffee size={16} aria-hidden="true" />, color: "var(--palette-d97706)" },
 ];
 
 const USER_AVATAR_COLORS = [
@@ -261,7 +262,7 @@ const ROOMS = [
     id: "dungeon",
     name: "Deep Work Dungeon",
     theme: "No distractions. Pure focus.",
-    icon: "⚔️",
+    icon: <Swords size={16} aria-hidden="true" />,
     color: "var(--brand-600)",
     occupancy: 23,
     track: "binaural" as AudioTrackId,
@@ -271,7 +272,7 @@ const ROOMS = [
     id: "library",
     name: "Chill Library",
     theme: "Quiet and calm. Steady progress.",
-    icon: "📚",
+    icon: <BookOpen size={16} aria-hidden="true" />,
     color: "var(--brand-teal)",
     occupancy: 41,
     track: "lofi" as AudioTrackId,
@@ -281,7 +282,7 @@ const ROOMS = [
     id: "grind",
     name: "Exam Grind",
     theme: "Crunch mode. High intensity.",
-    icon: "📝",
+    icon: <NotebookPen size={16} aria-hidden="true" />,
     color: "var(--palette-f97316)",
     occupancy: 18,
     track: "whitenoise" as AudioTrackId,
@@ -291,7 +292,7 @@ const ROOMS = [
     id: "creative",
     name: "Creative Flow",
     theme: "Ideas, music, and making.",
-    icon: "🎨",
+    icon: <Palette size={16} aria-hidden="true" />,
     color: "var(--palette-ec4899)",
     occupancy: 12,
     track: "forest" as AudioTrackId,

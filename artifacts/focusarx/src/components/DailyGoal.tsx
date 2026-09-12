@@ -20,7 +20,7 @@ function Ring({ pct, size, stroke, color }: { pct: number; size: number; stroke:
         strokeDasharray={circ}
         initial={{ strokeDashoffset: circ }}
         animate={{ strokeDashoffset: offset }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
       />
     </svg>
   );
@@ -144,7 +144,7 @@ export default function DailyGoal() {
                 style={{ background: color }}
                 initial={{ width: 0 }}
                 animate={{ width: `${Math.min(pct, 100)}%` }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
               />
             </div>
           )}

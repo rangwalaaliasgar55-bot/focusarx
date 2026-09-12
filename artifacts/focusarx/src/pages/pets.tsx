@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
+import { CheckCircle, Crown, Heart, PawPrint, Search, Sparkles, TrendingUp, Trophy, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
-import { Heart, PawPrint, CheckCircle, Crown, Search, Sparkles, Trophy, X } from "lucide-react";
+
 import { ErrorState } from "@/components/ErrorState";
 import { is3DCapable } from "@/lib/webglCapability";
 
@@ -10,7 +11,6 @@ import { is3DCapable } from "@/lib/webglCapability";
 const Pet3D = lazy(() => import("@/components/Pet3D").then(m => ({ default: m.Pet3D })));
 import { usePremium } from "@/hooks/usePremium";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
-
 
 const CATEGORY_META: Record<string, { label: string; emoji: string; color: string }> = {
   starter: { label: "Starter", emoji: "🌱", color: "var(--palette-10b981)" },
@@ -230,8 +230,8 @@ export default function PetsPage() {
         <div className="mb-4 flex gap-1 rounded-xl bg-[var(--surface-1)] p-1">
           {[
             { id: "collection", label: "Collection", icon: "🗂️" },
-            { id: "inventory", label: `My Pets (${inventory.length})`, icon: "🐾" },
-            { id: "progression", label: "Progression", icon: "📈" },
+            { id: "inventory", label: `My Pets (${inventory.length})`, icon: <PawPrint size={16} aria-hidden="true" /> },
+            { id: "progression", label: "Progression", icon: <TrendingUp size={16} aria-hidden="true" /> },
           ].map(t => (
             <button key={t.id} onClick={() => setActiveTab(t.id as any)} className={`flex-1 rounded-lg py-2 text-xs font-bold ${activeTab === t.id ? "bg-[var(--brand-600)] text-white" : "text-[var(--foreground-subtle)]"}`}>
               {t.icon} {t.label}

@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { apiJson } from "@/lib/api";
 import { useToast } from "@/components/Toast";
 import { Trophy, Flame, Clock, CheckSquare, Star, Users, Zap, Crown, ArrowLeft, UserPlus } from "lucide-react";
+import { User } from "lucide-react";
 
 /** Shared client: cookie-first auth, silent refresh, readable error messages. */
 function apiFetch<T = any>(path: string, opts?: RequestInit): Promise<T> {
@@ -100,7 +101,7 @@ export default function UserProfilePage() {
 
   if (error || !profile) return (
     <div className="min-h-screen bg-[var(--muted)] flex flex-col items-center justify-center text-center p-6">
-      <p className="text-6xl mb-4">👤</p>
+      <p className="text-6xl mb-4"><User size={16} aria-hidden="true" /></p>
       <h1 className="text-2xl font-bold text-[var(--foreground)] mb-2">Profile not found</h1>
       <p className="text-[var(--foreground-subtle)] mb-6">No user with the username "{username}" exists.</p>
       <Link href="/" className="rounded-xl bg-[var(--brand-600)] px-5 py-2.5 text-sm font-semibold text-[var(--palette-white)]">Go Home</Link>

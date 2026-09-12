@@ -13,7 +13,14 @@
  *
  *   1. exact file            /robots.txt, /llms.txt, /opengraph.jpg
  *   2. directory index       /pomodoro-timer → /pomodoro-timer/index.html
- *   3. SPA fallback          /dashboard      → /index.html
+ *   3. SPA fallback          /dashboard      → /index.html      (200)
+ *   4. anything else         /totally-fake   → /404.html        (404)
+ *
+ * Steps 3 and 4 are read out of the real `vercel.json`, so this server cannot
+ * drift from production routing: a route added to `src/App.tsx` but not to the
+ * vercel.json SPA allowlist answers 404 here exactly as it would on Vercel.
+ * Before the 404 step existed every unknown URL answered 200 with the homepage
+ * prerender — a soft-404 Google indexes as a homepage duplicate.
  *
  * Usage:  pnpm --filter @workspace/focusarx preview:seo
  *         curl -s localhost:4173/pomodoro-timer | grep '<title>'
@@ -22,7 +29,7 @@
  * fallback from public/sitemap.xml rather than the API-generated one.
  */
 import { createServer } from "node:http";
-import { createReadStream, existsSync, statSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -63,8 +70,33 @@ function resolve(urlPath, root) {
   return null;
 }
 
+const VERCEL_JSON = path.resolve(__dirname, "..", "..", "..", "vercel.json");
+
+/**
+ * The SPA fallback patterns straight out of vercel.json — the login-walled app
+ * screens and `/u/<name>` profiles, which have no prerendered document but are
+ * still real routes (and must answer 200, not 404). Returns null when the
+ * config cannot be read, in which case this server falls back to the old
+ * "everything is the SPA" behaviour rather than 404ing every page.
+ */
+function loadSpaFallbackPattern() {
+  try {
+    const config = JSON.parse(readFileSync(VERCEL_JSON, "utf8"));
+    const patterns = (config.routes ?? [])
+      .filter((entry) => typeof entry?.src === "string" && entry.dest === "/index.html")
+      .map((entry) => entry.src);
+    if (patterns.length === 0) return null;
+    return new RegExp(`^(?:${patterns.join("|")})$`);
+  } catch {
+    return null;
+  }
+}
+
 export function createStaticServer(root = ROOT) {
+  const spaFallback = loadSpaFallbackPattern();
+
   return createServer((req, res) => {
+    const requested = (req.url ?? "/").split("?")[0].split("#")[0];
     let file;
     try {
       file = resolve(req.url ?? "/", root);
@@ -75,15 +107,42 @@ export function createStaticServer(root = ROOT) {
       return;
     }
 
-    // SPA fallback — same as vercel.json's final /(.*) -> /index.html route.
-    file ??= path.join(root, "index.html");
-    const ext = path.extname(file).toLowerCase();
-    res.writeHead(200, {
-      "Content-Type": TYPES[ext] ?? "application/octet-stream",
-      "X-Content-Type-Options": "nosniff",
-      "Referrer-Policy": "strict-origin-when-cross-origin",
-    });
-    createReadStream(file).on("error", () => res.destroy()).pipe(res);
+    const send = (target, status) => {
+      const ext = path.extname(target).toLowerCase();
+      res.writeHead(status, {
+        "Content-Type": TYPES[ext] ?? "application/octet-stream",
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+      });
+      createReadStream(target).on("error", () => res.destroy()).pipe(res);
+    };
+
+    if (file) {
+      send(file, 200);
+      return;
+    }
+
+    // Nothing on disk. Real SPA screens keep the 200 fallback…
+    if (spaFallback?.test(requested)) {
+      send(path.join(root, "index.html"), 200);
+      return;
+    }
+
+    // …a missing build asset answers 404 with an empty body (never HTML, which
+    // a service worker would cache under the asset URL)…
+    if (/^\/assets\//.test(requested) || /\.[A-Za-z0-9]{1,10}$/.test(requested)) {
+      res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("Not Found");
+      return;
+    }
+
+    // …and every other unknown URL is an honest 404.
+    const notFound = path.join(root, "404.html");
+    if (existsSync(notFound)) send(notFound, 404);
+    else {
+      res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("Not Found");
+    }
   });
 }
 

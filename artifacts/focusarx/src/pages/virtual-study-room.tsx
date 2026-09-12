@@ -17,6 +17,8 @@ import {
   Video,
 } from "lucide-react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
+import { AuthorBlock } from "@/components/AuthorBlock";
+import { GUIDE_LIBRARY_REVIEWED } from "@/content/seo-pages.mjs";
 import { Button } from "@/components/ui/button";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
@@ -100,7 +102,7 @@ export default function VirtualStudyRoomPage() {
         initial: { opacity: 0, y: 14 },
         whileInView: { opacity: 1, y: 0 },
         viewport: { once: true, margin: "-60px" },
-        transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] as const },
+        transition: { duration: 0.25, ease: [0.16, 1, 0.3, 1] as const },
       };
 
   return (
@@ -135,6 +137,7 @@ export default function VirtualStudyRoomPage() {
             Join a live room, keep your camera on or off, and focus in synchronized silence with
             learners around the world. Free to browse — free account to join and chat.
           </motion.p>
+          <AuthorBlock lastReviewed={GUIDE_LIBRARY_REVIEWED} className="mt-6 justify-center" />
           <motion.div {...reveal} className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button asChild size="xl">
               <Link href="/study-rooms">
@@ -171,7 +174,7 @@ export default function VirtualStudyRoomPage() {
                   transition={
                     reduceMotion
                       ? undefined
-                      : { duration: 0.45, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] as const }
+                      : { duration: 0.25, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] as const }
                   }
                   className="rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface)] p-7 transition-shadow duration-[var(--duration-normal)] hover:shadow-[var(--shadow-md)]"
                 >
@@ -263,7 +266,7 @@ export default function VirtualStudyRoomPage() {
                   transition={
                     reduceMotion
                       ? undefined
-                      : { duration: 0.4, delay: (i % 3) * 0.06, ease: [0.16, 1, 0.3, 1] as const }
+                      : { duration: 0.25, delay: (i % 3) * 0.06, ease: [0.16, 1, 0.3, 1] as const }
                   }
                 >
                   <Link

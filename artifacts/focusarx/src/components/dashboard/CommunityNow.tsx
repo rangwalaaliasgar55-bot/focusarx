@@ -34,7 +34,7 @@ export default function CommunityNow() {
   const stats = query.data;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25}}>
       <Card interactive className="overflow-hidden">
         <CardContent className="flex flex-col gap-5 py-5 sm:flex-row sm:items-center sm:gap-8">
           <div className="flex items-center gap-3">

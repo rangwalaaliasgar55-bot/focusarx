@@ -1,8 +1,11 @@
 import { motion, type Variants } from "framer-motion";
+import { ArrowRight, BookOpen, Brain, CheckCircle, Clock, Target, Zap } from "lucide-react";
 import { useEffect } from "react";
 import { Link } from "wouter";
-import { Clock, Brain, Target, Zap, BookOpen, CheckCircle, ArrowRight } from "lucide-react";
+
 import { PageSEO } from "@/components/PageSEO";
+import { AuthorBlock } from "@/components/AuthorBlock";
+import { GUIDE_LIBRARY_REVIEWED } from "@/content/seo-pages.mjs";
 import { track, scrollDepthEffect } from "@/lib/analytics";
 
 // Analytics: track blog page views and scroll depth
@@ -17,7 +20,7 @@ const fadeUp: Variants = {
   visible: (i: number = 0) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.4, delay: i * 0.08, ease: EASE },
+    transition: { duration: 0.25, delay: i * 0.08, ease: EASE },
   }),
 };
 
@@ -85,6 +88,7 @@ export default function DeepStudyGuidePage() {
             The real problem isn't time. It's attention. This guide shows you how 2 focused hours can outperform
             a full day of scattered effort.
           </p>
+          <AuthorBlock lastReviewed={GUIDE_LIBRARY_REVIEWED} className="mt-6" />
           <div className="mt-6 flex flex-wrap items-center gap-4 text-xs text-[var(--foreground-subtle)]">
             <span className="flex items-center gap-1.5"><Clock size={12} /> 9 min read</span>
             <span className="flex items-center gap-1.5"><Brain size={12} /> Evidence-based</span>
@@ -389,7 +393,7 @@ export default function DeepStudyGuidePage() {
           variants={fadeUp}
           className="rounded-2xl border border-[var(--palette-purple-500)]/20 bg-gradient-to-br from-[var(--palette-purple-500)]/10 to-[var(--palette-pink-500)]/5 p-8 text-center"
         >
-          <div className="mb-2 text-2xl">⚡</div>
+          <div className="mb-2 text-2xl"><Zap size={16} aria-hidden="true" /></div>
           <h3 className="mb-3 text-xl font-bold text-[var(--palette-white)]">
             Ready to build your first deep work habit?
           </h3>

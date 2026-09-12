@@ -3,8 +3,8 @@
 // Fails CI when the entry shell grows past the Instagram-funnel budget or
 // when three.js leaks into the initial preload graph.
 
-import { readdirSync, readFileSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
 
@@ -62,6 +62,71 @@ if (initialTotal > BUDGETS.initialJsGzip) {
   fail(`initial JS gzip ${initialTotal} > ${BUDGETS.initialJsGzip}`);
 } else {
   ok(`initial JS gzip ${(initialTotal / 1024).toFixed(1)}kb`);
+}
+
+// ── Per-page document budgets ─────────────────────────────────────────
+// The JS budgets above only cover the shared shell. Every prerendered route —
+// including the programmatic ones (/exam/*, /pomodoro-timer-for/*,
+// /comparison/*) — ships its own static HTML, and that document is what a
+// crawler and a first-time visitor on a slow phone actually download before
+// anything else. A page that grows a 400kb inline blob passes every JS budget
+// and still wrecks LCP, so the documents are gated too.
+{
+  const HTML_BUDGET_BYTES = 120 * 1024; // one prerendered document
+  const MIN_PRERENDERED_PAGES = 89; // manifest size; guards silent regressions
+
+  const walkHtml = (dir, acc = []) => {
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry);
+      if (statSync(full).isDirectory()) walkHtml(full, acc);
+      else if (entry.endsWith(".html")) acc.push(full);
+    }
+    return acc;
+  };
+
+  const pages = walkHtml(DIST);
+  if (pages.length < MIN_PRERENDERED_PAGES) {
+    fail(`only ${pages.length} prerendered pages, expected at least ${MIN_PRERENDERED_PAGES}`);
+  } else {
+    ok(`${pages.length} prerendered pages`);
+  }
+
+  const oversized = [];
+  let total = 0;
+  for (const file of pages) {
+    const bytes = statSync(file).size;
+    total += bytes;
+    if (bytes > HTML_BUDGET_BYTES) oversized.push([relative(DIST, file), bytes]);
+  }
+  if (oversized.length > 0) {
+    for (const [name, bytes] of oversized) {
+      fail(`document ${name} is ${(bytes / 1024).toFixed(1)}kb, over the ${(HTML_BUDGET_BYTES / 1024).toFixed(0)}kb prerendered-page budget`);
+    }
+  } else {
+    ok(`prerendered documents within budget (avg ${(total / Math.max(pages.length, 1) / 1024).toFixed(1)}kb)`);
+  }
+
+  // Every page must boot from the same budgeted entry: a route that quietly
+  // pulls an extra blocking script or stylesheet is a per-page regression the
+  // aggregate numbers hide.
+  const extraBlocking = [];
+  for (const file of pages) {
+    const html = readFileSync(file, "utf8");
+    const scripts = [...html.matchAll(/<script[^>]*\ssrc="([^"]+)"/g)].map((m) => m[1]);
+    const styles = [...html.matchAll(/<link[^>]*rel="stylesheet"[^>]*href="([^"]+)"/g)].map((m) => m[1]);
+    const unexpectedScripts = scripts.filter((src) => !/\/assets\/index-[^/]+\.js$/.test(src) && !/^https:\/\//.test(src));
+    const unexpectedStyles = styles.filter((href) => !/\/assets\/index-[^/]+\.css$/.test(href));
+    if (unexpectedScripts.length || unexpectedStyles.length) {
+      extraBlocking.push([relative(DIST, file), [...unexpectedScripts, ...unexpectedStyles]]);
+    }
+  }
+  if (extraBlocking.length > 0) {
+    for (const [name, assets] of extraBlocking.slice(0, 10)) {
+      fail(`${name} loads non-entry blocking assets: ${assets.join(", ")}`);
+    }
+  } else {
+    ok("every page boots from the single budgeted entry chunk");
+  }
 }
 
 // three.js must stay out of the entry preload graph (Moto G4 funnel).

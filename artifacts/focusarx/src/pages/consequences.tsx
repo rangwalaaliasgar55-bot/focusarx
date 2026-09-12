@@ -87,7 +87,7 @@ function ContractCard({ contract, weekMinutes }: { contract: Contract; weekMinut
             className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)]"
             initial={{ width: 0 }}
             animate={{ width: `${pct}%` }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
           />
         </div>
       )}

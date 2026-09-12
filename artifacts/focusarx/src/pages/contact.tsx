@@ -1,6 +1,7 @@
 import { PageTransition } from "@/components/PageTransition";
 import { Link } from "wouter";
 import { ArrowLeft, Mail, Phone, MessageCircle } from "lucide-react";
+import { Check } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
@@ -76,7 +77,7 @@ export default function ContactPage() {
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4 }}
+              transition={{ duration: 0.25}}
               className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--palette-purple-500)]/30 bg-[var(--palette-purple-500)]/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--palette-purple-300)]"
             >
               Get In Touch
@@ -84,7 +85,7 @@ export default function ContactPage() {
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
+              transition={{ duration: 0.25, delay: 0.1 }}
               className="mb-3 text-4xl font-semibold tracking-tight text-[var(--foreground)]"
             >
               We'd love to hear from you
@@ -92,7 +93,7 @@ export default function ContactPage() {
             <motion.p
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.2 }}
+              transition={{ duration: 0.25, delay: 0.2 }}
               className="text-sm text-[var(--foreground-muted)]"
             >
               A question, a bug report, or a feature idea — we read every message.
@@ -110,7 +111,7 @@ export default function ContactPage() {
                   className="flex flex-col items-center gap-4 py-12 text-center"
                 >
                   <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--palette-emerald-500)]/20">
-                    <span className="text-2xl">✓</span>
+                    <span className="text-2xl"><Check size={16} aria-hidden="true" /></span>
                   </div>
                   <p className="font-semibold text-[var(--foreground)]">Message sent!</p>
                   <p className="text-sm text-[var(--foreground-muted)]">We'll get back to you soon.</p>
@@ -182,7 +183,7 @@ export default function ContactPage() {
                   rel={opt.external ? "noopener noreferrer" : undefined}
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.4, delay: i * 0.08 }}
+                  transition={{ duration: 0.25, delay: i * 0.08 }}
                   whileHover={{ x: 4 }}
                   className="flex items-start gap-4 rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-12-14-28-0_8)] p-5 backdrop-blur-sm transition-colors hover:border-[var(--rgba-124-58-237-0_35)] group"
                 >

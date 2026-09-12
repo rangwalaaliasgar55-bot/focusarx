@@ -39,6 +39,28 @@ const PREMIUM_EXTRAS = [
   "180-day analytics and premium notification controls",
 ];
 
+/**
+ * Exam guides most Indian visitors are here for. Real pages, real links — the
+ * pricing answer is "free", and the useful next click is the guide for the
+ * paper they are actually sitting.
+ */
+const INDIA_EXAM_LINKS: [string, string][] = [
+  ["/exam/jee-main", "JEE Main study plan"],
+  ["/exam/jee-advanced", "JEE Advanced study plan"],
+  ["/exam/neet-ug", "NEET UG study plan"],
+  ["/exam/cbse-class-12", "CBSE Class 12 boards"],
+  ["/exam/cbse-class-10", "CBSE Class 10 boards"],
+  ["/exam/bitsat", "BITSAT speed strategy"],
+  ["/exam/kcet", "KCET study plan"],
+  ["/exam/mht-cet", "MHT-CET study plan"],
+  ["/exam/wbjee", "WBJEE study plan"],
+  ["/exam/cuet-ug", "CUET (UG) subject choice"],
+  ["/exam/clat", "CLAT study plan"],
+  ["/exam/ca-foundation", "CA Foundation study plan"],
+  ["/exam/upsc-cse", "UPSC CSE study plan"],
+  ["/exam", "All 23 exam guides"],
+];
+
 export default function PricingPage() {
   const productSchema = {
     "@context": "https://schema.org/",
@@ -49,6 +71,16 @@ export default function PricingPage() {
     "brand": {
       "@type": "Brand",
       "name": "FocusArx"
+    },
+    // Premium is never sold, so the honest offer is zero — stated in INR
+    // because that is the currency most of our students think in, and the
+    // page shows the rupee figure next to the coin cost.
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "INR",
+      "availability": "https://schema.org/InStock",
+      "url": "https://www.focusarx.site/pricing"
     }
   };
 
@@ -90,9 +122,10 @@ export default function PricingPage() {
                 <h2 className="text-xl font-bold text-[var(--foreground)]">Free</h2>
                 <div className="mt-2 flex items-baseline gap-1">
                   <span className="text-4xl font-semibold text-[var(--foreground)]">$0</span>
+                  <span className="text-2xl font-semibold text-[var(--foreground-subtle)]">· ₹0</span>
                   <span className="text-sm text-[var(--foreground-subtle)]">/ forever</span>
                 </div>
-                <p className="mt-2 text-xs text-[var(--muted-fg)]">No credit card required. No hidden fees.</p>
+                <p className="mt-2 text-xs text-[var(--muted-fg)]">No credit card, no UPI, no subscription. No hidden fees.</p>
               </div>
 
               <ul className="flex-1 space-y-2.5 mb-7">
@@ -134,8 +167,13 @@ export default function PricingPage() {
                 <div className="mt-2 flex items-baseline gap-1">
                   <span className="text-4xl font-semibold text-[var(--foreground)]">9,000</span>
                   <span className="text-sm text-[var(--foreground-subtle)]">coins</span>
+                  <span className="text-sm text-[var(--foreground-subtle)]">· ₹0</span>
                 </div>
-                <p className="mt-2 text-xs text-[var(--muted-fg)]">Unlocked with coins you earn from completed sessions. No credit card.</p>
+                <p className="mt-2 text-xs text-[var(--muted-fg)]">
+                  Unlocked with coins you earn from completed sessions, daily quests and streaks.
+                  Premium is never sold — in rupees, dollars or any other currency — so there is no
+                  card, UPI or payment step to reach it.
+                </p>
               </div>
 
               <ul className="flex-1 space-y-2.5 mb-7">
@@ -155,6 +193,43 @@ export default function PricingPage() {
               </Link>
             </motion.div>
           </div>
+
+          {/* ── India ───────────────────────────────────────────────
+              Most FocusArx students are in India, and the two questions they
+              actually have are "what does this cost me in rupees" and "does
+              this know my exam". Both get a direct answer here rather than a
+              keyword-stuffed heading. */}
+          <section className="mx-auto mt-14 max-w-3xl rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-16-23-50-0_5)] p-7 backdrop-blur-xl">
+            <h2 className="text-xl font-bold text-[var(--foreground)]">For students in India</h2>
+            <p className="mt-3 text-sm leading-relaxed text-[var(--foreground-muted)]">
+              FocusArx costs ₹0. There is no rupee price for Premium because Premium is not for
+              sale: you unlock it with coins earned from completed focus sessions, so a student
+              with no card, no UPI handle and no budget for another subscription can reach every
+              feature by studying. The free tier keeps the timer, tasks, streaks, analytics and
+              study rooms, which is the whole workflow.
+            </p>
+            <p className="mt-4 text-sm leading-relaxed text-[var(--foreground-muted)]">
+              The study content is written for Indian exams first — paper patterns, marking rules
+              and section timing from the official bulletins, not generic advice:
+            </p>
+            <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+              {INDIA_EXAM_LINKS.map(([href, label]) => (
+                <li key={href}>
+                  <Link
+                    href={href}
+                    className="flex min-h-11 items-center justify-between gap-2 rounded-xl border border-[var(--rgba-124-58-237-0_15)] px-4 py-2.5 text-sm text-[var(--foreground-muted)] transition-colors hover:border-[var(--rgba-124-58-237-0_35)] hover:text-[var(--foreground)]"
+                  >
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-5 text-xs text-[var(--muted-fg)]">
+              The app is an installable PWA, so the timer keeps running offline once it has loaded
+              — useful on a patchy connection or a data-saving phone. Everything is in English,
+              which is the language most of these papers are set in.
+            </p>
+          </section>
         </PageTransition>
       </main>
     </div>

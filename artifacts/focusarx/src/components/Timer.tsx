@@ -1,5 +1,6 @@
 
 import { AnimatePresence, motion } from "framer-motion";
+import { Swords, Coffee, Moon, Sprout, Zap, Flame, Gem, Star, Crown, Bird, Rocket, Sparkles, Trophy, Coins, Bell, Flower2, NotebookPen, PictureInPicture, Mountain, CheckCircle2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { syncFocusSessionToCloud } from "@/lib/sync-focus-session";
 import { useSessionRecovery } from "@/components/SessionRecoveryContext";
@@ -43,14 +44,19 @@ import { usePremium } from "@/hooks/usePremium";
 
 const MODES: TimerMode[] = ["focus", "break", "longBreak"];
 
-const MODEUI: Record<TimerMode, { icon: string; label: string; accent: string; pill: string }> = {
-  focus:     { icon: "⚔️", label: "Focus",      accent: "text-[var(--palette-rose-400)]",    pill: "bg-[var(--palette-rose-500)]/15 border-[var(--palette-rose-500)]/30 text-[var(--palette-rose-300)]" },
-  break:     { icon: "☕", label: "Break",      accent: "text-[var(--palette-emerald-400)]", pill: "bg-[var(--palette-emerald-500)]/15 border-[var(--palette-emerald-500)]/30 text-[var(--palette-emerald-300)]" },
-  longBreak: { icon: "🌙", label: "Long Break", accent: "text-[var(--palette-violet-400)]",  pill: "bg-[var(--palette-violet-500)]/15 border-[var(--palette-violet-500)]/30 text-[var(--palette-violet-300)]" },
+const MODEUI: Record<TimerMode, { icon: React.ReactNode; label: string; accent: string; pill: string }> = {
+  focus:     { icon: <Swords size={13} aria-hidden="true" />, label: "Focus",      accent: "text-[var(--palette-rose-400)]",    pill: "bg-[var(--palette-rose-500)]/15 border-[var(--palette-rose-500)]/30 text-[var(--palette-rose-300)]" },
+  break:     { icon: <Coffee size={13} aria-hidden="true" />, label: "Break",      accent: "text-[var(--palette-emerald-400)]", pill: "bg-[var(--palette-emerald-500)]/15 border-[var(--palette-emerald-500)]/30 text-[var(--palette-emerald-300)]" },
+  longBreak: { icon: <Moon size={13} aria-hidden="true" />, label: "Long Break", accent: "text-[var(--palette-violet-400)]",  pill: "bg-[var(--palette-violet-500)]/15 border-[var(--palette-violet-500)]/30 text-[var(--palette-violet-300)]" },
 };
 
-const LEVEL_AVATARS = ["🌱","⚡","🔥","💎","🌟","👑","🦅","🚀","🌌","🏆"];
-function getLevelAvatar(level: number) { return LEVEL_AVATARS[Math.min(Math.floor((level - 1) / 5), LEVEL_AVATARS.length - 1)] ?? "🌱"; }
+// Level tiers used to be emoji. Lucide glyphs keep the same progression
+// (sprout to trophy) while inheriting colour, weight and reduced-motion rules.
+const LEVEL_AVATARS = [Sprout, Zap, Flame, Gem, Star, Crown, Bird, Rocket, Sparkles, Trophy];
+function getLevelAvatar(level: number) {
+  const Icon = LEVEL_AVATARS[Math.min(Math.floor((level - 1) / 5), LEVEL_AVATARS.length - 1)] ?? Sprout;
+  return <Icon size={16} aria-hidden="true" />;
+}
 function getLevel(xp: number) { return Math.floor(Math.sqrt(xp / 100)) + 1; }
 function xpForLevel(level: number) { return (level - 1) ** 2 * 100; }
 function xpForNextLevel(level: number) { return level ** 2 * 100; }
@@ -448,7 +454,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     const hourMark = Math.floor(activeSeconds / 3600);
     if (hourMark >= 1 && hourMark > marathonNudgeRef.current) {
       marathonNudgeRef.current = hourMark;
-      toast(`🚶 Hour ${hourMark} of the marathon — step away for 5 minutes? Beyond 2h, XP pays at 75%.`, "info", 12000);
+      toast(`Hour ${hourMark} of the marathon — step away for 5 minutes? Beyond 2h, XP pays at 75%.`, "info", 12000);
     }
   }, [isRunning, mode, totalFocusSec, activeSeconds, toast]);
 
@@ -647,7 +653,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
                   className="h-full rounded-full bg-gradient-to-r from-[var(--palette-violet-500)] to-[var(--palette-fuchsia-500)]"
                   initial={false}
                   animate={{ width: `${xpPct}%` }}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
                 />
               </div>
               <div className="mt-1 flex items-center gap-3 text-[11px] text-[var(--palette-zinc-600)]">
@@ -658,7 +664,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
             {/* Coins */}
             <div className="flex flex-col items-end gap-1 flex-shrink-0">
               <div className="flex items-center gap-1 rounded-lg bg-[var(--palette-yellow-500)]/10 border border-[var(--palette-yellow-500)]/20 px-2 py-1">
-                <span className="text-sm">🪙</span>
+                <Coins size={14} aria-hidden="true" />
                 <span className="text-xs font-bold text-[var(--palette-yellow-400)]">{coins.toLocaleString()}</span>
               </div>
             </div>
@@ -673,7 +679,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
                 transition={{ type: "spring", stiffness: 300, damping: 14, delay: 0.3 }}
                 className="flex items-center gap-1.5 rounded-full border border-[var(--palette-orange-500)]/25 bg-[var(--palette-orange-500)]/10 px-3 py-1 text-xs font-bold text-[var(--palette-orange-400)]"
               >
-                🔥 {currentStreak}-day streak
+                <Flame size={12} aria-hidden="true" /> {currentStreak}-day streak
               </motion.div>
             ) : (
               <div className="text-[11px] text-[var(--palette-zinc-600)]">Start your streak today!</div>
@@ -784,7 +790,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
                   className="h-full rounded-full bg-gradient-to-r from-[var(--palette-rose-600)] to-[var(--palette-rose-400)]"
                   initial={false}
                   animate={{ width: `${(1 - progress) * 100}%` }}
-                  transition={{ duration: 0.4, ease: [0.22, 0.61, 0.36, 1] }}
+                  transition={{ duration: 0.25, ease: [0.22, 0.61, 0.36, 1] }}
                 />
               </div>
             </motion.div>
@@ -864,9 +870,9 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
             <button
               type="button"
               onClick={() => void requestNotificationAlerts()}
-              className="mt-3 rounded-lg border border-[var(--palette-zinc-800)] px-3 py-1.5 text-[11px] text-[var(--palette-zinc-500)] transition-colors hover:border-[var(--palette-zinc-700)] hover:text-[var(--palette-zinc-300)]"
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-[var(--palette-zinc-800)] px-3 py-1.5 text-[11px] text-[var(--palette-zinc-500)] transition-colors hover:border-[var(--palette-zinc-700)] hover:text-[var(--palette-zinc-300)]"
             >
-              🔔 Enable session alerts
+              <Bell size={12} aria-hidden="true" /> Enable session alerts
             </button>
           )}
 
@@ -876,7 +882,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
             onClick={() => setShowZen(true)}
             className="mt-3 flex items-center gap-2 rounded-xl border border-[var(--palette-violet-500)]/25 bg-[var(--palette-violet-500)]/8 px-4 py-2.5 text-xs font-bold text-[var(--palette-violet-400)] transition-all hover:border-[var(--palette-violet-500)]/45 hover:bg-[var(--palette-violet-500)]/15 active:scale-95"
           >
-            🧘 Zen Mode
+            <Flower2 size={14} aria-hidden="true" /> Zen Mode
             <span className="text-[11px] font-medium text-[var(--palette-zinc-600)]">full-screen focus</span>
           </button>
 
@@ -887,7 +893,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
             title="Park a distracting thought for the break (D)"
             className="mt-3 flex items-center gap-2 rounded-xl border border-[var(--palette-zinc-800)] px-4 py-2.5 text-xs font-bold text-[var(--palette-zinc-500)] transition-colors hover:border-[var(--palette-zinc-700)] hover:text-[var(--palette-zinc-300)]"
           >
-            📝 Park a thought
+            <NotebookPen size={14} aria-hidden="true" /> Park a thought
             <kbd className="rounded border border-[var(--palette-zinc-700)] px-1 text-[11px] font-bold">D</kbd>
           </button>
 
@@ -898,7 +904,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
               onClick={popOutMiniTimer}
               className="mt-3 flex items-center gap-2 rounded-xl border border-[var(--palette-zinc-800)] px-4 py-2.5 text-xs font-bold text-[var(--palette-zinc-500)] transition-colors hover:border-[var(--palette-zinc-700)] hover:text-[var(--palette-zinc-300)]"
             >
-              🗔 Pop out mini-timer
+              <PictureInPicture size={14} aria-hidden="true" /> Pop out mini-timer
             </button>
           )}
         </div>
@@ -1001,7 +1007,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
             initial={{ opacity: 0, y: 24, scale: 0.88 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.92 }}
-            transition={{ duration: 0.4, type: "spring", stiffness: 240, damping: 24 }}
+            transition={{ duration: 0.25, type: "spring", stiffness: 240, damping: 24 }}
             className="flex justify-center py-4"
           >
             <PetCompanion
@@ -1096,7 +1102,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
             className="w-full max-w-sm rounded-2xl border border-[var(--rgba-167-139-250-0_35)] bg-[var(--palette-0d0f17)] p-5 shadow-2xl"
           >
             <div className="mb-4 text-center">
-              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--rgba-167-139-250-0_15)] ring-1 ring-[var(--rgba-167-139-250-0_3)] text-3xl">🏔️</div>
+              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--rgba-167-139-250-0_15)] ring-1 ring-[var(--rgba-167-139-250-0_3)] text-[var(--palette-violet-300)]"><Mountain size={26} aria-hidden="true" /></div>
               <h3 className="text-sm font-semibold text-[var(--palette-zinc-100)]">Marathon ahead — {Math.floor(secondsLeft / 60)} minutes</h3>
               <p className="mt-1.5 text-xs leading-relaxed text-[var(--palette-zinc-500)]">
                 You're planning <span className="font-bold text-[var(--brand-400)]">more than 2 hours</span> of
@@ -1109,7 +1115,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
                 onClick={beginMarathonStart}
                 className="w-full rounded-xl border border-[var(--brand-400)]/40 bg-[var(--rgba-124-58-237-0_15)] px-4 py-3 text-left transition-all hover:bg-[var(--rgba-124-58-237-0_25)]"
               >
-                <p className="text-xs font-bold text-[var(--brand-400)]">🏔️ Let's ride the marathon</p>
+                <p className="text-xs font-bold text-[var(--brand-400)]"><Mountain size={12} aria-hidden="true" /> Let's ride the marathon</p>
                 <p className="text-[11px] text-[var(--palette-zinc-500)] mt-0.5">Break nudges on · 75% XP beyond 2h</p>
               </button>
               <button
@@ -1142,7 +1148,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
             className="w-full max-w-xs rounded-2xl border border-[var(--palette-zinc-800)] bg-[var(--palette-0d0f17)] p-5 shadow-2xl"
           >
             <div className="mb-5 text-center">
-              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--palette-amber-500)]/15 ring-1 ring-[var(--palette-amber-500)]/25 text-3xl">⚡</div>
+              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--palette-amber-500)]/15 ring-1 ring-[var(--palette-amber-500)]/25 text-[var(--palette-amber-400)]"><Zap size={26} aria-hidden="true" /></div>
               <h3 className="text-sm font-semibold text-[var(--palette-zinc-100)]">End focus session?</h3>
               <p className="mt-1 text-xs text-[var(--palette-zinc-500)]">
                 You've focused for{" "}
@@ -1157,7 +1163,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
                 disabled={isSaving}
                 className="w-full rounded-xl border border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/10 px-4 py-3 text-left transition-all hover:bg-[var(--palette-emerald-500)]/18 disabled:opacity-50"
               >
-                <p className="text-xs font-bold text-[var(--palette-emerald-400)]">✅ Complete & Save Progress</p>
+                <p className="text-xs font-bold text-[var(--palette-emerald-400)]"><CheckCircle2 size={13} aria-hidden="true" /> Complete & Save Progress</p>
                 <p className="text-[11px] text-[var(--palette-emerald-400)]/60 mt-0.5">Earn XP and coins for time spent</p>
               </button>
               <button
@@ -1171,7 +1177,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
                 onClick={handleCancelNoSave}
                 className="w-full rounded-xl border border-[var(--palette-red-500)]/15 bg-[var(--palette-red-500)]/8 px-4 py-3 text-left transition-all hover:bg-[var(--palette-red-500)]/15"
               >
-                <p className="text-xs font-bold text-[var(--palette-red-400)]">✕ Abandon Session</p>
+                <p className="text-xs font-bold text-[var(--palette-red-400)]"><X size={13} aria-hidden="true" /> Abandon Session</p>
                 <p className="text-[11px] text-[var(--palette-red-400)]/60 mt-0.5">Discard all progress</p>
               </button>
             </div>

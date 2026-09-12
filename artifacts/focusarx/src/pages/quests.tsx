@@ -53,7 +53,7 @@ function QuestCard({ progress, onClaim, claiming }: { progress: any; onClaim: (i
                 className="h-full rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: `${pct}%` }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
                 style={{ background: isComplete ? "var(--palette-10b981)" : diff.color }}
               />
             </div>

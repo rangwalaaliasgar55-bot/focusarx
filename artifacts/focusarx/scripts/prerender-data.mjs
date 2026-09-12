@@ -13,9 +13,22 @@
 export const SITE_NAME = "FocusArx";
 import { clampText, DESCRIPTION_BUDGET, PAGE_TITLE_BUDGET } from "../src/lib/seo-text.mjs";
 import { EXAM_GUIDES, EXAM_HUB } from "../src/content/exam/index.mjs";
-import { SEO_PAGES, COMPARISONS, COMPARISON_PATHS } from "../src/content/seo-pages.mjs";
+import {
+  COMPARISONS_REVIEWED,
+  COMPARISONS,
+  ABOUT_REVIEWED,
+  COMPARISON_PATHS,
+  GUIDE_LIBRARY_REVIEWED,
+  SEO_PAGES,
+} from "../src/content/seo-pages.mjs";
 import { BLOG_POSTS } from "../src/content/blog.mjs";
 import { FUNNEL_ANGLES } from "../src/content/exam-funnel.mjs";
+import {
+  EXAM_CLUSTER_REVIEWED,
+  funnelDescription,
+  funnelHeading,
+  funnelTitle,
+} from "../src/content/exam/derive.mjs";
 
 // OG card base for dynamic OG images (serverless /api/og endpoint).
 // Canonical host is www — the apex 308-redirects here (vercel.json).
@@ -34,8 +47,100 @@ export const DEFAULT_OG_IMAGE_PATH = "/opengraph.jpg";
  * @property {{h: string, p: string}[]} [sections] — body sections
  * @property {[string, string][]} [faq]   — [question, answer] pairs (emits FAQPage JSON-LD)
  * @property {boolean} [article]     — emit Article JSON-LD (guides)
+ * @property {string} [lastReviewed] — ISO date the copy was last reviewed;
+ *                                     drives the visible byline, dateModified
+ *                                     and the sitemap lastmod
  * @property {string[]} [related]    — related internal links (path|Label)
  */
+
+/**
+ * Policy link set — mirrors `LegalFooter()` in the live policy pages
+ * (privacy / terms / cookie-policy / acceptable-use / ai-policy /
+ * data-deletion), so the prerendered body and the rendered page carry the same
+ * links. Policy pages used to dead-end: the prerender gave each of them one or
+ * two "keep reading" links, which left /cookie-policy and /accessibility
+ * reachable only from the sitemap.
+ */
+const POLICY_LINKS = [
+  "/privacy|Privacy policy",
+  "/terms|Terms of service",
+  "/cookie-policy|Cookie policy",
+  "/acceptable-use|Acceptable use policy",
+  "/ai-policy|AI policy",
+  "/data-deletion|Delete your data",
+  "/accessibility|Accessibility statement",
+  "/camera-data|How camera data is handled",
+  "/safety|Study room safety and moderation",
+  "/evidence|Evidence and claim policy",
+];
+
+/** Company/trust link set — mirrors the live landing footer columns. */
+const COMPANY_LINKS = [
+  "/|FocusArx home",
+  "/about|About FocusArx",
+  "/contact|Contact us",
+  "/support|Help center",
+  "/blog|Blog",
+  "/guides|All guides",
+  "/press|Press kit",
+  "/roadmap|Product roadmap",
+  "/changelog|Changelog",
+  "/pricing|Pricing",
+];
+
+/**
+ * The full guide/tool index — mirrors what `/guides` actually renders
+ * (src/pages/guides.tsx lists every one of these). The prerender used to carry
+ * eight of them, so nine real pages looked orphaned to a crawler that does not
+ * run JavaScript.
+ */
+const ALL_GUIDE_LINKS = [
+  "/focus-guide|How to focus: the complete guide",
+  "/deep-work-guide|Deep work guide",
+  "/pomodoro-guide|The Pomodoro technique",
+  "/study-techniques|Best study techniques, ranked by evidence",
+  "/how-to-focus-while-studying|How to focus while studying",
+  "/body-doubling|Body doubling explained",
+  "/stop-procrastinating|How to stop procrastinating",
+  "/stop-scrolling|How to stop scrolling",
+  "/adhd-focus-tips|How to focus with ADHD",
+  "/adhd-focus-tools|ADHD-friendly focus tools",
+  "/focus-music|Best music for studying",
+  "/science-of-deep-work|The science of deep work",
+  "/two-hour-study-method|The 2-hour study method",
+  "/deep-study-guide|Deep study guide",
+  "/feynman-technique|The Feynman technique",
+  "/exam|Exam prep guides",
+  "/blog|Blog",
+  "/study-method-quiz|Study method quiz",
+  "/study-calculator|Study time calculator",
+  "/pomodoro-timer|Pomodoro timer",
+  "/study-timer|Study timer",
+  "/focus-timer|Focus timer",
+  "/virtual-study-room|Virtual study rooms",
+  "/study-with-me|Study with me sessions",
+  "/study-rooms|Live study rooms",
+  "/breathe|2-minute breathing reset",
+  "/break-free|60-second scroll reset",
+];
+
+/**
+ * Build a `related` list from link groups without ever linking a page to itself
+ * and without duplicates. Order matters: the first group is the most relevant.
+ */
+const relatedFor = (path, ...groups) => {
+  const seen = new Set();
+  const out = [];
+  for (const group of groups) {
+    for (const pair of group || []) {
+      const href = String(pair).split("|")[0];
+      if (!href || href === path || seen.has(href)) continue;
+      seen.add(href);
+      out.push(pair);
+    }
+  }
+  return out;
+};
 
 const GUIDE_LINKS = [
   "/guides|All FocusArx guides",
@@ -105,7 +210,8 @@ export const ROUTES = [
   // ── Company ───────────────────────────────────────────────────
   {
     path: "/about",
-    title: "About Us: Our Mission",
+    lastReviewed: ABOUT_REVIEWED,
+    title: "About FocusArx: why we built a focus timer",
     description:
       "FocusArx helps students and professionals build unbreakable focus habits with an AI-powered, gamified deep-work platform.",
     h1: "About FocusArx",
@@ -119,8 +225,20 @@ export const ROUTES = [
         h: "How we're different",
         p: "FocusArx is free forever at its core, privacy-first (optional attention monitoring runs entirely on-device), and built around measurable focus depth rather than vanity metrics.",
       },
+      {
+        h: "Who writes this",
+        p: "The FocusArx editorial team — the people who build the product. Every long-form page carries that byline and the date its copy was last checked, and the same date is what the sitemap advertises.",
+      },
+      {
+        h: "How we research what we publish",
+        p: "Claims link out to the primary source — the paper, the book or the exam body. Every metric we quote is on the evidence ledger with its definition, source, sample and date. We make no clinical claims, we invent no citations, and we sell no advertising, no data and no page ranking.",
+      },
+      {
+        h: "Corrections",
+        p: "Email focusarx@gmail.com and we will fix the page and move its last-updated date, so a reader can tell the correction happened.",
+      },
     ],
-    related: ["/contact|Contact us", "/roadmap|Product roadmap", "/pricing|Pricing"],
+    related: relatedFor("/about", COMPANY_LINKS, ["/achievements|Achievements", "/evidence|Evidence ledger"], POLICY_LINKS.slice(0, 3)),
   },
   {
     path: "/contact",
@@ -130,11 +248,11 @@ export const ROUTES = [
     h1: "Contact FocusArx",
     lead: "Questions, feedback, or partnership ideas? Reach the team at focusarx@gmail.com or through the contact form — we usually reply within 24 hours.",
     sections: [],
-    related: ["/support|Help center & FAQ", "/about|About FocusArx"],
+    related: relatedFor("/contact", COMPANY_LINKS, POLICY_LINKS.slice(0, 3)),
   },
   {
     path: "/support",
-    title: "FocusArx Help Center | FAQ & Support",
+    title: "Help centre: FAQs, fixes and how to reach us",
     description:
       "Answers to common questions about FocusArx — the Pomodoro timer, focus sessions and scores, AI coaching, streaks and coins, study rooms, accounts, and privacy.",
     h1: "FocusArx Help Center",
@@ -145,11 +263,11 @@ export const ROUTES = [
         p: "How focus sessions and the Focus Score work; how streaks, XP, and Focus Coins are earned and spent; how live study rooms and leaderboards work; how optional on-device attention monitoring protects privacy; and how to manage or delete your account data.",
       },
     ],
-    related: ["/contact|Contact us", "/privacy|Privacy policy"],
+    related: relatedFor("/support", COMPANY_LINKS, POLICY_LINKS.slice(0, 4)),
   },
   {
     path: "/pricing",
-    title: "FocusArx Pricing — Free, or Premium by Coins",
+    title: "FocusArx pricing: free plan, or premium coins",
     description:
       "FocusArx is completely free forever. Unlock Premium — advanced AI coaching, exclusive themes, deep insights — with coins you earn by focusing. No subscriptions.",
     h1: "Free forever. Premium by focusing.",
@@ -164,7 +282,7 @@ export const ROUTES = [
         p: "Advanced AI coaching, exclusive themes and cosmetics, deeper Focus DNA insights, and productivity boosts — all purchased with Focus Coins earned during sessions.",
       },
     ],
-    related: ["/signup|Start free", "/premium|Premium overview"],
+    related: relatedFor("/pricing", ["/signup|Start free", "/premium|Premium overview"], COMPANY_LINKS),
   },
   {
     path: "/premium",
@@ -174,7 +292,7 @@ export const ROUTES = [
     h1: "FocusArx Premium",
     lead: "Premium amplifies everything that works about FocusArx — smarter coaching, richer insights, exclusive cosmetics — and it's earned with focus, not bought.",
     sections: [],
-    related: ["/pricing|Pricing", "/signup|Start free"],
+    related: relatedFor("/premium", ["/pricing|Pricing", "/signup|Start free", "/leaderboard|Leaderboard", "/achievements|Achievements"], COMPANY_LINKS),
   },
   {
     path: "/roadmap",
@@ -184,13 +302,13 @@ export const ROUTES = [
     h1: "FocusArx product roadmap",
     lead: "What's shipped, what's next, and what we're exploring — updated weekly.",
     sections: [],
-    related: ["/about|About", "/contact|Send feedback"],
+    related: relatedFor("/roadmap", ["/changelog|Changelog", "/about|About", "/contact|Send feedback"], COMPANY_LINKS),
   },
 
   // ── Guides & content ──────────────────────────────────────────
   {
     path: "/guides",
-    title: "Every Focus & Study Guide, Free",
+    title: "23 free focus and study guides (2026)",
     description:
       "Browse every free FocusArx guide — Pomodoro technique, deep work, study techniques, ADHD focus, beating procrastination, study music, and more.",
     h1: "The FocusArx guide library",
@@ -214,11 +332,14 @@ export const ROUTES = [
       },
     ],
     article: true,
-    related: GUIDE_LINKS.slice(1),
+    // The live hub lists every guide and tool; the prerender must not claim
+    // fewer, or a no-JS crawl sees nine pages nothing links to.
+    related: relatedFor("/guides", ALL_GUIDE_LINKS, COMPANY_LINKS.slice(0, 1)),
   },
   {
     path: "/focus-guide",
-    title: "How to Focus: A Science-Based Guide",
+    lastReviewed: GUIDE_LIBRARY_REVIEWED,
+    title: "How to focus: a science-based system (2026)",
     description:
       "Learn how to focus and master deep work — Pomodoro technique, time blocking, and flow state — plus a practical system to build unbreakable focus.",
     h1: "How to focus: the complete science-based guide",
@@ -248,7 +369,8 @@ export const ROUTES = [
   },
   {
     path: "/pomodoro-guide",
-    title: "The Pomodoro Technique, Step by Step",
+    lastReviewed: GUIDE_LIBRARY_REVIEWED,
+    title: "Pomodoro technique: the complete guide (2026)",
     description:
       "Complete guide to the Pomodoro Technique: how 25/5 sprints work, mistakes to avoid, longer deep-work intervals, and the best free timer app.",
     h1: "The Pomodoro technique: the complete guide",
@@ -277,7 +399,8 @@ export const ROUTES = [
   },
   {
     path: "/study-techniques",
-    title: "Best Study Techniques, Backed by Science",
+    lastReviewed: GUIDE_LIBRARY_REVIEWED,
+    title: "Best study techniques, ranked by evidence (2026)",
     description:
       "The most effective study techniques ranked by evidence — active recall, spaced repetition, interleaving, elaboration — and how to combine them into a system.",
     h1: "The best study techniques, ranked by evidence",
@@ -308,21 +431,41 @@ export const ROUTES = [
     path: "/adhd-focus-tips",
     title: "How to Focus with ADHD: 15 Working Strategies",
     description:
-      "Practical focus strategies that actually work for ADHD brains — body doubling, the 10-minute rule, dopamine-friendly rewards, timers, and structure.",
+      "Practical focus strategies that work with an ADHD brain — body doubling, the ten-minute rule, visible timers, immediate rewards and structure.",
     h1: "How to focus with ADHD: 15 strategies that work",
     lead: "ADHD isn't a willpower problem — it's a dopamine and attention-regulation difference. These strategies work with your brain instead of against it.",
+    // Answer-first: the whole method in one quotable block, matching the
+    // paragraph the page renders above its table of contents.
+    answerFirst:
+      "Focus with ADHD improves when starting is made cheap, time is made visible and finishing is rewarded immediately. Practically that means a ten-minute first block, a timer you can see, one tab open, body doubling where possible, and a real break afterwards. The fifteen strategies below are ordered by how much of that they solve.",
     sections: [
       {
-        h: "Why ADHD focus feels different",
-        p: "ADHD affects task initiation, working memory, time perception, and motivation regulation. Interest, novelty, urgency, and challenge — not importance — engage the ADHD brain, and weak dopamine signaling makes boring tasks neurologically hard to start.",
+        h: "Why does focus feel different with ADHD?",
+        p: [
+          "ADHD affects the executive functions: task initiation, working memory, time perception, and the regulation of attention and motivation. Two things follow. First, interest, novelty, urgency and challenge engage the ADHD brain — importance does not. A boring-but-critical task can feel impossible to start while a fascinating one absorbs you for hours.",
+          "Second, dopamine signalling typically runs lower, so the reward for starting something tedious feels distant and weak. That is why shame-based motivation backfires: the problem was never effort or character. The fix is engineering — an environment where starting is easy, stimulation is managed and finishing is rewarded.",
+        ],
       },
       {
-        h: "The core strategies",
-        p: "Body doubling (working alongside someone), the 10-minute rule, external visible timers for time blindness, immediate rewards, one-tab environments, laughably small first steps, designed urgency (not panic), capture lists instead of memory, protected sleep, movement before blocks, implementation intentions, real non-phone breaks, energy-matched scheduling, accountability partners — and professional treatment where appropriate.",
+        h: "Which 15 strategies actually work?",
+        p: [
+          "The ones that lower the cost of starting: body doubling (working alongside someone, in person or in a study room), the ten-minute rule, laughably small first steps, and capture lists so working memory is not holding the plan.",
+          "The ones that make time visible: an external timer you can see rather than a phone clock, alarms as bookends around a block, and calendar time blocking instead of a to-do list with no hours attached.",
+          "The ones that supply dopamine on schedule: immediate rewards at the end of a block, designed urgency that is chosen rather than panicked, novelty in the environment, and accountability to a person who will notice.",
+          "And the ones that protect capacity: sleep at a consistent wake time, movement before a block, single-tab working, real non-phone breaks, energy-matched scheduling of hard tasks, implementation intentions written the night before, and professional treatment where appropriate.",
+        ],
       },
       {
-        h: "A daily ADHD focus system",
-        p: "One 10-minute morning session before anything else, visible timer blocks with real breaks, a two-minute evening review, and a consistent wake time. Start absurdly small; grow the loop weekly.",
+        h: "How do you build a daily focus system in 4 steps?",
+        p: [
+          "One ten-minute session before anything else, a visible timer around each block with a real break after it, a two-minute evening review that writes down tomorrow's first step, and a consistent wake time. Start absurdly small and grow the loop weekly — a system that survives a bad day is worth more than one that needs a good one.",
+        ],
+      },
+      {
+        h: "Which ADHD focus myths should you drop?",
+        p: [
+          "“Try harder” — effort is not the missing ingredient; structure and dopamine are. “You just need discipline” — discipline is finite in every brain and ADHD taxes it twice. “Hyperfocus means you can focus when you want to” — hyperfocus is interest-driven and involuntary, and it burns out the evening it swallows. “Music and video always distract” — for some ADHD brains a controlled level of background stimulation improves regulation, so experiment and measure.",
+        ],
       },
     ],
     article: true,
@@ -332,16 +475,30 @@ export const ROUTES = [
       ["How long should a Pomodoro be with ADHD?", "Start with 10–15 minutes — short enough that starting feels safe — and extend gradually toward 25. The timer's job is to get you started, not to stop you."],
       ["Why do I procrastinate so much with ADHD?", "ADHD procrastination is mostly a dopamine and task-initiation problem, not laziness. Solutions lower activation energy (tiny first steps, the 2-minute rule) or add dopamine (rewards, novelty, urgency, accountability)."],
       ["What is time blindness and how do I manage it?", "Time blindness is difficulty sensing elapsed time or task duration. Externalize it: visible timers, alarms as bookends, calendar time blocking, and short commitments."],
+      ["Is this medical advice?", "No. It is workflow design drawn from the clinical literature on executive function. Diagnosis and treatment belong with a clinician who knows you."],
     ],
     related: [
       "/stop-procrastinating|How to stop procrastinating",
+      "/adhd-focus-tools|ADHD-friendly focus tools",
+      "/body-doubling|Body doubling explained",
+      "/10-minute-timer|10 minute timer",
       "/study-with-me|Study with me sessions",
       "/focus-guide|How to focus: complete guide",
+      "/study-timer-for-medical-students|Study timer for medical students",
+      "/focus-timer-for-programmers|Focus timer for programmers",
       "/guides|All guides",
+    ],
+    lastReviewed: "2026-09-11",
+    sources: [
+      "Russell A. Barkley, Taking Charge of ADHD (3rd ed., Guilford Press, 2020) — ADHD as a disorder of self-regulation and executive function rather than of effort.",
+      "Volkow N.D. et al., 'Dopamine transporter densities in adults with attention deficit hyperactivity disorder', American Journal of Psychiatry (2009) — reduced dopamine signalling.",
+      "American Academy of Pediatrics, Clinical Practice Guideline for the Diagnosis, Evaluation, and Treatment of ADHD (2019) — behavioural interventions alongside medication where prescribed.",
+      "Fabiano G.A. et al., 'A meta-analysis of behavioral treatments for attention-deficit/hyperactivity disorder' (2009) — structure, immediate feedback and external cues as the active ingredients.",
     ],
   },
   {
     path: "/stop-procrastinating",
+    lastReviewed: GUIDE_LIBRARY_REVIEWED,
     title: "How to Stop Procrastinating: 12 Methods That Work | FocusArx",
     description:
       "Why you procrastinate (it's not laziness) and 12 proven ways to stop — the 2-minute rule, temptation bundling, and implementation intentions.",
@@ -377,7 +534,8 @@ export const ROUTES = [
   },
   {
     path: "/study-with-me",
-    title: "Study With Me: Live Virtual Study Sessions | FocusArx",
+    lastReviewed: GUIDE_LIBRARY_REVIEWED,
+    title: "Study with me: free live sessions, 24/7",
     description:
       "Study with me alongside thousands of learners in live virtual rooms — silent body doubling, synced Pomodoro timers, and free 24/7 accountability.",
     h1: "Study with me: why focusing together works",
@@ -412,7 +570,8 @@ export const ROUTES = [
   },
   {
     path: "/focus-music",
-    title: "Music for Studying: What Science Says",
+    lastReviewed: GUIDE_LIBRARY_REVIEWED,
+    title: "Focus music: what science actually says (2026)",
     description:
       "Does study music actually help? What research says about lo-fi, binaural beats, noise colors, and silence — plus how to build a playlist that works.",
     h1: "Focus music: what science actually says",
@@ -447,6 +606,7 @@ export const ROUTES = [
   },
   {
     path: "/deep-study-guide",
+    lastReviewed: GUIDE_LIBRARY_REVIEWED,
     title: "How to Study 2 Hours Deeply, Not 12 Distracted",
     description:
       "The complete deep study guide: science-backed strategies for sustained concentration, memory retention, and peak academic performance.",
@@ -472,6 +632,7 @@ export const ROUTES = [
   },
   {
     path: "/two-hour-study-method",
+    lastReviewed: GUIDE_LIBRARY_REVIEWED,
     title: "The 2-Hour Study Method: Focused Sessions Win",
     description:
       "Master the 2-hour focused study method: warm-up, intense focused study, retrieval practice, and review — the structure that beats scattered, unfocused hours.",
@@ -497,7 +658,8 @@ export const ROUTES = [
   },
   {
     path: "/science-of-deep-work",
-    title: "The Neuroscience of Deep Work",
+    lastReviewed: GUIDE_LIBRARY_REVIEWED,
+    title: "The neuroscience of deep work, explained (2026)",
     description:
       "Explore the biological mechanisms behind deep work — myelin, neurotransmitters, attention networks, and how to enter the flow state faster.",
     h1: "The neuroscience of deep work",
@@ -521,7 +683,8 @@ export const ROUTES = [
   },
   {
     path: "/feynman-technique",
-    title: "The Feynman Technique | Master Any Subject Faster | FocusArx",
+    lastReviewed: GUIDE_LIBRARY_REVIEWED,
+    title: "The Feynman technique: learn any subject faster",
     description:
       "Learn the Feynman Technique — the ultimate method for rapid learning. Four simple steps to understand complex topics by explaining them simply.",
     h1: "The Feynman technique",
@@ -545,7 +708,7 @@ export const ROUTES = [
   },
   {
     path: "/study-method-quiz",
-    title: "Study Method Quiz: Find Your System",
+    title: "3-question study method quiz: find your system",
     description:
       "Take the free 2-minute study method quiz. Discover whether active recall, spaced repetition, or Pomodoro best matches your learning style.",
     h1: "Which study method works best for you?",
@@ -564,7 +727,7 @@ export const ROUTES = [
   },
   {
     path: "/study-calculator",
-    title: "Study Method Calculator: Optimise Your Prep",
+    title: "Study time calculator: plan your sessions (2026)",
     description:
       "Free study time calculator: enter your exam date, topics, and available hours to get a personalized, retention-optimized study schedule.",
     h1: "Study time calculator",
@@ -583,7 +746,8 @@ export const ROUTES = [
   },
   {
     path: "/virtual-study-room",
-    title: "Virtual Study Room | Study with Others Online | FocusArx",
+    lastReviewed: GUIDE_LIBRARY_REVIEWED,
+    title: "Virtual study room: focus with others, free",
     description:
       "Join a free virtual study room and focus with other learners online. Synchronized Pomodoro timers, live presence, 24/7 rooms, cameras optional.",
     h1: "Virtual study rooms: study with others online",
@@ -643,7 +807,7 @@ export const ROUTES = [
   // ── Public gamification / wellness ────────────────────────────
   {
     path: "/study-rooms",
-    title: "Live Study Rooms | Focus Alongside Others | FocusArx",
+    title: "Live study rooms: focus alongside others free",
     description:
       "Browse and join live FocusArx study rooms — synchronized Pomodoro timers, live presence, and instant accountability. Free, 24/7.",
     h1: "Live study rooms",
@@ -653,23 +817,23 @@ export const ROUTES = [
   },
   {
     path: "/leaderboard",
-    title: "Focus Leaderboard | Top Focus Champions | FocusArx",
+    title: "Focus leaderboard: rank your deep work free",
     description:
       "See who's leading the FocusArx leaderboard — top focus champions ranked by XP, streaks, and total focused time. Updated live.",
     h1: "FocusArx leaderboard",
     lead: "Top focus champions ranked by XP, streaks, and total focused time — updated live.",
     sections: [],
-    related: ["/signup|Join and compete", "/achievements|Achievements"],
+    related: relatedFor("/leaderboard", ["/signup|Join and compete", "/achievements|Achievements", "/premium|Premium"], COMPANY_LINKS.slice(0, 6)),
   },
   {
     path: "/achievements",
-    title: "Achievements, Badges & Milestones | FocusArx",
+    title: "Achievements and badges for focused work",
     description:
       "Explore FocusArx achievements — 65+ badges across focus time, streaks, session quality, missions, social, and special milestones.",
     h1: "FocusArx achievements",
     lead: "65+ badges across focus time, streaks, session quality, missions, social, and special milestones.",
     sections: [],
-    related: ["/leaderboard|Leaderboard", "/signup|Start earning badges"],
+    related: relatedFor("/achievements", ["/leaderboard|Leaderboard", "/signup|Start earning badges", "/premium|Premium"], COMPANY_LINKS.slice(0, 6)),
   },
   {
     path: "/breathe",
@@ -684,17 +848,17 @@ export const ROUTES = [
         p: "Breaks that stimulate (scrolling) don't restore attention; breaks that down-regulate arousal do. Slow exhale-weighted breathing shifts you toward the rest-and-digest state, lowering the friction of restarting.",
       },
     ],
-    related: ["/focus-guide|How to focus: complete guide", "/focus-music|Focus music guide", "/guides|All guides"],
+    related: relatedFor("/breathe", ["/break-free|60-second scroll reset", "/focus-guide|How to focus: complete guide", "/focus-music|Focus music guide", "/guides|All guides"], COMPANY_LINKS.slice(0, 1)),
   },
   {
     path: "/break-free",
-    title: "Break Free From a Distraction Spiral | FocusArx",
+    title: "Break free from a distraction spiral (free)",
     description:
       "Caught in a scroll spiral? A free 60-second reset that gets you out of the loop and back into your work — no shame, just a protocol.",
     h1: "Break free from the distraction spiral",
     lead: "You're 60 seconds of deliberate action away from ending the scroll loop. No shame — just a protocol that works.",
     sections: [],
-    related: ["/stop-procrastinating|How to stop procrastinating", "/breathe|Breathing reset", "/guides|All guides"],
+    related: relatedFor("/break-free", ["/stop-scrolling|How to stop scrolling", "/stop-procrastinating|How to stop procrastinating", "/breathe|Breathing reset", "/guides|All guides"], COMPANY_LINKS.slice(0, 1)),
   },
 
   // ── Legal ─────────────────────────────────────────────────────
@@ -706,7 +870,7 @@ export const ROUTES = [
     h1: "FocusArx privacy policy",
     lead: "What data FocusArx collects, how it's used, and the choices you control — including the principle that optional attention monitoring never uploads video.",
     sections: [],
-    related: ["/terms|Terms of service", "/ai-policy|AI policy", "/contact|Contact us"],
+    related: relatedFor("/privacy", POLICY_LINKS, ["/contact|Contact us"], COMPANY_LINKS.slice(0, 1)),
   },
   {
     path: "/terms",
@@ -715,7 +879,7 @@ export const ROUTES = [
     h1: "FocusArx terms of service",
     lead: "The agreement between you and FocusArx when you use the platform.",
     sections: [],
-    related: ["/privacy|Privacy policy", "/acceptable-use|Acceptable use policy"],
+    related: relatedFor("/terms", POLICY_LINKS, COMPANY_LINKS.slice(0, 1)),
   },
   {
     path: "/cookie-policy",
@@ -724,7 +888,7 @@ export const ROUTES = [
     h1: "FocusArx cookie policy",
     lead: "We use the minimum number of cookies needed to keep you signed in and improve the product.",
     sections: [],
-    related: ["/privacy|Privacy policy"],
+    related: relatedFor("/cookie-policy", POLICY_LINKS, COMPANY_LINKS.slice(0, 1)),
   },
   {
     path: "/acceptable-use",
@@ -733,7 +897,7 @@ export const ROUTES = [
     h1: "FocusArx acceptable use policy",
     lead: "The short list of things that keep FocusArx safe and useful for everyone.",
     sections: [],
-    related: ["/terms|Terms of service", "/contact|Report a problem"],
+    related: relatedFor("/acceptable-use", POLICY_LINKS, ["/contact|Report a problem"], COMPANY_LINKS.slice(0, 1)),
   },
   {
     path: "/ai-policy",
@@ -742,7 +906,7 @@ export const ROUTES = [
     h1: "How FocusArx uses AI",
     lead: "Where AI appears in the product, what it does and doesn't touch, and the privacy-first rules it operates under.",
     sections: [],
-    related: ["/privacy|Privacy policy", "/focus-guide|How to focus guide"],
+    related: relatedFor("/ai-policy", POLICY_LINKS, ["/focus-guide|How to focus guide"], COMPANY_LINKS.slice(0, 1)),
   },
 
   // ── Tool landing pages with bespoke components ────────────────
@@ -751,7 +915,7 @@ export const ROUTES = [
   // that do not run JavaScript see the homepage <title> on these URLs.
   {
     path: "/focus-timer",
-    title: "Free Focus Timer | Pomodoro & Deep Work Sessions | FocusArx",
+    title: "Free focus timer: Pomodoro and deep work (2026)",
     description:
       "Free focus timer with Pomodoro, deep work sessions, ambient sound and XP. Track completion, streaks and your focus score. No credit card required.",
     h1: "Free Focus Timer for Deep Work",
@@ -789,7 +953,7 @@ export const ROUTES = [
   },
   {
     path: "/focus",
-    title: "Focus App",
+    title: "FocusArx focus timer: start a session free",
     description:
       "The FocusArx focus app: a free online timer with tasks, streaks and session scoring.",
     h1: "Focus, running in your browser",
@@ -843,6 +1007,9 @@ export const ROUTES = [
   },
   {
     path: "/search",
+    // Mirrors PAGE_SEO.search: internal search results stay out of the index
+    // and out of the sitemap (see artifacts/api-server/src/routes/sitemap.ts).
+    noindex: true,
     title: "Search Guides, Tools & Features",
     description:
       "Search every FocusArx guide, study tool and feature — Pomodoro timers, study rooms, focus guides, calculators and exam prep.",
@@ -882,24 +1049,33 @@ export const ROUTES = [
         [`When should I choose ${c.name} over FocusArx?`, c.whenTheirs],
       ],
       article: true,
-      related: [
-        ...COMPARISON_PATHS.filter((p) => p !== path).slice(0, 3).map((p) => `${p}|${Object.values(COMPARISONS).find((x) => `/comparison/${x.slug}` === p).title}`),
-        "/focus-guide|How to focus",
-        "/guides|All guides",
-      ],
+      lastReviewed: COMPARISONS_REVIEWED,
+      // Every sibling comparison, not the first three. The live page
+      // (src/pages/comparison.tsx) already renders the full set; truncating it
+      // here meant two of the six comparisons had no inbound link at all in the
+      // prerendered HTML.
+      related: relatedFor(
+        path,
+        COMPARISON_PATHS.map((p) => `${p}|${Object.values(COMPARISONS).find((x) => `/comparison/${x.slug}` === p).title}`),
+        ["/focus-guide|How to focus", "/guides|All guides", "/pomodoro-timer|Pomodoro timer"],
+      ),
     };
   }),
 
   // ── Exam guide cluster (Workstream E) ─────────────────────
   {
     path: "/exam",
+    // The hub belongs to the exam cluster and was reviewed with it.
+    lastReviewed: EXAM_CLUSTER_REVIEWED,
     title: EXAM_HUB.title,
     description: EXAM_HUB.description,
     h1: EXAM_HUB.h1,
     lead: EXAM_HUB.lead,
     sections: EXAM_HUB.sections,
     faq: EXAM_HUB.faq,
-    related: EXAM_GUIDES.map((g) => `/exam/${g.slug}|${g.h1}`),
+    // EXAM_HUB.related is derived in src/content/exam/index.mjs: every exam
+    // guide plus its dedicated timer page.
+    related: relatedFor("/exam", EXAM_HUB.related, COMPANY_LINKS.slice(0, 1)),
   },
   ...EXAM_GUIDES.map((g) => ({
     path: `/exam/${g.slug}`,
@@ -915,18 +1091,22 @@ export const ROUTES = [
     article: true,
     ogImage: examOgImage(g.title.replace(/\s*\|\s*FocusArx.*$/i, ""), g.lead),
     related: g.related,
+    // The cluster was reviewed as a set when the nine state, professional and
+    // international guides joined it. A date nobody can stand behind is worse
+    // than no date, so it is the review date rather than the build date.
+    lastReviewed: EXAM_CLUSTER_REVIEWED,
   })),
 
   // ── Blog (one source: src/content/blog.mjs — extend there) ────
   {
     path: "/blog",
-    title: "Blog | Focus, Deep Work and Study Science | FocusArx",
+    title: "FocusArx blog: focus, deep work, study science",
     description:
       "Short essays on focus, deep work and study science: why 25 minutes works, attention residue, and body doubling.",
     h1: "Blog",
     lead: "Short essays on attention and studying. Each one ends in something you can do today.",
     sections: BLOG_POSTS.map((p) => ({ h: p.h1, p: p.lead })),
-    related: [...BLOG_POSTS.map((p) => `/blog/${p.slug}|${p.h1}`), "/focus|Focus app"],
+    related: relatedFor("/blog", [...BLOG_POSTS.map((p) => `/blog/${p.slug}|${p.h1}`), "/focus|Focus app"], ALL_GUIDE_LINKS.slice(0, 6), COMPANY_LINKS.slice(0, 1)),
     lastReviewed: "2026-09-05",
   },
   ...BLOG_POSTS.map((p) => ({
@@ -935,11 +1115,19 @@ export const ROUTES = [
     description: clampText(p.description, DESCRIPTION_BUDGET),
     h1: p.h1,
     lead: p.lead,
+    // Publication date and reading time: the byline renders them and the
+    // BlogPosting schema needs a real datePublished rather than the build date.
+    date: p.date,
+    readMin: p.readMin,
     sections: p.sections,
     faq: p.faq,
     article: true,
     related: [
       ...BLOG_POSTS.filter((q) => q.slug !== p.slug).map((q) => `/blog/${q.slug}|${q.h1}`),
+      // The tools and guides the essay argues for — mirrors `post.related`
+      // rendered by src/pages/blog-post.tsx, so the prerendered document and the
+      // live page carry the same outbound links.
+      ...(p.related || []),
       "/focus|Focus app",
     ],
     lastReviewed: p.date,
@@ -949,21 +1137,34 @@ export const ROUTES = [
   ...EXAM_GUIDES.filter((g) => FUNNEL_ANGLES[g.slug]).map((g) => {
     const funnel = FUNNEL_ANGLES[g.slug];
     const examName = g.exam?.name ?? g.h1;
+    // Title, H1 and description all come from exam/derive.mjs, which the client
+    // page renders from too — one derivation, so the static document and the
+    // hydrated page cannot disagree. The label is the exam's short name: the
+    // full one ("NDA & NA (National Defence Academy / Naval Academy)") used to
+    // be clamped into a title reading "…(National Defence", and a title cut
+    // mid-parenthesis is worse in the SERP than a plainer one.
     return {
       path: `/pomodoro-timer-for/${g.slug}`,
-      // Composed from exam names of wildly different lengths ("UPSC CSE" to "NDA & NA
-      // (National Defence Academy / Naval Academy)"), so it is clamped here on purpose:
-      // an unbounded title is clipped mid-parenthesis by Google instead.
-      title: clampText(`Pomodoro timer for ${examName}`, PAGE_TITLE_BUDGET, { fullStop: false }),
-      description: clampText(
-        `Free Pomodoro timer tuned for ${examName}: ${funnel.angle} No account needed to start.`,
-        DESCRIPTION_BUDGET
-      ),
-      h1: `Pomodoro timer for ${examName}`,
+      title: funnelTitle(g.slug),
+      description: funnelDescription(g.slug),
+      h1: funnelHeading(g.slug),
       lead: funnel.angle,
       sections: g.sections.slice(0, 3),
       faq: g.faq?.slice(0, 3),
-      related: [`/exam/${g.slug}|Full ${examName} guide`, "/focus|Focus app", "/pomodoro-timer|Pomodoro timer"],
+      // Its own guide, the other exam timers, and the hub — mirroring the
+      // sibling list src/pages/exam-funnel.tsx renders.
+      related: relatedFor(
+        `/pomodoro-timer-for/${g.slug}`,
+        [
+          `/exam/${g.slug}|Full ${examName} guide`,
+          "/exam|Exam prep hub",
+          "/pomodoro-timer|Pomodoro timer",
+          "/focus|Focus app",
+        ],
+        EXAM_GUIDES.filter((other) => FUNNEL_ANGLES[other.slug] && other.slug !== g.slug).map(
+          (other) => `/pomodoro-timer-for/${other.slug}|${funnelHeading(other.slug)}`,
+        ),
+      ),
       lastReviewed: "2026-09-05",
     };
   }),
@@ -991,3 +1192,47 @@ export const ROUTES = [
     related: e.related,
   })),
 ];
+
+// ── Discovery links ──────────────────────────────────────────────────
+/**
+ * Valuable pages that are easy to orphan, rotated across every prerendered
+ * route.
+ *
+ * A page whose only inbound links are a sitemap entry is crawled rarely and
+ * ranks as though it were optional — that is what the orphan gate in
+ * scripts/seo-validate.mjs exists to catch. Rotating two of these into each
+ * route's "Keep reading" block spreads link equity deterministically (index
+ * order, so builds are reproducible) instead of relying on every author to
+ * remember the thin pages. These are real pages with real copy, and the same
+ * `related` array is what src/pages/seo-landing.tsx renders for visitors.
+ */
+const DISCOVERY_ROTATION = [
+  "/stop-scrolling|How to stop scrolling",
+  "/adhd-focus-tools|ADHD-friendly focus tools",
+  "/feynman-technique|The Feynman technique",
+  "/leaderboard|Focus leaderboard",
+  "/two-hour-study-method|The 2-hour study method",
+  "/body-doubling|Body doubling explained",
+  "/blog|FocusArx blog",
+  "/achievements|Achievements and badges",
+  "/study-method-quiz|Study method quiz",
+  "/break-free|60-second scroll reset",
+];
+
+{
+  ROUTES.forEach((entry, index) => {
+    const path = entry.path === "" ? "/" : entry.path;
+    const existing = new Set((entry.related || []).map((pair) => String(pair).split("|")[0]));
+    existing.add(path);
+    const picks = [
+      DISCOVERY_ROTATION[index % DISCOVERY_ROTATION.length],
+      DISCOVERY_ROTATION[(index + 4) % DISCOVERY_ROTATION.length],
+    ].filter((pair) => {
+      const href = String(pair).split("|")[0];
+      if (existing.has(href)) return false;
+      existing.add(href);
+      return true;
+    });
+    if (picks.length > 0) entry.related = [...(entry.related || []), ...picks];
+  });
+}

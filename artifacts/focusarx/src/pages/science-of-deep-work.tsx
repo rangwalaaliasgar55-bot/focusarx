@@ -1,6 +1,8 @@
 import { Link } from "wouter";
 import { Brain, Clock, Zap, Shield, Lightbulb } from "lucide-react";
 import { PageSEO } from "@/components/PageSEO";
+import { AuthorBlock } from "@/components/AuthorBlock";
+import { GUIDE_LIBRARY_REVIEWED } from "@/content/seo-pages.mjs";
 
 function Section({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <section className={`max-w-4xl mx-auto px-6 ${className}`}>{children}</section>;
@@ -10,7 +12,7 @@ export default function ScienceOfDeepWorkPage() {
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       <PageSEO
-        title="The Neuroscience of Deep Work"
+        title="The neuroscience of deep work, explained (2026)"
         description="Explore the biological mechanisms behind deep work. Learn about myelin, neurotransmitters, and how FocusArx helps you enter the flow state faster."
         canonical="/science-of-deep-work"
         keywords="science of focus, deep work neuroscience, myelin study, flow state biology, FocusArx science"
@@ -28,6 +30,7 @@ export default function ScienceOfDeepWorkPage() {
           <p className="text-lg text-[var(--foreground-muted)] max-w-2xl mx-auto leading-relaxed">
             Deep work isn't just a habit—it's a biological state. Discover how intense focus triggers neurological changes that accelerate mastery and rewire your neural circuits.
           </p>
+          <AuthorBlock lastReviewed={GUIDE_LIBRARY_REVIEWED} className="mt-6 justify-center" />
         </Section>
       </div>
 
@@ -53,8 +56,10 @@ export default function ScienceOfDeepWorkPage() {
            <div className="aspect-square rounded-full bg-[var(--palette-purple-600)]/5 border border-[var(--palette-purple-500)]/10 flex items-center justify-center relative overflow-hidden">
               <div className="absolute inset-0 animate-pulse bg-[radial-gradient(circle,var(--rgba-124-58-237-0_1)_0%,transparent_70%)]" />
               <img
-                src="https://images.unsplash.com/photo-1559757175-570098bc579b?auto=format&fit=crop&q=80&w=800"
-                alt="Human Brain Visualization"
+                src="/content/deep-work-neural-network-glow.webp"
+                alt="Illustration of a head drawn as glowing neural pathways, standing for the wiring changes repeated deep focus produces"
+                width={800}
+                height={800}
                 loading="lazy"
                 decoding="async"
                 className="w-full h-full object-cover opacity-40 mix-blend-screen"

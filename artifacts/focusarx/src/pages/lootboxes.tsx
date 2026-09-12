@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
+import { Coins, Gift, Lock, Package, Star } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
-import { Gift, Package, Star, Lock } from "lucide-react";
+
 import { PAGE, CARD, STAGGER, POP } from "@/lib/animations";
 import { ErrorState } from "@/components/ErrorState";
 
@@ -105,7 +106,7 @@ function OpeningAnimation({ reward, onClose }: { reward: any; onClose: () => voi
       >
         <motion.div
           animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }}
-          transition={{ duration: 0.4 }}
+          transition={{ duration: 0.25}}
           className="text-7xl mb-4"
         >
           {reward.emoji ?? "🎁"}
@@ -205,7 +206,7 @@ export default function LootBoxesPage() {
       <motion.div variants={PAGE} initial="initial" animate="animate" className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-[var(--foreground)] mb-2">Loot Boxes <span className="text-[var(--color-warning)]">📦</span></h1>
+          <h1 className="text-3xl font-bold text-[var(--foreground)] mb-2">Loot Boxes <span className="text-[var(--color-warning)]"><Package size={16} aria-hidden="true" /></span></h1>
           <p className="text-sm text-[var(--foreground-subtle)]">Earn boxes from sessions, open them for exciting rewards</p>
           {totalOwned > 0 && (
             <motion.div variants={POP} initial="initial" animate="animate"
@@ -218,7 +219,7 @@ export default function LootBoxesPage() {
         {wallet && (
           <div className="flex justify-center">
             <div className="flex items-center gap-2 rounded-xl border border-[var(--rgba-245-158-11-0_2)] bg-[var(--rgba-245-158-11-0_07)] px-4 py-2">
-              <span className="text-lg">🪙</span>
+              <span className="text-lg"><Coins size={16} aria-hidden="true" /></span>
               <span className="text-sm font-bold text-[var(--color-warning)]">{wallet.coins.toLocaleString()} coins</span>
             </div>
           </div>

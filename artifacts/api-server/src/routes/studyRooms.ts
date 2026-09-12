@@ -9,12 +9,14 @@ import {
 } from "@workspace/db";
 import { extractUserId } from "./auth";
 import { eq, and, desc, asc, sql, inArray, gt, ne } from "drizzle-orm";
+import type { SelectedFields } from "drizzle-orm/pg-core";
 import { logger } from "../lib/logger";
 import { moderateText } from "../lib/moderation";
 import { getBotSettings } from "../lib/botSettings";
 import { sendForbidden, sendInternal, sendNotFound, sendUnauthorized, sendValidationError } from "../lib/httpErrors";
 import { BANTER } from "../lib/botTemplates";
 import { hashString, mulberry32 } from "../lib/personas";
+import { describeDrift, queryOrFallback, selectResilient } from "../lib/schemaDrift";
 
 /**
  * Study rooms — REST-first.
@@ -88,9 +90,34 @@ async function canAccessRoom(userId: string | null, room: RoomRow): Promise<bool
   return Boolean(groupMembership);
 }
 
+/**
+ * `extractUserId` without the ability to throw.
+ *
+ * A malformed or expired bearer token must not turn a public endpoint into a
+ * 500: the viewer is simply anonymous. Token verification is already defensive,
+ * but this route is polled by /forge-room every few seconds, so the cost of a
+ * throw here is a permanent error loop in the client console.
+ */
+function safeViewerId(req: AuthRequest): string | null {
+  try {
+    return extractUserId(req) ?? null;
+  } catch (err) {
+    logger.warn({ err }, "GET /study-rooms: unreadable auth token — continuing anonymously");
+    return null;
+  }
+}
+
 async function loadRoom(roomId: string): Promise<RoomRow | undefined> {
   if (!roomId || roomId.length > 64) return undefined;
-  const [room] = await db.select().from(studyRoomsTable).where(eq(studyRoomsTable.id, roomId)).limit(1);
+  // Column-explicit via selectResilient: `db.select()` expands to every column
+  // in lib/db/src/schema, so one column missing from the deployed database
+  // (Postgres 42703) used to fail every read of this table. Now the missing
+  // column is dropped, logged with its name, and the room still loads.
+  const [room] = await selectResilient<RoomRow[]>(
+    studyRoomsTable,
+    (fields) => db.select(fields as unknown as SelectedFields).from(studyRoomsTable).where(eq(studyRoomsTable.id, roomId)).limit(1),
+    { route: "loadRoom", roomId },
+  );
   return room;
 }
 
@@ -103,29 +130,57 @@ async function enrichRooms(rooms: RoomRow[], viewerId: string | null) {
   const roomIds = rooms.map((r) => r.id);
   const now = Date.now();
 
-  const members = await db.select().from(studyRoomMembersTable)
-    .where(and(inArray(studyRoomMembersTable.roomId, roomIds), eq(studyRoomMembersTable.status, "active")))
-    .orderBy(desc(studyRoomMembersTable.joinedAt));
+  // Every query below is decoration around the room rows the caller already has.
+  // A failure in any of them (missing table, missing column, statement timeout)
+  // degrades the participant/level/count fields instead of turning the whole
+  // list into a 500 — which is what `GET /study-rooms` did in production while
+  // /forge-room polled it into an error loop.
+  const members = await queryOrFallback<MemberRow[]>(
+    "study room members",
+    selectResilient<MemberRow[]>(
+      studyRoomMembersTable,
+      (fields) => {
+        const query = db.select(fields as unknown as SelectedFields).from(studyRoomMembersTable)
+          .where(and(inArray(studyRoomMembersTable.roomId, roomIds), eq(studyRoomMembersTable.status, "active")));
+        // `joined_at` drives presence ordering; skip the sort if it is the
+        // column that drifted rather than failing the read.
+        return fields.joinedAt ? query.orderBy(desc(fields.joinedAt)) : query;
+      },
+      { route: "enrichRooms", rooms: roomIds.length },
+    ),
+    [],
+  );
 
   const userIds = [...new Set([...members.map((m) => m.userId), ...rooms.map((r) => r.hostId)])];
   const users = userIds.length
-    ? await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, role: usersTable.role })
-        .from(usersTable).where(inArray(usersTable.id, userIds))
+    ? await queryOrFallback(
+        "study room participants",
+        db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, role: usersTable.role })
+          .from(usersTable).where(inArray(usersTable.id, userIds)),
+        [] as Array<{ id: string; name: string | null; email: string | null; role: string }>,
+      )
     : [];
   const wallets = userIds.length
-    ? await db.select({ userId: userWalletsTable.userId, level: userWalletsTable.level })
-        .from(userWalletsTable).where(inArray(userWalletsTable.userId, userIds))
+    ? await queryOrFallback(
+        "study room wallet levels",
+        db.select({ userId: userWalletsTable.userId, level: userWalletsTable.level })
+          .from(userWalletsTable).where(inArray(userWalletsTable.userId, userIds)),
+        [] as Array<{ userId: string; level: number }>,
+      )
     : [];
   const userById = new Map(users.map((u) => [u.id, u]));
   const levelById = new Map(wallets.map((w) => [w.userId, w.level ?? 1]));
 
-  const messageCounts = await db.select({
-    roomId: studyRoomMessagesTable.roomId,
-    count: sql<number>`count(*)`,
-  }).from(studyRoomMessagesTable)
-    .where(and(inArray(studyRoomMessagesTable.roomId, roomIds), eq(studyRoomMessagesTable.kind, "chat")))
-    .groupBy(studyRoomMessagesTable.roomId)
-    .catch(() => [] as Array<{ roomId: string; count: number }>);
+  const messageCounts = await queryOrFallback(
+    "study room message counts",
+    db.select({
+      roomId: studyRoomMessagesTable.roomId,
+      count: sql<number>`count(*)`,
+    }).from(studyRoomMessagesTable)
+      .where(and(inArray(studyRoomMessagesTable.roomId, roomIds), eq(studyRoomMessagesTable.kind, "chat")))
+      .groupBy(studyRoomMessagesTable.roomId),
+    [] as Array<{ roomId: string; count: number }>,
+  );
   const messageCountByRoom = new Map(messageCounts.map((m) => [m.roomId, Number(m.count)]));
 
   return rooms.map((room) => {
@@ -247,9 +302,39 @@ async function maybeSeedBanter(room: RoomRow): Promise<void> {
 
 // ─── LIST / DETAIL ──────────────────────────────────────────────────────────
 
+/**
+ * Public room list, ordered by recent activity.
+ *
+ * Written through `selectResilient` so the SELECT list is exactly the set of
+ * columns the deployed database has: a bare `db.select()` expands to every
+ * column in lib/db/src/schema, and one column missing in Neon (Postgres 42703)
+ * failed this endpoint with 500 "Could not load study rooms" for every visitor
+ * while /forge-room polled it in a loop. `last_activity_at` is only sorted on
+ * when it survived the drift check — a room list ordered by creation time is a
+ * worse page than one that loads.
+ */
+function listRooms(whereClause: ReturnType<typeof and>, options: { limit?: number } = {}) {
+  return selectResilient<RoomRow[]>(
+    studyRoomsTable,
+    (fields) => {
+      const query = db.select(fields as unknown as SelectedFields).from(studyRoomsTable).where(whereClause);
+      const ordered = fields.lastActivityAt && fields.createdAt
+        ? query.orderBy(desc(fields.lastActivityAt), desc(fields.createdAt))
+        : fields.createdAt
+          ? query.orderBy(desc(fields.createdAt))
+          : query;
+      return options.limit ? ordered.limit(options.limit) : ordered;
+    },
+    { route: "GET /study-rooms" },
+  );
+}
+
 studyRoomsRouter.get("/study-rooms", async (req: AuthRequest, res: Response) => {
+  const requestId = (req as unknown as { id?: string }).id;
   try {
-    const viewerId = extractUserId(req) ?? null;
+    // An unreadable/expired token must never turn a public list into a 500:
+    // extractUserId is defensive, and so is this.
+    const viewerId = safeViewerId(req);
     const { groupId, scope } = req.query as { groupId?: string; scope?: string };
     let rooms: RoomRow[];
     if (groupId) {
@@ -257,23 +342,16 @@ studyRoomsRouter.get("/study-rooms", async (req: AuthRequest, res: Response) => 
       const [membership] = await db.select({ id: groupMembersTable.id }).from(groupMembersTable)
         .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, viewerId))).limit(1);
       if (!membership) return sendNotFound(res, "Group not found");
-      rooms = await db.select().from(studyRoomsTable)
-        .where(and(eq(studyRoomsTable.groupId, groupId), eq(studyRoomsTable.status, "active")))
-        .orderBy(desc(studyRoomsTable.createdAt));
+      rooms = await listRooms(and(eq(studyRoomsTable.groupId, groupId), eq(studyRoomsTable.status, "active")));
     } else if (scope === "mine" && viewerId) {
       const memberships = await db.select({ roomId: studyRoomMembersTable.roomId }).from(studyRoomMembersTable)
         .where(and(eq(studyRoomMembersTable.userId, viewerId), eq(studyRoomMembersTable.status, "active")));
       const ids = memberships.map((m) => m.roomId);
       rooms = ids.length
-        ? await db.select().from(studyRoomsTable)
-            .where(and(inArray(studyRoomsTable.id, ids), eq(studyRoomsTable.status, "active")))
-            .orderBy(desc(studyRoomsTable.createdAt))
+        ? await listRooms(and(inArray(studyRoomsTable.id, ids), eq(studyRoomsTable.status, "active")))
         : [];
     } else {
-      rooms = await db.select().from(studyRoomsTable)
-        .where(and(eq(studyRoomsTable.status, "active"), eq(studyRoomsTable.isPublic, true)))
-        .orderBy(desc(studyRoomsTable.lastActivityAt), desc(studyRoomsTable.createdAt))
-        .limit(40);
+      rooms = await listRooms(and(eq(studyRoomsTable.status, "active"), eq(studyRoomsTable.isPublic, true)), { limit: 40 });
       // Private rooms the viewer belongs to are listed too (they can't be discovered otherwise).
       if (viewerId) {
         const memberships = await db.select({ roomId: studyRoomMembersTable.roomId }).from(studyRoomMembersTable)
@@ -281,15 +359,18 @@ studyRoomsRouter.get("/study-rooms", async (req: AuthRequest, res: Response) => 
         const known = new Set(rooms.map((r) => r.id));
         const ids = memberships.map((m) => m.roomId).filter((id) => !known.has(id));
         if (ids.length) {
-          const mine = await db.select().from(studyRoomsTable)
-            .where(and(inArray(studyRoomsTable.id, ids), eq(studyRoomsTable.status, "active")));
+          const mine = await listRooms(and(inArray(studyRoomsTable.id, ids), eq(studyRoomsTable.status, "active")));
           rooms = [...mine, ...rooms];
         }
       }
     }
     res.json(await enrichRooms(rooms, viewerId));
   } catch (err) {
-    logger.error({ err }, "GET /study-rooms failed");
+    const drift = describeDrift(err);
+    logger.error(
+      { err, requestId, drift: drift.kind, object: drift.name, sqlstate: drift.sqlstate },
+      "GET /study-rooms failed",
+    );
     sendInternal(res, "Could not load study rooms");
   }
 });
@@ -301,7 +382,11 @@ studyRoomsRouter.get("/study-rooms/:id", async (req: AuthRequest, res: Response)
     if (!room || !(await canAccessRoom(viewerId, room))) return sendNotFound(res, "Room not found");
     res.json(await enrichRoom(room, viewerId));
   } catch (err) {
-    logger.error({ err }, "GET /study-rooms/:id failed");
+    const drift = describeDrift(err);
+    logger.error(
+      { err, drift: drift.kind, object: drift.name, sqlstate: drift.sqlstate },
+      "GET /study-rooms/:id failed",
+    );
     sendInternal(res, "Could not load the room");
   }
 });

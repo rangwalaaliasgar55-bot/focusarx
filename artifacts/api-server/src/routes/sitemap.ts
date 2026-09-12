@@ -75,8 +75,99 @@ function baseUrl(): string {
   return fromEnv || "https://www.focusarx.site";
 }
 
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
+// ── lastmod ────────────────────────────────────────────────────────
+/**
+ * A lastmod date has to be one somebody can stand behind. Emitting today's
+ * date for every URL — which `p.lastmod ?? now` did — tells Google the whole
+ * site was rewritten on every deploy, and a crawler that catches it lying
+ * stops trusting the field entirely (and crawls less often).
+ *
+ * So: the date the copy was last reviewed, mirrored from the frontend content
+ * modules named in each comment. `seoContract.test.ts` asserts this file and
+ * the prerender manifest agree, page by page, so the mirror cannot drift. A
+ * page with no known review date emits no <lastmod> at all — omission is
+ * honest, a guessed date is not.
+ */
+const SEO_CONTENT_REVIEWED = "2026-08-29"; // src/content/seo-pages.mjs LAST_REVIEWED
+const MINUTE_TIMERS_REVIEWED = "2026-09-08"; // src/content/minute-timers.mjs
+const AUDIENCE_PAGES_REVIEWED = "2026-09-11"; // the two audience pages (WS8d)
+const GUIDE_LIBRARY_REVIEWED = "2026-09-11"; // src/content/seo-pages.mjs
+const ABOUT_REVIEWED = "2026-09-11"; // src/content/seo-pages.mjs — editorial standards copy
+const ADHD_GUIDE_REVIEWED = "2026-09-11"; // /adhd-focus-tips, rebuilt around its sources
+const EXAM_CLUSTER_REVIEWED = "2026-09-05"; // src/content/exam/derive.mjs
+const COMPARISONS_REVIEWED = "2026-09-06"; // src/content/seo-pages.mjs
+const BLOG_REVIEWED = "2026-09-05"; // src/content/blog.mjs post dates
+const APP_PAGES_REVIEWED = "2026-09-04"; // /focus and /changelog
+
+/**
+ * Per-segment default, used when a page has no date of its own. Only segments
+ * whose every page is dated content get one: the blog, the exam cluster, the
+ * funnels, the comparisons and the trust pages. The tools, guides, core and
+ * legal segments mix dated copy with app shells (`/study-calculator`,
+ * `/leaderboard`, `/terms`) that have no review date anybody could stand
+ * behind, so they default to nothing and their dated pages are listed below.
+ */
+const SEGMENT_LASTMOD: Record<string, string | undefined> = {
+  "sitemap-core.xml": undefined,
+  "sitemap-tools.xml": undefined,
+  "sitemap-guides.xml": undefined,
+  "sitemap-blog.xml": BLOG_REVIEWED,
+  "sitemap-funnel.xml": EXAM_CLUSTER_REVIEWED,
+  "sitemap-exams.xml": EXAM_CLUSTER_REVIEWED,
+  "sitemap-compare.xml": COMPARISONS_REVIEWED,
+  "sitemap-trust.xml": SEO_CONTENT_REVIEWED,
+  "sitemap-legal.xml": undefined,
+};
+
+/** Pages whose review date differs from their segment's — or whose segment has none. */
+const PAGE_LASTMOD: Record<string, string> = {
+  // Company pages reviewed as copy.
+  "/about": ABOUT_REVIEWED,
+
+  // App pages, last edited with the app rather than reviewed as copy.
+  "/focus": APP_PAGES_REVIEWED,
+  "/changelog": APP_PAGES_REVIEWED,
+
+  // Timer tools and their minute-length variants.
+  "/pomodoro-timer": SEO_CONTENT_REVIEWED,
+  "/focus-timer": SEO_CONTENT_REVIEWED,
+  "/study-timer": SEO_CONTENT_REVIEWED,
+  "/5-minute-timer": MINUTE_TIMERS_REVIEWED,
+  "/10-minute-timer": MINUTE_TIMERS_REVIEWED,
+  "/15-minute-timer": MINUTE_TIMERS_REVIEWED,
+  "/30-minute-timer": MINUTE_TIMERS_REVIEWED,
+  "/45-minute-timer": MINUTE_TIMERS_REVIEWED,
+
+  // Guides reviewed with the rest of the SEO content set.
+  "/deep-work-guide": SEO_CONTENT_REVIEWED,
+  "/how-to-focus-while-studying": SEO_CONTENT_REVIEWED,
+  "/body-doubling": SEO_CONTENT_REVIEWED,
+  "/adhd-focus-tools": SEO_CONTENT_REVIEWED,
+  "/stop-scrolling": SEO_CONTENT_REVIEWED,
+
+  // The long-form guide library, rewritten in the on-page ranking pass
+  // (GUIDE_LIBRARY_REVIEWED in scripts/prerender-data.mjs).
+  "/focus-guide": GUIDE_LIBRARY_REVIEWED,
+  "/pomodoro-guide": GUIDE_LIBRARY_REVIEWED,
+  "/study-techniques": GUIDE_LIBRARY_REVIEWED,
+  "/stop-procrastinating": GUIDE_LIBRARY_REVIEWED,
+  "/study-with-me": GUIDE_LIBRARY_REVIEWED,
+  "/focus-music": GUIDE_LIBRARY_REVIEWED,
+  "/deep-study-guide": GUIDE_LIBRARY_REVIEWED,
+  "/two-hour-study-method": GUIDE_LIBRARY_REVIEWED,
+  "/science-of-deep-work": GUIDE_LIBRARY_REVIEWED,
+  "/feynman-technique": GUIDE_LIBRARY_REVIEWED,
+  "/virtual-study-room": GUIDE_LIBRARY_REVIEWED,
+
+  // Rewritten around their sources today.
+  "/adhd-focus-tips": ADHD_GUIDE_REVIEWED,
+  "/study-timer-for-medical-students": AUDIENCE_PAGES_REVIEWED,
+  "/focus-timer-for-programmers": AUDIENCE_PAGES_REVIEWED,
+};
+
+/** The date one URL should advertise, or undefined to omit <lastmod>. */
+export function lastmodFor(url: string, segmentFile?: string): string | undefined {
+  return PAGE_LASTMOD[url] ?? (segmentFile ? SEGMENT_LASTMOD[segmentFile] : undefined);
 }
 
 // ── static segments ────────────────────────────────────────────────
@@ -96,7 +187,12 @@ const CORE_PAGES: Page[] = [
   { url: "/roadmap", changefreq: "weekly", priority: "0.7" },
   { url: "/breathe", changefreq: "monthly", priority: "0.5" },
   { url: "/break-free", changefreq: "weekly", priority: "0.6" },
-  { url: "/search", changefreq: "daily", priority: "0.4" },
+  // /search is deliberately absent: internal search results are thin,
+  // near-duplicate pages with an unbounded ?q= parameter space. It is
+  // noindex in both the prerender manifest and PAGE_SEO.search, and a URL that
+  // is noindex must not also be offered in the sitemap — the two signals
+  // contradict each other and waste crawl budget on pages we asked Google to
+  // drop.
   { url: "/about", changefreq: "monthly", priority: "0.6" },
   { url: "/contact", changefreq: "monthly", priority: "0.5" },
   { url: "/support", changefreq: "monthly", priority: "0.5" },
@@ -122,6 +218,14 @@ const TOOL_PAGES: Page[] = [
   { url: "/study-method-quiz", changefreq: "monthly", priority: "0.7" },
   { url: "/break-free", changefreq: "weekly", priority: "0.7" },
   { url: "/breathe", changefreq: "monthly", priority: "0.5" },
+  // Minute-length timers. Each duration is its own search intent ("15 minute
+  // timer", "45 minute timer online") with its own copy, FAQ and pre-armed
+  // countdown — see artifacts/focusarx/src/content/minute-timers.mjs.
+  { url: "/5-minute-timer", changefreq: "monthly", priority: "0.8" },
+  { url: "/10-minute-timer", changefreq: "monthly", priority: "0.8" },
+  { url: "/15-minute-timer", changefreq: "monthly", priority: "0.8" },
+  { url: "/30-minute-timer", changefreq: "monthly", priority: "0.8" },
+  { url: "/45-minute-timer", changefreq: "monthly", priority: "0.8" },
 ];
 
 /**
@@ -160,6 +264,10 @@ const GUIDE_PAGES: Page[] = [
   { url: "/virtual-study-room", changefreq: "weekly", priority: "0.8" },
   { url: "/study-with-me", changefreq: "weekly", priority: "0.8" },
   { url: "/focus-music", changefreq: "weekly", priority: "0.8" },
+  // Audience pages (WS8d): one reader's day, described properly, instead of a
+  // head term that serves nobody in particular.
+  { url: "/study-timer-for-medical-students", changefreq: "monthly", priority: "0.8" },
+  { url: "/focus-timer-for-programmers", changefreq: "monthly", priority: "0.8" },
 ];
 
 /**
@@ -171,6 +279,10 @@ const GUIDE_PAGES: Page[] = [
 const EXAM_SLUGS = [
   "jee-main", "jee-advanced", "neet-ug", "cbse-class-12", "cbse-class-10",
   "gate", "cat", "upsc-cse", "ssc-cgl", "nda", "ctet", "ibps-po",
+  // State, professional and international exams (Workstream 7b). Mirrors
+  // EXAM_GUIDES in artifacts/focusarx/src/content/exam/index.mjs.
+  "bitsat", "kcet", "mht-cet", "wbjee", "cuet-ug", "clat", "ca-foundation",
+  "gre", "gmat",
   "exam-anxiety", "last-minute-revision",
 ];
 
@@ -191,6 +303,12 @@ const COMPARISON_SLUGS = [
   "focusarx-vs-pomofocus",
   "focusarx-vs-freedom",
   "focusarx-vs-stayfocusd",
+  // Adjacent-category comparisons (Workstream 7c): recall, workspace, task
+  // and time-tracking tools people weigh against a focus system.
+  "focusarx-vs-anki",
+  "focusarx-vs-notion",
+  "focusarx-vs-todoist",
+  "focusarx-vs-toggl-track",
 ];
 
 const COMPARE_PAGES: Page[] = COMPARISON_SLUGS.map<Page>((slug) => ({
@@ -221,6 +339,8 @@ const BLOG_PAGES: Page[] = [
 const FUNNEL_SLUGS = [
   "jee-main", "jee-advanced", "neet-ug", "upsc-cse", "cat", "gate",
   "cbse-class-12", "cbse-class-10", "ssc-cgl", "nda", "ctet", "ibps-po",
+  "bitsat", "kcet", "mht-cet", "wbjee", "cuet-ug", "clat", "ca-foundation",
+  "gre", "gmat",
   "exam-anxiety", "last-minute-revision",
 ];
 
@@ -265,14 +385,16 @@ function escapeXml(s: string): string {
     .replace(/'/g, "&apos;");
 }
 
-function urlsetXml(pages: Page[]): string {
-  const now = today();
+function urlsetXml(pages: Page[], segmentFile?: string): string {
   const body = pages.map((p) => {
     const loc = `${baseUrl()}${p.url === "/" ? "/" : p.url}`;
+    const lastmod = p.lastmod ?? lastmodFor(p.url, segmentFile);
     return [
       "  <url>",
       `    <loc>${escapeXml(loc)}</loc>`,
-      `    <lastmod>${p.lastmod ?? now}</lastmod>`,
+      // Omitted entirely when unknown: <lastmod> is optional, and a wrong one
+      // costs more than a missing one.
+      ...(lastmod ? [`    <lastmod>${escapeXml(lastmod)}</lastmod>`] : []),
       `    <changefreq>${p.changefreq}</changefreq>`,
       `    <priority>${p.priority}</priority>`,
       "  </url>",
@@ -287,14 +409,14 @@ function urlsetXml(pages: Page[]): string {
   ].join("\n");
 }
 
-function sitemapIndexXml(entries: Array<{ loc: string; lastmod: string }>): string {
+function sitemapIndexXml(entries: Array<{ loc: string; lastmod?: string }>): string {
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
     ...entries.map((e) => [
       "  <sitemap>",
       `    <loc>${escapeXml(e.loc)}</loc>`,
-      `    <lastmod>${e.lastmod}</lastmod>`,
+      ...(e.lastmod ? [`    <lastmod>${escapeXml(e.lastmod)}</lastmod>`] : []),
       "  </sitemap>",
     ].join("\n")),
     "</sitemapindex>",
@@ -310,13 +432,19 @@ function sitemapIndexXml(entries: Array<{ loc: string; lastmod: string }>): stri
  */
 router.get("/sitemap.xml", (_req, res) => {
   try {
-    const now = today();
     const base = baseUrl();
     // Static, synchronous, database-free: every listed URL is a page we
     // prerender at build time. (This used to append one entry per
     // `/u/<name>` profile shard read from Postgres — see the file header for
     // why those URLs are out of the sitemap.)
-    const entries = SEGMENTS.map((s) => ({ loc: `${base}/${s.file}`, lastmod: now }));
+    // A child sitemap's own lastmod is the newest date inside it.
+    const entries = SEGMENTS.map((s) => {
+      const dates = s.pages
+        .map((p) => p.lastmod ?? lastmodFor(p.url, s.file))
+        .filter((d): d is string => Boolean(d))
+        .sort();
+      return { loc: `${base}/${s.file}`, lastmod: dates.at(-1) };
+    });
 
     res.set("Content-Type", "application/xml; charset=utf-8");
     res.set("Cache-Control", "public, max-age=3600, s-maxage=21600, stale-while-revalidate=86400");
@@ -334,7 +462,7 @@ for (const segment of SEGMENTS) {
     res.set("Content-Type", "application/xml; charset=utf-8");
     res.set("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800");
     res.set("X-Robots-Tag", "all");
-    res.send(urlsetXml(segment.pages));
+    res.send(urlsetXml(segment.pages, segment.file));
   });
 }
 

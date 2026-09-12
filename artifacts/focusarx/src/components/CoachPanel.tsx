@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getToken } from "@/lib/auth";
 import { Volume2, Crown, Lock, Coins, ArrowRight, Sparkles } from "lucide-react";
+import { Brain } from "lucide-react";
 import { usePremium } from "@/hooks/usePremium";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -199,7 +200,7 @@ export default function CoachPanel() {
           >
             {/* Header */}
             <div className="flex items-center gap-3 border-b border-[var(--rgba-124-58-237-0_15)] px-4 py-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[var(--brand-600)] to-[var(--palette-4f46e5)] text-sm">🧠</div>
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[var(--brand-600)] to-[var(--palette-4f46e5)] text-sm"><Brain size={16} aria-hidden="true" /></div>
               <div>
                 <p className="text-sm font-bold text-[var(--foreground)]">FocusArx Coach</p>
                 <p className="text-[11px] text-[var(--foreground-subtle)]">{isLocked ? "Premium feature" : "Productivity & neuroscience"}</p>

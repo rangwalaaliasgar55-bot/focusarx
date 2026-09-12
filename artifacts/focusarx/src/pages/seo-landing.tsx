@@ -1,9 +1,17 @@
+import type { ReactNode } from "react";
 import { PageSEO } from "@/components/PageSEO";
 import { AdSlot } from "@/components/AdSlot";
 import { Link } from "wouter";
 import { SEO_PAGES } from "@/content/seo-pages.mjs";
 import type { SeoPage } from "@/content/seo-pages.mjs";
 import { ArrowRight, BookOpen, ShieldCheck, Wrench } from "lucide-react";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { ContentTOC } from "@/components/ContentTOC";
+import { ClusterLinks } from "@/components/ClusterLinks";
+import { AuthorBlock } from "@/components/AuthorBlock";
+import { authorSchema, resolveAuthor } from "@/content/authors.mjs";
+import { citationParts } from "@/lib/citations.mjs";
+import { headingAnchors } from "@/lib/heading-id.mjs";
 
 /**
  * ══════════════════════════════════════════════════════════════════
@@ -39,7 +47,14 @@ function paragraph(p: string | string[]) {
   ));
 }
 
-export default function SeoLandingPage({ path }: { path: string }) {
+/**
+ * `heroSlot` renders inside the hero, directly under the answer-first block:
+ * the minute-timer pages put a *working* countdown there so the page is the
+ * tool and not a description of it. The prerendered HTML has no slot (it is
+ * static by construction) and React adds the live timer on hydration — the
+ * copy crawlers read is unchanged, so there is no content divergence.
+ */
+export default function SeoLandingPage({ path, heroSlot }: { path: string; heroSlot?: ReactNode }) {
   const entry = SEO_PAGES[path] as SeoPage | undefined;
 
   // Every path here is statically registered in App.tsx, so a miss means the
@@ -62,12 +77,24 @@ export default function SeoLandingPage({ path }: { path: string }) {
   const Kind = KIND_META[entry.kind as keyof typeof KIND_META] ?? KIND_META.guide;
   const KindIcon = Kind.icon;
 
+  // Heading anchors in document order — the exact list scripts/prerender.mjs
+  // builds, so an id in the static HTML and the heading rendered here are the
+  // same anchor and the jump links work either way.
+  const tocHeadings = [
+    entry.howTo ? entry.howTo.name : null,
+    ...entry.sections.map((sec) => sec.h),
+    entry.faq && entry.faq.length > 0 ? "Frequently asked questions" : null,
+  ].filter((h): h is string => Boolean(h));
+  const anchors = headingAnchors(tocHeadings);
+  const anchorFor = new Map(anchors.map((a) => [a.label, a.id]));
+
   return (
     <main className="min-h-screen bg-[var(--background)]">
       <PageSEO
         title={entry.title}
         description={entry.description}
         canonical={path}
+        breadcrumbLabel={entry.h1}
         ogType={entry.kind === "guide" ? "article" : "website"}
         structuredData={buildStructuredData(path, entry)}
       />
@@ -75,6 +102,7 @@ export default function SeoLandingPage({ path }: { path: string }) {
       {/* ── Hero ─────────────────────────────────────────────── */}
       <header className="border-b border-[var(--border-subtle)] bg-[radial-gradient(ellipse_at_50%_0%,var(--brand-soft-hover),transparent_70%)]">
         <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20">
+          <Breadcrumbs path={path} title={entry.h1} className="mb-6" />
           <span className="inline-flex items-center gap-2 rounded-full border border-[var(--card-border)] bg-[var(--brand-soft)] px-3.5 py-1.5 text-xs font-semibold text-[var(--brand-strong)]">
             <KindIcon size={12} /> {Kind.label}
           </span>
@@ -85,11 +113,16 @@ export default function SeoLandingPage({ path }: { path: string }) {
             {entry.lead}
           </p>
 
+          {/* Who is responsible for this page, and when it was last checked. */}
+          <AuthorBlock author={entry.author} lastReviewed={entry.lastReviewed} className="mt-5" />
+
           {/* Answer-first block: stands alone if quoted out of context by an
               AI Overview or a featured snippet. */}
           <p className="mt-6 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 text-[15px] leading-relaxed text-[var(--foreground)]">
             {entry.answerFirst}
           </p>
+
+          {heroSlot}
 
           <Link
             href={entry.cta.href}
@@ -101,10 +134,13 @@ export default function SeoLandingPage({ path }: { path: string }) {
       </header>
 
       <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6">
+        {/* ── Jump links ─────────────────────────────────────── */}
+        <ContentTOC headings={tocHeadings} className="mb-12" />
+
         {/* ── How-to steps, when the page has them ───────────── */}
         {entry.howTo && (
           <section className="mb-12" aria-labelledby="steps-heading">
-            <h2 id="steps-heading" className="text-2xl font-semibold tracking-[-0.03em] text-[var(--foreground)]">
+            <h2 id={anchorFor.get(entry.howTo.name) ?? "steps-heading"} className="text-2xl font-semibold tracking-[-0.03em] text-[var(--foreground)]">
               {entry.howTo.name}
             </h2>
             <ol className="mt-6 space-y-4">
@@ -129,7 +165,7 @@ export default function SeoLandingPage({ path }: { path: string }) {
             {/* One in-feed ad after the third section — never first, so the
                 page always opens on content. */}
             {i === 3 && <AdSlot name="seoPageInFeed" minHeight={120} />}
-            <h2 className="text-2xl font-semibold tracking-[-0.03em] text-[var(--foreground)]">{s.h}</h2>
+            <h2 id={anchorFor.get(s.h)} className="text-2xl font-semibold tracking-[-0.03em] text-[var(--foreground)]">{s.h}</h2>
             {paragraph(s.p)}
           </section>
         ))}
@@ -137,7 +173,7 @@ export default function SeoLandingPage({ path }: { path: string }) {
         {/* ── FAQ ────────────────────────────────────────────── */}
         {entry.faq && entry.faq.length > 0 && (
           <section className="mt-14" aria-labelledby="faq-heading">
-            <h2 id="faq-heading" className="text-2xl font-semibold tracking-[-0.03em] text-[var(--foreground)]">
+            <h2 id={anchorFor.get("Frequently asked questions") ?? "faq-heading"} className="text-2xl font-semibold tracking-[-0.03em] text-[var(--foreground)]">
               Frequently asked questions
             </h2>
             <dl className="mt-6 divide-y divide-[var(--border-subtle)] border-y border-[var(--border-subtle)]">
@@ -157,17 +193,35 @@ export default function SeoLandingPage({ path }: { path: string }) {
             <h2 id="sources-heading" className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--foreground-subtle)]">
               Sources and attribution
             </h2>
+            {/* A source that can be checked links out to where it can be
+                checked. An assertion with no route to its evidence is just an
+                assertion. The date itself lives in the byline above, so it is
+                not repeated here. */}
             <ul className="mt-3 space-y-1.5 text-xs leading-relaxed text-[var(--foreground-subtle)]">
-              {entry.sources.map((s) => (
-                <li key={s}>{s}</li>
-              ))}
+              {entry.sources.map((source) => {
+                const { text, url } = citationParts(source);
+                return (
+                  <li key={text}>
+                    {url ? (
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[var(--brand-strong)] underline-offset-4 hover:underline"
+                      >
+                        {text} ↗
+                      </a>
+                    ) : (
+                      text
+                    )}
+                  </li>
+                );
+              })}
             </ul>
-            {entry.lastReviewed && (
-              <p className="mt-3 text-xs text-[var(--foreground-subtle)]">
-                Last reviewed {entry.lastReviewed}. Corrections:{" "}
-                <Link href="/contact" className="text-[var(--brand-strong)] underline underline-offset-4">tell us</Link>.
-              </p>
-            )}
+            <p className="mt-3 text-xs text-[var(--foreground-subtle)]">
+              Corrections:{" "}
+              <Link href="/contact" className="text-[var(--brand-strong)] underline underline-offset-4">tell us</Link>.
+            </p>
           </section>
         )}
 
@@ -189,6 +243,13 @@ export default function SeoLandingPage({ path }: { path: string }) {
             })}
           </ul>
         </nav>
+
+        {/* ── Pillar/cluster wiring: the way back up, and the neighbours ── */}
+        <ClusterLinks
+          path={path}
+          exclude={entry.related.map((pair) => String(pair).split("|")[0])}
+          className="mt-10"
+        />
 
         {/* ── Closing CTA ────────────────────────────────────── */}
         <section className="mt-12 rounded-[var(--radius-2xl)] border border-[var(--card-border)] bg-[radial-gradient(circle_at_50%_0%,var(--brand-soft-hover),transparent_65%)] p-8 text-center">
@@ -221,7 +282,7 @@ function buildStructuredData(path: string, entry: SeoPage): object[] {
       headline: entry.h1,
       description: entry.description,
       dateModified: entry.lastReviewed,
-      author: { "@type": "Organization", name: "FocusArx", url: "https://www.focusarx.site" },
+      author: authorSchema(resolveAuthor(entry.author)),
       publisher: {
         "@type": "Organization",
         name: "FocusArx",

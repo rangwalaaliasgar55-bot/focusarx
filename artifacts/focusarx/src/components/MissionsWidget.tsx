@@ -1,7 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ChevronRight, Gift, Target } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
-import { Target, Gift, ChevronRight } from "lucide-react";
+
 import { claimMission, invalidateAfterMissionClaim, useMissionsQuery } from "@/lib/missionsQuery";
 
 const DIFF_COLOR: Record<string, string> = {
@@ -69,7 +70,7 @@ export default function MissionsWidget() {
               className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)]"
               initial={{ width: 0 }}
               animate={{ width: `${(stats.dailyCompleted / Math.max(stats.totalDaily, 1)) * 100}%` }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
             />
           </div>
         </div>
@@ -79,7 +80,7 @@ export default function MissionsWidget() {
       <div className="space-y-2">
         {displayMissions.length === 0 ? (
           <div className="text-center py-4">
-            <p className="text-2xl mb-1">🎯</p>
+            <p className="text-2xl mb-1"><Target size={16} aria-hidden="true" /></p>
             <p className="text-xs text-[var(--foreground-subtle)]">All daily missions done!</p>
             <Link href="/missions" className="text-[0.6875rem] text-[var(--brand-400)] hover:underline">Check weekly missions →</Link>
           </div>
@@ -127,7 +128,7 @@ export default function MissionsWidget() {
                         }}
                         initial={{ width: 0 }}
                         animate={{ width: `${pct}%` }}
-                        transition={{ duration: 0.4, ease: "easeOut" }}
+                        transition={{ duration: 0.25, ease: "easeOut" }}
                       />
                     </div>
                     <div className="flex justify-between mt-0.5">

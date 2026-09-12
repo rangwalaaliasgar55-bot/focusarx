@@ -45,6 +45,54 @@
 
 export const LAST_REVIEWED = "2026-08-29";
 
+/**
+ * When the long-form guide library was last rewritten.
+ *
+ * The eleven guides in scripts/prerender-data.mjs that are not built from
+ * SEO_PAGES (focus-guide, pomodoro-guide, study-techniques,
+ * stop-procrastinating, study-with-me, focus-music, deep-study-guide,
+ * two-hour-study-method, science-of-deep-work, feynman-technique,
+ * virtual-study-room) had their titles, leads, snippet answers, FAQs and
+ * cluster links rewritten in the on-page ranking pass — so this is a date a
+ * reader is actually being promised, not a build date.
+ *
+ * It lives here rather than in the build script because three things read it:
+ * the page component's byline, the prerender manifest's `lastReviewed` (which
+ * drives the static byline and Article `dateModified`), and the sitemap
+ * `<lastmod>` mirror in api-server/src/routes/sitemap.ts. seoContract.test.ts
+ * asserts the mirror still matches.
+ *
+ * Pages with no dated review — the app shells, the marketing pages, the policy
+ * pages — deliberately get no date at all: omission is honest, a guess is not.
+ */
+export const GUIDE_LIBRARY_REVIEWED = "2026-09-11";
+
+/**
+ * When the About page's editorial-standards copy was last reviewed. It lives
+ * here with the other freshness dates so the page, the prerender manifest and
+ * the sitemap mirror all read one value.
+ */
+export const ABOUT_REVIEWED = "2026-09-11";
+
+/**
+ * When the comparison set was last reviewed as a whole — the four alternatives
+ * (Anki, Notion, Todoist, Toggl Track) joining the original six. Same rule as
+ * EXAM_CLUSTER_REVIEWED: a real review date, never a build date.
+ */
+export const COMPARISONS_REVIEWED = "2026-09-06";
+
+import { MINUTE_TIMER_DURATIONS, MINUTE_TIMER_PAGES } from "./minute-timers.mjs";
+
+/**
+ * Minute-length timer pages (/5-minute-timer …). Content lives in
+ * ./minute-timers.mjs so each duration keeps its own copy in one file; the
+ * entries are merged into SEO_PAGES below, which is what the prerenderer,
+ * the route table and the SEO contract tests all read.
+ */
+export const MINUTE_TIMERS = MINUTE_TIMER_DURATIONS.map(
+  (m) => `/${m}-minute-timer|${m} minute timer`,
+);
+
 /** Reusable related-link sets, so internal linking is dense and consistent. */
 const TOOLS = [
   "/pomodoro-timer|Pomodoro timer",
@@ -136,7 +184,7 @@ export const SEO_PAGES = {
       ["Does the timer work offline?", "FocusArx is installable as a PWA, so the timer keeps running after it has loaded. Session history syncs when you are back online."],
     ],
     cta: { href: "/signup", label: "Start a free Pomodoro session" },
-    related: ["/pomodoro-guide|Pomodoro technique: complete guide", ...TOOLS.slice(1), ...GUIDES.slice(0, 3)],
+    related: ["/pomodoro-guide|Pomodoro technique: complete guide", ...MINUTE_TIMERS, ...TOOLS.slice(1), ...GUIDES.slice(0, 3)],
     lastReviewed: LAST_REVIEWED,
     sources: [
       "Francesco Cirillo, The Pomodoro Technique (late 1980s) — origin of the 25/5 interval.",
@@ -188,7 +236,7 @@ export const SEO_PAGES = {
       ["Can I study with friends?", "Yes. Public and private study rooms run synchronised timers, so a group works the same block together."],
     ],
     cta: { href: "/study-calculator", label: "Build a revision schedule free" },
-    related: ["/study-calculator|Study time calculator", "/exam|Exam prep guides", ...TOOLS.slice(0, 2), ...ROOMS.slice(0, 2), "/study-techniques|Best study techniques", ...GUIDES.slice(3, 5)],
+    related: ["/study-calculator|Study time calculator", "/exam|Exam prep guides", ...MINUTE_TIMERS.slice(2), ...TOOLS.slice(0, 2), ...ROOMS.slice(0, 2), "/study-techniques|Best study techniques", ...GUIDES.slice(3, 5)],
     lastReviewed: LAST_REVIEWED,
     sources: [
       "Hermann Ebbinghaus, forgetting curve and spacing (1885); replicated across the modern spacing-effect literature.",
@@ -245,7 +293,7 @@ export const SEO_PAGES = {
       ["How do I know if I am doing deep work?", "If you could do it while checking messages, it is not deep work. Deep work requires your full attention and produces something you could not produce distracted."],
     ],
     cta: { href: "/signup", label: "Track your deep work hours free" },
-    related: ["/science-of-deep-work|The science of deep work", "/focus-guide|How to focus", ...TOOLS.slice(0, 2), ...GUIDES.slice(3, 5)],
+    related: ["/science-of-deep-work|The science of deep work", "/focus-guide|How to focus", ...MINUTE_TIMERS.slice(3), ...TOOLS.slice(0, 2), ...GUIDES.slice(3, 5)],
     lastReviewed: LAST_REVIEWED,
     sources: [
       "Cal Newport, Deep Work (2016) — definition and the four scheduling philosophies.",
@@ -473,6 +521,164 @@ export const SEO_PAGES = {
   // ══════════════════════════════════════════════════════════════
   // TRUST PAGES — the substantiation the audits require
   // ══════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════════
+  // AUDIENCE PAGES — the same timer, described in the reader's own day
+  // ══════════════════════════════════════════════════════════════
+  // "study timer" is a head term with a thousand intents behind it. Someone in
+  // their second year of MBBS and someone debugging a race condition both want
+  // a timer, but neither is served by copy that talks about neither of them.
+  // These pages are not variants: each one is written around the shape of that
+  // reader's day, and each links to the tools and guides that day actually uses.
+  "/study-timer-for-medical-students": {
+    kind: "guide",
+    title: "Study timer for medical students (2026)",
+    description:
+      "A free study timer for MBBS, NEET PG and USMLE prep: 50-minute blocks for question banks, 10-minute card bursts, and a log of what you actually covered.",
+    h1: "Study timer for medical students",
+    lead: "Medical prep is volume under a clock — thousands of cards, a fixed exam date, and clinical duties that eat the day. This timer is set up for exactly that: long blocks for question banks, short bursts for spaced repetition, and a record of what you covered rather than how long you sat.",
+    answerFirst:
+      "Use 50-minute blocks for question banks and 10-minute bursts for spaced-repetition cards. Each block should end with recall, not rereading: closing the book and writing what you remembered is what makes the next pass faster. FocusArx runs both lengths free in the browser and logs what you covered.",
+    sections: [
+      {
+        h: "How long should a study block be in MBBS or NEET PG prep?",
+        p: [
+          "Fifty minutes is the useful default. It is long enough to get through a set of 20 to 30 questions with explanations, which is the unit that actually builds exam-day pattern recognition, and short enough that a ward call or a family interruption does not cost the whole session.",
+          "Drop to 25 minutes when you are reviewing material you already know, and go to 90 only for full-length mock sections — the length should match the paper, not your ambition. A three-hour 'study day' with no structure produces far fewer retrieval reps than four timed blocks with breaks.",
+        ],
+      },
+      {
+        h: "How do you fit card reviews around clinical rotations?",
+        p: [
+          "Reviews are small and frequent, so they fit into the gaps: ten minutes before rounds, ten after lunch, ten before bed. What matters is that they happen on the day the cards are due, because the spacing effect depends on the interval, not on the total time spent.",
+          "Keep a separate block once a day for new material. Mixing new cards into a gap slot is how a ten-minute review becomes forty minutes and then does not happen at all.",
+        ],
+      },
+      {
+        h: "Why does rereading feel productive and score badly?",
+        p: [
+          "Rereading produces fluency — the page looks familiar, so it feels learned. Familiarity is not retrieval, and exams ask for retrieval. In the studies that compared techniques, practice testing and distributed practice came out on top while rereading and highlighting ranked near the bottom.",
+          "The fix is cheap: end every block by writing down what you can recall without the book, then check. That single step converts a reading session into a testing session.",
+        ],
+      },
+      {
+        h: "How should you time a mock paper?",
+        p: [
+          "Time it the way the exam runs it. If the paper gives 180 minutes for 200 questions, run a 180-minute block with no pausing, no phone and the same start time as the real exam. Practising at 9 AM when the paper is at 9 AM trains the alertness, not just the content.",
+          "Score it afterwards, then spend a separate block on the errors only. The mock tells you what is broken; the error block is what fixes it.",
+        ],
+      },
+      {
+        h: "What is worth logging after each block?",
+        p: [
+          "Two numbers: the topic and the accuracy. Hours logged feel like progress and tell you nothing; 'Cardiology, 24 of 30 correct' tells you what to schedule next.",
+          "FocusArx stores the task against the completed session, so a week of blocks turns into a list you can read rather than a feeling you have to guess at.",
+        ],
+      },
+    ],
+    faq: [
+      ["Is the study timer free?", "Yes. The timer, task list, streaks and session history are free and stay free. Premium features such as custom 10 to 180-minute presets and longer analytics are unlocked with Focus Tokens earned from completed sessions — there is no payment step."],
+      ["Can I set 50/10 blocks instead of 25/5?", "Yes. Custom intervals run from 10 to 180 minutes, so 50/10 for question banks and 90 or 180 for mock sections both work."],
+      ["Does it work offline in a hospital?", "FocusArx is installable as a PWA, so once it has loaded the timer keeps running without a connection. Sessions sync when you are back online — useful on a campus where the ward wifi does not reach."],
+      ["Is it useful for USMLE or PLAB prep as well as NEET PG?", "The method is the same anywhere: timed question blocks, spaced cards and error review. What changes is the block length, which you set to match the section timing of the exam you are sitting."],
+      ["Can I study alongside other people in the same block?", "Yes. Public study rooms run shared intervals with other people working at the same time, which is the body-doubling effect — cameras are optional and rooms are moderated."],
+    ],
+    cta: { href: "/signup", label: "Start a study block free" },
+    related: [
+      "/study-timer|Study timer",
+      "/pomodoro-timer|Pomodoro timer",
+      "/30-minute-timer|30 minute timer",
+      "/exam/neet-ug|NEET UG study plan",
+      "/two-hour-study-method|The 2-hour study method",
+      "/study-techniques|Best study techniques",
+      "/study-calculator|Study time calculator",
+      "/body-doubling|Body doubling explained",
+      "/adhd-focus-tools|ADHD-friendly focus tools",
+      "/focus-timer-for-programmers|Focus timer for programmers",
+    ],
+    // Written 11 September 2026; the date is when the copy was last checked
+    // against the sources below, not when the build ran.
+    lastReviewed: "2026-09-11",
+    sources: [
+      "Dunlosky et al., 'Improving Students' Learning With Effective Learning Techniques' (2013) — practice testing and distributed practice rated highest-utility, rereading and highlighting lowest.",
+      "Karpicke & Roediger, 'The Critical Importance of Retrieval for Learning', Science (2008) — repeated retrieval beat repeated study for long-term recall.",
+      "Cepeda et al., 'Distributed Practice in Verbal Recall Tasks' (2006) — the spacing effect across 254 studies involving 14,000 learners.",
+    ],
+  },
+
+  "/focus-timer-for-programmers": {
+    kind: "guide",
+    title: "Focus timer for programmers (2026)",
+    description:
+      "A free focus timer for coding: 50 to 90-minute deep work blocks, break reminders that wait for a green build, and a log of which hours produced work.",
+    h1: "Focus timer for programmers",
+    lead: "Code has a ramp-up cost. Reloading the shape of a system into your head takes ten minutes or more before you write anything useful, which is why a timer that ends at 25 minutes can cost more than it returns. This one is built for long blocks and for protecting them.",
+    answerFirst:
+      "Programmers need 50 to 90-minute blocks, not 25. Reloading the shape of a codebase takes ten minutes or more, so a short interval ends just as the work becomes cheap. Write the task down before the block, silence notifications, and let the break wait for a green build.",
+    sections: [
+      {
+        h: "Why is 25 minutes usually too short for code?",
+        p: [
+          "The Pomodoro interval was designed for tasks that are easy to start and easy to stop. Debugging is neither: by minute twenty you have usually just built the mental model of the failure, and the timer then asks you to drop it.",
+          "Use 25-minute sprints for the work that is genuinely granular — triaging issues, writing tests for one function, reviewing a small diff. Use 50 to 90 minutes for anything where the state lives in your head.",
+        ],
+      },
+      {
+        h: "How long does it take to get back into a codebase after an interruption?",
+        p: [
+          "Gloria Mark's interruption research puts the resumption lag at roughly twenty minutes, and the interrupted work tends to be finished faster but under measurably more stress and effort. For code the lag is worse, because the state you are holding is not a document position but a hypothesis about a system.",
+          "The practical implication is that a block is only as good as its perimeter. One notification in minute forty can cost the remaining twenty.",
+        ],
+      },
+      {
+        h: "How do you protect a block from messages and standups?",
+        p: [
+          "Batch them. Put the block on the calendar as if it were a meeting, set your status once at the start, and answer everything in the break. If a message truly cannot wait twenty minutes, it is an incident, and incidents deserve their own process rather than your attention.",
+          "Write the task down before you start — one sentence, specific enough that you could hand it to someone else. A block spent deciding what to work on is a block that gets interrupted.",
+        ],
+      },
+      {
+        h: "What should you do in the break between blocks?",
+        p: [
+          "Anything that is not a screen with a feed. Stand up, walk, get water, look at something far away. The point is to let attention residue decay rather than to replace one stream of input with another.",
+          "If you are mid-thought, write one line about where you stopped before you stand up. Re-entry after a break costs far less when the state is on paper.",
+        ],
+      },
+      {
+        h: "How do you know which hours actually produced work?",
+        p: [
+          "Log the task against the block. After a week you can see whether the 9 AM block shipped code and the 4 PM block produced tabs, which is more useful than any estimate of how many hours you 'worked'.",
+          "FocusArx scores each completed session and keeps the history, so the pattern is visible rather than something you have to remember. Teams that work the same hours can differ by a factor of two in how many of them were uninterrupted.",
+        ],
+      },
+    ],
+    faq: [
+      ["Is the focus timer free?", "Yes. The timer, tasks, streaks and session history are free. Custom 10 to 180-minute presets and longer analytics unlock with Focus Tokens earned from completed sessions rather than money."],
+      ["Can I run 90-minute or 2-hour blocks?", "Yes. Intervals run from 10 to 180 minutes, so 50/10, 90/20 and a full two-hour deep block are all one setting."],
+      ["Does it work without a connection?", "FocusArx installs as a PWA and keeps timing offline, which matters on a train, in a data centre or anywhere the network is worse than your laptop."],
+      ["Does it record which task a block went to?", "Yes. Each session is stored against the task you set, so the log reads as work completed rather than time elapsed."],
+      ["Is there a way to work alongside other people?", "Public study rooms run shared intervals with others working at the same time — the body-doubling effect, without a call. Cameras are optional."],
+    ],
+    cta: { href: "/signup", label: "Start a deep work block free" },
+    related: [
+      "/focus-timer|Free focus timer",
+      "/deep-work-guide|Deep work guide",
+      "/science-of-deep-work|Neuroscience of deep work",
+      "/45-minute-timer|45 minute timer",
+      "/30-minute-timer|30 minute timer",
+      "/two-hour-study-method|The 2-hour study method",
+      "/stop-scrolling|How to stop scrolling",
+      "/body-doubling|Body doubling explained",
+      "/comparison/focusarx-vs-toggl-track|FocusArx vs Toggl Track",
+      "/study-timer-for-medical-students|Study timer for medical students",
+    ],
+    lastReviewed: "2026-09-11",
+    sources: [
+      "Mark, Gudith & Klocke, 'The Cost of Interrupted Work: More Speed and Stress', CHI (2008) — interrupted work finishes faster but costs more stress, effort and time pressure.",
+      "Leroy, 'Why Is It So Hard to Do My Work?', Journal of Vocational Behavior (2009) — attention residue persists after switching away from a task.",
+      "Newport, Deep Work (2016) — the ramp-up cost of shallow work and the case for long uninterrupted blocks.",
+    ],
+  },
+
   "/evidence": {
     kind: "trust",
     title: "Our Evidence and Claim Policy | FocusArx",
@@ -707,6 +913,10 @@ export const SEO_PAGES = {
   },
 };
 
+// Minute-length timer pages join the same map, so every consumer
+// (prerender manifest, seo-landing, contract tests, sitemap) reads one list.
+Object.assign(SEO_PAGES, MINUTE_TIMER_PAGES);
+
 /**
  * Comparison pages. Rendered by src/pages/comparison.tsx and mirrored in
  * prerender-data.mjs + the sitemap. Facts about competitors are limited to
@@ -860,6 +1070,120 @@ export const COMPARISONS = {
     whenTheirs:
       "Choose StayFocusd when the specific problem is a handful of websites eating hours inside Chrome, and you want them capped with minimal setup. Pair it with a timer for the block itself.",
   },
+
+  // ── Workstream 7c: adjacent-category comparisons ────────────────────
+  // Anki, Notion, Todoist and Toggl Track are not focus timers, and the
+  // pages say so plainly. People search "focusarx vs anki" while deciding
+  // which tool owns their study workflow, so the honest answer — including
+  // "use both" — ranks better and converts better than a win-column table.
+  // Facts are limited to what those products state publicly; no invented
+  // weaknesses (see the editorial rules at the top of this file).
+  anki: {
+    slug: "focusarx-vs-anki",
+    name: "Anki",
+    title: "FocusArx vs Anki: Recall Tool or Focus System?",
+    description:
+      "FocusArx vs Anki compared: spaced-repetition flashcards against a focus timer, study analytics and exam guides. Which to use, and how to use both.",
+    lead: "Anki is the best-known spaced-repetition flashcard program in the world, and it is genuinely good at one job: making you recall a fact at the right moment. FocusArx is a focus and study system — timed sessions, tasks, analytics, study rooms and exam guides. They overlap on recall and barely overlap on anything else, which is why most serious students end up using both.",
+    ours: ["Timed focus and Pomodoro sessions with scoring", "Tasks, habits, goals and streaks", "Session analytics and focus score", "Live study rooms for body doubling", "Exam prep guides for 23 exams", "Built-in flashcards and active-recall tools", "AI coach and study roadmap", "Browser-based, nothing to install"],
+    theirs: ["Mature spaced-repetition scheduler", "Free and open source on desktop", "Huge shared deck library", "Powerful card templates and add-ons", "Works fully offline", "AnkiDroid free on Android"],
+    rows: [
+      ["Spaced-repetition flashcards", "Basic built-in decks", "The core product"],
+      ["Focus timer with intervals", true, false],
+      ["Task and goal tracking", true, false],
+      ["Session analytics", "Focus score, trends, breakdown", false],
+      ["Live study rooms", true, false],
+      ["Exam prep guides", "23 exams", false],
+      ["Custom card templates and add-ons", false, true],
+      ["Shared deck library", false, "Large community library"],
+      ["Fully offline", "PWA after first load", true],
+      ["Open source", false, true],
+      ["Install required", "No — browser based", "Desktop app (mobile apps separate)"],
+    ],
+    whenOurs:
+      "Choose FocusArx when the problem is getting focused hours to happen: a timer that scores the session, tasks attached to it, analytics that show where the hours actually go, and study rooms when you need someone working beside you.",
+    whenTheirs:
+      "Choose Anki when you already have the hours and the problem is long-term retention of a large volume of facts — medical school, law, languages, anything with thousands of items to remember. Its scheduler is more mature than ours and its deck library is enormous. Use both: Anki for the cards, FocusArx to run the session in which you review them.",
+  },
+  notion: {
+    slug: "focusarx-vs-notion",
+    name: "Notion",
+    title: "FocusArx vs Notion: Focus System or Workspace?",
+    description:
+      "FocusArx vs Notion compared: a timed focus and study system against an all-in-one workspace of pages, databases and tasks. Which one, or both?",
+    lead: "Notion is a workspace: pages, databases, wikis and task boards that you assemble yourself. FocusArx is a focus system with an opinion already baked in — a timer that scores sessions, tasks tied to those sessions, analytics and study rooms. Notion can hold your study plan; it cannot run your focus session.",
+    ours: ["Timer that starts in one click and scores the session", "Focus analytics without building a dashboard", "Live study rooms and body doubling", "Exam prep guides and study content", "Streaks, quests and gamified progress", "No setup required — works out of the box"],
+    theirs: ["Fully customisable pages and databases", "Wikis, docs and collaborative notes", "Templates for almost any workflow", "Native desktop and mobile apps", "Team workspaces and permissions", "Notion AI as a paid add-on"],
+    rows: [
+      ["Built-in focus timer", true, "Via embeds and widgets"],
+      ["Session scoring and focus analytics", true, "Only if you build it"],
+      ["Tasks and projects", true, true],
+      ["Custom databases and pages", false, true],
+      ["Collaborative docs and wikis", false, true],
+      ["Live study rooms", true, false],
+      ["Exam prep content", true, false],
+      ["Setup time before it is useful", "None", "You build the system first"],
+      ["Native apps", "PWA (installable)", true],
+      ["Free core", true, "Free personal plan"],
+    ],
+    whenOurs:
+      "Choose FocusArx when you want the focus loop working today: start a timer, attach a task, get a score and a streak, see the week's pattern without configuring anything. There is nothing to build before it is useful.",
+    whenTheirs:
+      "Choose Notion when what you need is a workspace — course notes, a thesis wiki, shared team docs, databases that link to each other — and you are happy to design the system yourself. Many people keep their notes in Notion and run their sessions in FocusArx; the two do not compete for the same job.",
+  },
+  todoist: {
+    slug: "focusarx-vs-todoist",
+    name: "Todoist",
+    title: "FocusArx vs Todoist: Task List vs Timed Focus",
+    description:
+      "FocusArx vs Todoist compared: natural-language task capture and projects against a focus timer, session analytics and study tools. Which fits your day?",
+    lead: "Todoist is one of the best task managers available: fast natural-language capture, reliable recurring dates, projects and labels that scale. It tells you what to do. FocusArx is about doing it — a timer that scores the session, tasks attached to those sessions, analytics that show where your focused hours went, and study rooms when you need company.",
+    ours: ["Focus timer that scores every session", "Tasks measured by focused time, not just completion", "Session analytics, focus score and trends", "Live study rooms for accountability", "Exam guides, flashcards and study content", "Streaks and quests that reward execution"],
+    theirs: ["Natural-language task capture", "Mature recurring dates and reminders", "Projects, labels, filters and views", "Karma and completion streaks", "Native apps on every platform", "Integrations with calendars and trackers"],
+    rows: [
+      ["Task lists and projects", true, true],
+      ["Natural-language task entry", "Basic", true],
+      ["Recurring dates and reminders", true, true],
+      ["Built-in focus timer", true, false],
+      ["Time scored per task", true, false],
+      ["Session analytics", "Focus score, trends, breakdown", false],
+      ["Live study rooms", true, false],
+      ["Study and exam content", true, false],
+      ["Native apps everywhere", "PWA (installable)", true],
+      ["Free core", true, "Free plan, paid Pro tier"],
+    ],
+    whenOurs:
+      "Choose FocusArx when the list is not the problem — you know what to do, and what is missing is protected time to do it in, plus evidence afterwards that the time was spent.",
+    whenTheirs:
+      "Choose Todoist when the real bottleneck is capture and organisation: dozens of commitments across work and life, recurring dates that must not slip, and a task system you want on every device with integrations into the rest of your stack. It is excellent at that, and it does not try to be a timer.",
+  },
+  toggl: {
+    slug: "focusarx-vs-toggl-track",
+    name: "Toggl Track",
+    title: "FocusArx vs Toggl Track: Making Time Count",
+    description:
+      "FocusArx vs Toggl Track compared: accurate time tracking and client reports against a focus timer that structures and scores study sessions.",
+    lead: "Toggl Track records where your time went — one click to start, projects and clients, reports good enough to bill from. FocusArx structures where your time goes next: interval timers, tasks, session scoring and analytics about your attention rather than your hours. Tracking and focusing are different jobs, and the tools are built for different ones.",
+    ours: ["Interval timers that structure the work, not just record it", "Session scoring and focus analytics", "Tasks, goals, habits and streaks", "Live study rooms", "Exam prep guides and study tools", "AI coach suggestions from your history"],
+    theirs: ["One-click time tracking on any device", "Projects, clients and billable hours", "Detailed exportable reports", "Team tracking and timesheet approval", "Browser extension and calendar integration", "Free for small teams"],
+    rows: [
+      ["Time tracking", "Per session, with a focus score", "Per entry, to the second"],
+      ["Billable hours and clients", false, true],
+      ["Exportable time reports", "Session analytics", "Full reporting suite"],
+      ["Interval timer with breaks", true, "Pomodoro option in the extension"],
+      ["Session scoring and attention analytics", true, false],
+      ["Tasks and goals", true, "Basic"],
+      ["Team and timesheet management", "Live study rooms", true],
+      ["Study and exam content", true, false],
+      ["Native apps everywhere", "PWA (installable)", true],
+      ["Free core", true, "Free for small teams"],
+    ],
+    whenOurs:
+      "Choose FocusArx when the goal is to change how the hours are spent — intervals, breaks, scoring, streaks and analytics that tell you when your attention is actually best, rather than a record of what already happened.",
+    whenTheirs:
+      "Choose Toggl Track when you need to account for your time: freelancers billing clients, agencies approving timesheets, or anyone whose requirement is an accurate, exportable record per project. It is the strongest tool in that category, and pairing it with a focus timer is a normal setup.",
+  },
+
 };
 
 /** Flat list of comparison paths, consumed by prerender + sitemap + tests. */

@@ -1,5 +1,6 @@
 import { Flame, TrendingUp } from "lucide-react";
 import { SectionHeader, StatCard, MotionTab } from "./AdminHelpers";
+import { SystemDiagnostics } from "./SystemDiagnostics";
 import type { AdminStats, AdminData, CmsOverview, AdminUser } from "./AdminTypes";
 
 function maskEmail(email: string) {
@@ -36,6 +37,12 @@ export function AdminOverviewPanel({ stats, data, users, cmsOverview, maxSession
   return (
     <MotionTab>
       <SectionHeader title="Platform Overview" sub="Real-time snapshot of platform health and user activity." />
+
+      {/* Which build is live, whether the database answers, whether the rooms
+          endpoint is the one failing — see SystemDiagnostics.tsx. */}
+      <div className="mb-4">
+        <SystemDiagnostics />
+      </div>
 
       {/* Platform KPIs */}
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">

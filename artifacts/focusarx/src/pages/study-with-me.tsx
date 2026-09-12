@@ -1,6 +1,8 @@
 import { Link } from "wouter";
 import { ArrowRight, Users, Timer, Globe, Flame, ListChecks, CheckCircle, Video } from "lucide-react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
+import { AuthorBlock } from "@/components/AuthorBlock";
+import { GUIDE_LIBRARY_REVIEWED } from "@/content/seo-pages.mjs";
 
 function Section({ id, children, className = "" }: { id?: string; children: React.ReactNode; className?: string }) {
   return <section id={id} className={`mx-auto max-w-3xl px-4 sm:px-6 ${className}`}>{children}</section>;
@@ -87,6 +89,7 @@ export default function StudyWithMePage() {
           <p className="mx-auto max-w-2xl text-base text-[var(--foreground-muted)] sm:text-lg">
             Millions of students now study alongside strangers online. It's not a trend gimmick — it's the easiest accountability system ever discovered.
           </p>
+          <AuthorBlock lastReviewed={GUIDE_LIBRARY_REVIEWED} className="mt-6 justify-center" />
         </Section>
       </div>
 

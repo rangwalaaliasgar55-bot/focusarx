@@ -69,7 +69,7 @@ function buildShareCardSvg(s: ShareCardStats): string {
   <!-- brand -->
   <g transform="translate(72, 64)">
     <text font-family="-apple-system, 'SF Pro Display', 'Geist Variable', Inter, system-ui, sans-serif" font-size="40" font-weight="700" fill="#A78BFA">⚡ FocusArx</text>
-    <text y="44" font-family="-apple-system, 'SF Pro Display', 'Geist Variable', Inter, system-ui, sans-serif" font-size="20" font-weight="600" letter-spacing="4" fill="#6D6A85">DEEP WORK REPORT</text>
+    <text y="44" font-family="-apple-system, 'SF Pro Display', 'Geist Variable', Inter, system-ui, sans-serif" font-size="20" font-weight="600" letter-spacing="1" fill="#6D6A85">Deep work report</text>
   </g>
 
   <!-- headline -->

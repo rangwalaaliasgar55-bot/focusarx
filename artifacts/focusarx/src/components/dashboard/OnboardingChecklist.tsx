@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Check, ChevronRight, X } from "lucide-react";
+import { Rocket } from "lucide-react";
 import { apiJson } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -70,14 +71,14 @@ export default function OnboardingChecklist() {
     <motion.section
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      transition={{ duration: 0.25}}
       aria-labelledby="onboarding-title"
     >
       <Card elevation="glow" className="border-[var(--brand-500)]/30">
         <CardContent className="py-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-[var(--radius-lg)] bg-[var(--brand-soft)] text-lg" aria-hidden="true">🚀</span>
+              <span className="grid h-10 w-10 place-items-center rounded-[var(--radius-lg)] bg-[var(--brand-soft)] text-lg" aria-hidden="true"><Rocket size={16} aria-hidden="true" /></span>
               <div>
                 <h2 id="onboarding-title" className="text-base font-semibold leading-tight">Getting started</h2>
                 <p className="text-xs text-[var(--foreground-muted)]">{doneCount} of {steps.length} complete — unlock the full FocusArx loop.</p>

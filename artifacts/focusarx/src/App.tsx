@@ -132,12 +132,16 @@ const DeveloperPage = lazy(() => import("@/pages/developer"));
 // src/content/seo-pages.mjs. That file is also what the build-time
 // prerenderer reads, so static HTML and rendered copy stay identical.
 const PomodoroTimerPage = lazy(() => import("@/pages/pomodoro-timer"));
+const MinuteTimerPage = lazy(() => import("@/pages/minute-timer"));
 const StudyTimerPage = lazy(() => import("@/pages/study-timer"));
 const DeepWorkGuidePage = lazy(() => import("@/pages/deep-work-guide"));
 const BodyDoublingPage = lazy(() => import("@/pages/body-doubling"));
 const HowToFocusWhileStudyingPage = lazy(() => import("@/pages/how-to-focus-while-studying"));
 const AdhdFocusToolsPage = lazy(() => import("@/pages/adhd-focus-tools"));
 const StopScrollingPage = lazy(() => import("@/pages/stop-scrolling"));
+// Audience pages: the same timer described in one reader's own day (WS8d).
+const StudyTimerForMedicalStudentsPage = lazy(() => import("@/pages/study-timer-for-medical-students"));
+const FocusTimerForProgrammersPage = lazy(() => import("@/pages/focus-timer-for-programmers"));
 const EvidencePage = lazy(() => import("@/pages/evidence"));
 const CameraDataPage = lazy(() => import("@/pages/camera-data"));
 const SafetyPage = lazy(() => import("@/pages/safety"));
@@ -338,11 +342,18 @@ function RoutedContent() {
               <Route path="/focus-timer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><FocusTimerPage /></Suspense></ErrorBoundary>} />
               <Route path="/pomodoro-timer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><PomodoroTimerPage /></Suspense></ErrorBoundary>} />
               <Route path="/study-timer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StudyTimerPage /></Suspense></ErrorBoundary>} />
+              <Route path="/5-minute-timer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><MinuteTimerPage minutes={5} /></Suspense></ErrorBoundary>} />
+              <Route path="/10-minute-timer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><MinuteTimerPage minutes={10} /></Suspense></ErrorBoundary>} />
+              <Route path="/15-minute-timer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><MinuteTimerPage minutes={15} /></Suspense></ErrorBoundary>} />
+              <Route path="/30-minute-timer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><MinuteTimerPage minutes={30} /></Suspense></ErrorBoundary>} />
+              <Route path="/45-minute-timer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><MinuteTimerPage minutes={45} /></Suspense></ErrorBoundary>} />
               <Route path="/deep-work-guide" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><DeepWorkGuidePage /></Suspense></ErrorBoundary>} />
               <Route path="/body-doubling" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><BodyDoublingPage /></Suspense></ErrorBoundary>} />
               <Route path="/how-to-focus-while-studying" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><HowToFocusWhileStudyingPage /></Suspense></ErrorBoundary>} />
               <Route path="/adhd-focus-tools" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><AdhdFocusToolsPage /></Suspense></ErrorBoundary>} />
               <Route path="/stop-scrolling" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StopScrollingPage /></Suspense></ErrorBoundary>} />
+              <Route path="/study-timer-for-medical-students" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StudyTimerForMedicalStudentsPage /></Suspense></ErrorBoundary>} />
+              <Route path="/focus-timer-for-programmers" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><FocusTimerForProgrammersPage /></Suspense></ErrorBoundary>} />
               <Route path="/evidence" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><EvidencePage /></Suspense></ErrorBoundary>} />
               <Route path="/camera-data" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><CameraDataPage /></Suspense></ErrorBoundary>} />
               <Route path="/safety" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><SafetyPage /></Suspense></ErrorBoundary>} />

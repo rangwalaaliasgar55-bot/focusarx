@@ -1,8 +1,11 @@
 import { motion, type Variants } from "framer-motion";
+import { ArrowRight, BarChart3, BookOpen, Brain, Clock, Lightbulb, RefreshCw, Save, Target, TrendingUp, Zap } from "lucide-react";
 import { useEffect } from "react";
 import { Link } from "wouter";
-import { Clock, TrendingUp, Target, BarChart3, BookOpen, ArrowRight, Lightbulb } from "lucide-react";
+
 import { PageSEO } from "@/components/PageSEO";
+import { AuthorBlock } from "@/components/AuthorBlock";
+import { GUIDE_LIBRARY_REVIEWED } from "@/content/seo-pages.mjs";
 import { track, scrollDepthEffect } from "@/lib/analytics";
 
 // Analytics: track blog page views
@@ -17,7 +20,7 @@ const fadeUp: Variants = {
   visible: (i: number = 0) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.4, delay: i * 0.08, ease: EASE },
+    transition: { duration: 0.25, delay: i * 0.08, ease: EASE },
   }),
 };
 
@@ -95,6 +98,7 @@ export default function TwoHourStudyMethodPage() {
             university gold medalists — share one habit that has nothing to do with how long they study.
             Here's what they actually do, and how you can copy it starting today.
           </p>
+          <AuthorBlock lastReviewed={GUIDE_LIBRARY_REVIEWED} className="mt-6" />
           <div className="mt-6 flex flex-wrap items-center gap-4 text-xs text-[var(--foreground-subtle)]">
             <span className="flex items-center gap-1.5"><Clock size={12} /> 8 min read</span>
             <span className="flex items-center gap-1.5"><BarChart3 size={12} /> Research-backed</span>
@@ -221,22 +225,22 @@ export default function TwoHourStudyMethodPage() {
               {
                 title: "Ultradian Rhythms",
                 text: "Your brain naturally cycles through high and low activity states every 90–120 minutes. The 50-minute block aligns with the peak phase of this cycle, capturing maximum cognitive performance before natural fatigue sets in.",
-                icon: "🧠",
+                icon: <Brain size={16} aria-hidden="true" />,
               },
               {
                 title: "Attention Restoration Theory",
                 text: "Directed attention — the kind used for focused study — depletes like a resource. Unfocused rest (walking, nature, light conversation) restores it within 10–15 minutes. This is exactly what the active break accomplishes.",
-                icon: "⚡",
+                icon: <Zap size={16} aria-hidden="true" />,
               },
               {
                 title: "Interleaving Effect",
                 text: "Switching between related topics (e.g., Physics Block 1, Chemistry Block 2) increases long-term retention compared to studying the same subject for hours. The slight difficulty of switching forces deeper processing.",
-                icon: "🔄",
+                icon: <RefreshCw size={16} aria-hidden="true" />,
               },
               {
                 title: "Memory Consolidation Window",
                 text: "The first hour after a study block is a critical consolidation window. Avoid screen time or heavy new learning. A walk, review in your head, or light conversation allows consolidation to proceed efficiently.",
-                icon: "💾",
+                icon: <Save size={16} aria-hidden="true" />,
               },
             ].map((item, i) => (
               <div key={i} className="flex items-start gap-4">
@@ -310,7 +314,7 @@ export default function TwoHourStudyMethodPage() {
           variants={fadeUp}
           className="rounded-2xl border border-[var(--palette-teal-500)]/20 bg-gradient-to-br from-[var(--palette-teal-500)]/10 to-[var(--palette-violet-500)]/5 p-8 text-center"
         >
-          <div className="mb-2 text-2xl">🎯</div>
+          <div className="mb-2 text-2xl"><Target size={16} aria-hidden="true" /></div>
           <h3 className="mb-3 text-xl font-bold text-[var(--palette-white)]">
             Start your first 2-hour session today
           </h3>

@@ -9,6 +9,9 @@ FocusArx targets students and professionals who need external structure to start
 and sustain focused work. Optional attention monitoring runs entirely on-device
 with MediaPipe — video is never uploaded.
 
+- [Home](https://www.focusarx.site/): the product overview — timer, analytics, study rooms, AI coach.
+- [Focus App](https://www.focusarx.site/focus): the timer app itself, deep-linkable with ?duration= and ?task=.
+
 ## Claim policy
 
 Every metric FocusArx publishes appears on the claim ledger with a definition,
@@ -21,6 +24,11 @@ claims. See https://www.focusarx.site/evidence
 - [Pomodoro Timer](https://www.focusarx.site/pomodoro-timer): free 25/5 browser timer with custom intervals from 10–180 minutes, session history and streaks. No signup required to start.
 - [Focus Timer](https://www.focusarx.site/focus-timer): focus and deep work sessions with Focus Tokens, city progression and analytics.
 - [Study Timer](https://www.focusarx.site/study-timer): timed study blocks tied to subjects, for exam revision planning.
+- [5 Minute Timer](https://www.focusarx.site/5-minute-timer): pre-armed five-minute countdown for micro-breaks, task transitions and the two-minute rule.
+- [10 Minute Timer](https://www.focusarx.site/10-minute-timer): pre-armed ten-minute countdown built around the ten-minute rule for starting tasks you are avoiding.
+- [15 Minute Timer](https://www.focusarx.site/15-minute-timer): pre-armed fifteen-minute countdown for active-recall revision sprints — flashcards, past-paper questions, formula drills.
+- [30 Minute Timer](https://www.focusarx.site/30-minute-timer): pre-armed half-hour countdown for repeatable one-task deep work blocks, scored and logged.
+- [45 Minute Timer](https://www.focusarx.site/45-minute-timer): pre-armed forty-five-minute countdown matching a school period or one exam section, for mock-paper practice.
 - [Study Time Calculator](https://www.focusarx.site/study-calculator): enter an exam date and topic list, get a dated revision schedule with spaced repeats.
 - [Study Method Quiz](https://www.focusarx.site/study-method-quiz): two minutes to match a study method to your schedule and goals.
 - [60-Second Scroll Reset](https://www.focusarx.site/break-free): a short interruption pattern for breaking a distraction loop.
@@ -36,17 +44,47 @@ claims. See https://www.focusarx.site/evidence
 - [Body Doubling](https://www.focusarx.site/body-doubling): why working alongside someone else makes starting easier, and how to use it online.
 - [How to Focus with ADHD](https://www.focusarx.site/adhd-focus-tips): strategies designed around external structure. Workflow design, not medical advice.
 - [ADHD-Friendly Focus Tools](https://www.focusarx.site/adhd-focus-tools): visual timers, body doubling rooms, task breakdown and recovery-friendly streaks.
+- [Study Timer for Medical Students](https://www.focusarx.site/study-timer-for-medical-students): 50-minute blocks for question banks, 10-minute card bursts and mock-paper timing — MBBS, NEET PG and USMLE prep.
+- [Focus Timer for Programmers](https://www.focusarx.site/focus-timer-for-programmers): 50–90 minute deep work blocks, how to protect them from interruptions, and which hours actually produced work.
 - [How to Stop Procrastinating](https://www.focusarx.site/stop-procrastinating): why procrastination happens and twelve methods to interrupt it.
 - [How to Stop Scrolling](https://www.focusarx.site/stop-scrolling): why the loop persists and a 60-second reset that works.
 - [Best Music for Studying](https://www.focusarx.site/focus-music): what the evidence says about lo-fi, binaural beats and silence.
 - [The Science of Deep Work](https://www.focusarx.site/science-of-deep-work): what happens in the brain during sustained concentration.
 - [The 2-Hour Study Method](https://www.focusarx.site/two-hour-study-method): a structured block — warm-up, deep study, retrieval, review.
 - [The Feynman Technique](https://www.focusarx.site/feynman-technique): learn deeply by explaining in plain language and attacking the gaps.
+- [Deep Study Guide](https://www.focusarx.site/deep-study-guide): sustained concentration, memory retention and peak academic performance in one playbook.
 - [Guide Library](https://www.focusarx.site/guides): every guide in one place.
 
 ## Exam preparation (India-first)
 
-- [Exam Prep Hub](https://www.focusarx.site/exam): 14 guides covering JEE Main, JEE Advanced, NEET-UG, CBSE Class 12, CBSE Class 10, GATE, CAT, UPSC CSE, SSC CGL, NDA, CTET, IBPS PO, exam anxiety and last-minute revision.
+- [Exam Prep Hub](https://www.focusarx.site/exam): 23 guides covering JEE Main, JEE Advanced, NEET-UG, CBSE Class 12, CBSE Class 10, GATE, CAT, UPSC CSE, SSC CGL, NDA, CTET, IBPS PO, BITSAT, KCET, MHT-CET, WBJEE, CUET (UG), CLAT, CA Foundation, GRE, GMAT, exam anxiety and last-minute revision.
+
+Each exam also has a Pomodoro timer page tuned to the interval that paper
+rewards — a working timer plus the exam-specific angle:
+
+- [Pomodoro timer for JEE Main](https://www.focusarx.site/pomodoro-timer-for/jee-main)
+- [Pomodoro timer for JEE Advanced](https://www.focusarx.site/pomodoro-timer-for/jee-advanced)
+- [Pomodoro timer for NEET UG](https://www.focusarx.site/pomodoro-timer-for/neet-ug)
+- [Pomodoro timer for CBSE Class 12](https://www.focusarx.site/pomodoro-timer-for/cbse-class-12)
+- [Pomodoro timer for CBSE Class 10](https://www.focusarx.site/pomodoro-timer-for/cbse-class-10)
+- [Pomodoro timer for GATE](https://www.focusarx.site/pomodoro-timer-for/gate)
+- [Pomodoro timer for CAT](https://www.focusarx.site/pomodoro-timer-for/cat)
+- [Pomodoro timer for UPSC CSE](https://www.focusarx.site/pomodoro-timer-for/upsc-cse)
+- [Pomodoro timer for SSC CGL](https://www.focusarx.site/pomodoro-timer-for/ssc-cgl)
+- [Pomodoro timer for NDA](https://www.focusarx.site/pomodoro-timer-for/nda)
+- [Pomodoro timer for CTET](https://www.focusarx.site/pomodoro-timer-for/ctet)
+- [Pomodoro timer for IBPS PO](https://www.focusarx.site/pomodoro-timer-for/ibps-po)
+- [Pomodoro timer for BITSAT](https://www.focusarx.site/pomodoro-timer-for/bitsat)
+- [Pomodoro timer for KCET](https://www.focusarx.site/pomodoro-timer-for/kcet)
+- [Pomodoro timer for MHT-CET](https://www.focusarx.site/pomodoro-timer-for/mht-cet)
+- [Pomodoro timer for WBJEE](https://www.focusarx.site/pomodoro-timer-for/wbjee)
+- [Pomodoro timer for CUET (UG)](https://www.focusarx.site/pomodoro-timer-for/cuet-ug)
+- [Pomodoro timer for CLAT](https://www.focusarx.site/pomodoro-timer-for/clat)
+- [Pomodoro timer for CA Foundation](https://www.focusarx.site/pomodoro-timer-for/ca-foundation)
+- [Pomodoro timer for GRE](https://www.focusarx.site/pomodoro-timer-for/gre)
+- [Pomodoro timer for GMAT](https://www.focusarx.site/pomodoro-timer-for/gmat)
+- [Pomodoro timer for exam anxiety](https://www.focusarx.site/pomodoro-timer-for/exam-anxiety)
+- [Pomodoro timer for last-minute revision](https://www.focusarx.site/pomodoro-timer-for/last-minute-revision)
 
 ## Study rooms
 
@@ -54,6 +92,13 @@ claims. See https://www.focusarx.site/evidence
 - [Study With Me](https://www.focusarx.site/study-with-me): how live study-with-me sessions work and why they make starting easier.
 - [Live Study Rooms](https://www.focusarx.site/study-rooms): currently running rooms.
 - [Room Safety and Moderation](https://www.focusarx.site/safety): defaults, reporting, moderation and escalation.
+
+## Blog
+
+- [Blog index](https://www.focusarx.site/blog): short essays on attention and studying, each ending in something you can do today.
+- [Why 25 Minutes Works](https://www.focusarx.site/blog/why-25-minutes-works): the attention research behind the Pomodoro interval.
+- [Attention Residue and Task Switching](https://www.focusarx.site/blog/attention-residue-task-switching): what switching costs, and how long the cost lasts.
+- [Body Doubling and Study Accountability](https://www.focusarx.site/blog/body-doubling-study-accountability): why working alongside someone else changes behaviour.
 
 ## Comparisons
 
@@ -63,6 +108,10 @@ claims. See https://www.focusarx.site/evidence
 - [FocusArx vs Pomofocus](https://www.focusarx.site/comparison/focusarx-vs-pomofocus)
 - [FocusArx vs Freedom](https://www.focusarx.site/comparison/focusarx-vs-freedom)
 - [FocusArx vs StayFocusd](https://www.focusarx.site/comparison/focusarx-vs-stayfocusd)
+- [FocusArx vs Anki](https://www.focusarx.site/comparison/focusarx-vs-anki): spaced-repetition flashcards against a focus system — and how to use both.
+- [FocusArx vs Notion](https://www.focusarx.site/comparison/focusarx-vs-notion): an all-in-one workspace against a timer that scores the session.
+- [FocusArx vs Todoist](https://www.focusarx.site/comparison/focusarx-vs-todoist): task capture and projects against timed, scored focus sessions.
+- [FocusArx vs Toggl Track](https://www.focusarx.site/comparison/focusarx-vs-toggl-track): recording where time went against structuring where it goes next.
 
 Each comparison states when the other product is the better choice. Competitor
 facts are limited to what those companies state publicly.
@@ -73,6 +122,8 @@ facts are limited to what those companies state publicly.
 - [Camera Data](https://www.focusarx.site/camera-data): attention monitoring is optional, off by default, processed on-device, and never uploaded.
 - [Accessibility](https://www.focusarx.site/accessibility): WCAG 2.2 AA target, automated axe-core testing, known limitations.
 - [Privacy Policy](https://www.focusarx.site/privacy)
+- [Terms of Service](https://www.focusarx.site/terms)
+- [Cookie Policy](https://www.focusarx.site/cookie-policy)
 - [AI Policy](https://www.focusarx.site/ai-policy)
 - [Data Deletion](https://www.focusarx.site/data-deletion)
 - [Acceptable Use](https://www.focusarx.site/acceptable-use)
@@ -83,6 +134,10 @@ facts are limited to what those companies state publicly.
 ## Optional
 
 - [Pricing](https://www.focusarx.site/pricing): free forever at the core.
+- [Premium](https://www.focusarx.site/premium): what Premium adds, and how Focus Tokens unlock it without a card.
+- [Help Center](https://www.focusarx.site/support): FAQs and how to reach a human.
 - [Product Roadmap](https://www.focusarx.site/roadmap)
+- [Changelog](https://www.focusarx.site/changelog): what shipped, most recent first.
 - [Developer Docs](https://www.focusarx.site/developer)
 - [Leaderboard](https://www.focusarx.site/leaderboard)
+- [Achievements](https://www.focusarx.site/achievements): 65+ badges across focus time, streaks, session quality and missions.

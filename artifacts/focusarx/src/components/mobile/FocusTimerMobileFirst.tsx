@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RollingClock } from "@/components/RollingClock";
 import { motion, AnimatePresence } from "framer-motion";
 import { Pause, Play, RotateCcw, Volume2, VolumeX, CheckCircle, AlertTriangle } from "lucide-react";
+import { NotebookPen } from "lucide-react";
 import { usePomodoro } from "@/hooks/usePomodoro";
 import { publishFocusState, resetFocusState } from "@/lib/focusSessionBus";
 import { useSessionPersistence } from "@/hooks/useSessionPersistence";
@@ -446,7 +447,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
                 boxShadow: skin.tier !== "free" && mode === "focus" ? `0 0 10px color-mix(in srgb, ${skin.ringAlt} 60%, transparent)` : undefined,
               }}
               animate={{ width: `${progress * 100}%` }}
-              transition={{ duration: 0.5 }}
+              transition={{ duration: 0.25}}
             />
           </div>
           <p className="mt-2 text-xs font-medium text-[var(--foreground-subtle)]">
@@ -503,9 +504,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
               className="grid min-h-[44px] min-w-[44px] place-items-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-1)] text-[var(--foreground-subtle)]"
               aria-label="Park a distracting thought for the break"
               title="Park a thought"
-            >
-              📝
-            </button>
+            ><NotebookPen size={16} aria-hidden="true" /></button>
             {isRunning && (
               <button
                 type="button"

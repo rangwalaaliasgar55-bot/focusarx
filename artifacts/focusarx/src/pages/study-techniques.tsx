@@ -2,6 +2,8 @@ import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { ArrowRight, BookOpen, Repeat, Layers, PenTool, Eye, Cpu } from "lucide-react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
+import { AuthorBlock } from "@/components/AuthorBlock";
+import { GUIDE_LIBRARY_REVIEWED } from "@/content/seo-pages.mjs";
 import { Button } from "@/components/ui/button";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
@@ -66,7 +68,7 @@ export default function StudyTechniquesPage() {
         initial: { opacity: 0, y: 14 },
         whileInView: { opacity: 1, y: 0 },
         viewport: { once: true, margin: "-60px" },
-        transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] as const },
+        transition: { duration: 0.25, ease: [0.16, 1, 0.3, 1] as const },
       };
 
   return (
@@ -97,6 +99,7 @@ export default function StudyTechniquesPage() {
             Six science-backed study techniques used by medical students, competitive programmers,
             and top exam scorers — with a practical how-to for each.
           </motion.p>
+          <AuthorBlock lastReviewed={GUIDE_LIBRARY_REVIEWED} className="mt-6 justify-center" />
           <motion.div {...reveal} className="mt-9">
             <Button asChild size="xl">
               <Link href="/signup">

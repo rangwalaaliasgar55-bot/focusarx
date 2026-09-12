@@ -53,7 +53,7 @@ export default function ZenOverlay({ secondsLeft, progress, mode, isRunning, acc
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.35 }}
+      transition={{ duration: 0.25}}
       className="fixed inset-0 z-[var(--z-modal)] flex flex-col items-center justify-center bg-[var(--palette-080b14)]"
       role="dialog"
       aria-label="Zen focus mode"
@@ -92,7 +92,7 @@ export default function ZenOverlay({ secondsLeft, progress, mode, isRunning, acc
             strokeDasharray={circ}
             initial={false}
             animate={{ strokeDashoffset: circ - progress * circ }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
           />
         </svg>
         <div className="absolute inset-0 grid place-items-center">

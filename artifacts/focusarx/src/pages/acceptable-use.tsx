@@ -88,6 +88,7 @@ function LegalFooter() {
     { href: "/acceptable-use", label: "Acceptable Use" },
     { href: "/ai-policy", label: "AI Policy" },
     { href: "/data-deletion", label: "Data Deletion" },
+    { href: "/accessibility", label: "Accessibility" },
   ];
   return (
     <div className="mt-10 flex flex-wrap gap-3 border-t border-[var(--rgba-124-58-237-0_1)] pt-6">

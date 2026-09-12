@@ -114,13 +114,13 @@ function classifySql(sql: string): { level: "read" | "write" | "schema" | "destr
   const upper = sql.toUpperCase().replace(/--.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
   
   if (/\b(DROP|TRUNCATE)\b/.test(upper)) {
-    return { level: "destructive", label: "DESTRUCTIVE", color: "text-red-400" };
+    return { level: "destructive", label: "Destructive", color: "text-red-400" };
   }
   if (/\bDELETE\b/.test(upper) && !/\bWHERE\b/.test(upper)) {
-    return { level: "destructive", label: "DESTRUCTIVE", color: "text-red-400" };
+    return { level: "destructive", label: "Destructive", color: "text-red-400" };
   }
   if (/\bUPDATE\b/.test(upper) && !/\bWHERE\b/.test(upper)) {
-    return { level: "destructive", label: "DESTRUCTIVE", color: "text-red-400" };
+    return { level: "destructive", label: "Destructive", color: "text-red-400" };
   }
   if (/\b(CREATE|ALTER)\b/.test(upper)) {
     return { level: "schema", label: "SCHEMA", color: "text-amber-400" };

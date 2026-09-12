@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Building2, Camera, Crown, Lock, Moon, MoonStar, Sparkles, Sun, Sunset, Users, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
-import { Building2, Zap, Users, Lock, Crown, Sun, Moon, Sparkles, Camera } from "lucide-react";
+
 import { usePremium } from "@/hooks/usePremium";
 import { Link } from "wouter";
 import { PAGE, CARD, STAGGER } from "@/lib/animations";
@@ -18,13 +19,13 @@ function authHeaders() {
   return h;
 }
 
-const TIER_CONFIG: Record<string, { label: string; color: string; icon: string; popMin: number; popMax: number }> = {
+const TIER_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode; popMin: number; popMax: number }> = {
   hamlet:       { label: "Study Hamlet",       color: "var(--palette-10b981)", icon: "🏘️",  popMin: 0,    popMax: 100   },
   village:      { label: "Focus Village",      color: "var(--palette-06b6d4)", icon: "🏙️",  popMin: 100,  popMax: 500   },
-  town:         { label: "Learning Town",      color: "var(--color-info)", icon: "🌆",  popMin: 500,  popMax: 1000  },
+  town:         { label: "Learning Town",      color: "var(--color-info)", icon: <Sunset size={16} aria-hidden="true" />,  popMin: 500,  popMax: 1000  },
   city:         { label: "Knowledge City",     color: "var(--brand-500)", icon: "🏙️",  popMin: 1000, popMax: 5000  },
-  metropolis:   { label: "Wisdom Metropolis",  color: "var(--palette-ec4899)", icon: "🌃",  popMin: 5000, popMax: 10000 },
-  civilization: { label: "Enlightened Civilization", color: "var(--color-warning)", icon: "✨", popMin: 10000, popMax: 50000 },
+  metropolis:   { label: "Wisdom Metropolis",  color: "var(--palette-ec4899)", icon: <MoonStar size={16} aria-hidden="true" />,  popMin: 5000, popMax: 10000 },
+  civilization: { label: "Enlightened Civilization", color: "var(--color-warning)", icon: <Sparkles size={16} aria-hidden="true" />, popMin: 10000, popMax: 50000 },
 };
 
 const WEATHER_EMOJI: Record<string, string> = {

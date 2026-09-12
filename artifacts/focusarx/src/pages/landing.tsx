@@ -159,7 +159,7 @@ export default function LandingPage() {
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
   };
 
-  const entrance = reduceMotion ? {} : { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.4, ease: "easeOut" as const } };
+  const entrance = reduceMotion ? {} : { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.25, ease: "easeOut" as const } };
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[var(--background)] text-[var(--foreground)]">
@@ -326,6 +326,45 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* ── EXAM GUIDES ────────────────────────────────────────
+            Most FocusArx visitors are students with a specific paper and a
+            date. Naming the exams they are actually sitting is the honest way
+            to say "this is built for you" — and it links the homepage into the
+            exam cluster instead of leaving 23 guides two clicks deep. */}
+        <section className="px-4 py-24 sm:px-6 sm:py-28">
+          <div className="mx-auto max-w-5xl">
+            <Reveal>
+              <p className="page-eyebrow">Exam prep</p>
+              <h2 className="text-balance text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">Built for the paper you are actually sitting.</h2>
+              <p className="mt-5 max-w-2xl text-base leading-relaxed text-[var(--foreground-muted)]">
+                Twenty-three exam guides written from the official bulletins — paper pattern, marking
+                rules, a dated plan, and the section timing that decides the rank. Each one comes with
+                a timer set to the length that paper rewards. Free, like everything else here.
+              </p>
+            </Reveal>
+            <RevealStagger className="mt-8 flex flex-wrap gap-3">
+              {[
+                { name: "JEE Main", note: "90 seconds a question", href: "/exam/jee-main" },
+                { name: "NEET UG", note: "200 questions of NCERT recall", href: "/exam/neet-ug" },
+                { name: "CBSE Class 12", note: "Step marks and presentation", href: "/exam/cbse-class-12" },
+                { name: "UPSC CSE", note: "Daily answer writing", href: "/exam/upsc-cse" },
+                { name: "BITSAT", note: "Speed over depth", href: "/exam/bitsat" },
+                { name: "CLAT", note: "120 questions, one passage each", href: "/exam/clat" },
+                { name: "CA Foundation", note: "Your weakest paper decides it", href: "/exam/ca-foundation" },
+                { name: "GRE", note: "Section-adaptive, under two hours", href: "/exam/gre" },
+              ].map(({ name, note, href }) => (
+                <RevealItem key={name}>
+                  <Link href={href} className="block min-h-11 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-5 py-3 text-left transition-[border-color,box-shadow] duration-[var(--duration-fast)] hover:border-[var(--card-border)] hover:shadow-[var(--shadow-xs)]">
+                    <p className="text-sm font-semibold">{name}</p>
+                    <p className="text-xs text-[var(--foreground-subtle)]">{note}</p>
+                  </Link>
+                </RevealItem>
+              ))}
+            </RevealStagger>
+            <Button asChild variant="outline" className="mt-8"><Link href="/exam">All 23 exam guides <ChevronRight /></Link></Button>
+          </div>
+        </section>
+
         {/* ── COMPARISON TEASER ─────────────────────────────────── */}
         <section className="border-y border-[var(--border-subtle)] bg-[var(--surface-hover)] px-4 py-24 sm:px-6 sm:py-32">
           <div className="mx-auto max-w-5xl text-center">
@@ -375,7 +414,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
             <div className="lg:col-span-2"><Brand /><p className="mt-4 max-w-sm text-sm leading-relaxed text-[var(--foreground-muted)]">A calm operating system for focused work, deliberate study, and sustainable momentum.</p></div>
-            {[{ title: "Product", links: [["Dashboard", "/dashboard"], ["Virtual study rooms", "/virtual-study-room"], ["Live study rooms", "/study-rooms"], ["Flashcards", "/flashcards"], ["Pricing", "/pricing"]] }, { title: "Learn", links: [["All guides", "/guides"], ["Focus guide", "/focus-guide"], ["Pomodoro guide", "/pomodoro-guide"], ["ADHD focus tips", "/adhd-focus-tips"], ["Stop procrastinating", "/stop-procrastinating"], ["Focus music", "/focus-music"]] }, { title: "Company", links: [["About", "/about"], ["Contact", "/contact"], ["Support", "/support"]] }].map((group) => <div key={group.title}><h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">{group.title}</h2><ul className="mt-4 space-y-3">{group.links.map(([label, href]) => <li key={href}><Link href={href} className="text-sm text-[var(--foreground-muted)] hover:text-[var(--foreground)]">{label}</Link></li>)}</ul></div>)}
+            {[{ title: "Product", links: [["Dashboard", "/dashboard"], ["Virtual study rooms", "/virtual-study-room"], ["Live study rooms", "/study-rooms"], ["Flashcards", "/flashcards"], ["Pricing", "/pricing"]] }, { title: "Learn", links: [["All guides", "/guides"], ["Exam prep hub", "/exam"], ["Focus guide", "/focus-guide"], ["Pomodoro guide", "/pomodoro-guide"], ["ADHD focus tips", "/adhd-focus-tips"], ["Stop procrastinating", "/stop-procrastinating"], ["Focus music", "/focus-music"]] }, { title: "Timers", links: [["Pomodoro timer", "/pomodoro-timer"], ["5 minute timer", "/5-minute-timer"], ["15 minute timer", "/15-minute-timer"], ["30 minute timer", "/30-minute-timer"], ["45 minute timer", "/45-minute-timer"]] }, { title: "Company", links: [["About", "/about"], ["Contact", "/contact"], ["Support", "/support"]] }].map((group) => <div key={group.title}><h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">{group.title}</h2><ul className="mt-4 space-y-3">{group.links.map(([label, href]) => <li key={href}><Link href={href} className="text-sm text-[var(--foreground-muted)] hover:text-[var(--foreground)]">{label}</Link></li>)}</ul></div>)}
           </div>
           {/* Footer. Real crawlable <a>/<Link> elements — not buttons with
               click handlers — because a crawler that does not execute

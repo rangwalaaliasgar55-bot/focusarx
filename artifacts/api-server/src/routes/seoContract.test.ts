@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { SEGMENTS } from "./sitemap";
+import { SEGMENTS, lastmodFor } from "./sitemap";
 
 /**
  * SEO contract guard — the four places a public URL must agree.
@@ -103,9 +103,39 @@ function routeCovers(url: string, routes: AppRoutes): boolean {
 
 /** Paths in the prerender manifest, resolved through the dynamic imports. */
 async function prerenderPaths(): Promise<Set<string>> {
-  const mod = (await import(PRERENDER_MJS)) as { ROUTES: Array<{ path: string }> };
-  // The manifest uses "" for the homepage; the sitemap uses "/".
-  return new Set(mod.ROUTES.map((r) => (r.path === "" ? "/" : r.path)));
+  const { paths } = await prerenderManifest();
+  return paths;
+}
+
+/**
+ * The manifest's paths *and* its `noindex` flags.
+ *
+ * A prerendered page is not automatically an indexable page. `/search` is built
+ * as a document (so a shared link gets a real title instead of the homepage's)
+ * but is flagged `noindex: true`, because internal search results are thin,
+ * near-duplicate pages with an unbounded `?q=` space. Treating "prerendered"
+ * as "must be in the sitemap" is what made that flag impossible to set: the
+ * contract test failed the moment the page was correctly de-indexed.
+ */
+async function prerenderManifest(): Promise<{
+  paths: Set<string>;
+  noindex: Set<string>;
+  lastReviewed: Map<string, string>;
+}> {
+  const mod = (await import(PRERENDER_MJS)) as {
+    ROUTES: Array<{ path: string; noindex?: boolean; lastReviewed?: string }>;
+  };
+  const paths = new Set<string>();
+  const noindex = new Set<string>();
+  const lastReviewed = new Map<string, string>();
+  for (const entry of mod.ROUTES) {
+    // The manifest uses "" for the homepage; the sitemap uses "/".
+    const url = entry.path === "" ? "/" : entry.path;
+    paths.add(url);
+    if (entry.noindex === true) noindex.add(url);
+    if (typeof entry.lastReviewed === "string" && entry.lastReviewed) lastReviewed.set(url, entry.lastReviewed);
+  }
+  return { paths, noindex, lastReviewed };
 }
 
 /**
@@ -163,22 +193,37 @@ describe("SEO contract: sitemap, routes, prerender manifest and robots.txt agree
 
   it("every PUBLIC prerendered page is in the sitemap", async () => {
     const inSitemap = sitemapUrls();
-    const prerendered = await prerenderPaths();
+    const { paths: prerendered, noindex } = await prerenderManifest();
     const { protectedRoutes } = appRoutes();
     const disallowed = await robotsDisallowed();
 
-    // Prerendering a login-walled or robots-disallowed page is correct — a
-    // shared link still needs a good social preview — but those URLs are
+    // Prerendering a login-walled, robots-disallowed or noindex page is correct —
+    // a shared link still needs a good social preview — but those URLs are
     // intentionally OUT of the sitemap. Only indexable public pages must be in.
     const orphaned = [...prerendered]
       .filter((url) => !inSitemap.has(url))
       .filter((url) => !protectedRoutes.has(url))
+      .filter((url) => !noindex.has(url))
       .filter((url) => isBlocked(url, disallowed) === null)
       .sort();
 
     expect(
       orphaned,
       `Indexable prerendered pages missing from the sitemap (discovery falls back to internal links alone): ${orphaned.join(", ")}`,
+    ).toEqual([]);
+  });
+
+  it("no noindex page is offered in the sitemap", async () => {
+    const { noindex } = await prerenderManifest();
+    const inSitemap = sitemapUrls();
+    const contradictory = [...noindex].filter((url) => inSitemap.has(url)).sort();
+
+    // Asking Google to drop a URL and simultaneously handing it the same URL in
+    // the sitemap wastes crawl budget and makes the intent unreadable. The two
+    // lists must stay disjoint.
+    expect(
+      contradictory,
+      `noindex pages that are also in the sitemap (contradictory signals): ${contradictory.join(", ")}`,
     ).toEqual([]);
   });
 
@@ -217,11 +262,47 @@ describe("SEO contract: sitemap, routes, prerender manifest and robots.txt agree
     expect(declaredWithoutProfiles).toEqual(fromApi);
   });
 
+  it("the static sitemap fallback advertises the same lastmod the API computes", () => {
+    const xml = fs.readFileSync(STATIC_SITEMAP, "utf8");
+    const declared = new Map<string, string | undefined>();
+    const block = /<sitemap>([\s\S]*?)<\/sitemap>/g;
+    let m: RegExpExecArray | null;
+    while ((m = block.exec(xml))) {
+      const file = /\/(sitemap-[^<]+\.xml)</.exec(m[1]!)?.[1];
+      if (!file) continue;
+      declared.set(file, /<lastmod>([^<]+)<\/lastmod>/.exec(m[1]!)?.[1]);
+    }
+
+    const drift: string[] = [];
+    for (const segment of SEGMENTS) {
+      const dates = segment.pages
+        .map((pg) => pg.lastmod ?? lastmodFor(pg.url, segment.file))
+        .filter((d): d is string => Boolean(d))
+        .sort();
+      const fromApi = dates.at(-1);
+      const fromStatic = declared.get(segment.file);
+      if (fromApi !== fromStatic) {
+        drift.push(`${segment.file}: static ${fromStatic ?? "(no lastmod)"} vs API ${fromApi ?? "(no lastmod)"}`);
+      }
+    }
+    expect(
+      drift,
+      `The checked-in sitemap index and the API disagree about when a segment last changed: ${drift.join(", ")}`,
+    ).toEqual([]);
+  });
+
   it("every internal link in the intent-page content resolves to a real page", async () => {
     const prerendered = await prerenderPaths();
     const routes = appRoutes();
     const reachable = new Set([...prerendered, ...routes.publicRoutes]);
-    const isReachable = (t: string) => reachable.has(t) || routeCovers(t, routes);
+    // Compare on the path only: a CTA may carry a deep-link query
+    // (`/focus?duration=45` pre-arms the timer), which resolves to the /focus
+    // route. The query is intent, not a different page — scripts/seo-validate.mjs
+    // strips it the same way before checking for broken links.
+    const isReachable = (t: string) => {
+      const path = t.split(/[?#]/)[0] || "/";
+      return reachable.has(path) || routeCovers(path, routes);
+    };
 
     const mod = (await import(SEO_PAGES_MJS)) as {
       SEO_PAGES: Record<string, { related: string[]; cta: { href: string } }>;
@@ -398,5 +479,155 @@ describe("public profiles: out of the sitemap, noindexed, still crawlable", asyn
     expect(src).toContain('"noindex, nofollow"');
     // …and must not undo it when the user navigates on to an indexable page.
     expect(src).toMatch(/prevRobots/);
+  });
+});
+
+/**
+ * sitemap lastmod: a review date somebody can stand behind.
+ * ══════════════════════════════════════════════════════════
+ * `urlsetXml` used to fall back to today's date for any page without an
+ * explicit `lastmod`, which is most of them — so every deploy rewrote the
+ * modification date of all 119 URLs. Google treats a chronically wrong lastmod
+ * as a reason to ignore the field, and the freshness signal the byline and the
+ * Article/BlogPosting `dateModified` are meant to send then arrives from three
+ * places that disagree.
+ *
+ * The server cannot import the frontend package at runtime (separate deploys),
+ * so the dates are mirrored in sitemap.ts and asserted equal here, page by
+ * page, against `scripts/prerender-data.mjs`.
+ */
+describe("sitemap lastmod: real review dates, mirrored from the prerender manifest", async () => {
+  it("agrees with the manifest for every page that has a review date", async () => {
+    const { lastReviewed } = await prerenderManifest();
+    const mismatched: string[] = [];
+    const missingFromSitemap: string[] = [];
+
+    const advertised = new Map<string, string>();
+    for (const segment of SEGMENTS) {
+      for (const page of segment.pages) {
+        const date = page.lastmod ?? lastmodFor(page.url, segment.file);
+        if (date) advertised.set(page.url, date);
+      }
+    }
+
+    for (const [url, date] of lastReviewed) {
+      const got = advertised.get(url);
+      if (!got) {
+        // Only a sitemap-listed URL can advertise a date.
+        if ([...sitemapUrls()].includes(url)) missingFromSitemap.push(`${url} (manifest says ${date})`);
+        continue;
+      }
+      if (got !== date) mismatched.push(`${url}: sitemap ${got} vs manifest ${date}`);
+    }
+
+    expect(
+      mismatched,
+      `sitemap lastmod disagrees with the visible "Last updated" and the schema dateModified: ${mismatched.join(", ")}`,
+    ).toEqual([]);
+    expect(
+      missingFromSitemap,
+      `sitemap-listed pages with a review date that emit no <lastmod>: ${missingFromSitemap.join(", ")}`,
+    ).toEqual([]);
+  });
+
+  it("never advertises a date the manifest does not have", async () => {
+    const { lastReviewed } = await prerenderManifest();
+    const invented: string[] = [];
+    for (const segment of SEGMENTS) {
+      for (const page of segment.pages) {
+        const date = page.lastmod ?? lastmodFor(page.url, segment.file);
+        if (date && !lastReviewed.has(page.url)) invented.push(`${page.url} (${date})`);
+      }
+    }
+    expect(
+      invented,
+      `These URLs advertise a lastmod with no matching manifest review date — either add it to prerender-data.mjs or drop it here: ${invented.join(", ")}`,
+    ).toEqual([]);
+  });
+
+  it("emits no lastmod for pages whose review date is unknown", () => {
+    // Omission beats a guess. The homepage, the app routes and the legal pages
+    // have no dated review, so they must not carry one.
+    for (const url of ["/", "/login", "/signup", "/pricing", "/terms", "/privacy"]) {
+      expect(lastmodFor(url, "sitemap-core.xml"), `${url} should omit <lastmod>`).toBeUndefined();
+      expect(lastmodFor(url, "sitemap-legal.xml"), `${url} should omit <lastmod>`).toBeUndefined();
+    }
+  });
+
+  it("emits <lastmod> over HTTP only where a review date exists", async () => {
+    // Asserted over the wire, not by reading the tables: the XML is what a
+    // crawler fetches, and "omit when unknown" is exactly the kind of rule that
+    // a helpful default (`?? today()`) silently reverses.
+    const express = (await import("express")).default;
+    const { sitemapRouter } = (await import("./sitemap.ts")) as {
+      sitemapRouter: import("express").Router;
+    };
+    const app = express();
+    app.use(sitemapRouter);
+    const server = app.listen(0);
+
+    /** loc → lastmod, with undefined meaning the element was omitted. */
+    const entriesOf = (xml: string) => {
+      const map = new Map<string, string | undefined>();
+      const block = /<url>([\s\S]*?)<\/url>/g;
+      let m: RegExpExecArray | null;
+      while ((m = block.exec(xml))) {
+        const loc = /<loc>([^<]+)<\/loc>/.exec(m[1]!)?.[1]?.replace(/^https:\/\/www\.focusarx\.site/, "") ?? "";
+        map.set(loc, /<lastmod>([^<]+)<\/lastmod>/.exec(m[1]!)?.[1]);
+      }
+      return map;
+    };
+
+    try {
+      const address = server.address();
+      if (!address || typeof address === "string") throw new Error("no port");
+      const base = `http://127.0.0.1:${address.port}`;
+
+      const guides = entriesOf(await (await fetch(`${base}/sitemap-guides.xml`)).text());
+      expect(guides.get("/focus-guide"), "rewritten guide library").toBe("2026-09-11");
+      expect(guides.get("/deep-work-guide"), "guide reviewed with the SEO set").toBe("2026-08-29");
+      expect(guides.get("/study-timer-for-medical-students"), "audience page").toBe("2026-09-11");
+      expect(guides.get("/guides"), "an index of guides has no review date of its own").toBeUndefined();
+
+      const core = entriesOf(await (await fetch(`${base}/sitemap-core.xml`)).text());
+      expect(core.get("/focus"), "app page, dated with the app").toBe("2026-09-04");
+      expect(core.get("/about"), "editorial standards copy").toBe("2026-09-11");
+      for (const undated of ["/", "/signup", "/login", "/pricing", "/study-rooms", "/leaderboard"]) {
+        expect(core.get(undated), `${undated} has no dated review`).toBeUndefined();
+      }
+
+      const legal = await (await fetch(`${base}/sitemap-legal.xml`)).text();
+      expect([...legal.matchAll(/<lastmod>/g)], "no policy page has a dated review").toEqual([]);
+
+      // The index dates each child with the newest date inside it — and omits
+      // the date for a segment whose pages have none.
+      const index = await (await fetch(`${base}/sitemap.xml`)).text();
+      const children = new Map<string, string | undefined>();
+      const childBlock = /<sitemap>([\s\S]*?)<\/sitemap>/g;
+      let bm: RegExpExecArray | null;
+      while ((bm = childBlock.exec(index))) {
+        const file = /\/(sitemap-[^<]+\.xml)</.exec(bm[1]!)?.[1];
+        if (file) children.set(file, /<lastmod>([^<]+)<\/lastmod>/.exec(bm[1]!)?.[1]);
+      }
+      expect(children.get("sitemap-guides.xml"), "newest date in the guides segment").toBe("2026-09-11");
+      expect(children.get("sitemap-core.xml"), "/about was reviewed today").toBe("2026-09-11");
+      expect(children.get("sitemap-trust.xml")).toBe("2026-08-29");
+      expect(children.get("sitemap-legal.xml"), "a segment with no dated pages gets no date").toBeUndefined();
+      expect(children.size, "every segment must be described").toBe(SEGMENTS.length);
+    } finally {
+      server.close();
+    }
+  });
+
+  it("never advertises a date in the future", () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const future: string[] = [];
+    for (const segment of SEGMENTS) {
+      for (const page of segment.pages) {
+        const date = page.lastmod ?? lastmodFor(page.url, segment.file);
+        if (date && date > today) future.push(`${page.url} (${date})`);
+      }
+    }
+    expect(future, `lastmod dates in the future: ${future.join(", ")}`).toEqual([]);
   });
 });

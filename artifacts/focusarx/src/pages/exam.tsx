@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { Link, useParams } from "wouter";
 import {
   ArrowLeft,
@@ -15,7 +15,15 @@ import {
   Timer,
 } from "lucide-react";
 import { PageSEO } from "@/components/PageSEO";
-import { EXAM_GUIDES, EXAM_HUB, findExamGuide } from "@/content/exam/index.mjs";
+import { EXAM_CLUSTER_REVIEWED, EXAM_HUB } from "@/content/exam/derive.mjs";
+import { FUNNEL_ANGLES } from "@/content/exam-funnel.mjs";
+import { useAllExamGuides, useExamGuide } from "@/lib/examGuideLoader";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { ContentTOC } from "@/components/ContentTOC";
+import { ClusterLinks } from "@/components/ClusterLinks";
+import { AuthorBlock } from "@/components/AuthorBlock";
+import { headingAnchors } from "@/lib/heading-id.mjs";
+import type { ExamGuide } from "@/content/exam/index.mjs";
 
 const BASE_URL = (import.meta.env.VITE_APP_URL || "https://www.focusarx.site").replace(/\/+$/, "");
 
@@ -79,11 +87,11 @@ function RelatedLinks({ related }: { related: string[] }) {
   );
 }
 
-function FaqAccordion({ faq }: { faq: [string, string][] }) {
+function FaqAccordion({ faq, headingId }: { faq: [string, string][]; headingId?: string }) {
   const [open, setOpen] = useState<number | null>(0);
   return (
     <div className="mt-16">
-      <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
+      <h2 id={headingId} className="text-2xl font-semibold mb-6 flex items-center gap-2">
         <HelpCircle size={20} className="text-[var(--palette-violet-400)]" />
         Frequently asked questions
       </h2>
@@ -130,10 +138,38 @@ function CtaBlock() {
   );
 }
 
+/**
+ * Suspense fallbacks. Sized to roughly match what replaces them so a
+ * client-side navigation does not jump the layout. On a prerendered page these
+ * never paint: React keeps the server HTML visible while the guide chunk loads
+ * and hydrates the boundary once it resolves (see src/lib/examGuideLoader.ts).
+ */
+function GuideSkeleton() {
+  return (
+    <div className="min-h-screen bg-[var(--background)]">
+      <div className="max-w-3xl mx-auto px-6 py-16 space-y-4" aria-hidden="true">
+        <div className="h-8 w-2/3 rounded-lg bg-[var(--card)] animate-pulse" />
+        <div className="h-4 w-full rounded-lg bg-[var(--card)] animate-pulse" />
+        <div className="h-4 w-5/6 rounded-lg bg-[var(--card)] animate-pulse" />
+        <div className="h-32 w-full rounded-2xl bg-[var(--card)] animate-pulse" />
+      </div>
+    </div>
+  );
+}
+
+function HubGridSkeleton() {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-16" aria-hidden="true">
+      {Array.from({ length: 9 }, (_, i) => (
+        <div key={i} className="h-44 rounded-2xl border border-[var(--border)] bg-[var(--card)] animate-pulse" />
+      ))}
+    </div>
+  );
+}
+
 // ── Single exam guide (/exam/:slug) ─────────────────────────────────
-export function ExamGuidePage() {
-  const { slug } = useParams<{ slug: string }>();
-  const guide = findExamGuide(slug || "");
+function ExamGuideBody({ slug }: { slug: string }) {
+  const guide = useExamGuide(slug);
 
   if (!guide) {
     return (
@@ -151,12 +187,18 @@ export function ExamGuidePage() {
   }
 
   const title = guide.title;
+  // Same heading list, in the same order, as scripts/prerender.mjs builds for
+  // the static document — so a jump link works whether or not the JS has run.
+  const tocHeadings = [...guide.sections.map((sec) => sec.h), "Frequently asked questions"];
+  const anchorFor = new Map(headingAnchors(tocHeadings).map((a) => [a.label, a.id]));
+
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       <PageSEO
         title={title}
         description={guide.description}
         canonical={`/exam/${guide.slug}`}
+        breadcrumbLabel={guide.h1}
         keywords={guide.keywords}
         ogImage={ogCardUrl(guide.title, guide.lead)}
         ogType="article"
@@ -164,9 +206,7 @@ export function ExamGuidePage() {
       />
 
       <div className="max-w-3xl mx-auto px-6 py-16 sm:py-24">
-        <Link href="/exam" className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--foreground-subtle)] hover:text-[var(--foreground)] mb-8">
-          <ArrowLeft size={14} /> All exam guides
-        </Link>
+        <Breadcrumbs path={`/exam/${guide.slug}`} title={guide.h1} className="mb-6" />
 
         <header className="mb-12">
           <div className="inline-flex items-center gap-2 rounded-full border border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--palette-violet-300)] mb-6">
@@ -174,6 +214,7 @@ export function ExamGuidePage() {
           </div>
           <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight leading-tight mb-5">{guide.h1}</h1>
           <p className="text-lg text-[var(--foreground-muted)] leading-relaxed">{guide.lead}</p>
+          <AuthorBlock lastReviewed={EXAM_CLUSTER_REVIEWED} className="mt-5" />
         </header>
 
         {guide.exam && (
@@ -212,10 +253,12 @@ export function ExamGuidePage() {
           </div>
         )}
 
+        <ContentTOC headings={tocHeadings} className="mb-14" />
+
         <article className="space-y-12">
           {guide.sections.map((s, i) => (
             <section key={i}>
-              <h2 className="text-2xl font-semibold mb-4 tracking-tight">{s.h}</h2>
+              <h2 id={anchorFor.get(s.h)} className="text-2xl font-semibold mb-4 tracking-tight">{s.h}</h2>
               {(Array.isArray(s.p) ? s.p : [s.p]).map((p, j) => (
                 <p key={j} className="mb-4 leading-relaxed text-[var(--foreground-muted)] last:mb-0">
                   {p}
@@ -225,15 +268,87 @@ export function ExamGuidePage() {
           ))}
         </article>
 
-        <FaqAccordion faq={guide.faq} />
+        <FaqAccordion faq={guide.faq} headingId={anchorFor.get("Frequently asked questions")} />
         <CtaBlock />
         <RelatedLinks related={guide.related} />
+        <ClusterLinks
+          path={`/exam/${guide.slug}`}
+          exclude={guide.related.map((pair) => String(pair).split("|")[0])}
+          className="mt-10"
+        />
       </div>
     </div>
   );
 }
 
+export function ExamGuidePage() {
+  const { slug } = useParams<{ slug: string }>();
+  return (
+    <Suspense fallback={<GuideSkeleton />}>
+      <ExamGuideBody slug={slug || ""} />
+    </Suspense>
+  );
+}
+
 // ── Exam hub (/exam) ───────────────────────────────────────────────
+/**
+ * The two guide-derived blocks of the hub (the card grid and the timer list).
+ * Split out so the hub's own copy renders immediately and only this part
+ * suspends on the per-slug chunks.
+ */
+function ExamHubGuides() {
+  const guides = useAllExamGuides();
+  return (
+    <>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-16">
+        {guides.map((g: ExamGuide) => (
+          <Link
+            key={g.slug}
+            href={`/exam/${g.slug}`}
+            className="group flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 transition-all hover:border-[var(--card-border)] hover:-translate-y-0.5"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <BookOpen size={14} className="text-[var(--palette-violet-400)]" />
+              <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--foreground-subtle)]">
+                {g.exam ? g.exam.name : "Universal"}
+              </span>
+            </div>
+            <h2 className="text-base font-bold mb-2 group-hover:text-[var(--palette-violet-300)] transition-colors leading-snug">
+              {g.h1}
+            </h2>
+            <p className="text-xs leading-relaxed text-[var(--foreground-muted)] line-clamp-3">{g.lead}</p>
+            <span className="mt-4 inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--palette-violet-400)]">
+              Read the guide <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
+            </span>
+          </Link>
+        ))}
+      </div>
+
+      <section className="mb-16" aria-labelledby="exam-timers-heading">
+        <h2 id="exam-timers-heading" className="text-xl font-semibold mb-2 tracking-tight">
+          Pomodoro timer for each exam
+        </h2>
+        <p className="text-sm text-[var(--foreground-muted)] mb-6 max-w-2xl">
+          The same timer, tuned to the interval each paper actually rewards — no signup needed to start one.
+        </p>
+        <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {guides.filter((g: ExamGuide) => FUNNEL_ANGLES[g.slug]).map((g: ExamGuide) => (
+            <li key={`timer-${g.slug}`}>
+              <Link
+                href={`/pomodoro-timer-for/${g.slug}`}
+                className="flex min-h-11 items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm font-medium transition-colors hover:border-[var(--card-border)]"
+              >
+                <Timer size={14} className="text-[var(--palette-violet-400)] flex-shrink-0" />
+                Pomodoro timer for {g.exam?.name ?? g.slug}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </>
+  );
+}
+
 export function ExamHubPage() {
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
@@ -248,36 +363,18 @@ export function ExamHubPage() {
 
       <div className="max-w-5xl mx-auto px-6 py-16 sm:py-24">
         <header className="text-center mb-14">
+          <Breadcrumbs path="/exam" title={EXAM_HUB.h1} className="mb-8 flex justify-center [&>ol]:justify-center" />
           <div className="inline-flex items-center gap-2 rounded-full border border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--palette-violet-300)] mb-8">
             <Sparkles size={12} /> Exam guide library
           </div>
           <h1 className="text-4xl sm:text-6xl font-semibold tracking-tight mb-6">{EXAM_HUB.h1}</h1>
           <p className="text-lg text-[var(--foreground-muted)] max-w-2xl mx-auto leading-relaxed">{EXAM_HUB.lead}</p>
+          <AuthorBlock lastReviewed={EXAM_CLUSTER_REVIEWED} className="mt-5 justify-center [&>ol]:justify-center" />
         </header>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-16">
-          {EXAM_GUIDES.map((g) => (
-            <Link
-              key={g.slug}
-              href={`/exam/${g.slug}`}
-              className="group flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 transition-all hover:border-[var(--card-border)] hover:-translate-y-0.5"
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <BookOpen size={14} className="text-[var(--palette-violet-400)]" />
-                <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--foreground-subtle)]">
-                  {g.exam ? g.exam.name : "Universal"}
-                </span>
-              </div>
-              <h2 className="text-base font-bold mb-2 group-hover:text-[var(--palette-violet-300)] transition-colors leading-snug">
-                {g.h1}
-              </h2>
-              <p className="text-xs leading-relaxed text-[var(--foreground-muted)] line-clamp-3">{g.lead}</p>
-              <span className="mt-4 inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--palette-violet-400)]">
-                Read the guide <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
-              </span>
-            </Link>
-          ))}
-        </div>
+        <Suspense fallback={<HubGridSkeleton />}>
+          <ExamHubGuides />
+        </Suspense>
 
         {EXAM_HUB.sections.map((s, i) => (
           <section key={i} className="mb-10 max-w-3xl mx-auto">
@@ -291,6 +388,15 @@ export function ExamHubPage() {
         ))}
 
         <FaqAccordion faq={EXAM_HUB.faq} />
+
+        {/* The exam pillar links out to every page in its cluster — guides,
+            their dedicated timers and the study tools that support them. */}
+        <ClusterLinks
+          path="/exam"
+          exclude={EXAM_HUB.related.map((pair) => String(pair).split("|")[0])}
+          className="mt-10"
+        />
+
         <CtaBlock />
       </div>
     </div>

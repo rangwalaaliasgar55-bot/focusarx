@@ -1,6 +1,9 @@
 import { Link } from "wouter";
 import { ArrowRight, Timer, Brain, Coffee, Smartphone, ShieldCheck } from "lucide-react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
+import { AuthorBlock } from "@/components/AuthorBlock";
+import { GUIDE_LIBRARY_REVIEWED } from "@/content/seo-pages.mjs";
+import { ClusterLinks } from "@/components/ClusterLinks";
 
 function TipCard({ icon: Icon, title, body, color }: { icon: React.ComponentType<any>; title: string; body: string; color: string }) {
   return (
@@ -32,6 +35,7 @@ export default function PomodoroGuidePage() {
           <p className="text-xl text-[var(--foreground-muted)] max-w-2xl mx-auto mb-12 leading-relaxed">
             The world's most popular study system. We break down the science of 25-minute intervals and how to use them to reach your biggest goals.
           </p>
+          <AuthorBlock lastReviewed={GUIDE_LIBRARY_REVIEWED} className="mt-6 justify-center" />
           <Link href="/signup">
             <button className="h-16 px-10 rounded-2xl bg-gradient-to-r from-[var(--palette-red-500)] to-[var(--palette-orange-500)] text-lg font-semibold shadow-[0_0_40px_var(--rgba-239-68-68-0_3)] hover:scale-105 transition-transform">
               Try the Free Pomodoro Timer <ArrowRight size={18} className="inline ml-1" />
@@ -94,6 +98,12 @@ export default function PomodoroGuidePage() {
             </div>
           </div>
         </section>
+      </div>
+
+      {/* This page is the Pomodoro pillar: it links out to every timer,
+          interval tool and guide in the cluster, and they all link back. */}
+      <div className="max-w-5xl mx-auto px-6 pb-14">
+        <ClusterLinks path="/pomodoro-guide" />
       </div>
 
       <div className="border-t border-[var(--palette-white)]/5 py-12 text-center flex flex-wrap justify-center gap-8 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--palette-2a2d3a)]">

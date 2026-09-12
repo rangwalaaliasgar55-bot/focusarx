@@ -72,7 +72,19 @@ export default function ForgeRoomPage() {
   const roomsQuery = useQuery({
     queryKey: ["forge-rooms"],
     queryFn: fetchForgeRooms,
-    refetchInterval: 30_000,
+    // 30 s while the room list is healthy — presence and the shared minute goal
+    // are live data, so the poll is the feature.
+    //
+    // While it is failing, back off to 2 minutes and stop retrying so hard.
+    // React Query's defaults (3 retries with backoff, then another full retry
+    // cycle every 30 s) meant a broken /api/study-rooms produced an error in
+    // the console roughly every 8 seconds forever, on a page people leave open
+    // for hours. Two attempts, then a slow poll and the on-screen error state
+    // with its own Retry button, is the same information without the spam.
+    retry: (failureCount) => failureCount < 2,
+    refetchInterval: (query) => (query.state.error ? 120_000 : 30_000),
+    refetchIntervalInBackground: false,
+    staleTime: 10_000,
   });
 
   const rooms = roomsQuery.data ?? [];

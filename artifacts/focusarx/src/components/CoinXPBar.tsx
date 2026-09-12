@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Coins } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getToken } from "@/lib/auth";
 
@@ -101,7 +102,7 @@ export default function CoinXPBar() {
         className="flex items-center gap-1.5 rounded-full border border-[var(--rgba-255-184-0-0_25)] bg-[var(--rgba-255-184-0-0_08)] px-2.5 py-1.5"
         title={`${wallet.coins.toLocaleString()} coins`}
       >
-        <span className="text-sm leading-none" aria-hidden>🪙</span>
+        <span className="text-sm leading-none" aria-hidden><Coins size={16} aria-hidden="true" /></span>
         <span className="text-xs font-bold text-[var(--brand-gold)]">{wallet.coins.toLocaleString()}</span>
       </div>
 
@@ -120,7 +121,7 @@ export default function CoinXPBar() {
               className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)]"
               style={{ boxShadow: "0 0 6px var(--rgba-124-58-237-0_5)" }}
               animate={{ width: `${Math.min(100, levelProgress * 100)}%` }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
             />
           </div>
           <p className="text-[11px] text-[var(--foreground-subtle)]">{wallet.weeklyXp.toLocaleString()} XP / week</p>

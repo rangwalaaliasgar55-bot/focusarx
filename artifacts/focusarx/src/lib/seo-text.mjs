@@ -26,6 +26,20 @@ export const DESCRIPTION_BUDGET = 160;
  */
 export const MIN_SNIPPET = 60;
 
+/**
+ * Hreflang cluster for the single English edition.
+ *
+ * FocusArx publishes one English site — there are no locale URL trees — so
+ * every alternate resolves to the current page's own canonical. The annotations
+ * declare the intended audiences: India first (en-IN), then the wider
+ * English-speaking world (en-GB), the generic language (en) and the fallback
+ * (x-default). One list, three consumers that must agree: index.html,
+ * scripts/prerender.mjs (static HTML) and components/PageSEO.tsx (SPA
+ * navigation). scripts/seo-validate.mjs imports it too and fails the build when
+ * a document's cluster does not match, so the three can never drift.
+ */
+export const HREFLANG_LOCALES = ["x-default", "en", "en-IN", "en-GB"];
+
 /** Characters the brand mark costs when composeTitle re-appends it. */
 const BRAND_COST = SEPARATOR.length + BRAND.length;
 

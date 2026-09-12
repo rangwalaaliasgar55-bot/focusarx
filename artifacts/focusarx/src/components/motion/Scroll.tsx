@@ -56,7 +56,7 @@ export function Reveal({ delay = 0, distance = 24, as = "div", children, ...rest
       initial={{ opacity: 0, y: distance }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={VIEWPORT}
-      transition={{ duration: 0.7, delay, ease: EASE_APPLE }}
+      transition={{ duration: 0.25, delay, ease: EASE_APPLE }}
       style={{ willChange: "transform, opacity", ...(rest as { style?: React.CSSProperties }).style }}
       {...rest}
     >
@@ -74,7 +74,7 @@ const STAGGER_CONTAINER: Variants = {
 
 const STAGGER_ITEM: Variants = {
   hidden: { opacity: 0, y: 26 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: EASE_APPLE } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.25, ease: EASE_APPLE } },
 };
 
 type StaggerProps = Omit<React.ComponentProps<typeof motion.div>, "children"> & {

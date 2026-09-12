@@ -68,7 +68,7 @@ export default function StreakFreezeCard() {
   if (!atRisk && !protectedToday && freeze.tokens === 0 && streak.currentStreak === 0) return null;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25}}>
       <Card elevation={atRisk ? "glow" : undefined} className={atRisk ? "border-[var(--warning)]/40" : undefined}>
         <CardContent className="flex flex-wrap items-center gap-4 py-4">
           <span

@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { PartyPopper } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, Plus, Brain, Clock, CheckCircle, XCircle, RotateCcw, Sparkles } from 'lucide-react';
 import { PageSEO } from '@/components/PageSEO';
@@ -326,7 +327,7 @@ export default function FlashcardsPage() {
             animate={{ opacity: 1, scale: 1 }}
             className="rounded-3xl border border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/5 p-12 text-center"
           >
-            <div className="text-4xl mb-4">🎉</div>
+            <div className="text-4xl mb-4"><PartyPopper size={16} aria-hidden="true" /></div>
             <h2 className="text-xl font-semibold text-[var(--palette-white)] mb-2">Study Session Complete!</h2>
             <p className="text-sm text-[var(--palette-zinc-500)] mb-6">
               You reviewed {cards.length} cards. Your FSRS algorithm has scheduled optimal review times.

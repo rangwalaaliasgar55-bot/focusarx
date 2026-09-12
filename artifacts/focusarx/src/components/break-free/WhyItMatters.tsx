@@ -1,15 +1,16 @@
 import { useRef } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Brain, CalendarDays } from "lucide-react";
 
 const CARDS = [
   {
-    icon: "🧠",
+    icon: <Brain size={16} aria-hidden="true" />,
     title: "The Dopamine Loop",
     body: "Excessive pornography spikes dopamine far beyond natural levels, dulling your brain's response to everyday rewards like connection, food, or achievement. Over time, ordinary life feels flat — not because it is, but because your reward system has been recalibrated.",
   },
   {
-    icon: "📅",
+    icon: <CalendarDays size={16} aria-hidden="true" />,
     title: "Your Brain's Timeline",
     body: "Day 7: withdrawal eases and sleep improves. Day 14: focus and mental clarity return. Day 30: motivation rebuilds and energy stabilises. Day 90: your dopamine baseline fully resets — the world becomes vivid again.",
   },
@@ -65,7 +66,7 @@ export default function WhyItMatters() {
             key={card.title}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: i * 0.08 }}
+            transition={{ duration: 0.25, delay: i * 0.08 }}
             className="shrink-0 w-72 rounded-2xl border border-[var(--palette-teal-900)]/25 bg-[var(--palette-061212)] p-5"
           >
             <div className="text-3xl mb-3">{card.icon}</div>

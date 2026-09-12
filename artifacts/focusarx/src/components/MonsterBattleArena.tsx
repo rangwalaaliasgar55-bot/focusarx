@@ -258,7 +258,7 @@ function HealthBar({ current, max, label, color }: { current: number; max: numbe
           className="h-full rounded-full"
           style={{ background: `linear-gradient(90deg, ${color}, ${color}dd)` }}
           animate={{ width: `${percentage}%` }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
+          transition={{ duration: 0.25, ease: "easeOut" }}
         />
       </div>
     </div>

@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Waves } from "lucide-react";
+import { Droplets, Dumbbell, Footprints } from "lucide-react";
 
 const DISTRACTIONS = [
-  { icon: "💧", label: "Drink cold water", sub: "Stand up, go to the kitchen, drink a full glass slowly." },
-  { icon: "💪", label: "Do 20 push-ups", sub: "Drop and give 20. Physical effort overrides the urge." },
-  { icon: "🚶", label: "Go for a walk", sub: "Step outside, even just around the block. Move your body." },
+  { icon: <Droplets size={16} aria-hidden="true" />, label: "Drink cold water", sub: "Stand up, go to the kitchen, drink a full glass slowly." },
+  { icon: <Dumbbell size={16} aria-hidden="true" />, label: "Do 20 push-ups", sub: "Drop and give 20. Physical effort overrides the urge." },
+  { icon: <Footprints size={16} aria-hidden="true" />, label: "Go for a walk", sub: "Step outside, even just around the block. Move your body." },
   { icon: "📞", label: "Call someone you trust", sub: "You don't have to explain why. Just connect with someone." },
 ];
 

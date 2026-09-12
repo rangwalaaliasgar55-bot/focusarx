@@ -8,7 +8,7 @@ export default function BlogPage() {
   return (
     <div className="mx-auto w-full max-w-[980px] px-4 py-16 sm:px-6">
       <PageSEO
-        title="Blog | Focus, Deep Work and Study Science | FocusArx"
+        title="FocusArx blog: focus, deep work, study science"
         description="Short essays on focus, deep work and study science: why 25 minutes works, attention residue, and body doubling."
       />
       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--foreground-subtle)]">

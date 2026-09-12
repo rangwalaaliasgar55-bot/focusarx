@@ -46,6 +46,37 @@
          currently not indexed" backlog.
     ══════════════════════════════════════════════════════════════ -->
     <link rel="canonical" href="https://www.focusarx.site/" />
+    <!-- ══════════════════════════════════════════════════════════
+         HREFLANG — audience annotations for a single English edition
+         FocusArx publishes ONE English edition: there are no /in/ or /uk/
+         URL trees, so every alternate below resolves to the same canonical.
+         That is deliberate and it is what Google's documentation allows for
+         a single-URL language edition — the annotations declare the intended
+         audiences (India first, then the wider English-speaking world) and
+         x-default is the fallback. Two rules keep this honest:
+
+           • all alternates in the cluster must be self-consistent and point
+             at a live 200 URL, never at a redirect — scripts/prerender.mjs
+             rewrites all four per page and scripts/seo-validate.mjs fails the
+             build if any page's cluster disagrees with its canonical;
+           • if locale-specific URLs are ever added (a real /in/ edition, not
+             a query parameter), these must be repointed at them, because a
+             cluster of four identical URLs is a signal, not a duplicate-content
+             workaround.
+
+         scripts/prerender.mjs replaces this block per prerendered page;
+         src/components/PageSEO.tsx keeps it current on client-side
+         navigation so the DOM and the static HTML never disagree.
+    ══════════════════════════════════════════════════════════════ -->
+    <link rel="alternate" hreflang="x-default" href="https://www.focusarx.site/" />
+    <link rel="alternate" hreflang="en" href="https://www.focusarx.site/" />
+    <link rel="alternate" hreflang="en-IN" href="https://www.focusarx.site/" />
+    <link rel="alternate" hreflang="en-GB" href="https://www.focusarx.site/" />
+    <!-- RSS. Generated at build time by scripts/prerender.mjs, so every item is
+         a page this build also prerendered — the feed can never advertise a URL
+         that answers 404. Declaring it here is what lets feed readers and
+         browsers autodiscover it. -->
+    <link rel="alternate" type="application/rss+xml" title="FocusArx — focus and study articles" href="/feed.xml" />
 
     <!-- ══════════════════════════════════════════════════════════
          OPEN GRAPH — Facebook, LinkedIn, Discord, WhatsApp, Slack
@@ -132,8 +163,8 @@
         "availableLanguage": "English"
       },
       "sameAs": [
-        "https://twitter.com/focusarx",
-        "https://www.focusarx.site"
+        "https://www.youtube.com/@AJourneyR",
+        "https://github.com/rangwalaaliasgar55-bot/focusarx"
       ]
     }
     </script>
@@ -377,7 +408,9 @@
     <!-- Fonts are self-hosted (@fontsource) — no fonts.gstatic.com connection needed. -->
     <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossorigin />
     <link rel="dns-prefetch" href="https://tpc.googlesyndication.com" />
-    <link rel="dns-prefetch" href="https://images.unsplash.com" />
+    <!-- images.unsplash.com used to be pre-fetched here for two hotlinked hero
+         illustrations; both are self-hosted WebP now (public/content/), so the
+         third-party connection is gone with them. -->
 
     <!-- Google tag (gtag.js) — installed once for every FocusArx route.
          Direct gtag.js is a deliberate choice, not a missing GTM install: one
@@ -388,6 +421,40 @@
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
+
+      // ── Consent Mode v2 ────────────────────────────────────────────
+      // Must run BEFORE `config`, or the first hit is sent with no consent
+      // state at all and Google treats it as "no signal" instead of an
+      // explicit choice.
+      //
+      //   ad_storage / ad_user_data / ad_personalization → denied.
+      //     FocusArx runs no Google Ads today and AdSense (which is on this
+      //     page) does its own TCF consent. Declaring these denied keeps the
+      //     door open for Google Ads later without ever implying consent we
+      //     did not collect — the requirement behind India's DPDP Act and the
+      //     EEA/UK rules Google enforces from March 2024.
+      //   analytics_storage → granted.
+      //     First-party measurement only: IP is anonymised below, no cross-site
+      //     identifier is set, the notice is shown on first visit
+      //     (components/CookieConsent.tsx) and "Essential only" flips this to
+      //     denied. Denying it by default instead would silently drop the
+      //     sign_up / session_complete key events for every visitor who never
+      //     interacts with the banner.
+      //
+      // CookieConsent.tsx calls `gtag("consent", "update", …)` from the same
+      // shared helper (src/lib/consent.ts) when the visitor chooses — the two
+      // files must not grow separate consent logic.
+      gtag("consent", "default", {
+        ad_storage: "denied",
+        ad_user_data: "denied",
+        ad_personalization: "denied",
+        analytics_storage: "granted",
+        functionality_storage: "granted",
+        personalization_storage: "denied",
+        security_storage: "granted",
+        wait_for_update: 500,
+      });
+
       gtag("js", new Date());
       // SPA route changes are reported by SiteAnalyticsTracker. Disabling the
       // automatic view here prevents the initial route from being counted twice.

@@ -1,12 +1,14 @@
 import { Link } from "wouter";
 import { Brain, Clock, Zap, GraduationCap, MessageSquare } from "lucide-react";
 import { PageSEO } from "@/components/PageSEO";
+import { AuthorBlock } from "@/components/AuthorBlock";
+import { GUIDE_LIBRARY_REVIEWED } from "@/content/seo-pages.mjs";
 
 export default function FeynmanTechniquePage() {
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       <PageSEO
-        title="The Feynman Technique | Master Any Subject Faster | FocusArx"
+        title="The Feynman technique: learn any subject faster"
         description="Learn the Feynman Technique — the ultimate method for rapid learning. 4 simple steps to understand complex topics by teaching them to others."
         canonical="/feynman-technique"
         keywords="feynman technique, rapid learning, study methods, richard feynman, how to learn anything"
@@ -23,13 +25,21 @@ export default function FeynmanTechniquePage() {
           <p className="text-lg text-[var(--foreground-muted)] max-w-2xl mx-auto">
             "If you can't explain it simply, you don't understand it well enough." — Richard Feynman.
           </p>
+          <AuthorBlock lastReviewed={GUIDE_LIBRARY_REVIEWED} className="mt-6 justify-center" />
         </header>
 
         <div className="grid gap-12 lg:grid-cols-2 mb-24">
            <div className="relative aspect-video rounded-3xl overflow-hidden border border-[var(--palette-white)]/5 bg-[var(--palette-zinc-900)] shadow-2xl">
+              {/* Self-hosted illustration (public/content/). It used to be an
+                  Unsplash hotlink: a third-party CDN means the image search
+                  credit went to unsplash.com, the filename was a photo id, and
+                  a rate limit or a deleted photo would have left a hole in the
+                  layout. */}
               <img
-                src="https://images.unsplash.com/photo-1454165833767-027ffea9e61b?auto=format&fit=crop&q=80&w=1200"
-                alt="Studying the Feynman Technique"
+                src="/content/feynman-technique-explaining-whiteboard.webp"
+                alt="Illustration of a person explaining a flow diagram on a whiteboard to two listeners, the way the Feynman technique asks you to teach a concept back"
+                width={1200}
+                height={675}
                 loading="lazy"
                 decoding="async"
                 className="object-cover w-full h-full opacity-60"
