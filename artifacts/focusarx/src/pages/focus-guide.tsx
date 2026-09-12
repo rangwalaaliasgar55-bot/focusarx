@@ -1,6 +1,8 @@
 import { Link } from "wouter";
 import { ArrowRight, Brain, Clock, Target, Zap, CheckCircle, TrendingUp, Users, ListChecks, Moon, Dumbbell, ShieldCheck } from "lucide-react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
+import { AuthorBlock } from "@/components/AuthorBlock";
+import { GUIDE_LIBRARY_REVIEWED } from "@/content/seo-pages.mjs";
 
 function Section({ id, children, className = "" }: { id?: string; children: React.ReactNode; className?: string }) {
   return (
@@ -92,6 +94,7 @@ export default function FocusGuidePage() {
           <p className="max-w-2xl mx-auto text-[var(--foreground-muted)] text-base sm:text-lg">
             Attention is the most valuable resource you own — and the one most under attack. This guide explains why focus is hard, the science behind it, and a practical system to master deep work.
           </p>
+          <AuthorBlock lastReviewed={GUIDE_LIBRARY_REVIEWED} className="mt-6 justify-center" />
         </Section>
       </div>
 

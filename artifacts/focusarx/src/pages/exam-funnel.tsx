@@ -2,6 +2,7 @@ import { Suspense, useEffect } from "react";
 import { Link, useParams } from "wouter";
 import { PageSEO } from "@/components/PageSEO";
 import {
+  EXAM_CLUSTER_REVIEWED,
   EXAM_SLUG_ORDER,
   funnelDescription,
   funnelHeading,
@@ -12,6 +13,7 @@ import { FUNNEL_ANGLES, getFunnelAngle } from "@/content/exam-funnel.mjs";
 import { useExamGuide } from "@/lib/examGuideLoader";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ClusterLinks } from "@/components/ClusterLinks";
+import { AuthorBlock } from "@/components/AuthorBlock";
 import { dispatchFocusDeepLink } from "@/lib/focusDeepLink";
 import { FocusTimerMobileFirst } from "@/components/mobile/FocusTimerMobileFirst";
 
@@ -89,6 +91,7 @@ function ExamFunnelBody({ exam }: { exam: string }) {
       </p>
       <h1 className="text-h1 mt-2">{heading}</h1>
       <p className="text-body mt-3 max-w-2xl text-[17px] text-[var(--foreground-muted)]">{funnel.angle}</p>
+      <AuthorBlock lastReviewed={EXAM_CLUSTER_REVIEWED} className="mt-5" />
 
       <div className="mt-8 w-full max-w-sm">
         <FocusTimerMobileFirst />

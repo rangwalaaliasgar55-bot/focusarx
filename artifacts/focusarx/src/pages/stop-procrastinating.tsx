@@ -1,6 +1,8 @@
 import { Link } from "wouter";
 import { ArrowRight, Flame, CheckCircle, ListChecks, Clock, Zap, Brain, Users, Ban, Scale } from "lucide-react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
+import { AuthorBlock } from "@/components/AuthorBlock";
+import { GUIDE_LIBRARY_REVIEWED } from "@/content/seo-pages.mjs";
 
 function Section({ id, children, className = "" }: { id?: string; children: React.ReactNode; className?: string }) {
   return <section id={id} className={`mx-auto max-w-3xl px-4 sm:px-6 ${className}`}>{children}</section>;
@@ -91,6 +93,7 @@ export default function StopProcrastinatingPage() {
           <p className="mx-auto max-w-2xl text-base text-[var(--foreground-muted)] sm:text-lg">
             Procrastination isn't laziness or a time-management glitch — it's your brain avoiding an emotion. Here's the science, and the toolkit.
           </p>
+          <AuthorBlock lastReviewed={GUIDE_LIBRARY_REVIEWED} className="mt-6 justify-center" />
         </Section>
       </div>
 

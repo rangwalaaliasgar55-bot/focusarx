@@ -408,7 +408,9 @@
     <!-- Fonts are self-hosted (@fontsource) — no fonts.gstatic.com connection needed. -->
     <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossorigin />
     <link rel="dns-prefetch" href="https://tpc.googlesyndication.com" />
-    <link rel="dns-prefetch" href="https://images.unsplash.com" />
+    <!-- images.unsplash.com used to be pre-fetched here for two hotlinked hero
+         illustrations; both are self-hosted WebP now (public/content/), so the
+         third-party connection is gone with them. -->
 
     <!-- Google tag (gtag.js) — installed once for every FocusArx route.
          Direct gtag.js is a deliberate choice, not a missing GTM install: one

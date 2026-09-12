@@ -2,11 +2,12 @@ import { Check, Minus, ArrowRight } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { PageSEO } from "@/components/PageSEO";
 import { AdSlot } from "@/components/AdSlot";
-import { COMPARISONS, COMPARISON_PATHS } from "@/content/seo-pages.mjs";
+import { COMPARISONS, COMPARISON_PATHS, COMPARISONS_REVIEWED } from "@/content/seo-pages.mjs";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ContentTOC } from "@/components/ContentTOC";
 import { headingAnchors } from "@/lib/heading-id.mjs";
 import { ClusterLinks } from "@/components/ClusterLinks";
+import { AuthorBlock } from "@/components/AuthorBlock";
 import type { Comparison } from "@/content/seo-pages.mjs";
 
 /**
@@ -108,7 +109,7 @@ export default function ComparisonPage() {
       <Breadcrumbs path={canonical} title={data.title} className="mb-6" />
 
       <p className="text-xs font-bold uppercase tracking-widest text-[var(--brand-400)]">
-        Product comparison · Updated 2026
+        Product comparison
       </p>
       <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight text-[var(--foreground)] sm:text-5xl">
         {data.title}
@@ -116,6 +117,10 @@ export default function ComparisonPage() {
       <p className="mt-5 max-w-3xl text-[15px] leading-relaxed text-[var(--foreground-muted)]">
         {data.lead}
       </p>
+
+      {/* Who is responsible for this comparison, and when the claims in it were
+          last checked against the products as they actually ship. */}
+      <AuthorBlock lastReviewed={COMPARISONS_REVIEWED} className="mt-5" />
 
       <ContentTOC headings={verdictHeadings} label="On this page" className="mt-8" />
 

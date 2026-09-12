@@ -3,6 +3,8 @@ import { useEffect } from "react";
 import { Link } from "wouter";
 import { Clock, TrendingUp, Target, BarChart3, BookOpen, ArrowRight, Lightbulb } from "lucide-react";
 import { PageSEO } from "@/components/PageSEO";
+import { AuthorBlock } from "@/components/AuthorBlock";
+import { GUIDE_LIBRARY_REVIEWED } from "@/content/seo-pages.mjs";
 import { track, scrollDepthEffect } from "@/lib/analytics";
 
 // Analytics: track blog page views
@@ -95,6 +97,7 @@ export default function TwoHourStudyMethodPage() {
             university gold medalists — share one habit that has nothing to do with how long they study.
             Here's what they actually do, and how you can copy it starting today.
           </p>
+          <AuthorBlock lastReviewed={GUIDE_LIBRARY_REVIEWED} className="mt-6" />
           <div className="mt-6 flex flex-wrap items-center gap-4 text-xs text-[var(--foreground-subtle)]">
             <span className="flex items-center gap-1.5"><Clock size={12} /> 8 min read</span>
             <span className="flex items-center gap-1.5"><BarChart3 size={12} /> Research-backed</span>

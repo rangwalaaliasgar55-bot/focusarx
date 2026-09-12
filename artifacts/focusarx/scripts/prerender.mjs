@@ -28,6 +28,8 @@ import {
   pillarLinksFor,
   siblingSpokes,
 } from "../src/content/clusters.mjs";
+import { authorSchema, resolveAuthor } from "../src/content/authors.mjs";
+import { citationParts } from "../src/lib/citations.mjs";
 import { headingAnchors } from "../src/lib/heading-id.mjs";
 import { parseRobots, robotsMetaFor } from "../src/lib/robots-parse.mjs";
 import path from "node:path";
@@ -139,19 +141,68 @@ function breadcrumbSchema(routePath, title) {
   return breadcrumbListSchema(breadcrumbTrail(routePath, { title }), BASE_URL);
 }
 
+/** "2026-09-05" → "5 September 2026". */
+function formatLongDate(iso) {
+  if (!iso) return "";
+  const date = new Date(`${iso}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return String(iso);
+  return date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+/**
+ * Byline + freshness line, rendered above the fold.
+ *
+ * The author comes from src/content/authors.mjs — the same module the Article
+ * schema below reads — so the visible byline and the structured data describe
+ * the same responsible party. `dateModified` used to be the build date, which
+ * told Google every page on the site had been rewritten on every deploy.
+ */
+function bylineBlock(entry) {
+  const author = resolveAuthor(entry.author);
+  const bits = [
+    `<span class="byline-name">${escapeHtml(author.name)}</span>`,
+    author.role ? `<span>${escapeHtml(author.role)}</span>` : "",
+    entry.date
+      ? `<time datetime="${escapeHtml(entry.date)}">${escapeHtml(formatLongDate(entry.date))}</time>`
+      : "",
+    entry.readMin ? `<span>${escapeHtml(String(entry.readMin))} min read</span>` : "",
+    entry.lastReviewed
+      ? `<span>Last updated <time datetime="${escapeHtml(entry.lastReviewed)}">${escapeHtml(
+          formatLongDate(entry.lastReviewed),
+        )}</time></span>`
+      : "",
+    `<a href="/about">Who writes this</a>`,
+  ].filter(Boolean);
+  return `<div class="byline">${bits.join('<span aria-hidden="true">·</span>')}</div>`;
+}
+
 function articleSchema(entry, url) {
+  const author = resolveAuthor(entry.author);
+  // Only a date somebody can stand behind: the review date, or the publication
+  // date for a blog post. Falling back to the build date here made every
+  // undated page claim it had been modified today, on every deploy — the same
+  // lie the sitemap's `lastmod ?? now` was telling. Omitting the property is
+  // honest; Google treats a chronically wrong dateModified as a reason to
+  // distrust the rest of the markup.
+  const modified = entry.lastReviewed || entry.date || null;
   return {
     "@context": "https://schema.org",
-    "@type": "Article",
+    "@type": entry.date ? "BlogPosting" : "Article",
     headline: entry.h1,
     description: entry.description,
-    author: { "@type": "Organization", name: SITE_NAME },
+    author: authorSchema(author),
     publisher: {
       "@type": "Organization",
       name: SITE_NAME,
       logo: { "@type": "ImageObject", url: `${BASE_URL}/logo.png` },
     },
-    dateModified: new Date().toISOString().slice(0, 10),
+    ...(entry.date ? { datePublished: entry.date } : {}),
+    ...(modified ? { dateModified: modified } : {}),
     mainEntityOfPage: url,
   };
 }
@@ -227,6 +278,9 @@ html:not(.fa-js) body{background:#0b0d13}
 .fa-seo .sources strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#8b90a0;margin-bottom:8px}
 .fa-seo .sources ul{list-style:none;color:#8b90a0;font-size:13px}
 .fa-seo .sources p{color:#8b90a0;font-size:12px;margin-top:8px}
+.fa-seo .byline{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0 0;font-size:12px;color:#8b90a0}
+.fa-seo .byline .byline-name{font-weight:600;color:#b9bdca}
+.fa-seo .byline a{color:#c9a7ff;text-decoration:none}
 .fa-seo .cluster{margin-top:28px;border-top:1px solid #2a2d3a;padding-top:20px}
 .fa-seo .cluster strong{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#8b90a0}
 .fa-seo .cluster p{margin:8px 0 0;font-size:14px;color:#b9bdca}
@@ -560,18 +614,25 @@ function renderBody(entry) {
 
   // Visible attribution. Structured data must describe content the reader can
   // actually see, so sources are rendered, not just declared.
+  // Citations are visible and, where a source can be checked, linked out. A
+  // claim with no route to its evidence is just an assertion.
   const sourcesBlock = entry.sources?.length
     ? `<div class="sources"><strong>Sources and attribution</strong><ul>${entry.sources
-        .map((src) => `<li>${escapeHtml(src)}</li>`)
-        .join("")}</ul>${
-          entry.lastReviewed
-            ? `<p>Last reviewed ${escapeHtml(entry.lastReviewed)}.</p>`
-            : ""
-        }</div>`
+        .map((src) => {
+          // Prose citations are matched against the registry in
+          // src/lib/citations.mjs, so twenty content files did not each have to
+          // grow a URL — and the static document and the rendered page resolve
+          // a citation to the same place.
+          const { text, url } = citationParts(src);
+          return url
+            ? `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(text)}</a></li>`
+            : `<li>${escapeHtml(text)}</li>`;
+        })
+        .join("")}</ul></div>`
     : "";
 
   const cta = entry.cta || { href: "/signup", label: "Start focusing free" };
-  return `<div class="fa-seo">${breadcrumbsBlock}<span class="badge">${SITE_NAME}</span><h1>${escapeHtml(entry.h1)}</h1><p class="lead">${escapeHtml(entry.lead)}</p>${answerBlock}${tocBlock}${stepsBlock}${sections}${faqBlock}${sourcesBlock}${relatedBlock}${clusterBlock}<a class="cta" href="${escapeHtml(cta.href)}">${escapeHtml(cta.label)}</a></div>`;
+  return `<div class="fa-seo">${breadcrumbsBlock}<span class="badge">${SITE_NAME}</span><h1>${escapeHtml(entry.h1)}</h1><p class="lead">${escapeHtml(entry.lead)}</p>${bylineBlock(entry)}${answerBlock}${tocBlock}${stepsBlock}${sections}${faqBlock}${sourcesBlock}${relatedBlock}${clusterBlock}<a class="cta" href="${escapeHtml(cta.href)}">${escapeHtml(cta.label)}</a></div>`;
 }
 
 // ── main ───────────────────────────────────────────────────────────

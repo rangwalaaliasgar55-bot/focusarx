@@ -17,6 +17,8 @@ import {
   Video,
 } from "lucide-react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
+import { AuthorBlock } from "@/components/AuthorBlock";
+import { GUIDE_LIBRARY_REVIEWED } from "@/content/seo-pages.mjs";
 import { Button } from "@/components/ui/button";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
@@ -135,6 +137,7 @@ export default function VirtualStudyRoomPage() {
             Join a live room, keep your camera on or off, and focus in synchronized silence with
             learners around the world. Free to browse — free account to join and chat.
           </motion.p>
+          <AuthorBlock lastReviewed={GUIDE_LIBRARY_REVIEWED} className="mt-6 justify-center" />
           <motion.div {...reveal} className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button asChild size="xl">
               <Link href="/study-rooms">

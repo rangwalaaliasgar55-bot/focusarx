@@ -6,6 +6,8 @@ import type { ExamGuide, ExamHub } from "./index.mjs";
 
 export const EXAM_SLUG_ORDER: string[];
 export const EXAM_NAMES: Record<string, string>;
+/** When the exam cluster's copy was last reviewed as a set. */
+export const EXAM_CLUSTER_REVIEWED: string;
 export function examDisplayName(slug: string): string;
 /** Short label used by /pomodoro-timer-for/:exam titles ("CAT", "NDA & NA"). */
 export function funnelLabel(slug: string): string;

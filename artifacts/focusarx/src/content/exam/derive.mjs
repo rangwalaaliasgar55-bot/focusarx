@@ -96,6 +96,16 @@ export function examDisplayName(slug) {
  */
 
 /**
+ * When this cluster's copy was last reviewed as a set — the nine state,
+ * professional and international guides joining the original fourteen. It
+ * drives the visible "Last updated" line, Article `dateModified` and the
+ * sitemap `lastmod`, all of which must say the same thing. A date nobody can
+ * stand behind is worse than no date, so it is the review date, never the
+ * build date.
+ */
+export const EXAM_CLUSTER_REVIEWED = "2026-09-05";
+
+/**
  * Short label for the funnel pages at /pomodoro-timer-for/:exam.
  *
  * `examDisplayName` is written for a guide body, where "NDA & NA (National

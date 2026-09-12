@@ -45,6 +45,42 @@
 
 export const LAST_REVIEWED = "2026-08-29";
 
+/**
+ * When the long-form guide library was last rewritten.
+ *
+ * The eleven guides in scripts/prerender-data.mjs that are not built from
+ * SEO_PAGES (focus-guide, pomodoro-guide, study-techniques,
+ * stop-procrastinating, study-with-me, focus-music, deep-study-guide,
+ * two-hour-study-method, science-of-deep-work, feynman-technique,
+ * virtual-study-room) had their titles, leads, snippet answers, FAQs and
+ * cluster links rewritten in the on-page ranking pass — so this is a date a
+ * reader is actually being promised, not a build date.
+ *
+ * It lives here rather than in the build script because three things read it:
+ * the page component's byline, the prerender manifest's `lastReviewed` (which
+ * drives the static byline and Article `dateModified`), and the sitemap
+ * `<lastmod>` mirror in api-server/src/routes/sitemap.ts. seoContract.test.ts
+ * asserts the mirror still matches.
+ *
+ * Pages with no dated review — the app shells, the marketing pages, the policy
+ * pages — deliberately get no date at all: omission is honest, a guess is not.
+ */
+export const GUIDE_LIBRARY_REVIEWED = "2026-09-11";
+
+/**
+ * When the About page's editorial-standards copy was last reviewed. It lives
+ * here with the other freshness dates so the page, the prerender manifest and
+ * the sitemap mirror all read one value.
+ */
+export const ABOUT_REVIEWED = "2026-09-11";
+
+/**
+ * When the comparison set was last reviewed as a whole — the four alternatives
+ * (Anki, Notion, Todoist, Toggl Track) joining the original six. Same rule as
+ * EXAM_CLUSTER_REVIEWED: a real review date, never a build date.
+ */
+export const COMPARISONS_REVIEWED = "2026-09-06";
+
 import { MINUTE_TIMER_DURATIONS, MINUTE_TIMER_PAGES } from "./minute-timers.mjs";
 
 /**
@@ -559,7 +595,9 @@ export const SEO_PAGES = {
       "/adhd-focus-tools|ADHD-friendly focus tools",
       "/focus-timer-for-programmers|Focus timer for programmers",
     ],
-    lastReviewed: LAST_REVIEWED,
+    // Written 11 September 2026; the date is when the copy was last checked
+    // against the sources below, not when the build ran.
+    lastReviewed: "2026-09-11",
     sources: [
       "Dunlosky et al., 'Improving Students' Learning With Effective Learning Techniques' (2013) — practice testing and distributed practice rated highest-utility, rereading and highlighting lowest.",
       "Karpicke & Roediger, 'The Critical Importance of Retrieval for Learning', Science (2008) — repeated retrieval beat repeated study for long-term recall.",
@@ -633,7 +671,7 @@ export const SEO_PAGES = {
       "/comparison/focusarx-vs-toggl-track|FocusArx vs Toggl Track",
       "/study-timer-for-medical-students|Study timer for medical students",
     ],
-    lastReviewed: LAST_REVIEWED,
+    lastReviewed: "2026-09-11",
     sources: [
       "Mark, Gudith & Klocke, 'The Cost of Interrupted Work: More Speed and Stress', CHI (2008) — interrupted work finishes faster but costs more stress, effort and time pressure.",
       "Leroy, 'Why Is It So Hard to Do My Work?', Journal of Vocational Behavior (2009) — attention residue persists after switching away from a task.",

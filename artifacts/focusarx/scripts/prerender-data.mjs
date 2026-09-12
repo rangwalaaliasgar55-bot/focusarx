@@ -13,10 +13,18 @@
 export const SITE_NAME = "FocusArx";
 import { clampText, DESCRIPTION_BUDGET, PAGE_TITLE_BUDGET } from "../src/lib/seo-text.mjs";
 import { EXAM_GUIDES, EXAM_HUB } from "../src/content/exam/index.mjs";
-import { SEO_PAGES, COMPARISONS, COMPARISON_PATHS } from "../src/content/seo-pages.mjs";
+import {
+  COMPARISONS_REVIEWED,
+  COMPARISONS,
+  ABOUT_REVIEWED,
+  COMPARISON_PATHS,
+  GUIDE_LIBRARY_REVIEWED,
+  SEO_PAGES,
+} from "../src/content/seo-pages.mjs";
 import { BLOG_POSTS } from "../src/content/blog.mjs";
 import { FUNNEL_ANGLES } from "../src/content/exam-funnel.mjs";
 import {
+  EXAM_CLUSTER_REVIEWED,
   funnelDescription,
   funnelHeading,
   funnelTitle,
@@ -39,6 +47,9 @@ export const DEFAULT_OG_IMAGE_PATH = "/opengraph.jpg";
  * @property {{h: string, p: string}[]} [sections] — body sections
  * @property {[string, string][]} [faq]   — [question, answer] pairs (emits FAQPage JSON-LD)
  * @property {boolean} [article]     — emit Article JSON-LD (guides)
+ * @property {string} [lastReviewed] — ISO date the copy was last reviewed;
+ *                                     drives the visible byline, dateModified
+ *                                     and the sitemap lastmod
  * @property {string[]} [related]    — related internal links (path|Label)
  */
 
@@ -199,6 +210,7 @@ export const ROUTES = [
   // ── Company ───────────────────────────────────────────────────
   {
     path: "/about",
+    lastReviewed: ABOUT_REVIEWED,
     title: "About FocusArx: why we built a focus timer",
     description:
       "FocusArx helps students and professionals build unbreakable focus habits with an AI-powered, gamified deep-work platform.",
@@ -213,8 +225,20 @@ export const ROUTES = [
         h: "How we're different",
         p: "FocusArx is free forever at its core, privacy-first (optional attention monitoring runs entirely on-device), and built around measurable focus depth rather than vanity metrics.",
       },
+      {
+        h: "Who writes this",
+        p: "The FocusArx editorial team — the people who build the product. Every long-form page carries that byline and the date its copy was last checked, and the same date is what the sitemap advertises.",
+      },
+      {
+        h: "How we research what we publish",
+        p: "Claims link out to the primary source — the paper, the book or the exam body. Every metric we quote is on the evidence ledger with its definition, source, sample and date. We make no clinical claims, we invent no citations, and we sell no advertising, no data and no page ranking.",
+      },
+      {
+        h: "Corrections",
+        p: "Email focusarx@gmail.com and we will fix the page and move its last-updated date, so a reader can tell the correction happened.",
+      },
     ],
-    related: relatedFor("/about", COMPANY_LINKS, ["/achievements|Achievements"], POLICY_LINKS.slice(0, 3)),
+    related: relatedFor("/about", COMPANY_LINKS, ["/achievements|Achievements", "/evidence|Evidence ledger"], POLICY_LINKS.slice(0, 3)),
   },
   {
     path: "/contact",
@@ -314,6 +338,7 @@ export const ROUTES = [
   },
   {
     path: "/focus-guide",
+    lastReviewed: GUIDE_LIBRARY_REVIEWED,
     title: "How to focus: a science-based system (2026)",
     description:
       "Learn how to focus and master deep work — Pomodoro technique, time blocking, and flow state — plus a practical system to build unbreakable focus.",
@@ -344,6 +369,7 @@ export const ROUTES = [
   },
   {
     path: "/pomodoro-guide",
+    lastReviewed: GUIDE_LIBRARY_REVIEWED,
     title: "Pomodoro technique: the complete guide (2026)",
     description:
       "Complete guide to the Pomodoro Technique: how 25/5 sprints work, mistakes to avoid, longer deep-work intervals, and the best free timer app.",
@@ -373,6 +399,7 @@ export const ROUTES = [
   },
   {
     path: "/study-techniques",
+    lastReviewed: GUIDE_LIBRARY_REVIEWED,
     title: "Best study techniques, ranked by evidence (2026)",
     description:
       "The most effective study techniques ranked by evidence — active recall, spaced repetition, interleaving, elaboration — and how to combine them into a system.",
@@ -461,7 +488,7 @@ export const ROUTES = [
       "/focus-timer-for-programmers|Focus timer for programmers",
       "/guides|All guides",
     ],
-    lastReviewed: "2026-08-29",
+    lastReviewed: "2026-09-11",
     sources: [
       "Russell A. Barkley, Taking Charge of ADHD (3rd ed., Guilford Press, 2020) — ADHD as a disorder of self-regulation and executive function rather than of effort.",
       "Volkow N.D. et al., 'Dopamine transporter densities in adults with attention deficit hyperactivity disorder', American Journal of Psychiatry (2009) — reduced dopamine signalling.",
@@ -471,6 +498,7 @@ export const ROUTES = [
   },
   {
     path: "/stop-procrastinating",
+    lastReviewed: GUIDE_LIBRARY_REVIEWED,
     title: "How to Stop Procrastinating: 12 Methods That Work | FocusArx",
     description:
       "Why you procrastinate (it's not laziness) and 12 proven ways to stop — the 2-minute rule, temptation bundling, and implementation intentions.",
@@ -506,6 +534,7 @@ export const ROUTES = [
   },
   {
     path: "/study-with-me",
+    lastReviewed: GUIDE_LIBRARY_REVIEWED,
     title: "Study with me: free live sessions, 24/7",
     description:
       "Study with me alongside thousands of learners in live virtual rooms — silent body doubling, synced Pomodoro timers, and free 24/7 accountability.",
@@ -541,6 +570,7 @@ export const ROUTES = [
   },
   {
     path: "/focus-music",
+    lastReviewed: GUIDE_LIBRARY_REVIEWED,
     title: "Focus music: what science actually says (2026)",
     description:
       "Does study music actually help? What research says about lo-fi, binaural beats, noise colors, and silence — plus how to build a playlist that works.",
@@ -576,6 +606,7 @@ export const ROUTES = [
   },
   {
     path: "/deep-study-guide",
+    lastReviewed: GUIDE_LIBRARY_REVIEWED,
     title: "How to Study 2 Hours Deeply, Not 12 Distracted",
     description:
       "The complete deep study guide: science-backed strategies for sustained concentration, memory retention, and peak academic performance.",
@@ -601,6 +632,7 @@ export const ROUTES = [
   },
   {
     path: "/two-hour-study-method",
+    lastReviewed: GUIDE_LIBRARY_REVIEWED,
     title: "The 2-Hour Study Method: Focused Sessions Win",
     description:
       "Master the 2-hour focused study method: warm-up, intense focused study, retrieval practice, and review — the structure that beats scattered, unfocused hours.",
@@ -626,6 +658,7 @@ export const ROUTES = [
   },
   {
     path: "/science-of-deep-work",
+    lastReviewed: GUIDE_LIBRARY_REVIEWED,
     title: "The neuroscience of deep work, explained (2026)",
     description:
       "Explore the biological mechanisms behind deep work — myelin, neurotransmitters, attention networks, and how to enter the flow state faster.",
@@ -650,6 +683,7 @@ export const ROUTES = [
   },
   {
     path: "/feynman-technique",
+    lastReviewed: GUIDE_LIBRARY_REVIEWED,
     title: "The Feynman technique: learn any subject faster",
     description:
       "Learn the Feynman Technique — the ultimate method for rapid learning. Four simple steps to understand complex topics by explaining them simply.",
@@ -712,6 +746,7 @@ export const ROUTES = [
   },
   {
     path: "/virtual-study-room",
+    lastReviewed: GUIDE_LIBRARY_REVIEWED,
     title: "Virtual study room: focus with others, free",
     description:
       "Join a free virtual study room and focus with other learners online. Synchronized Pomodoro timers, live presence, 24/7 rooms, cameras optional.",
@@ -1014,6 +1049,7 @@ export const ROUTES = [
         [`When should I choose ${c.name} over FocusArx?`, c.whenTheirs],
       ],
       article: true,
+      lastReviewed: COMPARISONS_REVIEWED,
       // Every sibling comparison, not the first three. The live page
       // (src/pages/comparison.tsx) already renders the full set; truncating it
       // here meant two of the six comparisons had no inbound link at all in the
@@ -1029,6 +1065,8 @@ export const ROUTES = [
   // ── Exam guide cluster (Workstream E) ─────────────────────
   {
     path: "/exam",
+    // The hub belongs to the exam cluster and was reviewed with it.
+    lastReviewed: EXAM_CLUSTER_REVIEWED,
     title: EXAM_HUB.title,
     description: EXAM_HUB.description,
     h1: EXAM_HUB.h1,
@@ -1053,6 +1091,10 @@ export const ROUTES = [
     article: true,
     ogImage: examOgImage(g.title.replace(/\s*\|\s*FocusArx.*$/i, ""), g.lead),
     related: g.related,
+    // The cluster was reviewed as a set when the nine state, professional and
+    // international guides joined it. A date nobody can stand behind is worse
+    // than no date, so it is the review date rather than the build date.
+    lastReviewed: EXAM_CLUSTER_REVIEWED,
   })),
 
   // ── Blog (one source: src/content/blog.mjs — extend there) ────
@@ -1073,6 +1115,10 @@ export const ROUTES = [
     description: clampText(p.description, DESCRIPTION_BUDGET),
     h1: p.h1,
     lead: p.lead,
+    // Publication date and reading time: the byline renders them and the
+    // BlogPosting schema needs a real datePublished rather than the build date.
+    date: p.date,
+    readMin: p.readMin,
     sections: p.sections,
     faq: p.faq,
     article: true,

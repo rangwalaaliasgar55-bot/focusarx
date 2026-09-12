@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
@@ -21,9 +21,46 @@ function getDeploymentVersion(): string {
   }
 }
 
+/**
+ * Preload the display font's latin subset — the LCP font.
+ *
+ * Every page's H1 is set in Manrope Variable (`--font-display` in index.css).
+ * Without a hint the browser only discovers the woff2 after the CSS has
+ * downloaded *and* parsed, so the largest text on the page — usually the LCP
+ * element — waits a whole round trip it does not need to wait, and with
+ * `font-display: swap` that round trip is a visible reflow on the headline.
+ *
+ * The filename is content-hashed, so the hint cannot be a static line in
+ * index.html: it has to be injected once Rollup has named the assets, which is
+ * exactly the window `transformIndexHtml` with `order: "post"` gets. Only the
+ * latin subset is preloaded; the cyrillic/greek/vietnamese files are never
+ * fetched for an English page and would be wasted bandwidth.
+ *
+ * scripts/seo-validate.mjs asserts every emitted page still carries the hint,
+ * so a future rewrite of the <head> cannot drop it silently.
+ */
+function preloadDisplayFont(): Plugin {
+  const latin = /manrope-latin-wght-normal-[^/]+\.woff2$/;
+  const prefix = basePath.replace(/\/?$/, "/");
+  return {
+    name: "focusarx:preload-display-font",
+    apply: "build",
+    enforce: "post",
+    transformIndexHtml: {
+      order: "post",
+      handler(html, ctx) {
+        const font = Object.keys(ctx.bundle ?? {}).find((name) => latin.test(name));
+        if (!font) return html;
+        const tag = `    <link rel="preload" href="${prefix}${font}" as="font" type="font/woff2" crossorigin />\n`;
+        return html.replace("</head>", `${tag}  </head>`);
+      },
+    },
+  };
+}
+
 export default defineConfig({
   base: basePath,
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), preloadDisplayFont()],
   define: {
     __DEPLOYMENT_VERSION__: JSON.stringify(getDeploymentVersion()),
     "import.meta.env.VITE_DEPLOYMENT_VERSION": JSON.stringify(getDeploymentVersion()),

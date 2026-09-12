@@ -11,6 +11,8 @@ export interface BlogPost {
   description: string;
   date: string;
   readMin: number;
+  /** Author id from src/content/authors.mjs; defaults to the editorial team. */
+  author?: string;
   h1: string;
   lead: string;
   sections: BlogSection[];

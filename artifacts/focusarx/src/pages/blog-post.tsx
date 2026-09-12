@@ -1,9 +1,10 @@
 import { Link, useParams } from "wouter";
 import { PageSEO } from "@/components/PageSEO";
 import { BLOG_POSTS, getBlogPost } from "@/content/blog.mjs";
-import { fmtDate } from "@/lib/locale";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ContentTOC } from "@/components/ContentTOC";
+import { AuthorBlock } from "@/components/AuthorBlock";
+import { authorSchema, resolveAuthor } from "@/content/authors.mjs";
 import { ClusterLinks } from "@/components/ClusterLinks";
 import { headingAnchors } from "@/lib/heading-id.mjs";
 
@@ -53,11 +54,37 @@ export default function BlogPostPage() {
         description={post.description}
         canonical={`/blog/${post.slug}`}
         breadcrumbLabel={post.h1}
+        structuredData={[
+          // The same BlogPosting the prerendered document carries: author,
+          // published date and modified date from the content, not the build.
+          {
+            "@context": "https://schema.org",
+            "@type": "BlogPosting",
+            headline: post.h1,
+            description: post.description,
+            author: authorSchema(resolveAuthor(post.author)),
+            publisher: {
+              "@type": "Organization",
+              name: "FocusArx",
+              logo: {
+                "@type": "ImageObject",
+                url: "https://www.focusarx.site/logo.png",
+              },
+            },
+            datePublished: post.date,
+            dateModified: post.date,
+            mainEntityOfPage: `https://www.focusarx.site/blog/${post.slug}`,
+          },
+        ]}
       />
       <Breadcrumbs path={`/blog/${post.slug}`} title={post.h1} />
-      <p className="mt-6 text-xs text-[var(--foreground-subtle)]">
-        {fmtDate(post.date)} · {post.readMin} min read
-      </p>
+      <AuthorBlock
+        author={post.author}
+        published={post.date}
+        readMin={post.readMin}
+        lastReviewed={post.date}
+        className="mt-6"
+      />
       <h1 className="text-h1 mt-2">{post.h1}</h1>
       <p className="text-body mt-4 max-w-2xl text-[17px] text-[var(--foreground-muted)]">{post.lead}</p>
 

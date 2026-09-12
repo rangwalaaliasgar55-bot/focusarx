@@ -826,6 +826,148 @@ for (const entry of manifestRoutes) {
   if (spokesChecked === 0) problems.push("cluster gate checked no spokes — src/content/clusters.mjs may be empty");
 }
 
+// ── 12. Byline, visible freshness and citation links (E-E-A-T) ───────────
+// Experience, expertise, authoritativeness, trustworthiness is not a widget you
+// add: it is whether a reader can tell who is responsible for a page, when the
+// copy was last checked, and how to verify its claims. Three things used to be
+// missing and are now gates, because each one fails silently — the build passes
+// and the page simply looks anonymous and stale:
+//
+//   • a byline naming the author, on every page that argues something;
+//   • a visible "Last updated" date that agrees with the manifest review date
+//     AND with the Article/BlogPosting `dateModified` — three surfaces, one
+//     value, and no build date standing in for a review date;
+//   • citation links that are followable. `rel="nofollow"` on a source link
+//     tells Google we do not vouch for the paper we are citing, which defeats
+//     the reason for citing it.
+{
+  const manifest = new Map(manifestRoutes.map((e) => [e.path === "" ? "/" : e.path, e]));
+  const docByPath = new Map(documents.map((d) => [d.path, d.html]));
+  const NO_VOUCH = /rel="[^"]*\b(nofollow|sponsored|ugc)\b/;
+
+  let bylines = 0;
+  let citations = 0;
+  let datedPages = 0;
+
+  for (const routePath of indexablePaths) {
+    const html = docByPath.get(routePath);
+    if (!html) continue; // covered by the prerender-coverage gate above
+    const entry = manifest.get(routePath) ?? {};
+
+    // (a) byline on pages that make claims
+    const hasByline = html.includes('class="byline"');
+    const arguesSomething = entry.article === true || Array.isArray(entry.sources) || Array.isArray(entry.faq);
+    if (arguesSomething && !hasByline) {
+      problems.push(`${routePath}: content page with no byline — a reader cannot tell who is responsible for it`);
+    }
+    if (hasByline) bylines += 1;
+
+    // (b) freshness: one date, three surfaces
+    const blocks = [...html.matchAll(/<script[^>]*application\/ld\+json[^>]*>([\s\S]*?)<\/script>/g)].map((m) => {
+      try {
+        return JSON.parse(m[1]);
+      } catch {
+        problems.push(`${routePath}: JSON-LD block does not parse`);
+        return null;
+      }
+    });
+    const nodes = blocks.flat(Infinity).filter((n) => n && typeof n === "object");
+    const article = nodes.find((n) => n["@type"] === "Article" || n["@type"] === "BlogPosting");
+    const visible = /Last updated <time datetime="(\d{4}-\d{2}-\d{2})"/.exec(html)?.[1];
+
+    if (entry.lastReviewed) {
+      datedPages += 1;
+      if (visible !== entry.lastReviewed) {
+        problems.push(
+          `${routePath}: visible "Last updated" is ${visible ?? "missing"} but the manifest review date is ${entry.lastReviewed}`,
+        );
+      }
+      if (article && article.dateModified !== entry.lastReviewed) {
+        problems.push(
+          `${routePath}: schema dateModified is ${article.dateModified ?? "missing"} but the review date is ${entry.lastReviewed}`,
+        );
+      }
+      // No Article node is fine — a trust page or a SoftwareApplication page can
+      // carry a visible review date without pretending to be an article. What is
+      // not fine is an Article node that disagrees with it (checked above).
+    } else {
+      if (visible) problems.push(`${routePath}: advertises "Last updated ${visible}" with no review date in the manifest`);
+      if (article?.dateModified) {
+        problems.push(
+          `${routePath}: schema dateModified ${article.dateModified} with no review date in the manifest — a build date is not a review date`,
+        );
+      }
+    }
+
+    // (c) citations: outbound, followable, safe
+    const sources = /<div class="sources">([\s\S]*?)<\/div>/.exec(html)?.[1] ?? "";
+    for (const m of sources.matchAll(/<a\b([^>]*)>/g)) {
+      // The whole attribute string, not just what precedes href: the prerenderer
+      // emits `<a href target rel>`, so slicing at href hid the rel entirely and
+      // this gate reported every citation as unsafe.
+      const attrs = m[1];
+      const href = /href="(https?:\/\/[^"]+)"/.exec(attrs)?.[1];
+      if (!href) continue;
+      citations += 1;
+      if (NO_VOUCH.test(attrs)) {
+        problems.push(`${routePath}: citation link to ${href} is nofollow/sponsored/ugc — we cite it, so we vouch for it`);
+      }
+      if (!/rel="[^"]*noopener/.test(attrs)) {
+        problems.push(`${routePath}: citation link to ${href} leaves the site without rel="noopener noreferrer"`);
+      }
+    }
+  }
+
+  // The gates above are per-page; these fail if the machinery itself stopped
+  // running, which would otherwise make every check above vacuously true.
+  if (bylines < 60) problems.push(`byline gate saw only ${bylines} bylines — prerender.mjs may have stopped rendering them`);
+  if (datedPages < 60) problems.push(`freshness gate saw only ${datedPages} dated pages — the review dates may have been dropped`);
+  if (citations === 0) problems.push("citation gate found no outbound source links — src/lib/citations.mjs may have stopped resolving");
+}
+
+// ── 13. Images in the emitted HTML: described, ours, dimensioned ─────────
+// The source-level rules live in src/images.seo.test.ts; this catches what a
+// component could still get wrong at render time — an alt dropped by a
+// conditional, a CDN URL assembled at runtime, a missing width that costs the
+// page its CLS budget. Image search is a real channel for this site (the
+// illustrations on the guides rank for their topics), and an <img> with no alt
+// is invisible to it.
+{
+  const THIRD_PARTY = /^https?:\/\/(?!www\.focusarx\.site)/;
+  for (const doc of documents) {
+    const body = doc.html.replace(/<!--[\s\S]*?-->/g, "");
+    for (const m of body.matchAll(/<img\b([^>]*)>/g)) {
+      const attrs = m[1];
+      const src = /src="([^"]+)"/.exec(attrs)?.[1] ?? "";
+      const hasAlt = /\balt="/.test(attrs);
+      if (!hasAlt) problems.push(`${doc.path}: <img src="${src}"> has no alt attribute at all`);
+      if (/\balt=""/.test(attrs) && !/aria-hidden|role="presentation"/.test(attrs)) {
+        problems.push(`${doc.path}: <img src="${src}"> has an empty alt but is not marked decorative`);
+      }
+      if (THIRD_PARTY.test(src)) {
+        problems.push(`${doc.path}: <img src="${src}"> is served from a third-party host`);
+      }
+      if (!/\bwidth=/.test(attrs) || !/\bheight=/.test(attrs)) {
+        problems.push(`${doc.path}: <img src="${src}"> lacks intrinsic width/height (layout shift)`);
+      }
+    }
+
+    // The LCP font hint. The headline is the LCP element on nearly every page
+    // and it is set in Manrope Variable, so vite.config.ts preloads the latin
+    // subset at build time (the filename is content-hashed). A rewrite of the
+    // <head> could drop the hint without any other symptom.
+    const preload = /<link rel="preload" href="([^"]+)" as="font"/.exec(doc.html);
+    if (!preload) {
+      problems.push(`${doc.path}: no font preload hint — the LCP headline waits an extra round trip for its font`);
+    } else {
+      const href = preload[1].replace(/^\//, "");
+      if (!existsSync(join(DIST, href))) {
+        problems.push(`${doc.path}: font preload points at ${href}, which the build does not contain`);
+      }
+    }
+  }
+}
+
 console.log(`seo-validate: ${files.length} pages, ${sitemapUrls.length} sitemap page entries, ${apiServedChildren} child sitemap(s) served by the API in production`);
 if (problems.length > 0) {
   console.error(`FAIL — ${problems.length} problem(s):`);
@@ -833,5 +975,5 @@ if (problems.length > 0) {
   process.exit(1);
 }
 console.log(
-  "PASS — titles, descriptions, canonicals, JSON-LD, sitemap, robots, internal-link depth, cannibalisation, llms.txt and consent wiring, breadcrumbs, jump links, title budgets, PageSEO agreement and pillar/cluster wiring all consistent",
+  "PASS — titles, descriptions, canonicals, JSON-LD, sitemap, robots, internal-link depth, cannibalisation, llms.txt and consent wiring, breadcrumbs, jump links, title budgets, PageSEO agreement, pillar/cluster wiring, bylines, visible freshness, citation links and image hygiene all consistent",
 );

@@ -1,6 +1,8 @@
 import { Link } from "wouter";
 import { ArrowRight, Music, ListChecks, Volume2, Headphones, Brain, Ban, Wind } from "lucide-react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
+import { AuthorBlock } from "@/components/AuthorBlock";
+import { GUIDE_LIBRARY_REVIEWED } from "@/content/seo-pages.mjs";
 
 function Section({ id, children, className = "" }: { id?: string; children: React.ReactNode; className?: string }) {
   return <section id={id} className={`mx-auto max-w-3xl px-4 sm:px-6 ${className}`}>{children}</section>;
@@ -88,6 +90,7 @@ export default function FocusMusicPage() {
           <p className="mx-auto max-w-2xl text-base text-[var(--foreground-muted)] sm:text-lg">
             "Study music" is a billion-stream genre — but does it help? Here's the honest research verdict, and how to use sound to go deeper.
           </p>
+          <AuthorBlock lastReviewed={GUIDE_LIBRARY_REVIEWED} className="mt-6 justify-center" />
         </Section>
       </div>
 

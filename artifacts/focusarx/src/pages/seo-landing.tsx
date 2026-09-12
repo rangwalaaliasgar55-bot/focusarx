@@ -8,6 +8,9 @@ import { ArrowRight, BookOpen, ShieldCheck, Wrench } from "lucide-react";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ContentTOC } from "@/components/ContentTOC";
 import { ClusterLinks } from "@/components/ClusterLinks";
+import { AuthorBlock } from "@/components/AuthorBlock";
+import { authorSchema, resolveAuthor } from "@/content/authors.mjs";
+import { citationParts } from "@/lib/citations.mjs";
 import { headingAnchors } from "@/lib/heading-id.mjs";
 
 /**
@@ -110,6 +113,9 @@ export default function SeoLandingPage({ path, heroSlot }: { path: string; heroS
             {entry.lead}
           </p>
 
+          {/* Who is responsible for this page, and when it was last checked. */}
+          <AuthorBlock author={entry.author} lastReviewed={entry.lastReviewed} className="mt-5" />
+
           {/* Answer-first block: stands alone if quoted out of context by an
               AI Overview or a featured snippet. */}
           <p className="mt-6 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 text-[15px] leading-relaxed text-[var(--foreground)]">
@@ -187,17 +193,35 @@ export default function SeoLandingPage({ path, heroSlot }: { path: string; heroS
             <h2 id="sources-heading" className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--foreground-subtle)]">
               Sources and attribution
             </h2>
+            {/* A source that can be checked links out to where it can be
+                checked. An assertion with no route to its evidence is just an
+                assertion. The date itself lives in the byline above, so it is
+                not repeated here. */}
             <ul className="mt-3 space-y-1.5 text-xs leading-relaxed text-[var(--foreground-subtle)]">
-              {entry.sources.map((s) => (
-                <li key={s}>{s}</li>
-              ))}
+              {entry.sources.map((source) => {
+                const { text, url } = citationParts(source);
+                return (
+                  <li key={text}>
+                    {url ? (
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[var(--brand-strong)] underline-offset-4 hover:underline"
+                      >
+                        {text} ↗
+                      </a>
+                    ) : (
+                      text
+                    )}
+                  </li>
+                );
+              })}
             </ul>
-            {entry.lastReviewed && (
-              <p className="mt-3 text-xs text-[var(--foreground-subtle)]">
-                Last reviewed {entry.lastReviewed}. Corrections:{" "}
-                <Link href="/contact" className="text-[var(--brand-strong)] underline underline-offset-4">tell us</Link>.
-              </p>
-            )}
+            <p className="mt-3 text-xs text-[var(--foreground-subtle)]">
+              Corrections:{" "}
+              <Link href="/contact" className="text-[var(--brand-strong)] underline underline-offset-4">tell us</Link>.
+            </p>
           </section>
         )}
 
@@ -258,7 +282,7 @@ function buildStructuredData(path: string, entry: SeoPage): object[] {
       headline: entry.h1,
       description: entry.description,
       dateModified: entry.lastReviewed,
-      author: { "@type": "Organization", name: "FocusArx", url: "https://www.focusarx.site" },
+      author: authorSchema(resolveAuthor(entry.author)),
       publisher: {
         "@type": "Organization",
         name: "FocusArx",

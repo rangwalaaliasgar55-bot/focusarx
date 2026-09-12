@@ -15,12 +15,13 @@ import {
   Timer,
 } from "lucide-react";
 import { PageSEO } from "@/components/PageSEO";
-import { EXAM_HUB } from "@/content/exam/derive.mjs";
+import { EXAM_CLUSTER_REVIEWED, EXAM_HUB } from "@/content/exam/derive.mjs";
 import { FUNNEL_ANGLES } from "@/content/exam-funnel.mjs";
 import { useAllExamGuides, useExamGuide } from "@/lib/examGuideLoader";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ContentTOC } from "@/components/ContentTOC";
 import { ClusterLinks } from "@/components/ClusterLinks";
+import { AuthorBlock } from "@/components/AuthorBlock";
 import { headingAnchors } from "@/lib/heading-id.mjs";
 import type { ExamGuide } from "@/content/exam/index.mjs";
 
@@ -213,6 +214,7 @@ function ExamGuideBody({ slug }: { slug: string }) {
           </div>
           <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight leading-tight mb-5">{guide.h1}</h1>
           <p className="text-lg text-[var(--foreground-muted)] leading-relaxed">{guide.lead}</p>
+          <AuthorBlock lastReviewed={EXAM_CLUSTER_REVIEWED} className="mt-5" />
         </header>
 
         {guide.exam && (
@@ -367,6 +369,7 @@ export function ExamHubPage() {
           </div>
           <h1 className="text-4xl sm:text-6xl font-semibold tracking-tight mb-6">{EXAM_HUB.h1}</h1>
           <p className="text-lg text-[var(--foreground-muted)] max-w-2xl mx-auto leading-relaxed">{EXAM_HUB.lead}</p>
+          <AuthorBlock lastReviewed={EXAM_CLUSTER_REVIEWED} className="mt-5 justify-center [&>ol]:justify-center" />
         </header>
 
         <Suspense fallback={<HubGridSkeleton />}>

@@ -32,7 +32,10 @@ export interface SeoPage {
   cta: { href: string; label: string };
   related: string[];
   lastReviewed?: string;
-  sources?: string[];
+  /** Author id from src/content/authors.mjs; defaults to the editorial team. */
+  author?: string;
+  /** A citation, or a [text, url] pair when the source can be linked out to. */
+  sources?: (string | [string, string])[];
 }
 
 export interface ComparisonRow {
@@ -55,6 +58,12 @@ export interface Comparison {
 }
 
 export const LAST_REVIEWED: string;
+/** When the long-form guide library was last rewritten. */
+export const GUIDE_LIBRARY_REVIEWED: string;
+/** When the About page's editorial-standards copy was last reviewed. */
+export const ABOUT_REVIEWED: string;
+/** When the comparison set was last reviewed as a whole. */
+export const COMPARISONS_REVIEWED: string;
 /** "path|Label" links for the minute-length timer pages (/5-minute-timer …). */
 export const MINUTE_TIMERS: string[];
 export const SEO_PAGES: Record<string, SeoPage>;
