@@ -102,7 +102,7 @@ export function TimerDisplay({
       style={{ width: SIZE, height: SIZE }}
       initial={false}
       animate={{ scale: breathe ? 1.02 : 1 }}
-      transition={{ duration: 0.7, ease: EASE }}
+      transition={{ duration: 0.25, ease: EASE }}
       data-tier={skin.tier}
     >
       {/* Ambient halo — breathes slowly only while running */}
@@ -120,7 +120,7 @@ export function TimerDisplay({
         animate={isRunning && !reduced ? { opacity: [0.55, 0.9, 0.55], scale: [0.98, 1.03, 0.98], rotate: useGradient ? 360 : 0 } : { opacity: isRunning ? 0.7 : 0.35, scale: 1 }}
         transition={isRunning && !reduced
           ? { opacity: { duration: 4.2, repeat: Infinity, ease: "easeInOut" }, scale: { duration: 4.2, repeat: Infinity, ease: "easeInOut" }, rotate: { duration: 38, repeat: Infinity, ease: "linear" } }
-          : { duration: 0.6 }}
+          : { duration: 0.25}}
       />
 
       {/* Inner disc */}
@@ -201,7 +201,7 @@ export function TimerDisplay({
             initial={reduced ? false : { opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={reduced ? { opacity: 0 } : { opacity: 0, y: -4 }}
-            transition={{ duration: 0.3, ease: EASE }}
+            transition={{ duration: 0.25, ease: EASE }}
             className="mb-2 inline-flex items-center gap-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.18em]"
             style={{ color: ring }}
           >
@@ -275,7 +275,7 @@ export function TimerDisplay({
               initial={reduced ? false : { opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3, ease: EASE }}
+              transition={{ duration: 0.25, ease: EASE }}
               className="mt-2 flex items-center gap-2 text-[0.6875rem] font-semibold tabular-nums"
             >
               <span className="text-[var(--brand-strong)]">+{xpEarned} XP</span>

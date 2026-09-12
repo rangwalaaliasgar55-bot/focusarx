@@ -1,8 +1,9 @@
 import { useState, lazy, Suspense } from "react";
+import { ArrowLeft, ArrowRight, BatteryFull, BookOpen, ClipboardList, Footprints, Globe, Laptop, Microscope, Palette, Rocket, Smartphone, Sparkles, VolumeX, Zap } from "lucide-react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth, getToken } from "@/lib/auth";
-import { Sparkles, Rocket, ArrowRight, ArrowLeft } from "lucide-react";
+
 import { BLUR_IN, STAGGER, STAGGER_CHILD } from "@/lib/animations";
 
 const Hero3D = lazy(() => import("@/components/Hero3D"));
@@ -16,27 +17,27 @@ type OnboardingData = {
 };
 
 const GOALS = [
-  { id: "exams", label: "Exam Prep", icon: "📚" },
-  { id: "deepwork", label: "Research", icon: "🔬" },
-  { id: "coding", label: "Coding", icon: "💻" },
-  { id: "creative", label: "Creative", icon: "🎨" },
-  { id: "language", label: "Languages", icon: "🌍" },
-  { id: "other", label: "Other", icon: "✨" },
+  { id: "exams", label: "Exam Prep", icon: <BookOpen size={16} aria-hidden="true" /> },
+  { id: "deepwork", label: "Research", icon: <Microscope size={16} aria-hidden="true" /> },
+  { id: "coding", label: "Coding", icon: <Laptop size={16} aria-hidden="true" /> },
+  { id: "creative", label: "Creative", icon: <Palette size={16} aria-hidden="true" /> },
+  { id: "language", label: "Languages", icon: <Globe size={16} aria-hidden="true" /> },
+  { id: "other", label: "Other", icon: <Sparkles size={16} aria-hidden="true" /> },
 ];
 
 const CHALLENGES = [
-  { id: "phone", label: "Distractions", icon: "📱" },
+  { id: "phone", label: "Distractions", icon: <Smartphone size={16} aria-hidden="true" /> },
   { id: "procrastination", label: "Procrastination", icon: "⏳" },
   { id: "time", label: "Poor Timing", icon: "⌛" },
-  { id: "motivation", label: "Motivation", icon: "🔋" },
-  { id: "overwhelmed", label: "Overwhelmed", icon: "📋" },
-  { id: "environment", label: "Noise", icon: "🔇" },
+  { id: "motivation", label: "Motivation", icon: <BatteryFull size={16} aria-hidden="true" /> },
+  { id: "overwhelmed", label: "Overwhelmed", icon: <ClipboardList size={16} aria-hidden="true" /> },
+  { id: "environment", label: "Noise", icon: <VolumeX size={16} aria-hidden="true" /> },
 ];
 
 const STYLES = [
-  { id: "sprinter", label: "Sprinter", sub: "25-min bursts", icon: "⚡", duration: 25 },
+  { id: "sprinter", label: "Sprinter", sub: "25-min bursts", icon: <Zap size={16} aria-hidden="true" />, duration: 25 },
   { id: "balanced", label: "Balanced", sub: "45-min sessions", icon: "⚖️", duration: 45 },
-  { id: "marathoner", label: "Marathoner", sub: "90-min dives", icon: "🏃", duration: 90 },
+  { id: "marathoner", label: "Marathoner", sub: "90-min dives", icon: <Footprints size={16} aria-hidden="true" />, duration: 90 },
 ];
 
 const DAILY_HOURS = [
@@ -143,7 +144,7 @@ export default function OnboardingPage() {
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-pink)]"
               animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.4, ease: "circOut" }}
+              transition={{ duration: 0.25, ease: "circOut" }}
             />
           </div>
         </div>
@@ -304,7 +305,7 @@ function StepWrapper({ title, sub, children }: { title: string; sub: string; chi
   );
 }
 
-function OptionButton({ icon, label, selected, onClick }: { icon: string; label: string; selected: boolean; onClick: () => void }) {
+function OptionButton({ icon, label, selected, onClick }: { icon: React.ReactNode; label: string; selected: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}

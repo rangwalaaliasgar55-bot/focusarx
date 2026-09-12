@@ -15,6 +15,7 @@ import { motion } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
 import { Star, Info } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 function authHeaders() {
   const t = getToken();
@@ -309,7 +310,7 @@ export default function ConstellationsPage() {
               <div className="space-y-2">
                 {[
                   { label: "Total Stars", value: stars.length, icon: "⭐" },
-                  { label: "Constellations", value: constellations.length, icon: "🌌" },
+                  { label: "Constellations", value: constellations.length, icon: <Sparkles size={16} aria-hidden="true" /> },
                   { label: "Hours Mapped", value: `${totalHours.toFixed(1)}h`, icon: "⏱" },
                 ].map(s => (
                   <div key={s.label} className="flex items-center justify-between">

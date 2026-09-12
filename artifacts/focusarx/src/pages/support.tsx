@@ -85,7 +85,7 @@ export default function SupportPage() {
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4 }}
+              transition={{ duration: 0.25}}
               className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--palette-purple-500)]/30 bg-[var(--palette-purple-500)]/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--palette-purple-300)]"
             >
               <HelpCircle size={12} />
@@ -94,7 +94,7 @@ export default function SupportPage() {
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
+              transition={{ duration: 0.25, delay: 0.1 }}
               className="mb-3 text-4xl font-semibold tracking-tight text-[var(--foreground)]"
             >
               How can we help?
@@ -102,7 +102,7 @@ export default function SupportPage() {
             <motion.p
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.2 }}
+              transition={{ duration: 0.25, delay: 0.2 }}
               className="text-sm text-[var(--foreground-muted)]"
             >
               Browse our FAQ or reach out directly — we usually reply within 24 hours.
@@ -121,7 +121,7 @@ export default function SupportPage() {
                 key={i} href={c.href}
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: i * 0.08 }}
+                transition={{ duration: 0.25, delay: i * 0.08 }}
                 whileHover={{ y: -3 }}
                 className="flex items-center gap-3.5 rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-12-14-28-0_8)] p-4 backdrop-blur-sm transition-colors hover:border-[var(--rgba-124-58-237-0_35)]"
               >

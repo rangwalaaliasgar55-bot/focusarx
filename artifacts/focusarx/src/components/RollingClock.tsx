@@ -16,7 +16,7 @@ export function RollingDigit({ value, reduced }: { value: string; reduced: boole
           initial={reduced ? false : { y: "0.55em", opacity: 0, filter: "blur(2px)" }}
           animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
           exit={reduced ? { opacity: 0 } : { y: "-0.55em", opacity: 0, filter: "blur(2px)" }}
-          transition={{ duration: 0.34, ease: EASE }}
+          transition={{ duration: 0.25, ease: EASE }}
         >
           {value}
         </motion.span>

@@ -227,7 +227,7 @@ export default function DreamsPage() {
           </div>
           <div className="h-3 w-full rounded-full bg-[var(--rgba-255-255-255-0_06)] overflow-hidden mb-1">
             <motion.div
-              initial={{ width: 0 }} animate={{ width: `${Math.min(100, progressPct)}%` }} transition={{ duration: 1.2, ease: "easeOut" }}
+              initial={{ width: 0 }} animate={{ width: `${Math.min(100, progressPct)}%` }} transition={{ duration: 0.25, ease: "easeOut" }}
               className="h-full rounded-full"
               style={{ background: `linear-gradient(90deg, ${color}, color-mix(in srgb, ${color} 80%, transparent))`, boxShadow: `0 0 12px color-mix(in srgb, ${color} 50%, transparent)` }}
             />

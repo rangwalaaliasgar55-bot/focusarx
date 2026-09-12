@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getToken } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
 import { Plus, Flame, CheckCircle2, Circle, BarChart2, X, ChevronUp, Trash2 } from "lucide-react";
+import { Sprout } from "lucide-react";
 import { TiltCard } from "@/components/TiltCard";
 import PageHeader from "@/components/PageHeader";
 import { resolveColorToken } from "@/lib/color-tokens";
@@ -297,7 +298,7 @@ export default function HabitsPage() {
         <QueryError what="your habits" onRetry={() => void refetch()} retrying={isRefetching} />
       ) : (habits as any[]).length === 0 ? (
         <div className="text-center py-16">
-          <p className="text-5xl mb-4">🌱</p>
+          <p className="text-5xl mb-4"><Sprout size={16} aria-hidden="true" /></p>
           <p className="text-lg font-semibold text-[var(--foreground)] mb-2">No habits yet</p>
           <p className="text-sm text-[var(--foreground-subtle)] mb-6">Start building your first habit and track your consistency</p>
           <button onClick={() => setShowCreate(true)} className="rounded-xl bg-[var(--brand-600)] px-6 py-2.5 text-sm font-semibold text-[var(--palette-white)] hover:bg-[var(--palette-6d31d4)]">

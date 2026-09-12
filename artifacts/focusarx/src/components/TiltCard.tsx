@@ -84,7 +84,7 @@ export function FloatCard({ children, className = "", delay = 0 }: { children: R
     <motion.div
       initial={{ opacity: 0, y: 20, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1], delay }}
+      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1], delay }}
       className={className}
     >
       {children}
@@ -113,7 +113,7 @@ export function StaggerItem({ children, className = "" }: { children: React.Reac
     <motion.div
       variants={{
         hidden: { opacity: 0, y: 16, scale: 0.97 },
-        show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } },
+        show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.25, ease: [0.22, 1, 0.36, 1] } },
       }}
       className={className}
     >

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Star, Lock, Trophy, Flame, Target, Clock, Zap, CheckCircle2, ListTodo, TrendingUp, Users } from "lucide-react";
+import { PartyPopper } from "lucide-react";
 import { getToken } from "@/lib/auth";
 import { PageTransition } from "@/components/PageTransition";
 import { TiltCard, StaggerContainer, StaggerItem } from "@/components/TiltCard";
@@ -11,7 +12,7 @@ interface Badge {
   description: string;
   tier: "bronze" | "silver" | "gold" | "legendary";
   category: "time" | "streak" | "sessions" | "quality" | "special" | "tasks" | "social" | "milestones";
-  icon: string;
+  icon: React.ReactNode;
   threshold: number;
   unit: string;
   unlocked: boolean;
@@ -296,7 +297,7 @@ export default function AchievementsPage() {
                   style={{ boxShadow: "0 0 8px var(--rgba-167-139-250-0_4)" }}
                   initial={{ width: 0 }}
                   animate={{ width: totalCount > 0 ? `${completionPct}%` : "0%" }}
-                  transition={{ duration: 1.2, ease: "easeOut" }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
                 />
               </div>
             </div>
@@ -312,7 +313,7 @@ export default function AchievementsPage() {
                 className="mb-5 rounded-2xl border border-[var(--rgba-6-214-160-0_3)] bg-[var(--rgba-6-214-160-0_07)] p-4"
               >
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-base" aria-hidden>🎉</span>
+                  <span className="text-base" aria-hidden><PartyPopper size={16} aria-hidden="true" /></span>
                   <p className="text-sm font-bold text-[var(--brand-teal)]">
                     {newlyUnlocked.length === 1 ? "New achievement unlocked!" : `${newlyUnlocked.length} new achievements!`}
                   </p>

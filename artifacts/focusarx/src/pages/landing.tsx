@@ -159,7 +159,7 @@ export default function LandingPage() {
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
   };
 
-  const entrance = reduceMotion ? {} : { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.4, ease: "easeOut" as const } };
+  const entrance = reduceMotion ? {} : { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.25, ease: "easeOut" as const } };
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[var(--background)] text-[var(--foreground)]">

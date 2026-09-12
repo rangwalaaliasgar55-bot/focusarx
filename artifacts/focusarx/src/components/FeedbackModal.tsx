@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Star, Send, Heart } from "lucide-react";
+import { PartyPopper } from "lucide-react";
 import { apiJson } from "@/lib/api";
 
 const STORAGE_KEY = "focusarx_feedback_shown";
@@ -133,10 +134,8 @@ export default function FeedbackModal({ open, onClose, onSubmit }: FeedbackModal
                 <motion.div
                   className="text-5xl mb-4"
                   animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }}
-                  transition={{ duration: 0.4 }}
-                >
-                  🎉
-                </motion.div>
+                  transition={{ duration: 0.25}}
+                ><PartyPopper size={16} aria-hidden="true" /></motion.div>
                 <p className="text-lg font-bold text-[var(--foreground)] mb-1">Thank you!</p>
                 <p className="text-sm text-[var(--palette-zinc-500)] text-center">Your feedback shapes the future of FocusArx.</p>
               </motion.div>

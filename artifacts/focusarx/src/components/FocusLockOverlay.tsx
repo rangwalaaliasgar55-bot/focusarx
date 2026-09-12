@@ -172,7 +172,7 @@ export default function FocusLockOverlay({ mode, exitPhrase, secondsLeft, totalS
               <motion.circle cx="100" cy="100" r={r} fill="none" stroke="var(--brand-600)" strokeWidth="8"
                 strokeLinecap="round" strokeDasharray={circ}
                 animate={{ strokeDashoffset: circ - dash }}
-                transition={{ duration: 0.4, ease: "linear" }}
+                transition={{ duration: 0.25, ease: "linear" }}
               />
             </svg>
             <motion.div

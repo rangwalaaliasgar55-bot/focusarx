@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
+import { Flame } from "lucide-react";
 import { apiJson } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useSessionHistory } from "@/hooks/useSessionHistory";
@@ -54,7 +55,7 @@ export default function StreakNudge() {
         className="mx-auto mb-2 flex w-full max-w-md items-center gap-3 rounded-xl border border-[var(--palette-orange-500)]/25 bg-[var(--palette-orange-500)]/8 px-4 py-2.5"
         role="status"
       >
-        <span className="text-lg" aria-hidden="true">🔥</span>
+        <span className="text-lg" aria-hidden="true"><Flame size={16} aria-hidden="true" /></span>
         <p className="min-w-0 flex-1 text-xs text-[var(--foreground)]">
           Your <span className="font-bold text-[var(--palette-orange-400)]">{streak.currentStreak}-day streak</span> needs
           a session today. Even 5 minutes keeps it alive.

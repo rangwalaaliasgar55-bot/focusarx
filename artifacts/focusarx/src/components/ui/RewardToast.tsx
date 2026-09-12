@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useRef, useState, createContext, useContext, useCallback } from "react";
 import { cn } from "@/lib/utils";
+import { Coins, Medal, Package, PartyPopper, Zap, type LucideIcon } from "lucide-react";
 
 type RewardType = "xp" | "coins" | "badge" | "delight" | "lootbox";
 
@@ -21,12 +22,15 @@ export function useRewardToast() {
   return useContext(RewardToastContext);
 }
 
-const TYPE_STYLES: Record<RewardType, { bg: string; emoji: string }> = {
-  xp:      { bg: "from-[var(--palette-violet-600)]/90 to-[var(--palette-violet-800)]/90", emoji: "⚡" },
-  coins:   { bg: "from-[var(--palette-yellow-500)]/90 to-[var(--palette-amber-700)]/90",   emoji: "🪙" },
-  badge:   { bg: "from-[var(--palette-pink-500)]/90 to-[var(--palette-purple-700)]/90",    emoji: "🏅" },
-  delight: { bg: "from-[var(--palette-teal-500)]/90 to-[var(--palette-cyan-700)]/90",      emoji: "🎉" },
-  lootbox: { bg: "from-[var(--palette-indigo-500)]/90 to-[var(--palette-blue-700)]/90",    emoji: "📦" },
+// Celebratory toasts keep their colour and copy; the glyph is a lucide icon so
+// it inherits weight, colour and the reduced-motion rules like every other UI
+// mark (WS5a). The message text may still celebrate in words.
+const TYPE_STYLES: Record<RewardType, { bg: string; icon: LucideIcon }> = {
+  xp:      { bg: "from-[var(--palette-violet-600)]/90 to-[var(--palette-violet-800)]/90", icon: Zap },
+  coins:   { bg: "from-[var(--palette-yellow-500)]/90 to-[var(--palette-amber-700)]/90",  icon: Coins },
+  badge:   { bg: "from-[var(--palette-pink-500)]/90 to-[var(--palette-purple-700)]/90",   icon: Medal },
+  delight: { bg: "from-[var(--palette-teal-500)]/90 to-[var(--palette-cyan-700)]/90",     icon: PartyPopper },
+  lootbox: { bg: "from-[var(--palette-indigo-500)]/90 to-[var(--palette-blue-700)]/90",   icon: Package },
 };
 
 export function RewardToastProvider({ children }: { children: React.ReactNode }) {
@@ -60,7 +64,7 @@ export function RewardToastProvider({ children }: { children: React.ReactNode })
                   style.bg
                 )}
               >
-                <span className="text-base">{style.emoji}</span>
+                <style.icon size={16} aria-hidden="true" />
                 <span>{r.message}</span>
                 {r.amount !== undefined && (
                   <span className="font-bold ml-1">

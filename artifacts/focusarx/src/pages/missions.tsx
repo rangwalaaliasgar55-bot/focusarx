@@ -1,10 +1,11 @@
 import { useState } from "react";
+import { Clock, Flame, Gift, ListTodo, PartyPopper, Star, Target, Trophy, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { claimMission as claimSharedMission, fetchMissions as fetchSharedMissions, invalidateAfterMissionClaim } from "@/lib/missionsQuery";
 import { PageTransition } from "@/components/PageTransition";
 import { TiltCard } from "@/components/TiltCard";
-import { Target, Zap, Trophy, Flame, Clock, ListTodo, Star, Gift } from "lucide-react";
+
 import { Mission as MissionDef } from "@/types/gamification";
 
 interface MissionsData {
@@ -68,7 +69,7 @@ function ProgressBar({ current, target, completed }: { current: number; target: 
         }}
         initial={{ width: 0 }}
         animate={{ width: `${pct}%` }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
       />
     </div>
   );
@@ -165,7 +166,7 @@ function StatCard({ label, value, total, icon }: { label: string; value: number;
             key={value}
             initial={{ scale: 1.3, color: "var(--brand-400)" }}
             animate={{ scale: 1, color: "var(--palette-e8eaf0)" }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.25}}
           >{value}/{total}</motion.span>
         </div>
         <div className="h-1.5 rounded-full bg-[var(--surface-hover)] overflow-hidden">
@@ -173,7 +174,7 @@ function StatCard({ label, value, total, icon }: { label: string; value: number;
             className="h-full rounded-full animate-wave-bar"
             initial={{ width: 0 }}
             animate={{ width: `${pct}%` }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
           />
         </div>
       </div>
@@ -273,7 +274,7 @@ export default function MissionsPage() {
               exit={{ opacity: 0, y: -16, scale: 0.95 }}
               className="mb-4 rounded-2xl border border-[var(--rgba-34-211-135-0_4)] bg-[var(--rgba-34-211-135-0_1)] p-4 flex items-center gap-3"
             >
-              <span className="text-2xl">🎉</span>
+              <span className="text-2xl"><PartyPopper size={16} aria-hidden="true" /></span>
               <div>
                 <p className="text-sm font-bold text-[var(--palette-22d387)]">Reward Claimed!</p>
                 <p className="text-xs text-[var(--foreground-subtle)]">+{claimedReward.xp} XP · +{claimedReward.coins} coins</p>
@@ -356,7 +357,7 @@ export default function MissionsPage() {
 
             {missions.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-                <span className="text-4xl">🎯</span>
+                <span className="text-4xl"><Target size={16} aria-hidden="true" /></span>
                 <p className="text-sm font-semibold text-[var(--foreground)]">No missions found</p>
                 <p className="text-xs text-[var(--foreground-subtle)]">Start a focus session to unlock missions!</p>
               </div>

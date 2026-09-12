@@ -13,6 +13,7 @@ import {
   Play,
   RefreshCw,
 } from "lucide-react";
+import { Coins } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useTasks } from "@/hooks/useTasks";
 import { useSessionHistory } from "@/hooks/useSessionHistory";
@@ -264,7 +265,7 @@ export function MobileDashboard({ onStartFocus, stats, recentSessions, wallet }:
       {wallet && (
         <div className="flex items-center justify-between rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-1)] px-4 py-3">
           <div className="flex items-center gap-2">
-            <span className="text-sm">🪙</span>
+            <span className="text-sm"><Coins size={16} aria-hidden="true" /></span>
             <span className="text-sm font-bold tabular-nums">{wallet.coins.toLocaleString()}</span>
             <span className="mx-2 h-4 w-px bg-[var(--border-subtle)]" />
             <span className="grid h-6 w-6 place-items-center rounded-lg bg-[var(--brand-600)] text-[11px] font-semibold text-white">

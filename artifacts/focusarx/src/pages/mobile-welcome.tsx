@@ -1,29 +1,30 @@
 import { useState } from "react";
+import { BatteryFull, BookOpen, ClipboardList, Footprints, Globe, Laptop, Microscope, Palette, Smartphone, Sparkles, Target, VolumeX, Zap } from "lucide-react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 
 const GOALS = [
-  { id: "exams", label: "Exam prep", icon: "📚" },
-  { id: "deepwork", label: "Deep work", icon: "🔬" },
-  { id: "coding", label: "Coding", icon: "💻" },
-  { id: "creative", label: "Creative", icon: "🎨" },
-  { id: "language", label: "Languages", icon: "🌍" },
-  { id: "other", label: "Other", icon: "✨" },
+  { id: "exams", label: "Exam prep", icon: <BookOpen size={16} aria-hidden="true" /> },
+  { id: "deepwork", label: "Deep work", icon: <Microscope size={16} aria-hidden="true" /> },
+  { id: "coding", label: "Coding", icon: <Laptop size={16} aria-hidden="true" /> },
+  { id: "creative", label: "Creative", icon: <Palette size={16} aria-hidden="true" /> },
+  { id: "language", label: "Languages", icon: <Globe size={16} aria-hidden="true" /> },
+  { id: "other", label: "Other", icon: <Sparkles size={16} aria-hidden="true" /> },
 ];
 
 const CHALLENGES = [
-  { id: "phone", label: "Phone distractions", icon: "📱" },
+  { id: "phone", label: "Phone distractions", icon: <Smartphone size={16} aria-hidden="true" /> },
   { id: "procrastination", label: "Procrastination", icon: "⏳" },
   { id: "time", label: "Losing track of time", icon: "⌛" },
-  { id: "motivation", label: "Low motivation", icon: "🔋" },
-  { id: "overwhelmed", label: "Too many tasks", icon: "📋" },
-  { id: "environment", label: "Noisy surroundings", icon: "🔇" },
+  { id: "motivation", label: "Low motivation", icon: <BatteryFull size={16} aria-hidden="true" /> },
+  { id: "overwhelmed", label: "Too many tasks", icon: <ClipboardList size={16} aria-hidden="true" /> },
+  { id: "environment", label: "Noisy surroundings", icon: <VolumeX size={16} aria-hidden="true" /> },
 ];
 
 const STYLES = [
-  { id: "sprinter", label: "Sprinter", sub: "Short 25-min bursts", icon: "⚡", duration: 25 },
+  { id: "sprinter", label: "Sprinter", sub: "Short 25-min bursts", icon: <Zap size={16} aria-hidden="true" />, duration: 25 },
   { id: "balanced", label: "Balanced", sub: "Classic 45-min sessions", icon: "⚖️", duration: 45 },
-  { id: "marathoner", label: "Marathoner", sub: "Deep 90-min dives", icon: "🏃", duration: 90 },
+  { id: "marathoner", label: "Marathoner", sub: "Deep 90-min dives", icon: <Footprints size={16} aria-hidden="true" />, duration: 90 },
 ];
 
 const STEPS = ["goal", "challenge", "style", "auth"] as const;
@@ -84,7 +85,7 @@ export default function MobileWelcomePage() {
               className="h-full rounded-full bg-[var(--palette-rose-500)]"
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
             />
           </div>
           <p className="mt-2 text-[11px] text-[var(--palette-zinc-400)] text-right">{stepIndex + 1} of {STEPS.length - 1}</p>
@@ -156,9 +157,7 @@ export default function MobileWelcomePage() {
           {step === "auth" && (
             <StepSlide key="auth">
               <div className="flex flex-col items-center text-center pt-4">
-                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[var(--palette-rose-500)]/20 to-[var(--palette-violet-600)]/20 text-3xl ring-1 ring-[var(--palette-rose-500)]/30">
-                  🎯
-                </div>
+                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[var(--palette-rose-500)]/20 to-[var(--palette-violet-600)]/20 text-3xl ring-1 ring-[var(--palette-rose-500)]/30"><Target size={16} aria-hidden="true" /></div>
                 <h2 className="text-2xl font-bold text-[var(--palette-zinc-100)] mb-2">You're ready to focus.</h2>
                 <p className="text-sm text-[var(--palette-zinc-400)] mb-2 max-w-xs">
                   Create a free account to save your progress, streaks, and AI insights.
@@ -230,7 +229,7 @@ function StepSlide({ children }: { children: React.ReactNode }) {
 }
 
 function OptionBtn({ icon, label, selected, onClick }: {
-  icon: string; label: string; selected: boolean; onClick: () => void;
+  icon: React.ReactNode; label: string; selected: boolean; onClick: () => void;
 }) {
   return (
     <button

@@ -43,6 +43,16 @@ interface ReadyInfo {
   config?: { ok?: boolean; errors?: string[] };
 }
 
+/** First paint and every re-check: six rows, all probing. */
+const loadingRows = (): Record<string, Row> => ({
+  build: { id: "build", icon: GitCompareArrows, label: "Deployment", detail: "asking the server…", status: "loading" },
+  api: { id: "api", icon: Server, label: "API", detail: "probing /healthz…", status: "loading" },
+  db: { id: "db", icon: Database, label: "Database", detail: "probing readiness…", status: "loading" },
+  rooms: { id: "rooms", icon: Users, label: "Study rooms", detail: "loading rooms…", status: "loading" },
+  sw: { id: "sw", icon: Wind, label: "Service worker", detail: "checking registration…", status: "loading" },
+  skewRow: { id: "skewRow", icon: Activity, label: "Skew state", detail: "…", status: "loading" },
+});
+
 const short = (v: string | null | undefined) => (v ? (v.length > 12 ? `${v.slice(0, 12)}…` : v) : "unknown");
 
 async function getJson(url: string, signal: AbortSignal): Promise<{ status: number; body: unknown }> {
@@ -58,7 +68,7 @@ async function getJson(url: string, signal: AbortSignal): Promise<{ status: numb
 
 export function SystemDiagnostics() {
   const skew = useDeploymentSkew();
-  const [rows, setRows] = useState<Record<string, Row>>({});
+  const [rows, setRows] = useState<Record<string, Row>>(loadingRows);
   const [checking, setChecking] = useState(true);
   const [checkedAt, setCheckedAt] = useState<Date | null>(null);
 
@@ -70,14 +80,7 @@ export function SystemDiagnostics() {
     const timer = setTimeout(() => controller.abort(), 8000);
     const signal = controller.signal;
 
-    setRows({
-      build: { id: "build", icon: GitCompareArrows, label: "Deployment", detail: "asking the server…", status: "loading" },
-      api: { id: "api", icon: Server, label: "API", detail: "probing /healthz…", status: "loading" },
-      db: { id: "db", icon: Database, label: "Database", detail: "probing readiness…", status: "loading" },
-      rooms: { id: "rooms", icon: Users, label: "Study rooms", detail: "loading rooms…", status: "loading" },
-      sw: { id: "sw", icon: Wind, label: "Service worker", detail: "checking registration…", status: "loading" },
-      skewRow: { id: "skewRow", icon: Activity, label: "Skew state", detail: "…", status: "loading" },
-    });
+    setRows(loadingRows());
 
     try {
       // Deployment identity: is the build in the browser the build on the server?
@@ -182,9 +185,12 @@ export function SystemDiagnostics() {
     }
   }, [skew.mismatch, skew.serverVersion]);
 
+  // Deferred a tick: the react-hooks lint rule (rightly) flags a setState that
+  // runs synchronously inside an effect, and the first probe state is exactly
+  // that. A 0 ms timer keeps the initial paint as the loading rows.
   useEffect(() => {
-    void check();
-    return () => undefined;
+    const timer = setTimeout(() => void check(), 0);
+    return () => clearTimeout(timer);
   }, [check]);
 
   const list = Object.values(rows);

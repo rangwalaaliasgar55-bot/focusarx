@@ -74,7 +74,7 @@ export default function AboutPage() {
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4 }}
+              transition={{ duration: 0.25}}
               className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--palette-purple-500)]/30 bg-[var(--palette-purple-500)]/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.3em] text-[var(--palette-purple-300)]"
             >
               Our Mission
@@ -82,7 +82,7 @@ export default function AboutPage() {
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
+              transition={{ duration: 0.25, delay: 0.1 }}
               className="mb-8 text-5xl sm:text-7xl font-semibold tracking-tight text-[var(--palette-white)] leading-[0.9]"
             >
               Restoring the world's <br />
@@ -91,7 +91,7 @@ export default function AboutPage() {
             <motion.p
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.2 }}
+              transition={{ duration: 0.25, delay: 0.2 }}
               className="mx-auto max-w-2xl text-lg leading-relaxed text-[var(--foreground-muted)]"
             >
               FocusArx was born in 2024 from a simple realization: in an era of infinite distraction, the ability to focus is the ultimate competitive advantage. We build tools that help you reclaim your time and achieve true mastery.
@@ -107,7 +107,7 @@ export default function AboutPage() {
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.1 }}
+                transition={{ duration: 0.25, delay: i * 0.1 }}
                 className="rounded-[32px] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] p-8 backdrop-blur-xl glass-heavy"
               >
                 <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-600)]/10 border border-[var(--brand-600)]/20">
@@ -125,7 +125,7 @@ export default function AboutPage() {
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.4 }}
+              transition={{ duration: 0.25}}
               className="rounded-[32px] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] p-10 backdrop-blur-xl glass-heavy"
             >
               <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">
@@ -141,7 +141,7 @@ export default function AboutPage() {
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: 0.1 }}
+              transition={{ duration: 0.25, delay: 0.1 }}
               className="rounded-[32px] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] p-10 glass lg:col-span-2"
             >
               <h2 className="mb-2 text-2xl font-semibold text-[var(--palette-white)]">How we research what we publish</h2>

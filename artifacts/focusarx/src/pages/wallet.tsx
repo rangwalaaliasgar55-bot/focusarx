@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
+import { ArrowDownLeft, ArrowUpRight, Calendar, Coins, Medal, TrendingUp, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
-import { ArrowUpRight, ArrowDownLeft, Coins, Zap, TrendingUp, Calendar } from "lucide-react";
+
 import { PAGE, CARD, STAGGER } from "@/lib/animations";
 import { TiltCard, StaggerContainer, StaggerItem } from "@/components/TiltCard";
 
@@ -69,7 +70,7 @@ export default function WalletPage() {
             <StaggerItem><TiltCard intensity={10}>
               <div className="rounded-2xl border border-[var(--rgba-245-158-11-0_2)] bg-[var(--rgba-245-158-11-0_06)] p-4 shadow-3d-violet">
                 <div className="flex items-center gap-2 mb-2">
-                  <motion.span className="text-xl" whileHover={{ scale: 1.3, rotate: 15 }} transition={{ type: "spring", stiffness: 400 }}>🪙</motion.span>
+                  <motion.span className="text-xl" whileHover={{ scale: 1.3, rotate: 15 }} transition={{ type: "spring", stiffness: 400 }}><Coins size={16} aria-hidden="true" /></motion.span>
                   <span className="text-[11px] text-[var(--color-warning)] font-semibold uppercase tracking-wider">Coins</span>
                 </div>
                 <p className="text-2xl font-bold text-[var(--color-warning)]">{wallet.coins.toLocaleString()}</p>
@@ -96,7 +97,7 @@ export default function WalletPage() {
             <StaggerItem><TiltCard intensity={10}>
               <div className="rounded-2xl border border-[var(--rgba-255-184-0-0_2)] bg-[var(--rgba-255-184-0-0_06)] p-4 shadow-3d-violet">
                 <div className="flex items-center gap-2 mb-2">
-                  <motion.span className="text-xl" animate={{ rotate: [0, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}>🏅</motion.span>
+                  <motion.span className="text-xl" animate={{ rotate: [0, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}><Medal size={16} aria-hidden="true" /></motion.span>
                   <span className="text-[11px] text-[var(--brand-gold)] font-semibold uppercase tracking-wider">Level</span>
                 </div>
                 <p className="text-2xl font-bold text-[var(--brand-gold)]">{wallet.level}</p>
@@ -117,7 +118,7 @@ export default function WalletPage() {
                 className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)]"
                 initial={{ width: 0 }}
                 animate={{ width: `${Math.round(xpProgress * 100)}%` }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
               />
             </div>
           </div>

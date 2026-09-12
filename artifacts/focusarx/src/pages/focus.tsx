@@ -273,7 +273,7 @@ function CoinXPBar({ focusSessionsToday }: { focusSessionsToday: number }) {
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)]"
               animate={{ width: `${Math.round(progress * 100)}%` }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
             />
           </div>
         </div>

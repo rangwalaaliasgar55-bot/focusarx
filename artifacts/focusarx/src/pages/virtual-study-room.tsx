@@ -102,7 +102,7 @@ export default function VirtualStudyRoomPage() {
         initial: { opacity: 0, y: 14 },
         whileInView: { opacity: 1, y: 0 },
         viewport: { once: true, margin: "-60px" },
-        transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] as const },
+        transition: { duration: 0.25, ease: [0.16, 1, 0.3, 1] as const },
       };
 
   return (
@@ -174,7 +174,7 @@ export default function VirtualStudyRoomPage() {
                   transition={
                     reduceMotion
                       ? undefined
-                      : { duration: 0.45, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] as const }
+                      : { duration: 0.25, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] as const }
                   }
                   className="rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface)] p-7 transition-shadow duration-[var(--duration-normal)] hover:shadow-[var(--shadow-md)]"
                 >
@@ -266,7 +266,7 @@ export default function VirtualStudyRoomPage() {
                   transition={
                     reduceMotion
                       ? undefined
-                      : { duration: 0.4, delay: (i % 3) * 0.06, ease: [0.16, 1, 0.3, 1] as const }
+                      : { duration: 0.25, delay: (i % 3) * 0.06, ease: [0.16, 1, 0.3, 1] as const }
                   }
                 >
                   <Link

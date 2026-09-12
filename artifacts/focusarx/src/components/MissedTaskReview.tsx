@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ClipboardList } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getToken } from "@/lib/auth";
 import { isOnboarded, tryAcquireModal, releaseModal } from "@/lib/onboarding";
@@ -87,7 +88,7 @@ export default function MissedTaskReview({ open, tasks, onDone }: Props) {
         {/* Header */}
         <div className="px-6 pt-6 pb-4 border-b border-[var(--rgba-255-255-255-0_06)]">
           <div className="flex items-center gap-3 mb-1">
-            <span className="text-2xl">📋</span>
+            <span className="text-2xl"><ClipboardList size={16} aria-hidden="true" /></span>
             <div>
               <h2 className="text-base font-bold text-[var(--foreground)]">Daily Task Review</h2>
               <p className="text-xs text-[var(--foreground-subtle)]">You didn't complete these tasks yesterday</p>

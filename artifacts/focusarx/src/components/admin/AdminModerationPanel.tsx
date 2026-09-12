@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { CheckCircle2 } from "lucide-react";
 import { LoadingState, MotionTab, SectionHeader, adminFetch } from "./AdminHelpers";
 import type { AdminPanelProps } from "./AdminTypes";
 
@@ -89,7 +90,7 @@ export function AdminModerationPanel({ authHeaders }: AdminPanelProps) {
         <LoadingState text="Loading moderation queue…" />
       ) : posts.length === 0 ? (
         <div className="rounded-xl border border-[var(--palette-emerald-800)]/60 bg-[var(--palette-emerald-900)]/20 p-10 text-center">
-          <p className="text-lg">✅</p>
+          <p className="text-lg"><CheckCircle2 size={16} aria-hidden="true" /></p>
           <p className="mt-2 text-sm font-medium text-[var(--palette-emerald-300)]">All clear — no flagged content.</p>
           <p className="mt-1 text-xs text-[var(--palette-zinc-500)]">New posts are auto-moderated as they come in.</p>
         </div>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Crown, Lock, Sparkles, Target, BookOpen } from "lucide-react";
+import { Zap, Timer, Brain, Waves, Mountain, Palette } from "lucide-react";
 import { Link } from "wouter";
 import { usePremium } from "@/hooks/usePremium";
 
@@ -11,19 +12,19 @@ export type RitualTemplate = {
   focusMin: number;
   breakMin: number;
   longBreakMin: number;
-  icon: string;
+  icon: React.ReactNode;
   premium: boolean;
 };
 
 export const RITUAL_TEMPLATES: RitualTemplate[] = [
-  { id: "quick", name: "Quick Sprint", description: "15m focus burst", focusMin: 15, breakMin: 5, longBreakMin: 15, icon: "⚡", premium: false },
-  { id: "pomodoro", name: "Classic Pomodoro", description: "25m focus, 5m break", focusMin: 25, breakMin: 5, longBreakMin: 15, icon: "🍅", premium: false },
-  { id: "deep50", name: "Deep 50", description: "50m deep work", focusMin: 50, breakMin: 10, longBreakMin: 20, icon: "🎯", premium: false },
-  { id: "deep90", name: "Deep 90", description: "90m ultradian rhythm", focusMin: 90, breakMin: 15, longBreakMin: 30, icon: "🧠", premium: true },
-  { id: "flow120", name: "Flow 120", description: "2h flow state", focusMin: 120, breakMin: 20, longBreakMin: 30, icon: "🌊", premium: true },
-  { id: "marathon", name: "Marathon 180", description: "3h deep dive", focusMin: 180, breakMin: 25, longBreakMin: 40, icon: "🏔️", premium: true },
-  { id: "study", name: "Study Session", description: "50m study, 10m review", focusMin: 50, breakMin: 10, longBreakMin: 30, icon: "📚", premium: true },
-  { id: "creative", name: "Creative Sprint", description: "45m create, 15m reflect", focusMin: 45, breakMin: 15, longBreakMin: 30, icon: "🎨", premium: true },
+  { id: "quick", name: "Quick Sprint", description: "15m focus burst", focusMin: 15, breakMin: 5, longBreakMin: 15, icon: <Zap size={16} aria-hidden="true" />, premium: false },
+  { id: "pomodoro", name: "Classic Pomodoro", description: "25m focus, 5m break", focusMin: 25, breakMin: 5, longBreakMin: 15, icon: <Timer size={16} aria-hidden="true" />, premium: false },
+  { id: "deep50", name: "Deep 50", description: "50m deep work", focusMin: 50, breakMin: 10, longBreakMin: 20, icon: <Target size={16} aria-hidden="true" />, premium: false },
+  { id: "deep90", name: "Deep 90", description: "90m ultradian rhythm", focusMin: 90, breakMin: 15, longBreakMin: 30, icon: <Brain size={16} aria-hidden="true" />, premium: true },
+  { id: "flow120", name: "Flow 120", description: "2h flow state", focusMin: 120, breakMin: 20, longBreakMin: 30, icon: <Waves size={16} aria-hidden="true" />, premium: true },
+  { id: "marathon", name: "Marathon 180", description: "3h deep dive", focusMin: 180, breakMin: 25, longBreakMin: 40, icon: <Mountain size={16} aria-hidden="true" />, premium: true },
+  { id: "study", name: "Study Session", description: "50m study, 10m review", focusMin: 50, breakMin: 10, longBreakMin: 30, icon: <BookOpen size={16} aria-hidden="true" />, premium: true },
+  { id: "creative", name: "Creative Sprint", description: "45m create, 15m reflect", focusMin: 45, breakMin: 15, longBreakMin: 30, icon: <Palette size={16} aria-hidden="true" />, premium: true },
 ];
 
 export function TimerRitualsPanel({
