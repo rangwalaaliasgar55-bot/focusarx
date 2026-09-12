@@ -7,6 +7,7 @@ import { AdminShell } from "@/components/admin/AdminShell";
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard";
 import { useAuth } from "@/lib/auth";
 import { MotionTab, SectionHeader, adminFetch } from "@/components/admin/AdminHelpers";
+import { PageSEO } from "@/components/PageSEO";
 
 // ─── Extracted Panel Components ──────────────────────────────────────────────
 import { AdminOverviewPanel } from "@/components/admin/AdminOverviewPanel";
@@ -180,7 +181,18 @@ export default function AdminPage() {
   };
 
   return (
-    <AdminShell activeTab={tab} onTabChange={(t) => setTab(t as Tab)}>
+    <>
+      {/* The console used to inherit whatever <title> the previous route set,
+          so a tab left open read "FocusArx — AI Pomodoro Timer…" while showing
+          moderation tools. It is noindexed (robots.txt disallows /admin) but
+          still needs to say what it is. */}
+      <PageSEO
+        title="FocusArx admin console"
+        description="Internal operations console for FocusArx: users, economy, moderation, deployments and live system diagnostics."
+        canonical="/admin"
+        noindex
+      />
+      <AdminShell activeTab={tab} onTabChange={(t) => setTab(t as Tab)}>
       <ErrorBoundary key={`tab-${tab}`} resetKey={tab} onReset={() => setLoading(true)} fallbackTitle={`${tab} console section`}>
         <div key={tab}>
           {TAB_RENDER[tab]?.() ?? null}
@@ -195,6 +207,7 @@ export default function AdminPage() {
         />
       </ErrorBoundary>
     </AdminShell>
+    </>
   );
 }
 
