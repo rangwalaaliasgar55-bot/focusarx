@@ -145,4 +145,54 @@ test.describe("mobile layout", () => {
       ).toBeGreaterThanOrEqual(16);
     }
   });
+
+  test("marks Timer as the only active tab on the public focus route", async ({ page }) => {
+    await gotoRoute(page, "/focus");
+    const nav = page.locator(BOTTOM_NAV);
+    const timer = nav.getByRole("link", { name: "Timer", exact: true });
+    await expect(timer).toHaveAttribute("href", "/");
+    await expect(timer).toHaveAttribute("aria-current", "page");
+    await expect(nav.locator('[aria-current="page"]')).toHaveCount(1);
+  });
+
+  test("focus mode hides navigation from assistive technology and prevents focus", async ({ page }) => {
+    await gotoRoute(page, "/focus");
+    const nav = page.locator(BOTTOM_NAV);
+    await expect(nav).toBeVisible();
+    const controls = nav.locator("a, button");
+    expect(await controls.count()).toBeGreaterThan(0);
+
+    // Exercise the shared event contract used by both timer implementations.
+    await page.evaluate(() => window.dispatchEvent(new Event("fx:focus-start")));
+    await expect(nav).toHaveAttribute("aria-hidden", "true");
+    await expect(nav).toHaveAttribute("inert", "");
+    await expect(page.getByRole("navigation", { name: "Mobile navigation" })).toHaveCount(0);
+    for (let index = 0; index < await controls.count(); index += 1) {
+      await controls.nth(index).evaluate((node) => (node as HTMLElement).focus());
+      await expect(controls.nth(index)).not.toBeFocused();
+    }
+
+    await page.evaluate(() => window.dispatchEvent(new Event("fx:focus-stop")));
+    await expect(nav).not.toHaveAttribute("inert", "");
+    await expect(nav).not.toHaveAttribute("aria-hidden", "true");
+    await expect(page.getByRole("navigation", { name: "Mobile navigation" })).toBeVisible();
+    const timer = nav.getByRole("link", { name: "Timer", exact: true });
+    await timer.focus();
+    await expect(timer).toBeFocused();
+  });
+
+  test("navigation transitions respect reduced motion", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await gotoRoute(page, "/focus");
+    const nav = page.locator(BOTTOM_NAV);
+    await expect(nav).toBeVisible();
+    const durations = await nav.evaluate((node) =>
+      [node, ...node.querySelectorAll(".mobile-tab, .mobile-tab-icon")].flatMap((element) =>
+        getComputedStyle(element).transitionDuration.split(",").map((value) => Number.parseFloat(value)),
+      ),
+    );
+    for (const duration of durations) {
+      expect(duration, "navigation should not animate with reduced motion").toBeLessThanOrEqual(0.001);
+    }
+  });
 });
