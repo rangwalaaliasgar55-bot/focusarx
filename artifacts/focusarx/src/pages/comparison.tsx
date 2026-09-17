@@ -75,7 +75,13 @@ export default function ComparisonPage() {
   const canonical = `/comparison/${data.slug}`;
   // The two verdicts are the sections a reader jumps to; ids come from the same
   // slugger scripts/prerender.mjs uses for the static document.
+  // Same three headings, in the same order, as the prerendered document's
+  // "On this page" list (scripts/prerender-data.mjs builds the static table
+  // heading from this exact string), so the TOC a crawler sees and the one a
+  // visitor sees agree — and every jump link resolves in both.
+  const tableHeading = `${data.name} vs FocusArx, feature by feature`;
   const verdictHeadings = [
+    tableHeading,
     "When FocusArx is the better fit",
     `When ${data.name} is the better fit`,
   ];
@@ -125,13 +131,19 @@ export default function ComparisonPage() {
       <ContentTOC headings={verdictHeadings} label="On this page" className="mt-8" />
 
       {/* ── Feature table ─────────────────────────────────────── */}
+      {/* The heading is visible (not just an aria-label on the scroll region)
+          because the prerendered document ships the same table under the same
+          heading — a crawler and a reader must see the same page. */}
+      <h2 id={anchorFor.get(tableHeading)} className="mt-10 text-xl font-bold tracking-tight text-[var(--foreground)]">
+        {tableHeading}
+      </h2>
       <div
         role="region"
         aria-label="Feature comparison table"
         // Scrollable regions must be focusable so keyboard users can scroll them (WCAG 2.1.1).
         // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
         tabIndex={0}
-        className="mt-10 overflow-x-auto rounded-2xl border border-[var(--border)]"
+        className="mt-4 overflow-x-auto rounded-2xl border border-[var(--border)]"
       >
         <div className="grid min-w-[30rem] grid-cols-[1.6fr_1fr_1fr] bg-[var(--surface-raised)] p-4 text-sm font-bold text-[var(--foreground)]">
           <span>Capability</span>

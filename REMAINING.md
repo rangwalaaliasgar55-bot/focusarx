@@ -1,5 +1,46 @@
 # Remaining work (truthful tracker — done items stay listed as done)
 
+## Done 2026-09-17 — Search Console indexing audit + content-depth gates (this branch, in review)
+
+Full write-up: [`docs/GSC_INDEXING.md`](docs/GSC_INDEXING.md).
+
+- **Diagnosis.** Google's indexed copy of the homepage still carries
+  `aggregateRating` 4.9/2,847, `softwareVersion "12.0"`, `support@focusarx.app`
+  and apex-host URLs — all removed in `eab9962` (2026-09-12). The current build
+  emits **0** apex URLs across 119 documents and none of the indexed FAQ copy
+  exists in it, so the 54-URL not-indexed backlog describes the *previous* site
+  (the one whose `sitemap-profiles-*` shard listed 11,978 homepage duplicates).
+  No code change clears it; a recrawl does. Bucket-by-bucket mapping and the ops
+  sequence (verify deploy → Vercel primary = www → resubmit sitemap → request
+  indexing on 10 URLs) are in the doc.
+- **Comparison pages now prerender their feature table.** The ten pages are built
+  from a grid in `src/content/seo-pages.mjs` that the hydrated page rendered and
+  the prerenderer dropped, so a crawler saw 324–470 words where a visitor saw the
+  whole comparison. `prerender.mjs` gained `entry.table` (real `<table>`,
+  scoped headers, dated `<caption>`, Yes/No as text) and `section.bullets`;
+  `prerender-data.mjs` fills them from the same rows; `comparison.tsx` now shows
+  the table heading as a visible `<h2>` with the shared anchor id so both TOCs
+  match. Measured: ~100 → **241–283** own words per page.
+- **`seo-validate.mjs` gates 14–15.** Content depth (150 words of a page's *own*
+  copy, shell furniture stripped; 21 app surfaces exempt at 5; 9 thin copy pages
+  in a ratcheting baseline that may not regress and may not grow) and
+  crawler/visitor table parity (every declared row label must be in the emitted
+  HTML). Both negative-tested — each fires on a deliberately introduced defect.
+- **`REMAINING.md` ops checklist corrected**: it said "Vercel primary domain =
+  apex", which is backwards and contradicted `docs/DEPLOYMENT.md`,
+  `docs/SEO_SETUP.md` and `docs/PRODUCTION_SETUP.md`. If the primary ever is the
+  apex, every canonical points at a 308 and Google drops the page.
+- Gates: build + prerender + seo-validate PASS (119 pages, avg doc 35.4 → 36.5 kb),
+  bundle-budget PASS, API 424 passed (incl. seoContract 23 / regressionGuard 32),
+  frontend 421 passed, typecheck clean both artifacts.
+- **Still open** (content and ops, not code): write the 9 baselined copy pages
+  (`/deep-study-guide` 66 words, `/science-of-deep-work` 69,
+  `/two-hour-study-method` 74, `/feynman-technique` 82, then the hubs at 115–140);
+  decide whether `/roadmap` (8), `/break-free` (10), `/study-rooms` (11) and
+  `/leaderboard` (11) get copy or leave the sitemap; de-duplicate `/break-free`
+  and `/breathe` (each listed in two sitemap segments); add CTA-click events —
+  the one Phase-1 analytics item with no code behind it.
+
 ## Done 2026-09-10 — P0.3 cross-tab single timer (this branch, in review)
 
 - New `lib/crossTabSync.ts`: leader 1 Hz heartbeat (`state`) + `complete` /
@@ -118,7 +159,11 @@
 
 ## Ops checklist (manual, each deploy)
 
-- Vercel primary domain = apex (see docs/DEPLOYMENT.md).
+- Vercel primary domain = **`www.focusarx.site`** (the apex must 308 *to* it —
+  see docs/DEPLOYMENT.md §"Canonical domain"). This line previously said "apex",
+  which is backwards: every canonical, sitemap `<loc>`, `og:url` and hreflang in
+  the build is www, so a primary of apex makes every canonical point at a URL
+  that redirects and Google drops the page.
 - Stripe webhook registered (`/api/stripe/webhook`,
   `checkout.session.completed`) when enabling cards.
 - Sentry DSN + Plausible domain set when enabling observability.

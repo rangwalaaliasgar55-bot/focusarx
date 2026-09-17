@@ -44,7 +44,9 @@ export const DEFAULT_OG_IMAGE_PATH = "/opengraph.jpg";
  * @property {string} description    — meta description
  * @property {string} h1             — visible headline for the prerendered body
  * @property {string} lead           — lead paragraph under the H1
- * @property {{h: string, p: string}[]} [sections] — body sections
+ * @property {{h: string, p: string | string[], bullets?: string[]}[]} [sections] — body sections
+ * @property {{heading: string, caption?: string, head?: string[], rows: (string|boolean)[][]}} [table]
+ *   — data table rendered into the static body (the comparison feature grid)
  * @property {[string, string][]} [faq]   — [question, answer] pairs (emits FAQPage JSON-LD)
  * @property {boolean} [article]     — emit Article JSON-LD (guides)
  * @property {string} [lastReviewed] — ISO date the copy was last reviewed;
@@ -1040,9 +1042,22 @@ export const ROUTES = [
       description: c.description,
       h1: c.title,
       lead: c.lead,
+      // The feature grid is the reason the page exists: it is what a "X vs Y"
+      // query is asking for, and it is what the hydrated page
+      // (src/pages/comparison.tsx) renders from these same rows. It used to be
+      // left out of the static document, so a crawler saw two short verdict
+      // paragraphs (~330 words) instead of the comparison — thin, and different
+      // from what a visitor reads. seo-validate.mjs now asserts every row label
+      // below appears in the emitted HTML.
+      table: {
+        heading: `${c.name} vs FocusArx, feature by feature`,
+        caption: `Feature comparison between FocusArx and ${c.name}. Verified against what each product states publicly on ${COMPARISONS_REVIEWED}.`,
+        head: ["Capability", "FocusArx", c.name],
+        rows: c.rows,
+      },
       sections: [
-        { h: `When FocusArx is the better fit`, p: c.whenOurs },
-        { h: `When ${c.name} is the better fit`, p: c.whenTheirs },
+        { h: `When FocusArx is the better fit`, p: c.whenOurs, bullets: c.ours },
+        { h: `When ${c.name} is the better fit`, p: c.whenTheirs, bullets: c.theirs },
       ],
       faq: [
         [`When should I choose FocusArx over ${c.name}?`, c.whenOurs],

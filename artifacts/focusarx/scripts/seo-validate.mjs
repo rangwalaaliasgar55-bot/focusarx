@@ -968,6 +968,174 @@ for (const entry of manifestRoutes) {
   }
 }
 
+// ── 14. Content depth: a prerendered page must say something ──────────────
+// Search Console's "Crawled – currently not indexed" and most of a
+// "Discovered – currently not indexed" backlog are the same verdict written
+// two ways: Google fetched the page, decided it was not worth an index slot,
+// and moved on. Nothing else in this file catches it, because a thin page can
+// be perfectly well formed — right title, right canonical, three inbound
+// links, valid JSON-LD — and still be 30 words of copy around a client-rendered
+// app. The prerendered document is the whole page as far as a crawler that
+// does not finish the JavaScript is concerned.
+//
+// The measure is the page's OWN visible words: everything the shell repeats on
+// every route (breadcrumb, badge, byline, "On this page", "Keep reading", the
+// cluster block, the closing CTA, the no-JS notice) is stripped first, so a
+// page cannot pass on boilerplate it did not write.
+{
+  /** Words an indexable page needs in its own copy. */
+  const MIN_OWN_WORDS = 150;
+
+  /**
+   * Pages whose content is not prose. A policy stub links out to the full text
+   * and exists so the footer is honest, not to rank; an app screen renders its
+   * substance from the API or from an interactive widget the prerenderer cannot
+   * and should not duplicate. Each entry is a decision, recorded here so a new
+   * page cannot quietly join the list.
+   */
+  const APP_SURFACE_PAGES = new Set([
+    // policy stubs (full text lives behind the links they carry)
+    "/privacy",
+    "/terms",
+    "/cookie-policy",
+    "/acceptable-use",
+    "/ai-policy",
+    // auth, search and account screens
+    "/login",
+    "/signup",
+    "/contact",
+    "/search",
+    "/achievements",
+    "/premium",
+    // the product IS the page: the static document can only describe it
+    "/break-free",
+    "/leaderboard",
+    "/study-rooms",
+    "/breathe",
+    "/study-method-quiz",
+    "/study-calculator",
+    "/pricing",
+    "/changelog",
+    "/roadmap",
+    "/support",
+  ]);
+
+  /**
+   * An app screen still has to name itself. The floor is low because the
+   * substance of these pages is a widget or an API response, not prose — but a
+   * document that prerenders to nothing but a badge and a CTA is a page we
+   * should not be offering to Google at all. Measured 2026-09-17: the lowest
+   * are the policy stubs at 6 words (headline + lead; the policy text lives
+   * behind the links they carry).
+   */
+  const MIN_APP_SURFACE_WORDS = 5;
+
+  /**
+   * Known-thin copy pages, with the word count each measured at when the gate
+   * was added (2026-09-17 — the numbers and the reasoning are in
+   * docs/GSC_INDEXING.md). This is a ratchet, not a pass-list: a page may not
+   * get thinner, and no new page may join. Fixing one means deleting its line
+   * here, and the gate then holds it at MIN_OWN_WORDS for good.
+   */
+  const THIN_BASELINE = new Map([
+    ["/deep-study-guide", 66],
+    ["/science-of-deep-work", 69],
+    ["/two-hour-study-method", 74],
+    ["/feynman-technique", 82],
+    ["/guides", 115],
+    ["/focus-guide", 115],
+    ["/study-techniques", 115],
+    ["/blog", 138],
+    ["/", 140],
+  ]);
+
+  const ownWords = (html) => {
+    const body = html
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<!--[\s\S]*?-->/g, " ")
+      // repeated shell furniture — identical on every route
+      .replace(/<nav[^>]*aria-label="Breadcrumb"[\s\S]*?<\/nav>/gi, " ")
+      .replace(/<nav[^>]*aria-label="On this page"[\s\S]*?<\/nav>/gi, " ")
+      .replace(/<nav[^>]*aria-label="[^"]*cluster[^"]*"[\s\S]*?<\/nav>/gi, " ")
+      .replace(/<[^>]*class="[^"]*\b(badge|byline|related|cluster|toc|sources|fa-noscript)\b[^"]*"[\s\S]*?<\/(div|nav|p|ul)>/gi, " ")
+      .replace(/<a[^>]*class="cta"[\s\S]*?<\/a>/gi, " ");
+    const text = body
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&[a-z#0-9]+;/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    return text.split(" ").filter((w) => w.length > 1).length;
+  };
+
+  const counts = new Map();
+  for (const doc of documents) {
+    if (!indexablePaths.has(doc.path)) continue;
+    const words = ownWords(doc.html);
+    const isAppSurface = APP_SURFACE_PAGES.has(doc.path);
+    if (isAppSurface) {
+      if (words < MIN_APP_SURFACE_WORDS) {
+        problems.push(
+          `${doc.path}: an app screen still has to name itself — ${words} words of static copy (floor ${MIN_APP_SURFACE_WORDS})`,
+        );
+      }
+      continue;
+    }
+    counts.set(doc.path, words);
+    if (words >= MIN_OWN_WORDS) continue;
+    const baseline = THIN_BASELINE.get(doc.path);
+    if (baseline === undefined) {
+      problems.push(
+        `${doc.path}: only ${words} words of its own copy in the prerendered document (floor ${MIN_OWN_WORDS}) — ` +
+          `a page this thin is what fills Search Console's "Crawled – currently not indexed". Write the page, or drop it from the sitemap and mark it noindex.`,
+      );
+    } else if (words < baseline) {
+      problems.push(
+        `${doc.path}: content-depth regression — ${words} words of its own copy, down from ${baseline} when the ratchet was set`,
+      );
+    }
+  }
+  for (const path of THIN_BASELINE.keys()) {
+    if (!counts.has(path)) {
+      problems.push(`${path}: listed in the thin-content baseline but no longer measured as indexable — remove it from THIN_BASELINE`);
+    }
+  }
+}
+
+// ── 15. Crawler/visitor parity for the comparison tables ──────────────────
+// The comparison pages are built from a feature grid in
+// src/content/seo-pages.mjs. The hydrated page has always rendered it; the
+// prerendered document did not, so a crawler saw two short verdict paragraphs
+// (~330 words) where a visitor saw the whole comparison. That is the specific
+// shape of thinness these ten pages had, and it is invisible to every other
+// gate here because nothing was malformed. Both sides now render the same rows
+// from the same module; this asserts the static document really carries them.
+{
+  for (const entry of manifestRoutes) {
+    if (!entry.table?.rows?.length) continue;
+    const doc = documents.find((d) => d.path === (entry.path === "" ? "/" : `/${String(entry.path).replace(/^\/+/, "")}`));
+    if (!doc) continue;
+    const text = doc.html
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&#0?39;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/\s+/g, " ");
+    const missing = entry.table.rows
+      .map((row) => String(row[0]))
+      .filter((label) => !text.includes(label));
+    if (missing.length > 0) {
+      problems.push(
+        `${doc.path}: ${missing.length} of ${entry.table.rows.length} table rows are missing from the prerendered document (${missing.slice(0, 3).join("; ")}…) — ` +
+          `a crawler sees a shorter page than a visitor`,
+      );
+    }
+    if (!/<table/.test(doc.html)) {
+      problems.push(`${doc.path}: manifest declares a table but the prerendered document has no <table>`);
+    }
+  }
+}
+
 console.log(`seo-validate: ${files.length} pages, ${sitemapUrls.length} sitemap page entries, ${apiServedChildren} child sitemap(s) served by the API in production`);
 if (problems.length > 0) {
   console.error(`FAIL — ${problems.length} problem(s):`);
@@ -975,5 +1143,5 @@ if (problems.length > 0) {
   process.exit(1);
 }
 console.log(
-  "PASS — titles, descriptions, canonicals, JSON-LD, sitemap, robots, internal-link depth, cannibalisation, llms.txt and consent wiring, breadcrumbs, jump links, title budgets, PageSEO agreement, pillar/cluster wiring, bylines, visible freshness, citation links and image hygiene all consistent",
+  "PASS — titles, descriptions, canonicals, JSON-LD, sitemap, robots, internal-link depth, cannibalisation, llms.txt and consent wiring, breadcrumbs, jump links, title budgets, PageSEO agreement, pillar/cluster wiring, bylines, visible freshness, citation links, content depth, crawler/visitor table parity and image hygiene all consistent",
 );

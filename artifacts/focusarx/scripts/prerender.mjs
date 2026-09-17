@@ -296,6 +296,17 @@ html:not(.fa-js) body{background:#0b0d13}
 .fa-seo .toc ol{list-style:none;display:grid;gap:4px}
 .fa-seo .toc a{font-size:14px;text-decoration:none}
 .fa-seo h2{scroll-margin-top:24px}
+.fa-seo table.compare{width:100%;border-collapse:collapse;margin:10px 0 18px;font-size:14px;color:#b9bdca}
+.fa-seo table.compare caption{caption-side:top;text-align:left;font-size:13px;color:#8b90a0;padding-bottom:10px}
+.fa-seo table.compare th,.fa-seo table.compare td{border:1px solid rgba(255,255,255,.09);padding:10px 12px;text-align:left;vertical-align:top}
+.fa-seo table.compare thead th{background:rgba(255,255,255,.04);font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#e7e9ee}
+.fa-seo table.compare thead th.col{text-align:center}
+.fa-seo table.compare tbody th[scope=row]{font-weight:600;color:#e7e9ee}
+.fa-seo table.compare td{text-align:center}
+.fa-seo table.compare .yes{color:#4ade80;font-weight:600}
+.fa-seo table.compare .no{color:#8b90a0}
+.fa-seo ul.ticks{list-style:none;display:grid;gap:6px;margin:10px 0 18px;color:#b9bdca;font-size:15px}
+.fa-seo ul.ticks li:before{content:"✓";color:#a78bfa;margin-right:8px}
 .fa-seo .cta{display:inline-block;margin-top:40px;background:linear-gradient(90deg,#7c3aed,#4f46e5);color:#fff;font-weight:700;padding:13px 24px;border-radius:12px;text-decoration:none}
 .fa-noscript{max-width:760px;margin:0 auto;padding:16px 24px;color:#8b90a0;font-size:14px}
 `;
@@ -534,6 +545,7 @@ function renderBody(entry) {
   // page renders always match.
   const tocHeadings = [
     entry.howTo ? entry.howTo.name : null,
+    entry.table ? entry.table.heading : null,
     ...(entry.sections || []).map((s) => s.h),
     entry.faq?.length ? "Frequently asked questions" : null,
   ].filter(Boolean);
@@ -570,10 +582,59 @@ function renderBody(entry) {
       const paras = (Array.isArray(s.p) ? s.p : [s.p])
         .map((p) => `<p>${escapeHtml(p)}</p>`)
         .join("\n");
+      // A section can carry a bullet list as well as its prose. The comparison
+      // pages render "what each side is good at" as lists on screen; without
+      // this the prerendered document dropped them and a crawler saw a page
+      // that was a third the length of the one a visitor reads.
+      const bullets = s.bullets?.length
+        ? `<ul class="ticks">${s.bullets.map((b) => `<li>${escapeHtml(b)}</li>`).join("")}</ul>`
+        : "";
       const id = anchorFor.get(s.h);
-      return `<h2${id ? ` id="${escapeHtml(id)}"` : ""}>${escapeHtml(s.h)}</h2>${paras}`;
+      return `<h2${id ? ` id="${escapeHtml(id)}"` : ""}>${escapeHtml(s.h)}</h2>${paras}${bullets}`;
     })
     .join("\n");
+
+  /**
+   * Data table — currently the comparison pages' feature grid.
+   *
+   * `entry.table` is `{ heading, head: [c1, c2, c3], rows: [[label, ours, theirs]] }`
+   * where a cell is `true` / `false` / a short string. It is rendered as a real
+   * `<table>` with a row header per capability rather than a grid of divs, so a
+   * crawler that never runs JavaScript gets the entire comparison, and assistive
+   * tech gets column context per cell. The hydrated page (src/pages/comparison.tsx)
+   * renders the same rows from the same content module; seo-validate.mjs asserts
+   * that every row label appears in the static document, so the two cannot drift.
+   */
+  const tableBlock = entry.table
+    ? (() => {
+        const cell = (value) =>
+          `<td>${
+            value === true
+              ? '<span class="yes">Yes</span>'
+              : value === false
+                ? '<span class="no">No</span>'
+                : escapeHtml(String(value))
+          }</td>`;
+        const id = anchorFor.get(entry.table.heading);
+        const head = entry.table.head
+          .map((h, i) =>
+            i === 0
+              ? `<th scope="col">${escapeHtml(h)}</th>`
+              : `<th scope="col" class="col">${escapeHtml(h)}</th>`,
+          )
+          .join("");
+        const rows = entry.table.rows
+          .map(
+            ([label, ...cells]) =>
+              `<tr><th scope="row">${escapeHtml(label)}</th>${cells.map(cell).join("")}</tr>`,
+          )
+          .join("");
+        return `<h2${id ? ` id="${escapeHtml(id)}"` : ""}>${escapeHtml(entry.table.heading)}</h2>` +
+          `<table class="compare"><caption>${escapeHtml(entry.table.caption || entry.table.heading)}</caption>` +
+          `<thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>`;
+      })()
+    : "";
+
   const related = (entry.related || [])
     .map((pair) => {
       const [href, label] = pair.split("|");
@@ -632,7 +693,7 @@ function renderBody(entry) {
     : "";
 
   const cta = entry.cta || { href: "/signup", label: "Start focusing free" };
-  return `<div class="fa-seo">${breadcrumbsBlock}<span class="badge">${SITE_NAME}</span><h1>${escapeHtml(entry.h1)}</h1><p class="lead">${escapeHtml(entry.lead)}</p>${bylineBlock(entry)}${answerBlock}${tocBlock}${stepsBlock}${sections}${faqBlock}${sourcesBlock}${relatedBlock}${clusterBlock}<a class="cta" href="${escapeHtml(cta.href)}">${escapeHtml(cta.label)}</a></div>`;
+  return `<div class="fa-seo">${breadcrumbsBlock}<span class="badge">${SITE_NAME}</span><h1>${escapeHtml(entry.h1)}</h1><p class="lead">${escapeHtml(entry.lead)}</p>${bylineBlock(entry)}${answerBlock}${tocBlock}${stepsBlock}${tableBlock}${sections}${faqBlock}${sourcesBlock}${relatedBlock}${clusterBlock}<a class="cta" href="${escapeHtml(cta.href)}">${escapeHtml(cta.label)}</a></div>`;
 }
 
 // ── main ───────────────────────────────────────────────────────────
