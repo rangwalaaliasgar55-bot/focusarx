@@ -1,6 +1,6 @@
 
 import { Link, useLocation } from "wouter";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   LayoutDashboard,
   Timer,
@@ -38,6 +38,7 @@ interface MobileBottomNavProps {
 
 export function MobileBottomNav({ onMoreClick, hidden }: MobileBottomNavProps) {
   const [location] = useLocation();
+  const reduceMotion = useReducedMotion();
   const [isFocusMode, setIsFocusMode] = useState(() => typeof document !== "undefined" && !!document.querySelector("[data-focus-mode='active']"));
 
   // Listen for focus mode events to auto-hide. Both timer implementations
@@ -55,7 +56,7 @@ export function MobileBottomNav({ onMoreClick, hidden }: MobileBottomNavProps) {
     };
   }, []);
 
-  const shouldHide = hidden || isFocusMode;
+  const shouldHide = Boolean(hidden || isFocusMode);
   const { data: claimable = 0 } = useClaimableMissionCount();
 
   return (
@@ -63,10 +64,12 @@ export function MobileBottomNav({ onMoreClick, hidden }: MobileBottomNavProps) {
       className={cn(
         "app-bottom-nav fixed inset-x-0 bottom-0 z-[var(--z-nav)] flex md:hidden",
         "border-t border-[var(--border-subtle)] bg-[var(--backdrop)] backdrop-blur-[24px] saturate-[150%]",
-        "transition-transform duration-300 ease-out",
+        "transition-transform duration-300 ease-out motion-reduce:transition-none",
         shouldHide ? "translate-y-full pointer-events-none" : "translate-y-0"
       )}
       aria-label="Mobile navigation"
+      aria-hidden={shouldHide ? true : undefined}
+      inert={shouldHide}
       style={{
         height: "calc(4.5rem + env(safe-area-inset-bottom))",
         paddingBottom: "env(safe-area-inset-bottom)",
@@ -74,14 +77,15 @@ export function MobileBottomNav({ onMoreClick, hidden }: MobileBottomNavProps) {
     >
       {PRIMARY_TABS.map((tab) => {
         const Icon = tab.icon;
-        const active = location === tab.href || (tab.href === "/" && location === "/");
+        // /focus exposes the same timer to guests without changing link targets.
+        const active = location === tab.href || (tab.href === "/" && location === "/focus");
         return (
           <Link
             key={tab.href}
             href={tab.href}
             className={cn(
-              "mobile-tab relative flex min-h-[44px] min-w-[44px] flex-1 flex-col items-center justify-center gap-0.5",
-              "text-[0.625rem] font-semibold transition-colors",
+              "mobile-tab relative flex min-h-[44px] min-w-[44px] flex-1 flex-col items-center justify-center gap-1",
+              "text-[0.6875rem] font-semibold transition-colors motion-reduce:transition-none",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-500)] focus-visible:ring-offset-2",
               active ? "text-[var(--brand-strong)]" : "text-[var(--foreground-subtle)] hover:text-[var(--foreground)]",
               tab.primary && "mobile-tab-primary"
@@ -91,13 +95,15 @@ export function MobileBottomNav({ onMoreClick, hidden }: MobileBottomNavProps) {
           >
             {active && (
               <motion.span
-                layoutId="mobile-nav-active"
-                className="mobile-tab-indicator absolute -top-0.5 h-0.5 w-6 rounded-full bg-[var(--brand-500)]"
+                layoutId={reduceMotion ? undefined : "mobile-nav-active"}
+                transition={reduceMotion ? { duration: 0 } : undefined}
+                aria-hidden="true"
+                className="mobile-tab-indicator absolute -top-0.5 h-0.5 w-8 rounded-full bg-[var(--brand-500)]"
               />
             )}
             <span
               className={cn(
-                "mobile-tab-icon relative grid h-8 w-8 place-items-center rounded-[var(--radius-md)] transition-all",
+                "mobile-tab-icon relative grid h-8 w-8 place-items-center rounded-[var(--radius-md)] transition-colors motion-reduce:transition-none",
                 active && "bg-[var(--brand-soft)]",
                 tab.primary && active && "bg-transparent",
                 tab.primary
@@ -124,14 +130,14 @@ export function MobileBottomNav({ onMoreClick, hidden }: MobileBottomNavProps) {
           type="button"
           onClick={onMoreClick}
           className={cn(
-            "mobile-tab relative flex min-h-[44px] min-w-[44px] flex-1 flex-col items-center justify-center gap-0.5",
-            "text-[0.625rem] font-semibold transition-colors",
+            "mobile-tab relative flex min-h-[44px] min-w-[44px] flex-1 flex-col items-center justify-center gap-1",
+            "text-[0.6875rem] font-semibold transition-colors motion-reduce:transition-none",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-500)] focus-visible:ring-offset-2",
             "text-[var(--foreground-subtle)] hover:text-[var(--foreground)]"
           )}
           aria-label="More options"
         >
-          <span className="mobile-tab-icon grid h-8 w-8 place-items-center rounded-[var(--radius-md)] transition-all">
+          <span className="mobile-tab-icon grid h-8 w-8 place-items-center rounded-[var(--radius-md)] transition-colors motion-reduce:transition-none">
             <MoreHorizontal size={20} />
           </span>
           <span className="leading-none tracking-tight">More</span>
