@@ -66,6 +66,7 @@ import { MobileBottomNav } from "@/components/mobile/MobileBottomNav";
 import { MobileMoreMenu } from "@/components/mobile/MobileMoreMenu";
 import { NetworkStatusBanner } from "@/components/mobile/NetworkStatusBanner";
 import { FeatureCompassModal } from "@/components/FeatureCompassModal";
+import { isActiveRoute } from "@/lib/navActive";
 
 interface NavEntry {
   href: string;
@@ -192,7 +193,7 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
             <div className="space-y-1">
               {entries.map((entry) => {
                 const Icon = entry.icon;
-                const active = location === entry.href;
+                const active = isActiveRoute(location, entry.href);
                 return (
                   <Link
                     key={entry.href}
@@ -290,7 +291,8 @@ function UserMenu({ compact = false }: { compact?: boolean }) {
 function LiveSessionPill() {
   const live = useFocusSessionState();
   const [location] = useLocation();
-  if (live.status === "idle" || location === "/") return null;
+  // Both `/` and `/focus` show the timer, so the pill is redundant on either.
+  if (live.status === "idle" || isActiveRoute(location, "/")) return null;
   const paused = live.status === "paused";
   return (
     <Link
@@ -390,10 +392,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const isFocusPage = location === "/";
+  const isFocusPage = isActiveRoute(location, "/");
   const hideBottomNav = isFocusPage && isFocusActive;
 
-  if (NO_SHELL.some((path) => location === path || location.startsWith(`${path}/`))) return <>{children}</>;
+  if (NO_SHELL.some((path) => isActiveRoute(location, path))) return <>{children}</>;
   if (location === "/" && status !== "authenticated") return <>{children}</>;
 
   return (

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useClaimableMissionCount } from "@/lib/missionsQuery";
+import { isActiveRoute } from "@/lib/navActive";
 import { useEffect, useState } from "react";
 
 type Tab = {
@@ -77,8 +78,9 @@ export function MobileBottomNav({ onMoreClick, hidden }: MobileBottomNavProps) {
     >
       {PRIMARY_TABS.map((tab) => {
         const Icon = tab.icon;
-        // /focus exposes the same timer to guests without changing link targets.
-        const active = location === tab.href || (tab.href === "/" && location === "/focus");
+        // `/` and `/focus` are the same destination; the alias lives in
+        // `isActiveRoute` so the sidebar and this bar cannot disagree.
+        const active = isActiveRoute(location, tab.href);
         return (
           <Link
             key={tab.href}
