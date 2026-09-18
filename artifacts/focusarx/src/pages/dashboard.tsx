@@ -30,6 +30,7 @@ import { useTasks } from "@/hooks/useTasks";
 import { useSwipeToComplete } from "@/hooks/useSwipeToComplete";
 import { useToast } from "@/components/Toast";
 import StreakFreezeCard from "@/components/dashboard/StreakFreezeCard";
+import { WeeklyGoalBar } from "@/components/dashboard/WeeklyGoalBar";
 import WeeklyReviewCard from "@/components/dashboard/WeeklyReviewCard";
 import RecapCard from "@/components/dashboard/RecapCard";
 import CommunityNow from "@/components/dashboard/CommunityNow";
@@ -307,11 +308,12 @@ function QuickTasks() {
 /**
  * The week at a glance.
  *
- * The chart and its summary were two cards reading the same array — a bar
- * chart on the left and a "weekly goal" card on the right, each recomputing
- * the total from `chartData`. One card now owns both, so the number in the
- * header and the bars underneath cannot disagree, and the section answers
- * "how is this week going, and which day carried it?" without a second glance.
+ * The chart, its summary and the weekly target were three readings of the same
+ * array — a bar chart on the left, a "weekly goal" card on the right, and the
+ * target's own total computed from a different expression. One card owns all of
+ * it now, so the headline number, the progress bar and the bars underneath
+ * cannot disagree, and the section answers "how is this week going, which day
+ * carried it, and am I on track?" without a second glance.
  */
 function WeeklyFocus({ chartData, weekly }: { chartData: DashboardStats["chartData"]; weekly?: WeeklySummary }) {
   const total = weekly?.totalMinutes ?? chartData.reduce((sum, d) => sum + (d.minutes || 0), 0);
@@ -332,7 +334,8 @@ function WeeklyFocus({ chartData, weekly }: { chartData: DashboardStats["chartDa
         </div>
         <BarChart3 className="shrink-0 text-[var(--brand-strong)]" aria-hidden="true" />
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        <WeeklyGoalBar minutes={total} />
         {hasData ? (
           <Suspense fallback={<Skeleton className="h-56" />}>
             <FocusChart data={chartData} />
