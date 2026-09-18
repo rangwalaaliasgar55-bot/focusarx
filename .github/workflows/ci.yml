@@ -193,6 +193,38 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # The action writes its findings to a job summary and a SARIF artifact.
+      # Neither is readable from the checks UI or the API, so a failed
+      # Security job could only say "leaks detected" without saying where —
+      # which makes the gate impossible to act on. Re-emit each finding as an
+      # annotation: they show up inline on the diff and over the API.
+      - name: Surface gitleaks findings
+        if: failure()
+        run: |
+          REPORT="$GITHUB_WORKSPACE/gitleaks-results.sarif"
+          if [ ! -f "$REPORT" ]; then
+            echo "::warning::gitleaks failed but left no report at $REPORT"
+            exit 0
+          fi
+          node -e '
+            const { readFileSync } = require("node:fs");
+            const [report, root] = process.argv.slice(1);
+            const sarif = JSON.parse(readFileSync(report, "utf8"));
+            let count = 0;
+            for (const run of sarif.runs ?? []) {
+              for (const result of run.results ?? []) {
+                count += 1;
+                const at = result.locations?.[0]?.physicalLocation ?? {};
+                let file = at.artifactLocation?.uri ?? "unknown";
+                if (root && file.startsWith(root)) file = file.slice(root.length + 1);
+                const line = at.region?.startLine ?? 1;
+                const message = (result.message?.text ?? "finding").split("\n")[0].slice(0, 200);
+                console.log(`::error file=${file},line=${line}::gitleaks ${result.ruleId ?? "rule"}: ${message}`);
+              }
+            }
+            console.log(`::notice::gitleaks reported ${count} finding(s)`);
+          ' "$REPORT" "$GITHUB_WORKSPACE"
+
       - name: Check for secrets in source
         run: |
           echo "Scanning for potential secrets..."
