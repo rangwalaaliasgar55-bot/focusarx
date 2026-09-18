@@ -13,6 +13,7 @@ import { PageSEO } from '@/components/PageSEO';
 import { getToken } from '@/lib/auth';
 import { useToast } from '@/components/Toast';
 import { schedule, createNewCard, Grade, type CardState, serializeCard, deserializeCard } from '@/lib/fsrs';
+import { QueryError } from '@/components/ui/QueryError';
 
 interface Deck {
   id: number;
@@ -43,26 +44,61 @@ export default function FlashcardsPage() {
   const [newCardBack, setNewCardBack] = useState('');
   const [showAddCard, setShowAddCard] = useState(false);
   const [studyComplete, setStudyComplete] = useState(false);
+  /**
+   * A failed load is not an empty deck.
+   *
+   * Both used to render as "No decks yet / No cards in this deck" — telling the
+   * user their data does not exist when the request had simply failed. On a
+   * spaced-repetition app that is the worst possible lie: it reads as "the
+   * reviews I did are gone".
+   */
+  const [decksError, setDecksError] = useState<string | null>(null);
+  const [cardsError, setCardsError] = useState<string | null>(null);
+  /**
+   * Grades whose save failed.
+   *
+   * The review POST used to be `fetch(...).catch(() => {})` with no `res.ok`
+   * check at all, so a grade the server never recorded advanced the card's FSRS
+   * state locally while the server kept the old schedule. The user saw the next
+   * card and believed their review counted; on reload it was due again as if
+   * never reviewed. The interval the algorithm computes is the entire product,
+   * and it was drifting from reality with nothing to show for it.
+   *
+   * Studying continues — blocking the session would be worse — but the count is
+   * surfaced and stays on screen until the writes succeed.
+   */
+  const [unsavedReviews, setUnsavedReviews] = useState(0);
 
   const token = typeof window !== 'undefined' ? getToken() : null;
   const { toast } = useToast();
 
-  // Load decks
+  // Load decks. A non-ok response is an error, not an empty list.
   useEffect(() => {
     if (!token) return;
-    fetch('/api/flashcards/decks', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : [])
-      .then((data: any[]) => {
-        setDecks((data || []).map((d: any) => ({
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/flashcards/decks', { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data: unknown = await res.json();
+        if (cancelled) return;
+        setDecks((Array.isArray(data) ? data : []).map((d: any) => ({
           id: d.id,
           title: d.title || 'Untitled',
           description: d.description || '',
           cardCount: d.cardCount || 0,
           dueCount: d.dueCount || 0,
         })));
-      })
-      .catch(() => toast("Couldn't load your decks. Pull to refresh or try again shortly.", "error"));
-  }, [token, toast]);
+        setDecksError(null);
+      } catch (err) {
+        if (cancelled) return;
+        setDecksError(err instanceof Error ? err.message : 'Request failed');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   // Load cards for active deck
   const loadCards = useCallback(async (deckId: number) => {
@@ -72,23 +108,28 @@ export default function FlashcardsPage() {
       const res = await fetch(`/api/flashcards/decks/${deckId}/cards`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) {
-        const data = await res.json();
-        // Convert to FSRS format
-        const converted: Card[] = (data || []).map((c: any) => ({
-          id: c.id,
-          deckId: c.deckId || deckId,
-          front: c.front,
-          back: c.back,
-          fsrs: c.fsrs ? deserializeCard(c.fsrs) : createNewCard(),
-        }));
-        setCards(converted);
-        setCurrentCardIndex(0);
-        setShowAnswer(false);
-        setStudyComplete(false);
-      }
-    } catch {
-      toast("Couldn't load cards for this deck.", "error");
+      // The `else` is the fix: without it a 500 or a 401 fell through to the
+      // caller's empty state, so tapping a deck with a hundred cards in it said
+      // "No cards in this deck. Add some to get started!"
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data: unknown = await res.json();
+      const converted: Card[] = (Array.isArray(data) ? data : []).map((c: any) => ({
+        id: c.id,
+        deckId: c.deckId || deckId,
+        front: c.front,
+        back: c.back,
+        fsrs: c.fsrs ? deserializeCard(c.fsrs) : createNewCard(),
+      }));
+      setCards(converted);
+      setCurrentCardIndex(0);
+      setShowAnswer(false);
+      setStudyComplete(false);
+      setCardsError(null);
+    } catch (err) {
+      // Keep the previous cards rather than clearing them — the deck the user
+      // was studying is still the deck they were studying.
+      setCardsError(err instanceof Error ? err.message : 'Request failed');
+      toast("Couldn't load cards for this deck. Try again in a moment.", "error");
     }
     setIsLoading(false);
   }, [token, toast]);
@@ -105,13 +146,34 @@ export default function FlashcardsPage() {
     updatedCards[currentCardIndex] = { ...card, fsrs: result.newState };
     setCards(updatedCards);
 
-    // Save to API
+    // Save to API.
+    //
+    // This used to be `fetch(...).catch(() => {})` with no `res.ok` check, so
+    // both a network failure *and* a 4xx/5xx were discarded. The card's FSRS
+    // state advanced locally either way and the user moved on believing the
+    // review counted — but the server still held the old schedule, so the
+    // interval the algorithm promises was drifting from reality in silence.
+    //
+    // One immediate retry covers the transient case. Anything still failing is
+    // counted and shown on screen, because "your grades are not being saved" is
+    // something the user has to know before they finish a deck, not after.
     if (token) {
-      fetch(`/api/flashcards/cards/${card.id}/review`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ grade, fsrs: serializeCard(result.newState) }),
-      }).catch(() => {});
+      const payload = JSON.stringify({ grade, fsrs: serializeCard(result.newState) });
+      void (async () => {
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          try {
+            const res = await fetch(`/api/flashcards/cards/${card.id}/review`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: payload,
+            });
+            if (res.ok) return;
+          } catch {
+            // Fall through to the retry, then to the counter.
+          }
+        }
+        setUnsavedReviews((n) => n + 1);
+      })();
     }
 
     // Move to next card
@@ -198,6 +260,27 @@ export default function FlashcardsPage() {
           </p>
         </header>
 
+        {/*
+          Persistent, not a toast: a fading notification would be gone before the
+          user finished the deck, which is exactly when they need to know their
+          progress is not being recorded.
+        */}
+        {unsavedReviews > 0 && (
+          <div
+            role="alert"
+            data-testid="unsaved-reviews"
+            className="mb-6 rounded-xl border border-[var(--color-warning)]/40 bg-[var(--color-warning)]/10 px-4 py-3"
+          >
+            <p className="text-xs font-semibold text-[var(--color-warning)]">
+              {unsavedReviews} {unsavedReviews === 1 ? "grade was" : "grades were"} not saved
+            </p>
+            <p className="mt-0.5 text-[11px] text-[var(--foreground-subtle)]">
+              You can keep reviewing, but those cards will come up again sooner than they should. Check your
+              connection and reload to resync.
+            </p>
+          </div>
+        )}
+
         {/* Deck Selection */}
         {!activeDeck && (
           <div className="space-y-4">
@@ -211,7 +294,10 @@ export default function FlashcardsPage() {
               </button>
             </div>
 
-            {decks.length === 0 ? (
+            {decksError ? (
+              /* Before the empty branch: a failed request is not an empty deck. */
+              <QueryError what="your decks" onRetry={() => window.location.reload()} />
+            ) : decks.length === 0 ? (
               <div className="rounded-2xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/60 p-8 text-center">
                 <BookOpen size={32} className="mx-auto text-[var(--palette-zinc-600)] mb-3" />
                 <p className="text-sm text-[var(--palette-zinc-500)]">No decks yet. Create your first deck to start learning!</p>
@@ -300,6 +386,8 @@ export default function FlashcardsPage() {
                   </>
                 )}
               </motion.div>
+            ) : cardsError ? (
+              <QueryError what="this deck's cards" onRetry={() => activeDeck && void loadCards(activeDeck.id)} />
             ) : isLoading ? (
               <div className="rounded-2xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/60 p-8 text-center" aria-busy="true">
                 <p className="text-sm text-[var(--palette-zinc-500)]">Loading cards…</p>
