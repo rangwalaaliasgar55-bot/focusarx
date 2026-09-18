@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
+import { readAppRouteTable } from "../lib/appRouteTable.js";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { SEGMENTS, lastmodFor } from "./sitemap";
@@ -64,27 +65,12 @@ interface AppRoutes {
 }
 
 function appRoutes(): AppRoutes {
-  const src = fs.readFileSync(APP_TSX, "utf8");
-  const publicRoutes = new Set<string>();
-  const protectedRoutes = new Set<string>();
-  const paramPatterns: string[] = [];
-  const re = /<Route\s+path="([^"]+)"\s+component=\{([^]*?)\}\s*\/>/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(src))) {
-    const routePath = m[1]!;
-    const body = m[2]!;
-    const isProtected = body.includes("ProtectedRoute");
-    if (routePath.includes(":")) {
-      // A param route covers a whole family of sitemap URLs (/exam/jee-main,
-      // /comparison/focusarx-vs-forest). Record the pattern so those URLs can
-      // be matched instead of being silently skipped — skipping them made the
-      // test report 20 live URLs as 404s.
-      if (!isProtected) paramPatterns.push(routePath);
-      continue;
-    }
-    (isProtected ? protectedRoutes : publicRoutes).add(routePath);
-  }
-  return { publicRoutes, protectedRoutes, paramPatterns };
+  // Delegated to the shared, shape-independent parser. This test used to carry
+  // its own regex written against `component={() => ...}`; converting the
+  // routes to children made it match nothing, and the sitemap contract then
+  // reported all 113 live URLs as 404s. The extractor's own tests cover both
+  // render styles.
+  return readAppRouteTable(APP_TSX);
 }
 
 /**

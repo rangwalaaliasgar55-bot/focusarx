@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiJson } from "@/lib/api";
+import { apiJson, errorMessage } from "@/lib/api";
 import { useToast } from "@/components/Toast";
 import { Lock, Check, Gift, Crown, Trophy, Clock, Coins, Sparkles, ArrowRight } from "lucide-react";
 import { PageTransition } from "@/components/PageTransition";
@@ -56,7 +56,7 @@ export default function BattlePassPage() {
       else toast(`Claimed! +${res.tokenReward ?? 0} Focus Tokens`, "success");
       qc.invalidateQueries({ queryKey: ["battle-pass-enhanced"] });
     },
-    onError: (e: any) => toast(e.message || "Claim failed", "error"),
+    onError: (e: unknown) => toast(errorMessage(e, "Claim failed"), "error"),
   });
 
   const claimAllMutation = useMutation({
@@ -65,7 +65,7 @@ export default function BattlePassPage() {
       toast(`Claimed ${res.claimedCount} rewards!`, "success");
       qc.invalidateQueries({ queryKey: ["battle-pass-enhanced"] });
     },
-    onError: (e: any) => toast(e.message, "error"),
+    onError: (e: unknown) => toast(errorMessage(e), "error"),
   });
 
   if (isLoading) return <div className="flex min-h-screen items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--brand-600)] border-t-transparent" /></div>;

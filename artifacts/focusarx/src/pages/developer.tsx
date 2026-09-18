@@ -20,7 +20,7 @@ import { BrandMark, BrandLockup } from "@/components/ui/brand";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
-import { apiJson } from "@/lib/api";
+import { apiJson, errorMessage } from "@/lib/api";
 import { Link } from "wouter";
 import {
   Code2, Database, Shield, GitBranch,
@@ -344,8 +344,8 @@ function UsersTab() {
       setActionResult(`✅ ${action} succeeded`);
       searchUsers();
       if (selectedUser) loadUserDetails(selectedUser.id);
-    } catch (e: any) {
-      setActionResult(`❌ ${action} failed: ${e.message}`);
+    } catch (e) {
+      setActionResult(`❌ ${action} failed: ${errorMessage(e)}`);
     }
     setTimeout(() => setActionResult(null), 5000);
   };

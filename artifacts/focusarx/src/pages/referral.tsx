@@ -5,6 +5,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Gift, Copy, Check, Coins, Zap, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
+import { errorMessage } from "@/lib/api";
 
 async function fetchMyCode() {
   const token = getToken();
@@ -41,7 +42,7 @@ export default function ReferralPage() {
   const applyMut = useMutation({
     mutationFn: applyCode,
     onSuccess: (d) => { setApplyResult(d); setInputCode(""); setApplyError(""); },
-    onError: (e: any) => { setApplyError(e.message || "Failed to apply code"); },
+    onError: (e: unknown) => { setApplyError(errorMessage(e, "Failed to apply code")); },
   });
 
   const copyCode = () => {

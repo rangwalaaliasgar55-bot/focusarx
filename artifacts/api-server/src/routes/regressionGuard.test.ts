@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { readAppRouteTable } from "../lib/appRouteTable.js";
 
 /**
  * ══════════════════════════════════════════════════════════════════
@@ -139,11 +140,10 @@ describe("3. sitemap and robots.txt never contradict each other", () => {
 
 describe("4. sitemap only contains publicly crawlable routes", () => {
   it("no login-walled route appears in the sitemap", () => {
-    const app = read(path.join(FRONTEND, "src/App.tsx"));
-    const protectedPaths = new Set<string>();
-    for (const m of app.matchAll(/<Route\s+path="([^"]+)"[^>]*component=\{\(\)\s*=>\s*<ErrorBoundary><ProtectedRoute/g)) {
-      protectedPaths.add(m[1]!);
-    }
+    // Shared parser rather than a local regex: this check's job is to catch a
+    // login-walled route leaking into the sitemap, and it must keep doing that
+    // regardless of how the routes render their components.
+    const protectedPaths = readAppRouteTable(path.join(FRONTEND, "src/App.tsx")).protectedRoutes;
     expect(protectedPaths.size).toBeGreaterThan(20); // guard against a broken extractor
 
     const urls = sitemapUrls();

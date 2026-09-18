@@ -1,16 +1,11 @@
 import { useState, useRef, useEffect, Component, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getToken, useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
 import { MessageSquare, Send, Plus, Search, X, Users, ArrowLeft, AlertCircle, RefreshCw, Shield } from "lucide-react";
 import { EmotePicker } from "@/components/EmotePicker";
+import { apiJson, errorMessage } from "@/lib/api";
 
-async function apiFetch(path: string, opts?: RequestInit) {
-  const token = getToken();
-  const res = await fetch(path, { ...opts, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(opts?.headers ?? {}) } });
-  if (!res.ok) { const t = await res.text(); throw new Error(t); }
-  return res.json();
-}
 
 function Avatar({ name, size = 36 }: { name: string; size?: number }) {
   const initials = (name || "U").slice(0, 2).toUpperCase();
@@ -91,7 +86,7 @@ function ConversationThread({ conv, currentUserId, onBack }: { conv: any; curren
 
   const { data: messages = [], isLoading, isError: msgsError } = useQuery({
     queryKey: ["messages", conv.id],
-    queryFn: () => apiFetch(`/api/dm/${conv.id}/messages`),
+    queryFn: () => apiJson(`/api/dm/${conv.id}/messages`),
     staleTime: 5_000,
     refetchInterval: 5_000,
     retry: 2,
@@ -102,14 +97,14 @@ function ConversationThread({ conv, currentUserId, onBack }: { conv: any; curren
   }, [messages]);
 
   const sendMsg = useMutation({
-    mutationFn: () => apiFetch(`/api/dm/${conv.id}/messages`, { method: "POST", body: JSON.stringify({ content: text.trim() }) }),
+    mutationFn: () => apiJson(`/api/dm/${conv.id}/messages`, { method: "POST", body: JSON.stringify({ content: text.trim() }) }),
     onSuccess: () => { setText(""); qc.invalidateQueries({ queryKey: ["messages", conv.id] }); qc.invalidateQueries({ queryKey: ["conversations"] }); },
-    onError: (e: any) => toast(e.message, "error"),
+    onError: (e: unknown) => toast(errorMessage(e), "error"),
   });
 
   const reactMsg = useMutation({
     mutationFn: ({ msgId, emoji }: { msgId: string; emoji: string }) =>
-      apiFetch(`/api/dm/messages/${msgId}/react`, { method: "POST", body: JSON.stringify({ emoji }) }),
+      apiJson(`/api/dm/messages/${msgId}/react`, { method: "POST", body: JSON.stringify({ emoji }) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["messages", conv.id] }),
   });
 
@@ -178,12 +173,12 @@ function NewConversationModal({ onClose, onStart }: { onClose: () => void; onSta
   const [q, setQ] = useState("");
   const { data: friends = [] } = useQuery({
     queryKey: ["dm-friends"],
-    queryFn: () => apiFetch("/api/social/friends"),
+    queryFn: () => apiJson("/api/social/friends"),
     staleTime: 30_000,
   });
   const { data: searchResults = [] } = useQuery({
     queryKey: ["user-search-dm", q],
-    queryFn: () => apiFetch(`/api/social/search?q=${encodeURIComponent(q)}&friendsOnly=true`),
+    queryFn: () => apiJson(`/api/social/search?q=${encodeURIComponent(q)}&friendsOnly=true`),
     enabled: q.length >= 2,
     staleTime: 10_000,
   });
@@ -268,16 +263,16 @@ function MessagesPageInner() {
 
   const { data: conversations = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["conversations"],
-    queryFn: () => apiFetch("/api/dm/conversations"),
+    queryFn: () => apiJson("/api/dm/conversations"),
     staleTime: 10_000,
     refetchInterval: 15_000,
     retry: 2,
   });
 
   const startDm = useMutation({
-    mutationFn: (userId: string) => apiFetch("/api/dm/start", { method: "POST", body: JSON.stringify({ userId }) }),
+    mutationFn: (userId: string) => apiJson("/api/dm/start", { method: "POST", body: JSON.stringify({ userId }) }),
     onSuccess: (conv) => { setShowNew(false); setSelectedConv(conv); qc.invalidateQueries({ queryKey: ["conversations"] }); },
-    onError: (e: any) => toast(e.message, "error"),
+    onError: (e: unknown) => toast(errorMessage(e), "error"),
   });
 
   const filtered = (conversations as any[]).filter((c: any) => {

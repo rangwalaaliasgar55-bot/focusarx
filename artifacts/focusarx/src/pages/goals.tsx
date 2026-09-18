@@ -1,19 +1,13 @@
 import { QueryError } from "@/components/ui/QueryError";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getToken } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
 import { Target, Plus, Trash2, CheckCircle2, Circle, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TiltCard } from "@/components/TiltCard";
 import PageHeader from "@/components/PageHeader";
+import { apiJson, errorMessage } from "@/lib/api";
 
-async function apiFetch(path: string, opts?: RequestInit) {
-  const token = getToken();
-  const res = await fetch(path, { ...opts, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(opts?.headers ?? {}) } });
-  if (!res.ok) { const t = await res.text(); throw new Error(t); }
-  return res.json();
-}
 
 type Goal = {
   id: string;
@@ -32,31 +26,31 @@ export default function GoalsPage() {
 
   const { data, isLoading, isError, refetch, isRefetching } = useQuery<{ goals: Goal[] }>({
     queryKey: ["goals"],
-    queryFn: () => apiFetch("/api/goals"),
+    queryFn: () => apiJson("/api/goals"),
     staleTime: 60_000,
   });
 
   const createGoal = useMutation({
-    mutationFn: (body: { title: string; description: string }) => apiFetch("/api/goals", { method: "POST", body: JSON.stringify(body) }),
+    mutationFn: (body: { title: string; description: string }) => apiJson("/api/goals", { method: "POST", body: JSON.stringify(body) }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["goals"] });
       setTitle(""); setDescription(""); setShowForm(false);
       toast("Goal created!", "success");
     },
-    onError: (e: any) => toast(e.message, "error"),
+    onError: (e: unknown) => toast(errorMessage(e), "error"),
   });
 
   const toggleGoal = useMutation({
     mutationFn: ({ id, completed }: { id: string; completed: boolean }) =>
-      apiFetch(`/api/goals/${id}/complete`, { method: "PATCH", body: JSON.stringify({ completed }) }),
+      apiJson(`/api/goals/${id}/complete`, { method: "PATCH", body: JSON.stringify({ completed }) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["goals"] }),
-    onError: (e: any) => toast(e.message, "error"),
+    onError: (e: unknown) => toast(errorMessage(e), "error"),
   });
 
   const deleteGoal = useMutation({
-    mutationFn: (id: string) => apiFetch(`/api/goals/${id}`, { method: "DELETE" }),
+    mutationFn: (id: string) => apiJson(`/api/goals/${id}`, { method: "DELETE" }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["goals"] }); toast("Goal removed", "success"); },
-    onError: (e: any) => toast(e.message, "error"),
+    onError: (e: unknown) => toast(errorMessage(e), "error"),
   });
 
   const goals = data?.goals ?? [];
