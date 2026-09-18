@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "@/lib/auth";
+import { useAuth, getToken } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
 import { PageTransition } from "@/components/PageTransition";
+import { QueryError } from "@/components/ui/QueryError";
 import { Sword, Heart, Megaphone, Snowflake, CheckCircle, XCircle, Plus } from "lucide-react";
 
 type Contract = {
@@ -42,11 +43,48 @@ const CONTRACT_TYPES = [
   },
 ];
 
-function ContractCard({ contract, weekMinutes }: { contract: Contract; weekMinutes: number }) {
+/**
+ * Compare only the calendar date.
+ *
+ * The server sends `weekStart` as a day key and the contract rows as timestamps
+ * of the same day; slicing both to `YYYY-MM-DD` means the comparison cannot
+ * break on a format change that leaves the date intact.
+ */
+function dayKey(value: string): string {
+  return String(value).slice(0, 10);
+}
+
+/**
+ * One week's contract.
+ *
+ * `currentWeekStart` comes from the server rather than being recomputed here.
+ * The page used to derive "is this the current week?" locally with
+ *
+ *   new Date(Date.now() - ((getDay() + 6) % 7) * 86400000).toISOString().slice(0, 10)
+ *
+ * which mixes a **local** weekday with a **UTC** date. For anyone east of
+ * Greenwich that is wrong for part of every Monday: at 02:00 IST the instant is
+ * still Sunday in UTC, so the expression returned *last* week's Monday and the
+ * current contract was treated as a finished one. The progress bar and the
+ * "so far" figure disappeared — the two things the page exists to show —
+ * during a five-and-a-half-hour window every Monday, in the timezone most of
+ * this app's users are in.
+ *
+ * The server already knows which week it is, in the user's own zone (`weekStart`
+ * on the response, computed with `weekStartInZone`). Comparing against that has
+ * no timezone maths to get wrong.
+ */
+function ContractCard({
+  contract,
+  weekMinutes,
+  currentWeekStart,
+}: {
+  contract: Contract;
+  weekMinutes: number;
+  currentWeekStart: string;
+}) {
   const pct = Math.min(100, (weekMinutes / contract.targetMinutes) * 100);
-  const isCurrentWeek = contract.weekStart === new Date(
-    new Date(Date.now() - ((new Date().getDay() + 6) % 7) * 86400000).toISOString().split("T")[0]!
-  ).toISOString().split("T")[0];
+  const isCurrentWeek = dayKey(contract.weekStart) === dayKey(currentWeekStart);
 
   const ContractIcon = contract.contractType === "charity" ? Heart : contract.contractType === "shame" ? Megaphone : Snowflake;
   const iconColor = contract.contractType === "charity" ? "var(--color-error)" : contract.contractType === "shame" ? "var(--palette-f97316)" : "var(--info)";
@@ -114,18 +152,34 @@ export default function ConsequencesPage() {
   const [saving, setSaving] = useState(false);
   const [usingFreeze, setUsingFreeze] = useState(false);
   const [shameDismissed, setShameDismissed] = useState(false);
+  /**
+   * A failed load rendered as a blank page.
+   *
+   * The content block is gated on `data`, so when the request failed there was
+   * nothing to draw: the header rendered, the rest of the page was empty, and
+   * the only explanation was a toast that had already faded. "You have no
+   * contracts" and "we couldn't find out" must not look the same.
+   */
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Derived, not mirrored in an effect: the flag used to be set from inside the
   // status-watching effect, which re-rendered the page twice on every load.
   const loading = status === "loading" || (status === "authenticated" && !loaded);
 
-  const token = () => localStorage.getItem("focusarx-auth-token");
+  // Through `getToken()` rather than a hand-read localStorage key. The literal
+  // is the same today, which is the point: three pages reached past the accessor
+  // and would have kept working on a stale key after any change to how the token
+  // is stored — silently, since a missing token reads as "logged out".
+  const token = getToken;
 
   const load = () => {
     fetch("/api/consequences", { headers: { Authorization: `Bearer ${token()}` } })
-      .then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
-      .then((d: ConsequencesData) => setData(d))
-      .catch(() => toast("Couldn't load your contracts. Pull to refresh or try again.", "error"))
+      .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      .then((d: ConsequencesData) => { setData(d); setLoadError(null); })
+      .catch((e: unknown) => {
+        setLoadError(e instanceof Error ? e.message : "Request failed");
+        toast("Couldn't load your contracts. Pull to refresh or try again.", "error");
+      })
       .finally(() => setLoaded(true));
   };
 
@@ -240,6 +294,10 @@ export default function ConsequencesPage() {
             </div>
           )}
 
+          {!loading && status === "authenticated" && loadError && !data && (
+            <QueryError what="your contracts" onRetry={load} />
+          )}
+
           {!loading && status === "authenticated" && data && (
             <div className="space-y-6">
               {/* Freeze tokens */}
@@ -280,7 +338,7 @@ export default function ConsequencesPage() {
               {cc ? (
                 <div>
                   <h2 className="mb-3 text-sm font-semibold text-[var(--foreground)]">This Week's Contract</h2>
-                  <ContractCard contract={cc} weekMinutes={data.weekMinutes} />
+                  <ContractCard contract={cc} weekMinutes={data.weekMinutes} currentWeekStart={data.weekStart} />
                 </div>
               ) : (
                 <div className="rounded-2xl border border-dashed border-[var(--rgba-124-58-237-0_25)] p-8 text-center">
@@ -407,7 +465,7 @@ export default function ConsequencesPage() {
                       .filter((c) => c.id !== cc?.id)
                       .slice(0, 8)
                       .map((c) => (
-                        <ContractCard key={c.id} contract={c} weekMinutes={0} />
+                        <ContractCard key={c.id} contract={c} weekMinutes={0} currentWeekStart={data.weekStart} />
                       ))}
                   </div>
                 </div>

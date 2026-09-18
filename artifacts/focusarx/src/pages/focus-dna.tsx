@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { QueryError } from "@/components/ui/QueryError";
 import { motion } from "framer-motion";
-import { useAuth } from "@/lib/auth";
+import { useAuth, getToken } from "@/lib/auth";
 import { PageTransition } from "@/components/PageTransition";
 import { Dna, RefreshCw, Zap, Clock, Share2 } from "lucide-react";
 
@@ -115,7 +115,9 @@ export default function FocusDnaPage() {
   const [loadError, setLoadError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
-  const token = () => localStorage.getItem("focusarx-auth-token");
+  // Through the shared accessor, so a change to how the token is stored cannot
+  // leave this page quietly reading a key nothing writes any more.
+  const token = getToken;
 
   useEffect(() => {
     if (status !== "authenticated") return;
