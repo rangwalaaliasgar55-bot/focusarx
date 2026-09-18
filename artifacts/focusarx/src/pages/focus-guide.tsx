@@ -56,7 +56,7 @@ const FAQS = [
   },
   {
     q: "What are Focus Coins and XP?",
-    a: "XP (Experience Points) measure your cumulative learning effort and unlock new levels. Focus Coins are earned during sessions and can be spent in the Coin Shop on themes, boosts, title cosmetics, and Premium access.",
+    a: "XP (Experience Points) measure your cumulative learning effort and unlock new levels. Focus Tokens are earned by finishing sessions (50 each, up to 500 a day) and buy Premium — 10,000 tokens for 30 days. Coins are a separate currency for the Coin Shop: themes, boosts and title cosmetics.",
   },
   {
     q: "How do I build a lasting focus habit?",

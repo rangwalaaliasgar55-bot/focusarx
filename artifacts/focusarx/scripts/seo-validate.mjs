@@ -12,7 +12,8 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { isDisallowed, parseRobots } from "../src/lib/robots-parse.mjs";
 import { CLUSTERS } from "../src/content/clusters.mjs";
-import { clampText, composeTitle, DESCRIPTION_BUDGET, HREFLANG_LOCALES, MIN_SNIPPET, PAGE_TITLE_BUDGET, TITLE_BUDGET } from "../src/lib/seo-text.mjs";
+import { clampText, composeTitle, DESCRIPTION_BUDGET, MIN_SNIPPET, PAGE_TITLE_BUDGET, TITLE_BUDGET } from "../src/lib/seo-text.mjs";
+import { EDITIONS, HREFLANG_TAGS } from "../src/content/locales.mjs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -38,6 +39,20 @@ const NON_SITEMAP_ALLOWLIST = new Set([
  */
 const manifestNoindex = new Set();
 const NON_INDEXABLE = new Set(["/login", "/signup", "/forgot-password", "/reset-password", "/404"]);
+
+/**
+ * Canonical path → prerendered HTML, built once before the per-file loop.
+ * The hreflang gate has to look at *other* documents — is this alternate a page
+ * we actually wrote, and does that page point back here? — and re-reading the
+ * tree inside the loop would do that 129 times. Built here rather than reusing
+ * the `documents` array further down, which is in the temporal dead zone for
+ * code running at line ~90 (a crash, not a skipped check).
+ */
+const htmlByPath = new Map();
+for (const f of walkHtml(DIST)) {
+  const rel = relative(DIST, f).replace(/index\.html$/, "").replace(/\.html$/, "");
+  htmlByPath.set(rel ? `/${rel}`.replace(/\/+$/, "") : "/", readFileSync(f, "utf8"));
+}
 
 function walkHtml(dir, acc = []) {
   for (const entry of readdirSync(dir)) {
@@ -154,9 +169,9 @@ for (const file of files) {
     //   • a page that is not indexable (the 404, /search) still declares a
     //     cluster, and every alternate in a cluster is supposed to be live and
     //     indexable.
-    // The locale list is imported from src/lib/seo-text.mjs — the same list
-    // index.html, prerender.mjs and PageSEO.tsx use — so this gate cannot drift
-    // from what the build emits.
+    // The tag list is imported from src/content/locales.mjs — the same module
+    // index.html, prerender.mjs and PageSEO.tsx build their clusters from — so
+    // this gate cannot drift from what the build emits.
     const canonicalHref = html.match(/<link\s+rel="canonical"\s+href="([^"]*)"/)?.[1] ?? null;
     const alternates = [...html.matchAll(/<link\s+rel="alternate"\s+hreflang="([^"]*)"\s+href="([^"]*)"/g)]
       .map((m) => ({ locale: m[1], href: m[2] }));
@@ -168,25 +183,67 @@ for (const file of files) {
         problems.push(`${routePath}: not indexable but declares ${alternates.length} hreflang alternate(s) — every alternate in a cluster must be indexable`);
       }
     } else {
-      const locales = alternates.map((a) => a.locale);
-      const missing = HREFLANG_LOCALES.filter((l) => !locales.includes(l));
-      const unexpected = locales.filter((l) => !HREFLANG_LOCALES.includes(l));
-      if (missing.length > 0 || unexpected.length > 0) {
-        problems.push(`${routePath}: hreflang cluster is [${locales.join(", ")}], expected [${HREFLANG_LOCALES.join(", ")}]${missing.length ? ` — missing ${missing.join(", ")}` : ""}${unexpected.length ? ` — unexpected ${unexpected.join(", ")}` : ""}`);
-      }
+      // 1. Every tag must be one the site actually publishes.
       for (const alt of alternates) {
-        if (alt.href !== canonicalHref) {
-          problems.push(`${routePath}: hreflang="${alt.locale}" points at ${alt.href}, not this page's canonical (${canonicalHref}) — a cluster must be self-consistent`);
+        if (!HREFLANG_TAGS.includes(alt.locale)) {
+          problems.push(`${routePath}: hreflang="${alt.locale}" is not a tag this site publishes (${HREFLANG_TAGS.join(", ")})`);
+        }
+      }
+
+      // 2. x-default must exist and must point at the English original. An
+      //    edition page whose x-default points at itself is telling Google
+      //    "the fallback for this page is this page", which defeats the point
+      //    of the annotation and leaves the English page unreachable from the
+      //    cluster.
+      const xDefault = alternates.find((a) => a.locale === "x-default");
+      const englishHref = alternates.find((a) => a.locale === "en")?.href ?? null;
+      if (!xDefault) {
+        problems.push(`${routePath}: indexable but declares no hreflang="x-default" — every cluster needs a fallback`);
+      } else if (englishHref && xDefault.href !== englishHref) {
+        problems.push(`${routePath}: x-default points at ${xDefault.href} but en points at ${englishHref} — the fallback and the English edition must agree`);
+      }
+
+      // 3. Every alternate must be a document this build actually wrote. This
+      //    is the check that stops an edition being declared before its pages
+      //    exist: a dead alternate invalidates the whole cluster, and Google
+      //    resolves each href before trusting any of them.
+      for (const alt of alternates) {
+        if (!alt.href.startsWith(CANONICAL_HOST)) {
+          problems.push(`${routePath}: hreflang="${alt.locale}" points off-site (${alt.href})`);
+          continue;
+        }
+        const altPath = alt.href.slice(CANONICAL_HOST.length) || "/";
+        if (!htmlByPath.has(altPath)) {
+          problems.push(`${routePath}: hreflang="${alt.locale}" points at ${alt.href}, which this build did not prerender — an alternate must resolve to a live document`);
+        }
+      }
+
+      // 4. Reciprocity: if this page says the Hindi edition lives at /hi, then
+      //    /hi must say this page is its English original. Google only honours
+      //    clusters where both directions are declared; a one-way link is
+      //    dropped, and a half-wired edition looks like a duplicate instead.
+      if (englishHref && htmlByPath.has(englishHref.slice(CANONICAL_HOST.length))) {
+        const backHtml = htmlByPath.get(englishHref.slice(CANONICAL_HOST.length));
+        const pointsBack = [...backHtml.matchAll(/<link\s+rel="alternate"\s+hreflang="[^"]*"\s+href="([^"]*)"/g)]
+          .some((m) => m[1] === canonicalHref);
+        if (!pointsBack && canonicalHref !== englishHref) {
+          problems.push(`${routePath}: points at ${englishHref} as its English edition, but that page's cluster does not point back here — hreflang must be reciprocal`);
         }
       }
     }
 
-    // Consistent language declaration: one English edition, so every document
-    // says `lang="en"`. Screen readers and translate prompts read this, and a
-    // page whose lang disagrees with its hreflang is a signal conflict.
+    // Consistent language declaration. An English page says lang="en"; a
+    // localized edition says its own BCP-47 tag, and the tag must agree with
+    // the edition's hreflang — a page whose lang disagrees with its hreflang is
+    // a signal conflict that costs it the localized ranking it was written for.
     const langAttr = html.match(/<html[^>]*\slang="([^"]*)"/)?.[1] ?? null;
-    if (langAttr !== "en") {
-      problems.push(`${routePath}: <html lang> is ${langAttr === null ? "missing" : `"${langAttr}"`}, expected "en"`);
+    const edition = EDITIONS.find((e) => {
+      const prefix = e.path.replace(/\/$/, "");
+      return routePath === prefix || routePath.startsWith(`${prefix}/`);
+    });
+    const expectedLang = edition ? edition.lang : "en";
+    if (langAttr !== expectedLang) {
+      problems.push(`${routePath}: <html lang> is ${langAttr === null ? "missing" : `"${langAttr}"`}, expected "${expectedLang}"${edition ? ` (the ${edition.label} edition)` : ""}`);
     }
   }
 
@@ -968,6 +1025,171 @@ for (const entry of manifestRoutes) {
   }
 }
 
+// ── 14. Content depth: a prerendered page must say something ──────────────
+// Search Console's "Crawled – currently not indexed" and most of a
+// "Discovered – currently not indexed" backlog are the same verdict written
+// two ways: Google fetched the page, decided it was not worth an index slot,
+// and moved on. Nothing else in this file catches it, because a thin page can
+// be perfectly well formed — right title, right canonical, three inbound
+// links, valid JSON-LD — and still be 30 words of copy around a client-rendered
+// app. The prerendered document is the whole page as far as a crawler that
+// does not finish the JavaScript is concerned.
+//
+// The measure is the page's OWN visible words: everything the shell repeats on
+// every route (breadcrumb, badge, byline, "On this page", "Keep reading", the
+// cluster block, the closing CTA, the no-JS notice) is stripped first, so a
+// page cannot pass on boilerplate it did not write.
+{
+  /** Words an indexable page needs in its own copy. */
+  const MIN_OWN_WORDS = 150;
+
+  /**
+   * Pages whose content is not prose, and which are therefore held to
+   * MIN_APP_SURFACE_WORDS instead of MIN_OWN_WORDS.
+   *
+   * This list got much shorter on 2026-09-18, and the direction matters: it used
+   * to also contain /break-free, /leaderboard, /study-rooms, /breathe,
+   * /study-method-quiz, /study-calculator, /pricing, /changelog, /roadmap and
+   * /support on the argument that "the product IS the page". That argument was
+   * doing nothing except excusing ten sitemap URLs from saying anything, which
+   * is precisely the state Google files under "Crawled – currently not indexed".
+   * Each of those pages now carries real copy about what the tool is, who it is
+   * for and how to use it — the words the app cannot prerender for itself — and
+   * each is held to the normal floor. Adding a page back here needs a reason
+   * better than convenience.
+   *
+   * What legitimately stays: policy stubs whose full text lives behind the links
+   * they carry, and screens that are a form or an API response.
+   */
+  const APP_SURFACE_PAGES = new Set([
+    // policy stubs (full text lives behind the links they carry)
+    "/privacy",
+    "/terms",
+    "/cookie-policy",
+    "/acceptable-use",
+    "/ai-policy",
+    // auth, search and account screens
+    "/login",
+    "/signup",
+    "/contact",
+    "/search",
+    "/achievements",
+    "/premium",
+  ]);
+
+  /**
+   * An app screen still has to name itself. The floor is low because the
+   * substance of these pages is a widget or an API response, not prose — but a
+   * document that prerenders to nothing but a badge and a CTA is a page we
+   * should not be offering to Google at all. Measured 2026-09-17: the lowest
+   * are the policy stubs at 6 words (headline + lead; the policy text lives
+   * behind the links they carry).
+   */
+  const MIN_APP_SURFACE_WORDS = 5;
+
+  /**
+   * Known-thin copy pages, with the word count each measured at. This is a
+   * ratchet, not a pass-list: a page may not get thinner, and no new page may
+   * join. Fixing one means deleting its line here, and the gate then holds it at
+   * MIN_OWN_WORDS for good.
+   *
+   * **This map is empty as of 2026-09-18.** It was created the day before with
+   * nine entries (/deep-study-guide 66, /science-of-deep-work 69,
+   * /two-hour-study-method 74, /feynman-technique 82, /guides 115, /focus-guide
+   * 115, /study-techniques 115, /blog 138, / 140) and every one has since been
+   * written up past the floor, which is what deleting a line is supposed to
+   * mean. Leave it empty: a page under 150 words now fails the build instead of
+   * being granted a baseline, and that is the intended state.
+   */
+  const THIN_BASELINE = new Map([]);
+
+  const ownWords = (html) => {
+    const body = html
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<!--[\s\S]*?-->/g, " ")
+      // repeated shell furniture — identical on every route
+      .replace(/<nav[^>]*aria-label="Breadcrumb"[\s\S]*?<\/nav>/gi, " ")
+      .replace(/<nav[^>]*aria-label="On this page"[\s\S]*?<\/nav>/gi, " ")
+      .replace(/<nav[^>]*aria-label="[^"]*cluster[^"]*"[\s\S]*?<\/nav>/gi, " ")
+      .replace(/<[^>]*class="[^"]*\b(badge|byline|related|cluster|toc|sources|fa-noscript)\b[^"]*"[\s\S]*?<\/(div|nav|p|ul)>/gi, " ")
+      .replace(/<a[^>]*class="cta"[\s\S]*?<\/a>/gi, " ");
+    const text = body
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&[a-z#0-9]+;/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    return text.split(" ").filter((w) => w.length > 1).length;
+  };
+
+  const counts = new Map();
+  for (const doc of documents) {
+    if (!indexablePaths.has(doc.path)) continue;
+    const words = ownWords(doc.html);
+    const isAppSurface = APP_SURFACE_PAGES.has(doc.path);
+    if (isAppSurface) {
+      if (words < MIN_APP_SURFACE_WORDS) {
+        problems.push(
+          `${doc.path}: an app screen still has to name itself — ${words} words of static copy (floor ${MIN_APP_SURFACE_WORDS})`,
+        );
+      }
+      continue;
+    }
+    counts.set(doc.path, words);
+    if (words >= MIN_OWN_WORDS) continue;
+    const baseline = THIN_BASELINE.get(doc.path);
+    if (baseline === undefined) {
+      problems.push(
+        `${doc.path}: only ${words} words of its own copy in the prerendered document (floor ${MIN_OWN_WORDS}) — ` +
+          `a page this thin is what fills Search Console's "Crawled – currently not indexed". Write the page, or drop it from the sitemap and mark it noindex.`,
+      );
+    } else if (words < baseline) {
+      problems.push(
+        `${doc.path}: content-depth regression — ${words} words of its own copy, down from ${baseline} when the ratchet was set`,
+      );
+    }
+  }
+  for (const path of THIN_BASELINE.keys()) {
+    if (!counts.has(path)) {
+      problems.push(`${path}: listed in the thin-content baseline but no longer measured as indexable — remove it from THIN_BASELINE`);
+    }
+  }
+}
+
+// ── 15. Crawler/visitor parity for the comparison tables ──────────────────
+// The comparison pages are built from a feature grid in
+// src/content/seo-pages.mjs. The hydrated page has always rendered it; the
+// prerendered document did not, so a crawler saw two short verdict paragraphs
+// (~330 words) where a visitor saw the whole comparison. That is the specific
+// shape of thinness these ten pages had, and it is invisible to every other
+// gate here because nothing was malformed. Both sides now render the same rows
+// from the same module; this asserts the static document really carries them.
+{
+  for (const entry of manifestRoutes) {
+    if (!entry.table?.rows?.length) continue;
+    const doc = documents.find((d) => d.path === (entry.path === "" ? "/" : `/${String(entry.path).replace(/^\/+/, "")}`));
+    if (!doc) continue;
+    const text = doc.html
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&#0?39;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/\s+/g, " ");
+    const missing = entry.table.rows
+      .map((row) => String(row[0]))
+      .filter((label) => !text.includes(label));
+    if (missing.length > 0) {
+      problems.push(
+        `${doc.path}: ${missing.length} of ${entry.table.rows.length} table rows are missing from the prerendered document (${missing.slice(0, 3).join("; ")}…) — ` +
+          `a crawler sees a shorter page than a visitor`,
+      );
+    }
+    if (!/<table/.test(doc.html)) {
+      problems.push(`${doc.path}: manifest declares a table but the prerendered document has no <table>`);
+    }
+  }
+}
+
 console.log(`seo-validate: ${files.length} pages, ${sitemapUrls.length} sitemap page entries, ${apiServedChildren} child sitemap(s) served by the API in production`);
 if (problems.length > 0) {
   console.error(`FAIL — ${problems.length} problem(s):`);
@@ -975,5 +1197,5 @@ if (problems.length > 0) {
   process.exit(1);
 }
 console.log(
-  "PASS — titles, descriptions, canonicals, JSON-LD, sitemap, robots, internal-link depth, cannibalisation, llms.txt and consent wiring, breadcrumbs, jump links, title budgets, PageSEO agreement, pillar/cluster wiring, bylines, visible freshness, citation links and image hygiene all consistent",
+  "PASS — titles, descriptions, canonicals, JSON-LD, sitemap, robots, internal-link depth, cannibalisation, llms.txt and consent wiring, breadcrumbs, jump links, title budgets, PageSEO agreement, pillar/cluster wiring, bylines, visible freshness, citation links, content depth, crawler/visitor table parity and image hygiene all consistent",
 );

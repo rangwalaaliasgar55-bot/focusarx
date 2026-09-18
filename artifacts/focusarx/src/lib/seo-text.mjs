@@ -27,18 +27,20 @@ export const DESCRIPTION_BUDGET = 160;
 export const MIN_SNIPPET = 60;
 
 /**
- * Hreflang cluster for the single English edition.
+ * The set of hreflang tags this site publishes.
  *
- * FocusArx publishes one English site — there are no locale URL trees — so
- * every alternate resolves to the current page's own canonical. The annotations
- * declare the intended audiences: India first (en-IN), then the wider
- * English-speaking world (en-GB), the generic language (en) and the fallback
- * (x-default). One list, three consumers that must agree: index.html,
- * scripts/prerender.mjs (static HTML) and components/PageSEO.tsx (SPA
- * navigation). scripts/seo-validate.mjs imports it too and fails the build when
- * a document's cluster does not match, so the three can never drift.
+ * This used to be a hard-coded ["x-default", "en", "en-IN", "en-GB"] where all
+ * four resolved to the same URL — an annotation of intent, not a locale. The
+ * clusters themselves now live in src/content/locales.mjs, which knows which
+ * editions actually wrote which page, and this is a re-export of that module's
+ * tag list so the three consumers (index.html, scripts/prerender.mjs and
+ * components/PageSEO.tsx) plus the gate in scripts/seo-validate.mjs cannot
+ * drift from each other.
  */
-export const HREFLANG_LOCALES = ["x-default", "en", "en-IN", "en-GB"];
+// Deprecated alias kept for existing importers. The clusters themselves now live in src/content/locales.mjs,
+// which knows which editions wrote which page; this list is only the set of
+// tags, and it is derived from the same source so it cannot drift.
+export { HREFLANG_TAGS as HREFLANG_LOCALES } from "../content/locales.mjs";
 
 /** Characters the brand mark costs when composeTitle re-appends it. */
 const BRAND_COST = SEPARATOR.length + BRAND.length;

@@ -133,6 +133,7 @@ const DeveloperPage = lazy(() => import("@/pages/developer"));
 // prerenderer reads, so static HTML and rendered copy stay identical.
 const PomodoroTimerPage = lazy(() => import("@/pages/pomodoro-timer"));
 const MinuteTimerPage = lazy(() => import("@/pages/minute-timer"));
+const LocaleEditionPage = lazy(() => import("@/pages/locale-edition"));
 const StudyTimerPage = lazy(() => import("@/pages/study-timer"));
 const DeepWorkGuidePage = lazy(() => import("@/pages/deep-work-guide"));
 const BodyDoublingPage = lazy(() => import("@/pages/body-doubling"));
@@ -342,6 +343,20 @@ function RoutedContent() {
               <Route path="/focus-timer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><FocusTimerPage /></Suspense></ErrorBoundary>} />
               <Route path="/pomodoro-timer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><PomodoroTimerPage /></Suspense></ErrorBoundary>} />
               <Route path="/study-timer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StudyTimerPage /></Suspense></ErrorBoundary>} />
+              {/* Localized editions — /in, /us, /hi, /es, /pt-br plus their
+                  pricing pages. Same content source as the prerenderer
+                  (src/content/locale-pages.mjs), so the static HTML a crawler
+                  reads and what a visitor sees cannot drift apart. */}
+              <Route path="/in" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><LocaleEditionPage path="/in" /></Suspense></ErrorBoundary>} />
+              <Route path="/in/pricing" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><LocaleEditionPage path="/in/pricing" /></Suspense></ErrorBoundary>} />
+              <Route path="/us" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><LocaleEditionPage path="/us" /></Suspense></ErrorBoundary>} />
+              <Route path="/us/pricing" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><LocaleEditionPage path="/us/pricing" /></Suspense></ErrorBoundary>} />
+              <Route path="/hi" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><LocaleEditionPage path="/hi" /></Suspense></ErrorBoundary>} />
+              <Route path="/hi/pricing" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><LocaleEditionPage path="/hi/pricing" /></Suspense></ErrorBoundary>} />
+              <Route path="/es" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><LocaleEditionPage path="/es" /></Suspense></ErrorBoundary>} />
+              <Route path="/es/pricing" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><LocaleEditionPage path="/es/pricing" /></Suspense></ErrorBoundary>} />
+              <Route path="/pt-br" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><LocaleEditionPage path="/pt-br" /></Suspense></ErrorBoundary>} />
+              <Route path="/pt-br/pricing" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><LocaleEditionPage path="/pt-br/pricing" /></Suspense></ErrorBoundary>} />
               <Route path="/5-minute-timer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><MinuteTimerPage minutes={5} /></Suspense></ErrorBoundary>} />
               <Route path="/10-minute-timer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><MinuteTimerPage minutes={10} /></Suspense></ErrorBoundary>} />
               <Route path="/15-minute-timer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><MinuteTimerPage minutes={15} /></Suspense></ErrorBoundary>} />

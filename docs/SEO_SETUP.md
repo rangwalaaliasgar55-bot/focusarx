@@ -138,16 +138,16 @@ What you need to do:
    fight over the cookie), no `www ↔ apex` bounce mid-session (the redirect
    above must hold), then verify in DebugView that a second visit in the same
    browser does **not** fire `first_visit` again.
-4. **GTM vs direct gtag (decision: stay direct).** GTM only pays off when
+5. **GTM vs direct gtag (decision: stay direct).** GTM only pays off when
    non-developers must ship tags without a deploy. This property runs one tag
    with three key events, so the direct `gtag.js` snippet in `index.html` is
    kept: no container round-trip, no second loader to drift. Revisit only when
    marketing needs container-managed tags — and then remove the direct snippet
    in the same change, never run both.
-2. **Admin → Data Settings → Data Retention** → set to **14 months**. The
+6. **Admin → Data Settings → Data Retention** → set to **14 months**. The
    default is 2, which silently deletes the history you need to judge whether
    a page is improving.
-3. In **Explore**, build one report filtered to the new URLs so you can see
+7. In **Explore**, build one report filtered to the new URLs so you can see
    them separately from the app surfaces:
 
    ```
@@ -157,8 +157,15 @@ What you need to do:
    /comparison/*, /evidence, /camera-data, /safety
    ```
 
-4. Link GSC to GA4: **Admin → Product links → Search Console links**. This is
+8. Link GSC to GA4: **Admin → Product links → Search Console links**. This is
    what puts search queries next to landing pages.
+
+> The GA4 report reading "4 key events across 2,626 users" is this step not yet
+> done, not missing instrumentation: all 40 product events already fire
+> (`src/lib/analytics.ts`) and `src/lib/gtag.test.ts` pins the one-view-per-route
+> contract. See [`GSC_INDEXING.md` §6](GSC_INDEXING.md) for the mapping between
+> the growth-plan event names and the ones the code actually emits — and for the
+> one genuine gap, CTA-click tracking.
 
 ---
 
@@ -357,7 +364,8 @@ So you do not redo it by hand:
 | Visible source/attribution + last-reviewed date on every guide | `sources` / `lastReviewed` |
 | `llms.txt` for AI assistants | `artifacts/focusarx/public/llms.txt` |
 | Claim ledger, camera-data, room-safety, accessibility and press pages | `/evidence`, `/camera-data`, `/safety`, `/accessibility`, `/press` |
-| Six comparison pages, each stating when the competitor is the better choice | `COMPARISONS` in `src/content/seo-pages.mjs` |
+| Ten comparison pages, each stating when the competitor is the better choice — feature table prerendered for crawlers as well as rendered | `COMPARISONS` in `src/content/seo-pages.mjs` |
+| Content-depth + crawler/visitor table-parity build gates | `scripts/seo-validate.mjs` gates 14–15 |
 | Drift guard — build fails if sitemap / routes / prerender / robots disagree | `artifacts/api-server/src/routes/seoContract.test.ts` |
 | PWA manifest, service worker, icon set | `public/manifest.json`, `public/sw.js` |
 | GA4 + AdSense ads.txt + Bing verification file | `src/lib/gtag.ts`, `public/ads.txt`, `public/BingSiteAuth.xml` |
