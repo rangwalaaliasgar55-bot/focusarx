@@ -201,12 +201,6 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
     description: "Free AI focus timer and deep work tracker — Pomodoro sessions, focus scores, streaks, live study rooms and an AI coach. No credit card required.",
     keywords: "focus timer, AI focus timer, Pomodoro timer, deep work app, AI productivity coach, focus streak tracker, gamified productivity, free study timer",
   },
-  profiles: {
-    canonical: "/profiles",
-    title: "Focus Profiles | Custom Network Blockers | FocusArx",
-    description: "Create custom network focus profiles. Automatically block social media and distracting domains based on your location or task. Precision focus control.",
-    keywords: "website blocker, focus profiles, block reddit, study mode, distraction free browsing",
-  },
   about: {
     canonical: "/about",
     title: "About FocusArx: why we built a focus timer",
