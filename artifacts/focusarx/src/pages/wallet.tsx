@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ArrowDownLeft, ArrowUpRight, Calendar, Coins, Medal, TrendingUp, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
+import { QueryError } from "@/components/ui/QueryError";
 import { getToken } from "@/lib/auth";
 
 import { PAGE, CARD, STAGGER } from "@/lib/animations";
@@ -32,6 +33,8 @@ export default function WalletPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     const load = async () => {
@@ -41,18 +44,25 @@ export default function WalletPage() {
           fetch("/api/gamification/wallet", { headers: authHeaders() }),
           fetch(`/api/gamification/wallet/transactions?page=${page}&limit=20`, { headers: authHeaders() }),
         ]);
-        if (wr.ok) setWallet(await wr.json());
-        if (tr.ok) {
-          const data = await tr.json();
-          setTxs(prev => page === 1 ? (data.transactions ?? data) : [...prev, ...(data.transactions ?? data)]);
-          setHasMore(!!(data.hasMore ?? false));
-        }
+        // Both responses used to be guarded by `if (…ok)` with no else, so a
+        // failed request fell straight through to the empty state and the page
+        // told the user "No transactions yet. Complete sessions to earn coins!"
+        // while showing no balance at all. A user with thousands of coins was
+        // told to go earn some.
+        if (!wr.ok || !tr.ok) throw new Error(String(wr.status || tr.status));
+        setWallet(await wr.json());
+        const data = await tr.json();
+        setTxs(prev => page === 1 ? (data.transactions ?? data) : [...prev, ...(data.transactions ?? data)]);
+        setHasMore(!!(data.hasMore ?? false));
+        setLoadError(false);
+      } catch {
+        setLoadError(true);
       } finally {
         setLoading(false);
       }
     };
     load();
-  }, [page]);
+  }, [page, reloadKey]);
 
   const level = wallet?.level ?? 1;
   const xpStart = (level - 1) ** 2 * 100;
@@ -133,6 +143,11 @@ export default function WalletPage() {
             <div className="py-8 flex justify-center">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--palette-zinc-700)] border-t-[var(--brand-600)]" />
             </div>
+          ) : loadError ? (
+            <QueryError
+              what="your wallet"
+              onRetry={() => { setLoadError(false); setLoading(true); setReloadKey((k) => k + 1); }}
+            />
           ) : txs.length === 0 ? (
             <div className="py-12 flex flex-col items-center gap-3 text-center">
               <Coins size={32} className="text-[var(--foreground-subtle)]" />

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { QueryError } from "@/components/ui/QueryError";
 import { motion, AnimatePresence } from "framer-motion";
 import { Star, Lock, Trophy, Flame, Target, Clock, Zap, CheckCircle2, ListTodo, TrendingUp, Users } from "lucide-react";
 import { PartyPopper } from "lucide-react";
@@ -185,6 +186,8 @@ export default function AchievementsPage() {
   const [badges, setBadges] = useState<Badge[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [filter, setFilter] = useState<CategoryFilter>("all");
   const [tierFilter, setTierFilter] = useState<string>("all");
   const [showUnlocked, setShowUnlocked] = useState<"all" | "unlocked" | "locked">("all");
@@ -198,7 +201,13 @@ export default function AchievementsPage() {
     // had anything to show.
     const request = token
       ? fetch("/api/gamification/badges", { headers: { Authorization: `Bearer ${token}` } })
-          .then((r) => r.json() as Promise<BadgePayload>)
+          .then((r) => {
+            // The old chain called `r.json()` without looking at `r.ok`, so an
+            // error body parsed fine and yielded `d.badges === undefined`, which
+            // the `?? []` below turned into "you have earned nothing".
+            if (!r.ok) throw new Error(String(r.status));
+            return r.json() as Promise<BadgePayload>;
+          })
       : Promise.resolve(null);
     request
       .then((d) => {
@@ -211,9 +220,14 @@ export default function AchievementsPage() {
           setTimeout(() => setCelebratingId(null), 4000);
         }
       })
-      .catch(() => { /* the empty state below already says what happened */ })
+      .catch(() => {
+        // The empty state says "No achievements in this category yet. Keep
+        // focusing to unlock them!" — which is a claim about the user's
+        // progress, not about the request. It must not stand in for a failure.
+        setLoadError(true);
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [reloadKey]);
 
   let filtered = filter === "all" ? badges : badges.filter((b) => b.category === filter);
   if (tierFilter !== "all") filtered = filtered.filter((b) => b.tier === tierFilter);
@@ -417,6 +431,11 @@ export default function AchievementsPage() {
             <div className="flex h-48 items-center justify-center" role="status" aria-label="Loading achievements">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--rgba-124-58-237-0_3)] border-t-[var(--brand-600)]" />
             </div>
+          ) : loadError ? (
+            <QueryError
+              what="your achievements"
+              onRetry={() => { setLoadError(false); setLoading(true); setReloadKey((k) => k + 1); }}
+            />
           ) : filtered.length === 0 ? (
             <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-16-23-50-0_5)] p-12 text-center">
               <Star size={36} className="mx-auto mb-3 text-[var(--foreground-subtle)]" />

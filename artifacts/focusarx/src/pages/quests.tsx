@@ -4,6 +4,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
 import { Zap, Clock, CheckCircle, RefreshCw, Calendar } from "lucide-react";
 import { PAGE, CARD, STAGGER } from "@/lib/animations";
+import { QueryError } from "@/components/ui/QueryError";
 
 function authHeaders() {
   const t = getToken();
@@ -88,12 +89,22 @@ export default function QuestsPage() {
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
 
   const load = async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/quests", { headers: authHeaders() });
-      if (res.ok) setQuests(await res.json());
+      if (!res.ok) throw new Error(String(res.status));
+      setQuests(await res.json());
+      setLoadError(false);
+    } catch {
+      // Previously `if (res.ok) setQuests(…)` with no else, so a failed request
+      // left `quests` empty and the page rendered "Daily quests loading…" —
+      // forever, because nothing was ever going to arrive — plus an instruction
+      // to complete a session. A permanent fake progress state that blamed the
+      // user for a server problem.
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -142,6 +153,8 @@ export default function QuestsPage() {
           <div className="py-12 flex justify-center">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--palette-zinc-700)] border-t-[var(--brand-600)]" />
           </div>
+        ) : loadError ? (
+          <QueryError what="your quests" onRetry={() => void load()} />
         ) : (
           <>
             {/* Daily */}
@@ -153,7 +166,7 @@ export default function QuestsPage() {
               </div>
               {quests.daily.length === 0 ? (
                 <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--muted)] p-6 text-center text-sm text-[var(--foreground-subtle)]">
-                  Daily quests loading… Complete a session to unlock them!
+                  No daily quests right now — check back after your next session.
                 </div>
               ) : (
                 <motion.div variants={STAGGER} initial="initial" animate="animate" className="space-y-3">

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiJson } from "@/lib/api";
 import { Sparkles, Brain, Clock, RefreshCw, BarChart2, Target, Flame, TrendingUp, Zap } from "lucide-react";
 import { PageTransition } from "@/components/PageTransition";
+import { QueryError } from "@/components/ui/QueryError";
 import PageHeader from "@/components/PageHeader";
 import { PremiumGate } from "@/components/PremiumGate";
 
@@ -53,21 +54,21 @@ function AiInsightsContent() {
   const [tab, setTab] = useState<"report" | "insights" | "habits">("insights");
   const [reportKey, setReportKey] = useState(0);
 
-  const { data: report, isLoading: reportLoading, refetch: refetchReport } = useQuery({
+  const { data: report, isLoading: reportLoading, refetch: refetchReport, isError: reportError } = useQuery({
     queryKey: ["ai-weekly-report", reportKey],
     queryFn: () => apiFetch("/api/ai/weekly-report"),
     staleTime: 3_600_000,
     enabled: tab === "report",
   });
 
-  const { data: insights, isLoading: insightsLoading } = useQuery({
+  const { data: insights, isLoading: insightsLoading, refetch: refetchInsights, isError: insightsError } = useQuery({
     queryKey: ["ai-performance-insights"],
     queryFn: () => apiFetch("/api/ai/performance-insights"),
     staleTime: 300_000,
     enabled: tab === "insights",
   });
 
-  const { data: habits, isLoading: habitsLoading } = useQuery({
+  const { data: habits, isLoading: habitsLoading, refetch: refetchHabits, isError: habitsError } = useQuery({
     queryKey: ["ai-habit-analysis"],
     queryFn: () => apiFetch("/api/ai/habit-analysis"),
     staleTime: 300_000,
@@ -118,7 +119,10 @@ function AiInsightsContent() {
           {tab === "insights" && (
             <div>
               {insightsLoading && <LoadingSpinner />}
-              {insights && (
+              {insightsError && !insightsLoading && (
+                <QueryError what="your insights" onRetry={() => refetchInsights()} retrying={insightsLoading} />
+              )}
+              {insights && !insightsError && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     {(insights.stats ? [
@@ -149,7 +153,7 @@ function AiInsightsContent() {
                       );
                     })}
                   </div>
-                  {!insights?.insights?.length && !insightsLoading && (
+                  {!insights?.insights?.length && !insightsLoading && !insightsError && (
                     <div className="rounded-2xl border border-dashed border-[var(--border-subtle)] bg-[var(--muted)] p-10 text-center">
                       <Zap size={28} className="mx-auto mb-3 text-[var(--foreground-subtle)]" />
                       <p className="text-sm font-medium text-[var(--foreground-subtle)]">Complete more focus sessions to unlock insights</p>
@@ -176,7 +180,10 @@ function AiInsightsContent() {
                 </button>
               </div>
               {reportLoading && <LoadingSpinner />}
-              {report && !reportLoading && (
+              {reportError && !reportLoading && (
+                <QueryError what="your report" onRetry={() => refetchReport()} retrying={reportLoading} />
+              )}
+              {report && !reportLoading && !reportError && (
                 <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_2)] bg-gradient-to-br from-[var(--rgba-124-58-237-0_06)] to-[var(--rgba-79-70-229-0_03)] p-5">
                   {report.aiPowered && (
                     <div className="flex items-center gap-2 mb-4 text-[11px] text-[var(--brand-600)] font-bold uppercase tracking-[0.14em]">
@@ -191,7 +198,7 @@ function AiInsightsContent() {
                   </p>
                 </div>
               )}
-              {!report && !reportLoading && (
+              {!report && !reportLoading && !reportError && (
                 <div className="rounded-2xl border border-dashed border-[var(--border-subtle)] bg-[var(--muted)] p-10 text-center">
                   <Sparkles size={28} className="mx-auto mb-3 text-[var(--foreground-subtle)]" />
                   <p className="text-sm font-medium text-[var(--foreground-subtle)]">No report generated yet</p>
@@ -205,7 +212,10 @@ function AiInsightsContent() {
           {tab === "habits" && (
             <div>
               {habitsLoading && <LoadingSpinner />}
-              {habits && (
+              {habitsError && !habitsLoading && (
+                <QueryError what="your habit analysis" onRetry={() => refetchHabits()} retrying={habitsLoading} />
+              )}
+              {habits && !habitsError && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     <StatCard label="Active Days (30d)" value={habits.activeDaysLast30}          icon={TrendingUp} color="var(--palette-22d387)" />
