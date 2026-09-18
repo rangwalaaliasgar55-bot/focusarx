@@ -9,6 +9,7 @@ import { Link } from "wouter";
 import { PAGE, CARD, STAGGER } from "@/lib/animations";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 import { ErrorState } from "@/components/ErrorState";
+import { QueryError } from "@/components/ui/QueryError";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Building, City, Wallet } from "@/types/gamification";
 
@@ -41,8 +42,17 @@ const WEATHER_MEANING: Record<string, string> = {
   rain: "No focus in a while — one session clears the sky",
 };
 
-function BuildingCard({ building, owned, onBuy, wallet, busy }: {
+function BuildingCard({ building, owned, onBuy, wallet, busy, balanceKnown }: {
   building: Building; owned: boolean; onBuy: (b: Building) => void; wallet: Wallet | null; busy?: boolean;
+  /**
+   * False when the wallet request failed. `canAfford` was `wallet ? ... : false`,
+   * so an unknown balance silently made every building unaffordable — and the
+   * button's accessible name then told the user exactly how many coins they
+   * were short ("you need 5,000 more") when we had no idea what they had. The
+   * price itself is a fact from the catalog and always renders; the claim about
+   * the user's own coins waits until we actually have it.
+   */
+  balanceKnown: boolean;
 }) {
   const canAfford = wallet ? wallet.coins >= building.coinCost : false;
   const meetsLevel = wallet ? wallet.level >= building.unlockLevel : false;
@@ -95,9 +105,10 @@ function BuildingCard({ building, owned, onBuy, wallet, busy }: {
           onClick={() => { if (meetsLevel && meetsSession && !busy) onBuy(building); }}
           disabled={!canAfford || !meetsLevel || !meetsSession || busy}
           aria-label={
-            !meetsLevel ? `${building.name} — unlocks at level ${building.unlockLevel}`
-              : !canAfford ? `${building.name} — costs ${building.coinCost.toLocaleString()} coins, you need ${(building.coinCost - (wallet?.coins ?? 0)).toLocaleString()} more`
-              : `Build ${building.name} for ${building.coinCost.toLocaleString()} coins`
+            !balanceKnown ? `${building.name} — can't check your coin balance right now`
+              : !meetsLevel ? `${building.name} — unlocks at level ${building.unlockLevel}`
+                : !canAfford ? `${building.name} — costs ${building.coinCost.toLocaleString()} coins, you need ${(building.coinCost - (wallet?.coins ?? 0)).toLocaleString()} more`
+                  : `Build ${building.name} for ${building.coinCost.toLocaleString()} coins`
           }
           className="flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           style={{
@@ -133,6 +144,18 @@ export default function CityPage() {
   const [loading, setLoading] = useState(true);
   /** Distinguishes "city failed to load" from "city legitimately has no buildings". */
   const [loadFailed, setLoadFailed] = useState(false);
+  /**
+   * The three requests were combined with `if (!cr.ok && !br.ok) throw`, so a
+   * failure of `/api/city/buildings` alone — a buildings 500, a timeout, a
+   * dropped request — left `buildings` as `[]` and rendered "No buildings
+   * available yet": a statement that FocusArx offers no buildings, about a
+   * catalog that is a static list. Likewise a failed wallet hid the balance
+   * panel entirely while every card quietly declared itself unaffordable.
+   * Both now have their own failure state, because both were asserting things
+   * they did not know.
+   */
+  const [buildingsFailed, setBuildingsFailed] = useState(false);
+  const [walletFailed, setWalletFailed] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [building, setBuilding] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
@@ -157,8 +180,18 @@ export default function CityPage() {
         // to a brand-new account instead of surfacing an error.
         if (!cr.ok && !br.ok) throw new Error("city-unavailable");
         if (cr.ok) setCity(await cr.json());
-        if (br.ok) setBuildings(await br.json());
-        if (wr.ok) setWallet(await wr.json());
+        if (br.ok) {
+          setBuildings(await br.json());
+          setBuildingsFailed(false);
+        } else {
+          setBuildingsFailed(true);
+        }
+        if (wr.ok) {
+          setWallet(await wr.json());
+          setWalletFailed(false);
+        } else {
+          setWalletFailed(true);
+        }
       } catch {
         if (!cancelled) setLoadFailed(true);
       } finally {
@@ -282,13 +315,28 @@ export default function CityPage() {
                 </div>
               </div>
             </div>
-            {wallet && (
+            {wallet ? (
               <div className="text-right">
                 <p className="text-xs text-[var(--foreground-subtle)]">Your coins</p>
                 <p className="text-2xl font-bold text-[var(--color-warning)]">🪙 {wallet.coins.toLocaleString()}</p>
                 <p className="text-[11px] text-[var(--foreground-subtle)]">Level {wallet.level}</p>
               </div>
-            )}
+            ) : walletFailed ? (
+              /* Hiding the panel made a failed balance read look like a page
+                 without a balance. A dash plus a way to retry keeps the slot
+                 and admits we don't know the number. */
+              <div className="text-right">
+                <p className="text-xs text-[var(--foreground-subtle)]">Your coins</p>
+                <p className="text-2xl font-bold text-[var(--foreground-subtle)]" aria-label="Coin balance unavailable">🪙 —</p>
+                <button
+                  type="button"
+                  onClick={() => setReloadKey((k) => k + 1)}
+                  className="text-[11px] font-semibold text-[var(--brand-400)] underline underline-offset-2"
+                >
+                  Check balance
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -380,7 +428,7 @@ export default function CityPage() {
         {/* Buildings grid */}
         <motion.div variants={STAGGER} initial="initial" animate="animate" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {displayed.map((b: any) => (
-            <BuildingCard key={b.slug} building={b} owned={!!owned[b.slug]} onBuy={handleBuy} wallet={wallet} busy={building === b.slug} />
+            <BuildingCard key={b.slug} building={b} owned={!!owned[b.slug]} onBuy={handleBuy} wallet={wallet} busy={building === b.slug} balanceKnown={!walletFailed} />
           ))}
         </motion.div>
 
@@ -388,7 +436,9 @@ export default function CityPage() {
         {displayed.length === 0 && (
           <div className="flex flex-col items-center gap-3 py-16 text-center">
             <Building2 size={40} className="text-[var(--foreground-subtle)]" />
-            {buildings.length === 0 ? (
+            {buildingsFailed && buildings.length === 0 ? (
+              <QueryError what="the building catalog" onRetry={() => setReloadKey((k) => k + 1)} />
+            ) : buildings.length === 0 ? (
               <p className="text-sm text-[var(--foreground-subtle)]">No buildings available yet</p>
             ) : (
               <>
