@@ -43,6 +43,7 @@ const SECONDARY_ITEMS: MenuItem[] = [
   { href: "/goals", label: "Goals", icon: Goal, description: "Long-term targets" },
   { href: "/habits", label: "Habits", icon: Sparkles, description: "Daily consistency" },
   { href: "/social", label: "Community", icon: MessageCircle, description: "Friends & feed" },
+  { href: "/groups", label: "Study Groups", icon: Users, description: "Accountability crews" },
   { href: "/shop", label: "Rewards", icon: Gift, description: "Spend your coins" },
   { href: "/wallet", label: "Wallet", icon: Wallet, description: "XP & coins" },
   { href: "/focus-guide", label: "Guides", icon: BookOpen, description: "Learn to focus" },

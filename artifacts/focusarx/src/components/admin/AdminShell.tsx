@@ -16,6 +16,7 @@ import {
   Mail,
   Menu,
   Search,
+  Terminal,
   Settings,
   ShieldCheck,
   ShoppingBag,
@@ -197,6 +198,14 @@ export function AdminShell({ children, activeTab, onTabChange }: AdminShellProps
         <Button asChild variant="ghost" className="w-full justify-start gap-2.5 px-3">
           <Link href="/dashboard">
             <LayoutDashboard size={16} aria-hidden /> Back to app
+          </Link>
+        </Button>
+        {/* `/developer` is admin-gated and had no inbound link from anywhere in
+            the app, so the console it belongs to was the one place it could be
+            discovered from. */}
+        <Button asChild variant="ghost" className="w-full justify-start gap-2.5 px-3">
+          <Link href="/developer">
+            <Terminal size={16} aria-hidden /> Developer tools
           </Link>
         </Button>
         <Button

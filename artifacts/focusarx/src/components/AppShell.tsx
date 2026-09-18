@@ -106,6 +106,7 @@ const NAV_GROUPS: NavGroup[] = [
     entries: [
       { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
       { href: "/missions", label: "Missions", icon: Target, badge: "missions" },
+      { href: "/quests", label: "Quests", icon: Compass },
       { href: "/achievements", label: "Achievements", icon: Medal },
       // Focus City was only reachable from the mobile "More" sheet; desktop had
       // no route to a core feature. Both surfaces now expose it.
@@ -118,6 +119,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "More",
     entries: [
       { href: "/habits", label: "Habits", icon: Sparkles },
+      { href: "/groups", label: "Study groups", icon: Users },
       { href: "/messages", label: "Messages", icon: MessageCircle },
       { href: "/wallet", label: "Wallet & XP", icon: WalletCards },
       { href: "/shop", label: "Rewards", icon: Gift },

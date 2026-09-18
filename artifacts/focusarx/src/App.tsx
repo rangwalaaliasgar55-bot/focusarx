@@ -5,7 +5,7 @@ import "@/components/page-background.css";
 const LandingPage = lazy(() => import("@/pages/landing"));
 const FocusHomePage = lazy(() => import("@/pages/focus"));
 import { connectSocket, disconnectSocket } from "@/lib/socket";
-import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 
@@ -373,7 +373,7 @@ function RoutedContent() {
               <Route path="/dreams"><ErrorBoundary><ProtectedRoute component={DreamsPage} /></ErrorBoundary></Route>
               <Route path="/lootboxes"><ErrorBoundary><ProtectedRoute component={LootBoxesPage} /></ErrorBoundary></Route>
               <Route path="/wallet"><ErrorBoundary><ProtectedRoute component={WalletPage} /></ErrorBoundary></Route>
-              <Route path="/dna"><ErrorBoundary><ProtectedRoute component={FocusDnaPage} /></ErrorBoundary></Route>
+              <Route path="/dna"><Redirect to="/focus-dna" /></Route>
               <Route path="/quests"><ErrorBoundary><ProtectedRoute component={QuestsPage} /></ErrorBoundary></Route>
 
               {/* Retention */}
