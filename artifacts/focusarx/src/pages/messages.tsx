@@ -78,23 +78,114 @@ function MessageBubble({ msg, isMe, onReact }: { msg: any; isMe: boolean; onReac
   );
 }
 
+/**
+ * A direct message as the thread endpoint returns it.
+ *
+ * The endpoint used to return a bare array, so `data` was `any` and the render
+ * code could not tell a message object from an error body. It returns
+ * `{ messages, hasMore, nextCursor }` now, which is what makes "load older"
+ * possible at all.
+ */
+interface DmMessage {
+  id: string;
+  senderId: string;
+  content: string;
+  createdAt?: string | null;
+  senderName?: string;
+  senderIsAdmin?: boolean;
+  senderIsBot?: boolean;
+  reactions?: Record<string, number>;
+  isDeleted?: boolean;
+  [key: string]: unknown;
+}
+
 function ConversationThread({ conv, currentUserId, onBack }: { conv: any; currentUserId: string; onBack: () => void }) {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [text, setText] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { data: messages = [], isLoading, isError: msgsError } = useQuery({
+  // Older history is accumulated here rather than in the query cache, so the
+  // poll keeps replacing the newest page while "load older" appends behind it.
+  //
+  // Stored as whole pages rather than as a flat list plus a cursor, because
+  // every value the UI needs is derivable from them — which removes the
+  // "seed the cursor from the first response" effect that would otherwise have
+  // to call setState during an effect body (lint-rejected here, and a cascading
+  // render besides).
+  const [olderPages, setOlderPages] = useState<
+    Array<{ items: DmMessage[]; nextCursor: string | null; hasMore: boolean }>
+  >([]);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+
+  const { data: page, isLoading, isError: msgsError } = useQuery({
     queryKey: ["messages", conv.id],
-    queryFn: () => apiJson(`/api/dm/${conv.id}/messages`),
+    queryFn: () =>
+      apiJson<{ messages: DmMessage[]; hasMore: boolean; nextCursor: string | null }>(
+        `/api/dm/${conv.id}/messages`,
+      ),
     staleTime: 5_000,
     refetchInterval: 5_000,
     retry: 2,
   });
 
+  const latest = page?.messages ?? [];
+  // Pages arrive oldest-last, so the most recently fetched one sits at the
+  // front of the render order.
+  const messages = olderPages.length > 0 ? [...olderPages.flatMap((p) => p.items), ...latest] : latest;
+
+  // The next page to fetch is the one older than everything we hold; the first
+  // page's cursor comes from the poll's response.
+  const currentPage = olderPages[0];
+  const olderCursor = currentPage ? currentPage.nextCursor : (page?.nextCursor ?? null);
+  const hasOlder = currentPage ? currentPage.hasMore : Boolean(page?.hasMore);
+
+  /**
+   * Scroll to the bottom when a *new message* arrives, not when the array
+   * identity changes.
+   *
+   * The old dependency was `[messages]`, which the poll replaces every five
+   * seconds. React Query's structural sharing keeps the reference stable when
+   * the payload is deeply equal, so it mostly behaved — but any change at all
+   * in the payload (a reaction on an old message, a sender-name edit) re-ran
+   * the effect and yanked the reader to the bottom mid-scroll. Keying on the
+   * newest message's id and count means only genuine new arrivals do that.
+   */
+  const newestId = latest.length > 0 ? latest[latest.length - 1]?.id : undefined;
   useEffect(() => {
+    if (!newestId) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [newestId]);
+
+  const loadOlder = async () => {
+    if (!olderCursor || loadingOlder) return;
+    setLoadingOlder(true);
+    // Prepending content grows the scroll container upwards, which throws the
+    // reader's position. Measuring the height before and after and restoring
+    // the difference keeps them looking at the message they were reading.
+    const container = scrollRef.current;
+    const previousHeight = container?.scrollHeight ?? 0;
+    const previousTop = container?.scrollTop ?? 0;
+    try {
+      const next = await apiJson<{ messages: DmMessage[]; hasMore: boolean; nextCursor: string | null }>(
+        `/api/dm/${conv.id}/messages?cursor=${encodeURIComponent(olderCursor)}`,
+      );
+      // Prepended, not appended: this page is older than everything held.
+      setOlderPages((prev) => [
+        { items: next.messages ?? [], nextCursor: next.nextCursor ?? null, hasMore: next.hasMore },
+        ...prev,
+      ]);
+      requestAnimationFrame(() => {
+        if (!container) return;
+        container.scrollTop = previousTop + (container.scrollHeight - previousHeight);
+      });
+    } catch (err) {
+      toast(errorMessage(err, "Couldn't load older messages."), "error");
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
 
   const sendMsg = useMutation({
     mutationFn: () => apiJson(`/api/dm/${conv.id}/messages`, { method: "POST", body: JSON.stringify({ content: text.trim() }) }),
@@ -124,7 +215,7 @@ function ConversationThread({ conv, currentUserId, onBack }: { conv: any; curren
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
         {isLoading ? (
           <div className="flex justify-center py-8"><div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--border-subtle)] border-t-[var(--brand-600)]" /></div>
         ) : msgsError ? (
@@ -132,16 +223,28 @@ function ConversationThread({ conv, currentUserId, onBack }: { conv: any; curren
             <AlertCircle size={28} className="text-[var(--foreground-subtle)] mb-2" />
             <p className="text-sm text-[var(--foreground-subtle)]">Couldn't load messages</p>
           </div>
-        ) : (messages as any[]).length === 0 ? (
+        ) : messages.length === 0 ? (
           <div className="text-center py-12 text-[var(--foreground-subtle)]">
             <MessageSquare size={36} className="mx-auto mb-3 opacity-30" />
             <p>No messages yet. Say hello! 👋</p>
           </div>
         ) : (
-          (messages as any[]).map((m: any) => (
-            <MessageBubble key={m.id} msg={m} isMe={m.senderId === currentUserId}
-              onReact={(emoji) => reactMsg.mutate({ msgId: m.id, emoji })} />
-          ))
+          <>
+            {olderCursor && hasOlder && (
+              <button
+                type="button"
+                onClick={() => void loadOlder()}
+                disabled={loadingOlder}
+                className="mx-auto block rounded-xl border border-[var(--border-subtle)] px-4 py-2 text-xs text-[var(--foreground-subtle)] transition-colors hover:text-[var(--foreground-muted)] disabled:opacity-60"
+              >
+                {loadingOlder ? "Loading…" : "Load older messages"}
+              </button>
+            )}
+            {messages.map((m) => (
+              <MessageBubble key={m.id} msg={m} isMe={m.senderId === currentUserId}
+                onReact={(emoji) => reactMsg.mutate({ msgId: m.id, emoji })} />
+            ))}
+          </>
         )}
         <div ref={bottomRef} />
       </div>
@@ -355,7 +458,16 @@ function MessagesPageInner() {
       {/* Main chat area */}
       <div className={`flex-1 flex flex-col ${!selectedConv ? "hidden sm:flex" : "flex"}`}>
         {selectedConv ? (
-          <ConversationThread conv={selectedConv} currentUserId={currentUserId} onBack={() => setSelectedConv(null)} />
+          <ConversationThread
+            // Keyed by conversation so switching threads remounts and drops the
+            // accumulated history. Without this the previous conversation's
+            // "older" pages stay in state and render above the new thread's
+            // first message.
+            key={selectedConv.id}
+            conv={selectedConv}
+            currentUserId={currentUserId}
+            onBack={() => setSelectedConv(null)}
+          />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
             <MessageSquare size={48} className="text-[var(--brand-600)] opacity-30 mb-4" />

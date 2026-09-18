@@ -8,9 +8,10 @@ import {
   groupMembersTable,
 } from "@workspace/db";
 import { extractUserId } from "./auth";
-import { eq, and, desc, lt, sql, inArray, ne, getTableColumns } from "drizzle-orm";
+import { eq, and, desc, sql, inArray, ne, getTableColumns } from "drizzle-orm";
 import { moderateText } from "../lib/moderation";
-import { parseLimit, parseOffset } from "../lib/pagination";
+import { parseLimit } from "../lib/pagination";
+import { decodeCursor, encodeCursor, keysetBefore } from "../lib/cursor";
 import { ensureDailyBotActivity, materializeDueBotReplies, queueBotReplies, queueBotCommentReply } from "../lib/botEngine";
 import { logger } from "../lib/logger";
 
@@ -90,9 +91,13 @@ async function enrichPost(post: any, viewerId: string | null) {
 postsRouter.get("/feed", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
   const userId = req.userId!;
-  const { type = "following", limit = "20", offset = "0", groupId, cursor } = req.query as Record<string, string>;
+  const { type = "following", limit = "20", groupId, cursor } = req.query as Record<string, string>;
   const pageLimit = parseLimit(limit, { fallback: 20, min: 5, max: 50 });
-  const pageOffset = parseOffset(offset);
+  // Every branch below is ordered newest-first, so all of them can resume from
+  // the same `(created_at, id)` position. The discover branch is not the only
+  // list here that changes while the user reads it: "following" and a group
+  // feed gain posts continuously too, and both were still on OFFSET.
+  const feedCursor = decodeCursor(cursor);
 
   // Public surfaces keep the AI rivals' daily activity ticking (throttled)
   // and materialise staggered bot replies that have come due.
@@ -102,7 +107,6 @@ postsRouter.get("/feed", authMiddleware, async (req: AuthRequest, res: Response)
   }
 
   let posts: any[] = [];
-  let nextCursor: string | null = null;
 
   if (type === "following") {
     const following = await db.select({ followingId: followsTable.followingId })
@@ -114,18 +118,24 @@ postsRouter.get("/feed", authMiddleware, async (req: AuthRequest, res: Response)
         inArray(socialPostsTable.userId, followIds),
         eq(socialPostsTable.isPublic, true),
         eq(socialPostsTable.moderationStatus, "approved"),
+        feedCursor ? keysetBefore(socialPostsTable.createdAt, socialPostsTable.id, feedCursor) : undefined,
       ))
-      .orderBy(desc(socialPostsTable.createdAt))
-      .limit(pageLimit).offset(pageOffset);
+      .orderBy(desc(socialPostsTable.createdAt), desc(socialPostsTable.id))
+      .limit(pageLimit + 1);
   } else if (type === "discover") {
     // A3: cursor pagination + ~60/40 human/bot recency mix so the feed never
     // floods at 12k-bot scale. Bots are interleaved by recency but capped so
     // humans always hold the majority of every page.
-    const cursorDate = cursor ? new Date(cursor) : null;
+    // The cursor was a bare timestamp compared with `created_at <`, which drops
+    // every row that shares an instant with the boundary. Bots post in batches,
+    // so a batch landing on the page boundary made the rest of it unreachable —
+    // the feed simply stopped early with no error and no way to page past it.
+    // Now it is the same `(created_at, id)` pair the rest of the app uses.
+    const decoded = decodeCursor(cursor);
     const baseWhere = and(
       eq(socialPostsTable.isPublic, true),
       eq(socialPostsTable.moderationStatus, "approved"),
-      cursorDate ? lt(socialPostsTable.createdAt, cursorDate) : undefined,
+      decoded ? keysetBefore(socialPostsTable.createdAt, socialPostsTable.id, decoded) : undefined,
     );
     const overfetch = pageLimit * 3;
     // Select the post columns explicitly: a bare `select()` over a join
@@ -175,16 +185,17 @@ postsRouter.get("/feed", authMiddleware, async (req: AuthRequest, res: Response)
         seen.add(item.post.id);
       }
     }
-    const last = posts[posts.length - 1];
-    nextCursor = last?.createdAt ? new Date(last.createdAt).toISOString() : null;
+    // A pair, matching the predicate above. A timestamp alone cannot name a
+    // position when several rows share it.
   } else if (type === "group" && groupId) {
     posts = await db.select().from(socialPostsTable)
       .where(and(
         eq(socialPostsTable.groupId, groupId),
         eq(socialPostsTable.moderationStatus, "approved"),
+        feedCursor ? keysetBefore(socialPostsTable.createdAt, socialPostsTable.id, feedCursor) : undefined,
       ))
-      .orderBy(desc(socialPostsTable.createdAt))
-      .limit(pageLimit).offset(pageOffset);
+      .orderBy(desc(socialPostsTable.createdAt), desc(socialPostsTable.id))
+      .limit(pageLimit + 1);
   } else if (type === "saved") {
     const saved = await db.select({ postId: postSavesTable.postId })
       .from(postSavesTable).where(eq(postSavesTable.userId, userId));
@@ -193,27 +204,38 @@ postsRouter.get("/feed", authMiddleware, async (req: AuthRequest, res: Response)
       .where(and(
         inArray(socialPostsTable.id, saved.map(s => s.postId)),
         eq(socialPostsTable.moderationStatus, "approved"),
+        feedCursor ? keysetBefore(socialPostsTable.createdAt, socialPostsTable.id, feedCursor) : undefined,
       ))
-      .orderBy(desc(socialPostsTable.createdAt))
-      .limit(pageLimit).offset(pageOffset);
+      .orderBy(desc(socialPostsTable.createdAt), desc(socialPostsTable.id))
+      .limit(pageLimit + 1);
   } else {
     posts = await db.select().from(socialPostsTable)
       .where(and(
         eq(socialPostsTable.isPublic, true),
         eq(socialPostsTable.moderationStatus, "approved"),
+        feedCursor ? keysetBefore(socialPostsTable.createdAt, socialPostsTable.id, feedCursor) : undefined,
       ))
-      .orderBy(desc(socialPostsTable.createdAt))
-      .limit(pageLimit).offset(pageOffset);
+      .orderBy(desc(socialPostsTable.createdAt), desc(socialPostsTable.id))
+      .limit(pageLimit + 1);
   }
 
-  const enriched = await Promise.all(posts.map(p => enrichPost(p, userId)));
-  // The discover feed is cursor-paginated, so it returns an envelope the client
-  // can page with; the other feeds keep their legacy plain-array shape.
-  if (type === "discover") {
-    res.json({ posts: enriched, nextCursor: enriched.length >= pageLimit ? nextCursor : null });
-    return;
-  }
-  res.json(enriched);
+  // Every branch overfetches by one, so the probe row trims here — once, for all
+  // of them, rather than in six separate places that would drift. Trimming
+  // before enrichment also avoids spending two queries per post on a row that
+  // is never returned.
+  const hasMore = posts.length > pageLimit;
+  const pagePosts = hasMore ? posts.slice(0, pageLimit) : posts;
+  const enriched = await Promise.all(pagePosts.map(p => enrichPost(p, userId)));
+
+  // All branches are cursor-paginated now, so all of them return the envelope.
+  // The client already accepted both shapes:
+  // `Array.isArray(feedData) ? feedData : feedData?.posts ?? []`.
+  const last = pagePosts[pagePosts.length - 1];
+  res.json({
+    posts: enriched,
+    hasMore,
+    nextCursor: hasMore && last?.createdAt ? encodeCursor(last.createdAt, last.id) : null,
+  });
   } catch (err) {
     logger.error({ err }, "GET /feed error:");
     res.status(500).json({ error: "Failed to load feed" });
@@ -312,20 +334,28 @@ postsRouter.delete("/posts/:id", authMiddleware, async (req: AuthRequest, res: R
 });
 
 postsRouter.get("/users/:userId/posts", optionalAuth, async (req: AuthRequest, res: Response) => {
-  const { limit = "20", offset = "0" } = req.query as Record<string, string>;
+  const { limit = "20", cursor } = req.query as Record<string, string>;
   const pageLimit = parseLimit(limit, { fallback: 20, min: 1, max: 50 });
-  const pageOffset = parseOffset(offset);
-  const posts = await db.select().from(socialPostsTable)
+  const profileCursor = decodeCursor(cursor);
+  const rows = await db.select().from(socialPostsTable)
     .where(and(
       eq(socialPostsTable.userId, req.params.userId as string),
       eq(socialPostsTable.isPublic, true),
       eq(socialPostsTable.moderationStatus, "approved"),
+      profileCursor ? keysetBefore(socialPostsTable.createdAt, socialPostsTable.id, profileCursor) : undefined,
     ))
-    .orderBy(desc(socialPostsTable.createdAt))
-    .limit(pageLimit).offset(pageOffset);
+    .orderBy(desc(socialPostsTable.createdAt), desc(socialPostsTable.id))
+    .limit(pageLimit + 1);
 
+  const hasMore = rows.length > pageLimit;
+  const posts = hasMore ? rows.slice(0, pageLimit) : rows;
   const enriched = await Promise.all(posts.map(p => enrichPost(p, req.userId ?? null)));
-  res.json(enriched);
+  const lastProfile = posts[posts.length - 1];
+  res.json({
+    posts: enriched,
+    hasMore,
+    nextCursor: hasMore && lastProfile ? encodeCursor(lastProfile.createdAt, lastProfile.id) : null,
+  });
 });
 
 // ─── REACTIONS ────────────────────────────────────────────────────────────────

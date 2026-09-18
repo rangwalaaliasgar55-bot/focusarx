@@ -10,7 +10,8 @@ import { eq, and, desc, sql } from "drizzle-orm";
 import { emitToUser } from "../lib/socketManager";
 import { logger } from "../lib/logger";
 import { sendPush } from "../lib/pushSender";
-import { parseLimit, parseOffset } from "../lib/pagination";
+import { parseLimit } from "../lib/pagination";
+import { decodeCursor, encodeCursor, keysetBefore } from "../lib/cursor";
 
 export const dmRouter = Router();
 
@@ -125,20 +126,48 @@ dmRouter.post("/dm/start", authMiddleware, async (req: AuthRequest, res: Respons
 dmRouter.get("/dm/:convId/messages", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const { limit = "50", offset = "0" } = req.query as Record<string, string>;
+    // Was `limit` + `offset`. A conversation is the worst possible place for
+    // offset pagination: the other person sends a message while you are reading
+    // history, every row shifts one place, and the next page repeats what you
+    // already read while quietly dropping the oldest message in the window.
+    //
+    // Two decisions here, and the second is the one that is easy to get wrong.
+    //
+    // 1. The query walks *backwards from the present*, `created_at DESC`, so
+    //    the first page is the 50 most recent messages regardless of how long
+    //    the conversation is. The response is then reversed into ascending
+    //    order, because that is the direction a chat renders. Querying
+    //    ascending instead would return the *oldest* 50 — the first page of a
+    //    two-year conversation would be its opening messages.
+    //
+    // 2. Because the query is DESC, the cursor predicate is `<`, the id
+    //    tiebreak descends, and the cursor comes from the *oldest* row in the
+    //    page (the last one after reversal). A keyset cursor must agree with
+    //    the sort it resumes; flipping the sort without flipping the comparison
+    //    skips every row that shares a timestamp with the boundary.
+    const { limit = "50", cursor } = req.query as Record<string, string>;
     const pageLimit = parseLimit(limit, { fallback: 50, min: 1, max: 100 });
-    const pageOffset = parseOffset(offset);
+    const decoded = decodeCursor(cursor);
 
     const [participant] = await db.select().from(conversationParticipants)
       .where(and(eq(conversationParticipants.conversationId, req.params.convId as string), eq(conversationParticipants.userId, userId))).limit(1);
     if (!participant) return res.status(403).json({ error: "Not in this conversation" });
 
     const msgs = await db.select().from(messages)
-      .where(eq(messages.conversationId, req.params.convId as string))
-      .orderBy(messages.createdAt)
-      .limit(pageLimit).offset(pageOffset);
+      .where(and(
+        eq(messages.conversationId, req.params.convId as string),
+        decoded ? keysetBefore(messages.createdAt, messages.id, decoded) : undefined,
+      ))
+      .orderBy(desc(messages.createdAt), desc(messages.id))
+      .limit(pageLimit + 1);
 
-    const enriched = await Promise.all(msgs.map(async m => {
+    // The probe row is dropped before enrichment: it exists only to answer
+    // "is there another page", and enriching it would spend 2 queries per
+    // message on a row nobody sees.
+    const hasMore = msgs.length > pageLimit;
+    const pageRows = hasMore ? msgs.slice(0, pageLimit) : msgs;
+
+    const enriched = await Promise.all(pageRows.map(async m => {
       const [sender] = await db.select({ name: usersTable.name, email: usersTable.email, role: usersTable.role })
         .from(usersTable).where(eq(usersTable.id, m.senderId)).limit(1);
 
@@ -161,7 +190,18 @@ dmRouter.get("/dm/:convId/messages", authMiddleware, async (req: AuthRequest, re
       .set({ lastReadAt: new Date() })
       .where(and(eq(conversationParticipants.conversationId, req.params.convId as string), eq(conversationParticipants.userId, userId)));
 
-    res.json(enriched);
+    // `enriched` is newest-first, matching the query. Reverse into the order a
+    // chat paints, and take the cursor from the oldest row in the page — which
+    // after reversal is the first element, and before reversal is the last.
+    const oldest = enriched[enriched.length - 1];
+    res.json({
+      messages: [...enriched].reverse(),
+      // `hasMore` means "there is older history", which is what the client's
+      // "Load older messages" button needs to know. It is not "there is more of
+      // this list" — the list is served newest-end-first.
+      hasMore,
+      nextCursor: hasMore && oldest ? encodeCursor(oldest.createdAt, oldest.id) : null,
+    });
   } catch (err) {
     logger.error({ err, userId: req.userId, convId: req.params.convId as string, route: "GET /dm/:convId/messages" }, "Failed to load messages");
     res.status(500).json({ error: "Failed to load messages" });

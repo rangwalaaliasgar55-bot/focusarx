@@ -3,6 +3,7 @@ import { db, userWalletsTable, userBadgesTable, usersTable, focusSessionsTable, 
 import { eq, desc, and, sql, count } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
+import { paginate, parseCursorPage, userTimelineWhere } from "../lib/cursor";
 
 const router = Router();
 
@@ -155,11 +156,36 @@ router.get("/gamification/badges", authMiddleware, async (req: AuthRequest, res:
 
 router.get("/gamification/wallet/transactions", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const txs = await db.select().from(coinTransactionsTable)
-      .where(eq(coinTransactionsTable.userId, req.userId))
-      .orderBy(desc(coinTransactionsTable.createdAt))
-      .limit(50);
-    res.json({ transactions: txs });
+    // This endpoint used to take `?page=` and `?limit=` from the wallet page
+    // and ignore both, always returning the newest 50 rows. It never sent a
+    // `hasMore` either, and the client gates its "Load more…" button on that
+    // flag — so the button was unreachable, and the list was silently capped at
+    // 50 for every user forever. Correct behaviour was impossible to reach in
+    // both directions at once.
+    //
+    // Keyset rather than offset, because transactions arrive constantly: the
+    // user earns coins while they are reading, every new row shifts the window,
+    // and page 2 of an offset walk would re-serve the row they just read.
+    const page = parseCursorPage(req.query as Record<string, unknown>, { fallback: 20, min: 1, max: 50 });
+
+    const rows = await db.select().from(coinTransactionsTable)
+      .where(userTimelineWhere(
+        coinTransactionsTable.userId,
+        req.userId!,
+        coinTransactionsTable.createdAt,
+        coinTransactionsTable.id,
+        page,
+      ))
+      .orderBy(desc(coinTransactionsTable.createdAt), desc(coinTransactionsTable.id))
+      // +1 probe: the extra row is what proves another page exists, without a
+      // second COUNT that could disagree with this one.
+      .limit(page.limit + 1);
+
+    const { items, nextCursor, hasMore } = paginate(
+      rows as Array<{ id: string; createdAt: Date | null }>,
+      page.limit,
+    );
+    res.json({ transactions: items, nextCursor, hasMore });
   } catch (err) {
     logger.error({ err }, "get transactions error");
     res.status(500).json({ error: "Internal error" });
