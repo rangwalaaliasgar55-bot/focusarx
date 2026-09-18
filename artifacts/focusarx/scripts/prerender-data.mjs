@@ -20,6 +20,7 @@ import {
   COMPARISON_PATHS,
   GUIDE_LIBRARY_REVIEWED,
   SEO_PAGES,
+  cellText,
 } from "../src/content/seo-pages.mjs";
 import { BLOG_POSTS } from "../src/content/blog.mjs";
 import { FUNNEL_ANGLES } from "../src/content/exam-funnel.mjs";
@@ -1040,9 +1041,42 @@ export const ROUTES = [
       description: c.description,
       h1: c.title,
       lead: c.lead,
+      // ── Feature table ────────────────────────────────────────────────
+      // The rendered page (src/pages/comparison.tsx) draws this table from
+      // `c.rows`, but the prerendered document used to carry only the two prose
+      // verdicts — so a crawler that does not execute JavaScript saw a
+      // different page than a visitor, and every row label was absent from the
+      // HTML that actually gets indexed. The table is declared here from the
+      // SAME `COMPARISONS` entry the React page reads, so the two cannot drift:
+      // there is no second list to keep in step.
+      //
+      // Cells are emitted as text, never as an icon: `true`/`false` become
+      // Yes/No. A tick glyph in a `<td>` is invisible to a text extractor, and
+      // screen readers announce the SVG's title rather than the capability.
+      table: {
+        caption: `FocusArx compared with ${c.name}`,
+        // Column headers, in order, after the row-label column.
+        columns: ["FocusArx", c.name],
+        // [rowLabel, focusarxCell, competitorCell] — verbatim from the page.
+        rows: c.rows.map(([label, ours, theirs]) => [
+          label,
+          cellText(ours),
+          cellText(theirs),
+        ]),
+      },
       sections: [
-        { h: `When FocusArx is the better fit`, p: c.whenOurs },
-        { h: `When ${c.name} is the better fit`, p: c.whenTheirs },
+        {
+          h: `When FocusArx is the better fit`,
+          p: c.whenOurs,
+          // The page renders `c.ours` as a checklist under this paragraph; the
+          // prerenderer flattened it away.
+          bullets: c.ours,
+        },
+        {
+          h: `When ${c.name} is the better fit`,
+          p: c.whenTheirs,
+          bullets: c.theirs,
+        },
       ],
       faq: [
         [`When should I choose FocusArx over ${c.name}?`, c.whenOurs],

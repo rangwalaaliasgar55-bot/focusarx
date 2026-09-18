@@ -2,6 +2,68 @@
 
 All notable changes to FocusArx. Dates are UTC.
 
+## [Unreleased] — comparison tables reach the crawler, and two prerender bugs
+
+**The ten `/comparison/*` pages shipped with no table in their HTML.** The live
+page (`src/pages/comparison.tsx`) draws a feature table from `COMPARISONS`; the
+prerendered document carried only the two prose verdicts. A crawler that does not
+run JavaScript therefore saw a different page than a visitor, and every row label
+— the part that carries the comparison — was absent from the indexed HTML. That
+is §18 #20, and nothing caught it: the document was well formed, self-canonical
+and had valid JSON-LD.
+
+- `COMPARISONS` stays the single source of truth. A new exported `cellText()`
+  in `src/content/seo-pages.mjs` maps booleans to **Yes/No as text**, because a
+  tick glyph is invisible to a text extractor and a screen reader announces the
+  SVG rather than the capability.
+- `prerender-data.mjs` now emits `table` (caption, column headers, rows) and
+  `sections[].bullets` from that same entry — there is no second list to keep in
+  step, so the two renderers cannot drift.
+- `prerender.mjs` emits a real `<table>` with `<caption>`, `scope="col"` and
+  `scope="row"` headers, dated with the review date, plus `<ul class="bullets">`
+  for the two-sided checklists that were being flattened away.
+- **Two prerender bugs found while verifying, both of the same class — the
+  prerenderer was only correct on a fresh `vite build`:**
+  - The body substitution matched an *empty* `<div id="root"></div>`. `TEMPLATE`
+    is `dist/public/index.html` and `/` is itself a route, so a second
+    consecutive `node scripts/prerender.mjs` read a template that already carried
+    the homepage shell, the match failed silently, and **every route kept the
+    homepage's body** — correct `<title>`, correct canonical, wrong page.
+  - The per-route JSON-LD was appended rather than replaced, so a second run left
+    two `BreadcrumbList`s and the first one won: every page then advertised the
+    trail "Home" while the visible breadcrumb read "Home > Terms of service".
+  Both are now idempotent; three consecutive runs are byte-stable and the
+  validator passes on each.
+- New gates in `seo-validate.mjs`:
+  - **Content depth.** A page's own copy must reach 150 words with shell
+    furniture stripped (nav, breadcrumb/TOC, byline, related, cluster, CTA,
+    badge), so a page cannot pass on chrome every page carries. App surfaces
+    (noindexed screens) are exempt at 5 words — the requirement there is only
+    that the static shell is not empty. 17 pages below the floor are recorded in
+    a **ratchet baseline**: they may not get thinner, and lowering an entry is an
+    explicit, reviewable act.
+  - **Table parity.** Every declared row label must appear as a scoped row
+    header, every column header as `scope="col"`, every cell value in the HTML,
+    and every boolean must be present as `Yes`/`No` **text** — counted, so a
+    table with one text cell and nine icons still fails.
+- Negative-tested, as this repo's gates are: removing the `<table>` fails;
+  dropping one declared row label fails; replacing the Yes text with an
+  icon-only `<td>` fails; thinning a ratcheted page fails. Restored, all pass.
+- 67 new tests in `src/content/seo-pages.test.ts` guard the shape the parity gate
+  assumes — unique slugs, three-column rows, no duplicate row labels (a duplicate
+  would satisfy the gate while a row was missing), and `cellText` keeping `false`
+  distinct from a missing value.
+- Gates: typecheck 0, lint 0 errors (471 warnings, unchanged), frontend 443 →
+  510, build PASS (119 pages, SEO validate PASS incl. the two new gates, bundle
+  110.6 kb of 140 kb, prerendered docs avg 36.4 kb of 120 kb).
+- **Recorded, not fixed — the real follow-up:** six of the ratcheted pages
+  (`/terms` 15, `/privacy` 25, `/cookie-policy` 20, `/acceptable-use` 17,
+  `/ai-policy` 23, `/contact` 23 words) hold a full document in React but declare
+  `sections: []` in the manifest, so the crawler receives a heading and a
+  one-line lead. That is §2.10's "prerendered ≠ hydrated" failure. The fix is to
+  move each policy body into the manifest; the baseline exists so the gap is
+  visible in the source and cannot grow.
+
 ## [Unreleased] — no native dialogs left, and the modal focus contract fixed
 
 **Every `alert()` / `confirm()` / `prompt()` is gone from the app.** They were

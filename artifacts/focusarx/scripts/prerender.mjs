@@ -123,6 +123,27 @@ function stripHreflang(html) {
   );
 }
 
+/**
+ * Marker around the per-route JSON-LD injected below.
+ *
+ * `TEMPLATE` is dist/public/index.html, and "/" is itself one of the ROUTES — so
+ * a second consecutive `node scripts/prerender.mjs` reads a template whose head
+ * already carries the *homepage's* route-scoped JSON-LD. Appending another block
+ * left two BreadcrumbLists in the document, and a validator (or Google) reads
+ * the first one: every page then claimed the trail "Home", while the visible
+ * breadcrumb read "Home > Terms of service". The marker makes the insertion
+ * replaceable instead of additive, so the head cannot accumulate.
+ */
+const LD_MARKER = "<!-- Route-scoped structured data (prerendered) -->";
+
+/** Drop a previously injected per-route JSON-LD block, if any. */
+function stripPrerenderedSchemas(html) {
+  const start = html.indexOf(LD_MARKER);
+  if (start === -1) return html;
+  const end = html.indexOf("</head>", start);
+  return end === -1 ? html.slice(0, start) : html.slice(0, start) + html.slice(end);
+}
+
 // Remove global JSON-LD blocks (FAQPage / ItemList) that only belong on
 // the homepage — every route inherits the built index.html head.
 function stripHomepageOnlySchemas(html) {
@@ -292,6 +313,16 @@ html:not(.fa-js) body{background:#0b0d13}
 .fa-seo .breadcrumbs li+li:before{content:"/";margin-right:6px;opacity:.5}
 .fa-seo .breadcrumbs li:last-child{color:#b9bdca}
 .fa-seo .toc{border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02);border-radius:14px;padding:16px;margin-bottom:28px}
+.fa-seo table{width:100%;border-collapse:collapse;margin:6px 0 10px;border:1px solid rgba(255,255,255,.09);border-radius:14px;overflow:hidden;font-size:14px}
+.fa-seo caption{text-align:left;font-size:15px;font-weight:700;color:#e7e9ee;padding:14px 16px 10px}
+.fa-seo th,.fa-seo td{text-align:left;padding:10px 16px;border-top:1px solid rgba(255,255,255,.07);vertical-align:top}
+.fa-seo thead th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#8b90a0;background:rgba(255,255,255,.03)}
+.fa-seo tbody th{font-weight:600;color:#e7e9ee}
+.fa-seo td{color:#b9bdca;width:26%}
+.fa-seo .table-note{font-size:13px;color:#8b90a0;margin-bottom:22px}
+.fa-seo .bullets{list-style:none;display:grid;gap:6px;margin-top:12px}
+.fa-seo .bullets li{font-size:14px;color:#b9bdca;padding-left:18px;position:relative}
+.fa-seo .bullets li::before{content:"\\2713";position:absolute;left:0;color:#34d399}
 .fa-seo .toc strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#8b90a0;margin-bottom:8px}
 .fa-seo .toc ol{list-style:none;display:grid;gap:4px}
 .fa-seo .toc a{font-size:14px;text-decoration:none}
@@ -565,15 +596,55 @@ function renderBody(entry) {
         .join("")}</ol></nav>`
     : "";
 
+  // A section may carry a bullet list alongside its prose (the two-sided
+  // comparison verdicts). The page renders these as a checklist; flattening
+  // them out of the prerendered HTML meant the crawler saw a shorter page than
+  // the visitor, one bullet at a time.
+  const bulletList = (bullets) =>
+    Array.isArray(bullets) && bullets.length
+      ? `<ul class="bullets">${bullets
+          .map((b) => `<li>${escapeHtml(b)}</li>`)
+          .join("")}</ul>`
+      : "";
+
   const sections = (entry.sections || [])
     .map((s) => {
       const paras = (Array.isArray(s.p) ? s.p : [s.p])
         .map((p) => `<p>${escapeHtml(p)}</p>`)
         .join("\n");
       const id = anchorFor.get(s.h);
-      return `<h2${id ? ` id="${escapeHtml(id)}"` : ""}>${escapeHtml(s.h)}</h2>${paras}`;
+      return `<h2${id ? ` id="${escapeHtml(id)}"` : ""}>${escapeHtml(s.h)}</h2>${paras}${bulletList(s.bullets)}`;
     })
     .join("\n");
+
+  // ── Feature comparison table ──────────────────────────────────────────────
+  // A real `<table>` with scoped headers, not a grid of divs: that is the only
+  // form a table extractor can read, and it is what gives a screen-reader user
+  // the row/column association ("Session analytics, FocusArx: Yes"). Cells are
+  // text — Yes/No rather than a tick glyph — so the values survive extraction.
+  const tableBlock = entry.table
+    ? `<table><caption>${escapeHtml(entry.table.caption)}</caption>` +
+      `<thead><tr><th scope="col">Capability</th>${entry.table.columns
+        .map((c) => `<th scope="col">${escapeHtml(c)}</th>`)
+        .join("")}</tr></thead>` +
+      `<tbody>${entry.table.rows
+        .map(
+          (row) =>
+            `<tr><th scope="row">${escapeHtml(row[0])}</th>${row
+              .slice(1)
+              .map((cell) => `<td>${escapeHtml(cell)}</td>`)
+              .join("")}</tr>`,
+        )
+        .join("")}</tbody></table>` +
+      // Dated, so a reader (and a crawler) can judge how current the claims are.
+      (entry.lastReviewed
+        ? `<p class="table-note">Compared against ${escapeHtml(
+            entry.table.columns[1],
+          )} as documented on <time datetime="${escapeHtml(entry.lastReviewed)}">${escapeHtml(
+            formatLongDate(entry.lastReviewed),
+          )}</time>.</p>`
+        : "")
+    : "";
   const related = (entry.related || [])
     .map((pair) => {
       const [href, label] = pair.split("|");
@@ -632,7 +703,7 @@ function renderBody(entry) {
     : "";
 
   const cta = entry.cta || { href: "/signup", label: "Start focusing free" };
-  return `<div class="fa-seo">${breadcrumbsBlock}<span class="badge">${SITE_NAME}</span><h1>${escapeHtml(entry.h1)}</h1><p class="lead">${escapeHtml(entry.lead)}</p>${bylineBlock(entry)}${answerBlock}${tocBlock}${stepsBlock}${sections}${faqBlock}${sourcesBlock}${relatedBlock}${clusterBlock}<a class="cta" href="${escapeHtml(cta.href)}">${escapeHtml(cta.label)}</a></div>`;
+  return `<div class="fa-seo">${breadcrumbsBlock}<span class="badge">${SITE_NAME}</span><h1>${escapeHtml(entry.h1)}</h1><p class="lead">${escapeHtml(entry.lead)}</p>${bylineBlock(entry)}${answerBlock}${tableBlock}${tocBlock}${stepsBlock}${sections}${faqBlock}${sourcesBlock}${relatedBlock}${clusterBlock}<a class="cta" href="${escapeHtml(cta.href)}">${escapeHtml(cta.label)}</a></div>`;
 }
 
 // ── main ───────────────────────────────────────────────────────────
@@ -702,15 +773,30 @@ function main() {
     if (entry.howTo) schemas.push(howToSchema(entry));
     if (entry.faq) schemas.push(faqSchema(entry.faq));
     const ld = schemas.map((s) => `<script type="application/ld+json">${JSON.stringify(s)}</script>`).join("\n");
+    // Idempotent: remove whatever a previous run injected before adding this
+    // route's own block, then drop the homepage-only globals.
+    html = stripPrerenderedSchemas(html);
     if (entry.path !== "") html = stripHomepageOnlySchemas(html);
-    html = html.replace("</head>", `  <!-- Route-scoped structured data (prerendered) -->\n  ${ld}\n</head>`);
+    html = html.replace("</head>", `  ${LD_MARKER}\n  ${ld}\n</head>`);
 
-    // Static body content injected into #root (replaced on React mount)
+    // Static body content injected into #root (replaced on React mount).
+    //
+    // This has to be idempotent. `TEMPLATE` is dist/public/index.html, and "/"
+    // is itself one of the ROUTES — so a second consecutive `node
+    // scripts/prerender.mjs` (no `vite build` in between) reads a template that
+    // already carries "/"'s prerendered shell. The old pattern only matched an
+    // EMPTY `<div id="root"></div>`, so on that second run the substitution
+    // silently did nothing and every route kept the homepage's body: correct
+    // <title>, correct canonical, wrong page. `build` always runs vite build
+    // first, which is why it never showed up there.
     const body = renderBody(entry);
-    html = html.replace(
-      /<div id="root"\s*><\/div>/i,
-      `<div id="root">${staticLandmark(body)}</div>`,
-    );
+    const shell = `<div id="root">${staticLandmark(body)}</div>`;
+    const existingShell = /<div id="root">\s*<main id="main-content"[\s\S]*?<\/main>\s*<\/div>/i;
+    if (existingShell.test(html)) {
+      html = html.replace(existingShell, shell);
+    } else {
+      html = html.replace(/<div id="root"\s*><\/div>/i, shell);
+    }
 
     // Minimal critical CSS so the prerendered shell looks intentional
     // before the app bundle loads.

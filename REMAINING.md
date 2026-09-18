@@ -1,5 +1,41 @@
 # Remaining work (truthful tracker — done items stay listed as done)
 
+## Done 2026-09-18 — comparison tables reach the crawler; content-depth gate
+
+- §18 #20 fixed: the ten `/comparison/*` pages had **no `<table>` in their
+  HTML** while `src/pages/comparison.tsx` drew one from `COMPARISONS`. Now
+  `prerender-data.mjs` emits `table` + `sections[].bullets` from that same
+  `COMPARISONS` entry (new `cellText()` maps booleans to Yes/No **text**, not a
+  tick glyph) and `prerender.mjs` emits a real `<table>` with `scope="col"` /
+  `scope="row"` headers plus a dated note. 10 tables, 92 rows, 0 parity problems.
+- **Two prerender bugs found and fixed, same class — it was only correct on a
+  fresh `vite build`:** (a) the body substitution matched an *empty*
+  `<div id="root"></div>`, and since `TEMPLATE` is `dist/public/index.html` with
+  `/` as a route, a second consecutive `node scripts/prerender.mjs` silently
+  left **the homepage body on every route** (right title, right canonical, wrong
+  page); (b) per-route JSON-LD was appended rather than replaced, so a second run
+  left two `BreadcrumbList`s and the first one won. Both idempotent now; three
+  consecutive runs are byte-stable and validate clean.
+- New `seo-validate.mjs` gates, negative-tested: **content depth** (150 words of
+  own copy, shell furniture stripped; app surfaces exempt at 5; 17 pages in a
+  ratchet baseline that may not get thinner) and **table parity** (every declared
+  row label, column header, cell value and Yes/No **text** must be emitted,
+  counted so one text cell among nine icons still fails).
+- 67 new tests in `src/content/seo-pages.test.ts`. Frontend 443 → 510.
+- Still open, now visible in the source rather than silent: six ratcheted pages
+  (`/terms` 15, `/privacy` 25, `/cookie-policy` 20, `/acceptable-use` 17,
+  `/ai-policy` 23, `/contact` 23 words) hold a full document in React but declare
+  `sections: []` in the manifest — §2.10's "prerendered != hydrated" failure. The
+  fix is to move each policy body into the manifest. Also `/changelog` 70,
+  `/deep-study-guide` 73, `/science-of-deep-work` 79, `/two-hour-study-method` 83,
+  `/pricing` 86, `/feynman-technique` 104, `/guides` 131, `/study-techniques` 135,
+  `/blog` 145, `/focus-guide` 147, `/support` 65 are genuinely thin and need
+  editorial work.
+- Verified **absent** in this repo, in priority order: (a) no webhook/integration
+  layer at all (§1.6); (b) no Dexie/IndexedDB offline-first sync — see backlog
+  item 1 below; (c) `/vs-*`-style standalone alternative pages do not exist
+  (the `/comparison/*` set is the equivalent).
+
 ## Done 2026-09-18 — no native dialogs left; modal focus contract fixed
 
 - `alert()` / `confirm()` / `prompt()` are gone from the whole frontend
