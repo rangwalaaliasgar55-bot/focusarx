@@ -20,6 +20,17 @@ export const usersTable = pgTable("users", {
   referralCode: text("referral_code").unique(),
   referredByUserId: text("referred_by_user_id"),
   referralAppliedAt: timestamp("referral_applied_at"),
+  /**
+   * Set when the user asks for their account to be deleted.
+   *
+   * Deletion is not immediate. The row (and everything cascading from it) is
+   * retained for a grace period so the decision is reversible; a purge job
+   * hard-deletes once the window lapses. The column holds the *request* time
+   * rather than a computed "delete at" time so the window is defined in one
+   * place (ACCOUNT_DELETION_GRACE_DAYS) instead of being frozen into every row
+   * at write time.
+   */
+  deletionRequestedAt: timestamp("deletion_requested_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

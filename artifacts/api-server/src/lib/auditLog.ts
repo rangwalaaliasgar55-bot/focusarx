@@ -13,7 +13,8 @@ export type AuditAction =
   | "admin_bot_settings_change"
   | "admin_bot_tick"
   | "admin_break_free_action"
-  | "admin_drop_trigger";
+  | "admin_drop_trigger"
+  | "admin_account_deletion_purge";
 
 interface AuditEntry {
   action: AuditAction;

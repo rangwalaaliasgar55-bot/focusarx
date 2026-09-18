@@ -832,6 +832,7 @@ CREATE TABLE IF NOT EXISTS "users" (
 	"referral_code" text,
 	"referred_by_user_id" text,
 	"referral_applied_at" timestamp,
+	"deletion_requested_at" timestamp,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "users_email_unique" UNIQUE("email"),
 	CONSTRAINT "users_guest_key_unique" UNIQUE("guest_key"),

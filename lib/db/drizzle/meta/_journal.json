@@ -120,6 +120,13 @@
       "when": 1789000000000,
       "tag": "0016_wallet_balance_checks",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1789100000000,
+      "tag": "0017_account_deletion_grace",
+      "breakpoints": true
     }
   ]
 }

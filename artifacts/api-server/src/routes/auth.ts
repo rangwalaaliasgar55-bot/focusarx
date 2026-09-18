@@ -7,6 +7,7 @@ import { z } from "zod";
 import { db, usersTable, passwordResetTokensTable, emailLogsTable } from "@workspace/db";
 import { eq, and, gt, isNull } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import { describeDeletion } from "../lib/accountDeletion";
 import { welcomeNewHuman } from "../lib/botEngine";
 import { getServerConfig } from "../lib/config";
 import { authLimiter, forgotPasswordLimiter, resetLinkLimiter, guestLimiter, refreshLimiter } from "../lib/rateLimiter";
@@ -284,13 +285,22 @@ router.get("/auth/session", async (req, res) => {
       role: usersTable.role,
       onboardingCompleted: usersTable.onboardingCompleted,
       bio: usersTable.bio,
-      timezone: usersTable.timezone
+      timezone: usersTable.timezone,
+      deletionRequestedAt: usersTable.deletionRequestedAt
     }).from(usersTable).where(eq(usersTable.id, userId));
     if (!user) {
       sendUnauthorized(res, "User not found");
       return;
     }
-    res.json({ user });
+    // A pending deletion is part of the session's state, not a separate fetch:
+    // every page that can render a "delete my account" affordance needs to know
+    // that one is already scheduled, and a second round-trip would let the two
+    // disagree on screen.
+    const { deletionRequestedAt, ...rest } = user;
+    res.json({
+      user: rest,
+      ...(deletionRequestedAt ? { pendingDeletion: describeDeletion(deletionRequestedAt) } : {}),
+    });
   } catch (err) {
     logger.error({ err }, "session error");
     // 503, not 500: the client must be able to tell "the database is having a
@@ -667,6 +677,21 @@ router.post("/auth/change-password", authLimiter, async (req, res) => {
   }
 });
 
+/**
+ * Hard-delete a user and scrub the PII that would otherwise outlive them.
+ *
+ * `email_logs.recipient_id` is `ON DELETE SET NULL`, so the address survives the
+ * cascade unless it is overwritten *while the link still exists* — afterwards
+ * there is no way to find the rows. Both the immediate (guest) path and the
+ * deferred purge call this, so the two cannot drift on what they forget.
+ */
+async function deleteUserEverywhere(userId: string) {
+  await db.transaction(async (tx) => {
+    await tx.update(emailLogsTable).set({ recipientEmail: "[deleted]" }).where(eq(emailLogsTable.recipientId, userId));
+    await tx.delete(usersTable).where(eq(usersTable.id, userId));
+  });
+}
+
 // ── Account deletion (authenticated, password-confirmed) ──────────────────
 
 router.delete("/auth/account", authLimiter, async (req, res) => {
@@ -677,7 +702,7 @@ router.delete("/auth/account", authLimiter, async (req, res) => {
   }
 
   try {
-    const [user] = await db.select({ id: usersTable.id, hashedPassword: usersTable.hashedPassword, isGuest: usersTable.isGuest, email: usersTable.email, role: usersTable.role })
+    const [user] = await db.select({ id: usersTable.id, hashedPassword: usersTable.hashedPassword, isGuest: usersTable.isGuest, email: usersTable.email, role: usersTable.role, deletionRequestedAt: usersTable.deletionRequestedAt })
       .from(usersTable).where(eq(usersTable.id, userId));
     if (!user) {
       res.status(404).json({ error: { code: "NOT_FOUND", message: "Account not found" } });
@@ -698,18 +723,76 @@ router.delete("/auth/account", authLimiter, async (req, res) => {
       }
     }
 
-    // Scrub PII that would survive the cascade via ON DELETE SET NULL — must
-    // happen BEFORE the delete (the link is lost afterwards).
-    await db.transaction(async (tx) => {
-      await tx.update(emailLogsTable).set({ recipientEmail: "[deleted]" }).where(eq(emailLogsTable.recipientId, userId));
-      await tx.delete(usersTable).where(eq(usersTable.id, userId));
-    });
+    // Guests have nothing to lose and no way to come back — their account is
+    // ephemeral by design and holds no data worth a recovery window. Deleting
+    // immediately also stops abandoned guest rows accumulating.
+    if (user.isGuest) {
+      await deleteUserEverywhere(userId);
+      clearAuthCookies(res);
+      logger.info({ userId, isGuest: true }, "guest account deleted immediately");
+      res.json({ ok: true, deleted: true, graceDays: 0 });
+      return;
+    }
+
+    // Everyone else gets a window. The request is recorded rather than acted
+    // on; the account keeps working and the user can sign back in to cancel.
+    //
+    // Re-requesting must not extend the window. A user who asks twice has not
+    // changed their mind about leaving, and pushing the purge back on every
+    // request would let a stale client loop defer deletion forever.
+    const requestedAt = user.deletionRequestedAt ?? new Date();
+    if (!user.deletionRequestedAt) {
+      await db.update(usersTable).set({ deletionRequestedAt: requestedAt }).where(eq(usersTable.id, userId));
+    }
 
     clearAuthCookies(res);
-    logger.info({ userId, isGuest: user.isGuest }, "account deleted");
-    res.json({ ok: true });
+    logger.info({ userId, alreadyPending: Boolean(user.deletionRequestedAt) }, "account deletion requested");
+    res.json({ ok: true, deleted: false, ...describeDeletion(requestedAt) });
   } catch (err) {
     logger.error({ err }, "account deletion error");
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
+  }
+});
+
+// ── Cancel a pending deletion ─────────────────────────────────────────────
+
+/**
+ * Undo a deletion request.
+ *
+ * Requires a valid session, which is why signing out is not part of the delete
+ * flow: the user can log back in during the window and press this. That is the
+ * whole point of a grace period — an irreversible action that also locks the
+ * door behind you is not reversible, it is just delayed.
+ *
+ * Returns 409 rather than 404 when there is nothing to cancel, so the client
+ * can tell "you already cancelled this" from "this account does not exist".
+ */
+router.post("/auth/account/deletion/cancel", authLimiter, async (req, res) => {
+  const userId = extractUserId(req);
+  if (!userId) {
+    sendUnauthorized(res);
+    return;
+  }
+
+  try {
+    const [user] = await db
+      .select({ id: usersTable.id, deletionRequestedAt: usersTable.deletionRequestedAt })
+      .from(usersTable)
+      .where(eq(usersTable.id, userId));
+    if (!user) {
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "Account not found" } });
+      return;
+    }
+    if (!user.deletionRequestedAt) {
+      res.status(409).json({ error: { code: "NO_PENDING_DELETION", message: "No pending deletion to cancel" } });
+      return;
+    }
+
+    await db.update(usersTable).set({ deletionRequestedAt: null }).where(eq(usersTable.id, userId));
+    logger.info({ userId }, "account deletion cancelled");
+    res.json({ ok: true, cancelled: true });
+  } catch (err) {
+    logger.error({ err }, "cancel account deletion error");
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 });

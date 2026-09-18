@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
  * so the client signs out locally afterwards.
  */
 export function AccountSecuritySection() {
-  const { data, signOut } = useAuth();
+  const { data, signOut, refresh } = useAuth();
   const { toast } = useToast();
   const user = data?.user ?? null;
   const isGuest = Boolean(user?.isGuest);
@@ -33,8 +33,30 @@ export function AccountSecuritySection() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
 
   const passwordCapable = Boolean(user && !isGuest);
+  const pendingDeletion = data?.pendingDeletion ?? null;
+
+  /**
+   * Undo a scheduled deletion.
+   *
+   * The account still authenticates during the window — that is what makes this
+   * possible at all. A grace period that also signs you out irreversibly is not
+   * a grace period, it is a two-step delete.
+   */
+  async function handleCancelDeletion() {
+    setCancelling(true);
+    try {
+      await apiJson("/api/auth/account/deletion/cancel", { method: "POST" });
+      toast("Deletion cancelled — your account and history are safe.", "success");
+      await refresh();
+    } catch (err) {
+      toast(apiErrorMessage(err, "Could not cancel the deletion. Please try again."), "error");
+    } finally {
+      setCancelling(false);
+    }
+  }
 
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
@@ -70,11 +92,19 @@ export function AccountSecuritySection() {
     }
     setDeleting(true);
     try {
-      await apiJson("/api/auth/account", {
+      const result = await apiJson<{ deleted: boolean; daysRemaining?: number }>("/api/auth/account", {
         method: "DELETE",
         body: JSON.stringify(isGuest ? {} : { password: deletePassword }),
       });
-      toast("Account deleted — your data has been permanently removed.", "success");
+      // The copy used to say "permanently removed" for both cases. For a
+      // scheduled deletion that is simply untrue, and it is the kind of untrue
+      // that stops someone from signing back in to undo it.
+      toast(
+        result.deleted
+          ? "Guest profile deleted — it was never stored against an email address."
+          : `Deletion scheduled. Your account is kept for ${result.daysRemaining ?? 30} more days — sign in any time before then to cancel.`,
+        "success",
+      );
       await signOut();
     } catch (err) {
       setDeleteError(apiErrorMessage(err, "Could not delete the account. Check your password and try again."));
@@ -146,16 +176,50 @@ export function AccountSecuritySection() {
 
         <div className="rounded-[var(--radius-md)] border border-[var(--palette-red-500-30)] bg-[var(--palette-red-500-05)] p-4">
           <h3 className="text-sm font-semibold text-[var(--palette-red-500)]">Danger zone</h3>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Permanently delete your account, sessions, progress, and rewards. This cannot be undone.
-          </p>
-          <Button
-            variant="destructive"
-            className="mt-3"
-            onClick={() => { setDeleteOpen(true); setDeleteError(null); }}
-          >
-            Delete account…
-          </Button>
+          {pendingDeletion ? (
+            <>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">
+                Your account is scheduled for deletion on{" "}
+                <strong className="text-[var(--foreground)]">
+                  {new Date(pendingDeletion.scheduledFor).toLocaleDateString(undefined, {
+                    year: "numeric", month: "long", day: "numeric",
+                  })}
+                </strong>
+                {pendingDeletion.daysRemaining === 1
+                  ? " — 1 day left to change your mind."
+                  : ` — ${pendingDeletion.daysRemaining} days left to change your mind.`}
+              </p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">
+                Nothing has been removed yet. Cancelling restores everything exactly as it is now.
+              </p>
+              {pendingDeletion.cancellable ? (
+                <Button className="mt-3" onClick={() => void handleCancelDeletion()} disabled={cancelling}>
+                  {cancelling ? "Cancelling…" : "Keep my account"}
+                </Button>
+              ) : (
+                // The window has lapsed but the purge job has not run yet.
+                // There is nothing honest to offer here.
+                <p className="mt-3 text-sm font-medium text-[var(--palette-red-500)]">
+                  The recovery window has closed. The account will be removed shortly.
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">
+                {isGuest
+                  ? "Delete this guest profile and everything saved to it. Guest profiles are not linked to an email address, so there is no way to recover one."
+                  : "Delete your account, sessions, progress, and rewards. Your data is kept for 30 days so you can change your mind — nothing is removed straight away."}
+              </p>
+              <Button
+                variant="destructive"
+                className="mt-3"
+                onClick={() => { setDeleteOpen(true); setDeleteError(null); }}
+              >
+                Delete account…
+              </Button>
+            </>
+          )}
         </div>
       </CardContent>
 
@@ -164,8 +228,9 @@ export function AccountSecuritySection() {
           <DialogHeader>
             <DialogTitle>Delete your account?</DialogTitle>
             <DialogDescription>
-              This permanently removes your profile, focus history, XP, coins, streaks, and rewards.
-              This action cannot be undone.
+              {isGuest
+                ? "This guest profile and everything in it is removed immediately and cannot be recovered."
+                : "We will keep your profile, focus history, XP, coins and streaks for 30 days, then remove them. You can sign in and cancel at any point before then."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -201,7 +266,7 @@ export function AccountSecuritySection() {
               Cancel
             </Button>
             <Button variant="destructive" onClick={handleDeleteAccount} disabled={deleting}>
-              {deleting ? "Deleting…" : "Permanently delete"}
+              {deleting ? "Deleting…" : isGuest ? "Delete permanently" : "Schedule deletion"}
             </Button>
           </DialogFooter>
         </DialogContent>
