@@ -164,7 +164,7 @@ function Brand({ compact = false }: { compact?: boolean }) {
 function CountBadge({ count }: { count: number }) {
   if (!count) return null;
   return (
-    <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--brand-soft)] px-1.5 py-0.5 text-[0.625rem] font-bold tabular-nums text-[var(--brand-strong)]">
+    <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--brand-soft)] px-1.5 py-0.5 text-[11px] font-bold tabular-nums text-[var(--brand-strong)]">
       {count > 99 ? "99+" : count}
     </span>
   );

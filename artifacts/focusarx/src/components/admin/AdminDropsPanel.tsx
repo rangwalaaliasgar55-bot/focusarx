@@ -248,7 +248,7 @@ export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
                         <StatusBadge status={state as any} />
                       </div>
                       {d.description && <p className="mt-0.5 truncate text-[0.6875rem] text-[var(--palette-zinc-500)]">{d.description}</p>}
-                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[0.625rem] text-[var(--palette-zinc-500)]">
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-[var(--palette-zinc-500)]">
                         <span>{d.type.replace("_", " ")}</span>
                         <span>ends {new Date(d.endsAt).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
                         <span className="text-[var(--palette-zinc-300)]">{d.claims} claims{d.createdVia === "gemini" && " · via Gemini"}</span>
@@ -278,8 +278,8 @@ export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
                               danger: true,
                             });
                             if (ok) void dropAction(d.id, "end");
-                          }} className="rounded border border-[var(--palette-zinc-700)] px-2 py-1 text-[0.625rem] text-[var(--palette-zinc-300)] hover:text-[var(--palette-zinc-100)]">End</button>
-                          <button onClick={() => void dropAction(d.id, "duplicate")} className="rounded border border-[var(--palette-zinc-700)] px-2 py-1 text-[0.625rem] text-[var(--palette-zinc-300)] hover:text-[var(--palette-zinc-100)]">Repeat</button>
+                          }} className="rounded border border-[var(--palette-zinc-700)] px-2 py-1 text-[11px] text-[var(--palette-zinc-300)] hover:text-[var(--palette-zinc-100)]">End</button>
+                          <button onClick={() => void dropAction(d.id, "duplicate")} className="rounded border border-[var(--palette-zinc-700)] px-2 py-1 text-[11px] text-[var(--palette-zinc-300)] hover:text-[var(--palette-zinc-100)]">Repeat</button>
                         </>
                       )}
                       {!d.live && !d.cancelledAt && d.startsAt > new Date(now) && (
@@ -291,7 +291,7 @@ export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
                             danger: true,
                           });
                           if (ok) void dropAction(d.id, "cancel");
-                        }} className="rounded border border-[var(--palette-rose-800)] px-2 py-1 text-[0.625rem] text-[var(--palette-rose-400)] hover:bg-[var(--palette-rose-950)]">Cancel</button>
+                        }} className="rounded border border-[var(--palette-rose-800)] px-2 py-1 text-[11px] text-[var(--palette-rose-400)] hover:bg-[var(--palette-rose-950)]">Cancel</button>
                       )}
                     </div>
                   </div>

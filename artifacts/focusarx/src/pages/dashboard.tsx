@@ -227,7 +227,7 @@ function FocusHero({
           <div className="absolute inset-2 rounded-full bg-[var(--surface)] shadow-[var(--shadow-sm)]" />
           <div className="relative text-center">
             <p className="font-display text-4xl font-semibold tracking-[-0.05em]" style={{ fontFeatureSettings: '"tnum" 1' }}><RollingClock value={running ? formatClock(live.secondsLeft) : `${plan.duration}:00`} /></p>
-            <p className="mt-1 text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-[var(--foreground-subtle)]">{running ? (live.mode === "focus" ? "Focus" : "Break") : "Suggested"}</p>
+            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--foreground-subtle)]">{running ? (live.mode === "focus" ? "Focus" : "Break") : "Suggested"}</p>
           </div>
         </div>
       </CardContent>

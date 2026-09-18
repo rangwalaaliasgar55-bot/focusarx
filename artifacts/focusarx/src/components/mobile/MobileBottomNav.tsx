@@ -114,7 +114,7 @@ export function MobileBottomNav({ onMoreClick, hidden }: MobileBottomNavProps) {
               <Icon size={tab.primary ? 22 : 20} />
               {tab.badge === "missions" && claimable > 0 && (
                 <span
-                  className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--brand-600)] px-1 text-[0.6rem] font-bold leading-none text-white ring-2 ring-[var(--backdrop)]"
+                  className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--brand-600)] px-1 text-[11px] font-bold leading-none text-white ring-2 ring-[var(--backdrop)]"
                   aria-label={`${claimable} reward${claimable === 1 ? "" : "s"} to claim`}
                 >
                   {claimable > 9 ? "9+" : claimable}

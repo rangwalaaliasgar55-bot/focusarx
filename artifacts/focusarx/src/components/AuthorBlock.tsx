@@ -59,7 +59,7 @@ export function AuthorBlock({
       ) : (
         <span
           aria-hidden="true"
-          className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--brand-soft)] text-[10px] font-bold text-[var(--brand-strong)]"
+          className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--brand-soft)] text-[11px] font-bold text-[var(--brand-strong)]"
         >
           FA
         </span>

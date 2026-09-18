@@ -210,7 +210,7 @@ export function AdminBreakFreePanel({ authHeaders, onManageUser }: AdminPanelPro
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="text-[10px] uppercase tracking-wider text-[var(--palette-zinc-500)]">
+              <thead className="text-[11px] uppercase tracking-wider text-[var(--palette-zinc-500)]">
                 <tr>
                   <th className="pb-2 pr-3">Member</th>
                   <th className="pb-2 pr-3">Current</th>
@@ -226,12 +226,12 @@ export function AdminBreakFreePanel({ authHeaders, onManageUser }: AdminPanelPro
                   <tr key={u.userId} className="text-[var(--palette-zinc-300)]">
                     <td className="py-2 pr-3">
                       <button onClick={() => onManageUser?.(u.userId)} className="block max-w-[14rem] truncate text-left font-medium text-[var(--palette-zinc-100)] hover:underline">{u.name}</button>
-                      <span className="block max-w-[14rem] truncate font-mono text-[10px] text-[var(--palette-zinc-600)]">{u.email}</span>
+                      <span className="block max-w-[14rem] truncate font-mono text-[11px] text-[var(--palette-zinc-600)]">{u.email}</span>
                     </td>
                     <td className="py-2 pr-3 font-semibold text-[var(--palette-emerald-300)]">{u.currentStreak}d</td>
                     <td className="py-2 pr-3">{u.longestStreak}d</td>
-                    <td className="py-2 pr-3">{u.relapseCount}{u.lastRelapseDate ? <span className="block text-[10px] text-[var(--palette-zinc-600)]">last {u.lastRelapseDate}</span> : null}</td>
-                    <td className="py-2 pr-3">{moodEmoji(u.avgMood7d)} {u.avgMood7d ?? "—"}<span className="block text-[10px] text-[var(--palette-zinc-600)]">{u.checkins7d} check-ins</span></td>
+                    <td className="py-2 pr-3">{u.relapseCount}{u.lastRelapseDate ? <span className="block text-[11px] text-[var(--palette-zinc-600)]">last {u.lastRelapseDate}</span> : null}</td>
+                    <td className="py-2 pr-3">{moodEmoji(u.avgMood7d)} {u.avgMood7d ?? "—"}<span className="block text-[11px] text-[var(--palette-zinc-600)]">{u.checkins7d} check-ins</span></td>
                     <td className="py-2 pr-3 font-mono text-[11px]">{u.startDate.slice(0, 10)}</td>
                     <td className="py-2">
                       <div className="flex flex-wrap gap-1">
@@ -289,7 +289,7 @@ export function AdminBreakFreePanel({ authHeaders, onManageUser }: AdminPanelPro
               <li key={p.id} className="flex items-start justify-between gap-3 rounded-lg border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 px-3 py-2">
                 <div className="min-w-0">
                   <p className="text-xs text-[var(--palette-zinc-200)]">{p.message}</p>
-                  <p className="text-[10px] text-[var(--palette-zinc-600)]">{new Date(p.postedAt).toLocaleString()}</p>
+                  <p className="text-[11px] text-[var(--palette-zinc-600)]">{new Date(p.postedAt).toLocaleString()}</p>
                 </div>
                 <button onClick={() => deletePledge(p.id)} disabled={busy === `pledge:${p.id}`} className="shrink-0 text-[var(--palette-zinc-500)] hover:text-[var(--palette-rose-400)] disabled:opacity-50" aria-label="Remove pledge"><Trash2 size={13} /></button>
               </li>

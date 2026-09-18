@@ -42,7 +42,7 @@ function NumField({ label, value, onChange, min = 0, max, step = 1, hint }: {
       <span className="mb-1 block text-[11px] font-medium text-[var(--palette-zinc-400)]">{label}</span>
       <input type="number" value={Number.isFinite(value) ? value : 0} min={min} max={max} step={step}
         onChange={(e) => onChange(Number(e.target.value))} className={inputCls} />
-      {hint && <span className="mt-0.5 block text-[10px] text-[var(--palette-zinc-600)]">{hint}</span>}
+      {hint && <span className="mt-0.5 block text-[11px] text-[var(--palette-zinc-600)]">{hint}</span>}
     </label>
   );
 }
@@ -55,7 +55,7 @@ function PercentField({ label, value, onChange, hint }: { label: string; value: 
       </span>
       <input type="range" min={0} max={100} step={5} value={Math.round(value * 100)} onChange={(e) => onChange(Number(e.target.value) / 100)}
         className="w-full accent-[var(--palette-sky-500)]" />
-      {hint && <span className="mt-0.5 block text-[10px] text-[var(--palette-zinc-600)]">{hint}</span>}
+      {hint && <span className="mt-0.5 block text-[11px] text-[var(--palette-zinc-600)]">{hint}</span>}
     </label>
   );
 }
@@ -69,7 +69,7 @@ function Toggle({ label, checked, onChange, hint }: { label: string; checked: bo
       </button>
       <span>
         <span className="block text-xs font-medium text-[var(--palette-zinc-200)]">{label}</span>
-        {hint && <span className="block text-[10px] text-[var(--palette-zinc-500)]">{hint}</span>}
+        {hint && <span className="block text-[11px] text-[var(--palette-zinc-500)]">{hint}</span>}
       </span>
     </label>
   );

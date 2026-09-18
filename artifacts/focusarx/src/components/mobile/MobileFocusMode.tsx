@@ -133,7 +133,7 @@ export function MobileFocusMode({
             </span>
             {skinned && (
               <span
-                className="inline-flex items-center gap-1 rounded-full px-2 py-[2px] text-[10px] font-bold uppercase tracking-[0.14em]"
+                className="inline-flex items-center gap-1 rounded-full px-2 py-[2px] text-[11px] font-bold uppercase tracking-[0.14em]"
                 style={{
                   background: `color-mix(in srgb, ${accent} 16%, transparent)`,
                   border: `1px solid color-mix(in srgb, ${accent} 40%, transparent)`,

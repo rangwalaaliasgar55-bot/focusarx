@@ -102,7 +102,7 @@ function DashboardMockup() {
     <div className="texture-grain relative mx-auto w-full max-w-5xl overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--border-strong)] bg-[var(--surface)] p-2 shadow-[var(--shadow-xl),var(--shadow-violet-md)] sm:p-3">
       <div className="flex h-10 items-center gap-1.5 border-b border-[var(--border-subtle)] px-3" aria-hidden="true">
         <span className="h-2 w-2 rounded-full bg-[var(--danger)]" /><span className="h-2 w-2 rounded-full bg-[var(--warning)]" /><span className="h-2 w-2 rounded-full bg-[var(--success)]" />
-        <span className="ml-3 text-[0.625rem] text-[var(--foreground-subtle)]">FocusArx · Today</span>
+        <span className="ml-3 text-[11px] text-[var(--foreground-subtle)]">FocusArx · Today</span>
       </div>
       <div className="grid min-h-[28rem] md:grid-cols-[11rem_1fr]">
         <aside className="hidden border-r border-[var(--border-subtle)] p-3 md:block">
@@ -110,7 +110,7 @@ function DashboardMockup() {
           {["Dashboard", "Tasks", "Focus", "Flashcards", "Analytics"].map((item, index) => <div key={item} className={cn("mb-1 flex min-h-9 items-center rounded-lg px-3 text-[0.6875rem] text-[var(--foreground-subtle)]", index === 0 && "bg-[var(--brand-soft)] text-[var(--brand-strong)]")}>{item}</div>)}
         </aside>
         <div className="p-3 sm:p-5">
-          <div><p className="text-[0.625rem] uppercase tracking-widest text-[var(--brand-strong)]">Tuesday · Your workspace</p><p className="mt-1 text-xl font-semibold">Good morning, Alex</p><p className="mt-1 text-xs text-[var(--foreground-muted)]">One clear plan for your focus and momentum.</p></div>
+          <div><p className="text-[11px] uppercase tracking-widest text-[var(--brand-strong)]">Tuesday · Your workspace</p><p className="mt-1 text-xl font-semibold">Good morning, Alex</p><p className="mt-1 text-xs text-[var(--foreground-muted)]">One clear plan for your focus and momentum.</p></div>
           <div className="mt-5 grid gap-3 lg:grid-cols-[1.25fr_.75fr]">
             <div className="grid min-h-64 place-items-center rounded-[var(--radius-xl)] border border-[var(--card-border)] bg-[radial-gradient(circle_at_center,var(--brand-soft),transparent_66%)] p-5 text-center">
               <div><div className="relative mx-auto grid h-32 w-32 place-items-center rounded-full" style={{ background: "conic-gradient(var(--brand-500) 0deg 252deg, var(--brand-soft) 252deg 360deg)" }}><div className="absolute inset-1.5 rounded-full bg-[var(--surface)] shadow-[var(--shadow-sm)]" /><span className="relative font-mono text-3xl font-semibold tabular-nums">25:00</span></div><p className="mt-4 text-xs font-semibold">Protect the next 25 minutes.</p><span className="mt-3 inline-flex min-h-8 items-center rounded-lg bg-[var(--brand-600)] px-4 text-[0.6875rem] font-semibold text-[var(--neutral-0)]">Start focusing</span></div>
@@ -120,7 +120,7 @@ function DashboardMockup() {
               <div className="mt-4 space-y-2">{["Review chapter notes", "Build biology deck", "Submit project outline"].map((task, index) => <div key={task} className="flex min-h-10 items-center gap-2 rounded-lg bg-[var(--surface-hover)] px-2"><span className={cn("h-4 w-4 rounded-full border border-[var(--border-strong)]", index === 0 && "border-[var(--success)] bg-[var(--success)]")} /> <span className="truncate text-[0.6875rem] text-[var(--foreground-muted)]">{task}</span></div>)}</div>
             </div>
           </div>
-          <div className="mt-3 grid grid-cols-3 gap-2">{[["Streak", "12 days"], ["XP", "2,480"], ["Tasks", "3 active"]].map(([label, value]) => <div key={label} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-raised)] p-3"><p className="text-[0.5625rem] uppercase tracking-wider text-[var(--foreground-subtle)]">{label}</p><p className="mt-1 text-xs font-semibold">{value}</p></div>)}</div>
+          <div className="mt-3 grid grid-cols-3 gap-2">{[["Streak", "12 days"], ["XP", "2,480"], ["Tasks", "3 active"]].map(([label, value]) => <div key={label} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-raised)] p-3"><p className="text-[11px] uppercase tracking-wider text-[var(--foreground-subtle)]">{label}</p><p className="mt-1 text-xs font-semibold">{value}</p></div>)}</div>
         </div>
       </div>
     </div>

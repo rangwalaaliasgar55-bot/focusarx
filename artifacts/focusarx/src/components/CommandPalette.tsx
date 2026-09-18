@@ -138,7 +138,7 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
                 <CommandItem key={`${label}-${href}`} value={`${label} ${keywords}`} onSelect={() => go(href)} className="min-h-11 rounded-[var(--radius-md)]">
                   <Icon /> <span>{label}</span>
                   {premium && !isPremium && (
-                    <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-[var(--palette-amber-500)]/10 px-2 py-0.5 text-[0.625rem] font-bold text-[var(--palette-amber-400)] border border-[var(--palette-amber-500)]/20">
+                    <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-[var(--palette-amber-500)]/10 px-2 py-0.5 text-[11px] font-bold text-[var(--palette-amber-400)] border border-[var(--palette-amber-500)]/20">
                       PRO
                     </span>
                   )}

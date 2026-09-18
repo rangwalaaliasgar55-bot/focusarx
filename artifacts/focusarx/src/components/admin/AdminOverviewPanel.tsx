@@ -84,7 +84,7 @@ export function AdminOverviewPanel({ stats, data, users, cmsOverview, maxSession
               const ratio = d.sessions > 0 ? Math.max(0.04, d.sessions / maxSessions) : 0;
               return (
                 <div key={`${d.date || d.day}-${index}`} className="flex min-w-0 flex-1 flex-col items-center gap-1.5" title={`${d.sessions} sessions · ${d.minutes}m on ${d.day}`}>
-                  <span className="text-[0.625rem] font-medium tabular-nums text-[var(--foreground-subtle)]">
+                  <span className="text-[11px] font-medium tabular-nums text-[var(--foreground-subtle)]">
                     {d.sessions > 0 ? d.sessions : ""}
                   </span>
                   <div

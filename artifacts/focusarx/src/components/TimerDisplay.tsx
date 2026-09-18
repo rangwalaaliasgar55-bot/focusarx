@@ -4,6 +4,7 @@ import { Pencil } from "lucide-react";
 import { formatTime } from "@/lib/timerUtils";
 import { RollingClock } from "@/components/RollingClock";
 import { getTimerSkin, skinTextGradient, type MembershipTier } from "@/lib/membershipSkin";
+import { useNow } from "@/hooks/useNow";
 import type { TimerMode } from "@/types/timer";
 
 interface TimerDisplayProps {
@@ -35,6 +36,37 @@ interface TimerDisplayProps {
  * Break / long-break always keep their green / blue so the rest-vs-work
  * signal is identical for every member.
  */
+/**
+ * Wall-clock label for when the current block will finish.
+ *
+ * The ring answers "how much is left" and the digits answer "how long left",
+ * but neither answers "when can I stop" — which is the question that decides
+ * whether the user starts at all, and the one that matters most to the
+ * time-blind. `14:12 remaining` still needs arithmetic against an unknown
+ * starting point; `ends 3:45 PM` does not.
+ */
+/**
+ * Natural-language remaining time for the accessible name.
+ *
+ * The visible digits are zero-padded for the clock face (`05:00`), but an
+ * `aria-label` built from them reads "zero five minutes zero zero seconds" —
+ * the padding is a typographic device, not a spoken one. Unit-less values are
+ * dropped so the common case is just "5 minutes remaining".
+ */
+function spokenRemaining(totalSeconds: number): string {
+  const safe = Math.max(0, Math.floor(totalSeconds));
+  const minutes = Math.floor(safe / 60);
+  const seconds = safe % 60;
+  const parts: string[] = [];
+  if (minutes > 0) parts.push(`${minutes} ${minutes === 1 ? "minute" : "minutes"}`);
+  if (seconds > 0 || minutes === 0) parts.push(`${seconds} ${seconds === 1 ? "second" : "seconds"}`);
+  return `${parts.join(" ")} remaining`;
+}
+
+function formatEndTime(timestamp: number): string {
+  return new Date(timestamp).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
 const SIZE = 300;
 const STROKE = 14;
 const RADIUS = (SIZE - STROKE) / 2;
@@ -84,6 +116,15 @@ export function TimerDisplay({
     }
     wasRunning.current = isRunning;
   }, [isRunning, reduced]);
+
+  // Wall-clock finish label, read from the shared 1 Hz clock. `now + secondsLeft`
+  // is invariant while the clock runs, so the label is stable rather than
+  // counting down — which is exactly the point: the user wants the fixed
+  // instant they are working towards, not another moving number.
+  //
+  // The clock is only subscribed while running; an idle timer schedules nothing.
+  const now = useNow(isRunning);
+  const endsAt = now === null ? null : formatEndTime(now + secondsLeft * 1000);
 
   const xpEarned = Math.floor(activeSecondsEarned / 60) * 20;
   const coinsEarned = Math.floor(activeSecondsEarned / 300) * 10;
@@ -217,7 +258,7 @@ export function TimerDisplay({
             {label}
             {skinned && (
               <span
-                className="ml-1 inline-flex items-center gap-1 rounded-full px-1.5 py-[1px] text-[0.5625rem] font-bold tracking-[0.12em]"
+                className="ml-1 inline-flex items-center gap-1 rounded-full px-1.5 py-[1px] text-[0.6875rem] font-bold tracking-[0.12em]"
                 style={{
                   background: `color-mix(in srgb, ${ring} 14%, transparent)`,
                   border: `1px solid color-mix(in srgb, ${ring} 35%, transparent)`,
@@ -225,7 +266,7 @@ export function TimerDisplay({
                 }}
                 title={`${skin.label} member timer`}
               >
-                {skin.glyph && <span aria-hidden className="text-[0.625rem] leading-none">{skin.glyph}</span>}
+                {skin.glyph && <span aria-hidden className="text-[0.6875rem] leading-none">{skin.glyph}</span>}
                 {skin.label}
               </span>
             )}
@@ -237,7 +278,13 @@ export function TimerDisplay({
             type="button"
             onClick={onEditClick}
             disabled={!onEditClick || isRunning}
-            aria-label={onEditClick ? `${minutes} minutes ${seconds} seconds remaining. Edit duration.` : `${minutes} minutes ${seconds} seconds remaining`}
+            aria-label={[
+              `${spokenRemaining(secondsLeft)}.`,
+              onEditClick ? "Edit duration." : null,
+              endsAt ? `Finishes at ${endsAt}.` : null,
+            ]
+              .filter(Boolean)
+              .join(" ")}
             className="font-display text-[4.25rem] font-semibold leading-none tracking-[-0.055em] text-[var(--foreground)] tabular-nums outline-none transition-opacity disabled:cursor-default enabled:hover:opacity-80 focus-visible:ring-2 focus-visible:ring-[var(--brand-500)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--surface)] rounded-md"
             style={{
               fontFeatureSettings: '"tnum" 1, "ss01" 1',
@@ -266,7 +313,7 @@ export function TimerDisplay({
         </div>
 
         <span className="mt-2 text-xs font-medium text-[var(--foreground-subtle)]">
-          {isRunning ? "In progress" : "Ready"}
+          {isRunning ? (endsAt ? <>In progress <span aria-hidden="true">·</span> ends {endsAt}</> : "In progress") : "Ready"}
         </span>
 
         <AnimatePresence>

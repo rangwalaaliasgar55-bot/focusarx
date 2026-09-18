@@ -247,7 +247,7 @@ export function StatusBadge({ status }: { status: "live" | "upcoming" | "ended" 
     pending: "bg-[var(--palette-zinc-800)] text-[var(--palette-zinc-400)]",
   };
   return (
-    <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[0.5625rem] font-semibold uppercase tracking-wide ${styles[status] ?? styles.pending}`}>
+    <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${styles[status] ?? styles.pending}`}>
       {status}
     </span>
   );

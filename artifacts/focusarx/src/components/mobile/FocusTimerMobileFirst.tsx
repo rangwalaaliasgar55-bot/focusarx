@@ -372,7 +372,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
             {mode === "focus" ? "Deep Work" : mode === "break" ? "Break" : "Long Break"}
             {skin.tier !== "free" && mode === "focus" && (
               <span
-                className="inline-flex items-center gap-1 rounded-full px-1.5 py-[1px] text-[9px] tracking-[0.12em]"
+                className="inline-flex items-center gap-1 rounded-full px-1.5 py-[1px] text-[11px] tracking-[0.12em]"
                 style={{
                   background: `color-mix(in srgb, ${skin.ring} 16%, transparent)`,
                   border: `1px solid color-mix(in srgb, ${skin.ring} 40%, transparent)`,

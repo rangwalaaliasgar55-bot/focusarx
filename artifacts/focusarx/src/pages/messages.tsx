@@ -30,7 +30,7 @@ function IdentityBadges({ isAdmin }: { isAdmin?: boolean }) {
   if (!isAdmin) return null;
   return (
     <span className="inline-flex items-center gap-1">
-      <span className="inline-flex items-center gap-0.5 rounded-full border border-[var(--palette-red-500)]/30 bg-[var(--palette-red-500)]/10 px-1.5 py-px text-[7px] font-semibold uppercase tracking-widest text-[var(--palette-red-400)]" title="FocusArx admin">
+      <span className="inline-flex items-center gap-0.5 rounded-full border border-[var(--palette-red-500)]/30 bg-[var(--palette-red-500)]/10 px-1.5 py-px text-[11px] font-semibold uppercase tracking-widest text-[var(--palette-red-400)]" title="FocusArx admin">
           <Shield size={7} /> Admin
         </span>
     </span>
