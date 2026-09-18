@@ -1,5 +1,7 @@
 import { AlertTriangle, ArrowUpRight, RefreshCw, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { networkNotice } from "@/lib/connectionCopy";
 
 function debugEnabled(): boolean {
   try {
@@ -14,8 +16,8 @@ function debugEnabled(): boolean {
  *  (callers pass server envelopes) — pass raw internals as `details` instead:
  *  they only render with debug mode enabled. */
 export function ErrorState({
-  title = "Something went wrong",
-  message = "We couldn't load this. Check your connection and try again.",
+  title: titleProp = "Something went wrong",
+  message: messageProp = "We couldn't load this. Check your connection and try again.",
   details,
   onRetry,
   compact = false,
@@ -28,7 +30,15 @@ export function ErrorState({
   compact?: boolean;
   className?: string;
 }) {
-  const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+  // Read live rather than once at render: the old `navigator.onLine` read
+  // could not notice the connection coming back, so an offline message stayed
+  // on screen after the user had reconnected.
+  const { status } = useNetworkStatus();
+  const notice = networkNotice(status, "page");
+  const offline = status === "offline";
+  const title = notice?.title ?? titleProp;
+  const message = notice?.message ?? messageProp;
+  const action = notice?.action ?? "Retry";
 
   if (compact) {
     return (
@@ -42,9 +52,9 @@ export function ErrorState({
         <div className="flex items-start gap-2">
           <AlertTriangle size={14} className="mt-0.5 shrink-0 text-[var(--danger)]" aria-hidden />
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-[var(--foreground)]">{offline ? "You're offline" : title}</p>
+            <p className="text-xs font-semibold text-[var(--foreground)]">{title}</p>
             <p className="mt-0.5 text-[11px] leading-snug text-[var(--foreground-muted)]">
-              {offline ? "Reconnect and this will load on its own." : message}
+              {message}
             </p>
           </div>
         </div>
@@ -53,7 +63,7 @@ export function ErrorState({
           onClick={onRetry}
           className="mt-2.5 inline-flex min-h-8 items-center gap-1.5 rounded-lg bg-[var(--brand-600)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--neutral-0)] hover:bg-[var(--brand-700)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-400)]"
         >
-          <RefreshCw size={12} aria-hidden /> {offline ? "Reconnect" : "Retry"}
+          <RefreshCw size={12} aria-hidden /> {action}
         </button>
       </div>
     );
@@ -68,10 +78,10 @@ export function ErrorState({
         <AlertTriangle size={20} aria-hidden />
       </span>
       <h2 className="mt-4 text-lg font-semibold tracking-tight text-[var(--foreground)]">
-        {offline ? "You're offline" : title}
+        {title}
       </h2>
       <p className="mt-2 text-sm leading-relaxed text-[var(--foreground-muted)]">
-        {offline ? "Reconnect to load this view — nothing you did will be lost." : message}
+        {message}
       </p>
       {details && debugEnabled() && (
         <details className="mt-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] px-4 py-2.5 text-left">
@@ -89,7 +99,7 @@ export function ErrorState({
           onClick={onRetry}
           className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[var(--brand-600)] px-4 text-sm font-semibold text-[var(--neutral-0)] hover:bg-[var(--brand-700)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-400)]"
         >
-          <RefreshCw size={14} aria-hidden /> Retry
+          <RefreshCw size={14} aria-hidden /> {action}
         </button>
         <a
           href="/support"

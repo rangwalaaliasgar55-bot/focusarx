@@ -5,6 +5,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
 
 import { ErrorState } from "@/components/ErrorState";
+import { QueryError } from "@/components/ui/QueryError";
 import { is3DCapable } from "@/lib/webglCapability";
 
 // Lazy so three.js stays out of this page's static chunk graph.
@@ -56,6 +57,24 @@ export default function PetsPage() {
   const [activePet, setActivePet] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  /**
+   * The catalog and the inventory were fetched together but only the catalog
+   * failure was handled: an inventory failure fell into `if (invRes.ok)` with
+   * no else, leaving `inventory` as `[]` while the page rendered as though
+   * everything were fine.
+   *
+   * That empty array is not neutral. `ownedSlugs` is built from it, so every
+   * pet the user already owned lost its "Owned" badge and grew an active
+   * price button; the tab read "My Pets (0)"; and the inventory tab said
+   * "No pets yet — unlock from collection", which is a false statement about
+   * the user's own collection that also *directs them to go and spend tokens
+   * again*. The server is idempotent (`alreadyOwned` short-circuits before the
+   * ledger), so nobody is charged twice — but the page told a confident lie
+   * about what the user owns, and then celebrated a purchase they had already
+   * made. Ownership is exactly the fact this screen exists to report, so it
+   * has to be sure of it.
+   */
+  const [inventoryFailed, setInventoryFailed] = useState(false);
   const [filter, setFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [selectedDetail, setSelectedDetail] = useState<any>(null);
@@ -80,8 +99,11 @@ export default function PetsPage() {
         const invData = await invRes.json();
         const inv = invData.inventory ?? [];
         setInventory(inv);
+        setInventoryFailed(false);
         const active = inv.find((i: any) => i.inventory?.isActive || i.isActive);
         setActivePet(active ?? inv[0] ?? null);
+      } else {
+        setInventoryFailed(true);
       }
     } catch {
       setLoadError(true);
@@ -230,7 +252,9 @@ export default function PetsPage() {
         <div className="mb-4 flex gap-1 rounded-xl bg-[var(--surface-1)] p-1">
           {[
             { id: "collection", label: "Collection", icon: "🗂️" },
-            { id: "inventory", label: `My Pets (${inventory.length})`, icon: <PawPrint size={16} aria-hidden="true" /> },
+            // A count of zero would be a claim about the user's collection; when
+            // the inventory request failed we don't have one to make.
+            { id: "inventory", label: inventoryFailed ? "My Pets" : `My Pets (${inventory.length})`, icon: <PawPrint size={16} aria-hidden="true" /> },
             { id: "progression", label: "Progression", icon: <TrendingUp size={16} aria-hidden="true" /> },
           ].map(t => (
             <button key={t.id} onClick={() => setActiveTab(t.id as any)} className={`flex-1 rounded-lg py-2 text-xs font-bold ${activeTab === t.id ? "bg-[var(--brand-600)] text-white" : "text-[var(--foreground-subtle)]"}`}>
@@ -241,6 +265,14 @@ export default function PetsPage() {
 
         {activeTab === "collection" && (
           <>
+            {inventoryFailed && (
+              <QueryError
+                what="what you already own"
+                onRetry={() => void load()}
+                retrying={loading}
+                className="mb-4"
+              />
+            )}
             {/* Filters + search */}
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <div className="relative">
@@ -275,7 +307,14 @@ export default function PetsPage() {
                     </div>
                     <div className="mt-3 flex gap-1.5">
                       <button onClick={() => setSelectedDetail(pet)} className="flex-1 rounded-xl border border-[var(--forge-border)] py-1.5 text-[11px] font-semibold">Details</button>
-                      {!owned ? (
+                      {inventoryFailed ? (
+                        // Offering to sell them a pet they may already own is the
+                        // one thing this card must not do while ownership is
+                        // unknown. Browsing still works; spending waits.
+                        <button onClick={() => void load()} className="flex-1 rounded-xl border border-[var(--forge-border)] py-1.5 text-[11px] font-semibold text-[var(--foreground-subtle)]">
+                          Check status
+                        </button>
+                      ) : !owned ? (
                         <button disabled={!!saving} onClick={() => unlockPet(pet.slug)} className={`flex-1 rounded-xl py-1.5 text-[11px] font-bold ${lockedPremium ? "bg-[var(--palette-amber-500)]/15 text-[var(--palette-amber-400)]" : "bg-[var(--brand-600)] text-white"}`}>
                           {saving === pet.slug ? "..." : pet.tokenCost > 0 ? `🪙 ${pet.tokenCost}` : lockedPremium ? "Premium" : "Unlock"}
                         </button>
@@ -309,7 +348,15 @@ export default function PetsPage() {
                 </div>
               );
             })}
-            {inventory.length === 0 && (
+            {inventoryFailed && (
+              <QueryError
+                what="your pet collection"
+                onRetry={() => void load()}
+                retrying={loading}
+                className="col-span-full"
+              />
+            )}
+            {!inventoryFailed && inventory.length === 0 && (
               <div className="col-span-full rounded-2xl border border-dashed border-[var(--forge-border)] p-12 text-center">
                 <PawPrint size={32} className="mx-auto mb-2 text-[var(--foreground-subtle)]" />
                 <p className="text-sm text-[var(--foreground-muted)]">No pets yet — unlock from collection</p>

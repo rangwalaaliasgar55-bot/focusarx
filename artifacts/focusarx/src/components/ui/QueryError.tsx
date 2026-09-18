@@ -1,5 +1,7 @@
 import { RefreshCw, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { networkNotice } from "@/lib/connectionCopy";
 
 interface QueryErrorProps {
   /** What failed to load, e.g. "your goals". */
@@ -13,8 +15,19 @@ interface QueryErrorProps {
  * Compact, consistent "couldn't load" block for react-query failures. Pages
  * used to fall through to their empty state on error, which told users they
  * had *no data* when the request had simply failed.
+ *
+ * The copy now depends on the live connection status. "Check your connection,
+ * then try again" was unhelpful in both directions: it asked a user who was
+ * already offline to check something they could see for themselves, and it
+ * said nothing about the queued work that offline mode is preserving.
  */
 export function QueryError({ what, onRetry, retrying, className }: QueryErrorProps) {
+  const { status } = useNetworkStatus();
+  const notice = networkNotice(status, "inline");
+  const title = notice?.title ?? `Couldn't load ${what}`;
+  const message = notice?.message ?? "Check your connection, then try again.";
+  const action = notice?.action ?? "Try again";
+
   return (
     <div
       role="alert"
@@ -27,8 +40,8 @@ export function QueryError({ what, onRetry, retrying, className }: QueryErrorPro
         <WifiOff size={18} />
       </span>
       <div>
-        <p className="text-sm font-semibold text-[var(--foreground)]">Couldn't load {what}</p>
-        <p className="mt-1 text-xs text-[var(--foreground-subtle)]">Check your connection, then try again.</p>
+        <p className="text-sm font-semibold text-[var(--foreground)]">{title}</p>
+        <p className="mt-1 text-xs text-[var(--foreground-subtle)]">{message}</p>
       </div>
       {onRetry && (
         <button
@@ -37,7 +50,7 @@ export function QueryError({ what, onRetry, retrying, className }: QueryErrorPro
           disabled={retrying}
           className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--border-strong)] px-4 text-xs font-semibold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-hover)] disabled:opacity-60"
         >
-          <RefreshCw size={13} className={retrying ? "animate-spin" : ""} /> Try again
+          <RefreshCw size={13} className={retrying ? "animate-spin" : ""} /> {action}
         </button>
       )}
     </div>
