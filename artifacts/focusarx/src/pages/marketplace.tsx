@@ -4,6 +4,9 @@ import { haptic } from "@/lib/haptics";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
+import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { usePrompt } from "@/components/ui/PromptDialog";
 
 const RARITY_STYLES: Record<string, { label: string; color: string; bg: string; border: string; glow: string }> = {
   common:    { label: "Common",    color: "var(--foreground-muted)", bg: "var(--rgba-148-163-184-0_08)", border: "var(--rgba-148-163-184-0_2)", glow: "0 0 0 transparent" },
@@ -31,6 +34,9 @@ function authHeaders() {
 }
 
 export default function MarketplacePage() {
+  const { toast } = useToast();
+  const confirm = useConfirm();
+  const prompt = usePrompt();
   const [items, setItems] = useState<any[]>([]);
   const [wallet, setWallet] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -84,19 +90,26 @@ export default function MarketplacePage() {
   }
 
   async function gift(itemId: string, itemName: string) {
-    const toEmail = prompt(`Gift “${itemName}” to which member?\n(They pay nothing — you pay the price + a 5% gift tax)`);
-    if (!toEmail) return;
+    const toEmail = await prompt({
+      title: `Gift “${itemName}”`,
+      description: "They pay nothing — you pay the price plus a 5% gift tax.",
+      label: "Recipient's email",
+      type: "email",
+      placeholder: "friend@example.com",
+      confirmLabel: "Send gift",
+    });
+    if (toEmail === null) return;
     setBusyGift(itemId);
     setError(null);
     try {
       const r = await fetch(`/api/marketplace/${itemId}/gift`, {
         method: "POST",
         headers: { ...authHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({ toEmail: toEmail.trim() }),
+        body: JSON.stringify({ toEmail }),
       });
       const d = await r.json();
       if (!r.ok) { setError(d.error ?? "Gifting failed"); return; }
-      alert(`Gifted! Tax paid: ${d.tax} coins.`);
+      toast(`Gifted! Tax paid: ${d.tax} coins.`, "success");
       await load();
     } finally {
       setBusyGift(null);
@@ -105,7 +118,13 @@ export default function MarketplacePage() {
 
   async function sellBack(item: any) {
     const refund = Math.floor(item.costCoins * 0.5);
-    if (!confirm(`Sell “${item.name}” back for ${refund.toLocaleString()} coins (50% refund)?`)) return;
+    const ok = await confirm({
+      title: `Sell “${item.name}” back?`,
+      description: `You get ${refund.toLocaleString()} coins — 50% of what you paid. This cannot be undone.`,
+      confirmLabel: "Sell back",
+      danger: true,
+    });
+    if (!ok) return;
     setSelling(item.id);
     setError(null);
     try {
@@ -114,7 +133,7 @@ export default function MarketplacePage() {
       });
       const d = await r.json();
       if (!r.ok) { setError(d.error ?? "Sell-back failed"); return; }
-      alert(`Sold! +${d.refund.toLocaleString()} coins`);
+      toast(`Sold! +${d.refund.toLocaleString()} coins`, "success");
       await load();
     } finally {
       setSelling(null);
@@ -122,7 +141,12 @@ export default function MarketplacePage() {
   }
 
   async function buyBundle(bundle: any) {
-    if (!confirm(`Buy “${bundle.name}” (${bundle.items.length} items) for ${bundle.price.toLocaleString()} coins?`)) return;
+    const ok = await confirm({
+      title: `Buy “${bundle.name}”?`,
+      description: `${bundle.items.length} items for ${bundle.price.toLocaleString()} coins.`,
+      confirmLabel: "Buy bundle",
+    });
+    if (!ok) return;
     setBuyingBundle(bundle.id);
     setError(null);
     try {
@@ -131,7 +155,7 @@ export default function MarketplacePage() {
       });
       const d = await r.json();
       if (!r.ok) { setError(d.error ?? "Bundle purchase failed"); return; }
-      alert(`Unpacked ${d.items} items!`);
+      toast(`Unpacked ${d.items} items!`, "success");
       await load();
     } finally {
       setBuyingBundle(null);

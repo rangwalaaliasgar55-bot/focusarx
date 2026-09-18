@@ -1,6 +1,9 @@
 import { useState, useCallback, useEffect } from "react";
 import { RefreshCw, Bot, MessageSquare, Zap, Power, RotateCcw, Save } from "lucide-react";
 import { EmptyState, LoadingState, MotionTab, SectionHeader, StatCard, adminFetch, QuickActionButton } from "./AdminHelpers";
+import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
+
 import type { AdminPanelProps } from "./AdminTypes";
 
 type BotsState = {
@@ -82,6 +85,8 @@ function SettingsGroup({ title, icon, children }: { title: string; icon: React.R
 }
 
 export function AdminRivalsPanel({ authHeaders, onManageUser }: AdminPanelProps & { onManageUser: (id: string) => void }) {
+  const { toast } = useToast();
+  const confirm = useConfirm();
   const [state, setState] = useState<BotsState | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -121,7 +126,7 @@ export function AdminRivalsPanel({ authHeaders, onManageUser }: AdminPanelProps 
         method: "PUT", headers: { ...authHeaders(), "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(body),
       });
       const d = await r.json();
-      if (!r.ok) { alert(d.error?.message ?? d.error ?? "Could not save"); return; }
+      if (!r.ok) { toast(d.error?.message ?? d.error ?? "Could not save", "error"); return; }
       setSettings(d.settings);
       setSavedSettings(d.settings);
       setLastReport(`Settings saved ${new Date().toLocaleTimeString()}`);
@@ -129,7 +134,12 @@ export function AdminRivalsPanel({ authHeaders, onManageUser }: AdminPanelProps 
   }
 
   async function resetSettings() {
-    if (!confirm("Restore the default bot behaviour?")) return;
+    const ok = await confirm({
+      title: "Restore the default bot behaviour?",
+      description: "Every custom rival setting goes back to the shipped defaults.",
+      confirmLabel: "Restore defaults",
+    });
+    if (!ok) return;
     setSaving(true);
     try {
       const r = await adminFetch("/api/admin/bots/settings/reset", { method: "POST", headers: authHeaders(), credentials: "include" });
@@ -143,7 +153,7 @@ export function AdminRivalsPanel({ authHeaders, onManageUser }: AdminPanelProps 
     try {
       const r = await adminFetch("/api/admin/bots/tick", { method: "POST", headers: authHeaders(), credentials: "include" });
       const d = await r.json();
-      if (!r.ok) { alert(d.error?.message ?? d.error ?? "Failed"); return; }
+      if (!r.ok) { toast(d.error?.message ?? d.error ?? "Failed", "error"); return; }
       setLastReport(d.skipped
         ? `Tick skipped: ${d.skipped === "disabled" ? "bots are switched off" : "no bots seeded"}`
         : `Tick done in ${d.ms} ms — +${d.posts} posts, +${d.comments} comments, +${d.reactions} reactions, +${d.follows} follows`);
@@ -156,7 +166,7 @@ export function AdminRivalsPanel({ authHeaders, onManageUser }: AdminPanelProps 
     try {
       const r = await adminFetch("/api/admin/bots/flush-replies", { method: "POST", headers: authHeaders(), credentials: "include" });
       const d = await r.json();
-      if (!r.ok) { alert(d.error?.message ?? d.error ?? "Failed"); return; }
+      if (!r.ok) { toast(d.error?.message ?? d.error ?? "Failed", "error"); return; }
       setLastReport(`Delivered ${d.delivered} queued repl${d.delivered === 1 ? "y" : "ies"} now`);
       await load();
     } finally { setBusy(false); }
@@ -172,18 +182,29 @@ export function AdminRivalsPanel({ authHeaders, onManageUser }: AdminPanelProps 
         body: JSON.stringify({ target }),
       });
       const d = await r.json();
-      alert(r.ok ? `AI rivals ready — ${d.created} created, ${d.total} total (${Math.round((d.ms ?? 0) / 100) / 10}s).` : (d.error ?? "Failed"));
+      toast(
+        r.ok
+          ? `AI rivals ready — ${d.created} created, ${d.total} total (${Math.round((d.ms ?? 0) / 100) / 10}s).`
+          : (d.error ?? "Failed"),
+        r.ok ? "success" : "error",
+      );
       await load();
     } finally { setBusy(false); }
   }
 
   async function removeRivals() {
-    if (!confirm("Remove ALL AI rival accounts and their content?")) return;
+    const ok = await confirm({
+      title: "Remove ALL AI rival accounts?",
+      description: "Every synthetic rival account and all of its posts, comments and reactions are deleted.",
+      confirmLabel: "Remove all",
+      danger: true,
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       const r = await adminFetch("/api/admin/bots", { method: "DELETE", headers: authHeaders(), credentials: "include" });
       const d = await r.json();
-      alert(r.ok ? `Removed ${d.deleted} AI rivals.` : (d.error ?? "Failed"));
+      toast(r.ok ? `Removed ${d.deleted} AI rivals.` : (d.error ?? "Failed"), r.ok ? "success" : "error");
       await load();
     } finally { setBusy(false); }
   }
@@ -323,7 +344,14 @@ export function AdminRivalsPanel({ authHeaders, onManageUser }: AdminPanelProps 
           {[500, 2000, 12000].map((n) => {
             const active = (state?.total ?? 0) === n;
             return (
-              <button key={n} onClick={() => { if (confirm(`Seed the community up to ${n.toLocaleString()} AI rivals?`)) void seedRivals(n); }}
+              <button key={n} onClick={async () => {
+                const ok = await confirm({
+                  title: `Seed up to ${n.toLocaleString()} AI rivals?`,
+                  description: "Synthetic accounts are created so the community has visible activity. They are clearly flagged and can be removed in one action.",
+                  confirmLabel: "Seed rivals",
+                });
+                if (ok) void seedRivals(n);
+              }}
                 disabled={busy || active}
                 className={`rounded-lg px-4 py-2 text-xs font-semibold transition disabled:opacity-60 ${
                   active ? "border border-[var(--palette-emerald-700)] bg-[var(--palette-emerald-950)] text-[var(--palette-emerald-300)]"

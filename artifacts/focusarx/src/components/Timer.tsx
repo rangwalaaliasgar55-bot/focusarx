@@ -12,6 +12,7 @@ import { TimerDisplay } from "./TimerDisplay";
 import { TimerControls } from "./TimerControls";
 import { SessionDots } from "./SessionDots";
 import { useToast } from "./Toast";
+import { usePrompt } from "./ui/PromptDialog";
 import { getModeLabel } from "@/lib/timerUtils";
 import { DEFAULT_CONFIG } from "@/lib/constants";
 import { FOCUS_DEEP_LINK_EVENT } from "@/lib/focusDeepLink";
@@ -72,6 +73,7 @@ const playSessionNotification = (mode: TimerMode) => {
 export default function Timer({ onSessionComplete: onSessionCompleteProp }: { onSessionComplete?: () => void } = {}) {
   const { addSession, focusSessionsToday } = useSessionHistory();
   const { toast } = useToast();
+  const prompt = usePrompt();
   const { requestMonitorRecovery, monitorEnabled } = useSessionRecovery();
   const { activeTasks, completedTasks, refreshTasks } = useTasks();
   const { wallet, refresh: refreshWallet } = useCoinXP();
@@ -543,23 +545,36 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
 
   const handleLockExit = useCallback(() => { setShowExitConfirm(true); }, []);
 
-  const handleEditTime = () => {
+  const handleEditTime = async () => {
     if (status !== "idle") return;
     const currentMins = Math.floor(secondsLeft / 60);
-    const input = prompt(`Enter custom duration for ${mode} (in minutes):`, currentMins.toString());
-    if (input) {
-      const val = parseInt(input, 10);
-      if (!isNaN(val) && val > 0 && val <= 240) {
-        // Free users limited to 15,25,50 — premium 10-180
-        if (!isPremium && mode === "focus" && ![15,25,50].includes(val) && (val < 10 || val > 50)) {
-          toast("Custom 10-180m is Premium only. Free: 15, 25, 50m.", "error");
-          return;
+    // `window.prompt` was unusable here: it is dropped entirely by in-app
+    // browsers (so the button looked dead), and any rejected value closed the
+    // prompt before the user could correct it. The dialog validates in place.
+    const input = await prompt({
+      title: `Custom duration for ${mode}`,
+      description: isPremium
+        ? "Any length from 1 to 240 minutes."
+        : "Free sessions run 15, 25 or 50 minutes. 10-180 with Premium.",
+      label: "Minutes",
+      type: "number",
+      min: 1,
+      max: 240,
+      defaultValue: currentMins.toString(),
+      confirmLabel: "Set duration",
+      validate: (raw) => {
+        const val = Number(raw);
+        // Free users: 15/25/50 plus anything inside 10-50, focus mode only.
+        if (!isPremium && mode === "focus" && ![15, 25, 50].includes(val) && (val < 10 || val > 50)) {
+          return "Custom 10-180m is Premium only. Free: 15, 25, 50m.";
         }
-        setCustomDuration(mode, val * 60);
-        setSessionPreset("custom");
-        setPresetIdState("custom");
-      } else toast("Please enter a valid number of minutes (1-240).", "error");
-    }
+        return null;
+      },
+    });
+    if (input === null) return;
+    setCustomDuration(mode, Number(input) * 60);
+    setSessionPreset("custom");
+    setPresetIdState("custom");
   };
 
   if (!recoveryReady) {

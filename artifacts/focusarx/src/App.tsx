@@ -12,6 +12,7 @@ import { queryClient } from "@/lib/queryClient";
 import { AuthProvider, useAuth, getToken } from "@/lib/auth";
 import { ToastProvider } from "@/components/Toast";
 import { ConfirmProvider } from "@/components/ui/ConfirmDialog";
+import { PromptProvider } from "@/components/ui/PromptDialog";
 import { SiteAnalyticsTracker } from "@/components/SiteAnalyticsTracker";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import AppShell from "@/components/AppShell";
@@ -513,6 +514,7 @@ function App() {
         <RewardToastProvider>
         <ToastProvider>
         <ConfirmProvider>
+        <PromptProvider>
           <FloatingParticles count={14} />
           <SocketInitializer />
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
@@ -520,6 +522,7 @@ function App() {
             <SiteAnalyticsTracker />
             <AppWithPalette />
           </WouterRouter>
+        </PromptProvider>
         </ConfirmProvider>
         </ToastProvider>
         </RewardToastProvider>

@@ -1,5 +1,36 @@
 # Remaining work (truthful tracker — done items stay listed as done)
 
+## Done 2026-09-18 — no native dialogs left; modal focus contract fixed
+
+- `alert()` / `confirm()` / `prompt()` are gone from the whole frontend
+  (`rg` clean, excluding the `usePrompt`/`useConfirm` helpers themselves). New
+  `components/ui/PromptDialog.tsx` (`usePrompt()`, promise-based, validates
+  in-dialog); `ConfirmDialog` rebuilt on Radix Dialog.
+- **Real bug found and fixed while rebuilding:** Radix's modal close does
+  `preventDefault()` + `triggerRef.current?.focus()`. These dialogs have no
+  `<Dialog.Trigger>` — they open from arbitrary code — so `triggerRef` is null,
+  the generic FocusScope restore is already cancelled, and focus ended on
+  `<body>` after every confirmation. New `lib/dialogFocus.ts` captures and
+  restores the origin element (skipping `<body>` and unmounted nodes). Both
+  dialogs also set `aria-modal="true"` explicitly; `noValidate` on the prompt
+  form so native constraint validation cannot pre-empt our message.
+- Gates: typecheck 0, lint 0 errors, frontend 421 → 443, API 424, build PASS
+  (119 pages, SEO validate PASS, bundle budget PASS: entry 49.5 kb gzip,
+  initial 110.6 kb). No critical-path regression — `vendor-radix` was already in
+  `index.html`.
+- Still open from the same document: the rest of the master-prompt acceptance
+  list is not audited end-to-end. Verified **absent** in this repo, in priority
+  order: (a) no webhook/integration layer at all (§1.6 — Google Calendar,
+  Slack/Discord, Apple Health); (b) no Dexie/IndexedDB offline-first sync —
+  `useOfflineQueue` is a localStorage retry queue, and it is backlog item 1
+  below; (c) no SEO word-count/content-depth gate or table-parity gate in
+  `seo-validate.mjs` (it has orphan, JSON-LD, canonical, cannibalisation,
+  E-E-A-T and title-budget gates, but nothing that counts a page's own prose);
+  (d) no `/vs-*` or `/comparison/*` pages exist at all, so the §2.10
+  "prerendered comparison table" requirement has no subject yet.
+
+
+
 ## Done 2026-09-10 — P0.3 cross-tab single timer (this branch, in review)
 
 - New `lib/crossTabSync.ts`: leader 1 Hz heartbeat (`state`) + `complete` /

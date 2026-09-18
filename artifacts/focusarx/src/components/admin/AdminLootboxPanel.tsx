@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
 import { Save, X, Plus, Pencil, RefreshCw } from "lucide-react";
 import { Badge, EmptyState, LoadingState, MotionTab, SectionHeader, adminFetch } from "./AdminHelpers";
+import { useToast } from "@/components/Toast";
+
 import type { LootBoxType, AdminPanelProps } from "./AdminTypes";
 
 export function AdminLootboxPanel({ authHeaders }: AdminPanelProps) {
+  const { toast } = useToast();
   const [types, setTypes] = useState<LootBoxType[]>([]);
   const [loading, setLoading] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -36,7 +39,7 @@ export function AdminLootboxPanel({ authHeaders }: AdminPanelProps) {
   async function seedBoxes() {
     const r = await adminFetch("/api/admin/cms/seed/lootboxes", { method: "POST", headers: authHeaders(), credentials: "include" });
     const d = await r.json();
-    alert(`Seeded ${d.seeded ?? 0} new boxes (${d.total ?? 0} total)`);
+    toast(`Seeded ${d.seeded ?? 0} new boxes (${d.total ?? 0} total)`, "success");
     load();
   }
 

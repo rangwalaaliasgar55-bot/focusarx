@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Save, X, Plus, Pencil, Trash2, RefreshCw } from "lucide-react";
 import { Badge, EmptyState, LoadingState, MotionTab, SectionHeader, adminFetch } from "./AdminHelpers";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
+
 import type { MarketplaceItem, AdminPanelProps } from "./AdminTypes";
 
 const RARITIES = ["common", "uncommon", "rare", "epic", "legendary"];
@@ -15,6 +17,7 @@ const RARITY_COLORS: Record<string, string> = {
 };
 
 export function AdminMarketplacePanel({ authHeaders }: AdminPanelProps) {
+  const confirm = useConfirm();
   const [items, setItems] = useState<MarketplaceItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -49,7 +52,13 @@ export function AdminMarketplacePanel({ authHeaders }: AdminPanelProps) {
   }
 
   async function deleteItem(itemId: string) {
-    if (!window.confirm("Delete this item?")) return;
+    const ok = await confirm({
+      title: "Delete this item?",
+      description: "It is removed from the shop for everyone. Users who already own it keep it.",
+      confirmLabel: "Delete item",
+      danger: true,
+    });
+    if (!ok) return;
     const r = await adminFetch(`/api/admin/cms/marketplace/${itemId}`, {
       method: "DELETE", headers: authHeaders(), credentials: "include",
     });

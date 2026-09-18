@@ -2,6 +2,62 @@
 
 All notable changes to FocusArx. Dates are UTC.
 
+## [Unreleased] — no native dialogs left, and the modal focus contract fixed
+
+**Every `alert()` / `confirm()` / `prompt()` is gone from the app.** They were
+not a style preference: `window.prompt` and `window.confirm` are silently
+dropped inside in-app browsers (Instagram, Facebook, Gmail webview), so "Custom
+duration" on the timer and "Gift" in the marketplace looked like dead buttons
+with no error anywhere. They also cannot carry a label, an error message, a
+focus outline, or a screen-reader announcement.
+
+- New `components/ui/PromptDialog.tsx` — promise-based `usePrompt()`, mirroring
+  `useConfirm()`. Resolves the trimmed value, or `null` on cancel/dismiss, so
+  callers write `if (value === null) return;` with no try/catch. Validation runs
+  **inside** the dialog: the old timer flow closed the prompt first and
+  `parseInt`-ed the result, so "999" or "12abc" lost the user's typing and
+  reported the problem afterwards.
+- `ConfirmDialog` moved from a hand-rolled overlay onto Radix Dialog. It used to
+  listen for Escape and focus its own confirm button, which is only part of what
+  a modal owes a keyboard user: Tab walked out into the page behind it, the
+  background was never `aria-hidden`, and focus was never returned.
+- **Focus return was broken in a way that needed a real fix, not just a swap.**
+  Radix closes a modal Content by running
+  `event.preventDefault(); context.triggerRef.current?.focus()` — correct for a
+  dialog opened by a `<Dialog.Trigger>`, and a no-op for these: they open from
+  arbitrary code (a table row handler, a mutation callback), there is no Trigger
+  to point at, and the generic FocusScope restore has already been cancelled by
+  the `preventDefault()`. Focus landed on `<body>` after every confirmation.
+  `lib/dialogFocus.ts` captures the active element at open time and hands Radix
+  an `onCloseAutoFocus` that restores it, skipping `<body>` (meaningless) and
+  nodes unmounted while the dialog was open (a row deleted by the action it just
+  confirmed). Both dialogs now also set `aria-modal="true"` explicitly — Radix
+  makes the background inert but does not declare modality itself, and screen
+  readers on Windows and Android honour the attribute directly.
+- `noValidate` on the prompt form. A `type="number"` input with `min`/`max`
+  aborts implicit form submission **before** the submit handler runs, so the
+  browser's native bubble fired instead of our message and the value was never
+  announced. Validation belongs to `checkPromptValue` so the message is ours,
+  styled, and read out.
+- Call sites converted: the timer's custom duration (with the Premium gate moved
+  into the prompt's validator so a rejected value stays editable),
+  `marketplace.tsx` (gift / sell-back / buy-bundle, now `toast()` on success
+  rather than a blocking alert), `study-rooms.tsx` (end room), `developer.tsx`,
+  and the admin panels — `AdminUserPanel`, `AdminRivalsPanel`, `AdminDropsPanel`,
+  `AdminBreakFreePanel`, `AdminQuestsPanel`, `AdminMarketplacePanel`,
+  `AdminLootboxPanel`, `UserManagerDialog`.
+- Tests: 22 new — the pure `checkPromptValue` bounds (including the "12abc" and
+  "1e5" cases `parseInt` accepted), the promise contract for both dialogs
+  (cancel is `null`/`false`, never a hang; a second request settles the first),
+  in-place validation, `aria-modal` + `aria-labelledby` wiring, focus entering
+  the dialog and returning to the trigger, and the new `useDialogFocusReturn`
+  cases in isolation.
+- Gates: typecheck 0, lint 0 errors (471 warnings, unchanged), frontend 421 →
+  443, API 424, build PASS — 119 prerendered pages, SEO validate PASS,
+  bundle budget PASS (entry 49.5 kb gzip, initial 110.6 kb). `vendor-radix` was
+  already on the critical path in `index.html` before this change, so no
+  critical-path regression: the entry grew 0.86 kb gzip.
+
 ## [Unreleased] — SEO: 11,978 profile URLs out of the sitemap, /u/ noindexed
 
 **The sitemap is 89 URLs again, not 12,067.** `sitemap-profiles-1.xml` listed

@@ -9,6 +9,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { apiJson, ApiError } from "@/lib/api";
 import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { PageTransition } from "@/components/PageTransition";
 import { EmotePicker } from "@/components/EmotePicker";
 import { AdSlot } from "@/components/AdSlot";
@@ -561,6 +562,7 @@ export default function StudyRoomsPage() {
   const authed = status === "authenticated";
   const qc = useQueryClient();
   const { toast } = useToast();
+  const confirm = useConfirm();
   const [, navigate] = useLocation();
   const [showCreate, setShowCreate] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -703,7 +705,15 @@ export default function StudyRoomsPage() {
                 onToggle={() => setExpandedId((id) => (id === room.id ? null : room.id))}
                 onJoin={() => joinMut.mutate(room.id)}
                 onLeave={() => leaveMut.mutate(room.id)}
-                onEnd={() => { if (window.confirm("End this room for everyone?")) endMut.mutate(room.id); }}
+                onEnd={async () => {
+                  const ok = await confirm({
+                    title: "End this room for everyone?",
+                    description: "Everyone focusing in this room is disconnected. This cannot be undone.",
+                    confirmLabel: "End room",
+                    danger: true,
+                  });
+                  if (ok) endMut.mutate(room.id);
+                }}
               />
             ))}
             <AdSlot name="studyRoomsInFeed" minHeight={120} />
