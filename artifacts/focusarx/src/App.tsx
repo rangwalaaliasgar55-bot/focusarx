@@ -286,127 +286,127 @@ function RoutedContent() {
               <Route path="/admin" component={AdminPage} />
 
               {/* Public profile — no auth required */}
-              <Route path="/u/:username" component={() => <ErrorBoundary><UserProfilePage /></ErrorBoundary>} />
+              <Route path="/u/:username"><ErrorBoundary><UserProfilePage /></ErrorBoundary></Route>
 
               {/* Core — Landing page for guests, Home for authenticated */}
-              <Route path="/" component={() => <ErrorBoundary><RootPage /></ErrorBoundary>} />
+              <Route path="/"><ErrorBoundary><RootPage /></ErrorBoundary></Route>
               {/* Standalone focus app: public, deep-linkable, guest-first.
                   This is the Instagram funnel landing (see IgEntry). */}
-              <Route path="/focus" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><FocusHomePage /></Suspense></ErrorBoundary>} />
+              <Route path="/focus"><ErrorBoundary><Suspense fallback={<PageLoader />}><FocusHomePage /></Suspense></ErrorBoundary></Route>
               <Route path="/go/ig" component={IgEntry} />
-              <Route path="/changelog" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><ChangelogPage /></Suspense></ErrorBoundary>} />
-              <Route path="/blog" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><BlogPage /></Suspense></ErrorBoundary>} />
-              <Route path="/blog/:slug" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><BlogPostPage /></Suspense></ErrorBoundary>} />
-              <Route path="/pomodoro-timer-for/:exam" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><ExamFunnelPage /></Suspense></ErrorBoundary>} />
-              <Route path="/dashboard" component={() => <ErrorBoundary><ProtectedRoute component={DashboardPage} /></ErrorBoundary>} />
-              <Route path="/analytics" component={() => <ErrorBoundary><ProtectedRoute component={AnalyticsPage} /></ErrorBoundary>} />
+              <Route path="/changelog"><ErrorBoundary><Suspense fallback={<PageLoader />}><ChangelogPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/blog"><ErrorBoundary><Suspense fallback={<PageLoader />}><BlogPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/blog/:slug"><ErrorBoundary><Suspense fallback={<PageLoader />}><BlogPostPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/pomodoro-timer-for/:exam"><ErrorBoundary><Suspense fallback={<PageLoader />}><ExamFunnelPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/dashboard"><ErrorBoundary><ProtectedRoute component={DashboardPage} /></ErrorBoundary></Route>
+              <Route path="/analytics"><ErrorBoundary><ProtectedRoute component={AnalyticsPage} /></ErrorBoundary></Route>
 
-              <Route path="/leaderboard" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><LeaderboardPage /></Suspense></ErrorBoundary>} />
-              <Route path="/achievements" component={() => <ErrorBoundary><ProtectedRoute component={AchievementsPage} /></ErrorBoundary>} />
-              <Route path="/missions" component={() => <ErrorBoundary><ProtectedRoute component={MissionsPage} /></ErrorBoundary>} />
+              <Route path="/leaderboard"><ErrorBoundary><Suspense fallback={<PageLoader />}><LeaderboardPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/achievements"><ErrorBoundary><ProtectedRoute component={AchievementsPage} /></ErrorBoundary></Route>
+              <Route path="/missions"><ErrorBoundary><ProtectedRoute component={MissionsPage} /></ErrorBoundary></Route>
 
               {/* Social ecosystem */}
-              <Route path="/social" component={() => <ErrorBoundary><ProtectedRoute component={SocialPage} /></ErrorBoundary>} />
-              <Route path="/notifications" component={() => <ErrorBoundary><ProtectedRoute component={NotificationsPage} /></ErrorBoundary>} />
-              <Route path="/groups" component={() => <ErrorBoundary><ProtectedRoute component={GroupsPage} /></ErrorBoundary>} />
-              <Route path="/tasks" component={() => <ErrorBoundary><ProtectedRoute component={TasksPage} /></ErrorBoundary>} />
-              <Route path="/habits" component={() => <ErrorBoundary><ProtectedRoute component={HabitsPage} /></ErrorBoundary>} />
-              <Route path="/flashcards" component={() => <ErrorBoundary><ProtectedRoute component={FlashcardsPage} /></ErrorBoundary>} />
-              <Route path="/messages" component={() => <ErrorBoundary><ProtectedRoute component={MessagesPage} /></ErrorBoundary>} />
-              <Route path="/shop" component={() => <ErrorBoundary><ProtectedRoute component={ShopPage} /></ErrorBoundary>} />
-              <Route path="/goals" component={() => <ErrorBoundary><ProtectedRoute component={GoalsPage} /></ErrorBoundary>} />
-              <Route path="/study-rooms" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StudyRoomsPage /></Suspense></ErrorBoundary>} />
-              <Route path="/focus-guide" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><FocusGuidePage /></Suspense></ErrorBoundary>} />
-              <Route path="/deep-study-guide" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><DeepStudyGuidePage /></Suspense></ErrorBoundary>} />
-              <Route path="/two-hour-study-method" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><TwoHourStudyMethodPage /></Suspense></ErrorBoundary>} />
-              <Route path="/pomodoro-guide" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><PomodoroGuidePage /></Suspense></ErrorBoundary>} />
-              <Route path="/study-techniques" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StudyTechniquesPage /></Suspense></ErrorBoundary>} />
-              <Route path="/virtual-study-room" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><VirtualStudyRoomPage /></Suspense></ErrorBoundary>} />
-              <Route path="/science-of-deep-work" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><ScienceOfDeepWorkPage /></Suspense></ErrorBoundary>} />
-              <Route path="/feynman-technique" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><FeynmanTechniquePage /></Suspense></ErrorBoundary>} />
-              <Route path="/study-method-quiz" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StudyMethodQuizPage /></Suspense></ErrorBoundary>} />
-              <Route path="/forge-room" component={() => <ErrorBoundary><ProtectedRoute component={ForgeRoomPage} /></ErrorBoundary>} />
-              <Route path="/study-calculator" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StudyMethodCalculatorPage /></Suspense></ErrorBoundary>} />
-              <Route path="/guides" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><GuidesPage /></Suspense></ErrorBoundary>} />
-              <Route path="/exam" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><ExamHubPage /></Suspense></ErrorBoundary>} />
-              <Route path="/exam/:slug" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><ExamGuidePage /></Suspense></ErrorBoundary>} />
-              <Route path="/adhd-focus-tips" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><AdhdFocusPage /></Suspense></ErrorBoundary>} />
-              <Route path="/stop-procrastinating" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StopProcrastinatingPage /></Suspense></ErrorBoundary>} />
-              <Route path="/study-with-me" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StudyWithMePage /></Suspense></ErrorBoundary>} />
-              <Route path="/focus-music" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><FocusMusicPage /></Suspense></ErrorBoundary>} />
+              <Route path="/social"><ErrorBoundary><ProtectedRoute component={SocialPage} /></ErrorBoundary></Route>
+              <Route path="/notifications"><ErrorBoundary><ProtectedRoute component={NotificationsPage} /></ErrorBoundary></Route>
+              <Route path="/groups"><ErrorBoundary><ProtectedRoute component={GroupsPage} /></ErrorBoundary></Route>
+              <Route path="/tasks"><ErrorBoundary><ProtectedRoute component={TasksPage} /></ErrorBoundary></Route>
+              <Route path="/habits"><ErrorBoundary><ProtectedRoute component={HabitsPage} /></ErrorBoundary></Route>
+              <Route path="/flashcards"><ErrorBoundary><ProtectedRoute component={FlashcardsPage} /></ErrorBoundary></Route>
+              <Route path="/messages"><ErrorBoundary><ProtectedRoute component={MessagesPage} /></ErrorBoundary></Route>
+              <Route path="/shop"><ErrorBoundary><ProtectedRoute component={ShopPage} /></ErrorBoundary></Route>
+              <Route path="/goals"><ErrorBoundary><ProtectedRoute component={GoalsPage} /></ErrorBoundary></Route>
+              <Route path="/study-rooms"><ErrorBoundary><Suspense fallback={<PageLoader />}><StudyRoomsPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/focus-guide"><ErrorBoundary><Suspense fallback={<PageLoader />}><FocusGuidePage /></Suspense></ErrorBoundary></Route>
+              <Route path="/deep-study-guide"><ErrorBoundary><Suspense fallback={<PageLoader />}><DeepStudyGuidePage /></Suspense></ErrorBoundary></Route>
+              <Route path="/two-hour-study-method"><ErrorBoundary><Suspense fallback={<PageLoader />}><TwoHourStudyMethodPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/pomodoro-guide"><ErrorBoundary><Suspense fallback={<PageLoader />}><PomodoroGuidePage /></Suspense></ErrorBoundary></Route>
+              <Route path="/study-techniques"><ErrorBoundary><Suspense fallback={<PageLoader />}><StudyTechniquesPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/virtual-study-room"><ErrorBoundary><Suspense fallback={<PageLoader />}><VirtualStudyRoomPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/science-of-deep-work"><ErrorBoundary><Suspense fallback={<PageLoader />}><ScienceOfDeepWorkPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/feynman-technique"><ErrorBoundary><Suspense fallback={<PageLoader />}><FeynmanTechniquePage /></Suspense></ErrorBoundary></Route>
+              <Route path="/study-method-quiz"><ErrorBoundary><Suspense fallback={<PageLoader />}><StudyMethodQuizPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/forge-room"><ErrorBoundary><ProtectedRoute component={ForgeRoomPage} /></ErrorBoundary></Route>
+              <Route path="/study-calculator"><ErrorBoundary><Suspense fallback={<PageLoader />}><StudyMethodCalculatorPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/guides"><ErrorBoundary><Suspense fallback={<PageLoader />}><GuidesPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/exam"><ErrorBoundary><Suspense fallback={<PageLoader />}><ExamHubPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/exam/:slug"><ErrorBoundary><Suspense fallback={<PageLoader />}><ExamGuidePage /></Suspense></ErrorBoundary></Route>
+              <Route path="/adhd-focus-tips"><ErrorBoundary><Suspense fallback={<PageLoader />}><AdhdFocusPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/stop-procrastinating"><ErrorBoundary><Suspense fallback={<PageLoader />}><StopProcrastinatingPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/study-with-me"><ErrorBoundary><Suspense fallback={<PageLoader />}><StudyWithMePage /></Suspense></ErrorBoundary></Route>
+              <Route path="/focus-music"><ErrorBoundary><Suspense fallback={<PageLoader />}><FocusMusicPage /></Suspense></ErrorBoundary></Route>
 
               {/* ── Intent pages: tools, cluster spokes, trust ──────
                   Public and crawlable — none of these are behind
                   <ProtectedRoute>, so all of them appear in the sitemap
                   and in scripts/prerender-data.mjs. seoContract.test.ts
                   fails the build if those three lists drift apart. */}
-              <Route path="/focus-timer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><FocusTimerPage /></Suspense></ErrorBoundary>} />
-              <Route path="/pomodoro-timer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><PomodoroTimerPage /></Suspense></ErrorBoundary>} />
-              <Route path="/study-timer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StudyTimerPage /></Suspense></ErrorBoundary>} />
-              <Route path="/5-minute-timer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><MinuteTimerPage minutes={5} /></Suspense></ErrorBoundary>} />
-              <Route path="/10-minute-timer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><MinuteTimerPage minutes={10} /></Suspense></ErrorBoundary>} />
-              <Route path="/15-minute-timer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><MinuteTimerPage minutes={15} /></Suspense></ErrorBoundary>} />
-              <Route path="/30-minute-timer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><MinuteTimerPage minutes={30} /></Suspense></ErrorBoundary>} />
-              <Route path="/45-minute-timer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><MinuteTimerPage minutes={45} /></Suspense></ErrorBoundary>} />
-              <Route path="/deep-work-guide" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><DeepWorkGuidePage /></Suspense></ErrorBoundary>} />
-              <Route path="/body-doubling" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><BodyDoublingPage /></Suspense></ErrorBoundary>} />
-              <Route path="/how-to-focus-while-studying" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><HowToFocusWhileStudyingPage /></Suspense></ErrorBoundary>} />
-              <Route path="/adhd-focus-tools" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><AdhdFocusToolsPage /></Suspense></ErrorBoundary>} />
-              <Route path="/stop-scrolling" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StopScrollingPage /></Suspense></ErrorBoundary>} />
-              <Route path="/study-timer-for-medical-students" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><StudyTimerForMedicalStudentsPage /></Suspense></ErrorBoundary>} />
-              <Route path="/focus-timer-for-programmers" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><FocusTimerForProgrammersPage /></Suspense></ErrorBoundary>} />
-              <Route path="/evidence" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><EvidencePage /></Suspense></ErrorBoundary>} />
-              <Route path="/camera-data" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><CameraDataPage /></Suspense></ErrorBoundary>} />
-              <Route path="/safety" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><SafetyPage /></Suspense></ErrorBoundary>} />
-              <Route path="/accessibility" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><AccessibilityPage /></Suspense></ErrorBoundary>} />
-              <Route path="/press" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><PressPage /></Suspense></ErrorBoundary>} />
-              <Route path="/comparison/:slug" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><ComparisonPage /></Suspense></ErrorBoundary>} />
+              <Route path="/focus-timer"><ErrorBoundary><Suspense fallback={<PageLoader />}><FocusTimerPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/pomodoro-timer"><ErrorBoundary><Suspense fallback={<PageLoader />}><PomodoroTimerPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/study-timer"><ErrorBoundary><Suspense fallback={<PageLoader />}><StudyTimerPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/5-minute-timer"><ErrorBoundary><Suspense fallback={<PageLoader />}><MinuteTimerPage minutes={5} /></Suspense></ErrorBoundary></Route>
+              <Route path="/10-minute-timer"><ErrorBoundary><Suspense fallback={<PageLoader />}><MinuteTimerPage minutes={10} /></Suspense></ErrorBoundary></Route>
+              <Route path="/15-minute-timer"><ErrorBoundary><Suspense fallback={<PageLoader />}><MinuteTimerPage minutes={15} /></Suspense></ErrorBoundary></Route>
+              <Route path="/30-minute-timer"><ErrorBoundary><Suspense fallback={<PageLoader />}><MinuteTimerPage minutes={30} /></Suspense></ErrorBoundary></Route>
+              <Route path="/45-minute-timer"><ErrorBoundary><Suspense fallback={<PageLoader />}><MinuteTimerPage minutes={45} /></Suspense></ErrorBoundary></Route>
+              <Route path="/deep-work-guide"><ErrorBoundary><Suspense fallback={<PageLoader />}><DeepWorkGuidePage /></Suspense></ErrorBoundary></Route>
+              <Route path="/body-doubling"><ErrorBoundary><Suspense fallback={<PageLoader />}><BodyDoublingPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/how-to-focus-while-studying"><ErrorBoundary><Suspense fallback={<PageLoader />}><HowToFocusWhileStudyingPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/adhd-focus-tools"><ErrorBoundary><Suspense fallback={<PageLoader />}><AdhdFocusToolsPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/stop-scrolling"><ErrorBoundary><Suspense fallback={<PageLoader />}><StopScrollingPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/study-timer-for-medical-students"><ErrorBoundary><Suspense fallback={<PageLoader />}><StudyTimerForMedicalStudentsPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/focus-timer-for-programmers"><ErrorBoundary><Suspense fallback={<PageLoader />}><FocusTimerForProgrammersPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/evidence"><ErrorBoundary><Suspense fallback={<PageLoader />}><EvidencePage /></Suspense></ErrorBoundary></Route>
+              <Route path="/camera-data"><ErrorBoundary><Suspense fallback={<PageLoader />}><CameraDataPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/safety"><ErrorBoundary><Suspense fallback={<PageLoader />}><SafetyPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/accessibility"><ErrorBoundary><Suspense fallback={<PageLoader />}><AccessibilityPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/press"><ErrorBoundary><Suspense fallback={<PageLoader />}><PressPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/comparison/:slug"><ErrorBoundary><Suspense fallback={<PageLoader />}><ComparisonPage /></Suspense></ErrorBoundary></Route>
 
-              <Route path="/search" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><SearchPage /></Suspense></ErrorBoundary>} />
-              <Route path="/referral" component={() => <ErrorBoundary><ProtectedRoute component={ReferralPage} /></ErrorBoundary>} />
-              <Route path="/developer" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><DeveloperPage /></Suspense></ErrorBoundary>} />
+              <Route path="/search"><ErrorBoundary><Suspense fallback={<PageLoader />}><SearchPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/referral"><ErrorBoundary><ProtectedRoute component={ReferralPage} /></ErrorBoundary></Route>
+              <Route path="/developer"><ErrorBoundary><Suspense fallback={<PageLoader />}><DeveloperPage /></Suspense></ErrorBoundary></Route>
 
               {/* New V12 pages */}
-              <Route path="/pets" component={() => <ErrorBoundary><ProtectedRoute component={PetsPage} /></ErrorBoundary>} />
-              <Route path="/city" component={() => <ErrorBoundary><ProtectedRoute component={CityPage} /></ErrorBoundary>} />
-              <Route path="/marketplace" component={() => <ErrorBoundary><ProtectedRoute component={MarketplacePage} /></ErrorBoundary>} />
-              <Route path="/dreams" component={() => <ErrorBoundary><ProtectedRoute component={DreamsPage} /></ErrorBoundary>} />
-              <Route path="/lootboxes" component={() => <ErrorBoundary><ProtectedRoute component={LootBoxesPage} /></ErrorBoundary>} />
-              <Route path="/wallet" component={() => <ErrorBoundary><ProtectedRoute component={WalletPage} /></ErrorBoundary>} />
-              <Route path="/dna" component={() => <ErrorBoundary><ProtectedRoute component={FocusDnaPage} /></ErrorBoundary>} />
-              <Route path="/quests" component={() => <ErrorBoundary><ProtectedRoute component={QuestsPage} /></ErrorBoundary>} />
+              <Route path="/pets"><ErrorBoundary><ProtectedRoute component={PetsPage} /></ErrorBoundary></Route>
+              <Route path="/city"><ErrorBoundary><ProtectedRoute component={CityPage} /></ErrorBoundary></Route>
+              <Route path="/marketplace"><ErrorBoundary><ProtectedRoute component={MarketplacePage} /></ErrorBoundary></Route>
+              <Route path="/dreams"><ErrorBoundary><ProtectedRoute component={DreamsPage} /></ErrorBoundary></Route>
+              <Route path="/lootboxes"><ErrorBoundary><ProtectedRoute component={LootBoxesPage} /></ErrorBoundary></Route>
+              <Route path="/wallet"><ErrorBoundary><ProtectedRoute component={WalletPage} /></ErrorBoundary></Route>
+              <Route path="/dna"><ErrorBoundary><ProtectedRoute component={FocusDnaPage} /></ErrorBoundary></Route>
+              <Route path="/quests"><ErrorBoundary><ProtectedRoute component={QuestsPage} /></ErrorBoundary></Route>
 
               {/* Retention */}
-              <Route path="/battle-pass" component={() => <ErrorBoundary><ProtectedRoute component={BattlePassPage} /></ErrorBoundary>} />
+              <Route path="/battle-pass"><ErrorBoundary><ProtectedRoute component={BattlePassPage} /></ErrorBoundary></Route>
 
               {/* AI */}
-              <Route path="/ai-insights" component={() => <ErrorBoundary><ProtectedRoute component={AiInsightsPage} /></ErrorBoundary>} />
+              <Route path="/ai-insights"><ErrorBoundary><ProtectedRoute component={AiInsightsPage} /></ErrorBoundary></Route>
 
               {/* Focus tools */}
-              <Route path="/forge" component={() => <ErrorBoundary><ProtectedRoute component={ForgePage} /></ErrorBoundary>} />
-              <Route path="/onboarding" component={() => <ErrorBoundary><ProtectedRoute component={OnboardingPage} /></ErrorBoundary>} />
-              <Route path="/roadmap" component={() => <ErrorBoundary><RoadmapPage /></ErrorBoundary>} />
-              <Route path="/focus-dna" component={() => <ErrorBoundary><ProtectedRoute component={FocusDnaPage} /></ErrorBoundary>} />
-              <Route path="/constellations" component={() => <ErrorBoundary><ProtectedRoute component={ConstellationsPage} /></ErrorBoundary>} />
-              <Route path="/consequences" component={() => <ErrorBoundary><ProtectedRoute component={ConsequencesPage} /></ErrorBoundary>} />
-              <Route path="/breathe" component={() => <ErrorBoundary><BreathePage /></ErrorBoundary>} />
-              <Route path="/profile" component={() => <ErrorBoundary><ProtectedRoute component={ProfilePage} /></ErrorBoundary>} />
-              <Route path="/break-free" component={() => <ErrorBoundary><BreakFreePage /></ErrorBoundary>} />
+              <Route path="/forge"><ErrorBoundary><ProtectedRoute component={ForgePage} /></ErrorBoundary></Route>
+              <Route path="/onboarding"><ErrorBoundary><ProtectedRoute component={OnboardingPage} /></ErrorBoundary></Route>
+              <Route path="/roadmap"><ErrorBoundary><RoadmapPage /></ErrorBoundary></Route>
+              <Route path="/focus-dna"><ErrorBoundary><ProtectedRoute component={FocusDnaPage} /></ErrorBoundary></Route>
+              <Route path="/constellations"><ErrorBoundary><ProtectedRoute component={ConstellationsPage} /></ErrorBoundary></Route>
+              <Route path="/consequences"><ErrorBoundary><ProtectedRoute component={ConsequencesPage} /></ErrorBoundary></Route>
+              <Route path="/breathe"><ErrorBoundary><BreathePage /></ErrorBoundary></Route>
+              <Route path="/profile"><ErrorBoundary><ProtectedRoute component={ProfilePage} /></ErrorBoundary></Route>
+              <Route path="/break-free"><ErrorBoundary><BreakFreePage /></ErrorBoundary></Route>
 
               {/* Legal */}
-              <Route path="/privacy" component={() => <ErrorBoundary><PrivacyPage /></ErrorBoundary>} />
-              <Route path="/terms" component={() => <ErrorBoundary><TermsPage /></ErrorBoundary>} />
-              <Route path="/cookie-policy" component={() => <ErrorBoundary><CookiePolicyPage /></ErrorBoundary>} />
-              <Route path="/acceptable-use" component={() => <ErrorBoundary><AcceptableUsePage /></ErrorBoundary>} />
-              <Route path="/ai-policy" component={() => <ErrorBoundary><AiPolicyPage /></ErrorBoundary>} />
-              <Route path="/data-deletion" component={() => <ErrorBoundary><DataDeletionPage /></ErrorBoundary>} />
-              <Route path="/pricing" component={() => <ErrorBoundary><PricingPage /></ErrorBoundary>} />
+              <Route path="/privacy"><ErrorBoundary><PrivacyPage /></ErrorBoundary></Route>
+              <Route path="/terms"><ErrorBoundary><TermsPage /></ErrorBoundary></Route>
+              <Route path="/cookie-policy"><ErrorBoundary><CookiePolicyPage /></ErrorBoundary></Route>
+              <Route path="/acceptable-use"><ErrorBoundary><AcceptableUsePage /></ErrorBoundary></Route>
+              <Route path="/ai-policy"><ErrorBoundary><AiPolicyPage /></ErrorBoundary></Route>
+              <Route path="/data-deletion"><ErrorBoundary><DataDeletionPage /></ErrorBoundary></Route>
+              <Route path="/pricing"><ErrorBoundary><PricingPage /></ErrorBoundary></Route>
               {/* Comparison pages are handled by the /comparison/:slug route
                   above; the slug map lives in src/content/seo-pages.mjs. */}
-              <Route path="/premium" component={() => <ErrorBoundary><ProtectedRoute component={PremiumPage} /></ErrorBoundary>} />
-              <Route path="/about" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><AboutPage /></Suspense></ErrorBoundary>} />
-              <Route path="/contact" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><ContactPage /></Suspense></ErrorBoundary>} />
-              <Route path="/support" component={() => <ErrorBoundary><Suspense fallback={<PageLoader />}><SupportPage /></Suspense></ErrorBoundary>} />
+              <Route path="/premium"><ErrorBoundary><ProtectedRoute component={PremiumPage} /></ErrorBoundary></Route>
+              <Route path="/about"><ErrorBoundary><Suspense fallback={<PageLoader />}><AboutPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/contact"><ErrorBoundary><Suspense fallback={<PageLoader />}><ContactPage /></Suspense></ErrorBoundary></Route>
+              <Route path="/support"><ErrorBoundary><Suspense fallback={<PageLoader />}><SupportPage /></Suspense></ErrorBoundary></Route>
 
               <Route component={NotFound} />
             </Switch>
