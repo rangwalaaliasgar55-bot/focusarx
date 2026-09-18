@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS "analytics_sessions" (
 	"tasks_created" integer DEFAULT 0 NOT NULL,
 	"roadmaps_generated" integer DEFAULT 0 NOT NULL,
 	"ai_features_used" integer DEFAULT 0 NOT NULL,
-	"last_activity_at" timestamp DEFAULT now() NOT NULL
+	"last_activity_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "analytics_sessions_counters_non_negative" CHECK ("analytics_sessions"."duration_sec" >= 0 AND "analytics_sessions"."page_views" >= 0 AND "analytics_sessions"."focus_sessions_started" >= 0 AND "analytics_sessions"."tasks_created" >= 0 AND "analytics_sessions"."roadmaps_generated" >= 0 AND "analytics_sessions"."ai_features_used" >= 0)
 );
 
 CREATE TABLE IF NOT EXISTS "page_views" (
@@ -125,7 +126,8 @@ CREATE TABLE IF NOT EXISTS "focus_cities" (
 	"weather" text DEFAULT 'clear' NOT NULL,
 	"weather_updated_at" timestamp DEFAULT now(),
 	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "focus_cities_user_id_unique" UNIQUE("user_id")
+	CONSTRAINT "focus_cities_user_id_unique" UNIQUE("user_id"),
+	CONSTRAINT "focus_cities_counters_non_negative" CHECK ("focus_cities"."population" >= 0 AND "focus_cities"."total_buildings" >= 0 AND "focus_cities"."total_sessions" >= 0)
 );
 
 CREATE TABLE IF NOT EXISTS "flashcard_decks" (
@@ -149,7 +151,8 @@ CREATE TABLE IF NOT EXISTS "flashcard_reviews" (
 	"stability_after" real,
 	"elapsed_days" real,
 	"review_duration_ms" integer,
-	"created_at" timestamp DEFAULT now() NOT NULL
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "flashcard_reviews_grade_in_range" CHECK ("flashcard_reviews"."grade" BETWEEN 1 AND 4)
 );
 
 CREATE TABLE IF NOT EXISTS "flashcards" (
@@ -169,7 +172,10 @@ CREATE TABLE IF NOT EXISTS "flashcards" (
 	"fsrs_due_date" timestamp DEFAULT now(),
 	"fsrs_interval" integer DEFAULT 0,
 	"fsrs_state" text DEFAULT 'new',
-	"created_at" timestamp DEFAULT now() NOT NULL
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "flashcards_box_at_least_one" CHECK ("flashcards"."box" >= 1),
+	CONSTRAINT "flashcards_counters_non_negative" CHECK ("flashcards"."correct_count" >= 0 AND "flashcards"."incorrect_count" >= 0 AND "flashcards"."fsrs_reps" >= 0 AND "flashcards"."fsrs_lapses" >= 0 AND "flashcards"."fsrs_interval" >= 0),
+	CONSTRAINT "flashcards_fsrs_params_non_negative" CHECK (("flashcards"."fsrs_stability" IS NULL OR "flashcards"."fsrs_stability" >= 0) AND ("flashcards"."fsrs_difficulty" IS NULL OR "flashcards"."fsrs_difficulty" >= 0))
 );
 
 CREATE TABLE IF NOT EXISTS "active_sessions" (
@@ -188,7 +194,9 @@ CREATE TABLE IF NOT EXISTS "active_sessions" (
 	"monitor_enabled" boolean DEFAULT false,
 	"started_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "active_session_per_user_idx" UNIQUE("user_id")
+	CONSTRAINT "active_session_per_user_idx" UNIQUE("user_id"),
+	CONSTRAINT "active_sessions_seconds_left_non_negative" CHECK ("active_sessions"."seconds_left" >= 0),
+	CONSTRAINT "active_sessions_active_seconds_non_negative" CHECK ("active_sessions"."active_seconds" >= 0)
 );
 
 CREATE TABLE IF NOT EXISTS "app_feedback" (
@@ -361,7 +369,10 @@ CREATE TABLE IF NOT EXISTS "focus_sessions" (
 	"productivity_score" real,
 	"client_nonce" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "focus_sessions_user_nonce_unique" UNIQUE("user_id","client_nonce")
+	CONSTRAINT "focus_sessions_user_nonce_unique" UNIQUE("user_id","client_nonce"),
+	CONSTRAINT "focus_sessions_duration_non_negative" CHECK ("focus_sessions"."duration_sec" >= 0),
+	CONSTRAINT "focus_sessions_planned_duration_non_negative" CHECK ("focus_sessions"."planned_duration_sec" IS NULL OR "focus_sessions"."planned_duration_sec" >= 0),
+	CONSTRAINT "focus_sessions_completion_percentage_range" CHECK ("focus_sessions"."completion_percentage" IS NULL OR ("focus_sessions"."completion_percentage" >= 0 AND "focus_sessions"."completion_percentage" <= 100))
 );
 
 CREATE TABLE IF NOT EXISTS "follows" (

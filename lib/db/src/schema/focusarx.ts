@@ -64,6 +64,12 @@ export const focusSessionsTable = pgTable("focus_sessions", {
   index("focus_sessions_user_started_idx").on(t.userId, t.createdAt),
   index("focus_sessions_user_completed_idx").on(t.userId, t.completedAt),
   index("focus_sessions_user_status_idx").on(t.userId, t.sessionStatus),
+  // Arithmetic truths, not policy. See migration 0018.
+  check("focus_sessions_duration_non_negative", sql`${t.durationSec} >= 0`),
+  check("focus_sessions_planned_duration_non_negative", sql`${t.plannedDurationSec} IS NULL OR ${t.plannedDurationSec} >= 0`),
+  // The server already clamps this with Math.min(100, …) and the request schema
+  // validates 0..100, so a value outside the range means a writer bypassed both.
+  check("focus_sessions_completion_percentage_range", sql`${t.completionPercentage} IS NULL OR (${t.completionPercentage} >= 0 AND ${t.completionPercentage} <= 100)`),
 ]);
 
 export type FocusSession = typeof focusSessionsTable.$inferSelect;
@@ -87,6 +93,8 @@ export const activeSessionsTable = pgTable("active_sessions", {
 }, (t) => [
   unique("active_session_per_user_idx").on(t.userId),
   index("active_sessions_started_at_idx").on(t.startedAt),
+  check("active_sessions_seconds_left_non_negative", sql`${t.secondsLeft} >= 0`),
+  check("active_sessions_active_seconds_non_negative", sql`${t.activeSeconds} >= 0`),
 ]);
 
 export type ActiveSession = typeof activeSessionsTable.$inferSelect;

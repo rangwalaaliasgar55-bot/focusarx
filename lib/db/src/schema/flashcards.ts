@@ -1,4 +1,5 @@
-import { pgTable, text, integer, timestamp, real, index } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, timestamp, real, index, check } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { usersTable as users } from "./focusarx";
 
 /**
@@ -46,6 +47,13 @@ export const flashcardsTable = pgTable("flashcards", {
 }, (t) => [
   index("flashcards_deck_idx").on(t.deckId),
   index("flashcards_fsrs_due_idx").on(t.nextReviewAt),
+  // The Leitner boxes are 1-based; a 0 would make the card invisible to every
+  // review query rather than raise an error.
+  check("flashcards_box_at_least_one", sql`${t.box} >= 1`),
+  check("flashcards_counters_non_negative", sql`${t.correctCount} >= 0 AND ${t.incorrectCount} >= 0 AND ${t.fsrsReps} >= 0 AND ${t.fsrsLapses} >= 0 AND ${t.fsrsInterval} >= 0`),
+  // FSRS derives the next due date from these. Negative values push the card
+  // into the past, so it reappears immediately and forever — a silent loop.
+  check("flashcards_fsrs_params_non_negative", sql`(${t.fsrsStability} IS NULL OR ${t.fsrsStability} >= 0) AND (${t.fsrsDifficulty} IS NULL OR ${t.fsrsDifficulty} >= 0)`),
 ]);
 
 export type Flashcard = typeof flashcardsTable.$inferSelect;
@@ -69,4 +77,6 @@ export const flashcardReviewsTable = pgTable("flashcard_reviews", {
 }, (t) => [
   index("flashcard_reviews_card_idx").on(t.cardId),
   index("flashcard_reviews_user_date_idx").on(t.userId, t.createdAt),
+  // Documented 1=Again, 2=Hard, 3=Good, 4=Easy.
+  check("flashcard_reviews_grade_in_range", sql`${t.grade} BETWEEN 1 AND 4`),
 ]);
