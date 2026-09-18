@@ -807,7 +807,12 @@ CREATE TABLE IF NOT EXISTS "user_wallets" (
 	"level" integer DEFAULT 1 NOT NULL,
 	"prestige" integer DEFAULT 0 NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "user_wallets_user_id_unique" UNIQUE("user_id")
+	CONSTRAINT "user_wallets_user_id_unique" UNIQUE("user_id"),
+	CONSTRAINT "user_wallets_coins_non_negative" CHECK ("user_wallets"."coins" >= 0),
+	CONSTRAINT "user_wallets_total_xp_non_negative" CHECK ("user_wallets"."total_xp" >= 0),
+	CONSTRAINT "user_wallets_weekly_xp_non_negative" CHECK ("user_wallets"."weekly_xp" >= 0),
+	CONSTRAINT "user_wallets_level_at_least_one" CHECK ("user_wallets"."level" >= 1),
+	CONSTRAINT "user_wallets_prestige_non_negative" CHECK ("user_wallets"."prestige" >= 0)
 );
 
 CREATE TABLE IF NOT EXISTS "users" (

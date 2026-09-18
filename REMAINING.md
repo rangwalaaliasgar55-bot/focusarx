@@ -1,5 +1,87 @@
 # Remaining work (truthful tracker — done items stay listed as done)
 
+## §18 KNOWN-BUG AUDIT — verified against source, 2026-09-18
+
+Every one of the 28 was checked by reading the code, not by trusting the list.
+**21 fixed · 1 partial · 0 outstanding · and §18 #2, #4 and #26 were fixed
+before this session started.**
+
+| # | Bug | Verdict | Evidence |
+|---|-----|---------|----------|
+| 1 | OTEL external → cold-start 500s | **fixed** | `build.mjs` external list carries a 12-line comment explaining why `@opentelemetry/*` must not be added |
+| 2 | Client-supplied XP on pet bond | **fixed** | `lib/petBond.ts` — no public route; `awardBondXpToActivePet` called only from `sessions.ts:978` on verified completion |
+| 3 | Race: coins go negative | **fixed** | `coinLedger.burnCoins` is CAS (`gte(coins, amount)`, null when no row) |
+| 4 | Race: double-claim missions | **fixed** | `missions.ts:145` CAS on `rewardClaimed = false` + atomic XP upsert |
+| 5 | Consequence contracts never settled | **fixed** | `consequences.ts:48 settleExpiredContracts` |
+| 6 | UTC date math everywhere | **fixed** | `lib/userZone.ts`, `lib/timezone.ts`; residual `getUTC*` in `battlePass.ts` is correct ISO-week math |
+| 7 | AudioVisualizer bars invisible | **fixed** | `AudioVisualizer.tsx:32` `getComputedStyle` + re-read every 120 frames |
+| 8 | SoundEngine boost during breaks | **fixed** | no boost code in `ambientEngine.ts` |
+| 9 | Duplicate SoundEngine component | **fixed** | `components/SoundEngine.tsx` absent |
+| 10 | SessionSummaryCard interval leak | **fixed** | `timers.forEach(clearTimeout, clearInterval)` cleanup |
+| 11 | GET /feed missing nextCursor | **fixed** | `posts.ts:213` returns `{ posts, nextCursor }` |
+| 12 | Admin list pagination mismatch | **fixed** | SQL-side guest/bot filtering |
+| 13 | Mobile timer assumes 25min | **fixed** | `FocusTimerMobileFirst.tsx:323` uses `plannedDurationSec` |
+| 14 | 26 set-state-in-effect | **fixed** | lint reports **0** |
+| 15 | useReducedMotion flash | **fixed** | `useMediaQuery.ts` uses `useSyncExternalStore` |
+| 16 | useIsMobile layout flash | **fixed** | same |
+| 17 | Native confirm()/alert() | **fixed** | commit `55fcf5a` — 20 sites; `rg` clean |
+| 18 | Empty state on API error | **fixed** | `QueryError` in goals/groups/habits/notifications/shop |
+| 19 | Flashcards errors swallowed | **fixed** | `flashcards.tsx` toasts on load/create failure |
+| 20 | SEO prerendered tables missing rows | **fixed** | commit `3305b31` — 10 tables, 92 rows, parity-gated |
+| 21 | 54 URLs not indexed | **fixed** | `sitemap-profiles-1.xml` (11,978 URLs) retired; `/u/` noindexed |
+| 22 | Fabricated aggregateRating | **fixed** | deliberately excluded, with a comment in `index.html` + `seo-landing.tsx` |
+| 23 | 409 lint errors | **fixed** | `pnpm lint` = **0 errors** |
+| 24 | Quest progress never written | **fixed** | `updateQuestProgress` called from `sessions.ts` |
+| 25 | Weekly quests never assigned | **fixed** | `quests.ts:27 pickRotation` — deterministic, `Math.random`-free |
+| 26 | isPremium hardcoded false on auto-complete | **fixed** | `sessions.ts:890 isUserPremium(userId)` with a comment about the old `false` |
+| 27 | City weather = Math.random() | **fixed** | deterministic from behaviour |
+| 28 | 8–10px text | **PARTIAL** | floor is 11px (`0.6875rem`, 69 uses) but **23 sites remain**: `TimerDisplay` 9px, `MobileBottomNav` badge 9.6px, and 10px in `focus.tsx`, `landing.tsx`, `dashboard.tsx`, `AuthLayout`, `AppShell`, `CommandPalette` + admin panels |
+
+### Genuinely absent — the real remaining work
+
+Ordered by value. The first two are the only large unbuilt subsystems.
+
+1. **§7.3 Dexie/IndexedDB offline-first sync.** No Dexie, no `/sync/push|pull`,
+   no conflict resolver. `useOfflineQueue` is a localStorage retry queue with no
+   entity store and no field-merge. Backlog item 1 in this file.
+2. **§1.6 Webhook & integration layer.** Nothing exists: no Google Calendar, no
+   Slack/Discord, no Apple Health/Google Fit, no HMAC-signed webhooks, no
+   AES-256-GCM token storage. Needs OAuth app registrations before it can ship.
+3. **§1.9 CHECK constraints — mostly done.** `user_wallets` is now constrained
+   (migration 0016). Not yet constrained: `user_pet_inventory` (the prompt's
+   `happiness BETWEEN 0 AND 100` does not map — the column is `mood text`, so
+   the invariant is a different one and needs a decision), and the various
+   `*_coins`/`amount` columns on transactions and inventory.
+4. **§1.10 auth hardening.** `auth.ts` uses **bcryptjs** (cost 12), not Argon2id.
+   No TOTP/2FA, no backup codes, no Apple sign-in, no PKCE on the Google flow.
+   Changing the hash touches every stored credential and needs a
+   rehash-on-next-login path — a decision, not a cleanup.
+5. **§1.7 GDPR 30-day grace.** `DELETE /auth/account` exists with password
+   confirmation and PII scrubbing, but hard-deletes immediately. No
+   `deleted_at` column, no 30-day window, no undo. `GET /settings/data/export`
+   exists.
+6. **§1.8 cursor pagination.** Only `posts.ts` returns `nextCursor`; the
+   `{ data, nextCursor }` shape is not applied across list endpoints.
+7. **§1.2 Redis SETNX locks.** `@upstash/redis` is a dependency but no
+   `SETNX ... EX` locking is used. Read-check-then-write is protected by
+   Postgres transactions + row locks instead (`dailyReward.ts:59`,
+   `retention.ts:51`) — equivalent for a single primary, and worth leaving
+   alone unless a second writer is introduced.
+8. **§14 acceptance criteria not yet verified:** Lighthouse thresholds, cold
+   start < 200ms, real-device a11y passes, Playwright E2E runs (no browser in
+   this sandbox), pen-test of rate limiting (no DB here).
+
+### SEO follow-ups surfaced by the new depth gate
+
+- Six pages hold a full document in React but declare `sections: []`, so the
+  crawler gets a heading and one sentence: `/terms` 15 words, `/privacy` 25,
+  `/cookie-policy` 20, `/acceptable-use` 17, `/ai-policy` 23, `/contact` 23.
+- Eleven pages are genuinely thin and need editorial work: `/support` 65,
+  `/changelog` 70, `/deep-study-guide` 73, `/science-of-deep-work` 79,
+  `/two-hour-study-method` 83, `/pricing` 86, `/feynman-technique` 104,
+  `/guides` 131, `/study-techniques` 135, `/blog` 145, `/focus-guide` 147.
+
+
 ## Done 2026-09-18 — comparison tables reach the crawler; content-depth gate
 
 - §18 #20 fixed: the ten `/comparison/*` pages had **no `<table>` in their

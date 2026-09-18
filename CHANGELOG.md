@@ -2,6 +2,45 @@
 
 All notable changes to FocusArx. Dates are UTC.
 
+## [Unreleased] — wallet invariants enforced at the database level
+
+`burnCoins` was already a correct compare-and-set (`UPDATE ... WHERE coins >=
+amount RETURNING coins`, returning null instead of writing when the balance did
+not cover it), so no known path can produce a negative balance. But that is a
+property of the code that exists today. A CHECK constraint is the property of
+the *data* — it also catches the paths that bypass the ledger: a raw UPDATE
+added later, a bulk import, a one-off admin script, or a bug in a helper that
+has not been written yet.
+
+- `user_wallets` gains five constraints in the canonical Drizzle schema:
+  `coins >= 0`, `total_xp >= 0`, `weekly_xp >= 0`, `level >= 1`,
+  `prestige >= 0`.
+- New migration `0016_wallet_balance_checks.sql` for databases that already
+  exist, with a matching rollback in `drizzle/rollback/`. `CREATE TABLE IF NOT
+  EXISTS` in `database/full_schema.sql` does not upgrade a live table, so
+  without the migration fresh databases would get the constraint and production
+  would silently not.
+- The migration repairs before it constrains. A negative balance is corrupt by
+  definition — only a writer that bypassed the ledger can produce one — and
+  flooring it at zero is the only sensible repair, because the alternative is a
+  migration that fails on production and blocks every deploy behind it. The
+  counts are reported with `RAISE WARNING` so a replay leaves evidence rather
+  than absorbing the problem. Both files are guarded on `pg_constraint`, so
+  re-running either is a no-op.
+- New `lib/db/scripts/wallet-constraints.test.mjs` (6 tests, negative-tested)
+  cross-checks the four places that must agree: the Drizzle schema, the
+  generated snapshot, the numbered migration, and the journal. The failure it
+  guards is quiet and one-directional — edit the schema, `schema:export`
+  regenerates the snapshot, `schema:check` passes, and the migration that would
+  have upgraded existing databases never gets written. Nothing else in the gate
+  suite compared those two files.
+- Gates: typecheck 0, lint 0 errors, test:scripts 25, API 424, `schema:check`
+  (snapshot in sync), `validate-migrations` 0 errors.
+- **Not done, deliberately:** Argon2id (`auth.ts` still uses bcryptjs at cost
+  12), TOTP 2FA, Apple sign-in, and OAuth PKCE are all absent — see the audit in
+  REMAINING.md. Changing the password hash touches every existing credential and
+  needs a rehash-on-login migration, which is a decision rather than a cleanup.
+
 ## [Unreleased] — comparison tables reach the crawler, and two prerender bugs
 
 **The ten `/comparison/*` pages shipped with no table in their HTML.** The live

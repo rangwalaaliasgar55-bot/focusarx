@@ -1,4 +1,5 @@
-import { pgTable, text, integer, boolean, timestamp, real, jsonb, index, unique, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, boolean, timestamp, real, jsonb, index, unique, uniqueIndex, check } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -159,6 +160,25 @@ export const userWalletsTable = pgTable("user_wallets", {
   // query stays < 300ms at 12k+ wallets (ORDER BY … LIMIT in SQL).
   index("user_wallets_weekly_xp_idx").on(t.weeklyXp),
   index("user_wallets_total_xp_idx").on(t.totalXp),
+
+  // ── Database-level invariants ─────────────────────────────────────────
+  // Application code is already careful here: every debit goes through
+  // `burnCoins`, which is a compare-and-set
+  // (`WHERE coins >= amount`, returns null when the row did not match), and
+  // every credit goes through `mintCoins`. But that only protects the paths
+  // that use those helpers. A CHECK constraint is the backstop that catches
+  // the paths that do not — a raw `UPDATE`, a future migration, a one-off
+  // admin script, or a bug in a helper added later. It is the difference
+  // between "no known way to go negative" and "cannot go negative".
+  //
+  // A constraint failure is a 500, not a 400: reaching one means a writer
+  // bypassed the ledger, which is a bug to fix rather than input to reject.
+  check("user_wallets_coins_non_negative", sql`${t.coins} >= 0`),
+  check("user_wallets_total_xp_non_negative", sql`${t.totalXp} >= 0`),
+  check("user_wallets_weekly_xp_non_negative", sql`${t.weeklyXp} >= 0`),
+  // Level 1 is the floor the schema default already sets.
+  check("user_wallets_level_at_least_one", sql`${t.level} >= 1`),
+  check("user_wallets_prestige_non_negative", sql`${t.prestige} >= 0`),
 ]);
 
 export type UserWallet = typeof userWalletsTable.$inferSelect;
