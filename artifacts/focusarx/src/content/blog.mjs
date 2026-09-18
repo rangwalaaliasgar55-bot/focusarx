@@ -114,6 +114,105 @@ export const BLOG_POSTS = [
       "/body-doubling|Body doubling explained",
     ],
   },
+  {
+    slug: "pomodoro-timer-online-free-25-5",
+    title: "Free Pomodoro Timer Online — 25/5, No Signup | FocusArx",
+    description:
+      "Free online Pomodoro timer — 25/5 sprints in your browser, custom 10–180 min, session history and streaks. No signup to start, free forever.",
+    date: "2026-09-18",
+    readMin: 4,
+    h1: "Free Pomodoro timer online — 25/5, no signup",
+    lead: "Start a 25/5 Pomodoro timer in one click. Custom intervals, streaks, and a focus score — no account needed to begin, free forever.",
+    sections: [
+      {
+        h: "Why this timer beats a phone clock",
+        p: "A visible countdown makes the 25-minute commitment feel bounded rather than open-ended, which is what gets you to start. FocusArx adds session scoring and streaks so four pomodoros is a day you can point to.",
+      },
+      {
+        h: "When to extend beyond 25",
+        p: "Use 50/10 for problem sets and 90/15 for writing — the interval should match the task's natural chunk, not a rule. Custom 10–180 min is one setting away.",
+      },
+      {
+        h: "Study with others on the same timer",
+        p: "Public study rooms run synchronized Pomodoro intervals. Everyone focuses together, breaks together — the body-doubling effect that makes starting easier.",
+      },
+    ],
+    faq: [
+      ["Is it really free without signup?", "Yes. The timer starts without an account. An account only saves history across devices."],
+      ["Can I use 50-minute blocks?", "Yes. Custom intervals 10–180 min cover 50/10 and 90/15 deep-work blocks."],
+    ],
+    related: [
+      "/pomodoro-timer|Pomodoro timer",
+      "/pomodoro-guide|The Pomodoro technique, done right",
+      "/virtual-study-room|Virtual study rooms",
+    ],
+  },
+  {
+    slug: "study-timer-for-exam-prep",
+    title: "Study Timer for Exams — JEE, NEET, UPSC | FocusArx",
+    description:
+      "Study timer for JEE, NEET, UPSC and board exams — subject-tagged blocks, revision plan and live rooms. Free, no signup to start.",
+    date: "2026-09-18",
+    readMin: 5,
+    h1: "Study timer for exam prep",
+    lead: "Timed blocks tied to subjects, so revision progress is measurable — JEE, NEET, UPSC, GATE and boards, one timer.",
+    sections: [
+      {
+        h: "Plan by topic, not by hours",
+        p: "Pick one topic per block — 'Thermodynamics — enthalpy problems' beats 'Chemistry'. The timer then makes the block finishable and the log tells you which topics are starved.",
+      },
+      {
+        h: "Spaced revision built in",
+        p: "The study-time calculator spreads hours across days so each topic is revisited before forgetting. Four 45-minute sessions across four days beats one three-hour cram.",
+      },
+      {
+        h: "Rooms for accountability",
+        p: "Join a subject room — JEE, NEET, UPSC — and run the same block as others. Presence makes stopping early costlier than continuing.",
+      },
+    ],
+    faq: [
+      ["Is it free for exam prep?", "Yes. Subject tracking, calculator and rooms are free forever."],
+      ["Can I track JEE and NEET separately?", "Yes. Each session is tagged to a subject and analytics break time down by topic."],
+    ],
+    related: [
+      "/study-timer|Study timer",
+      "/study-calculator|Study time calculator",
+      "/exam|Exam prep guides",
+    ],
+  },
+  {
+    slug: "focus-timer-for-deep-work",
+    title: "Focus Timer for Deep Work — 90-Min Blocks | FocusArx",
+    description:
+      "Free focus timer for deep work — 90-minute blocks, minimal UI, session scoring and live rooms. No signup to start.",
+    date: "2026-09-18",
+    readMin: 4,
+    h1: "Focus timer for deep work",
+    lead: "Deep work needs a timer that protects the block, not one that interrupts it. 90-minute focus blocks, minimal UI, and a score that rewards depth.",
+    sections: [
+      {
+        h: "Why deep work needs a different timer",
+        p: "Pomodoro's 25-minute cap interrupts the ramp-up that deep work requires — ten minutes to load the context, then the work becomes cheap. A 90-minute block respects that cost.",
+      },
+      {
+        h: "What a good block looks like",
+        p: "One task written down, phone in another room, timer visible. When it rings, stand, walk, and note the next step. Two such blocks is a strong day.",
+      },
+      {
+        h: "How FocusArx measures depth",
+        p: "Focus Score 0–100 from completion and consistency, not hours. Two deep hours outrank eight distracted ones — the score makes that visible.",
+      },
+    ],
+    faq: [
+      ["Is it free?", "Yes. Timer, tasks, streaks and rooms are free forever. Premium unlocks with Focus Tokens earned by focusing."],
+      ["Can I run Pomodoro too?", "Yes. 25/5 and 90/15 are both one setting — 10–180 min custom."],
+    ],
+    related: [
+      "/focus-timer|Focus timer",
+      "/deep-work-guide|Deep work guide",
+      "/science-of-deep-work|The science of deep work",
+    ],
+  },
 ];
 
 export const BLOG_PATHS = BLOG_POSTS.map((p) => `/blog/${p.slug}`);
