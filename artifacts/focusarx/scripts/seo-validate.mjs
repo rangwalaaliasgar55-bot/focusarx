@@ -987,11 +987,22 @@ for (const entry of manifestRoutes) {
   const MIN_OWN_WORDS = 150;
 
   /**
-   * Pages whose content is not prose. A policy stub links out to the full text
-   * and exists so the footer is honest, not to rank; an app screen renders its
-   * substance from the API or from an interactive widget the prerenderer cannot
-   * and should not duplicate. Each entry is a decision, recorded here so a new
-   * page cannot quietly join the list.
+   * Pages whose content is not prose, and which are therefore held to
+   * MIN_APP_SURFACE_WORDS instead of MIN_OWN_WORDS.
+   *
+   * This list got much shorter on 2026-09-18, and the direction matters: it used
+   * to also contain /break-free, /leaderboard, /study-rooms, /breathe,
+   * /study-method-quiz, /study-calculator, /pricing, /changelog, /roadmap and
+   * /support on the argument that "the product IS the page". That argument was
+   * doing nothing except excusing ten sitemap URLs from saying anything, which
+   * is precisely the state Google files under "Crawled – currently not indexed".
+   * Each of those pages now carries real copy about what the tool is, who it is
+   * for and how to use it — the words the app cannot prerender for itself — and
+   * each is held to the normal floor. Adding a page back here needs a reason
+   * better than convenience.
+   *
+   * What legitimately stays: policy stubs whose full text lives behind the links
+   * they carry, and screens that are a form or an API response.
    */
   const APP_SURFACE_PAGES = new Set([
     // policy stubs (full text lives behind the links they carry)
@@ -1007,17 +1018,6 @@ for (const entry of manifestRoutes) {
     "/search",
     "/achievements",
     "/premium",
-    // the product IS the page: the static document can only describe it
-    "/break-free",
-    "/leaderboard",
-    "/study-rooms",
-    "/breathe",
-    "/study-method-quiz",
-    "/study-calculator",
-    "/pricing",
-    "/changelog",
-    "/roadmap",
-    "/support",
   ]);
 
   /**
@@ -1031,23 +1031,20 @@ for (const entry of manifestRoutes) {
   const MIN_APP_SURFACE_WORDS = 5;
 
   /**
-   * Known-thin copy pages, with the word count each measured at when the gate
-   * was added (2026-09-17 — the numbers and the reasoning are in
-   * docs/GSC_INDEXING.md). This is a ratchet, not a pass-list: a page may not
-   * get thinner, and no new page may join. Fixing one means deleting its line
-   * here, and the gate then holds it at MIN_OWN_WORDS for good.
+   * Known-thin copy pages, with the word count each measured at. This is a
+   * ratchet, not a pass-list: a page may not get thinner, and no new page may
+   * join. Fixing one means deleting its line here, and the gate then holds it at
+   * MIN_OWN_WORDS for good.
+   *
+   * **This map is empty as of 2026-09-18.** It was created the day before with
+   * nine entries (/deep-study-guide 66, /science-of-deep-work 69,
+   * /two-hour-study-method 74, /feynman-technique 82, /guides 115, /focus-guide
+   * 115, /study-techniques 115, /blog 138, / 140) and every one has since been
+   * written up past the floor, which is what deleting a line is supposed to
+   * mean. Leave it empty: a page under 150 words now fails the build instead of
+   * being granted a baseline, and that is the intended state.
    */
-  const THIN_BASELINE = new Map([
-    ["/deep-study-guide", 66],
-    ["/science-of-deep-work", 69],
-    ["/two-hour-study-method", 74],
-    ["/feynman-technique", 82],
-    ["/guides", 115],
-    ["/focus-guide", 115],
-    ["/study-techniques", 115],
-    ["/blog", 138],
-    ["/", 140],
-  ]);
+  const THIN_BASELINE = new Map([]);
 
   const ownWords = (html) => {
     const body = html

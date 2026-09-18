@@ -692,7 +692,13 @@ function renderBody(entry) {
         .join("")}</ul></div>`
     : "";
 
-  const cta = entry.cta || { href: "/signup", label: "Start focusing free" };
+  // The default CTA points at the timer, not the signup form. `/focus` is public
+  // and guest-first (see the route comment in App.tsx), so a page whose closing
+  // call to action reads "start focusing" can mean it. Defaulting to /signup put
+  // an account form between 80-odd pages — the comparison, exam, funnel and
+  // guide pages included — and the one thing those pages were trying to trigger,
+  // which is the leak behind a landing-to-timer rate under 1%.
+  const cta = entry.cta || { href: "/focus", label: "Start a focus session — free" };
   return `<div class="fa-seo">${breadcrumbsBlock}<span class="badge">${SITE_NAME}</span><h1>${escapeHtml(entry.h1)}</h1><p class="lead">${escapeHtml(entry.lead)}</p>${bylineBlock(entry)}${answerBlock}${tocBlock}${stepsBlock}${tableBlock}${sections}${faqBlock}${sourcesBlock}${relatedBlock}${clusterBlock}<a class="cta" href="${escapeHtml(cta.href)}">${escapeHtml(cta.label)}</a></div>`;
 }
 

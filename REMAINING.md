@@ -1,5 +1,49 @@
 # Remaining work (truthful tracker — done items stay listed as done)
 
+## Done 2026-09-18 — content depth pass + CTA fix (this branch, in review)
+
+Follow-up to the indexing audit ([`docs/GSC_INDEXING.md`](docs/GSC_INDEXING.md)
+§4). The gate added the day before measured the problem; this pass fixed what it
+found.
+
+- **Nineteen pages written past the 150-word floor** and measured with the gate's
+  own counter: 1,268 → 6,916 words of page-specific copy. The four pillar guides
+  went from 66–82 words to 661–803 (`/deep-study-guide`,
+  `/science-of-deep-work`, `/two-hour-study-method`, `/feynman-technique`); the
+  hubs, the blog and the homepage from 115–140 to 301–493. Every one gained an
+  FAQ block, so ten more documents now emit `FAQPage` JSON-LD backed by visible
+  content — the homepage had none.
+- **`THIN_BASELINE` is now empty** and `APP_SURFACE_PAGES` lost ten entries
+  (`/break-free`, `/study-rooms`, `/leaderboard`, `/breathe`,
+  `/study-method-quiz`, `/study-calculator`, `/pricing`, `/changelog`,
+  `/roadmap`, `/support`). Those pages carry real copy about what the tool is and
+  how to use it — the part the app cannot prerender for itself — and are held to
+  the normal floor. The exemption list is now only policy stubs and
+  auth/search/account screens. A page under 150 words fails the build.
+- **CTA leak fixed (the conversion half).** `landing.tsx` had four "start
+  focusing" buttons pointing at `/signup`, under the line "No signup friction —
+  start your first session in 10 seconds", while `App.tsx:292` documents
+  `/focus` as *"public, deep-linkable, guest-first"*. The prerenderer's default
+  CTA did the same on 88 documents. Landing buttons and the default now target
+  `/focus`; **95 of 119** prerendered pages close on the timer and exactly one
+  still points at `/signup` (the `/focus` page, whose label is "Save sessions
+  with a free account"). This is the mechanism behind the 0.2–0.7%
+  landing-to-timer rate in the analytics audit.
+- **`/pricing` was factually wrong.** It said Premium is bought with Focus Coins.
+  Coins buy cosmetics; Premium is priced in Focus Tokens
+  (`lib/premiumPlans.ts`: 10,000 / 25,000 / 80,000 for 30 / 90 / 365 days)
+  earned at 50 per completed session with a 500/day cap (`lib/tokenLedger.ts`).
+  The page now separates the two and publishes the real numbers.
+- Gates: build + prerender + seo-validate PASS (119 pages, content-depth and
+  table-parity gates included), bundle-budget PASS, API 424 passed, frontend 421
+  passed, typecheck clean, eslint clean on all five changed files.
+- **Still open:** de-duplicate `/break-free` and `/breathe` in the sitemap
+  segments (117 `<loc>` entries describe 115 URLs); `/90-minute-timer` is the one
+  defensible new page, since the product pre-arms 25/50/90 and
+  `MINUTE_TIMER_DURATIONS` stops at 45 — it needs the full treatment the other
+  five got, not a stub; CTA-click analytics events still do not exist, so the
+  effect of the CTA change above cannot be measured in GA4 until they do.
+
 ## Done 2026-09-17 — Search Console indexing audit + content-depth gates (this branch, in review)
 
 Full write-up: [`docs/GSC_INDEXING.md`](docs/GSC_INDEXING.md).

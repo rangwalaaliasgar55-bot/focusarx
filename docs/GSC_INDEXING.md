@@ -270,31 +270,81 @@ Both gates were negative-tested, i.e. deliberately broken to confirm they fire:
    over weeks as the recrawl replaces the old assessment. Re-read the report
    14 days after the recrawl, not the next morning.
 
-### Code/content — ordered by (indexing impact ÷ effort)
+### Code/content — what shipped in the second pass, and what is still open
 
-7. **Write the nine baselined copy pages** (delete each line from
-   `THIN_BASELINE` as you go; the gate then holds it). Highest value first:
-   `/deep-study-guide` (66), `/science-of-deep-work` (69),
-   `/two-hour-study-method` (74), `/feynman-technique` (82) — these are pillar
-   guides at a third of the depth of the exam cluster, which runs 1,312–2,966
-   words and is the part of the site Google has the least reason to skip. Then
-   the hubs `/guides`, `/focus-guide`, `/study-techniques`, `/blog` and the
-   homepage (115–140).
-8. **Decide the app surfaces honestly.** `/roadmap` (8 words), `/break-free`
-   (10), `/study-rooms` (11) and `/leaderboard` (11) are in the sitemap asking to
-   be indexed while shipping a headline, a lead and a list of links. Either write
-   150–250 words around each (what it is, who it is for, how to use it — the copy
-   the app itself cannot prerender) or drop them from the sitemap. Keeping them
-   in dilutes the sitemap's signal, which is a real cost on a domain with no
-   authority to spare.
-9. **De-duplicate `/break-free` and `/breathe`** — each is listed in two sitemap
-   segments (core *and* tools), so 117 `<loc>` entries describe 115 URLs.
+Items 7 and 8 below were done the day after this document was first written.
+They are kept here with their measurements because the numbers are the argument
+for the gate, and because the direction of travel matters: the ratchet is only
+worth anything if lines get deleted from it.
+
+7. ~~**Write the nine baselined copy pages.**~~ **Done 2026-09-18.** All nine
+   written past the floor and their `THIN_BASELINE` lines deleted, so the gate
+   now holds them at 150 permanently. Measured with the gate's own counter:
+
+   | Page | Before | After |
+   |---|---|---|
+   | `/deep-study-guide` | 66 | 803 |
+   | `/science-of-deep-work` | 69 | 726 |
+   | `/two-hour-study-method` | 74 | 667 |
+   | `/feynman-technique` | 82 | 661 |
+   | `/focus-guide` | 115 | 493 |
+   | `/guides` | 115 | 377 |
+   | `/study-techniques` | 115 | 362 |
+   | `/blog` | 138 | 301 |
+   | `/` (homepage) | 140 | 352 |
+   | **total** | **1,268** | **6,916** |
+
+   Each also gained an FAQ block, which means ten more pages now emit
+   `FAQPage` JSON-LD backed by visible content — the homepage included, which
+   previously had none.
+
+8. ~~**Decide the app surfaces honestly.**~~ **Done 2026-09-18 — written, not
+   dropped.** Ten pages left `APP_SURFACE_PAGES` and are held to the normal 150
+   floor: `/break-free` 10→245, `/study-rooms` 11→241, `/leaderboard` 11→151,
+   `/breathe` 40→233, `/study-method-quiz` 46→212, `/study-calculator` 46→213,
+   `/support` 56→203, `/pricing` 62→336, `/changelog` 64→169, `/roadmap` 8→171.
+   The copy is the part the app cannot prerender for itself: what the tool is,
+   who it is for, how to use it. `APP_SURFACE_PAGES` now holds only the policy
+   stubs and the auth/search/account screens, with a comment recording why the
+   list got shorter and what it takes to add a page back.
+
+9. **De-duplicate `/break-free` and `/breathe`** — still open. Each is listed in
+   two sitemap segments (core *and* tools), so 117 `<loc>` entries describe 115
+   URLs.
+
 10. **Do not add more comparison or timer pages yet.** The audit you pasted
     proposes 8–12 new comparison pages and `/timer/25-minute` style pages. The
     exam cluster is already 46 near-parallel URLs (`/exam/:slug` × 23 plus
     `/pomodoro-timer-for/:slug` × 23) on a domain where half of everything is
     unindexed. Depth on the pages you have beats breadth until the backlog
-    clears; gate 14 is what enforces that.
+    clears; gate 14 is what enforces that. One exception is defensible when you
+    get to it: `/90-minute-timer`, since `MINUTE_TIMER_DURATIONS` is
+    `[5, 10, 15, 30, 45]` and 25/50/90 are the durations the product itself
+    pre-arms — but it needs the same treatment as the other five, not a stub.
+
+### Two defects found while writing that copy
+
+Both were invisible to every gate, because both were *true* statements about a
+product that did not match them.
+
+- **The primary CTA sent visitors to a signup form.** `landing.tsx` had four
+  "start focusing" buttons pointing at `/signup` — directly under the line
+  "No signup friction — start your first session in 10 seconds" — while
+  `App.tsx:292` documents `/focus` as *"public, deep-linkable, guest-first"*.
+  The prerenderer's default CTA had the same problem on a much larger surface:
+  88 prerendered documents, the comparison, exam, funnel and guide pages
+  included, closed with "Start focusing free" → `/signup`. All four landing
+  buttons and the prerender default now point at `/focus`; after the rebuild
+  **95 of 119 documents** close on the timer and exactly one still points at
+  `/signup` (the `/focus` page itself, whose label is "Save sessions with a free
+  account" — correct there). This is the mechanism behind the 0.2–0.7%
+  landing-to-timer rate in your analytics.
+- **`/pricing` conflated two currencies.** The copy said Premium is bought with
+  "Focus Coins". It is not: Coins buy cosmetics, and Premium is priced in Focus
+  Tokens (`lib/premiumPlans.ts`: 10,000 / 25,000 / 80,000 for 30 / 90 / 365
+  days), earned at 50 per completed session with a 500/day cap
+  (`lib/tokenLedger.ts`). The page now says which is which and publishes the
+  real numbers, which is the kind of claim `/evidence` exists to hold.
 
 ---
 
