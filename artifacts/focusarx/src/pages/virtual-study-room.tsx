@@ -21,10 +21,18 @@ import { AuthorBlock } from "@/components/AuthorBlock";
 import { GUIDE_LIBRARY_REVIEWED } from "@/content/seo-pages.mjs";
 import { Button } from "@/components/ui/button";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { QueryError } from "@/components/ui/QueryError";
 
+/**
+ * A failed request used to return `[]`, which is indistinguishable from a
+ * genuinely empty room list. That turned a 500 into a silent deletion of the
+ * whole "Live rooms right now" section — the page's strongest social proof —
+ * with no trace for the reader and no signal to us. Returning the failure to
+ * react-query lets the section say what actually happened and offer a retry.
+ */
 async function fetchPublicRooms() {
   const res = await fetch("/api/study-rooms");
-  if (!res.ok) return [];
+  if (!res.ok) throw new Error(`Couldn't load rooms (HTTP ${res.status})`);
   const data = await res.json();
   return Array.isArray(data) ? data : [];
 }
@@ -85,7 +93,12 @@ const FAQ: Array<[string, string]> = [
 
 export default function VirtualStudyRoomPage() {
   const reduceMotion = useReducedMotion();
-  const { data: rooms = [] } = useQuery({
+  const {
+    data: rooms = [],
+    isError: roomsFailed,
+    isFetching: roomsFetching,
+    refetch: refetchRooms,
+  } = useQuery({
     queryKey: ["public-rooms-landing"],
     queryFn: fetchPublicRooms,
     staleTime: 60_000,
@@ -190,7 +203,7 @@ export default function VirtualStudyRoomPage() {
         </section>
 
         {/* ── Live rooms ──────────────────────────────────────── */}
-        {rooms.length > 0 && (
+        {(rooms.length > 0 || roomsFailed) && (
           <section
             className="border-y border-[var(--border-subtle)] bg-[var(--surface-hover)] px-4 py-16 sm:px-6 sm:py-20"
             aria-labelledby="live-heading"
@@ -205,6 +218,14 @@ export default function VirtualStudyRoomPage() {
                   Click to preview — sign in to join and chat.
                 </p>
               </motion.div>
+              {roomsFailed && rooms.length === 0 && (
+                <QueryError
+                  what="the live rooms"
+                  onRetry={() => refetchRooms()}
+                  retrying={roomsFetching}
+                  className="mt-8"
+                />
+              )}
               <div className="mt-8 space-y-3">
                 {rooms.slice(0, 6).map((room: any) => (
                   <Link

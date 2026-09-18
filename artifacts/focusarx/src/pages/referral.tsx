@@ -6,6 +6,8 @@ import { Gift, Copy, Check, Coins, Zap, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { errorMessage } from "@/lib/api";
+import { QueryError } from "@/components/ui/QueryError";
+import { useToast } from "@/components/Toast";
 
 async function fetchMyCode() {
   const token = getToken();
@@ -32,8 +34,9 @@ export default function ReferralPage() {
   const [inputCode, setInputCode] = useState("");
   const [applyResult, setApplyResult] = useState<{ coins: number; xp: number } | null>(null);
   const [applyError, setApplyError] = useState("");
+  const { toast } = useToast();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ["referral-code"],
     queryFn: fetchMyCode,
     enabled: status === "authenticated",
@@ -45,20 +48,31 @@ export default function ReferralPage() {
     onError: (e: unknown) => { setApplyError(errorMessage(e, "Failed to apply code")); },
   });
 
-  const copyCode = () => {
-    if (!data) return;
-    navigator.clipboard.writeText(data.code).then(() => {
+  /**
+   * Copy had no failure path: `writeText()` rejects on a page served over
+   * plain HTTP and when the browser denies clipboard permission, and the
+   * rejection went nowhere — the icon simply never changed, so the button
+   * looked broken. Where the write fails we surface the value itself, so the
+   * user can still select and copy it by hand. Same idiom as study rooms.
+   */
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    });
+    } catch {
+      toast(text, "info");
+    }
+  };
+
+  const copyCode = () => {
+    if (!data) return;
+    void copyToClipboard(data.code);
   };
 
   const copyUrl = () => {
     if (!data) return;
-    navigator.clipboard.writeText(data.shareUrl).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    void copyToClipboard(data.shareUrl);
   };
 
   if (status === "unauthenticated") {
@@ -103,6 +117,16 @@ export default function ReferralPage() {
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--foreground-subtle)] mb-3">Your Referral Code</p>
             {isLoading ? (
               <div className="h-12 animate-pulse rounded-xl bg-[var(--rgba-124-58-237-0_08)]" />
+            ) : isError ? (
+              /* A failed fetch rendered as `data?.code ?? "—"` — a dash where the
+                 user's own code should be, which reads as "you have no code"
+                 when the truth was "we couldn't ask". The copy buttons beside
+                 it were silently inert too. */
+              <QueryError
+                what="your referral code"
+                onRetry={() => refetch()}
+                retrying={isFetching}
+              />
             ) : (
               <>
                 <div className="flex items-center gap-3 mb-3">
