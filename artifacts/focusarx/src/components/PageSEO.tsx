@@ -293,8 +293,8 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   },
   virtualStudyRoom: {
     canonical: "/virtual-study-room",
-    title: "Virtual Study Room — Study Online With Strangers (Free, 24/7) | FocusArx",
-    description: "Join a free virtual study room and study online with strangers. Live 24/7 rooms for JEE, NEET, UPSC, coding & more — browse free, accountability & body doubling included.",
+    title: "Virtual Study Room — Study With Strangers | FocusArx",
+    description: "Join a free virtual study room and study online with strangers. Live 24/7 rooms for JEE, NEET, UPSC & coding — browse free, accountability included.",
     keywords: "virtual study room, online study room, study online with strangers, study with strangers, online study group, virtual study rooms free, co-study app, study accountability",
   },
   roadmap: {

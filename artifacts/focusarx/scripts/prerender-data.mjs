@@ -1073,9 +1073,9 @@ export const ROUTES = [
   {
     path: "/virtual-study-room",
     lastReviewed: GUIDE_LIBRARY_REVIEWED,
-    title: "Virtual Study Room — Study Online With Strangers (Free, 24/7) | FocusArx",
+    title: "Virtual Study Room — Study With Strangers | FocusArx",
     description:
-      "Join a free virtual study room and study online with strangers. Live 24/7 rooms for JEE, NEET, UPSC, coding & more — browse free, accountability & body doubling included.",
+      "Join a free virtual study room and study online with strangers. Live 24/7 rooms for JEE, NEET, UPSC & coding — browse free, accountability included.",
     h1: "Virtual study rooms: study with others online",
     lead: "Join a live room, keep your camera on or off, and study in synchronized silence with learners around the world.",
     sections: [
