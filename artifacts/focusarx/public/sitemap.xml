@@ -35,7 +35,7 @@
   </sitemap>
   <sitemap>
     <loc>https://www.focusarx.site/sitemap-blog.xml</loc>
-    <lastmod>2026-09-05</lastmod>
+    <lastmod>2026-09-18</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://www.focusarx.site/sitemap-funnel.xml</loc>
@@ -52,6 +52,10 @@
   <sitemap>
     <loc>https://www.focusarx.site/sitemap-trust.xml</loc>
     <lastmod>2026-08-29</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://www.focusarx.site/sitemap-locales.xml</loc>
+    <lastmod>2026-09-18</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://www.focusarx.site/sitemap-legal.xml</loc>

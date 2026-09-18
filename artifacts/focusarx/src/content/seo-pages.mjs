@@ -183,7 +183,7 @@ export const SEO_PAGES = {
       ["Can I change the 25/5 lengths?", "Yes. FocusArx supports custom intervals from 10 to 180 minutes so you can run 50/10 deep-work blocks or longer writing sessions."],
       ["Does the timer work offline?", "FocusArx is installable as a PWA, so the timer keeps running after it has loaded. Session history syncs when you are back online."],
     ],
-    cta: { href: "/signup", label: "Start a free Pomodoro session" },
+    cta: { href: "/focus", label: "Start a free Pomodoro session" },
     related: ["/pomodoro-guide|Pomodoro technique: complete guide", ...MINUTE_TIMERS, ...TOOLS.slice(1), ...GUIDES.slice(0, 3)],
     lastReviewed: LAST_REVIEWED,
     sources: [
@@ -292,7 +292,7 @@ export const SEO_PAGES = {
       ["Is deep work possible with ADHD?", "Many people with ADHD do their best work in long uninterrupted blocks once they have started, and struggle mainly with the transition into work. External structure — a timer, a body double, a pre-committed block — usually helps more than trying harder. This is workflow design, not medical advice."],
       ["How do I know if I am doing deep work?", "If you could do it while checking messages, it is not deep work. Deep work requires your full attention and produces something you could not produce distracted."],
     ],
-    cta: { href: "/signup", label: "Track your deep work hours free" },
+    cta: { href: "/focus", label: "Track your deep work hours free" },
     related: ["/science-of-deep-work|The science of deep work", "/focus-guide|How to focus", ...MINUTE_TIMERS.slice(3), ...TOOLS.slice(0, 2), ...GUIDES.slice(3, 5)],
     lastReviewed: LAST_REVIEWED,
     sources: [
@@ -400,7 +400,7 @@ export const SEO_PAGES = {
       ["Does music help me focus?", "It varies. Instrumental music helps some people and costs others. Lyrics are the most consistently disruptive element. Test it against your own recall, not your mood."],
       ["What if I have ADHD?", "Structure tends to matter more than effort: shorter blocks, external timers, body doubling, and starting with the smallest possible version of the task. This is workflow design, not medical advice — talk to a professional about diagnosis and treatment."],
     ],
-    cta: { href: "/signup", label: "Start a focused study session" },
+    cta: { href: "/focus", label: "Start a focused study session" },
     related: ["/study-techniques|Best study techniques", "/study-timer|Study timer", ...GUIDES.slice(0, 4), ...ROOMS.slice(0, 2)],
     lastReviewed: LAST_REVIEWED,
     sources: [
@@ -458,7 +458,7 @@ export const SEO_PAGES = {
       ["Are streaks going to punish me for a bad day?", "No. Streaks include recovery so a single missed day does not reset your history to zero."],
       ["Does it cost money?", "The core timer, tasks, streaks and rooms are free forever. Premium unlocks with Focus Tokens earned from completed sessions."],
     ],
-    cta: { href: "/signup", label: "Try the free ADHD-friendly timer" },
+    cta: { href: "/focus", label: "Try the free ADHD-friendly timer" },
     related: ["/adhd-focus-tips|How to focus with ADHD", "/body-doubling|Body doubling explained", ...ROOMS.slice(0, 3), ...TOOLS.slice(0, 2), "/camera-data|How camera data is handled"],
     lastReviewed: LAST_REVIEWED,
     sources: [
@@ -582,7 +582,7 @@ export const SEO_PAGES = {
       ["Is it useful for USMLE or PLAB prep as well as NEET PG?", "The method is the same anywhere: timed question blocks, spaced cards and error review. What changes is the block length, which you set to match the section timing of the exam you are sitting."],
       ["Can I study alongside other people in the same block?", "Yes. Public study rooms run shared intervals with other people working at the same time, which is the body-doubling effect — cameras are optional and rooms are moderated."],
     ],
-    cta: { href: "/signup", label: "Start a study block free" },
+    cta: { href: "/focus", label: "Start a study block free" },
     related: [
       "/study-timer|Study timer",
       "/pomodoro-timer|Pomodoro timer",
@@ -658,7 +658,7 @@ export const SEO_PAGES = {
       ["Does it record which task a block went to?", "Yes. Each session is stored against the task you set, so the log reads as work completed rather than time elapsed."],
       ["Is there a way to work alongside other people?", "Public study rooms run shared intervals with others working at the same time — the body-doubling effect, without a call. Cameras are optional."],
     ],
-    cta: { href: "/signup", label: "Start a deep work block free" },
+    cta: { href: "/focus", label: "Start a deep work block free" },
     related: [
       "/focus-timer|Free focus timer",
       "/deep-work-guide|Deep work guide",

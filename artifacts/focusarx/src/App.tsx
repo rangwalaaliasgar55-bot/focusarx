@@ -126,6 +126,7 @@ const FlashcardsPage = lazy(() => import("@/pages/flashcards"));
 const TasksPage = lazy(() => import("@/pages/tasks"));
 
 const ComparisonPage = lazy(() => import("@/pages/comparison"));
+const LocaleEditionPage = lazy(() => import("@/pages/locale-edition"));
 const DeveloperPage = lazy(() => import("@/pages/developer"));
 
 // ── Intent pages (tools, cluster spokes, trust) ────────────────────
@@ -360,6 +361,24 @@ function RoutedContent() {
               <Route path="/safety"><ErrorBoundary><Suspense fallback={<PageLoader />}><SafetyPage /></Suspense></ErrorBoundary></Route>
               <Route path="/accessibility"><ErrorBoundary><Suspense fallback={<PageLoader />}><AccessibilityPage /></Suspense></ErrorBoundary></Route>
               <Route path="/press"><ErrorBoundary><Suspense fallback={<PageLoader />}><PressPage /></Suspense></ErrorBoundary></Route>
+              {/* Localized editions — /in, /us, /hi, /es, /pt-br plus their
+                  pricing pages. Same content source as the prerenderer
+                  (src/content/locale-pages.mjs), so the static HTML a crawler
+                  reads and what a visitor sees cannot drift apart.
+                  Written as children rather than `component={{() => …}}`: the
+                  later form remounts the subtree on every parent render (see
+                  routeIdentity.test.tsx), which is why every other route on
+                  this page was converted. */}
+              <Route path="/in"><ErrorBoundary><Suspense fallback={<PageLoader />}><LocaleEditionPage path="/in" /></Suspense></ErrorBoundary></Route>
+              <Route path="/in/pricing"><ErrorBoundary><Suspense fallback={<PageLoader />}><LocaleEditionPage path="/in/pricing" /></Suspense></ErrorBoundary></Route>
+              <Route path="/us"><ErrorBoundary><Suspense fallback={<PageLoader />}><LocaleEditionPage path="/us" /></Suspense></ErrorBoundary></Route>
+              <Route path="/us/pricing"><ErrorBoundary><Suspense fallback={<PageLoader />}><LocaleEditionPage path="/us/pricing" /></Suspense></ErrorBoundary></Route>
+              <Route path="/hi"><ErrorBoundary><Suspense fallback={<PageLoader />}><LocaleEditionPage path="/hi" /></Suspense></ErrorBoundary></Route>
+              <Route path="/hi/pricing"><ErrorBoundary><Suspense fallback={<PageLoader />}><LocaleEditionPage path="/hi/pricing" /></Suspense></ErrorBoundary></Route>
+              <Route path="/es"><ErrorBoundary><Suspense fallback={<PageLoader />}><LocaleEditionPage path="/es" /></Suspense></ErrorBoundary></Route>
+              <Route path="/es/pricing"><ErrorBoundary><Suspense fallback={<PageLoader />}><LocaleEditionPage path="/es/pricing" /></Suspense></ErrorBoundary></Route>
+              <Route path="/pt-br"><ErrorBoundary><Suspense fallback={<PageLoader />}><LocaleEditionPage path="/pt-br" /></Suspense></ErrorBoundary></Route>
+              <Route path="/pt-br/pricing"><ErrorBoundary><Suspense fallback={<PageLoader />}><LocaleEditionPage path="/pt-br/pricing" /></Suspense></ErrorBoundary></Route>
               <Route path="/comparison/:slug"><ErrorBoundary><Suspense fallback={<PageLoader />}><ComparisonPage /></Suspense></ErrorBoundary></Route>
 
               <Route path="/search"><ErrorBoundary><Suspense fallback={<PageLoader />}><SearchPage /></Suspense></ErrorBoundary></Route>

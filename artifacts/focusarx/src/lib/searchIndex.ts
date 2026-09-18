@@ -168,6 +168,34 @@ const APP_ENTRIES: SearchEntry[] = [
 ];
 
 /**
+ * The localized editions — /in, /us, /hi, /es, /pt-br and their pricing pages.
+ *
+ * These arrived with the international-editions work on `main`, and the route
+ * gate failed the moment they existed: every static route must be either
+ * findable or deliberately excluded, and there is no honest reason to exclude a
+ * page a user might be looking for ("hindi", "espanol", "india pricing").
+ *
+ * Titles and descriptions are copied **verbatim** from
+ * `src/content/locale-pages.mjs`, the module that authors them, and
+ * `searchIndex.test.ts` fails if they ever stop matching it. They are copied
+ * rather than imported because that module also carries every localized page
+ * body (~45 kb) and this index ships in the entry chunk that the bundle-budget
+ * gate watches. The test keeps the two in step at zero runtime cost.
+ */
+const LOCALE_ENTRIES: SearchEntry[] = [
+  { path: "/in", section: "Guides", title: "Focus Timer for JEE, NEET & UPSC Aspirants", description: "Free focus timer for Indian exam prep — JEE, NEET, UPSC, CA, GATE, boards. Pomodoro sessions, IST streaks, an AI coach. No card, no payment.", keywords: "india indian in hindi jee neet upsc ca gate boards ist edition" },
+  { path: "/in/pricing", section: "Company", title: "FocusArx Pricing for India — No Card Required", description: "No rupee price: FocusArx takes no payments. Premium costs Focus Tokens you earn studying — 10,000 for 30 days, about 200 sessions. No card.", keywords: "india pricing price rupee inr cost free edition" },
+  { path: "/us", section: "Guides", title: "Free Focus Timer for US Students & Grad Test Prep", description: "A free Pomodoro and deep work timer that runs with no account and no card. GRE and GMAT guides, distraction blocking, streaks that reset at your own midnight.", keywords: "usa us united states gre gmat edition grade test prep" },
+  { path: "/us/pricing", section: "Company", title: "FocusArx Pricing — Free, No Credit Card", description: "FocusArx has no paid plans and no payment processor. Premium is bought with Focus Tokens earned from finished sessions: 10,000 tokens for 30 days.", keywords: "usa us pricing price cost credit card free edition" },
+  { path: "/hi", section: "Guides", title: "फ्री पोमोडोरो टाइमर — पढ़ाई के लिए", description: "बिना अकाउंट और बिना कार्ड के मुफ़्त फोकस टाइमर। पोमोडोरो सेशन, स्ट्रीक, स्टडी रूम और AI कोच। JEE, NEET, UPSC और बोर्ड की तैयारी के लिए बनी गाइड।", keywords: "hindi hi हिंदी भाषा भारत पोमोडोरो टाइमर पढ़ाई edition" },
+  { path: "/hi/pricing", section: "Company", title: "FocusArx की कीमत — कोई कार्ड नहीं", description: "FocusArx रुपये में कुछ नहीं लेता। प्रीमियम Focus Tokens से मिलता है: 30 दिन के लिए 10,000 टोकन, यानी लगभग 200 पूरे सेशन। कोई पेमेंट गेटवे नहीं।", keywords: "hindi hi हिंदी कीमत मूल्य भुगतान edition" },
+  { path: "/es", section: "Guides", title: "Temporizador Pomodoro gratis para estudiar", description: "Temporizador de concentración gratis, sin cuenta ni tarjeta. Sesiones Pomodoro, rachas, salas de estudio y un coach de IA. Empieza en diez segundos.", keywords: "espanol spanish es temporizador pomodoro estudiar gratis edition" },
+  { path: "/es/pricing", section: "Company", title: "Precios de FocusArx — gratis, sin tarjeta", description: "FocusArx no cobra dinero: no tiene procesador de pagos. Premium se compra con Focus Tokens que ganas terminando sesiones — 10.000 tokens por 30 días.", keywords: "espanol spanish es precios coste gratis tarjeta edition" },
+  { path: "/pt-br", section: "Guides", title: "Timer Pomodoro grátis para estudar", description: "Timer de foco gratuito, sem conta e sem cartão. Sessões Pomodoro, sequências, salas de estudo e um coach de IA. Comece em dez segundos.", keywords: "portugues portuguese brasil brazil pt timer pomodoro estudar gratis edition" },
+  { path: "/pt-br/pricing", section: "Company", title: "Preços do FocusArx — grátis, sem cartão", description: "O FocusArx não cobra dinheiro: não há processador de pagamentos. O Premium é comprado com Focus Tokens ganhos em sessões — 10.000 tokens por 30 dias.", keywords: "portugues portuguese brasil brazil pt precos gratis edition" },
+];
+
+/**
  * The index, de-duplicated by path.
  *
  * `APP_ENTRIES` wins where both sources cover a path: the curated app copy is
@@ -178,6 +206,7 @@ export function buildSearchIndex(): SearchEntry[] {
   const byPath = new Map<string, SearchEntry>();
   for (const entry of derivedEntries()) byPath.set(entry.path, entry);
   for (const entry of APP_ENTRIES) byPath.set(entry.path, entry);
+  for (const entry of LOCALE_ENTRIES) byPath.set(entry.path, entry);
   return [...byPath.values()].sort((a, b) => a.path.localeCompare(b.path));
 }
 

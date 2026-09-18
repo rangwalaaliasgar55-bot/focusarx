@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { clampText, composeTitle, DESCRIPTION_BUDGET, HREFLANG_LOCALES } from "@/lib/seo-text.mjs";
+import { clampText, composeTitle, DESCRIPTION_BUDGET } from "@/lib/seo-text.mjs";
+import { clusterFor } from "@/content/locales.mjs";
 import { breadcrumbListSchema, breadcrumbTrail } from "@/lib/breadcrumbs.mjs";
 
 interface PageSEOProps {
@@ -49,44 +50,56 @@ function setLink(rel: string, href: string) {
   el.setAttribute("href", href);
 }
 
-// Audience annotations for the single English edition: India first, then the
-// wider English-speaking world, with x-default as the fallback. All four point
-// at the current page because there is one edition, not four — index.html and
-// scripts/prerender.mjs emit the same cluster, so the DOM after navigation and
-// the static HTML a crawler reads can never disagree.
-function setHreflang(url: string | null) {
+/**
+ * Hreflang on client-side navigation.
+ *
+ * The cluster comes from `clusterFor()` in src/content/locales.mjs — the same
+ * function scripts/prerender.mjs uses at build time — so the DOM after a
+ * navigation and the static HTML a crawler reads cannot disagree. It used to
+ * point all four alternates at the current page's own URL, which was correct
+ * while the site had one edition and wrong the moment editions existed: a
+ * navigation from /pricing to /in/pricing would have rewritten the Hindi and
+ * Spanish alternates to point back at the English page.
+ *
+ * @param routePath canonical route path ("/pricing"), or null for a noindex
+ *   page, which must not declare a cluster at all — every alternate in a
+ *   cluster is supposed to be live and indexable.
+ */
+function setHreflang(routePath: string | null) {
   const existing = Array.from(
     document.querySelectorAll<HTMLLinkElement>('link[rel="alternate"][hreflang]'),
   );
 
-  if (url === null) {
+  if (routePath === null) {
     existing.forEach((el) => el.remove());
     return;
   }
 
+  const cluster = clusterFor(routePath);
+
   // Fast path: the cluster is already there in the right order (the static
   // build wrote it, or a previous route did), so a navigation only rewrites
-  // four href attributes.
-  const inOrder = HREFLANG_LOCALES.map((locale, i) => {
+  // the href attributes.
+  const inOrder = cluster.map((alt, i) => {
     const el = existing[i];
-    return el && el.getAttribute("hreflang") === locale ? el : null;
+    return el && el.getAttribute("hreflang") === alt.locale ? el : null;
   });
-  if (inOrder.every((el) => el !== null) && existing.length === HREFLANG_LOCALES.length) {
-    inOrder.forEach((el) => el!.setAttribute("href", url));
+  if (inOrder.every((el) => el !== null) && existing.length === cluster.length) {
+    inOrder.forEach((el, i) => el!.setAttribute("href", `${BASE_URL}${cluster[i]!.href}`));
     return;
   }
 
-  // Otherwise rebuild the whole cluster, in locale order, immediately after
-  // the canonical — which is where the prerendered documents put it. Inserting
+  // Otherwise rebuild the whole cluster, in order, immediately after the
+  // canonical — which is where the prerendered documents put it. Inserting
   // each element after the canonical instead of after the previous one reverses
   // the cluster, so the anchor moves as we go.
   existing.forEach((el) => el.remove());
   let anchor: Element | null = document.querySelector('link[rel="canonical"]');
-  for (const locale of HREFLANG_LOCALES) {
+  for (const alt of cluster) {
     const el = document.createElement("link");
     el.setAttribute("rel", "alternate");
-    el.setAttribute("hreflang", locale);
-    el.setAttribute("href", url);
+    el.setAttribute("hreflang", alt.locale);
+    el.setAttribute("href", `${BASE_URL}${alt.href}`);
     if (anchor?.nextSibling) anchor.parentNode?.insertBefore(el, anchor.nextSibling);
     else document.head.appendChild(el);
     anchor = el;
@@ -141,7 +154,12 @@ export function PageSEO({
     if (keywords) setMeta("keywords", keywords);
 
     setLink("canonical", canonicalUrl);
-    setHreflang(noindex ? null : canonicalUrl);
+    // clusterFor() wants the path form ("/in/pricing"), not the absolute
+    // canonical, so strip the origin back off whatever shape it arrived in.
+    const routePath = canonicalUrl.startsWith(BASE_URL)
+      ? canonicalUrl.slice(BASE_URL.length) || "/"
+      : new URL(canonicalUrl).pathname;
+    setHreflang(noindex ? null : routePath);
 
     setMeta("og:title", fullTitle, "property");
     setMeta("og:description", finalDescription, "property");
@@ -269,9 +287,9 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   },
   virtualStudyRoom: {
     canonical: "/virtual-study-room",
-    title: "Virtual study room: focus with others, free",
-    description: "Join a free virtual study room and focus with other learners online. Synchronized Pomodoro timers, live presence, 24/7 rooms, cameras optional.",
-    keywords: "virtual study room, study with others online, online study room, co-study app, study accountability, group study online, FocusArx study rooms",
+    title: "Virtual Study Room — Study With Strangers | FocusArx",
+    description: "Join a free virtual study room and study online with strangers. Live 24/7 rooms for JEE, NEET, UPSC & coding — browse free, accountability included.",
+    keywords: "virtual study room, online study room, study online with strangers, study with strangers, online study group, virtual study rooms free, co-study app, study accountability",
   },
   roadmap: {
     canonical: "/roadmap",
@@ -419,7 +437,7 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   premium: {
     canonical: "/premium",
     title: "Premium Membership — Unlock with Focus Tokens",
-    description: "FocusArx Premium unlocks advanced AI coaching, exclusive themes, deeper Focus DNA insights, and boosts — activated with Focus Coins you earn by focusing.",
+    description: "FocusArx Premium unlocks advanced AI coaching, exclusive themes, deeper Focus DNA insights and boosts — bought with Focus Tokens you earn by studying. No card.",
     keywords: "FocusArx premium, focus tokens, premium membership, productivity premium, token economy",
   },
   pets: {

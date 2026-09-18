@@ -70,8 +70,9 @@ describe("every route is findable or deliberately not", () => {
   });
 });
 
+const pathsFor = (query: string) => searchEntries(query).map((e) => e.path);
+
 describe("what people actually type", () => {
-  const pathsFor = (query: string) => searchEntries(query).map((e) => e.path);
 
   it("finds the app pages the index used to miss entirely", () => {
     // Each of these returned nothing before the index was derived.
@@ -135,5 +136,38 @@ describe("exclusions stay honest", () => {
     for (const path of ["/dashboard", "/focus", "/tasks", "/wallet", "/pomodoro-timer", "/profile"]) {
       expect(NOT_SEARCHABLE[path], `${path} must be searchable`).toBeUndefined();
     }
+  });
+});
+
+describe("the localized editions are findable and stay in step with their source", () => {
+  /**
+   * These ten routes arrived with the international-editions work. Their titles
+   * are copied into the index verbatim from `locale-pages.mjs`, because
+   * importing that module for real would pull every localized page body
+   * (~45 kb) into the entry chunk the bundle-budget gate watches.
+   *
+   * A copy is only acceptable when something fails as soon as it drifts, so
+   * this is that something: the index is compared against the module that
+   * authors the pages. A new edition, a reworded title or a changed
+   * description fails here rather than quietly leaving a page unfindable.
+   */
+  it("indexes every edition route with the title the content module gives it", async () => {
+    const { localeRouteEntries } = await import("@/content/locale-pages.mjs");
+    const source = localeRouteEntries() as Array<{ path: string; title: string; description: string }>;
+
+    expect(source.length).toBeGreaterThan(0);
+    for (const page of source) {
+      const entry = SEARCH_INDEX.find((e) => e.path === page.path);
+      expect(entry, `${page.path} is missing from the search index`).toBeTruthy();
+      expect(entry!.title, `${page.path} title drifted from locale-pages.mjs`).toBe(page.title);
+      expect(entry!.description, `${page.path} description drifted`).toBe(page.description);
+    }
+  });
+
+  it("finds an edition by the language a user would actually type", () => {
+    expect(pathsFor("hindi")).toContain("/hi");
+    expect(pathsFor("espanol")).toContain("/es");
+    expect(pathsFor("portuguese")).toContain("/pt-br");
+    expect(pathsFor("india pricing")).toContain("/in/pricing");
   });
 });

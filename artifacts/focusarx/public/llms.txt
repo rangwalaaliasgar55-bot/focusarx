@@ -19,6 +19,23 @@ source, sample and date. We publish no ratings, user counts or improvement
 percentages we cannot source, and we make no medical, diagnostic or treatment
 claims. See https://www.focusarx.site/evidence
 
+## Editions by country and language
+
+The same product, written for five markets. Each page is authored in its own
+language rather than machine-translated, and the hreflang clusters are
+reciprocal with the English pages they sit beside.
+
+- [India](https://www.focusarx.site/in): for JEE, NEET, UPSC, CA, GATE, CLAT, CTET, CUET, SSC, IBPS, NDA, CAT and CBSE board aspirants — 21 of the 23 exam guides are Indian exams, and streaks key off the IST calendar.
+- [India — pricing](https://www.focusarx.site/in/pricing): what Premium costs in Focus Tokens, and why there is no rupee price.
+- [United States](https://www.focusarx.site/us): the timer for US students and remote workers, plus GRE and GMAT guides.
+- [United States — pricing](https://www.focusarx.site/us/pricing): token pricing, and why there is no subscription.
+- [हिन्दी](https://www.focusarx.site/hi): पढ़ाई के लिए मुफ़्त पोमोडोरो टाइमर, हिन्दी में।
+- [हिन्दी — pricing](https://www.focusarx.site/hi/pricing): प्रीमियम की कीमत टोकन में।
+- [Español](https://www.focusarx.site/es): temporizador Pomodoro gratis para estudiar.
+- [Español — precios](https://www.focusarx.site/es/pricing): cuánto cuesta Premium en tokens.
+- [Português (Brasil)](https://www.focusarx.site/pt-br): timer Pomodoro grátis para estudar.
+- [Português — preços](https://www.focusarx.site/pt-br/pricing): quanto custa o Premium em tokens.
+
 ## Free tools
 
 - [Pomodoro Timer](https://www.focusarx.site/pomodoro-timer): free 25/5 browser timer with custom intervals from 10–180 minutes, session history and streaks. No signup required to start.

@@ -12,7 +12,8 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { isDisallowed, parseRobots } from "../src/lib/robots-parse.mjs";
 import { CLUSTERS } from "../src/content/clusters.mjs";
-import { clampText, composeTitle, DESCRIPTION_BUDGET, HREFLANG_LOCALES, MIN_SNIPPET, PAGE_TITLE_BUDGET, TITLE_BUDGET } from "../src/lib/seo-text.mjs";
+import { clampText, composeTitle, DESCRIPTION_BUDGET, MIN_SNIPPET, PAGE_TITLE_BUDGET, TITLE_BUDGET } from "../src/lib/seo-text.mjs";
+import { EDITIONS, HREFLANG_TAGS } from "../src/content/locales.mjs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -42,6 +43,20 @@ const NON_INDEXABLE = new Set(["/login", "/signup", "/forgot-password", "/reset-
 /** Literal text inside a regex, for matching emitted HTML. */
 function escapeRegexForHtmlText(text) {
   return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+}
+
+/**
+ * Canonical path → prerendered HTML, built once before the per-file loop.
+ * The hreflang gate has to look at *other* documents — is this alternate a page
+ * we actually wrote, and does that page point back here? — and re-reading the
+ * tree inside the loop would do that 129 times. Built here rather than reusing
+ * the `documents` array further down, which is in the temporal dead zone for
+ * code running at line ~90 (a crash, not a skipped check).
+ */
+const htmlByPath = new Map();
+for (const f of walkHtml(DIST)) {
+  const rel = relative(DIST, f).replace(/index\.html$/, "").replace(/\.html$/, "");
+  htmlByPath.set(rel ? `/${rel}`.replace(/\/+$/, "") : "/", readFileSync(f, "utf8"));
 }
 
 // Assigned inside the table-parity block below and read by the summary line, so
@@ -165,9 +180,9 @@ for (const file of files) {
     //   • a page that is not indexable (the 404, /search) still declares a
     //     cluster, and every alternate in a cluster is supposed to be live and
     //     indexable.
-    // The locale list is imported from src/lib/seo-text.mjs — the same list
-    // index.html, prerender.mjs and PageSEO.tsx use — so this gate cannot drift
-    // from what the build emits.
+    // The tag list is imported from src/content/locales.mjs — the same module
+    // index.html, prerender.mjs and PageSEO.tsx build their clusters from — so
+    // this gate cannot drift from what the build emits.
     const canonicalHref = html.match(/<link\s+rel="canonical"\s+href="([^"]*)"/)?.[1] ?? null;
     const alternates = [...html.matchAll(/<link\s+rel="alternate"\s+hreflang="([^"]*)"\s+href="([^"]*)"/g)]
       .map((m) => ({ locale: m[1], href: m[2] }));
@@ -179,25 +194,67 @@ for (const file of files) {
         problems.push(`${routePath}: not indexable but declares ${alternates.length} hreflang alternate(s) — every alternate in a cluster must be indexable`);
       }
     } else {
-      const locales = alternates.map((a) => a.locale);
-      const missing = HREFLANG_LOCALES.filter((l) => !locales.includes(l));
-      const unexpected = locales.filter((l) => !HREFLANG_LOCALES.includes(l));
-      if (missing.length > 0 || unexpected.length > 0) {
-        problems.push(`${routePath}: hreflang cluster is [${locales.join(", ")}], expected [${HREFLANG_LOCALES.join(", ")}]${missing.length ? ` — missing ${missing.join(", ")}` : ""}${unexpected.length ? ` — unexpected ${unexpected.join(", ")}` : ""}`);
-      }
+      // 1. Every tag must be one the site actually publishes.
       for (const alt of alternates) {
-        if (alt.href !== canonicalHref) {
-          problems.push(`${routePath}: hreflang="${alt.locale}" points at ${alt.href}, not this page's canonical (${canonicalHref}) — a cluster must be self-consistent`);
+        if (!HREFLANG_TAGS.includes(alt.locale)) {
+          problems.push(`${routePath}: hreflang="${alt.locale}" is not a tag this site publishes (${HREFLANG_TAGS.join(", ")})`);
+        }
+      }
+
+      // 2. x-default must exist and must point at the English original. An
+      //    edition page whose x-default points at itself is telling Google
+      //    "the fallback for this page is this page", which defeats the point
+      //    of the annotation and leaves the English page unreachable from the
+      //    cluster.
+      const xDefault = alternates.find((a) => a.locale === "x-default");
+      const englishHref = alternates.find((a) => a.locale === "en")?.href ?? null;
+      if (!xDefault) {
+        problems.push(`${routePath}: indexable but declares no hreflang="x-default" — every cluster needs a fallback`);
+      } else if (englishHref && xDefault.href !== englishHref) {
+        problems.push(`${routePath}: x-default points at ${xDefault.href} but en points at ${englishHref} — the fallback and the English edition must agree`);
+      }
+
+      // 3. Every alternate must be a document this build actually wrote. This
+      //    is the check that stops an edition being declared before its pages
+      //    exist: a dead alternate invalidates the whole cluster, and Google
+      //    resolves each href before trusting any of them.
+      for (const alt of alternates) {
+        if (!alt.href.startsWith(CANONICAL_HOST)) {
+          problems.push(`${routePath}: hreflang="${alt.locale}" points off-site (${alt.href})`);
+          continue;
+        }
+        const altPath = alt.href.slice(CANONICAL_HOST.length) || "/";
+        if (!htmlByPath.has(altPath)) {
+          problems.push(`${routePath}: hreflang="${alt.locale}" points at ${alt.href}, which this build did not prerender — an alternate must resolve to a live document`);
+        }
+      }
+
+      // 4. Reciprocity: if this page says the Hindi edition lives at /hi, then
+      //    /hi must say this page is its English original. Google only honours
+      //    clusters where both directions are declared; a one-way link is
+      //    dropped, and a half-wired edition looks like a duplicate instead.
+      if (englishHref && htmlByPath.has(englishHref.slice(CANONICAL_HOST.length))) {
+        const backHtml = htmlByPath.get(englishHref.slice(CANONICAL_HOST.length));
+        const pointsBack = [...backHtml.matchAll(/<link\s+rel="alternate"\s+hreflang="[^"]*"\s+href="([^"]*)"/g)]
+          .some((m) => m[1] === canonicalHref);
+        if (!pointsBack && canonicalHref !== englishHref) {
+          problems.push(`${routePath}: points at ${englishHref} as its English edition, but that page's cluster does not point back here — hreflang must be reciprocal`);
         }
       }
     }
 
-    // Consistent language declaration: one English edition, so every document
-    // says `lang="en"`. Screen readers and translate prompts read this, and a
-    // page whose lang disagrees with its hreflang is a signal conflict.
+    // Consistent language declaration. An English page says lang="en"; a
+    // localized edition says its own BCP-47 tag, and the tag must agree with
+    // the edition's hreflang — a page whose lang disagrees with its hreflang is
+    // a signal conflict that costs it the localized ranking it was written for.
     const langAttr = html.match(/<html[^>]*\slang="([^"]*)"/)?.[1] ?? null;
-    if (langAttr !== "en") {
-      problems.push(`${routePath}: <html lang> is ${langAttr === null ? "missing" : `"${langAttr}"`}, expected "en"`);
+    const edition = EDITIONS.find((e) => {
+      const prefix = e.path.replace(/\/$/, "");
+      return routePath === prefix || routePath.startsWith(`${prefix}/`);
+    });
+    const expectedLang = edition ? edition.lang : "en";
+    if (langAttr !== expectedLang) {
+      problems.push(`${routePath}: <html lang> is ${langAttr === null ? "missing" : `"${langAttr}"`}, expected "${expectedLang}"${edition ? ` (the ${edition.label} edition)` : ""}`);
     }
   }
 
@@ -1027,7 +1084,13 @@ function ownCopyWords(html) {
     .replace(/\s+/g, " ")
     .trim();
   if (!text) return 0;
-  return text.split(" ").filter((w) => /[a-zA-Z0-9]/.test(w)).length;
+  // Any script, not just Latin. The filter used to be /[a-zA-Z0-9]/, which
+  // silently discarded every Devanagari word: the Hindi pages were scored on
+  // the Latin fragments that happen to appear in them ("FocusArx", "JEE",
+  // "10,000") and reported 51 and 37 words against a 150-word floor. A gate
+  // that cannot see the copy it exists to protect is worse than no gate — it
+  // would have passed a Hindi page whose prose had been deleted entirely.
+  return text.split(" ").filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
 }
 
 /**

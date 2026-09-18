@@ -23,6 +23,7 @@ import {
   cellText,
 } from "../src/content/seo-pages.mjs";
 import { BLOG_POSTS } from "../src/content/blog.mjs";
+import { localeRouteEntries } from "../src/content/locale-pages.mjs";
 import { FUNNEL_ANGLES } from "../src/content/exam-funnel.mjs";
 import {
   EXAM_CLUSTER_REVIEWED,
@@ -45,7 +46,9 @@ export const DEFAULT_OG_IMAGE_PATH = "/opengraph.jpg";
  * @property {string} description    — meta description
  * @property {string} h1             — visible headline for the prerendered body
  * @property {string} lead           — lead paragraph under the H1
- * @property {{h: string, p: string}[]} [sections] — body sections
+ * @property {{h: string, p: string | string[], bullets?: string[]}[]} [sections] — body sections
+ * @property {{heading: string, caption?: string, head?: string[], rows: (string|boolean)[][]}} [table]
+ *   — data table rendered into the static body (the comparison feature grid)
  * @property {[string, string][]} [faq]   — [question, answer] pairs (emits FAQPage JSON-LD)
  * @property {boolean} [article]     — emit Article JSON-LD (guides)
  * @property {string} [lastReviewed] — ISO date the copy was last reviewed;
@@ -143,6 +146,29 @@ const relatedFor = (path, ...groups) => {
   return out;
 };
 
+/**
+ * Links into the localized editions, for the English pages a reader would
+ * naturally leave from. These exist for two reasons: a person comparing what
+ * Premium costs should be able to read that in their own language, and the
+ * orphan gate in scripts/seo-validate.mjs rightly refuses to let a page whose
+ * only inbound link is its sibling count as discoverable.
+ */
+const EDITION_HOME_LINKS = [
+  "/in|India edition",
+  "/us|United States edition",
+  "/hi|हिन्दी संस्करण",
+  "/es|Edición en español",
+  "/pt-br|Edição em português",
+];
+
+const EDITION_PRICING_LINKS = [
+  "/in/pricing|Pricing for India",
+  "/us/pricing|US pricing",
+  "/hi/pricing|कीमत (हिन्दी)",
+  "/es/pricing|Precios en español",
+  "/pt-br/pricing|Preços em português",
+];
+
 const GUIDE_LINKS = [
   "/guides|All FocusArx guides",
   "/focus-guide|How to focus: complete guide",
@@ -178,6 +204,25 @@ export const ROUTES = [
         p: "FocusArx includes a free library of science-backed guides — how to focus, the Pomodoro technique, study techniques ranked by evidence, focusing with ADHD, beating procrastination, and what music actually helps concentration.",
       },
     ],
+    faq: [
+      [
+        "Do I need an account to use the timer?",
+        "No. The focus timer is public and guest-first: open it, set a length and start. An account is only worth creating when you want your sessions, streaks and analytics saved across devices, or when you want the AI coach to read your history. You can use FocusArx for months without one.",
+      ],
+      [
+        "Is FocusArx actually free?",
+        "The core is free forever: the timer, tasks, streaks, study rooms, leaderboards, flashcards, the guide library and the analytics. Premium is optional and is paid for with Focus Tokens earned by finishing sessions rather than with money — 10,000 tokens buys 30 days — so the paid tier is reachable without a card.",
+      ],
+      [
+        "What is the Focus Score?",
+        "A 0–100 rating for a session, derived from completion, consistency and distraction events rather than from elapsed time. It exists because hours logged is a vanity metric: eight distracted hours and two deep ones look similar on a timesheet and nothing alike in what they produce.",
+      ],
+      [
+        "Does the webcam feature record me?",
+        "The attention monitor is optional and runs on-device: the model processes webcam frames in your browser and only the derived attention signal is stored. No video is uploaded. Everything else in FocusArx works with the camera off, and the camera-data page describes exactly what is and is not kept.",
+      ],
+    ],
+    cta: { href: "/focus", label: "Start a focus session — free, no account" },
     related: GUIDE_LINKS,
   },
 
@@ -195,7 +240,7 @@ export const ROUTES = [
         p: "Adaptive Pomodoro and deep-work timer, task management, XP, coins and streaks, focus analytics, live study rooms, and a library of science-backed focus and study guides.",
       },
     ],
-    related: ["/guides|Explore free guides", "/pricing|Pricing — free forever"],
+    related: ["/guides|Explore free guides", "/pricing|Pricing — free forever", ...EDITION_HOME_LINKS],
   },
   {
     path: "/login",
@@ -261,9 +306,18 @@ export const ROUTES = [
     sections: [
       {
         h: "Popular topics",
-        p: "How focus sessions and the Focus Score work; how streaks, XP, and Focus Coins are earned and spent; how live study rooms and leaderboards work; how optional on-device attention monitoring protects privacy; and how to manage or delete your account data.",
+        p: "How focus sessions and the Focus Score work; how streaks and XP are earned; how the two currencies differ — Focus Tokens buy Premium, Coins buy cosmetics; how live study rooms and leaderboards work; how optional on-device attention monitoring protects privacy; and how to manage or delete your account data.",
+      },
+      {
+        h: "The three questions we get most",
+        p: "Do I need an account? No — the timer is public and starts a session without one; an account only saves your history across devices. Is it really free? The timer, tasks, streaks, study rooms, flashcards and the guide library are free; Premium is optional and can be paid for with coins you earn by focusing. Is the webcam always on? Never — the attention monitor is opt-in, runs in your browser, and stores only the derived attention signal, never video.",
+      },
+      {
+        h: "When something is actually broken",
+        p: "Tell us what you did, what you expected and what happened, plus the browser and device. Screenshots of the Focus Score or the session in question help more than a description. If a session did not record, say so explicitly and roughly when it happened — sessions are verified server-side, so an unrecorded one is a bug worth chasing rather than a lost cause.",
       },
     ],
+    cta: { href: "/contact", label: "Contact support" },
     related: relatedFor("/support", COMPANY_LINKS, POLICY_LINKS.slice(0, 4)),
   },
   {
@@ -272,7 +326,7 @@ export const ROUTES = [
     description:
       "FocusArx is completely free forever. Unlock Premium — advanced AI coaching, exclusive themes, deep insights — with coins you earn by focusing. No subscriptions.",
     h1: "Free forever. Premium by focusing.",
-    lead: "The core platform — timer, tasks, streaks, analytics, study rooms — is free forever. Premium features are unlocked with Focus Coins you earn by completing sessions, not with a credit card.",
+    lead: "The core platform — timer, tasks, streaks, analytics, study rooms — is free forever. Premium features are unlocked with Focus Tokens you earn by completing sessions, not with a credit card. Coins are a separate currency for cosmetics.",
     sections: [
       {
         h: "Free plan",
@@ -280,16 +334,38 @@ export const ROUTES = [
       },
       {
         h: "Premium (earned, not paid)",
-        p: "Advanced AI coaching, exclusive themes and cosmetics, deeper Focus DNA insights, and productivity boosts — all purchased with Focus Coins earned during sessions.",
+        p: "Advanced AI coaching, exclusive themes and cosmetics, deeper Focus DNA insights, and productivity boosts — all purchased with Focus Tokens earned during sessions.",
+      },
+      {
+        h: "Coins and Tokens are two different things",
+        p: "FocusArx has two earned currencies and it is worth keeping them straight. Coins buy cosmetics and marketplace items. Focus Tokens buy Premium time, and they are what the plans are priced in. Both are earned by using the product; neither is sold.",
+      },
+      {
+        h: "What Premium actually costs",
+        p: "30 days is 10,000 Focus Tokens, 90 days is 25,000, and a year is 80,000. A completed focus session earns 50 tokens with a daily cap of 500, so ten sessions in a day is the ceiling; daily quests add 30, streaks 20, a referral 200. At the session rate alone a month of Premium is roughly 200 finished sessions, and quests, streaks and events shorten that. Every earn and spend is written to a ledger you can read, so nothing is quietly deducted.",
       },
     ],
-    related: relatedFor("/pricing", ["/signup|Start free", "/premium|Premium overview"], COMPANY_LINKS),
+    faq: [
+      [
+        "What exactly is free?",
+        "Unlimited focus and deep-work sessions, tasks, habits and goals, XP and streaks, the session analytics, live study rooms, leaderboards, flashcards, and the whole guide library. There is no session limit, no trial timer and no account required to run the timer itself.",
+      ],
+      [
+        "How do I earn Focus Tokens?",
+        "By finishing focus sessions — 50 tokens each, capped at 500 a day — plus daily and weekly quests, streaks, daily rewards, battle-pass tiers and referrals. The caps exist so the Premium tier keeps meaning something, and the ledger records every earn and spend with its source.",
+      ],
+      [
+        "Will there be a paid subscription?",
+        "The token economy is the model, not a teaser for one: the intent is that Premium is reachable by using the product. Card payments are not the way in, and nothing that is free today moves behind a paywall to make that work.",
+      ],
+    ],
+    related: relatedFor("/pricing", ["/signup|Start free", "/premium|Premium overview"], EDITION_PRICING_LINKS, COMPANY_LINKS),
   },
   {
     path: "/premium",
     title: "Premium Membership — Unlock with Focus Tokens",
     description:
-      "FocusArx Premium unlocks advanced AI coaching, exclusive themes, deeper Focus DNA insights, and boosts — activated with Focus Coins you earn by focusing.",
+      "FocusArx Premium unlocks advanced AI coaching, exclusive themes, deeper Focus DNA insights and boosts — bought with Focus Tokens you earn by studying. No card.",
     h1: "FocusArx Premium",
     lead: "Premium amplifies everything that works about FocusArx — smarter coaching, richer insights, exclusive cosmetics — and it's earned with focus, not bought.",
     sections: [],
@@ -302,7 +378,17 @@ export const ROUTES = [
       "See what's shipping next on FocusArx — upcoming features, recent releases, and the direction of the platform. Updated weekly.",
     h1: "FocusArx product roadmap",
     lead: "What's shipped, what's next, and what we're exploring — updated weekly.",
-    sections: [],
+    sections: [
+      {
+        h: "How we decide what to build",
+        p: "Three inputs, in order. First, what breaks: a session that fails to record or a streak that resets wrongly outranks any new feature, because the product's whole promise is that the record is true. Second, what people ask for in support and in the feedback form — repeated requests beat loud ones. Third, what the guides argue: if we tell people that retrieval and spacing are what work, then flashcards and a review scheduler are not optional extras, they are the product keeping its own advice.",
+      },
+      {
+        h: "What is deliberately not on this page",
+        p: "Dates. A roadmap with dates on a product this size is a list of things we will be late on, and a missed date costs more trust than an absent one. What is here is direction and order, and the changelog is the record of what actually shipped. If something you need is not listed, say so through the feedback form — that is the input with the shortest path into the queue.",
+      },
+    ],
+    cta: { href: "/changelog", label: "See what shipped recently" },
     related: relatedFor("/roadmap", ["/changelog|Changelog", "/about|About", "/contact|Send feedback"], COMPANY_LINKS),
   },
 
@@ -331,11 +417,30 @@ export const ROUTES = [
         h: "Free tools",
         p: "A 2-minute study-method quiz that matches techniques to your brain and schedule, and a study-time calculator that turns your exam date into a retention-optimized plan.",
       },
+      {
+        h: "How to use this library",
+        p: "Do not read it end to end. Pick the problem you have today — cannot start, cannot remember, cannot sit still — and read the one guide that addresses it, then run a session with the timer before the idea decays. Every guide here ends in something you can do in the next hour, and the tools are there so that reading turns into a plan rather than another tab. If you are preparing for a specific exam, start from the exam hub instead: those plans are built around a real syllabus and date.",
+      },
+    ],
+    faq: [
+      [
+        "Which guide should I read first?",
+        "If you cannot get started, read how to stop procrastinating. If you study for hours and remember little, read the deep study guide or study techniques ranked by evidence. If your attention is the problem rather than your method, read how to focus. There is no required order — these are answers to different problems, not a course.",
+      ],
+      [
+        "Are these guides free, and do I need an account?",
+        "Every guide and tool in this library is free and readable without an account. An account only matters if you want your sessions, streaks and analytics saved across devices; the focus timer itself starts a session without one.",
+      ],
+      [
+        "Where do the claims in these guides come from?",
+        "Each guide that argues something names its sources in prose and links out to them — the paper, the book or the exam body. Where we cannot source a claim we do not make it, and the evidence ledger records what every number on this site means and where it came from.",
+      ],
     ],
     article: true,
+    cta: { href: "/focus", label: "Open the free focus timer" },
     // The live hub lists every guide and tool; the prerender must not claim
     // fewer, or a no-JS crawl sees nine pages nothing links to.
-    related: relatedFor("/guides", ALL_GUIDE_LINKS, COMPANY_LINKS.slice(0, 1)),
+    related: relatedFor("/guides", ALL_GUIDE_LINKS, EDITION_PRICING_LINKS, COMPANY_LINKS.slice(0, 1)),
   },
   {
     path: "/focus-guide",
@@ -358,8 +463,37 @@ export const ROUTES = [
         h: "Building your focus system",
         p: "Sleep, movement, single-tasking and environment design as the foundation; a sample deep-work day; and how to measure depth with a Focus Score instead of vanity hours.",
       },
+      {
+        h: "A starting system you can run today",
+        p: "Choose one block tomorrow, at a fixed time, in a fixed place, and write down the single task it is for the night before. Put the phone in another room — not face down, another room, because its mere presence costs capacity even when it is ignored. Start a visible timer for 25 minutes and do not stop when it gets hard; stop when it rings, then take a real break away from a screen. Do that once a day for a week before changing anything. Almost every focus problem is easier to fix after seven days of one protected block, because the variables narrow down to something you can actually act on.",
+      },
+    ],
+    faq: [
+      [
+        "How long should a focus session be?",
+        "Start with 25 minutes and a 5 minute break, which is the classic Pomodoro shape and short enough to agree to on a bad day. Extend towards 50 or 90 minutes once starting is easy — longer intervals avoid paying the settling cost repeatedly, and most people need 5–20 minutes to get properly into a task. What matters more than the length is that the interval is bounded and uninterrupted.",
+      ],
+      [
+        "Why do I lose focus after about 20 minutes?",
+        "Because attention is not a steady supply; it comes in cycles, and the settling cost at the start of a task is real. Losing the thread at 20 minutes is normal, not a personal failing. The fixes are external rather than motivational: a timer you can see, a task with a defined next action, and an environment with fewer things competing for the bottom-up attention system.",
+      ],
+      [
+        "Does phone blocking actually help?",
+        "More than most interventions, and more than willpower. A phone in sight reduces available cognitive capacity even when it is off and face down, so the effective version is another room rather than another drawer. App blockers help when the phone has to stay nearby, but they are a second-best solution to physical distance.",
+      ],
+      [
+        "Can you rebuild focus after months of scrolling?",
+        "Yes, and faster than people expect, because the mechanism is habit and environment rather than damage. Expect the first week of protected blocks to feel worse before it feels better — the restlessness is the point at which the old habit is being refused. Keep the blocks short, keep the conditions identical, and measure focused minutes rather than how it felt.",
+      ],
+    ],
+    sources: [
+      "Leroy S., 'Why is it so hard to do my work?' (2009) — attention residue after a task switch.",
+      "Ward A.F. et al., 'Brain Drain: The Mere Presence of One's Own Smartphone' (2017) — a visible phone costs cognitive capacity.",
+      "Newport C., Deep Work (2016) — deep work as a trainable, schedulable practice.",
+      "Cirillo F., The Pomodoro Technique — the 25/5 interval structure.",
     ],
     article: true,
+    cta: { href: "/focus", label: "Start a 25 minute focus block — free" },
     related: [
       "/pomodoro-guide|Pomodoro technique guide",
       "/science-of-deep-work|The science of deep work",
@@ -420,7 +554,31 @@ export const ROUTES = [
         p: "Techniques need protected time to live in. Pair them with Pomodoro sessions and the 2-hour study method inside FocusArx, where flashcards and session tracking make recall practice a daily habit.",
       },
     ],
+    faq: [
+      [
+        "What is the single most effective study technique?",
+        "Practice testing — closing the book and reconstructing the material from memory. In the largest review of learning techniques it was rated high utility across ages, materials and test formats, and it beats rereading by a wide margin. If you only change one habit, make the last ten minutes of every session a blank-page recall.",
+      ],
+      [
+        "Is spaced repetition worth the setup cost?",
+        "For anything you need to remember for more than a few weeks, yes — it is the other high-utility technique, and the expanding schedule is what makes a memory durable rather than temporary. The setup is the friction, so start with one subject and let the schedule be simple: same day, next day, three days, a week, a month.",
+      ],
+      [
+        "Why does rereading feel effective when it isn't?",
+        "Because it produces fluency: the text becomes easy to process and that ease is misread as knowledge. Recognition is not retrieval, and an exam asks for retrieval. The uncomfortable techniques feel worse precisely because they require the effort that encoding needs — which is a useful rule of thumb, since the method that feels most productive is usually the least effective.",
+      ],
+      [
+        "Should I interleave topics or block them?",
+        "Interleave once a topic is basically understood. Blocking — many problems of one type in a row — is better while you are still learning the procedure, because it removes the need to choose a method. Mixing types afterwards is what teaches you to recognise which method applies, which is what an exam actually tests.",
+      ],
+    ],
+    sources: [
+      "Dunlosky J. et al., 'Improving Students' Learning With Effective Learning Techniques' (2013) — the evidence hierarchy this page is ordered by.",
+      "Cepeda N.J. et al., 'Distributed Practice in Verbal Recall Tasks' (2006) — the spacing effect.",
+      "Roediger H.L. & Karpicke J.D., 'Test-Enhanced Learning' (2006) — testing as a learning event, not only a measurement.",
+    ],
     article: true,
+    cta: { href: "/focus", label: "Start a study session — free" },
     related: [
       "/feynman-technique|The Feynman technique",
       "/deep-study-guide|Deep study guide",
@@ -616,18 +774,56 @@ export const ROUTES = [
     sections: [
       {
         h: "What deep study means",
-        p: "Deep study is extended, distraction-free engagement with material, combined with evidence-based encoding: active recall, spaced repetition, and elaboration instead of passive rereading.",
+        p: "Deep study is extended, distraction-free engagement with material, combined with evidence-based encoding: active recall, spaced repetition, and elaboration instead of passive rereading. The distinction that matters is not how long you sat down but what your brain was made to do. Rereading and highlighting feel productive because recognition is easy; they produce almost no durable memory. Retrieval — closing the book and reconstructing the argument from scratch — feels worse and works substantially better.",
       },
       {
         h: "The playbook",
-        p: "Structure sessions with warm-up, focused blocks, and retrieval practice; protect attention with environment design; space your reviews; and measure depth rather than hours sat at a desk.",
+        p: "Structure sessions with warm-up, focused blocks, and retrieval practice; protect attention with environment design; space your reviews; and measure depth rather than hours sat at a desk. Concretely: open with five minutes of reviewing yesterday's notes to re-enter the material, work the hardest content in timed intervals with the phone in another room, then spend the last ten minutes writing down everything you can recall without looking. That closing retrieval is the part most students skip, and it is the part that does the learning.",
+      },
+      {
+        h: "How to structure a deep study block",
+        p: "A block has four phases and none of them is optional. Warm-up: two to five minutes of light review, which lowers the friction of starting and primes the relevant material. Focus: one task, one source, a visible timer, and no tab that is not the work — the timer matters because a bounded interval is easier to commit to than an open-ended afternoon. Retrieval: close everything and write or say what you remember, then check. Review: note what you missed and schedule the next retrieval for a longer interval than the last one. Two hours done this way beats six hours of rereading, which is the whole argument of the 2-hour study method.",
+      },
+      {
+        h: "The mistakes that make study feel deep but aren't",
+        p: "Rereading and highlighting, because familiarity is mistaken for knowledge. Replaying a lecture at speed instead of attempting a problem. Studying with the solution visible, which turns retrieval into reading. Cramming one subject for eight hours rather than spacing four sessions across a week — distributed practice is one of the most replicated findings in the learning literature. And measuring the day by hours logged rather than by what you could reproduce at the end of it, which is the only measure that predicts an exam.",
+      },
+      {
+        h: "Spacing: the schedule that makes it stick",
+        p: "Review at expanding intervals — same day, next day, three days, a week, then a month. Each successful retrieval after a gap strengthens the memory more than the previous one did, which is why the gap is the point rather than an inconvenience. In practice this means your first pass through new material should be the smallest part of your total time, and the reviews should be scheduled before you forget rather than when you feel like it. A study plan built from your exam date and available hours does this arithmetic for you.",
       },
     ],
+    faq: [
+      [
+        "How many hours of deep study per day is realistic?",
+        "For most students, two to four genuinely focused hours is a full day, and more than that usually means the later hours were shallow. Deep work is limited by attention, not by willpower: the useful move is to protect two hours completely rather than to sit for eight and check your phone through six of them. Track focused minutes rather than elapsed ones, and increase the protected block gradually as it becomes habitual.",
+      ],
+      [
+        "Is deep study different from the Pomodoro technique?",
+        "They operate at different scales and work well together. The Pomodoro technique is an interval structure — 25 minutes on, 5 off — that makes starting cheap and breaks predictable. Deep study is the content of those intervals: retrieval, elaboration and spacing rather than rereading. You can run perfect Pomodoros and learn very little if the intervals are spent passively, which is why the method and the encoding strategy are taught separately.",
+      ],
+      [
+        "How do I know if a study session was actually deep?",
+        "Test it at the end. Close the material and write down the argument, the derivation or the definitions from memory; what you can reconstruct is roughly what you learned. A session that ends with you able to reproduce more than at the start was deep, regardless of how it felt. A session that felt productive but leaves you unable to explain the topic without the notes in front of you was recognition, not learning.",
+      ],
+      [
+        "What should I do when I cannot focus at all?",
+        "Shrink the commitment rather than fighting it. Agree to ten minutes only, with permission to stop when the timer rings — avoidance is driven by the anticipated cost of a long undefined effort, so lowering that cost is usually enough to begin, and beginning is most of the problem. If the block still will not hold, change the environment: a different room, a library, or a live study room where other people are working. Phone in another room does more than any app.",
+      ],
+    ],
+    sources: [
+      "Dunlosky J. et al., 'Improving Students' Learning With Effective Learning Techniques' (2013) — practice testing and distributed practice rated high utility; rereading and highlighting rated low.",
+      "Karpicke J.D. & Roediger H.L., 'The Critical Importance of Retrieval for Learning' (2008) — repeated retrieval, not repeated study, is what makes a memory persist.",
+      "Cepeda N.J. et al., 'Distributed Practice in Verbal Recall Tasks' (2006) — spacing reviews across sessions beats massing them, across ages and materials.",
+      "Ebbinghaus H. (1885) — the forgetting curve, and the original observation that spacing slows it.",
+    ],
     article: true,
+    cta: { href: "/focus", label: "Start a deep study block — free" },
     related: [
       "/study-techniques|Best study techniques",
       "/two-hour-study-method|The 2-hour study method",
       "/science-of-deep-work|The science of deep work",
+      "/focus|Open the focus timer",
       "/guides|All guides",
     ],
   },
@@ -642,18 +838,55 @@ export const ROUTES = [
     sections: [
       {
         h: "The structure",
-        p: "Warm up with a light review to re-enter the material, work through focused Pomodoro-style intervals on the hardest content, finish with active-recall testing, and close with a brief review that sets up tomorrow's session.",
+        p: "Warm up with a light review to re-enter the material, work through focused Pomodoro-style intervals on the hardest content, finish with active-recall testing, and close with a brief review that sets up tomorrow's session. The four phases are not equally long: roughly ten minutes of warm-up, eighty minutes of focused work in two or three intervals, twenty minutes of retrieval, and ten minutes of review and planning.",
       },
       {
         h: "Why it works",
-        p: "The warm-up lowers entry friction, timed intervals protect depth, retrieval practice is where learning actually consolidates, and the closing review leverages the spacing effect across days.",
+        p: "The warm-up lowers entry friction, timed intervals protect depth, retrieval practice is where learning actually consolidates, and the closing review leverages the spacing effect across days. The cap is the point, too: a block with a known end is easier to start than an open-ended evening, and knowing it ends stops the low-grade bargaining that turns an afternoon into nothing.",
+      },
+      {
+        h: "Minute by minute",
+        p: "Minutes 0–10, warm-up: read yesterday's summary or the headings of today's material, and write one line about what you are trying to be able to do by the end. Minutes 10–55, first interval: the hardest thing on the list, phone out of the room, one source open. Minutes 55–65, real break — stand up, no screen. Minutes 65–100, second interval: continue, or switch to a problem set if the reading has gone flat. Minutes 100–115, retrieval: everything closed, write what you can reconstruct, then check and mark the gaps. Minutes 115–120, plan: three lines on what tomorrow's block starts with, and when the next review of this material is due.",
+      },
+      {
+        h: "Making the block survive a real day",
+        p: "Pick the time before you pick the content, and put it in the calendar as an appointment with a location. Protect the ten minutes before it — that is when most blocks are lost, to a message or a tab opened 'just quickly'. Have the material ready the night before so the block does not start with a search. And when a block is missed, move it rather than dropping it: a plan that collapses after one bad day is a plan that will collapse.",
+      },
+      {
+        h: "Two hours or four?",
+        p: "Two hours, once a day, beats four hours twice a week: the spacing between sessions is itself part of the method. If you have more time, run a second block later in the day on different material rather than extending the first one — the retrieval at the end of each block is what consolidates it, and two retrievals beat one. Beyond roughly four focused hours in a day the marginal hour is usually shallow, and it is better spent on review than on new material.",
       },
     ],
+    faq: [
+      [
+        "Why two hours and not four or six?",
+        "Because the block has to be repeatable daily, and because focused attention is a limited resource. A two-hour block is something most people can protect every day for months; a six-hour block is something people plan once and abandon by Wednesday. Consistency plus spacing beats intensity, and a shorter daily block gives you both.",
+      ],
+      [
+        "What if I only have 45 minutes today?",
+        "Compress, do not skip. Cut the warm-up to three minutes, run one 25-minute interval, and keep the full ten minutes of retrieval at the end — retrieval is the part that consolidates, and it is the part that survives compression. A short block that ends with recall beats a long block that ends with rereading.",
+      ],
+      [
+        "Should I use a timer during the block?",
+        "Yes. A visible countdown makes the interval concrete, gives you a reason not to check anything until it rings, and turns 'study for a while' into a bounded commitment you can actually agree to. Pre-arming the length also removes a decision at the moment your motivation is lowest. The focus timer starts a 25, 50 or 90 minute block without an account.",
+      ],
+      [
+        "Does this work for problem-based subjects like maths or physics?",
+        "It works better for them than for reading subjects. Replace the reading intervals with problems attempted without the solution visible, and let the retrieval phase be re-attempting the ones you got wrong from a blank page. Reading a worked solution feels like progress and produces very little; struggling at the problem and then checking is what encodes the method.",
+      ],
+    ],
+    sources: [
+      "Cepeda N.J. et al., 'Distributed Practice in Verbal Recall Tasks' (2006) — spacing sessions beats massing them, which is the argument for daily blocks.",
+      "Karpicke J.D. & Roediger H.L., 'The Critical Importance of Retrieval for Learning' (2008) — the closing retrieval phase is where consolidation happens.",
+      "Cirillo F., The Pomodoro Technique — the interval structure the focused phase is built on.",
+    ],
     article: true,
+    cta: { href: "/focus?duration=50", label: "Start a 50 minute block — free" },
     related: [
       "/pomodoro-guide|Pomodoro technique guide",
       "/study-techniques|Best study techniques",
       "/deep-study-guide|Deep study guide",
+      "/study-calculator|Plan your study hours",
       "/guides|All guides",
     ],
   },
@@ -668,17 +901,56 @@ export const ROUTES = [
     sections: [
       {
         h: "The mechanism",
-        p: "Repeated focused firing of neural circuits wraps them in myelin, making them faster and more reliable — the biological basis of skill. Neurotransmitters like dopamine and norepinephrine gate attention and motivation.",
+        p: "Repeated focused firing of neural circuits wraps them in myelin, making them faster and more reliable — the biological basis of skill. Neurotransmitters like dopamine and norepinephrine gate attention and motivation. This is why deliberate practice, and not time spent, is what changes performance: the circuit has to be driven hard and specifically to be reinforced, which is the finding Ericsson's work on expert performance rests on.",
       },
       {
         h: "Flow states",
-        p: "Flow emerges when challenge slightly exceeds skill with clear goals and immediate feedback. You can engineer the conditions instead of waiting for the mood.",
+        p: "Flow emerges when challenge slightly exceeds skill with clear goals and immediate feedback. You can engineer the conditions instead of waiting for the mood. Concretely that means: a task with a defined next action rather than a vague intention, difficulty adjusted so it is neither trivial nor hopeless, and some signal of progress inside the session — a problem set completing, a word count rising, a timer counting down. Remove the feedback and flow becomes luck.",
+      },
+      {
+        h: "Why switching costs more than it feels like it does",
+        p: "Every task switch leaves attention residue: part of your attention stays on the previous task for some minutes afterwards, degrading the next one. That is why an afternoon of small interruptions produces less than an uninterrupted hour, and why it does not feel that way — the residue is invisible from the inside. Interrupted work also gets finished faster but at a higher stress cost, which is the trade the research on interrupted work describes. The practical implication is brutal and simple: batching shallow work into one block is worth more than any productivity app.",
+      },
+      {
+        h: "What actually restores attention",
+        p: "Rest that down-regulates arousal restores it; rest that stimulates does not. A break spent scrolling delivers novelty and dopamine while leaving attention more fragmented than before, which is why the break can make the next block harder rather than easier. Slow exhale-weighted breathing, a short walk, looking at something distant, or two minutes of doing nothing at all reliably work better. The rule to hold onto: a break should lower arousal, not raise it.",
+      },
+      {
+        h: "Designing the environment, not the willpower",
+        p: "Willpower is a poor lever because it has to be spent every single time. Environment design spends once. The mere presence of your own smartphone reduces available cognitive capacity even when it is face down and untouched, so the phone leaves the room rather than the desk. Browser tabs that are not the work get closed before the block starts, not resisted during it. And a session with a visible end is easier to enter than an open-ended one, which is the entire reason a timer helps. None of this is discipline; it is removing the decisions.",
       },
     ],
+    faq: [
+      [
+        "How long does it take to get into deep work?",
+        "Most people need somewhere between five and twenty minutes to settle, and it is longer after an interruption than from a cold start. That settling cost is per session, not per hour, which is why one four-hour block produces more than four one-hour blocks. It also means ending a session the moment it gets interesting is expensive: you paid the entry cost and got none of the depth.",
+      ],
+      [
+        "Is deep work the same as flow?",
+        "No, though they overlap. Deep work is a category of effortful, undistracted, cognitively demanding work — you can be doing deep work while finding it hard and unpleasant. Flow is a subjective state of effortless absorption that sometimes appears inside deep work when challenge and skill are well matched. Treating flow as the goal is a trap: it is a by-product, and chasing the feeling leads to easier tasks.",
+      ],
+      [
+        "Can you train yourself to focus for longer?",
+        "Yes, in the same way you train endurance: by progressively extending the protected block and keeping the conditions constant. Start with an interval you can genuinely hold — 15 or 25 minutes — and lengthen it by a few minutes once it feels easy. What you cannot do is jump from a fragmented day to a four-hour block on willpower alone; the environment and the timer do most of that work.",
+      ],
+      [
+        "Does music help or hurt concentration?",
+        "It depends on the task and the music. Lyrics reliably interfere with language-based work — reading, writing, learning vocabulary — because they compete for the same processing. Instrumental, predictable, low-novelty audio can help by masking a noisy environment and giving the attentional system something boring to settle on. New and interesting music hurts almost everything. If you cannot tell whether it is helping, run a week without it and compare what you finish.",
+      ],
+    ],
+    sources: [
+      "Leroy S., 'Why is it so hard to do my work?' (2009) — attention residue: a previous task keeps consuming attention after a switch.",
+      "Mark G., Gudith D. & Klocke U., 'The Cost of Interrupted Work: More Speed and Stress' (2008) — interrupted work is completed faster but at higher stress.",
+      "Ward A.F. et al., 'Brain Drain: The Mere Presence of One's Own Smartphone' (2017) — a phone in sight reduces available cognitive capacity even when ignored.",
+      "Ericsson K.A. et al., 'The Role of Deliberate Practice in the Acquisition of Expert Performance' (1993) — specific, effortful practice drives improvement.",
+    ],
     article: true,
+    cta: { href: "/focus", label: "Start a focus session — free" },
     related: [
       "/focus-guide|How to focus: complete guide",
       "/deep-study-guide|Deep study guide",
+      "/focus-music|What music helps concentration",
+      "/breathe|2-minute breathing reset",
       "/guides|All guides",
     ],
   },
@@ -697,13 +969,49 @@ export const ROUTES = [
       },
       {
         h: "Why it works",
-        p: "Explaining forces retrieval and elaboration — the two strongest learning techniques — and exposes illusory comprehension, the 'I recognize it so I know it' trap that rereading hides.",
+        p: "Explaining forces retrieval and elaboration — the two strongest learning techniques — and exposes illusory comprehension, the 'I recognize it so I know it' trap that rereading hides. The blank page is the whole mechanism: with the source open you can paraphrase without understanding, and you will. Without it, the gaps announce themselves immediately.",
+      },
+      {
+        h: "Doing it properly, step by step",
+        p: "Step one: write the concept at the top of a blank page, and underneath it write what you expect to be able to explain — one sentence defining the boundary. Step two: explain it out loud or in writing using only everyday words, and ban the technical terms of the subject; where you are tempted to reach for jargon, that is usually where the understanding is thinnest. Step three: when you stall, mark the exact point with a question mark and go back to the source for that one point only, then start the explanation again from the top rather than patching the hole. Step four: build an analogy and then attack it — every analogy breaks somewhere, and finding where it breaks is a more precise test of understanding than the analogy itself.",
+      },
+      {
+        h: "The three failure modes",
+        p: "Reciting: reproducing the textbook's phrasing from memory, which tests recall of wording rather than understanding — the fix is the vocabulary ban. Patching: filling a gap and moving on, which leaves the explanation held together by a step you still cannot justify — the fix is restarting from the top. Over-analogising: reaching for a metaphor before you can state the mechanism plainly, which makes the explanation sound good and stay fragile. All three feel like progress, which is why the technique needs the blank page as an honest referee.",
+      },
+      {
+        h: "Where it fits in a study session",
+        p: "Use it at the end of a block, not the beginning: it is a test of what a session produced, and running it as the retrieval phase costs nothing extra. It works best on concepts with a mechanism — a process, a proof, a causal chain — and less well on pure lists, where spaced flashcards are the better tool. For exam preparation, write the explanation as an answer to a past-paper question: that combines the elaboration benefit with practice at the format you will be marked in.",
       },
     ],
+    faq: [
+      [
+        "How long should a Feynman explanation take?",
+        "Five to fifteen minutes per concept. If it takes much longer you have chosen too large a unit — split it, because 'explain thermodynamics' is not a concept and 'explain why entropy increases in an isolated system' is. The technique works on units small enough that a single gap is identifiable.",
+      ],
+      [
+        "Do I have to write it down, or can I say it out loud?",
+        "Either works, and out loud is faster, but writing leaves something you can revisit and it makes the stalls unambiguous — you can see the sentence you could not finish. The strongest version is to explain it to another person, or to a study room, because a listener asks the question you were avoiding.",
+      ],
+      [
+        "Does this work for maths and programming?",
+        "Yes, with one adjustment: explain the derivation or the code line by line, saying why each step follows from the last, and then close the source and reproduce it from a blank page. Being able to narrate a solution you are looking at is not the same as being able to produce it, and the blank-page step is what separates the two.",
+      ],
+      [
+        "How is this different from active recall?",
+        "Active recall is retrieving a fact or an answer; the Feynman technique is reconstructing a mechanism in your own words and simplifying it. Recall answers 'what is it', Feynman answers 'why does it follow'. They compose: recall first to find what you have lost, Feynman on the concepts that survived to check they survived properly.",
+      ],
+    ],
+    sources: [
+      "Dunlosky J. et al., 'Improving Students' Learning With Effective Learning Techniques' (2013) — elaborative interrogation and self-explanation rated effective; rereading rated low.",
+      "Karpicke J.D. & Roediger H.L., 'The Critical Importance of Retrieval for Learning' (2008) — explaining without the source is retrieval, which is why the blank page matters.",
+    ],
     article: true,
+    cta: { href: "/focus", label: "Start a study block — free" },
     related: [
       "/study-techniques|Best study techniques",
       "/deep-study-guide|Deep study guide",
+      "/focus|Open the focus timer",
       "/guides|All guides",
     ],
   },
@@ -719,7 +1027,16 @@ export const ROUTES = [
         h: "What the quiz covers",
         p: "Your attention span, deadline pressure, subject mix, and preferred session length. The result maps you to the technique family — Pomodoro intervals, deep blocks, recall-first, or social study — most likely to stick.",
       },
+      {
+        h: "The three questions",
+        p: "How long you can focus before feeling restless, what your study environment is actually like, and what today's goal is — clearing small tasks, learning something new, or producing work like writing and code. Three questions is not much, and it is deliberate: the answers that decide a method are the ones you already know, and a forty-item instrument would mostly measure how patient you are. Each answer scores towards Pomodoro, Flowtime or deep work, and the highest score wins.",
+      },
+      {
+        h: "What to do with the result",
+        p: "Run it for a week before judging it. A short-attention, noisy-environment answer points at 25-minute Pomodoro intervals because the break is built in and the interval is short enough to agree to; a long-attention, quiet-environment answer points at 50–90 minute deep blocks where the settling cost is paid once. If the recommendation feels wrong after a week, take the quiz again with the other environment in mind — the method should match the conditions you actually study in, not the ones you wish you had.",
+      },
     ],
+    cta: { href: "/study-method-quiz", label: "Take the 2-minute quiz" },
     related: [
       "/study-techniques|Best study techniques",
       "/study-calculator|Study time calculator",
@@ -738,7 +1055,16 @@ export const ROUTES = [
         h: "What it does",
         p: "The calculator distributes your topics across the days you actually have, front-loads harder material, schedules spaced reviews at expanding intervals, and balances daily load so the plan survives contact with real life.",
       },
+      {
+        h: "What to put in it",
+        p: "The real exam date, not the one you are aiming at; the honest number of hours you can study on a normal weekday and on a weekend day; and the topic list with a rough difficulty judgement for each. Understating your hours is the one error worth making on purpose — a plan built on six hours a day that you only manage three collapses in the first week, and a collapsed plan is worse than a modest one because it also costs you the belief that planning works.",
+      },
+      {
+        h: "Why it schedules reviews",
+        p: "Because the first pass through material is the cheapest part of learning it and the part most students over-invest in. Reviews spaced at expanding intervals — next day, three days, a week, a month — are what convert a topic you have seen into one you can recall under exam conditions, and doing that arithmetic by hand across fifteen topics is why people end up cramming instead. The calculator puts the reviews in the diary so they happen before the forgetting does.",
+      },
     ],
+    cta: { href: "/study-calculator", label: "Build my study plan" },
     related: [
       "/study-method-quiz|Study method quiz",
       "/two-hour-study-method|The 2-hour study method",
@@ -748,9 +1074,9 @@ export const ROUTES = [
   {
     path: "/virtual-study-room",
     lastReviewed: GUIDE_LIBRARY_REVIEWED,
-    title: "Virtual study room: focus with others, free",
+    title: "Virtual Study Room — Study With Strangers | FocusArx",
     description:
-      "Join a free virtual study room and focus with other learners online. Synchronized Pomodoro timers, live presence, 24/7 rooms, cameras optional.",
+      "Join a free virtual study room and study online with strangers. Live 24/7 rooms for JEE, NEET, UPSC & coding — browse free, accountability included.",
     h1: "Virtual study rooms: study with others online",
     lead: "Join a live room, keep your camera on or off, and study in synchronized silence with learners around the world.",
     sections: [
@@ -813,8 +1139,22 @@ export const ROUTES = [
       "Browse and join live FocusArx study rooms — synchronized Pomodoro timers, live presence, and instant accountability. Free, 24/7.",
     h1: "Live study rooms",
     lead: "Browse public rooms, see who's focusing right now, and join in one click — or create a private room for your friends.",
-    sections: [],
-    related: ["/virtual-study-room|About virtual study rooms", "/study-with-me|Study with me guide", "/signup|Start free"],
+    sections: [
+      {
+        h: "What a study room is",
+        p: "A live room is a shared timer with other people attached. Everyone in it runs the same interval at the same time, you can see who is in a session and who is on a break, and there is a chat for the moments between blocks. Nothing is broadcast and no camera is involved unless you turn the optional attention monitor on for yourself — the accountability is the presence of other people working, which is the part that turns out to matter.",
+      },
+      {
+        h: "Why it works",
+        p: "This is body doubling: doing a task alongside someone else makes starting easier and stopping less tempting, and it works even when the other person never speaks to you. It is one of the more reliable interventions for people who can focus in a library and not at home, and for ADHD brains that need external structure rather than internal resolve. A room also gives a session a start time, which removes the negotiation about when to begin.",
+      },
+      {
+        h: "Creating a room",
+        p: "Set a name, an optional topic or exam, the mode (Pomodoro by default), the interval length, an ambience track, a participant cap and whether the room is public or private. Public rooms appear in the browse list; private rooms are reachable by link, which is what you want for a study group or a class. Rooms are free and run around the clock, so there is usually somebody in one at any hour you study.",
+      },
+    ],
+    cta: { href: "/study-rooms", label: "Browse live rooms" },
+    related: ["/virtual-study-room|About virtual study rooms", "/study-with-me|Study with me guide", "/body-doubling|What body doubling is", "/focus|Open the timer"],
   },
   {
     path: "/leaderboard",
@@ -823,7 +1163,17 @@ export const ROUTES = [
       "See who's leading the FocusArx leaderboard — top focus champions ranked by XP, streaks, and total focused time. Updated live.",
     h1: "FocusArx leaderboard",
     lead: "Top focus champions ranked by XP, streaks, and total focused time — updated live.",
-    sections: [],
+    sections: [
+      {
+        h: "How the ranking works",
+        p: "Two boards: This Week, which resets and is the one worth caring about, and All Time. You earn XP for completing focus sessions, for keeping a streak alive and for finishing missions, so the board measures focused work rather than time spent with a tab open. A weekly reset matters — an all-time board is won by whoever started earliest, while a weekly one can be entered by anybody on a Monday.",
+      },
+      {
+        h: "Why a leaderboard helps at all",
+        p: "Comparison is a cheap and honest source of motivation for some people and a source of misery for others, and it is worth knowing which you are. Used well, the board answers a specific question — did I do more than last week — rather than the corrosive one. If it makes you feel behind, ignore it: the streak and your own session history carry the same information without the ranking.",
+      },
+    ],
+    cta: { href: "/focus", label: "Start a session and get on the board" },
     related: relatedFor("/leaderboard", ["/signup|Join and compete", "/achievements|Achievements", "/premium|Premium"], COMPANY_LINKS.slice(0, 6)),
   },
   {
@@ -848,7 +1198,16 @@ export const ROUTES = [
         h: "Why breathe between sessions",
         p: "Breaks that stimulate (scrolling) don't restore attention; breaks that down-regulate arousal do. Slow exhale-weighted breathing shifts you toward the rest-and-digest state, lowering the friction of restarting.",
       },
+      {
+        h: "The three patterns, and when to use each",
+        p: "Box breathing, 4-4-4-4, is the default: inhale four, hold four, exhale four, hold four. It is even and slightly alerting, which makes it the right choice before a block rather than after one. The 4-7-8 pattern — inhale four, hold seven, exhale eight — puts the exhale twice the length of the inhale and is the more sedating of the two, so use it at the end of a session or when the mind will not shut up. The 2-2-2 quick reset is short enough to run between two tasks without losing your place, which makes it the one you will actually use.",
+      },
+      {
+        h: "Getting something out of two minutes",
+        p: "Sit with your feet on the floor and let the exhale be longer than feels natural; the exhale is where the effect lives. Follow the animated guide rather than counting, because counting is a second task and the point is to have no tasks. If two minutes feels pointless, run it twice — the second round is usually where the shoulders drop. Run it before a session to start clean, and after one to stop the next task inheriting the last one's residue.",
+      },
     ],
+    cta: { href: "/breathe", label: "Start the 2-minute reset" },
     related: relatedFor("/breathe", ["/break-free|60-second scroll reset", "/focus-guide|How to focus: complete guide", "/focus-music|Focus music guide", "/guides|All guides"], COMPANY_LINKS.slice(0, 1)),
   },
   {
@@ -858,7 +1217,21 @@ export const ROUTES = [
       "Caught in a scroll spiral? A free 60-second reset that gets you out of the loop and back into your work — no shame, just a protocol.",
     h1: "Break free from the distraction spiral",
     lead: "You're 60 seconds of deliberate action away from ending the scroll loop. No shame — just a protocol that works.",
-    sections: [],
+    sections: [
+      {
+        h: "What this page is",
+        p: "A short protocol for the moment you notice you have been scrolling for forty minutes and cannot seem to stop. It is not an article and it is not a lecture. It runs you through naming the urge, sitting with it rather than fighting it, logging how you actually feel, and making one small pledge you can keep — the whole thing takes about a minute, which is the point, because a long intervention is no use at the moment the loop has hold of you.",
+      },
+      {
+        h: "Why urge surfing rather than willpower",
+        p: "An urge is a wave: it rises, peaks and falls on its own if you do not feed it. Fighting it head-on usually fails because the fight is itself a form of engagement. Urge surfing asks you to notice the pull, describe it, and wait — most urges crest within a few minutes. Pairing that with a mood check-in works because the scroll is usually solving something else: boredom, anxiety, avoidance of a task that feels undefined. Naming the actual feeling gives you a better option than the feed.",
+      },
+      {
+        h: "The streak and the pledge wall",
+        p: "Every time you run the protocol it counts, and the milestones are marked at the intervals where things genuinely change — a week, a month, two months. The pledge wall shows what other people committed to and when, which is a quieter form of accountability than a leaderboard: nobody is ranked, you are just not the only one doing this tonight.",
+      },
+    ],
+    cta: { href: "/break-free", label: "Run the 60-second reset" },
     related: relatedFor("/break-free", ["/stop-scrolling|How to stop scrolling", "/stop-procrastinating|How to stop procrastinating", "/breathe|Breathing reset", "/guides|All guides"], COMPANY_LINKS.slice(0, 1)),
   },
 
@@ -948,7 +1321,7 @@ export const ROUTES = [
       ["How long can a session be?", "The default is 25 minutes. Premium presets allow 10 to 180 minutes for deep-work blocks."],
       ["Do I need an account?", "Only to save sessions, streaks and analytics. The timer runs without one."],
     ],
-    cta: { href: "/signup", label: "Start a free focus session" },
+    cta: { href: "/focus", label: "Start a free focus session" },
     related: ["/pomodoro-timer|Pomodoro timer", "/study-timer|Study timer", "/deep-work-guide|Deep work guide", "/focus-guide|How to focus"],
     lastReviewed: "2026-08-29",
   },
@@ -1002,6 +1375,16 @@ export const ROUTES = [
         h: "Version 1.0 and earlier",
         p: "Apple-style interface pass, prerendered SEO pages with exam guides, server-verified sessions, guest accounts, server-only AI with budgets, and an installable PWA shell.",
       },
+    ],
+    faq: [
+      [
+        "How often does FocusArx ship?",
+        "Most weeks. Reliability fixes go out as they are verified rather than waiting for a batch, and larger features land when the contract tests around them are green. The changelog is written from what merged, not from what was intended, so an entry is a record rather than a promise.",
+      ],
+      [
+        "Why does the changelog look so plain?",
+        "On purpose. Each entry says what changed and who it affects, in one or two sentences, because a changelog is read by people checking whether their bug was fixed. Marketing copy in a changelog is noise at exactly the moment someone is looking for a fact.",
+      ],
     ],
     related: ["/focus|Focus app", "/roadmap|Product roadmap", "/pricing|Pricing"],
     lastReviewed: "2026-09-04",
@@ -1139,7 +1522,23 @@ export const ROUTES = [
       "Short essays on focus, deep work and study science: why 25 minutes works, attention residue, and body doubling.",
     h1: "Blog",
     lead: "Short essays on attention and studying. Each one ends in something you can do today.",
-    sections: BLOG_POSTS.map((p) => ({ h: p.h1, p: p.lead })),
+    sections: [
+      {
+        h: "What this blog is for",
+        p: "One idea per post, argued from a source you can check, and closed with something you can do in the next hour. That constraint is deliberate: a 900-word essay you act on today beats a 4,000-word guide you bookmark and never open. Where a topic needs the long treatment it becomes a guide in the library instead, and the posts link to it.",
+      },
+      ...BLOG_POSTS.map((p) => ({ h: p.h1, p: p.lead })),
+    ],
+    faq: [
+      [
+        "How often do you publish?",
+        "Irregularly, and on purpose. A post goes up when there is a claim worth making and a source behind it, not to a calendar. There is an RSS feed at /feed.xml if you would rather be told than check.",
+      ],
+      [
+        "Are these posts written by an AI?",
+        "They are written and maintained by the people who build the product, and every claim that comes from research names the paper or the book so you can read it yourself. The editorial standards page sets out what we will and will not publish, including the rule against inventing citations.",
+      ],
+    ],
     related: relatedFor("/blog", [...BLOG_POSTS.map((p) => `/blog/${p.slug}|${p.h1}`), "/focus|Focus app"], ALL_GUIDE_LINKS.slice(0, 6), COMPANY_LINKS.slice(0, 1)),
     lastReviewed: "2026-09-05",
   },
@@ -1225,6 +1624,16 @@ export const ROUTES = [
     cta: e.cta,
     related: e.related,
   })),
+
+  // ── Localized editions ────────────────────────────────────────
+  // Ten pages in five markets (India, US, Hindi, Spanish, Brazilian
+  // Portuguese), written in src/content/locale-pages.mjs. They carry two extra
+  // keys the prerenderer consumes: `lang` for <html lang> and `ogLocale` for
+  // og:locale. Everything else — title budget, FAQ schema, byline, citation
+  // registry, content-depth gate — applies to them exactly as it does to the
+  // English pages, which is the point: a localized page is held to the same
+  // standard rather than waved through as "translated".
+  ...localeRouteEntries(),
 ];
 
 // ── Discovery links ──────────────────────────────────────────────────

@@ -149,7 +149,7 @@ export const PLATFORM_FEATURES: FeatureGuideItem[] = [
     icon: Trophy,
     tagline: "Seasonal rewards, daily quests, loot boxes, and cosmetic themes",
     description:
-      "Convert your verified focus minutes into Focus Coins and Tokens. Unlock seasonal battle pass tiers, discover rare cosmetic aura skins, and complete daily quests.",
+      "Convert verified focus minutes into Focus Tokens, which buy Premium. Unlock seasonal battle pass tiers, discover rare cosmetic aura skins, and complete daily quests.",
     howToUse: [
       "Check daily and weekly missions for bonus coin rewards.",
       "Level up the seasonal Battle Pass for exclusive banners and titles.",

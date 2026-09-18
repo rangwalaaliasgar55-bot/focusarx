@@ -21,7 +21,8 @@
 // automatically before falling back to the SPA index.html.
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { clampText, composeTitle, DESCRIPTION_BUDGET, HREFLANG_LOCALES } from "../src/lib/seo-text.mjs";
+import { clampText, composeTitle, DESCRIPTION_BUDGET } from "../src/lib/seo-text.mjs";
+import { clusterFor, SWITCHER_EDITIONS } from "../src/content/locales.mjs";
 import { breadcrumbListSchema, breadcrumbTrail } from "../src/lib/breadcrumbs.mjs";
 import {
   pillarCluster,
@@ -92,28 +93,35 @@ function setCanonical(html, url) {
 }
 
 /**
- * Hreflang cluster for one English edition.
+ * Hreflang cluster for one prerendered route.
  *
- * FocusArx publishes a single English site: there are no locale URL trees, so
- * all four alternates resolve to this page's own canonical. The annotations
- * declare the intended audiences — India first, then the wider English-speaking
- * world — with x-default as the fallback. index.html carries the same four
- * links for the homepage; this rewrites them per prerendered page so no page
- * ever advertises another page's URLs, and scripts/seo-validate.mjs fails the
- * build if the cluster and the canonical disagree.
+ * This used to emit the same URL four times — x-default, en, en-IN and en-GB
+ * all resolving to the page itself — which declares an intent to serve four
+ * audiences while serving all four the same American-English document. Google
+ * ignores a cluster whose alternates are identical, so those three extra lines
+ * were decoration. The clusters now come from src/content/locales.mjs, which
+ * knows which editions actually wrote which page, and every href is resolved
+ * against BASE_URL so an alternate is always a real, indexable URL.
+ * scripts/seo-validate.mjs fails the build on a cluster that is not
+ * reciprocal, that lists a URL this build did not prerender, or whose
+ * x-default does not match the English canonical.
+ *
+ * @param {string} routePath — canonical route path, e.g. "/" or "/in/pricing"
  */
-
-function hreflangLinks(url) {
-  return HREFLANG_LOCALES.map(
-    (locale) => `<link rel="alternate" hreflang="${locale}" href="${escapeHtml(url)}" />`,
-  ).join("\n    ");
+function hreflangLinks(routePath) {
+  return clusterFor(routePath)
+    .map(
+      (alt) =>
+        `<link rel="alternate" hreflang="${escapeHtml(alt.locale)}" href="${escapeHtml(`${BASE_URL}${alt.href === "/" ? "/" : alt.href}`)}" />`,
+    )
+    .join("\n    ");
 }
 
-function setHreflang(html, url) {
+function setHreflang(html, routePath) {
   // Replace the whole existing cluster in one pass: matching the first
-  // alternate and appending would leave the previous page's three behind.
+  // alternate and appending would leave the previous page's alternates behind.
   const cluster = /(?:\s*<link\s+[^>]*rel=["']alternate["'][^>]*hreflang=["'][^"']*["'][^>]*>)+/i;
-  return replaceTag(html, cluster, `\n    ${hreflangLinks(url)}`);
+  return replaceTag(html, cluster, `\n    ${hreflangLinks(routePath)}`);
 }
 
 function stripHreflang(html) {
@@ -224,6 +232,9 @@ function articleSchema(entry, url) {
     },
     ...(entry.date ? { datePublished: entry.date } : {}),
     ...(modified ? { dateModified: modified } : {}),
+    // Declared so a search engine does not have to guess the language of a
+    // localized edition from its bytes.
+    ...(entry.lang ? { inLanguage: entry.lang } : {}),
     mainEntityOfPage: url,
   };
 }
@@ -248,6 +259,10 @@ function softwareApplicationSchema(entry, url) {
     applicationCategory: entry.software.category,
     operatingSystem: "Web",
     url,
+    // Declared on localized editions so a search engine does not have to infer
+    // the language from the bytes. Absent on English pages, where the
+    // site-wide WebSite block already says en-US.
+    ...(entry.lang ? { inLanguage: entry.lang } : {}),
     description: entry.software.description,
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
     // No aggregateRating. Google's review-snippet policy bars self-serving
@@ -280,6 +295,12 @@ const SHELL_CSS = `
 html.fa-js .fa-seo,html.fa-js .fa-noscript{display:none}
 html:not(.fa-js){color-scheme:dark}
 html:not(.fa-js) body{background:#0b0d13}
+.fa-editions{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:0 0 22px;padding:10px 12px;border:1px solid rgba(167,139,250,.28);border-radius:10px;background:rgba(167,139,250,.06)}
+.fa-editions-label{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:#9aa2b4}
+.fa-editions ul{display:flex;flex-wrap:wrap;gap:6px 8px;margin:0;padding:0;list-style:none}
+.fa-edition{font-size:13px;padding:3px 9px;border-radius:999px;border:1px solid rgba(167,139,250,.3);color:#d7d2f5;text-decoration:none}
+.fa-edition:hover{background:rgba(167,139,250,.18)}
+.fa-edition-current{background:#a78bfa;color:#150f24;border-color:#a78bfa;font-weight:600}
 .fa-seo{max-width:760px;margin:0 auto;padding:72px 24px 96px;color:#e7e9ee;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.65}
 .fa-seo *{margin:0;padding:0;box-sizing:border-box}
 .fa-seo .badge{display:inline-block;border:1px solid rgba(124,58,237,.35);background:rgba(124,58,237,.12);color:#a78bfa;border-radius:999px;padding:4px 12px;font-size:12px;font-weight:600;margin-bottom:20px}
@@ -327,6 +348,17 @@ html:not(.fa-js) body{background:#0b0d13}
 .fa-seo .toc ol{list-style:none;display:grid;gap:4px}
 .fa-seo .toc a{font-size:14px;text-decoration:none}
 .fa-seo h2{scroll-margin-top:24px}
+.fa-seo table.compare{width:100%;border-collapse:collapse;margin:10px 0 18px;font-size:14px;color:#b9bdca}
+.fa-seo table.compare caption{caption-side:top;text-align:left;font-size:13px;color:#8b90a0;padding-bottom:10px}
+.fa-seo table.compare th,.fa-seo table.compare td{border:1px solid rgba(255,255,255,.09);padding:10px 12px;text-align:left;vertical-align:top}
+.fa-seo table.compare thead th{background:rgba(255,255,255,.04);font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#e7e9ee}
+.fa-seo table.compare thead th.col{text-align:center}
+.fa-seo table.compare tbody th[scope=row]{font-weight:600;color:#e7e9ee}
+.fa-seo table.compare td{text-align:center}
+.fa-seo table.compare .yes{color:#4ade80;font-weight:600}
+.fa-seo table.compare .no{color:#8b90a0}
+.fa-seo ul.ticks{list-style:none;display:grid;gap:6px;margin:10px 0 18px;color:#b9bdca;font-size:15px}
+.fa-seo ul.ticks li:before{content:"✓";color:#a78bfa;margin-right:8px}
 .fa-seo .cta{display:inline-block;margin-top:40px;background:linear-gradient(90deg,#7c3aed,#4f46e5);color:#fff;font-weight:700;padding:13px 24px;border-radius:12px;text-decoration:none}
 .fa-noscript{max-width:760px;margin:0 auto;padding:16px 24px;color:#8b90a0;font-size:14px}
 `;
@@ -559,12 +591,22 @@ function staticLandmark(inner) {
 }
 
 function renderBody(entry) {
+  // Which edition owns this route, for the switcher's aria-current. Compared
+  // on the canonical (slash-stripped) path, matching src/content/locales.mjs.
+  const routeSlash = entry.path === "" ? "/" : `/${String(entry.path).replace(/^\/+/, "").replace(/\/+$/, "")}`;
+  const currentEditionPath =
+    SWITCHER_EDITIONS.find((ed) => {
+      const prefix = ed.path.replace(/\/$/, "");
+      return prefix === "" ? routeSlash === "/" : routeSlash === prefix || routeSlash.startsWith(`${prefix}/`);
+    })?.path ?? "/";
+
   // Heading anchors: the table of contents below and the ids on these h2s come
   // from one slugger (src/lib/heading-id.mjs) that components/ContentTOC.tsx
   // also uses, so a jump link in the static HTML and the heading the hydrated
   // page renders always match.
   const tocHeadings = [
     entry.howTo ? entry.howTo.name : null,
+    entry.table ? entry.table.heading : null,
     ...(entry.sections || []).map((s) => s.h),
     entry.faq?.length ? "Frequently asked questions" : null,
   ].filter(Boolean);
@@ -612,6 +654,10 @@ function renderBody(entry) {
       const paras = (Array.isArray(s.p) ? s.p : [s.p])
         .map((p) => `<p>${escapeHtml(p)}</p>`)
         .join("\n");
+      // A section can carry a bullet list as well as its prose. The comparison
+      // pages render "what each side is good at" as lists on screen; without
+      // this the prerendered document dropped them and a crawler saw a page
+      // that was a third the length of the one a visitor reads.
       const id = anchorFor.get(s.h);
       return `<h2${id ? ` id="${escapeHtml(id)}"` : ""}>${escapeHtml(s.h)}</h2>${paras}${bulletList(s.bullets)}`;
     })
@@ -702,8 +748,34 @@ function renderBody(entry) {
         .join("")}</ul></div>`
     : "";
 
-  const cta = entry.cta || { href: "/signup", label: "Start focusing free" };
-  return `<div class="fa-seo">${breadcrumbsBlock}<span class="badge">${SITE_NAME}</span><h1>${escapeHtml(entry.h1)}</h1><p class="lead">${escapeHtml(entry.lead)}</p>${bylineBlock(entry)}${answerBlock}${tableBlock}${tocBlock}${stepsBlock}${sections}${faqBlock}${sourcesBlock}${relatedBlock}${clusterBlock}<a class="cta" href="${escapeHtml(cta.href)}">${escapeHtml(cta.label)}</a></div>`;
+  // The default CTA points at the timer, not the signup form. `/focus` is public
+  // and guest-first (see the route comment in App.tsx), so a page whose closing
+  // call to action reads "start focusing" can mean it. Defaulting to /signup put
+  // an account form between 80-odd pages — the comparison, exam, funnel and
+  // guide pages included — and the one thing those pages were trying to trigger,
+  // which is the leak behind a landing-to-timer rate under 1%.
+  const cta = entry.cta || { href: "/focus", label: "Start a focus session — free" };
+  // Edition switcher — rendered on EVERY prerendered page, English and
+  // localized alike. Two jobs: a human landing on any page can get to their
+  // own language or market in one click, and a crawler following links
+  // discovers all five editions from every page rather than only from the
+  // sitemap. The current edition is marked aria-current and is not a link, so
+  // the switcher never points a page at itself.
+  const editionNav = `<nav class="fa-editions" aria-label="Choose your country or language"><span class="fa-editions-label">Edition</span><ul>${SWITCHER_EDITIONS.map(
+    (ed) => {
+      const isCurrent = ed.path === currentEditionPath;
+      // No fragment: the internal-link gate (and every crawler) reads the href
+      // as written, and "/es/#top" does not match the canonical "/es".
+      const href = ed.path;
+      return `<li>${
+        isCurrent
+          ? `<span class="fa-edition fa-edition-current" aria-current="true">${escapeHtml(ed.label)}</span>`
+          : `<a class="fa-edition" href="${escapeHtml(href)}" hreflang="${escapeHtml(ed.hreflang)}" lang="${escapeHtml(ed.hreflang)}">${escapeHtml(ed.label)}</a>`
+      }</li>`;
+    },
+  ).join("")}</ul></nav>`;
+
+  return `<div class="fa-seo">${breadcrumbsBlock}<span class="badge">${SITE_NAME}</span>${editionNav}<h1>${escapeHtml(entry.h1)}</h1><p class="lead">${escapeHtml(entry.lead)}</p>${bylineBlock(entry)}${answerBlock}${tocBlock}${stepsBlock}${tableBlock}${sections}${faqBlock}${sourcesBlock}${relatedBlock}${clusterBlock}<a class="cta" href="${escapeHtml(cta.href)}">${escapeHtml(cta.label)}</a></div>`;
 }
 
 // ── main ───────────────────────────────────────────────────────────
@@ -735,6 +807,19 @@ function main() {
     const robotsMeta = entry.noindex === true ? "noindex, nofollow" : robotsMetaFor(routePath, robotsGroups);
     html = setMeta(html, "name", "robots", robotsMeta);
 
+    // Document language. Every English page is "en"; a localized edition
+    // declares its own BCP-47 tag, which is what makes a browser offer the
+    // right fonts and a screen reader the right pronunciation — and what
+    // tells Google the page is genuinely in that language rather than an
+    // English page wearing a language attribute.
+    const docLang = entry.lang || "en";
+    if (docLang !== "en") {
+      html = html.replace(/(<html[^>]*\slang=")en(")/i, `$1${escapeHtml(docLang)}$2`);
+    }
+
+    // Open Graph locale, for the same reason.
+    if (entry.ogLocale) html = setMeta(html, "property", "og:locale", entry.ogLocale);
+
     // Title & description
     html = replaceTag(html, /<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(fullTitle)}</title>`);
     html = setMeta(html, "name", "description", metaDescription);
@@ -745,7 +830,7 @@ function main() {
     // page carrying a noindex — whether the manifest asked for it (/search) or
     // robots.txt implies it (/premium, /achievements) — drops the cluster
     // instead of advertising four languages of a page Google will not index.
-    html = /noindex/i.test(robotsMeta) ? stripHreflang(html) : setHreflang(html, url);
+    html = /noindex/i.test(robotsMeta) ? stripHreflang(html) : setHreflang(html, routePath);
     html = setMeta(html, "property", "og:url", url);
     html = setMeta(html, "property", "og:title", fullTitle);
     html = setMeta(html, "property", "og:description", metaDescription);
@@ -777,18 +862,43 @@ function main() {
     // route's own block, then drop the homepage-only globals.
     html = stripPrerenderedSchemas(html);
     if (entry.path !== "") html = stripHomepageOnlySchemas(html);
-    html = html.replace("</head>", `  ${LD_MARKER}\n  ${ld}\n</head>`);
+    // The homepage is the one route that keeps the inherited blocks, which
+    // meant it shipped TWO FAQPage entities once the manifest grew its own FAQ
+    // array: the one hard-coded in index.html and the one generated here from
+    // `entry.faq`. Two FAQPage blocks on a document is a duplicate entity and
+    // Google picks one arbitrarily. Drop the inherited FAQPage whenever this
+    // route generates its own; ItemList is left alone because nothing else
+    // emits it.
+    if (entry.path === "" && entry.faq?.length) {
+      html = html.replace(
+        /<script type="application\/ld\+json">[\s\S]*?<\/script>\s*/g,
+        (block) => (/"@type":\s*"FAQPage"/.test(block) ? "" : block),
+      );
+    }
 
-    // Static body content injected into #root (replaced on React mount).
-    //
-    // This has to be idempotent. `TEMPLATE` is dist/public/index.html, and "/"
-    // is itself one of the ROUTES — so a second consecutive `node
-    // scripts/prerender.mjs` (no `vite build` in between) reads a template that
-    // already carries "/"'s prerendered shell. The old pattern only matched an
-    // EMPTY `<div id="root"></div>`, so on that second run the substitution
-    // silently did nothing and every route kept the homepage's body: correct
-    // <title>, correct canonical, wrong page. `build` always runs vite build
-    // first, which is why it never showed up there.
+    // The site-wide blocks inherited from index.html are written for the
+    // English homepage: WebSite declares inLanguage "en-US" and there is a
+    // site-level SoftwareApplication. On a localized edition both are wrong —
+    // a document that says <html lang="es"> while its WebSite schema says
+    // en-US is a signal conflict, and two SoftwareApplication blocks on one
+    // page is a duplicate entity. Drop the inherited SoftwareApplication when
+    // this route emits its own, and rewrite WebSite's language to match.
+    if (entry.software) {
+      html = html.replace(
+        /<script type="application\/ld\+json">[\s\S]*?<\/script>\s*/g,
+        (block) => (/"@type":\s*"SoftwareApplication"/.test(block) && !block.includes("<!-- Route-scoped") ? "" : block),
+      );
+    }
+    if (docLang !== "en") {
+      html = html.replace(
+        /(<script type="application\/ld\+json">[\s\S]*?"@type":\s*"WebSite"[\s\S]*?<\/script>)/,
+        (block) => block.replace(/"inLanguage":\s*"[^"]*"/, `"inLanguage":${JSON.stringify(docLang)}`),
+      );
+    }
+
+    html = html.replace("</head>", `  <!-- Route-scoped structured data (prerendered) -->\n  ${ld}\n</head>`);
+
+    // Static body content injected into #root (replaced on React mount)
     const body = renderBody(entry);
     const shell = `<div id="root">${staticLandmark(body)}</div>`;
     const existingShell = /<div id="root">\s*<main id="main-content"[\s\S]*?<\/main>\s*<\/div>/i;

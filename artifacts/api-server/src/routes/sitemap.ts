@@ -96,7 +96,16 @@ const ABOUT_REVIEWED = "2026-09-11"; // src/content/seo-pages.mjs — editorial 
 const ADHD_GUIDE_REVIEWED = "2026-09-11"; // /adhd-focus-tips, rebuilt around its sources
 const EXAM_CLUSTER_REVIEWED = "2026-09-05"; // src/content/exam/derive.mjs
 const COMPARISONS_REVIEWED = "2026-09-06"; // src/content/seo-pages.mjs
-const BLOG_REVIEWED = "2026-09-05"; // src/content/blog.mjs post dates
+/**
+ * The blog's lastmod: the date of its newest post.
+ *
+ * It was pinned at 2026-09-05 while three posts dated 2026-09-18 sat in the
+ * same sitemap, so every crawler was told the blog had not changed since a
+ * fortnight before its newest article. `seoContract.test.ts` asserts this
+ * equals the newest `date` in `blog.mjs`, so adding a post cannot leave the
+ * blog claiming to be older than it is.
+ */
+const BLOG_REVIEWED = "2026-09-18"; // = newest post date in src/content/blog.mjs
 const APP_PAGES_REVIEWED = "2026-09-04"; // /focus and /changelog
 
 /**
@@ -117,6 +126,9 @@ const SEGMENT_LASTMOD: Record<string, string | undefined> = {
   "sitemap-compare.xml": COMPARISONS_REVIEWED,
   "sitemap-trust.xml": SEO_CONTENT_REVIEWED,
   "sitemap-legal.xml": undefined,
+  // The five localized editions were written on this date, not translated at
+  // build time — see artifacts/focusarx/src/content/locale-pages.mjs.
+  "sitemap-locales.xml": "2026-09-18",
 };
 
 /** Pages whose review date differs from their segment's — or whose segment has none. */
@@ -319,13 +331,55 @@ const COMPARE_PAGES: Page[] = COMPARISON_SLUGS.map<Page>((slug) => ({
 
 /**
  * Blog. Mirrors `BLOG_POSTS` slugs in
- * `artifacts/focusarx/src/content/blog.mjs` (asserted by routeContract).
+ * `artifacts/focusarx/src/content/blog.mjs`.
+ *
+ * This comment used to claim the mirror was "asserted by routeContract". No
+ * such assertion existed — nothing in the api-server read `blog.mjs` at all —
+ * and the promise went unkept exactly as you would expect: three posts were
+ * added to the blog and not to this list, so they were prerendered, linked and
+ * installable while being absent from the sitemap, leaving discovery to
+ * internal links alone. `seoContract.test.ts` now really does assert it, in
+ * both directions: a slug here with no post is a sitemap entry pointing at a
+ * 404, and a post with no entry is a page no crawler is told about.
  */
-const BLOG_SLUGS = [
+export const BLOG_SLUGS = [
   "why-25-minutes-works",
   "attention-residue-task-switching",
   "body-doubling-study-accountability",
+  "pomodoro-timer-online-free-25-5",
+  "study-timer-for-exam-prep",
+  "focus-timer-for-deep-work",
 ];
+
+/**
+ * Each post's own date, mirroring `date:` in `src/content/blog.mjs`.
+ *
+ * The blog segment had ONE date for all of it, so every post advertised the
+ * newest post's lastmod: the three older essays were dated 2026-09-18 in the
+ * sitemap while the page itself said 2026-09-05, and the three new ones were
+ * dated 2026-09-05 while saying 2026-09-18. A `<lastmod>` that contradicts the
+ * visible "Last updated" is a signal crawlers learn to distrust.
+ *
+ * `seoContract.test.ts` asserts this map against `blog.mjs` per slug, so a new
+ * post cannot arrive without its date and an edited date cannot be forgotten.
+ */
+export const BLOG_POST_DATES: Record<string, string> = {
+  "why-25-minutes-works": "2026-09-05",
+  "attention-residue-task-switching": "2026-09-05",
+  "body-doubling-study-accountability": "2026-09-05",
+  "pomodoro-timer-online-free-25-5": "2026-09-18",
+  "study-timer-for-exam-prep": "2026-09-18",
+  "focus-timer-for-deep-work": "2026-09-18",
+};
+
+// The per-post dates feed the same lastmod lookup everything else uses. Kept
+// here, after the map is built, because `PAGE_LASTMOD` is a module-level const
+// and reading `BLOG_POST_DATES` before its declaration would throw at import.
+for (const [slug, date] of Object.entries(BLOG_POST_DATES)) {
+  PAGE_LASTMOD[`/blog/${slug}`] = date;
+}
+// The blog index carries its own review date, not its newest post's.
+PAGE_LASTMOD["/blog"] = "2026-09-05";
 
 const BLOG_PAGES: Page[] = [
   { url: "/blog", changefreq: "weekly", priority: "0.8" },
@@ -350,6 +404,37 @@ const FUNNEL_PAGES: Page[] = FUNNEL_SLUGS.map<Page>((slug) => ({
   priority: "0.8",
 }));
 
+/**
+ * Localized editions — the same product written for five markets.
+ *
+ * These are real documents, not query-parameter variants: /in and /us are
+ * English pages about different exam systems (21 of the 23 guides under
+ * artifacts/focusarx/src/content/exam/ are Indian exams; the two US exams
+ * covered are GRE and GMAT), and /hi, /es and /pt-br are written in those
+ * languages. Each declares a reciprocal hreflang cluster with the English page
+ * it sits beside, which artifacts/focusarx/scripts/seo-validate.mjs enforces at
+ * build time — a one-way cluster is dropped by Google and reads as a duplicate.
+ *
+ * No trailing slashes, even on the edition homepages: the prerender manifest,
+ * the <Route> table in App.tsx and the canonical in the emitted HTML all use
+ * the slash-free form ("/in"), and vercel.json's trailingSlash:false serves
+ * exactly that. A sitemap entry written "/in/" would 308-redirect to the
+ * canonical — a redirect in the sitemap is a wasted crawl, and the contract
+ * test compares these strings against the routes and the manifest.
+ */
+const LOCALE_PAGES: Page[] = [
+  { url: "/in", changefreq: "monthly", priority: "0.9" },
+  { url: "/in/pricing", changefreq: "monthly", priority: "0.7" },
+  { url: "/us", changefreq: "monthly", priority: "0.9" },
+  { url: "/us/pricing", changefreq: "monthly", priority: "0.7" },
+  { url: "/hi", changefreq: "monthly", priority: "0.8" },
+  { url: "/hi/pricing", changefreq: "monthly", priority: "0.6" },
+  { url: "/es", changefreq: "monthly", priority: "0.8" },
+  { url: "/es/pricing", changefreq: "monthly", priority: "0.6" },
+  { url: "/pt-br", changefreq: "monthly", priority: "0.8" },
+  { url: "/pt-br/pricing", changefreq: "monthly", priority: "0.6" },
+];
+
 const LEGAL_PAGES: Page[] = [
   { url: "/privacy", changefreq: "yearly", priority: "0.3" },
   { url: "/terms", changefreq: "yearly", priority: "0.3" },
@@ -371,6 +456,7 @@ const SEGMENTS = [
   { file: "sitemap-exams.xml", pages: EXAM_PAGES },
   { file: "sitemap-compare.xml", pages: COMPARE_PAGES },
   { file: "sitemap-trust.xml", pages: TRUST_PAGES },
+  { file: "sitemap-locales.xml", pages: LOCALE_PAGES },
   { file: "sitemap-legal.xml", pages: LEGAL_PAGES },
 ] as const;
 
@@ -608,4 +694,4 @@ router.get("/robots.txt", (_req, res) => {
 });
 
 export { router as sitemapRouter };
-export { EXAM_SLUGS, SEGMENTS };
+export { BLOG_REVIEWED, EXAM_SLUGS, SEGMENTS };

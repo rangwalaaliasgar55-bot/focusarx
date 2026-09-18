@@ -29,6 +29,13 @@ const HUB_LABELS = {
   "pomodoro-timer-for": "Pomodoro timers",
   guides: "Guides",
   focus: "Focus",
+  // Edition prefixes, so a localized page's trail reads "Home › India" rather
+  // than "Home › In" — segmentLabel() would otherwise sentence-case the slug.
+  in: "India",
+  us: "United States",
+  hi: "हिन्दी",
+  es: "Español",
+  "pt-br": "Português",
 };
 
 /** "jee-main" → "Jee main"; hub segments get their real label instead. */

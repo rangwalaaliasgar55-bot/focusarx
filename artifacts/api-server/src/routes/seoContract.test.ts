@@ -3,7 +3,7 @@ import fs from "node:fs";
 import { readAppRouteTable } from "../lib/appRouteTable.js";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { SEGMENTS, lastmodFor } from "./sitemap";
+import { BLOG_POST_DATES, BLOG_REVIEWED, BLOG_SLUGS, SEGMENTS, lastmodFor } from "./sitemap";
 
 /**
  * SEO contract guard — the four places a public URL must agree.
@@ -39,6 +39,7 @@ const PRERENDER_MJS = path.join(FRONTEND, "scripts/prerender-data.mjs");
 const ROBOTS = path.join(FRONTEND, "public/robots.txt");
 const STATIC_SITEMAP = path.join(FRONTEND, "public/sitemap.xml");
 const SEO_PAGES_MJS = path.join(FRONTEND, "src/content/seo-pages.mjs");
+const BLOG_MJS = path.join(FRONTEND, "src/content/blog.mjs");
 
 /** Every URL in the static (non-profile) sitemap segments. */
 function sitemapUrls(): Set<string> {
@@ -615,5 +616,59 @@ describe("sitemap lastmod: real review dates, mirrored from the prerender manife
       }
     }
     expect(future, `lastmod dates in the future: ${future.join(", ")}`).toEqual([]);
+  });
+});
+
+
+/**
+ * The sitemap's blog list is a hand-maintained mirror of `blog.mjs`.
+ *
+ * `BLOG_SLUGS` carried a comment claiming it was "asserted by routeContract"
+ * while nothing in this package read `blog.mjs` at all. The three posts added
+ * with the SEO push went into the blog and not into the list, so they were
+ * prerendered and internally linked but absent from the sitemap — the silent
+ * failure this whole file exists to prevent. The assertion is now real, and it
+ * checks both directions, because the two mistakes are different:
+ *
+ *   - a slug in `BLOG_SLUGS` with no post → the sitemap advertises a 404;
+ *   - a post with no slug → the page is invisible to a crawler that has not
+ *     already found it through an internal link.
+ */
+describe("the sitemap's blog list matches the posts that exist", () => {
+  const source = fs.readFileSync(BLOG_MJS, "utf8");
+  const postSlugs = [...source.matchAll(/^\s*slug:\s*"([^"]+)"/gm)].map((m) => m[1]!);
+
+  it("found the posts, so the check cannot pass by scanning nothing", () => {
+    expect(postSlugs.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it("lists every post", () => {
+    const missing = postSlugs.filter((slug) => !BLOG_SLUGS.includes(slug));
+    expect(missing, "posts missing from the sitemap's BLOG_SLUGS").toEqual([]);
+  });
+
+  it("lists nothing that is not a post", () => {
+    const extra = BLOG_SLUGS.filter((slug) => !postSlugs.includes(slug));
+    expect(extra, "BLOG_SLUGS entries that have no post").toEqual([]);
+  });
+
+  it("dates every post with its own date, not the blog's newest", () => {
+    // The segment used one date for all six posts, so the older essays
+    // advertised a lastmod two weeks newer than their own visible date.
+    const dated = [...source.matchAll(/^\s*slug:\s*"([^"]+)"[\s\S]{0,600}?date:\s*"(\d{4}-\d{2}-\d{2})"/gm)];
+    expect(dated.length).toBeGreaterThanOrEqual(6);
+    for (const [, slug, date] of dated) {
+      expect(BLOG_POST_DATES[slug!], `${slug} is missing a date`).toBe(date);
+      expect(lastmodFor(`/blog/${slug}`)).toBe(date);
+    }
+  });
+
+  it("dates the blog sitemap as of its newest post", () => {
+    // A stale lastmod tells a crawler the blog has not changed, which is how a
+    // fortnight-old timestamp survived three newer posts sitting beside it.
+    const dates = [...source.matchAll(/^\s*date:\s*"(\d{4}-\d{2}-\d{2})"/gm)].map((m) => m[1]!);
+    expect(dates.length).toBeGreaterThanOrEqual(6);
+    const newest = [...dates].sort().at(-1)!;
+    expect(BLOG_REVIEWED).toBe(newest);
   });
 });

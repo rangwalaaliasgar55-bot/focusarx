@@ -100,7 +100,19 @@ export type AnalyticsEvent =
   | { event: "quest_completed"; properties: { quest_id: string; period: string; token_reward: number } }
   | { event: "focus_city_mode_changed"; properties: { mode: string; is_premium: boolean } }
   | { event: "timer_ritual_used"; properties: { preset: string; duration: number; is_premium: boolean } }
-  | { event: "token_ledger_viewed"; properties: { limit: number } };
+  | { event: "token_ledger_viewed"; properties: { limit: number } }
+  // ── International editions ────────────────────────────────────────
+  // The five localized editions (/in, /us, /hi, /es, /pt-br) are only worth
+  // maintaining if someone can say which markets they reach. `edition` is the
+  // key from src/content/locales.mjs, not a free string, so a dashboard cannot
+  // silently split one market into "hi", "hi-IN" and "hindi".
+  | { event: "edition_page_view"; properties: { edition: string; variant: string } }
+  | { event: "edition_switcher_click"; properties: { from_edition: string; to_edition: string } }
+  // The one CTA event the growth audit asked for and the union did not have.
+  // `placement` distinguishes the edition switcher, a page's closing button and
+  // a related-links block, which is what makes the landing-to-timer rate
+  // attributable to a specific button rather than a guess.
+  | { event: "cta_click"; properties: { placement: string; href: string; edition?: string } };
 
 // ─── Tracker Implementation ───────────────────────────────────────────────────
 

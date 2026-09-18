@@ -73,7 +73,12 @@ function MarketingNav() {
             {theme === "dark" ? <Sun /> : <Moon />}
           </Button>
           <Button asChild variant="ghost"><Link href="/login">Sign in</Link></Button>
-          <Button asChild><Link href="/signup">Start focusing <ArrowRight /></Link></Button>
+          {/* Points at the timer, not the signup form. /focus is public and
+              guest-first (see the route comment in App.tsx), so the promise on
+              the button — "start focusing" — is one click true. Sending this to
+              /signup asked for an account before showing the product, which is
+              the leak behind the 0.2-0.7% landing-to-timer rate. */}
+          <Button asChild><Link href="/focus">Start focusing <ArrowRight /></Link></Button>
         </div>
         <div className="flex items-center gap-1 md:hidden">
           <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
@@ -89,7 +94,7 @@ function MarketingNav() {
             <a href="#features" onClick={() => setOpen(false)} className="flex min-h-11 items-center rounded-lg px-3 text-sm">Features</a>
             <Link href="/guides" className="flex min-h-11 items-center rounded-lg px-3 text-sm">Study guides</Link>
             <Link href="/pricing" className="flex min-h-11 items-center rounded-lg px-3 text-sm">Pricing</Link>
-            <div className="mt-3 grid grid-cols-2 gap-2"><Button asChild variant="outline"><Link href="/login">Sign in</Link></Button><Button asChild><Link href="/signup">Get started</Link></Button></div>
+            <div className="mt-3 grid grid-cols-2 gap-2"><Button asChild variant="outline"><Link href="/login">Sign in</Link></Button><Button asChild><Link href="/focus">Get started</Link></Button></div>
           </div>
         </div>
       )}
@@ -185,7 +190,7 @@ export default function LandingPage() {
               Pomodoro sessions, AI coaching, and streaks that keep you focused — free, no credit card required.
             </motion.p>
             <motion.div {...entrance} className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Button asChild size="xl"><Link href="/signup">Start Focusing Free <ArrowRight /></Link></Button>
+              <Button asChild size="xl"><Link href="/focus">Start Focusing Free <ArrowRight /></Link></Button>
               <Button asChild size="xl" variant="outline"><a href="#product">See how it works <ChevronRight /></a></Button>
             </motion.div>
             <motion.p {...entrance} className="mt-3 text-xs text-[var(--foreground-subtle)]">
@@ -396,8 +401,8 @@ export default function LandingPage() {
           <Reveal className="texture-grain mx-auto max-w-5xl overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--card-border)] bg-[radial-gradient(circle_at_50%_0%,var(--brand-soft-hover),transparent_65%)] px-6 py-16 text-center shadow-[var(--shadow-violet-md)] sm:px-12 sm:py-20">
             <span className="mx-auto grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] bg-[var(--brand-soft)] text-[var(--brand-strong)]"><Clock3 /></span>
             <h2 className="mx-auto mt-6 max-w-2xl text-balance text-3xl font-semibold tracking-[-0.04em] sm:text-5xl">Your next focused hour starts now.</h2>
-            <p className="mx-auto mt-5 max-w-xl text-base text-[var(--foreground-muted)]">Create a free account, choose one task, and begin with a single focus block. No credit card required.</p>
-            <Button asChild size="xl" className="mt-8"><Link href="/signup">Start Focusing Free <ArrowRight /></Link></Button>
+            <p className="mx-auto mt-5 max-w-xl text-base text-[var(--foreground-muted)]">Choose one task and begin with a single focus block. No account and no credit card required — save your streak later if you want to.</p>
+            <Button asChild size="xl" className="mt-8"><Link href="/focus">Start Focusing Free <ArrowRight /></Link></Button>
             <p className="mt-4 text-xs text-[var(--foreground-subtle)]">Free forever — Premium activated with coins you earn by focusing</p>
           </Reveal>
         </section>
