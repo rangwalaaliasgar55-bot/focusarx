@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Trophy, Flame, Crown, Medal, RefreshCw, Shield, Users } from "lucide-react";
 import { getToken } from "@/lib/auth";
+import { useNow } from "@/hooks/useNow";
 import { PageTransition } from "@/components/PageTransition";
 import { TiltCard } from "@/components/TiltCard";
 import { ErrorState } from "@/components/ErrorState";
@@ -38,6 +39,9 @@ function getAvatarGradient(name: string) {
 }
 
 function NameBadges({ entry }: { entry: LeaderboardEntry }) {
+  // Only admins get an inline badge; the premium crown is rendered by each
+  // row, because it needs different sizing in the podium.
+  if (!entry.isAdmin) return null;
   return (
     <>
       {entry.isAdmin && (
@@ -55,27 +59,59 @@ const RANK_META = {
   3: { crown: "var(--palette-cd7f32)", glow: "var(--rgba-205-127-50-0_25)", bg: "from-[var(--rgba-205-127-50-0_1)] to-[var(--rgba-205-127-50-0_02)]", border: "var(--rgba-205-127-50-0_22)", height: "h-20" },
 };
 
-function getMsUntilMonday(): number {
-  const now = new Date();
-  const day = now.getDay(); // 0=Sun, 1=Mon
-  const daysUntilMon = day === 0 ? 1 : 8 - day;
-  const nextMon = new Date(now);
-  nextMon.setDate(now.getDate() + daysUntilMon);
-  nextMon.setHours(0, 0, 0, 0);
-  return nextMon.getTime() - now.getTime();
+/**
+ * Milliseconds until the weekly board resets.
+ *
+ * Weekly XP is server-owned and resets on Monday, so this is a display of a
+ * boundary that already exists rather than a timer we control.
+ */
+export function msUntilWeeklyReset(now: number): number {
+  const date = new Date(now);
+  const day = date.getDay(); // 0 = Sun, 1 = Mon
+  const daysUntilMonday = day === 0 ? 1 : 8 - day;
+  const next = new Date(date);
+  next.setDate(date.getDate() + daysUntilMonday);
+  next.setHours(0, 0, 0, 0);
+  return Math.max(0, next.getTime() - now);
 }
 
-function useCountdown(targetMs: number) {
-  const [remaining, setRemaining] = useState(targetMs);
-  useEffect(() => {
-    const id = setInterval(() => setRemaining((r) => Math.max(0, r - 1000)), 1000);
-    return () => clearInterval(id);
-  }, []);
-  const h = Math.floor(remaining / 3600000);
-  const m = Math.floor((remaining % 3600000) / 60000);
-  const d = Math.floor(remaining / 86400000);
-  if (d > 0) return `${d}d ${h % 24}h`;
-  return `${h}h ${m}m`;
+/** "2d 5h" / "13h 20m" — coarser as the interval grows, so the string is stable
+ * enough to read rather than a digit flickering every second. */
+export function formatCountdown(remainingMs: number): string {
+  if (!Number.isFinite(remainingMs) || remainingMs <= 0) return "resetting now";
+  const totalMinutes = Math.floor(remainingMs / 60_000);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  if (days > 0) return `${days}d ${hours}h`;
+  return `${hours}h ${minutes}m`;
+}
+
+/**
+ * The reset chip, subscribing to the shared 1 Hz clock.
+ *
+ * This used to be a page-local `setInterval` writing to page state, so every
+ * second re-rendered the entire board — the podium, all 200 rows and their
+ * framer-motion wrappers — to update four characters. `useNow` serves every
+ * live clock in the app from one interval, and putting the subscription in a
+ * child means a tick re-renders the chip, not the page.
+ */
+function WeeklyResetChip() {
+  const now = useNow();
+  return (
+    <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--rgba-6-214-160-0_2)] bg-[var(--rgba-6-214-160-0_06)] px-3 py-1">
+      <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--brand-teal)]">Weekly reset</span>
+      {/*
+        `useNow` is null during the prerender, because the build has no clock
+        and no business baking a countdown into static HTML that would be stale
+        the moment it was served. The chip renders with a dash and fills in on
+        hydration — the same shape in both, so nothing shifts.
+      */}
+      <span className="text-[11px] font-bold text-[var(--brand-teal)]" data-testid="reset-countdown">
+        {now === null ? "—" : formatCountdown(msUntilWeeklyReset(now))}
+      </span>
+    </div>
+  );
 }
 
 function PodiumCard({ entry, podiumRank, filter }: { entry: LeaderboardEntry; podiumRank: 1 | 2 | 3; filter: Filter }) {
@@ -149,46 +185,106 @@ function PodiumCard({ entry, podiumRank, filter }: { entry: LeaderboardEntry; po
 }
 
 export default function LeaderboardPage() {
-  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState(false);
   const [filter, setFilter] = useState<Filter>("weekly");
   const [scope, setScope] = useState<Scope>("global");
-  const resetCountdown = useCountdown(getMsUntilMonday());
+  const [nonce, setNonce] = useState(0);
+  const loadLeaderboard = useCallback(() => setNonce((n) => n + 1), []);
 
-  const loadLeaderboard = useCallback(() => {
+  /**
+   * Identifies the board currently being asked for.
+   *
+   * Loading state is *derived* from this rather than tracked in a second piece
+   * of state. Setting `loading = true` at the top of the fetch effect is a
+   * synchronous state update during the effect — React rejects it because it
+   * renders a frame that is neither the old board nor the new one — and the
+   * usual workarounds (`setTimeout(…, 0)`, a ref) only hide the extra render.
+   * Comparing keys means there is nothing to set: a board whose key does not
+   * match the request is by definition not loaded yet.
+   */
+  const requestKey = `${filter}|${scope}|${nonce}`;
+  const [board, setBoard] = useState<{ key: string; entries: LeaderboardEntry[]; failed: boolean } | null>(null);
+  const loading = board?.key !== requestKey;
+  const fetchError = !loading && board?.failed === true;
+  const entries = board && board.key === requestKey ? board.entries : [];
+
+  /**
+   * Load the board for the current filter, scope and refresh count.
+   *
+   * The cancellation flag matters even with the key check: switching from "This
+   * Week" to "All Time" starts a second request, and without it the slower of
+   * the two would win the `setBoard` race. The key check alone would hide that,
+   * but the wasted render and the wrong `entries` for one frame would not be.
+   */
+  useEffect(() => {
+    let cancelled = false;
     const token = getToken();
-    setLoading(true);
-    setFetchError(false);
-    fetch(`/api/social/leaderboard?period=${filter === "weekly" ? "weekly" : "total"}&scope=${scope}`,
-      {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      },
-    )
-      .then((r) => {
-        if (!r.ok) throw new Error(`${r.status}`);
-        return r.json() as Promise<LeaderboardEntry[]>;
-      })
-      .then((d) => { setEntries(Array.isArray(d) ? d : []); setLoading(false); })
-      .catch(() => { setFetchError(true); setLoading(false); });
-  }, [filter, scope]);
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/social/leaderboard?period=${filter}&scope=${scope}`,
+          { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data: unknown = await res.json();
+        if (cancelled) return;
+        setBoard({ key: requestKey, entries: Array.isArray(data) ? (data as LeaderboardEntry[]) : [], failed: false });
+      } catch {
+        if (cancelled) return;
+        setBoard({ key: requestKey, entries: [], failed: true });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // `requestKey` covers filter, scope and nonce; the fetch itself reads
+    // filter and scope, both of which it is derived from.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestKey]);
 
-  useEffect(() => { const t = setTimeout(() => loadLeaderboard(), 0); return () => clearTimeout(t); }, [loadLeaderboard]);
-
-  const sorted = [...entries]
-    .sort((a, b) => filter === "weekly" ? b.weeklyXp - a.weeklyXp : b.totalXp - a.totalXp)
-    .map((entry, index) => ({ ...entry, rank: index + 1 }));
-
-  // Podium order: 2nd, 1st, 3rd for visual balance
-  const top3 = sorted.slice(0, 3);
-  const podiumOrder = top3.length === 3
-    ? [top3[1]!, top3[0]!, top3[2]!]
-    : top3;
+  /**
+   * Display order, by the **server's** rank.
+   *
+   * This page used to renumber everyone from 1 over the rows it received, which
+   * discarded the one number the server computes carefully: the API caps the
+   * board at 200 rows but always appends the viewer with their true rank, even
+   * past the cut. Renumbering turned a user genuinely ranked 4,812 into
+   * "rank 201" — a wrong number presented with complete confidence, and one
+   * that never moves, because 201 is where everyone outside the cut lands.
+   *
+   * Sorting by `rank` instead of by XP also keeps the server's tie order, so
+   * two people on the same XP cannot swap places between a refresh.
+   */
+  const byRank = [...entries].sort((a, b) => a.rank - b.rank);
+  const viewer = byRank.find((e) => e.isCurrentUser) ?? null;
+  const top3 = byRank.filter((e) => e.rank <= 3).slice(0, 3);
+  const podiumOrder = top3.length === 3 ? [top3[1]!, top3[0]!, top3[2]!] : top3;
   const podiumRanks: (1 | 2 | 3)[] = top3.length === 3 ? [2, 1, 3] : [1, 2, 3];
 
-  const rest = sorted.slice(3);
-  const myRow = sorted.find((e) => e.isCurrentUser);
-  const myRankInRest = myRow ? rest.findIndex((e) => e.isCurrentUser) : -1;
+  /**
+   * Is the viewer's rank inside the rows the server actually ranked?
+   *
+   * Membership of the returned array is the wrong test: the API appends the
+   * viewer to *every* response, even one where their true rank is far past the
+   * cut, precisely so the client can tell them where they are. Their presence
+   * says nothing about whether they earned a place in it.
+   *
+   * Board ranks are contiguous from 1, so a rank greater than the number of rows
+   * returned cannot be one of them. `viewer.rank <= byRank.length` is the honest
+   * test, and it still puts a viewer at rank 201 of 201 rows in the list, where
+   * they belong — they are one place off the cut, not far down the board.
+   */
+  const viewerInList = Boolean(viewer && viewer.rank <= byRank.length);
+
+  /** Rows for the list. A viewer past the cut is shown by the standing block
+   * instead, so their row is not also printed after rank 200 — which would read
+   * as adjacency to it. */
+  const rest = byRank.filter((e) => e.rank > 3 && (viewerInList || !e.isCurrentUser));
+
+  /** The nearest row above the viewer, for the gap. Only known if both are visible. */
+  const viewerIndex = viewer ? byRank.findIndex((e) => e.isCurrentUser) : -1;
+  const rowAbove = viewerIndex > 0 ? byRank[viewerIndex - 1]! : null;
+  const myXp = viewer ? (filter === "weekly" ? viewer.weeklyXp : viewer.totalXp) : 0;
+  const gapToNext = rowAbove ? Math.max(0, (filter === "weekly" ? rowAbove.weeklyXp : rowAbove.totalXp) - myXp) : 0;
 
   return (
     <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow">
@@ -221,10 +317,12 @@ export default function LeaderboardPage() {
 
           {/* Weekly reset chip */}
           <div className="mb-5 flex flex-wrap items-center gap-3">
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--rgba-6-214-160-0_2)] bg-[var(--rgba-6-214-160-0_06)] px-3 py-1">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--brand-teal)]">Weekly reset</span>
-              <span className="text-[11px] font-bold text-[var(--brand-teal)]">{resetCountdown}</span>
-            </div>
+            {filter === "weekly" ? <WeeklyResetChip /> : (
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-124-58-237-0_06)] px-3 py-1">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">All time</span>
+                <span className="text-[11px] text-[var(--foreground-subtle)]">never resets</span>
+              </div>
+            )}
             {fetchError && (
               <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--rgba-239-68-68-0_25)] bg-[var(--rgba-239-68-68-0_06)] px-3 py-1">
                 <Medal size={10} className="text-[var(--color-error)]" />
@@ -277,7 +375,7 @@ export default function LeaderboardPage() {
             <div className="flex h-52 items-center justify-center" role="status" aria-label="Loading leaderboard">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--rgba-124-58-237-0_3)] border-t-[var(--brand-600)]" />
             </div>
-          ) : sorted.length === 0 ? (
+          ) : byRank.length === 0 ? (
             <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-16-23-50-0_5)] p-14 text-center">
               <Trophy size={40} className="mx-auto mb-3 text-[var(--foreground-subtle)]" />
               <p className="text-sm text-[var(--muted-fg)]">No one's on the board yet.</p>
@@ -346,25 +444,75 @@ export default function LeaderboardPage() {
                 </div>
               )}
 
-              {/* Sticky "you" row — if your rank is > visible list */}
-              {myRow && myRankInRest === -1 && myRow.rank > sorted.length && (
-                <AnimatePresence>
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="rounded-2xl border border-[var(--brand-600)] bg-[var(--rgba-124-58-237-0_09)] p-4 flex items-center gap-3"
-                  >
-                    <span className="text-xs font-semibold text-[var(--brand-400)]">#{myRow.rank}</span>
-                    <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br ${getAvatarGradient(myRow.name)} text-xs font-bold text-[var(--palette-white)]`}>
-                      {myRow.name.slice(0, 2).toUpperCase()}
+              {/*
+                Your standing.
+                
+                Rendered whenever the viewer is not among the rows above — which
+                is the whole point of the block. It used to be conditioned on a
+                renumbered rank exceeding the list length, a comparison that
+                could never be true, so the one row a user outside the top 200
+                needs was never shown.
+              */}
+              {viewer && !viewerInList ? (
+                <div
+                  className="rounded-2xl border border-[var(--brand-600)] bg-[var(--rgba-124-58-237-0_09)] p-4"
+                  data-testid="your-standing"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-12 shrink-0 text-xs font-semibold text-[var(--brand-400)]">
+                      #{viewer.rank.toLocaleString()}
+                    </span>
+                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${getAvatarGradient(viewer.name)} text-xs font-bold text-[var(--palette-white)]`}>
+                      {viewer.name.slice(0, 2).toUpperCase()}
                     </div>
-                    <p className="flex-1 text-sm font-semibold text-[var(--foreground)]">You</p>
-                    <p className="text-sm font-bold text-[var(--brand-400)]">
-                      {(filter === "weekly" ? myRow.weeklyXp : myRow.totalXp).toLocaleString()} XP
+                    <p className="flex-1 text-sm font-semibold text-[var(--foreground)]">
+                      You
+                      <span className="ml-1.5 text-[11px] font-normal text-[var(--foreground-subtle)]">
+                        outside the top {rest.length + top3.length}
+                      </span>
                     </p>
-                  </motion.div>
-                </AnimatePresence>
-              )}
+                    <p className="text-sm font-bold text-[var(--brand-400)]">{myXp.toLocaleString()} XP</p>
+                  </div>
+                  <p className="mt-2 text-xs text-[var(--foreground-subtle)]">
+                    Complete a session to close the gap — this is your real position on the board, not your place
+                    on this page.
+                  </p>
+                </div>
+              ) : null}
+
+              {/*
+                The gap to the next place.
+                
+                A rank on its own does not tell you what to do. "83 XP to pass
+                the person above you" does, and the distance is the only number
+                on this page a session can change in one sitting.
+              */}
+              {viewer && viewerInList && rowAbove && gapToNext > 0 ? (
+                <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_12)] bg-[var(--rgba-16-23-50-0_4)] px-4 py-3" data-testid="gap-to-next">
+                  <p className="text-xs text-[var(--foreground-subtle)]">
+                    <span className="font-semibold text-[var(--brand-400)]">{gapToNext.toLocaleString()} XP</span>{" "}
+                    to pass {rowAbove.name} and take #{Math.max(1, viewer.rank - 1)}
+                  </p>
+                </div>
+              ) : null}
+
+              {/*
+                A board that is only ever you.
+                
+                The empty-state copy promises AI rivals, so a global board with
+                one row would read as broken. It happens on a fresh friends
+                board where nobody has followed anyone yet, which is precisely
+                when the user needs to be told what to do about it.
+              */}
+              {scope === "friends" && byRank.length <= 1 ? (
+                <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-16-23-50-0_5)] p-6 text-center">
+                  <Users size={28} className="mx-auto mb-2 text-[var(--foreground-subtle)]" />
+                  <p className="text-sm text-[var(--muted-fg)]">Nobody else is here yet.</p>
+                  <p className="mt-1 text-xs text-[var(--foreground-subtle)]">
+                    Follow people from the community feed and they will appear on this board.
+                  </p>
+                </div>
+              ) : null}
 
             </div>
           )}
