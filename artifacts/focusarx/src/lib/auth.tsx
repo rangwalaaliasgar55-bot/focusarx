@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { linkAnalyticsUser, trackSiteEvent } from "@/lib/site-analytics";
 import { tryRefreshSession } from "@/lib/api";
 import { clearSessionCache } from "@/lib/queryClient";
+import { resetOfflineQueue } from "@/hooks/useOfflineQueue";
 import { safeGet, safeRemove, safeSet } from "@/lib/safeStorage";
 import { trackEvent as trackGAEvent } from "@/lib/gtag";
 
@@ -376,6 +377,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearToken();
     // Every cached server response belongs to the account that just left.
     clearSessionCache();
+    // The offline queue belongs to the account that just left too. Its payloads
+    // are that user's completed sessions, the delivery loop attaches whatever
+    // token is in storage, and it keeps flushing on a 15-second timer — so
+    // leaving it would let the next person on this device silently submit the
+    // previous user's focus history under their own session.
+    resetOfflineQueue();
     setData(null);
     setStatus("unauthenticated");
   }, []);
