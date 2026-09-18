@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { TrendingUp, Clock, Zap, Calendar, Award, ArrowUp, ArrowDown, Minus, Crown, Lock } from "lucide-react";
+import { TrendingUp, Clock, Zap, Calendar, Award, Crown, Lock } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
@@ -14,6 +13,10 @@ import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 import { usePremium } from "@/hooks/usePremium";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { apiJson } from "@/lib/api";
+import { QueryError } from "@/components/ui/QueryError";
+import { TrendPill } from "@/components/ui/trend-pill";
+import type { Trend } from "@/types/trend";
 
 interface AnalyticsData {
   heatmap: Record<string, number>;
@@ -23,7 +26,18 @@ interface AnalyticsData {
   historyDays?: number;
   isPremium?: boolean;
   weekBarData?: Array<{ day: string; date: string; minutes: number }>;
-  weekComparison?: { thisWeekMinutes: number; lastWeekMinutes: number; changePercent: number };
+  weekComparison?: {
+    thisWeekMinutes: number;
+    lastWeekMinutes: number;
+    /**
+     * Legacy, and null-in-the-old-lying-cases is not representable here — it is
+     * a fabricated `100` / `0` on the server. Kept only so an old API response
+     * still typechecks; nothing renders it. Use `trend`.
+     */
+    changePercent: number;
+    /** Optional so a cached response from before this field existed still loads. */
+    trend?: Trend;
+  };
   personalBests: {
     longestSessionMinutes: number;
     bestDayMinutes: number;
@@ -73,6 +87,28 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
   );
 };
 
+/**
+ * A `Trend` for a payload that predates `weekComparison.trend`.
+ *
+ * A tab can hold an analytics response cached from before this field existed
+ * (or a service worker can serve one), and `trend` is optional for exactly that
+ * reason. Rather than rendering nothing in that case, rebuild the trend from the
+ * two minute totals — which is the honest source, and which avoids reading the
+ * legacy `changePercent` that this change exists to stop trusting.
+ */
+function legacyWeekTrend(wc: { thisWeekMinutes: number; lastWeekMinutes: number }): Trend {
+  const delta = wc.thisWeekMinutes - wc.lastWeekMinutes;
+  const bothEmpty = wc.thisWeekMinutes === 0 && wc.lastWeekMinutes === 0;
+  return {
+    direction: bothEmpty ? "unknown" : delta === 0 ? "flat" : delta > 0 ? "up" : "down",
+    delta,
+    // Below a 5-minute baseline a percentage is noise, not information.
+    percent: !bothEmpty && wc.lastWeekMinutes >= 5 ? (delta / wc.lastWeekMinutes) * 100 : null,
+    comparison: "last week",
+    comparable: !bothEmpty,
+  };
+}
+
 const BarTooltip = ({ active, payload, label }: { active?: boolean; payload?: any[]; label?: string }) => {
   if (!active || !payload?.length) return null;
   return (
@@ -118,20 +154,26 @@ function PremiumLock({ feature, description }: { feature: string; description: s
 }
 
 export default function AnalyticsPage() {
-  const [data, setData] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(() => Boolean(getToken()));
   const { isPremium } = usePremium();
 
-  useEffect(() => {
-    const token = getToken();
-    if (!token) return;
-    fetch("/api/analytics", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => { if (!r.ok) throw new Error(`${r.status}`); return r.json() as Promise<AnalyticsData>; })
-      .then((d) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
+  /*
+   * This was a bare `useEffect` fetch that swallowed its own failure:
+   * `.catch(() => setLoading(false))` left `data` null, and the null branch
+   * renders "Complete sessions to see your analytics." So a user with five
+   * hundred sessions who hit a network blip was told they had never focused —
+   * a false statement about their own history, presented as an empty state.
+   *
+   * Through react-query the failure is a state we can render: it retries with
+   * backoff, reuses a cached result when the user comes back to the page, and
+   * reports `isError` so the message can be "we couldn't load this" instead of
+   * "you have done nothing".
+   */
+  const { data, isLoading, isError, refetch, isRefetching } = useQuery<AnalyticsData>({
+    queryKey: ["analytics"],
+    queryFn: () => apiJson<AnalyticsData>("/api/analytics"),
+    staleTime: 60_000,
+  });
+  const loading = isLoading;
 
   const chart14 = (data?.chartData14 ?? []).map((d) => ({
     ...d,
@@ -172,11 +214,15 @@ export default function AnalyticsPage() {
             <div className="flex h-48 items-center justify-center">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--rgba-124-58-237-0_3)] border-t-[var(--brand-600)]" />
             </div>
-          ) : !data ? (
-            <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-12 text-center backdrop-blur-xl">
-              <TrendingUp size={40} className="mx-auto mb-3 text-[var(--foreground-subtle)]" />
-              <p className="text-sm text-[var(--foreground-muted)]">Complete sessions to see your analytics.</p>
-            </div>
+          ) : isError || !data ? (
+            isError ? (
+              <QueryError what="your analytics" onRetry={() => void refetch()} retrying={isRefetching} />
+            ) : (
+              <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-12 text-center backdrop-blur-xl">
+                <TrendingUp size={40} className="mx-auto mb-3 text-[var(--foreground-subtle)]" />
+                <p className="text-sm text-[var(--foreground-muted)]">Complete sessions to see your analytics.</p>
+              </div>
+            )
           ) : (
             <div className="space-y-6">
               {/* All-time personal bests — free */}
@@ -210,22 +256,10 @@ export default function AnalyticsPage() {
                         <div>
                           <p className="text-xs text-[var(--foreground-subtle)]">Compared to last week</p>
                           <div className="mt-1 flex items-center gap-2">
-                            {wc.changePercent > 0 ? (
-                              <div className="flex items-center gap-1 text-[var(--palette-emerald-400)]">
-                                <ArrowUp size={14} />
-                                <span className="text-lg font-bold">+{wc.changePercent}%</span>
-                              </div>
-                            ) : wc.changePercent < 0 ? (
-                              <div className="flex items-center gap-1 text-[var(--palette-red-400)]">
-                                <ArrowDown size={14} />
-                                <span className="text-lg font-bold">{wc.changePercent}%</span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-1 text-[var(--foreground-muted)]">
-                                <Minus size={14} />
-                                <span className="text-lg font-bold">0%</span>
-                              </div>
-                            )}
+                            <TrendPill
+                              trend={wc.trend ?? legacyWeekTrend(wc)}
+                              className="text-lg [&_span]:text-lg"
+                            />
                           </div>
                         </div>
                         <div className="text-right">

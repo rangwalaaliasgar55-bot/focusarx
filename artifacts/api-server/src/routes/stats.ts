@@ -190,9 +190,33 @@ router.get("/analytics", authMiddleware, async (req: AuthRequest, res: Response)
       ));
     const thisWeekMinutes = Math.round(thisWeekSessions.reduce((acc, s) => acc + s.durationSec, 0) / 60);
     const lastWeekMinutes = Math.round(lastWeekSessions.reduce((acc, s) => acc + s.durationSec, 0) / 60);
+    /*
+     * `changePercent` used to be computed here as:
+     *
+     *     lastWeekMinutes > 0 ? round(((this - last) / last) * 100)
+     *                         : thisWeekMinutes > 0 ? 100 : 0;
+     *
+     * The `: 100` is a fabricated figure. Three minutes this week against a
+     * blank last week rendered as a confident "+100%" — a number nothing
+     * measured. The `: 0` is the mirror problem: two empty weeks rendered as
+     * "no change", which is how a dead account looks steady. And a one-minute
+     * baseline produced "+5900%".
+     *
+     * `computeTrend` returns the honest version of each: `percent: null` plus an
+     * absolute delta when the baseline cannot support a percentage, and
+     * `direction: "unknown"` when there is nothing to compare. `changePercent`
+     * is kept so an older client cannot break, but it is now null in exactly
+     * the cases where the old value was invented — and every consumer in this
+     * repo renders the trend instead.
+     */
     const weekChangePercent = lastWeekMinutes > 0
       ? Math.round(((thisWeekMinutes - lastWeekMinutes) / lastWeekMinutes) * 100)
       : thisWeekMinutes > 0 ? 100 : 0;
+    const weekTrend = computeTrend({
+      current: thisWeekMinutes,
+      previous: lastWeekMinutes,
+      comparison: "last week",
+    });
 
     // Weekly bar chart (last 7 days of week labels)
     const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -213,7 +237,7 @@ router.get("/analytics", authMiddleware, async (req: AuthRequest, res: Response)
       hourDist,
       timeDayHeatmap,
       weekBarData,
-      weekComparison: { thisWeekMinutes, lastWeekMinutes, changePercent: weekChangePercent },
+      weekComparison: { thisWeekMinutes, lastWeekMinutes, changePercent: weekChangePercent, trend: weekTrend },
       personalBests: {
         longestSessionMinutes: Math.round(longestSession / 60),
         bestDayMinutes,
