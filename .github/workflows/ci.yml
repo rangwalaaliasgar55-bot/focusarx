@@ -201,11 +201,21 @@ jobs:
       - name: Surface gitleaks findings
         if: failure()
         run: |
-          REPORT="$GITHUB_WORKSPACE/gitleaks-results.sarif"
-          if [ ! -f "$REPORT" ]; then
-            echo "::warning::gitleaks failed but left no report at $REPORT"
+          # The action writes `results.sarif` in the workspace; the artifact it
+          # uploads is *named* `gitleaks-results.sarif`. Look for both, then for
+          # any report at all, so a version bump cannot silently disable this.
+          report=""
+          for candidate in "$GITHUB_WORKSPACE/results.sarif" "$GITHUB_WORKSPACE/gitleaks-results.sarif"; do
+            if [ -f "$candidate" ]; then report="$candidate"; break; fi
+          done
+          if [ -z "$report" ]; then
+            report=$(find "$GITHUB_WORKSPACE" -maxdepth 3 -name "*.sarif" -not -path "*/node_modules/*" 2>/dev/null | head -1)
+          fi
+          if [ -z "$report" ]; then
+            echo "::warning::gitleaks failed but left no SARIF report to read"
             exit 0
           fi
+          echo "Reading $report"
           node -e '
             const { readFileSync } = require("node:fs");
             const [report, root] = process.argv.slice(1);
