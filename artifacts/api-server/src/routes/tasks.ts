@@ -4,6 +4,7 @@ import { Router } from "express";
 import { db, tasksTable } from "@workspace/db";
 import { eq, and, asc } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import { emitEvent } from "../lib/webhooks";
 import { userZone } from "../lib/userZone";
 import { dayKeyInZone, shiftDayKey } from "../lib/timezone";
 import { updateMissionProgress } from "./missions";
@@ -241,6 +242,16 @@ async function handleTaskUpdate(req: AuthRequest, res: Response) {
 
     if (wasCompleting) {
       await updateMissionProgress(req.userId, "tasks", 1);
+      // §1.6: only on the transition into completed. PATCHing an already-done
+      // task (a title edit) must not re-fire the event, or a receiver sees a
+      // duplicate completion every time the user types.
+      void emitEvent(req.userId, "task.completed", {
+        taskId: task.id,
+        text: task.text,
+        category: task.category ?? null,
+        priority: task.priority ?? null,
+        completedAt: task.completedAt?.toISOString() ?? new Date().toISOString(),
+      });
     }
 
     res.json({ task });

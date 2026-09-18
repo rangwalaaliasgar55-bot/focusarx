@@ -14,7 +14,11 @@ export type AuditAction =
   | "admin_bot_tick"
   | "admin_break_free_action"
   | "admin_drop_trigger"
-  | "admin_account_deletion_purge";
+  | "admin_account_deletion_purge"
+  | "integration_connected"
+  | "integration_disconnected"
+  | "webhook_created"
+  | "webhook_deleted";
 
 interface AuditEntry {
   action: AuditAction;

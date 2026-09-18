@@ -27,6 +27,7 @@ import { Switch } from "@/components/ui/switch";
 import { playSessionComplete } from "@/lib/soundEngine";
 import { AppearanceSettings } from "@/components/settings/AppearanceSettings";
 import { AccountSecuritySection } from "@/components/settings/AccountSecuritySection";
+import { IntegrationSettings } from "@/components/settings/IntegrationSettings";
 import { NotificationSettingsCard } from "@/components/mobile/NotificationPermissionPrompt";
 import { useAuth, getToken } from "@/lib/auth";
 import { apiJson } from "@/lib/api";
@@ -372,6 +373,12 @@ export default function ProfilePage() {
       <SoundPreferencesCard />
       <AppearanceSettings />
       <NotificationSettingsCard />
+      {/* Connections live next to the account controls rather than on their own
+          page: they are account-level, they grant access, and someone looking
+          for "what can see my data" starts here. */}
+      <section id="integrations" className="mb-5">
+        <IntegrationSettings />
+      </section>
       <AccountSecuritySection />
 
       <Tabs value={activeTab} onValueChange={selectTab}>

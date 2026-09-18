@@ -49,29 +49,71 @@ authority.)
 
 ### Genuinely absent — the real remaining work
 
-Ordered by value. The first two are the only large unbuilt subsystems.
+Ordered by value. Four of the original eight have shipped since this list was
+written; what remains is listed honestly below, including the parts that are not
+code.
 
-1. **§7.3 Dexie/IndexedDB offline-first sync.** No Dexie, no `/sync/push|pull`,
-   no conflict resolver. `useOfflineQueue` is a localStorage retry queue with no
-   entity store and no field-merge. Backlog item 1 in this file.
-2. **§1.6 Webhook & integration layer.** Nothing exists: no Google Calendar, no
-   Slack/Discord, no Apple Health/Google Fit, no HMAC-signed webhooks, no
-   AES-256-GCM token storage. Needs OAuth app registrations before it can ship.
+1. **§7.3 offline-first — SHIPPED as a retry queue, not an entity store.** The
+   queue is now a module store (`useSyncExternalStore`) with exponential backoff,
+   response classification, and one hard rule: **it never discards a payload by
+   itself.** The old queue deleted a session after five failed attempts and
+   persisted the shortened queue, giving a completed session a two-and-a-half
+   minute window before it was destroyed with nothing shown to the user.
+   Items now leave only on an accepted response, its 409 duplicate, or the user
+   dismissing them; sign-out clears the queue so the next user on the device
+   cannot submit the previous user's history under their own token.
+
+   **What is deliberately not built:** the prompt's Dexie/IndexedDB entity store
+   with field-level merge. This stack has no Dexie, and the merge semantics only
+   matter for *offline editing* of shared entities — which nothing in the product
+   does. Sessions are append-only and already carry client-supplied idempotency
+   keys, so there is nothing to merge. Building a conflict resolver for
+   operations that cannot conflict would be code without a failing case.
+2. **§1.6 Webhook & integration layer — SHIPPED.** Signed outbound webhooks
+   with a retrying delivery worker, plus OAuth providers for Google Calendar,
+   Google Fit, Slack, Discord and Apple Health. Secrets and tokens are
+   AES-256-GCM ciphertext (`lib/secrets.ts`), the signing secret is returned
+   once and only hinted afterwards, and URLs are validated against the metadata
+   and private ranges before every fetch.
+
+   **What is left, and why it is not code:** the Google, Slack and Discord
+   providers need real app registrations (`GOOGLE_CALENDAR_CLIENT_ID`, …,
+   `SLACK_CLIENT_SECRET`, `DISCORD_CLIENT_SECRET`) before they can complete a
+   flow. Until then each reports `configured: false` and the UI disables Connect
+   with the reason, so nothing is half-broken — but the OAuth round trip itself
+   has not been exercised against a live provider, and no test can do that here.
+   `docs/ENVIRONMENT.md` lists every variable and the exact redirect URI to
+   register. **Apple Health is an import, not a connection** — HealthKit is
+   device-only by design, so that one needs an export-file upload path, not a
+   token.
+
 3. **§1.9 CHECK constraints — mostly done.** `user_wallets` is now constrained
    (migration 0016). Not yet constrained: `user_pet_inventory` (the prompt's
    `happiness BETWEEN 0 AND 100` does not map — the column is `mood text`, so
    the invariant is a different one and needs a decision), and the various
    `*_coins`/`amount` columns on transactions and inventory.
-4. **§1.10 auth hardening.** `auth.ts` uses **bcryptjs** (cost 12), not Argon2id.
-   No TOTP/2FA, no backup codes, no Apple sign-in, no PKCE on the Google flow.
-   Changing the hash touches every stored credential and needs a
-   rehash-on-next-login path — a decision, not a cleanup.
-5. **§1.7 GDPR 30-day grace.** `DELETE /auth/account` exists with password
-   confirmation and PII scrubbing, but hard-deletes immediately. No
-   `deleted_at` column, no 30-day window, no undo. `GET /settings/data/export`
-   exists.
-6. **§1.8 cursor pagination.** Only `posts.ts` returns `nextCursor`; the
-   `{ data, nextCursor }` shape is not applied across list endpoints.
+4. **§1.10 auth hardening — NEEDS A DECISION, NOT A PATCH.** `auth.ts` uses
+   **bcryptjs** (cost 12), not Argon2id. There is no TOTP/2FA, no backup codes,
+   and no Apple sign-in. Note that PKCE now *does* exist on the Google flow as
+   part of §1.6 (`createPkce`, with the verifier carried inside the signed state).
+   Moving to Argon2id touches every stored credential and needs a
+   rehash-on-next-login path, and 2FA changes the login contract for every user
+   — both are product decisions with migration and support consequences, so they
+   are left for you rather than taken unilaterally.
+5. **§1.7 GDPR 30-day grace — SHIPPED.** `DELETE /auth/account` schedules rather
+   than deletes (`deletionRequestedAt`, migration 0017); the user can sign back in
+   and cancel; an admin route lists the backlog and purges rows whose window has
+   passed. The purge scrubs `email_logs.recipient_email` *before* the cascade.
+   `GET /settings/data/export` was already present.
+6. **§1.8 cursor pagination — SHIPPED** for every mutable feed. Cursors are
+   base64url `[createdISO, id]`, deliberately **unsigned** (they carry data the
+   client already has; opaqueness, not secrecy), decoded to `null` on malformed
+   input so a bad cursor serves page one instead of a 500. The tiebreak is
+   row-wise `(created_at, id) < (:created, :id)` — one index scan, unlike the
+   expanded `OR` form — and `hasMore` comes from a `+1` probe rather than a
+   second `COUNT`, which would run at a different instant and can hand back an
+   empty "next" page. `cursorAdoption.test.ts` is a source-level gate that fails
+   if a mutable feed regresses to offset.
 7. **§1.2 Redis SETNX locks.** `@upstash/redis` is a dependency but no
    `SETNX ... EX` locking is used. Read-check-then-write is protected by
    Postgres transactions + row locks instead (`dailyReward.ts:59`,

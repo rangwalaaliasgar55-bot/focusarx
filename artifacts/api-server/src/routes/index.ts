@@ -74,6 +74,8 @@ import { aiStreamingRouter } from "./aiStreamingRoutes";
 import { dataExportRouter } from "./dataExport";
 import { stripeRouter } from "./stripe";
 import { recapRouter } from "./recap";
+import { webhooksRouter } from "./webhooks";
+import { integrationsRouter } from "./integrations";
 
 const router: IRouter = Router();
 
@@ -152,5 +154,7 @@ router.use(aiStreamingRouter);
 router.use(dataExportRouter);
 router.use(stripeRouter);
 router.use(recapRouter);
+router.use(webhooksRouter);
+router.use(integrationsRouter);
 
 export default router;

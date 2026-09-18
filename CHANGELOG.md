@@ -2,6 +2,110 @@
 
 All notable changes to FocusArx. Dates are UTC.
 
+## [§1.6] — Webhooks and integrations
+
+The last large unbuilt subsystem. Outbound webhooks with HMAC-signed deliveries,
+a retrying delivery worker, and an OAuth integration layer for Google Calendar,
+Google Fit, Slack, Discord and Apple Health.
+
+### The delivery rule is an invariant, not a policy
+
+A webhook is a promise that an event reaches someone. Three things would have
+broken that promise in the obvious implementation, and each is a decision made
+explicitly:
+
+- **A retry must be safe to receive twice, so every delivery carries a stable
+  `X-Focusarx-Delivery` id** and the table has a UNIQUE constraint on it. A
+  receiver may see the same id twice — that is what a retry is — but must never
+  see two different payloads under one id, because "ignore an id you have
+  already seen" is the documented deduplication strategy.
+- **The signature covers the timestamp.** `X-Focusarx-Signature: t=…,v1=…` is an
+  HMAC over `${t}.${body}`, not over the body alone. Signing the body alone makes
+  a captured request replayable forever; the receiver can now reject anything
+  older than its tolerance window. `verifySignature` ships with the layer, so the
+  construction is executable documentation and a change to it fails in our tests
+  rather than in a customer's integration.
+- **The body is serialised once and stored verbatim.** Re-serialising at delivery
+  time would let the signed bytes differ from the sent bytes if a key order ever
+  changed, and the receiver's stored signature check would fail on a redelivery
+  that should have succeeded.
+
+### A signing secret in plaintext makes the signature decorative
+
+`INTEGRATION_ENCRYPTION_KEY` gates the whole feature, and every stored webhook
+secret and OAuth token is **AES-256-GCM** ciphertext (`lib/secrets.ts`). The
+reasoning: a plaintext webhook secret in a leaked backup lets an attacker forge
+deliveries *into the user's own endpoint* and pass the verification the user
+relies on. A plaintext refresh token is durable access to someone's calendar that
+they never rotate.
+
+Unset, the feature is off in a way that cannot be mistaken for working: creation
+returns **503 `WEBHOOKS_NOT_CONFIGURED`**, every provider reports
+`unavailableReason`, and the worker stays idle. The tempting alternative —
+falling back to base64 or a hard-coded default — produces something that *looks*
+encrypted in the table and is not.
+
+The plaintext secret is returned **once**, from creation and rotation, and never
+again; every later read shows an eight-character hint. Otherwise a stolen session
+could be used to collect the signing keys of every endpoint the user owns, which
+would make encrypting them at rest worth nothing.
+
+### A user-supplied URL the server fetches is an SSRF primitive
+
+`http://169.254.169.254/latest/meta-data/` returns cloud instance credentials to
+whoever asks, and "POST to this URL for me" is exactly that feature.
+`validateWebhookUrl` blocks the metadata range, RFC1918, CGNAT, IPv6
+unique-local/link-local, and IPv4-mapped addresses — in every spelling a URL
+parser accepts, including `127.1`, `0x7f.0.0.1`, `2130706433` and
+`[::ffff:127.0.0.1]` (which `new URL()` rewrites to hex, defeating a dot-matching
+regex). Redirects are not followed, because a 302 to a private address happens
+*after* the check. In development only, loopback over http is permitted so a
+receiver can run locally.
+
+### Failures are visible or they are lies
+
+- An endpoint is auto-disabled after 15 consecutive failures, and the reason is
+  stored and displayed. Continuing to POST to a URL that has failed a hundred
+  times is how an integration layer earns a reputation for abuse.
+- A delivery's `responseBody` is kept (truncated to 2KB) because "HTTP 500" is
+  not actionable and the receiver's own error string usually is.
+- A row interrupted mid-delivery is reclaimed after ten minutes; without that it
+  stays `sending` forever, invisible to both the user and the retry worker.
+- Slack returns **HTTP 200 with `{"ok":false}`** on an OAuth failure, so a check
+  on `res.ok` alone stores an undefined token and leaves a connection that shows
+  as Connected and fails on first use. `exchangeToken` treats a missing access
+  token as the failure signal.
+- The provider's whole token response is redacted before being stored for
+  debugging — keeping it would put an access token in plaintext JSONB *next to*
+  the encrypted copy.
+
+### Gating, so nobody approves access they cannot use
+
+OAuth needs an app registration the deployer may have not done. Every provider is
+env-gated, `GET /api/integrations` reports `configured`, and the UI **disables
+Connect and shows the reason up front** — rather than sending the user through a
+consent screen and telling them afterwards. Unconfigured providers name the
+missing variable outside production and say nothing internal inside it.
+
+Apple Health is modelled as a manual import, not a connection: Apple exposes
+HealthKit only to a signed app on the device, and offering a Connect button that
+cannot work is worse than offering none.
+
+The OAuth `state` is a signed value carrying the user id, a nonce, and a
+ten-minute expiry, with the PKCE verifier inside the MAC rather than in a
+server-side session. The callback route cannot sit behind `authMiddleware` — the
+browser arrives from Google with no bearer token — so **the state is the only
+authentication on that route**, and `webhookSecurity.test.ts` asserts the user id
+comes from it and that the state check precedes the code check.
+
+### Tests
+
+105 new tests across five files. Both source-level gates are negative-tested:
+`webhookSecurity.test.ts` fails when a credential column is written unencrypted,
+when the ciphertext is leaked through a response shape, or when a URL check is
+removed; `webhookEvents.test.ts` fails when an event is added to the catalog with
+no emitter and when a milestone event would fire on an ordinary day.
+
 ## [Unreleased] — interface rework: direction, legibility, and clutter
 
 Three slices, all driven by research into what the best-regarded focus timers

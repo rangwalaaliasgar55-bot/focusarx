@@ -3,6 +3,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { initSocket } from "./lib/socketManager";
 import { initVapid } from "./lib/pushSender";
+import { startWebhookWorker } from "./lib/webhookWorker";
 import { getEnv, env as envModule } from "./lib/env";
 
 // Surface configuration problems early — but do NOT crash the process.
@@ -46,6 +47,12 @@ if (rawPort) {
   (app as any)._io = io;
 
   initVapid();
+
+  // Webhook delivery runs on a timer rather than on request, so it needs a
+  // long-lived process. On Vercel this module is imported by the serverless
+  // handler instead, where there is no `PORT` and no worker — deliveries there
+  // are drained by the manual `POST /webhooks/drain` route.
+  startWebhookWorker();
 
   httpServer.listen(port, "0.0.0.0", () => {
     logger.info({ port }, "Server listening");

@@ -1364,6 +1364,60 @@ CREATE TABLE IF NOT EXISTS "user_pet_inventory" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS "integration_connections" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"provider" text NOT NULL,
+	"external_account_id" text,
+	"display_name" text,
+	"access_token_enc" text,
+	"refresh_token_enc" text,
+	"scopes" text,
+	"expires_at" timestamp,
+	"status" text DEFAULT 'active' NOT NULL,
+	"last_error" text,
+	"last_synced_at" timestamp,
+	"sync_cursor" text,
+	"metadata" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "webhook_deliveries" (
+	"id" text PRIMARY KEY NOT NULL,
+	"endpoint_id" text NOT NULL,
+	"user_id" text NOT NULL,
+	"event" text NOT NULL,
+	"payload" jsonb NOT NULL,
+	"status" text DEFAULT 'pending' NOT NULL,
+	"attempts" integer DEFAULT 0 NOT NULL,
+	"next_attempt_at" timestamp,
+	"delivery_id" text NOT NULL,
+	"response_status" integer,
+	"response_body" text,
+	"duration_ms" integer,
+	"error" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"delivered_at" timestamp
+);
+
+CREATE TABLE IF NOT EXISTS "webhook_endpoints" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"url" text NOT NULL,
+	"description" text,
+	"secret_enc" text NOT NULL,
+	"secret_hint" text NOT NULL,
+	"events" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"active" boolean DEFAULT true NOT NULL,
+	"failure_count" integer DEFAULT 0 NOT NULL,
+	"last_success_at" timestamp,
+	"last_failure_at" timestamp,
+	"disabled_reason" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."visitors"'::regclass AND conname = 'visitors_user_id_users_id_fk') THEN
     ALTER TABLE "visitors" ADD CONSTRAINT "visitors_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
@@ -1909,6 +1963,26 @@ DO $$ BEGIN
     ALTER TABLE "user_pet_inventory" ADD CONSTRAINT "user_pet_inventory_pet_id_pet_catalog_id_fk" FOREIGN KEY ("pet_id") REFERENCES "public"."pet_catalog"("id") ON DELETE cascade ON UPDATE no action;
   END IF;
 END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."integration_connections"'::regclass AND conname = 'integration_connections_user_id_users_id_fk') THEN
+    ALTER TABLE "integration_connections" ADD CONSTRAINT "integration_connections_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."webhook_deliveries"'::regclass AND conname = 'webhook_deliveries_endpoint_id_webhook_endpoints_id_fk') THEN
+    ALTER TABLE "webhook_deliveries" ADD CONSTRAINT "webhook_deliveries_endpoint_id_webhook_endpoints_id_fk" FOREIGN KEY ("endpoint_id") REFERENCES "public"."webhook_endpoints"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."webhook_deliveries"'::regclass AND conname = 'webhook_deliveries_user_id_users_id_fk') THEN
+    ALTER TABLE "webhook_deliveries" ADD CONSTRAINT "webhook_deliveries_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."webhook_endpoints"'::regclass AND conname = 'webhook_endpoints_user_id_users_id_fk') THEN
+    ALTER TABLE "webhook_endpoints" ADD CONSTRAINT "webhook_endpoints_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
 CREATE UNIQUE INDEX IF NOT EXISTS "analytics_events_event_id_idx" ON "analytics_events" USING btree ("event_id");
 CREATE INDEX IF NOT EXISTS "analytics_events_created_at_idx" ON "analytics_events" USING btree ("created_at");
 CREATE INDEX IF NOT EXISTS "analytics_events_visitor_id_idx" ON "analytics_events" USING btree ("visitor_id");
@@ -2038,3 +2112,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS "token_ledger_idempotency_unique" ON "token_le
 CREATE INDEX IF NOT EXISTS "user_pet_inventory_user_idx" ON "user_pet_inventory" USING btree ("user_id");
 CREATE INDEX IF NOT EXISTS "user_pet_inventory_user_active_idx" ON "user_pet_inventory" USING btree ("user_id","is_active");
 CREATE UNIQUE INDEX IF NOT EXISTS "user_pet_inventory_user_pet_unique" ON "user_pet_inventory" USING btree ("user_id","pet_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "integration_connections_user_provider_idx" ON "integration_connections" USING btree ("user_id","provider");
+CREATE INDEX IF NOT EXISTS "webhook_deliveries_due_idx" ON "webhook_deliveries" USING btree ("status","next_attempt_at");
+CREATE INDEX IF NOT EXISTS "webhook_deliveries_user_idx" ON "webhook_deliveries" USING btree ("user_id","created_at");
+CREATE INDEX IF NOT EXISTS "webhook_deliveries_endpoint_idx" ON "webhook_deliveries" USING btree ("endpoint_id","created_at");
+CREATE UNIQUE INDEX IF NOT EXISTS "webhook_deliveries_delivery_id_idx" ON "webhook_deliveries" USING btree ("delivery_id");
+CREATE INDEX IF NOT EXISTS "webhook_endpoints_user_idx" ON "webhook_endpoints" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "webhook_endpoints_active_idx" ON "webhook_endpoints" USING btree ("user_id","active");
