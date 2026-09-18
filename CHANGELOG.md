@@ -2,6 +2,79 @@
 
 All notable changes to FocusArx. Dates are UTC.
 
+## [Unreleased] — interface rework: direction, legibility, and clutter
+
+Three slices, all driven by research into what the best-regarded focus timers
+and dashboards actually do rather than by taste.
+
+### Every headline number now carries a direction
+
+A dashboard that shows `42` without saying whether 42 is better or worse than
+usual makes the reader do the analysis. `GET /api/stats` now returns a `trends`
+block (minutes vs yesterday and vs the 7-day average, sessions vs yesterday,
+weekly total/best-day/active-days, longest streak), computed by
+`api-server/src/lib/trend.ts`.
+
+The interesting part of that module is the cases where a percentage is a lie:
+
+- `previous = 0` — a first session ever. The naive division ships `Infinity%`,
+  `NaN%`, or, if guarded with `|| 1`, a confident and entirely fabricated
+  `+2500%`. It returns `percent: null` and an absolute delta instead.
+- `both = 0` — nothing either day. That is not "0% change"; rendering it as
+  flat is how a dead account looks healthy. It returns `direction: "unknown"`.
+- `previous` below a floor — 1 → 10 minutes is `+900%`, arithmetically true and
+  useless. The absolute delta is the honest unit.
+
+`TrendPill` renders the four states with an icon and words, never colour alone,
+and `StatCard` makes a bare number unrepresentable — the value and its context
+are one component, so a headline figure cannot ship without its baseline.
+
+### The dashboard went from ~30 components to 5 sections
+
+The hero and a separate "Today's Focus" card were both answering "what should I
+do now?" and could disagree; the recommendation is now the hero's headline
+alone. Secondary sections (streak freeze, recap, weekly review, community,
+activity table) are preserved behind one informed disclosure rather than
+competing at the same visual weight as "minutes focused today".
+
+### The timer says when it ends
+
+The face answered "how much is left" (the ring) and "how long exactly" (the
+digits) but not "when can I stop" — the question that decides whether a block
+is started at all, and the only one a time-blind user cannot derive from a
+countdown. It now reads "In progress · ends 3:45 PM", and the accessible name
+says the same without zero padding ("5 minutes remaining. Finishes at 3:45 PM",
+not "05 minutes 00 seconds").
+
+Backed by `useNow`, a shared 1 Hz clock on `useSyncExternalStore`: one interval
+for the whole app, subscribed only while the timer runs. Reading the clock in
+render is impure, and mirroring it through an effect costs a render pass per
+tick and would add the first `set-state-in-effect` to a codebase that has none.
+
+### 11px legibility floor enforced
+
+All 40 remaining sub-11px font sizes raised (the audit's "23" was an
+hand-written grep that undercounted; see `REMAINING.md`). `src/legibility.test.ts` scans the
+source and fails on any future one, and separately on any CSS `--text-*` token
+below the floor. It caught a site the pattern-based grep had missed within a
+minute of existing — which is the argument for a gate over a grep.
+
+### Navigation answers "where am I?" consistently
+
+Active-route matching was implemented three different ways; two silent failure
+modes followed (a deep link with a query string highlighted nothing, and a
+nested route left its parent unlit). `lib/navActive.ts` owns the rule now,
+including the `/` ↔ `/focus` alias, with the exception that keeps `/` exact.
+
+### Also
+
+- `TimerControls`: all three buttons gained a `focus-visible` ring — the
+  product's primary control had no visible keyboard focus at all.
+- `focus.tsx`: six secondary side-panel widgets (mood, daily goal,
+  productivity, missions, assistant, camera) collapse behind two disclosures.
+  Lower visual clutter is the benefit focus-timer reviewers cite most, and the
+  widgets are lazy chunks, so their JS is no longer fetched during a session.
+
 ## [Unreleased] — wallet invariants enforced at the database level
 
 `burnCoins` was already a correct compare-and-set (`UPDATE ... WHERE coins >=

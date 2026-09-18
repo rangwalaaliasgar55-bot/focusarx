@@ -3,8 +3,11 @@
 ## §18 KNOWN-BUG AUDIT — verified against source, 2026-09-18
 
 Every one of the 28 was checked by reading the code, not by trusting the list.
-**21 fixed · 1 partial · 0 outstanding · and §18 #2, #4 and #26 were fixed
-before this session started.**
+**28 fixed · 0 partial · 0 outstanding.** (Three of them — #2, #4 and #26 —
+were already fixed before this session started, contradicting the prompt's own
+research. The header previously read "21 fixed · 1 partial", which did not add
+up to the 28 rows below it; the rows are individually sourced and are the
+authority.)
 
 | # | Bug | Verdict | Evidence |
 |---|-----|---------|----------|
@@ -35,7 +38,14 @@ before this session started.**
 | 25 | Weekly quests never assigned | **fixed** | `quests.ts:27 pickRotation` — deterministic, `Math.random`-free |
 | 26 | isPremium hardcoded false on auto-complete | **fixed** | `sessions.ts:890 isUserPremium(userId)` with a comment about the old `false` |
 | 27 | City weather = Math.random() | **fixed** | deterministic from behaviour |
-| 28 | 8–10px text | **PARTIAL** | floor is 11px (`0.6875rem`, 69 uses) but **23 sites remain**: `TimerDisplay` 9px, `MobileBottomNav` badge 9.6px, and 10px in `focus.tsx`, `landing.tsx`, `dashboard.tsx`, `AuthLayout`, `AppShell`, `CommandPalette` + admin panels |
+| 28 | 8–10px text | **fixed** | **40 sites** raised to `text-[11px]` across 19 files — 7px in `messages`/`social`, 8px in `AdminEconomyPanel`, 9px in `FocusTimerMobileFirst`, 10px and `0.5625`/`0.625`/`0.6rem` elsewhere, plus 2 in `TimerDisplay`. **Guarded by `src/legibility.test.ts`**, a source scan that fails on any font-size utility below 11px and on any CSS `--text-*` token below the floor. The scan caught a site the pattern-based grep had missed within a minute of being written |
+
+> **On the "23 sites" figure:** the original audit counted with a hand-written
+> grep listing the sizes it expected to find, so it missed `text-[0.5rem]` (8px)
+> entirely and undercounted the rest. `git grep` over the full size list finds
+> **40** at commit `a564a84`. This is the argument for the gate over the grep:
+> `src/legibility.test.ts` matches the *shape* of a font-size utility and
+> compares numerically, so it cannot be defeated by an unforeseen unit.
 
 ### Genuinely absent — the real remaining work
 
