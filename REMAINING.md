@@ -1,5 +1,57 @@
 # Remaining work (truthful tracker — done items stay listed as done)
 
+## Done 2026-09-18 (second commit) — international editions
+
+The site claimed four audiences and served all four the same American-English
+page. `index.html` carried `hreflang` for `x-default`, `en`, `en-IN` and
+`en-GB` — every one resolving to the *same URL* — and its own comment said so:
+*"if locale-specific URLs are ever added (a real /in/ edition, not a query
+parameter), these must be repointed at them"*. That repointing is this commit.
+
+- **Ten localized pages in five markets**, each authored rather than
+  machine-translated: `/in` and `/in/pricing` (en-IN), `/us` and `/us/pricing`
+  (en-US), `/hi` and `/hi/pricing` (hi), `/es` and `/es/pricing` (es),
+  `/pt-br` and `/pt-br/pricing` (pt-BR). Word counts 376–641 against the
+  150-word floor the content-depth gate enforces on every other page.
+- **Real hreflang clusters.** `src/content/locales.mjs` is the single source of
+  truth; `clusterFor()` derives each page's cluster from which editions
+  actually wrote that page. `/pricing` now advertises five real edition URLs
+  instead of five copies of itself. Clusters are reciprocal by construction.
+- **Edition switcher on all 128 indexable documents** — in the prerendered shell
+  a crawler reads, and as a React component on the client page. Every page is
+  one click from every market.
+- **Per-document language.** `<html lang>` and `og:locale` follow the edition;
+  `inLanguage` is declared on `WebSite` and `SoftwareApplication`. The inherited
+  site-wide blocks are reconciled per page rather than left claiming `en-US`
+  from a Spanish document.
+- **`sitemap-locales.xml`** — a tenth child sitemap with the ten URLs, added to
+  both the API and the checked-in static fallback the contract test compares
+  against. `llms.txt` gained an "Editions by country and language" section.
+- **Analytics:** `edition_page_view`, `edition_switcher_click`, and `cta_click`
+  (the one event the growth audit asked for that the union did not have).
+- **Gate #14 rewritten** from "cluster must equal a fixed four-tag list" to
+  reachability + reciprocity + x-default consistency. Verified non-vacuous:
+  pointing one alternate at a page that does not exist fails the build twice
+  over, once for the dead URL and once for the broken back-link.
+- **Four currency errors found and fixed** while writing: `/premium`'s
+  description, the homepage FAQ, the `/support` lead and a `/focus-guide` FAQ
+  answer all still said Premium is bought with **Focus Coins**. It is bought
+  with Focus Tokens (`premiumPlans.ts`); Coins buy cosmetics (`coinLedger.ts`).
+  Last commit fixed `/pricing` only — this finishes the job.
+- **Two latent defects fixed** that the new pages exposed: `PageSEO.tsx` rewrote
+  every hreflang href to the current URL on client-side navigation (correct for
+  one edition, wrong for five), and the homepage shipped two `FAQPage` entities
+  because the prerenderer skipped stripping the inherited one.
+- Gates: build + prerender + seo-validate PASS (**129 pages**, 10 child
+  sitemaps), bundle-budget PASS, API **424 passed**, frontend **423 passed**,
+  typecheck clean both artifacts, eslint clean.
+- **Still open:** the switcher is in the crawler-facing shell and on the ten
+  edition pages, but not yet in the React app's global footer, so a visitor on
+  `/dashboard` does not see it; `de`/`fr`/`id`/`bn`/`ta` editions are
+  deliberately not shipped — adding a language means committing to writing real
+  copy in it; `premium_upgrade`'s `amount_inr` property is still in the
+  analytics union even though nothing can be paid in rupees.
+
 ## Done 2026-09-18 — content depth pass + CTA fix (this branch, in review)
 
 Follow-up to the indexing audit ([`docs/GSC_INDEXING.md`](docs/GSC_INDEXING.md)

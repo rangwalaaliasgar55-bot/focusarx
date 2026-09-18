@@ -22,6 +22,7 @@ import {
   SEO_PAGES,
 } from "../src/content/seo-pages.mjs";
 import { BLOG_POSTS } from "../src/content/blog.mjs";
+import { localeRouteEntries } from "../src/content/locale-pages.mjs";
 import { FUNNEL_ANGLES } from "../src/content/exam-funnel.mjs";
 import {
   EXAM_CLUSTER_REVIEWED,
@@ -144,6 +145,29 @@ const relatedFor = (path, ...groups) => {
   return out;
 };
 
+/**
+ * Links into the localized editions, for the English pages a reader would
+ * naturally leave from. These exist for two reasons: a person comparing what
+ * Premium costs should be able to read that in their own language, and the
+ * orphan gate in scripts/seo-validate.mjs rightly refuses to let a page whose
+ * only inbound link is its sibling count as discoverable.
+ */
+const EDITION_HOME_LINKS = [
+  "/in|India edition",
+  "/us|United States edition",
+  "/hi|हिन्दी संस्करण",
+  "/es|Edición en español",
+  "/pt-br|Edição em português",
+];
+
+const EDITION_PRICING_LINKS = [
+  "/in/pricing|Pricing for India",
+  "/us/pricing|US pricing",
+  "/hi/pricing|कीमत (हिन्दी)",
+  "/es/pricing|Precios en español",
+  "/pt-br/pricing|Preços em português",
+];
+
 const GUIDE_LINKS = [
   "/guides|All FocusArx guides",
   "/focus-guide|How to focus: complete guide",
@@ -186,7 +210,7 @@ export const ROUTES = [
       ],
       [
         "Is FocusArx actually free?",
-        "The core is free forever: the timer, tasks, streaks, study rooms, leaderboards, flashcards, the guide library and the analytics. Premium is optional and is normally paid for with Focus Coins earned by focusing rather than with money, so the paid tier is reachable without a card.",
+        "The core is free forever: the timer, tasks, streaks, study rooms, leaderboards, flashcards, the guide library and the analytics. Premium is optional and is paid for with Focus Tokens earned by finishing sessions rather than with money — 10,000 tokens buys 30 days — so the paid tier is reachable without a card.",
       ],
       [
         "What is the Focus Score?",
@@ -215,7 +239,7 @@ export const ROUTES = [
         p: "Adaptive Pomodoro and deep-work timer, task management, XP, coins and streaks, focus analytics, live study rooms, and a library of science-backed focus and study guides.",
       },
     ],
-    related: ["/guides|Explore free guides", "/pricing|Pricing — free forever"],
+    related: ["/guides|Explore free guides", "/pricing|Pricing — free forever", ...EDITION_HOME_LINKS],
   },
   {
     path: "/login",
@@ -281,7 +305,7 @@ export const ROUTES = [
     sections: [
       {
         h: "Popular topics",
-        p: "How focus sessions and the Focus Score work; how streaks, XP, and Focus Coins are earned and spent; how live study rooms and leaderboards work; how optional on-device attention monitoring protects privacy; and how to manage or delete your account data.",
+        p: "How focus sessions and the Focus Score work; how streaks and XP are earned; how the two currencies differ — Focus Tokens buy Premium, Coins buy cosmetics; how live study rooms and leaderboards work; how optional on-device attention monitoring protects privacy; and how to manage or delete your account data.",
       },
       {
         h: "The three questions we get most",
@@ -301,7 +325,7 @@ export const ROUTES = [
     description:
       "FocusArx is completely free forever. Unlock Premium — advanced AI coaching, exclusive themes, deep insights — with coins you earn by focusing. No subscriptions.",
     h1: "Free forever. Premium by focusing.",
-    lead: "The core platform — timer, tasks, streaks, analytics, study rooms — is free forever. Premium features are unlocked with Focus Coins you earn by completing sessions, not with a credit card.",
+    lead: "The core platform — timer, tasks, streaks, analytics, study rooms — is free forever. Premium features are unlocked with Focus Tokens you earn by completing sessions, not with a credit card. Coins are a separate currency for cosmetics.",
     sections: [
       {
         h: "Free plan",
@@ -334,13 +358,13 @@ export const ROUTES = [
         "The token economy is the model, not a teaser for one: the intent is that Premium is reachable by using the product. Card payments are not the way in, and nothing that is free today moves behind a paywall to make that work.",
       ],
     ],
-    related: relatedFor("/pricing", ["/signup|Start free", "/premium|Premium overview"], COMPANY_LINKS),
+    related: relatedFor("/pricing", ["/signup|Start free", "/premium|Premium overview"], EDITION_PRICING_LINKS, COMPANY_LINKS),
   },
   {
     path: "/premium",
     title: "Premium Membership — Unlock with Focus Tokens",
     description:
-      "FocusArx Premium unlocks advanced AI coaching, exclusive themes, deeper Focus DNA insights, and boosts — activated with Focus Coins you earn by focusing.",
+      "FocusArx Premium unlocks advanced AI coaching, exclusive themes, deeper Focus DNA insights and boosts — bought with Focus Tokens you earn by studying. No card.",
     h1: "FocusArx Premium",
     lead: "Premium amplifies everything that works about FocusArx — smarter coaching, richer insights, exclusive cosmetics — and it's earned with focus, not bought.",
     sections: [],
@@ -415,7 +439,7 @@ export const ROUTES = [
     cta: { href: "/focus", label: "Open the free focus timer" },
     // The live hub lists every guide and tool; the prerender must not claim
     // fewer, or a no-JS crawl sees nine pages nothing links to.
-    related: relatedFor("/guides", ALL_GUIDE_LINKS, COMPANY_LINKS.slice(0, 1)),
+    related: relatedFor("/guides", ALL_GUIDE_LINKS, EDITION_PRICING_LINKS, COMPANY_LINKS.slice(0, 1)),
   },
   {
     path: "/focus-guide",
@@ -1579,6 +1603,16 @@ export const ROUTES = [
     cta: e.cta,
     related: e.related,
   })),
+
+  // ── Localized editions ────────────────────────────────────────
+  // Ten pages in five markets (India, US, Hindi, Spanish, Brazilian
+  // Portuguese), written in src/content/locale-pages.mjs. They carry two extra
+  // keys the prerenderer consumes: `lang` for <html lang> and `ogLocale` for
+  // og:locale. Everything else — title budget, FAQ schema, byline, citation
+  // registry, content-depth gate — applies to them exactly as it does to the
+  // English pages, which is the point: a localized page is held to the same
+  // standard rather than waved through as "translated".
+  ...localeRouteEntries(),
 ];
 
 // ── Discovery links ──────────────────────────────────────────────────

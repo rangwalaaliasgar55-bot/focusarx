@@ -117,6 +117,9 @@ const SEGMENT_LASTMOD: Record<string, string | undefined> = {
   "sitemap-compare.xml": COMPARISONS_REVIEWED,
   "sitemap-trust.xml": SEO_CONTENT_REVIEWED,
   "sitemap-legal.xml": undefined,
+  // The five localized editions were written on this date, not translated at
+  // build time — see artifacts/focusarx/src/content/locale-pages.mjs.
+  "sitemap-locales.xml": "2026-09-18",
 };
 
 /** Pages whose review date differs from their segment's — or whose segment has none. */
@@ -350,6 +353,37 @@ const FUNNEL_PAGES: Page[] = FUNNEL_SLUGS.map<Page>((slug) => ({
   priority: "0.8",
 }));
 
+/**
+ * Localized editions — the same product written for five markets.
+ *
+ * These are real documents, not query-parameter variants: /in and /us are
+ * English pages about different exam systems (21 of the 23 guides under
+ * artifacts/focusarx/src/content/exam/ are Indian exams; the two US exams
+ * covered are GRE and GMAT), and /hi, /es and /pt-br are written in those
+ * languages. Each declares a reciprocal hreflang cluster with the English page
+ * it sits beside, which artifacts/focusarx/scripts/seo-validate.mjs enforces at
+ * build time — a one-way cluster is dropped by Google and reads as a duplicate.
+ *
+ * No trailing slashes, even on the edition homepages: the prerender manifest,
+ * the <Route> table in App.tsx and the canonical in the emitted HTML all use
+ * the slash-free form ("/in"), and vercel.json's trailingSlash:false serves
+ * exactly that. A sitemap entry written "/in/" would 308-redirect to the
+ * canonical — a redirect in the sitemap is a wasted crawl, and the contract
+ * test compares these strings against the routes and the manifest.
+ */
+const LOCALE_PAGES: Page[] = [
+  { url: "/in", changefreq: "monthly", priority: "0.9" },
+  { url: "/in/pricing", changefreq: "monthly", priority: "0.7" },
+  { url: "/us", changefreq: "monthly", priority: "0.9" },
+  { url: "/us/pricing", changefreq: "monthly", priority: "0.7" },
+  { url: "/hi", changefreq: "monthly", priority: "0.8" },
+  { url: "/hi/pricing", changefreq: "monthly", priority: "0.6" },
+  { url: "/es", changefreq: "monthly", priority: "0.8" },
+  { url: "/es/pricing", changefreq: "monthly", priority: "0.6" },
+  { url: "/pt-br", changefreq: "monthly", priority: "0.8" },
+  { url: "/pt-br/pricing", changefreq: "monthly", priority: "0.6" },
+];
+
 const LEGAL_PAGES: Page[] = [
   { url: "/privacy", changefreq: "yearly", priority: "0.3" },
   { url: "/terms", changefreq: "yearly", priority: "0.3" },
@@ -371,6 +405,7 @@ const SEGMENTS = [
   { file: "sitemap-exams.xml", pages: EXAM_PAGES },
   { file: "sitemap-compare.xml", pages: COMPARE_PAGES },
   { file: "sitemap-trust.xml", pages: TRUST_PAGES },
+  { file: "sitemap-locales.xml", pages: LOCALE_PAGES },
   { file: "sitemap-legal.xml", pages: LEGAL_PAGES },
 ] as const;
 

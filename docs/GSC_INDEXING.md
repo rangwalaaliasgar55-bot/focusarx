@@ -322,6 +322,60 @@ worth anything if lines get deleted from it.
     `[5, 10, 15, 30, 45]` and 25/50/90 are the durations the product itself
     pre-arms — but it needs the same treatment as the other five, not a stub.
 
+### The hreflang cluster was decoration until the editions existed
+
+`index.html` declared four alternates — `x-default`, `en`, `en-IN`, `en-GB` —
+and every one of them resolved to the page's own canonical. That is legal, and
+it is worthless: it tells Google "we intend to serve India, Britain and
+everyone else" while serving all four the identical document, and Google
+ignores a cluster whose alternates are identical. The file's own comment
+anticipated the fix — *"if locale-specific URLs are ever added (a real /in/
+edition, not a query parameter), these must be repointed at them"*.
+
+They are repointed now. Ten real pages in five markets:
+
+| URL | lang | Words | Written for |
+|---|---|---|---|
+| `/in`, `/in/pricing` | en-IN | 641 / 497 | JEE, NEET, UPSC, CA, GATE, boards |
+| `/us`, `/us/pricing` | en-US | 532 / 433 | GRE, GMAT, finals, remote work |
+| `/hi`, `/hi/pricing` | hi | 472 / 376 | Hindi-first readers |
+| `/es`, `/es/pricing` | es | 503 / 423 | Spain and Latin America |
+| `/pt-br`, `/pt-br/pricing` | pt-BR | 498 / 433 | Brazil |
+
+The split is not arbitrary. **21 of the 23 exam guides under
+`src/content/exam/` are Indian exams**; the two US exams the site covers are
+GRE and GMAT; the AI coach's system prompt is written for Indian aspirants
+(`api-server/src/lib/aiTemplates.ts:41`) and IST is the legacy default calendar
+(`istDate.ts`). The product was India-first in code while presenting one
+American-English homepage to every market. That is the gap the editions close.
+
+Each page is authored, not machine-translated, and each is held to the same
+150-word content-depth gate as every English page. No edition claims a price in
+rupees, reais or euros — the product has no payment processor and no card
+requirement, and saying so is a stronger offer than a number it cannot charge.
+
+What the build now enforces, in `scripts/seo-validate.mjs`:
+
+- every `hreflang` alternate must resolve to a document **this build wrote** —
+  declaring an edition before its pages exist now fails the build;
+- clusters must be **reciprocal** — if `/pricing` says the Hindi edition lives
+  at `/hi/pricing`, that page must say `/pricing` is its English original;
+- `x-default` must exist and must agree with the `en` alternate;
+- `<html lang>` must match the edition, so a page cannot declare `es` in its
+  hreflang and `en` in its markup.
+
+Verified non-vacuous by corrupting one built document: pointing the homepage's
+Hindi alternate at a page that does not exist fails the build **twice** — once
+for the dead alternate and once for the now-broken back-link.
+
+Two latent defects surfaced the moment more than one edition existed, both
+fixed: `PageSEO.tsx` rewrote every hreflang `href` to the current URL on
+client-side navigation (right for one edition, wrong for five — a navigation
+from `/pricing` to `/hi/pricing` would have pointed the Hindi and Spanish
+alternates back at the English page), and the homepage emitted two `FAQPage`
+entities because the prerenderer skipped stripping the inherited block on the
+one route that keeps it.
+
 ### Two defects found while writing that copy
 
 Both were invisible to every gate, because both were *true* statements about a
