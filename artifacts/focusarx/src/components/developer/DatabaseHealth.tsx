@@ -42,6 +42,9 @@ interface MigrationInfo {
   total: number;
   appliedCount: number;
   pendingCount: number;
+  /** False when the database is kept in sync by sync-schema rather than the migration journal. */
+  journalTracked?: boolean;
+  note?: string | null;
 }
 
 interface DiffInfo {
@@ -52,9 +55,11 @@ interface DiffInfo {
     inSync: number;
     missingInDb: number;
     extraInDb: number;
+    tablesWithMissingColumns?: number;
   };
   missingInDb: string[];
   extraInDb: string[];
+  columnDiffs?: Array<{ table: string; missingColumns: string[]; extraColumns: string[] }>;
   recommendation: string;
 }
 
@@ -212,27 +217,38 @@ export function DatabaseHealth() {
               <span className="text-sm font-semibold text-white">Migrations</span>
             </div>
             <div className="flex items-center gap-3 text-[11px]">
-              <span className="text-emerald-400">{migrations.appliedCount} applied</span>
+              {migrations.journalTracked === false ? (
+                <span className="text-white/50">synced by sync-schema</span>
+              ) : (
+                <span className="text-emerald-400">{migrations.appliedCount} applied</span>
+              )}
               {migrations.pendingCount > 0 && (
                 <span className="text-amber-400">{migrations.pendingCount} pending</span>
               )}
               <span className="text-white/30">{migrations.total} total</span>
             </div>
           </div>
+          {migrations.note && (
+            <div className="px-4 py-2 text-[11px] text-white/50 border-b border-white/5">{migrations.note}</div>
+          )}
           <div className="max-h-60 overflow-y-auto">
             {migrations.migrations.slice().reverse().map((m) => (
               <div key={m.index} className="flex items-center gap-3 px-4 py-2 border-b border-white/5 last:border-0">
                 <div className={cn(
                   "w-2 h-2 rounded-full shrink-0",
-                  m.applied ? "bg-emerald-400" : "bg-amber-400"
+                  m.applied ? "bg-emerald-400" : migrations.journalTracked === false ? "bg-white/20" : "bg-amber-400"
                 )} />
                 <span className="text-xs font-mono text-white/60 flex-1">{m.name}</span>
                 <span className="text-[11px] text-white/30">{new Date(m.timestamp).toLocaleDateString()}</span>
                 <span className={cn(
                   "text-[11px] px-1.5 py-0.5 rounded",
-                  m.applied ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
+                  m.applied
+                    ? "bg-emerald-500/20 text-emerald-400"
+                    : migrations.journalTracked === false
+                      ? "bg-white/5 text-white/40"
+                      : "bg-amber-500/20 text-amber-400"
                 )}>
-                  {m.applied ? "Applied" : "Pending"}
+                  {m.applied ? "Applied" : migrations.journalTracked === false ? "Journal" : "Pending"}
                 </span>
               </div>
             ))}
@@ -292,6 +308,22 @@ export function DatabaseHealth() {
                   {diff.missingInDb.length > 10 && (
                     <span className="text-[11px] text-red-300/60">+{diff.missingInDb.length - 10} more</span>
                   )}
+                </div>
+              </div>
+            )}
+
+            {(diff.columnDiffs ?? []).some((d) => d.missingColumns.length > 0) && (
+              <div>
+                <div className="text-[11px] text-red-400 font-semibold mb-1">Missing columns (in application but not in database):</div>
+                <div className="space-y-1">
+                  {(diff.columnDiffs ?? []).filter((d) => d.missingColumns.length > 0).slice(0, 10).map((d) => (
+                    <div key={d.table} className="flex flex-wrap items-center gap-1 text-[11px] font-mono">
+                      <span className="text-white/60">{d.table}.</span>
+                      {d.missingColumns.map((c) => (
+                        <span key={c} className="px-1.5 py-0.5 bg-red-500/10 text-red-300 rounded">{c}</span>
+                      ))}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

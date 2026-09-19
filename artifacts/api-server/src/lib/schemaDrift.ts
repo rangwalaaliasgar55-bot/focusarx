@@ -57,35 +57,72 @@ export interface DriftInfo {
   sqlstate: string | null;
 }
 
+/**
+ * The error and everything it wraps, outermost first.
+ *
+ * drizzle-orm (0.44+) does not throw the driver error: it throws a
+ * `DrizzleQueryError` whose message is "Failed query: <sql>" and whose `cause`
+ * is the node-postgres error carrying the SQLSTATE. Classifying only the outer
+ * error therefore saw no code and no "does not exist" text, and every drift
+ * came back as `unknown` — which is why the study-rooms read never recovered
+ * in practice even though the unit tests (which threw bare pg errors) passed.
+ */
+function causeChain(error: unknown): PgLikeError[] {
+  const chain: PgLikeError[] = [];
+  let current: unknown = error;
+  for (let depth = 0; depth < 5 && current && typeof current === "object"; depth++) {
+    chain.push(current as PgLikeError);
+    current = (current as { cause?: unknown }).cause;
+  }
+  return chain;
+}
+
+/**
+ * Postgres phrases a missing column two ways, depending on how the query
+ * referred to it:
+ *
+ *   column "deletion_requested_at" does not exist        (bare reference)
+ *   column users.deletion_requested_at does not exist    (qualified: no quotes)
+ *
+ * drizzle qualifies every column in a `db.select({...})`, so the second form is
+ * the one production actually produces. Both resolve to the bare column name.
+ */
+const MISSING_COLUMN = /column (?:"?[\w]+"?\.)*"?([\w]+)"? does not exist/i;
+const MISSING_RELATION = /relation "([^"]+)" does not exist/i;
+
 /** Classify an error as schema drift, and name the object the database lacks. */
 export function describeDrift(error: unknown): DriftInfo {
-  const err = (error ?? {}) as PgLikeError;
-  const sqlstate = typeof err.code === "string" ? err.code : null;
-  const message = typeof err.message === "string" ? err.message : "";
+  for (const err of causeChain(error)) {
+    const sqlstate = typeof err.code === "string" ? err.code : null;
+    const message = typeof err.message === "string" ? err.message : "";
 
-  if (sqlstate === UNDEFINED_COLUMN || /column "[^"]+" does not exist/i.test(message)) {
-    // node-postgres sets `column`; parse the message when it does not.
-    const fromMessage = message.match(/column "([^"]+)" does not exist/i)?.[1] ?? null;
-    return { kind: "column", name: err.column ?? fromMessage, sqlstate };
+    const column = message.match(MISSING_COLUMN);
+    if (sqlstate === UNDEFINED_COLUMN || column) {
+      // node-postgres sets `column` for some errors; parse the message otherwise.
+      return { kind: "column", name: err.column ?? column?.[1] ?? null, sqlstate };
+    }
+    const relation = message.match(MISSING_RELATION);
+    if (sqlstate === UNDEFINED_TABLE || relation) {
+      return { kind: "table", name: err.table ?? relation?.[1] ?? null, sqlstate };
+    }
   }
-  if (sqlstate === UNDEFINED_TABLE || /relation "[^"]+" does not exist/i.test(message)) {
-    const fromMessage = message.match(/relation "([^"]+)" does not exist/i)?.[1] ?? null;
-    return { kind: "table", name: err.table ?? fromMessage, sqlstate };
-  }
-  return { kind: "unknown", name: null, sqlstate };
+  const outer = (error ?? {}) as PgLikeError;
+  return { kind: "unknown", name: null, sqlstate: typeof outer.code === "string" ? outer.code : null };
 }
 
 /** True when retrying the same statement cannot possibly succeed. */
 export function isDependencyFailure(error: unknown): boolean {
   const info = describeDrift(error);
   if (info.kind !== "unknown") return true;
-  const message = ((error as PgLikeError)?.message ?? "").toLowerCase();
-  return (
-    message.includes("connect") ||
-    message.includes("timeout") ||
-    message.includes("terminating connection") ||
-    message.includes("too many clients")
-  );
+  return causeChain(error).some((link) => {
+    const message = (link.message ?? "").toLowerCase();
+    return (
+      message.includes("connect") ||
+      message.includes("timeout") ||
+      message.includes("terminating connection") ||
+      message.includes("too many clients")
+    );
+  });
 }
 
 /** Columns this instance already knows are missing, per table. */

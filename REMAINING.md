@@ -389,8 +389,9 @@ Full write-up: [`docs/GSC_INDEXING.md`](docs/GSC_INDEXING.md).
   park button); visible desktop task pill; weekly goal card.
 - Streak Shield auto-apply + `streak_history` audit + `shieldUsed` plumbing.
 - Deep Sea + Study Room full scenes (Full-tier, lazy, Pro-gated).
-- Blog + Article schema; `/pomodoro-timer-for/:exam` funnels; per-user OG;
-  live focusing-now counter.
+- Blog + Article schema; `/pomodoro-timer-for/:exam` funnels; per-user OG.
+  (The live focusing-now counter shipped here was later removed on purpose:
+  live user counts are not published — see the study-rooms/stats contract.)
 - Stripe env-gated scaffolding + /premium card UI; weekly recap API + card +
   email; referral `?ref=` auto-apply.
 - Plausible + Sentry (both env-gated); ESLint strict + changed-files CI

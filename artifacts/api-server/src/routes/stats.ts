@@ -7,7 +7,6 @@ import {
   tasksTable,
   productivityLogsTable,
   usersTable,
-  activeSessionsTable,
   userWalletsTable,
   studyRoomMembersTable,
   freezeTokensTable,
@@ -293,24 +292,16 @@ router.get("/stats/productivity", authMiddleware, async (req: AuthRequest, res: 
   }
 });
 
-// Community social proof for the dashboard: who is focusing right now,
-// today's top performer (first name only for privacy), community size and
-// the signed-in user's weekly XP rank.
+// Community social proof for the dashboard: today's top performer (first
+// name only for privacy) and the signed-in user's weekly XP rank.
+//
+// Deliberately NOT included: how many people are focusing right now, or how
+// many accounts exist. Live head counts are not published to users — the only
+// place they appear is the admin analytics dashboard.
 router.get("/stats/community", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const now = new Date();
-    const fiveMinAgo = new Date(now.getTime() - 5 * 60_000);
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-    // A user counts as "focusing right now" when their persisted timer is
-    // actively running and has checked in within the last 5 minutes.
-    const [{ value: focusingNow }] = await db.select({ value: count() })
-      .from(activeSessionsTable)
-      .where(and(eq(activeSessionsTable.timerStatus, "running"), gte(activeSessionsTable.updatedAt, fiveMinAgo)));
-
-    const [{ value: communityMembers }] = await db.select({ value: count() })
-      .from(usersTable)
-      .where(eq(usersTable.isGuest, false));
 
     const topRows = await db.select({
       name: usersTable.name,
@@ -337,8 +328,6 @@ router.get("/stats/community", authMiddleware, async (req: AuthRequest, res: Res
     }
 
     res.json({
-      focusingNow,
-      communityMembers,
       topPerformerToday: topRows[0]
         ? { firstName: (topRows[0].name || "A learner").split(" ")[0], minutes: Math.round((topRows[0].seconds ?? 0) / 60) }
         : null,
@@ -412,24 +401,9 @@ async function handleStreak(req: AuthRequest, res: Response) {
 router.get("/streak", authMiddleware, handleStreak);
 router.get("/stats/streak", authMiddleware, handleStreak);
 
-/**
- * Live "focusing right now" counter (Phase 4.6).
- *
- * Public aggregate: rows in `active_sessions` with `timerStatus='running'`.
- * Those rows exist only while a timer runs (deleted on completion), so the
- * count is real by construction. Cached 30 s, no PII, fail-open null.
- */
-router.get("/stats/focusing-now", async (_req, res) => {
-  try {
-    const [row] = await db.select({ count: sql<number>`count(*)::int` })
-      .from(activeSessionsTable)
-      .where(eq(activeSessionsTable.timerStatus, "running"));
-    res.setHeader("Cache-Control", "public, max-age=30, s-maxage=30");
-    res.json({ focusingNow: row?.count ?? 0 });
-  } catch (err) {
-    logger.error({ err }, "focusing-now error");
-    res.json({ focusingNow: null });
-  }
-});
+// There is intentionally no public "focusing right now" endpoint. The landing
+// page used to poll `/stats/focusing-now` for a live user counter; that number
+// is no longer published to visitors. Older cached bundles that still ask for
+// it get the router's 404 and hide the widget, which is the behaviour we want.
 
 export { router as statsRouter };

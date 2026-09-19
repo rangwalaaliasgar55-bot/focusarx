@@ -49,8 +49,12 @@ interface Room {
   inviteCode: string | null;
   scheduledFor: string | null;
   createdAt: string;
-  memberCount: number;
-  onlineCount: number;
+  /** Whether anyone is present right now. Head counts are members-only. */
+  isLive: boolean;
+  isFull: boolean;
+  /** Present only for rooms the viewer is in; the list never exposes head counts. */
+  memberCount?: number;
+  onlineCount?: number;
   participants: Participant[];
   messageCount: number;
   isHost: boolean;
@@ -272,7 +276,9 @@ function RoomChat({ room, onLeft }: { room: Room; onLeft: () => void }) {
         <div className="flex items-center gap-2">
           <MessageCircle size={14} className="text-[var(--brand-400)]" />
           <span className="text-sm font-semibold text-[var(--foreground)]">Room chat</span>
-          <span className="text-[11px] text-[var(--foreground-subtle)]">· {room.onlineCount} online</span>
+          {typeof room.onlineCount === "number" && (
+            <span className="text-[11px] text-[var(--foreground-subtle)]">· {room.onlineCount} online</span>
+          )}
         </div>
         <Button size="xs" variant="ghost" onClick={onLeft}><LogOut /> Leave</Button>
       </div>
@@ -339,7 +345,7 @@ function ParticipantList({ room }: { room: Room }) {
   return (
     <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-1)] p-4">
       <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">
-        <Users size={12} /> In this room · {room.onlineCount}/{room.memberCount}
+        <Users size={12} /> In this room{typeof room.onlineCount === "number" && typeof room.memberCount === "number" ? ` · ${room.onlineCount}/${room.memberCount}` : ""}
       </p>
       <ul className="mt-3 max-h-56 space-y-2 overflow-y-auto">
         {sorted.length === 0 && <li className="text-sm text-[var(--foreground-subtle)]">Nobody here yet — be the first.</li>}
@@ -500,8 +506,16 @@ function RoomCard({ room, expanded, authed, onToggle, onJoin, onLeave, onEnd, bu
           </div>
           {room.description && <p className="mb-2 line-clamp-2 text-sm text-[var(--foreground-muted)]">{room.description}</p>}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[var(--foreground-subtle)]">
-            <span className="flex items-center gap-1"><Users size={10} />{room.memberCount}/{room.maxParticipants}</span>
-            <span className="flex items-center gap-1 text-[var(--success)]">● {room.onlineCount} online</span>
+            {room.isMember && typeof room.memberCount === "number" ? (
+              <span className="flex items-center gap-1"><Users size={10} />{room.memberCount}/{room.maxParticipants}</span>
+            ) : (
+              <span className="flex items-center gap-1"><Users size={10} />up to {room.maxParticipants}</span>
+            )}
+            {room.isLive ? (
+              <span className="flex items-center gap-1 text-[var(--success)]">● Live now</span>
+            ) : (
+              <span className="flex items-center gap-1">○ Quiet</span>
+            )}
             <span>{mode.emoji} {mode.label}</span>
             <span>{amb.emoji} {amb.label}</span>
             <span>⏱ {Math.round(room.timerDuration / 60)} min</span>
@@ -519,8 +533,8 @@ function RoomCard({ room, expanded, authed, onToggle, onJoin, onLeave, onEnd, bu
                 <Button size="sm" variant="ghost" onClick={onLeave} disabled={busy} aria-label="Leave room"><LogOut /></Button>
               </>
             ) : (
-              <Button size="sm" onClick={onJoin} disabled={busy || room.memberCount >= room.maxParticipants} loading={busy}>
-                <LogIn /> {room.memberCount >= room.maxParticipants ? "Full" : "Join"}
+              <Button size="sm" onClick={onJoin} disabled={busy || room.isFull} loading={busy}>
+                <LogIn /> {room.isFull ? "Full" : "Join"}
               </Button>
             )
           ) : (
@@ -604,13 +618,13 @@ export default function StudyRoomsPage() {
     const q = search.trim().toLowerCase();
     return rooms.filter((r) => {
       if (filter === "mine" && !r.isMember) return false;
-      if (filter === "live" && r.onlineCount === 0) return false;
+      if (filter === "live" && !r.isLive) return false;
       if (!q) return true;
       return r.name.toLowerCase().includes(q) || (r.topic ?? "").toLowerCase().includes(q) || (r.description ?? "").toLowerCase().includes(q);
     });
   }, [rooms, filter, search]);
 
-  const totalOnline = rooms.reduce((n, r) => n + r.onlineCount, 0);
+  const liveRooms = rooms.filter((r) => r.isLive).length;
   const busy = joinMut.isPending || leaveMut.isPending || endMut.isPending;
 
   return (
@@ -624,7 +638,7 @@ export default function StudyRoomsPage() {
                 <Radio size={22} className="text-[var(--brand-400)]" /> Study Rooms
               </h1>
               <p className="mt-1 text-sm text-[var(--foreground-muted)]">
-                {rooms.length} open room{rooms.length === 1 ? "" : "s"} · {totalOnline} studying right now
+                {rooms.length} open room{rooms.length === 1 ? "" : "s"} · {liveRooms} live now
               </p>
             </div>
             <div className="flex flex-wrap gap-2">

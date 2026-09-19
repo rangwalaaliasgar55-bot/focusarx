@@ -170,6 +170,34 @@ describe.runIf(hasDb)("admin drops (Workstream B)", () => {
     expect(after.dropId).toBeNull();
   }, 60_000);
 
+  it("fans out one in-app notification per real member", async () => {
+    // Regression: the bulk INSERT used to bind two parameters per recipient
+    // but reference only one, which Postgres rejects (42P18) — the failure was
+    // caught and logged, so `fannedOut` was 0 and nobody was ever notified.
+    const { id, fannedOut } = await createDrop({
+      type: "coin_rain",
+      title: "Fan-out Test",
+      description: "everyone gets a note",
+      payload: { coinsPerClaim: 10, poolTotal: 10 },
+      startsAt: new Date(Date.now() - 60_000),
+      endsAt: new Date(Date.now() + 3600_000),
+    });
+    expect(fannedOut).toBeGreaterThanOrEqual(testUsers.length);
+
+    const { notificationsTable } = (await import("@workspace/db")) as any;
+    const rows = await db
+      .select({ userId: notificationsTable.userId, title: notificationsTable.title, data: notificationsTable.data })
+      .from(notificationsTable)
+      .where(and(eq(notificationsTable.type, "drop"), inArray(notificationsTable.userId, testUsers)));
+    const forThisDrop = rows.filter((r) => (r.data as { dropId?: string } | null)?.dropId === id);
+    expect(forThisDrop.length).toBe(testUsers.length);
+    expect(new Set(forThisDrop.map((r) => r.userId)).size).toBe(testUsers.length);
+    expect(forThisDrop.every((r) => r.title === "Fan-out Test")).toBe(true);
+
+    await db.delete(notificationsTable).where(and(eq(notificationsTable.type, "drop"), inArray(notificationsTable.userId, testUsers)));
+    await endDrop(id);
+  }, 60_000);
+
   it("flash quest requires meeting the focus target first", async () => {
     const { id } = await createDrop({
       type: "flash_quest",

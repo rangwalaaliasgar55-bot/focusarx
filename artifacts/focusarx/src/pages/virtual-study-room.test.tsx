@@ -81,13 +81,35 @@ describe("a failed room fetch does not silently delete the live section", () => 
     stubRooms({
       ok: true,
       status: 200,
-      body: [{ id: 1, name: "JEE Night Shift", description: "", participantCount: 4 }],
+      body: [{ id: 1, name: "JEE Night Shift", description: "", isLive: true }],
     });
 
     renderPage();
 
     expect(await screen.findByText("JEE Night Shift")).toBeTruthy();
-    expect(screen.getByText(/4 online/)).toBeTruthy();
+    expect(screen.getByText("Live")).toBeTruthy();
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("never prints a head count, even when the payload carries one", async () => {
+    // Older API builds returned per-room counts. The public page must not turn
+    // them into "N online" / "N people studying now" — summed over the list
+    // that is a live user counter, which is not published.
+    stubRooms({
+      ok: true,
+      status: 200,
+      body: [
+        { id: 1, name: "JEE Night Shift", description: "", isLive: true, participantCount: 4, onlineCount: 4, activeCount: 4 },
+        { id: 2, name: "Quiet Library", description: "", isLive: false, participantCount: 9, onlineCount: 0 },
+      ],
+    });
+
+    renderPage();
+
+    expect(await screen.findByText("JEE Night Shift")).toBeTruthy();
+    expect(screen.queryByText(/\d+ online/)).toBeNull();
+    expect(screen.queryByText(/people studying now/)).toBeNull();
+    expect(screen.getByText("1 room live now")).toBeTruthy();
+    expect(screen.getByText("Open")).toBeTruthy();
   });
 });

@@ -23,6 +23,7 @@ import { readAppRouteTable } from "../lib/appRouteTable.js";
  *  8. Auth routes with no rate limiter (unbounded account/token minting)
  *  9. `console.*` in server code (bypasses pino → no structured logs)
  * 10. Sitemap host disagreeing with the canonical host (duplicate content)
+ * 11. A public endpoint publishing audience size (live/online/member counts)
  */
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -473,5 +474,60 @@ describe("15. mobile layout and build hygiene", () => {
     const s = read(path.join(FRONTEND, "src/components/AdSense.tsx"));
     expect(s).toContain("MIN_HEIGHT");
     expect(s).toMatch(/minHeight:\s*reserved/);
+  });
+});
+
+describe("11. no public endpoint publishes audience size", () => {
+  // Three surfaces have shipped a "how many people are here" number to
+  // anonymous visitors and each was removed on request: `/stats/focusing-now`
+  // (live counter on the landing page), per-room head counts in the anonymous
+  // `/study-rooms` list, and `/site/community-pulse` (registered-member total
+  // and "N real studiers this week"). None of them broke a build. This pins
+  // the removals by path, and the socket layer's lack of a site-wide
+  // broadcast helper, so the next such widget has to be a deliberate decision.
+  const RETIRED_PUBLIC_COUNTERS = ["/stats/focusing-now", "/site/community-pulse", "/focusing-now", "/community-pulse"];
+
+  it("the retired audience-count routes are not registered anywhere", () => {
+    const offenders: string[] = [];
+    for (const file of routeFiles()) {
+      read(file).split("\n").forEach((line, i) => {
+        if (/^\s*(\/\/|\*)/.test(line)) return;
+        for (const route of RETIRED_PUBLIC_COUNTERS) {
+          if (new RegExp(`\\.(get|post)\\(\\s*["'\`]${route}["'\`]`).test(line)) {
+            offenders.push(`${path.relative(REPO_ROOT, file)}:${i + 1} registers ${route}`);
+          }
+        }
+      });
+    }
+    expect(offenders, `Audience-size counters are not published to visitors:\n${offenders.join("\n")}`).toEqual([]);
+  });
+
+  it("the web app does not ask for them either", () => {
+    const offenders: string[] = [];
+    for (const file of walk(path.join(FRONTEND, "src"), /\.(ts|tsx)$/)) {
+      if (/\.test\.tsx?$/.test(file)) continue;
+      read(file).split("\n").forEach((line, i) => {
+        if (/^\s*(\/\/|\*)/.test(line)) return;
+        for (const route of RETIRED_PUBLIC_COUNTERS) {
+          if (line.includes(`/api${route}`)) offenders.push(`${path.relative(REPO_ROOT, file)}:${i + 1} calls ${route}`);
+        }
+      });
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("the socket layer has no generic site-wide emitter and no online-count export", () => {
+    const socketManager = read(path.join(API_SRC, "lib/socketManager.ts"));
+    const code = socketManager
+      .split("\n")
+      .filter((line) => !/^\s*(\/\/|\*|\/\*)/.test(line))
+      .join("\n");
+    // `io.emit("drop:started", …)` announces a loot drop, not a person, and is
+    // the only global event allowed; anything else must be addressed to a user
+    // or a room. A pass-through `broadcast(event, data)` is how a live-activity
+    // feed comes back without anyone noticing.
+    const globalEmits = [...code.matchAll(/\bio\??\.emit\(\s*([^,\n]+)/g)].map((m) => m[1]!.trim());
+    expect(globalEmits, "only named, non-presence events may be emitted to everyone").toEqual(['"drop:started"']);
+    expect(code, "socketManager must not export the online set or its size").not.toMatch(/export function (getOnlineUsers|getOnlineCount|onlineCount|broadcastActivity)\b/);
   });
 });

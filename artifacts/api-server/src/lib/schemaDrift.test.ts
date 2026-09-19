@@ -48,6 +48,36 @@ describe("describeDrift", () => {
     expect(describeDrift(null)).toMatchObject({ kind: "unknown" });
     expect(describeDrift(undefined)).toMatchObject({ kind: "unknown" });
   });
+
+  it("looks through drizzle's DrizzleQueryError wrapper to the driver error", () => {
+    // What production actually throws: drizzle-orm wraps the pg error, so the
+    // SQLSTATE and the "does not exist" text live on `.cause`, not on the
+    // error the route's catch block receives.
+    const wrapped = new Error('Failed query: select "id", "deletion_requested_at" from "users"\nparams: u1');
+    (wrapped as { cause?: unknown }).cause = pgError("42703", 'column "deletion_requested_at" does not exist');
+    expect(describeDrift(wrapped)).toEqual({ kind: "column", name: "deletion_requested_at", sqlstate: "42703" });
+
+    const wrappedTable = new Error("Failed query: select 1 from webhook_endpoints");
+    (wrappedTable as { cause?: unknown }).cause = pgError("42P01", 'relation "webhook_endpoints" does not exist');
+    expect(describeDrift(wrappedTable)).toMatchObject({ kind: "table", name: "webhook_endpoints" });
+  });
+
+  it("reads the bare column name out of a table-qualified message", () => {
+    // drizzle qualifies every selected column, and Postgres then reports the
+    // reference unquoted: `column users.deletion_requested_at does not exist`.
+    expect(describeDrift(pgError("42703", "column users.deletion_requested_at does not exist")))
+      .toEqual({ kind: "column", name: "deletion_requested_at", sqlstate: "42703" });
+    expect(describeDrift(pgError("42703", 'column "study_rooms"."topic" does not exist')))
+      .toMatchObject({ kind: "column", name: "topic" });
+  });
+
+  it("survives a cyclic cause chain", () => {
+    const a = new Error("a");
+    const b = new Error("b");
+    (a as { cause?: unknown }).cause = b;
+    (b as { cause?: unknown }).cause = a;
+    expect(describeDrift(a)).toMatchObject({ kind: "unknown" });
+  });
 });
 
 describe("isDependencyFailure", () => {
@@ -59,6 +89,12 @@ describe("isDependencyFailure", () => {
 
   it("is false for application errors", () => {
     expect(isDependencyFailure(new Error("Room name is too short"))).toBe(false);
+  });
+
+  it("finds connectivity problems buried under a query wrapper", () => {
+    const wrapped = new Error("Failed query: select 1\nparams: ");
+    (wrapped as { cause?: unknown }).cause = new Error("connect ETIMEDOUT 10.0.0.1:5432");
+    expect(isDependencyFailure(wrapped)).toBe(true);
   });
 });
 

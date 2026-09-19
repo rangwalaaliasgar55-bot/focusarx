@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import express from "express";
+import jwt from "jsonwebtoken";
 import type { AddressInfo } from "node:net";
 
 /**
@@ -27,6 +28,12 @@ import type { AddressInfo } from "node:net";
  *     instead of failing the payload;
  *   • still fails loudly — 500 with the standard envelope — when the *primary*
  *     read cannot be satisfied at all, so a real outage is not masked.
+ *
+ * They also pin the presence contract: head counts and the participant roster
+ * are returned only to people who are in the room. To everyone else a room is
+ * `isLive` / `isFull` and nothing more — summed over the list, per-room head
+ * counts were a public "users online right now" figure, and we do not publish
+ * one.
  */
 
 // ─── fake db ────────────────────────────────────────────────────────────────
@@ -206,10 +213,23 @@ async function startServer(): Promise<{ url: string; close: () => Promise<void> 
   };
 }
 
-async function getRooms(url: string) {
-  const response = await fetch(`${url}/api/study-rooms`, {
-    headers: { accept: "application/json" },
+/** A bearer token the router's own `extractUserId` accepts, for `userId`. */
+async function accessTokenFor(userId: string): Promise<string> {
+  const { getServerConfig } = await import("../lib/config");
+  const secret = getServerConfig().jwtSecret;
+  if (!secret) throw new Error("test needs a JWT secret (AUTH_SECRET or the dev fallback)");
+  return jwt.sign({ sub: userId, type: "access" }, secret, {
+    algorithm: "HS256",
+    issuer: "focusarx-api",
+    audience: "focusarx-web",
+    expiresIn: "5m",
   });
+}
+
+async function getRooms(url: string, viewerId?: string) {
+  const headers: Record<string, string> = { accept: "application/json" };
+  if (viewerId) headers.authorization = `Bearer ${await accessTokenFor(viewerId)}`;
+  const response = await fetch(`${url}/api/study-rooms`, { headers });
   const body = await response.json();
   return { status: response.status, body };
 }
@@ -236,12 +256,79 @@ describe("GET /api/study-rooms", () => {
       const room = body[0];
       expect(room.id).toBe("room-1");
       expect(room.hostName).toBe("Aliasgar");
-      expect(room.participantCount).toBe(1);
       expect(room.messageCount).toBe(3);
       expect(room.isPrivate).toBe(false);
-      expect(room.participants[0]).toMatchObject({ userId: HOST, name: "Aliasgar", level: 7, isHost: true });
+      expect(room.isLive).toBe(true);
+      expect(room.isFull).toBe(false);
+      expect(room.isMember).toBe(false);
       // A public room's invite code is shareable by design.
       expect(room.inviteCode).toBe("ABC12345");
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("never tells an anonymous visitor how many people are in a room", async () => {
+    seedHappyPath();
+    const server = await startServer();
+    try {
+      const { body } = await getRooms(server.url);
+      const room = body[0];
+      expect(room.participants).toEqual([]);
+      expect(room).not.toHaveProperty("participantCount");
+      expect(room).not.toHaveProperty("memberCount");
+      expect(room).not.toHaveProperty("onlineCount");
+      expect(room).not.toHaveProperty("activeCount");
+      // Nothing else in the payload may carry a head count either.
+      expect(JSON.stringify(room)).not.toMatch(/"(online|member|participant|active)Count"/);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("keeps head counts from signed-in users who are not in the room", async () => {
+    seedHappyPath();
+    const server = await startServer();
+    try {
+      const { status, body } = await getRooms(server.url, "user-someone-else");
+      expect(status).toBe(200);
+      const room = body[0];
+      expect(room.isMember).toBe(false);
+      expect(room.isLive).toBe(true);
+      expect(room.participants).toEqual([]);
+      expect(room).not.toHaveProperty("participantCount");
+      expect(room).not.toHaveProperty("onlineCount");
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("shows the roster and counts to a member of the room", async () => {
+    seedHappyPath();
+    const server = await startServer();
+    try {
+      const { status, body } = await getRooms(server.url, HOST);
+      expect(status).toBe(200);
+      const room = body[0];
+      expect(room.isHost).toBe(true);
+      expect(room.isMember).toBe(true);
+      expect(room.participantCount).toBe(1);
+      expect(room.memberCount).toBe(1);
+      expect(room.onlineCount).toBe(1);
+      expect(room.participants[0]).toMatchObject({ userId: HOST, name: "Aliasgar", level: 7, isHost: true, online: true });
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("reports a room as quiet, not empty, once presence has expired", async () => {
+    seedHappyPath();
+    state.rows.set("study_room_members", [{ ...MEMBER, joinedAt: new Date(Date.now() - 60 * 60 * 1000) }]);
+    const server = await startServer();
+    try {
+      const { body } = await getRooms(server.url);
+      expect(body[0].isLive).toBe(false);
+      expect(body[0].isFull).toBe(false);
     } finally {
       await server.close();
     }
@@ -277,9 +364,10 @@ describe("GET /api/study-rooms", () => {
     state.missingColumns.set("study_room_members", new Set(["focus_minutes"]));
     const server = await startServer();
     try {
-      const { status, body } = await getRooms(server.url);
+      const { status, body } = await getRooms(server.url, HOST);
       expect(status).toBe(200);
       expect(body[0].participants).toHaveLength(1);
+      expect(body[0].isLive).toBe(true);
     } finally {
       await server.close();
     }
@@ -290,10 +378,11 @@ describe("GET /api/study-rooms", () => {
     state.missingTables.add("study_room_members");
     const server = await startServer();
     try {
-      const { status, body } = await getRooms(server.url);
+      const { status, body } = await getRooms(server.url, HOST);
       expect(status, "a missing decoration table must not 500 the room list").toBe(200);
       expect(body[0].participants).toEqual([]);
       expect(body[0].participantCount).toBe(0);
+      expect(body[0].isLive).toBe(false);
       // The host name still resolves: users are read from the room rows.
       expect(body[0].hostName).toBe("Aliasgar");
     } finally {
@@ -307,7 +396,7 @@ describe("GET /api/study-rooms", () => {
     state.missingTables.add("user_wallets");
     const server = await startServer();
     try {
-      const { status, body } = await getRooms(server.url);
+      const { status, body } = await getRooms(server.url, HOST);
       expect(status).toBe(200);
       expect(body[0].messageCount).toBe(0);
       expect(body[0].participants[0].level).toBe(1);

@@ -51,7 +51,7 @@ const HOW_IT_WORKS = [
   {
     icon: Radio,
     title: "Pick a live room",
-    text: "Browse public rooms by subject, see who's focusing right now, and join in one click — no download, it runs in your browser.",
+    text: "Browse public rooms by subject, see which ones are live right now, and join in one click — no download, it runs in your browser.",
   },
   {
     icon: Timer,
@@ -104,10 +104,10 @@ export default function VirtualStudyRoomPage() {
     staleTime: 60_000,
   });
 
-  const totalStudying = rooms.reduce(
-    (acc: number, r: any) => acc + (r.participantCount ?? r.activeCount ?? 0),
-    0,
-  );
+  // The public list says which rooms are live, never how many people are in
+  // them: a per-room head count summed over the page is a site-wide "users
+  // online" figure, and that is not something we publish.
+  const liveRooms = rooms.filter((r: any) => r?.isLive === true).length;
 
   const reveal = reduceMotion
     ? {}
@@ -132,7 +132,7 @@ export default function VirtualStudyRoomPage() {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--success)] opacity-60 motion-reduce:animate-none" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--success)]" />
               </span>
-              {totalStudying > 0 ? `${totalStudying} people studying now` : "Rooms open 24/7"}
+              {liveRooms > 0 ? `${liveRooms} ${liveRooms === 1 ? "room" : "rooms"} live now` : "Rooms open 24/7"}
             </span>
           </motion.div>
           <motion.h1
@@ -244,10 +244,17 @@ export default function VirtualStudyRoomPage() {
                         </span>
                       )}
                     </span>
-                    <span className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-[var(--success)]">
-                      <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
-                      {room.participantCount ?? room.activeCount ?? 0} online
-                    </span>
+                    {room.isLive ? (
+                      <span className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-[var(--success)]">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
+                        Live
+                      </span>
+                    ) : (
+                      <span className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-[var(--foreground-subtle)]">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[var(--foreground-subtle)]" />
+                        Open
+                      </span>
+                    )}
                     <ArrowRight
                       size={15}
                       className="shrink-0 text-[var(--foreground-subtle)] transition-transform duration-[var(--duration-fast)] group-hover:translate-x-0.5 group-hover:text-[var(--brand-strong)] motion-reduce:group-hover:translate-x-0"

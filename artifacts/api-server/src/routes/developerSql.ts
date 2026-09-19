@@ -15,8 +15,10 @@
 
 import { Router, type Response } from "express";
 import { z } from "zod";
+import * as workspaceDb from "@workspace/db";
 import { db, pool, adminSqlLogTable } from "@workspace/db";
-import { desc, count } from "drizzle-orm";
+import { desc, count, getTableColumns, getTableName, is } from "drizzle-orm";
+import { PgTable } from "drizzle-orm/pg-core";
 import { logger } from "../lib/logger";
 import { authMiddleware, type AuthRequest } from "../middlewares/auth";
 import { requireAdmin } from "../lib/adminAuth";
@@ -33,46 +35,28 @@ const MAX_RETURN_ROWS = 500;
 const STATEMENT_TIMEOUT_MS = 15_000;
 const EXPORT_MAX_ROWS = 10_000;
 
-// Known Drizzle schema tables (application authoritative list)
-const APPLICATION_TABLES = [
-  "users", "password_reset_tokens", "refresh_tokens",
-  "focus_sessions", "active_sessions", "session_ghosts",
-  "study_streaks", "freeze_tokens",
-  "tasks", "goals", "habits", "habit_completions",
-  "user_wallets", "user_badges", "coin_transactions", "login_rewards",
-  "missions", "user_mission_progress", "battle_pass_progress",
-  "friendships", "follows", "buddy_requests",
-  "social_posts", "post_reactions", "post_comments", "post_saves",
-  "user_emotes",
-  "study_groups", "group_members",
-  "study_rooms", "study_room_members",
-  "conversations", "conversation_participants", "messages", "message_reactions",
-  "productivity_logs", "readiness_logs", "distraction_logs",
-  "focus_profiles", "focus_dna",
-  "break_free_streaks", "break_free_moods", "break_free_pledges",
-  "consequence_contracts",
-  "roadmaps", "user_dreams",
-  "notifications", "push_subscriptions", "email_logs",
-  "focus_cities", "city_building_definitions",
-  "user_pets", "marketplace_items", "user_inventory",
-  "loot_box_types", "user_loot_boxes",
-  "quest_definitions", "user_quest_progress",
-  "seasonal_events", "user_seasonal_progress",
-  "flashcard_decks", "flashcards",
-  "token_ledger", "premium_subscriptions", "premium_plans", "premium_entitlements",
-  "pet_catalog", "user_pet_inventory",
-  "battle_pass_claims", "feature_flags", "cosmetic_inventory",
-  "token_earning_rules", "asset_catalog",
-  "user_profile_extras", "wrapped_snapshots", "app_feedback",
-  "site_settings", "platform_meta",
-  "visitors", "analytics_sessions", "page_views", "analytics_events",
-  "bot_pending_replies", "admin_drops", "admin_drop_claims", "admin_sql_log",
-  "ai_call_log", "ai_budget_state", "ai_ideas", "ai_briefings", "ai_action_audit",
-  "battle_passes", "battle_pass_rewards", "user_battle_pass_progress",
-  "study_buddies", "shared_goals", "leaderboard_snapshots",
-  "group_invitations", "group_audit_logs", "group_challenges", "group_challenge_progress",
-  "audit_logs", "posts", "post_likes", "quest_progress",
-];
+/**
+ * The application's tables and columns, read from the Drizzle schema itself.
+ *
+ * This used to be a hand-maintained list of table names. It had drifted to 96
+ * entries against 111 tables in `lib/db/src/schema`, and it knew nothing about
+ * columns — so the "schema diff" panel reported IN SYNC while production was
+ * missing `users.deletion_requested_at`, the column that broke sign-in. The
+ * schema is the only authoritative list; derive from it.
+ */
+type ExpectedTable = { name: string; columns: string[] };
+
+function expectedSchema(): ExpectedTable[] {
+  // The module namespace mixes tables with `db`, `pool` and helpers; `is()`
+  // picks out the PgTable instances at runtime.
+  const tables = (Object.values(workspaceDb) as unknown[]).filter((value): value is PgTable => is(value, PgTable));
+  return tables
+    .map((table) => ({
+      name: getTableName(table),
+      columns: Object.values(getTableColumns(table)).map((column) => column.name),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
 
 // ─── DATABASE HEALTH ──────────────────────────────────────────────────────────
 
@@ -584,47 +568,74 @@ router.get("/developer/db/migrations", async (_req: AuthRequest, res: Response) 
     const fs = await import("fs");
     const path = await import("path");
     
-    const journalPath = path.join(process.cwd(), "..", "lib", "db", "drizzle", "meta", "_journal.json");
+    // The API runs from artifacts/api-server in development and from the repo
+    // root in other layouts; look in both. (The serverless bundle ships neither,
+    // so on Vercel the journal is simply absent — reported below as such.)
+    const journalCandidates = [
+      path.join(process.cwd(), "..", "lib", "db", "drizzle", "meta", "_journal.json"),
+      path.join(process.cwd(), "lib", "db", "drizzle", "meta", "_journal.json"),
+    ];
     let migrations: Array<{ idx: number; tag: string; when: number }> = [];
-    
-    try {
-      const journalContent = fs.readFileSync(journalPath, "utf-8");
-      const journal = JSON.parse(journalContent);
-      migrations = journal.entries || [];
-    } catch {
-      // Journal not found
+    let journalFound = false;
+    for (const journalPath of journalCandidates) {
+      try {
+        const journal = JSON.parse(fs.readFileSync(journalPath, "utf-8"));
+        migrations = journal.entries || [];
+        journalFound = true;
+        break;
+      } catch {
+        // try the next location
+      }
     }
 
-    // Get applied migrations from database (check __drizzle_migrations table if exists)
-    let appliedMigrations: string[] = [];
+    // Applied migrations, if the drizzle migrator has ever run here. The
+    // migrator records them in `drizzle.__drizzle_migrations` (its default
+    // schema), not in `public` — the old query looked in the wrong place and
+    // always reported zero. Note that production is kept in sync by the
+    // additive `sync-schema` tool rather than the journal, so an empty table
+    // here is expected and is not drift; the schema diff below is the signal.
+    let appliedMigrations: Array<{ hash: string; createdAt: number }> = [];
+    let journalTracked = false;
     try {
       const { rows } = await pool.query(`
         SELECT EXISTS (
-          SELECT 1 FROM information_schema.tables 
-          WHERE table_name = '__drizzle_migrations' AND table_schema = 'public'
-        ) as exists
+          SELECT 1 FROM information_schema.tables
+          WHERE table_name = '__drizzle_migrations' AND table_schema IN ('drizzle', 'public')
+        ) AS exists
       `);
-      
       if (rows[0]?.exists) {
+        journalTracked = true;
         const { rows: applied } = await pool.query(`
-          SELECT hash FROM __drizzle_migrations ORDER BY created_at
-        `);
-        appliedMigrations = applied.map((r) => r.hash);
+          SELECT hash, created_at FROM (
+            SELECT hash, created_at FROM drizzle.__drizzle_migrations
+          ) AS m ORDER BY created_at
+        `).catch(() => pool.query("SELECT hash, created_at FROM public.__drizzle_migrations ORDER BY created_at"));
+        appliedMigrations = applied.map((r) => ({ hash: String(r.hash), createdAt: Number(r.created_at) }));
       }
     } catch {
-      // Table doesn't exist
+      // No migrator table anywhere: the database was provisioned by push/sync.
     }
 
+    // drizzle's migrator marks a migration applied when its folderMillis is at
+    // or before the newest recorded `created_at`, so compare on the timestamp.
+    const newestApplied = appliedMigrations.reduce((max, m) => Math.max(max, m.createdAt), 0);
+    const list = migrations.map((m) => ({
+      index: m.idx,
+      name: m.tag,
+      timestamp: new Date(m.when).toISOString(),
+      applied: journalTracked && m.when <= newestApplied,
+    }));
+    const appliedCount = list.filter((m) => m.applied).length;
+
     res.json({
-      migrations: migrations.map((m) => ({
-        index: m.idx,
-        name: m.tag,
-        timestamp: new Date(m.when).toISOString(),
-        applied: appliedMigrations.length > 0,
-      })),
+      migrations: list,
       total: migrations.length,
-      appliedCount: appliedMigrations.length,
-      pendingCount: Math.max(0, migrations.length - appliedMigrations.length),
+      appliedCount,
+      pendingCount: journalTracked ? Math.max(0, migrations.length - appliedCount) : 0,
+      journalTracked,
+      note: journalTracked
+        ? null
+        : `This database is kept in sync by lib/db/scripts/sync-schema.mjs (additive schema sync), not by the migration journal${journalFound ? "" : " (journal file not available in this deployment)"}. Use the schema diff below to check for drift.`,
     });
   } catch (err) {
     logger.error({ err }, "migrations list error");
@@ -636,66 +647,64 @@ router.get("/developer/db/migrations", async (_req: AuthRequest, res: Response) 
 
 router.get("/developer/db/diff", async (_req: AuthRequest, res: Response) => {
   try {
-    // Get actual DB tables
-    const { rows: dbTables } = await pool.query(`
-      SELECT table_name FROM information_schema.tables
-      WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
-      ORDER BY table_name
+    const expected = expectedSchema();
+    const expectedByName = new Map(expected.map((t) => [t.name, t]));
+
+    // Every column of every public table in one round trip.
+    const { rows } = await pool.query<{ table_name: string; column_name: string }>(`
+      SELECT t.table_name, c.column_name
+      FROM information_schema.tables t
+      LEFT JOIN information_schema.columns c
+        ON c.table_schema = t.table_schema AND c.table_name = t.table_name
+      WHERE t.table_schema = 'public' AND t.table_type = 'BASE TABLE'
+      ORDER BY t.table_name, c.ordinal_position
     `);
-    const actualTables = new Set(dbTables.map((r) => r.table_name));
-    const expectedTables = new Set(APPLICATION_TABLES);
+    const actual = new Map<string, Set<string>>();
+    for (const row of rows) {
+      if (!actual.has(row.table_name)) actual.set(row.table_name, new Set());
+      if (row.column_name) actual.get(row.table_name)!.add(row.column_name);
+    }
 
-    // Find differences
-    const missingInDb = APPLICATION_TABLES.filter((t) => !actualTables.has(t));
-    const extraInDb = [...actualTables].filter((t) => !expectedTables.has(t));
-    const inSync = APPLICATION_TABLES.filter((t) => actualTables.has(t));
+    const missingInDb = expected.filter((t) => !actual.has(t.name)).map((t) => t.name);
+    const extraInDb = [...actual.keys()].filter((name) => !expectedByName.has(name)).sort();
 
-    // Check column-level diffs for tables that exist in both
-    const columnDiffs: Array<{
-      table: string;
-      missingColumns: string[];
-      extraColumns: string[];
-    }> = [];
-
-    for (const tableName of inSync.slice(0, 20)) { // Limit to avoid timeout
-      try {
-        const { rows: dbColumns } = await pool.query(`
-          SELECT column_name FROM information_schema.columns
-          WHERE table_name = $1 AND table_schema = 'public'
-        `, [tableName]);
-        const actualColumns = new Set(dbColumns.map((r) => r.column_name));
-        
-        // We don't have a complete expected column list here, so just report table-level
-        // A full column diff would require parsing the Drizzle schema at runtime
-        if (actualColumns.size === 0) {
-          columnDiffs.push({
-            table: tableName,
-            missingColumns: ["(table exists but has no columns)"],
-            extraColumns: [],
-          });
-        }
-      } catch {
-        // Skip on error
+    // Column-level drift for tables present on both sides. Missing columns are
+    // exactly what took sign-in down; extra columns are harmless leftovers but
+    // worth knowing about.
+    const columnDiffs: Array<{ table: string; missingColumns: string[]; extraColumns: string[] }> = [];
+    for (const table of expected) {
+      const live = actual.get(table.name);
+      if (!live) continue;
+      const missingColumns = table.columns.filter((c) => !live.has(c));
+      const extraColumns = [...live].filter((c) => !table.columns.includes(c)).sort();
+      if (missingColumns.length || extraColumns.length) {
+        columnDiffs.push({ table: table.name, missingColumns, extraColumns });
       }
     }
 
-    const hasDrift = missingInDb.length > 0 || extraInDb.length > 0 || columnDiffs.length > 0;
+    const tablesWithMissingColumns = columnDiffs.filter((d) => d.missingColumns.length > 0).length;
+    const inSync = expected.length - missingInDb.length - tablesWithMissingColumns;
+    // Extra tables/columns never break the application; missing ones do.
+    const hasDrift = missingInDb.length > 0 || tablesWithMissingColumns > 0;
 
     res.json({
       hasDrift,
       summary: {
-        expectedTables: APPLICATION_TABLES.length,
-        actualTables: actualTables.size,
-        inSync: inSync.length,
+        expectedTables: expected.length,
+        actualTables: actual.size,
+        inSync,
         missingInDb: missingInDb.length,
         extraInDb: extraInDb.length,
+        tablesWithMissingColumns,
       },
       missingInDb,
       extraInDb,
       columnDiffs,
       recommendation: hasDrift
-        ? "Run `pnpm db:push` to synchronize the database schema with the application."
-        : "Database schema is in sync with the application.",
+        ? "The database is behind lib/db/src/schema. Run `pnpm --filter @workspace/db run sync` (additive, safe on production) — it is also run automatically by every production deploy."
+        : extraInDb.length > 0 || columnDiffs.length > 0
+          ? "Every table and column the application needs is present. The extras listed are not used by the application and can be left alone."
+          : "Database schema is in sync with the application.",
     });
   } catch (err) {
     logger.error({ err }, "schema diff error");

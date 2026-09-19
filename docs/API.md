@@ -89,11 +89,18 @@ All errors follow a consistent envelope:
 |---|---|---|---|
 | GET | `/stats` | Yes | Dashboard stats |
 | GET | `/stats/streak` | Yes | Current streak |
-| GET | `/stats/community` | Yes | Community stats |
+| GET | `/stats/community` | Yes | Today's top performer + your weekly rank (no live user counts) |
 | GET | `/stats/onboarding` | Yes | Onboarding progress |
 | GET | `/stats/productivity` | Yes | Productivity metrics |
 | GET | `/analytics` | Yes | Full analytics data |
 | GET | `/streak` | Yes | Streak data (alias) |
+
+> **Audience size is not a public API.** There is no endpoint that tells an
+> anonymous visitor how many people are online, studying right now, or
+> registered: `/stats/focusing-now` and `/site/community-pulse` were removed,
+> and `/study-rooms` returns head counts only to members of a room. Those
+> figures live under `/admin/analytics/*` (admin only). A source-contract test
+> (`regressionGuard.test.ts` §11) fails the build if one comes back.
 
 ### Gamification
 
@@ -131,7 +138,7 @@ All errors follow a consistent envelope:
 |---|---|---|---|
 | GET | `/groups` | Yes | List groups |
 | POST | `/groups` | Yes | Create group |
-| GET | `/study-rooms` | Yes | List study rooms |
+| GET | `/study-rooms` | Optional | List study rooms (`isLive`/`isFull` for everyone; head counts and roster only for rooms you are in) |
 | POST | `/study-rooms` | Yes | Create study room |
 
 ### Messaging
