@@ -20,6 +20,7 @@ import {
   COMPARISON_PATHS,
   GUIDE_LIBRARY_REVIEWED,
   SEO_PAGES,
+  cellText,
 } from "../src/content/seo-pages.mjs";
 import { BLOG_POSTS } from "../src/content/blog.mjs";
 import { localeRouteEntries } from "../src/content/locale-pages.mjs";
@@ -1423,22 +1424,42 @@ export const ROUTES = [
       description: c.description,
       h1: c.title,
       lead: c.lead,
-      // The feature grid is the reason the page exists: it is what a "X vs Y"
-      // query is asking for, and it is what the hydrated page
-      // (src/pages/comparison.tsx) renders from these same rows. It used to be
-      // left out of the static document, so a crawler saw two short verdict
-      // paragraphs (~330 words) instead of the comparison — thin, and different
-      // from what a visitor reads. seo-validate.mjs now asserts every row label
-      // below appears in the emitted HTML.
+      // ── Feature table ────────────────────────────────────────────────
+      // The rendered page (src/pages/comparison.tsx) draws this table from
+      // `c.rows`, but the prerendered document used to carry only the two prose
+      // verdicts — so a crawler that does not execute JavaScript saw a
+      // different page than a visitor, and every row label was absent from the
+      // HTML that actually gets indexed. The table is declared here from the
+      // SAME `COMPARISONS` entry the React page reads, so the two cannot drift:
+      // there is no second list to keep in step.
+      //
+      // Cells are emitted as text, never as an icon: `true`/`false` become
+      // Yes/No. A tick glyph in a `<td>` is invisible to a text extractor, and
+      // screen readers announce the SVG's title rather than the capability.
       table: {
-        heading: `${c.name} vs FocusArx, feature by feature`,
-        caption: `Feature comparison between FocusArx and ${c.name}. Verified against what each product states publicly on ${COMPARISONS_REVIEWED}.`,
-        head: ["Capability", "FocusArx", c.name],
-        rows: c.rows,
+        caption: `FocusArx compared with ${c.name}`,
+        // Column headers, in order, after the row-label column.
+        columns: ["FocusArx", c.name],
+        // [rowLabel, focusarxCell, competitorCell] — verbatim from the page.
+        rows: c.rows.map(([label, ours, theirs]) => [
+          label,
+          cellText(ours),
+          cellText(theirs),
+        ]),
       },
       sections: [
-        { h: `When FocusArx is the better fit`, p: c.whenOurs, bullets: c.ours },
-        { h: `When ${c.name} is the better fit`, p: c.whenTheirs, bullets: c.theirs },
+        {
+          h: `When FocusArx is the better fit`,
+          p: c.whenOurs,
+          // The page renders `c.ours` as a checklist under this paragraph; the
+          // prerenderer flattened it away.
+          bullets: c.ours,
+        },
+        {
+          h: `When ${c.name} is the better fit`,
+          p: c.whenTheirs,
+          bullets: c.theirs,
+        },
       ],
       faq: [
         [`When should I choose FocusArx over ${c.name}?`, c.whenOurs],

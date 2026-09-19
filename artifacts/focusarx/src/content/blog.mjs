@@ -163,7 +163,7 @@ export const BLOG_POSTS = [
       },
       {
         h: "Spaced revision built in",
-        p: "The study-time calculator spreads hours across days so each topic is revisited before forgetting. Four 45-minute sessions across four days beats one three-hour cram.",
+        p: "The study-time calculator spreads hours across days so each topic is revisited before forgetting. What matters is the gap: a topic should come back after a widening interval rather than in the same sitting, because that gap is what turns recognition into recall. Four 45-minute sessions across four days beats one three-hour cram.",
       },
       {
         h: "Rooms for accountability",

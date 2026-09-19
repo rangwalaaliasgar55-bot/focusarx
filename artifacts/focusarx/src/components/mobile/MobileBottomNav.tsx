@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useClaimableMissionCount } from "@/lib/missionsQuery";
+import { isActiveRoute } from "@/lib/navActive";
 import { useEffect, useState } from "react";
 
 type Tab = {
@@ -77,8 +78,9 @@ export function MobileBottomNav({ onMoreClick, hidden }: MobileBottomNavProps) {
     >
       {PRIMARY_TABS.map((tab) => {
         const Icon = tab.icon;
-        // /focus exposes the same timer to guests without changing link targets.
-        const active = location === tab.href || (tab.href === "/" && location === "/focus");
+        // `/` and `/focus` are the same destination; the alias lives in
+        // `isActiveRoute` so the sidebar and this bar cannot disagree.
+        const active = isActiveRoute(location, tab.href);
         return (
           <Link
             key={tab.href}
@@ -114,7 +116,7 @@ export function MobileBottomNav({ onMoreClick, hidden }: MobileBottomNavProps) {
               <Icon size={tab.primary ? 22 : 20} />
               {tab.badge === "missions" && claimable > 0 && (
                 <span
-                  className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--brand-600)] px-1 text-[0.6rem] font-bold leading-none text-white ring-2 ring-[var(--backdrop)]"
+                  className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--brand-600)] px-1 text-[11px] font-bold leading-none text-white ring-2 ring-[var(--backdrop)]"
                   aria-label={`${claimable} reward${claimable === 1 ? "" : "s"} to claim`}
                 >
                   {claimable > 9 ? "9+" : claimable}

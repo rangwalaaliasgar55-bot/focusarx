@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard";
-import { useAuth } from "@/lib/auth";
+import { useAuth, getToken } from "@/lib/auth";
 import { MotionTab, SectionHeader, adminFetch } from "@/components/admin/AdminHelpers";
 import { PageSEO } from "@/components/PageSEO";
 
@@ -56,7 +56,7 @@ export default function AdminPage() {
   const [managingUserId, setManagingUserId] = useState<string | null>(null);
 
   const authHeaders = useCallback((): Record<string, string> => {
-    const token = localStorage.getItem("focusarx-auth-token");
+    const token = getToken();
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, []);
 

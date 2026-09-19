@@ -2,7 +2,7 @@ import React from "react";
 import { useParams, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
-import { apiJson } from "@/lib/api";
+import { apiJson, errorMessage } from "@/lib/api";
 import { useToast } from "@/components/Toast";
 import { Trophy, Flame, Clock, CheckSquare, Star, Users, Zap, Crown, ArrowLeft, UserPlus } from "lucide-react";
 import { User } from "lucide-react";
@@ -85,7 +85,7 @@ export default function UserProfilePage() {
   const sendRequest = useMutation({
     mutationFn: () => apiFetch(`/api/u/${username}/friend`, { method: "POST" }),
     onSuccess: () => toast("Friend request sent!", "success"),
-    onError: (e: any) => toast(e.message, "error"),
+    onError: (e: unknown) => toast(errorMessage(e), "error"),
   });
 
   const levelXpRequired = (level: number) => Math.round(100 * Math.pow(level, 1.5));

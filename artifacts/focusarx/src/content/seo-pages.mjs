@@ -922,6 +922,21 @@ Object.assign(SEO_PAGES, MINUTE_TIMER_PAGES);
  * prerender-data.mjs + the sitemap. Facts about competitors are limited to
  * what those companies state publicly; we do not invent weaknesses.
  */
+/**
+ * A comparison cell as text.
+ *
+ * The rendered table draws a tick or a dash for booleans, but a glyph is not
+ * content: a text extractor sees nothing, and a screen reader announces the
+ * SVG rather than the capability. Both renderers therefore agree on one text
+ * form — the icon keeps it as its accessible name, and the prerendered
+ * `<table>` prints it. Keeping the mapping here means the table a crawler reads
+ * and the table a visitor reads can never disagree.
+ */
+export function cellText(value) {
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  return String(value ?? "");
+}
+
 export const COMPARISONS = {
   forest: {
     slug: "focusarx-vs-forest",

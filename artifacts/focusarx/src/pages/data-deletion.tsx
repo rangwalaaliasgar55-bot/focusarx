@@ -3,24 +3,43 @@ import { Link } from "wouter";
 import { Trash2, ArrowLeft, CheckCircle } from "lucide-react";
 import { useState } from "react";
 import { getToken } from "@/lib/auth";
+import { apiJson, errorMessage } from "@/lib/api";
 
 export default function DataDeletionPage() {
-  const [step, setStep] = useState<"idle" | "confirm" | "done" | "error">("idle");
+  const [step, setStep] = useState<"idle" | "confirm" | "done" | "error" | "signed-out">("idle");
   const [loading, setLoading] = useState(false);
+  const [password, setPassword] = useState("");
+  const [outcome, setOutcome] = useState<{ deleted?: boolean; scheduledFor?: string; daysRemaining?: number }>({});
+  const [error, setError] = useState<string | null>(null);
 
   const handleDelete = async () => {
     setLoading(true);
     try {
+      // This used to call GET /api/auth/session and, on a 200, show "Deletion
+      // request received" — without ever calling DELETE /api/auth/account. A
+      // user exercising their right to erasure was told their request had been
+      // received and nothing whatsoever happened. There was no request.
       const token = getToken();
-      const res = await fetch("/api/auth/session", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      if (!token) {
+        setStep("signed-out");
+        return;
+      }
+      const result = await apiJson<{
+        deleted?: boolean;
+        scheduledFor?: string;
+        daysRemaining?: number;
+      }>("/api/auth/account", {
+        method: "DELETE",
+        body: JSON.stringify({ password: password || undefined }),
       });
-      if (!res.ok) { setStep("error"); setLoading(false); return; }
+      setOutcome(result);
       setStep("done");
-    } catch {
+    } catch (err) {
+      setError(errorMessage(err, "We could not process the request. Please try again, or email us."));
       setStep("error");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -73,7 +92,12 @@ export default function DataDeletionPage() {
 
                 <div className="rounded-xl border border-[var(--rgba-239-68-68-0_15)] bg-[var(--rgba-239-68-68-0_04)] p-4">
                   <p className="mb-2 font-medium text-[var(--foreground)]">Option 2 — Self-service deletion</p>
-                  <p className="mb-4">If you are signed in, you can initiate immediate deletion below. <strong className="text-[var(--palette-f87171)]">This action is irreversible.</strong> All your data will be permanently removed.</p>
+                  <p className="mb-4">
+                    If you are signed in, you can schedule deletion below. Your account is deactivated and{" "}
+                    <strong className="text-[var(--foreground)]">kept for 30 days</strong>, during which you can
+                    sign back in and cancel. After the 30 days your data is permanently removed. No action is
+                    taken on the day you ask.
+                  </p>
 
                   {step === "idle" && (
                     <button
@@ -86,14 +110,29 @@ export default function DataDeletionPage() {
 
                   {step === "confirm" && (
                     <div className="space-y-3">
-                      <p className="text-sm font-semibold text-[var(--palette-f87171)]">⚠️ Are you absolutely sure? This cannot be undone.</p>
+                      <p className="text-sm font-semibold text-[var(--palette-f87171)]">
+                        ⚠️ You will be signed out and your account scheduled for removal in 30 days.
+                      </p>
+                      <div className="space-y-2">
+                        <label htmlFor="deletion-password" className="block text-xs text-[var(--foreground-muted)]">
+                          Confirm your password
+                        </label>
+                        <input
+                          id="deletion-password"
+                          type="password"
+                          autoComplete="current-password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="w-full max-w-xs rounded-xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-16-23-50-0_6)] px-3 py-2 text-sm text-[var(--foreground)]"
+                        />
+                      </div>
                       <div className="flex gap-3">
                         <button
                           onClick={handleDelete}
                           disabled={loading}
                           className="rounded-xl bg-[var(--color-error)] px-5 py-2.5 text-sm font-bold text-[var(--palette-white)] transition-all hover:bg-[var(--palette-dc2626)] disabled:opacity-50"
                         >
-                          {loading ? "Processing…" : "Yes, delete everything"}
+                          {loading ? "Scheduling…" : "Schedule deletion"}
                         </button>
                         <button
                           onClick={() => setStep("idle")}
@@ -109,14 +148,34 @@ export default function DataDeletionPage() {
                     <div className="flex items-center gap-3 rounded-xl border border-[var(--rgba-74-222-128-0_2)] bg-[var(--rgba-74-222-128-0_08)] p-4">
                       <CheckCircle size={18} className="text-[var(--palette-4ade80)]" />
                       <div>
-                        <p className="text-sm font-semibold text-[var(--palette-4ade80)]">Deletion request received</p>
-                        <p className="text-xs text-[var(--foreground-muted)]">We'll process and confirm by email within 30 days.</p>
+                        <p className="text-sm font-semibold text-[var(--palette-4ade80)]">Deletion scheduled</p>
+                        <p className="text-xs text-[var(--foreground-muted)]">
+                          {outcome.deleted
+                            ? "Your data has been permanently removed."
+                            : `Your account and data will be permanently removed on ${
+                                outcome.scheduledFor
+                                  ? new Date(outcome.scheduledFor).toLocaleDateString(undefined, {
+                                      year: "numeric", month: "long", day: "numeric",
+                                    })
+                                  : "a date 30 days from now"
+                              }. Sign in before then and press "Keep my account" to cancel — nothing has been removed yet.`}
+                        </p>
                       </div>
                     </div>
                   )}
 
                   {step === "error" && (
-                    <p className="text-sm text-[var(--palette-f87171)]">Something went wrong. Please email us directly at focusarx@gmail.com</p>
+                    <p role="alert" className="text-sm text-[var(--palette-f87171)]">
+                      {error ?? "Something went wrong."} You can also email us directly at focusarx@gmail.com.
+                    </p>
+                  )}
+
+                  {step === "signed-out" && (
+                    <p className="text-sm text-[var(--foreground-muted)]">
+                      You are not signed in, so we cannot verify which account to delete. Please{" "}
+                      <Link href="/login" className="text-[var(--brand-400)] underline">sign in</Link> and try again,
+                      or use the email option above.
+                    </p>
                   )}
                 </div>
               </div>
@@ -125,8 +184,8 @@ export default function DataDeletionPage() {
             <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_1)] bg-[var(--rgba-16-23-50-0_4)] p-6">
               <h2 className="mb-3 text-base font-semibold text-[var(--foreground)]">After deletion</h2>
               <div className="space-y-2 text-sm text-[var(--foreground-muted)]">
-                <p>Once processed, all personal data associated with your account is permanently deleted from our databases. Anonymised, aggregated data (e.g. "X total focus hours were logged on this day across all users") may be retained for product analytics, as it cannot be linked back to you.</p>
-                <p>Backups are purged on a rolling 30-day cycle.</p>
+                <p>Thirty days after your request, all personal data associated with your account is permanently deleted from our databases. Until then it is retained so that the decision can be reversed. Anonymised, aggregated data (e.g. "X total focus hours were logged on this day across all users") may be retained for product analytics, as it cannot be linked back to you.</p>
+                <p>Backups are purged on a rolling 30-day cycle, counted from the end of the grace period.</p>
               </div>
             </div>
           </div>

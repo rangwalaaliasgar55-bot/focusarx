@@ -113,6 +113,22 @@ Without Resend or SMTP: admin blasts/moderation digests are skipped (logged), pa
 |---|---|---|
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_EMAIL` | `lib/pushSender.ts` | Web-push identity. If unset, ephemeral keys are generated at boot and printed to logs — push subscriptions break on every restart/deploy, so set these. Generate: `npx web-push generate-vapid-keys`. |
 
+## 🔌 Webhooks & integrations (§1.6, optional)
+
+| Variable | Read by | Purpose |
+|---|---|---|
+| `INTEGRATION_ENCRYPTION_KEY` | `lib/secrets.ts`, `lib/webhooks.ts` | **The key that makes this feature safe.** AES-256-GCM over every stored webhook signing secret and every third-party OAuth token. Any string works — it is hashed to 32 bytes — but it must be long, random, and **never rotated without re-encrypting existing rows**: the ciphertext is not recoverable without it, and a changed key means every stored token becomes unreadable (deliberately, and reported as `CREDENTIALS_UNREADABLE` rather than silently failing). Generate: `openssl rand -base64 48`. Unset ⇒ webhook creation returns **503 `WEBHOOKS_NOT_CONFIGURED`**, every provider reports `unavailableReason`, the delivery worker stays idle, and nothing plaintext is ever written. |
+| `INTEGRATION_STATE_KEY` | `lib/integrations.ts` | Optional. Signs the OAuth `state` parameter. Defaults to `INTEGRATION_ENCRYPTION_KEY` with a `::oauth-state` suffix, so a single-key deployment needs nothing extra. Set it only if you want the two independent. |
+| `GOOGLE_CALENDAR_CLIENT_ID` / `GOOGLE_CALENDAR_CLIENT_SECRET` | `lib/integrations.ts` | Enables the Google Calendar provider. Register an OAuth app and add `<APP_URL>/api/integrations/google_calendar/callback` as an authorised redirect URI. Without both, the provider reports itself unconfigured and the UI disables Connect **before** the user is sent to Google. |
+| `GOOGLE_FIT_CLIENT_ID` / `GOOGLE_FIT_CLIENT_SECRET` | `lib/integrations.ts` | Enables Google Fit (activity + sleep read). Same redirect-URI form. |
+| `SLACK_CLIENT_ID` / `SLACK_CLIENT_SECRET` | `lib/integrations.ts` | Enables Slack. Scopes `chat:write`, `commands`, `users:read`. Slack returns **HTTP 200 with `{"ok":false}`** on failure, which `exchangeToken` handles explicitly. |
+| `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` | `lib/integrations.ts` | Enables Discord. |
+| `APP_URL` | `lib/integrations.ts` | Base for the OAuth `redirect_uri` and for the post-callback redirect back to `/profile#integrations`. Must match what is registered with each provider or they reject the flow. Falls back to `PUBLIC_URL`, `API_BASE_URL`, then `http://localhost:3000`. |
+
+**Why every provider is env-gated and reports `configured: false` rather than failing at the end.** OAuth needs an app registration the deployer may not have done. A user who clicks Connect, signs in, grants calendar access, and *then* sees "not configured" has handed over a credential for nothing. The check runs before the redirect.
+
+**Webhook delivery.** The worker drains due deliveries every 30 seconds (`lib/webhookWorker.ts`), started from `index.ts` only when a `PORT` exists — on Vercel there is no long-lived process, so deliveries are drained by `POST /api/webhooks/drain` instead. Retry schedule: 30s, 2m, 10m, 1h, 6h, 24h, with ±10% jitter, then the row is `failed`. Retryable statuses are 408/425/429/5xx; any other 4xx is terminal. An endpoint is auto-disabled after 15 consecutive failures, with the reason stored and shown. **A webhook URL is validated before every fetch** — `validateWebhookUrl` blocks loopback, RFC1918, CGNAT and `169.254.0.0/16` (the cloud metadata range, which returns instance credentials to whoever asks), in every spelling including `127.1`, `0x7f.1`, `2130706433` and `::ffff:127.0.0.1`. Redirects are not followed, because a 302 would escape the check. In development only, loopback over http is permitted so a receiver can run on `localhost`.
+
 ## 🌐 Frontend (Vite — build-time, prefix `VITE_`)
 
 | Variable | Read by | Purpose |

@@ -19,7 +19,8 @@ import { useAuth, isAdminUser } from "@/lib/auth";
 import { BrandMark, BrandLockup } from "@/components/ui/brand";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Skeleton } from "@/components/ui/skeleton";
-import { apiJson } from "@/lib/api";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { apiJson, errorMessage } from "@/lib/api";
 import { Link } from "wouter";
 import {
   Code2, Database, Shield, GitBranch,
@@ -294,6 +295,7 @@ function StatCard({ title, total, completed }: { title: string; total?: number; 
 // ─── Users Tab (God Mode) ────────────────────────────────────────────────────
 
 function UsersTab() {
+  const confirm = useConfirm();
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState<any>(null);
@@ -342,8 +344,8 @@ function UsersTab() {
       setActionResult(`✅ ${action} succeeded`);
       searchUsers();
       if (selectedUser) loadUserDetails(selectedUser.id);
-    } catch (e: any) {
-      setActionResult(`❌ ${action} failed: ${e.message}`);
+    } catch (e) {
+      setActionResult(`❌ ${action} failed: ${errorMessage(e)}`);
     }
     setTimeout(() => setActionResult(null), 5000);
   };
@@ -506,10 +508,14 @@ function UsersTab() {
                 <ActionButton
                   icon={AlertTriangle}
                   label="Delete User"
-                  onClick={() => {
-                    if (confirm(`Delete ${selectedUser.name || selectedUser.email}? This cannot be undone.`)) {
-                      doAction(`${selectedUser.id}`, {}, "DELETE");
-                    }
+                  onClick={async () => {
+                    const ok = await confirm({
+                      title: `Delete ${selectedUser.name || selectedUser.email}?`,
+                      description: "This permanently removes the account and its data. This cannot be undone.",
+                      confirmLabel: "Delete user",
+                      danger: true,
+                    });
+                    if (ok) doAction(`${selectedUser.id}`, {}, "DELETE");
                   }}
                 />
               )}

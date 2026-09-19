@@ -96,7 +96,16 @@ const ABOUT_REVIEWED = "2026-09-11"; // src/content/seo-pages.mjs — editorial 
 const ADHD_GUIDE_REVIEWED = "2026-09-11"; // /adhd-focus-tips, rebuilt around its sources
 const EXAM_CLUSTER_REVIEWED = "2026-09-05"; // src/content/exam/derive.mjs
 const COMPARISONS_REVIEWED = "2026-09-06"; // src/content/seo-pages.mjs
-const BLOG_REVIEWED = "2026-09-05"; // src/content/blog.mjs post dates
+/**
+ * The blog's lastmod: the date of its newest post.
+ *
+ * It was pinned at 2026-09-05 while three posts dated 2026-09-18 sat in the
+ * same sitemap, so every crawler was told the blog had not changed since a
+ * fortnight before its newest article. `seoContract.test.ts` asserts this
+ * equals the newest `date` in `blog.mjs`, so adding a post cannot leave the
+ * blog claiming to be older than it is.
+ */
+const BLOG_REVIEWED = "2026-09-18"; // = newest post date in src/content/blog.mjs
 const APP_PAGES_REVIEWED = "2026-09-04"; // /focus and /changelog
 
 /**
@@ -322,13 +331,55 @@ const COMPARE_PAGES: Page[] = COMPARISON_SLUGS.map<Page>((slug) => ({
 
 /**
  * Blog. Mirrors `BLOG_POSTS` slugs in
- * `artifacts/focusarx/src/content/blog.mjs` (asserted by routeContract).
+ * `artifacts/focusarx/src/content/blog.mjs`.
+ *
+ * This comment used to claim the mirror was "asserted by routeContract". No
+ * such assertion existed — nothing in the api-server read `blog.mjs` at all —
+ * and the promise went unkept exactly as you would expect: three posts were
+ * added to the blog and not to this list, so they were prerendered, linked and
+ * installable while being absent from the sitemap, leaving discovery to
+ * internal links alone. `seoContract.test.ts` now really does assert it, in
+ * both directions: a slug here with no post is a sitemap entry pointing at a
+ * 404, and a post with no entry is a page no crawler is told about.
  */
-const BLOG_SLUGS = [
+export const BLOG_SLUGS = [
   "why-25-minutes-works",
   "attention-residue-task-switching",
   "body-doubling-study-accountability",
+  "pomodoro-timer-online-free-25-5",
+  "study-timer-for-exam-prep",
+  "focus-timer-for-deep-work",
 ];
+
+/**
+ * Each post's own date, mirroring `date:` in `src/content/blog.mjs`.
+ *
+ * The blog segment had ONE date for all of it, so every post advertised the
+ * newest post's lastmod: the three older essays were dated 2026-09-18 in the
+ * sitemap while the page itself said 2026-09-05, and the three new ones were
+ * dated 2026-09-05 while saying 2026-09-18. A `<lastmod>` that contradicts the
+ * visible "Last updated" is a signal crawlers learn to distrust.
+ *
+ * `seoContract.test.ts` asserts this map against `blog.mjs` per slug, so a new
+ * post cannot arrive without its date and an edited date cannot be forgotten.
+ */
+export const BLOG_POST_DATES: Record<string, string> = {
+  "why-25-minutes-works": "2026-09-05",
+  "attention-residue-task-switching": "2026-09-05",
+  "body-doubling-study-accountability": "2026-09-05",
+  "pomodoro-timer-online-free-25-5": "2026-09-18",
+  "study-timer-for-exam-prep": "2026-09-18",
+  "focus-timer-for-deep-work": "2026-09-18",
+};
+
+// The per-post dates feed the same lastmod lookup everything else uses. Kept
+// here, after the map is built, because `PAGE_LASTMOD` is a module-level const
+// and reading `BLOG_POST_DATES` before its declaration would throw at import.
+for (const [slug, date] of Object.entries(BLOG_POST_DATES)) {
+  PAGE_LASTMOD[`/blog/${slug}`] = date;
+}
+// The blog index carries its own review date, not its newest post's.
+PAGE_LASTMOD["/blog"] = "2026-09-05";
 
 const BLOG_PAGES: Page[] = [
   { url: "/blog", changefreq: "weekly", priority: "0.8" },
@@ -643,4 +694,4 @@ router.get("/robots.txt", (_req, res) => {
 });
 
 export { router as sitemapRouter };
-export { EXAM_SLUGS, SEGMENTS };
+export { BLOG_REVIEWED, EXAM_SLUGS, SEGMENTS };

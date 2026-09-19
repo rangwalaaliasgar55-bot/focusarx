@@ -59,6 +59,47 @@ function StatRow({ label, value, tone = "default" }: { label: string; value: Rea
   );
 }
 
+/**
+ * A collapsible group of panels.
+ *
+ * The side panel had grown to eight stacked widgets — mood, assistant, daily
+ * goal, productivity score, missions and an AI camera — all rendered at full
+ * weight beside the timer. Lower visual clutter is the single benefit reviewers
+ * of focus timers cite most often, and a wall of secondary tools beside a
+ * countdown competes directly with the one thing the page is for.
+ *
+ * Nothing is removed; the tools are one tap away and the summary says what is
+ * inside, so the tap is informed rather than a gamble.
+ */
+function CollapsiblePanelGroup({
+  title,
+  summary,
+  children,
+}: {
+  title: string;
+  summary: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="flex flex-col gap-3">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        className="ui-panel flex min-h-11 w-full items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-500)]"
+      >
+        <span className="min-w-0">
+          <span className="block text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-[var(--foreground-subtle)]">{title}</span>
+          <span className="block text-xs text-[var(--foreground-muted)]">{summary}</span>
+        </span>
+        <ChevronDown size={16} className={`shrink-0 text-[var(--foreground-subtle)] transition-transform duration-[var(--duration-fast)] ${open ? "rotate-180" : ""}`} aria-hidden="true" />
+      </button>
+      {open ? <div className="flex flex-col gap-3">{children}</div> : null}
+    </div>
+  );
+}
+
 function PanelSection({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
     <section className="ui-panel p-4">
@@ -202,27 +243,35 @@ function SidePanel() {
         </form>
       </PanelSection>
 
-      <Suspense fallback={<HeavyWidgetFallback />}>
-        <FocusMoodWidget />
-      </Suspense>
-      <Suspense fallback={<HeavyWidgetFallback />}>
-        <AskArx />
-      </Suspense>
-      <Suspense fallback={<HeavyWidgetFallback />}>
-        <DailyGoal />
-      </Suspense>
-      <Suspense fallback={<HeavyWidgetFallback />}>
-        <ProductivityScoreWidget />
-      </Suspense>
-      <Suspense fallback={<HeavyWidgetFallback />}>
-        <MissionsWidget />
-      </Suspense>
+      {/*
+        The widgets below are only mounted once opened. Besides the clutter
+        argument, each one is a lazy chunk: leaving them collapsed means their
+        JS is never downloaded during a session, which matters most on the
+        low-end phones this app is used on.
+      */}
+      <CollapsiblePanelGroup title="Session tools" summary="Mood, daily goal, productivity, missions">
+        <Suspense fallback={<HeavyWidgetFallback />}>
+          <FocusMoodWidget />
+        </Suspense>
+        <Suspense fallback={<HeavyWidgetFallback />}>
+          <DailyGoal />
+        </Suspense>
+        <Suspense fallback={<HeavyWidgetFallback />}>
+          <ProductivityScoreWidget />
+        </Suspense>
+        <Suspense fallback={<HeavyWidgetFallback />}>
+          <MissionsWidget />
+        </Suspense>
+      </CollapsiblePanelGroup>
 
-      <PanelSection title="AI camera">
+      <CollapsiblePanelGroup title="Assist & camera" summary="Ask Arx, focus camera">
+        <Suspense fallback={<HeavyWidgetFallback />}>
+          <AskArx />
+        </Suspense>
         <Suspense fallback={<HeavyWidgetFallback />}>
           <FocusCamera />
         </Suspense>
-      </PanelSection>
+      </CollapsiblePanelGroup>
     </div>
   );
 }
@@ -264,11 +313,11 @@ function CoinXPBar({ focusSessionsToday }: { focusSessionsToday: number }) {
         <span className="text-xs font-bold tabular-nums text-[var(--brand-gold)]">{wallet.coins.toLocaleString()}</span>
       </div>
       <div className="flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--card-border)] bg-[var(--brand-soft)] px-2.5 py-1.5" aria-label={`Level ${level}, ${wallet.weeklyXp} XP this week`}>
-        <div className="grid h-5 w-5 shrink-0 place-items-center rounded-[var(--radius-sm)] bg-[var(--brand-600)] text-[0.625rem] font-semibold text-[var(--neutral-0)]">
+        <div className="grid h-5 w-5 shrink-0 place-items-center rounded-[var(--radius-sm)] bg-[var(--brand-600)] text-[11px] font-semibold text-[var(--neutral-0)]">
           {level}
         </div>
         <div className="flex min-w-[52px] flex-col gap-0.5">
-          <span className="text-[0.625rem] font-semibold leading-none tabular-nums text-[var(--brand-strong)]">{wallet.weeklyXp.toLocaleString()} <span className="text-[var(--foreground-subtle)]">wk XP</span></span>
+          <span className="text-[11px] font-semibold leading-none tabular-nums text-[var(--brand-strong)]">{wallet.weeklyXp.toLocaleString()} <span className="text-[var(--foreground-subtle)]">wk XP</span></span>
           <div className="h-1 w-full overflow-hidden rounded-full bg-[var(--surface-hover)]">
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)]"
@@ -431,7 +480,7 @@ function FocusChamberHeader() {
       <div className="flex min-w-0 items-center gap-2">
         <span className="hidden text-[0.8125rem] font-semibold text-[var(--foreground)] sm:block">{greeting}, <span className="text-[var(--brand-strong)]">{firstName}</span></span>
         {focusSessionsToday > 0 && (
-          <span className="flex items-center gap-1 rounded-full border border-[color-mix(in_srgb,var(--warning)_24%,transparent)] bg-[var(--warning-soft)] px-2 py-0.5 text-[0.625rem] font-bold text-[var(--warning)]">
+          <span className="flex items-center gap-1 rounded-full border border-[color-mix(in_srgb,var(--warning)_24%,transparent)] bg-[var(--warning-soft)] px-2 py-0.5 text-[11px] font-bold text-[var(--warning)]">
             <Flame size={11} aria-hidden="true" /> {focusSessionsToday} {focusSessionsToday === 1 ? "session" : "sessions"} today
           </span>
         )}

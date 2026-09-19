@@ -1,4 +1,5 @@
-import { pgTable, text, integer, boolean, timestamp, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, boolean, timestamp, jsonb, index, uniqueIndex, check } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { usersTable } from "./focusarx";
 
 /** Anonymous site visitors — separate from auth users table. */
@@ -46,6 +47,9 @@ export const analyticsSessionsTable = pgTable(
   (t) => [
     index("analytics_sessions_visitor_id_idx").on(t.visitorId),
     index("analytics_sessions_last_activity_idx").on(t.lastActivityAt),
+    // Counters in a daily aggregate only ever go up. A negative one is not a
+    // visible error; it is a permanently wrong number in a report.
+    check("analytics_sessions_counters_non_negative", sql`${t.durationSec} >= 0 AND ${t.pageViews} >= 0 AND ${t.focusSessionsStarted} >= 0 AND ${t.tasksCreated} >= 0 AND ${t.roadmapsGenerated} >= 0 AND ${t.aiFeaturesUsed} >= 0`),
   ],
 );
 

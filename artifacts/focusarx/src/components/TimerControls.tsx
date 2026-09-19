@@ -16,6 +16,17 @@ const MODE_COLORS: Record<TimerMode, { from: string; to: string; shadow: string;
   longBreak: { from: "var(--brand-500)", to: "var(--palette-6366f1)", shadow: "var(--rgba-139-92-246-0_45)", ring: "var(--rgba-139-92-246-0_3)" },
 };
 
+/**
+ * Focus ring shared by all three buttons.
+ *
+ * The buttons previously relied on `whileHover` / `whileTap` alone, so a
+ * keyboard user tabbing to Reset, Start or Skip had no indication of where the
+ * focus was — the primary control of the entire product was invisible to
+ * keyboard navigation. `focus-visible` keeps it off for pointer users.
+ */
+const FOCUS_RING =
+  "outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring-focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]";
+
 export function TimerControls({ status, mode, onToggle, onReset, onSkip }: TimerControlsProps) {
   const isRunning = status === "running";
   const isPaused = status === "paused";
@@ -29,7 +40,7 @@ export function TimerControls({ status, mode, onToggle, onReset, onSkip }: Timer
         aria-label="Reset timer"
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.93 }}
-        className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--palette-zinc-700)]/60 bg-[var(--palette-zinc-900)]/60 text-[var(--palette-zinc-400)] backdrop-blur-sm transition-all hover:border-[var(--palette-zinc-600)] hover:bg-[var(--palette-zinc-800)]/70 hover:text-[var(--palette-zinc-200)]"
+        className={`flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--palette-zinc-700)]/60 bg-[var(--palette-zinc-900)]/60 text-[var(--palette-zinc-400)] backdrop-blur-sm transition-all hover:border-[var(--palette-zinc-600)] hover:bg-[var(--palette-zinc-800)]/70 hover:text-[var(--palette-zinc-200)] ${FOCUS_RING}`}
       >
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
@@ -40,10 +51,10 @@ export function TimerControls({ status, mode, onToggle, onReset, onSkip }: Timer
       <motion.button
         type="button"
         onClick={onToggle}
-        aria-label={isRunning ? "Pause" : isPaused ? "Resume" : "Start focus session"}
+        aria-label={isRunning ? "Pause focus session" : isPaused ? "Resume focus session" : "Start focus session"}
         whileHover={{ scale: 1.06 }}
         whileTap={{ scale: 0.93 }}
-        className="relative flex h-20 w-20 items-center justify-center rounded-[1.4rem] font-bold text-[var(--palette-white)] shadow-2xl"
+        className={`relative flex h-20 w-20 items-center justify-center rounded-[1.4rem] font-bold text-[var(--palette-white)] shadow-2xl ${FOCUS_RING}`}
         style={{
           background: `linear-gradient(135deg, ${mc.from}, ${mc.to})`,
           boxShadow: `0 0 0 6px ${mc.ring}, 0 12px 32px ${mc.shadow}`,
@@ -74,7 +85,7 @@ export function TimerControls({ status, mode, onToggle, onReset, onSkip }: Timer
         aria-label="Skip to next session"
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.93 }}
-        className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--palette-zinc-700)]/60 bg-[var(--palette-zinc-900)]/60 text-[var(--palette-zinc-400)] backdrop-blur-sm transition-all hover:border-[var(--palette-zinc-600)] hover:bg-[var(--palette-zinc-800)]/70 hover:text-[var(--palette-zinc-200)]"
+        className={`flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--palette-zinc-700)]/60 bg-[var(--palette-zinc-900)]/60 text-[var(--palette-zinc-400)] backdrop-blur-sm transition-all hover:border-[var(--palette-zinc-600)] hover:bg-[var(--palette-zinc-800)]/70 hover:text-[var(--palette-zinc-200)] ${FOCUS_RING}`}
       >
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polygon points="5 4 15 12 5 20 5 4" />

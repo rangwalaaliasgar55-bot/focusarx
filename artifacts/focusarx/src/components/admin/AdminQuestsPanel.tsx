@@ -1,12 +1,17 @@
 import { useState, useEffect } from "react";
 import { Save, X, Plus, Pencil, Trash2, RefreshCw } from "lucide-react";
 import { Badge, EmptyState, LoadingState, MotionTab, SectionHeader, adminFetch } from "./AdminHelpers";
+import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
+
 import type { QuestDef, AdminPanelProps } from "./AdminTypes";
 
 const TYPES = ["daily", "weekly"];
 const REQ_TYPES = ["focus_minutes", "session_count", "streak_days", "coins_earned", "xp_earned"];
 
 export function AdminQuestsPanel({ authHeaders }: AdminPanelProps) {
+  const { toast } = useToast();
+  const confirm = useConfirm();
   const [quests, setQuests] = useState<QuestDef[]>([]);
   const [loading, setLoading] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -41,7 +46,13 @@ export function AdminQuestsPanel({ authHeaders }: AdminPanelProps) {
   }
 
   async function deactivateQuest(questId: string) {
-    if (!window.confirm("Deactivate this quest?")) return;
+    const ok = await confirm({
+      title: "Deactivate this quest?",
+      description: "It stops appearing for users immediately. Existing progress is kept.",
+      confirmLabel: "Deactivate",
+      danger: true,
+    });
+    if (!ok) return;
     const r = await adminFetch(`/api/admin/cms/quests/${questId}`, {
       method: "DELETE", headers: authHeaders(), credentials: "include",
     });
@@ -51,7 +62,7 @@ export function AdminQuestsPanel({ authHeaders }: AdminPanelProps) {
   async function seedQuests() {
     const r = await adminFetch("/api/admin/cms/seed/quests", { method: "POST", headers: authHeaders(), credentials: "include" });
     const d = await r.json();
-    alert(`Seeded ${d.seeded ?? 0} new quests (${d.total ?? 0} total)`);
+    toast(`Seeded ${d.seeded ?? 0} new quests (${d.total ?? 0} total)`, "success");
     load();
   }
 

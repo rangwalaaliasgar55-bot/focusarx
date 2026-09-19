@@ -193,6 +193,53 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # The action writes its findings to a job summary and a SARIF artifact.
+      # Neither is readable from the checks UI or the API, so a failed Security
+      # job could only say "leaks detected" without saying where, which makes the
+      # gate impossible to act on. Re-emit every finding as an annotation: those
+      # show up inline on the diff and come back over the API.
+      - name: Surface gitleaks findings
+        if: failure()
+        run: |
+          node -e '
+            const { existsSync, readFileSync, readdirSync } = require("node:fs");
+            const { join } = require("node:path");
+            const root = process.argv[1];
+            // The action writes `results.sarif`; the artifact it uploads is only
+            // *named* `gitleaks-results.sarif`. Check both, then fall back to any
+            // report in the workspace, so an action version bump cannot silently
+            // turn this step into a no-op.
+            let report = ["results.sarif", "gitleaks-results.sarif"]
+              .map((name) => join(root, name))
+              .find((path) => existsSync(path));
+            if (!report) {
+              for (const entry of readdirSync(root)) {
+                if (entry.endsWith(".sarif")) {
+                  report = join(root, entry);
+                  break;
+                }
+              }
+            }
+            if (!report) {
+              console.log("::warning::gitleaks failed but left no SARIF report to read");
+              process.exit(0);
+            }
+            const sarif = JSON.parse(readFileSync(report, "utf8"));
+            let count = 0;
+            for (const run of sarif.runs ?? []) {
+              for (const result of run.results ?? []) {
+                count += 1;
+                const at = result.locations?.[0]?.physicalLocation ?? {};
+                let file = at.artifactLocation?.uri ?? "unknown";
+                if (file.startsWith(root)) file = file.slice(root.length + 1);
+                const line = at.region?.startLine ?? 1;
+                const message = (result.message?.text ?? "finding").split("\n")[0].slice(0, 200);
+                console.log(`::error file=${file},line=${line}::gitleaks ${result.ruleId ?? "rule"}: ${message}`);
+              }
+            }
+            console.log(`::notice::gitleaks reported ${count} finding(s)`);
+          ' "$GITHUB_WORKSPACE"
+
       - name: Check for secrets in source
         run: |
           echo "Scanning for potential secrets..."

@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { RefreshCw, Shield, Search, RotateCcw, Trash2, Pencil, Megaphone, X } from "lucide-react";
 import { EmptyState, LoadingState, MotionTab, SectionHeader, StatCard, adminFetch, QuickActionButton } from "./AdminHelpers";
+import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
+
 import type { AdminPanelProps } from "./AdminTypes";
 
 type Overview = {
@@ -41,6 +44,8 @@ function moodEmoji(v: number | null): string {
 }
 
 export function AdminBreakFreePanel({ authHeaders, onManageUser }: AdminPanelProps & { onManageUser?: (id: string) => void }) {
+  const { toast } = useToast();
+  const confirm = useConfirm();
   const [overview, setOverview] = useState<Overview | null>(null);
   const [users, setUsers] = useState<JourneyUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,21 +79,35 @@ export function AdminBreakFreePanel({ authHeaders, onManageUser }: AdminPanelPro
     try {
       const r = await fn();
       const d = await r.json().catch(() => ({}));
-      if (!r.ok) { alert(d.error?.message ?? d.error ?? "Failed"); return; }
+      if (!r.ok) { toast(d.error?.message ?? d.error ?? "Failed", "error"); return; }
       setNotice(success(d));
       await load();
     } finally { setBusy(null); }
   }
 
-  const resetUser = (u: JourneyUser, countRelapse: boolean) => {
-    if (!confirm(`${countRelapse ? "Log a relapse and restart" : "Restart"} ${u.name}'s streak from today?`)) return;
+  const resetUser = async (u: JourneyUser, countRelapse: boolean) => {
+    const ok = await confirm({
+      title: `${countRelapse ? "Log a relapse and restart" : "Restart"} ${u.name}'s streak?`,
+      description: countRelapse
+        ? "Their streak restarts from today and the relapse is recorded in their history."
+        : "Their streak restarts from today. The journey history is kept.",
+      confirmLabel: countRelapse ? "Log relapse" : "Restart streak",
+      danger: countRelapse,
+    });
+    if (!ok) return;
     void act(`reset:${u.userId}`, () => adminFetch(`/api/admin/break-free/users/${u.userId}/reset`, {
       method: "POST", headers: headers(), credentials: "include", body: JSON.stringify({ countRelapse }),
     }), () => `${u.name}'s streak restarted from today`);
   };
 
-  const deleteUser = (u: JourneyUser) => {
-    if (!confirm(`Remove ${u.name}'s entire Break Free journey (streak + mood log)? This cannot be undone.`)) return;
+  const deleteUser = async (u: JourneyUser) => {
+    const ok = await confirm({
+      title: `Remove ${u.name}'s Break Free journey?`,
+      description: "The streak and the entire mood log are deleted. This cannot be undone.",
+      confirmLabel: "Remove journey",
+      danger: true,
+    });
+    if (!ok) return;
     void act(`del:${u.userId}`, () => adminFetch(`/api/admin/break-free/users/${u.userId}`, {
       method: "DELETE", headers: authHeaders(), credentials: "include",
     }), () => `${u.name}'s journey removed`);
@@ -106,8 +125,14 @@ export function AdminBreakFreePanel({ authHeaders, onManageUser }: AdminPanelPro
     }), () => `${editing.name}'s journey updated`).then(() => setEditing(null));
   };
 
-  const deletePledge = (id: string) => {
-    if (!confirm("Remove this pledge from the public wall?")) return;
+  const deletePledge = async (id: string) => {
+    const ok = await confirm({
+      title: "Remove this pledge?",
+      description: "It disappears from the public wall immediately.",
+      confirmLabel: "Remove pledge",
+      danger: true,
+    });
+    if (!ok) return;
     void act(`pledge:${id}`, () => adminFetch(`/api/admin/break-free/pledges/${id}`, {
       method: "DELETE", headers: authHeaders(), credentials: "include",
     }), () => "Pledge removed");
@@ -185,7 +210,7 @@ export function AdminBreakFreePanel({ authHeaders, onManageUser }: AdminPanelPro
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="text-[10px] uppercase tracking-wider text-[var(--palette-zinc-500)]">
+              <thead className="text-[11px] uppercase tracking-wider text-[var(--palette-zinc-500)]">
                 <tr>
                   <th className="pb-2 pr-3">Member</th>
                   <th className="pb-2 pr-3">Current</th>
@@ -201,12 +226,12 @@ export function AdminBreakFreePanel({ authHeaders, onManageUser }: AdminPanelPro
                   <tr key={u.userId} className="text-[var(--palette-zinc-300)]">
                     <td className="py-2 pr-3">
                       <button onClick={() => onManageUser?.(u.userId)} className="block max-w-[14rem] truncate text-left font-medium text-[var(--palette-zinc-100)] hover:underline">{u.name}</button>
-                      <span className="block max-w-[14rem] truncate font-mono text-[10px] text-[var(--palette-zinc-600)]">{u.email}</span>
+                      <span className="block max-w-[14rem] truncate font-mono text-[11px] text-[var(--palette-zinc-600)]">{u.email}</span>
                     </td>
                     <td className="py-2 pr-3 font-semibold text-[var(--palette-emerald-300)]">{u.currentStreak}d</td>
                     <td className="py-2 pr-3">{u.longestStreak}d</td>
-                    <td className="py-2 pr-3">{u.relapseCount}{u.lastRelapseDate ? <span className="block text-[10px] text-[var(--palette-zinc-600)]">last {u.lastRelapseDate}</span> : null}</td>
-                    <td className="py-2 pr-3">{moodEmoji(u.avgMood7d)} {u.avgMood7d ?? "—"}<span className="block text-[10px] text-[var(--palette-zinc-600)]">{u.checkins7d} check-ins</span></td>
+                    <td className="py-2 pr-3">{u.relapseCount}{u.lastRelapseDate ? <span className="block text-[11px] text-[var(--palette-zinc-600)]">last {u.lastRelapseDate}</span> : null}</td>
+                    <td className="py-2 pr-3">{moodEmoji(u.avgMood7d)} {u.avgMood7d ?? "—"}<span className="block text-[11px] text-[var(--palette-zinc-600)]">{u.checkins7d} check-ins</span></td>
                     <td className="py-2 pr-3 font-mono text-[11px]">{u.startDate.slice(0, 10)}</td>
                     <td className="py-2">
                       <div className="flex flex-wrap gap-1">
@@ -264,7 +289,7 @@ export function AdminBreakFreePanel({ authHeaders, onManageUser }: AdminPanelPro
               <li key={p.id} className="flex items-start justify-between gap-3 rounded-lg border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 px-3 py-2">
                 <div className="min-w-0">
                   <p className="text-xs text-[var(--palette-zinc-200)]">{p.message}</p>
-                  <p className="text-[10px] text-[var(--palette-zinc-600)]">{new Date(p.postedAt).toLocaleString()}</p>
+                  <p className="text-[11px] text-[var(--palette-zinc-600)]">{new Date(p.postedAt).toLocaleString()}</p>
                 </div>
                 <button onClick={() => deletePledge(p.id)} disabled={busy === `pledge:${p.id}`} className="shrink-0 text-[var(--palette-zinc-500)] hover:text-[var(--palette-rose-400)] disabled:opacity-50" aria-label="Remove pledge"><Trash2 size={13} /></button>
               </li>

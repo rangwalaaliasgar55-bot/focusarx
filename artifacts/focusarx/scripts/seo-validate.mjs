@@ -40,6 +40,11 @@ const NON_SITEMAP_ALLOWLIST = new Set([
 const manifestNoindex = new Set();
 const NON_INDEXABLE = new Set(["/login", "/signup", "/forgot-password", "/reset-password", "/404"]);
 
+/** Literal text inside a regex, for matching emitted HTML. */
+function escapeRegexForHtmlText(text) {
+  return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+}
+
 /**
  * Canonical path → prerendered HTML, built once before the per-file loop.
  * The hreflang gate has to look at *other* documents — is this alternate a page
@@ -53,6 +58,12 @@ for (const f of walkHtml(DIST)) {
   const rel = relative(DIST, f).replace(/index\.html$/, "").replace(/\.html$/, "");
   htmlByPath.set(rel ? `/${rel}`.replace(/\/+$/, "") : "/", readFileSync(f, "utf8"));
 }
+
+// Assigned inside the table-parity block below and read by the summary line, so
+// they are deliberately declared without an initialiser (a dead `= 0` is what
+// `no-useless-assignment` flags).
+let tablesCheckedTotal;
+let rowsCheckedTotal;
 
 function walkHtml(dir, acc = []) {
   for (const entry of readdirSync(dir)) {
@@ -1025,177 +1036,277 @@ for (const entry of manifestRoutes) {
   }
 }
 
-// ── 14. Content depth: a prerendered page must say something ──────────────
-// Search Console's "Crawled – currently not indexed" and most of a
-// "Discovered – currently not indexed" backlog are the same verdict written
-// two ways: Google fetched the page, decided it was not worth an index slot,
-// and moved on. Nothing else in this file catches it, because a thin page can
-// be perfectly well formed — right title, right canonical, three inbound
-// links, valid JSON-LD — and still be 30 words of copy around a client-rendered
-// app. The prerendered document is the whole page as far as a crawler that
-// does not finish the JavaScript is concerned.
+// ══════════════════════════════════════════════════════════════════
+// Content-depth and table-parity gates
+// ══════════════════════════════════════════════════════════════════
+// Everything above checks that a page is well formed and reachable. These two
+// check that the page is worth indexing at all, and that the table a crawler
+// reads is the table a visitor reads.
 //
-// The measure is the page's OWN visible words: everything the shell repeats on
-// every route (breadcrumb, badge, byline, "On this page", "Keep reading", the
-// cluster block, the closing CTA, the no-JS notice) is stripped first, so a
-// page cannot pass on boilerplate it did not write.
+// Why depth needs a gate: a prerendered document always has *some* text — the
+// badge, the breadcrumb trail, the "Keep reading" links, the footer, the CTA.
+// A page can therefore look complete to every check above while its own copy is
+// a heading and a sentence, which is what "Crawled – currently not indexed"
+// means in Search Console. Counting is the only way to see it.
+//
+// "Shell furniture" is stripped before counting: chrome every page carries that
+// says nothing about this one (nav, breadcrumb/TOC, the byline, the related and
+// cluster blocks, the CTA, the badge). What remains is the page's own words —
+// h1, lead, answer, table, sections, FAQ, sources.
+
+/** Chrome that appears on every page and must not count toward a page's depth. */
+const FURNITURE_PATTERNS = [
+  /<nav\b[\s\S]*?<\/nav>/gi,
+  /<footer\b[\s\S]*?<\/footer>/gi,
+  /<div class="related">[\s\S]*?<\/div>/gi,
+  /<div class="cluster">[\s\S]*?<\/div>/gi,
+  /<div class="byline">[\s\S]*?<\/div>/gi,
+  /<a class="cta"[\s\S]*?<\/a>/gi,
+  /<span class="badge">[\s\S]*?<\/span>/gi,
+  /<script\b[\s\S]*?<\/script>/gi,
+  /<style\b[\s\S]*?<\/style>/gi,
+  /<head\b[\s\S]*?<\/head>/gi,
+];
+
+/**
+ * A page's own copy, in words.
+ *
+ * Scoped to the `<main id="main-content">` the prerenderer injects so the
+ * document shell cannot contribute, then stripped of furniture.
+ */
+function ownCopyWords(html) {
+  const main = /<main id="main-content"[^>]*>([\s\S]*?)<\/main>/i.exec(html);
+  let body = main ? main[1] : html;
+  for (const rx of FURNITURE_PATTERNS) body = body.replace(rx, " ");
+  const text = body
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&[a-zA-Z]+;|&#\d+;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!text) return 0;
+  // Any script, not just Latin. The filter used to be /[a-zA-Z0-9]/, which
+  // silently discarded every Devanagari word: the Hindi pages were scored on
+  // the Latin fragments that happen to appear in them ("FocusArx", "JEE",
+  // "10,000") and reported 51 and 37 words against a 150-word floor. A gate
+  // that cannot see the copy it exists to protect is worse than no gate — it
+  // would have passed a Hindi page whose prose had been deleted entirely.
+  return text.split(" ").filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
+}
+
+/**
+ * Words a page must carry to be worth a crawl.
+ *
+ * 150 is the depth at which a page can answer the question it was written for
+ * rather than restating its own title.
+ */
+const MIN_OWN_WORDS = 150;
+
+/**
+ * App surfaces: screens behind the app shell, not documents. They are noindexed
+ * (robots.txt disallows them, and the manifest says so), so there is nothing to
+ * rank and no depth to demand — the requirement is only that the static shell is
+ * not *empty*, which is what a blank `<div id="root">` would be for a crawler
+ * that does not run JavaScript.
+ */
+const APP_SURFACE_MIN_WORDS = 5;
+const APP_SURFACES = new Set([
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+  "/premium",
+  "/study-rooms",
+  "/break-free",
+  "/breathe",
+  "/achievements",
+  "/leaderboard",
+  "/roadmap",
+  "/study-calculator",
+  "/study-method-quiz",
+  "/search",
+]);
+
+/**
+ * Thin-copy ratchet.
+ *
+ * These 17 pages are below MIN_OWN_WORDS today and are allowed to stay there —
+ * the alternative is padding them to hit a number, which would be worse than the
+ * number. The baseline is the ratchet: a page may not get *thinner* than the
+ * count recorded here. Add an entry only when a page legitimately needs less
+ * copy; never raise one to make a build pass, and never add one to silence a
+ * page that should be rewritten.
+ *
+ * This list is a to-do, not an endorsement. Six entries are pages whose body is
+ * client-rendered and absent from the prerendered document altogether — the
+ * exact "prerendered != hydrated" failure §2.10 warns about. They are recorded
+ * rather than exempted so the size of that gap is visible in the source and
+ * cannot grow.
+ *
+ * Measured 2026-09-18 against the emitted HTML (clean `vite build` +
+ * prerender). The count is the page's own words with shell furniture stripped,
+ * so it will move if the furniture patterns change — re-measure with the gate's
+ * own message rather than by hand.
+ */
+const THIN_COPY_BASELINE = new Map([
+  // ── Policy and legal pages whose text is client-rendered ──────────────
+  // src/pages/terms.tsx holds a full terms document, but the prerender
+  // manifest declares `sections: []` — so the document a crawler receives is
+  // the heading, the one-line lead and the "Keep reading" list. That is the
+  // §2.10 "prerendered != hydrated" failure and it is the real follow-up here:
+  // the fix is to move each policy body into the manifest, not to pad it.
+  // Recorded at the measured count so they cannot get thinner in the meantime.
+  ["/terms", 15],
+  ["/privacy", 25],
+  ["/cookie-policy", 20],
+  ["/acceptable-use", 17],
+  ["/ai-policy", 23],
+  ["/contact", 23],
+  // ── Hub and long-form pages that are genuinely short of depth ─────────
+  // These render their own copy; they are simply thin. Each is a real
+  // editorial task, so they are ratcheted rather than silently passed.
+  ["/changelog", 70],
+  ["/deep-study-guide", 73],
+  ["/science-of-deep-work", 79],
+  ["/two-hour-study-method", 83],
+  ["/pricing", 86],
+  ["/feynman-technique", 104],
+  ["/guides", 131],
+  ["/study-techniques", 135],
+  ["/blog", 145],
+  ["/focus-guide", 147],
+  ["/support", 65],
+]);
+
 {
-  /** Words an indexable page needs in its own copy. */
-  const MIN_OWN_WORDS = 150;
-
-  /**
-   * Pages whose content is not prose, and which are therefore held to
-   * MIN_APP_SURFACE_WORDS instead of MIN_OWN_WORDS.
-   *
-   * This list got much shorter on 2026-09-18, and the direction matters: it used
-   * to also contain /break-free, /leaderboard, /study-rooms, /breathe,
-   * /study-method-quiz, /study-calculator, /pricing, /changelog, /roadmap and
-   * /support on the argument that "the product IS the page". That argument was
-   * doing nothing except excusing ten sitemap URLs from saying anything, which
-   * is precisely the state Google files under "Crawled – currently not indexed".
-   * Each of those pages now carries real copy about what the tool is, who it is
-   * for and how to use it — the words the app cannot prerender for itself — and
-   * each is held to the normal floor. Adding a page back here needs a reason
-   * better than convenience.
-   *
-   * What legitimately stays: policy stubs whose full text lives behind the links
-   * they carry, and screens that are a form or an API response.
-   */
-  const APP_SURFACE_PAGES = new Set([
-    // policy stubs (full text lives behind the links they carry)
-    "/privacy",
-    "/terms",
-    "/cookie-policy",
-    "/acceptable-use",
-    "/ai-policy",
-    // auth, search and account screens
-    "/login",
-    "/signup",
-    "/contact",
-    "/search",
-    "/achievements",
-    "/premium",
-  ]);
-
-  /**
-   * An app screen still has to name itself. The floor is low because the
-   * substance of these pages is a widget or an API response, not prose — but a
-   * document that prerenders to nothing but a badge and a CTA is a page we
-   * should not be offering to Google at all. Measured 2026-09-17: the lowest
-   * are the policy stubs at 6 words (headline + lead; the policy text lives
-   * behind the links they carry).
-   */
-  const MIN_APP_SURFACE_WORDS = 5;
-
-  /**
-   * Known-thin copy pages, with the word count each measured at. This is a
-   * ratchet, not a pass-list: a page may not get thinner, and no new page may
-   * join. Fixing one means deleting its line here, and the gate then holds it at
-   * MIN_OWN_WORDS for good.
-   *
-   * **This map is empty as of 2026-09-18.** It was created the day before with
-   * nine entries (/deep-study-guide 66, /science-of-deep-work 69,
-   * /two-hour-study-method 74, /feynman-technique 82, /guides 115, /focus-guide
-   * 115, /study-techniques 115, /blog 138, / 140) and every one has since been
-   * written up past the floor, which is what deleting a line is supposed to
-   * mean. Leave it empty: a page under 150 words now fails the build instead of
-   * being granted a baseline, and that is the intended state.
-   */
-  const THIN_BASELINE = new Map([]);
-
-  const ownWords = (html) => {
-    const body = html
-      .replace(/<script[\s\S]*?<\/script>/gi, " ")
-      .replace(/<style[\s\S]*?<\/style>/gi, " ")
-      .replace(/<!--[\s\S]*?-->/g, " ")
-      // repeated shell furniture — identical on every route
-      .replace(/<nav[^>]*aria-label="Breadcrumb"[\s\S]*?<\/nav>/gi, " ")
-      .replace(/<nav[^>]*aria-label="On this page"[\s\S]*?<\/nav>/gi, " ")
-      .replace(/<nav[^>]*aria-label="[^"]*cluster[^"]*"[\s\S]*?<\/nav>/gi, " ")
-      .replace(/<[^>]*class="[^"]*\b(badge|byline|related|cluster|toc|sources|fa-noscript)\b[^"]*"[\s\S]*?<\/(div|nav|p|ul)>/gi, " ")
-      .replace(/<a[^>]*class="cta"[\s\S]*?<\/a>/gi, " ");
-    const text = body
-      .replace(/<[^>]+>/g, " ")
-      .replace(/&[a-z#0-9]+;/gi, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    return text.split(" ").filter((w) => w.length > 1).length;
-  };
-
-  const counts = new Map();
+  const measured = new Map();
   for (const doc of documents) {
-    if (!indexablePaths.has(doc.path)) continue;
-    const words = ownWords(doc.html);
-    const isAppSurface = APP_SURFACE_PAGES.has(doc.path);
-    if (isAppSurface) {
-      if (words < MIN_APP_SURFACE_WORDS) {
+    measured.set(doc.path, ownCopyWords(doc.html));
+  }
+
+  for (const doc of documents) {
+    if (doc.path === "/404") continue;
+    const words = measured.get(doc.path) ?? 0;
+
+    const isApp = APP_SURFACES.has(doc.path) || NON_INDEXABLE.has(doc.path) || manifestNoindex.has(doc.path);
+
+    if (isApp) {
+      if (words < APP_SURFACE_MIN_WORDS) {
         problems.push(
-          `${doc.path}: an app screen still has to name itself — ${words} words of static copy (floor ${MIN_APP_SURFACE_WORDS})`,
+          `${doc.path}: app surface carries ${words} word(s) of own copy — the prerendered shell is effectively empty, ` +
+            `so a crawler that does not run JavaScript sees a blank page (needs ${APP_SURFACE_MIN_WORDS})`,
         );
       }
       continue;
     }
-    counts.set(doc.path, words);
-    if (words >= MIN_OWN_WORDS) continue;
-    const baseline = THIN_BASELINE.get(doc.path);
-    if (baseline === undefined) {
+
+    const floor = THIN_COPY_BASELINE.get(doc.path);
+    if (floor !== undefined) {
+      if (words < floor) {
+        problems.push(
+          `${doc.path}: own copy fell to ${words} words, below its recorded ${floor} — thin pages may not get thinner ` +
+            `(lower the entry in THIN_COPY_BASELINE only if the page legitimately needs less)`,
+        );
+      }
+      continue;
+    }
+
+    if (words < MIN_OWN_WORDS) {
       problems.push(
-        `${doc.path}: only ${words} words of its own copy in the prerendered document (floor ${MIN_OWN_WORDS}) — ` +
-          `a page this thin is what fills Search Console's "Crawled – currently not indexed". Write the page, or drop it from the sitemap and mark it noindex.`,
-      );
-    } else if (words < baseline) {
-      problems.push(
-        `${doc.path}: content-depth regression — ${words} words of its own copy, down from ${baseline} when the ratchet was set`,
+        `${doc.path}: only ${words} words of its own copy (needs ${MIN_OWN_WORDS}). ` +
+          `Shell furniture is already excluded, so this counts the page's own prose. ` +
+          `Either deepen it, or — if it is a policy or tool surface where short is correct — ` +
+          `add it to THIN_COPY_BASELINE at its current count.`,
       );
     }
   }
-  for (const path of THIN_BASELINE.keys()) {
-    if (!counts.has(path)) {
-      problems.push(`${path}: listed in the thin-content baseline but no longer measured as indexable — remove it from THIN_BASELINE`);
+
+  // The ratchet's own teeth: an entry for a page that no longer exists hides a
+  // real regression once that route is reintroduced thinner.
+  for (const path of THIN_COPY_BASELINE.keys()) {
+    if (!documentPaths.has(path)) {
+      problems.push(`THIN_COPY_BASELINE lists ${path}, which is not a prerendered page — remove the stale entry`);
     }
   }
 }
 
-// ── 15. Crawler/visitor parity for the comparison tables ──────────────────
-// The comparison pages are built from a feature grid in
-// src/content/seo-pages.mjs. The hydrated page has always rendered it; the
-// prerendered document did not, so a crawler saw two short verdict paragraphs
-// (~330 words) where a visitor saw the whole comparison. That is the specific
-// shape of thinness these ten pages had, and it is invisible to every other
-// gate here because nothing was malformed. Both sides now render the same rows
-// from the same module; this asserts the static document really carries them.
+// ── Table parity: every declared row must reach the emitted HTML ────────────
+// §18 #20 was exactly this: src/pages/comparison.tsx drew a ten-row feature
+// table from COMPARISONS, and prerender.mjs emitted only the two prose verdicts.
+// A crawler saw a different page than a visitor, and every row label — the part
+// that carries the comparison — was missing from the indexed HTML. Nothing
+// caught it: the document was well formed, self-canonical, and had valid
+// JSON-LD. Parity has to be asserted against the same source the page reads.
 {
+  let tablesChecked = 0;
+  let rowsChecked = 0;
   for (const entry of manifestRoutes) {
-    if (!entry.table?.rows?.length) continue;
-    const doc = documents.find((d) => d.path === (entry.path === "" ? "/" : `/${String(entry.path).replace(/^\/+/, "")}`));
-    if (!doc) continue;
-    const text = doc.html
-      .replace(/<[^>]+>/g, " ")
-      .replace(/&amp;/g, "&")
-      .replace(/&#0?39;/g, "'")
-      .replace(/&quot;/g, '"')
-      .replace(/\s+/g, " ");
-    const missing = entry.table.rows
-      .map((row) => String(row[0]))
-      .filter((label) => !text.includes(label));
-    if (missing.length > 0) {
-      problems.push(
-        `${doc.path}: ${missing.length} of ${entry.table.rows.length} table rows are missing from the prerendered document (${missing.slice(0, 3).join("; ")}…) — ` +
-          `a crawler sees a shorter page than a visitor`,
-      );
+    if (!entry.table) continue;
+    tablesChecked += 1;
+    const routePath = entry.path === "" ? "/" : `/${String(entry.path).replace(/^\/+/, "").replace(/\/+$/, "")}`;
+    const doc = documents.find((d) => d.path === routePath);
+    if (!doc) {
+      problems.push(`${routePath}: declares a comparison table but has no prerendered document`);
+      continue;
     }
-    if (!/<table/.test(doc.html)) {
-      problems.push(`${doc.path}: manifest declares a table but the prerendered document has no <table>`);
+    if (!/<table\b/i.test(doc.html)) {
+      problems.push(
+        `${routePath}: manifest declares a table ("${entry.table.caption}") but the emitted HTML has no <table> — ` +
+          `the crawler sees prose where the visitor sees the comparison`,
+      );
+      continue;
+    }
+    // Column headers, as scoped `<th scope="col">`.
+    for (const col of entry.table.columns ?? []) {
+      if (!new RegExp(`<th[^>]*scope="col"[^>]*>\\s*${escapeRegexForHtmlText(col)}`, "i").test(doc.html)) {
+        problems.push(`${routePath}: table column header "${col}" is declared but not emitted with scope="col"`);
+      }
+    }
+    // Every row label, as a scoped row header, and every cell value as text.
+    for (const row of entry.table.rows ?? []) {
+      rowsChecked += 1;
+      const label = String(row[0]);
+      if (!new RegExp(`<th[^>]*scope="row"[^>]*>\\s*${escapeRegexForHtmlText(label)}`, "i").test(doc.html)) {
+        problems.push(`${routePath}: table row "${label}" is declared but not emitted as a scoped row header`);
+      }
+      for (const cell of row.slice(1)) {
+        if (!doc.html.includes(String(cell))) {
+          problems.push(`${routePath}: row "${label}" declares cell "${cell}", absent from the emitted HTML`);
+        }
+      }
+    }
+    // A tick glyph is not content — a text extractor sees nothing and a screen
+    // reader announces the SVG. Count the boolean cells and require the same
+    // number of Yes/No `<td>`s: checking for *a* Yes/No would pass a table where
+    // one cell is text and the rest are icons, which is the actual bug.
+    const boolCells = (entry.table.rows ?? [])
+      .flatMap((r) => r.slice(1))
+      .filter((c) => c === "Yes" || c === "No");
+    for (const word of ["Yes", "No"]) {
+      const declared = boolCells.filter((c) => c === word).length;
+      if (!declared) continue;
+      const emitted = (doc.html.match(new RegExp(`<td>\\s*${word}\\s*<\\/td>`, "gi")) ?? []).length;
+      if (emitted < declared) {
+        problems.push(
+          `${routePath}: ${declared} cell(s) resolve to "${word}" but only ${emitted} carry it as text — a comparison ` +
+            `rendered as a tick glyph is invisible to a text extractor`,
+        );
+      }
     }
   }
+  if (tablesChecked === 0) {
+    problems.push("table-parity gate checked no tables — the comparison manifest entries may have lost their `table`");
+  }
+  tablesCheckedTotal = tablesChecked;
+  rowsCheckedTotal = rowsChecked;
 }
 
 console.log(`seo-validate: ${files.length} pages, ${sitemapUrls.length} sitemap page entries, ${apiServedChildren} child sitemap(s) served by the API in production`);
+console.log(`seo-validate: content depth checked on ${files.length} pages; table parity checked on ${tablesCheckedTotal} table(s), ${rowsCheckedTotal} row(s)`);
 if (problems.length > 0) {
   console.error(`FAIL — ${problems.length} problem(s):`);
   for (const p of problems) console.error(`  - ${p}`);
   process.exit(1);
 }
 console.log(
-  "PASS — titles, descriptions, canonicals, JSON-LD, sitemap, robots, internal-link depth, cannibalisation, llms.txt and consent wiring, breadcrumbs, jump links, title budgets, PageSEO agreement, pillar/cluster wiring, bylines, visible freshness, citation links, content depth, crawler/visitor table parity and image hygiene all consistent",
+  "PASS — titles, descriptions, canonicals, JSON-LD, sitemap, robots, internal-link depth, cannibalisation, llms.txt and consent wiring, breadcrumbs, jump links, title budgets, PageSEO agreement, pillar/cluster wiring, bylines, visible freshness, citation links, image hygiene, content depth and table parity all consistent",
 );

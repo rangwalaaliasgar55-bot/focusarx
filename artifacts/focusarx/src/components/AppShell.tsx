@@ -66,6 +66,7 @@ import { MobileBottomNav } from "@/components/mobile/MobileBottomNav";
 import { MobileMoreMenu } from "@/components/mobile/MobileMoreMenu";
 import { NetworkStatusBanner } from "@/components/mobile/NetworkStatusBanner";
 import { FeatureCompassModal } from "@/components/FeatureCompassModal";
+import { isActiveRoute } from "@/lib/navActive";
 
 interface NavEntry {
   href: string;
@@ -105,6 +106,7 @@ const NAV_GROUPS: NavGroup[] = [
     entries: [
       { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
       { href: "/missions", label: "Missions", icon: Target, badge: "missions" },
+      { href: "/quests", label: "Quests", icon: Compass },
       { href: "/achievements", label: "Achievements", icon: Medal },
       // Focus City was only reachable from the mobile "More" sheet; desktop had
       // no route to a core feature. Both surfaces now expose it.
@@ -117,6 +119,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "More",
     entries: [
       { href: "/habits", label: "Habits", icon: Sparkles },
+      { href: "/groups", label: "Study groups", icon: Users },
       { href: "/messages", label: "Messages", icon: MessageCircle },
       { href: "/wallet", label: "Wallet & XP", icon: WalletCards },
       { href: "/shop", label: "Rewards", icon: Gift },
@@ -164,7 +167,7 @@ function Brand({ compact = false }: { compact?: boolean }) {
 function CountBadge({ count }: { count: number }) {
   if (!count) return null;
   return (
-    <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--brand-soft)] px-1.5 py-0.5 text-[0.625rem] font-bold tabular-nums text-[var(--brand-strong)]">
+    <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--brand-soft)] px-1.5 py-0.5 text-[11px] font-bold tabular-nums text-[var(--brand-strong)]">
       {count > 99 ? "99+" : count}
     </span>
   );
@@ -192,7 +195,7 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
             <div className="space-y-1">
               {entries.map((entry) => {
                 const Icon = entry.icon;
-                const active = location === entry.href;
+                const active = isActiveRoute(location, entry.href);
                 return (
                   <Link
                     key={entry.href}
@@ -290,7 +293,8 @@ function UserMenu({ compact = false }: { compact?: boolean }) {
 function LiveSessionPill() {
   const live = useFocusSessionState();
   const [location] = useLocation();
-  if (live.status === "idle" || location === "/") return null;
+  // Both `/` and `/focus` show the timer, so the pill is redundant on either.
+  if (live.status === "idle" || isActiveRoute(location, "/")) return null;
   const paused = live.status === "paused";
   return (
     <Link
@@ -390,10 +394,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const isFocusPage = location === "/";
+  const isFocusPage = isActiveRoute(location, "/");
   const hideBottomNav = isFocusPage && isFocusActive;
 
-  if (NO_SHELL.some((path) => location === path || location.startsWith(`${path}/`))) return <>{children}</>;
+  if (NO_SHELL.some((path) => isActiveRoute(location, path))) return <>{children}</>;
   if (location === "/" && status !== "authenticated") return <>{children}</>;
 
   return (

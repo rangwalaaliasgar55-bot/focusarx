@@ -17,6 +17,7 @@ import { generatePersona } from "../lib/personas";
 import { templateInventory } from "../lib/botTemplates";
 import { auditLog, getClientIp } from "../lib/auditLog";
 import { sendUnauthorized } from "../lib/httpErrors";
+import { ACCOUNT_DELETION_GRACE_DAYS, deletionBacklog, purgeExpiredDeletions } from "../lib/accountDeletion";
 
 const router = Router();
 const IS_PROD = process.env.NODE_ENV === "production";
@@ -1145,3 +1146,59 @@ router.post("/admin/sql/query", async (req, res) => {
 
 export { router as adminRouter };
 
+
+// ── Account deletion grace period ─────────────────────────────────────────
+//
+// Deletion requests are honoured by a job, not by the request that made them.
+// This is that job's entry point. It is admin-authenticated rather than
+// secret-header-authenticated because the same console already exposes far
+// more dangerous operations (raw SQL, wallet minting), so adding a second
+// secret to manage would widen the attack surface without narrowing anything.
+//
+// The intended caller is a daily cron. The operation is idempotent and safe to
+// run concurrently, so a missed day is caught up automatically and an
+// overlapping run cannot double-delete.
+
+/** How many accounts are waiting, and how many the job is behind on. */
+router.get("/admin/account-deletion", async (req, res) => {
+  if (!(await checkAuth(req))) {
+    sendUnauthorized(res);
+    return;
+  }
+  try {
+    const backlog = await deletionBacklog();
+    res.json({ ...backlog, graceDays: ACCOUNT_DELETION_GRACE_DAYS });
+  } catch (err) {
+    logger.error({ err }, "account deletion backlog error");
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
+  }
+});
+
+/**
+ * Run the purge.
+ *
+ * `overdue > 0` before and `0` after is the only proof the job works, so the
+ * response reports the backlog it saw and the backlog that remains rather than
+ * just a count of what it deleted. A run that deletes nothing looks identical
+ * to a run that is broken unless you can see both numbers.
+ */
+router.post("/admin/account-deletion/purge", adminLimiter, async (req, res) => {
+  if (!(await checkAuth(req))) {
+    sendUnauthorized(res);
+    return;
+  }
+  try {
+    const before = await deletionBacklog();
+    const result = await purgeExpiredDeletions();
+    const after = await deletionBacklog();
+    auditLog({
+      action: "admin_account_deletion_purge",
+      ip: getClientIp(req),
+      details: { purged: result.purged, scanned: result.scanned, backlogAfter: after.overdue },
+    });
+    res.json({ ...result, backlogBefore: before.overdue, backlogAfter: after.overdue, graceDays: ACCOUNT_DELETION_GRACE_DAYS });
+  } catch (err) {
+    logger.error({ err }, "account deletion purge error");
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
+  }
+});

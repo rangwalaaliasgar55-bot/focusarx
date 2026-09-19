@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { QueryError } from "@/components/ui/QueryError";
 import { motion } from "framer-motion";
-import { useAuth } from "@/lib/auth";
+import { useAuth, getToken } from "@/lib/auth";
 import { PageTransition } from "@/components/PageTransition";
 import { Dna, RefreshCw, Zap, Clock, Share2 } from "lucide-react";
 
@@ -111,21 +112,34 @@ export default function FocusDnaPage() {
   const [generating, setGenerating] = useState(false);
   const [flipped, setFlipped] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
-  const token = () => localStorage.getItem("focusarx-auth-token");
+  // Through the shared accessor, so a change to how the token is stored cannot
+  // leave this page quietly reading a key nothing writes any more.
+  const token = getToken;
 
   useEffect(() => {
     if (status !== "authenticated") return;
     fetch("/api/focus-dna", { headers: { Authorization: `Bearer ${token()}` } })
-      .then((r) => r.json())
+      .then((r) => {
+        // Previously `.then((r) => r.json())` with no status check, followed by
+        // `.catch(() => {})` — so a 500 whose body happened to parse set `dna`
+        // to `undefined`, and a non-JSON error body threw into a catch that
+        // discarded it. Either way the page rendered its "you have no Focus DNA
+        // yet, generate one" state, overwriting a profile the user already had.
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      })
       .then((d: { dna: FocusDna | null; totalSessions: number }) => {
         setDna(d.dna);
         setTotalSessions(d.totalSessions);
         if (d.dna) setFlipped(true);
+        setLoadError(false);
       })
-      .catch(() => {})
+      .catch(() => setLoadError(true))
       .finally(() => setFetching(false));
-  }, [status]);
+  }, [status, reloadKey]);
 
   const generate = async () => {
     setGenerating(true);
@@ -171,6 +185,11 @@ export default function FocusDnaPage() {
 
           {loading ? (
             <div className="flex h-48 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--rgba-124-58-237-0_3)] border-t-[var(--brand-600)]" /></div>
+          ) : loadError ? (
+            <QueryError
+              what="your Focus DNA"
+              onRetry={() => { setLoadError(false); setFetching(true); setReloadKey((k) => k + 1); }}
+            />
           ) : status === "authenticated" && dna ? (
             <div className="flex flex-col items-center gap-6">
               <div className="relative w-full max-w-sm" style={{ height: 400, perspective: 1200 }}>

@@ -79,6 +79,18 @@ Thank you for contributing to FocusArx! This guide covers the workflow, testing 
 pnpm run typecheck    # TypeScript across all workspaces
 pnpm run test         # Unit + integration tests (vitest)
 pnpm run build        # Production builds
+pnpm exec knip --include files --include dependencies   # Dead files + dependencies
+```
+
+`knip` parses through oxc's "raw transfer" mode, which reserves one 6 GiB
+`ArrayBuffer` before it reads anything. Machines that cannot hand out that
+reservation — containers with a small memory limit, or a `node` built with a
+lower ArrayBuffer ceiling — get `RangeError: Array buffer allocation failed`
+about a second in, which looks like a knip bug and is not one. Point knip at
+its own fallback parser instead (slower, same analysis):
+
+```bash
+KNIP_DISABLE_RAW_TRANSFER=1 pnpm exec knip --include files --include dependencies
 ```
 
 ### Test requirements for PRs

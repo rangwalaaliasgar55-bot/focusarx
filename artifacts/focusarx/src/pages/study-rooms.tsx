@@ -9,6 +9,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { apiJson, ApiError } from "@/lib/api";
 import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { PageTransition } from "@/components/PageTransition";
 import { EmotePicker } from "@/components/EmotePicker";
 import { AdSlot } from "@/components/AdSlot";
@@ -418,7 +419,7 @@ function CreateRoomPanel({ onClose, onCreated }: { onClose: () => void; onCreate
               {(Object.keys(MODE_META) as RoomMode[]).map((m) => (
                 <button key={m} type="button" onClick={() => set("mode", m)} className={chip(form.mode === m)} aria-pressed={form.mode === m}>
                   <span className="block font-semibold">{MODE_META[m].emoji} {MODE_META[m].label}</span>
-                  <span className="block text-[10px] opacity-70">{MODE_META[m].hint}</span>
+                  <span className="block text-[11px] opacity-70">{MODE_META[m].hint}</span>
                 </button>
               ))}
             </div>
@@ -494,8 +495,8 @@ function RoomCard({ room, expanded, authed, onToggle, onJoin, onLeave, onEnd, bu
           <div className="mb-1 flex flex-wrap items-center gap-2">
             {room.isPublic ? <Globe size={12} className="shrink-0 text-[var(--brand-teal)]" aria-label="Public" /> : <Lock size={12} className="shrink-0 text-[var(--brand-gold)]" aria-label="Private" />}
             <h2 className="truncate text-base font-semibold text-[var(--foreground)]">{room.name}</h2>
-            {room.isHost && <span className="rounded-full bg-[var(--brand-soft)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--brand-strong)]">Your room</span>}
-            {room.isMember && !room.isHost && <span className="rounded-full bg-[var(--success-soft)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--success)]">Joined</span>}
+            {room.isHost && <span className="rounded-full bg-[var(--brand-soft)] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--brand-strong)]">Your room</span>}
+            {room.isMember && !room.isHost && <span className="rounded-full bg-[var(--success-soft)] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--success)]">Joined</span>}
           </div>
           {room.description && <p className="mb-2 line-clamp-2 text-sm text-[var(--foreground-muted)]">{room.description}</p>}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[var(--foreground-subtle)]">
@@ -561,6 +562,7 @@ export default function StudyRoomsPage() {
   const authed = status === "authenticated";
   const qc = useQueryClient();
   const { toast } = useToast();
+  const confirm = useConfirm();
   const [, navigate] = useLocation();
   const [showCreate, setShowCreate] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -703,7 +705,15 @@ export default function StudyRoomsPage() {
                 onToggle={() => setExpandedId((id) => (id === room.id ? null : room.id))}
                 onJoin={() => joinMut.mutate(room.id)}
                 onLeave={() => leaveMut.mutate(room.id)}
-                onEnd={() => { if (window.confirm("End this room for everyone?")) endMut.mutate(room.id); }}
+                onEnd={async () => {
+                  const ok = await confirm({
+                    title: "End this room for everyone?",
+                    description: "Everyone focusing in this room is disconnected. This cannot be undone.",
+                    confirmLabel: "End room",
+                    danger: true,
+                  });
+                  if (ok) endMut.mutate(room.id);
+                }}
               />
             ))}
             <AdSlot name="studyRoomsInFeed" minHeight={120} />

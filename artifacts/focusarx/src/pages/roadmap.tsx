@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
+import { QueryError } from "@/components/ui/QueryError";
 import { aiRoadmapSchema } from "@/lib/validators";
 import { getToken } from "@/lib/auth";
 import { trackSiteEvent } from "@/lib/site-analytics";
@@ -42,6 +43,7 @@ export default function RoadmapPage() {
   const [saved, setSaved] = useState(false);
   const [savedRoadmaps, setSavedRoadmaps] = useState<SavedRoadmap[]>([]);
   const [loadingList, setLoadingList] = useState(false);
+  const [listError, setListError] = useState(false);
 
   const validPayload = useMemo(() => ({ goal, dailyHours, level, deadline: deadline || undefined, currentProgress: currentProgress || undefined }), [goal, dailyHours, level, deadline, currentProgress]);
 
@@ -55,16 +57,28 @@ export default function RoadmapPage() {
     void fetchSavedList();
   }, [authStatus]);
 
+  /**
+   * A failed load left `savedRoadmaps` empty, and since the "Saved Protocols"
+   * section renders only when the list has something in it, the whole section
+   * disappeared — no message, no retry, nothing. A user with five saved
+   * roadmaps saw none of them and no reason to think they still existed. The
+   * empty catch made it silent in the other direction too: a
+   * rejected request was indistinguishable from an empty list on our side as
+   * well, so nobody would ever have found out.
+   */
   async function fetchSavedList() {
     setLoadingList(true);
+    setListError(false);
     try {
       const r = await fetch("/api/roadmap/list", { headers: authHeaders() });
-      if (r.ok) {
-        const d = await r.json() as { roadmaps: SavedRoadmap[] };
-        setSavedRoadmaps(d.roadmaps ?? []);
-      }
-    } catch { /* ignore */ }
-    setLoadingList(false);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const d = await r.json() as { roadmaps: SavedRoadmap[] };
+      setSavedRoadmaps(d.roadmaps ?? []);
+    } catch {
+      setListError(true);
+    } finally {
+      setLoadingList(false);
+    }
   }
 
   async function generate() {
@@ -205,6 +219,14 @@ export default function RoadmapPage() {
 
                {authStatus === "authenticated" && loadingList && savedRoadmaps.length === 0 && (
                  <p className="text-[11px] uppercase tracking-widest text-[var(--foreground-subtle)]">Loading saved protocols…</p>
+               )}
+               {authStatus === "authenticated" && listError && savedRoadmaps.length === 0 && (
+                 <QueryError
+                   what="your saved protocols"
+                   onRetry={() => void fetchSavedList()}
+                   retrying={loadingList}
+                   className="mt-8"
+                 />
                )}
                {authStatus === "authenticated" && savedRoadmaps.length > 0 && (
                  <div className="pt-8 mt-8 border-t border-[var(--palette-white)]/5">

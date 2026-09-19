@@ -2,17 +2,11 @@ import { useState, useEffect } from "react";
 import { ArrowDownLeft, ArrowUpRight, Calendar, Coins, Medal, TrendingUp, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
-import { getToken } from "@/lib/auth";
+import { QueryError } from "@/components/ui/QueryError";
+import { apiJson } from "@/lib/api";
 
 import { PAGE, CARD, STAGGER } from "@/lib/animations";
 import { TiltCard, StaggerContainer, StaggerItem } from "@/components/TiltCard";
-
-function authHeaders() {
-  const t = getToken();
-  const h: Record<string, string> = { "Content-Type": "application/json" };
-  if (t) h["Authorization"] = `Bearer ${t}`;
-  return h;
-}
 
 function txIcon(type: string) {
   if (type.includes("earn") || type.includes("reward") || type.includes("bonus")) return <ArrowDownLeft size={14} className="text-[var(--palette-10b981)]" />;
@@ -26,33 +20,79 @@ function txColor(type: string) {
   return "text-[var(--brand-400)]";
 }
 
-export default function WalletPage() {
-  const [wallet, setWallet] = useState<any>(null);
-  const [txs, setTxs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
+/**
+ * A coin transaction, as `/api/gamification/wallet/transactions` returns it.
+ *
+ * Was `any[]`, which is how `tx.amount > 0 ? "+" : ""` silently rendered
+ * "+undefined" the first time the field was renamed.
+ */
+interface WalletShape {
+  coins: number;
+  totalXp: number;
+  weeklyXp: number;
+  level: number;
+}
 
+interface TxRow {
+  id: string;
+  type?: string;
+  amount: number;
+  description?: string | null;
+  createdAt?: string | null;
+}
+
+export default function WalletPage() {
+  const [wallet, setWallet] = useState<WalletShape | null>(null);
+  const [txs, setTxs] = useState<TxRow[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  /**
+   * One page of transactions.
+   *
+   * `cursor` is null for the first page and opaque afterwards. The old code
+   * sent `?page=N`, which the server ignored — it returned the newest 50 rows
+   * every time — and gated "Load more…" on a `hasMore` the server never sent.
+   * The button was therefore unreachable, and appending a second page would
+   * have duplicated all 50 rows had it ever rendered.
+   */
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
-      setLoading(true);
       try {
-        const [wr, tr] = await Promise.all([
-          fetch("/api/gamification/wallet", { headers: authHeaders() }),
-          fetch(`/api/gamification/wallet/transactions?page=${page}&limit=20`, { headers: authHeaders() }),
+        const [walletRes, txPage] = await Promise.all([
+          apiJson<WalletShape>("/api/gamification/wallet"),
+          apiJson<{ transactions?: TxRow[]; nextCursor?: string | null; hasMore?: boolean }>(
+            `/api/gamification/wallet/transactions?limit=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`,
+          ),
         ]);
-        if (wr.ok) setWallet(await wr.json());
-        if (tr.ok) {
-          const data = await tr.json();
-          setTxs(prev => page === 1 ? (data.transactions ?? data) : [...prev, ...(data.transactions ?? data)]);
-          setHasMore(!!(data.hasMore ?? false));
-        }
+        if (cancelled) return;
+        setWallet(walletRes);
+        // When `transactions` is absent the response is not the shape we asked
+        // for, and assuming `data` itself is an array is how a 404 body becomes
+        // a list of garbage rows.
+        const incoming = Array.isArray(txPage.transactions) ? txPage.transactions : [];
+        setTxs((prev) => (cursor ? [...prev, ...incoming] : incoming));
+        setHasMore(Boolean(txPage.hasMore));
+        setNextCursor(txPage.nextCursor ?? null);
+        setLoadError(false);
+      } catch {
+        if (!cancelled) setLoadError(true);
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setLoadingMore(false);
+        }
       }
     };
-    load();
-  }, [page]);
+    void load();
+    return () => { cancelled = true; };
+  }, [cursor, reloadKey]);
 
   const level = wallet?.level ?? 1;
   const xpStart = (level - 1) ** 2 * 100;
@@ -129,10 +169,15 @@ export default function WalletPage() {
           <h2 className="text-sm font-semibold text-[var(--foreground-muted)] uppercase tracking-wider mb-3 flex items-center gap-2">
             <Calendar size={13} /> Transaction History
           </h2>
-          {loading && page === 1 ? (
+          {loading && !cursor ? (
             <div className="py-8 flex justify-center">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--palette-zinc-700)] border-t-[var(--brand-600)]" />
             </div>
+          ) : loadError ? (
+            <QueryError
+              what="your wallet"
+              onRetry={() => { setLoadError(false); setLoading(true); setCursor(null); setReloadKey((k) => k + 1); }}
+            />
           ) : txs.length === 0 ? (
             <div className="py-12 flex flex-col items-center gap-3 text-center">
               <Coins size={32} className="text-[var(--foreground-subtle)]" />
@@ -140,7 +185,7 @@ export default function WalletPage() {
             </div>
           ) : (
             <motion.div variants={STAGGER} initial="initial" animate="animate" className="space-y-2">
-              {txs.map((tx: any, i: number) => (
+              {txs.map((tx, i) => (
                 <motion.div key={tx.id ?? i} variants={CARD}
                   className="flex items-center gap-3 rounded-xl border border-[var(--rgba-255-255-255-0_04)] bg-[var(--muted)] px-4 py-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--muted)]">
@@ -156,9 +201,13 @@ export default function WalletPage() {
                 </motion.div>
               ))}
               {hasMore && (
-                <button onClick={() => setPage(p => p + 1)}
-                  className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--muted)] py-2.5 text-xs text-[var(--muted-fg)] hover:text-[var(--foreground-muted)] transition-colors">
-                  Load more…
+                <button
+                  onClick={() => { setLoadingMore(true); setCursor(nextCursor); }}
+                  disabled={loadingMore}
+                  aria-busy={loadingMore}
+                  className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--muted)] py-2.5 text-xs text-[var(--muted-fg)] hover:text-[var(--foreground-muted)] transition-colors disabled:opacity-60"
+                >
+                  {loadingMore ? "Loading…" : "Load more…"}
                 </button>
               )}
             </motion.div>

@@ -19,6 +19,8 @@ import { useTasks } from "@/hooks/useTasks";
 import { useSessionHistory } from "@/hooks/useSessionHistory";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
+import { TrendPill } from "@/components/ui/trend-pill";
+import type { Trend } from "@/types/trend";
 
 interface MobileDashboardProps {
   onStartFocus: () => void;
@@ -34,6 +36,15 @@ interface MobileDashboardProps {
     durationSec: number;
     completedAt: string;
   }>;
+  /**
+   * Same direction data the desktop strip uses. The mobile row is the only
+   * place a phone user sees today's numbers, so a bare "42m" here is the
+   * screen's entire verdict on the day — it needs the comparison too.
+   */
+  trends?: {
+    minutesVsYesterday: Trend;
+    sessionsVsYesterday: Trend;
+  };
   wallet?: {
     totalXp: number;
     coins: number;
@@ -41,7 +52,7 @@ interface MobileDashboardProps {
   };
 }
 
-export function MobileDashboard({ onStartFocus, stats, recentSessions, wallet }: MobileDashboardProps) {
+export function MobileDashboard({ onStartFocus, stats, recentSessions, wallet, trends }: MobileDashboardProps) {
   const { data: session } = useAuth();
   const { activeTasks } = useTasks();
   const { focusSessionsToday } = useSessionHistory();
@@ -164,7 +175,7 @@ export function MobileDashboard({ onStartFocus, stats, recentSessions, wallet }:
             <span className="text-[11px] font-semibold uppercase tracking-widest">Today</span>
           </div>
           <p className="mt-2 text-xl font-bold tabular-nums">{todayMinutes}m</p>
-          <p className="text-xs text-[var(--foreground-subtle)]">focused</p>
+          <TrendPill trend={trends?.minutesVsYesterday} className="mt-1" />
         </div>
         <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-1)] p-3.5">
           <div className="flex items-center gap-2 text-[var(--foreground-subtle)]">
@@ -172,7 +183,7 @@ export function MobileDashboard({ onStartFocus, stats, recentSessions, wallet }:
             <span className="text-[11px] font-semibold uppercase tracking-widest">Sessions</span>
           </div>
           <p className="mt-2 text-xl font-bold tabular-nums">{sessionsToday}</p>
-          <p className="text-xs text-[var(--foreground-subtle)]">completed</p>
+          <TrendPill trend={trends?.sessionsVsYesterday} className="mt-1" />
         </div>
         <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-1)] p-3.5">
           <div className="flex items-center gap-2 text-[var(--warning)]">
@@ -180,7 +191,7 @@ export function MobileDashboard({ onStartFocus, stats, recentSessions, wallet }:
             <span className="text-[11px] font-semibold uppercase tracking-widest">Streak</span>
           </div>
           <p className="mt-2 text-xl font-bold tabular-nums">{streak}</p>
-          <p className="text-xs text-[var(--foreground-subtle)]">days</p>
+          <p className="text-xs text-[var(--foreground-subtle)]">days in a row</p>
         </div>
       </div>
 

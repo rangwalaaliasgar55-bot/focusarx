@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { Badge, MotionTab, SectionHeader, StatCard, adminFetch } from "./AdminHelpers";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { usePrompt } from "@/components/ui/PromptDialog";
+
 import { Search } from "lucide-react";
 
 type AdminUser = {
@@ -27,6 +30,8 @@ interface AdminUserPanelProps {
 }
 
 export function AdminUserPanel({ data, stats, authHeaders, onDataChanged, onManageUser }: AdminUserPanelProps) {
+  const confirm = useConfirm();
+  const prompt = usePrompt();
   const [userSearch, setUserSearch] = useState("");
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
@@ -67,8 +72,16 @@ export function AdminUserPanel({ data, stats, authHeaders, onDataChanged, onMana
 
   async function bulkGrantCoins() {
     const ids = [...selectedUsers];
-    const amt = prompt(`Grant how many coins to ${ids.length} selected user(s)?`, "100");
-    if (!amt || !Number(amt) || Number(amt) <= 0) return;
+    const amt = await prompt({
+      title: `Grant coins to ${ids.length} selected user(s)`,
+      description: "Credited immediately and written to the audit log.",
+      label: "Coins",
+      type: "number",
+      min: 1,
+      defaultValue: "100",
+      confirmLabel: "Grant coins",
+    });
+    if (amt === null) return;
     setBulkLoading(true);
     setBulkResult(null);
     try {
@@ -87,7 +100,13 @@ export function AdminUserPanel({ data, stats, authHeaders, onDataChanged, onMana
 
   async function bulkDeleteUsers() {
     const ids = [...selectedUsers];
-    if (!confirm(`Delete ${ids.length} selected user(s)? This cannot be undone.`)) return;
+    const ok = await confirm({
+      title: `Delete ${ids.length} selected user(s)?`,
+      description: "Their accounts and all of their data are permanently removed. This cannot be undone.",
+      confirmLabel: "Delete users",
+      danger: true,
+    });
+    if (!ok) return;
     setBulkLoading(true);
     setBulkResult(null);
     try {
@@ -131,7 +150,13 @@ export function AdminUserPanel({ data, stats, authHeaders, onDataChanged, onMana
   const purgeAllGuests = async () => {
     const guestCount = stats?.guestCount ?? data.guestCount ?? 0;
     if (guestCount === 0) return;
-    if (!window.confirm(`Delete all ${guestCount} guest account(s)?`)) return;
+    const ok = await confirm({
+      title: `Delete all ${guestCount} guest account(s)?`,
+      description: "Guest accounts carry no email, so this cannot be undone for any of them.",
+      confirmLabel: "Purge guests",
+      danger: true,
+    });
+    if (!ok) return;
     setPurgeLoading(true);
     try {
       const res = await adminFetch("/api/admin/users/guests", {

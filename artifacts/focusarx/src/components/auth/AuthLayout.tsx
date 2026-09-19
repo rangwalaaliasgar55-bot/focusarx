@@ -40,7 +40,7 @@ export function AuthLayout({ eyebrow, title, subtitle, children, footer }: AuthL
               <div className="absolute inset-2.5 rounded-full bg-[var(--surface)] shadow-[var(--shadow-md)]" />
               <div className="relative text-center">
                 <p className="font-mono text-5xl font-semibold tracking-[-0.06em] tabular-nums">17:00</p>
-                <p className="mt-1 text-[0.625rem] font-semibold uppercase tracking-[0.18em] text-[var(--foreground-subtle)]">Focus block</p>
+                <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--foreground-subtle)]">Focus block</p>
               </div>
             </div>
             <h2 className="mt-10 text-3xl font-semibold tracking-[-0.03em] text-balance">Deep work, made clear.</h2>

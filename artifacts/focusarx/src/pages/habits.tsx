@@ -2,23 +2,45 @@ import { QueryError } from "@/components/ui/QueryError";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getToken } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
 import { Plus, Flame, CheckCircle2, Circle, BarChart2, X, ChevronUp, Trash2 } from "lucide-react";
 import { Sprout } from "lucide-react";
 import { TiltCard } from "@/components/TiltCard";
 import PageHeader from "@/components/PageHeader";
 import { resolveColorToken } from "@/lib/color-tokens";
+import { apiJson, errorMessage } from "@/lib/api";
 
-async function apiFetch(path: string, opts?: RequestInit) {
-  const token = getToken();
-  const res = await fetch(path, { ...opts, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(opts?.headers ?? {}) } });
-  if (!res.ok) { const t = await res.text(); throw new Error(t); }
-  return res.json();
-}
 
 const ICONS = ["⭐", "💪", "📚", "🏃", "🧘", "💧", "🥗", "😴", "📝", "🎯", "🎸", "💻", "🌿", "🧠", "🔥", "⚡", "🎨", "🌅", "☕", "🏋️"];
 const COLORS = ["var(--brand-600)", "var(--palette-4f46e5)", "var(--palette-0891b2)", "var(--palette-059669)", "var(--palette-d97706)", "var(--palette-dc2626)", "var(--palette-db2777)", "var(--palette-9333ea)", "var(--palette-16a34a)", "var(--palette-ea580c)"];
+
+/**
+ * A habit and its derived stats.
+ *
+ * Both were untyped (the local fetch helper returned `any`), which is why the
+ * summary tiles rendered whatever the API sent without a compile-time check.
+ */
+interface Habit {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  frequency: string;
+  totalCompletions: number;
+  /** Derived by the API from completions, not a stored column. */
+  streak: number;
+  completedToday: boolean;
+  /** Last 90 days of completion day-keys, newest first. */
+  recentDates: string[];
+}
+
+interface HabitStats {
+  total: number;
+  completedToday: number;
+  remaining: number;
+  avgStreak: number;
+  longestStreak: number;
+}
 
 function HabitHeatmap({ dates, color }: { dates: string[]; color: string }) {
   const dateSet = new Set(dates);
@@ -117,7 +139,7 @@ function CreateHabitModal({ onClose, onCreate }: { onClose: () => void; onCreate
   );
 }
 
-function HabitCard({ habit, onComplete, onUncomplete, onDelete }: { habit: any; onComplete: () => void; onUncomplete: () => void; onDelete: () => void }) {
+function HabitCard({ habit, onComplete, onUncomplete, onDelete }: { habit: Habit; onComplete: () => void; onUncomplete: () => void; onDelete: () => void }) {
   const [showHeatmap, setShowHeatmap] = useState(false);
 
   return (
@@ -182,13 +204,13 @@ export default function HabitsPage() {
 
   const { data: habits = [], isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ["habits"],
-    queryFn: () => apiFetch("/api/habits"),
+    queryFn: () => apiJson<Habit[]>("/api/habits"),
     staleTime: 30_000,
   });
 
   const { data: stats } = useQuery({
     queryKey: ["habits-stats"],
-    queryFn: () => apiFetch("/api/habits/stats"),
+    queryFn: () => apiJson<HabitStats>("/api/habits/stats"),
     staleTime: 60_000,
   });
 
@@ -196,27 +218,27 @@ export default function HabitsPage() {
     mutationFn: (data: any) => {
       const token = typeof data.color === "string" ? data.color.match(/^var\((--[\w-]+)\)$/)?.[1] : undefined;
       const payload = token ? { ...data, color: resolveColorToken(token as `--${string}`) } : data;
-      return apiFetch("/api/habits", { method: "POST", body: JSON.stringify(payload) });
+      return apiJson("/api/habits", { method: "POST", body: JSON.stringify(payload) });
     },
     onSuccess: () => { toast("Habit created! 🎯", "success"); setShowCreate(false); qc.invalidateQueries({ queryKey: ["habits"] }); qc.invalidateQueries({ queryKey: ["habits-stats"] }); },
-    onError: (e: any) => toast(e.message, "error"),
+    onError: (e: unknown) => toast(errorMessage(e), "error"),
   });
 
   const completeHabit = useMutation({
-    mutationFn: (id: string) => apiFetch(`/api/habits/${id}/complete`, { method: "POST", body: JSON.stringify({ date: today }) }),
+    mutationFn: (id: string) => apiJson(`/api/habits/${id}/complete`, { method: "POST", body: JSON.stringify({ date: today }) }),
     onSuccess: () => { toast("+10 coins +25 XP 🔥", "success"); qc.invalidateQueries({ queryKey: ["habits"] }); qc.invalidateQueries({ queryKey: ["habits-stats"] }); },
-    onError: (e: any) => toast(e.message, "error"),
+    onError: (e: unknown) => toast(errorMessage(e), "error"),
   });
 
   const uncompleteHabit = useMutation({
-    mutationFn: (id: string) => apiFetch(`/api/habits/${id}/complete?date=${today}`, { method: "DELETE" }),
+    mutationFn: (id: string) => apiJson(`/api/habits/${id}/complete?date=${today}`, { method: "DELETE" }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["habits"] }); qc.invalidateQueries({ queryKey: ["habits-stats"] }); },
   });
 
   const confirmDialog = useConfirm();
 
   const deleteHabit = useMutation({
-    mutationFn: (id: string) => apiFetch(`/api/habits/${id}`, { method: "DELETE" }),
+    mutationFn: (id: string) => apiJson(`/api/habits/${id}`, { method: "DELETE" }),
     onSuccess: () => { toast("Habit deleted", "success"); qc.invalidateQueries({ queryKey: ["habits"] }); qc.invalidateQueries({ queryKey: ["habits-stats"] }); },
   });
 

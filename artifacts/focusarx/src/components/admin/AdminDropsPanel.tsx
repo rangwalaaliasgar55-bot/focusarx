@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MotionTab, SectionHeader, StatusBadge, adminFetch } from "./AdminHelpers";
+import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
+
 import type { AdminPanelProps } from "./AdminTypes";
 
 type DropsState = {
@@ -46,6 +49,8 @@ const DEFAULT_FORM: DropForm = {
 };
 
 export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
+  const { toast } = useToast();
+  const confirm = useConfirm();
   const [state, setState] = useState<DropsState | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -73,8 +78,8 @@ export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
   }
 
   async function createDropNow() {
-    if (!form.title.trim()) { alert("Give the drop a title."); return; }
-    if (form.type === "item_flash_sale" && !form.itemId) { alert("Pick an item for the flash sale."); return; }
+    if (!form.title.trim()) { toast("Give the drop a title.", "warning"); return; }
+    if (form.type === "item_flash_sale" && !form.itemId) { toast("Pick an item for the flash sale.", "warning"); return; }
     setBusy(true);
     try {
       const start = new Date(Date.now() + form.startsInMin * 60 * 1000);
@@ -94,9 +99,12 @@ export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
         }),
       });
       const d = await r.json();
-      alert(r.ok
-        ? `Drop live — announced to ${d.fannedOut} members${d.emailBlast === "queued" ? " + email blast queued" : ""}.`
-        : (d.error ?? "Failed"));
+      toast(
+        r.ok
+          ? `Drop live — announced to ${d.fannedOut} members${d.emailBlast === "queued" ? " + email blast queued" : ""}.`
+          : (d.error ?? "Failed"),
+        r.ok ? "success" : "error",
+      );
       await load();
     } finally { setBusy(false); }
   }
@@ -108,7 +116,7 @@ export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
         method: "POST", headers: authHeaders(), credentials: "include",
       });
       const d = await r.json();
-      if (!r.ok) alert(d.error ?? "Failed");
+      if (!r.ok) toast(d.error ?? "Failed", "error");
       await load();
     } finally { setBusy(false); }
   }
@@ -240,7 +248,7 @@ export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
                         <StatusBadge status={state as any} />
                       </div>
                       {d.description && <p className="mt-0.5 truncate text-[0.6875rem] text-[var(--palette-zinc-500)]">{d.description}</p>}
-                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[0.625rem] text-[var(--palette-zinc-500)]">
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-[var(--palette-zinc-500)]">
                         <span>{d.type.replace("_", " ")}</span>
                         <span>ends {new Date(d.endsAt).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
                         <span className="text-[var(--palette-zinc-300)]">{d.claims} claims{d.createdVia === "gemini" && " · via Gemini"}</span>
@@ -262,12 +270,28 @@ export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
                     <div className="flex shrink-0 flex-col gap-1">
                       {d.live && (
                         <>
-                          <button onClick={() => { if (confirm(`End "${d.title}" now?`)) void dropAction(d.id, "end"); }} className="rounded border border-[var(--palette-zinc-700)] px-2 py-1 text-[0.625rem] text-[var(--palette-zinc-300)] hover:text-[var(--palette-zinc-100)]">End</button>
-                          <button onClick={() => void dropAction(d.id, "duplicate")} className="rounded border border-[var(--palette-zinc-700)] px-2 py-1 text-[0.625rem] text-[var(--palette-zinc-300)] hover:text-[var(--palette-zinc-100)]">Repeat</button>
+                          <button onClick={async () => {
+                            const ok = await confirm({
+                              title: `End "${d.title}" now?`,
+                              description: "The drop closes immediately for everyone.",
+                              confirmLabel: "End drop",
+                              danger: true,
+                            });
+                            if (ok) void dropAction(d.id, "end");
+                          }} className="rounded border border-[var(--palette-zinc-700)] px-2 py-1 text-[11px] text-[var(--palette-zinc-300)] hover:text-[var(--palette-zinc-100)]">End</button>
+                          <button onClick={() => void dropAction(d.id, "duplicate")} className="rounded border border-[var(--palette-zinc-700)] px-2 py-1 text-[11px] text-[var(--palette-zinc-300)] hover:text-[var(--palette-zinc-100)]">Repeat</button>
                         </>
                       )}
                       {!d.live && !d.cancelledAt && d.startsAt > new Date(now) && (
-                        <button onClick={() => { if (confirm(`Cancel "${d.title}" before it starts?`)) void dropAction(d.id, "cancel"); }} className="rounded border border-[var(--palette-rose-800)] px-2 py-1 text-[0.625rem] text-[var(--palette-rose-400)] hover:bg-[var(--palette-rose-950)]">Cancel</button>
+                        <button onClick={async () => {
+                          const ok = await confirm({
+                            title: `Cancel "${d.title}"?`,
+                            description: "It never goes live and nobody is notified.",
+                            confirmLabel: "Cancel drop",
+                            danger: true,
+                          });
+                          if (ok) void dropAction(d.id, "cancel");
+                        }} className="rounded border border-[var(--palette-rose-800)] px-2 py-1 text-[11px] text-[var(--palette-rose-400)] hover:bg-[var(--palette-rose-950)]">Cancel</button>
                       )}
                     </div>
                   </div>

@@ -16,7 +16,12 @@ import {
   Trophy,
   UserRound,
   Users,
-} from "lucide-react";
+
+  Coins,
+  Package,
+  Shield,
+  Gift,
+  Target,} from "lucide-react";
 import { useTasks } from "@/hooks/useTasks";
 import { useToast } from "@/components/Toast";
 import { usePremium } from "@/hooks/usePremium";
@@ -56,6 +61,15 @@ const DESTINATIONS: Destination[] = [
   { label: "Achievements", href: "/achievements", icon: Trophy, keywords: "badges rewards" },
   { label: "Missions", href: "/missions", icon: Sparkles, keywords: "quests challenges" },
   { label: "Community", href: "/social", icon: Users, keywords: "friends groups" },
+  { label: "Study Groups", href: "/groups", icon: Users, keywords: "group accountability crew members join" },
+  { label: "Quests", href: "/quests", icon: Sparkles, keywords: "daily weekly challenges claim rewards xp" },
+  { label: "Marketplace", href: "/marketplace", icon: Coins, keywords: "buy sell inventory gift refund coins items" },
+  { label: "Loot Boxes", href: "/lootboxes", icon: Package, keywords: "open crate reward random drop" },
+  { label: "Focus DNA", href: "/focus-dna", icon: Brain, keywords: "identity profile archetype strengths" },
+  { label: "Star Map", href: "/constellations", icon: Compass, keywords: "constellations visualise history sessions" },
+  { label: "Consequences", href: "/consequences", icon: Shield, keywords: "accountability contract stake penalty" },
+  { label: "Dreams", href: "/dreams", icon: Target, keywords: "long term goal aspiration vision" },
+  { label: "Invite Friends", href: "/referral", icon: Gift, keywords: "referral invite code earn coins free premium" },
   { label: "Break Free", href: "/break-free", icon: Flame, keywords: "wellbeing mood pledge" },
   { label: "Profile & Proof of Work", href: "/profile", icon: UserRound, keywords: "account xp settings resume certificate" },
   { label: "Settings", href: "/profile?tab=custom", icon: Settings, keywords: "preferences theme account" },
@@ -138,7 +152,7 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
                 <CommandItem key={`${label}-${href}`} value={`${label} ${keywords}`} onSelect={() => go(href)} className="min-h-11 rounded-[var(--radius-md)]">
                   <Icon /> <span>{label}</span>
                   {premium && !isPremium && (
-                    <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-[var(--palette-amber-500)]/10 px-2 py-0.5 text-[0.625rem] font-bold text-[var(--palette-amber-400)] border border-[var(--palette-amber-500)]/20">
+                    <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-[var(--palette-amber-500)]/10 px-2 py-0.5 text-[11px] font-bold text-[var(--palette-amber-400)] border border-[var(--palette-amber-500)]/20">
                       PRO
                     </span>
                   )}

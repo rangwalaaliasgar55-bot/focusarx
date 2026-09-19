@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { QueryError } from "@/components/ui/QueryError";
 import { motion } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
@@ -54,6 +55,8 @@ function formatDays(days: number | null) {
 export default function DreamsPage() {
   const [dream, setDream] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [customGoal, setCustomGoal] = useState("");
@@ -62,10 +65,17 @@ export default function DreamsPage() {
 
   useEffect(() => {
     fetch("/api/dreams", { headers: authHeaders() })
-      .then(r => r.json())
-      .then(d => { setDream(d.dream); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
+      .then((r) => {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      })
+      .then((d) => { setDream(d.dream); setLoadError(false); setLoading(false); })
+      // This used to be `.catch(() => setLoading(false))`, which left `dream`
+      // null and fell through to the same branch as "you have not set a dream
+      // yet" — so a failed request invited the user to create a dream they had
+      // already created.
+      .catch(() => { setLoadError(true); setLoading(false); });
+  }, [reloadKey]);
 
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -104,6 +114,18 @@ export default function DreamsPage() {
       <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--brand-600)] border-t-transparent" />
     </div>
   );
+
+  if (loadError)
+    return (
+      <PageTransition>
+        <div className="mx-auto max-w-2xl px-4 py-12">
+          <QueryError
+            what="your dream"
+            onRetry={() => { setLoadError(false); setLoading(true); setReloadKey((k) => k + 1); }}
+          />
+        </div>
+      </PageTransition>
+    );
 
   const type = dream ? DREAM_TYPES.find(d => d.id === dream.dreamType) : null;
 

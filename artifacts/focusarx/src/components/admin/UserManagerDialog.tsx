@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { RefreshCw, Save, ShieldAlert, KeyRound, Coins, Flame, Trash2, Bell, Wallet, UserRound } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { adminFetch } from "./AdminHelpers";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
+
 
 export interface AdminUserProfile {
   user: {
@@ -54,6 +56,7 @@ export function UserManagerDialog({
   onChanged: () => void;
   authHeaders: () => Record<string, string>;
 }) {
+  const confirm = useConfirm();
   const [profile, setProfile] = useState<AdminUserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saveState, setSaveState] = useState<SaveState>(null);
@@ -140,7 +143,13 @@ export function UserManagerDialog({
   };
 
   const wipeCurrency = async () => {
-    if (!confirm("Set this user's coins AND XP to zero? This cannot be undone.")) return;
+    const ok = await confirm({
+      title: "Zero this user's coins and XP?",
+      description: "Both balances are set to 0. This cannot be undone.",
+      confirmLabel: "Zero balances",
+      danger: true,
+    });
+    if (!ok) return;
     const d = await call("wallet", `/api/admin/users/${userId}/wallet`, "PATCH", { coins: 0, totalXp: 0, weeklyXp: 0, level: 1, mode: "set" });
     if (d) { setSaveState({ kind: "ok", msg: "Currency wiped" }); onChanged(); void load(); }
   };

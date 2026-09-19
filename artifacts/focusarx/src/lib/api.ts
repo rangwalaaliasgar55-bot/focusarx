@@ -217,5 +217,32 @@ export async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
   return (await apiFetch(path, init)).json() as Promise<T>;
 }
 
+/**
+ * A message safe to show a user for a failed request.
+ *
+ * Callers previously wrote `onError: (e: any) => toast(e.message, "error")`.
+ * That is `any`, and it produces three bad outcomes:
+ *
+ *   • a non-Error rejection (a thrown string, a DOMException from an aborted
+ *     fetch) has no `.message`, so the toast renders the literal string
+ *     "undefined";
+ *   • a network failure has a `.message` like "Failed to fetch", which is a
+ *     developer's sentence, not a user's;
+ *   • the offline page and the rate-limit page both say something the user can
+ *     act on, and neither reaches them through the raw path.
+ *
+ * `ApiError` already carries the server's own wording (see `apiFetch`), so the
+ * only work here is choosing a sensible fallback for everything else.
+ */
+export function errorMessage(err: unknown, fallback = "Something went wrong. Please try again."): string {
+  if (err instanceof ApiError) return err.message || fallback;
+  if (err instanceof TypeError) {
+    // `fetch` rejects with a TypeError when the request never left the device.
+    return "You appear to be offline. Your changes are saved and will sync when you reconnect.";
+  }
+  if (err instanceof Error && err.message.trim()) return err.message;
+  return fallback;
+}
+
 // Re-export chunk error handler for use by lazy-loaded components
 export { handleChunkLoadError };

@@ -1,5 +1,208 @@
 # Remaining work (truthful tracker — done items stay listed as done)
 
+## §18 KNOWN-BUG AUDIT — verified against source, 2026-09-18
+
+Every one of the 28 was checked by reading the code, not by trusting the list.
+**28 fixed · 0 partial · 0 outstanding.** (Three of them — #2, #4 and #26 —
+were already fixed before this session started, contradicting the prompt's own
+research. The header previously read "21 fixed · 1 partial", which did not add
+up to the 28 rows below it; the rows are individually sourced and are the
+authority.)
+
+| # | Bug | Verdict | Evidence |
+|---|-----|---------|----------|
+| 1 | OTEL external → cold-start 500s | **fixed** | `build.mjs` external list carries a 12-line comment explaining why `@opentelemetry/*` must not be added |
+| 2 | Client-supplied XP on pet bond | **fixed** | `lib/petBond.ts` — no public route; `awardBondXpToActivePet` called only from `sessions.ts:978` on verified completion |
+| 3 | Race: coins go negative | **fixed** | `coinLedger.burnCoins` is CAS (`gte(coins, amount)`, null when no row) |
+| 4 | Race: double-claim missions | **fixed** | `missions.ts:145` CAS on `rewardClaimed = false` + atomic XP upsert |
+| 5 | Consequence contracts never settled | **fixed** | `consequences.ts:48 settleExpiredContracts` |
+| 6 | UTC date math everywhere | **fixed** | `lib/userZone.ts`, `lib/timezone.ts`; residual `getUTC*` in `battlePass.ts` is correct ISO-week math |
+| 7 | AudioVisualizer bars invisible | **fixed** | `AudioVisualizer.tsx:32` `getComputedStyle` + re-read every 120 frames |
+| 8 | SoundEngine boost during breaks | **fixed** | no boost code in `ambientEngine.ts` |
+| 9 | Duplicate SoundEngine component | **fixed** | `components/SoundEngine.tsx` absent |
+| 10 | SessionSummaryCard interval leak | **fixed** | `timers.forEach(clearTimeout, clearInterval)` cleanup |
+| 11 | GET /feed missing nextCursor | **fixed** | `posts.ts:213` returns `{ posts, nextCursor }` |
+| 12 | Admin list pagination mismatch | **fixed** | SQL-side guest/bot filtering |
+| 13 | Mobile timer assumes 25min | **fixed** | `FocusTimerMobileFirst.tsx:323` uses `plannedDurationSec` |
+| 14 | 26 set-state-in-effect | **fixed** | lint reports **0** |
+| 15 | useReducedMotion flash | **fixed** | `useMediaQuery.ts` uses `useSyncExternalStore` |
+| 16 | useIsMobile layout flash | **fixed** | same |
+| 17 | Native confirm()/alert() | **fixed** | commit `55fcf5a` — 20 sites; `rg` clean |
+| 18 | Empty state on API error | **fixed** | `QueryError` in goals/groups/habits/notifications/shop |
+| 19 | Flashcards errors swallowed | **fixed** | `flashcards.tsx` toasts on load/create failure |
+| 20 | SEO prerendered tables missing rows | **fixed** | commit `3305b31` — 10 tables, 92 rows, parity-gated |
+| 21 | 54 URLs not indexed | **fixed** | `sitemap-profiles-1.xml` (11,978 URLs) retired; `/u/` noindexed |
+| 22 | Fabricated aggregateRating | **fixed** | deliberately excluded, with a comment in `index.html` + `seo-landing.tsx` |
+| 23 | 409 lint errors | **fixed** | `pnpm lint` = **0 errors** |
+| 24 | Quest progress never written | **fixed** | `updateQuestProgress` called from `sessions.ts` |
+| 25 | Weekly quests never assigned | **fixed** | `quests.ts:27 pickRotation` — deterministic, `Math.random`-free |
+| 26 | isPremium hardcoded false on auto-complete | **fixed** | `sessions.ts:890 isUserPremium(userId)` with a comment about the old `false` |
+| 27 | City weather = Math.random() | **fixed** | deterministic from behaviour |
+| 28 | 8–10px text | **fixed** | **40 sites** raised to `text-[11px]` across 19 files — 7px in `messages`/`social`, 8px in `AdminEconomyPanel`, 9px in `FocusTimerMobileFirst`, 10px and `0.5625`/`0.625`/`0.6rem` elsewhere, plus 2 in `TimerDisplay`. **Guarded by `src/legibility.test.ts`**, a source scan that fails on any font-size utility below 11px and on any CSS `--text-*` token below the floor. The scan caught a site the pattern-based grep had missed within a minute of being written |
+
+> **On the "23 sites" figure:** the original audit counted with a hand-written
+> grep listing the sizes it expected to find, so it missed `text-[0.5rem]` (8px)
+> entirely and undercounted the rest. `git grep` over the full size list finds
+> **40** at commit `a564a84`. This is the argument for the gate over the grep:
+> `src/legibility.test.ts` matches the *shape* of a font-size utility and
+> compares numerically, so it cannot be defeated by an unforeseen unit.
+
+### Genuinely absent — the real remaining work
+
+Ordered by value. Four of the original eight have shipped since this list was
+written; what remains is listed honestly below, including the parts that are not
+code.
+
+1. **§7.3 offline-first — SHIPPED as a retry queue, not an entity store.** The
+   queue is now a module store (`useSyncExternalStore`) with exponential backoff,
+   response classification, and one hard rule: **it never discards a payload by
+   itself.** The old queue deleted a session after five failed attempts and
+   persisted the shortened queue, giving a completed session a two-and-a-half
+   minute window before it was destroyed with nothing shown to the user.
+   Items now leave only on an accepted response, its 409 duplicate, or the user
+   dismissing them; sign-out clears the queue so the next user on the device
+   cannot submit the previous user's history under their own token.
+
+   **What is deliberately not built:** the prompt's Dexie/IndexedDB entity store
+   with field-level merge. This stack has no Dexie, and the merge semantics only
+   matter for *offline editing* of shared entities — which nothing in the product
+   does. Sessions are append-only and already carry client-supplied idempotency
+   keys, so there is nothing to merge. Building a conflict resolver for
+   operations that cannot conflict would be code without a failing case.
+2. **§1.6 Webhook & integration layer — SHIPPED.** Signed outbound webhooks
+   with a retrying delivery worker, plus OAuth providers for Google Calendar,
+   Google Fit, Slack, Discord and Apple Health. Secrets and tokens are
+   AES-256-GCM ciphertext (`lib/secrets.ts`), the signing secret is returned
+   once and only hinted afterwards, and URLs are validated against the metadata
+   and private ranges before every fetch.
+
+   **What is left, and why it is not code:** the Google, Slack and Discord
+   providers need real app registrations (`GOOGLE_CALENDAR_CLIENT_ID`, …,
+   `SLACK_CLIENT_SECRET`, `DISCORD_CLIENT_SECRET`) before they can complete a
+   flow. Until then each reports `configured: false` and the UI disables Connect
+   with the reason, so nothing is half-broken — but the OAuth round trip itself
+   has not been exercised against a live provider, and no test can do that here.
+   `docs/ENVIRONMENT.md` lists every variable and the exact redirect URI to
+   register. **Apple Health is an import, not a connection** — HealthKit is
+   device-only by design, so that one needs an export-file upload path, not a
+   token.
+
+3. **§1.9 CHECK constraints — mostly done.** `user_wallets` is now constrained
+   (migration 0016). Not yet constrained: `user_pet_inventory` (the prompt's
+   `happiness BETWEEN 0 AND 100` does not map — the column is `mood text`, so
+   the invariant is a different one and needs a decision), and the various
+   `*_coins`/`amount` columns on transactions and inventory.
+4. **§1.10 auth hardening — NEEDS A DECISION, NOT A PATCH.** `auth.ts` uses
+   **bcryptjs** (cost 12), not Argon2id. There is no TOTP/2FA, no backup codes,
+   and no Apple sign-in. Note that PKCE now *does* exist on the Google flow as
+   part of §1.6 (`createPkce`, with the verifier carried inside the signed state).
+   Moving to Argon2id touches every stored credential and needs a
+   rehash-on-next-login path, and 2FA changes the login contract for every user
+   — both are product decisions with migration and support consequences, so they
+   are left for you rather than taken unilaterally.
+5. **§1.7 GDPR 30-day grace — SHIPPED.** `DELETE /auth/account` schedules rather
+   than deletes (`deletionRequestedAt`, migration 0017); the user can sign back in
+   and cancel; an admin route lists the backlog and purges rows whose window has
+   passed. The purge scrubs `email_logs.recipient_email` *before* the cascade.
+   `GET /settings/data/export` was already present.
+6. **§1.8 cursor pagination — SHIPPED** for every mutable feed. Cursors are
+   base64url `[createdISO, id]`, deliberately **unsigned** (they carry data the
+   client already has; opaqueness, not secrecy), decoded to `null` on malformed
+   input so a bad cursor serves page one instead of a 500. The tiebreak is
+   row-wise `(created_at, id) < (:created, :id)` — one index scan, unlike the
+   expanded `OR` form — and `hasMore` comes from a `+1` probe rather than a
+   second `COUNT`, which would run at a different instant and can hand back an
+   empty "next" page. `cursorAdoption.test.ts` is a source-level gate that fails
+   if a mutable feed regresses to offset.
+7. **§1.2 Redis SETNX locks.** `@upstash/redis` is a dependency but no
+   `SETNX ... EX` locking is used. Read-check-then-write is protected by
+   Postgres transactions + row locks instead (`dailyReward.ts:59`,
+   `retention.ts:51`) — equivalent for a single primary, and worth leaving
+   alone unless a second writer is introduced.
+8. **§14 acceptance criteria not yet verified:** Lighthouse thresholds, cold
+   start < 200ms, real-device a11y passes, Playwright E2E runs (no browser in
+   this sandbox), pen-test of rate limiting (no DB here).
+
+### SEO follow-ups surfaced by the new depth gate
+
+- Six pages hold a full document in React but declare `sections: []`, so the
+  crawler gets a heading and one sentence: `/terms` 15 words, `/privacy` 25,
+  `/cookie-policy` 20, `/acceptable-use` 17, `/ai-policy` 23, `/contact` 23.
+- Eleven pages are genuinely thin and need editorial work: `/support` 65,
+  `/changelog` 70, `/deep-study-guide` 73, `/science-of-deep-work` 79,
+  `/two-hour-study-method` 83, `/pricing` 86, `/feynman-technique` 104,
+  `/guides` 131, `/study-techniques` 135, `/blog` 145, `/focus-guide` 147.
+
+
+## Done 2026-09-18 — comparison tables reach the crawler; content-depth gate
+
+- §18 #20 fixed: the ten `/comparison/*` pages had **no `<table>` in their
+  HTML** while `src/pages/comparison.tsx` drew one from `COMPARISONS`. Now
+  `prerender-data.mjs` emits `table` + `sections[].bullets` from that same
+  `COMPARISONS` entry (new `cellText()` maps booleans to Yes/No **text**, not a
+  tick glyph) and `prerender.mjs` emits a real `<table>` with `scope="col"` /
+  `scope="row"` headers plus a dated note. 10 tables, 92 rows, 0 parity problems.
+- **Two prerender bugs found and fixed, same class — it was only correct on a
+  fresh `vite build`:** (a) the body substitution matched an *empty*
+  `<div id="root"></div>`, and since `TEMPLATE` is `dist/public/index.html` with
+  `/` as a route, a second consecutive `node scripts/prerender.mjs` silently
+  left **the homepage body on every route** (right title, right canonical, wrong
+  page); (b) per-route JSON-LD was appended rather than replaced, so a second run
+  left two `BreadcrumbList`s and the first one won. Both idempotent now; three
+  consecutive runs are byte-stable and validate clean.
+- New `seo-validate.mjs` gates, negative-tested: **content depth** (150 words of
+  own copy, shell furniture stripped; app surfaces exempt at 5; 17 pages in a
+  ratchet baseline that may not get thinner) and **table parity** (every declared
+  row label, column header, cell value and Yes/No **text** must be emitted,
+  counted so one text cell among nine icons still fails).
+- 67 new tests in `src/content/seo-pages.test.ts`. Frontend 443 → 510.
+- Still open, now visible in the source rather than silent: six ratcheted pages
+  (`/terms` 15, `/privacy` 25, `/cookie-policy` 20, `/acceptable-use` 17,
+  `/ai-policy` 23, `/contact` 23 words) hold a full document in React but declare
+  `sections: []` in the manifest — §2.10's "prerendered != hydrated" failure. The
+  fix is to move each policy body into the manifest. Also `/changelog` 70,
+  `/deep-study-guide` 73, `/science-of-deep-work` 79, `/two-hour-study-method` 83,
+  `/pricing` 86, `/feynman-technique` 104, `/guides` 131, `/study-techniques` 135,
+  `/blog` 145, `/focus-guide` 147, `/support` 65 are genuinely thin and need
+  editorial work.
+- Verified **absent** in this repo, in priority order: (a) no webhook/integration
+  layer at all (§1.6); (b) no Dexie/IndexedDB offline-first sync — see backlog
+  item 1 below; (c) `/vs-*`-style standalone alternative pages do not exist
+  (the `/comparison/*` set is the equivalent).
+
+## Done 2026-09-18 — no native dialogs left; modal focus contract fixed
+
+- `alert()` / `confirm()` / `prompt()` are gone from the whole frontend
+  (`rg` clean, excluding the `usePrompt`/`useConfirm` helpers themselves). New
+  `components/ui/PromptDialog.tsx` (`usePrompt()`, promise-based, validates
+  in-dialog); `ConfirmDialog` rebuilt on Radix Dialog.
+- **Real bug found and fixed while rebuilding:** Radix's modal close does
+  `preventDefault()` + `triggerRef.current?.focus()`. These dialogs have no
+  `<Dialog.Trigger>` — they open from arbitrary code — so `triggerRef` is null,
+  the generic FocusScope restore is already cancelled, and focus ended on
+  `<body>` after every confirmation. New `lib/dialogFocus.ts` captures and
+  restores the origin element (skipping `<body>` and unmounted nodes). Both
+  dialogs also set `aria-modal="true"` explicitly; `noValidate` on the prompt
+  form so native constraint validation cannot pre-empt our message.
+- Gates: typecheck 0, lint 0 errors, frontend 421 → 443, API 424, build PASS
+  (119 pages, SEO validate PASS, bundle budget PASS: entry 49.5 kb gzip,
+  initial 110.6 kb). No critical-path regression — `vendor-radix` was already in
+  `index.html`.
+- Still open from the same document: the rest of the master-prompt acceptance
+  list is not audited end-to-end. Verified **absent** in this repo, in priority
+  order: (a) no webhook/integration layer at all (§1.6 — Google Calendar,
+  Slack/Discord, Apple Health); (b) no Dexie/IndexedDB offline-first sync —
+  `useOfflineQueue` is a localStorage retry queue, and it is backlog item 1
+  below; (c) no SEO word-count/content-depth gate or table-parity gate in
+  `seo-validate.mjs` (it has orphan, JSON-LD, canonical, cannibalisation,
+  E-E-A-T and title-budget gates, but nothing that counts a page's own prose);
+  (d) no `/vs-*` or `/comparison/*` pages exist at all, so the §2.10
+  "prerendered comparison table" requirement has no subject yet.
+
+
+
+---
+
 ## Done 2026-09-18 (second commit) — international editions
 
 The site claimed four audiences and served all four the same American-English

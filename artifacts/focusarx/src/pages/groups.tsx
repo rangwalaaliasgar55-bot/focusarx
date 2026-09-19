@@ -1,16 +1,46 @@
 import { QueryError } from "@/components/ui/QueryError";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getToken } from "@/lib/auth";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
 import { Users, Plus, Globe, Lock, ArrowRight, X, Crown, Shield, Hash, Radio } from "lucide-react";
+import { apiJson, errorMessage } from "@/lib/api";
 
-async function apiFetch(path: string, opts?: RequestInit) {
-  const token = getToken();
-  const res = await fetch(path, { ...opts, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(opts?.headers ?? {}) } });
-  if (!res.ok) { const txt = await res.text(); throw new Error(txt); }
-  return res.json();
+
+/**
+ * Shapes this page reads.
+ *
+ * These were `any` before, because the page's local fetch helper returned
+ * `any` and nothing ever checked them. Replacing that helper with the shared
+ * client surfaced the gap; the types below describe what the render code
+ * already assumed, so a field rename on the API now fails the build instead of
+ * rendering `undefined` to a user.
+ */
+interface GroupParticipant {
+  userId: string;
+  name?: string;
+}
+
+interface Group {
+  id: string;
+  name: string;
+  description: string | null;
+  avatarEmoji?: string | null;
+  isPublic: boolean;
+  memberCount?: number;
+  maxMembers?: number;
+  groupXp?: number;
+  tags?: string[];
+}
+
+interface StudyRoom {
+  id: string;
+  name: string;
+  mode?: string;
+  hostName?: string;
+  participantCount?: number;
+  maxParticipants?: number;
+  participants?: GroupParticipant[];
 }
 
 const ROLE_ICONS: Record<string, React.ReactNode> = {
@@ -20,7 +50,7 @@ const ROLE_ICONS: Record<string, React.ReactNode> = {
   member: null,
 };
 
-function GroupCard({ group, onJoin, isMember }: { group: any; onJoin: (id: string) => void; isMember?: boolean }) {
+function GroupCard({ group, onJoin, isMember }: { group: Group; onJoin: (id: string) => void; isMember?: boolean }) {
   const level = Math.floor((group.groupXp ?? 0) / 2000) + 1;
   return (
     <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4 hover:border-[var(--brand-600)]/40 transition-all">
@@ -39,7 +69,7 @@ function GroupCard({ group, onJoin, isMember }: { group: any; onJoin: (id: strin
           </div>
           {(group.tags ?? []).length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
-              {group.tags.slice(0, 3).map((t: string) => <span key={t} className="rounded-full border border-[var(--border-subtle)] px-2 py-0.5 text-[11px] text-[var(--foreground-subtle)]">{t}</span>)}
+              {(group.tags ?? []).slice(0, 3).map((t) => <span key={t} className="rounded-full border border-[var(--border-subtle)] px-2 py-0.5 text-[11px] text-[var(--foreground-subtle)]">{t}</span>)}
             </div>
           )}
         </div>
@@ -126,49 +156,49 @@ export default function GroupsPage() {
   const [inviteCode, setInviteCode] = useState("");
   const [search, setSearch] = useState("");
 
-  const { data: allGroups = [], isLoading, isError, refetch, isRefetching } = useQuery({ queryKey: ["groups-all"], queryFn: () => apiFetch("/api/groups"), staleTime: 30_000 });
-  const { data: myGroups = [] } = useQuery({ queryKey: ["groups-mine"], queryFn: () => apiFetch("/api/groups/mine"), staleTime: 30_000 });
-  const { data: studyRooms = [], isLoading: roomsLoading } = useQuery({ queryKey: ["study-rooms"], queryFn: () => apiFetch("/api/study-rooms"), staleTime: 15_000, enabled: tab === "rooms" });
+  const { data: allGroups = [], isLoading, isError, refetch, isRefetching } = useQuery({ queryKey: ["groups-all"], queryFn: () => apiJson<Group[]>("/api/groups"), staleTime: 30_000 });
+  const { data: myGroups = [] } = useQuery({ queryKey: ["groups-mine"], queryFn: () => apiJson<Group[]>("/api/groups/mine"), staleTime: 30_000 });
+  const { data: studyRooms = [], isLoading: roomsLoading } = useQuery({ queryKey: ["study-rooms"], queryFn: () => apiJson<StudyRoom[]>("/api/study-rooms"), staleTime: 15_000, enabled: tab === "rooms" });
   const [joinCode, setJoinCode] = useState("");
 
   const joinGroup = useMutation({
-    mutationFn: (id: string) => apiFetch(`/api/groups/${id}/join`, { method: "POST" }),
+    mutationFn: (id: string) => apiJson(`/api/groups/${id}/join`, { method: "POST" }),
     onSuccess: () => { toast("Joined group!", "success"); qc.invalidateQueries({ queryKey: ["groups-all"] }); qc.invalidateQueries({ queryKey: ["groups-mine"] }); },
-    onError: (e: any) => toast(e.message, "error"),
+    onError: (e: unknown) => toast(errorMessage(e), "error"),
   });
 
   const joinInvite = useMutation({
-    mutationFn: () => apiFetch("/api/groups/join-invite", { method: "POST", body: JSON.stringify({ inviteCode }) }),
+    mutationFn: () => apiJson("/api/groups/join-invite", { method: "POST", body: JSON.stringify({ inviteCode }) }),
     onSuccess: () => { toast("Joined group!", "success"); setInviteCode(""); qc.invalidateQueries({ queryKey: ["groups-mine"] }); },
-    onError: (e: any) => toast(e.message, "error"),
+    onError: (e: unknown) => toast(errorMessage(e), "error"),
   });
 
   const createGroup = useMutation({
-    mutationFn: (data: any) => apiFetch("/api/groups", { method: "POST", body: JSON.stringify(data) }),
+    mutationFn: (data: any) => apiJson("/api/groups", { method: "POST", body: JSON.stringify(data) }),
     onSuccess: () => { toast("Group created!", "success"); setShowCreate(false); qc.invalidateQueries({ queryKey: ["groups-mine"] }); qc.invalidateQueries({ queryKey: ["groups-all"] }); },
-    onError: (e: any) => toast(e.message, "error"),
+    onError: (e: unknown) => toast(errorMessage(e), "error"),
   });
 
   const createRoom = useMutation({
-    mutationFn: (data: any) => apiFetch("/api/study-rooms", { method: "POST", body: JSON.stringify(data) }),
+    mutationFn: (data: any) => apiJson("/api/study-rooms", { method: "POST", body: JSON.stringify(data) }),
     onSuccess: () => { toast("Study room created! 🚀", "success"); qc.invalidateQueries({ queryKey: ["study-rooms"] }); },
-    onError: (e: any) => toast(e.message, "error"),
+    onError: (e: unknown) => toast(errorMessage(e), "error"),
   });
 
   const joinRoom = useMutation({
-    mutationFn: (id: string) => apiFetch(`/api/study-rooms/${id}/join`, { method: "POST" }),
+    mutationFn: (id: string) => apiJson(`/api/study-rooms/${id}/join`, { method: "POST" }),
     onSuccess: () => { toast("Joined room!", "success"); qc.invalidateQueries({ queryKey: ["study-rooms"] }); },
-    onError: (e: any) => toast(e.message, "error"),
+    onError: (e: unknown) => toast(errorMessage(e), "error"),
   });
 
   const joinRoomByCode = useMutation({
-    mutationFn: () => apiFetch("/api/study-rooms/join-code", { method: "POST", body: JSON.stringify({ inviteCode: joinCode }) }),
+    mutationFn: () => apiJson("/api/study-rooms/join-code", { method: "POST", body: JSON.stringify({ inviteCode: joinCode }) }),
     onSuccess: () => { toast("Joined room!", "success"); setJoinCode(""); qc.invalidateQueries({ queryKey: ["study-rooms"] }); },
-    onError: (e: any) => toast(e.message, "error"),
+    onError: (e: unknown) => toast(errorMessage(e), "error"),
   });
 
   const leaveRoom = useMutation({
-    mutationFn: (id: string) => apiFetch(`/api/study-rooms/${id}/leave`, { method: "DELETE" }),
+    mutationFn: (id: string) => apiJson(`/api/study-rooms/${id}/leave`, { method: "DELETE" }),
     onSuccess: () => { toast("Left room", "success"); qc.invalidateQueries({ queryKey: ["study-rooms"] }); },
   });
 
@@ -274,7 +304,7 @@ export default function GroupsPage() {
 
           {roomsLoading ? (
             <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-24 animate-pulse rounded-2xl bg-[var(--surface-hover)]" />)}</div>
-          ) : (studyRooms as any[]).length === 0 ? (
+          ) : studyRooms.length === 0 ? (
             <div className="text-center py-16">
               <Radio size={40} className="mx-auto mb-4 text-[var(--brand-600)] opacity-30" />
               <p className="text-lg font-semibold text-[var(--foreground)] mb-2">No active rooms</p>
@@ -286,7 +316,7 @@ export default function GroupsPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {(studyRooms as any[]).map((r: any) => (
+              {studyRooms.map((r) => (
                 <div key={r.id} className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4 hover:border-[var(--brand-600)]/30 transition-all">
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div>
@@ -300,7 +330,7 @@ export default function GroupsPage() {
                         <span className="text-xs text-[var(--foreground-subtle)]">by {r.hostName}</span>
                       </div>
                     </div>
-                    {r.participants?.some((p: any) => p.userId === session?.user?.id) ? (
+                    {r.participants?.some((p) => p.userId === session?.user?.id) ? (
                       <button onClick={() => leaveRoom.mutate(r.id)} disabled={leaveRoom.isPending}
                         className="shrink-0 rounded-xl border border-[var(--border-strong)] px-3 py-1.5 text-xs font-semibold text-[var(--foreground-muted)] hover:text-[var(--foreground)] disabled:opacity-50">
                         Leave
@@ -312,9 +342,9 @@ export default function GroupsPage() {
                       </button>
                     )}
                   </div>
-                  {r.participants?.length > 0 && (
+                  {(r.participants?.length ?? 0) > 0 && r.participants && (
                     <div className="flex gap-1 flex-wrap">
-                      {r.participants.slice(0, 8).map((p: any) => (
+                      {r.participants.slice(0, 8).map((p) => (
                         <div key={p.userId} className="text-[11px] bg-[var(--muted)] text-[var(--foreground-subtle)] border border-[var(--border-subtle)] rounded-lg px-1.5 py-0.5 flex items-center gap-1">
                           <div className="h-1.5 w-1.5 rounded-full bg-[var(--palette-emerald-400)]" />
                           {p.name}

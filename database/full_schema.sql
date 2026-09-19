@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS "analytics_sessions" (
 	"tasks_created" integer DEFAULT 0 NOT NULL,
 	"roadmaps_generated" integer DEFAULT 0 NOT NULL,
 	"ai_features_used" integer DEFAULT 0 NOT NULL,
-	"last_activity_at" timestamp DEFAULT now() NOT NULL
+	"last_activity_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "analytics_sessions_counters_non_negative" CHECK ("analytics_sessions"."duration_sec" >= 0 AND "analytics_sessions"."page_views" >= 0 AND "analytics_sessions"."focus_sessions_started" >= 0 AND "analytics_sessions"."tasks_created" >= 0 AND "analytics_sessions"."roadmaps_generated" >= 0 AND "analytics_sessions"."ai_features_used" >= 0)
 );
 
 CREATE TABLE IF NOT EXISTS "page_views" (
@@ -125,7 +126,8 @@ CREATE TABLE IF NOT EXISTS "focus_cities" (
 	"weather" text DEFAULT 'clear' NOT NULL,
 	"weather_updated_at" timestamp DEFAULT now(),
 	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "focus_cities_user_id_unique" UNIQUE("user_id")
+	CONSTRAINT "focus_cities_user_id_unique" UNIQUE("user_id"),
+	CONSTRAINT "focus_cities_counters_non_negative" CHECK ("focus_cities"."population" >= 0 AND "focus_cities"."total_buildings" >= 0 AND "focus_cities"."total_sessions" >= 0)
 );
 
 CREATE TABLE IF NOT EXISTS "flashcard_decks" (
@@ -149,7 +151,8 @@ CREATE TABLE IF NOT EXISTS "flashcard_reviews" (
 	"stability_after" real,
 	"elapsed_days" real,
 	"review_duration_ms" integer,
-	"created_at" timestamp DEFAULT now() NOT NULL
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "flashcard_reviews_grade_in_range" CHECK ("flashcard_reviews"."grade" BETWEEN 1 AND 4)
 );
 
 CREATE TABLE IF NOT EXISTS "flashcards" (
@@ -169,7 +172,10 @@ CREATE TABLE IF NOT EXISTS "flashcards" (
 	"fsrs_due_date" timestamp DEFAULT now(),
 	"fsrs_interval" integer DEFAULT 0,
 	"fsrs_state" text DEFAULT 'new',
-	"created_at" timestamp DEFAULT now() NOT NULL
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "flashcards_box_at_least_one" CHECK ("flashcards"."box" >= 1),
+	CONSTRAINT "flashcards_counters_non_negative" CHECK ("flashcards"."correct_count" >= 0 AND "flashcards"."incorrect_count" >= 0 AND "flashcards"."fsrs_reps" >= 0 AND "flashcards"."fsrs_lapses" >= 0 AND "flashcards"."fsrs_interval" >= 0),
+	CONSTRAINT "flashcards_fsrs_params_non_negative" CHECK (("flashcards"."fsrs_stability" IS NULL OR "flashcards"."fsrs_stability" >= 0) AND ("flashcards"."fsrs_difficulty" IS NULL OR "flashcards"."fsrs_difficulty" >= 0))
 );
 
 CREATE TABLE IF NOT EXISTS "active_sessions" (
@@ -188,7 +194,9 @@ CREATE TABLE IF NOT EXISTS "active_sessions" (
 	"monitor_enabled" boolean DEFAULT false,
 	"started_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "active_session_per_user_idx" UNIQUE("user_id")
+	CONSTRAINT "active_session_per_user_idx" UNIQUE("user_id"),
+	CONSTRAINT "active_sessions_seconds_left_non_negative" CHECK ("active_sessions"."seconds_left" >= 0),
+	CONSTRAINT "active_sessions_active_seconds_non_negative" CHECK ("active_sessions"."active_seconds" >= 0)
 );
 
 CREATE TABLE IF NOT EXISTS "app_feedback" (
@@ -361,7 +369,10 @@ CREATE TABLE IF NOT EXISTS "focus_sessions" (
 	"productivity_score" real,
 	"client_nonce" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "focus_sessions_user_nonce_unique" UNIQUE("user_id","client_nonce")
+	CONSTRAINT "focus_sessions_user_nonce_unique" UNIQUE("user_id","client_nonce"),
+	CONSTRAINT "focus_sessions_duration_non_negative" CHECK ("focus_sessions"."duration_sec" >= 0),
+	CONSTRAINT "focus_sessions_planned_duration_non_negative" CHECK ("focus_sessions"."planned_duration_sec" IS NULL OR "focus_sessions"."planned_duration_sec" >= 0),
+	CONSTRAINT "focus_sessions_completion_percentage_range" CHECK ("focus_sessions"."completion_percentage" IS NULL OR ("focus_sessions"."completion_percentage" >= 0 AND "focus_sessions"."completion_percentage" <= 100))
 );
 
 CREATE TABLE IF NOT EXISTS "follows" (
@@ -807,7 +818,12 @@ CREATE TABLE IF NOT EXISTS "user_wallets" (
 	"level" integer DEFAULT 1 NOT NULL,
 	"prestige" integer DEFAULT 0 NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "user_wallets_user_id_unique" UNIQUE("user_id")
+	CONSTRAINT "user_wallets_user_id_unique" UNIQUE("user_id"),
+	CONSTRAINT "user_wallets_coins_non_negative" CHECK ("user_wallets"."coins" >= 0),
+	CONSTRAINT "user_wallets_total_xp_non_negative" CHECK ("user_wallets"."total_xp" >= 0),
+	CONSTRAINT "user_wallets_weekly_xp_non_negative" CHECK ("user_wallets"."weekly_xp" >= 0),
+	CONSTRAINT "user_wallets_level_at_least_one" CHECK ("user_wallets"."level" >= 1),
+	CONSTRAINT "user_wallets_prestige_non_negative" CHECK ("user_wallets"."prestige" >= 0)
 );
 
 CREATE TABLE IF NOT EXISTS "users" (
@@ -827,6 +843,7 @@ CREATE TABLE IF NOT EXISTS "users" (
 	"referral_code" text,
 	"referred_by_user_id" text,
 	"referral_applied_at" timestamp,
+	"deletion_requested_at" timestamp,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "users_email_unique" UNIQUE("email"),
 	CONSTRAINT "users_guest_key_unique" UNIQUE("guest_key"),
@@ -1344,6 +1361,60 @@ CREATE TABLE IF NOT EXISTS "user_pet_inventory" (
 	"accessories" jsonb DEFAULT '[]'::jsonb,
 	"color_variant" text DEFAULT 'default',
 	"acquired_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "integration_connections" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"provider" text NOT NULL,
+	"external_account_id" text,
+	"display_name" text,
+	"access_token_enc" text,
+	"refresh_token_enc" text,
+	"scopes" text,
+	"expires_at" timestamp,
+	"status" text DEFAULT 'active' NOT NULL,
+	"last_error" text,
+	"last_synced_at" timestamp,
+	"sync_cursor" text,
+	"metadata" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "webhook_deliveries" (
+	"id" text PRIMARY KEY NOT NULL,
+	"endpoint_id" text NOT NULL,
+	"user_id" text NOT NULL,
+	"event" text NOT NULL,
+	"payload" jsonb NOT NULL,
+	"status" text DEFAULT 'pending' NOT NULL,
+	"attempts" integer DEFAULT 0 NOT NULL,
+	"next_attempt_at" timestamp,
+	"delivery_id" text NOT NULL,
+	"response_status" integer,
+	"response_body" text,
+	"duration_ms" integer,
+	"error" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"delivered_at" timestamp
+);
+
+CREATE TABLE IF NOT EXISTS "webhook_endpoints" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"url" text NOT NULL,
+	"description" text,
+	"secret_enc" text NOT NULL,
+	"secret_hint" text NOT NULL,
+	"events" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"active" boolean DEFAULT true NOT NULL,
+	"failure_count" integer DEFAULT 0 NOT NULL,
+	"last_success_at" timestamp,
+	"last_failure_at" timestamp,
+	"disabled_reason" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 
@@ -1892,6 +1963,26 @@ DO $$ BEGIN
     ALTER TABLE "user_pet_inventory" ADD CONSTRAINT "user_pet_inventory_pet_id_pet_catalog_id_fk" FOREIGN KEY ("pet_id") REFERENCES "public"."pet_catalog"("id") ON DELETE cascade ON UPDATE no action;
   END IF;
 END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."integration_connections"'::regclass AND conname = 'integration_connections_user_id_users_id_fk') THEN
+    ALTER TABLE "integration_connections" ADD CONSTRAINT "integration_connections_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."webhook_deliveries"'::regclass AND conname = 'webhook_deliveries_endpoint_id_webhook_endpoints_id_fk') THEN
+    ALTER TABLE "webhook_deliveries" ADD CONSTRAINT "webhook_deliveries_endpoint_id_webhook_endpoints_id_fk" FOREIGN KEY ("endpoint_id") REFERENCES "public"."webhook_endpoints"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."webhook_deliveries"'::regclass AND conname = 'webhook_deliveries_user_id_users_id_fk') THEN
+    ALTER TABLE "webhook_deliveries" ADD CONSTRAINT "webhook_deliveries_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."webhook_endpoints"'::regclass AND conname = 'webhook_endpoints_user_id_users_id_fk') THEN
+    ALTER TABLE "webhook_endpoints" ADD CONSTRAINT "webhook_endpoints_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
 CREATE UNIQUE INDEX IF NOT EXISTS "analytics_events_event_id_idx" ON "analytics_events" USING btree ("event_id");
 CREATE INDEX IF NOT EXISTS "analytics_events_created_at_idx" ON "analytics_events" USING btree ("created_at");
 CREATE INDEX IF NOT EXISTS "analytics_events_visitor_id_idx" ON "analytics_events" USING btree ("visitor_id");
@@ -2021,3 +2112,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS "token_ledger_idempotency_unique" ON "token_le
 CREATE INDEX IF NOT EXISTS "user_pet_inventory_user_idx" ON "user_pet_inventory" USING btree ("user_id");
 CREATE INDEX IF NOT EXISTS "user_pet_inventory_user_active_idx" ON "user_pet_inventory" USING btree ("user_id","is_active");
 CREATE UNIQUE INDEX IF NOT EXISTS "user_pet_inventory_user_pet_unique" ON "user_pet_inventory" USING btree ("user_id","pet_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "integration_connections_user_provider_idx" ON "integration_connections" USING btree ("user_id","provider");
+CREATE INDEX IF NOT EXISTS "webhook_deliveries_due_idx" ON "webhook_deliveries" USING btree ("status","next_attempt_at");
+CREATE INDEX IF NOT EXISTS "webhook_deliveries_user_idx" ON "webhook_deliveries" USING btree ("user_id","created_at");
+CREATE INDEX IF NOT EXISTS "webhook_deliveries_endpoint_idx" ON "webhook_deliveries" USING btree ("endpoint_id","created_at");
+CREATE UNIQUE INDEX IF NOT EXISTS "webhook_deliveries_delivery_id_idx" ON "webhook_deliveries" USING btree ("delivery_id");
+CREATE INDEX IF NOT EXISTS "webhook_endpoints_user_idx" ON "webhook_endpoints" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS "webhook_endpoints_active_idx" ON "webhook_endpoints" USING btree ("user_id","active");

@@ -18,6 +18,7 @@ import { logger } from "../lib/logger";
 import { isUserPremium } from "../lib/premiumCheck";
 import { userZone } from "../lib/userZone";
 import { clockInZone, dayKeyInZone, dayStartInZone, shiftDayKey, weekStartInZone, weekdayOfDayKey } from "../lib/timezone";
+import { computeTrend, computeTrendVsAverage } from "../lib/trend";
 
 const router = Router();
 
@@ -64,11 +65,61 @@ router.get("/stats", authMiddleware, async (req: AuthRequest, res: Response) => 
       .where(eq(focusSessionsTable.userId, req.userId))
       .orderBy(desc(focusSessionsTable.completedAt)).limit(5);
 
+    // ── Direction for every headline number ──────────────────────────
+    // A bare "42 min" asks the reader to remember what yesterday looked like.
+    // Each KPI now ships with the comparison that makes it mean something:
+    // today vs yesterday (the day-over-day read) and today vs the user's own
+    // 7-day daily average (the "is this normal for me" read).
+    //
+    // Computed from `weekSessions`, which the chart above already fetched —
+    // no extra query. Yesterday is `chartData[5]`, the second-to-last bucket,
+    // because `chartData` is [today-6 … today].
+    const minutesByDay = chartData.map((d) => d.minutes);
+    const yesterdaysMinutes = minutesByDay[minutesByDay.length - 2] ?? 0;
+    // Exclude today from its own baseline, or today drags the average toward
+    // itself and every day looks average.
+    const priorDays = minutesByDay.slice(0, -1);
+
+    const excludedToday = todaySessions.length;
+    const yesterdaySessions = weekSessions.filter(
+      (sn) => sn.completedAt && dayKeyInZone(sn.completedAt, zone) === shiftDayKey(todayKey, -1),
+    ).length;
+
     res.json({
       totalStudyMinutesToday, avgFocusScore, dominantStability,
-      sessionsToday: todaySessions.length, currentStreak: streak?.currentStreak ?? 0,
+      sessionsToday: excludedToday, currentStreak: streak?.currentStreak ?? 0,
       completedTasks: completedTasks.length,
       chartData, recentSessions,
+      trends: {
+        minutesVsYesterday: computeTrend({
+          current: totalStudyMinutesToday,
+          previous: yesterdaysMinutes,
+          comparison: "yesterday",
+        }),
+        minutesVsAverage: computeTrendVsAverage(
+          totalStudyMinutesToday,
+          priorDays,
+          "your 7-day average",
+        ),
+        sessionsVsYesterday: computeTrend({
+          current: excludedToday,
+          previous: yesterdaySessions,
+          comparison: "yesterday",
+        }),
+        // Best day in the visible window, so "this week" has a reference point
+        // rather than being a shape with no scale.
+        weekly: {
+          totalMinutes: minutesByDay.reduce((a, b) => a + b, 0),
+          bestDay: chartData.reduce(
+            (best, d) => (d.minutes > best.minutes ? d : best),
+            { day: "—", date: todayKey, minutes: 0 },
+          ),
+          activeDays: minutesByDay.filter((m) => m > 0).length,
+        },
+        // Already in hand from the streak row read above — longest can never be
+        // below current, but a legacy row could disagree, so take the max.
+        longestStreak: Math.max(streak?.longestStreak ?? 0, streak?.currentStreak ?? 0),
+      },
     });
   } catch (err) {
     logger.error({ err }, "stats error");
@@ -139,9 +190,33 @@ router.get("/analytics", authMiddleware, async (req: AuthRequest, res: Response)
       ));
     const thisWeekMinutes = Math.round(thisWeekSessions.reduce((acc, s) => acc + s.durationSec, 0) / 60);
     const lastWeekMinutes = Math.round(lastWeekSessions.reduce((acc, s) => acc + s.durationSec, 0) / 60);
+    /*
+     * `changePercent` used to be computed here as:
+     *
+     *     lastWeekMinutes > 0 ? round(((this - last) / last) * 100)
+     *                         : thisWeekMinutes > 0 ? 100 : 0;
+     *
+     * The `: 100` is a fabricated figure. Three minutes this week against a
+     * blank last week rendered as a confident "+100%" — a number nothing
+     * measured. The `: 0` is the mirror problem: two empty weeks rendered as
+     * "no change", which is how a dead account looks steady. And a one-minute
+     * baseline produced "+5900%".
+     *
+     * `computeTrend` returns the honest version of each: `percent: null` plus an
+     * absolute delta when the baseline cannot support a percentage, and
+     * `direction: "unknown"` when there is nothing to compare. `changePercent`
+     * is kept so an older client cannot break, but it is now null in exactly
+     * the cases where the old value was invented — and every consumer in this
+     * repo renders the trend instead.
+     */
     const weekChangePercent = lastWeekMinutes > 0
       ? Math.round(((thisWeekMinutes - lastWeekMinutes) / lastWeekMinutes) * 100)
       : thisWeekMinutes > 0 ? 100 : 0;
+    const weekTrend = computeTrend({
+      current: thisWeekMinutes,
+      previous: lastWeekMinutes,
+      comparison: "last week",
+    });
 
     // Weekly bar chart (last 7 days of week labels)
     const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -162,7 +237,7 @@ router.get("/analytics", authMiddleware, async (req: AuthRequest, res: Response)
       hourDist,
       timeDayHeatmap,
       weekBarData,
-      weekComparison: { thisWeekMinutes, lastWeekMinutes, changePercent: weekChangePercent },
+      weekComparison: { thisWeekMinutes, lastWeekMinutes, changePercent: weekChangePercent, trend: weekTrend },
       personalBests: {
         longestSessionMinutes: Math.round(longestSession / 60),
         bestDayMinutes,

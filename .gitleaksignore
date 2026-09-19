@@ -1,0 +1,4 @@
+# Gitleaks ignore file for false positive test fixtures
+# Fingerprint: commit:file:rule:line
+3104c61c053b3311349da1d991f5f026559e9c55:artifacts/focusarx/src/lib/offlineQueueCore.test.ts:generic-api-key:29
+a26c189b98047f9754b655906ee8649d06ee4ff3:artifacts/api-server/src/lib/webhooks.test.ts:generic-api-key:20

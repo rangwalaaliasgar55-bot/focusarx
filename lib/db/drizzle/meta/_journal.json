@@ -2,21 +2,145 @@
   "version": "7",
   "dialect": "postgresql",
   "entries": [
-    { "idx": 0, "version": "7", "when": 1780920699392, "tag": "0000_overrated_corsair", "breakpoints": true },
-    { "idx": 1, "version": "7", "when": 1781004660121, "tag": "0001_talented_kat_farrell", "breakpoints": true },
-    { "idx": 2, "version": "7", "when": 1782000000000, "tag": "0002_add_post_moderation", "breakpoints": true },
-    { "idx": 3, "version": "7", "when": 1782000000001, "tag": "0003_add_site_settings", "breakpoints": true },
-    { "idx": 4, "version": "7", "when": 1782000000002, "tag": "0004_add_flashcards", "breakpoints": true },
-    { "idx": 5, "version": "7", "when": 1782000000003, "tag": "0005_add_indexed_referrals", "breakpoints": true },
-    { "idx": 6, "version": "7", "when": 1782000000004, "tag": "0006_add_premium_marketplace_items", "breakpoints": true },
-    { "idx": 7, "version": "7", "when": 1782000000005, "tag": "0007_add_session_idempotency", "breakpoints": true },
-    { "idx": 8, "version": "7", "when": 1782000000006, "tag": "0008_harden_marketplace_inventory", "breakpoints": true },
-    { "idx": 9, "version": "7", "when": 1782000000007, "tag": "0009_add_active_session_start", "breakpoints": true },
-    { "idx": 10, "version": "7", "when": 1782000000008, "tag": "0010_complete_premium_features", "breakpoints": true },
-    { "idx": 11, "version": "7", "when": 1782000000009, "tag": "0011_focus_sessions_nonce_unique", "breakpoints": true },
-    { "idx": 12, "version": "7", "when": 1782000000010, "tag": "0012_token_premium_economy", "breakpoints": true },
-    { "idx": 13, "version": "7", "when": 1782000000011, "tag": "0013_blueprint_hardening", "breakpoints": true },
-    { "idx": 14, "version": "7", "when": 1788692400000, "tag": "0014_schema_catchup", "breakpoints": true },
-    { "idx": 15, "version": "7", "when": 1788778800000, "tag": "0015_unique_guards", "breakpoints": true }
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1780920699392,
+      "tag": "0000_overrated_corsair",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1781004660121,
+      "tag": "0001_talented_kat_farrell",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782000000000,
+      "tag": "0002_add_post_moderation",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1782000000001,
+      "tag": "0003_add_site_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1782000000002,
+      "tag": "0004_add_flashcards",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1782000000003,
+      "tag": "0005_add_indexed_referrals",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782000000004,
+      "tag": "0006_add_premium_marketplace_items",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1782000000005,
+      "tag": "0007_add_session_idempotency",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1782000000006,
+      "tag": "0008_harden_marketplace_inventory",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1782000000007,
+      "tag": "0009_add_active_session_start",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1782000000008,
+      "tag": "0010_complete_premium_features",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1782000000009,
+      "tag": "0011_focus_sessions_nonce_unique",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1782000000010,
+      "tag": "0012_token_premium_economy",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1782000000011,
+      "tag": "0013_blueprint_hardening",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1788692400000,
+      "tag": "0014_schema_catchup",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1788778800000,
+      "tag": "0015_unique_guards",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1789000000000,
+      "tag": "0016_wallet_balance_checks",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1789100000000,
+      "tag": "0017_account_deletion_grace",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1789200000000,
+      "tag": "0018_data_integrity_checks",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1789300000000,
+      "tag": "0019_webhooks_and_integrations",
+      "breakpoints": true
+    }
   ]
 }

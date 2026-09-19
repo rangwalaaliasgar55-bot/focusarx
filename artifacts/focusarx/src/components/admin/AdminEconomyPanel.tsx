@@ -83,11 +83,11 @@ export function AdminEconomyPanel({ authHeaders }: AdminPanelProps) {
                       <div className="w-1/2 rounded-t-sm bg-[var(--palette-emerald-500)]/70" style={{ height: `${Math.max(3, (d.mints / maxFlow) * 100)}%` }} />
                       <div className="w-1/2 rounded-t-sm bg-[var(--palette-rose-500)]/70" style={{ height: `${Math.max(3, (d.burns / maxFlow) * 100)}%` }} />
                     </div>
-                    <span className="text-[0.5rem] text-[var(--palette-zinc-600)]">{d.day.slice(3)}</span>
+                    <span className="text-[11px] text-[var(--palette-zinc-600)]">{d.day.slice(3)}</span>
                   </div>
                 ))}
               </div>
-              <div className="mt-2 flex gap-4 text-[0.625rem] text-[var(--palette-zinc-500)]">
+              <div className="mt-2 flex gap-4 text-[11px] text-[var(--palette-zinc-500)]">
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-[var(--palette-emerald-500)]/70" /> minted</span>
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-[var(--palette-rose-500)]/70" /> burned</span>
               </div>
@@ -104,7 +104,7 @@ export function AdminEconomyPanel({ authHeaders }: AdminPanelProps) {
                     <div key={`${r.reason}-${r.type}`} className="flex items-center justify-between rounded-lg bg-[var(--palette-zinc-900)]/50 px-3 py-2">
                       <div className="min-w-0">
                         <p className="truncate text-xs font-medium text-[var(--palette-zinc-300)]">{r.reason.replace(/_/g, " ")}</p>
-                        <p className="text-[0.625rem] text-[var(--palette-zinc-500)]">{r.n} transactions</p>
+                        <p className="text-[11px] text-[var(--palette-zinc-500)]">{r.n} transactions</p>
                       </div>
                       <span className={cn("shrink-0 text-xs font-bold", total >= 0 ? "text-[var(--palette-emerald-400)]" : "text-[var(--palette-rose-400)]")}>
                         {total >= 0 ? "+" : ""}{total.toLocaleString("en-IN")}
@@ -126,7 +126,7 @@ export function AdminEconomyPanel({ authHeaders }: AdminPanelProps) {
                   <div key={key} className="rounded-lg bg-[var(--palette-zinc-900)]/50 p-3">
                     <p className="text-[0.6875rem] text-[var(--palette-zinc-400)]">{label}</p>
                     <p className="mt-1 text-lg font-bold text-[var(--palette-zinc-200)]">{m?.n ?? 0}</p>
-                    <p className={cn("text-[0.625rem]", (m?.total ?? 0) >= 0 ? "text-[var(--palette-emerald-400)]" : "text-[var(--palette-rose-400)]")}>
+                    <p className={cn("text-[11px]", (m?.total ?? 0) >= 0 ? "text-[var(--palette-emerald-400)]" : "text-[var(--palette-rose-400)]")}>
                       {(m?.total ?? 0) >= 0 ? "+" : ""}{(m?.total ?? 0).toLocaleString("en-IN")} coins
                     </p>
                   </div>

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db, focusSessionsTable, activeSessionsTable, studyStreaksTable, streakHistoryTable, freezeTokensTable, userWalletsTable, productivityLogsTable, battlePassProgressTable, coinTransactionsTable, focusCitiesTable, userLootBoxesTable, premiumSubscriptionsTable, userPetsTable, usersTable, type ActiveSession} from "@workspace/db";
 import { eq, and, desc, gte, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import { emitEvent } from "../lib/webhooks";
 import { isUserPremium } from "../lib/premiumCheck";
 import { updateMissionProgress } from "./missions";
 import { awardBondXpToActivePet } from "../lib/petBond";
@@ -419,6 +420,18 @@ router.delete("/sessions/active", authMiddleware, async (req: AuthRequest, res) 
   }
 });
 
+/**
+ * Streak milestones worth emitting.
+ *
+ * Every day would be noise — a receiver gets a `session.completed` for each
+ * session anyway, so a per-day streak event adds nothing. These are the numbers
+ * a person actually tells someone about, then every 100 to keep it bounded.
+ */
+export function isStreakMilestone(days: number): boolean {
+  if (!Number.isFinite(days) || days <= 0) return false;
+  return [3, 7, 14, 21, 30, 50, 100, 180, 365].includes(days) || (days > 100 && days % 100 === 0);
+}
+
 router.post("/sessions", authMiddleware, sessionCompleteLimiter, async (req: AuthRequest, res) => {
   const parsed = sessionSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -630,8 +643,15 @@ router.post("/sessions", authMiddleware, sessionCompleteLimiter, async (req: Aut
       if (typeof focusScore === "number") {
         await updateMissionProgress(req.userId, "score", focusScore, { zone });
       }
+      let streakDays = 0;
       if (result.streakUpdated) {
         await reportStudyDays(req.userId, zone);
+        const [streakRow] = await db
+          .select({ current: studyStreaksTable.currentStreak })
+          .from(studyStreaksTable)
+          .where(eq(studyStreaksTable.userId, req.userId))
+          .limit(1);
+        streakDays = streakRow?.current ?? 0;
       }
       if (earnedXp > 0) {
         await advanceBattlePass(req.userId, earnedXp);
@@ -655,6 +675,30 @@ router.post("/sessions", authMiddleware, sessionCompleteLimiter, async (req: Aut
       } catch { /* best effort */ }
 
       const delightReward = runDelightCheck();
+
+      // §1.6: fan the completion out to the user's webhook endpoints.
+      //
+      // Deliberately not awaited on the request path *and* deliberately after
+      // the work above: a receiver being slow must not delay the response the
+      // user is waiting on, and `emitEvent` cannot reject — it returns a result
+      // and logs. It only queues rows; actual delivery is the worker's job.
+      void emitEvent(req.userId, "session.completed", {
+        sessionId: result.session.id,
+        mode: mode ?? "focus",
+        durationSec: result.session.durationSec,
+        plannedDurationSec: result.session.plannedDurationSec ?? null,
+        focusScore: focusScore ?? null,
+        category: category ?? null,
+        completedEarly: completedEarly ?? false,
+        xpEarned: earnedXp,
+        coinsEarned: earnedCoins,
+      });
+
+      // A milestone is its own event: a receiver that only wants "you hit 30
+      // days" should not have to replay every session and count.
+      if (result.streakUpdated && isStreakMilestone(streakDays)) {
+        void emitEvent(req.userId, "streak.milestone", { days: streakDays });
+      }
 
       res.json({ session: result.session, streakUpdated: result.streakUpdated, shieldUsed: result.shieldUsed, earnedXp, earnedCoins, lootBoxDropped, delightReward });
       return;

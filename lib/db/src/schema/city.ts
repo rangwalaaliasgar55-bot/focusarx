@@ -1,4 +1,5 @@
-import { pgTable, text, integer, timestamp, jsonb, index } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, timestamp, jsonb, index, check } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { usersTable as users } from './focusarx';
 
 export const focusCitiesTable = pgTable('focus_cities', {
@@ -16,7 +17,10 @@ export const focusCitiesTable = pgTable('focus_cities', {
   weather: text('weather').notNull().default('clear'),
   weatherUpdatedAt: timestamp('weather_updated_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, (t) => [index('focus_cities_user_idx').on(t.userId)]);
+}, (t) => [
+  index('focus_cities_user_idx').on(t.userId),
+  check('focus_cities_counters_non_negative', sql`${t.population} >= 0 AND ${t.totalBuildings} >= 0 AND ${t.totalSessions} >= 0`),
+]);
 
 export type FocusCity = typeof focusCitiesTable.$inferSelect;
 

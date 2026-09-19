@@ -1,16 +1,42 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowDownRight, ArrowUpRight, CalendarRange, Lightbulb } from "lucide-react";
+import { CalendarRange, Lightbulb } from "lucide-react";
 import { apiJson } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { TrendPill } from "@/components/ui/trend-pill";
+import type { Trend } from "@/types/trend";
+
+/**
+ * Rebuild a `Trend` for a payload that predates `weekComparison.trend`.
+ *
+ * Deliberately derived from the two minute totals rather than from the legacy
+ * `changePercent`, which is the field this exists to stop trusting.
+ */
+function legacyWeekTrend(wc: { thisWeekMinutes: number; lastWeekMinutes: number }): Trend {
+  const delta = wc.thisWeekMinutes - wc.lastWeekMinutes;
+  const bothEmpty = wc.thisWeekMinutes === 0 && wc.lastWeekMinutes === 0;
+  return {
+    direction: bothEmpty ? "unknown" : delta === 0 ? "flat" : delta > 0 ? "up" : "down",
+    delta,
+    percent: !bothEmpty && wc.lastWeekMinutes >= 5 ? (delta / wc.lastWeekMinutes) * 100 : null,
+    comparison: "last week",
+    comparable: !bothEmpty,
+  };
+}
 
 type AnalyticsPayload = {
   hourDist: Array<{ hour: number; minutes: number }>;
   weekBarData: Array<{ day: string; date: string; minutes: number }>;
-  weekComparison: { thisWeekMinutes: number; lastWeekMinutes: number; changePercent: number };
+  weekComparison: {
+    thisWeekMinutes: number;
+    lastWeekMinutes: number;
+    /** Legacy and untrustworthy (the server fabricated 100 / 0). Use `trend`. */
+    changePercent: number;
+    /** Optional so a response cached before this field existed still loads. */
+    trend?: Trend;
+  };
   personalBests: {
     longestSessionMinutes: number;
     bestDayMinutes: number;
@@ -59,8 +85,12 @@ export default function WeeklyReviewCard() {
   if (status !== "authenticated" || !query.isSuccess || !data) return null;
   if (data.weekComparison.thisWeekMinutes === 0 && data.weekComparison.lastWeekMinutes === 0) return null;
 
-  const { thisWeekMinutes, lastWeekMinutes, changePercent } = data.weekComparison;
-  const up = changePercent >= 0;
+  const { thisWeekMinutes, lastWeekMinutes } = data.weekComparison;
+  // The badge used to read `changePercent`, which the server fabricated as 100
+  // when last week was empty and 0 when both weeks were — so a first-ever week
+  // showed a confident "+100%" and a dormant account showed "+0%". The trend
+  // distinguishes those from a real measurement.
+  const trend = data.weekComparison.trend ?? legacyWeekTrend(data.weekComparison);
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25}}>
@@ -70,10 +100,7 @@ export default function WeeklyReviewCard() {
             <CardTitle className="flex items-center gap-2"><CalendarRange className="text-[var(--brand-strong)]" /> Your week in review</CardTitle>
             <CardDescription>This week vs last week of protected focus time.</CardDescription>
           </div>
-          <Badge variant={up ? "success" : "secondary"} className="gap-1">
-            {up ? <ArrowUpRight /> : <ArrowDownRight />}
-            {changePercent > 0 ? `+${changePercent}%` : `${changePercent}%`}
-          </Badge>
+          <TrendPill trend={trend} className="text-xs" />
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap items-end gap-x-8 gap-y-4">

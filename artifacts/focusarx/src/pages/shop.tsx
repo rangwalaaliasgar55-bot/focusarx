@@ -1,19 +1,13 @@
 import { QueryError } from "@/components/ui/QueryError";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getToken } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
 import { ShoppingBag, Zap, Palette, Star, Crown, LucideIcon } from "lucide-react";
 import { Coins } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { ShopItem } from "@/types/gamification";
+import { apiJson } from "@/lib/api";
 
-async function apiFetch(path: string, opts?: RequestInit) {
-  const token = getToken();
-  const res = await fetch(path, { ...opts, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(opts?.headers ?? {}) } });
-  if (!res.ok) { const t = await res.text(); throw new Error(t); }
-  return res.json();
-}
 
 const CATEGORY_META: Record<string, { label: string; icon: LucideIcon; color: string }> = {
   boost:    { label: "Boosts",    icon: Zap,         color: "text-[var(--palette-amber-400)]" },
@@ -34,12 +28,12 @@ export default function ShopPage() {
 
   const { data, isLoading, isError, refetch, isRefetching } = useQuery<{ items: ShopItem[], coins: number }>({
     queryKey: ["shop-items"],
-    queryFn: () => apiFetch("/api/shop/items"),
+    queryFn: () => apiJson("/api/shop/items"),
     staleTime: 300_000,
   });
 
   const purchase = useMutation<PurchaseResponse, Error, string>({
-    mutationFn: (itemId: string) => apiFetch(`/api/shop/purchase/${itemId}`, { method: "POST" }),
+    mutationFn: (itemId: string) => apiJson(`/api/shop/purchase/${itemId}`, { method: "POST" }),
     onSuccess: (res) => {
       const msg = res.xpGained > 0
         ? `Purchased! +${res.xpGained.toLocaleString()} XP. ${res.coinsRemaining.toLocaleString()} coins left.`

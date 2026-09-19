@@ -2,7 +2,7 @@ import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
-import { apiJson } from "@/lib/api";
+import { apiJson, errorMessage } from "@/lib/api";
 import { useToast } from "@/components/Toast";
 import { Users, UserPlus, Trophy, Activity, Check, Bell, Rss, MessageCircle as MessageCircleIcon, Plus, Send, Image, Trash2, ArrowUpRight, Star as StarIcon, Shield } from "lucide-react";
 import { PageTransition } from "@/components/PageTransition";
@@ -30,7 +30,7 @@ function Avatar({ name, size = 36, level }: { name: string; size?: number, level
       </div>
       {level && (
         <div className="absolute -bottom-1 -right-1 bg-[var(--background)] rounded-full border border-[var(--palette-white)]/10 px-1 py-0.5">
-           <span className="text-[7px] font-semibold text-[var(--brand-400)] leading-none">{level}</span>
+           <span className="text-[11px] font-semibold text-[var(--brand-400)] leading-none">{level}</span>
         </div>
       )}
     </div>
@@ -41,7 +41,7 @@ function IdentityBadges({ isAdmin, className = "" }: { isAdmin?: boolean; classN
   if (!isAdmin) return null;
   return (
     <span className={`inline-flex items-center gap-0.5 ${className}`}>
-      <span className="inline-flex items-center gap-0.5 rounded-full border border-[var(--palette-red-500)]/30 bg-[var(--palette-red-500)]/10 px-1.5 py-px text-[7px] font-semibold uppercase tracking-widest text-[var(--palette-red-400)]" title="FocusArx admin">
+      <span className="inline-flex items-center gap-0.5 rounded-full border border-[var(--palette-red-500)]/30 bg-[var(--palette-red-500)]/10 px-1.5 py-px text-[11px] font-semibold uppercase tracking-widest text-[var(--palette-red-400)]" title="FocusArx admin">
           <Shield size={7} /> Admin
         </span>
     </span>
@@ -133,7 +133,7 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post
   const react = useMutation({
     mutationFn: (reaction: string) => apiFetch(`/api/posts/${post.id}/react`, { method: "POST", body: JSON.stringify({ reaction }) }),
     onSuccess: onReacted,
-    onError: (e: any) => toast(e.message, "error"),
+    onError: (e: unknown) => toast(errorMessage(e), "error"),
   });
 
   const save = useMutation({
@@ -156,7 +156,7 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post
   const addComment = useMutation({
     mutationFn: () => apiFetch(`/api/posts/${post.id}/comments`, { method: "POST", body: JSON.stringify({ content: commentText }) }),
     onSuccess: () => { setCommentText(""); refetchComments(); },
-    onError: (e: any) => toast(e.message, "error"),
+    onError: (e: unknown) => toast(errorMessage(e), "error"),
   });
 
   const timeAgo = (date: string) => {
@@ -306,7 +306,7 @@ export default function SocialPage() {
   const createPost = useMutation({
     mutationFn: () => apiFetch("/api/posts", { method: "POST", body: JSON.stringify({ content: newPost, type: "status" }) }),
     onSuccess: () => { setNewPost(""); toast("Post shared!", "success"); refetchPosts(); },
-    onError: (e: any) => toast(e.message, "error"),
+    onError: (e: unknown) => toast(errorMessage(e), "error"),
   });
 
   const { data: searchResults = [] } = useQuery({

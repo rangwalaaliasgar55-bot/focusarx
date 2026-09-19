@@ -1,4 +1,5 @@
-import { pgTable, text, integer, boolean, timestamp, real, jsonb, index, unique, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, boolean, timestamp, real, jsonb, index, unique, uniqueIndex, check } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -19,6 +20,17 @@ export const usersTable = pgTable("users", {
   referralCode: text("referral_code").unique(),
   referredByUserId: text("referred_by_user_id"),
   referralAppliedAt: timestamp("referral_applied_at"),
+  /**
+   * Set when the user asks for their account to be deleted.
+   *
+   * Deletion is not immediate. The row (and everything cascading from it) is
+   * retained for a grace period so the decision is reversible; a purge job
+   * hard-deletes once the window lapses. The column holds the *request* time
+   * rather than a computed "delete at" time so the window is defined in one
+   * place (ACCOUNT_DELETION_GRACE_DAYS) instead of being frozen into every row
+   * at write time.
+   */
+  deletionRequestedAt: timestamp("deletion_requested_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -52,6 +64,12 @@ export const focusSessionsTable = pgTable("focus_sessions", {
   index("focus_sessions_user_started_idx").on(t.userId, t.createdAt),
   index("focus_sessions_user_completed_idx").on(t.userId, t.completedAt),
   index("focus_sessions_user_status_idx").on(t.userId, t.sessionStatus),
+  // Arithmetic truths, not policy. See migration 0018.
+  check("focus_sessions_duration_non_negative", sql`${t.durationSec} >= 0`),
+  check("focus_sessions_planned_duration_non_negative", sql`${t.plannedDurationSec} IS NULL OR ${t.plannedDurationSec} >= 0`),
+  // The server already clamps this with Math.min(100, …) and the request schema
+  // validates 0..100, so a value outside the range means a writer bypassed both.
+  check("focus_sessions_completion_percentage_range", sql`${t.completionPercentage} IS NULL OR (${t.completionPercentage} >= 0 AND ${t.completionPercentage} <= 100)`),
 ]);
 
 export type FocusSession = typeof focusSessionsTable.$inferSelect;
@@ -75,6 +93,8 @@ export const activeSessionsTable = pgTable("active_sessions", {
 }, (t) => [
   unique("active_session_per_user_idx").on(t.userId),
   index("active_sessions_started_at_idx").on(t.startedAt),
+  check("active_sessions_seconds_left_non_negative", sql`${t.secondsLeft} >= 0`),
+  check("active_sessions_active_seconds_non_negative", sql`${t.activeSeconds} >= 0`),
 ]);
 
 export type ActiveSession = typeof activeSessionsTable.$inferSelect;
@@ -159,6 +179,25 @@ export const userWalletsTable = pgTable("user_wallets", {
   // query stays < 300ms at 12k+ wallets (ORDER BY … LIMIT in SQL).
   index("user_wallets_weekly_xp_idx").on(t.weeklyXp),
   index("user_wallets_total_xp_idx").on(t.totalXp),
+
+  // ── Database-level invariants ─────────────────────────────────────────
+  // Application code is already careful here: every debit goes through
+  // `burnCoins`, which is a compare-and-set
+  // (`WHERE coins >= amount`, returns null when the row did not match), and
+  // every credit goes through `mintCoins`. But that only protects the paths
+  // that use those helpers. A CHECK constraint is the backstop that catches
+  // the paths that do not — a raw `UPDATE`, a future migration, a one-off
+  // admin script, or a bug in a helper added later. It is the difference
+  // between "no known way to go negative" and "cannot go negative".
+  //
+  // A constraint failure is a 500, not a 400: reaching one means a writer
+  // bypassed the ledger, which is a bug to fix rather than input to reject.
+  check("user_wallets_coins_non_negative", sql`${t.coins} >= 0`),
+  check("user_wallets_total_xp_non_negative", sql`${t.totalXp} >= 0`),
+  check("user_wallets_weekly_xp_non_negative", sql`${t.weeklyXp} >= 0`),
+  // Level 1 is the floor the schema default already sets.
+  check("user_wallets_level_at_least_one", sql`${t.level} >= 1`),
+  check("user_wallets_prestige_non_negative", sql`${t.prestige} >= 0`),
 ]);
 
 export type UserWallet = typeof userWalletsTable.$inferSelect;

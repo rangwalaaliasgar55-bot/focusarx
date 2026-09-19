@@ -17,23 +17,12 @@ import {
   Palette,
   Target,
 } from "lucide-react";
-import { getToken } from "@/lib/auth";
 import { PageSEO } from "@/components/PageSEO";
 import StripeCheckoutCard from "@/components/StripeCheckoutCard";
 import { Link } from "wouter";
+import { apiJson } from "@/lib/api";
+import { errorMessage } from "@/lib/api";
 
-async function apiFetch(url: string, opts?: RequestInit) {
-  const token = getToken();
-  const res = await fetch(url, {
-    ...opts,
-    headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json", ...(opts?.headers as any) },
-  });
-  if (!res.ok) {
-    const j = await res.json().catch(() => ({ error: "Error" }));
-    throw new Error(j.error ?? "Request failed");
-  }
-  return res.json();
-}
 
 const BENEFITS = [
   { icon: Brain, label: "AI Focus Coach", desc: "Personalized plans, session analysis, weekly summaries, distraction patterns" },
@@ -46,6 +35,38 @@ const BENEFITS = [
   { icon: Crown, label: "Premium Battle Pass", desc: "Unlock premium reward track, exclusive pet near end" },
 ];
 
+interface PremiumPlan {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  /** NOT NULL in `premium_plans`; the page divides by it, so it is not optional. */
+  durationDays: number;
+  tokenCost: number;
+  benefits?: string[];
+}
+
+interface PremiumEntitlement {
+  id: string;
+  label: string;
+}
+
+interface PremiumStatus {
+  balance: number;
+  isPremium: boolean;
+  expiresAt: string | null;
+  plans: PremiumPlan[];
+  entitlements: PremiumEntitlement[];
+  activatedAt?: string | null;
+}
+
+interface PremiumLedgerEntry {
+  id: string;
+  amount: number;
+  reason?: string | null;
+  createdAt: string;
+}
+
 export default function PremiumPage() {
   const qc = useQueryClient();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
@@ -57,27 +78,27 @@ export default function PremiumPage() {
 
   const { data: status, isLoading } = useQuery({
     queryKey: ["premium-status"],
-    queryFn: () => apiFetch("/api/premium/status"),
+    queryFn: () => apiJson<PremiumStatus>("/api/premium/status"),
     staleTime: 30_000,
   });
 
   const { data: wallet } = useQuery({
     queryKey: ["wallet"],
-    queryFn: () => apiFetch("/api/gamification/wallet"),
+    queryFn: () => apiJson<{ coins: number; totalXp: number; level: number }>("/api/gamification/wallet"),
     staleTime: 30_000,
   });
 
   const { data: ledgerData } = useQuery({
     queryKey: ["premium-ledger"],
-    queryFn: () => apiFetch("/api/premium/ledger?limit=10"),
+    queryFn: () => apiJson<{ entries: PremiumLedgerEntry[] }>("/api/premium/ledger?limit=10"),
     staleTime: 60_000,
   });
 
   const balance: number = status?.balance ?? wallet?.coins ?? 0;
   const isPremium: boolean = status?.isPremium ?? false;
   const expiresAt: string | null = status?.expiresAt ?? null;
-  const plans: any[] = status?.plans ?? [];
-  const entitlements: any[] = status?.entitlements ?? [];
+  const plans = status?.plans ?? [];
+  const entitlements = status?.entitlements ?? [];
   const cheapest = plans.sort((a, b) => a.tokenCost - b.tokenCost)[0];
 
   const selected = plans.find((p) => p.id === selectedPlan || p.slug === selectedPlan) ?? cheapest;
@@ -102,7 +123,7 @@ export default function PremiumPage() {
     setActivating(true);
     setError(null);
     try {
-      const res = await apiFetch("/api/premium/purchase", {
+      const res = await apiJson("/api/premium/purchase", {
         method: "POST",
         body: JSON.stringify({ planId: selected.id, idempotencyKey }),
       });
@@ -111,8 +132,8 @@ export default function PremiumPage() {
       qc.invalidateQueries({ queryKey: ["premium-status"] });
       qc.invalidateQueries({ queryKey: ["wallet"] });
       qc.invalidateQueries({ queryKey: ["premium-ledger"] });
-    } catch (e: any) {
-      setError(e.message ?? "Failed to purchase");
+    } catch (e) {
+      setError(errorMessage(e, "Failed to purchase"));
     } finally {
       setActivating(false);
     }

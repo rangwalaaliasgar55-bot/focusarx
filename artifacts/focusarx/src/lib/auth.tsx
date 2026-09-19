@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { linkAnalyticsUser, trackSiteEvent } from "@/lib/site-analytics";
 import { tryRefreshSession } from "@/lib/api";
 import { clearSessionCache } from "@/lib/queryClient";
+import { resetOfflineQueue } from "@/hooks/useOfflineQueue";
 import { safeGet, safeRemove, safeSet } from "@/lib/safeStorage";
 import { trackEvent as trackGAEvent } from "@/lib/gtag";
 
@@ -20,8 +21,24 @@ export function isAdminUser(user: AuthUser | null | undefined): boolean {
 
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
+/**
+ * A deletion request that has not been carried out yet.
+ *
+ * The account still works during the window, which is the point: the user can
+ * sign back in and cancel. `cancellable` is computed server-side from the same
+ * predicate the purge job uses, so the UI cannot offer a Cancel button for a
+ * request the next job run will destroy regardless.
+ */
+export type PendingDeletion = {
+  requestedAt: string;
+  scheduledFor: string;
+  daysRemaining: number;
+  cancellable: boolean;
+};
+
 type AuthSession = {
   user: AuthUser;
+  pendingDeletion?: PendingDeletion;
 } | null;
 
 type AuthContextType = {
@@ -99,7 +116,7 @@ export function apiErrorMessage(data: unknown, fallback: string): string {
 
 /** What the server said about our session, as opposed to "we could not ask". */
 type SessionProbe =
-  | { kind: "signed-in"; user: AuthUser }
+  | { kind: "signed-in"; user: AuthUser; pendingDeletion?: PendingDeletion }
   | { kind: "signed-out" }
   | { kind: "unavailable" };
 
@@ -122,14 +139,14 @@ async function probeSessionOnce(): Promise<SessionProbe> {
 
   if (res.ok) {
     try {
-      const data = await res.json() as { user: AuthUser };
+      const data = await res.json() as { user: AuthUser; pendingDeletion?: PendingDeletion };
       // Keep the local onboarding flag in sync with the server so onboarding
       // completion is respected even for accounts created before the flag
       // existed.
       if (data.user?.onboardingCompleted) {
         safeSet("onboardingComplete", "true");
       }
-      return { kind: "signed-in", user: data.user };
+      return { kind: "signed-in", user: data.user, pendingDeletion: data.pendingDeletion };
     } catch {
       return { kind: "unavailable" };
     }
@@ -148,11 +165,11 @@ async function probeSessionOnce(): Promise<SessionProbe> {
       }).catch(() => null);
       if (retryRes?.ok) {
         try {
-          const data = await retryRes.json() as { user: AuthUser };
+          const data = await retryRes.json() as { user: AuthUser; pendingDeletion?: PendingDeletion };
           if (data.user?.onboardingCompleted) {
             safeSet("onboardingComplete", "true");
           }
-          return { kind: "signed-in", user: data.user };
+          return { kind: "signed-in", user: data.user, pendingDeletion: data.pendingDeletion };
         } catch {
           return { kind: "unavailable" };
         }
@@ -190,7 +207,9 @@ export async function resolveSession(
   const delays = options.retryDelaysMs ?? TRANSIENT_RETRY_DELAYS_MS;
   for (let attempt = 0; ; attempt += 1) {
     const probe = await probeSessionOnce();
-    if (probe.kind === "signed-in") return { session: { user: probe.user }, signedOut: false };
+    if (probe.kind === "signed-in") {
+      return { session: { user: probe.user, pendingDeletion: probe.pendingDeletion }, signedOut: false };
+    }
     if (probe.kind === "signed-out") {
       clearToken();
       return { session: null, signedOut: true };
@@ -358,6 +377,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearToken();
     // Every cached server response belongs to the account that just left.
     clearSessionCache();
+    // The offline queue belongs to the account that just left too. Its payloads
+    // are that user's completed sessions, the delivery loop attaches whatever
+    // token is in storage, and it keeps flushing on a 15-second timer — so
+    // leaving it would let the next person on this device silently submit the
+    // previous user's focus history under their own session.
+    resetOfflineQueue();
     setData(null);
     setStatus("unauthenticated");
   }, []);
