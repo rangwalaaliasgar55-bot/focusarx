@@ -10,9 +10,9 @@
  * per-layer volume, EQ, and master volume. Layout adapts to `variant`.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Volume2, VolumeX, Music, X, Sparkles, SlidersHorizontal, Square } from "lucide-react";
+import { Volume2, VolumeX, Music, X, Sparkles, SlidersHorizontal, Square, Play, Pause } from "lucide-react";
 import {
   ambientEngine,
   AMBIENT_SOUNDS,
@@ -28,6 +28,9 @@ import AudioVisualizer from "./AudioVisualizer";
 const MIX_KEY = "focusarx-ambient-mix";
 const CORE_IDS: SoundId[] = ["rain", "storm", "ocean", "forest", "cafe", "fireplace", "crickets", "pink", "brown", "white"];
 
+/** Tracks published by an admin (streamed audio, not synthesized). */
+type CustomTrack = { id: string; label: string; emoji?: string; url: string; credit?: string };
+
 type SavedMix = { layers: Array<{ id: SoundId; volume: number }>; master: number };
 
 function persistMix(activeIds: SoundId[], volumes: Record<string, number>, master: number) {
@@ -42,7 +45,12 @@ interface Props {
 
 export default function AmbientSoundBar({ variant = "pill", className = "" }: Props) {
   const state = useAmbientEngine();
-  const [open, setOpen] = useState(variant === "panel");
+  /* The panel used to boot fully expanded on desktop and ate a whole column
+     beside the timer. It now starts collapsed everywhere — a one-line bar
+     with the play state and a count of active layers; one click expands the
+     full mixer. Playing mixes surface a "n playing" chip so state is visible
+     without the space. */
+  const [open, setOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [muted, setMuted] = useState(false);
   const preMuteRef = useRef(state.masterVolume);
@@ -62,6 +70,63 @@ export default function AmbientSoundBar({ variant = "pill", className = "" }: Pr
 
   const activeCount = state.activeIds.length;
   const isFull = activeCount >= MAX_LAYERS;
+
+  /* ── Admin-published music tracks (streamed, one at a time) ─────────────
+     The synthesized layers come from the engine; these are real audio files
+     an admin curated. They play through a plain <audio> element so any
+     https URL works without CORS/taint problems, loop forever, and get their
+     own volume slider. Only one track at a time — it is music, not layering. */
+  const [customTracks, setCustomTracks] = useState<CustomTrack[]>([]);
+  const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
+  const [trackVolumes, setTrackVolumes] = useState<Record<string, number>>({});
+  const trackAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/site/ambient-tracks", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list: unknown) => { if (!cancelled && Array.isArray(list)) setCustomTracks(list.slice(0, 20)); })
+      .catch(() => { /* decorative — empty list keeps the mixer working */ });
+    return () => { cancelled = true; };
+  }, []);
+
+  const stopTrack = useCallback(() => {
+    const el = trackAudioRef.current;
+    if (el) { el.pause(); el.removeAttribute("src"); el.load(); }
+    trackAudioRef.current = null;
+    setPlayingTrackId(null);
+  }, []);
+
+  useEffect(() => () => { stopTrack(); }, [stopTrack]);
+
+  const toggleTrack = (t: CustomTrack) => {
+    if (playingTrackId === t.id) { stopTrack(); return; }
+    stopTrack();
+    const el = new Audio(t.url);
+    el.loop = true;
+    el.volume = Math.max(0, Math.min(1, (trackVolumes[t.id] ?? 0.6) * (muted ? 0 : 1)));
+    el.addEventListener("error", () => { if (trackAudioRef.current === el) stopTrack(); });
+    trackAudioRef.current = el;
+    setPlayingTrackId(t.id);
+    void el.play().catch(() => stopTrack());
+  };
+
+  const setTrackVolume = (id: string, v: number) => {
+    setTrackVolumes((prev) => ({ ...prev, [id]: v }));
+    if (playingTrackId === id && trackAudioRef.current) {
+      trackAudioRef.current.volume = Math.max(0, Math.min(1, v * (muted ? 0 : 1)));
+    }
+  };
+
+  // Master mute also silences a playing track.
+  useEffect(() => {
+    const el = trackAudioRef.current;
+    if (el && playingTrackId) {
+      el.volume = Math.max(0, Math.min(1, (trackVolumes[playingTrackId] ?? 0.6) * (muted ? 0 : 1)));
+    }
+  }, [muted, playingTrackId, trackVolumes]);
+
+  const onCount = activeCount + (playingTrackId ? 1 : 0);
 
   const toggle = (id: SoundId) => {
     if (ambientEngine.isActive(id)) ambientEngine.stop(id);
@@ -108,10 +173,10 @@ export default function AmbientSoundBar({ variant = "pill", className = "" }: Pr
           </span>
         </div>
         <div className="flex items-center gap-1">
-          {activeCount > 0 && (
+          {onCount > 0 && (
             <button
               type="button"
-              onClick={() => ambientEngine.stopAll()}
+              onClick={() => { ambientEngine.stopAll(); stopTrack(); }}
               className="flex min-h-9 items-center gap-1 rounded-lg px-2 text-[11px] font-semibold text-[var(--foreground-subtle)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
               aria-label="Stop all ambient sounds"
             >
@@ -233,6 +298,66 @@ export default function AmbientSoundBar({ variant = "pill", className = "" }: Pr
           </ul>
         </div>
 
+        {/* Admin-curated music tracks (streamed audio, separate from the
+            synthesized layers) */}
+        {customTracks.length > 0 && (
+          <div className="px-4 pt-3">
+            <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">
+              <Music size={11} /> Curated tracks
+            </p>
+            <ul className="space-y-1.5">
+              {customTracks.map((t) => {
+                const active = playingTrackId === t.id;
+                const vol = trackVolumes[t.id] ?? 0.6;
+                return (
+                  <li
+                    key={t.id}
+                    className={`rounded-xl border px-2.5 py-2 transition-colors ${active ? "border-[var(--brand-500)]/40 bg-[var(--brand-soft)]" : "border-[var(--border-subtle)] bg-[var(--surface-1)]"}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleTrack(t)}
+                        aria-pressed={active}
+                        className="flex min-h-9 min-w-0 flex-1 items-center gap-2.5 text-left"
+                      >
+                        <span
+                          className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-base"
+                          style={{ background: active ? "color-mix(in oklab, var(--brand-400) 18%, transparent)" : "var(--surface-2)" }}
+                          aria-hidden
+                        >
+                          {active ? <Pause size={14} className="text-[var(--brand-400)]" /> : <Play size={14} className="text-[var(--foreground-muted)]" />}
+                        </span>
+                        <span className="min-w-0">
+                          <span className={`block truncate text-xs font-semibold ${active ? "text-[var(--foreground)]" : "text-[var(--foreground-muted)]"}`}>
+                            {t.emoji ? `${t.emoji} ` : ""}{t.label}
+                          </span>
+                          {t.credit && <span className="block truncate text-[11px] text-[var(--foreground-subtle)]">{t.credit}</span>}
+                        </span>
+                      </button>
+                      {active && (
+                        <label className="flex items-center gap-2">
+                          <span className="sr-only">{t.label} volume</span>
+                          <input
+                            type="range"
+                            min={0}
+                            max={1}
+                            step={0.01}
+                            value={vol}
+                            onChange={(e) => setTrackVolume(t.id, parseFloat(e.target.value))}
+                            className="fx-range h-1.5 w-24"
+                            style={{ ["--fx-range-fill" as string]: "var(--brand-400)", ["--fx-range-pct" as string]: `${vol * 100}%` }}
+                          />
+                        </label>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
         {/* EQ */}
         <div className="px-4 pb-3 pt-3">
           <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">
@@ -290,12 +415,12 @@ export default function AmbientSoundBar({ variant = "pill", className = "" }: Pr
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={open ? "Close ambient mixer" : "Open ambient mixer"}
-        className={`flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold shadow-lg transition-colors ${activeCount > 0 ? "border-[var(--brand-500)]/40 bg-[var(--brand-soft)] text-[var(--brand-400)]" : "border-[var(--border-subtle)] bg-[var(--card)] text-[var(--foreground-muted)] hover:text-[var(--foreground)]"}`}
+        className={`flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold shadow-lg transition-colors ${onCount > 0 ? "border-[var(--brand-500)]/40 bg-[var(--brand-soft)] text-[var(--brand-400)]" : "border-[var(--border-subtle)] bg-[var(--card)] text-[var(--foreground-muted)] hover:text-[var(--foreground)]"}`}
       >
-        {activeCount > 0 ? (
+        {onCount > 0 ? (
           <>
             <Sparkles size={14} />
-            <span>{activeCount} sound{activeCount === 1 ? "" : "s"} on</span>
+            <span>{onCount} sound{onCount === 1 ? "" : "s"} on</span>
           </>
         ) : (
           <>

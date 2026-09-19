@@ -14,7 +14,7 @@ import { logger } from "../lib/logger";
 import { moderateText } from "../lib/moderation";
 import { getBotSettings } from "../lib/botSettings";
 import { sendForbidden, sendInternal, sendNotFound, sendUnauthorized, sendValidationError } from "../lib/httpErrors";
-import { BANTER } from "../lib/botTemplates";
+import { BANTER, COMMENT_REPLIES, topicForContent } from "../lib/botTemplates";
 import { hashString, mulberry32 } from "../lib/personas";
 import { describeDrift, queryOrFallback, selectResilient } from "../lib/schemaDrift";
 
@@ -687,6 +687,49 @@ studyRoomsRouter.post("/study-rooms/:id/messages", authMiddleware, async (req: A
     await db.update(studyRoomsTable).set({ lastActivityAt: new Date() }).where(eq(studyRoomsTable.id, room.id));
     // Sending also counts as presence.
     await db.update(studyRoomMembersTable).set({ joinedAt: new Date() }).where(eq(studyRoomMembersTable.id, member.id));
+
+    // Discord-style rooms answer back: a topic-matched bot replies to most
+    // human messages (sometimes a second chimes in), so chatting in a room
+    // never feels like talking into the void. Bots are always labelled with
+    // the 🤖 badge in every renderer — the honesty guardrail holds here too.
+    // Best-effort: a failure here must never fail the human's message.
+    try {
+      const settings = await getBotSettings();
+      if (settings.enabled && settings.roomBanter && room.mode !== "silent") {
+        const rng = mulberry32(hashString(`roomreply:${row!.id}`));
+        if (rng() < 0.85) {
+          const bots = await db.select({ id: usersTable.id }).from(usersTable)
+            .where(eq(usersTable.role, "bot")).limit(40);
+          if (bots.length > 0) {
+            const topic = topicForContent(content);
+            const family = COMMENT_REPLIES[topic] ?? COMMENT_REPLIES.general!;
+            const replyCount = rng() < 0.3 ? 2 : 1;
+            const usedBots = new Set<string>();
+            const usedLines = new Set<string>();
+            for (let i = 0; i < replyCount; i++) {
+              const bot = bots[Math.floor(rng() * bots.length)]!;
+              if (bot.id === userId || usedBots.has(bot.id)) continue;
+              usedBots.add(bot.id);
+              let line = family[Math.floor(rng() * family.length)]!;
+              if (usedLines.has(line)) line = COMMENT_REPLIES.general![Math.floor(rng() * COMMENT_REPLIES.general!.length)]!;
+              if (usedLines.has(line)) continue;
+              usedLines.add(line);
+              await db.insert(studyRoomMessagesTable).values({
+                roomId: room.id,
+                userId: bot.id,
+                kind: "bot",
+                content: line,
+                // A few seconds after the human line so the thread reads
+                // as a reply, not an echo.
+                createdAt: new Date(Date.now() + 3_000 + Math.floor(rng() * 9_000)),
+              });
+            }
+          }
+        }
+      }
+    } catch (err) {
+      logger.warn({ err }, "room bot reply failed — human message still delivered");
+    }
 
     const [me] = await db.select({ name: usersTable.name, email: usersTable.email, role: usersTable.role })
       .from(usersTable).where(eq(usersTable.id, userId)).limit(1);

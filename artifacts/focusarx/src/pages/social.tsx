@@ -85,7 +85,7 @@ function FriendCard({ friend }: { friend: any }) {
   );
 }
 
-function LeaderboardTable({ data }: { data: any[] }) {
+function LeaderboardTable({ data, followingIds, onFollow, followBusy }: { data: any[]; followingIds?: Set<string>; onFollow?: (userId: string) => void; followBusy?: boolean }) {
   const medals = ["🥇", "🥈", "🥉"];
   return (
     <div className="space-y-2">
@@ -105,10 +105,24 @@ function LeaderboardTable({ data }: { data: any[] }) {
             </p>
             <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">LV.{e.level} · {e.streak}d STREAK</p>
           </div>
-          <div className="text-right">
+          <div className="text-right shrink-0">
              <p className="text-sm font-semibold text-[var(--brand-400)] tabular-nums">{e.xp.toLocaleString()}</p>
              <p className="text-[11px] font-semibold text-[var(--foreground-subtle)] uppercase tracking-widest">Points</p>
           </div>
+          {!e.isMe && onFollow && (
+            followingIds?.has(e.userId) ? (
+              <span className="shrink-0 rounded-xl bg-[var(--palette-white)]/5 px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]" title="You follow this learner">Following</span>
+            ) : (
+              <button
+                onClick={() => onFollow(e.userId)}
+                disabled={followBusy}
+                aria-label={`Follow ${e.name}`}
+                className="shrink-0 rounded-xl border border-[var(--brand-teal)]/30 bg-[var(--brand-teal)]/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--brand-teal)] transition-all hover:bg-[var(--brand-teal)]/20 hover:scale-105 active:scale-95 disabled:opacity-50"
+              >
+                + Follow
+              </button>
+            )
+          )}
         </motion.div>
       ))}
       {!data.length && <p className="text-center text-xs font-bold text-[var(--foreground-subtle)] py-12 uppercase tracking-[0.2em]">Add friends to sync board</p>}
@@ -124,7 +138,7 @@ const REACTIONS = [
   { key: "love", emoji: "❤️", label: "Love" },
 ];
 
-function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post: any; currentUserId: string; onReacted: () => void; onSaved: () => void; onDeleted: () => void }) {
+function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted, onFollow, isFollowed }: { post: any; currentUserId: string; onReacted: () => void; onSaved: () => void; onDeleted: () => void; onFollow?: (userId: string) => void; isFollowed?: boolean }) {
   const { toast } = useToast();
   const [showComments, setShowComments] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
@@ -186,12 +200,27 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted }: { post
                 <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">{post.createdAt ? timeAgo(post.createdAt) : ""}</p>
              </div>
           </div>
-          {post.userId === currentUserId && (
+          <div className="flex items-center gap-2">
+            {post.userId && post.userId !== currentUserId && onFollow && (
+              isFollowed ? (
+                <span className="rounded-full bg-[var(--palette-white)]/5 px-2.5 py-1 text-[11px] font-semibold text-[var(--foreground-subtle)]" title="You follow this learner">Following</span>
+              ) : (
+                <button
+                  onClick={() => onFollow(post.userId)}
+                  aria-label={`Follow ${post.author?.name || "this learner"}`}
+                  className="rounded-full border border-[var(--brand-teal)]/30 bg-[var(--brand-teal)]/10 px-2.5 py-1 text-[11px] font-semibold text-[var(--brand-teal)] transition-all hover:bg-[var(--brand-teal)]/20 hover:scale-105 active:scale-95"
+                >
+                  + Follow
+                </button>
+              )
+            )}
+            {post.userId === currentUserId && (
               <button onClick={() => { void confirmDialog({ title: "Delete this post?", description: "This can't be undone.", confirmLabel: "Delete", danger: true }).then((ok) => { if (ok) del.mutate(); }); }}
                 className="opacity-0 group-hover:opacity-100 rounded-xl p-2 text-[var(--foreground-subtle)] hover:text-[var(--palette-red-400)] hover:bg-[var(--palette-red-900)]/20 transition-all">
                 <Trash2 size={16} />
               </button>
           )}
+          </div>
         </div>
 
         <p className="text-[15px] text-[var(--palette-zinc-200)] leading-relaxed whitespace-pre-wrap">{post.content}</p>
@@ -335,11 +364,18 @@ export default function SocialPage() {
     enabled: tab === "activity",
   });
 
-  // /api/social/following returns a flat array of the people you follow.
+  // /api/social/following and /followers return flat arrays. Both load on any
+  // tab so the header can show X/Instagram-style counts and every user row can
+  // tell whether you already follow that person (follow vs. following state).
   const { data: following = [], isLoading: followingLoading } = useQuery<any[]>({
     queryKey: ["following-data"], queryFn: () => apiFetch("/api/social/following"),
-    enabled: tab === "following",
+    staleTime: 60_000,
   });
+  const { data: followers = [] } = useQuery<any[]>({
+    queryKey: ["followers-data"], queryFn: () => apiFetch("/api/social/followers"),
+    staleTime: 60_000,
+  });
+  const followingIds = new Set((following as any[]).map((u) => u?.id));
 
   const sendRequest = useMutation({
     mutationFn: (userId: string) => apiFetch("/api/social/requests", { method: "POST", body: JSON.stringify({ toUserId: userId }) }),
@@ -385,6 +421,18 @@ export default function SocialPage() {
                <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[var(--foreground-subtle)] mb-4">Community Hub</p>
                <h1 className="text-4xl font-semibold text-[var(--palette-white)] sm:text-6xl tracking-tight leading-none mb-4">The <span className="text-[var(--brand-teal)]">Social Flow</span></h1>
                <p className="text-[var(--foreground-muted)] leading-relaxed max-w-xl mx-auto">Connect with global deep-workers. Share milestones, compete on boards, and study in sync.</p>
+               {/* X/Instagram-style network counters — jump straight to the Network tab */}
+               <div className="mt-6 inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--palette-white)]/[0.02] px-2 py-1">
+                 <button onClick={() => setTab("following")} className="group flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-all hover:bg-[var(--palette-white)]/5">
+                   <span className="text-base font-bold text-[var(--palette-white)] tabular-nums">{following.length}</span>
+                   <span className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] group-hover:text-[var(--brand-teal)]">Following</span>
+                 </button>
+                 <span className="h-5 w-px bg-[var(--border)]" aria-hidden />
+                 <button onClick={() => setTab("following")} className="group flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-all hover:bg-[var(--palette-white)]/5">
+                   <span className="text-base font-bold text-[var(--palette-white)] tabular-nums">{followers.length}</span>
+                   <span className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] group-hover:text-[var(--brand-teal)]">Followers</span>
+                 </button>
+               </div>
             </motion.div>
         </header>
 
@@ -477,7 +525,7 @@ export default function SocialPage() {
                {postsLoading ? (
                  <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-48 animate-pulse rounded-[32px] bg-[var(--palette-white)]/[0.01] border border-[var(--border)]" />)}</div>
                ) : (
-                 posts.map((p: any) => <PostCard key={p.id} post={p} currentUserId={session?.user?.id || ""} onReacted={() => refetchPosts()} onSaved={() => refetchPosts()} onDeleted={() => refetchPosts()} />)
+                 posts.map((p: any) => <PostCard key={p.id} post={p} currentUserId={session?.user?.id || ""} onReacted={() => refetchPosts()} onSaved={() => refetchPosts()} onDeleted={() => refetchPosts()} onFollow={(id) => followUser.mutate(id)} isFollowed={followingIds.has(p.userId)} />)
                )}
             </motion.div>
           )}
@@ -496,7 +544,7 @@ export default function SocialPage() {
                     <button key={p} onClick={() => setPeriod(p)} className={`flex-1 rounded-xl py-3 text-[11px] font-semibold uppercase tracking-widest transition-all ${period === p ? "bg-[var(--palette-white)]/10 text-[var(--palette-white)] shadow-xl" : "text-[var(--foreground-subtle)] hover:text-[var(--palette-zinc-300)]"}`}>{p === "alltime" ? "Infinity" : p}</button>
                   ))}
                </div>
-               <LeaderboardTable data={leaderboard} />
+               <LeaderboardTable data={leaderboard} followingIds={followingIds} onFollow={(id) => followUser.mutate(id)} followBusy={followUser.isPending} />
             </motion.div>
           )}
 
@@ -562,21 +610,55 @@ export default function SocialPage() {
           )}
 
           {tab === "following" && (
-            <motion.div key="following" variants={STAGGER} initial="initial" animate="animate" className="space-y-2">
-              {followingLoading ? (
-                <div className="flex justify-center py-20"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--brand-teal)] border-t-transparent" /></div>
-              ) : following.length === 0 ? (
-                <div className="py-32 text-center opacity-30"><Check size={48} className="mx-auto mb-6" /><p className="text-sm font-semibold uppercase tracking-widest">You are not following anyone yet</p></div>
-              ) : following.map((u: any) => (
-                <motion.div variants={STAGGER_CHILD} key={u.id} className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--palette-white)]/[0.01] p-4 glass">
-                  <Avatar name={u.name} level={u.level} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-[var(--palette-white)]">{u.name}</p>
-                    <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">LV.{u.level} · {Number(u.xp ?? 0).toLocaleString()} XP · 🔥 {u.streak}</p>
+            <motion.div key="following" variants={STAGGER} initial="initial" animate="animate" className="space-y-8">
+              {/* Following */}
+              <section>
+                <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">Following · {following.length}</h2>
+                <div className="space-y-2">
+                  {followingLoading ? (
+                    <div className="flex justify-center py-20"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--brand-teal)] border-t-transparent" /></div>
+                  ) : following.length === 0 ? (
+                    <div className="py-16 text-center opacity-30"><Check size={40} className="mx-auto mb-4" /><p className="text-sm font-semibold uppercase tracking-widest">You are not following anyone yet</p><p className="mt-2 text-xs text-[var(--foreground-subtle)]">Find learners on the leaderboard or public feed.</p></div>
+                  ) : following.map((u: any) => (
+                    <motion.div variants={STAGGER_CHILD} key={u.id} className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--palette-white)]/[0.01] p-4 glass">
+                      <Avatar name={u.name} level={u.level} />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold text-[var(--palette-white)]">{u.name}</p>
+                        <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">LV.{u.level} · {Number(u.xp ?? 0).toLocaleString()} XP · 🔥 {u.streak}</p>
+                      </div>
+                      <button onClick={() => unfollowUser.mutate(u.id)} disabled={unfollowUser.isPending} className="rounded-xl border border-[var(--border)] px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] hover:text-[var(--palette-white)] disabled:opacity-50">Unfollow</button>
+                    </motion.div>
+                  ))}
+                </div>
+              </section>
+
+              {/* Followers, sorted by level so your most active supporters surface first */}
+              <section>
+                <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">Followers · {followers.length}</h2>
+                {followers.length === 0 ? (
+                  <p className="rounded-2xl border border-[var(--border)] p-6 text-center text-sm text-[var(--foreground-subtle)]">No followers yet — post in the public feed to get noticed.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {[...followers].sort((a: any, b: any) => Number(b.level ?? 0) - Number(a.level ?? 0)).map((u: any, i: number) => (
+                      <motion.div variants={STAGGER_CHILD} key={u.id} className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--palette-white)]/[0.01] p-4 glass">
+                        <Avatar name={u.name} level={u.level} />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-bold text-[var(--palette-white)] flex items-center gap-2">
+                            {u.name}
+                            {i === 0 && <span className="rounded-full bg-[var(--palette-amber-500)]/10 border border-[var(--palette-amber-500)]/20 px-1.5 py-0.5 text-[11px] font-semibold text-[var(--palette-amber-400)]">Top fan 🏆</span>}
+                          </p>
+                          <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">LV.{u.level} · {Number(u.xp ?? 0).toLocaleString()} XP</p>
+                        </div>
+                        {followingIds.has(u.id) ? (
+                          <button onClick={() => unfollowUser.mutate(u.id)} disabled={unfollowUser.isPending} className="rounded-xl border border-[var(--border)] px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] hover:text-[var(--palette-white)] disabled:opacity-50">Following ✓</button>
+                        ) : (
+                          <button onClick={() => followUser.mutate(u.id)} disabled={followUser.isPending} aria-label={`Follow ${u.name} back`} className="rounded-xl bg-[var(--brand-teal)] px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--palette-black)] transition-all hover:scale-105 active:scale-95 disabled:opacity-50">Follow back</button>
+                        )}
+                      </motion.div>
+                    ))}
                   </div>
-                  <button onClick={() => unfollowUser.mutate(u.id)} disabled={unfollowUser.isPending} className="rounded-xl border border-[var(--border)] px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] hover:text-[var(--palette-white)] disabled:opacity-50">Unfollow</button>
-                </motion.div>
-              ))}
+                )}
+              </section>
             </motion.div>
           )}
         </AnimatePresence>

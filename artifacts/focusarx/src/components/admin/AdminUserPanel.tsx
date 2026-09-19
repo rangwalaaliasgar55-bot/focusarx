@@ -40,6 +40,30 @@ export function AdminUserPanel({ data, stats, authHeaders, onDataChanged, onMana
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [roleLoading, setRoleLoading] = useState<string | null>(null);
+  const [editStreakId, setEditStreakId] = useState<string | null>(null);
+  const [streakDraft, setStreakDraft] = useState("");
+  const [streakLoading, setStreakLoading] = useState<string | null>(null);
+
+  /** Support tooling: restore/adjust a streak (bounded server-side, logged). */
+  async function saveStreak(userId: string) {
+    const days = Number(streakDraft);
+    if (!Number.isFinite(days)) return;
+    setStreakLoading(userId);
+    try {
+      const r = await adminFetch(`/api/admin/users/${userId}/streak`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ days }),
+      });
+      if (r.ok) {
+        setEditStreakId(null);
+        onDataChanged();
+      }
+    } finally {
+      setStreakLoading(null);
+    }
+  }
 
   const allUsers = data.users ?? [];
   const users = userSearch.trim()
@@ -251,7 +275,48 @@ export function AdminUserPanel({ data, stats, authHeaders, onDataChanged, onMana
                     : <Badge label="User" color="bg-[var(--palette-zinc-800)] text-[var(--palette-zinc-400)]" />}
                 </td>
                 <td className="px-4 py-3 tabular-nums">{user.sessionCount}</td>
-                <td className="px-4 py-3 tabular-nums">{user.streak} 🔥</td>
+                <td className="px-4 py-3 tabular-nums">
+                  {editStreakId === user.id ? (
+                    <span className="flex items-center gap-1">
+                      <label className="sr-only" htmlFor={`streak-edit-${user.id}`}>New streak days</label>
+                      <input
+                        id={`streak-edit-${user.id}`}
+                        type="number"
+                        min={0}
+                        max={3650}
+                        value={streakDraft}
+                        onChange={(e) => setStreakDraft(e.target.value)}
+                        className="w-16 rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-2 py-1 text-xs text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-amber-500)]"
+                      />
+                      <button
+                        onClick={() => void saveStreak(user.id)}
+                        disabled={streakLoading === user.id}
+                        className="rounded-lg px-1.5 py-1 text-[11px] font-medium text-[var(--palette-emerald-400)] hover:bg-[var(--palette-emerald-950)] disabled:opacity-50"
+                      >
+                        {streakLoading === user.id ? "…" : "Save"}
+                      </button>
+                      <button
+                        onClick={() => setEditStreakId(null)}
+                        aria-label="Cancel streak edit"
+                        className="rounded-lg px-1.5 py-1 text-[11px] text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-200)]"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1">
+                      {user.streak} 🔥
+                      <button
+                        onClick={() => { setEditStreakId(user.id); setStreakDraft(String(user.streak)); }}
+                        aria-label={`Edit streak for ${user.email}`}
+                        title="Adjust streak (support tooling)"
+                        className="rounded px-1 text-[11px] text-[var(--palette-zinc-600)] hover:text-[var(--palette-amber-400)]"
+                      >
+                        ✎
+                      </button>
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-xs text-[var(--palette-zinc-500)]">{new Date(user.createdAt).toLocaleDateString()}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1.5">

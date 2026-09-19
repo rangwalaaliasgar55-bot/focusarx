@@ -2,6 +2,46 @@
 
 All notable changes to FocusArx. Dates are UTC.
 
+## [2026-09-19] — Community polish, admin powers, ambient tracks
+
+Bug fixes from live screenshots and a round of community/admin upgrades:
+
+- **Site Settings "Invalid settings" fix** — the admin panel sent empty optional
+  fields as `null`, which the zod schema (`.optional()`, not `.nullable()`)
+  rejects; the payload now omits falsy optional keys and the error display
+  parses error objects instead of printing `[object Object]`.
+- **Streak-endangerment dedup made idempotent** — replaced the fragile
+  timestamp-window check with a `data->>'day'` JSONB key, so a learner gets
+  exactly one nudge per in-zone day no matter how often the emitter runs.
+- **Push-enable feedback** — the notifications page now explains each failure
+  cause (denied → browser settings, unsupported, no service worker) instead of
+  one alarming catch-all toast, and confirms success.
+- **Study rooms talk back** — posting a room message now queues 1–2
+  topic-matched bot replies (best-effort, settings-gated, seeded by message
+  id), and the Collective Focus page gained a Discord-style room chat panel
+  with bot badges, join-gated input and 6s polling.
+- **Social like the big networks** — follower/following counters in the page
+  header, follow buttons on feed posts, leaderboard rows and search results,
+  and a Network tab with a followers list, "Top fan" highlight and
+  follow-back.
+- **Admin streak adjustment** — `POST /admin/users/:id/streak` (bounded 0–3650,
+  updates longest streak, logged) with an inline ✎ editor in the admin user
+  table. No native dialogs — editing is inline.
+- **Admin-addable ambient tracks** — `GET /site/ambient-tracks` (public) and
+  `PUT /admin/ambient-tracks` (admin, https-only, max 20) store curated
+  streamed audio in `platform_meta`; the ambient mixer renders them under
+  "Curated tracks" with per-track volume, and the Site Settings panel manages
+  the list. The mixer panel also boots collapsed so it no longer eats a column.
+- **Removed the YouTube focus companion** — it shipped placeholder/dead video
+  ids and rendered a stray "Play @AJourneyR Videos" pill on the timer page.
+- **Battle-pass banner hardening** — top clearance for the sticky topbar,
+  responsive stacking, full-width progress column on mobile.
+- **Gemini chief-of-staff upgrade** — daily briefing now ingests human/bot
+  post share, new follows, room messages, premium and streak health; a
+  server-side `detectAlerts` watch list works even with zero AI keys; and the
+  prompt gives Gemini a senior-developer persona (Vitals / Watch / Next
+  actions).
+
 ## [§1.6] — Webhooks and integrations
 
 The last large unbuilt subsystem. Outbound webhooks with HMAC-signed deliveries,

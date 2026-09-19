@@ -1,12 +1,13 @@
-import { useState, useEffect, useMemo, Suspense, lazy } from "react";
+import { useState, useEffect, useMemo, useRef, Suspense, lazy } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth, getToken } from "@/lib/auth";
+import { apiFetch } from "@/lib/api";
 import { PageTransition } from "@/components/PageTransition";
 import { ErrorState } from "@/components/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, Target, Clock } from "lucide-react";
+import { Users, Target, Clock, Send } from "lucide-react";
 import { BLUR_IN } from "@/lib/animations";
 import { playCoachVoice } from "@/lib/soundEngine";
 
@@ -65,6 +66,120 @@ function ParticipantSkeleton() {
         </div>
         <Skeleton className="h-3 w-10" />
       </div>
+    </div>
+  );
+}
+
+interface RoomChatMessage {
+  id: string;
+  content: string;
+  authorName: string;
+  isBot: boolean;
+  isAdmin: boolean;
+  isMine: boolean;
+  createdAt: string;
+}
+
+/**
+ * Room chat — the forge room's Discord layer.
+ *
+ * The server queues topic-matched bot replies to human messages (and bots
+ * banter among themselves via the existing seeder), so talking in a room is
+ * never talking into the void. Bots always wear the 🤖 AI badge — the
+ * honesty guardrail holds here too. Polls every 6 s; renders the latest
+ * page and auto-scrolls when new lines land.
+ */
+function RoomChat({ roomId, canChat }: { roomId: string | null; canChat: boolean }) {
+  const [draft, setDraft] = useState("");
+  const [busy, setBusy] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const chatQuery = useQuery<{ messages: RoomChatMessage[] }>({
+    queryKey: ["room-chat", roomId],
+    enabled: Boolean(roomId),
+    refetchInterval: 6_000,
+    queryFn: async () => {
+      const res = await apiFetch(`/api/study-rooms/${roomId}/messages`);
+      if (!res.ok) return { messages: [] };
+      return (await res.json()) as { messages: RoomChatMessage[] };
+    },
+  });
+
+  const messages = chatQuery.data?.messages ?? [];
+  const lastCount = useRef(0);
+  useEffect(() => {
+    if (messages.length !== lastCount.current) {
+      lastCount.current = messages.length;
+      listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
+    }
+  }, [messages.length]);
+
+  const send = async () => {
+    const content = draft.trim();
+    if (!content || !roomId || busy) return;
+    setBusy(true);
+    try {
+      const res = await apiFetch(`/api/study-rooms/${roomId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      if (res.ok) {
+        setDraft("");
+        void chatQuery.refetch();
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-3xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] p-6 backdrop-blur-xl">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-sm font-bold">Room chat</h2>
+        <span className="text-[11px] text-[var(--foreground-subtle)]">AI members chat along</span>
+      </div>
+      <div ref={listRef} className="max-h-72 space-y-3 overflow-y-auto overscroll-contain pr-1" role="log" aria-label="Room chat messages">
+        {messages.length === 0 && (
+          <p className="py-4 text-center text-xs text-[var(--foreground-subtle)]">
+            Quiet in here — say hi and someone, human or AI, will answer.
+          </p>
+        )}
+        {messages.slice(-40).map((m) => (
+          <div key={m.id} className="text-sm leading-relaxed">
+            <span className={`font-semibold ${m.isMine ? "text-[var(--brand-strong)]" : m.isAdmin ? "text-[var(--palette-amber-400)]" : "text-[var(--palette-white)]"}`}>
+              {m.authorName}
+            </span>
+            {m.isBot && (
+              <span className="ml-1 rounded bg-[var(--brand-soft)] px-1 py-0.5 text-[11px] font-bold text-[var(--brand-strong)]">🤖 AI</span>
+            )}
+            <span className="ml-2 text-[var(--foreground-muted)]">{m.content}</span>
+          </div>
+        ))}
+      </div>
+      {canChat ? (
+        <form className="mt-4 flex gap-2" onSubmit={(e) => { e.preventDefault(); void send(); }}>
+          <label className="sr-only" htmlFor="room-chat-input">Message the room</label>
+          <input
+            id="room-chat-input"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            maxLength={500}
+            placeholder="Message the room…"
+            className="min-h-11 w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-3 text-sm outline-none focus:border-[var(--brand-strong)]"
+          />
+          <button
+            type="submit"
+            disabled={busy || !draft.trim()}
+            aria-label="Send message"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[var(--brand-600)] text-[var(--palette-white)] disabled:opacity-40"
+          >
+            <Send size={16} />
+          </button>
+        </form>
+      ) : (
+        <p className="mt-4 text-xs text-[var(--foreground-subtle)]">Join the room to chat with its members.</p>
+      )}
     </div>
   );
 }
@@ -340,6 +455,9 @@ export default function ForgeRoomPage() {
                       {iAmHere ? "Start a session" : "Browse rooms"}
                     </Link>
                   </div>
+
+                  {/* The room's live conversation — humans and labelled bots. */}
+                  <RoomChat roomId={selected?.id ?? null} canChat={iAmHere} />
                 </div>
               </div>
             </>

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { db, siteSettingsTable } from "@workspace/db";
+import { db, siteSettingsTable, platformMetaTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { adminLimiter } from "../lib/rateLimiter";
@@ -93,6 +93,64 @@ router.patch("/admin/site/settings", adminLimiter, async (req, res) => {
     }
   } catch (err) {
     logger.error({ err }, "admin site settings update error");
+    sendInternal(res);
+  }
+});
+
+// ─── ADMIN-ADDABLE AMBIENT TRACKS ────────────────────────────────────────────
+// The built-in ambient library is procedural (synthesized in the browser).
+// Admins can additionally publish streamed audio tracks (licensed lofi loops,
+// nature recordings, …) that show up in the ambient mixer for everyone.
+// Stored as a JSON array in platform_meta — no schema migration needed.
+
+export const AMBIENT_TRACKS_META_KEY = "ambient_custom_tracks_v1";
+
+const ambientTrackSchema = z.object({
+  id: z.string().min(1).max(60),
+  label: z.string().min(1).max(40),
+  emoji: z.string().max(8).optional().default("🎵"),
+  url: z.string().url().refine((u) => u.startsWith("https://"), "Track URL must use https"),
+  credit: z.string().max(120).optional().default(""),
+});
+
+/** Public — the ambient mixer reads the admin-published track list. */
+router.get("/site/ambient-tracks", async (_req, res) => {
+  try {
+    const [row] = await db.select({ value: platformMetaTable.value })
+      .from(platformMetaTable)
+      .where(eq(platformMetaTable.key, AMBIENT_TRACKS_META_KEY))
+      .limit(1);
+    res.set("Cache-Control", "no-store");
+    res.json(Array.isArray(row?.value) ? row.value : []);
+  } catch (err) {
+    logger.error({ err }, "ambient tracks get error");
+    // Decorative feature: an outage yields an empty list, never a broken mixer.
+    res.json([]);
+  }
+});
+
+const ambientTracksUpdateSchema = z.array(ambientTrackSchema).max(20, "At most 20 custom tracks");
+
+/** Admin — replace the whole published list (idempotent). */
+router.put("/admin/ambient-tracks", adminLimiter, async (req, res) => {
+  if (!await checkAuth(req)) { sendForbidden(res); return; }
+  const parsed = ambientTracksUpdateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    sendValidationError(res, "Invalid track list");
+    return;
+  }
+  const tracks = parsed.data;
+  // Enforce unique ids client-side mistakes can't produce duplicates.
+  const seen = new Set<string>();
+  const unique = tracks.filter((t) => (seen.has(t.id) ? false : (seen.add(t.id), true)));
+  try {
+    await db.insert(platformMetaTable)
+      .values({ key: AMBIENT_TRACKS_META_KEY, value: unique })
+      .onConflictDoUpdate({ target: platformMetaTable.key, set: { value: unique, updatedAt: new Date() } });
+    logger.info({ count: unique.length }, "admin updated ambient track list");
+    res.json({ ok: true, tracks: unique });
+  } catch (err) {
+    logger.error({ err }, "ambient tracks update error");
     sendInternal(res);
   }
 });

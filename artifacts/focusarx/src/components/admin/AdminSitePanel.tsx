@@ -2,12 +2,69 @@ import { useState, useEffect } from "react";
 import { LoadingState, MotionTab, SectionHeader, adminFetch } from "./AdminHelpers";
 import type { AdminPanelProps, SiteSettings } from "./AdminTypes";
 
+type AdminTrack = { id: string; label: string; emoji?: string; url: string; credit?: string };
+
 export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<string | null>(null);
 
-  useEffect(() => { load(); }, []);
+  /* Curated ambient music tracks — streamed audio published to every user's
+     ambient mixer (separate from the built-in synthesized soundscapes). */
+  const [tracks, setTracks] = useState<AdminTrack[]>([]);
+  const [trackDraft, setTrackDraft] = useState({ label: "", emoji: "", url: "", credit: "" });
+  const [trackMsg, setTrackMsg] = useState<string | null>(null);
+
+  useEffect(() => { load(); void loadTracks(); }, []);
+
+  async function loadTracks() {
+    try {
+      const r = await adminFetch("/api/site/ambient-tracks", { headers: authHeaders(), credentials: "include" });
+      if (r.ok) {
+        const d = await r.json();
+        if (Array.isArray(d)) setTracks(d);
+      }
+    } catch { /* ignore */ }
+  }
+
+  async function saveTracks(next: AdminTrack[]) {
+    setTrackMsg(null);
+    try {
+      const r = await adminFetch("/api/admin/ambient-tracks", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        credentials: "include",
+        body: JSON.stringify(next),
+      });
+      if (r.ok) { setTracks(next); setTrackMsg("Track list published — live for all users."); }
+      else {
+        const d = await r.json().catch(() => ({}));
+        const detail = typeof d?.error === "string" ? d.error : (d?.error?.message ?? "Failed to save tracks");
+        setTrackMsg("Error: " + detail);
+      }
+    } catch (e: any) { setTrackMsg("Error: " + e.message); }
+  }
+
+  function addTrack() {
+    const label = trackDraft.label.trim();
+    const url = trackDraft.url.trim();
+    if (!label || !url) { setTrackMsg("Error: a label and an https URL are required."); return; }
+    if (!url.startsWith("https://")) { setTrackMsg("Error: track URL must use https."); return; }
+    if (tracks.length >= 20) { setTrackMsg("Error: at most 20 tracks — remove one first."); return; }
+    const track: AdminTrack = {
+      id: `t-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      label: label.slice(0, 40),
+      emoji: trackDraft.emoji.trim() || "🎵",
+      url,
+      credit: trackDraft.credit.trim() || undefined,
+    };
+    void saveTracks([...tracks, track]);
+    setTrackDraft({ label: "", emoji: "", url: "", credit: "" });
+  }
+
+  function removeTrack(id: string) {
+    void saveTracks(tracks.filter((t) => t.id !== id));
+  }
 
   async function load() {
     try {
@@ -36,26 +93,36 @@ export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
     if (!s) return;
     setSaving(true); setResult(null);
     try {
+      /* The server schema marks the announcement/branding optional fields
+         `.optional()` but NOT `.nullable()` (only hero* fields are nullable),
+         so empty strings must be OMITTED rather than sent as null — sending
+         nulls is what used to 400 with "Invalid settings" the moment a
+         toggle autosaved with empty optional fields. */
+      const body: Record<string, unknown> = {
+        maintenanceMode: s.maintenanceMode,
+        maintenanceMessage: s.maintenanceMessage,
+        announcementEnabled: s.announcementEnabled,
+        brandingName: s.brandingName,
+        heroTitle: s.heroTitle || null,
+        heroSubtitle: s.heroSubtitle || null,
+        heroCtaText: s.heroCtaText || null,
+      };
+      if (s.announcementTitle) body.announcementTitle = s.announcementTitle;
+      if (s.announcementText) body.announcementText = s.announcementText;
+      if (s.announcementEmoji) body.announcementEmoji = s.announcementEmoji;
+      if (s.brandingTagline) body.brandingTagline = s.brandingTagline;
       const r = await adminFetch("/api/admin/site/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...authHeaders() },
         credentials: "include",
-        body: JSON.stringify({
-          maintenanceMode: s.maintenanceMode,
-          maintenanceMessage: s.maintenanceMessage,
-          announcementEnabled: s.announcementEnabled,
-          announcementTitle: s.announcementTitle || null,
-          announcementText: s.announcementText || null,
-          announcementEmoji: s.announcementEmoji || null,
-          brandingName: s.brandingName,
-          brandingTagline: s.brandingTagline || null,
-          heroTitle: s.heroTitle || null,
-          heroSubtitle: s.heroSubtitle || null,
-          heroCtaText: s.heroCtaText || null,
-        }),
+        body: JSON.stringify(body),
       });
       if (r.ok) setResult("Settings saved! Changes are live site-wide.");
-      else { const d = await r.json().catch(() => ({})); setResult("Error: " + (d.error ?? "Failed to save")); }
+      else {
+        const d = await r.json().catch(() => ({}));
+        const detail = typeof d?.error === "string" ? d.error : (d?.error?.message ?? "Failed to save");
+        setResult("Error: " + detail);
+      }
     } catch (e: any) { setResult("Error: " + e.message); }
     finally { setSaving(false); }
   }
@@ -180,6 +247,71 @@ export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
                 placeholder="🚀 Begin Launch Sequence"
                 className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]" />
             </div>
+          </div>
+        </div>
+        {/* Curated ambient tracks */}
+        <div className="rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 p-5 lg:col-span-2">
+          <h3 className="mb-1 text-sm font-semibold text-[var(--palette-zinc-100)]">🎵 Curated Ambient Tracks</h3>
+          <p className="mb-4 text-xs text-[var(--palette-zinc-500)]">
+            Publish streamed music tracks (licensed lofi loops, nature recordings…) to every user's ambient mixer.
+            Built-in soundscapes are synthesized; tracks added here stream from the URL you provide. Max 20.
+          </p>
+
+          {tracks.length > 0 && (
+            <ul className="mb-4 space-y-1.5">
+              {tracks.map((t) => (
+                <li key={t.id} className="flex items-center gap-2 rounded-lg border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-950)] px-3 py-2">
+                  <span aria-hidden>{t.emoji || "🎵"}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-xs font-semibold text-[var(--palette-zinc-200)]">{t.label}</span>
+                    <span className="block truncate text-[11px] text-[var(--palette-zinc-500)]">{t.credit ? `${t.credit} · ` : ""}{t.url}</span>
+                  </span>
+                  <button type="button" onClick={() => removeTrack(t.id)}
+                    className="shrink-0 rounded-lg border border-[var(--palette-zinc-700)] px-2.5 py-1 text-[11px] font-semibold text-[var(--palette-zinc-400)] hover:border-[var(--palette-rose-500)]/50 hover:text-[var(--palette-rose-400)] transition">
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="grid gap-2 sm:grid-cols-[1fr_4rem]">
+            <div>
+              <label htmlFor="adminsitepanel-track-label" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">Track label</label>
+              <input id="adminsitepanel-track-label" value={trackDraft.label} onChange={(e) => setTrackDraft((d) => ({ ...d, label: e.target.value }))}
+                placeholder="Midnight Lofi Study"
+                className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]" />
+            </div>
+            <div>
+              <label htmlFor="adminsitepanel-track-emoji" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">Emoji</label>
+              <input id="adminsitepanel-track-emoji" value={trackDraft.emoji} onChange={(e) => setTrackDraft((d) => ({ ...d, emoji: e.target.value }))}
+                placeholder="🎵" maxLength={8}
+                className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]" />
+            </div>
+          </div>
+          <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_1fr]">
+            <div>
+              <label htmlFor="adminsitepanel-track-url" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">Audio URL (https, mp3/m4a/ogg)</label>
+              <input id="adminsitepanel-track-url" value={trackDraft.url} onChange={(e) => setTrackDraft((d) => ({ ...d, url: e.target.value }))}
+                placeholder="https://cdn.example.com/lofi-loop.mp3" inputMode="url"
+                className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]" />
+            </div>
+            <div>
+              <label htmlFor="adminsitepanel-track-credit" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">Credit (optional)</label>
+              <input id="adminsitepanel-track-credit" value={trackDraft.credit} onChange={(e) => setTrackDraft((d) => ({ ...d, credit: e.target.value }))}
+                placeholder="Artist / license note"
+                className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]" />
+            </div>
+          </div>
+
+          <div className="mt-3 flex items-center gap-3">
+            <button type="button" onClick={addTrack}
+              className="rounded-lg bg-[var(--palette-teal-600)] px-4 py-2 text-xs font-semibold text-[var(--palette-white)] hover:bg-[var(--palette-teal-500)] transition">
+              Add & publish track
+            </button>
+            {trackMsg && (
+              <span className={`text-xs ${trackMsg.startsWith("Error") ? "text-[var(--palette-rose-400)]" : "text-[var(--palette-emerald-400)]"}`}>{trackMsg}</span>
+            )}
           </div>
         </div>
       </div>

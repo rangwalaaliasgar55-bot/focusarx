@@ -566,6 +566,39 @@ router.post("/admin/users/:id/reset-password", adminLimiter, async (req, res) =>
   }
 });
 
+// ─── ADMIN STREAK ADJUSTMENT ────────────────────────────────────────────────
+// Support tooling: a user whose streak died to a device/edge bug, or a
+// goodwill restore, gets their streak set by an admin. Bounded (0–3650) and
+// logged; the read side already treats streaks as display-only so this can
+// never mint XP, coins, or leaderboard position.
+router.post("/admin/users/:id/streak", adminLimiter, async (req, res) => {
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
+  const { id } = req.params as { id: string };
+  const raw = Number((req.body as { days?: unknown } | undefined)?.days);
+  if (!Number.isFinite(raw) || raw < 0 || raw > 3650) {
+    res.status(400).json({ error: "days must be a number between 0 and 3650" });
+    return;
+  }
+  const days = Math.floor(raw);
+  try {
+    const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, id));
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    const [existing] = await db.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, id)).limit(1);
+    if (existing) {
+      await db.update(studyStreaksTable)
+        .set({ currentStreak: days, longestStreak: Math.max(days, existing.longestStreak), updatedAt: new Date() })
+        .where(eq(studyStreaksTable.userId, id));
+    } else {
+      await db.insert(studyStreaksTable).values({ userId: id, currentStreak: days, longestStreak: days });
+    }
+    logger.info({ id, days }, "admin adjusted user streak");
+    res.json({ ok: true, streak: days });
+  } catch (err) {
+    logger.error({ err }, "admin adjust streak error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
 // ─── DIRECT NOTIFICATION TO ONE USER ──────────────────────────────────────────
 
 router.post("/admin/users/:id/notification", adminLimiter, async (req, res) => {

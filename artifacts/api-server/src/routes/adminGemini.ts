@@ -321,6 +321,16 @@ interface DailyStats {
   dropsActive: number;
   botPosts: number;
   topExams: string[];
+  /** Human (non-bot) social posts in the window — bot-share math needs it. */
+  humanPosts: number;
+  /** New follows in the window — community growth signal. */
+  newFollows: number;
+  /** Study-room chat messages in the window — live-room health. */
+  roomMessages: number;
+  /** Premium subscriptions currently active. */
+  premiumActive: number;
+  /** Learners holding a streak of 3+ days. */
+  activeStreakers: number;
 }
 
 async function botActivity24h(since: Date): Promise<{ botPosts24h: number; botComments24h: number }> {
@@ -369,6 +379,21 @@ async function collectDailyStats(day: string): Promise<DailyStats> {
     .where(and(eq(adminDropsTable.isActive, true), gte(adminDropsTable.endsAt, new Date())));
   const { botPosts24h } = await botActivity24h(since);
 
+  // Community/social vitals — one cheap query each, all real numbers.
+  const countQ = async (sqlText: string, params: unknown[] = []): Promise<number> => {
+    try {
+      const r = await pool.query(sqlText, params);
+      return Number(r.rows[0]?.n ?? 0);
+    } catch { return 0; }
+  };
+  const humanPosts = await countQ(
+    `SELECT count(*)::int AS n FROM social_posts p JOIN users u ON u.id = p.user_id
+     WHERE u.role <> 'bot' AND p.created_at >= $1`, [since]);
+  const newFollows = await countQ(`SELECT count(*)::int AS n FROM follows WHERE created_at >= $1`, [since]);
+  const roomMessages = await countQ(`SELECT count(*)::int AS n FROM study_room_messages WHERE created_at >= $1`, [since]);
+  const premiumActive = await countQ(`SELECT count(*)::int AS n FROM premium_subscriptions WHERE is_active = true`);
+  const activeStreakers = await countQ(`SELECT count(*)::int AS n FROM study_streaks WHERE current_streak >= 3`);
+
   return {
     day,
     newUsers: newUsersRow?.value ?? 0,
@@ -379,7 +404,31 @@ async function collectDailyStats(day: string): Promise<DailyStats> {
     dropsActive: dropsRow?.value ?? 0,
     botPosts: botPosts24h,
     topExams: ["JEE Main", "NEET", "UPSC", "CA Foundation", "CBSE Boards"],
+    humanPosts,
+    newFollows,
+    roomMessages,
+    premiumActive,
+    activeStreakers,
   };
+}
+
+/**
+ * Server-side anomaly detection — the briefing flags these whether or not an
+ * LLM is attached, so the founder always gets an on-call style "watch list".
+ */
+function detectAlerts(stats: DailyStats): string[] {
+  const alerts: string[] = [];
+  if (stats.newUsers === 0) alerts.push("Zero new sign-ups in the last 24h — check landing page + acquisition links.");
+  if (stats.sessions === 0) alerts.push("Zero completed focus sessions in 24h — verify the timer/session pipeline.");
+  const totalPosts = stats.botPosts + stats.humanPosts;
+  if (totalPosts >= 5 && stats.botPosts / totalPosts > 0.7) {
+    alerts.push(`Feed is ${Math.round((stats.botPosts / totalPosts) * 100)}% bot posts (${stats.botPosts}/${totalPosts}) — nudge real engagement or slow the fleet.`);
+  }
+  const net = stats.coinsMinted - stats.coinsBurned;
+  if (stats.coinsMinted > 1000 && stats.coinsBurned < stats.coinsMinted * 0.1) {
+    alerts.push(`Coin minting is one-directional (+${net.toLocaleString()} net, <10% burned) — economy may inflate.`);
+  }
+  return alerts;
 }
 
 async function runDailyBriefing(force: boolean) {
@@ -392,13 +441,28 @@ async function runDailyBriefing(force: boolean) {
   }
 
   const stats = await collectDailyStats(day);
-  let summary = briefingTemplate(stats);
+  const alerts = detectAlerts(stats);
+  let summary = briefingTemplate(stats, alerts);
   let source = "template";
 
+  // Developer persona: Gemini writes like a senior engineer on call —
+  // vitals first, anomalies flagged, exactly three next actions.
   const result = await generateAi({
     purpose: "briefing",
-    prompt: `Write a 6-line morning operations briefing for the FocusArx founder from these REAL numbers (no invention, no fluff, IST context, exam-season aware):\n${JSON.stringify(stats, null, 1)}`,
-    maxTokens: 300,
+    prompt: `You are the senior developer and chief-of-staff of FocusArx, a focus/study app for Indian exam aspirants (IST timezone). Write today's morning ops briefing for the founder. Write like an experienced engineer on call: precise, numbers-first, zero fluff.
+
+Format (markdown, ~10 lines total):
+## 📊 Vitals
+- one compact line per key metric with a quick read (▲ growing / ▼ declining / flat)
+## ⚠️ Watch
+- anomalies only (use the pre-computed alerts; if none, write "Nothing abnormal.")
+## ✅ Next actions
+- exactly 3 concrete one-line actions ordered by impact
+
+Hard rules: use ONLY the numbers in DATA — never invent metrics; mention exam season where relevant.
+PRE-COMPUTED ALERTS: ${JSON.stringify(alerts)}
+DATA: ${JSON.stringify(stats)}`,
+    maxTokens: 450,
   });
   if (result) {
     summary = sanitizeNeverNegative(result.text);
@@ -408,7 +472,7 @@ async function runDailyBriefing(force: boolean) {
   await db.insert(aiBriefingsTable).values({
     day,
     kind: "daily",
-    data: { ...stats, source },
+    data: { ...stats, alerts, source },
     summary,
   }).onConflictDoNothing();
   await pool.query(

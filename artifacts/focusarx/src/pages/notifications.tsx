@@ -140,7 +140,21 @@ export default function NotificationsPage() {
 
       <section className="mb-5 rounded-2xl border border-[var(--brand-500)]/20 bg-[var(--brand-soft)] p-4" aria-labelledby="push-controls-title">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end"><div className="flex-1"><h2 id="push-controls-title" className="font-semibold">Premium notification controls</h2><p className="mt-1 text-xs text-[var(--foreground-subtle)]">Prioritize focus reminders and choose a notification sound.</p></div>
-          {!pushEnabled && <button type="button" onClick={() => void requestPushPermission().then(() => { setPushEnabled(true); void preferences.refetch(); }).catch(() => toast("Push permission could not be enabled", "danger"))} className="min-h-11 rounded-xl bg-[var(--brand-600)] px-4 text-sm font-semibold text-white">Enable push</button>}
+          {/* Push failures used to surface as one scary generic toast. Each
+              cause now gets calm, specific guidance — and the copy always
+              reassures that in-app notifications keep working, because they
+              do; push is an extra, not the product. */}
+          {!pushEnabled && <button type="button" onClick={() => void requestPushPermission().then(() => { setPushEnabled(true); void preferences.refetch(); toast("Push enabled — streak alerts will find you anywhere.", "success"); }).catch((err: unknown) => {
+            const message = err instanceof Error ? err.message : "";
+            toast(
+              message.includes("denied")
+                ? "Push is blocked in your browser settings — allow notifications for this site, then try again. In-app alerts still work."
+                : message.includes("not supported")
+                  ? "This browser can't receive push — in-app alerts still work here."
+                  : "Push setup didn't finish (no service worker in this environment). In-app alerts still work.",
+              "info",
+            );
+          })} className="min-h-11 rounded-xl bg-[var(--brand-600)] px-4 text-sm font-semibold text-white">Enable push</button>}
           <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={preferences.data?.priorityEnabled ?? false} disabled={!preferences.data?.premium} onChange={(event) => savePreferences.mutate({ priorityEnabled: event.target.checked, sound: preferences.data?.sound ?? "default" })} /> Priority</label>
           <select aria-label="Notification sound" value={preferences.data?.sound ?? "default"} disabled={!preferences.data?.premium} onChange={(event) => savePreferences.mutate({ priorityEnabled: preferences.data?.priorityEnabled ?? false, sound: event.target.value })} className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 text-sm"><option value="default">Default</option><option value="chime">Chime</option><option value="focus-bell">Focus bell</option><option value="cosmic">Cosmic</option></select>
         </div>
