@@ -4,7 +4,7 @@ import { Router } from "express";
 import { db, lootBoxTypesTable, userLootBoxesTable, userWalletsTable, notificationsTable, coinTransactionsTable, marketplaceItemsTable, userInventoryTable } from "@workspace/db";
 import { isUserPremium } from "../lib/premiumCheck";
 import { eq, and } from "drizzle-orm";
-import { burnCoins } from "../lib/coinLedger";
+import { burnCoins, mintCoins } from "../lib/coinLedger";
 
 export const lootboxesRouter = Router();
 
@@ -126,6 +126,9 @@ lootboxesRouter.post("/lootboxes/:boxId/open", authMiddleware, async (req: AuthR
 
     let newCoins: number | undefined;
     let grantedItemId: string | undefined;
+    let grantedInventoryId: string | undefined;
+    let duplicateCompensationCoins: number | undefined;
+    let grantedItem: { itemId: string; name: string; emoji: string | null; type: string; rarity: string | null; alreadyOwned: boolean } | undefined;
     if (picked.type === "coins") {
       const [w] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.userId)).limit(1);
       if (w) {
@@ -150,25 +153,57 @@ lootboxesRouter.post("/lootboxes/:boxId/open", authMiddleware, async (req: AuthR
       }
     } else if (picked.type === "marketplace_item") {
       try {
+        // Prefer an item the user does not own yet, so a cosmetic reward is
+        // always a real addition to their collection rather than a duplicate
+        // that silently vanished. Only fall back to any item of the rarity when
+        // they own the whole tier.
         const targetRarity = picked.rarity ?? "rare";
-        const candidates = await db.select({ id: marketplaceItemsTable.id, name: marketplaceItemsTable.name })
-          .from(marketplaceItemsTable)
-          .where(eq(marketplaceItemsTable.rarity, targetRarity))
-          .limit(20);
+        const candidates = await db.select({
+          id: marketplaceItemsTable.id,
+          name: marketplaceItemsTable.name,
+          emoji: marketplaceItemsTable.emoji,
+          type: marketplaceItemsTable.type,
+          rarity: marketplaceItemsTable.rarity,
+          costCoins: marketplaceItemsTable.costCoins,
+        }).from(marketplaceItemsTable)
+          .where(and(eq(marketplaceItemsTable.rarity, targetRarity), eq(marketplaceItemsTable.isActive, true)))
+          .limit(50);
+
         if (candidates.length > 0) {
-          const item = candidates[Math.floor(Math.random() * candidates.length)]!;
+          const ownedRows = await db.select({ itemId: userInventoryTable.itemId })
+            .from(userInventoryTable).where(eq(userInventoryTable.userId, req.userId));
+          const ownedItemIds = new Set(ownedRows.map(r => r.itemId));
+          const unowned = candidates.filter(c => !ownedItemIds.has(c.id));
+          const item = (unowned.length > 0 ? unowned : candidates)[Math.floor(Math.random() * (unowned.length > 0 ? unowned.length : candidates.length))]!;
           grantedItemId = item.id;
-          const alreadyOwned = await db.select({ id: userInventoryTable.id })
-            .from(userInventoryTable)
-            .where(and(eq(userInventoryTable.userId, req.userId), eq(userInventoryTable.itemId, item.id)))
-            .limit(1);
-          if (alreadyOwned.length === 0) {
-            await db.insert(userInventoryTable).values({
+
+          if (unowned.length > 0) {
+            const [invRow] = await db.insert(userInventoryTable).values({
               userId: req.userId,
               itemId: item.id,
               equipped: false,
-            }).catch(() => {});
+            }).returning({ id: userInventoryTable.id }).catch(() => [undefined as never]);
+            grantedInventoryId = invRow?.id;
+          } else {
+            // Whole tier owned — pay the duplicate out in coins instead of
+            // pretending something was granted. Half the item's value, minted
+            // through the ledger so the economy stays auditable.
+            duplicateCompensationCoins = Math.max(50, Math.floor(item.costCoins * 0.5));
+            const balanceAfter = await mintCoins(req.userId!, duplicateCompensationCoins, "lootbox_duplicate_compensation", {
+              description: `${item.name} was already in your collection`,
+              metadata: { boxId, itemId: item.id },
+            });
+            if (balanceAfter !== null) newCoins = balanceAfter;
           }
+
+          grantedItem = {
+            itemId: item.id,
+            name: item.name,
+            emoji: item.emoji,
+            type: item.type,
+            rarity: item.rarity,
+            alreadyOwned: unowned.length === 0,
+          };
         }
       } catch { /* best effort */ }
     }
@@ -183,7 +218,27 @@ lootboxesRouter.post("/lootboxes/:boxId/open", authMiddleware, async (req: AuthR
     }).catch(() => {});
 
     const [w] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, req.userId)).limit(1);
-    res.json({ reward, newCoins: newCoins ?? w?.coins, grantedItemId });
+    const enriched = grantedItem
+      ? {
+          ...reward,
+          label: grantedItem.name,
+          description: grantedItem.alreadyOwned
+            ? `You already owned ${grantedItem.name} — we paid you ${duplicateCompensationCoins?.toLocaleString()} coins instead.`
+            : `${grantedItem.rarity} ${grantedItem.type} · now in your collection`,
+          emoji: grantedItem.emoji ?? reward.emoji,
+        }
+      : reward;
+
+    res.json({
+      reward: enriched,
+      rarity: grantedItem?.rarity ?? (picked.type === "coins" || picked.type === "xp" ? "common" : "rare"),
+      type: picked.type,
+      newCoins: newCoins ?? w?.coins,
+      grantedItemId,
+      grantedItem,
+      inventoryId: grantedInventoryId,
+      duplicateCompensationCoins,
+    });
   } catch {
     res.status(500).json({ error: "Failed to open box" });
   }

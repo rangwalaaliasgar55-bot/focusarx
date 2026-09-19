@@ -51,4 +51,31 @@ router.post("/admin/feature-flags", async (req, res) => {
   }
 });
 
+// DELETE /api/admin/feature-flags/:key — remove a flag entirely.
+//
+// Deliberately a hard delete rather than a soft "off": an admin who created a
+// flag by mistake needs the row gone, and every consumer fails open, so deleting
+// a flag restores the shipped default instead of changing behaviour.
+// `gemini_auto_publish` is protected — it is the one flag whose absence means
+// ON, so deleting it would silently re-enable auto-publishing.
+const PROTECTED_FLAG_KEYS = new Set(["gemini_auto_publish"]);
+
+router.delete("/admin/feature-flags/:key", async (req, res) => {
+  const { checkAdminAuth } = await import("../lib/adminAuth");
+  if (!await checkAdminAuth(req)) return res.status(403).json({ error: "Forbidden" });
+  const key = String(req.params.key ?? "").slice(0, 80);
+  if (!key) return res.status(400).json({ error: "key required" });
+  if (PROTECTED_FLAG_KEYS.has(key)) {
+    return res.status(400).json({ error: `${key} cannot be deleted — set enabled=false to disable it` });
+  }
+  try {
+    const deleted = await db.delete(featureFlagsTable).where(eq(featureFlagsTable.key, key)).returning({ key: featureFlagsTable.key });
+    if (deleted.length === 0) return res.status(404).json({ error: "Flag not found" });
+    res.json({ ok: true, deleted: deleted[0]!.key });
+  } catch (err) {
+    logger.error({ err }, "feature flag delete error");
+    res.status(500).json({ error: "Failed to delete" });
+  }
+});
+
 export { router as featureFlagsRouter };

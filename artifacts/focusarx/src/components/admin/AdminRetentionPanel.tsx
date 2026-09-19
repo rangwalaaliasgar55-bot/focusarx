@@ -12,7 +12,43 @@ export function AdminRetentionPanel({ data }: { data: any }) {
 
   return (
     <MotionTab>
-      <SectionHeader title="Retention Analytics" sub="Login rewards, streak freeze usage, and battle pass engagement." />
+      <SectionHeader title="Retention Analytics" sub="Are people coming back — and who is about to leave? Mechanics below." />
+
+      {/* Cohort health first: the actual retention question, before the
+          engagement furniture that used to open this tab. */}
+      {data.cohorts && (
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wider text-[var(--palette-zinc-500)] mb-3">Cohort health</p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard label="Active today (DAU)" value={String(data.cohorts.dau)} accent="sky" />
+            <StatCard label="Active this week (WAU)" value={String(data.cohorts.wau)} accent="violet" />
+            <StatCard label="Active this month (MAU)" value={String(data.cohorts.mau)} />
+            <StatCard label="Stickiness (DAU/MAU)" value={`${data.cohorts.stickiness}%`} accent="rose" />
+          </div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard label="New signups (7d)" value={String(data.cohorts.signedUp7d)} />
+            <StatCard label="Activated (studied once)" value={`${data.cohorts.activated7d} · ${data.cohorts.activationRate}%`} accent="sky" />
+            <StatCard label="Returning users (7d)" value={`${data.cohorts.returned7d} · ${data.cohorts.returningShare}%`} accent="violet" />
+            <StatCard label="Streaks 7d+" value={String(data.cohorts.healthyStreaks)} accent="sky" />
+          </div>
+
+          {/* The two lists an admin can act on today. */}
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-[var(--palette-amber-900)]/60 bg-[var(--palette-amber-950)]/20 p-4">
+              <p className="text-sm font-semibold text-[var(--palette-amber-300)]">{data.cohorts.atRisk} learner(s) at risk</p>
+              <p className="mt-1 text-[11px] text-[var(--palette-zinc-400)]">
+                Studied within the last 30 days but not the last 7. One good nudge lands here — a mission, a streak save, or a message from someone they follow.
+              </p>
+            </div>
+            <div className="rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 p-4">
+              <p className="text-sm font-semibold text-[var(--palette-zinc-300)]">{data.cohorts.dormant} dormant account(s)</p>
+              <p className="mt-1 text-[11px] text-[var(--palette-zinc-400)]">
+                No focus session in 30 days. {data.cohorts.endangeredStreaks} live streak(s) are unprotected right now — they break tonight without a session.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div>
         <p className="text-xs font-medium uppercase tracking-wider text-[var(--palette-zinc-500)] mb-3">Daily Login Rewards</p>

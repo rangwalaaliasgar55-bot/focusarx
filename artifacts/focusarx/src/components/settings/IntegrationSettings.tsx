@@ -42,6 +42,11 @@ interface ProviderConnection {
   lastSyncedAt: string | null;
   expiresAt: string | null;
   hasRefreshToken: boolean;
+  /** True for link/webhook/key connections rather than an OAuth grant. */
+  manual?: boolean;
+  manualKind?: string | null;
+  /** Credential stored without INTEGRATION_ENCRYPTION_KEY — shown as a warning. */
+  plaintextStorage?: boolean;
 }
 
 interface Provider {
@@ -52,6 +57,8 @@ interface Provider {
   scopes: string[];
   configured: boolean;
   manual: boolean;
+  /** Credential-free connect options this provider supports (server-declared). */
+  manualKinds?: Array<"calendar_feed" | "webhook" | "api_key">;
   revokeUrl?: string;
   unavailableReason?: string;
   connection: ProviderConnection | null;
@@ -162,6 +169,11 @@ export function IntegrationSettings() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [busy, setBusy] = useState<string | null>(null);
+  /* Link-based connect: which provider's form is open, its kind and the value. */
+  const [manualFor, setManualFor] = useState<string | null>(null);
+  const [manualKind, setManualKind] = useState<"calendar_feed" | "webhook" | "api_key">("webhook");
+  const [manualValue, setManualValue] = useState("");
+  const [manualNote, setManualNote] = useState<string | null>(null);
 
   /**
    * The outcome of an OAuth round trip, read from the URL the provider sent the
@@ -239,6 +251,46 @@ export function IntegrationSettings() {
       window.location.href = authorizeUrl;
     } catch (err) {
       toast(errorMessage(err, `Could not connect ${provider.name}.`), "error");
+      setBusy(null);
+    }
+  }
+
+  /**
+   * Connect without OAuth: a calendar feed, an incoming webhook, or an API key.
+   *
+   * The server verifies before saving — a calendar link must return a real
+   * iCalendar document, a webhook must accept a test message — so "Connected"
+   * here means something was actually reached, not that a form was submitted.
+   */
+  async function manualConnect(provider: Provider) {
+    if (!manualValue.trim()) return;
+    setBusy(provider.key);
+    setManualNote(null);
+    try {
+      const result = await apiJson<{ verified: boolean; encrypted: boolean; note: string }>(
+        `/api/integrations/${provider.key}/manual-connect`,
+        { method: "POST", body: JSON.stringify({ kind: manualKind, value: manualValue.trim() }) },
+      );
+      toast(`${provider.name} connected. ${result.note}`, "success");
+      setManualFor(null);
+      setManualValue("");
+      setReloadKey((k) => k + 1);
+    } catch (err) {
+      setManualNote(errorMessage(err, "Could not connect that link."));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function testConnection(provider: Provider) {
+    setBusy(provider.key);
+    try {
+      const result = await apiJson<{ verified: boolean }>(`/api/integrations/${provider.key}/test`, { method: "POST" });
+      toast(result.verified ? `${provider.name} still works.` : `${provider.name} saved (no live check available for API keys).`, "success");
+      setReloadKey((k) => k + 1);
+    } catch (err) {
+      toast(errorMessage(err, `${provider.name} did not respond.`), "error");
+    } finally {
       setBusy(null);
     }
   }
@@ -415,31 +467,111 @@ export function IntegrationSettings() {
                       {!provider.configured && provider.unavailableReason ? (
                         <p className="mt-2 text-xs text-muted-foreground">{provider.unavailableReason}</p>
                       ) : null}
+                      {connection?.manual && connection.plaintextStorage ? (
+                        <p className="mt-2 text-xs text-[var(--palette-amber-400)]">
+                          ⚠️ Connected, but this credential is stored unencrypted — set INTEGRATION_ENCRYPTION_KEY on the server to encrypt it.
+                        </p>
+                      ) : null}
                     </div>
 
-                    <div className="flex shrink-0 gap-2">
+                    <div className="flex shrink-0 flex-wrap justify-end gap-2">
                       {provider.manual ? (
                         <span className="text-xs text-muted-foreground">Imported from a file</span>
                       ) : connection ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={busy === provider.key}
-                          onClick={() => void disconnect(provider)}
-                        >
-                          Disconnect
-                        </Button>
+                        <>
+                          {/* A manual connection is re-checkable: proving it still
+                              works is the whole reason the card shows a status. */}
+                          {connection.manual && (
+                            <Button variant="ghost" size="sm" disabled={busy === provider.key} onClick={() => void testConnection(provider)}>
+                              Test
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={busy === provider.key}
+                            onClick={() => void disconnect(provider)}
+                          >
+                            Disconnect
+                          </Button>
+                        </>
                       ) : (
-                        <Button
-                          size="sm"
-                          disabled={!provider.configured || busy === provider.key}
-                          onClick={() => void connect(provider)}
-                        >
-                          {busy === provider.key ? "Opening…" : "Connect"}
-                        </Button>
+                        <>
+                          <Button
+                            size="sm"
+                            disabled={!provider.configured || busy === provider.key}
+                            onClick={() => void connect(provider)}
+                          >
+                            {busy === provider.key ? "Opening…" : "Connect"}
+                          </Button>
+                          {/* The fallback door. Shown whenever OAuth is unavailable,
+                              so an unconfigured deploy still has a working path. */}
+                          {(provider.manualKinds?.length ?? 0) > 0 && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={busy === provider.key}
+                              onClick={() => {
+                                setManualFor(manualFor === provider.key ? null : provider.key);
+                                setManualKind(provider.manualKinds?.[0] ?? "webhook");
+                                setManualValue("");
+                                setManualNote(null);
+                              }}
+                            >
+                              {manualFor === provider.key ? "Cancel" : "Connect with a link"}
+                            </Button>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
+
+                  {manualFor === provider.key && (
+                    <div className="mt-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-hover)]/40 p-3">
+                      <p className="text-xs font-semibold">Connect {provider.name} without app registration</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {([
+                          { id: "calendar_feed" as const, label: "Calendar (iCal) link" },
+                          { id: "webhook" as const, label: "Incoming webhook" },
+                          { id: "api_key" as const, label: "API key" },
+                        ]).filter((option) => (provider.manualKinds ?? ["webhook"]).includes(option.id)).map((option) => (
+                          <button
+                            key={option.id}
+                            type="button"
+                            aria-pressed={manualKind === option.id}
+                            onClick={() => setManualKind(option.id)}
+                            className={`rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition ${
+                              manualKind === option.id
+                                ? "border-[var(--brand-strong)] bg-[var(--brand-soft)] text-[var(--brand-strong)]"
+                                : "border-[var(--border-subtle)] text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                      <label className="mt-2 block text-[11px] text-[var(--foreground-muted)]" htmlFor={`manual-${provider.key}`}>
+                        {manualKind === "calendar_feed"
+                          ? "Paste your calendar's private iCal/ICS address — we fetch it and confirm it is a real calendar before saving."
+                          : manualKind === "webhook"
+                            ? "Paste an incoming-webhook URL (Slack, Discord, Zapier…). We send one test message to prove it works."
+                            : "Paste the API key or token. This one is stored and marked unverified — there is no public endpoint to check it against."}
+                      </label>
+                      <input
+                        id={`manual-${provider.key}`}
+                        value={manualValue}
+                        onChange={(e) => setManualValue(e.target.value)}
+                        placeholder={manualKind === "calendar_feed" ? "https://calendar.google.com/calendar/ical/…/basic.ics" : manualKind === "webhook" ? "https://hooks.slack.com/services/…" : "sk_live_…"}
+                        className="mt-1.5 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--brand-strong)]"
+                      />
+                      <div className="mt-2 flex items-center gap-2">
+                        <Button size="sm" disabled={busy === provider.key || !manualValue.trim()} onClick={() => void manualConnect(provider)}>
+                          {busy === provider.key ? "Checking…" : "Verify & connect"}
+                        </Button>
+                        {manualNote && <span className="text-[11px] text-[var(--palette-rose-400)]">{manualNote}</span>}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })

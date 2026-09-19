@@ -430,3 +430,125 @@ export function templateInventory(): Record<string, number> {
   out.arx_lines = ARX_CHEERS.length + ARX_RALLIES.length;
   return out;
 }
+
+// ── human imperfections ──────────────────────────────────────────────────────
+/**
+ * The comment pool alone reads like a customer-support macro: every line is
+ * perfect, every line ends in a tidy emoji. Real comment sections are messier,
+ * and the mess is what makes a feed feel inhabited. This layer adds the small
+ * evidence of a human typing — applied after the topic reply is chosen, driven
+ * by the same seeded RNG the engine already uses, so replays stay deterministic
+ * and a single comment never mutates twice.
+ */
+const CASUAL_OPENERS = ["honestly ", "ngl ", "yaar ", "bhai ", "okay but ", "real talk — "];
+const FOLLOW_UP_QUESTIONS = [
+  "What's the next chapter you're taking down?",
+  "How many hours do you average on a good day?",
+  "Which source are you revising from?",
+  "Drop the app (or the trick) you're using for this one.",
+  "Any chance you'd post your timetable?",
+];
+const REACTION_LINES = [
+  "💯", "this is the way", "saving this", "couldn't agree more", "needed to read this today",
+  "same pinch 😩", "bookmarking", "okay this actually helps", "underrated take",
+  "bro same", "printing this", "the comment I was looking for",
+];
+
+export interface HumanizeOptions {
+  /** Commenter's own display name, so a reply can address the author. */
+  authorName?: string | null;
+}
+
+/**
+ * Apply 0–2 human touches to a base reply:
+ * casual opener, lowercase first letter, doubled punctuation, or a follow-up
+ * question that invites a reply. Never both an opener and a question — that is
+ * the shape of an AI trying to sound casual, which reads worse than either.
+ */
+export function humanizeComment(text: string, rng: () => number, opts: HumanizeOptions = {}): string {
+  let out = text.trim();
+  const roll = rng();
+
+  if (roll < 0.16) {
+    const opener = CASUAL_OPENERS[Math.floor(rng() * CASUAL_OPENERS.length)]!;
+    // Lowercase the original first letter so the opener does not read as two
+    // sentences bolted together.
+    out = opener + out.charAt(0).toLowerCase() + out.slice(1);
+  } else if (roll < 0.24) {
+    out = out.charAt(0).toLowerCase() + out.slice(1);
+  }
+
+  const punct = rng();
+  if (punct < 0.09) out = out.replace(/\.$/, "!!");
+  else if (punct < 0.15) out = out.replace(/\.$/, " 💪");
+  else if (punct < 0.19) out = out.replace(/\.$/, "…");
+
+  if (rng() < 0.22 && out.length < 190) {
+    const question = FOLLOW_UP_QUESTIONS[Math.floor(rng() * FOLLOW_UP_QUESTIONS.length)]!;
+    out = `${out} ${question}`;
+  } else if (opts.authorName && rng() < 0.12) {
+    // Address the author by name the way a commenter would — no comma-splice.
+    out = `${opts.authorName.split(/\s+/)[0]}, ${out.charAt(0).toLowerCase()}${out.slice(1)}`;
+  }
+
+  return out;
+}
+
+/** Extra replies, kept apart from the main pools so the topic census stays readable. */
+export const COMMENT_REPLIES_EXTRA: Record<string, string[]> = {
+  jee: [
+    "Cutting a chapter after three failed attempts is the real flex — most people keep 'starting' it 📘",
+    "Rotating revision over new material in the last 40 days is textbook-correct. Trust it",
+    "Every mock you review properly is worth two you just attempt. Numbers will follow 📉→📈",
+  ],
+  neet: [
+    "Three full mocks a week with a proper post-mortem? That's the 650+ pipeline 🧠",
+    "Filling NCERT gaps before they compound is the single best habit in this prep, no contest",
+    "You're doing diagram practice right — that's free marks exactly where people drop them",
+  ],
+  upsc: [
+    "Newspaper-to-notes in 25 minutes is a serious benchmark. Most people take an hour and forget half",
+    "Answer writing daily beats answer writing 'when the syllabus finishes'. Nice discipline ✍️",
+    "Revision over collection — you already know this, you're just doing it, which is rarer",
+  ],
+  boards: [
+    "Handwriting practice for board answers is such an underrated move — the examiner reads a lot faster",
+    "Sample paper a week from now till the exam sounds right. Cross-check with the marking scheme",
+    "Keeping the formula sheet one page is doing more for your speed than any new book 📄",
+  ],
+  cat: [
+    "Negative-marking maths in the mock analysis is the part everyone skips. Good that you don't",
+    "Two RCs a day with a timer — the reading speed fixes itself in a month 🧮",
+    "QA accuracy before QA volume, always. Your VARC is carrying you in the meantime",
+  ],
+  phone: [
+    "Phone in grayscale for a week does more than any blocker app, genuinely 📱",
+    "Turning off notifications for 2 apps at a time is the version that actually sticks",
+  ],
+  hostel: [
+    "Roommate study pacts work better than any app for accountability 🫡",
+    "Noise-cancelling + one focused friend = a two-person library. Protect it",
+  ],
+  morning: [
+    "Waking an hour before the house wakes up is a cheat code for the hard subjects 🌅",
+    "Morning slots for the subject you hate is the correct trade. Most people do the reverse",
+  ],
+  pomodoro: [
+    "The 5-minute break has to be chore-free or it becomes a 40-minute break 😄",
+    "Set the timer before you sit down, not after you settle. Changes everything 🍅",
+  ],
+  flow: [
+    "Whatever triggered today's flow, write it down — that's your personal ritual now 🌊",
+    "Protecting the first 90 minutes is the whole game, everything after is bonus",
+  ],
+  general: [
+    "Small and repeated beats big and occasional. You're on the right side of that",
+    "Keeping a one-line log of what worked is the cheapest upgrade you can make 📝",
+    "This is the kind of post that makes the feed useful. Thanks for writing it down",
+  ],
+};
+
+/** Reaction used when a bot replies to another bot's comment (thread depth 2). */
+export function botReactionLine(rng: () => number): string {
+  return REACTION_LINES[Math.floor(rng() * REACTION_LINES.length)]!;
+}

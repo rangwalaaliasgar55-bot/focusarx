@@ -6,7 +6,9 @@ import {
   studyStreaksTable, focusSessionsTable, activeSessionsTable,
   notificationsTable, followsTable,
   userMissionProgressTable, socialPostsTable, userBadgesTable,
+  userQuestProgressTable, questDefinitionsTable,
 } from "@workspace/db";
+import { ALL_MISSIONS } from "./missions";
 import { isUsersPremium } from "../lib/premiumCheck";
 import { logger } from "../lib/logger";
 import { ensureDailyBotActivity } from "../lib/botEngine";
@@ -298,6 +300,153 @@ socialRouter.get("/social/activity", authMiddleware, async (req: AuthRequest, re
   }
 });
 
+/**
+ * Display tier for an AI rival.
+ *
+ * Bots are not real subscribers, so this must not read the premium tables — a
+ * fabricated subscription row would show up in billing-adjacent queries and
+ * revenue numbers. It is a *label* on a synthetic competitor: deterministic
+ * from the bot's id, so a rival who is "premium" on the board is premium every
+ * time you look, and roughly 40% of the fleet carries the badge.
+ */
+function botDisplayTier(userId: string): "premium" | "standard" {
+  let h = 0;
+  for (let i = 0; i < userId.length; i++) h = (h * 31 + userId.charCodeAt(i)) >>> 0;
+  return h % 5 < 2 ? "premium" : "standard";
+}
+
+/**
+ * GET /social/completions — the public "who just finished what" board.
+ *
+ * This is the announcement surface for missions and quests: a learner's win is
+ * only motivating to *other* learners if they can see it. It is assembled live
+ * from the same progress tables the reward logic writes (no shadow feed, no
+ * fabricated entries), which means it can never drift from what actually
+ * happened.
+ *
+ * Two deliberate choices:
+ *
+ *  - **Completions, not claims.** You finished the thing when the tracker says
+ *    so; whether you have opened the mailbox yet is not what a peer is
+ *    competing with.
+ *  - **First name + surname initial.** A leaderboard is a public surface, and
+ *    "Aarav S." is enough to know who to chase without publishing a full
+ *    identity next to a timestamp.
+ *
+ * Bots are excluded on purpose: missions are the humans' competition.
+ */
+socialRouter.get("/social/completions", authMiddleware, async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  try {
+    const since = new Date(Date.now() - 7 * 24 * 3600 * 1000);
+    const displayName = (name: string | null, email: string | null) => {
+      const base = (name ?? email?.split("@")[0] ?? "A learner").trim();
+      const parts = base.split(/\s+/).filter(Boolean);
+      if (parts.length === 0) return "A learner";
+      if (parts.length === 1) return parts[0]!;
+      return `${parts[0]} ${parts[parts.length - 1]!.charAt(0).toUpperCase()}.`;
+    };
+
+    const missionRows = await db
+      .select({
+        id: userMissionProgressTable.id,
+        userId: userMissionProgressTable.userId,
+        missionKey: userMissionProgressTable.missionKey,
+        at: userMissionProgressTable.completedAt,
+        name: usersTable.name,
+        email: usersTable.email,
+      })
+      .from(userMissionProgressTable)
+      .innerJoin(usersTable, eq(usersTable.id, userMissionProgressTable.userId))
+      .where(and(
+        eq(userMissionProgressTable.completed, true),
+        gte(userMissionProgressTable.completedAt, since),
+        sql`coalesce(${usersTable.role}, 'user') <> 'bot'`,
+        eq(usersTable.isGuest, false),
+      ))
+      .orderBy(desc(userMissionProgressTable.completedAt))
+      .limit(40);
+
+    let questRows: Array<{ id: string; userId: string; title: string; icon: string | null; xp: number; coins: number; at: Date | null; name: string | null; email: string | null }> = [];
+    try {
+      questRows = await db
+        .select({
+          id: userQuestProgressTable.id,
+          userId: userQuestProgressTable.userId,
+          title: questDefinitionsTable.title,
+          icon: questDefinitionsTable.icon,
+          xp: questDefinitionsTable.xpReward,
+          coins: questDefinitionsTable.coinReward,
+          at: userQuestProgressTable.claimedAt,
+          name: usersTable.name,
+          email: usersTable.email,
+        })
+        .from(userQuestProgressTable)
+        .innerJoin(questDefinitionsTable, eq(questDefinitionsTable.id, userQuestProgressTable.questId))
+        .innerJoin(usersTable, eq(usersTable.id, userQuestProgressTable.userId))
+        .where(and(
+          eq(userQuestProgressTable.completed, true),
+          gte(userQuestProgressTable.claimedAt, since),
+          sql`coalesce(${usersTable.role}, 'user') <> 'bot'`,
+          eq(usersTable.isGuest, false),
+        ))
+        .orderBy(desc(userQuestProgressTable.claimedAt))
+        .limit(20);
+    } catch (err) {
+      // Quest tables may not exist on an install that never ran the quest
+      // subsystem — missions alone still make a usable board.
+      logger.warn({ err }, "quest completions unavailable");
+    }
+
+    const missionByKey = new Map(ALL_MISSIONS.map(m => [m.key, m]));
+    const items = [
+      ...missionRows.map(r => {
+        const def = missionByKey.get(r.missionKey);
+        return {
+          id: `m-${r.id}`,
+          userId: r.userId,
+          name: displayName(r.name, r.email),
+          isMe: r.userId === userId,
+          kind: "mission" as const,
+          title: def?.title ?? r.missionKey,
+          description: def?.description ?? null,
+          icon: def?.category === "focus" ? "🎯" : def?.category === "social" ? "💬" : def?.category === "streak" ? "🔥" : "🏅",
+          xp: def?.xpReward ?? 0,
+          coins: def?.coinReward ?? 0,
+          type: def?.type ?? "daily",
+          at: r.at,
+        };
+      }),
+      ...questRows.map(r => ({
+        id: `q-${r.id}`,
+        userId: r.userId,
+        name: displayName(r.name, r.email),
+        isMe: r.userId === userId,
+        kind: "quest" as const,
+        title: r.title,
+        description: null,
+        icon: r.icon ?? "🧭",
+        xp: r.xp,
+        coins: r.coins,
+        type: "quest" as const,
+        at: r.at,
+      })),
+    ]
+      .filter(i => i.at)
+      .sort((a, b) => (b.at as Date).getTime() - (a.at as Date).getTime())
+      .slice(0, 30)
+      .map(i => ({
+        ...i,
+        minutesAgo: Math.max(0, Math.floor((Date.now() - (i.at as Date).getTime()) / 60_000)),
+      }));
+
+    res.json({ items, liveWindowMinutes: 10 });
+  } catch (err) {
+    logger.error({ err }, "GET /social/completions error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
 socialRouter.get("/social/leaderboard", authMiddleware, async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const period = (req.query.period as string) || "weekly";
@@ -392,6 +541,7 @@ socialRouter.get("/social/leaderboard", authMiddleware, async (req: AuthRequest,
         isPremium: premiumSet.has(r.userId),
         isAdmin: role === "admin",
         isBot: role === "bot",
+        botTier: role === "bot" ? botDisplayTier(r.userId) : null,
         isCurrentUser: r.userId === userId,
         isMe: r.userId === userId,
       };

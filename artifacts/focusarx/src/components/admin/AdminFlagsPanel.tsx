@@ -68,6 +68,27 @@ export function AdminFlagsPanel({ authHeaders }: { authHeaders: () => Record<str
     }
   };
 
+  /**
+   * Delete a flag row. Every consumer fails open, so deleting a flag restores
+   * the shipped default rather than breaking anything — which is exactly why
+   * this is a hard delete and not a soft "off".
+   */
+  const removeFlag = async (key: string) => {
+    setBusyKey(key);
+    setMessage(null);
+    try {
+      const r = await adminFetch(`/api/admin/feature-flags/${encodeURIComponent(key)}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+        credentials: "include",
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { setMessage(`Error: ${d.error ?? "Failed to delete flag"}`); return; }
+      setFlags((prev) => prev.filter((f) => f.key !== key));
+      setMessage(`Deleted ${key} — consumers fall back to the default (on).`);
+    } finally { setBusyKey(null); }
+  };
+
   const createFlag = () => {
     const key = newKey.trim().toLowerCase().replace(/\s+/g, "_");
     if (!key) return;
@@ -98,9 +119,23 @@ export function AdminFlagsPanel({ authHeaders }: { authHeaders: () => Record<str
               >
                 <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-[var(--palette-white)] transition-transform ${f.enabled ? "translate-x-5" : "translate-x-0.5"}`} />
               </button>
+              <button
+                type="button"
+                aria-label={`Delete ${f.key}`}
+                title={f.key === "gemini_auto_publish" ? "Protected — set enabled=false instead" : "Delete this flag"}
+                disabled={busyKey === f.key || f.key === "gemini_auto_publish"}
+                onClick={() => void removeFlag(f.key)}
+                className="shrink-0 rounded-lg border border-[var(--palette-rose-900)]/70 px-2 py-1 text-[11px] font-semibold text-[var(--palette-rose-400)] transition hover:bg-[var(--palette-rose-950)]/50 disabled:opacity-30"
+              >
+                Delete
+              </button>
             </div>
           ))}
-          {flags.length === 0 && <p className="text-xs text-[var(--palette-zinc-500)]">No flags stored yet — defaults enabled: premium_timer_rituals, premium_analytics, premium_city_modes, pets_3d, battle_pass. Create one below to override.</p>}
+          {flags.length === 0 && (
+            <p className="text-xs text-[var(--palette-zinc-500)]">
+              No flags stored yet — everything below is live and defaults to ON. Create one to start controlling it.
+            </p>
+          )}
         </div>
       )}
 
@@ -136,6 +171,19 @@ export function AdminFlagsPanel({ authHeaders }: { authHeaders: () => Record<str
         {message && (
           <p className={`mt-2 text-xs ${message.startsWith("Error") ? "text-[var(--palette-rose-400)]" : "text-[var(--palette-emerald-400)]"}`}>{message}</p>
         )}
+      </div>
+
+      {/* Which keys actually do something. A flag with no consumer is a lie,
+          so the panel states plainly what each wired key controls today. */}
+      <div className="mt-4 rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/20 p-4">
+        <p className="text-xs font-semibold">Flags wired into the product</p>
+        <ul className="mt-2 space-y-1 text-[11px] text-[var(--palette-zinc-500)]">
+          <li><code className="text-[var(--palette-zinc-300)]">lootboxes</code> — hides the Loot Boxes page and its link; the page explains it is paused.</li>
+          <li><code className="text-[var(--palette-zinc-300)]">leaderboard</code> — removes Leaderboard from the navigation.</li>
+          <li><code className="text-[var(--palette-zinc-300)]">community</code> — removes Community from the navigation.</li>
+          <li><code className="text-[var(--palette-zinc-300)]">gemini_auto_publish</code> — ON by default; this row is the off switch for auto-publishing approved ideas.</li>
+        </ul>
+        <p className="mt-2 text-[11px] text-[var(--palette-zinc-500)]">Unknown keys are safe: every consumer fails open, so a flag nobody reads can never hide a feature.</p>
       </div>
 
       <div className="mt-4 rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/20 p-4">

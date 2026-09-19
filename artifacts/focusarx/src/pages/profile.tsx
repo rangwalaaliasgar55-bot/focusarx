@@ -286,6 +286,40 @@ function isProfileTab(value: string | null): value is ProfileTab {
   return value !== null && (PROFILE_TABS as readonly string[]).includes(value);
 }
 
+/**
+ * Rarity → profile tint. Kept local because the profile renders the *result*
+ * of a purchase (a frame you can actually see) while the shop renders the
+ * offer; the two should not share a stylesheet constant that only one of them
+ * can change safely.
+ */
+const WORN_RARITY: Record<string, { ring: string; glow: string; label: string; color: string }> = {
+  common: { ring: "var(--border-subtle)", glow: "0 0 0 transparent", label: "Common", color: "var(--foreground-muted)" },
+  uncommon: { ring: "var(--color-success)", glow: "0 0 16px var(--rgba-16-185-129-0_25)", label: "Uncommon", color: "var(--palette-10b981)" },
+  rare: { ring: "var(--color-info)", glow: "0 0 20px var(--rgba-59-130-246-0_3)", label: "Rare", color: "var(--color-info)" },
+  epic: { ring: "var(--brand-500)", glow: "0 0 24px var(--rgba-139-92-246-0_35)", label: "Epic", color: "var(--brand-strong)" },
+  legendary: { ring: "var(--color-warning)", glow: "0 0 28px var(--rgba-245-158-11-0_4)", label: "Legendary", color: "var(--color-warning)" },
+};
+
+interface WornItem { id: string; itemId: string; name: string | null; type: string | null; emoji: string | null; rarity: string | null }
+interface WornSet { frame: WornItem | null; avatar: WornItem | null; effect: WornItem | null; decorations: WornItem[]; accessories: WornItem[]; equipped: WornItem[] }
+
+/** Fetches what the user is wearing from the marketplace. Silent when signed out. */
+function useWornItems() {
+  const { data: session } = useAuth();
+  const token = getToken();
+  return useQuery<WornSet | null>({
+    queryKey: ["marketplace-worn", session?.user?.email ?? "anon"],
+    enabled: Boolean(token),
+    staleTime: 60_000,
+    queryFn: async () => {
+      const res = await fetch("/api/marketplace/equipped", { headers: { Authorization: `Bearer ${token ?? ""}` } });
+      if (!res.ok) return null;
+      const json = await res.json();
+      return { frame: null, avatar: null, effect: null, decorations: [], accessories: [], equipped: [], ...json } as WornSet;
+    },
+  });
+}
+
 export default function ProfilePage() {
   const { data: session } = useAuth();
   const { toast } = useToast();
@@ -346,6 +380,10 @@ export default function ProfilePage() {
   const filteredBadges = badges.filter((badge) => achievementFilter === "all" || (achievementFilter === "unlocked" ? badge.unlocked : !badge.unlocked));
   const transactions = (data?.transactions?.transactions ?? []).filter((transaction) => txFilter === "all" || (txFilter === "earn" ? transaction.amount > 0 : transaction.amount < 0));
 
+  // Called with the other hooks, before any early return — the profile header
+  // renders what the user is wearing, and hooks cannot be conditional.
+  const { data: worn } = useWornItems();
+
   if (query.isLoading) return <div className="page-container space-y-5" role="status" aria-label="Loading profile"><Skeleton className="h-32" /><Skeleton className="h-44" /><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{Array.from({ length: 8 }).map((_, index) => <Skeleton key={index} className="h-40" />)}</div></div>;
   if (query.isError || !data) return <div className="page-container"><EmptyState icon={<UserRound />} title="Profile could not be loaded" description="Check your connection and try again. Your progress is safe." action={{ label: "Retry", onClick: () => void query.refetch() }} /></div>;
 
@@ -358,8 +396,41 @@ export default function ProfilePage() {
 
       <Card elevation="glow" className="mb-5 overflow-hidden">
         <CardContent className="grid gap-6 p-6 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:p-8">
-          <Avatar className="h-20 w-20 border border-[var(--card-border)] shadow-[var(--shadow-violet-sm)]"><AvatarFallback className="bg-[var(--brand-soft)] text-xl font-semibold text-[var(--brand-strong)]">{initials}</AvatarFallback></Avatar>
-          <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h2 className="truncate text-2xl font-semibold tracking-tight">{displayName}</h2><Badge><Zap /> Level {level.level}</Badge></div><p className="mt-1 text-sm text-[var(--foreground-muted)]">{profile?.bio || "Building a more deliberate focus practice."}</p><p className="mt-2 text-xs text-[var(--foreground-subtle)]">{session?.user?.email} · {profile?.timezone ?? "UTC"}</p></div>
+          {/* The avatar wears what was bought: an equipped frame becomes the
+              ring (with the rarity glow), an equipped avatar skin replaces the
+              initials, and an equipped effect is called out under the name. */}
+          <div className="relative">
+            <Avatar
+              className="h-20 w-20 border-2 shadow-[var(--shadow-violet-sm)]"
+              style={worn?.frame ? { borderColor: WORN_RARITY[worn.frame.rarity ?? "common"]?.ring ?? "var(--card-border)", boxShadow: WORN_RARITY[worn.frame.rarity ?? "common"]?.glow } : undefined}
+            >
+              <AvatarFallback className="bg-[var(--brand-soft)] text-xl font-semibold text-[var(--brand-strong)]">
+                {worn?.avatar?.emoji ?? initials}
+              </AvatarFallback>
+            </Avatar>
+            {worn?.effect && (
+              <span aria-hidden="true" className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full border border-[var(--card-border)] bg-[var(--surface-1)] text-base" title={`${worn.effect.name} equipped`}>
+                {worn.effect.emoji}
+              </span>
+            )}
+          </div>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2"><h2 className="truncate text-2xl font-semibold tracking-tight">{displayName}</h2><Badge><Zap /> Level {level.level}</Badge>
+              {worn?.frame && <Badge variant="outline" style={{ borderColor: WORN_RARITY[worn.frame.rarity ?? "common"]?.ring, color: WORN_RARITY[worn.frame.rarity ?? "common"]?.color }}>{worn.frame.emoji} {worn.frame.name}</Badge>}
+              {worn?.effect && <Badge variant="outline">{worn.effect.emoji} {worn.effect.name}</Badge>}
+            </div>
+            <p className="mt-1 text-sm text-[var(--foreground-muted)]">{profile?.bio || "Building a more deliberate focus practice."}</p>
+            <p className="mt-2 text-xs text-[var(--foreground-subtle)]">{session?.user?.email} · {profile?.timezone ?? "UTC"}</p>
+            {(worn?.decorations?.length ?? 0) > 0 && (
+              <p className="mt-2 text-xs text-[var(--foreground-subtle)]">🏙️ City: {worn!.decorations.map(d => `${d.emoji} ${d.name}`).join(" · ")}</p>
+            )}
+            {(worn?.accessories?.length ?? 0) > 0 && (
+              <p className="mt-1 text-xs text-[var(--foreground-subtle)]">🐾 Pet: {worn!.accessories.map(a => `${a.emoji} ${a.name}`).join(" · ")}</p>
+            )}
+            {!worn?.frame && !worn?.avatar && !worn?.effect && (
+              <Link href="/marketplace" className="mt-2 inline-block text-xs font-medium text-[var(--brand-strong)] hover:underline">Wear something — browse the marketplace →</Link>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-2 text-center"><div className="rounded-xl bg-[var(--warning-soft)] p-3"><p className="text-xl font-semibold tabular-nums text-[var(--warning)]">{(data.wallet.coins ?? 0).toLocaleString()}</p><p className="text-[0.6875rem] text-[var(--foreground-subtle)]">coins</p></div><div className="rounded-xl bg-[var(--brand-soft)] p-3"><p className="text-xl font-semibold tabular-nums text-[var(--brand-strong)]">{(data.wallet.weeklyXp ?? 0).toLocaleString()}</p><p className="text-[0.6875rem] text-[var(--foreground-subtle)]">weekly XP</p></div></div>
         </CardContent>
       </Card>

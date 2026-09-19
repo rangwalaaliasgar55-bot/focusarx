@@ -3,6 +3,7 @@ import { LoadingState, MotionTab, SectionHeader, adminFetch } from "./AdminHelpe
 import type { AdminPanelProps, SiteSettings } from "./AdminTypes";
 
 type AdminTrack = { id: string; label: string; emoji?: string; url: string; credit?: string };
+type CustomSetting = { key: string; value: string | number | boolean | null; public: boolean; note: string; updatedAt: string };
 
 export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
@@ -15,7 +16,63 @@ export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
   const [trackDraft, setTrackDraft] = useState({ label: "", emoji: "", url: "", credit: "" });
   const [trackMsg, setTrackMsg] = useState<string | null>(null);
 
-  useEffect(() => { load(); void loadTracks(); }, []);
+  /* Custom settings — the admin-defined key/value escape hatch. Anything the
+     typed fields above do not cover can be registered, exposed publicly or kept
+     internal, edited and deleted without a deploy. */
+  const [custom, setCustom] = useState<CustomSetting[]>([]);
+  const [customDraft, setCustomDraft] = useState({ key: "", value: "", isPublic: false, note: "" });
+  const [customMsg, setCustomMsg] = useState<string | null>(null);
+
+  useEffect(() => { load(); void loadTracks(); void loadCustom(); }, []);
+
+  async function loadCustom() {
+    try {
+      const r = await adminFetch("/api/admin/site/custom-settings", { headers: authHeaders(), credentials: "include" });
+      if (r.ok) {
+        const d = await r.json();
+        setCustom(Array.isArray(d.settings) ? d.settings : []);
+      }
+    } catch { /* the list is optional chrome — never block the settings form */ }
+  }
+
+  /**
+   * Coerce the typed-in text into the value the server will store. We cannot
+   * ask admins to choose a JSON type from a dropdown, so "true"/"42"/"hello"
+   * become boolean/number/string, which is what they meant in every case.
+   */
+  function parseValue(raw: string): string | number | boolean | null {
+    const trimmed = raw.trim();
+    if (trimmed === "") return null;
+    if (trimmed === "true") return true;
+    if (trimmed === "false") return false;
+    if (/^-?\d+(\.\d+)?$/.test(trimmed)) return Number(trimmed);
+    return trimmed;
+  }
+
+  async function saveCustom(key: string, value: string, isPublic: boolean, note: string) {
+    setCustomMsg(null);
+    const res = await adminFetch(`/api/admin/site/custom-settings/${encodeURIComponent(key)}`, {
+      method: "PUT",
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ value: parseValue(value), public: isPublic, note }),
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) { setCustomMsg(`Error: ${d.error ?? "Could not save"}`); return false; }
+    await loadCustom();
+    setCustomMsg(`${key} saved${isPublic ? " (public)" : " (internal)"}.`);
+    return true;
+  }
+
+  async function removeCustom(key: string) {
+    setCustomMsg(null);
+    const res = await adminFetch(`/api/admin/site/custom-settings/${encodeURIComponent(key)}`, {
+      method: "DELETE", headers: authHeaders(), credentials: "include",
+    });
+    if (!res.ok) { const d = await res.json().catch(() => ({})); setCustomMsg(`Error: ${d.error ?? "Could not delete"}`); return; }
+    await loadCustom();
+    setCustomMsg(`${key} deleted.`);
+  }
 
   async function loadTracks() {
     try {
@@ -313,6 +370,85 @@ export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
               <span className={`text-xs ${trackMsg.startsWith("Error") ? "text-[var(--palette-rose-400)]" : "text-[var(--palette-emerald-400)]"}`}>{trackMsg}</span>
             )}
           </div>
+        </div>
+
+        {/* Custom settings — anything at all, added and deleted without a deploy */}
+        <div className="rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 p-5 lg:col-span-2">
+          <h3 className="mb-1 text-sm font-semibold text-[var(--palette-zinc-100)]">🧩 Custom Settings</h3>
+          <p className="mb-4 text-xs text-[var(--palette-zinc-500)]">
+            Register any setting the app does not have a typed field for. Values can be text, numbers or true/false.
+            Public settings are readable by the site at <code>/api/site/custom-settings</code>; internal ones never leave the admin surface.
+          </p>
+
+          {custom.length > 0 && (
+            <div className="mb-4 space-y-1.5">
+              {custom.map((c) => (
+                <div key={c.key} className="grid gap-2 rounded-lg border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-950)] px-3 py-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto] sm:items-center">
+                  <div className="min-w-0">
+                    <span className="block truncate font-mono text-xs font-semibold text-[var(--palette-zinc-200)]">{c.key}</span>
+                    {c.note && <span className="block truncate text-[11px] text-[var(--palette-zinc-500)]">{c.note}</span>}
+                  </div>
+                  <input
+                    aria-label={`Value for ${c.key}`}
+                    defaultValue={c.value === null ? "" : String(c.value)}
+                    onBlur={(e) => { if (e.target.value !== String(c.value ?? "")) void saveCustom(c.key, e.target.value, c.public, c.note); }}
+                    className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-900)] px-2.5 py-1.5 text-xs text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]"
+                  />
+                  <label className="flex items-center gap-1.5 text-[11px] text-[var(--palette-zinc-400)]">
+                    <input
+                      type="checkbox"
+                      checked={c.public}
+                      onChange={(e) => void saveCustom(c.key, String(c.value ?? ""), e.target.checked, c.note)}
+                      className="h-3.5 w-3.5 accent-[var(--palette-violet-600)]"
+                    />
+                    public
+                  </label>
+                  <button type="button" onClick={() => void removeCustom(c.key)}
+                    className="rounded-lg border border-[var(--palette-zinc-700)] px-2.5 py-1 text-[11px] font-semibold text-[var(--palette-zinc-400)] transition hover:border-[var(--palette-rose-500)]/50 hover:text-[var(--palette-rose-400)]">
+                    Delete
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+            <input
+              aria-label="New setting key"
+              value={customDraft.key}
+              onChange={(e) => setCustomDraft((d) => ({ ...d, key: e.target.value }))}
+              placeholder="key (e.g. exam_banner_text)"
+              className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]"
+            />
+            <input
+              aria-label="New setting value"
+              value={customDraft.value}
+              onChange={(e) => setCustomDraft((d) => ({ ...d, value: e.target.value }))}
+              placeholder="value (text, 42, true)"
+              className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]"
+            />
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-1.5 text-[11px] text-[var(--palette-zinc-400)]">
+                <input type="checkbox" checked={customDraft.isPublic}
+                  onChange={(e) => setCustomDraft((d) => ({ ...d, isPublic: e.target.checked }))}
+                  className="h-3.5 w-3.5 accent-[var(--palette-violet-600)]" />
+                public
+              </label>
+              <button type="button"
+                onClick={async () => {
+                  const key = customDraft.key.trim().toLowerCase();
+                  if (!key) { setCustomMsg("Error: a key is required"); return; }
+                  const ok = await saveCustom(key, customDraft.value, customDraft.isPublic, customDraft.note);
+                  if (ok) setCustomDraft({ key: "", value: "", isPublic: false, note: "" });
+                }}
+                className="rounded-lg bg-[var(--palette-violet-600)] px-4 py-2 text-xs font-semibold text-[var(--palette-white)] transition hover:bg-[var(--palette-violet-500)]">
+                Add setting
+              </button>
+            </div>
+          </div>
+          {customMsg && (
+            <p className={`mt-2 text-xs ${customMsg.startsWith("Error") ? "text-[var(--palette-rose-400)]" : "text-[var(--palette-emerald-400)]"}`}>{customMsg}</p>
+          )}
         </div>
       </div>
 

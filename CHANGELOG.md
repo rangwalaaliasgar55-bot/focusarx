@@ -2,6 +2,106 @@
 
 All notable changes to FocusArx. Dates are UTC.
 
+## [2026-09-19] — Gemini as staff, purchases you can see, systems per dream
+
+A pass over everything that was wired but inert: bought items that never
+appeared, flags that gated nothing, "connect an app" buttons that could not
+connect, and a mission list nobody raced.
+
+### The marketplace stopped being a place where coins disappear
+
+Buying an item equipped nothing and rendered nowhere. Now:
+
+- **Equipping has slot semantics** (`frame`/`avatar`/`effect`/`decoration`
+  replace their predecessor; pet accessories stack by pet slot), and the shop
+  card grows a real Equip button that says "Wear frame", "Put on pet",
+  "Use booster" — the verb matches the item.
+- **`GET /marketplace/equipped`** and the profile header render what you are
+  wearing: the frame becomes the avatar ring with its rarity glow, an avatar
+  skin replaces the initials, the effect rides as a badge, and city decorations
+  and pet accessories are listed under the name.
+- **Curation**: `special-xp2` / `special-coin2` are retired (their `special-*`
+  ids contradicted their own `booster` type and they undercut the whole rarity
+  ladder), thirteen legacy items are repriced onto the ladder, and premium
+  skins keep the prices their buyers agreed to. `ensureDefaultItems()` now
+  updates code-owned items instead of only inserting new ones, so curation
+  edits actually reach a seeded database.
+
+### Gemini stopped summarising and started working
+
+- **Marketplace steward** (`POST /admin/gemini/marketplace-steward`, also run
+  daily): introduces up to three new items and retires up to three. Every guard
+  rail is enforced server-side — prices clamp to the rarity ladder, premium
+  items and bundle contents are never retired, and anything owned by more than
+  25 learners is left alone.
+- **Quest builder** (`POST /admin/gemini/quest-builder`, also run daily):
+  writes new daily/weekly quests against the real metric set
+  (`focus_minutes`, `session_count`, `coins_earned`, `xp_earned`,
+  `streak_days`), clamped to target and reward bounds, namespaced with `gem-`
+  ids and idempotent.
+- **Mission of the day**: one Gemini-chosen mission for the whole platform,
+  cached per IST day, with a one-line reason and a live count of how many
+  learners already cleared it.
+- Both steward jobs have seeded fallbacks, so they do real work with zero AI
+  keys, and a failure there can never fail the briefing.
+
+### Competition you can see
+
+- **`GET /social/completions`** — the public "who just finished what" board,
+  assembled live from the mission and quest progress tables (no shadow feed, so
+  it cannot drift from reality). First name + surname initial only; bots are
+  excluded because missions are the humans' race.
+- The missions page leads with the completion feed and the featured mission.
+- **AI rivals advertise their tier**: ~40% of the bot fleet carries a
+  deterministic "Premium rival" badge on the leaderboard, alongside a plain
+  "AI rival" tag — a display label on a synthetic competitor, never a
+  fabricated subscription row.
+
+### Flags, settings and connections that work
+
+- **Feature flags have a consumer.** `useFeatureFlags()` fetches the flag map,
+  **fails open** (a flag endpoint outage never turns features off) and gates the
+  Leaderboard and Community nav entries plus the whole Loot Boxes page, which
+  renders "switched off" instead of a broken screen. The admin panel can now
+  delete flags (with `gemini_auto_publish` protected) and lists which keys are
+  actually wired.
+- **Custom site settings**: any key/value pair can be added, edited, marked
+  public or deleted from the admin panel without a deploy. Only `public: true`
+  entries leave the admin surface via `/api/site/custom-settings`.
+- **Connections without an app registration.** Every provider now offers the
+  credential-free door it actually has: a private iCal feed (fetched and
+  validated as a real calendar before saving), an incoming webhook (proven with
+  a test message at connect time), or an API key. Manual connections get a Test
+  button, and when `INTEGRATION_ENCRYPTION_KEY` is absent the card says the
+  credential is stored unencrypted instead of pretending otherwise.
+
+### Learning systems
+
+- **Auto-deck flashcards**: pick board (CBSE/ICSE/State/JEE/NEET/UPSC/CA),
+  class, subject and topic — Gemini writes the whole deck, curriculum-anchored,
+  reusing the deck when the same request is repeated.
+- **Voice**: `POST /arx/voice` turns a spoken request into an answer *and* an
+  action (create task, create goal), validated through a closed action enum.
+  Arx answers out loud via speech synthesis, and a pattern-based parser handles
+  "add task …" with no AI key at all.
+- **Dreams carry systems, not labels**: each of the twelve dream types has its
+  own subject split, daily block plan, milestones, daily habit and check-in
+  question, scaled to the learner's daily target and rendered on the dreams
+  page.
+- **Loot box reveals** now run three beats — shake (harder for higher tiers),
+  burst, reveal — with rarity colour, particle ring and a coin count-up; a
+  duplicate is paid out in coins through the ledger, and an item reward offers
+  "Equip now" so the win lands somewhere visible.
+
+### Admin fixes
+
+- **Registered-users count** is taken from the server's human-only total. The
+  old `allUsers.length - botCount` went badly negative as soon as the bot fleet
+  outgrew one page of results (the −17,986 in the screenshot).
+- **Retention tab** opens with cohort health — DAU/WAU/MAU, stickiness,
+  activation and returning rates, plus the at-risk and dormant counts that give
+  an admin something to act on.
+
 ## [2026-09-19] — Community polish, admin powers, ambient tracks
 
 Bug fixes from live screenshots and a round of community/admin upgrades:

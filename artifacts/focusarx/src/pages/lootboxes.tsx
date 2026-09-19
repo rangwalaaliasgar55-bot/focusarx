@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Coins, Gift, Lock, Package, Star } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
@@ -6,6 +6,8 @@ import { getToken } from "@/lib/auth";
 
 import { PAGE, CARD, STAGGER, POP } from "@/lib/animations";
 import { ErrorState } from "@/components/ErrorState";
+import { AnimatedCounter } from "@/components/AnimatedCounter";
+import { useFeatureFlags, FEATURE_FLAG_KEYS } from "@/hooks/useFeatureFlags";
 
 function authHeaders() {
   const t = getToken();
@@ -88,36 +90,185 @@ function BoxTypeCard({ boxType, myBoxes, wallet, onBuy, onOpen }: {
   );
 }
 
-function OpeningAnimation({ reward, onClose }: { reward: any; onClose: () => void }) {
+/**
+ * Rarity palette for the reveal. The animation is the reward's only chance to
+ * feel like one, so the tier is legible from across the room: colour, glow,
+ * label, and how hard the box shakes before it opens.
+ */
+const REVEAL_RARITY: Record<string, { label: string; color: string; glow: string; burst: number; shake: number }> = {
+  common:    { label: "Common",    color: "var(--foreground-muted)", glow: "var(--rgba-148-163-184-0_35)", burst: 10, shake: 0.18 },
+  uncommon:  { label: "Uncommon",  color: "var(--palette-10b981)",   glow: "var(--rgba-16-185-129-0_45)",  burst: 16, shake: 0.26 },
+  rare:      { label: "Rare",      color: "var(--color-info)",       glow: "var(--rgba-59-130-246-0_5)",   burst: 24, shake: 0.36 },
+  epic:      { label: "Epic",      color: "var(--brand-500)",        glow: "var(--rgba-139-92-246-0_55)",  burst: 32, shake: 0.48 },
+  legendary: { label: "Legendary", color: "var(--color-warning)",    glow: "var(--rgba-245-158-11-0_6)",   burst: 44, shake: 0.62 },
+};
+
+type RevealStage = "shake" | "burst" | "reveal";
+
+/**
+ * Three beats, because a one-frame popup that says "You got a reward!" is how
+ * you make a legendary feel like a form submission:
+ *
+ *  1. **shake** — the box rattles, harder for higher tiers, building the idea
+ *     that what is inside matters before you can see it.
+ *  2. **burst** — rings and rays expand from the box.
+ *  3. **reveal** — the reward card flips in under its own colour, coins count
+ *     up, and an item reward offers the one action that makes it real: wear it.
+ */
+function OpeningAnimation({ reward, rarity = "rare", grantedItem, inventoryId, onClose, onEquip }: {
+  reward: any;
+  rarity?: string;
+  grantedItem?: { itemId: string; name: string; emoji: string | null; type: string; rarity: string; alreadyOwned: boolean } | null;
+  inventoryId?: string | null;
+  onClose: () => void;
+  onEquip?: (inventoryId: string, itemId: string) => Promise<void> | void;
+}) {
+  const r = REVEAL_RARITY[rarity] ?? REVEAL_RARITY.rare!;
+  const [stage, setStage] = useState<RevealStage>("shake");
+  const [equipping, setEquipping] = useState(false);
+  const [equipped, setEquipped] = useState(false);
+
+  useEffect(() => {
+    const toBurst = setTimeout(() => setStage("burst"), 900);
+    const toReveal = setTimeout(() => setStage("reveal"), 1350);
+    return () => { clearTimeout(toBurst); clearTimeout(toReveal); };
+  }, []);
+
+  // Deterministic-ish particle ring: fixed angles, jittered distance, so the
+  // burst never looks like the same screenshot twice but costs no animation lib.
+  const sparks = useMemo(() => Array.from({ length: r.burst }, (_, i) => {
+    const angle = (i / r.burst) * Math.PI * 2;
+    const distance = 120 + Math.random() * 90;
+    return { id: i, x: Math.cos(angle) * distance, y: Math.sin(angle) * distance, size: 4 + Math.random() * 6 };
+  }), [r.burst]);
+
+  const coinReward = reward?.type === "coins" ? Number(reward.value ?? 0) : 0;
+
+  const canEquip = Boolean(grantedItem && !grantedItem.alreadyOwned && inventoryId && onEquip);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-[var(--palette-black)]/80 backdrop-blur-sm"
-      onClick={onClose}
+      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-[var(--palette-black)]/85 backdrop-blur-sm"
+      onClick={stage === "reveal" ? onClose : undefined}
     >
-      <motion.div
-        variants={POP}
-        initial="initial"
-        animate="animate"
-        className="rounded-3xl border border-[var(--rgba-124-58-237-0_4)] bg-[var(--palette-0d0f1c)] p-8 text-center max-w-sm w-full mx-4"
-        onClick={e => e.stopPropagation()}
-      >
+      <div className="relative w-full max-w-sm mx-4">
+        {/* Ambient tier glow behind the card */}
+        <div aria-hidden className="pointer-events-none absolute inset-[-40%] opacity-70"
+          style={{ background: `radial-gradient(circle at 50% 45%, ${r.glow} 0%, transparent 62%)` }} />
+
         <motion.div
-          animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }}
-          transition={{ duration: 0.25}}
-          className="text-7xl mb-4"
+          variants={POP}
+          initial="initial"
+          animate="animate"
+          className="relative rounded-3xl border bg-[var(--palette-0d0f1c)] p-8 text-center"
+          style={{ borderColor: r.color, boxShadow: `0 0 40px ${r.glow}` }}
+          onClick={e => e.stopPropagation()}
         >
-          {reward.emoji ?? "🎁"}
+          <div className="relative flex h-40 items-center justify-center">
+            {stage !== "reveal" && (
+              <motion.div
+                animate={stage === "shake"
+                  ? { rotate: [0, -6, 6, -5, 5, 0], scale: [1, 1 + r.shake * 0.12, 1], x: [0, -3, 3, -2, 2, 0] }
+                  : { scale: [1, 1.5], opacity: [1, 0] }}
+                transition={stage === "shake" ? { duration: 0.42, repeat: Infinity, ease: "easeInOut" } : { duration: 0.4 }}
+                className="text-7xl"
+              >
+                📦
+              </motion.div>
+            )}
+
+            {stage === "burst" && (
+              <>
+                {[0, 1] .map(ring => (
+                  <motion.span key={ring} aria-hidden className="absolute rounded-full border-2"
+                    style={{ borderColor: r.color, width: 70, height: 70 }}
+                    initial={{ scale: 0.4, opacity: 0.9 }}
+                    animate={{ scale: 4.6 + ring, opacity: 0 }}
+                    transition={{ duration: 0.75, delay: ring * 0.12, ease: "easeOut" }}
+                  />
+                ))}
+                {sparks.map(s => (
+                  <motion.span key={s.id} aria-hidden className="absolute rounded-full"
+                    style={{ background: r.color, width: s.size, height: s.size }}
+                    initial={{ x: 0, y: 0, opacity: 1 }}
+                    animate={{ x: s.x, y: s.y, opacity: 0, scale: 0.4 }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                  />
+                ))}
+              </>
+            )}
+
+            {stage === "reveal" && (
+              <motion.div
+                initial={{ scale: 0.3, rotate: -25, opacity: 0 }}
+                animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 260, damping: 14 }}
+                className="text-8xl drop-shadow-[0_0_24px_var(--rgba-0-0-0-0_6)]"
+                style={{ filter: `drop-shadow(0 0 18px ${r.glow})` }}
+              >
+                {reward.emoji ?? grantedItem?.emoji ?? "🎁"}
+              </motion.div>
+            )}
+          </div>
+
+          {stage === "reveal" ? (
+            <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
+              <span className="inline-block rounded-full px-3 py-0.5 text-[11px] font-bold uppercase tracking-[0.18em]"
+                style={{ color: r.color, border: `1px solid ${r.color}` }}>
+                {r.label}
+              </span>
+              <h2 className="mt-3 text-xl font-bold text-[var(--foreground)]">{reward.label}</h2>
+              <p className="mt-1 text-sm text-[var(--foreground-subtle)]">{reward.description}</p>
+
+              {coinReward > 0 && (
+                <p className="mt-3 text-3xl font-bold tabular-nums text-[var(--color-warning)]">
+                  <AnimatedCounter value={coinReward} duration={0.9} />
+                </p>
+              )}
+
+              {grantedItem && !grantedItem.alreadyOwned && (
+                <p className="mt-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-22d387)]">
+                  Added to your collection
+                </p>
+              )}
+
+              <div className="mt-6 space-y-2">
+                {canEquip && !equipped && (
+                  <button
+                    onClick={async () => {
+                      if (!inventoryId || !onEquip) return;
+                      setEquipping(true);
+                      try { await onEquip(inventoryId, grantedItem!.itemId); setEquipped(true); }
+                      finally { setEquipping(false); }
+                    }}
+                    disabled={equipping}
+                    className="w-full rounded-xl py-2.5 text-sm font-bold text-[var(--palette-white)] transition-transform hover:scale-[1.02] disabled:opacity-60"
+                    style={{ background: `linear-gradient(135deg, ${r.color}, color-mix(in srgb, ${r.color} 60%, transparent))` }}>
+                    {equipping ? "Equipping…" : `✨ Equip ${grantedItem!.name} now`}
+                  </button>
+                )}
+                {equipped && (
+                  <p className="rounded-xl border py-2.5 text-sm font-semibold"
+                    style={{ borderColor: r.color, color: r.color }}>
+                    ✓ Equipped — it's on your profile
+                  </p>
+                )}
+                <button onClick={onClose}
+                  className="w-full rounded-xl border border-[var(--rgba-124-58-237-0_3)] bg-[var(--rgba-124-58-237-0_2)] py-2.5 text-sm font-semibold text-[var(--brand-400)]">
+                  {equipped ? "Done" : "Keep in collection"}
+                </button>
+              </div>
+            </motion.div>
+          ) : (
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">
+              Opening…
+            </p>
+          )}
         </motion.div>
-        <h2 className="text-xl font-bold text-[var(--foreground)] mb-2">You got a reward!</h2>
-        <p className="text-[var(--brand-400)] font-semibold mb-1">{reward.label}</p>
-        <p className="text-sm text-[var(--foreground-subtle)] mb-6">{reward.description}</p>
-        <button onClick={onClose} className="w-full rounded-xl bg-[var(--rgba-124-58-237-0_2)] border border-[var(--rgba-124-58-237-0_3)] py-2.5 text-sm font-semibold text-[var(--brand-400)]">
-          Claim
-        </button>
-      </motion.div>
+      </div>
     </motion.div>
   );
 }
@@ -128,7 +279,9 @@ export default function LootBoxesPage() {
   const [wallet, setWallet] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [openedReward, setOpenedReward] = useState<any | null>(null);
+  /** The reveal payload: reward copy plus what (if anything) was granted, so the
+   *  modal can offer "Equip now" instead of ending at a congratulations screen. */
+  const [reveal, setReveal] = useState<{ reward: any; rarity: string; grantedItem: any; inventoryId: string | null } | null>(null);
   const [processing, setProcessing] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -184,7 +337,7 @@ export default function LootBoxesPage() {
       });
       const data = await res.json();
       if (!res.ok) { setToast(data.error || "Failed to open"); setTimeout(() => setToast(null), 3000); return; }
-      setOpenedReward(data.reward);
+      setReveal({ reward: data.reward, rarity: data.rarity ?? "rare", grantedItem: data.grantedItem ?? null, inventoryId: data.inventoryId ?? null });
       setMyBoxes(prev => prev.filter(b => b.id !== boxId));
       if (data.newCoins !== undefined) setWallet((w: any) => w ? { ...w, coins: data.newCoins } : w);
     } finally {
@@ -192,7 +345,27 @@ export default function LootBoxesPage() {
     }
   };
 
+  const { isOn, ready: flagsReady } = useFeatureFlags();
   const totalOwned = myBoxes.filter(b => b.status === "unopened").length;
+
+  /*
+    Feature-flag gate. "Loot Boxes" is a switchable subsystem — an admin turning
+    it off in Feature Flags must take the whole mechanic out of the product, not
+    just hide a link. Failing open (flag missing → visible) is handled by the hook.
+  */
+  if (flagsReady && !isOn(FEATURE_FLAG_KEYS.lootBoxes)) {
+    return (
+      <PageTransition>
+        <div className="mx-auto max-w-lg px-4 py-20 text-center">
+          <p className="text-3xl">📦</p>
+          <h1 className="mt-3 text-xl font-bold text-[var(--foreground)]">Loot boxes are switched off</h1>
+          <p className="mt-2 text-sm text-[var(--foreground-subtle)]">
+            An admin has paused this feature for now. Your unopened boxes are safe — they'll be here when it's back.
+          </p>
+        </div>
+      </PageTransition>
+    );
+  }
 
   if (loading) return (
     <div className="flex min-h-screen items-center justify-center">
@@ -241,7 +414,19 @@ export default function LootBoxesPage() {
 
         {/* Reward popup */}
         <AnimatePresence>
-          {openedReward && <OpeningAnimation reward={openedReward} onClose={() => setOpenedReward(null)} />}
+          {reveal && (
+            <OpeningAnimation
+              reward={reveal.reward}
+              rarity={reveal.rarity}
+              grantedItem={reveal.grantedItem}
+              inventoryId={reveal.inventoryId}
+              onClose={() => setReveal(null)}
+              onEquip={async (invId) => {
+                const res = await fetch(`/api/marketplace/inventory/${invId}/equip`, { method: "POST", headers: authHeaders() });
+                if (!res.ok) throw new Error("Could not equip");
+              }}
+            />
+          )}
         </AnimatePresence>
 
         {/* Toast */}

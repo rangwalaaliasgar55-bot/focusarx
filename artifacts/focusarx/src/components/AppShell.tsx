@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { BrandMark } from "@/components/ui/brand";
+import { useFeatureFlags, FEATURE_FLAG_KEYS } from "@/hooks/useFeatureFlags";
 import {
   BarChart3,
   Bell,
@@ -178,16 +179,34 @@ function CountBadge({ count }: { count: number }) {
   );
 }
 
+/**
+ * Which feature flag hides which destination.
+ *
+ * A flag only "works" when flipping it changes the product, so the shell is the
+ * first real consumer: the switch an admin flips in Feature Flags removes the
+ * link *and* the page it points at renders a disabled state (see gated pages).
+ * Anything not listed here is never gated — fail-open is the rule.
+ */
+const NAV_FLAG_MAP: Record<string, string> = {
+  "/leaderboard": FEATURE_FLAG_KEYS.leaderboard,
+  "/social": FEATURE_FLAG_KEYS.social,
+};
+
 function Navigation({ onNavigate }: { onNavigate?: () => void }) {
   const [location] = useLocation();
   const { data: user } = useAuth();
   const { isPremium } = usePremium();
   const { data: missionCount = 0 } = useClaimableMissionCount();
+  const { isOn } = useFeatureFlags();
 
   return (
     <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5" aria-label="Primary navigation">
       {NAV_GROUPS.map((group) => {
-        const entries = group.entries.filter((entry) => !entry.admin || isAdminUser(user?.user));
+        const entries = group.entries.filter((entry) => !entry.admin || isAdminUser(user?.user))
+          .filter((entry) => {
+            const flag = NAV_FLAG_MAP[entry.href];
+            return flag ? isOn(flag) : true;
+          });
         if (!entries.length) return null;
         return (
           <section key={group.label} aria-labelledby={`nav-${group.label.toLowerCase()}`}>

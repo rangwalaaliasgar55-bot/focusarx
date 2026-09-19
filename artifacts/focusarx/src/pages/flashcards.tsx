@@ -53,6 +53,11 @@ export default function FlashcardsPage() {
    * reviews I did are gone".
    */
   const [decksError, setDecksError] = useState<string | null>(null);
+  /* Gemini auto-deck builder: board + class + subject + topic → a whole deck. */
+  const [autoOpen, setAutoOpen] = useState(false);
+  const [autoDraft, setAutoDraft] = useState({ board: "CBSE", classLevel: "10", subject: "", topic: "", count: 12 });
+  const [autoBusy, setAutoBusy] = useState(false);
+  const [autoMsg, setAutoMsg] = useState<string | null>(null);
   const [cardsError, setCardsError] = useState<string | null>(null);
   /**
    * Grades whose save failed.
@@ -95,10 +100,37 @@ export default function FlashcardsPage() {
         setDecksError(err instanceof Error ? err.message : 'Request failed');
       }
     })();
-    return () => {
+  return () => {
       cancelled = true;
     };
   }, [token]);
+
+    /**
+   * Ask Gemini for a whole deck from a curriculum position. The server reuses
+   * an existing deck with the same title, so this is safe to press twice.
+   */
+  const generateAutoDeck = async () => {
+    if (!autoDraft.subject.trim() || !autoDraft.topic.trim()) { setAutoMsg("Add a subject and a topic."); return; }
+    setAutoBusy(true);
+    setAutoMsg(null);
+    try {
+      const res = await fetch("/api/flashcards/decks/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ ...autoDraft, classLevel: autoDraft.classLevel || undefined }),
+      });
+      const d = await res.json();
+      if (!res.ok) { setAutoMsg(d.error ?? "Could not generate the deck"); return; }
+      const deck = d.deck as { id: number; title: string; existed: boolean };
+      setDecks(prev => prev.some(x => x.id === deck.id)
+        ? prev
+        : [...prev, { id: deck.id, title: deck.title, description: `Auto-built for ${autoDraft.board}`, cardCount: d.cards?.length ?? 0, dueCount: d.cards?.length ?? 0 }]);
+      setAutoMsg(`${deck.existed ? "Added" : "Created"} ${d.cards?.length ?? 0} cards in “${deck.title}”.`);
+      setAutoOpen(false);
+    } finally {
+      setAutoBusy(false);
+    }
+  };
 
   // Load cards for active deck
   const loadCards = useCallback(async (deckId: number) => {
@@ -286,13 +318,91 @@ export default function FlashcardsPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold">Your Decks</h2>
-              <button
-                onClick={() => setShowCreateDeck(true)}
-                className="flex items-center gap-1.5 rounded-xl border border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/10 px-3 py-2 text-xs font-bold text-[var(--palette-violet-300)] hover:bg-[var(--palette-violet-500)]/20 transition-all"
-              >
-                <Plus size={12} /> New Deck
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => { setAutoOpen(v => !v); setAutoMsg(null); }}
+                  className="flex items-center gap-1.5 rounded-xl border border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/10 px-3 py-2 text-xs font-bold text-[var(--palette-emerald-400)] hover:bg-[var(--palette-emerald-500)]/20 transition-all"
+                >
+                  ✨ {autoOpen ? "Close" : "Auto-build with Gemini"}
+                </button>
+                <button
+                  onClick={() => setShowCreateDeck(true)}
+                  className="flex items-center gap-1.5 rounded-xl border border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/10 px-3 py-2 text-xs font-bold text-[var(--palette-violet-300)] hover:bg-[var(--palette-violet-500)]/20 transition-all"
+                >
+                  <Plus size={12} /> New Deck
+                </button>
+              </div>
             </div>
+
+            {autoOpen && (
+              <div className="rounded-2xl border border-[var(--palette-emerald-500)]/25 bg-[var(--palette-emerald-500)]/5 p-4">
+                <p className="text-sm font-bold text-[var(--palette-emerald-300)]">Pick where you are in the syllabus</p>
+                <p className="mt-1 text-[11px] text-[var(--palette-zinc-500)]">
+                  Gemini writes a full deck for that board, class and topic — no notes needed. Premium feature.
+                </p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                  <label className="text-[11px] text-[var(--palette-zinc-400)]">
+                    Board / exam
+                    <select
+                      value={autoDraft.board}
+                      onChange={(e) => setAutoDraft(d => ({ ...d, board: e.target.value }))}
+                      className="mt-1 w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-2.5 py-2 text-xs text-[var(--palette-zinc-200)] outline-none"
+                    >
+                      {["CBSE", "ICSE", "State Board", "JEE", "NEET", "UPSC", "CA Foundation", "Other"].map(b => <option key={b} value={b}>{b}</option>)}
+                    </select>
+                  </label>
+                  <label className="text-[11px] text-[var(--palette-zinc-400)]">
+                    Class (optional)
+                    <input
+                      value={autoDraft.classLevel}
+                      onChange={(e) => setAutoDraft(d => ({ ...d, classLevel: e.target.value }))}
+                      placeholder="10"
+                      maxLength={6}
+                      className="mt-1 w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-2.5 py-2 text-xs text-[var(--palette-zinc-200)] outline-none"
+                    />
+                  </label>
+                  <label className="text-[11px] text-[var(--palette-zinc-400)]">
+                    Subject
+                    <input
+                      value={autoDraft.subject}
+                      onChange={(e) => setAutoDraft(d => ({ ...d, subject: e.target.value }))}
+                      placeholder="Physics"
+                      maxLength={60}
+                      className="mt-1 w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-2.5 py-2 text-xs text-[var(--palette-zinc-200)] outline-none"
+                    />
+                  </label>
+                  <label className="text-[11px] text-[var(--palette-zinc-400)]">
+                    Topic
+                    <input
+                      value={autoDraft.topic}
+                      onChange={(e) => setAutoDraft(d => ({ ...d, topic: e.target.value }))}
+                      placeholder="Light — reflection & refraction"
+                      maxLength={120}
+                      className="mt-1 w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-2.5 py-2 text-xs text-[var(--palette-zinc-200)] outline-none"
+                    />
+                  </label>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() => void generateAutoDeck()}
+                    disabled={autoBusy}
+                    className="rounded-xl bg-[var(--palette-emerald-600)] px-4 py-2 text-xs font-bold text-[var(--palette-white)] disabled:opacity-50"
+                  >
+                    {autoBusy ? "Gemini is writing cards…" : `Build ${autoDraft.count} cards`}
+                  </button>
+                  <label className="text-[11px] text-[var(--palette-zinc-400)]">
+                    Cards
+                    <input
+                      type="number" min={5} max={30}
+                      value={autoDraft.count}
+                      onChange={(e) => setAutoDraft(d => ({ ...d, count: Math.min(30, Math.max(5, Number(e.target.value) || 12)) }))}
+                      className="ml-2 w-16 rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-2 py-1 text-xs text-[var(--palette-zinc-200)] outline-none"
+                    />
+                  </label>
+                  {autoMsg && <span className="text-[11px] text-[var(--palette-emerald-400)]">{autoMsg}</span>}
+                </div>
+              </div>
+            )}
 
             {decksError ? (
               /* Before the empty branch: a failed request is not an empty deck. */

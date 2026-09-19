@@ -897,6 +897,67 @@ router.get("/admin/retention", async (req, res) => {
       unread: sql<number>`count(*) filter (where ${notificationsTable.read} = false)`,
     }).from(notificationsTable);
 
+    /*
+      The numbers this tab is named after. Everything above measures *mechanics*
+      (login rewards, freezes, battle-pass tiers) — engagement furniture, not
+      retention. These are the actual questions: are people coming back, how
+      many, and who is about to leave?
+
+      DAU/WAU/MAU come from distinct users with a completed focus session, which
+      is the only signal that means "did the thing the product is for". The
+      at-risk and dormant buckets are defined by the last time someone studied,
+      so they double as the re-engagement target list.
+    */
+    const countOne = async (text: string, params: unknown[] = []): Promise<number> => {
+      try {
+        const r = await pool.query(text, params);
+        return Number((r.rows[0] as { n?: number } | undefined)?.n ?? 0);
+      } catch (err) {
+        logger.warn({ err }, "retention metric query failed");
+        return 0;
+      }
+    };
+
+    const activeWindow = `SELECT count(DISTINCT user_id)::int AS n FROM focus_sessions
+       WHERE mode = 'focus' AND completed_at >= now() - ($1 || ' days')::interval`;
+    const dau = await countOne(activeWindow, ["1"]);
+    const wau = await countOne(activeWindow, ["7"]);
+    const mau = await countOne(activeWindow, ["30"]);
+
+    const signedUp7d = await countOne(
+      `SELECT count(*)::int AS n FROM users WHERE is_guest = false AND coalesce(role, 'user') <> 'bot' AND created_at >= now() - interval '7 days'`
+    );
+    const activated7d = await countOne(
+      `SELECT count(*)::int AS n FROM users u
+        WHERE u.is_guest = false AND coalesce(u.role, 'user') <> 'bot'
+          AND u.created_at >= now() - interval '7 days'
+          AND EXISTS (SELECT 1 FROM focus_sessions s WHERE s.user_id = u.id AND s.mode = 'focus')`
+    );
+    // Returned = had a session in the last week AND had one before that week.
+    const returned7d = await countOne(
+      `SELECT count(DISTINCT s.user_id)::int AS n FROM focus_sessions s
+        WHERE s.mode = 'focus' AND s.completed_at >= now() - interval '7 days'
+          AND EXISTS (SELECT 1 FROM focus_sessions e WHERE e.user_id = s.user_id AND e.mode = 'focus' AND e.completed_at < now() - interval '7 days')`
+    );
+    const atRisk = await countOne(
+      `SELECT count(*)::int AS n FROM users u
+        WHERE u.is_guest = false AND coalesce(u.role, 'user') <> 'bot'
+          AND EXISTS (SELECT 1 FROM focus_sessions s WHERE s.user_id = u.id AND s.mode = 'focus' AND s.completed_at >= now() - interval '30 days')
+          AND NOT EXISTS (SELECT 1 FROM focus_sessions s WHERE s.user_id = u.id AND s.mode = 'focus' AND s.completed_at >= now() - interval '7 days')`
+    );
+    const dormant = await countOne(
+      `SELECT count(*)::int AS n FROM users u
+        WHERE u.is_guest = false AND coalesce(u.role, 'user') <> 'bot'
+          AND NOT EXISTS (SELECT 1 FROM focus_sessions s WHERE s.user_id = u.id AND s.mode = 'focus' AND s.completed_at >= now() - interval '30 days')`
+    );
+    const healthyStreaks = await countOne(`SELECT count(*)::int AS n FROM study_streaks WHERE current_streak >= 7`);
+    const endangeredStreaks = await countOne(
+      `SELECT count(*)::int AS n FROM study_streaks st
+        WHERE st.current_streak >= 3
+          AND NOT EXISTS (SELECT 1 FROM focus_sessions s
+            WHERE s.user_id = st.user_id AND s.mode = 'focus' AND s.completed_at >= now() - interval '24 hours')`
+    );
+
     res.json({
       loginRewards: {
         totalClaims: Number(loginRewardStats?.totalClaims ?? 0),
@@ -918,6 +979,20 @@ router.get("/admin/retention", async (req, res) => {
       notifications: {
         total: Number(notifStats?.total ?? 0),
         unread: Number(notifStats?.unread ?? 0),
+      },
+      cohorts: {
+        dau, wau, mau,
+        /** DAU/MAU — how much of the monthly audience shows up on a given day. */
+        stickiness: mau > 0 ? Math.round((dau / mau) * 100) : 0,
+        signedUp7d,
+        activated7d,
+        activationRate: signedUp7d > 0 ? Math.round((activated7d / signedUp7d) * 100) : 0,
+        returned7d,
+        returningShare: wau > 0 ? Math.round((returned7d / wau) * 100) : 0,
+        atRisk,
+        dormant,
+        healthyStreaks,
+        endangeredStreaks,
       },
     });
   } catch (err) {

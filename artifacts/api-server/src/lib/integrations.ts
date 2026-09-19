@@ -164,10 +164,31 @@ export interface ProviderView {
   configured: boolean;
   /** Manual providers are imported from a file, not authorized. */
   manual: boolean;
+  /**
+   * Which link-based connect kinds this provider supports, so the UI can offer
+   * the right form instead of guessing from the provider key. Empty when the
+   * provider has no credential-free path.
+   */
+  manualKinds: Array<"calendar_feed" | "webhook" | "api_key">;
   revokeUrl?: string;
   /** Why it cannot be used, when it cannot — shown verbatim in the UI. */
   unavailableReason?: string;
 }
+
+/**
+ * Which credential-free doors each provider actually has. A calendar provider
+ * can be read from a private iCal link; chat and generic providers accept an
+ * incoming webhook; everything else falls back to a stored API key.
+ */
+const MANUAL_KINDS: Record<string, Array<"calendar_feed" | "webhook" | "api_key">> = {
+  google_calendar: ["calendar_feed"],
+  google_fit: ["api_key"],
+  slack: ["webhook", "api_key"],
+  discord: ["webhook"],
+  notion: ["api_key"],
+  todoist: ["api_key"],
+  zapier: ["webhook"],
+};
 
 export function providerView(provider: ProviderDefinition): ProviderView {
   const manual = isManualProvider(provider);
@@ -190,6 +211,7 @@ export function providerView(provider: ProviderDefinition): ProviderView {
     scopes: provider.scopes,
     configured,
     manual,
+    manualKinds: manual ? [] : (MANUAL_KINDS[provider.key] ?? ["webhook", "api_key"]),
     ...(provider.revokeUrl ? { revokeUrl: provider.revokeUrl } : {}),
     ...(unavailableReason ? { unavailableReason } : {}),
   };
