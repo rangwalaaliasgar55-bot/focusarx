@@ -561,7 +561,7 @@ export function IntegrationSettings() {
                         id={`manual-${provider.key}`}
                         value={manualValue}
                         onChange={(e) => setManualValue(e.target.value)}
-                        placeholder={manualKind === "calendar_feed" ? "https://calendar.google.com/calendar/ical/…/basic.ics" : manualKind === "webhook" ? "https://hooks.slack.com/services/…" : "sk_live_…"}
+                        placeholder={manualKind === "calendar_feed" ? "https://calendar.google.com/calendar/ical/…/basic.ics" : manualKind === "webhook" ? "https://hooks.slack.com/services/…" : "paste your API key or token…"}
                         className="mt-1.5 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--brand-strong)]"
                       />
                       <div className="mt-2 flex items-center gap-2">
