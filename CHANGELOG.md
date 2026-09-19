@@ -106,6 +106,46 @@ when the ciphertext is leaked through a response shape, or when a URL check is
 removed; `webhookEvents.test.ts` fails when an event is added to the catalog with
 no emitter and when a milestone event would fire on an ordinary day.
 
+## [Unreleased] — pets: a real companion on every device, and moods made visible
+
+Two upgrades, both driven by the interface proposals in `focusarx-resource`
+and both fixing the same underlying gap: the pets page treated the no-WebGL
+path as an afterthought.
+
+### The 2D path used to be a bare emoji
+
+`Pet3D` covers capable devices, but the fallback — low-end Android, the
+explicit 2D toggle, crash recovery, and reduced-motion users, since
+`is3DCapable()` declines them — rendered `<div className="text-8xl">🦉</div>`.
+A companion reduced to a glyph stops being a companion, and these are exactly
+the devices the audit worries about. `PetStage2D` ports the proposal's
+`PetStage` idea into the app's tokens: rarity-tinted halo and floor glow,
+spring-smoothed pointer tilt, a tap ripple with a wiggle and a "noticed you"
+reply, and a mood chip. Two things from the proposal were deliberately left
+on the cutting-room floor: its orbiting ring, breathing halo and drifting
+particulate are looping decorations, which the design audit bans, so every
+movement in the stage is a *reaction* (hover, pointer, tap) and everything
+collapses under `prefers-reduced-motion`; and its interaction never hints at
+rewards, because bond XP is awarded only by the server for verified sessions
+(`lib/petBond.ts` — the public `/bond` route is a 410 precisely because
+clients farmed it). The stage says "tap to say hi", never "earn". It is used
+in the active-pet showcase and in the catalog detail modal, where the pet is
+now presented on a stage instead of as a flat emoji in the header.
+
+### The server already derives a mood; the page ignored it
+
+`GET /api/pets` computes a mood from the user's own behaviour — excited with
+a recent session and a 3+ streak, happy with recent focus, sleepy after
+three quiet days — and the page hardcoded `mood="happy"` for the 3D pet and
+showed nothing in 2D. The showcase now fetches it best-effort alongside the
+catalog and inventory (guests and failures fall back to neutral rather than
+breaking), passes it to `Pet3D`, and renders it in the stage chip. A pet
+that visibly gets sleepy when you disappear is the honest face of the streak
+mechanic — the same idea the proposals built their marketing around, wired
+to real data instead of invented copy. Species glyphs also gained a single
+`emojiForPet()` helper keyed by catalog slug, so a new catalog entry can no
+longer render as a blank disc.
+
 ## [Unreleased] — landing page: the timer itself, ported from the design proposals
 
 The `focusarx-resource` repo holds four independent interface proposals for
