@@ -16,6 +16,8 @@ export default tseslint.config(
       "tmp/**",
       "**/*.d.mts",
       "lib/db/drizzle/**",
+      // Machine-generated staging manifest (scripts/generate-pet-staging.mjs).
+      "artifacts/api-server/src/lib/petStagingData.ts",
     ],
   },
   js.configs.recommended,

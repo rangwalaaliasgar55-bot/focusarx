@@ -14,6 +14,8 @@ export type AuditAction =
   | "admin_bot_tick"
   | "admin_break_free_action"
   | "admin_drop_trigger"
+  | "admin_pet_release"
+  | "admin_pet_pull"
   | "admin_account_deletion_purge"
   | "integration_connected"
   | "integration_disconnected"

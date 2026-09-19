@@ -1,4 +1,5 @@
 import { SectionHeader, StatCard, MotionTab, EmptyState } from "./AdminHelpers";
+import { AdminPetReleases } from "./AdminPetReleases";
 import type { PetStats } from "./AdminTypes";
 
 const PET_TYPES = [
@@ -23,6 +24,7 @@ export function AdminPetsPanel({ petStats }: { petStats: PetStats }) {
       <MotionTab>
         <SectionHeader title="Pet CMS" sub="Overview of all pet companions across the platform." />
         <EmptyState title="No pets adopted yet" description="Pet data will appear once users adopt companions." />
+        <AdminPetReleases />
       </MotionTab>
     );
   }
@@ -70,6 +72,8 @@ export function AdminPetsPanel({ petStats }: { petStats: PetStats }) {
           ))}
         </div>
       </div>
+
+      <AdminPetReleases />
     </MotionTab>
   );
 }
