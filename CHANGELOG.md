@@ -106,6 +106,29 @@ when the ciphertext is leaked through a response shape, or when a URL check is
 removed; `webhookEvents.test.ts` fails when an event is added to the catalog with
 no emitter and when a milestone event would fail on an ordinary day.
 
+## [Unreleased] — launcher overlap fixed, three timer faces, geometry by media query
+
+- **Quick Launch no longer overlaps anything.** The orb sat exactly at the
+  top edge of the mobile bottom nav (both were `4.5rem + safe-area`) and the
+  panel floated at a fixed 9rem with no height cap — on shorter phones it
+  clipped under the header and kissed the nav border. Geometry now lives in
+  index.css media queries (inline styles would outrank responsive classes):
+  the orb clears the nav by a visible gap on mobile and anchors to the plain
+  viewport corner on desktop where the nav is hidden; the panel is inset from
+  both screen edges on phones, right-anchored beside the orb on desktop, and
+  scrolls internally under a viewport-derived max-height. 1 new test pins the
+  geometry hooks.
+- **Three timer faces.** Classic (the existing ring), **Neon** (brand→pink
+  gradient ring + brighter halo, focus mode only so break/long-break keep
+  their rest colours), and **Zen** (8px ring, near-silent halo, softer
+  shadow). A Face picker sits under the session dots; the choice persists in
+  localStorage. Deliberately free-tier only: paid membership skins already
+  restyle the ring as part of their value, so when a skin is active it wins
+  and the picker stands down. 9 new tests (5 display cases, 4 persistence).
+
+Gates: api-server 607 tests, frontend 767 tests, tsc + eslint clean (only
+pre-existing warnings), build + SEO + prerender + bundle budget PASS.
+
 ## [Unreleased] — auto-publish goes live, and one circle opens the whole momentum layer
 
 - **Gemini auto-publish is ON.** Approving an idea now ships it to the

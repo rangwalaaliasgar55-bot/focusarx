@@ -94,4 +94,37 @@ describe("TimerDisplay finish time", () => {
     render(<TimerDisplay {...base({ isRunning: false })} />);
     expect(screen.getByRole("button").getAttribute("aria-label")).not.toMatch(/Finishes at/);
   });
+
+  it("classic (default) draws the 14px ring with no gradient", () => {
+    const { container } = render(<TimerDisplay {...base()} />);
+    const circles = container.querySelectorAll("circle[stroke-dasharray]");
+    expect(circles.length).toBeGreaterThan(0);
+    expect(circles[0].getAttribute("stroke-width")).toBe("14");
+    expect(container.querySelector("linearGradient")).toBeNull();
+  });
+
+  it("zen thins the ring to 8px", () => {
+    const { container } = render(<TimerDisplay {...base({ theme: "zen" })} />);
+    const circle = container.querySelector("circle[stroke-dasharray]");
+    expect(circle?.getAttribute("stroke-width")).toBe("8");
+  });
+
+  it("neon paints a gradient ring on focus", () => {
+    const { container } = render(<TimerDisplay {...base({ theme: "neon" })} />);
+    expect(container.querySelector("linearGradient")).toBeTruthy();
+    const circle = container.querySelector("circle[stroke-dasharray]");
+    expect(circle?.getAttribute("stroke")).toMatch(/^url\(#/);
+  });
+
+  it("neon keeps break/long-break rings solid so rest reads as rest", () => {
+    const { container } = render(<TimerDisplay {...base({ theme: "neon", mode: "break" })} />);
+    expect(container.querySelector("linearGradient")).toBeNull();
+  });
+
+  it("a paid membership skin wins over a chosen theme", () => {
+    // pro skin is a gradient; even with zen picked the skin's stroke stands.
+    const { container } = render(<TimerDisplay {...base({ theme: "zen", tier: "pro" })} />);
+    const circle = container.querySelector("circle[stroke-dasharray]");
+    expect(circle?.getAttribute("stroke-width")).toBe("14");
+  });
 });

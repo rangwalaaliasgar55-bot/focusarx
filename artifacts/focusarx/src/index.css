@@ -573,6 +573,35 @@ h1, h2, .text-display, .text-h1 {
 }
 @keyframes aurora-spin { to { transform: rotate(360deg); } }
 
+/* ── Quick Launch orb geometry ──────────────────────────────────────────────
+   The mobile bottom nav is exactly `4.5rem + safe-area` tall. The orb sits
+   that PLUS a visible gap above it (never touching the nav border), and the
+   panel clears the orb by its own height + gap. On md+ the nav is hidden,
+   so both anchor to the plain viewport corner instead of floating 4.5rem
+   above nothing. On phones the panel is inset from BOTH edges (it can never
+   clip the screen side); on desktop it right-anchors beside the orb. The
+   viewport-derived max-height + internal scroll means short screens get a
+   scrollable panel, never one that runs under the header. */
+.quicklaunch-orb {
+  bottom: calc(4.5rem + env(safe-area-inset-bottom) + 0.75rem);
+}
+.quicklaunch-panel {
+  inset-inline: 1rem;
+  bottom: calc(4.5rem + env(safe-area-inset-bottom) + 5.5rem);
+  max-height: calc(100dvh - 7.5rem - env(safe-area-inset-bottom));
+}
+@media (min-width: 768px) {
+  .quicklaunch-orb {
+    bottom: 1.5rem;
+  }
+  .quicklaunch-panel {
+    inset-inline: auto 1.5rem;
+    width: 22rem;
+    bottom: calc(1.5rem + 3.5rem + 0.75rem);
+    max-height: calc(100dvh - 8.5rem);
+  }
+}
+
 /* Display serif for marketing headlines — adopted from the focusarx-resource
    "professional website" redesign, which pairs DM Sans body copy with
    Instrument Serif headlines. Instrument Serif ships a single 400 weight and
