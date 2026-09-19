@@ -4,6 +4,7 @@ import { Pencil } from "lucide-react";
 import { formatTime } from "@/lib/timerUtils";
 import { RollingClock } from "@/components/RollingClock";
 import { getTimerSkin, skinTextGradient, type MembershipTier } from "@/lib/membershipSkin";
+import type { TimerTheme } from "@/lib/timerTheme";
 import { useNow } from "@/hooks/useNow";
 import type { TimerMode } from "@/types/timer";
 
@@ -17,6 +18,8 @@ interface TimerDisplayProps {
   activeSecondsEarned?: number;
   /** Cosmetic membership tier — drives the ring skin. Defaults to `free`. */
   tier?: MembershipTier;
+  /** Cosmetic face design (Classic / Neon / Zen). Paid skins override it. */
+  theme?: TimerTheme;
 }
 
 /**
@@ -69,8 +72,6 @@ function formatEndTime(timestamp: number): string {
 
 const SIZE = 300;
 const STROKE = 14;
-const RADIUS = (SIZE - STROKE) / 2;
-const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 const EASE = [0.32, 0.72, 0, 1] as const;
 
 const MODE_CONFIG: Record<TimerMode, { label: string; ring: string; ringSoft: string }> = {
@@ -88,19 +89,28 @@ export function TimerDisplay({
   sessionType,
   activeSecondsEarned = 0,
   tier = "free",
+  theme = "classic",
 }: TimerDisplayProps) {
   const { minutes, seconds } = formatTime(secondsLeft);
   const modeCfg = MODE_CONFIG[mode];
   const skin = getTimerSkin(tier);
   const skinned = mode === "focus" && skin.tier !== "free";
   const ring = skinned ? skin.ring : modeCfg.ring;
-  const ringAlt = skinned ? skin.ringAlt : modeCfg.ring;
+  // Neon gives the *focus* ring a brand→pink gradient; break modes keep
+  // their rest colours in every design so work-vs-rest stays unmistakable.
+  const neonFocus = !skinned && theme === "neon" && mode === "focus";
+  const ringAlt = skinned ? skin.ringAlt : neonFocus ? "var(--brand-pink)" : modeCfg.ring;
   const track = skinned ? skin.track : modeCfg.ringSoft;
-  const glow = skinned ? skin.glow : 0.22;
-  const useGradient = skinned && skin.gradient;
+  const glow = skinned ? skin.glow : theme === "neon" ? 0.34 : theme === "zen" ? 0.08 : 0.22;
+  const useGradient = (skinned && skin.gradient) || neonFocus;
+  // Zen thins the ring right down; every other design keeps the 14px stroke.
+  const zen = !skinned && theme === "zen";
+  const strokeWidth = zen ? 8 : STROKE;
+  const radius = (SIZE - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
   const reduced = !!useReducedMotion();
   const clamped = Math.min(1, Math.max(0, progress));
-  const dashOffset = CIRCUMFERENCE * (1 - clamped);
+  const dashOffset = circumference * (1 - clamped);
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const gradId = `ring-grad-${uid}`;
   const shadowId = `ring-shadow-${uid}`;
@@ -133,8 +143,8 @@ export function TimerDisplay({
   // Spark position on the ring head (Pro / Elite). The SVG is rotated -90°,
   // so angle 0 is 12 o'clock; progress sweeps clockwise.
   const sparkAngle = clamped * Math.PI * 2 - Math.PI / 2;
-  const sparkX = SIZE / 2 + RADIUS * Math.cos(sparkAngle);
-  const sparkY = SIZE / 2 + RADIUS * Math.sin(sparkAngle);
+  const sparkX = SIZE / 2 + radius * Math.cos(sparkAngle);
+  const sparkY = SIZE / 2 + radius * Math.sin(sparkAngle);
   const showSpark = skinned && skin.spark && isRunning && clamped > 0.002 && clamped < 0.998;
 
   return (
@@ -158,7 +168,7 @@ export function TimerDisplay({
           maskImage: useGradient ? "radial-gradient(circle, black 0%, black 40%, transparent 68%)" : undefined,
           WebkitMaskImage: useGradient ? "radial-gradient(circle, black 0%, black 40%, transparent 68%)" : undefined,
         }}
-        animate={isRunning && !reduced ? { opacity: [0.55, 0.9, 0.55], scale: [0.98, 1.03, 0.98], rotate: useGradient ? 360 : 0 } : { opacity: isRunning ? 0.7 : 0.35, scale: 1 }}
+        animate={isRunning && !reduced && !zen ? { opacity: [0.55, 0.9, 0.55], scale: [0.98, 1.03, 0.98], rotate: useGradient ? 360 : 0 } : { opacity: zen ? 0.18 : isRunning ? 0.7 : 0.35, scale: 1 }}
         transition={isRunning && !reduced
           ? { opacity: { duration: 4.2, repeat: Infinity, ease: "easeInOut" }, scale: { duration: 4.2, repeat: Infinity, ease: "easeInOut" }, rotate: { duration: 38, repeat: Infinity, ease: "linear" } }
           : { duration: 0.25}}
@@ -175,7 +185,7 @@ export function TimerDisplay({
       <svg width={SIZE} height={SIZE} className="absolute inset-0 -rotate-90" aria-hidden>
         <defs>
           <filter id={shadowId} x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="0" stdDeviation={skinned ? 3 + glow * 4 : 3} floodColor={ring} floodOpacity={skinned ? 0.55 : 0.45} />
+            <feDropShadow dx="0" dy="0" stdDeviation={zen ? 2 : skinned ? 3 + glow * 4 : 3} floodColor={ring} floodOpacity={zen ? 0.25 : skinned ? 0.55 : 0.45} />
           </filter>
           {useGradient && (
             <linearGradient id={gradId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={SIZE} y2={SIZE}>
@@ -185,14 +195,14 @@ export function TimerDisplay({
             </linearGradient>
           )}
         </defs>
-        <circle cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} fill="none" stroke={track} strokeWidth={STROKE} />
+        <circle cx={SIZE / 2} cy={SIZE / 2} r={radius} fill="none" stroke={track} strokeWidth={strokeWidth} />
         {/* Elite: faint tick marks every 5 minutes-worth of arc, like a chronograph bezel */}
         {skinned && skin.tier === "elite" && (
           <g opacity={0.35}>
             {Array.from({ length: 12 }, (_, i) => {
               const a = (i / 12) * Math.PI * 2;
-              const r0 = RADIUS - STROKE / 2 - 5;
-              const r1 = RADIUS - STROKE / 2 - 1;
+              const r0 = radius - strokeWidth / 2 - 5;
+              const r1 = radius - strokeWidth / 2 - 1;
               return (
                 <line
                   key={i}
@@ -207,12 +217,12 @@ export function TimerDisplay({
         <motion.circle
           cx={SIZE / 2}
           cy={SIZE / 2}
-          r={RADIUS}
+          r={radius}
           fill="none"
           stroke={useGradient ? `url(#${gradId})` : ring}
-          strokeWidth={STROKE}
+          strokeWidth={strokeWidth}
           strokeLinecap="round"
-          strokeDasharray={CIRCUMFERENCE}
+          strokeDasharray={circumference}
           initial={false}
           animate={{ strokeDashoffset: dashOffset }}
           transition={reduced ? { duration: 0 } : { duration: isRunning ? 1 : 0.6, ease: isRunning ? "linear" : EASE }}

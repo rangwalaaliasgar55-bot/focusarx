@@ -56,6 +56,19 @@ const LAUNCH_ITEMS: LaunchItem[] = [
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
+/**
+ * Geometry contract (this is what the overlap bugs were):
+ * - The mobile bottom nav is exactly `4.5rem + safe-area` tall, so the orb
+ *   sits that PLUS a visible gap above it — never touching the nav border.
+ * - On md+ the nav is hidden, so both orb and panel anchor to the plain
+ *   viewport corner instead of floating 4.5rem above nothing (handled in
+ *   index.css via a media query, since inline styles would outrank it).
+ * - The panel is inset from both edges on phones (it can never clip the
+ *   screen side), right-anchored beside the orb on desktop, and its grid
+ *   scrolls internally with a viewport-derived max-height, so short screens
+ *   get a scrollable panel instead of one that runs under the header.
+ */
+
 export function QuickLaunchOrb() {
   const [open, setOpen] = useState(false);
   const reduceMotion = useReducedMotion();
@@ -93,11 +106,8 @@ export function QuickLaunchOrb() {
         aria-label="Quick launch — explore FocusArx features"
         whileHover={reduceMotion ? undefined : { scale: 1.06 }}
         whileTap={reduceMotion ? undefined : { scale: 0.94 }}
-        className="fixed right-4 z-[var(--z-float)] grid h-14 w-14 place-items-center rounded-full text-[var(--palette-white)] shadow-[0_10px_30px_var(--rgba-124-58-237-0_45)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring-focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
-        style={{
-          bottom: "calc(4.5rem + env(safe-area-inset-bottom))",
-          background: "linear-gradient(135deg, var(--brand-600), var(--brand-pink))",
-        }}
+        className="quicklaunch-orb fixed right-4 z-[var(--z-float)] grid h-14 w-14 place-items-center rounded-full text-[var(--palette-white)] shadow-[0_10px_30px_var(--rgba-124-58-237-0_45)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring-focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
+        style={{ background: "linear-gradient(135deg, var(--brand-600), var(--brand-pink))" }}
       >
         {open ? <X size={22} /> : <Sparkles size={22} />}
         {/* Idle pulse invites the first tap; skipped under reduced motion. */}
@@ -129,8 +139,7 @@ export function QuickLaunchOrb() {
             initial={reduceMotion ? { opacity: 1 } : { opacity: 0, y: 16, scale: 0.94 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.28, ease: EASE }}
-            className="fixed right-4 z-[var(--z-overlay)] w-[min(22rem,calc(100vw-2rem))] origin-bottom-right rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-1)] p-4 shadow-[0_24px_80px_var(--rgba-0-0-0-0_55)] outline-none"
-            style={{ bottom: "calc(9rem + env(safe-area-inset-bottom))" }}
+            className="quicklaunch-panel fixed z-[var(--z-overlay)] origin-bottom-right overflow-y-auto overscroll-contain rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-1)] p-4 shadow-[0_24px_80px_var(--rgba-0-0-0-0_55)] outline-none"
           >
             <div className="mb-3 flex items-center justify-between">
               <div>

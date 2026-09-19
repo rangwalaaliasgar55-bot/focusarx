@@ -18,6 +18,7 @@ import { DEFAULT_CONFIG } from "@/lib/constants";
 import { FOCUS_DEEP_LINK_EVENT } from "@/lib/focusDeepLink";
 import FlowTimer from "./FlowTimer";
 import { SESSION_PRESETS, getPresetById, getSessionPreset, setSessionPreset } from "@/lib/sessionPresets";
+import { TIMER_THEMES, getStoredTimerTheme, setStoredTimerTheme, type TimerTheme } from "@/lib/timerTheme";
 import { isDocumentPipSupported, openMiniTimer, writePipSnapshot } from "@/lib/miniTimer";
 import { trackSiteEvent } from "@/lib/site-analytics";
 import { trackSessionStart, trackSessionComplete, trackSessionAbandoned } from "@/lib/analytics";
@@ -105,6 +106,13 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
   const persistenceRef = useRef<ReturnType<typeof useSessionPersistence> | null>(null);
 
   const [showSessionTypePicker, setShowSessionTypePicker] = useState(false);
+  // Cosmetic timer-face design (Classic / Neon / Zen). Persisted locally; the
+  // choice is written in the click handler, not an effect, so nothing races.
+  const [timerTheme, setTimerThemeState] = useState<TimerTheme>(() => getStoredTimerTheme());
+  const chooseTimerTheme = useCallback((t: TimerTheme) => {
+    setTimerThemeState(t);
+    setStoredTimerTheme(t);
+  }, []);
   const [sessionType, setSessionType] = useState<SessionType>("deep_work");
   const [showLockPicker, setShowLockPicker] = useState(false);
   const [lockMode, setLockMode] = useState<LockMode>("none");
@@ -844,6 +852,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
               sessionType={sessionType}
               activeSecondsEarned={activeSeconds}
               tier={membershipTier}
+              theme={timerTheme}
             />
           </div>
 
@@ -857,6 +866,36 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
               {completedFocusSessions}/{DEFAULT_CONFIG.sessionsBeforeLongBreak} rounds
             </p>
           </div>
+
+          {/* Timer face designs — cosmetic, remembered, and free-tier only:
+              paid membership skins already restyle the ring as their value,
+              so for members the picker stands down instead of fighting them. */}
+          {membershipTier === "free" && !isFlow && (
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5" role="group" aria-label="Timer face design">
+              <span className="mr-0.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-600)]">
+                Face
+              </span>
+              {TIMER_THEMES.map((t) => {
+                const active = timerTheme === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => chooseTimerTheme(t.id)}
+                    title={t.blurb}
+                    aria-pressed={active}
+                    className={`min-h-[28px] rounded-full border px-2.5 py-1 text-[11px] font-bold transition-all ${
+                      active
+                        ? "border-[var(--brand-400)]/50 bg-[var(--rgba-124-58-237-0_15)] text-[var(--brand-400)]"
+                        : "border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/60 text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)]"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* Deep-linked / chosen task — the visible intention line on desktop */}
           {activeTaskName ? (
