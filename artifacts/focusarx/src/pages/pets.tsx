@@ -8,6 +8,7 @@ import { ErrorState } from "@/components/ErrorState";
 import { QueryError } from "@/components/ui/QueryError";
 import { is3DCapable } from "@/lib/webglCapability";
 import { PetStage2D } from "@/components/pets/PetStage2D";
+import { PetSprite } from "@/components/pets/PetSprite";
 
 // Lazy so three.js stays out of this page's static chunk graph.
 const Pet3D = lazy(() => import("@/components/Pet3D").then(m => ({ default: m.Pet3D })));
@@ -243,6 +244,7 @@ export default function PetsPage() {
                      halo, tilt, and a tap interaction — no three.js. */
                   <PetStage2D
                     emoji={emojiForPet(activePet.catalog ?? { slug: activePet.petType })}
+                    imageUrl={activePet.catalog?.thumbnailUrl}
                     name={activePet.inventory?.nickname ?? activePet.catalog?.name ?? activePet.petName ?? "Companion"}
                     rarity={activePet.catalog?.rarity}
                     mood={activeMood}
@@ -336,7 +338,9 @@ export default function PetsPage() {
                     {pet.isPremium && <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-[var(--palette-amber-500)]/15 px-2 py-0.5 text-[11px] font-bold text-[var(--palette-amber-400)]"><Crown size={8}/> Premium</span>}
                     {owned && <span className="absolute left-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-[var(--brand-600)] text-white"><CheckCircle size={12}/></span>}
                     <div className="text-center">
-                      <div className="text-4xl">{pet.thumbnailUrl ? "🐾" : CATEGORY_META[pet.category]?.emoji ?? "🐾"}</div>
+                      <div className="grid h-16 place-items-center">
+                        <PetSprite src={pet.thumbnailUrl} glyph={CATEGORY_META[pet.category]?.emoji ?? "🐾"} size={56} />
+                      </div>
                       <h3 className="mt-2 text-sm font-bold">{pet.name}</h3>
                       <p className="mt-0.5 line-clamp-2 text-[11px] text-[var(--foreground-subtle)]">{pet.description}</p>
                       <div className="mt-2 flex justify-center gap-1">
@@ -376,7 +380,9 @@ export default function PetsPage() {
               return (
                 <div key={inv.id} className={`rounded-2xl border p-4 ${inv.isActive ? "border-[var(--brand-400)] bg-[var(--brand-soft)]" : "border-[var(--forge-border)] bg-[var(--card)]"}`}>
                   <div className="text-center">
-                    <div className="text-4xl">{cat?.slug ? CATEGORY_META[cat.category]?.emoji ?? "🐾" : "🐾"}</div>
+                    <div className="grid h-16 place-items-center">
+                      <PetSprite src={cat?.thumbnailUrl} glyph={cat?.slug ? CATEGORY_META[cat.category]?.emoji ?? "🐾" : "🐾"} size={56} />
+                    </div>
                     <h3 className="mt-2 text-sm font-bold">{inv.nickname ?? cat?.name ?? "Pet"}</h3>
                     <p className="text-xs text-[var(--foreground-subtle)]">Lvl {inv.level}/20 • {inv.bondXp} XP</p>
                     <div className="mt-2 h-1.5 w-full rounded-full bg-[var(--surface-1)]"><div className="h-full rounded-full bg-[var(--brand-600)]" style={{ width: `${(inv.bondXp / (inv.level * 100)) * 100}%` }} /></div>
@@ -447,6 +453,7 @@ export default function PetsPage() {
                 </div>
                 <PetStage2D
                   emoji={emojiForPet(selectedDetail)}
+                  imageUrl={selectedDetail.thumbnailUrl}
                   name={selectedDetail.name}
                   rarity={selectedDetail.rarity}
                   size={200}

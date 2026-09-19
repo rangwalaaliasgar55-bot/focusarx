@@ -1,6 +1,14 @@
 /* ─── Self-hosted modern type pair: Manrope display + Geist body ───────── */
 @import "@fontsource-variable/geist/wght.css";
 @import "@fontsource-variable/manrope/wght.css";
+/* Marketing pairing adopted from the focusarx-resource "professional website"
+   redesign (DM Sans body + Instrument Serif display). Declared globally like
+   the app fonts so the CSS stays in the single entry stylesheet; the woff2
+   files are unicode-range subsets and only download when `.landing-body` /
+   `.font-display-serif` actually render — app pages never fetch them. */
+@import "@fontsource-variable/dm-sans";
+@import "@fontsource/instrument-serif/400.css";
+@import "@fontsource/instrument-serif/400-italic.css";
 
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -564,6 +572,24 @@ h1, h2, .text-display, .text-h1 {
   animation: aurora-spin 36s linear infinite;
 }
 @keyframes aurora-spin { to { transform: rotate(360deg); } }
+
+/* Display serif for marketing headlines — adopted from the focusarx-resource
+   "professional website" redesign, which pairs DM Sans body copy with
+   Instrument Serif headlines. Instrument Serif ships a single 400 weight and
+   is drawn for large sizes, so headings drop `font-semibold` when using it:
+   the faux-bold a browser would synthesize muddies the serifs. */
+.font-display-serif {
+  font-family: "Instrument Serif", Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+/* DM Sans body copy for the marketing surface — the same pairing as the
+   resource design. Scoped to `.landing-body` so the timer/app pages keep the
+   established Geist/Manrope stacks. */
+.landing-body {
+  font-family: "DM Sans Variable", var(--font-sans);
+}
 @media (prefers-reduced-motion: reduce) {
   .glow-aurora { animation: none; }
 }

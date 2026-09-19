@@ -549,7 +549,13 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
       ...prev,
       [`${m}Duration`]: seconds,
     }));
-    if (modeRef.current === m && status === "idle") {
+    /* Sync the visible clock immediately whenever the session is not live.
+       Idle: the classic pre-arm. Paused: changing the length re-arms the
+       block at the new duration (the paused ring refills), which is what
+       makes "pause → pick a different length" possible at all. While
+       running, the config change lands but the ticking clock is untouched —
+       a mid-tick rewrite would corrupt the deadline math. */
+    if (modeRef.current === m && status !== "running") {
       setSecondsLeft(seconds);
       secondsLeftRef.current = seconds;
     }
