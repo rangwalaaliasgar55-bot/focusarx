@@ -90,6 +90,16 @@ const DEFAULT_ITEMS = [
 
   { id: "special-xp2", name: "XP Booster (24h)", description: "2× XP for the next 24 hours", type: "booster", costCoins: 500, rarity: "rare", emoji: "⬆️" },
   { id: "special-coin2", name: "Coin Doubler (48h)", description: "2× coins for the next 48 hours", type: "booster", costCoins: 600, rarity: "epic", emoji: "🪙" },
+
+  // ── Season 2 arrivals ──────────────────────────────────────────────────────
+  // Retiring the two stale boosters above shrank the active catalogue, so the
+  // curation pass ships replacements: one item per rung of the listed ladder,
+  // so every price band has something new to buy at.
+  { id: "frame-rickshaw", name: "Rickshaw Trim", description: "Hand-painted tassels and a brass horn for your avatar ring", type: "frame", costCoins: 240, rarity: "common", emoji: "🛺" },
+  { id: "effect-sitar", name: "Sitar Drone", description: "A low, steady raga hums under every session", type: "effect", costCoins: 480, rarity: "uncommon", emoji: "🎵" },
+  { id: "deco-stepwell", name: "Stepwell Courtyard", description: "Cool stone steps for your Focus City — the quietest place to read", type: "decoration", costCoins: 1250, rarity: "rare", emoji: "🧱" },
+  { id: "avatar-teacher", name: "The Teacher", description: "Explains the hard chapter three ways until it lands", type: "avatar", costCoins: 2200, rarity: "epic", emoji: "👩‍🏫" },
+  { id: "deco-observatory", name: "Hilltop Observatory", description: "A legendary spire for Focus City — it only lights up for people still studying", type: "decoration", costCoins: 8500, rarity: "legendary", emoji: "🔭" },
 ];
 
 /**
