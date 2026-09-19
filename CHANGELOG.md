@@ -106,6 +106,61 @@ when the ciphertext is leaked through a response shape, or when a URL check is
 removed; `webhookEvents.test.ts` fails when an event is added to the catalog with
 no emitter and when a milestone event would fire on an ordinary day.
 
+## [Unreleased] — landing page: the timer itself, ported from the design proposals
+
+The `focusarx-resource` repo holds four independent interface proposals for
+FocusArx. They disagree about palette, layout and tone, but they all converge
+on one judgment: the strongest landing hero is not a picture of the timer, it
+is the timer — running, on the page, before any signup. The landing shipped a
+static mockup (`25:00` painted into a fake dashboard); the product's most
+convincing demo was therefore one click away at best. This change ports the
+three best ideas from the proposals, rewired onto the real app's contracts.
+
+### A working timer in the hero
+
+`LandingTimerPreview` is a real countdown — Pomodoro / Deep work / Break
+modes with a sliding chip highlight, ring, start/pause/reset — but it never
+invents progress. No fake XP, coins or streaks: nothing in the preview is
+saved, and the copy says so plainly, because a landing page that pretends to
+award a streak teaches the visitor the wrong thing about what the product is.
+The reward for finishing a block is the block itself plus a one-tap handoff:
+"continue" deep-links to `/focus?duration=<minutes>&src=landing`, reusing the
+existing deep-link contract (`lib/focusDeepLink.ts`) so the preview and the
+product cannot disagree about what the button means, and the visit is
+attributed end-to-end like the Instagram funnel already is. While the preview
+runs, the tab title carries the live countdown — the same affordance the real
+timer gives — and the page title is restored the moment it pauses, finishes
+or unmounts, so the tab is never left wearing a stale `12:34 · Deep work`.
+
+### A sticky mobile CTA that knows when to leave
+
+From the premium proposal: on small screens, once the visitor scrolls past
+the hero, a "Start focusing" bar rides the bottom edge so the next action is
+always one thumb-tap away. Two collisions were designed out rather than
+shipped: the bar hides again near the very bottom, where the page already has
+its final CTA panel and the above-footer ad slot (a second CTA stacked over
+an ad slot is exactly the accidental-click pattern AdSense rejects), and it
+stays hidden entirely while the cookie-consent banner is still open — on a
+narrow phone that banner stacks three buttons and can reach ~380px, so no
+lifted offset clears it reliably, and the choice is a few seconds away and
+made once.
+
+### A cursor-tracked spotlight, double-gated
+
+Also from the premium proposal: a soft brand glow that trails the pointer.
+Decoration is the thing the design audit most objects to, so it ships with
+both gates closed by default — it mounts only for fine pointers (nothing to
+chase on a phone) and it bows out entirely under `prefers-reduced-motion`.
+Movement is transform-only through motion values, so pointermove never
+triggers layout.
+
+What was *not* ported, and why: the proposals' infinite stat marquees clash
+with the "never looping decoration" rule the audit pins; their XP/coin
+counters on the landing would be fabricated numbers; and their app-shell
+redesigns arrived as Next.js islands that assume a router, auth and store the
+real `AppShell` already provides — the idea that mattered (an animated active
+nav pill) is already live in the mobile bottom nav.
+
 ## [Unreleased] — interface rework: direction, legibility, and clutter
 
 Three slices, all driven by research into what the best-regarded focus timers

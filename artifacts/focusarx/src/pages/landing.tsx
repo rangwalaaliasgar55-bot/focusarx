@@ -24,6 +24,9 @@ import {
   X,
 } from "lucide-react";
 import { BrandMark, BrandWordmark } from "@/components/ui/brand";
+import { LandingTimerPreview } from "@/components/landing/LandingTimerPreview";
+import { LandingMobileCta } from "@/components/landing/LandingMobileCta";
+import { LandingCursorGlow } from "@/components/landing/LandingCursorGlow";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 import { Reveal, RevealStagger, RevealItem, ScrollScale, HeroScrub, Parallax } from "@/components/motion/Scroll";
 import { AdSlot } from "@/components/AdSlot";
@@ -168,6 +171,8 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-[var(--background)] text-[var(--foreground)]">
       <PageSEO {...PAGE_SEO.home} structuredData={structuredData} />
+      <LandingCursorGlow />
+      <LandingMobileCta />
       <MarketingNav />
       <main id="main-content">
         <section className="relative isolate overflow-hidden px-4 pb-20 pt-36 sm:px-6 sm:pb-28 sm:pt-44">
@@ -200,6 +205,13 @@ export default function LandingPage() {
               <span className="inline-flex items-center gap-2"><Lock size={15} className="text-[var(--success)]" /> Privacy-first by design</span>
             </motion.div>
           </HeroScrub>
+          {/* The product, live on the page: a working timer preview instead of
+              a screenshot. Every reviewed design proposal centered the hero on
+              running the timer before signup; this is that idea, wired to the
+              real /focus deep-link contract. */}
+          <motion.div {...entrance} className="mx-auto mt-16 max-w-md sm:mt-20">
+            <LandingTimerPreview />
+          </motion.div>
         </section>
 
         <section id="product" className="px-4 pb-28 sm:px-6">
