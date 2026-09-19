@@ -152,7 +152,7 @@ export const aiIdeasTable = pgTable("ai_ideas", {
   effort: text("effort").notNull().default("medium"), // "small" | "medium" | "large"
   impact: text("impact").notNull().default("medium"), // "low" | "medium" | "high"
   source: text("source").notNull().default("gemini"), // "gemini" | "admin"
-  status: text("status").notNull().default("backlog"), // "backlog" | "approved" | "done" | "rejected"
+  status: text("status").notNull().default("backlog"), // "backlog" | "approved" | "done" | "rejected" | "published"
   promotedToTask: text("promoted_to_task"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
