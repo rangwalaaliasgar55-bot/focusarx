@@ -46,6 +46,13 @@ type Idea = {
   createdAt: string;
 };
 
+type FeatureFlagRow = {
+  key: string;
+  description: string | null;
+  rolloutPercentage: number;
+  enabled: boolean;
+};
+
 type Briefing = {
   id: string;
   day: string;
@@ -71,6 +78,44 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
   const [briefings, setBriefings] = useState<Briefing[]>([]);
   const [genBusy, setGenBusy] = useState<string | null>(null);
   const [genResult, setGenResult] = useState<string | null>(null);
+  /* Auto-publish (feature flag `gemini_auto_publish`): while ON, approving
+     an idea ships it straight to the community feed. The server defaults ON
+     when the flag row is absent, so the optimistic default here matches. */
+  const [autoPublish, setAutoPublish] = useState(true);
+  const [autoPublishBusy, setAutoPublishBusy] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        const r = await adminFetch("/api/admin/feature-flags", { headers: authHeaders(), credentials: "include" });
+        if (!r.ok || !alive) return;
+        const d = await r.json();
+        const flag = (d.flags as FeatureFlagRow[] | undefined)?.find((f) => f.key === "gemini_auto_publish");
+        // Absent row = server default = ON.
+        if (alive) setAutoPublish(flag ? flag.enabled : true);
+      } catch { /* keep the optimistic default */ }
+    })();
+    return () => { alive = false; };
+  }, [authHeaders]);
+
+  const toggleAutoPublish = async () => {
+    const next = !autoPublish;
+    setAutoPublishBusy(true);
+    try {
+      const r = await adminFetch("/api/admin/feature-flags", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        credentials: "include",
+        body: JSON.stringify({
+          key: "gemini_auto_publish",
+          enabled: next,
+          description: "Auto-publish approved Gemini ideas to the community feed",
+        }),
+      });
+      if (r.ok) setAutoPublish(next);
+    } finally { setAutoPublishBusy(false); }
+  };
 
   /* `loading` starts true because this loader runs from the mount effect: a
      `setLoading(true)` as its first statement would make that effect set state
@@ -279,6 +324,27 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
               </button>
             </div>
           </div>
+
+          {/* Auto-publish switch — approval becomes the publish trigger. */}
+          <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-hover)]/40 px-3 py-2">
+            <div>
+              <p className="text-xs font-semibold">Auto-publish</p>
+              <p className="text-[11px] text-[var(--foreground-subtle)]">
+                {autoPublish ? "ON — approving an idea posts it to the community feed instantly." : "OFF — approved ideas wait for a manual publish click."}
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={autoPublish}
+              aria-label="Auto-publish approved ideas"
+              disabled={autoPublishBusy}
+              onClick={() => void toggleAutoPublish()}
+              className={`relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50 ${autoPublish ? "bg-[var(--success)]" : "bg-[var(--palette-zinc-700)]"}`}
+            >
+              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-[var(--palette-white)] transition-transform ${autoPublish ? "translate-x-5" : "translate-x-0.5"}`} />
+            </button>
+          </div>
           <div className="max-h-[26rem] space-y-2 overflow-y-auto pr-1">
             {ideas.length === 0 && (
               <p className="py-6 text-center text-xs text-[var(--foreground-subtle)]">
@@ -339,7 +405,9 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
             ))}
           </div>
           <p className="mt-3 text-[11px] leading-relaxed text-[var(--foreground-subtle)]">
-            Auto-publish is OFF by design: approve an idea, then use the publish buttons to ship it to the community feed or the site announcement. Every decision and publish is written to the immutable AI action audit log.
+            {autoPublish
+              ? "Auto-publish is ON: approving an idea ships it to the community feed at once (the bot fleet reacts to the admin post within minutes). Use the publish buttons for announcements or ideas you approved earlier. Every decision and publish is written to the immutable AI action audit log."
+              : "Auto-publish is OFF: approve an idea, then use the publish buttons to ship it to the community feed or the site announcement. Every decision and publish is written to the immutable AI action audit log."}
           </p>
         </section>
 
