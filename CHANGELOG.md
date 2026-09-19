@@ -106,6 +106,52 @@ when the ciphertext is leaked through a response shape, or when a URL check is
 removed; `webhookEvents.test.ts` fails when an event is added to the catalog with
 no emitter and when a milestone event would fire on an ordinary day.
 
+## [Unreleased] — admin pet release pipeline: 1,738 staged candidates, gated by design
+
+Three external pet sources were reviewed; the pipeline they feed is now a
+first-class admin surface: candidates are staged in code, browsed in the
+admin panel, and released into the live catalog deliberately — "we will
+release as we get time," without a single candidate ever leaking live by
+accident.
+
+### What was imported, and what was refused
+
+- **codex-pokepets** — all 1,738 entries imported as *metadata only*
+  (`artifacts/api-server/scripts/generate-pet-staging.mjs` → generated
+  `petStagingData.ts`): slug, name, description, sprite style (734 Gen 1–5
+  pixel-art incl. 85 forms + 1,004 Gen 1–9 animated), generation, dex
+  number, and the upstream license tag. Sprite binaries never enter the
+  repo — the server derives preview URLs from the upstream conventions
+  (PokeAPI Gen-5 animated for 2D species, Pokémon Showdown for forms and
+  3D), so admins see the candidate without us redistributing assets.
+- **facebookresearch/cop3d** — reviewed and rejected at the source: it is a
+  322 GB research dataset of 4,200 real cat/dog videos, not characters.
+  The verdict and reason are recorded in the panel so nobody re-reviews it.
+- **bsawyer/tamagotchi** — one character (Bandai's IP), so no catalog
+  entries; its action→mood→animation mapping (feed/play/sleep flipping an
+  SVG rig's face and posture) is recorded as a mechanics reference for if
+  pets ever gain care actions.
+
+### The two gates
+
+Every staged entry keeps its upstream license, and the release API treats
+staging as *not* approval: a `fan-use` entry — every Pokémon among them,
+© Nintendo / Game Freak / Creatures Inc. — returns 412 unless the request
+carries `confirmIpReview: true`, and the panel makes that a per-release
+checkbox with the warning inline. If FocusArx monetises pets, these need
+legal sign-off or original creatures; the panel says so in permanent ink.
+Release itself is idempotent (double-click returns the existing row), every
+release and pull is audit-logged, and pull refuses with 409 once anyone has
+adopted the pet — `user_pet_inventory` cascades from the catalog row, so an
+unguarded pull would silently delete user companions.
+
+Browsing is server-side filtered (search, gen, style, kind, released) and
+paginated with a capped page size, so a bad query cannot dump all 1,738
+rows; released-state comes from a `pet_catalog` lookup scoped to staged
+slugs only. The panel lives in the existing admin Pets tab: source verdict
+cards, the IP banner, the candidate table with sprite previews, and the
+release/pull dialog following the accessible modal pattern.
+
 ## [Unreleased] — pets: a real companion on every device, and moods made visible
 
 Two upgrades, both driven by the interface proposals in `focusarx-resource`
