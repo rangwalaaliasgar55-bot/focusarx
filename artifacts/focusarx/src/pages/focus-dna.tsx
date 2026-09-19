@@ -166,7 +166,7 @@ export default function FocusDnaPage() {
   const shareToX = () => {
     if (!dna) return;
     const text = `I am a ${dna.archetype} on @FocusArx! 🧬\n\nPeak Hour: ${formatHour(dna.topFocusHour)}\nAvg Session: ${dna.avgSessionMin}m\n\nFind your archetype at https://www.focusarx.site`;
-    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, "_blank");
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
   };
 
   const sessionsNeeded = Math.max(0, 3 - totalSessions);

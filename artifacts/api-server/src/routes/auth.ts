@@ -16,6 +16,7 @@ import { authLimiter, forgotPasswordLimiter, resetLinkLimiter, guestLimiter, ref
 import { createRefreshFamily, rotateRefreshToken, revokeRefreshToken, revokeAllUserRefreshTokens } from "../lib/refreshTokens";
 import { issueSocketTicket } from "../lib/socketTickets";
 import { sendUnauthorized, sendServiceUnavailable } from "../lib/httpErrors";
+import { isValidTimeZone } from "../lib/timezone";
 
 /**
  * Emails are normalised BEFORE the format check.
@@ -1109,7 +1110,18 @@ router.patch("/auth/profile", async (req, res) => {
   const updates: Record<string, unknown> = {};
   if (typeof name === "string" && name.trim()) updates.name = name.trim().slice(0, 60);
   if (typeof bio === "string") updates.bio = bio.slice(0, 300);
-  if (typeof timezone === "string") updates.timezone = timezone;
+  // The timezone keys every calendar computation the user has (streaks,
+  // weekly resets — see lib/timezone.ts), so it must be a zone Node can
+  // actually format in, and it must not be an unbounded string: it is the
+  // only profile field that used to be stored without a length cap.
+  if (typeof timezone === "string") {
+    const tz = timezone.trim();
+    if (tz.length > 60 || !isValidTimeZone(tz)) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid timezone" } });
+      return;
+    }
+    updates.timezone = tz;
+  }
   if (Object.keys(updates).length === 0) {
     res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "No valid fields to update" } });
     return;

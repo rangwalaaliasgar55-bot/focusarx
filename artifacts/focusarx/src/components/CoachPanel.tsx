@@ -77,6 +77,18 @@ export default function CoachPanel() {
     return () => clearTimeout(t);
   }, [open, hasProactive, isLocked]);
 
+  // While the chat panel is open it occupies exactly the band the Quick
+  // Launch orb sits in (index.css). Flag it on <html> so the orb steps aside
+  // for as long as the panel is up — the same document-attribute pattern the
+  // focus mode uses with [data-focus-mode='active'].
+  useEffect(() => {
+    const root = document.documentElement;
+    if (open) {
+      root.setAttribute("data-coach-open", "true");
+      return () => root.removeAttribute("data-coach-open");
+    }
+  }, [open]);
+
   const headers = () => {
     const token = getToken();
     return {
@@ -163,7 +175,7 @@ export default function CoachPanel() {
               setOpen(true);
               setHasProactive(false);
             }}
-            className="fixed bottom-44 right-4 z-[var(--z-nav)] max-w-[220px] rounded-2xl border border-[var(--rgba-124-58-237-0_35)] bg-[var(--rgba-8-12-28-0_96)] px-4 py-3 text-left shadow-[0_4px_20px_var(--rgba-124-58-237-0_25)] backdrop-blur-2xl md:bottom-28 md:right-20"
+            className="fixed bottom-28 right-20 z-[var(--z-nav)] max-w-[220px] rounded-2xl border border-[var(--rgba-124-58-237-0_35)] bg-[var(--rgba-8-12-28-0_96)] px-4 py-3 text-left shadow-[0_4px_20px_var(--rgba-124-58-237-0_25)] backdrop-blur-2xl"
           >
             <p className="mb-1 text-[11px] font-semibold text-[var(--brand-400)]">Coach tip 🧠</p>
             <p className="text-[11px] leading-relaxed text-[var(--foreground-muted)]">{proactiveMsg}</p>

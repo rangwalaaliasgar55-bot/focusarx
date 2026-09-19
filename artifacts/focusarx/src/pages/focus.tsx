@@ -412,11 +412,15 @@ function MobileSidePanelDrawer() {
 
   return (
     <>
-      {/* Floating trigger — mobile only, sits above the bottom tab bar */}
+      {/* Floating trigger — mobile only, sits above the bottom tab bar. The
+          right corner belongs to the coach + quick-launch orb column (see
+          index.css), so this pill docks on the left, where the FloatingTimer
+          would be — but that one hides on this exact route, so the two can
+          never collide. */}
       <button
         aria-label="Open tasks & stats"
         onClick={() => setOpen(true)}
-        className="fixed bottom-[76px] right-4 z-[var(--z-nav)] flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--surface-overlay)] px-4 py-2.5 text-xs font-semibold text-[var(--brand-strong)] shadow-[var(--shadow-lg)] backdrop-blur-xl transition-colors active:bg-[var(--surface-hover)] md:bottom-5 lg:hidden"
+        className="fixed bottom-[76px] left-4 z-[var(--z-nav)] flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--surface-overlay)] px-4 py-2.5 text-xs font-semibold text-[var(--brand-strong)] shadow-[var(--shadow-lg)] backdrop-blur-xl transition-colors active:bg-[var(--surface-hover)] md:bottom-5 lg:hidden"
       >
         <ClipboardList size={14} />
         Tasks & Stats
