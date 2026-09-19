@@ -115,3 +115,62 @@ describe("an unknown collection is not an empty one", () => {
     expect(screen.queryAllByText("Check status").length).toBe(0);
   });
 });
+
+/**
+ * The showcase must remain a companion on devices without WebGL — where the
+ * page used to render a bare emoji — and it must show the mood the server
+ * derives from the user's sessions instead of a hardcoded "happy".
+ */
+describe("the active-pet showcase", () => {
+  function stubFetchWithMood(mood: string | null) {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) => {
+        if (url.includes("/api/pets/inventory")) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: () =>
+              Promise.resolve({ inventory: [{ id: 9, petId: 2, isActive: true, level: 3, catalog: { slug: "fox", name: "Clever Fox", rarity: "rare" }, inventory: { level: 3, isActive: true, nickname: null, bondXp: 40 } }] }),
+          });
+        }
+        if (url.includes("/api/pets/catalog")) {
+          return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ pets: catalog }) });
+        }
+        if (url.endsWith("/api/pets")) {
+          if (mood === null) return Promise.resolve({ ok: false, status: 401, json: () => Promise.resolve({}) });
+          return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ pet: { mood } }) });
+        }
+        return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) });
+      }),
+    );
+  }
+
+  it("renders the interactive stage — not a bare emoji — for the active pet", async () => {
+    stubFetchWithMood("sleepy");
+
+    renderPage();
+
+    // jsdom has no WebGL, so the page takes the 2D path; that path is now the
+    // stage, identified by its companion greeting.
+    await waitFor(() => expect(screen.getByRole("button", { name: "Say hi to Clever Fox" })).toBeTruthy());
+    expect(screen.getByText("sleepy")).toBeTruthy();
+  });
+
+  it("shows the server-derived mood, not a hardcoded one", async () => {
+    stubFetchWithMood("excited");
+
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText("excited")).toBeTruthy());
+  });
+
+  it("falls back to a neutral mood when the pet lookup fails", async () => {
+    stubFetchWithMood(null);
+
+    renderPage();
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Say hi to Clever Fox" })).toBeTruthy());
+    expect(screen.getByText("happy")).toBeTruthy();
+  });
+});

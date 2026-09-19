@@ -7,6 +7,7 @@ import { getToken } from "@/lib/auth";
 import { ErrorState } from "@/components/ErrorState";
 import { QueryError } from "@/components/ui/QueryError";
 import { is3DCapable } from "@/lib/webglCapability";
+import { PetStage2D } from "@/components/pets/PetStage2D";
 
 // Lazy so three.js stays out of this page's static chunk graph.
 const Pet3D = lazy(() => import("@/components/Pet3D").then(m => ({ default: m.Pet3D })));
@@ -32,6 +33,19 @@ const RARITY_COLOR: Record<string, string> = {
   legendary: "var(--palette-amber-400)",
   exclusive: "var(--palette-ec4899)",
 };
+
+/** Species glyphs, keyed by catalog slug — same ids as the API's PET_TYPES
+   (`/api/pets/types`). Anything unknown falls back through the category emoji
+   to a paw, so a new catalog entry never renders as a blank disc. */
+const SPECIES_EMOJI: Record<string, string> = {
+  owl: "🦉", fox: "🦊", dragon: "🐲", robot: "🤖", cat: "🐱", phoenix: "🦅",
+};
+
+function emojiForPet(catalog: { slug?: string; category?: string } | null | undefined): string {
+  if (catalog?.slug && SPECIES_EMOJI[catalog.slug]) return SPECIES_EMOJI[catalog.slug];
+  if (catalog?.category && CATEGORY_META[catalog.category]) return CATEGORY_META[catalog.category].emoji;
+  return "🐾";
+}
 
 const LEVEL_UNLOCKS: Record<number, string[]> = {
   1: ["Pet unlocked"],
@@ -75,6 +89,14 @@ export default function PetsPage() {
    * has to be sure of it.
    */
   const [inventoryFailed, setInventoryFailed] = useState(false);
+  /**
+   * The active pet's mood, derived server-side from recent sessions and the
+   * streak (`GET /api/pets`): excited / happy / sleepy. Best-effort by design
+   * — guests and failed lookups fall back to the neutral "happy" instead of
+   * breaking the showcase, because a missing mood is cosmetic while a broken
+   * showcase is not.
+   */
+  const [activeMood, setActiveMood] = useState<string>("happy");
   const [filter, setFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [selectedDetail, setSelectedDetail] = useState<any>(null);
@@ -88,13 +110,20 @@ export default function PetsPage() {
     setLoading(true);
     setLoadError(false);
     try {
-      const [catRes, invRes] = await Promise.all([
+      const [catRes, invRes, petRes] = await Promise.all([
         fetch("/api/pets/catalog", { headers: authHeaders() }),
         fetch("/api/pets/inventory", { headers: authHeaders() }),
+        // Best-effort: guests (401) and failures keep the neutral mood.
+        fetch("/api/pets", { headers: authHeaders() }).catch(() => null),
       ]);
       if (!catRes.ok) throw new Error("catalog");
       const catData = await catRes.json();
       setCatalog(catData.pets ?? []);
+      if (petRes?.ok) {
+        const petData = await petRes.json().catch(() => null);
+        const mood = petData?.pet?.mood;
+        if (typeof mood === "string" && mood) setActiveMood(mood);
+      }
       if (invRes.ok) {
         const invData = await invRes.json();
         const inv = invData.inventory ?? [];
@@ -205,11 +234,21 @@ export default function PetsPage() {
                 {view3d ? (
                   <div className="mx-auto h-64 max-w-sm">
                     <Suspense fallback={<div className="text-8xl">{activePet.catalog?.thumbnailUrl ? "🐾" : "🦉"}</div>}>
-                      <Pet3D petType={activePet.catalog?.slug ?? activePet.petType ?? "owl"} mood="happy" evolutionStage={Math.min(3, Math.floor(((activePet.inventory?.level ?? 1) - 1) / 5))} accessories={[]} onCrash={() => setView3d(false)} />
+                      <Pet3D petType={activePet.catalog?.slug ?? activePet.petType ?? "owl"} mood={activeMood} evolutionStage={Math.min(3, Math.floor(((activePet.inventory?.level ?? 1) - 1) / 5))} accessories={[]} onCrash={() => setView3d(false)} />
                     </Suspense>
                   </div>
                 ) : (
-                  <div className="text-8xl">{activePet.catalog?.thumbnailUrl ? "🐾" : "🦉"}</div>
+                  /* No WebGL (or the visitor picked 2D) used to mean a bare
+                     emoji. The stage keeps the companion a companion: rarity
+                     halo, tilt, and a tap interaction — no three.js. */
+                  <PetStage2D
+                    emoji={emojiForPet(activePet.catalog ?? { slug: activePet.petType })}
+                    name={activePet.inventory?.nickname ?? activePet.catalog?.name ?? activePet.petName ?? "Companion"}
+                    rarity={activePet.catalog?.rarity}
+                    mood={activeMood}
+                    size={260}
+                    className="mx-auto max-w-sm"
+                  />
                 )}
                 <h2 className="mt-3 text-xl font-bold">{activePet.inventory?.nickname ?? activePet.catalog?.name ?? activePet.petName ?? "Companion"}</h2>
                 <p className="text-xs text-[var(--foreground-subtle)]">{activePet.catalog?.description ?? ""}</p>
@@ -399,16 +438,20 @@ export default function PetsPage() {
           {selectedDetail && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[var(--z-modal)] grid place-items-center bg-black/70 p-4 backdrop-blur-sm" onClick={() => setSelectedDetail(null)}>
               <motion.div initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }} className="w-full max-w-md rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="text-4xl">{CATEGORY_META[selectedDetail.category]?.emoji ?? "🐾"}</div>
-                    <div>
-                      <h3 className="text-lg font-bold">{selectedDetail.name}</h3>
-                      <p className="text-xs text-[var(--foreground-subtle)]">{selectedDetail.category} • {selectedDetail.rarity}</p>
-                    </div>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-bold">{selectedDetail.name}</h3>
+                    <p className="text-xs text-[var(--foreground-subtle)]">{selectedDetail.category} • {selectedDetail.rarity}</p>
                   </div>
-                  <button onClick={() => setSelectedDetail(null)} className="grid h-8 w-8 place-items-center rounded-full bg-[var(--surface-1)]"><X size={14}/></button>
+                  <button onClick={() => setSelectedDetail(null)} aria-label="Close details" className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--surface-1)]"><X size={14}/></button>
                 </div>
+                <PetStage2D
+                  emoji={emojiForPet(selectedDetail)}
+                  name={selectedDetail.name}
+                  rarity={selectedDetail.rarity}
+                  size={200}
+                  className="mt-4"
+                />
                 <p className="mt-4 text-sm text-[var(--foreground-muted)]">{selectedDetail.description}</p>
                 <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
                   <div className="rounded-xl bg-[var(--surface-1)] p-3"><p className="text-[11px] text-[var(--foreground-subtle)]">Rarity</p><p className="font-bold" style={{ color: RARITY_COLOR[selectedDetail.rarity] }}>{selectedDetail.rarity}</p></div>
