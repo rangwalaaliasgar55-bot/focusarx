@@ -1,0 +1,23 @@
+title = "gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Global allowlist for synthetic test fixtures and known false positives"
+commits = [
+  "3104c61c053b3311349da1d991f5f026559e9c55",
+  "a26c189b98047f9754b655906ee8649d06ee4ff3"
+]
+paths = [
+  '''artifacts/focusarx/src/lib/offlineQueueCore\.test\.ts$''',
+  '''artifacts/api-server/src/lib/webhooks\.test\.ts$''',
+  '''artifacts/api-server/src/lib/secrets\.test\.ts$''',
+  '''artifacts/api-server/src/lib/stripe\.test\.ts$''',
+  '''artifacts/focusarx/src/components/settings/IntegrationSettings\.test\.tsx$'''
+]
+regexes = [
+  '''completion_s1''',
+  '''whsec_test_1234567890''',
+  '''whsec_abcdefghijklmnop'''
+]

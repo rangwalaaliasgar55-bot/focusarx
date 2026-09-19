@@ -17,7 +17,7 @@ import {
 } from "./webhooks";
 
 describe("signature", () => {
-  const secret = "whsec_test_1234567890";
+  const secret = "whsec_test_1234567890"; // gitleaks:allow
   const body = JSON.stringify({ event: "session.completed", data: { minutes: 25 } });
 
   it("signs and verifies the exact body it was given", () => {

@@ -26,7 +26,7 @@ import {
 
 const item = (over: Partial<QueuedItem> = {}): QueuedItem => ({
   id: "q1",
-  idempotencyKey: "completion_s1",
+  idempotencyKey: "completion_s1", // gitleaks:allow
   payload: { sessionId: "s1" },
   createdAt: 1_000,
   attempts: 0,
