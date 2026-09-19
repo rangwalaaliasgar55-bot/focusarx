@@ -65,6 +65,7 @@ import CoachPanel from "@/components/CoachPanel";
 import { usePremium } from "@/hooks/usePremium";
 import { MobileBottomNav } from "@/components/mobile/MobileBottomNav";
 import { MobileMoreMenu } from "@/components/mobile/MobileMoreMenu";
+import { QuickLaunchOrb } from "@/components/QuickLaunchOrb";
 import { NetworkStatusBanner } from "@/components/mobile/NetworkStatusBanner";
 import { FeatureCompassModal } from "@/components/FeatureCompassModal";
 import { isActiveRoute } from "@/lib/navActive";
@@ -468,6 +469,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* New mobile bottom nav: Home · Timer · Plan · Stats · Profile */}
       <MobileBottomNav hidden={hideBottomNav} onMoreClick={() => setMoreOpen(true)} />
       <MobileMoreMenu open={moreOpen} onClose={() => setMoreOpen(false)} />
+      {/* Floating feature launcher — follows the bottom nav's visibility so
+          an active focus session never gets a new distraction. */}
+      {!hideBottomNav && <QuickLaunchOrb />}
       {status === "authenticated" && <CoachPanel />}
       <FeatureCompassModal open={guideOpen} onClose={() => setGuideOpen(false)} />
     </div>

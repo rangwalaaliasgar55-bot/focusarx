@@ -106,6 +106,32 @@ when the ciphertext is leaked through a response shape, or when a URL check is
 removed; `webhookEvents.test.ts` fails when an event is added to the catalog with
 no emitter and when a milestone event would fail on an ordinary day.
 
+## [Unreleased] — auto-publish goes live, and one circle opens the whole momentum layer
+
+- **Gemini auto-publish is ON.** Approving an idea now ships it to the
+  community feed in the same action — no second click. The switch is the
+  `gemini_auto_publish` feature flag (default ON when absent; a stored row
+  with `enabled: false` is the off switch), exposed as a toggle in the
+  Gemini panel and in Feature Flags. Publish failures degrade to a plain
+  approval — nothing is ever lost. The shared `publishIdea` core backs both
+  auto-publish and the manual publish route; announcements still write the
+  site banner store. Every auto-publish is audit-logged as
+  `idea_auto_publish`.
+- **Quick Launch orb.** Momentum features were sidebar-only, which mobile
+  users never unfold. A floating circle now sits in the thumb corner of
+  every app page (desktop included) and expands into a 10-tile launcher:
+  Timer, Companions, Missions, Quests, Leaderboard, Community, Focus City,
+  Break Free, Achievements, Rewards. Accessibility is the contract, not an
+  afterthought: `aria-expanded`/`aria-controls` on the trigger, focus moves
+  into the panel on open and returns to the orb on close, Escape and the
+  scrim both dismiss, 44px+ touch targets, and reduced-motion users get the
+  panel without pulse or stagger. The orb follows the bottom nav's
+  visibility — an active focus session never gains a new distraction. 5 new
+  tests.
+
+Gates: api-server 607 tests, frontend 757 tests, tsc + eslint clean,
+build + SEO + prerender + bundle budget PASS.
+
 ## [Unreleased] — admin audit: fixes for maintenance, flags, Gemini publishing, and pet discovery
 
 A sweep of the admin surface, fixing the things that read as "broken" and
