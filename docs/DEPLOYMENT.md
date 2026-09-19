@@ -98,6 +98,22 @@ interactive confirmation, and runs each statement in its own transaction so a
 single failure cannot block the rest. A `NOT NULL` column without a default on
 a populated table is reported as `MANUAL` and left for a reviewed migration.
 
+What fails the deploy and what does not:
+
+- a **table or column** that cannot be created → exit 1, the deploy stops and
+  the previous code stays live (the code would read a column that is not there);
+- a **CHECK or FOREIGN KEY** that existing rows violate → added `NOT VALID`,
+  so new writes are enforced from now on; the run prints a `WARN` with the
+  exact `ALTER TABLE … VALIDATE CONSTRAINT …` to run once the rows are cleaned up;
+- a **UNIQUE** that duplicates violate (Postgres has no `NOT VALID` for these)
+  or an **index** that cannot be built → `WARN`, skipped, deploy continues.
+
+The summary line (`N applied (M NOT VALID), F failed, W warning(s), R left for
+review`) is in the build log; anything other than `0 failed, 0 warning(s)`
+deserves a look after the deploy. The sync sets `lock_timeout = 15s` and
+retries three times, so a long-running transaction makes it fail fast with a
+clear message instead of hanging the build.
+
 This is what runs in production — from the Vercel build via `push:vercel`
 and from the `Production Deploy` workflow's *Sync database schema* step
 (both call `cleanup-orphans.mjs` first, then `sync-schema.mjs`). An empty

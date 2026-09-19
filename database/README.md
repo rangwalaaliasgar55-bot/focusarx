@@ -47,6 +47,12 @@ without a default on a populated table is reported as `MANUAL` and left to a
 reviewed migration. Running it against an empty database bootstraps the whole
 schema; running it twice is a no-op (CI asserts this with `sync:check`).
 
+Only a table or column that cannot be created fails the run. A CHECK or
+FOREIGN KEY that existing rows violate is added `NOT VALID` (new writes are
+enforced; the log prints the `VALIDATE CONSTRAINT` to run after cleanup); a
+UNIQUE that duplicates violate, or an index that cannot be built, is a `WARN`
+and skipped. See `docs/DEPLOYMENT.md` for the full exit-code contract.
+
 ### 3. Validate Migrations
 
 `drizzle-kit push` synchronizes the TypeScript schema; it **does not replay**
