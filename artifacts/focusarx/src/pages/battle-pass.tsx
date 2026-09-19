@@ -84,22 +84,27 @@ export default function BattlePassPage() {
   return (
     <PageTransition>
       <PageSEO {...PAGE_SEO.battlePass} />
-      <div className="mx-auto max-w-5xl px-4 py-8">
+      {/* pt compensates for the sticky topbar + any stacked site banners so the
+          season banner is never clipped at the top of the viewport; scroll-mt
+          keeps anchor navigation below the topbar as well. */}
+      <div className="mx-auto max-w-5xl px-4 pb-8 pt-6 sm:px-6 sm:pt-8">
         {/* Header with season countdown */}
-        <div className="relative overflow-hidden rounded-2xl border border-[var(--palette-amber-500)]/20 bg-gradient-to-br from-[var(--palette-amber-500)]/10 via-[var(--palette-orange-500)]/5 to-[var(--surface-1)] p-6">
-          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_70%_30%,var(--palette-amber-500),transparent_60%)]" />
-          <div className="relative flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2"><Trophy size={18} className="text-[var(--palette-amber-400)]" /><span className="text-xs font-bold uppercase tracking-widest text-[var(--palette-amber-400)]">Season {data.seasonId}</span><span className="rounded-full bg-[var(--surface-1)] px-2 py-0.5 text-[11px]">{tiers.length} tiers • 28-30 days</span></div>
+        <div className="relative scroll-mt-24 overflow-hidden rounded-2xl border border-[var(--palette-amber-500)]/20 bg-gradient-to-br from-[var(--palette-amber-500)]/10 via-[var(--palette-orange-500)]/5 to-[var(--surface-1)] p-5 sm:p-6">
+          <div className="pointer-events-none absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_70%_30%,var(--palette-amber-500),transparent_60%)]" aria-hidden />
+          <div className="relative flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2"><Trophy size={18} className="shrink-0 text-[var(--palette-amber-400)]" /><span className="text-xs font-bold uppercase tracking-widest text-[var(--palette-amber-400)]">Season {data.seasonId}</span><span className="rounded-full bg-[var(--surface-1)] px-2 py-0.5 text-[11px]">{tiers.length} tiers • 28-30 days</span></div>
               <h1 className="mt-2 text-3xl font-semibold">Battle Pass</h1>
               <p className="mt-1 flex items-center gap-1.5 text-xs text-[var(--foreground-muted)]"><Clock size={12} /><Countdown endsAt={data.countdown?.endsAt ?? data.endDate} graceEndsAt={data.countdown?.graceEndsAt ?? data.graceEndsAt} /></p>
               {data.inGracePeriod && <p className="mt-1 text-xs font-bold text-[var(--palette-amber-400)]">Grace period active — claim your rewards before they expire!</p>}
             </div>
-            <div className="text-right">
+            {/* Progress block: full-width left-aligned on mobile (the old fixed
+                w-48 right-aligned column could spill/clip on narrow screens). */}
+            <div className="w-full shrink-0 text-left sm:w-auto sm:text-right">
               <p className="text-[11px] uppercase tracking-wider text-[var(--foreground-subtle)]">Your progress</p>
               <p className="text-2xl font-semibold">{seasonXp.toLocaleString()} XP</p>
               <p className="text-xs text-[var(--foreground-muted)]">Tier {currentTier} / {tiers.length}</p>
-              <div className="mt-2 h-2 w-48 overflow-hidden rounded-full bg-[var(--surface-1)]"><div className="h-full bg-[var(--palette-amber-500)] transition-all" style={{ width: `${progressPct}%` }} /></div>
+              <div className="mt-2 h-2 w-full max-w-[12rem] overflow-hidden rounded-full bg-[var(--surface-1)] sm:ml-auto"><div className="h-full bg-[var(--palette-amber-500)] transition-all" style={{ width: `${progressPct}%` }} /></div>
               <p className="mt-1 text-[11px] text-[var(--foreground-subtle)]">{seasonXp - xpPrev} / {xpForNext - xpPrev} to next tier</p>
             </div>
           </div>

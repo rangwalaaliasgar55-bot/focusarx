@@ -90,14 +90,25 @@ export function briefingTemplate(stats: {
   dropsActive: number;
   botPosts: number;
   topExams: string[];
-}): string {
+  humanPosts?: number;
+  newFollows?: number;
+  roomMessages?: number;
+  premiumActive?: number;
+  activeStreakers?: number;
+}, alerts: string[] = []): string {
+  const totalPosts = (stats.botPosts ?? 0) + (stats.humanPosts ?? 0);
+  const botShare = totalPosts > 0 ? Math.round(((stats.botPosts ?? 0) / totalPosts) * 100) : 0;
   const lines = [
     `FocusArx daily briefing — ${stats.day} (IST).`,
-    `New learners today: ${stats.newUsers}. Focus sessions: ${stats.sessions} for ${Math.round(stats.focusMinutes / 60)} hours.`,
-    `Economy: ${stats.coinsMinted.toLocaleString()} coins minted, ${stats.coinsBurned.toLocaleString()} burned (net ${stats.coinsMinted - stats.coinsBurned >= 0 ? "+" : ""}${stats.coinsMinted - stats.coinsBurned}).`,
-    `Drops active: ${stats.dropsActive}. Community bot activity: ${stats.botPosts} posts today.`,
+    `## 📊 Vitals`,
+    `New learners: ${stats.newUsers} · Focus sessions: ${stats.sessions} (~${Math.round(stats.focusMinutes / 60)}h).`,
+    `Economy: ${stats.coinsMinted.toLocaleString()} minted, ${stats.coinsBurned.toLocaleString()} burned (net ${stats.coinsMinted - stats.coinsBurned >= 0 ? "+" : ""}${stats.coinsMinted - stats.coinsBurned}).`,
+    `Community: ${stats.humanPosts ?? 0} human posts (${botShare}% of feed from bots), ${stats.newFollows ?? 0} new follows, ${stats.roomMessages ?? 0} room messages.`,
+    `Retention: ${stats.activeStreakers ?? 0} learners on 3+ day streaks · ${stats.premiumActive ?? 0} premium active · ${stats.dropsActive} drops live.`,
     stats.topExams.length ? `Search heat: ${stats.topExams.join(", ")}.` : "No notable exam search spike.",
-    "Template briefing — set GEMINI_API_KEY or GROQ_API_KEY for a narrative summary.",
+    `## ⚠️ Watch`,
+    ...(alerts.length ? alerts.map((a) => `- ${a}`) : ["- Nothing abnormal."]),
+    "Template briefing — set GEMINI_API_KEY or GROQ_API_KEY for the full developer-style narrative.",
   ];
   return lines.join("\n");
 }

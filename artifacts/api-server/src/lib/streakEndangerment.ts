@@ -14,10 +14,10 @@
  * Every step is best-effort: a failure here must never break /api/streak.
  */
 import { db, studyStreaksTable, notificationsTable } from "@workspace/db";
-import { and, eq, gte, lt } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { sendPush } from "./pushSender";
 import { logger } from "./logger";
-import { clockInZone, dayKeyInZone, dayStartInZone, shiftDayKey } from "./timezone";
+import { clockInZone, dayKeyInZone } from "./timezone";
 import { userZone } from "./userZone";
 
 const DANGER_HOUR_LOCAL = 16;
@@ -66,10 +66,11 @@ export async function ensureStreakEndangerment(userId: string): Promise<void> {
     });
     if (!due) return;
 
-    // Throttle: one nudge per user per local day. Both window edges are real
-    // midnights in-zone (DST-safe), not ±24 h arithmetic.
-    const windowStart = dayStartInZone(today, zone);
-    const windowEnd = dayStartInZone(shiftDayKey(today, 1), zone);
+    // Throttle: one nudge per user per local day. The duplicate storm we saw
+    // in production came from comparing timestamp columns against in-zone
+    // window edges — any session/timezone skew between writer and reader
+    // breaks that. The logical day is stored in the payload, so idempotency
+    // is keyed on `data.day`: timezone-proof by construction.
     const [alreadySent] = await db
       .select({ id: notificationsTable.id })
       .from(notificationsTable)
@@ -77,8 +78,7 @@ export async function ensureStreakEndangerment(userId: string): Promise<void> {
         and(
           eq(notificationsTable.userId, userId),
           eq(notificationsTable.type, "streak_endangerment"),
-          gte(notificationsTable.createdAt, windowStart),
-          lt(notificationsTable.createdAt, windowEnd),
+          sql`${notificationsTable.data}->>'day' = ${today}`,
         )
       )
       .limit(1);

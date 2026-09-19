@@ -33,7 +33,6 @@ const DailyGoal = lazy(() => import("@/components/DailyGoal"));
 const FocusMoodWidget = lazy(() => import("@/components/FocusMoodWidget").then(m => ({ default: m.FocusMoodWidget })));
 const AskArx = lazy(() => import("@/components/AskArx"));
 const MonsterBattleArena = lazy(() => import("@/components/MonsterBattleArena"));
-const YouTubeFocusTimer = lazy(() => import("@/components/YouTubeFocusTimer"));
 
 function HeavyWidgetFallback() {
   return <div className="h-20 animate-pulse rounded-2xl bg-[var(--surface-1)]/50" />;
@@ -367,9 +366,9 @@ function SessionCompanions() {
           petLevel={1}
         />
       </Suspense>
-      <Suspense fallback={<HeavyWidgetFallback />}>
-        <YouTubeFocusTimer isActive={live.active} sessionDuration={durationSec} />
-      </Suspense>
+      {/* YouTubeFocusTimer removed: it shipped placeholder video ids (including
+          dead/terminated streams) and rendered a stray "Play @AJourneyR Videos"
+          pill on the timer page. AmbientSoundBar covers focus audio now. */}
     </div>
   );
 }
