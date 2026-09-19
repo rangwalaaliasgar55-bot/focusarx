@@ -102,6 +102,38 @@ describe.runIf(hasDb)("marketplace 2.0 (Workstream C)", () => {
     }
   }, 60_000);
 
+  it("keeps the season-2 arrivals seeded, priced inside their ladder bands", async () => {
+    // The curation pass retires items; it does not shrink the shop. These are
+    // the replacements that came with the two retired boosters, and they are
+    // held to the same rarity ladder as the M2.0 catalogue.
+    const SEASON_2: Record<string, [number, number]> = {
+      "frame-rickshaw": [100, 300],
+      "effect-sitar": [400, 700],
+      "deco-stepwell": [1000, 1500],
+      "avatar-teacher": [2000, 3500],
+      "deco-observatory": [8000, 15000],
+    };
+    const bands: Record<string, [number, number]> = {
+      common: [100, 300], uncommon: [400, 700], rare: [1000, 1500],
+      epic: [2000, 3500], legendary: [8000, 15000],
+    };
+    const [active] = await db.select({ n: sql<number>`count(*)` }).from(marketplaceItemsTable)
+      .where(eq(marketplaceItemsTable.isActive, true));
+    // 63 default items minus the two retirements.
+    expect(Number(active.n)).toBeGreaterThanOrEqual(58);
+
+    for (const [id, restockBand] of Object.entries(SEASON_2)) {
+      const row = await item(id);
+      expect(row, `${id} should be seeded`).toBeTruthy();
+      expect(row!.isActive, `${id} should be purchasable`).toBe(true);
+      const [lo, hi] = restockBand;
+      const [bandLo, bandHi] = bands[row!.rarity!]!;
+      expect(row!.costCoins, `${id} price`).toBeGreaterThanOrEqual(lo);
+      expect(row!.costCoins, `${id} price`).toBeLessThanOrEqual(hi);
+      expect([bandLo, bandHi]).toEqual(restockBand); // the two lists must agree
+    }
+  }, 60_000);
+
   it("purchase burns exactly the price and writes one ledger row", async () => {
     const it = await item("acc-party") ?? await seedIfMissing("acc-party", "Party Hat", 100, "common");
     const balBefore = await wallet(giver);
