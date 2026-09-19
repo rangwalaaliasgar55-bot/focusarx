@@ -21,6 +21,8 @@ type OnboardingSignals = {
 const DISMISS_KEY = "focusarx-onboarding-dismissed";
 const DAILY_GOAL_KEY = "focusarx-daily-goal-minutes";
 
+type KickoffStatus = { hasPlan: boolean; tasks: number; goals: number; decks: number; needsKickoff: boolean };
+
 /**
  * Dashboard onboarding checklist (audit Gap 5). Each step maps to a real
  * signal (server-side counters or a local setting) so ticks always reflect
@@ -39,6 +41,19 @@ export default function OnboardingChecklist() {
 
   const signals = query.data;
 
+  /*
+    Kickoff: does this account have anything in it yet? A learner who signed up
+    before the generator shipped (or who skipped it) has an empty tasks/goals/
+    flashcard set and no plan — for them the checklist should *offer* to build
+    one rather than just link to a settings page. Cheap query, refreshed rarely.
+  */
+  const kickoff = useQuery<KickoffStatus>({
+    queryKey: ["onboarding-status"],
+    queryFn: () => apiJson<KickoffStatus>("/api/onboarding/status"),
+    enabled: status === "authenticated",
+    staleTime: 5 * 60_000,
+  });
+
   const steps = useMemo(() => {
     if (!signals) return [];
     const goalSet = localStorage.getItem(DAILY_GOAL_KEY) !== null;
@@ -47,7 +62,7 @@ export default function OnboardingChecklist() {
       { id: "session", label: "Complete your first focus session", href: "/", done: signals.totalSessions > 0 },
       { id: "task", label: "Add your first task", href: "/tasks", done: signals.taskCount > 0 },
       { id: "goal", label: "Set a daily goal", href: "/", done: goalSet },
-      { id: "quiz", label: "Personalize your setup", href: "/onboarding", done: signals.onboardingQuizDone },
+      { id: "quiz", label: "Generate your personal plan", href: "/onboarding?step=plan", done: signals.onboardingQuizDone },
       { id: "room", label: "Join a study room", href: "/study-rooms", done: signals.studyRoomCount > 0 },
       { id: "profile", label: "Customize your profile", href: "/profile", done: signals.profileComplete },
     ];
@@ -91,6 +106,19 @@ export default function OnboardingChecklist() {
               </Button>
             </div>
           </div>
+
+          {kickoff.data?.needsKickoff && !kickoff.data.hasPlan && (
+            <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--brand-strong)]/30 bg-[var(--brand-soft)] px-4 py-3">
+              <span aria-hidden="true" className="text-lg">🧩</span>
+              <p className="min-w-0 flex-1 text-xs text-[var(--foreground-muted)]">
+                Your account is still empty — no tasks, goals or flashcards yet.
+                <span className="font-semibold text-[var(--foreground)]"> One tap builds a week of work from your dream.</span>
+              </p>
+              <Button asChild size="sm">
+                <Link href="/onboarding?step=plan">Generate my plan</Link>
+              </Button>
+            </div>
+          )}
 
           <Progress value={(doneCount / steps.length) * 100} className="mt-4" />
 

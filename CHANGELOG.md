@@ -2,6 +2,54 @@
 
 All notable changes to FocusArx. Dates are UTC.
 
+## [2026-09-19] — Your first day is no longer an empty dashboard
+
+New accounts used to land on four empty states and a generic wizard. Onboarding
+now *builds* something while you are still inside it.
+
+### The generator
+
+- **`POST /api/onboarding/personalize`** turns the answers everyone gives (what
+  you are chasing, how much time you have, when you study) into a dream with its
+  follow-along system, a seven-day kickoff week, three milestone goals and a
+  starter flashcard deck — in one call, with a welcome notification naming the
+  plan.
+- **It works with zero AI keys.** `onboardingPlan.ts` holds the deterministic
+  week and deck templates, shaped by the dream's own blocks and subjects, so
+  Gemini's version is an upgrade rather than a dependency. A model reply is
+  clamped (≤140 chars, 10–180 minutes, validated priority, 7 tasks max) and is
+  only accepted if it clears four real tasks; otherwise the template wins.
+- **Idempotent.** The plan is stored once under `onboarding_plan_<userId>`, so
+  pressing *Generate* twice returns the plan you have instead of stacking a
+  second week of tasks on top of the first.
+- **Never destructive.** An account that already has tasks, goals or decks keeps
+  them; the generator reports those areas as `skipped` instead of overwriting
+  someone's real work.
+- **`GET /onboarding/plan|status|dream-options`** feed the wizard, the dashboard
+  kickoff card and the dream picker from one source of truth. `DREAM_TYPES` and
+  `DREAM_SYSTEMS` moved to `lib/dreamSystems.ts` so both the dream page and the
+  generator read the same definitions.
+
+### The wizard, the dashboard and the screens around them
+
+- The onboarding "plan" step (`/onboarding?step=plan`) is a dream picker, study
+  window and optional target date, then a reveal card: counters, the first three
+  tasks, the daily habit, the next milestone, what was skipped and where the
+  plan came from. The dream list comes from the server, and says so when it
+  falls back to the standard five.
+- `OnboardingChecklist` now ends on "Generate your personal plan" and shows a
+  kickoff card on an empty dashboard, so the generator is discoverable after the
+  first visit too.
+- **Plain single columns became layouts**: quests gained a claimable/coin/XP
+  summary strip and side-by-side daily + weekly tracks; notifications gained
+  filter chips with counts, day grouping (Today / Yesterday / Earlier this week)
+  and relative timestamps; goals gained a completion strip and two-up cards;
+  habits went two-up; the coin shop grew a third column, per-category counts and
+  a hover lift.
+- 14 unit tests pin the generator's templates and clamps, and a DB-gated
+  integration test covers the full plan, the second-call no-op, and the
+  never-overwrite rule.
+
 ## [2026-09-19] — Gemini as staff, purchases you can see, systems per dream
 
 A pass over everything that was wired but inert: bought items that never

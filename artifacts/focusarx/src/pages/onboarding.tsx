@@ -1,12 +1,45 @@
-import { useState, lazy, Suspense } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { ArrowLeft, ArrowRight, BatteryFull, BookOpen, ClipboardList, Footprints, Globe, Laptop, Microscope, Palette, Rocket, Smartphone, Sparkles, VolumeX, Zap } from "lucide-react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth, getToken } from "@/lib/auth";
 
 import { BLUR_IN, STAGGER, STAGGER_CHILD } from "@/lib/animations";
 
 const Hero3D = lazy(() => import("@/components/Hero3D"));
+
+/**
+ * What the first-run generator hands back. The shapes mirror the server's
+ * `/api/onboarding/personalize` response — the plan is created on the server
+ * (tasks, goals, starter deck, dream) and this step is the reveal.
+ */
+type GeneratedPlan = {
+  dreamLabel: string;
+  emoji: string;
+  dailyTargetMinutes: number;
+  source: string;
+  skipped: string[];
+  tasks: Array<{ id: string; text: string; minutes: number | null }>;
+  goals: Array<{ id: string; title: string }>;
+  deck: { id: string; title: string; cardCount: number } | null;
+  system: {
+    tagline: string;
+    blocks: Array<{ label: string; minutes: number; kind: string }>;
+    dailyHabit: string;
+    checkIn: string;
+    nextMilestone: string | null;
+  };
+};
+
+type DreamOption = { id: string; label: string; emoji: string; desc: string; suggestedMinutes: number; tagline: string | null };
+
+const DAILY_MINUTES: Record<string, number> = { "1h": 60, "2h": 120, "4h": 240, "6h": 360 };
+
+const STUDY_WINDOWS = [
+  { id: "morning", label: "Early morning", sub: "Before the house wakes up" },
+  { id: "afternoon", label: "Afternoon", sub: "Between classes and evening" },
+  { id: "night", label: "Late night", sub: "After everything else is done" },
+] as const;
 
 type OnboardingData = {
   goal: string;
@@ -47,7 +80,7 @@ const DAILY_HOURS = [
   { id: "6h", label: "6+ hours", sub: "Extreme" },
 ];
 
-const STEPS = ["intro", "goal", "challenge", "style", "hours", "guide", "ready"] as const;
+const STEPS = ["intro", "goal", "challenge", "style", "hours", "plan", "ready"] as const;
 type Step = typeof STEPS[number];
 
 // Read answers the user may already have given in the mobile welcome flow
@@ -73,10 +106,93 @@ export default function OnboardingPage() {
   const [, setLocation] = useLocation();
   const { refresh } = useAuth();
   const prefs = readWelcomePrefs();
-  const [step, setStep] = useState<Step>(() => (prefs.goal && prefs.challenge && prefs.style ? "hours" : "intro"));
+  // `?step=plan` is how the dashboard's kickoff card brings an existing account
+  // straight to the generator instead of replaying the whole wizard.
+  const search = useSearch();
+  const wantsPlanStep = new URLSearchParams(search).get("step") === "plan";
+  const [step, setStep] = useState<Step>(() => {
+    if (wantsPlanStep) return "plan";
+    return prefs.goal && prefs.challenge && prefs.style ? "hours" : "intro";
+  });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [data, setData] = useState<Partial<OnboardingData>>(() => ({ ...prefs }));
+
+  /* First-run generator state: what we asked, what it built, and whether the
+     learner chose to skip the reveal. */
+  const [dreamOptions, setDreamOptions] = useState<DreamOption[]>([]);
+  const [dreamType, setDreamType] = useState<string>("iit");
+  const [studyWindow, setStudyWindow] = useState<string>("morning");
+  const [targetDate, setTargetDate] = useState<string>("");
+  const [plan, setPlan] = useState<GeneratedPlan | null>(null);
+  const [planBusy, setPlanBusy] = useState(false);
+  const [planError, setPlanError] = useState<string | null>(null);
+  // Dream options come from the server (admin-editable), with a built-in list
+  // as the safety net. If the read fails we say so instead of quietly showing
+  // a list the learner might assume is the real catalogue.
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/onboarding/dream-options");
+        if (!res.ok) {
+          if (!cancelled) setFetchError("Couldn't load your dream catalogue, so we're showing the standard list.");
+          return;
+        }
+        const json = await res.json();
+        if (!cancelled && Array.isArray(json.types) && json.types.length > 0) {
+          setDreamOptions(json.types as DreamOption[]);
+          // Start on the dream that matches the goal they already picked, so the
+          // generator's default is a continuation of their answers, not a reset.
+          const guess: Record<string, string> = { exams: "iit", coding: "coding", creative: "creative", language: "language", deepwork: "research" };
+          const suggested = guess[String(data.goal ?? "")];
+          if (suggested) setDreamType(suggested);
+        }
+      } catch {
+        // Fall back to the built-in list — but tell the learner why it looks
+        // like the generic one, so a network blip never masquerades as a
+        // catalogue with only five dreams in it.
+        if (!cancelled) setFetchError("Couldn't reach the server — showing the standard dream list for now.");
+      }
+    })();
+    return () => { cancelled = true; };
+    // `data.goal` is read once, when the options arrive — re-running would
+    // overwrite a dream the learner has since chosen by hand.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /**
+   * Build the plan on the server. This is the one step of onboarding that
+   * *creates* things — a dream, a week of tasks, three goals and a starter
+   * deck — so the failure path must stay useful: if it fails, the learner can
+   * still finish setup and generate later from the dashboard.
+   */
+  const generatePlan = async () => {
+    setPlanBusy(true);
+    setPlanError(null);
+    try {
+      const token = getToken();
+      const res = await fetch("/api/onboarding/personalize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({
+          dreamType,
+          dailyTargetMinutes: DAILY_MINUTES[String(data.dailyHours)] ?? data.focusDuration ?? 120,
+          studyWindow,
+          ...(targetDate ? { targetDate } : {}),
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) { setPlanError(json.error ?? "Could not build the plan right now."); return; }
+      setPlan(json.plan as GeneratedPlan);
+    } catch {
+      setPlanError("Could not reach the server — you can generate the plan later from your dashboard.");
+    } finally {
+      setPlanBusy(false);
+    }
+  };
 
   const stepIndex = STEPS.indexOf(step);
   const progress = (stepIndex / (STEPS.length - 1)) * 100;
@@ -234,23 +350,147 @@ export default function OnboardingPage() {
             </StepWrapper>
           )}
 
-          {step === "guide" && (
-            <StepWrapper key="guide" title="Your FocusArx Flight Plan" sub="Know exactly what happens after setup.">
-              <div className="space-y-3">
-                {[
-                  ["1", "Choose the next action", "Dashboard recommendations combine your tasks, streak, and time of day."],
-                  ["2", "Protect one focus block", "The timer tracks verified elapsed time and keeps your session recoverable."],
-                  ["3", "Use AI with context", "The coach and roadmap turn your goal into specific sessions; rule-based fallback is labeled."],
-                  ["4", "Review transparent progress", "Analytics shows minutes, time-of-day patterns, streaks, and session replay."],
-                  ["5", "Build momentum", "XP, city growth, flashcards, and missions reward completed work—not clicks."],
-                ].map(([number, title, text]) => (
-                  <div key={number} className="flex gap-3 rounded-2xl border border-[var(--palette-white)]/10 bg-[var(--palette-white)]/[0.03] p-4">
-                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--brand-600)] font-bold">{number}</span>
-                    <div><p className="font-semibold">{title}</p><p className="mt-1 text-sm text-[var(--foreground-subtle)]">{text}</p></div>
+          {step === "plan" && (
+            <StepWrapper key="plan" title="Your Personal Setup" sub="Pick the dream — we'll build the plan around it.">
+              {!plan ? (
+                <>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {fetchError && (
+                      <p role="status" className="col-span-full mb-1 text-[11px] text-[var(--palette-amber-400)]">{fetchError}</p>
+                    )}
+                    {(dreamOptions.length > 0 ? dreamOptions : FALLBACK_DREAMS).map((option) => (
+                      <button
+                        key={option.id}
+                        onClick={() => setDreamType(option.id)}
+                        className={`flex flex-col items-start gap-1 rounded-2xl border p-4 text-left transition-all ${
+                          dreamType === option.id
+                            ? "border-[var(--brand-400)] bg-[var(--brand-400)]/10 shadow-[0_0_30px_var(--rgba-167-139-250-0_15)]"
+                            : "border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] hover:bg-[var(--palette-white)]/[0.05]"
+                        }`}
+                      >
+                        <span className="text-2xl" aria-hidden="true">{option.emoji}</span>
+                        <span className="text-sm font-bold text-[var(--palette-white)]">{option.label}</span>
+                        <span className="text-[11px] leading-snug text-[var(--foreground-subtle)]">{option.desc}</span>
+                      </button>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <button onClick={next} className="mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--brand-600)] font-bold">Show my plan <ArrowRight size={18} /></button>
+
+                  <div className="mt-5 rounded-2xl border border-[var(--palette-white)]/10 bg-[var(--palette-white)]/[0.03] p-4 text-left">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--foreground-subtle)]">When do you study best?</p>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                      {STUDY_WINDOWS.map((w) => (
+                        <button
+                          key={w.id}
+                          onClick={() => setStudyWindow(w.id)}
+                          className={`rounded-xl border px-3 py-2 text-left transition-all ${
+                            studyWindow === w.id
+                              ? "border-[var(--brand-400)] bg-[var(--brand-400)]/10"
+                              : "border-[var(--palette-white)]/10 hover:bg-[var(--palette-white)]/[0.04]"
+                          }`}
+                        >
+                          <span className="block text-xs font-semibold text-[var(--palette-white)]">{w.label}</span>
+                          <span className="block text-[11px] text-[var(--foreground-subtle)]">{w.sub}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <label className="mt-3 block text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--foreground-subtle)]" htmlFor="onboarding-target-date">
+                      Target date (optional)
+                    </label>
+                    <input
+                      id="onboarding-target-date"
+                      type="date"
+                      value={targetDate}
+                      onChange={(e) => setTargetDate(e.target.value)}
+                      className="mt-1 w-full rounded-xl border border-[var(--palette-white)]/10 bg-[var(--palette-white)]/[0.03] px-3 py-2 text-sm text-[var(--palette-white)] outline-none focus:border-[var(--brand-400)] sm:max-w-xs"
+                    />
+                  </div>
+
+                  {planError && <p role="alert" className="mt-3 text-sm text-[var(--palette-red-400)]">{planError}</p>}
+
+                  <button
+                    onClick={() => void generatePlan()}
+                    disabled={planBusy}
+                    className="mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--brand-600)] font-bold text-[var(--palette-white)] transition-all hover:bg-[var(--brand-700)] disabled:opacity-50"
+                  >
+                    {planBusy ? "Building your plan…" : "Generate my plan"} {!planBusy && <Sparkles size={18} />}
+                  </button>
+                  <button
+                    onClick={() => setStep("ready")}
+                    className="mx-auto mt-4 block text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--foreground-subtle)] transition-colors hover:text-[var(--palette-white)]"
+                  >
+                    Skip — I'll set it up myself
+                  </button>
+                </>
+              ) : (
+                <motion.div variants={BLUR_IN} initial="initial" animate="animate" className="text-left">
+                  <div className="rounded-3xl border border-[var(--palette-emerald-500)]/25 bg-[var(--palette-emerald-500)]/[0.06] p-5">
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl" aria-hidden="true">{plan.emoji}</span>
+                      <div>
+                        <p className="text-lg font-semibold text-[var(--palette-white)]">{plan.dreamLabel}</p>
+                        <p className="text-xs text-[var(--foreground-muted)]">{plan.system.tagline}</p>
+                      </div>
+                      <span className="ml-auto rounded-full border border-[var(--palette-emerald-500)]/30 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-[var(--palette-emerald-400)]">
+                        {plan.dailyTargetMinutes}m/day
+                      </span>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                      <PlanCounter label="Tasks created" value={plan.tasks.length} note="your first week" />
+                      <PlanCounter label="Goals set" value={plan.goals.length} note="from your milestones" />
+                      <PlanCounter label="Flashcards" value={plan.deck?.cardCount ?? 0} note={plan.deck?.title ?? "habit deck"} />
+                    </div>
+
+                    {plan.tasks.length > 0 && (
+                      <div className="mt-4">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--foreground-subtle)]">Start here</p>
+                        <ul className="mt-2 space-y-1.5">
+                          {plan.tasks.slice(0, 3).map((task) => (
+                            <li key={task.id} className="flex items-start gap-2 rounded-xl border border-[var(--palette-white)]/10 bg-[var(--palette-white)]/[0.03] px-3 py-2">
+                              <span aria-hidden="true" className="mt-0.5 text-[var(--brand-400)]">◆</span>
+                              <span className="text-xs text-[var(--foreground-muted)]">{task.text}</span>
+                              {task.minutes && <span className="ml-auto shrink-0 text-[11px] tabular-nums text-[var(--foreground-subtle)]">{task.minutes}m</span>}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-2xl border border-[var(--palette-white)]/10 bg-[var(--palette-white)]/[0.02] p-3">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--foreground-subtle)]">Daily habit</p>
+                        <p className="mt-1 text-xs text-[var(--foreground-muted)]">{plan.system.dailyHabit}</p>
+                      </div>
+                      <div className="rounded-2xl border border-[var(--palette-white)]/10 bg-[var(--palette-white)]/[0.02] p-3">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--foreground-subtle)]">Next milestone</p>
+                        <p className="mt-1 text-xs text-[var(--foreground-muted)]">{plan.system.nextMilestone ?? "Keep the streak alive for a week."}</p>
+                      </div>
+                    </div>
+
+                    {plan.skipped.length > 0 && (
+                      <p className="mt-3 text-[11px] text-[var(--foreground-subtle)]">
+                        Your existing {plan.skipped.join(", ")} were left untouched — setup never overwrites work you already have.
+                      </p>
+                    )}
+                    <p className="mt-2 text-[11px] text-[var(--foreground-subtle)]">
+                      Plan source: {plan.source === "template" ? "built-in templates" : plan.source}. Regenerate any time from your dashboard.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={next}
+                    className="mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--brand-600)] font-bold text-[var(--palette-white)] transition-all hover:bg-[var(--brand-700)]"
+                  >
+                    Looks good <ArrowRight size={18} />
+                  </button>
+                  <button
+                    onClick={() => { setPlan(null); }}
+                    className="mx-auto mt-4 block text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--foreground-subtle)] transition-colors hover:text-[var(--palette-white)]"
+                  >
+                    Change my answers
+                  </button>
+                </motion.div>
+              )}
             </StepWrapper>
           )}
 
@@ -266,6 +506,8 @@ export default function OnboardingPage() {
                 {data.goal && <CalibrationTag label={GOALS.find(g => g.id === data.goal)?.label ?? data.goal} />}
                 {data.style && <CalibrationTag label={`${data.focusDuration}m Loops`} />}
                 {data.dailyHours && <CalibrationTag label={`${data.dailyHours}/day`} />}
+                {plan && <CalibrationTag label={`${plan.tasks.length} tasks ready`} />}
+                {plan?.deck && <CalibrationTag label={`${plan.deck.cardCount} cards`} />}
               </div>
               <p className="mt-8 text-[var(--muted-fg)] max-w-sm mx-auto">Systems are synced. Your academic civilization is ready for expansion.</p>
               {saveError && <p role="alert" className="mt-4 text-sm text-[var(--palette-red-400)]">{saveError}</p>}
@@ -289,6 +531,26 @@ export default function OnboardingPage() {
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+/** Used until (or instead of) the server's list, so the step never renders empty. */
+const FALLBACK_DREAMS: DreamOption[] = [
+  { id: "iit", label: "IIT/JEE", emoji: "⚙️", desc: "Engineering entrance", suggestedMinutes: 360, tagline: null },
+  { id: "neet", label: "NEET", emoji: "🩺", desc: "Medical entrance", suggestedMinutes: 360, tagline: null },
+  { id: "upsc", label: "UPSC/IAS", emoji: "🏛️", desc: "Civil services", suggestedMinutes: 300, tagline: null },
+  { id: "cat", label: "CAT/MBA", emoji: "💼", desc: "Management entrance", suggestedMinutes: 240, tagline: null },
+  { id: "coding", label: "Coding interviews", emoji: "💻", desc: "Land the tech job", suggestedMinutes: 240, tagline: null },
+  { id: "custom", label: "My own dream", emoji: "✨", desc: "Define your own path", suggestedMinutes: 180, tagline: null },
+];
+
+function PlanCounter({ label, value, note }: { label: string; value: number; note: string }) {
+  return (
+    <div className="rounded-2xl border border-[var(--palette-white)]/10 bg-[var(--palette-white)]/[0.03] p-3">
+      <p className="text-2xl font-semibold tabular-nums text-[var(--palette-white)]">{value}</p>
+      <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--brand-400)]">{label}</p>
+      <p className="mt-0.5 truncate text-[11px] text-[var(--foreground-subtle)]">{note}</p>
     </div>
   );
 }

@@ -29,9 +29,11 @@ function QuestCard({ progress, onClaim, claiming }: { progress: any; onClaim: (i
 
   return (
     <motion.div variants={CARD}
-      className="rounded-2xl border p-4 transition-all"
+      className="group relative overflow-hidden rounded-2xl border p-4 transition-all duration-[var(--duration-fast)] hover:-translate-y-0.5"
       style={{ borderColor: isComplete && !isClaimed ? "var(--rgba-6-214-160-0_4)" : "var(--rgba-255-255-255-0_06)", background: isComplete && !isClaimed ? "var(--rgba-6-214-160-0_04)" : "var(--rgba-255-255-255-0_02)" }}>
-      <div className="flex items-start gap-3">
+      {/* Difficulty spine: readable at a glance when scrolling a long board. */}
+      <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1" style={{ background: isClaimed ? "var(--palette-10b981)" : diff.color, opacity: isClaimed ? 0.5 : 1 }} />
+      <div className="flex items-start gap-3 pl-1.5">
         <div className="text-2xl shrink-0">{quest.icon}</div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -126,11 +128,18 @@ export default function QuestsPage() {
     }
   };
 
-  const claimable = [...quests.daily, ...quests.weekly].filter(p => p.completed && !p.claimedAt).length;
+  const allQuests = [...quests.daily, ...quests.weekly];
+  const claimable = allQuests.filter(p => p.completed && !p.claimedAt).length;
+  const earned = allQuests.filter(p => p.completed);
+  const onOffer = allQuests.filter(p => !p.completed).reduce(
+    (sum, p) => ({ xp: sum.xp + (p.quest?.xpReward ?? 0), coins: sum.coins + (p.quest?.coinReward ?? 0) }),
+    { xp: 0, coins: 0 },
+  );
+  const completionPct = allQuests.length > 0 ? Math.round((earned.length / allQuests.length) * 100) : 0;
 
   return (
     <PageTransition>
-      <motion.div variants={PAGE} initial="initial" animate="animate" className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+      <motion.div variants={PAGE} initial="initial" animate="animate" className="mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -149,6 +158,41 @@ export default function QuestsPage() {
           </div>
         </div>
 
+        {/* Board summary — the answer to "should I bother today?" before any
+            individual quest is read. */}
+        {!loading && !loadError && allQuests.length > 0 && (
+          <motion.section
+            variants={CARD}
+            className="grid gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 sm:grid-cols-3"
+            aria-label="Quest board summary"
+          >
+            <div className="flex items-center gap-3 rounded-xl bg-[var(--brand-soft)] px-3 py-2.5">
+              <span aria-hidden="true" className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--brand-strong)] text-sm font-bold text-white">{claimable}</span>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-[var(--foreground)]">{claimable > 0 ? "Ready to claim" : "Nothing to claim yet"}</p>
+                <p className="truncate text-[11px] text-[var(--foreground-muted)]">{claimable > 0 ? "Rewards are waiting — grab them" : "Finish a quest and it lights up here"}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-xl bg-[var(--surface-hover)] px-3 py-2.5">
+              <span aria-hidden="true" className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--surface-1)] text-[var(--color-warning)]">🪙</span>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-[var(--foreground)]">{onOffer.coins.toLocaleString()} coins unclaimed</p>
+                <p className="truncate text-[11px] text-[var(--foreground-muted)]">plus {onOffer.xp.toLocaleString()} XP on the board</p>
+              </div>
+            </div>
+            <div className="rounded-xl bg-[var(--surface-hover)] px-3 py-2.5">
+              <div className="flex items-center justify-between text-[11px] text-[var(--foreground-muted)]">
+                <span>Board progress</span><span className="tabular-nums font-semibold text-[var(--foreground)]">{earned.length}/{allQuests.length}</span>
+              </div>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--surface-1)]">
+                <motion.div className="h-full rounded-full bg-[var(--brand-500)]" initial={{ width: 0 }} animate={{ width: `${completionPct}%` }} transition={{ duration: 0.3 }} />
+              </div>
+            </div>
+          </motion.section>
+        )}
+
+        {/* The two tracks sit side by side on a desktop and stack on a phone:
+            this page used to be one long single column of cards at every width. */}
         {loading ? (
           <div className="py-12 flex justify-center">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--palette-zinc-700)] border-t-[var(--brand-600)]" />
@@ -156,7 +200,7 @@ export default function QuestsPage() {
         ) : loadError ? (
           <QueryError what="your quests" onRetry={() => void load()} />
         ) : (
-          <>
+          <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
             {/* Daily */}
             <div>
               <div className="flex items-center gap-2 mb-3">
@@ -192,7 +236,7 @@ export default function QuestsPage() {
                 </motion.div>
               )}
             </div>
-          </>
+          </div>
         )}
 
         <AnimatePresence>
