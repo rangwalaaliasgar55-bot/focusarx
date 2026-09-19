@@ -28,12 +28,24 @@ export DATABASE_URL="postgresql://localhost:5432/focusarx_dev"
 ### 2. Push Schema
 
 ```bash
-# Push Drizzle schema to the database (development)
+# Local / disposable database: additive sync, then drizzle-kit push for the rest
 pnpm db:push
 
-# Or push directly via the script
-pnpm --filter @workspace/db run push
+# Shared or production database: additive sync only (what deploys run)
+pnpm --filter @workspace/db run sync
+pnpm --filter @workspace/db run sync:dry-run   # show the plan first
+pnpm --filter @workspace/db run sync:check     # exit 1 unless already in sync
 ```
+
+`scripts/sync-schema.mjs` compares the live database with
+`lib/db/src/schema` and applies only additive, idempotent statements —
+`CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`,
+`CREATE INDEX IF NOT EXISTS`, guarded `ADD CONSTRAINT`. It never drops,
+renames or retypes anything and never prompts, which is what makes it safe to
+run unattended against production on every deploy. A `NOT NULL` column
+without a default on a populated table is reported as `MANUAL` and left to a
+reviewed migration. Running it against an empty database bootstraps the whole
+schema; running it twice is a no-op (CI asserts this with `sync:check`).
 
 ### 3. Validate Migrations
 
@@ -53,9 +65,13 @@ The replay check refuses a non-empty public schema and applies the journal in
 order. It is a test/bootstrap utility, not a production migration-history runner.
 CI exercises both recorded migrations and the canonical schema.
 
-`push:vercel` remains a best-effort patch/cleanup path, not a full migration
-runner. It skips preview deployments. Provision/synchronize the production
-schema separately and review changes before deployment.
+`push:vercel` (run by the Vercel production build and mirrored by the
+`Production Deploy` workflow) runs `cleanup-orphans.mjs` and then
+`sync-schema.mjs` against the production database, and fails the build if
+either fails. It skips preview deployments. It is deliberately **not**
+`drizzle-kit push`, which needs interactive confirmation for constraint
+renames and could drop data; non-additive changes still need a reviewed
+migration.
 
 ### SQL Bootstrap Snapshot
 
@@ -68,8 +84,8 @@ pnpm --filter @workspace/db run schema:export  # regenerate the snapshot
 pnpm --filter @workspace/db run schema:check   # check for drift without a DB
 ```
 
-Use reviewed migrations or `db:push` for upgrades; do not assume rerunning the
-snapshot upgrades an older database.
+Use `sync` (additive), reviewed migrations, or `db:push` (local) for upgrades;
+do not assume rerunning the snapshot upgrades an older database.
 
 ### 4. Seed (optional)
 

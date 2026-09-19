@@ -362,6 +362,54 @@ describe.runIf(hasDb)("auth sign-in (live app + real database)", () => {
     expect(await remaining()).toBeLessThanOrEqual(before - 4);
   }, 60_000);
 
+  it("still answers the session when the database predates migration 0017", async () => {
+    // The production incident behind this test: PR #85 taught GET /auth/session
+    // to read `users.deletion_requested_at`, the deployed database had never
+    // received the column, and every sign-in ended in "FocusArx confirmed your
+    // sign-in but could not load your session" — login 200, session 500.
+    //
+    // Temporarily remove the column (and restore it afterwards, in `finally`,
+    // so the rest of the suite runs on the real schema) and prove that the
+    // session read degrades to "no pending deletion" instead of failing.
+    const { pool } = await import("@workspace/db");
+    const { __resetDriftCache } = await import("../lib/schemaDrift");
+    const { email, res: register } = await makeUser("drift");
+    await pool.query("ALTER TABLE users DROP COLUMN deletion_requested_at");
+    __resetDriftCache();
+    try {
+      const login = await call("/api/auth/login", { method: "POST", body: { email, password: PW } });
+      expect(login.status).toBe(200);
+
+      const session = await call("/api/auth/session", { jar: login.jar });
+      expect(session.status).toBe(200);
+      expect((session.json.user as { email: string }).email).toBe(email);
+      expect(session.json.pendingDeletion).toBeUndefined();
+
+      // A second read must not re-probe the column: the drift is remembered.
+      const again = await call("/api/auth/session", { jar: register.jar });
+      expect(again.status).toBe(200);
+
+      // The grace period genuinely cannot be recorded without the column, so
+      // the deletion routes refuse with a retryable 503 and change nothing —
+      // never a 500, and never a silent hard delete.
+      const del = await call("/api/auth/account", { method: "DELETE", body: { password: PW }, jar: login.jar });
+      expect(del.status).toBe(503);
+      expect(errCode(del.json)).toBe("SERVICE_UNAVAILABLE");
+      const stillThere = await call("/api/auth/session", { jar: login.jar });
+      expect(stillThere.status).toBe(200);
+    } finally {
+      await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS deletion_requested_at timestamp");
+      await pool.query(
+        'CREATE INDEX IF NOT EXISTS users_deletion_requested_at_idx ON users (deletion_requested_at) WHERE deletion_requested_at IS NOT NULL',
+      );
+      __resetDriftCache();
+    }
+
+    // With the column back, the full payload is available again.
+    const restored = await call("/api/auth/session", { jar: register.jar });
+    expect(restored.status).toBe(200);
+  }, 60_000);
+
   it("answers 401 (not 500) for an unreadable token, and 401 for none at all", async () => {
     const garbage = await call("/api/auth/session", { jar: { access_token: "not.a.jwt" } });
     expect(garbage.status).toBe(401);

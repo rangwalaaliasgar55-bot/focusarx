@@ -130,6 +130,16 @@ jobs:
           AUTH_SECRET: ci-test-secret-that-is-32-chars-long
         run: pnpm --filter @workspace/db run push
 
+      # Production is brought up to date by `sync-schema` (see deploy.yml), never
+      # by drizzle-kit push. Prove here that the sync is a no-op on a database
+      # that already matches lib/db/src/schema — `--check` fails the job if it
+      # still wants to change anything, i.e. if the sync tool and the schema
+      # have drifted apart.
+      - name: Verify sync-schema is idempotent
+        env:
+          DATABASE_URL: postgresql://focusarx:focusarx_ci@localhost:5432/focusarx_ci
+        run: pnpm --filter @workspace/db run sync:check
+
       - name: Run DB-gated API integration suites
         env:
           DATABASE_URL: postgresql://focusarx:focusarx_ci@localhost:5432/focusarx_ci

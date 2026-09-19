@@ -107,6 +107,24 @@ function safeViewerId(req: AuthRequest): string | null {
   }
 }
 
+/**
+ * Rooms the viewer is an active member of.
+ *
+ * Decoration on the public list (it adds the viewer's private rooms), so a
+ * members table that is missing or drifted degrades to "none" rather than
+ * failing the request — the same rule `enrichRooms` applies. Without this a
+ * signed-in visitor got a 500 from a list that anonymous visitors could load.
+ */
+async function activeRoomIdsFor(viewerId: string): Promise<string[]> {
+  const memberships = await queryOrFallback(
+    "study room memberships",
+    db.select({ roomId: studyRoomMembersTable.roomId }).from(studyRoomMembersTable)
+      .where(and(eq(studyRoomMembersTable.userId, viewerId), eq(studyRoomMembersTable.status, "active"))),
+    [] as Array<{ roomId: string }>,
+  );
+  return memberships.map((m) => m.roomId);
+}
+
 async function loadRoom(roomId: string): Promise<RoomRow | undefined> {
   if (!roomId || roomId.length > 64) return undefined;
   // Column-explicit via selectResilient: `db.select()` expands to every column
@@ -201,21 +219,35 @@ async function enrichRooms(rooms: RoomRow[], viewerId: string | null) {
     const onlineCount = participants.filter((p) => p.online).length;
     const host = userById.get(room.hostId);
     const mine = viewerId ? roomMembers.find((m) => m.userId === viewerId) : undefined;
+    const isHost = viewerId === room.hostId;
+    // Presence belongs to the people in the room. Everyone else — anonymous
+    // visitors and signed-in users browsing the list alike — learns whether a
+    // room is live and whether it has space, never how many people are inside
+    // or who they are. Summed across rooms those figures were a public
+    // "users online right now" counter, and we do not publish one.
+    const canSeePresence = isHost || Boolean(mine);
     return {
       ...room,
       hostName: displayName(host, "Host"),
-      // Legacy aliases the older client used.
+      // Legacy alias the older client used.
       isPrivate: !room.isPublic,
-      memberCount: participants.length,
-      activeCount: onlineCount,
-      participantCount: participants.length,
-      onlineCount,
-      participants,
+      isLive: onlineCount > 0,
+      isFull: participants.length >= room.maxParticipants,
       messageCount: messageCountByRoom.get(room.id) ?? 0,
-      isHost: viewerId === room.hostId,
+      isHost,
       isMember: Boolean(mine),
       // Never leak the invite code of a private room to non-members.
-      inviteCode: room.isPublic || viewerId === room.hostId || mine ? room.inviteCode : null,
+      inviteCode: room.isPublic || isHost || mine ? room.inviteCode : null,
+      participants: canSeePresence ? participants : [],
+      ...(canSeePresence
+        ? {
+            memberCount: participants.length,
+            onlineCount,
+            // Legacy aliases the older client used.
+            activeCount: onlineCount,
+            participantCount: participants.length,
+          }
+        : {}),
     };
   });
 }
@@ -344,9 +376,7 @@ studyRoomsRouter.get("/study-rooms", async (req: AuthRequest, res: Response) => 
       if (!membership) return sendNotFound(res, "Group not found");
       rooms = await listRooms(and(eq(studyRoomsTable.groupId, groupId), eq(studyRoomsTable.status, "active")));
     } else if (scope === "mine" && viewerId) {
-      const memberships = await db.select({ roomId: studyRoomMembersTable.roomId }).from(studyRoomMembersTable)
-        .where(and(eq(studyRoomMembersTable.userId, viewerId), eq(studyRoomMembersTable.status, "active")));
-      const ids = memberships.map((m) => m.roomId);
+      const ids = await activeRoomIdsFor(viewerId);
       rooms = ids.length
         ? await listRooms(and(inArray(studyRoomsTable.id, ids), eq(studyRoomsTable.status, "active")))
         : [];
@@ -354,10 +384,8 @@ studyRoomsRouter.get("/study-rooms", async (req: AuthRequest, res: Response) => 
       rooms = await listRooms(and(eq(studyRoomsTable.status, "active"), eq(studyRoomsTable.isPublic, true)), { limit: 40 });
       // Private rooms the viewer belongs to are listed too (they can't be discovered otherwise).
       if (viewerId) {
-        const memberships = await db.select({ roomId: studyRoomMembersTable.roomId }).from(studyRoomMembersTable)
-          .where(and(eq(studyRoomMembersTable.userId, viewerId), eq(studyRoomMembersTable.status, "active")));
         const known = new Set(rooms.map((r) => r.id));
-        const ids = memberships.map((m) => m.roomId).filter((id) => !known.has(id));
+        const ids = (await activeRoomIdsFor(viewerId)).filter((id) => !known.has(id));
         if (ids.length) {
           const mine = await listRooms(and(inArray(studyRoomsTable.id, ids), eq(studyRoomsTable.status, "active")));
           rooms = [...mine, ...rooms];

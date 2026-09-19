@@ -358,6 +358,6 @@ export function isOnline(userId: string): boolean {
   return onlineUsers.has(userId);
 }
 
-export function getOnlineUsers(): string[] {
-  return [...onlineUsers];
-}
+// There is deliberately no `getOnlineUsers()` / online-count export: the set
+// above exists to answer "is *this* user connected?" for direct notifications,
+// never to publish how many people are on the site.

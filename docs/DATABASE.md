@@ -4,7 +4,7 @@
 
 - **Database**: PostgreSQL 15+ (Neon serverless recommended)
 - **ORM**: Drizzle ORM 0.45+
-- **Schema synchronization**: Drizzle Kit (`drizzle-kit push`); numbered SQL migrations are validated and replay-tested separately
+- **Schema synchronization**: `lib/db/scripts/sync-schema.mjs` (additive, idempotent; runs on every production deploy) plus Drizzle Kit (`drizzle-kit push`) for local databases; numbered SQL migrations are validated and replay-tested separately
 - **Connection**: SSL-required connection string via `DATABASE_URL`
 
 ## Schema Documentation
@@ -12,7 +12,7 @@
 `lib/db/src/schema/` is the source of truth. `database/full_schema.sql` is a
 regenerable bootstrap snapshot (`pnpm --filter @workspace/db run schema:export`),
 not an upgrade script for incompatible existing tables.
-See `database/README.md` for schema push, migration replay and snapshot checks.
+See `database/README.md` for schema sync/push, migration replay and snapshot checks.
 See `database/verify.sql` for table-presence verification; that check does not
 prove every column or constraint matches the schema.
 

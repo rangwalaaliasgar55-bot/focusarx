@@ -38,6 +38,9 @@ interface StudyRoom {
   name: string;
   mode?: string;
   hostName?: string;
+  isLive?: boolean;
+  isMember?: boolean;
+  /** Members only — the API does not publish head counts to non-members. */
   participantCount?: number;
   maxParticipants?: number;
   participants?: GroupParticipant[];
@@ -322,15 +325,17 @@ export default function GroupsPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-bold text-[var(--foreground)]">{r.name}</p>
-                        <span className="text-[11px] font-semibold uppercase tracking-wider bg-[var(--palette-emerald-500)]/10 text-[var(--palette-emerald-400)] border border-[var(--palette-emerald-500)]/20 rounded-full px-2 py-0.5">LIVE</span>
+                        {r.isLive && <span className="text-[11px] font-semibold uppercase tracking-wider bg-[var(--palette-emerald-500)]/10 text-[var(--palette-emerald-400)] border border-[var(--palette-emerald-500)]/20 rounded-full px-2 py-0.5">LIVE</span>}
                       </div>
                       <div className="flex items-center gap-3 mt-1">
                         <span className="text-xs text-[var(--foreground-subtle)] capitalize">{r.mode?.replace("_", " ")}</span>
-                        <span className="text-xs text-[var(--foreground-subtle)]">👤 {r.participantCount}/{r.maxParticipants}</span>
+                        <span className="text-xs text-[var(--foreground-subtle)]">
+                          👤 {typeof r.participantCount === "number" ? `${r.participantCount}/${r.maxParticipants}` : `up to ${r.maxParticipants}`}
+                        </span>
                         <span className="text-xs text-[var(--foreground-subtle)]">by {r.hostName}</span>
                       </div>
                     </div>
-                    {r.participants?.some((p) => p.userId === session?.user?.id) ? (
+                    {r.isMember || r.participants?.some((p) => p.userId === session?.user?.id) ? (
                       <button onClick={() => leaveRoom.mutate(r.id)} disabled={leaveRoom.isPending}
                         className="shrink-0 rounded-xl border border-[var(--border-strong)] px-3 py-1.5 text-xs font-semibold text-[var(--foreground-muted)] hover:text-[var(--foreground)] disabled:opacity-50">
                         Leave

@@ -20,12 +20,20 @@ interface RoomParticipant {
   focusMinutes: number;
 }
 
-/** Mirrors the enriched shape returned by GET /api/study-rooms. */
+/**
+ * Mirrors the enriched shape returned by GET /api/study-rooms.
+ *
+ * Head counts and the participant roster are only present for rooms the
+ * viewer belongs to — the API never publishes how many people are inside a
+ * room to someone who is not in it.
+ */
 interface ForgeRoom {
   id: string;
   name: string;
   hostName: string;
-  participantCount: number;
+  isLive: boolean;
+  isMember: boolean;
+  participantCount?: number;
   maxParticipants: number;
   participants: RoomParticipant[];
 }
@@ -97,7 +105,7 @@ export default function ForgeRoomPage() {
   const participants = selected?.participants ?? [];
   const combinedMinutes = participants.reduce((total, p) => total + (p.focusMinutes ?? 0), 0);
   const myId = session?.user?.id;
-  const iAmHere = participants.some((p) => p.userId === myId);
+  const iAmHere = Boolean(selected?.isMember) || participants.some((p) => p.userId === myId);
 
   const goalProgress = Math.min(100, Math.round((combinedMinutes / COMBINED_MINUTE_GOAL) * 100));
   const capacity = selected?.maxParticipants ?? 0;
@@ -131,7 +139,9 @@ export default function ForgeRoomPage() {
             <div className="mt-8 flex items-center gap-6 sm:gap-8">
               <div className="text-center">
                 <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-[var(--foreground-subtle)]">Participants</p>
-                <p className="text-3xl font-semibold text-[var(--palette-white)]">{selected?.participantCount ?? 0}</p>
+                <p className="text-3xl font-semibold text-[var(--palette-white)]">
+                  {iAmHere ? (selected?.participantCount ?? participants.length) : selected?.isLive ? "Live" : "—"}
+                </p>
               </div>
               <div className="h-10 w-px bg-[var(--palette-white)]/5" aria-hidden="true" />
               <div className="text-center">
@@ -185,7 +195,9 @@ export default function ForgeRoomPage() {
                     }`}
                   >
                     {room.name}
-                    <span className="ml-2 font-mono text-[11px] opacity-60">{room.participantCount}</span>
+                    {room.isLive && (
+                      <span className="ml-2 inline-block h-1.5 w-1.5 rounded-full bg-[var(--brand-teal)] align-middle" aria-label="Live now" />
+                    )}
                   </button>
                 ))}
               </div>
@@ -237,7 +249,11 @@ export default function ForgeRoomPage() {
                   {participants.length === 0 && selected && (
                     <div className="rounded-3xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] p-8 text-center backdrop-blur-xl">
                       <p className="text-sm text-[var(--foreground-subtle)]">
-                        “{selected.name}” is open but nobody has joined yet.
+                        {iAmHere
+                          ? `“${selected.name}” is open but nobody else has joined yet.`
+                          : selected.isLive
+                            ? `“${selected.name}” is live — join it to see who is focusing alongside you.`
+                            : `“${selected.name}” is open and quiet right now — join it to start the session.`}
                       </p>
                       <Link
                         href="/study-rooms"
@@ -279,7 +295,7 @@ export default function ForgeRoomPage() {
                         </div>
                       </div>
 
-                      {capacity > 0 && (
+                      {capacity > 0 && iAmHere && (
                         <div className="space-y-2">
                           <div className="flex justify-between gap-2 text-xs font-bold">
                             <span className="text-[var(--foreground-muted)]">Room capacity</span>

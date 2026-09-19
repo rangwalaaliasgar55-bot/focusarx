@@ -17,9 +17,6 @@ env:
   PNPM_VERSION: "10.26.1"
 
 jobs:
-  # ──────────────────────────────────────────────────────────────────────────────
-  # Pre-flight: full CI suite before touching the database or production
-  # ──────────────────────────────────────────────────────────────────────────────
   preflight:
     name: Pre-flight checks
     runs-on: ubuntu-latest
@@ -64,14 +61,24 @@ jobs:
           VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
 
   # ──────────────────────────────────────────────────────────────────────────────
-  # Database migration (runs before Vercel activates the new build)
+  # Database schema sync (additive, non-interactive) — runs BEFORE the new code
+  # is activated so a query for a new column never meets a database without it.
+  #
+  # The repository's GitHub environment is named `Production` (capital P). This
+  # job previously targeted `production`, which does not exist: GitHub created
+  # an empty environment on the fly, every `secrets.*` reference resolved to an
+  # empty string, and all 30 consecutive deploy runs failed in the pre-flight
+  # step with "Missing required env vars" — that is the "database push failed"
+  # notification. The secrets themselves were never the problem.
   # ──────────────────────────────────────────────────────────────────────────────
   migrate:
     name: Database migration
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: preflight
-    environment: production
+    environment: Production
+    outputs:
+      ran: ${{ steps.check.outputs.ran }}
     steps:
       - uses: actions/checkout@v4
 
@@ -87,163 +94,85 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Verify production environment
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
-        run: |
-          MISSING=""
-          [ -z "$DATABASE_URL" ] && MISSING="${MISSING} DATABASE_URL"
-          [ -z "$AUTH_SECRET" ] && MISSING="${MISSING} AUTH_SECRET"
-          if [ -n "$MISSING" ]; then
-            echo "::error::Missing required env vars:${MISSING}"
-            exit 1
-          fi
-          if [ "${#AUTH_SECRET}" -lt 32 ]; then
-            echo "::error::AUTH_SECRET must be at least 32 characters."
-            exit 1
-          fi
-          echo "All required environment variables present."
-
-      - name: Configure database URL
-        id: config
+      - name: Check database credentials
+        id: check
         env:
           DB_URL: ${{ secrets.DATABASE_URL }}
           DB_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
         run: |
-          # Prefer the direct (non-pooling) URL on Vercel: prepared statements
-          # are used by Drizzle and break under transaction-mode poolers.
+          # Only the database URL is needed to sync the schema. AUTH_SECRET,
+          # ADMIN_PASSWORD and APP_URL are runtime settings that live in Vercel;
+          # requiring them here blocked every deploy for a check that protects
+          # nothing in this job.
+          if [ -z "$DB_URL" ] && [ -z "$DB_URL_NON_POOLING" ]; then
+            echo "::warning::DATABASE_URL / POSTGRES_URL_NON_POOLING are not set in the 'Production' GitHub environment — skipping the schema sync here. The Vercel build (pnpm run build:vercel) still syncs the schema before the new code goes live."
+            echo "ran=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ -n "$DB_URL_NON_POOLING" ]; then
             echo "url=${DB_URL_NON_POOLING}" >> "$GITHUB_OUTPUT"
           else
             echo "url=${DB_URL}" >> "$GITHUB_OUTPUT"
           fi
+          echo "ran=true" >> "$GITHUB_OUTPUT"
 
-      - name: Acquire migration lock
+      - name: Sync database schema (additive only)
+        if: steps.check.outputs.ran == 'true'
         env:
-          DATABASE_URL: ${{ steps.config.outputs.url }}
-        run: |
-          node -e "
-            const { Pool } = require('pg');
-            const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-            (async () => {
-              try {
-                await pool.query(\"CREATE TABLE IF NOT EXISTS _migration_lock (id boolean PRIMARY KEY DEFAULT true, locked_at timestamptz, locked_by text, CHECK (id))\");
-                const { rows } = await pool.query(\"INSERT INTO _migration_lock (id, locked_at, locked_by) VALUES (true, NOW(), \$1) ON CONFLICT (id) DO UPDATE SET locked_at = NOW(), locked_by = EXCLUDED.locked_by WHERE _migration_lock.locked_at < NOW() - INTERVAL '30 minutes' RETURNING *\", ['github-actions-${{ github.sha }}']);
-                if (rows.length === 0) {
-                  console.error('Could not acquire migration lock — another deployment may be running.');
-                  process.exit(1);
-                }
-                console.log('Migration lock acquired.');
-                await pool.end();
-              } catch(e) {
-                console.error('Lock acquisition failed:', e.message);
-                process.exit(1);
-              }
-            })();
-          "
+          DATABASE_URL: ${{ steps.check.outputs.url }}
+        # `sync` = cleanup-orphans + sync-schema: every missing table, column,
+        # index and constraint is created; nothing is ever dropped, retyped or
+        # truncated, and there is no interactive prompt to hang on. Changes that
+        # need a human decision are printed as MANUAL and do not fail the job.
+        run: pnpm --filter @workspace/db run sync
 
-      - name: Run migrations
-        env:
-          DATABASE_URL: ${{ steps.config.outputs.url }}
-        run: |
-          pnpm --filter @workspace/db run push
-
-      - name: Release migration lock
-        if: always()
-        env:
-          DATABASE_URL: ${{ steps.config.outputs.url }}
-        run: |
-          node -e "
-            const { Pool } = require('pg');
-            const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-            (async () => {
-              try {
-                await pool.query(\"UPDATE _migration_lock SET locked_at = NULL, locked_by = NULL WHERE id = true\");
-                console.log('Migration lock released.');
-                await pool.end();
-              } catch(e) {
-                console.warn('Lock release failed (non-fatal):', e.message);
-              }
-            })();
-          "
-
-      - name: Post-migration health check
-        env:
-          DATABASE_URL: ${{ steps.config.outputs.url }}
-        run: |
-          node -e "
-            const { Pool } = require('pg');
-            const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-            (async () => {
-              try {
-                const { rows } = await pool.query('SELECT 1 as ok');
-                if (rows[0].ok !== 1) throw new Error('Health check failed');
-                console.log('Database health check passed.');
-                await pool.end();
-              } catch(e) {
-                console.error('Health check failed:', e.message);
-                process.exit(1);
-              }
-            })();
-          "
-
-  # ──────────────────────────────────────────────────────────────────────────────
-  # Deploy to Vercel after migrations are applied
-  # ──────────────────────────────────────────────────────────────────────────────
+  # Production is deployed by Vercel's Git integration on every push to main;
+  # this job is only for repositories that disabled that and deploy by token.
+  # Without a token it skips cleanly instead of failing the whole workflow.
   vercel-deploy:
-    name: Deploy to Vercel
+    name: Vercel production deploy
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     needs: migrate
-    environment: production
+    environment: Production
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
-      - name: Deploy
+      - name: Deploy via Vercel CLI (only when a token is configured)
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
           if [ -z "$VERCEL_TOKEN" ]; then
-            echo "::error::VERCEL_TOKEN is not configured. Add it in GitHub Settings → Secrets and Actions."
-            exit 1
+            echo "::notice::VERCEL_TOKEN is not configured — production is deployed by Vercel's Git integration. Nothing to do here."
+            exit 0
           fi
           if [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
-            echo "::error::VERCEL_ORG_ID and VERCEL_PROJECT_ID are required. Run 'vercel link' locally to get them."
+            echo "::error::VERCEL_ORG_ID and VERCEL_PROJECT_ID are required alongside VERCEL_TOKEN. Run 'vercel link' locally to get them."
             exit 1
           fi
           npx --yes vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN"
 
-  # ──────────────────────────────────────────────────────────────────────────────
-  # Post-deploy smoke test against the live URL
-  # ──────────────────────────────────────────────────────────────────────────────
   smoke:
     name: Post-deployment smoke tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: vercel-deploy
+    environment: Production
     env:
-      APP_URL: ${{ secrets.APP_URL }}
+      APP_URL: ${{ secrets.APP_URL || vars.APP_URL || 'https://www.focusarx.site' }}
     steps:
-      - name: Health endpoint smoke test
+      - name: Health and readiness smoke test
         run: |
-          if [ -z "$APP_URL" ]; then
-            echo "::warning::APP_URL secret not set — skipping live smoke test."
-            exit 0
-          fi
-          echo "Waiting for deployment to propagate..."
-          sleep 30
+          echo "Waiting for the deployment to propagate..."
+          sleep 45
           echo "Smoke test: ${APP_URL}/api/healthz"
-          curl -fsS --retry 5 --retry-delay 5 "${APP_URL}/api/healthz"
+          curl -fsS --retry 5 --retry-delay 10 -A "focusarx-deploy-smoke/1.0 (GitHub Actions)" "${APP_URL}/api/healthz"
+          echo
+          # `ready` also proves the database answers and the runtime config is
+          # complete — the two things a schema-sync deploy can break.
+          echo "Readiness: ${APP_URL}/api/healthz/ready"
+          curl -fsS --retry 5 --retry-delay 10 -A "focusarx-deploy-smoke/1.0 (GitHub Actions)" "${APP_URL}/api/healthz/ready"
           echo
           echo "Smoke test passed."

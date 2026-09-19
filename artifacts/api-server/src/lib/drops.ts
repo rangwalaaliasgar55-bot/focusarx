@@ -98,17 +98,23 @@ export async function createDrop(input: DropInput): Promise<{ id: string; fanned
     if (recipients.length) {
       const ids = recipients.map((r) => r.id);
       const message = drop.description ?? "A drop is live on FocusArx.";
-      // Bulk in-app notifications (500/stmt). Per-row params ($1..$2n), then
-      // the constant title/message/data ($2n+1..$2n+3).
+      // Bulk in-app notifications, one statement per 500 recipients.
+      //
+      // Exactly one bound parameter per row (the user id, $1..$n), then the
+      // three constants shared by every row: title $n+1, message $n+2, data
+      // $n+3. An earlier version bound two values per row but only referenced
+      // one of them in the SQL; Postgres cannot infer a type for a parameter
+      // that appears nowhere in the statement, so every fan-out failed with
+      // 42P18 "could not determine data type of parameter $2" and no user
+      // ever received a drop notification — quietly, because the catch below
+      // only warns.
       for (let i = 0; i < ids.length; i += 500) {
         const chunk = ids.slice(i, i + 500);
         const n = chunk.length;
-        const params: unknown[] = [];
-        const tuples = chunk.map((uid, k) => {
-          params.push(uid, drop.id);
-          return `(gen_random_uuid(), $${k * 2 + 1}::text, 'drop', $${2 * n + 1}::text, $${2 * n + 2}::text, $${2 * n + 3}::jsonb, false, now())`;
-        });
-        params.push(drop.title, message, JSON.stringify({ dropId: drop.id, type: drop.type }));
+        const tuples = chunk.map(
+          (_uid, k) => `(gen_random_uuid(), $${k + 1}::text, 'drop', $${n + 1}::text, $${n + 2}::text, $${n + 3}::jsonb, false, now())`,
+        );
+        const params: unknown[] = [...chunk, drop.title, message, JSON.stringify({ dropId: drop.id, type: drop.type })];
         await pool.query(
           `INSERT INTO notifications (id, user_id, type, title, message, data, read, created_at) VALUES ${tuples.join(", ")}`,
           params,

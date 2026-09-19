@@ -5,9 +5,11 @@ import nodemailer from "nodemailer";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { db, usersTable, passwordResetTokensTable, emailLogsTable } from "@workspace/db";
-import { eq, and, gt, isNull } from "drizzle-orm";
+import { eq, and, gt, isNull, type AnyColumn } from "drizzle-orm";
+import type { SelectedFields } from "drizzle-orm/pg-core";
 import { logger } from "../lib/logger";
 import { describeDeletion } from "../lib/accountDeletion";
+import { describeDrift, selectResilient } from "../lib/schemaDrift";
 import { welcomeNewHuman } from "../lib/botEngine";
 import { getServerConfig } from "../lib/config";
 import { authLimiter, forgotPasswordLimiter, resetLinkLimiter, guestLimiter, refreshLimiter } from "../lib/rateLimiter";
@@ -116,6 +118,66 @@ function isDependencyFailure(err: unknown): boolean {
     if (typeof code === "string" && codes.has(code)) return true;
   }
   return false;
+}
+
+/** Postgres `undefined_column` / `undefined_table`, through whichever wrapper reached us. */
+function isSchemaDrift(err: unknown): boolean {
+  return describeDrift(err).kind !== "unknown";
+}
+
+/** The columns every caller of the session needs. Missing any of these is fatal. */
+const SESSION_IDENTITY_FIELDS = {
+  id: usersTable.id,
+  email: usersTable.email,
+  name: usersTable.name,
+  isGuest: usersTable.isGuest,
+  role: usersTable.role,
+  onboardingCompleted: usersTable.onboardingCompleted,
+  bio: usersTable.bio,
+  timezone: usersTable.timezone,
+};
+
+type SessionUser = {
+  id: string;
+  email: string;
+  name: string | null;
+  isGuest: boolean;
+  role: string;
+  onboardingCompleted: boolean;
+  bio: string | null;
+  timezone: string | null;
+  deletionRequestedAt: Date | null;
+};
+
+/**
+ * Read the signed-in user for `GET /auth/session`.
+ *
+ * `deletion_requested_at` is decoration on the session, not the session. It
+ * arrived in migration 0017, and a production database that has not received
+ * that migration yet must still be able to answer "who am I?" — otherwise the
+ * moment the new code deploys, login succeeds (it never touches the column),
+ * the follow-up session read 500s, and every user sees "FocusArx confirmed
+ * your sign-in but could not load your session". That is exactly what
+ * happened. So: ask for everything once; if the only thing wrong is that
+ * column, ask again without it and answer as if no deletion is pending. The
+ * drift is logged once per process so it is visible and gets fixed, but it
+ * never takes sign-in down.
+ */
+export async function loadSessionUser(userId: string): Promise<SessionUser | null> {
+  const rows = await selectResilient<Array<Omit<SessionUser, "deletionRequestedAt"> & { deletionRequestedAt?: Date | null }>>(
+    usersTable,
+    (available) => {
+      const fields: Record<string, AnyColumn> = { ...SESSION_IDENTITY_FIELDS };
+      if ("deletionRequestedAt" in available) fields.deletionRequestedAt = usersTable.deletionRequestedAt;
+      // The field object is assembled at runtime, so drizzle cannot type it;
+      // the keys are the schema's own property names, so the rows still match.
+      return db.select(fields as unknown as SelectedFields).from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    },
+    { route: "GET /auth/session", userId },
+  );
+  const user = rows[0];
+  if (!user) return null;
+  return { ...user, deletionRequestedAt: user.deletionRequestedAt ?? null };
 }
 
 function jwtSecretOrRespond(res: { status: (code: number) => { json: (body: unknown) => void } }): string | null {
@@ -277,17 +339,7 @@ router.get("/auth/session", async (req, res) => {
     return;
   }
   try {
-    const [user] = await db.select({
-      id: usersTable.id,
-      email: usersTable.email,
-      name: usersTable.name,
-      isGuest: usersTable.isGuest,
-      role: usersTable.role,
-      onboardingCompleted: usersTable.onboardingCompleted,
-      bio: usersTable.bio,
-      timezone: usersTable.timezone,
-      deletionRequestedAt: usersTable.deletionRequestedAt
-    }).from(usersTable).where(eq(usersTable.id, userId));
+    const user = await loadSessionUser(userId);
     if (!user) {
       sendUnauthorized(res, "User not found");
       return;
@@ -305,7 +357,7 @@ router.get("/auth/session", async (req, res) => {
     logger.error({ err }, "session error");
     // 503, not 500: the client must be able to tell "the database is having a
     // moment" from "this session is not valid" and keep the credentials.
-    if (isDependencyFailure(err)) {
+    if (isDependencyFailure(err) || isSchemaDrift(err)) {
       sendServiceUnavailable(res, "FocusArx is temporarily unavailable.");
       return;
     }
@@ -750,6 +802,12 @@ router.delete("/auth/account", authLimiter, async (req, res) => {
     res.json({ ok: true, deleted: false, ...describeDeletion(requestedAt) });
   } catch (err) {
     logger.error({ err }, "account deletion error");
+    // The grace-period column is missing: the request cannot be recorded, and
+    // silently hard-deleting instead would be the one thing worse than failing.
+    if (isDependencyFailure(err) || isSchemaDrift(err)) {
+      sendServiceUnavailable(res, "Account deletion is temporarily unavailable. Nothing was changed — please try again later.");
+      return;
+    }
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 });
@@ -793,6 +851,10 @@ router.post("/auth/account/deletion/cancel", authLimiter, async (req, res) => {
     res.json({ ok: true, cancelled: true });
   } catch (err) {
     logger.error({ err }, "cancel account deletion error");
+    if (isDependencyFailure(err) || isSchemaDrift(err)) {
+      sendServiceUnavailable(res, "FocusArx is temporarily unavailable. Please try again later.");
+      return;
+    }
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
   }
 });
