@@ -187,8 +187,10 @@ describe.runIf(hasDb)("bot engine (Workstream A)", () => {
     expect(Date.now() - t1).toBeLessThan(300);
   }, 60_000);
 
-  it("community pulse reports honest numbers", async () => {
-    // Direct query check (the /site/community-pulse route wraps this).
+  it("bot and human totals are separable in the users table", async () => {
+    // The admin analytics pages report bots and humans separately; this pins
+    // that the seeded bots are distinguishable by role. (There is no public
+    // endpoint for these totals — audience size is not published to visitors.)
     const [totalArr, botArr] = await Promise.all([
       db.select({ n: sql<number>`count(*)` }).from(usersTable).where(eq(usersTable.isGuest, false)),
       db.select({ n: sql<number>`count(*)` }).from(usersTable).where(and(eq(usersTable.isGuest, false), eq(usersTable.role, "bot"))),

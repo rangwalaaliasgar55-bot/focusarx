@@ -28,7 +28,6 @@ const AuthCallbackPage = lazy(() => import("@/pages/auth-callback"));
 const AdminPage = lazy(() => import("@/pages/admin"));
 import DailyRewardBanner from "@/components/DailyRewardBanner";
 import { RewardToastProvider } from "@/components/ui/RewardToast";
-import { LiveActivityTicker } from "@/components/LiveActivityTicker";
 import FloatingTimer from "@/components/FloatingTimer";
 import LiveAnnouncer from "@/components/LiveAnnouncer";
 import { InAppBrowserPill } from "@/components/InAppBrowserPill";
@@ -492,7 +491,6 @@ function AppWithPalette() {
       <DeploymentUpdateBanner />
       {status === "authenticated" && <div className="px-3 pt-2 sm:px-5"><SeasonalBanner /></div>}
       <DailyRewardBanner />
-      <LiveActivityTicker />
       <FloatingTimer />
       <LiveAnnouncer />
       <InAppBrowserPill />

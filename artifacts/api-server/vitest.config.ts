@@ -25,7 +25,7 @@ export default defineConfig({
     // The DB-gated integration suites (botEngine, drops, marketplace,
     // aiBudget) share one Postgres and several of them assert on global
     // counts. Running test files in parallel lets one suite observe another
-    // suite's fixtures mid-run (botEngine's community-pulse count caught 12
+    // suite's fixtures mid-run (botEngine's bot/human total count caught 12
     // leaked users from drops+marketplace in CI). One file at a time keeps
     // those assertions deterministic.
     fileParallelism: false,

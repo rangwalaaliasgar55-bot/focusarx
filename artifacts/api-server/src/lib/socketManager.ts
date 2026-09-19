@@ -350,9 +350,10 @@ export function emitToRoom(roomId: string, event: string, data: unknown) {
   io?.to(`room:${roomId}`).emit(event, data);
 }
 
-export function broadcastActivity(event: string, data: unknown) {
-  io?.emit(event, data);
-}
+// There is deliberately no generic site-wide emitter (`broadcastActivity(event,
+// data)`) either. The one global event, `drop:started`, announces a thing, not
+// a person; a feed of "X just finished a session" is a live-activity signal we
+// do not publish.
 
 export function isOnline(userId: string): boolean {
   return onlineUsers.has(userId);

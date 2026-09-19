@@ -95,6 +95,13 @@ All errors follow a consistent envelope:
 | GET | `/analytics` | Yes | Full analytics data |
 | GET | `/streak` | Yes | Streak data (alias) |
 
+> **Audience size is not a public API.** There is no endpoint that tells an
+> anonymous visitor how many people are online, studying right now, or
+> registered: `/stats/focusing-now` and `/site/community-pulse` were removed,
+> and `/study-rooms` returns head counts only to members of a room. Those
+> figures live under `/admin/analytics/*` (admin only). A source-contract test
+> (`regressionGuard.test.ts` §11) fails the build if one comes back.
+
 ### Gamification
 
 | Method | Path | Auth | Description |
