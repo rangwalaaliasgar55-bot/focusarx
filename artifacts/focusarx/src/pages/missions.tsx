@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { claimMission as claimSharedMission, fetchMissions as fetchSharedMissions, invalidateAfterMissionClaim } from "@/lib/missionsQuery";
 import { PageTransition } from "@/components/PageTransition";
+import { CompletionFeed } from "@/components/CompletionFeed";
 import { TiltCard } from "@/components/TiltCard";
 
 import { Mission as MissionDef } from "@/types/gamification";
@@ -11,6 +12,8 @@ import { Mission as MissionDef } from "@/types/gamification";
 interface MissionsData {
   daily: MissionDef[];
   weekly: MissionDef[];
+  /** Everyone's mission for today, chosen by Gemini and cached per IST day. */
+  featured?: (MissionDef & { reason?: string; completionsLast24h?: number; periodStart?: string }) | null;
   stats: {
     dailyCompleted: number;
     totalDaily: number;
@@ -42,6 +45,7 @@ async function fetchMissions(): Promise<MissionsData> {
   return {
     daily: data.daily as MissionDef[],
     weekly: data.weekly as MissionDef[],
+    featured: (data as { featured?: MissionsData["featured"] }).featured ?? null,
     stats: {
       dailyCompleted: data.stats?.dailyCompleted ?? 0,
       totalDaily: data.stats?.totalDaily ?? data.daily.length,
@@ -295,6 +299,41 @@ export default function MissionsPage() {
             Failed to load missions. Please refresh.
           </div>
         )}
+
+        {/*
+          Mission of the day — one target for the whole platform instead of a
+          menu of twelve. The count of people who already cleared it today is
+          the whole point: it turns a checklist into a race.
+        */}
+        {!isLoading && !error && data?.featured && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 rounded-2xl border border-[var(--brand-strong)]/40 bg-[var(--brand-soft)] p-4"
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-[var(--brand-strong)] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-[var(--palette-white)]">
+                Mission of the day
+              </span>
+              <span className="text-[11px] text-[var(--foreground-muted)]">
+                {data.featured.completionsLast24h ?? 0} learner{(data.featured.completionsLast24h ?? 0) === 1 ? "" : "s"} cleared this in the last 24h
+              </span>
+            </div>
+            <p className="mt-2 text-sm font-semibold text-[var(--foreground)]">{data.featured.title}</p>
+            <p className="text-xs text-[var(--foreground-muted)]">{data.featured.description}</p>
+            {data.featured.reason && (
+              <p className="mt-1.5 text-[11px] italic text-[var(--brand-strong)]">“{data.featured.reason}”</p>
+            )}
+            <p className="mt-1 text-[11px] text-[var(--foreground-subtle)]">
+              Target {data.featured.targetValue} {data.featured.unit?.replace(/_/g, " ")} · +{data.featured.xpReward} XP
+              {data.featured.coinReward > 0 ? ` · +${data.featured.coinReward} 🪙` : ""}
+            </p>
+          </motion.div>
+        )}
+
+        {/* The competition board: who else just cleared a mission. Sits above
+            the personal list so the first thing you see is someone else moving. */}
+        {!isLoading && !error && <CompletionFeed className="mb-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4" limit={5} />}
 
         {!isLoading && !error && (
           <div className="space-y-3">

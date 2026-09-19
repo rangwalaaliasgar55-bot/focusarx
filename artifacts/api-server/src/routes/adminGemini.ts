@@ -19,6 +19,7 @@ import {
   adminDropsTable,
   aiIdeasTable, aiBriefingsTable, aiActionAuditTable, platformMetaTable,
   socialPostsTable, siteSettingsTable, featureFlagsTable,
+  questDefinitionsTable, marketplaceItemsTable,
 } from "@workspace/db";
 import { eq, and, desc, gte, sql, inArray } from "drizzle-orm";
 import { checkAdminAuth } from "../lib/adminAuth";
@@ -479,7 +480,47 @@ DATA: ${JSON.stringify(stats)}`,
     `INSERT INTO platform_meta (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = now()`,
     [metaKey, JSON.stringify({ at: new Date().toISOString(), source })]
   );
-  return { ok: true as const, briefing: { day, kind: "daily", summary, data: stats, source } };
+
+  /*
+    The briefings are not the only thing Gemini owns. Once the day's briefing
+    has claimed its idempotency key, the two steward jobs run: quests first
+    (learners need something new to do today) and the marketplace second (the
+    shop is only worth opening if it changed). Both are best-effort and bounded
+    — a failure here must never fail the briefing, and re-running the whole
+    thing the same day is prevented by the same key that guards the briefing.
+  */
+  let stewards: { quests?: Awaited<ReturnType<typeof buildQuests>>; marketplace?: MarketplaceStewardResult } = {};
+  try {
+    stewards = {
+      quests: await buildQuests({ count: 2 }),
+      marketplace: await runMarketplaceSteward({ introduce: 2, retire: 1 }),
+    };
+    await db.insert(aiActionAuditTable).values({
+      actor: "gemini",
+      actorRole: "gemini",
+      action: "daily_steward_pass",
+      payload: {
+        day,
+        questsCreated: stewards.quests?.created ?? [],
+        itemsIntroduced: stewards.marketplace?.introduced.map(i => i.id) ?? [],
+        itemsRetired: stewards.marketplace?.retired.map(r => r.id) ?? [],
+      },
+      outcome: "executed",
+      approvedBy: null,
+    }).catch(() => {});
+  } catch (err) {
+    logger.warn({ err }, "daily steward pass failed (briefing unaffected)");
+  }
+
+  return {
+    ok: true as const,
+    briefing: { day, kind: "daily", summary, data: stats, source },
+    stewards: {
+      quests: stewards.quests?.created ?? [],
+      marketplaceIntroduced: stewards.marketplace?.introduced.map(i => i.name) ?? [],
+      marketplaceRetired: stewards.marketplace?.retired.map(r => r.id) ?? [],
+    },
+  };
 }
 
 router.post("/admin/gemini/briefings/daily", async (req, res) => {
@@ -624,4 +665,398 @@ router.get("/admin/gemini/briefings", async (req, res) => {
   }
 });
 
+// ── G8/G9: the two "steward" jobs ───────────────────────────────────────────
+/**
+ * Gemini as a working staff member rather than a summariser.
+ *
+ * Two jobs that used to be manual-and-never-done: writing new quests, and
+ * curating the marketplace (introduce what is missing, retire what is not
+ * selling). Both are *bounded by construction*:
+ *
+ *  - every generated value is clamped to a whitelist or a rarity price ladder
+ *    before it touches the database, so a hallucinated `costCoins: 1` cannot
+ *    hand out a legendary for nothing;
+ *  - ids are namespaced (`gem-…`) and inserts are `onConflictDoNothing`, so
+ *    re-running a steward job is a no-op rather than a duplicate catalogue;
+ *  - retirement can never touch a premium item, an item in a bundle, or an item
+ *    more than a handful of people have already bought and equipped;
+ *  - the local fallbacks are drawn from seeded pools keyed by the IST day, so
+ *    both jobs do real work with zero AI keys attached.
+ */
+
+const QUEST_METRICS = ["focus_minutes", "session_count", "coins_earned", "xp_earned", "streak_days"] as const;
+type QuestMetricKey = typeof QUEST_METRICS[number];
+
+interface GeneratedQuest {
+  id: string;
+  title: string;
+  description: string;
+  type: "daily" | "weekly";
+  difficulty: "easy" | "medium" | "hard";
+  target: number;
+  metric: QuestMetricKey;
+  xpReward: number;
+  coinReward: number;
+  icon: string;
+  rotationWeight: number;
+}
+
+const QUEST_TARGET_HINTS: Record<QuestMetricKey, { min: number; max: number; unit: string }> = {
+  focus_minutes: { min: 30, max: 360, unit: "minutes of focus" },
+  session_count: { min: 1, max: 6, unit: "focus sessions" },
+  coins_earned: { min: 50, max: 600, unit: "coins earned" },
+  xp_earned: { min: 100, max: 1500, unit: "XP earned" },
+  streak_days: { min: 3, max: 30, unit: "day streak" },
+};
+
+const DIFFICULTY_REWARD: Record<GeneratedQuest["difficulty"], { xp: [number, number]; coins: [number, number] }> = {
+  easy: { xp: [40, 120], coins: [10, 40] },
+  medium: { xp: [120, 260], coins: [30, 90] },
+  hard: { xp: [260, 500], coins: [80, 200] },
+};
+
+const FALLBACK_QUESTS: Array<Omit<GeneratedQuest, "id">> = [
+  { title: "Sunrise Session", description: "Finish one 45-minute focus session before 8am IST — the hardest slot to win.", type: "daily", difficulty: "medium", target: 45, metric: "focus_minutes", xpReward: 150, coinReward: 45, icon: "🌅", rotationWeight: 12 },
+  { title: "Triple Threat", description: "Complete three separate focus sessions today instead of one long one.", type: "daily", difficulty: "easy", target: 3, metric: "session_count", xpReward: 90, coinReward: 25, icon: "🎯", rotationWeight: 14 },
+  { title: "Streak Guard", description: "Show up and hold a 7-day streak — no zero days.", type: "weekly", difficulty: "hard", target: 7, metric: "streak_days", xpReward: 400, coinReward: 150, icon: "🛡️", rotationWeight: 8 },
+  { title: "Deep Work Block", description: "Bank 180 minutes of deep focus across the week.", type: "weekly", difficulty: "hard", target: 180, metric: "focus_minutes", xpReward: 320, coinReward: 120, icon: "🌊", rotationWeight: 10 },
+  { title: "Coin Collector", description: "Earn 250 coins from focus sessions this week.", type: "weekly", difficulty: "medium", target: 250, metric: "coins_earned", xpReward: 180, coinReward: 60, icon: "🪙", rotationWeight: 11 },
+  { title: "Momentum Builder", description: "Gain 600 XP this week — finish what you start.", type: "weekly", difficulty: "medium", target: 600, metric: "xp_earned", xpReward: 200, coinReward: 70, icon: "📈", rotationWeight: 11 },
+];
+
+function slugify(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "quest";
+}
+
+/** Clamp an unknown value into a range, falling back when it is not a number. */
+function clampNumber(value: unknown, min: number, max: number, fallback: number): number {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, Math.round(n)));
+}
+
+/** Turn one model (or fallback) proposal into a row the database can trust. */
+function sanitizeQuest(raw: Partial<GeneratedQuest> & { title?: string }): GeneratedQuest | null {
+  const title = typeof raw.title === "string" ? raw.title.trim().slice(0, 80) : "";
+  const description = typeof raw.description === "string" ? raw.description.trim().slice(0, 300) : "";
+  if (title.length < 4 || description.length < 10) return null;
+
+  const metric: QuestMetricKey = (QUEST_METRICS as readonly string[]).includes(String(raw.metric))
+    ? (raw.metric as QuestMetricKey)
+    : "focus_minutes";
+  const hints = QUEST_TARGET_HINTS[metric];
+  const type: GeneratedQuest["type"] = raw.type === "weekly" ? "weekly" : "daily";
+  const difficulty: GeneratedQuest["difficulty"] =
+    raw.difficulty === "hard" || raw.difficulty === "medium" || raw.difficulty === "easy" ? raw.difficulty : "medium";
+  const rewards = DIFFICULTY_REWARD[difficulty];
+
+  return {
+    id: `gem-${slugify(title)}`,
+    title,
+    description,
+    type,
+    difficulty,
+    target: clampNumber(raw.target, hints.min, hints.max, Math.round((hints.min + hints.max) / 3)),
+    metric,
+    xpReward: clampNumber(raw.xpReward, rewards.xp[0], rewards.xp[1], rewards.xp[0]),
+    coinReward: clampNumber(raw.coinReward, rewards.coins[0], rewards.coins[1], rewards.coins[0]),
+    icon: typeof raw.icon === "string" && raw.icon.trim().length > 0 ? raw.icon.trim().slice(0, 4) : "🧭",
+    rotationWeight: clampNumber(raw.rotationWeight, 5, 20, 10),
+  };
+}
+
+/** Pull the first JSON array out of a model reply, ignoring prose around it. */
+function extractJsonArray(text: string): unknown[] {
+  const start = text.indexOf("[");
+  const end = text.lastIndexOf("]");
+  if (start === -1 || end <= start) return [];
+  try {
+    const parsed = JSON.parse(text.slice(start, end + 1));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Build (and publish) new quest definitions. Gemini writes them when a key is
+ * configured; otherwise the seeded pool supplies them in rotation.
+ */
+export async function buildQuests(opts: { count?: number; theme?: string } = {}): Promise<{
+  created: string[];
+  retired: number;
+  source: string;
+}> {
+  const count = Math.min(4, Math.max(1, opts.count ?? 2));
+  const existing = await db
+    .select({ title: questDefinitionsTable.title })
+    .from(questDefinitionsTable)
+    .orderBy(desc(questDefinitionsTable.rotationWeight))
+    .limit(120);
+  const existingTitles = existing.map(e => e.title.toLowerCase());
+
+  let proposals: Array<Partial<GeneratedQuest>> = [];
+  let source = "template";
+
+  const result = await generateAi({
+    purpose: "quest_builder",
+    prompt: `You are the quest designer for FocusArx, a focus app for Indian exam aspirants (JEE/NEET/UPSC/CA/boards). Propose ${count} NEW daily or weekly quests that are achievable and measurable.
+Return ONLY a JSON array, no prose. Each object: {"title": string (<=60 chars), "description": string (<=200 chars, concrete and motivating), "type": "daily"|"weekly", "difficulty": "easy"|"medium"|"hard", "metric": one of ${JSON.stringify(QUEST_METRICS)}, "target": number, "xpReward": number, "coinReward": number, "icon": single emoji}.
+Metric meaning: focus_minutes (minutes of focus), session_count (completed sessions), coins_earned, xp_earned, streak_days (consecutive days).
+${opts.theme ? `Theme for this batch: ${opts.theme}.` : "Theme: exam-season consistency."}
+Do not reuse or paraphrase these existing quest titles: ${JSON.stringify(existingTitles.slice(0, 60))}`,
+    maxTokens: 700,
+  });
+
+  if (result) {
+    proposals = extractJsonArray(result.text) as Array<Partial<GeneratedQuest>>;
+    source = result.provider;
+  }
+
+  let quests = proposals.map(sanitizeQuest).filter((q): q is GeneratedQuest => q !== null);
+  // A model that returns nothing usable must not mean "no quests today".
+  if (quests.length === 0) {
+    const dayIndex = Number(istDayKey().replace(/-/g, "")) % FALLBACK_QUESTS.length;
+    quests = Array.from({ length: count }, (_, i) => {
+      const base = FALLBACK_QUESTS[(dayIndex + i) % FALLBACK_QUESTS.length]!;
+      return { ...base, id: `gem-${slugify(base.title)}` };
+    });
+    source = "template";
+  }
+
+  const created: string[] = [];
+  for (const quest of quests) {
+    if (existingTitles.includes(quest.title.toLowerCase())) continue;
+    const inserted = await db.insert(questDefinitionsTable).values({
+      id: quest.id,
+      title: quest.title,
+      description: quest.description,
+      type: quest.type,
+      difficulty: quest.difficulty,
+      target: quest.target,
+      metric: quest.metric,
+      xpReward: quest.xpReward,
+      coinReward: quest.coinReward,
+      icon: quest.icon,
+      isActive: true,
+      rotationWeight: quest.rotationWeight,
+    }).onConflictDoNothing().returning({ id: questDefinitionsTable.id });
+    if (inserted.length > 0) created.push(quest.title);
+  }
+
+  return { created, retired: 0, source };
+}
+
+// ── Marketplace steward ──────────────────────────────────────────────────────
+
+const RARITY_LADDER: Record<string, [number, number]> = {
+  common: [100, 300],
+  uncommon: [400, 700],
+  rare: [1000, 1500],
+  epic: [2000, 3500],
+  legendary: [8000, 15000],
+};
+const ITEM_TYPES = ["frame", "avatar", "effect", "accessory", "decoration"] as const;
+
+const FALLBACK_ITEMS = [
+  { name: "Monsoon Study Frame", description: "Rain-streaked glass over your name — deep-work weather, all year", type: "frame", rarity: "rare", costCoins: 1200, emoji: "🌧️" },
+  { name: "Night Owl Avatar", description: "For the 2am revision crowd that still shows up at 8am", type: "avatar", rarity: "epic", costCoins: 2400, emoji: "🦉" },
+  { name: "Focus Field Effect", description: "A faint grid of light bends toward your timer as you focus", type: "effect", rarity: "uncommon", costCoins: 600, emoji: "🔆" },
+  { name: "Chai Stall Decoration", description: "A street chai stall for your Focus City — fuel for the final sprint", type: "decoration", rarity: "uncommon", costCoins: 550, emoji: "🫖" },
+  { name: "Lucky Pen Accessory", description: "The pen that wrote every topper's last-minute notes", type: "accessory", rarity: "common", costCoins: 250, emoji: "🖊️" },
+] as const;
+
+interface MarketplaceStewardResult {
+  introduced: Array<{ id: string; name: string; rarity: string; costCoins: number }>;
+  retired: Array<{ id: string; reason: string }>;
+  source: string;
+}
+
+/**
+ * Introduce new items and retire the ones that are not working.
+ *
+ * Guarantees that make this safe to run unattended:
+ *  - premium items are never retired (people paid for them);
+ *  - items referenced by a bundle are never retired (the bundle would lose a
+ *    piece and its discount maths would go wrong);
+ *  - anything owned by more than 25 learners is never retired (a collection is
+ *    not a pricing experiment);
+ *  - a generated item's price is clamped to the rarity ladder, so the catalogue
+ *    stays internally consistent no matter what the model proposes.
+ */
+export async function runMarketplaceSteward(opts: { introduce?: number; retire?: number } = {}): Promise<MarketplaceStewardResult> {
+  const introduceCount = Math.min(3, Math.max(0, opts.introduce ?? 2));
+  const retireBudget = Math.min(3, Math.max(0, opts.retire ?? 2));
+
+  const catalogue = await db.select({
+    id: marketplaceItemsTable.id,
+    name: marketplaceItemsTable.name,
+    type: marketplaceItemsTable.type,
+    rarity: marketplaceItemsTable.rarity,
+    costCoins: marketplaceItemsTable.costCoins,
+    premiumOnly: marketplaceItemsTable.premiumOnly,
+  }).from(marketplaceItemsTable).where(eq(marketplaceItemsTable.isActive, true)).limit(200);
+
+  let proposals: Array<Partial<{ name: string; description: string; type: string; rarity: string; costCoins: number; emoji: string }>> = [];
+  let retireProposals: string[] = [];
+  let source = "template";
+
+  if (introduceCount > 0 || retireBudget > 0) {
+    const result = await generateAi({
+      purpose: "marketplace_steward",
+      prompt: `You are the marketplace curator for FocusArx, a focus app for Indian exam aspirants. Cosmetics are bought with Focus Coins earned by studying.
+Return ONLY JSON: {"introduce": [{"name": string, "description": string (<=140 chars), "type": "frame"|"avatar"|"effect"|"accessory"|"decoration", "rarity": "common"|"uncommon"|"rare"|"epic"|"legendary", "costCoins": number, "emoji": string}], "retire": [{"id": string, "reason": string (<=90 chars)}]}
+Rules: introduce at most ${introduceCount} items that feel Indian, exam-season aware and distinct from the current catalogue; price within the rarity ladder (common 100-300, uncommon 400-700, rare 1000-1500, epic 2000-3500, legendary 8000-15000); retire at most ${retireBudget} existing NON-PREMIUM ids that are redundant, confusing or badly priced, with a one-line reason. Never retire premium items.
+CURRENT CATALOGUE: ${JSON.stringify(catalogue.map(c => ({ id: c.id, name: c.name, type: c.type, rarity: c.rarity, cost: c.costCoins, premium: c.premiumOnly })))}`,
+      maxTokens: 800,
+    });
+    if (result) {
+      source = result.provider;
+      const obj = (() => {
+        const start = result.text.indexOf("{");
+        const end = result.text.lastIndexOf("}");
+        if (start === -1 || end <= start) return null;
+        try { return JSON.parse(result.text.slice(start, end + 1)); } catch { return null; }
+      })() as { introduce?: unknown[]; retire?: Array<{ id?: string; reason?: string }> } | null;
+      if (obj) {
+        proposals = (obj.introduce ?? []) as typeof proposals;
+        retireProposals = (obj.retire ?? []).map(r => String(r?.id ?? "")).filter(Boolean);
+      }
+    }
+  }
+
+  // Fallback introductions: deterministic rotation over the seeded pool, keyed
+  // to the day so the catalogue keeps growing even with no AI key configured.
+  let sanitized = proposals.map(p => {
+    const type = (ITEM_TYPES as readonly string[]).includes(String(p.type)) ? String(p.type) : null;
+    const rarity = typeof p.rarity === "string" && RARITY_LADDER[p.rarity] ? p.rarity : null;
+    const name = typeof p.name === "string" ? p.name.trim().slice(0, 60) : "";
+    const description = typeof p.description === "string" ? p.description.trim().slice(0, 200) : "";
+    if (!type || !rarity || name.length < 3 || description.length < 10) return null;
+    const [min, max] = RARITY_LADDER[rarity]!;
+    return {
+      id: `gem-${slugify(name)}`,
+      name,
+      description,
+      type,
+      rarity,
+      costCoins: clampNumber(p.costCoins, min, max, min),
+      emoji: typeof p.emoji === "string" && p.emoji.trim() ? p.emoji.trim().slice(0, 4) : "✨",
+      premiumOnly: false,
+    };
+  }).filter((x): x is NonNullable<typeof x> => x !== null);
+
+  if (sanitized.length === 0 && introduceCount > 0) {
+    const dayIndex = Number(istDayKey().replace(/-/g, "")) % FALLBACK_ITEMS.length;
+    sanitized = Array.from({ length: introduceCount }, (_, i) => {
+      const base = FALLBACK_ITEMS[(dayIndex + i) % FALLBACK_ITEMS.length]!;
+      return { ...base, id: `gem-${slugify(base.name)}`, premiumOnly: false };
+    });
+    source = source === "template" ? "template" : source;
+  }
+
+  const existingIds = new Set(catalogue.map(c => c.id));
+  const introduced: MarketplaceStewardResult["introduced"] = [];
+  for (const item of sanitized.slice(0, introduceCount)) {
+    if (existingIds.has(item.id)) continue;
+    const inserted = await db.insert(marketplaceItemsTable).values({
+      id: item.id,
+      name: item.name,
+      description: item.description,
+      type: item.type,
+      rarity: item.rarity,
+      costCoins: item.costCoins,
+      emoji: item.emoji,
+      premiumOnly: false,
+      isActive: true,
+    }).onConflictDoNothing().returning({ id: marketplaceItemsTable.id });
+    if (inserted.length > 0) introduced.push({ id: item.id, name: item.name, rarity: item.rarity, costCoins: item.costCoins });
+  }
+
+  // Retirement, with every guard rail applied in one pass.
+  const PROTECTED_BUNDLE_ITEM_IDS = new Set([
+    "acc-party", "effect-sparkle", "acc-scarf",
+    "frame-gold", "acc-glasses", "effect-lightning",
+    "frame-diamond", "avatar-astronaut", "effect-aurora",
+  ]);
+  const retired: MarketplaceStewardResult["retired"] = [];
+  if (retireProposals.length > 0 && retireBudget > 0) {
+    const owned = await pool.query(
+      `SELECT item_id, count(*)::int AS n FROM user_inventory GROUP BY item_id`
+    ).catch(() => ({ rows: [] as Array<{ item_id: string; n: number }> }));
+    const ownerCount = new Map<string, number>((owned.rows as Array<{ item_id: string; n: number }>).map(r => [r.item_id, Number(r.n)]));
+
+    for (const rawId of retireProposals) {
+      if (retired.length >= retireBudget) break;
+      const id = String(rawId).slice(0, 60);
+      const target = catalogue.find(c => c.id === id);
+      if (!target) continue;
+      if (target.premiumOnly) continue;                                   // paid skins keep priority
+      if (PROTECTED_BUNDLE_ITEM_IDS.has(id)) continue;                    // bundles stay whole
+      if (id.startsWith("gem-") && introduced.some(i => i.id === id)) continue;
+      if ((ownerCount.get(id) ?? 0) > 25) continue;                       // owned by too many to pull
+      const updated = await db.update(marketplaceItemsTable)
+        .set({ isActive: false })
+        .where(and(eq(marketplaceItemsTable.id, id), eq(marketplaceItemsTable.isActive, true)))
+        .returning({ id: marketplaceItemsTable.id });
+      if (updated.length > 0) retired.push({ id, reason: `retired by the marketplace steward (${source})` });
+    }
+  }
+
+  return { introduced, retired, source };
+}
+
+// ── G8: admin trigger — quest builder ───────────────────────────────────────
+
+router.post("/admin/gemini/quest-builder", async (req, res) => {
+  if (!(await guard(req, res))) return;
+  const body = z.object({
+    count: z.number().int().min(1).max(4).optional(),
+    theme: z.string().max(120).optional(),
+  }).safeParse(req.body ?? {});
+  if (!body.success) return res.status(400).json({ error: "Invalid request" });
+  try {
+    const result = await buildQuests(body.data);
+    await db.insert(aiActionAuditTable).values({
+      actor: extractUserId(req) ?? "admin",
+      actorRole: "admin",
+      action: "quest_builder",
+      payload: { requested: body.data, created: result.created },
+      outcome: result.created.length > 0 ? "executed" : "no_change",
+      approvedBy: null,
+    }).catch(() => {});
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    logger.error({ err }, "quest builder error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// ── G9: admin trigger — marketplace steward ────────────────────────────────
+
+router.post("/admin/gemini/marketplace-steward", async (req, res) => {
+  if (!(await guard(req, res))) return;
+  const body = z.object({
+    introduce: z.number().int().min(0).max(3).optional(),
+    retire: z.number().int().min(0).max(3).optional(),
+  }).safeParse(req.body ?? {});
+  if (!body.success) return res.status(400).json({ error: "Invalid request" });
+  try {
+    const result = await runMarketplaceSteward(body.data);
+    await db.insert(aiActionAuditTable).values({
+      actor: extractUserId(req) ?? "admin",
+      actorRole: "admin",
+      action: "marketplace_steward",
+      payload: { requested: body.data, introduced: result.introduced, retired: result.retired },
+      outcome: result.introduced.length > 0 || result.retired.length > 0 ? "executed" : "no_change",
+      approvedBy: null,
+    }).catch(() => {});
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    logger.error({ err }, "marketplace steward error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
 export { router as adminGeminiRouter };
+

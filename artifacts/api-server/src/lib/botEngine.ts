@@ -40,6 +40,9 @@ import {
   POST_TEMPLATES,
   THREAD_SCRIPTS,
   COMMENT_REPLIES,
+  COMMENT_REPLIES_EXTRA,
+  humanizeComment,
+  botReactionLine,
   topicForContent,
 } from "./botTemplates";
 
@@ -653,8 +656,12 @@ async function runDailyComments(ctx: ContentCtx): Promise<void> {
       userId: socialPostsTable.userId,
       content: socialPostsTable.content,
       createdAt: socialPostsTable.createdAt,
+      // Author name, so a comment can address the poster the way a person
+      // would ("Riya, this is the way") instead of talking into the void.
+      authorName: usersTable.name,
     })
     .from(socialPostsTable)
+    .leftJoin(usersTable, eq(usersTable.id, socialPostsTable.userId))
     .where(and(
       eq(socialPostsTable.isPublic, true),
       eq(socialPostsTable.moderationStatus, "approved"),
@@ -669,8 +676,11 @@ async function runDailyComments(ctx: ContentCtx): Promise<void> {
     if (added >= want) break;
     const postRng = mulberry32(hashString(`cmt:${post.id}:${ctx.day}`));
     const topic = topicForContent(post.content);
-    const family = COMMENT_REPLIES[topic] ?? COMMENT_REPLIES.general!;
-    const content = family[Math.floor(postRng() * family.length)]!;
+    const family = [...(COMMENT_REPLIES[topic] ?? COMMENT_REPLIES.general!), ...(COMMENT_REPLIES_EXTRA[topic] ?? [])];
+    const base = family[Math.floor(postRng() * family.length)]!;
+    // Human touch before moderation: the reviewer should see the string that
+    // actually lands in the database, imperfections included.
+    const content = humanizeComment(base, postRng, { authorName: post.authorName });
     if (!(await safeContent(content))) continue;
     const commenter = ctx.bots[Math.floor(postRng() * ctx.bots.length)]!;
     if (commenter.id === post.userId) continue;
@@ -678,14 +688,35 @@ async function runDailyComments(ctx: ContentCtx): Promise<void> {
     // Comment lands after the post, never in the future.
     const at = new Date(Math.min(post.createdAt.getTime() + (10 + postRng() * 200) * 60 * 1000, ctx.window.end));
     if (at.getTime() < post.createdAt.getTime()) continue;
-    await db.insert(postCommentsTable).values({
+    const [inserted] = await db.insert(postCommentsTable).values({
       postId: post.id,
       userId: commenter.id,
       content,
       createdAt: at,
-    });
+    }).returning({ id: postCommentsTable.id });
     ctx.usage.comments.set(commenter.id, (ctx.usage.comments.get(commenter.id) ?? 0) + 1);
     added++;
+
+    // Depth-2 thread: about a third of the time a second bot reacts to the
+    // first bot's comment. One-word/one-line reactions only — the point is to
+    // make the thread look inhabited, not to write an argument.
+    if (inserted && postRng() < 0.34) {
+      const replier = ctx.bots[Math.floor(postRng() * ctx.bots.length)]!;
+      if (replier.id !== commenter.id && (ctx.usage.comments.get(replier.id) ?? 0) < ctx.caps.comment) {
+        const replyAt = new Date(Math.min(at.getTime() + (3 + postRng() * 90) * 60 * 1000, ctx.window.end));
+        if (replyAt.getTime() <= ctx.window.end) {
+          await db.insert(postCommentsTable).values({
+            postId: post.id,
+            userId: replier.id,
+            parentId: inserted.id,
+            content: botReactionLine(postRng),
+            createdAt: replyAt,
+          });
+          ctx.usage.comments.set(replier.id, (ctx.usage.comments.get(replier.id) ?? 0) + 1);
+          added++;
+        }
+      }
+    }
   }
 }
 

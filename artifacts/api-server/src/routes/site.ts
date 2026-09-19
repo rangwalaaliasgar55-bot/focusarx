@@ -155,4 +155,134 @@ router.put("/admin/ambient-tracks", adminLimiter, async (req, res) => {
   }
 });
 
+// ── Custom site settings ────────────────────────────────────────────────────
+/**
+ * Admin-defined settings, stored as one JSON row in `platform_meta`.
+ *
+ * The typed settings above cover the fields the app already knows how to read.
+ * This is the escape hatch for everything else — an admin can register any
+ * key/value pair, mark it public or internal, and change or delete it later
+ * without a deploy.
+ *
+ * Three rules keep it from becoming a config footgun:
+ *
+ *  1. **Keys are namespaced.** Everything lands under `site_custom_settings_v1`
+ *     as a map, so a custom key can never collide with a typed setting or with
+ *     another subsystem's `platform_meta` row.
+ *  2. **Only `public: true` leaves the admin surface.** The public endpoint
+ *     returns an allowlisted map of scalars; internal values (API keys, feature
+ *     notes, staged copy) never appear in a browser-readable response.
+ *  3. **Values are typed and bounded** — string/number/boolean or a bounded
+ *     JSON value, with the same size ceiling as the announcement copy.
+ */
+const CUSTOM_SETTINGS_META_KEY = "site_custom_settings_v1";
+const CUSTOM_SETTINGS_LIMIT = 100;
+const CUSTOM_KEY_RE = /^[a-z0-9][a-z0-9_.-]{1,59}$/;
+
+interface CustomSetting {
+  key: string;
+  value: string | number | boolean | null;
+  public: boolean;
+  note: string;
+  updatedAt: string;
+}
+
+async function readCustomSettings(): Promise<CustomSetting[]> {
+  try {
+    const [row] = await db.select({ value: platformMetaTable.value })
+      .from(platformMetaTable)
+      .where(eq(platformMetaTable.key, CUSTOM_SETTINGS_META_KEY))
+      .limit(1);
+    const list = row?.value;
+    if (!Array.isArray(list)) return [];
+    return list.filter((e): e is CustomSetting =>
+      Boolean(e) && typeof e === "object" && typeof (e as CustomSetting).key === "string");
+  } catch (err) {
+    logger.error({ err }, "custom settings read error");
+    return [];
+  }
+}
+
+async function writeCustomSettings(list: CustomSetting[]): Promise<void> {
+  await db.insert(platformMetaTable)
+    .values({ key: CUSTOM_SETTINGS_META_KEY, value: list })
+    .onConflictDoUpdate({ target: platformMetaTable.key, set: { value: list, updatedAt: new Date() } });
+}
+
+const customSettingSchema = z.object({
+  value: z.union([z.string().max(1000), z.number().finite(), z.boolean(), z.null()]),
+  public: z.boolean().optional().default(false),
+  note: z.string().max(200).optional().default(""),
+});
+
+/** Public — only the settings an admin explicitly marked public. */
+router.get("/site/custom-settings", async (_req, res) => {
+  const list = await readCustomSettings();
+  const out: Record<string, string | number | boolean | null> = {};
+  for (const entry of list) if (entry.public) out[entry.key] = entry.value;
+  res.set("Cache-Control", "no-store");
+  res.json(out);
+});
+
+router.get("/admin/site/custom-settings", async (req, res) => {
+  if (!await checkAuth(req)) { sendForbidden(res); return; }
+  res.json({ settings: await readCustomSettings() });
+});
+
+router.put("/admin/site/custom-settings/:key", adminLimiter, async (req, res) => {
+  if (!await checkAuth(req)) { sendForbidden(res); return; }
+  const key = String(req.params.key ?? "").trim().toLowerCase();
+  if (!CUSTOM_KEY_RE.test(key)) {
+    sendValidationError(res, "Key must be 2-60 chars: lowercase letters, numbers, dot, dash or underscore");
+    return;
+  }
+  const parsed = customSettingSchema.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    sendValidationError(res, "Invalid value — use text, a number, true/false, or leave empty");
+    return;
+  }
+  try {
+    const list = await readCustomSettings();
+    const entry: CustomSetting = {
+      key,
+      value: parsed.data.value,
+      public: parsed.data.public,
+      note: parsed.data.note,
+      updatedAt: new Date().toISOString(),
+    };
+    const index = list.findIndex(e => e.key === key);
+    if (index === -1) {
+      if (list.length >= CUSTOM_SETTINGS_LIMIT) {
+        sendValidationError(res, `At most ${CUSTOM_SETTINGS_LIMIT} custom settings`);
+        return;
+      }
+      list.push(entry);
+    } else {
+      list[index] = entry;
+    }
+    await writeCustomSettings(list);
+    invalidateSiteSettingsCache();
+    res.json({ ok: true, setting: entry, count: list.length });
+  } catch (err) {
+    logger.error({ err }, "custom setting save error");
+    sendInternal(res);
+  }
+});
+
+router.delete("/admin/site/custom-settings/:key", adminLimiter, async (req, res) => {
+  if (!await checkAuth(req)) { sendForbidden(res); return; }
+  const key = String(req.params.key ?? "").trim().toLowerCase();
+  try {
+    const list = await readCustomSettings();
+    const next = list.filter(e => e.key !== key);
+    if (next.length === list.length) { sendValidationError(res, "Setting not found"); return; }
+    await writeCustomSettings(next);
+    invalidateSiteSettingsCache();
+    res.json({ ok: true, deleted: key, count: next.length });
+  } catch (err) {
+    logger.error({ err }, "custom setting delete error");
+    sendInternal(res);
+  }
+});
+
 export { router as siteRouter };

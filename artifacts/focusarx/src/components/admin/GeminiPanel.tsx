@@ -13,7 +13,7 @@
 
 import { adminFetch } from "./AdminHelpers";import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Activity, Brain, Cpu, Gauge, Lightbulb, Newspaper, Radio, RefreshCw, Sparkles } from "lucide-react";
+import { Activity, Brain, Compass, Cpu, Gauge, Lightbulb, Newspaper, Radio, RefreshCw, ShoppingBag, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ProviderStatus = {
@@ -211,6 +211,34 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
       const d = await r.json();
       setGenResult(r.ok ? `Bot ops review filed as a backlog idea (${d.source}).` : `Error: ${d.error ?? "Failed"}`);
       await loadIdeas();
+    } finally { setGenBusy(null); }
+  };
+
+  /**
+   * Steward jobs: Gemini produces the artefacts instead of the summary.
+   * The server clamps everything it writes, so the UI just reports what
+   * actually landed in the catalogue/quest log.
+   */
+  const steward = async (job: "quests" | "marketplace") => {
+    setGenBusy(job);
+    setGenResult(null);
+    try {
+      const r = await adminFetch(`/api/admin/gemini/${job === "quests" ? "quest-builder" : "marketplace-steward"}`, {
+        method: "POST",
+        headers: authHeaders(),
+        credentials: "include",
+      });
+      const d = await r.json();
+      if (!r.ok) { setGenResult(`Error: ${d.error ?? "Failed"}`); return; }
+      if (job === "quests") {
+        setGenResult(d.created?.length
+          ? `Published ${d.created.length} quest(s) via ${d.source}: ${d.created.join(", ")}`
+          : "No new quests needed — the rotation already covers today.");
+      } else {
+        const intro = d.introduced?.map((i: { name: string }) => i.name).join(", ") || "none";
+        const retired = d.retired?.map((x: { id: string }) => x.id).join(", ") || "none";
+        setGenResult(`Introduced: ${intro} · Retired: ${retired} (${d.source}).`);
+      }
     } finally { setGenBusy(null); }
   };
 
@@ -441,6 +469,22 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
               >
                 <Cpu size={14} />
                 {genBusy === "botops" ? "Reviewing fleet…" : "Bot ops review (G4)"}
+              </button>
+              <button
+                onClick={() => void steward("quests")}
+                disabled={genBusy !== null}
+                className="flex w-full items-center gap-2 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-hover)]/40 px-3 py-2.5 text-left text-xs font-semibold text-[var(--foreground)] disabled:opacity-50"
+              >
+                <Compass size={14} />
+                {genBusy === "quests" ? "Writing quests…" : "Build new quests for everyone (G8)"}
+              </button>
+              <button
+                onClick={() => void steward("marketplace")}
+                disabled={genBusy !== null}
+                className="flex w-full items-center gap-2 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-hover)]/40 px-3 py-2.5 text-left text-xs font-semibold text-[var(--foreground)] disabled:opacity-50"
+              >
+                <ShoppingBag size={14} />
+                {genBusy === "marketplace" ? "Curating catalogue…" : "Curate marketplace — introduce & retire items (G9)"}
               </button>
               {genResult && <p className="text-[11px] font-medium text-[var(--success)]">{genResult}</p>}
               <p className="text-[11px] leading-relaxed text-[var(--foreground-subtle)]">

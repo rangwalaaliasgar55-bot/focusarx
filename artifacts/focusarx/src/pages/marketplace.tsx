@@ -46,6 +46,7 @@ export default function MarketplacePage() {
   const [error, setError] = useState<string | null>(null);
   const [bundles, setBundles] = useState<any[]>([]);
   const [inventoryMap, setInventoryMap] = useState<Record<string, string>>({}); // itemId -> inventory row id
+  const [equipping, setEquipping] = useState<string | null>(null);
   const [busyGift, setBusyGift] = useState<string | null>(null);
   const [selling, setSelling] = useState<string | null>(null);
   const [buyingBundle, setBuyingBundle] = useState<string | null>(null);
@@ -86,6 +87,45 @@ export default function MarketplacePage() {
       await load();
     } finally {
       setPurchasing(null);
+    }
+  }
+
+  /**
+   * What the button says depends on what the item *is* — "Equip" for something
+   * you wear, "Use" for a booster, "Place" for city decor. Owning an item used
+   * to be the end of the story: coins left the wallet and nothing changed.
+   */
+  function equipLabel(item: any) {
+    switch (item.type) {
+      case "frame": return "Wear frame";
+      case "avatar": return "Use avatar";
+      case "effect": return "Activate";
+      case "accessory": return "Put on pet";
+      case "decoration": return "Place in city";
+      case "booster": return "Use booster";
+      default: return "Equip";
+    }
+  }
+
+  async function toggleEquip(item: any) {
+    const invId = inventoryMap[item.id];
+    if (!invId) return;
+    setEquipping(item.id);
+    setError(null);
+    try {
+      const r = await fetch(`/api/marketplace/inventory/${invId}/equip`, { method: "POST", headers: authHeaders() });
+      const d = await r.json();
+      if (!r.ok) { setError(d.error ?? "Could not equip"); haptic("error"); return; }
+      haptic("success");
+      toast(
+        d.equipped
+          ? `${item.emoji ?? "✨"} ${item.name} equipped — it's on your profile now.`
+          : `${item.name} taken off.`,
+        "success",
+      );
+      await load();
+    } finally {
+      setEquipping(null);
     }
   }
 
@@ -301,7 +341,16 @@ export default function MarketplacePage() {
                       <span>🪙 {priceNow.toLocaleString()}</span>
                     </div>
                     {item.owned ? (
-                      <span className="text-[11px] font-semibold text-[var(--palette-22d387)]">Owned</span>
+                      <button
+                        onClick={() => toggleEquip(item)}
+                        disabled={equipping === item.id}
+                        className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all ${
+                          item.equipped
+                            ? "border border-[var(--rgba-34-211-135-0_35)] bg-[var(--rgba-34-211-135-0_15)] text-[var(--palette-22d387)]"
+                            : "border border-[var(--rgba-124-58-237-0_3)] bg-[var(--rgba-124-58-237-0_2)] text-[var(--brand-400)] hover:bg-[var(--rgba-124-58-237-0_35)]"
+                        }`}>
+                        {equipping === item.id ? "…" : item.equipped ? "✓ Equipped" : equipLabel(item)}
+                      </button>
                     ) : (
                     <button
                       onClick={() => purchase(item.id)}

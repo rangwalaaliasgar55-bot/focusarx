@@ -1,10 +1,11 @@
 import { Response, Router } from "express";
-import { db, userMissionProgressTable, userWalletsTable, usersTable } from "@workspace/db";
-import { eq, and, sql } from "drizzle-orm";
+import { db, userMissionProgressTable, userWalletsTable, usersTable, platformMetaTable } from "@workspace/db";
+import { eq, and, sql, gte } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { mintCoins } from "../lib/coinLedger";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { dayKeyInZone, shiftDayKey, resolveUserZone, LEGACY_FALLBACK_ZONE } from "../lib/timezone";
+import { generateAi } from "../lib/aiProvider";
 
 const router = Router();
 
@@ -78,6 +79,63 @@ async function zoneFor(userId: string): Promise<string> {
   }
 }
 
+/**
+ * The mission everybody is pointed at today.
+ *
+ * A list of twelve missions is a menu, and a menu is not leadership — nobody
+ * races a menu. One mission is featured for the whole platform, Gemini picks
+ * which one and says why in a line, and the response carries how many learners
+ * have already finished it today. That is the "everyone is on this one"
+ * feeling, and it doubles as the answer to "what should I do right now?".
+ *
+ * Chosen once per IST day and cached in `platform_meta`, so the pick is stable
+ * across refreshes and across the fleet. Gemini's answer is validated against
+ * the mission catalogue; anything unrecognised falls back to a deterministic
+ * daily rotation, which is also the path with no AI key configured.
+ */
+async function featuredMissionForToday(today: string): Promise<{ key: string; reason: string; source: string }> {
+  const metaKey = `mission_of_day_${today}`;
+  try {
+    const [existing] = await db.select({ value: platformMetaTable.value })
+      .from(platformMetaTable).where(eq(platformMetaTable.key, metaKey)).limit(1);
+    const cached = existing?.value as { key?: string; reason?: string; source?: string } | undefined;
+    if (cached?.key && ALL_MISSIONS.some(m => m.key === cached.key)) {
+      return { key: cached.key, reason: cached.reason ?? "", source: cached.source ?? "cache" };
+    }
+  } catch { /* fall through to a fresh pick */ }
+
+  const fallbackIndex = Number(today.replace(/-/g, "")) % ALL_MISSIONS.length;
+  let pick = { key: ALL_MISSIONS[fallbackIndex]!.key, reason: "Today's rotation pick — steady, repeatable progress.", source: "rotation" };
+
+  try {
+    const menu = ALL_MISSIONS.map(m => ({ key: m.key, title: m.title, description: m.description, type: m.type, xp: m.xpReward }));
+    const result = await generateAi({
+      purpose: "mission_of_day",
+      prompt: `You are the daily mission officer for FocusArx, a focus app for Indian exam aspirants (JEE/NEET/UPSC/CA/boards). Pick exactly ONE mission from the menu for every learner today. Return ONLY JSON: {"key": "<mission key from the menu>", "reason": "<one motivating line, <=120 chars, why today>"}.\nMENU: ${JSON.stringify(menu)}`,
+      maxTokens: 200,
+    });
+    if (result) {
+      const start = result.text.indexOf("{");
+      const end = result.text.lastIndexOf("}");
+      if (start !== -1 && end > start) {
+        const parsed = JSON.parse(result.text.slice(start, end + 1)) as { key?: string; reason?: string };
+        if (parsed.key && ALL_MISSIONS.some(m => m.key === parsed.key)) {
+          pick = {
+            key: parsed.key,
+            reason: (parsed.reason ?? "").trim().slice(0, 160) || pick.reason,
+            source: result.provider,
+          };
+        }
+      }
+    }
+  } catch { /* keep the rotation pick */ }
+
+  try {
+    await db.insert(platformMetaTable).values({ key: metaKey, value: pick }).onConflictDoNothing();
+  } catch { /* the pick still counts for this request */ }
+  return pick;
+}
+
 router.get("/missions", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const zone = await zoneFor(req.userId);
@@ -111,7 +169,37 @@ router.get("/missions", authMiddleware, async (req: AuthRequest, res: Response) 
     const dailyCompleted = daily.filter((m) => m.completed).length;
     const weeklyCompleted = weekly.filter((m) => m.completed).length;
 
-    res.json({ daily, weekly, stats: { dailyCompleted, totalDaily: daily.length, weeklyCompleted, totalWeekly: weekly.length } });
+    // Mission of the day + how many people have already cleared it, so the
+    // board reads as a race rather than a checklist.
+    const featuredPick = await featuredMissionForToday(getPeriodStart("daily", "Asia/Kolkata"));
+    const featuredDefinition = ALL_MISSIONS.find(m => m.key === featuredPick.key)!;
+    let featuredCompletions = 0;
+    try {
+      const [row] = await db
+        .select({ value: sql<number>`count(*)::int` })
+        .from(userMissionProgressTable)
+        .where(and(
+          eq(userMissionProgressTable.missionKey, featuredPick.key),
+          eq(userMissionProgressTable.completed, true),
+          gte(userMissionProgressTable.completedAt, new Date(Date.now() - 24 * 3600 * 1000)),
+        ));
+      featuredCompletions = Number(row?.value ?? 0);
+    } catch { /* a count failure must not break the mission list */ }
+
+    const featured = {
+      ...featuredDefinition,
+      reason: featuredPick.reason,
+      source: featuredPick.source,
+      completionsLast24h: featuredCompletions,
+      periodStart: getPeriodStart(featuredDefinition.type as "daily" | "weekly", zone),
+    };
+
+    res.json({
+      daily,
+      weekly,
+      featured,
+      stats: { dailyCompleted, totalDaily: daily.length, weeklyCompleted, totalWeekly: weekly.length },
+    });
   } catch (err) {
     logger.error({ err }, "missions fetch error");
     res.status(500).json({ error: "Internal error" });

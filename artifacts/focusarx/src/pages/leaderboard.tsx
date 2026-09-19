@@ -17,6 +17,8 @@ interface LeaderboardEntry {
   coins: number;
   streak: number;
   isPremium?: boolean;
+  /** Display tier for AI rivals ("premium" | "standard") — set by the server. */
+  botTier?: "premium" | "standard" | null;
   isAdmin?: boolean;
   isBot?: boolean;
   isCurrentUser: boolean;
@@ -38,15 +40,35 @@ function getAvatarGradient(name: string) {
   return AVATAR_GRADIENTS[name.charCodeAt(0) % AVATAR_GRADIENTS.length]!;
 }
 
+/**
+ * Who you are looking at, at a glance.
+ *
+ * A leaderboard full of identical names is not a competition — it is a list.
+ * Every row now declares its character: staff, an AI rival, and for rivals
+ * whether they are on the premium track. The tier comes from the server and is
+ * deterministic, so a rival's badge never flickers between page loads.
+ */
 function NameBadges({ entry }: { entry: LeaderboardEntry }) {
-  // Only admins get an inline badge; the premium crown is rendered by each
-  // row, because it needs different sizing in the podium.
-  if (!entry.isAdmin) return null;
+  const isBot = entry.isBot ?? false;
+  const botPremium = isBot && entry.botTier === "premium";
+  if (!entry.isAdmin && !isBot) return null;
   return (
     <>
       {entry.isAdmin && (
         <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full border border-[var(--rgba-239-68-68-0_35)] bg-[var(--rgba-239-68-68-0_12)] px-1.5 py-px text-[11px] font-semibold uppercase tracking-wider text-[var(--color-error)]" title="FocusArx team">
           <Shield size={7} /> Admin
+        </span>
+      )}
+      {isBot && (
+        <span
+          className={`ml-1.5 inline-flex items-center gap-0.5 rounded-full border px-1.5 py-px text-[11px] font-semibold uppercase tracking-wider ${
+            botPremium
+              ? "border-[var(--brand-gold)]/40 bg-[var(--brand-gold)]/10 text-[var(--brand-gold)]"
+              : "border-[var(--border-subtle)] bg-[var(--surface-hover)] text-[var(--foreground-subtle)]"
+          }`}
+          title={botPremium ? "Premium AI rival — trains every day on the paid track" : "AI rival — a synthetic training partner"}
+        >
+          🤖 {botPremium ? "Premium rival" : "AI rival"}
         </span>
       )}
     </>

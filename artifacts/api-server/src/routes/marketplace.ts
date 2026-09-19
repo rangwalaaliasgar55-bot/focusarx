@@ -92,12 +92,75 @@ const DEFAULT_ITEMS = [
   { id: "special-coin2", name: "Coin Doubler (48h)", description: "2× coins for the next 48 hours", type: "booster", costCoins: 600, rarity: "epic", emoji: "🪙" },
 ];
 
+/**
+ * Items retired by the curation pass. They stay in the table (existing owners
+ * keep them, refunds stay honest) but stop being purchasable — `isActive` false
+ * means the shop never lists them again.
+ *
+ * Why these: `special-xp2` / `special-coin2` were appended after the 2.0
+ * catalogue with `special-*` ids that contradict their own `type: "booster"`
+ * and premium-ladder pricing (an epic at 600 coins undercuts every epic in the
+ * ladder and makes the XP/coin boosters bought at 3,500 pointless).
+ */
+const RETIRED_ITEM_IDS = new Set(["special-xp2", "special-coin2"]);
+
+/**
+ * Price corrections for items that predate the rarity ladder (common 100–300,
+ * uncommon 400–700, rare 1,000–1,500, epic 2,000–3,500, legendary 8,000+).
+ * Only non-premium items are repriced: premium skins keep the price their
+ * buyers agreed to (and the Legend's Vault bundle maths that depends on them).
+ */
+const PRICE_REBALANCE: Record<string, { costCoins: number; rarity?: string }> = {
+  "frame-gold": { costCoins: 1000, rarity: "rare" },
+  "frame-fire": { costCoins: 400, rarity: "uncommon" },
+  "avatar-wizard": { costCoins: 450, rarity: "uncommon" },
+  "avatar-robot": { costCoins: 650, rarity: "uncommon" },
+  "effect-lightning": { costCoins: 500, rarity: "uncommon" },
+  "deco-garden": { costCoins: 120, rarity: "common" },
+  "deco-fountain": { costCoins: 450, rarity: "uncommon" },
+  "deco-tower": { costCoins: 2400, rarity: "epic" },
+  "acc-crown": { costCoins: 1000, rarity: "rare" },
+  "acc-halo": { costCoins: 1100, rarity: "rare" },
+  "acc-wings": { costCoins: 1200, rarity: "rare" },
+  "acc-fire-wings": { costCoins: 2600, rarity: "epic" },
+  "acc-butterfly": { costCoins: 450, rarity: "uncommon" },
+};
+
+/**
+ * Idempotent catalogue sync. Runs on every server boot and every steward pass:
+ *
+ *  - inserts code-owned items that are new,
+ *  - refreshes name/description/emoji/price of code-owned items so a curation
+ *    edit in this file actually reaches a database that already seeded them,
+ *  - retires the ids in `RETIRED_ITEM_IDS`,
+ *  - never touches rows whose id starts with `gem-` (Gemini introduced them and
+ *    owns their lifecycle).
+ */
 export async function ensureDefaultItems() {
   try {
-    // Always upsert every default item so new items added to code appear in DB
     await db.insert(marketplaceItemsTable)
-      .values(DEFAULT_ITEMS.map(item => ({ ...item, premiumOnly: PREMIUM_ITEM_IDS.has(item.id), isActive: true })))
+      .values(DEFAULT_ITEMS.map(item => ({ ...item, premiumOnly: PREMIUM_ITEM_IDS.has(item.id), isActive: !RETIRED_ITEM_IDS.has(item.id) })))
       .onConflictDoNothing();
+
+    for (const item of DEFAULT_ITEMS) {
+      const rebalance = PRICE_REBALANCE[item.id];
+      await db.update(marketplaceItemsTable)
+        .set({
+          name: item.name,
+          description: item.description,
+          emoji: item.emoji,
+          costCoins: rebalance?.costCoins ?? item.costCoins,
+          rarity: rebalance?.rarity ?? item.rarity,
+          premiumOnly: PREMIUM_ITEM_IDS.has(item.id),
+          isActive: !RETIRED_ITEM_IDS.has(item.id),
+        })
+        .where(eq(marketplaceItemsTable.id, item.id));
+    }
+
+    if (RETIRED_ITEM_IDS.size > 0) {
+      await db.update(marketplaceItemsTable).set({ isActive: false })
+        .where(inArray(marketplaceItemsTable.id, [...RETIRED_ITEM_IDS]));
+    }
   } catch { }
 }
 
@@ -120,10 +183,12 @@ router.get("/marketplace", authMiddleware, async (req: AuthRequest, res: Respons
     // Flash-sale annotations (WS C tie-in, wired by the self-added sale fix):
     // one batched lookup, applied to both listing and purchase pricing.
     const sales = await liveSaleDiscounts();
+    const wornIds = new Set(inventory.filter(i => i.equipped).map(i => i.itemId));
     const itemsWithOwned = items.map(item => {
       const sale = sales.get(item.id);
       return {
         ...item, owned: ownedIds.has(item.id), locked: item.premiumOnly && !premium,
+        equipped: wornIds.has(item.id),
         saleDiscountPct: sale ? sale.discountPct : null,
         salePrice: sale ? Math.max(0, Math.round(item.costCoins * (100 - sale.discountPct) / 100)) : null,
         saleEndsAt: sale ? sale.endsAt : null,
@@ -218,17 +283,90 @@ router.post("/marketplace/:itemId/purchase", authMiddleware, async (req: AuthReq
   }
 });
 
+/**
+ * Marketplace slot rules. A user wears exactly one frame, one avatar and one
+ * effect at a time — equipping a second frame replaces the first, which is what
+ * every other cosmetic system in the app does (`cosmetics/:id/equip`). Pet
+ * accessories are the exception: hats, glasses, capes and wings are separate
+ * slots resolved by `PET_ACCESSORY_SLOTS` on the client, so several may be
+ * equipped at once.
+ */
+const MULTI_EQUIP_TYPES = new Set(["accessory"]);
+
 router.post("/marketplace/inventory/:invId/equip", authMiddleware, async (req: AuthRequest, res: Response) => {
   const { invId } = req.params as { invId: string };
   try {
     const [inv] = await db.select().from(userInventoryTable)
       .where(and(eq(userInventoryTable.id, invId), eq(userInventoryTable.userId, req.userId)));
     if (!inv) { res.status(404).json({ error: "Not found" }); return; }
-    await db.update(userInventoryTable).set({ equipped: !inv.equipped })
-      .where(eq(userInventoryTable.id, invId));
-    res.json({ ok: true, equipped: !inv.equipped });
+
+    const [item] = await db.select({ type: marketplaceItemsTable.type }).from(marketplaceItemsTable)
+      .where(eq(marketplaceItemsTable.id, inv.itemId)).limit(1);
+    const itemType = item?.type ?? "misc";
+    const nextEquipped = !inv.equipped;
+
+    const applied = await db.transaction(async (tx) => {
+      // Unequip the rest of the slot before wearing the new piece, so the
+      // profile can never render two frames competing for the same ring.
+      if (nextEquipped && !MULTI_EQUIP_TYPES.has(itemType)) {
+        const wornRows = await tx.select({ id: userInventoryTable.id, itemId: userInventoryTable.itemId })
+          .from(userInventoryTable)
+          .where(and(eq(userInventoryTable.userId, req.userId), eq(userInventoryTable.equipped, true)));
+        if (wornRows.length > 0) {
+          const typedItems = await tx.select({ id: marketplaceItemsTable.id }).from(marketplaceItemsTable)
+            .where(and(inArray(marketplaceItemsTable.id, wornRows.map(r => r.itemId)), eq(marketplaceItemsTable.type, itemType)));
+          const typedIds = new Set(typedItems.map(t => t.id));
+          const toUnequip = wornRows.filter(r => typedIds.has(r.itemId)).map(r => r.id);
+          if (toUnequip.length > 0) {
+            await tx.update(userInventoryTable).set({ equipped: false })
+              .where(inArray(userInventoryTable.id, toUnequip));
+          }
+        }
+      }
+      const [updated] = await tx.update(userInventoryTable).set({ equipped: nextEquipped })
+        .where(eq(userInventoryTable.id, invId)).returning();
+      return updated;
+    });
+
+    res.json({ ok: true, equipped: nextEquipped, inventory: applied });
   } catch (err) {
     logger.error({ err }, "equip error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+/**
+ * GET /api/marketplace/equipped — what the user is *wearing*, in one call, for
+ * the profile header. Three cosy slots (frame / avatar / effect) plus the
+ * multi-slot accessories and city decorations, each with the emoji and rarity
+ * the client needs to draw them. Without this the shop was a place where coins
+ * disappeared and nothing changed on screen.
+ */
+router.get("/marketplace/equipped", authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const rows = await db.select({
+      id: userInventoryTable.id,
+      itemId: userInventoryTable.itemId,
+      name: marketplaceItemsTable.name,
+      type: marketplaceItemsTable.type,
+      emoji: marketplaceItemsTable.emoji,
+      rarity: marketplaceItemsTable.rarity,
+      description: marketplaceItemsTable.description,
+    }).from(userInventoryTable)
+      .leftJoin(marketplaceItemsTable, eq(userInventoryTable.itemId, marketplaceItemsTable.id))
+      .where(and(eq(userInventoryTable.userId, req.userId), eq(userInventoryTable.equipped, true)));
+
+    const byType = (type: string) => rows.filter(r => r.type === type);
+    res.json({
+      equipped: rows,
+      frame: byType("frame")[0] ?? null,
+      avatar: byType("avatar")[0] ?? null,
+      effect: byType("effect")[0] ?? null,
+      decorations: byType("decoration"),
+      accessories: byType("accessory"),
+    });
+  } catch (err) {
+    logger.error({ err }, "equipped lookup error");
     res.status(500).json({ error: "Internal error" });
   }
 });

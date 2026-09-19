@@ -221,6 +221,74 @@ router.post("/flashcards/cards/:id/review", async (req: AuthRequest, res) => {
   }
 });
 
+/**
+ * Auto-deck: pick a board, a class, a subject and a topic, get a whole deck.
+ *
+ * The notes-based generator requires the learner to already have material. The
+ * common case is the opposite — an empty account, an exam in three months, and
+ * no idea where to start. This route builds the deck *and* the cards from the
+ * curriculum position alone.
+ *
+ * Two details that matter for an Indian exam audience:
+ *  - the prompt is anchored to the named board/class syllabus, so a "CBSE 10
+ *    Light" deck is board-answer shaped rather than a generic physics summary;
+ *  - the deck name is deterministic (`BOARD CLASS · Subject · Topic`) and reused
+ *    when it exists, so asking twice adds cards instead of creating twins.
+ */
+const boardDeckSchema = z.object({
+  board: z.enum(["CBSE", "ICSE", "State Board", "JEE", "NEET", "UPSC", "CA Foundation", "Other"]).default("CBSE"),
+  classLevel: z.string().max(12).optional(),
+  subject: z.string().trim().min(2).max(60),
+  topic: z.string().trim().min(2).max(120),
+  count: z.number().int().min(5).max(30).default(12),
+});
+
+router.post("/flashcards/decks/generate", async (req: AuthRequest, res) => {
+  if (!await isUserPremium(req.userId)) return res.status(403).json({ error: "AI flashcard generation requires Premium" });
+  const parsed = boardDeckSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Pick a subject and a topic first" });
+  const { board, classLevel, subject, topic, count } = parsed.data;
+
+  try {
+    const deckTitle = [board, classLevel ? `Class ${classLevel}` : null, subject, topic].filter(Boolean).join(" · ").slice(0, 120);
+    const [existingDeck] = await db.select({ id: flashcardDecksTable.id }).from(flashcardDecksTable)
+      .where(and(eq(flashcardDecksTable.userId, req.userId), eq(flashcardDecksTable.title, deckTitle))).limit(1);
+
+    const deck = existingDeck
+      ? existingDeck
+      : (await db.insert(flashcardDecksTable).values({
+          userId: req.userId,
+          title: deckTitle,
+          description: `Auto-built by Gemini for ${board}${classLevel ? ` Class ${classLevel}` : ""} · ${subject} · ${topic}`,
+          category: subject.slice(0, 60),
+        }).returning({ id: flashcardDecksTable.id }))[0]!;
+
+    const result = await generateAi({
+      purpose: "flashcard_generate",
+      prompt: `Create ${count} exam-quality flashcards for an Indian student studying ${subject}, topic "${topic}", board/exam: ${board}${classLevel ? `, Class ${classLevel}` : ""}.
+Return ONLY JSON: {"cards":[{"front":"concise question or prompt","back":"clear, accurate answer"}]}.
+Rules: one concept per card; use the terminology and marking-scheme style that ${board} answers are graded on; include formulas/definitions where they apply; no duplicates.`,
+      system: "You are an expert Indian curriculum study-aid author. Output strictly valid JSON with a 'cards' array of {front, back} objects.",
+      json: true,
+      maxTokens: 2048,
+      userId: req.userId,
+    });
+    if (!result || !result.text) return res.status(503).json({ error: "AI flashcard generation is currently unavailable" });
+
+    const generated = JSON.parse(result.text) as { cards?: Array<{ front?: string; back?: string }> };
+    const cards = (generated.cards ?? []).slice(0, count)
+      .filter((card) => card.front?.trim() && card.back?.trim())
+      .map((card) => ({ deckId: deck.id, front: card.front!.trim().slice(0, 500), back: card.back!.trim().slice(0, 1000) }));
+    if (!cards.length) throw new Error("No cards parsed from AI output");
+
+    const inserted = await db.insert(flashcardsTable).values(cards).returning();
+    res.status(201).json({ deck: { id: deck.id, title: deckTitle, existed: Boolean(existingDeck) }, cards: inserted, provider: result.provider });
+  } catch (err) {
+    logger.warn({ err }, "auto deck generation failed");
+    res.status(502).json({ error: "AI flashcards could not be generated" });
+  }
+});
+
 router.post("/flashcards/decks/:id/generate", async (req: AuthRequest, res) => {
   if (!await isUserPremium(req.userId)) return res.status(403).json({ error: "AI flashcard generation requires Premium" });
   const parsed = z.object({ notes: z.string().min(50).max(12_000), count: z.number().int().min(3).max(30).default(10) }).safeParse(req.body);

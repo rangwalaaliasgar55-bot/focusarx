@@ -16,7 +16,7 @@ type AdminUser = {
   createdAt: string;
 };
 
-type AdminData = { users: AdminUser[]; activeCount: number; guestCount?: number; botCount?: number };
+type AdminData = { users: AdminUser[]; activeCount: number; guestCount?: number; botCount?: number; pagination?: { total?: number } };
 type AdminStats = { totalUsers: number; guestCount?: number };
 
 interface AdminUserPanelProps {
@@ -207,7 +207,9 @@ export function AdminUserPanel({ data, stats, authHeaders, onDataChanged, onMana
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <StatCard label="Registered users" value={String(allUsers.length - botCount)} />
+        {/* Server-side human-only total (the paged list length minus the global
+            bot count went badly negative once the bot fleet outgrew a page). */}
+        <StatCard label="Registered users" value={String(Math.max(0, data.pagination?.total ?? Math.max(0, allUsers.length - botCount)))} />
         <StatCard label="Active sessions" value={String(data.activeCount ?? 0)} accent="rose" />
         <StatCard label={botCount > 0 ? "AI rivals" : "Guest accounts"}
           value={String(botCount > 0 ? botCount : (data.guestCount ?? stats?.guestCount ?? 0))} accent="amber" />

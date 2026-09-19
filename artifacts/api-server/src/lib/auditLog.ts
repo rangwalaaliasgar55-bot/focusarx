@@ -18,6 +18,7 @@ export type AuditAction =
   | "admin_pet_pull"
   | "admin_account_deletion_purge"
   | "integration_connected"
+  | "integration_manual_connected"
   | "integration_disconnected"
   | "webhook_created"
   | "webhook_deleted";
