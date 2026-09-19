@@ -106,6 +106,43 @@ when the ciphertext is leaked through a response shape, or when a URL check is
 removed; `webhookEvents.test.ts` fails when an event is added to the catalog with
 no emitter and when a milestone event would fail on an ordinary day.
 
+## [Unreleased] — admin audit: fixes for maintenance, flags, Gemini publishing, and pet discovery
+
+A sweep of the admin surface, fixing the things that read as "broken" and
+closing the gaps between deciding something and that thing going live.
+
+- **Maintenance mode looked broken because it asked for two clicks and then
+  hid its own effect.** The toggles only persisted on a separate Save click,
+  and admins bypass the maintenance gate by design (they must be able to
+  switch it off), so flipping it on appeared to do nothing. The toggles now
+  autosave the moment they flip, and while maintenance is live the panel
+  says exactly that — including that admins are exempt and to use an
+  incognito window to see the visitor view. Server auth was audited in the
+  same pass: the settings PATCH already resolves to `checkAdminAuth`.
+- **Feature flags were display-only.** The API has always accepted upserts,
+  but the panel rendered a static list with no controls — changing a flag
+  required the SQL editor. Every flag now has a live ON/OFF switch and there
+  is a "New flag" form, giving developers a first-class toggle for wiring
+  unreleased work.
+- **Gemini ideas used to dead-end at "approved".** Approving an idea changed
+  a status field and nothing else — which reads as "Gemini does nothing".
+  Approved ideas now have two human-triggered publish paths: **publish to
+  the community feed** (posted as the publishing admin, which also triggers
+  the bot fleet's guaranteed quick replies to admin posts — the visible
+  reaction loop) or **set as the site announcement** (same store the Site
+  Settings panel writes, cache invalidated immediately). Published ideas
+  are marked `published` and every publish lands in the immutable AI action
+  audit log. Auto-publish stays OFF by design; the human still pulls the
+  trigger.
+- **Companions were invisible.** `/pets` had no entry anywhere in the nav —
+  users could only find it by searching. It now sits in the Momentum group
+  ("Companions"), the same fix Focus City got when it was sheet-only.
+
+Follow-up flagged, not built here: the Battle Pass admin panel is read-only
+analytics with hardcoded season text; admin-authored seasons/rewards need a
+schema change and its own workstream. Gates: api-server 607 tests, frontend
+752 tests, tsc + eslint clean, build + SEO + prerender + bundle budget PASS.
+
 ## [Unreleased] — timer length stays changeable, pets move, and the resource designs' type
 
 Three fixes that all come down to the same principle: once something is

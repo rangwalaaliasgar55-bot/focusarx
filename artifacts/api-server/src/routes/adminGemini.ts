@@ -18,10 +18,14 @@ import {
   usersTable, focusSessionsTable, coinTransactionsTable,
   adminDropsTable,
   aiIdeasTable, aiBriefingsTable, aiActionAuditTable, platformMetaTable,
+  socialPostsTable, siteSettingsTable,
 } from "@workspace/db";
 import { eq, and, desc, gte, sql, inArray } from "drizzle-orm";
 import { checkAdminAuth } from "../lib/adminAuth";
 import { logger } from "../lib/logger";
+import { invalidateSiteSettingsCache } from "../lib/siteSettings";
+import { queueBotReplies } from "../lib/botEngine";
+import { extractUserId } from "./auth";
 import { checkBudget, usageByPurpose, estimatedCost, istDayKey } from "../lib/aiBudget";
 import { providerAvailability } from "../lib/aiProvider";
 import { generateAi } from "../lib/aiProvider";
@@ -145,6 +149,98 @@ router.post("/admin/gemini/ideas/:id/:decision", async (req, res) => {
     res.json({ ok: true, status });
   } catch (err) {
     logger.error({ err }, "gemini idea decision error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+/**
+ * G8: actually ship an approved idea.
+ *
+ * Approving an idea used to be a dead end — it sat in the backlog forever,
+ * which read as "Gemini does nothing". This route is the human-triggered
+ * publish step (auto-publish stays OFF by design):
+ *
+ *   channel=feed          → posts it to the community feed as the publishing
+ *                           admin. Admin posts get the guaranteed quick bot
+ *                           replies (see botEngine.queueBotReplies), so the
+ *                           community visibly reacts within minutes.
+ *   channel=announcement  → sets the site-wide announcement banner via the
+ *                           same store AdminSitePanel writes to.
+ *
+ * The idea is marked `published` and the action lands in the immutable AI
+ * audit log, like approve/reject.
+ */
+router.post("/admin/gemini/ideas/:id/publish", async (req, res) => {
+  if (!(await guard(req, res))) return;
+  const { id } = req.params;
+  const channel = (req.body as { channel?: unknown } | undefined)?.channel;
+  if (channel !== "feed" && channel !== "announcement") {
+    res.status(400).json({ error: "channel must be feed|announcement" });
+    return;
+  }
+  try {
+    const [idea] = await db.select().from(aiIdeasTable).where(eq(aiIdeasTable.id, id));
+    if (!idea) { res.status(404).json({ error: "Idea not found" }); return; }
+    if (idea.status === "published") { res.status(409).json({ error: "Already published" }); return; }
+    if (idea.status !== "approved") {
+      res.status(409).json({ error: "Only approved ideas can be published — approve it first." });
+      return;
+    }
+
+    let publishedWhere: string;
+    if (channel === "announcement") {
+      const updates = {
+        announcementEnabled: true,
+        announcementTitle: idea.title.slice(0, 100),
+        announcementText: idea.body.slice(0, 500),
+        announcementEmoji: "💡",
+        updatedAt: new Date(),
+      };
+      const [existing] = await db.select().from(siteSettingsTable).limit(1);
+      if (existing) {
+        await db.update(siteSettingsTable).set(updates).where(eq(siteSettingsTable.id, existing.id));
+      } else {
+        await db.insert(siteSettingsTable).values({ id: "default", ...updates });
+      }
+      invalidateSiteSettingsCache();
+      publishedWhere = "site announcement";
+    } else {
+      // Attribute the post to the publishing admin; when they authenticated
+      // via the admin cookie alone there is no user id — fall back to the
+      // first admin account so the feed post always has a real author.
+      let authorId = extractUserId(req);
+      if (!authorId) {
+        const [admin] = await db.select({ id: usersTable.id }).from(usersTable)
+          .where(eq(usersTable.role, "admin")).limit(1);
+        authorId = admin?.id ?? null;
+      }
+      if (!authorId) { res.status(503).json({ error: "No admin account available to author the post" }); return; }
+      const content = `${idea.title}\n\n${idea.body}`.trim();
+      const [post] = await db.insert(socialPostsTable).values({
+        userId: authorId,
+        content,
+        type: "general",
+        isPublic: true,
+        moderationStatus: "approved",
+      }).returning();
+      // Admin-authored posts get guaranteed quick bot replies — the visible
+      // community reaction the publish is meant to trigger.
+      await queueBotReplies(post.id, authorId, content, false);
+      publishedWhere = `community feed (post ${post.id})`;
+    }
+
+    await db.update(aiIdeasTable).set({ status: "published", updatedAt: new Date() }).where(eq(aiIdeasTable.id, id));
+    await db.insert(aiActionAuditTable).values({
+      actor: "admin",
+      actorRole: "admin",
+      action: "idea_publish",
+      payload: { ideaId: id, title: idea.title, category: idea.category, channel, publishedWhere },
+      outcome: "executed",
+      approvedBy: null,
+    });
+    res.json({ ok: true, channel, publishedWhere });
+  } catch (err) {
+    logger.error({ err }, "gemini idea publish error");
     res.status(500).json({ error: "Internal error" });
   }
 });

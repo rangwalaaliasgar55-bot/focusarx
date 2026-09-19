@@ -114,6 +114,25 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
     } finally { setIdeaBusy(null); }
   };
 
+  /* Ship an approved idea: feed posts land as the admin (the bot fleet
+     reacts to admin posts within minutes), announcements go to the site-wide
+     banner. This is the step that stops approvals from being a dead end. */
+  const publishIdea = async (id: string, channel: "feed" | "announcement") => {
+    setIdeaBusy(id);
+    try {
+      const r = await adminFetch(`/api/admin/gemini/ideas/${id}/publish`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ channel }),
+      });
+      if (r.ok) {
+        await loadIdeas();
+        await loadStatus();
+      }
+    } finally { setIdeaBusy(null); }
+  };
+
   const generate = async (kind: "daily" | "seo") => {
     setGenBusy(kind);
     setGenResult(null);
@@ -241,7 +260,7 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
               <Lightbulb size={13} /> Idea backlog {status ? `(${status.ideasBacklog} pending)` : ""}
             </p>
             <div className="flex items-center gap-1.5">
-              {["backlog", "approved", "all"].map((f) => (
+              {["backlog", "approved", "published", "all"].map((f) => (
                 <button
                   key={f}
                   onClick={() => setIdeaStatusFilter(f)}
@@ -295,11 +314,32 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
                     </button>
                   </div>
                 )}
+                {idea.status === "approved" && (
+                  <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => void publishIdea(idea.id, "feed")}
+                      disabled={ideaBusy === idea.id}
+                      className="rounded-lg border border-[var(--brand-strong)] bg-[var(--brand-soft)] px-3 py-1 text-[11px] font-semibold text-[var(--brand-strong)] disabled:opacity-50"
+                    >
+                      📣 Publish to community feed
+                    </button>
+                    <button
+                      onClick={() => void publishIdea(idea.id, "announcement")}
+                      disabled={ideaBusy === idea.id}
+                      className="rounded-lg border border-[var(--border-subtle)] px-3 py-1 text-[11px] font-semibold text-[var(--foreground-muted)] hover:text-[var(--foreground)] disabled:opacity-50"
+                    >
+                      📌 Set as site announcement
+                    </button>
+                  </div>
+                )}
+                {idea.status === "published" && (
+                  <p className="mt-2.5 text-[11px] font-semibold text-[var(--success)]">✓ Published — live on the site</p>
+                )}
               </motion.div>
             ))}
           </div>
           <p className="mt-3 text-[11px] leading-relaxed text-[var(--foreground-subtle)]">
-            Auto-publish is OFF by design: AI-suggested work stays a backlog item until a human approves it. Every decision is written to the immutable AI action audit log.
+            Auto-publish is OFF by design: approve an idea, then use the publish buttons to ship it to the community feed or the site announcement. Every decision and publish is written to the immutable AI action audit log.
           </p>
         </section>
 

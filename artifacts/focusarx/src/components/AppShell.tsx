@@ -23,6 +23,7 @@ import {
   MessageCircle,
   Moon,
   Crown,
+  PawPrint,
   Search,
   Settings,
   Shield,
@@ -111,6 +112,9 @@ const NAV_GROUPS: NavGroup[] = [
       // Focus City was only reachable from the mobile "More" sheet; desktop had
       // no route to a core feature. Both surfaces now expose it.
       { href: "/city", label: "Focus City", icon: Building2 },
+      // Companions had no nav entry at all — users could only reach /pets by
+      // searching. Same fix as Focus City: a first-class spot in the sidebar.
+      { href: "/pets", label: "Companions", icon: PawPrint },
       { href: "/break-free", label: "Break Free", icon: Flame },
       { href: "/social", label: "Community", icon: Users },
     ],
