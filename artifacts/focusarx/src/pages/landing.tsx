@@ -169,7 +169,7 @@ export default function LandingPage() {
   const entrance = reduceMotion ? {} : { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.25, ease: "easeOut" as const } };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[var(--background)] text-[var(--foreground)]">
+    <div className="landing-body min-h-screen overflow-x-hidden bg-[var(--background)] text-[var(--foreground)]">
       <PageSEO {...PAGE_SEO.home} structuredData={structuredData} />
       <LandingCursorGlow />
       <LandingMobileCta />
@@ -187,8 +187,8 @@ export default function LandingPage() {
             <motion.div {...entrance}>
               <Badge className="mb-6"><Sparkles /> AI-powered deep work coaching</Badge>
             </motion.div>
-            <motion.h1 {...entrance} className="mx-auto max-w-4xl text-balance text-5xl font-semibold leading-[0.98] tracking-[-0.055em] sm:text-7xl lg:text-[5.5rem]">
-              The AI focus timer that builds<br className="hidden sm:block" /> <span className="text-[var(--brand-strong)]">real deep work habits.</span>
+            <motion.h1 {...entrance} className="font-display-serif mx-auto max-w-4xl text-balance text-5xl leading-[1.02] tracking-[-0.02em] sm:text-7xl lg:text-[5.25rem]">
+              The AI focus timer that builds<br className="hidden sm:block" /> <span className="italic text-[var(--brand-strong)]">real deep work habits.</span>
             </motion.h1>
             <motion.p {...entrance} className="mx-auto mt-7 max-w-2xl text-balance text-base leading-relaxed text-[var(--foreground-muted)] sm:text-xl">
               Pomodoro sessions, AI coaching, and streaks that keep you focused — free, no credit card required.
@@ -225,7 +225,7 @@ export default function LandingPage() {
           <div className="mx-auto max-w-5xl text-center">
             <Reveal>
               <p className="page-eyebrow">How it works</p>
-              <h2 className="text-balance text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">Three steps to focused work.</h2>
+              <h2 className="font-display-serif text-balance text-3xl tracking-[-0.02em] sm:text-5xl">Three steps to focused work.</h2>
             </Reveal>
             <RevealStagger className="mt-14 grid gap-8 sm:grid-cols-3">
               {[
@@ -249,7 +249,7 @@ export default function LandingPage() {
           <div className="mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-2">
             <Reveal>
               <p className="page-eyebrow">Why AI coaching beats a plain timer</p>
-              <h2 className="text-balance text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">Forest grows trees. FocusArx grows <span className="text-[var(--brand-strong)]">your focus.</span></h2>
+              <h2 className="font-display-serif text-balance text-3xl tracking-[-0.02em] sm:text-5xl">Forest grows trees. FocusArx grows <span className="text-[var(--brand-strong)]">your focus.</span></h2>
               <p className="mt-5 max-w-xl text-base leading-relaxed text-[var(--foreground-muted)]">Most focus timers count down. FocusArx analyzes your session history, identifies your peak hours, and coaches you toward better habits — not just longer sessions.</p>
               <div className="mt-8 space-y-5">
                 {[
@@ -303,7 +303,7 @@ export default function LandingPage() {
           <div className="mx-auto max-w-7xl">
             <Reveal className="max-w-2xl">
               <p className="page-eyebrow">Everything you need</p>
-              <h2 className="text-balance text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">A complete focus loop.</h2>
+              <h2 className="font-display-serif text-balance text-3xl tracking-[-0.02em] sm:text-5xl">A complete focus loop.</h2>
               <p className="mt-5 text-base leading-relaxed text-[var(--foreground-muted)]">FocusArx keeps planning, doing, reviewing, and learning in one visual language.</p>
             </Reveal>
             <RevealStagger className="mt-14 grid gap-px overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--border-subtle)] bg-[var(--border-subtle)] md:grid-cols-2 lg:grid-cols-3">
@@ -322,7 +322,7 @@ export default function LandingPage() {
           <div className="mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-2">
             <Reveal>
               <p className="page-eyebrow">Designed for the next action</p>
-              <h2 className="text-balance text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">Your momentum, visible at a glance.</h2>
+              <h2 className="font-display-serif text-balance text-3xl tracking-[-0.02em] sm:text-5xl">Your momentum, visible at a glance.</h2>
               <p className="mt-5 max-w-xl text-base leading-relaxed text-[var(--foreground-muted)]">Your dashboard connects streak, XP, active work, and session quality without turning it into a scoreboard.</p>
               <div className="mt-8 space-y-5">
                 {[{ icon: Flame, title: "Streaks that encourage, not punish", text: "See consistency in context and return without shame after a missed day." }, { icon: Target, title: "Tasks beside the timer", text: "Keep the current priority close enough to act on, never close enough to distract." }, { icon: BarChart3, title: "Review patterns, not vanity metrics", text: "Use session history and focus quality to make tomorrow's plan more realistic." }].map(({ icon: Icon, title, text }) => <div key={title} className="flex gap-4"><span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--surface-raised)] text-[var(--brand-strong)]"><Icon size={18} /></span><div><h3 className="text-sm font-semibold">{title}</h3><p className="mt-1 text-sm leading-relaxed text-[var(--foreground-muted)]">{text}</p></div></div>)}
@@ -350,7 +350,7 @@ export default function LandingPage() {
           <div className="mx-auto max-w-5xl">
             <Reveal>
               <p className="page-eyebrow">Exam prep</p>
-              <h2 className="text-balance text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">Built for the paper you are actually sitting.</h2>
+              <h2 className="font-display-serif text-balance text-3xl tracking-[-0.02em] sm:text-5xl">Built for the paper you are actually sitting.</h2>
               <p className="mt-5 max-w-2xl text-base leading-relaxed text-[var(--foreground-muted)]">
                 Twenty-three exam guides written from the official bulletins — paper pattern, marking
                 rules, a dated plan, and the section timing that decides the rank. Each one comes with
@@ -385,7 +385,7 @@ export default function LandingPage() {
           <div className="mx-auto max-w-5xl text-center">
             <Reveal>
               <p className="page-eyebrow">See how we compare</p>
-              <h2 className="text-balance text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">FocusArx vs Forest, Focusmate & Pomofocus.</h2>
+              <h2 className="font-display-serif text-balance text-3xl tracking-[-0.02em] sm:text-5xl">FocusArx vs Forest, Focusmate & Pomofocus.</h2>
               <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-[var(--foreground-muted)]">We break down what each app does best — and where FocusArx goes further with AI coaching, analytics, and gamification.</p>
             </Reveal>
             <RevealStagger className="mt-8 flex flex-wrap items-center justify-center gap-4">
@@ -410,7 +410,7 @@ export default function LandingPage() {
         <section className="px-4 pb-24 sm:px-6 sm:pb-32">
           <Reveal className="texture-grain mx-auto max-w-5xl overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--card-border)] bg-[radial-gradient(circle_at_50%_0%,var(--brand-soft-hover),transparent_65%)] px-6 py-16 text-center shadow-[var(--shadow-violet-md)] sm:px-12 sm:py-20">
             <span className="mx-auto grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] bg-[var(--brand-soft)] text-[var(--brand-strong)]"><Clock3 /></span>
-            <h2 className="mx-auto mt-6 max-w-2xl text-balance text-3xl font-semibold tracking-[-0.04em] sm:text-5xl">Your next focused hour starts now.</h2>
+            <h2 className="font-display-serif mx-auto mt-6 max-w-2xl text-balance text-3xl tracking-[-0.02em] sm:text-5xl">Your next focused hour starts now.</h2>
             <p className="mx-auto mt-5 max-w-xl text-base text-[var(--foreground-muted)]">Choose one task and begin with a single focus block. No account and no credit card required — save your streak later if you want to.</p>
             <Button asChild size="xl" className="mt-8"><Link href="/focus">Start Focusing Free <ArrowRight /></Link></Button>
             <p className="mt-4 text-xs text-[var(--foreground-subtle)]">Free forever — Premium activated with coins you earn by focusing</p>

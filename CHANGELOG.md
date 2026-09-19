@@ -104,7 +104,48 @@ comes from it and that the state check precedes the code check.
 `webhookSecurity.test.ts` fails when a credential column is written unencrypted,
 when the ciphertext is leaked through a response shape, or when a URL check is
 removed; `webhookEvents.test.ts` fails when an event is added to the catalog with
-no emitter and when a milestone event would fire on an ordinary day.
+no emitter and when a milestone event would fail on an ordinary day.
+
+## [Unreleased] — timer length stays changeable, pets move, and the resource designs' type
+
+Three fixes that all come down to the same principle: once something is
+chosen, choosing again must still be possible.
+
+- **Timer: pause, then pick a different length.** The preset row (Pomodoro /
+  Extended / Deep Work / Animedoro / Flowtime / Custom) rendered only while
+  `status === "idle"` — the moment a block started, the controls vanished and
+  the only way to change the length was abandoning the session. Now the row
+  renders while paused too, `handleEditTime` accepts paused sessions, and
+  `setCustomDuration` re-arms the clock whenever the session is not live
+  (`status !== "running"`): while paused the ring refills at the new duration
+  and the user resumes into the fresh block, with a toast saying exactly that.
+  A running clock is still never rewritten mid-tick — that would corrupt the
+  deadline math — and `usePomodoro.durationChange.test.tsx` pins all three
+  states (idle pre-arm, running untouched, paused re-arm).
+- **Pets animate when the catalog says so.** The admin pipeline writes a
+  `thumbnailUrl` for every released staged pet; the pets page ignored it and
+  rendered a paw. A new `PetSprite` (cards, inventory) and an `imageUrl` prop
+  on `PetStage2D` (showcase, detail modal) show the animated sprite with a
+  reserved box (`width`/`height` — no CLS) and fall back to the glyph on a
+  missing or failed load; a broken image icon must never be what a pet looks
+  like. Sprites are decorative (`aria-hidden`, empty alt) because the name is
+  printed beside them, which is also what the image-hygiene gate requires.
+- **The resource designs' typography, scoped to the marketing surface.**
+  Adopted from the focusarx-resource "professional website" redesign: DM Sans
+  body (`.landing-body`) with Instrument Serif display headlines
+  (`.font-display-serif`) on the landing hero and section headings — an
+  italic accent in the hero replaces the old faux-bold. Instrument Serif
+  ships one weight drawn for large sizes, so those headings drop
+  `font-semibold` rather than letting the browser synthesize bold serifs.
+  Both arrive as unicode-range subsets in the single entry stylesheet; app
+  pages never reference the families and never download the woff2 files, and
+  the bundle budget still passes byte-for-byte rules (a first attempt at
+  code-splitting the font CSS was rejected by the gate's single-entry rule —
+  the global import is the repo convention for a reason).
+
+Gates: frontend typecheck clean; eslint 0 errors; 752 tests pass (7 new:
+3 PetSprite, 2 PetStage2D sprite cases, 3 duration-change — one file);
+production build + SEO + prerender + bundle budget PASS.
 
 ## [Unreleased] — admin pet release pipeline: 1,738 staged candidates, gated by design
 

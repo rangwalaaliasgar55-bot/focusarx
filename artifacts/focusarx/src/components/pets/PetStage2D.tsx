@@ -42,6 +42,9 @@ const MOOD_LABEL: Record<string, string> = {
 interface PetStage2DProps {
   /** Glyph that stands in for the creature (the catalog is emoji-based). */
   emoji: string;
+  /** Animated sprite from the catalog, shown instead of the glyph when it
+     loads — this is what makes released staged pets move on the page. */
+  imageUrl?: string | null;
   /** Companion name — used in the accessible label. */
   name: string;
   rarity?: string;
@@ -52,11 +55,12 @@ interface PetStage2DProps {
   className?: string;
 }
 
-export function PetStage2D({ emoji, name, rarity = "common", mood, size = 280, className }: PetStage2DProps) {
+export function PetStage2D({ emoji, imageUrl, name, rarity = "common", mood, size = 280, className }: PetStage2DProps) {
   const reduceMotion = useReducedMotion();
   const finePointer = useMediaQuery("(pointer: fine)");
   const [hovered, setHovered] = useState(false);
   const [taps, setTaps] = useState(0);
+  const [spriteFailed, setSpriteFailed] = useState(false);
 
   const glow = RARITY_GLOW[(rarity as PetRarity)] ?? RARITY_GLOW.common;
   const discSize = Math.round(size * 0.52);
@@ -156,9 +160,27 @@ export function PetStage2D({ emoji, name, rarity = "common", mood, size = 280, c
               border: `2px solid ${glow}`,
             }}
           >
-            <span aria-hidden="true" className="leading-none" style={{ fontSize: discSize * 0.5 }}>
-              {emoji}
-            </span>
+            {imageUrl && !spriteFailed ? (
+              // Decorative: the stage button carries the accessible name
+              // ("Say hi to …"), so the sprite itself is aria-hidden.
+              <img
+                src={imageUrl}
+                alt=""
+                aria-hidden="true"
+                width={Math.round(discSize * 0.72)}
+                height={Math.round(discSize * 0.72)}
+                loading="lazy"
+                referrerPolicy="no-referrer"
+                draggable={false}
+                onError={() => setSpriteFailed(true)}
+                className="object-contain [image-rendering:pixelated]"
+                style={{ width: discSize * 0.72, height: discSize * 0.72 }}
+              />
+            ) : (
+              <span aria-hidden="true" className="leading-none" style={{ fontSize: discSize * 0.5 }}>
+                {emoji}
+              </span>
+            )}
             {/* No AnimatePresence here: the ring finishes at opacity 0, so the
                 timeout unmount is invisible and costs no exit-animation bookkeeping. */}
             {rippleKey !== null && (

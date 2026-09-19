@@ -277,12 +277,20 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     const p = getPresetById(id);
     setSessionPreset(id);
     setPresetIdState(id);
-    if (!p.flow && p.focusMin && getSnapshot().status === "idle") {
+    const snap = getSnapshot();
+    if (snap.status === "running") return;
+    if (!p.flow && p.focusMin) {
       setCustomDuration("focus", p.focusMin * 60);
       if (p.breakMin) setCustomDuration("break", p.breakMin * 60);
       if (p.longBreakMin) setCustomDuration("longBreak", p.longBreakMin * 60);
+      if (snap.status === "paused") {
+        // The length changed mid-way: the paused block is re-armed at the
+        // new duration (ring refills). Say so — silent progress loss is how
+        // timers earn distrust.
+        toast(`${p.label} — this block re-armed at ${p.focusMin} minutes`, "info");
+      }
     }
-  }, [getSnapshot, setCustomDuration]);
+  }, [getSnapshot, setCustomDuration, toast]);
 
   // Apply the remembered preset to a fresh idle timer (never over a
   // restored running/paused snapshot or deep-linked duration). Deferred to
@@ -546,7 +554,11 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
   const handleLockExit = useCallback(() => { setShowExitConfirm(true); }, []);
 
   const handleEditTime = async () => {
-    if (status !== "idle") return;
+    // Editable while idle *and* while paused — a paused session is exactly
+    // when someone realises the block they picked is the wrong length. While
+    // running, the clock is live and stays untouched.
+    if (status === "running") return;
+    const wasPaused = status === "paused";
     const currentMins = Math.floor(secondsLeft / 60);
     // `window.prompt` was unusable here: it is dropped entirely by in-app
     // browsers (so the button looked dead), and any rejected value closed the
@@ -575,6 +587,9 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     setCustomDuration(mode, Number(input) * 60);
     setSessionPreset("custom");
     setPresetIdState("custom");
+    if (wasPaused) {
+      toast(`Duration set — this block re-armed at ${Number(input)} minutes`, "info");
+    }
   };
 
   if (!recoveryReady) {
@@ -744,8 +759,11 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
             })}
           </div>
 
-          {/* Session presets (9.1): Pomodoro, Extended, Deep, Animedoro, Flow, Custom */}
-          {mode === "focus" && status === "idle" && (
+          {/* Session presets (9.1): Pomodoro, Extended, Deep, Animedoro, Flow, Custom.
+              Visible while idle *and* paused: picking a different length while
+              paused re-arms the block (see applyPreset), so "I started the wrong
+              one" has a fix that isn't abandoning the session. */}
+          {mode === "focus" && status !== "running" && (
             <div className="mt-3 flex flex-wrap items-center gap-1.5" role="group" aria-label="Session mode">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-600)] mr-0.5">
                 Mode
@@ -776,6 +794,11 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
               >
                 Custom…
               </button>
+              {status === "paused" && (
+                <span className="w-full text-[11px] text-[var(--palette-zinc-600)]">
+                  Paused — switching a mode restarts this block at that length.
+                </span>
+              )}
             </div>
           )}
         </div>

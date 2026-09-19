@@ -68,4 +68,25 @@ describe("PetStage2D", () => {
       expect(RARITY_GLOW[rarity as keyof typeof RARITY_GLOW], rarity).toMatch(/^rgba\(/);
     }
   });
+
+  it("shows the animated catalog sprite when one is provided", () => {
+    const { container } = render(<PetStage2D emoji="🐾" imageUrl="https://sprites.example/pikachu.gif" name="Pikachu" />);
+    const img = container.querySelector("img");
+    expect(img).toBeTruthy();
+    expect(img!.getAttribute("src")).toBe("https://sprites.example/pikachu.gif");
+    // Decorative — the stage button carries the accessible name.
+    expect(img!.getAttribute("aria-hidden")).toBe("true");
+    // CLS guard: the sprite reserves its box before loading.
+    expect(img!.getAttribute("width")).toBeTruthy();
+    expect(img!.getAttribute("height")).toBeTruthy();
+    // The glyph stands down while the sprite is up.
+    expect(screen.queryByText("🐾")).toBeNull();
+  });
+
+  it("drops back to the glyph if the sprite fails", () => {
+    const { container } = render(<PetStage2D emoji="🐾" imageUrl="https://sprites.example/dead.gif" name="Ghost" />);
+    fireEvent.error(container.querySelector("img")!);
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.getByText("🐾")).toBeTruthy();
+  });
 });
