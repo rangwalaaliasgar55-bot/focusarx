@@ -65,7 +65,7 @@ export default function GoalsPage() {
   }
 
   return (
-    <div className="min-h-screen forge-bg-glow text-[var(--foreground)] px-4 sm:px-6 py-8 max-w-2xl mx-auto">
+    <div className="min-h-screen forge-bg-glow text-[var(--foreground)] px-4 sm:px-6 py-8 max-w-4xl mx-auto">
       <PageHeader
         icon={<Target size={18} className="text-[var(--brand-400)]" />}
         badgeColor="var(--brand-600)"
@@ -135,9 +135,31 @@ export default function GoalsPage() {
         )}
       </AnimatePresence>
 
+      {/* Momentum strip: the page used to open straight into a stack of rows
+          with no sense of how far along the learner is. */}
+      {goals.length > 0 && (
+        <div className="mb-5 grid grid-cols-3 gap-2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4">
+          <div className="text-center">
+            <p className="text-lg font-bold text-[var(--brand-400)]">{active.length}</p>
+            <p className="text-[11px] uppercase tracking-wider text-[var(--foreground-subtle)]">Active</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-bold text-[var(--palette-emerald-400)]">{completed.length}</p>
+            <p className="text-[11px] uppercase tracking-wider text-[var(--foreground-subtle)]">Done</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-bold text-[var(--foreground)]">{Math.round((completed.length / goals.length) * 100)}%</p>
+            <p className="text-[11px] uppercase tracking-wider text-[var(--foreground-subtle)]">Complete</p>
+          </div>
+          <div className="col-span-3 mt-1 h-1.5 overflow-hidden rounded-full bg-[var(--surface-1)]">
+            <div className="h-full rounded-full bg-[var(--palette-emerald-500)]" style={{ width: `${(completed.length / goals.length) * 100}%`, transition: "width 0.4s ease" }} />
+          </div>
+        </div>
+      )}
+
       {isLoading ? (
-        <div className="space-y-3">
-          {[...Array(3)].map((_, i) => <div key={i} className="h-16 animate-pulse rounded-2xl bg-[var(--surface-hover)]" />)}
+        <div className="grid gap-2 lg:grid-cols-2">
+          {[...Array(4)].map((_, i) => <div key={i} className="h-16 animate-pulse rounded-2xl bg-[var(--surface-hover)]" />)}
         </div>
       ) : isError && !data ? (
         <QueryError what="your goals" onRetry={() => void refetch()} retrying={isRefetching} />
@@ -149,7 +171,7 @@ export default function GoalsPage() {
               <p className="text-xs font-semibold uppercase tracking-wider text-[var(--foreground-subtle)] mb-3 flex items-center gap-1.5">
                 <Sparkles size={11} className="text-[var(--brand-600)]" /> Active ({active.length})
               </p>
-              <div className="space-y-2">
+              <div className="grid gap-2 lg:grid-cols-2">
                 <AnimatePresence>
                   {active.map(goal => (
                     <GoalCard key={goal.id} goal={goal} onToggle={id => toggleGoal.mutate({ id, completed: true })} onDelete={id => deleteGoal.mutate(id)} />
@@ -165,7 +187,7 @@ export default function GoalsPage() {
               <p className="text-xs font-semibold uppercase tracking-wider text-[var(--foreground-subtle)] mb-3 flex items-center gap-1.5">
                 <CheckCircle2 size={11} className="text-[var(--palette-emerald-500)]" /> Completed ({completed.length})
               </p>
-              <div className="space-y-2">
+              <div className="grid gap-2 lg:grid-cols-2">
                 <AnimatePresence>
                   {completed.map(goal => (
                     <GoalCard key={goal.id} goal={goal} onToggle={id => toggleGoal.mutate({ id, completed: false })} onDelete={id => deleteGoal.mutate(id)} />

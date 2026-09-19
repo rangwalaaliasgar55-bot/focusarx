@@ -247,7 +247,7 @@ export default function HabitsPage() {
   const completionPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   return (
-    <div className="min-h-screen forge-bg-glow text-[var(--foreground)] px-4 sm:px-6 py-8 max-w-2xl mx-auto">
+    <div className="min-h-screen forge-bg-glow text-[var(--foreground)] px-4 sm:px-6 py-8 max-w-4xl mx-auto">
       {showCreate && <CreateHabitModal onClose={() => setShowCreate(false)} onCreate={d => createHabit.mutate(d)} />}
 
       <PageHeader
@@ -313,8 +313,8 @@ export default function HabitsPage() {
 
       {/* Habits list */}
       {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map(i => <div key={i} className="h-20 animate-pulse rounded-2xl bg-[var(--surface-hover)]" />)}
+        <div className="grid gap-3 lg:grid-cols-2">
+          {[1, 2, 3, 4].map(i => <div key={i} className="h-20 animate-pulse rounded-2xl bg-[var(--surface-hover)]" />)}
         </div>
       ) : isError && (habits as any[]).length === 0 ? (
         <QueryError what="your habits" onRetry={() => void refetch()} retrying={isRefetching} />
@@ -328,7 +328,7 @@ export default function HabitsPage() {
           </button>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid gap-3 lg:grid-cols-2 lg:items-start">
           {/* Incomplete first */}
           {(habits as any[]).filter((h: any) => !h.completedToday).map((h: any) => (
             <HabitCard

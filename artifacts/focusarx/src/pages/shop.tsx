@@ -75,6 +75,9 @@ export default function ShopPage() {
               className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium transition-all border ${activeCategory === cat ? "bg-[var(--brand-600)] text-[var(--palette-white)] border-[var(--brand-600)]" : "border-[var(--border-subtle)] text-[var(--foreground-subtle)] hover:text-[var(--foreground)] hover:border-[var(--brand-600)]/40"}`}>
               {IconComp && <IconComp size={12} className={meta.color} />}
               {cat === "all" ? "All Items" : meta?.label ?? cat}
+              <span className={`rounded-full px-1.5 text-[11px] ${activeCategory === cat ? "bg-black/20" : "bg-[var(--surface-1)]"}`}>
+                {cat === "all" ? items.length : items.filter((i) => i.category === cat).length}
+              </span>
             </button>
           );
         })}
@@ -87,12 +90,12 @@ export default function ShopPage() {
       ) : isError && !data ? (
         <QueryError what="the shop" onRetry={() => void refetch()} retrying={isRefetching} />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((item) => {
             const meta = CATEGORY_META[item.category];
             const canAfford = coins >= item.price;
             return (
-              <div key={item.id} className={`rounded-2xl border p-4 transition-all ${canAfford ? "border-[var(--border-subtle)] hover:border-[var(--brand-600)]/40" : "border-[var(--border-subtle)]/50 opacity-60"} bg-[var(--surface-hover)]`}>
+              <div key={item.id} className={`rounded-2xl border p-4 transition-all duration-200 ${canAfford ? "border-[var(--border-subtle)] hover:-translate-y-0.5 hover:border-[var(--brand-600)]/40 hover:shadow-lg" : "border-[var(--border-subtle)]/50 opacity-60"} bg-[var(--surface-hover)]`}>
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex items-center gap-3">
                     <span className="text-3xl">{item.icon}</span>
@@ -106,7 +109,7 @@ export default function ShopPage() {
                     <span className={`text-sm font-bold ${canAfford ? "text-[var(--palette-amber-400)]" : "text-[var(--foreground-subtle)]"}`}>{item.price.toLocaleString()}</span>
                   </div>
                 </div>
-                <p className="text-xs text-[var(--foreground-subtle)] mb-3 leading-relaxed">{item.description}</p>
+                <p className="mb-3 text-xs leading-relaxed text-[var(--foreground-subtle)]">{item.description}</p>
                 <button
                   onClick={() => purchase.mutate(item.id)}
                   disabled={!canAfford || purchase.isPending}

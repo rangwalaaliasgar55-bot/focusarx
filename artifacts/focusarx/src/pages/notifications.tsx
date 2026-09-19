@@ -1,6 +1,6 @@
 import { QueryError } from "@/components/ui/QueryError";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { apiJson } from "@/lib/api";
 import { Bell, CheckCheck, Trash2, X } from "lucide-react";
 import { useToast } from "@/components/Toast";
@@ -71,10 +71,45 @@ const TYPE_COLORS: Record<string, string> = {
   system: NEUTRAL,
 };
 
+// Filters group the long list into what a learner actually hunts for. The
+// server sends every type flat, so the buckets live here and a brand-new type
+// automatically lands in "All" instead of vanishing.
+const FILTERS = [
+  { id: "all", label: "All", types: null },
+  { id: "unread", label: "Unread", types: null },
+  { id: "social", label: "Social", types: ["friend_request", "friend_accepted", "new_follower", "post_comment", "post_reaction", "dm", "group_join", "referral"] },
+  { id: "rewards", label: "Rewards", types: ["badge", "badge_unlocked", "mission", "mission_claimed", "daily_reward", "gift", "lootbox_reward", "level_up", "streak", "streak_endangerment", "premium"] },
+  { id: "system", label: "System", types: ["admin_message", "system", "reengage"] },
+] as const;
+
+type FilterId = (typeof FILTERS)[number]["id"];
+
+/** "Today" / "Yesterday" / "Mon 14 Apr" — the bucket header above a cluster. */
+function dayLabel(iso: string): string {
+  const date = new Date(iso);
+  const startOf = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((startOf(new Date()) - startOf(date)) / 86_400_000);
+  if (days <= 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) return "Earlier this week";
+  return date.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+}
+
+/** Relative stamp for the row itself; the exact time stays in the title attr. */
+function agoLabel(iso: string): string {
+  const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60_000));
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
+}
+
 export default function NotificationsPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [pushEnabled, setPushEnabled] = useState(() => isPushSubscribed());
+  const [filter, setFilter] = useState<FilterId>("all");
 
   const { data, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ["notifications"],
@@ -110,11 +145,40 @@ export default function NotificationsPage() {
     onError: () => toast("Premium is required for custom notification controls", "danger"),
   });
 
-  const notifications = data?.notifications ?? [];
+  const notifications = useMemo<any[]>(() => data?.notifications ?? [], [data]);
   const unread = notifications.filter((n: any) => !n.read).length;
 
+  const counts = useMemo(() => {
+    const map: Record<string, number> = { all: notifications.length, unread };
+    for (const f of FILTERS) {
+      if (!f.types) continue;
+      map[f.id] = notifications.filter((n: any) => (f.types as readonly string[]).includes(n.type)).length;
+    }
+    return map;
+  }, [notifications, unread]);
+
+  const visible = useMemo(() => {
+    const active = FILTERS.find((f) => f.id === filter);
+    if (filter === "unread") return notifications.filter((n: any) => !n.read);
+    if (!active?.types) return notifications;
+    return notifications.filter((n: any) => (active.types as readonly string[]).includes(n.type));
+  }, [notifications, filter]);
+
+  // Unread first inside each day so the important rows sit at the top of the
+  // bucket, then newest-first as the server sent them.
+  const groups = useMemo(() => {
+    const buckets = new Map<string, any[]>();
+    for (const n of [...visible].sort((a: any, b: any) => Number(!!a.read) - Number(!!b.read))) {
+      const key = dayLabel(n.createdAt);
+      const list = buckets.get(key) ?? [];
+      list.push(n);
+      buckets.set(key, list);
+    }
+    return [...buckets.entries()];
+  }, [visible]);
+
   return (
-    <div className="min-h-screen bg-[var(--muted)] text-[var(--foreground)] p-4 sm:p-6 max-w-2xl mx-auto">
+    <div className="min-h-screen bg-[var(--muted)] text-[var(--foreground)] p-4 sm:p-6 max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-[var(--foreground)] flex items-center gap-2">
@@ -178,8 +242,52 @@ export default function NotificationsPage() {
         </div>
       )}
 
-      <div className="space-y-2">
-        {notifications.map((n: any) => (
+      {/* Filter rail — one row of chips that scroll horizontally on a phone
+          and just sit there on a desktop. */}
+      {notifications.length > 0 && (
+      <div className="mb-4 -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 sm:flex-wrap">
+        {FILTERS.map((f) => {
+          const active = filter === f.id;
+          const count = counts[f.id] ?? 0;
+          return (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setFilter(f.id)}
+              aria-pressed={active}
+              className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                active
+                  ? "border-[var(--brand-600)] bg-[var(--brand-600)] text-[var(--palette-white)]"
+                  : "border-[var(--border-subtle)] bg-[var(--surface-hover)] text-[var(--foreground-subtle)] hover:text-[var(--foreground)]"
+              }`}
+            >
+              {f.label}
+              <span className={`rounded-full px-1.5 text-[11px] ${active ? "bg-black/20" : "bg-[var(--surface-1)]"}`}>{count}</span>
+            </button>
+          );
+        })}
+      </div>
+      )}
+
+      {groups.length > 0 && (
+        <div className="mb-3 flex items-baseline justify-between">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--foreground-subtle)]">
+            {filter === "all" ? "Latest activity" : FILTERS.find((f) => f.id === filter)?.label}
+          </h2>
+          <span className="text-[11px] text-[var(--foreground-subtle)]">{visible.length} shown</span>
+        </div>
+      )}
+
+      <div className="space-y-5">
+        {groups.map(([day, list]) => (
+          <section key={day}>
+            <div className="mb-2 flex items-center gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--foreground-subtle)]">{day}</span>
+              <span className="h-px flex-1 bg-[var(--border-subtle)]" />
+              <span className="text-[11px] text-[var(--foreground-subtle)]">{list.length}</span>
+            </div>
+            <div className="grid gap-2 lg:grid-cols-2">
+        {list.map((n: any) => (
           <div
             key={n.id}
             role="button"
@@ -194,14 +302,27 @@ export default function NotificationsPage() {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-[var(--foreground)]">{n.title}</p>
               <p className="text-xs text-[var(--foreground-subtle)] mt-0.5">{n.message}</p>
-              <p className="text-[11px] text-[var(--foreground-subtle)] mt-1">{new Date(n.createdAt).toLocaleString()}</p>
+              <p className="text-[11px] text-[var(--foreground-subtle)] mt-1" title={new Date(n.createdAt).toLocaleString()}>{agoLabel(n.createdAt)}</p>
             </div>
             <button onClick={e => { e.stopPropagation(); deleteNotif.mutate(n.id); }} className="shrink-0 rounded-lg p-1 text-[var(--foreground-subtle)] hover:text-[var(--palette-red-400)] hover:bg-[var(--palette-red-500)]/10 transition-colors">
               <X size={13} />
             </button>
           </div>
         ))}
+            </div>
+          </section>
+        ))}
       </div>
+
+      {!isLoading && !(isError && !data) && notifications.length > 0 && groups.length === 0 && (
+        <div className="text-center py-16">
+          <Bell size={40} className="mx-auto mb-3 text-[var(--rgba-255-255-255-0_12)]" />
+          <p className="text-sm text-[var(--foreground-subtle)]">
+            {filter === "unread" ? "Nothing unread — nice." : `No ${filter} notifications yet.`}
+          </p>
+          <p className="mt-1 text-xs text-[var(--palette-2a2d3a)]">Try another filter, or clear this one to see everything.</p>
+        </div>
+      )}
     </div>
   );
 }
