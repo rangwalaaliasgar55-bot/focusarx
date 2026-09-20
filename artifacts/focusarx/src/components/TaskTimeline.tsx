@@ -51,7 +51,7 @@ export default function TaskTimeline({ tasks: propTasks, elapsedSeconds = 0, isR
       overrunRef.current = true;
       onOverrun?.(firstTask, overrun);
     }
-  }, [elapsedSeconds, isRunning, tasksWithTime, onOverrun]);
+  }, [elapsedSeconds, elapsedMinutes, isRunning, tasksWithTime, onOverrun]);
 
   const saveEstimate = async (taskId: string, minutes: number) => {
     const token = getToken();

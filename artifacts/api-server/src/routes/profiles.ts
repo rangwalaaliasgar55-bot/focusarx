@@ -1,4 +1,4 @@
-import { Router } from "express";
+import express, { Router } from "express";
 import { db } from "@workspace/db";
 import { focusProfilesTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
@@ -8,14 +8,15 @@ import { sendUnauthorized } from "../lib/httpErrors";
 
 const router = Router();
 
-function auth(req: any, res: any, next: any) {
+function auth(req: express.Request, res: express.Response, next: express.NextFunction) {
   const userId = extractUserId(req);
   if (!userId) { sendUnauthorized(res); return; }
   req.userId = userId;
   next();
 }
 
-router.get("/profiles", auth, async (req: any, res) => {
+router.get("/profiles", auth, async (req: express.Request, res) => {
+  if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
     const profiles = await db.select().from(focusProfilesTable)
       .where(eq(focusProfilesTable.userId, req.userId));
@@ -26,7 +27,8 @@ router.get("/profiles", auth, async (req: any, res) => {
   }
 });
 
-router.post("/profiles", auth, async (req: any, res) => {
+router.post("/profiles", auth, async (req: express.Request, res) => {
+  if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   const { name, ssid, blockedDomains, whitelist } = req.body as {
     name?: string; ssid?: string; blockedDomains?: string[]; whitelist?: string[];
   };
@@ -42,7 +44,8 @@ router.post("/profiles", auth, async (req: any, res) => {
   }
 });
 
-router.put("/profiles/:id", auth, async (req: any, res) => {
+router.put("/profiles/:id", auth, async (req: express.Request, res) => {
+  if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   const { id } = req.params as { id: string };
   const { name, ssid, blockedDomains, whitelist } = req.body as {
     name?: string; ssid?: string; blockedDomains?: string[]; whitelist?: string[];
@@ -60,7 +63,8 @@ router.put("/profiles/:id", auth, async (req: any, res) => {
   }
 });
 
-router.delete("/profiles/:id", auth, async (req: any, res) => {
+router.delete("/profiles/:id", auth, async (req: express.Request, res) => {
+  if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   const { id } = req.params as { id: string };
   try {
     await db.delete(focusProfilesTable)
@@ -72,7 +76,8 @@ router.delete("/profiles/:id", auth, async (req: any, res) => {
   }
 });
 
-router.post("/profiles/:id/activate", auth, async (req: any, res) => {
+router.post("/profiles/:id/activate", auth, async (req: express.Request, res) => {
+  if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   const { id } = req.params as { id: string };
   try {
     await db.update(focusProfilesTable)

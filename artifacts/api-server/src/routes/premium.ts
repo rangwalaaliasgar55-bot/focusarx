@@ -59,8 +59,11 @@ router.get("/premium/status", authMiddleware, async (req: AuthRequest, res: Resp
 
     let isPremium = activeCheck.active;
     const expiresAt = activeCheck.expiresAt ?? oldSub?.expiresAt ?? null;
-    const activatedAt = activeCheck.entitlement?.startsAt ?? oldSub?.activatedAt ?? null;
-    const benefits = (activeCheck.entitlement?.benefits as string[]) ?? oldSub?.benefits ?? PREMIUM_BENEFITS;
+    // Either membership source: the legacy row carries activatedAt/benefits,
+    // the entitlement row carries startsAt and defers to the plan benefits.
+    const ent = activeCheck.entitlement;
+    const activatedAt = (ent && "activatedAt" in ent ? ent.activatedAt : null) ?? (ent && "startsAt" in ent ? ent.startsAt : null) ?? oldSub?.activatedAt ?? null;
+    const benefits = ((ent && "benefits" in ent ? ent.benefits : null) as string[] | null) ?? oldSub?.benefits ?? PREMIUM_BENEFITS;
 
     // Expire check
     if (expiresAt && new Date(expiresAt) < new Date()) {
@@ -136,13 +139,16 @@ router.post("/premium/purchase", authMiddleware, async (req: AuthRequest, res: R
       return;
     }
 
+    const entEnd = result.entitlement
+      ? ("endsAt" in result.entitlement ? result.entitlement.endsAt : result.entitlement.expiresAt)
+      : null;
     // Notification
     try {
       await db.insert(notificationsTable).values({
         userId: req.userId!,
         type: "premium",
         title: "Welcome to Premium! 👑",
-        message: `You now have Premium access until ${new Date(result.entitlement.endsAt).toLocaleDateString()}. Enjoy exclusive features!`,
+        message: `You now have Premium access until ${new Date(entEnd ?? Date.now()).toLocaleDateString()}. Enjoy exclusive features!`,
       });
     } catch {}
 
@@ -169,7 +175,7 @@ router.post("/premium/purchase", authMiddleware, async (req: AuthRequest, res: R
       ok: true,
       entitlement: result.entitlement,
       newBalance: result.newBalance,
-      expiresAt: result.entitlement.endsAt,
+      expiresAt: entEnd,
     });
   } catch (err) {
     logger.error({ err }, "premium purchase error");
@@ -181,7 +187,7 @@ router.post("/premium/purchase", authMiddleware, async (req: AuthRequest, res: R
 router.post("/premium/activate", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const plans = await getActivePlans();
-    const cheapest = (plans as any[]).sort((a: any, b: any) => a.tokenCost - b.tokenCost)[0];
+    const cheapest = [...plans].sort((a, b) => a.tokenCost - b.tokenCost)[0];
     if (!cheapest) {
       res.status(500).json({ error: "No premium plans configured" });
       return;
@@ -195,7 +201,10 @@ router.post("/premium/activate", authMiddleware, async (req: AuthRequest, res: R
       return;
     }
 
-    res.json({ ok: true, newBalance: result.newBalance, expiresAt: result.entitlement.endsAt, benefits: cheapest.benefits ?? PREMIUM_BENEFITS });
+    const entEnd2 = result.entitlement
+      ? ("endsAt" in result.entitlement ? result.entitlement.endsAt : result.entitlement.expiresAt)
+      : null;
+    res.json({ ok: true, newBalance: result.newBalance, expiresAt: entEnd2, benefits: cheapest.benefits ?? PREMIUM_BENEFITS });
   } catch (err) {
     logger.error({ err }, "premium activate error");
     res.status(500).json({ error: "Internal error" });

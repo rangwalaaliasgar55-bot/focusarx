@@ -8,11 +8,24 @@ import PageHeader from "@/components/PageHeader";
 import { PremiumGate } from "@/components/PremiumGate";
 
 /** Shared client: cookie-first auth, silent refresh, readable error messages. */
-function apiFetch<T = any>(path: string): Promise<T> {
+interface AiInsight { type?: string; icon?: string; title?: string; description?: string; value?: string | number }
+interface InsightsStats { totalSessions?: number; totalMinutes?: number; avgFocusScore?: number; currentStreak?: number }
+interface InsightsPayload { insights?: AiInsight[]; stats?: InsightsStats | null }
+interface HabitStats {
+  activeDaysLast30?: number;
+  avgDailyMinutes?: number;
+  consistencyScore?: number;
+  longestSessionMinutes?: number;
+  monthlyGoalProgress?: number;
+  weekdayDistribution?: Record<string, number>;
+}
+interface WeeklyReport { aiPowered?: boolean; report?: string; generatedAt?: string }
+
+function apiFetch<T = unknown>(path: string): Promise<T> {
   return apiJson<T>(path);
 }
 
-function StatCard({ label, value, icon: Icon, color = "var(--brand-600)" }: { label: string; value: string | number; icon: React.ComponentType<any>; color?: string }) {
+function StatCard({ label, value, icon: Icon, color = "var(--brand-600)" }: { label: string; value: string | number; icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>; color?: string }) {
   return (
     <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4">
       <div className="flex items-center gap-2 mb-2">
@@ -56,21 +69,21 @@ function AiInsightsContent() {
 
   const { data: report, isLoading: reportLoading, refetch: refetchReport, isError: reportError } = useQuery({
     queryKey: ["ai-weekly-report", reportKey],
-    queryFn: () => apiFetch("/api/ai/weekly-report"),
+    queryFn: () => apiFetch<WeeklyReport>("/api/ai/weekly-report"),
     staleTime: 3_600_000,
     enabled: tab === "report",
   });
 
   const { data: insights, isLoading: insightsLoading, refetch: refetchInsights, isError: insightsError } = useQuery({
     queryKey: ["ai-performance-insights"],
-    queryFn: () => apiFetch("/api/ai/performance-insights"),
+    queryFn: () => apiFetch<InsightsPayload>("/api/ai/performance-insights"),
     staleTime: 300_000,
     enabled: tab === "insights",
   });
 
   const { data: habits, isLoading: habitsLoading, refetch: refetchHabits, isError: habitsError } = useQuery({
     queryKey: ["ai-habit-analysis"],
-    queryFn: () => apiFetch("/api/ai/habit-analysis"),
+    queryFn: () => apiFetch<HabitStats>("/api/ai/habit-analysis"),
     staleTime: 300_000,
     enabled: tab === "habits",
   });
@@ -126,15 +139,15 @@ function AiInsightsContent() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     {(insights.stats ? [
-                      { label: "Sessions (7d)", value: insights.stats.totalSessions,        icon: Target, color: "var(--brand-600)" },
-                      { label: "Focus Minutes", value: insights.stats.totalMinutes,          icon: Clock,  color: "var(--color-warning)" },
+                      { label: "Sessions (7d)", value: insights.stats.totalSessions ?? 0,        icon: Target, color: "var(--brand-600)" },
+                      { label: "Focus Minutes", value: insights.stats.totalMinutes ?? 0,          icon: Clock,  color: "var(--color-warning)" },
                       { label: "Avg Score",     value: `${insights.stats.avgFocusScore}%`,  icon: Brain,  color: "var(--palette-22d387)" },
                       { label: "Streak",        value: `${insights.stats.currentStreak}d`,  icon: Flame,  color: "var(--palette-f97316)" },
                     ] : []).map((s) => <StatCard key={s.label} {...s} />)}
                   </div>
                   <div className="space-y-3">
-                    {(insights.insights ?? []).map((ins: any) => {
-                      const color = COLOR_MAP[ins.type] ?? "var(--brand-600)";
+                    {(insights.insights ?? []).map((ins) => {
+                      const color = COLOR_MAP[ins.type ?? ""] ?? "var(--brand-600)";
                       return (
                         <div key={ins.type} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4">
                           <div className="flex items-start gap-3">
@@ -218,16 +231,16 @@ function AiInsightsContent() {
               {habits && !habitsError && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
-                    <StatCard label="Active Days (30d)" value={habits.activeDaysLast30}          icon={TrendingUp} color="var(--palette-22d387)" />
-                    <StatCard label="Consistency"       value={`${habits.consistencyScore}%`}    icon={Target}     color="var(--brand-600)" />
-                    <StatCard label="Avg Daily Min"     value={habits.avgDailyMinutes}            icon={Clock}      color="var(--color-warning)" />
-                    <StatCard label="Longest Session"   value={`${habits.longestSessionMinutes}m`} icon={Brain}    color="var(--info)" />
+                    <StatCard label="Active Days (30d)" value={habits.activeDaysLast30 ?? 0}          icon={TrendingUp} color="var(--palette-22d387)" />
+                    <StatCard label="Consistency"       value={`${habits.consistencyScore ?? 0}%`}    icon={Target}     color="var(--brand-600)" />
+                    <StatCard label="Avg Daily Min"     value={habits.avgDailyMinutes ?? 0}             icon={Clock}      color="var(--color-warning)" />
+                    <StatCard label="Longest Session"   value={`${habits.longestSessionMinutes ?? 0}m`} icon={Brain}    color="var(--info)" />
                   </div>
                   <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4">
                     <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--foreground-subtle)] mb-3">Day of Week Distribution</p>
                     <div className="space-y-2.5">
                       {Object.entries(habits.weekdayDistribution ?? {}).map(([day, count]) => (
-                        <HabitBar key={day} label={day} value={count as number} max={Math.max(...Object.values(habits.weekdayDistribution ?? {}) as number[])} />
+                        <HabitBar key={day} label={day} value={count as number} max={Math.max(1, ...Object.values(habits.weekdayDistribution ?? {}))} />
                       ))}
                     </div>
                   </div>
@@ -235,7 +248,7 @@ function AiInsightsContent() {
                     <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--foreground-subtle)] mb-3">Monthly Goal</p>
                     <div className="flex justify-between text-[12px] mb-2">
                       <span className="text-[var(--foreground-subtle)]">20 active days target</span>
-                      <span className="text-[var(--foreground)] font-bold">{habits.activeDaysLast30}/20</span>
+                      <span className="text-[var(--foreground)] font-bold">{habits.activeDaysLast30 ?? 0}/20</span>
                     </div>
                     <div className="h-2.5 rounded-full bg-[var(--surface-hover)] overflow-hidden">
                       <div

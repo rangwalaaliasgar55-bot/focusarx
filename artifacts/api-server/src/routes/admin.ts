@@ -52,7 +52,7 @@ function timingSafeCompare(a: string, b: string): boolean {
 
 router.post("/admin/auth", adminLimiter, async (req, res) => {
   const password = getServerConfig().adminPassword;
-  const ip = getClientIp(req as any);
+  const ip = getClientIp(req);
 
   if (!password) {
     const userId = extractUserId(req);
@@ -110,7 +110,7 @@ router.post("/admin/auth", adminLimiter, async (req, res) => {
 });
 
 router.delete("/admin/auth", (req, res) => {
-  const ip = getClientIp(req as any);
+  const ip = getClientIp(req);
   res.cookie(ADMIN_COOKIE, "", { ...secureAdminCookieOptions(), maxAge: 0 });
   auditLog({ action: "admin_logout", ip });
   res.json({ ok: true });
@@ -422,8 +422,8 @@ router.patch("/admin/users/:id", adminLimiter, async (req, res) => {
     if (!updated) { res.status(404).json({ error: "User not found" }); return; }
     logger.info({ id, fields: Object.keys(patch) }, "admin edited user profile");
     res.json({ ok: true, user: updated });
-  } catch (err: any) {
-    if (String(err?.code) === "23505") { res.status(409).json({ error: "Email already in use" }); return; }
+  } catch (err) {
+    if (String((err as { code?: string } | null)?.code) === "23505") { res.status(409).json({ error: "Email already in use" }); return; }
     logger.error({ err }, "admin edit user error");
     res.status(500).json({ error: "Internal error" });
   }
@@ -545,7 +545,7 @@ router.patch("/admin/users/:id/wallet", adminLimiter, async (req, res) => {
 router.post("/admin/users/:id/reset-password", adminLimiter, async (req, res) => {
   if (!await checkAuth(req)) { sendUnauthorized(res); return; }
   const { id } = req.params as { id: string };
-  const bodyPassword = typeof (req.body as any)?.password === "string" ? (req.body as any).password as string : "";
+  const bodyPassword = typeof (req.body as { password?: unknown })?.password === "string" ? (req.body as { password: string }).password : "";
   const password = bodyPassword.trim().length >= 8
     ? bodyPassword
     : `Fx-${crypto.randomBytes(5).toString("hex")}-${crypto.randomInt(10, 99)}`;
@@ -1101,156 +1101,25 @@ router.get("/admin/schema", adminLimiter, async (req, res) => {
       WHERE table_schema = 'public'
       ORDER BY table_name, ordinal_position
     `);
-    const tables: Record<string, any[]> = {};
+    const tables: Record<string, Record<string, unknown>[]> = {};
     for (const row of result.rows) {
       if (!tables[row.table_name]) tables[row.table_name] = [];
       tables[row.table_name]!.push({ column: row.column_name, type: row.data_type, nullable: row.is_nullable === "YES", default: row.column_default });
     }
     res.json({ tables });
-  } catch (err: any) {
-    res.status(500).json({ error: err?.message });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error | null)?.message ?? "Internal error" });
   }
 });
 
-// ─── SQL Console (read-only by default, write via unlock phrase) ────────────
-
-let sqlWriteWindow: { unlockedAt: number; by: string } | null = null;
-const SQL_WRITE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-const SQL_UNLOCK_PHRASE = process.env.SQL_UNLOCK_PHRASE || "focusarx-admin-unlock";
-
-/** Safe check: is this a read-only statement? */
-function isReadOnlyStatement(sql: string): boolean {
-  const trimmed = sql.trim().replace(/\/\/[\s\S]*$/, "").replace(/--[\s\S]*$/, "");
-  const firstWord = trimmed.split(/\s+/)[0]?.toUpperCase();
-  const readOnlyPrefixes = ["SELECT", "SHOW", "EXPLAIN", "WITH", "TABLE", "\\d"];
-  return readOnlyPrefixes.some((p) => firstWord?.startsWith(p));
-}
-
-/** Check if a statement is potentially destructive */
-function isDestructiveStatement(sql: string): boolean {
-  const upper = sql.trim().toUpperCase();
-  return /\b(TRUNCATE|DROP|DELETE\s+FROM|ALTER\s+TABLE|UPDATE\s+\w+\s+SET|INSERT\s+INTO)\b/.test(upper);
-}
-
-/** SQL query log table — created on first use */
-let sqlLogReady = false;
-async function ensureSqlLogTable() {
-  if (sqlLogReady) return;
-  try {
-    await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS admin_sql_log (
-        id text PRIMARY KEY DEFAULT gen_random_uuid()::text,
-        kind text NOT NULL DEFAULT 'read',
-        sql text NOT NULL,
-        rows_affected integer DEFAULT 0,
-        status text DEFAULT 'ok',
-        error text,
-        branch_name text,
-        created_at timestamp DEFAULT now() NOT NULL
-      )
-    `);
-    sqlLogReady = true;
-  } catch { /* table may not exist — that's ok */ }
-}
-
-router.get("/admin/sql/status", async (req, res) => {
-  if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
-  const now = Date.now();
-  const writeActive = sqlWriteWindow && now - sqlWriteWindow.unlockedAt < SQL_WRITE_WINDOW_MS;
-  res.json({
-    enabled: true,
-    writeUnlocked: !!writeActive,
-    remainingMs: writeActive ? SQL_WRITE_WINDOW_MS - (now - sqlWriteWindow!.unlockedAt) : 0,
-    windowMs: SQL_WRITE_WINDOW_MS,
-    unlockPhrase: "***",
-    unlockedBy: writeActive ? sqlWriteWindow!.by : null,
-    hasUnlockRecord: !!sqlWriteWindow,
-  });
-});
-
-router.get("/admin/sql/log", async (req, res) => {
-  if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
-  try {
-    await ensureSqlLogTable();
-    const limit = Math.min(parseInt(String(req.query.limit) || "15"), 100);
-    const rows = await db.execute(sql`SELECT * FROM admin_sql_log ORDER BY created_at DESC LIMIT ${limit}`);
-    res.json({ entries: (rows as any).rows ?? rows });
-  } catch {
-    res.json({ entries: [] });
-  }
-});
-
-router.post("/admin/sql/unlock", async (req, res) => {
-  if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
-  const { phrase } = req.body as { phrase?: string };
-  if (phrase !== SQL_UNLOCK_PHRASE) {
-    res.status(403).json({ error: "Invalid unlock phrase" });
-    return;
-  }
-  const userId = extractUserId(req);
-  sqlWriteWindow = { unlockedAt: Date.now(), by: userId || "admin" };
-  res.json({ ok: true, remainingMs: SQL_WRITE_WINDOW_MS });
-});
-
-router.post("/admin/sql/query", async (req, res) => {
-  if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
-  const { query, branch } = req.body as { query?: string; branch?: string };
-  if (!query || typeof query !== "string" || query.trim().length === 0) {
-    res.status(400).json({ error: "Empty query" });
-    return;
-  }
-  // Log the query attempt
-  await ensureSqlLogTable();
-  const isRead = isReadOnlyStatement(query);
-  const isDestructive = isDestructiveStatement(query);
-  const now = Date.now();
-  const writeActive = sqlWriteWindow && now - sqlWriteWindow.unlockedAt < SQL_WRITE_WINDOW_MS;
-
-  if (!isRead) {
-    // Write mode requires unlock
-    if (!writeActive) {
-      try {
-        const logId = crypto.randomUUID();
-        await db.execute(sql`INSERT INTO admin_sql_log (id, kind, sql, status, error, branch_name) VALUES (${logId}, 'write', ${query}, 'blocked', 'Write mode not unlocked', ${branch || null})`);
-      } catch { /* best effort */ }
-      res.status(403).json({ error: "Write mode not unlocked. Use the unlock phrase first." });
-      return;
-    }
-    if (isDestructive) {
-      // Double-check: destructive statements need extra confirmation
-      const { confirmed } = req.body as { confirmed?: boolean };
-      if (!confirmed) {
-        res.status(400).json({ error: "Destructive statement. Set confirmed: true to proceed.", needsConfirmation: true });
-        return;
-      }
-    }
-  }
-
-  const start = Date.now();
-  try {
-    // Use the raw pool for direct SQL execution
-    const result = await pool.query(query);
-    const durationMs = Date.now() - start;
-    const columns = result.fields?.map((f: any) => f.name) ?? [];
-    const rows = result.rows?.map((r: any) => Object.values(r)) ?? [];
-    const rowCount = result.rowCount ?? rows.length;
-
-    // Log successful query
-    try {
-      const logId = crypto.randomUUID();
-      await db.execute(sql`INSERT INTO admin_sql_log (id, kind, sql, rows_affected, status, branch_name) VALUES (${logId}, ${isRead ? 'read' : 'write'}, ${query}, ${rowCount}, 'ok', ${branch || null})`);
-    } catch { /* best effort */ }
-
-    res.json({ columns, rows, rowCount, truncated: rowCount >= 1000, durationMs });
-  } catch (err: any) {
-    const durationMs = Date.now() - start;
-    try {
-      const logId = crypto.randomUUID();
-      await db.execute(sql`INSERT INTO admin_sql_log (id, kind, sql, status, error, branch_name) VALUES (${logId}, ${isRead ? 'read' : 'write'}, ${query}, 'error', ${err?.message?.slice(0, 500) || 'Unknown error'}, ${branch || null})`);
-    } catch { /* best effort */ }
-    res.status(400).json({ error: err?.message || "Query failed", durationMs });
-  }
-});
+// ─── SQL Console ───────────────────────────────────────────────────────────
+// The SQL console lives in routes/adminSql.ts (Workstream F: per-admin unlock
+// windows, rate limits, statement timeouts, insert-only audit log). Its routes
+// used to be duplicated HERE with a naive first-word read/write classifier and
+// an in-memory unlock window — and because this router mounts first, those
+// legacy endpoints shadowed the hardened ones: the write-unlock never worked
+// across serverless instances and `WITH … INSERT` slipped past the write gate.
+// The duplicates are gone; adminSqlRouter owns every /admin/sql/* path.
 
 export { router as adminRouter };
 

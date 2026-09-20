@@ -1,5 +1,5 @@
 import rateLimit from "express-rate-limit";
-import type { Response } from "express";
+import type { Request, Response } from "express";
 import { getRateLimitStore } from "./rateLimitStore";
 
 const isDev = process.env.NODE_ENV !== "production";
@@ -30,7 +30,7 @@ function ipKey(req: { ip?: string }): string {
  * and the limit never actually applied. Keying on the stable `sub` claim (or
  * the user id attached by authMiddleware) makes the budget follow the user.
  */
-function userKey(req: any): string {
+function userKey(req: Request & { userId?: string }): string {
   const userId = req?.userId as string | undefined;
   if (userId) return userId;
   const authHeader = (req?.headers as Record<string, string | undefined> | undefined)?.authorization;
@@ -232,7 +232,7 @@ export const aiRoadmapLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Roadmap generation limit reached. Please try again in an hour." },
-  skip: (req) => !!(req as any).isPremium,
+  skip: (req) => Boolean(req.isPremium),
   // Keyed on user id, not on the Bearer token prefix: tokens rotate every
   // 15 minutes and each rotation used to reset the caller's AI budget.
   keyGenerator: (req) => `roadmap:${userKey(req)}`,
@@ -247,7 +247,7 @@ export const aiCoachLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Coach message limit reached. Please wait a moment." },
-  skip: (req) => !!(req as any).isPremium,
+  skip: (req) => Boolean(req.isPremium),
   // Keyed on user id, not on the Bearer token prefix: tokens rotate every
   // 15 minutes and each rotation used to reset the caller's AI budget.
   keyGenerator: (req) => `coach:${userKey(req)}`,

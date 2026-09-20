@@ -30,7 +30,9 @@ import { QueryError } from "@/components/ui/QueryError";
  * with no trace for the reader and no signal to us. Returning the failure to
  * react-query lets the section say what actually happened and offer a retry.
  */
-async function fetchPublicRooms() {
+interface VirtualRoom { id: string; name: string; description?: string | null; isLive?: boolean }
+
+async function fetchPublicRooms(): Promise<VirtualRoom[]> {
   const res = await fetch("/api/study-rooms");
   if (!res.ok) throw new Error(`Couldn't load rooms (HTTP ${res.status})`);
   const data = await res.json();
@@ -107,7 +109,7 @@ export default function VirtualStudyRoomPage() {
   // The public list says which rooms are live, never how many people are in
   // them: a per-room head count summed over the page is a site-wide "users
   // online" figure, and that is not something we publish.
-  const liveRooms = rooms.filter((r: any) => r?.isLive === true).length;
+  const liveRooms = rooms.filter((r) => r?.isLive === true).length;
 
   const reveal = reduceMotion
     ? {}
@@ -227,7 +229,7 @@ export default function VirtualStudyRoomPage() {
                 />
               )}
               <div className="mt-8 space-y-3">
-                {rooms.slice(0, 6).map((room: any) => (
+                {rooms.slice(0, 6).map((room) => (
                   <Link
                     key={room.id}
                     href="/study-rooms"

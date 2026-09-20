@@ -196,7 +196,7 @@ router.get("/marketplace", authMiddleware, async (req: AuthRequest, res: Respons
     });
     const itemMap = new Map(items.map(i => [i.id, i]));
     const bundles = BUNDLES.map(b => {
-      const bundleItems = b.items.map(id => itemMap.get(id)).filter(Boolean) as any[];
+      const bundleItems = b.items.map(id => itemMap.get(id)).filter((i): i is NonNullable<(typeof items)[number]> => i != null);
       const fullPrice = bundleItems.reduce((sum, i) => sum + i.costCoins, 0);
       const allOwned = bundleItems.every(i => ownedIds.has(i.id));
       return {
@@ -375,7 +375,7 @@ router.get("/marketplace/equipped", authMiddleware, async (req: AuthRequest, res
 
 router.post("/marketplace/:itemId/gift", authMiddleware, async (req: AuthRequest, res: Response) => {
   const { itemId } = req.params as { itemId: string };
-  const toEmail = typeof (req.body as any)?.toEmail === "string" ? (req.body as any).toEmail.trim().toLowerCase() : "";
+  const toEmail = typeof (req.body as { toEmail?: unknown })?.toEmail === "string" ? (req.body as { toEmail: string }).toEmail.trim().toLowerCase() : "";
   if (!toEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(toEmail)) {
     res.status(400).json({ error: "A valid recipient email is required" }); return;
   }

@@ -1,4 +1,4 @@
-import { Router } from "express";
+import express, { Router } from "express";
 import { db } from "@workspace/db";
 import { distractionLogsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
@@ -10,14 +10,15 @@ import { sendUnauthorized } from "../lib/httpErrors";
 
 const router = Router();
 
-function auth(req: any, res: any, next: any) {
+function auth(req: express.Request, res: express.Response, next: express.NextFunction) {
   const userId = extractUserId(req);
   if (!userId) { sendUnauthorized(res); return; }
   req.userId = userId;
   next();
 }
 
-router.post("/distractions", auth, async (req: any, res) => {
+router.post("/distractions", auth, async (req: express.Request, res) => {
+  if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   const { reason, worthIt, sessionId } = req.body as { reason?: string; worthIt?: boolean; sessionId?: string };
   if (!reason) { res.status(400).json({ error: "reason required" }); return; }
   const hour = clockInZone(Date.now(), await userZone(req.userId)).hour;
@@ -32,7 +33,8 @@ router.post("/distractions", auth, async (req: any, res) => {
   }
 });
 
-router.get("/distractions/patterns", auth, async (req: any, res) => {
+router.get("/distractions/patterns", auth, async (req: express.Request, res) => {
+  if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
     const logs = await db.select().from(distractionLogsTable)
       .where(eq(distractionLogsTable.userId, req.userId))
@@ -66,7 +68,8 @@ router.get("/distractions/patterns", auth, async (req: any, res) => {
   }
 });
 
-router.get("/distractions/nudge", auth, async (req: any, res) => {
+router.get("/distractions/nudge", auth, async (req: express.Request, res) => {
+  if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
     const currentHour = clockInZone(Date.now(), await userZone(req.userId)).hour;
     const logs = await db.select({ hour: distractionLogsTable.hour }).from(distractionLogsTable)

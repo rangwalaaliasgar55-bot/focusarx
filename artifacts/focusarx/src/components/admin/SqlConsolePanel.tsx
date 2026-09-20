@@ -121,13 +121,16 @@ export function SqlConsolePanel({ authHeaders }: { authHeaders: () => Record<str
   const [schemaExpanded, setSchemaExpanded] = useState<Set<string>>(new Set());
   const [schemaLoading, setSchemaLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
-  const [now, setNow] = useState(Date.now());
+  // Lazy init — the interval below owns updates after mount.
+  const [now, setNow] = useState(() => Date.now());
+  /** When `status.remainingMs` was measured, so the local ticker can elapse it. */
+  const [statusAt, setStatusAt] = useState(() => Date.now());
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadStatus = useCallback(async () => {
     try {
       const r = await adminFetch("/api/admin/sql/status", { headers: authHeaders(), credentials: "include" });
-      if (r.ok) setStatus(await r.json());
+      if (r.ok) { setStatus(await r.json()); setStatusAt(Date.now()); }
     } catch { /* panel degrades */ }
   }, [authHeaders]);
 
@@ -216,7 +219,7 @@ export function SqlConsolePanel({ authHeaders }: { authHeaders: () => Record<str
   }, [sql]);
 
   // The server's remainingMs (at last poll) is the source of truth; tick locally.
-  const displayRemaining = status?.writeUnlocked ? Math.max(0, status.remainingMs - (Date.now() - now)) : 0;
+  const displayRemaining = status?.writeUnlocked ? Math.max(0, status.remainingMs - (now - statusAt)) : 0;
 
   const doUnlock = async () => {
     setUnlockBusy(true);

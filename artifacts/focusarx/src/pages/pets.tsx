@@ -7,6 +7,7 @@ import { getToken } from "@/lib/auth";
 import { ErrorState } from "@/components/ErrorState";
 import { QueryError } from "@/components/ui/QueryError";
 import { is3DCapable } from "@/lib/webglCapability";
+import { petSpeciesEmoji } from "@/lib/petSpecies";
 import { PetStage2D } from "@/components/pets/PetStage2D";
 import { PetSprite } from "@/components/pets/PetSprite";
 
@@ -35,17 +36,12 @@ const RARITY_COLOR: Record<string, string> = {
   exclusive: "var(--palette-ec4899)",
 };
 
-/** Species glyphs, keyed by catalog slug — same ids as the API's PET_TYPES
-   (`/api/pets/types`). Anything unknown falls back through the category emoji
-   to a paw, so a new catalog entry never renders as a blank disc. */
-const SPECIES_EMOJI: Record<string, string> = {
-  owl: "🦉", fox: "🦊", dragon: "🐲", robot: "🤖", cat: "🐱", phoenix: "🦅",
-};
-
+/** Species glyphs come from lib/petSpecies — shared with the focus-tab
+    companion and the battle arena, and covering every catalog species.
+    Anything unknown falls back through the category emoji to a paw, so a new
+    catalog entry never renders as a blank disc. */
 function emojiForPet(catalog: { slug?: string; category?: string } | null | undefined): string {
-  if (catalog?.slug && SPECIES_EMOJI[catalog.slug]) return SPECIES_EMOJI[catalog.slug];
-  if (catalog?.category && CATEGORY_META[catalog.category]) return CATEGORY_META[catalog.category].emoji;
-  return "🐾";
+  return petSpeciesEmoji(catalog?.slug, catalog?.category);
 }
 
 const LEVEL_UNLOCKS: Record<number, string[]> = {
@@ -65,11 +61,42 @@ function authHeaders() {
   return h;
 }
 
+interface CatalogPet {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  rarity: string;
+  category: string;
+  thumbnailUrl?: string | null;
+  modelUrl?: string | null;
+  tokenCost?: number | null;
+  isPremium: boolean;
+  maxLevel?: number;
+  unlockSource?: string;
+}
+
+interface InventoryEntry {
+  inventory?: { id: string; isActive: boolean; level: number; bondXp: number; nickname: string | null; petId: string };
+  catalog?: CatalogPet;
+  // Legacy fallback shape (no join): flat inventory row.
+  id?: string;
+  isActive?: boolean;
+  level?: number;
+  bondXp?: number;
+  nickname?: string | null;
+  petId?: string;
+  slug?: string;
+  petType?: string;
+  petName?: string;
+  petLevel?: number;
+}
+
 export default function PetsPage() {
   const { isPremium } = usePremium();
-  const [catalog, setCatalog] = useState<any[]>([]);
-  const [inventory, setInventory] = useState<any[]>([]);
-  const [activePet, setActivePet] = useState<any>(null);
+  const [catalog, setCatalog] = useState<CatalogPet[]>([]);
+  const [inventory, setInventory] = useState<InventoryEntry[]>([]);
+  const [activePet, setActivePet] = useState<InventoryEntry | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   /**
@@ -100,7 +127,7 @@ export default function PetsPage() {
   const [activeMood, setActiveMood] = useState<string>("happy");
   const [filter, setFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
-  const [selectedDetail, setSelectedDetail] = useState<any>(null);
+  const [selectedDetail, setSelectedDetail] = useState<CatalogPet | null>(null);
   const [showQuality, setShowQuality] = useState<"low" | "med" | "high" | "auto">("auto");
   const [view3d, setView3d] = useState(() => is3DCapable());
   const [saving, setSaving] = useState<string | null>(null);
@@ -130,7 +157,7 @@ export default function PetsPage() {
         const inv = invData.inventory ?? [];
         setInventory(inv);
         setInventoryFailed(false);
-        const active = inv.find((i: any) => i.inventory?.isActive || i.isActive);
+        const active = inv.find((i: InventoryEntry) => i.inventory?.isActive || i.isActive);
         setActivePet(active ?? inv[0] ?? null);
       } else {
         setInventoryFailed(true);
@@ -154,7 +181,7 @@ export default function PetsPage() {
     return list;
   }, [catalog, filter, search]);
 
-  const ownedSlugs = useMemo(() => new Set(inventory.map((i: any) => i.catalog?.slug ?? i.slug)), [inventory]);
+  const ownedSlugs = useMemo(() => new Set(inventory.map((i: InventoryEntry) => i.catalog?.slug ?? i.slug)), [inventory]);
 
   async function unlockPet(slug: string) {
     setSaving(slug);
@@ -182,6 +209,9 @@ export default function PetsPage() {
       setToast("Active pet updated");
       setTimeout(() => setToast(null), 2500);
       await load();
+      // The focus tab keeps its companion mounted; tell it to re-read the
+      // active pet so the new species appears without a reload.
+      window.dispatchEvent(new Event("focusarx:pet-activated"));
     } catch {
       setToast("Failed to activate");
       setTimeout(() => setToast(null), 2500);
@@ -212,7 +242,7 @@ export default function PetsPage() {
             <p className="mt-1 text-sm text-[var(--foreground-muted)]">Collect, bond level 1-20, unlock animations and rewards. Premium unlocks exclusive pets.</p>
           </div>
           <div className="flex items-center gap-2">
-            <select value={showQuality} onChange={(e) => setShowQuality(e.target.value as any)} className="rounded-xl border border-[var(--forge-border)] bg-[var(--surface-1)] px-3 py-2 text-xs">
+            <select value={showQuality} onChange={(e) => setShowQuality(e.target.value as "low" | "med" | "high" | "auto")} className="rounded-xl border border-[var(--forge-border)] bg-[var(--surface-1)] px-3 py-2 text-xs">
               <option value="auto">Auto quality</option>
               <option value="low">Low (mobile)</option>
               <option value="med">Medium</option>
@@ -298,7 +328,7 @@ export default function PetsPage() {
             { id: "inventory", label: inventoryFailed ? "My Pets" : `My Pets (${inventory.length})`, icon: <PawPrint size={16} aria-hidden="true" /> },
             { id: "progression", label: "Progression", icon: <TrendingUp size={16} aria-hidden="true" /> },
           ].map(t => (
-            <button key={t.id} onClick={() => setActiveTab(t.id as any)} className={`flex-1 rounded-lg py-2 text-xs font-bold ${activeTab === t.id ? "bg-[var(--brand-600)] text-white" : "text-[var(--foreground-subtle)]"}`}>
+            <button key={t.id} onClick={() => setActiveTab(t.id as "collection" | "inventory" | "progression")} className={`flex-1 rounded-lg py-2 text-xs font-bold ${activeTab === t.id ? "bg-[var(--brand-600)] text-white" : "text-[var(--foreground-subtle)]"}`}>
               {t.icon} {t.label}
             </button>
           ))}
@@ -339,7 +369,7 @@ export default function PetsPage() {
                     {owned && <span className="absolute left-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-[var(--brand-600)] text-white"><CheckCircle size={12}/></span>}
                     <div className="text-center">
                       <div className="grid h-16 place-items-center">
-                        <PetSprite src={pet.thumbnailUrl} glyph={CATEGORY_META[pet.category]?.emoji ?? "🐾"} size={56} />
+                        <PetSprite src={pet.thumbnailUrl} glyph={petSpeciesEmoji(pet.slug, pet.category)} size={56} />
                       </div>
                       <h3 className="mt-2 text-sm font-bold">{pet.name}</h3>
                       <p className="mt-0.5 line-clamp-2 text-[11px] text-[var(--foreground-subtle)]">{pet.description}</p>
@@ -359,7 +389,7 @@ export default function PetsPage() {
                         </button>
                       ) : !owned ? (
                         <button disabled={!!saving} onClick={() => unlockPet(pet.slug)} className={`flex-1 rounded-xl py-1.5 text-[11px] font-bold ${lockedPremium ? "bg-[var(--palette-amber-500)]/15 text-[var(--palette-amber-400)]" : "bg-[var(--brand-600)] text-white"}`}>
-                          {saving === pet.slug ? "..." : pet.tokenCost > 0 ? `🪙 ${pet.tokenCost}` : lockedPremium ? "Premium" : "Unlock"}
+                          {saving === pet.slug ? "..." : (pet.tokenCost ?? 0) > 0 ? `🪙 ${pet.tokenCost}` : lockedPremium ? "Premium" : "Unlock"}
                         </button>
                       ) : (
                         <span className="flex-1 rounded-xl bg-[var(--surface-1)] py-1.5 text-center text-[11px] font-bold text-[var(--brand-400)]">Owned</span>
@@ -374,20 +404,20 @@ export default function PetsPage() {
 
         {activeTab === "inventory" && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {inventory.map((entry: any) => {
+            {inventory.map((entry: InventoryEntry) => {
               const inv = entry.inventory ?? entry;
               const cat = entry.catalog ?? catalog.find(c => c.id === inv.petId);
               return (
                 <div key={inv.id} className={`rounded-2xl border p-4 ${inv.isActive ? "border-[var(--brand-400)] bg-[var(--brand-soft)]" : "border-[var(--forge-border)] bg-[var(--card)]"}`}>
                   <div className="text-center">
                     <div className="grid h-16 place-items-center">
-                      <PetSprite src={cat?.thumbnailUrl} glyph={cat?.slug ? CATEGORY_META[cat.category]?.emoji ?? "🐾" : "🐾"} size={56} />
+                      <PetSprite src={cat?.thumbnailUrl} glyph={petSpeciesEmoji(cat?.slug, cat?.category)} size={56} />
                     </div>
                     <h3 className="mt-2 text-sm font-bold">{inv.nickname ?? cat?.name ?? "Pet"}</h3>
-                    <p className="text-xs text-[var(--foreground-subtle)]">Lvl {inv.level}/20 • {inv.bondXp} XP</p>
-                    <div className="mt-2 h-1.5 w-full rounded-full bg-[var(--surface-1)]"><div className="h-full rounded-full bg-[var(--brand-600)]" style={{ width: `${(inv.bondXp / (inv.level * 100)) * 100}%` }} /></div>
+                    <p className="text-xs text-[var(--foreground-subtle)]">Lvl {inv.level ?? 1}/20 • {inv.bondXp ?? 0} XP</p>
+                    <div className="mt-2 h-1.5 w-full rounded-full bg-[var(--surface-1)]"><div className="h-full rounded-full bg-[var(--brand-600)]" style={{ width: `${((inv.bondXp ?? 0) / ((inv.level ?? 1) * 100)) * 100}%` }} /></div>
                   </div>
-                  <button disabled={!!saving} onClick={() => activatePet(inv.id)} className={`mt-3 w-full rounded-xl py-2 text-xs font-bold ${inv.isActive ? "bg-[var(--surface-1)] text-[var(--brand-400)]" : "bg-[var(--brand-600)] text-white"}`}>
+                  <button disabled={!!saving} onClick={() => inv.id && activatePet(inv.id)} className={`mt-3 w-full rounded-xl py-2 text-xs font-bold ${inv.isActive ? "bg-[var(--surface-1)] text-[var(--brand-400)]" : "bg-[var(--brand-600)] text-white"}`}>
                     {inv.isActive ? "Active" : saving === inv.id ? "..." : "Set Active"}
                   </button>
                 </div>

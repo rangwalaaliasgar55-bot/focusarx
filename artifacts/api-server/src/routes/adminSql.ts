@@ -51,7 +51,17 @@ async function guard(req: Request, res: Response): Promise<string | null> {
     sendUnauthorized(res);
     return null;
   }
-  return extractUserId(req);
+  const adminId = extractUserId(req);
+  // An admin signed in with the console password alone has no user JWT, so
+  // there is no id to key the per-admin unlock window with. That used to
+  // `return null` WITHOUT responding — the request hung until the client
+  // gave up. Answer 401 instead; the UI always sends both credentials, so
+  // this only bites direct API calls.
+  if (!adminId) {
+    sendUnauthorized(res);
+    return null;
+  }
+  return adminId;
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────

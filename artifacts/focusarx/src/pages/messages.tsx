@@ -32,7 +32,19 @@ function IdentityBadges({ isAdmin }: { isAdmin?: boolean }) {
   );
 }
 
-function MessageBubble({ msg, isMe, onReact }: { msg: any; isMe: boolean; onReact: (emoji: string) => void }) {
+interface DmUser { id: string; name?: string | null; isAdmin?: boolean }
+interface DmConversation {
+  id: string;
+  name?: string | null;
+  type?: string;
+  participantCount?: number;
+  otherParticipant?: DmUser | null;
+  unreadCount?: number;
+  lastMessage?: { content?: string } | null;
+  updatedAt?: string | null;
+}
+
+function MessageBubble({ msg, isMe, onReact }: { msg: DmMessage; isMe: boolean; onReact: (emoji: string) => void }) {
   const [showReact, setShowReact] = useState(false);
 
   return (
@@ -96,10 +108,12 @@ interface DmMessage {
   senderIsBot?: boolean;
   reactions?: Record<string, number>;
   isDeleted?: boolean;
+  isEdited?: boolean;
+  replyTo?: { content?: string } | null;
   [key: string]: unknown;
 }
 
-function ConversationThread({ conv, currentUserId, onBack }: { conv: any; currentUserId: string; onBack: () => void }) {
+function ConversationThread({ conv, currentUserId, onBack }: { conv: DmConversation; currentUserId: string; onBack: () => void }) {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [text, setText] = useState("");
@@ -276,17 +290,17 @@ function NewConversationModal({ onClose, onStart }: { onClose: () => void; onSta
   const [q, setQ] = useState("");
   const { data: friends = [] } = useQuery({
     queryKey: ["dm-friends"],
-    queryFn: () => apiJson("/api/social/friends"),
+    queryFn: () => apiJson<DmUser[]>("/api/social/friends"),
     staleTime: 30_000,
   });
   const { data: searchResults = [] } = useQuery({
     queryKey: ["user-search-dm", q],
-    queryFn: () => apiJson(`/api/social/search?q=${encodeURIComponent(q)}&friendsOnly=true`),
+    queryFn: () => apiJson<DmUser[]>(`/api/social/search?q=${encodeURIComponent(q)}&friendsOnly=true`),
     enabled: q.length >= 2,
     staleTime: 10_000,
   });
 
-  const displayList = q.length >= 2 ? (searchResults as any[]) : (friends as any[]);
+  const displayList = q.length >= 2 ? searchResults : friends;
 
   return (
     <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-[var(--palette-black)]/70 p-4">
@@ -298,21 +312,21 @@ function NewConversationModal({ onClose, onStart }: { onClose: () => void; onSta
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search friends…"
           className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--muted)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--brand-600)]"
           autoFocus />
-        {q.length === 0 && (friends as any[]).length > 0 && (
+        {q.length === 0 && friends.length > 0 && (
           <p className="text-[11px] text-[var(--foreground-subtle)] mt-2 mb-1">Your friends</p>
         )}
         <div className="mt-1 space-y-1 max-h-56 overflow-y-auto">
-          {displayList.map((u: any) => (
+          {displayList.map((u) => (
             <button key={u.id} onClick={() => onStart(u.id)}
               className="flex w-full items-center gap-3 rounded-xl p-2 hover:bg-[var(--rgba-255-255-255-0_06)] transition-colors">
               <Avatar name={u.name || "?"} size={32} />
               <span className="text-sm text-[var(--foreground)]">{u.name || "User"}</span>
             </button>
           ))}
-          {q.length >= 2 && (searchResults as any[]).length === 0 && (
+          {q.length >= 2 && searchResults.length === 0 && (
             <p className="text-xs text-center text-[var(--foreground-subtle)] py-4">No friends found matching "{q}"</p>
           )}
-          {q.length === 0 && (friends as any[]).length === 0 && (
+          {q.length === 0 && friends.length === 0 && (
             <p className="text-xs text-center text-[var(--foreground-subtle)] py-6">Add friends first to send messages</p>
           )}
         </div>
@@ -329,7 +343,7 @@ class MessagesErrorBoundary extends Component<{ children: ReactNode }, { hasErro
   static getDerivedStateFromError(error: Error) {
     return { hasError: true, error };
   }
-  componentDidCatch(error: Error, info: any) {
+  componentDidCatch(error: Error, info: unknown) {
     console.error("[MessagesPage] Uncaught error:", error, info);
   }
   render() {
@@ -358,27 +372,27 @@ function MessagesPageInner() {
   const { data: session } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
-  const [selectedConv, setSelectedConv] = useState<any>(null);
+  const [selectedConv, setSelectedConv] = useState<DmConversation | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [search, setSearch] = useState("");
 
-  const currentUserId = (session as any)?.user?.id;
+  const currentUserId = (session as { user?: { id?: string } } | null)?.user?.id;
 
   const { data: conversations = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["conversations"],
-    queryFn: () => apiJson("/api/dm/conversations"),
+    queryFn: () => apiJson<DmConversation[]>("/api/dm/conversations"),
     staleTime: 10_000,
     refetchInterval: 15_000,
     retry: 2,
   });
 
   const startDm = useMutation({
-    mutationFn: (userId: string) => apiJson("/api/dm/start", { method: "POST", body: JSON.stringify({ userId }) }),
+    mutationFn: (userId: string) => apiJson<DmConversation>("/api/dm/start", { method: "POST", body: JSON.stringify({ userId }) }),
     onSuccess: (conv) => { setShowNew(false); setSelectedConv(conv); qc.invalidateQueries({ queryKey: ["conversations"] }); },
     onError: (e: unknown) => toast(errorMessage(e), "error"),
   });
 
-  const filtered = (conversations as any[]).filter((c: any) => {
+  const filtered = conversations.filter((c) => {
     if (!search) return true;
     const name = c.otherParticipant?.name || c.name || "";
     return name.toLowerCase().includes(search.toLowerCase());
@@ -427,7 +441,7 @@ function MessagesPageInner() {
               <button onClick={() => setShowNew(true)} className="mt-3 text-xs text-[var(--brand-600)] hover:underline">Start one →</button>
             </div>
           ) : (
-            filtered.map((c: any) => {
+            filtered.map((c) => {
               const name = c.otherParticipant?.name || c.name || "Conversation";
               const isActive = selectedConv?.id === c.id;
               return (
@@ -445,7 +459,7 @@ function MessagesPageInner() {
                     </p>
                     <p className="text-xs text-[var(--foreground-subtle)] truncate">{c.lastMessage?.content || "No messages yet"}</p>
                   </div>
-                  {c.unreadCount > 0 && (
+                  {(c.unreadCount ?? 0) > 0 && (
                     <span className="shrink-0 rounded-full bg-[var(--brand-600)] text-[var(--palette-white)] text-[11px] h-4 w-4 flex items-center justify-center font-bold">{c.unreadCount}</span>
                   )}
                 </button>
@@ -465,7 +479,7 @@ function MessagesPageInner() {
             // first message.
             key={selectedConv.id}
             conv={selectedConv}
-            currentUserId={currentUserId}
+            currentUserId={currentUserId ?? ""}
             onBack={() => setSelectedConv(null)}
           />
         ) : (

@@ -248,7 +248,7 @@ export function IntegrationSettings() {
       );
       // A full-page navigation rather than window.open: popup blockers reject a
       // window opened after an await, and the callback redirects back here.
-      window.location.href = authorizeUrl;
+      window.location.assign(authorizeUrl);
     } catch (err) {
       toast(errorMessage(err, `Could not connect ${provider.name}.`), "error");
       setBusy(null);

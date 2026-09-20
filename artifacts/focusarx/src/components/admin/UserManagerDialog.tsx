@@ -119,8 +119,8 @@ export function UserManagerDialog({
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setSaveState({ kind: "err", msg: d.error ?? `Request failed (${r.status})` }); return null; }
       return d;
-    } catch (e: any) {
-      setSaveState({ kind: "err", msg: e.message });
+    } catch (e) {
+      setSaveState({ kind: "err", msg: e instanceof Error ? e.message : "Request failed" });
       return null;
     } finally {
       setBusy(null);

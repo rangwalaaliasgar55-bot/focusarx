@@ -33,9 +33,21 @@ router.get("/admin/cms/marketplace", async (req, res) => {
   }
 });
 
+interface MarketplaceCmsBody {
+  id?: string; name?: string; description?: string | null; type?: string; costCoins?: number;
+  rarity?: string; emoji?: string | null; premiumOnly?: boolean; isActive?: boolean;
+}
+interface LootboxCmsBody {
+  name?: string; description?: string | null; coinCost?: number; icon?: string | null; glowColor?: string | null;
+}
+interface QuestCmsBody {
+  title?: string; description?: string | null; type?: string; metric?: string; target?: number;
+  xpReward?: number; coinReward?: number; icon?: string | null; isActive?: boolean; difficulty?: string;
+}
+
 router.post("/admin/cms/marketplace", async (req, res) => {
   if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
-  const { id, name, description, type, costCoins, rarity, emoji, premiumOnly, isActive } = req.body as any;
+  const { id, name, description, type, costCoins, rarity, emoji, premiumOnly, isActive } = req.body as MarketplaceCmsBody;
   if (!id || !name || !type || costCoins === undefined) {
     res.status(400).json({ error: "id, name, type, costCoins required" }); return;
   }
@@ -54,9 +66,9 @@ router.post("/admin/cms/marketplace", async (req, res) => {
 router.patch("/admin/cms/marketplace/:itemId", async (req, res) => {
   if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
   const { itemId } = req.params as { itemId: string };
-  const { name, description, type, costCoins, rarity, emoji, premiumOnly, isActive } = req.body as any;
+  const { name, description, type, costCoins, rarity, emoji, premiumOnly, isActive } = req.body as MarketplaceCmsBody;
   try {
-    const updates: any = {};
+    const updates: Record<string, unknown> = {};
     if (name !== undefined) updates.name = name;
     if (description !== undefined) updates.description = description;
     if (type !== undefined) updates.type = type;
@@ -122,9 +134,9 @@ router.get("/admin/cms/lootboxes", async (req, res) => {
 router.patch("/admin/cms/lootboxes/:typeId", async (req, res) => {
   if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
   const { typeId } = req.params as { typeId: string };
-  const { name, description, coinCost, icon, glowColor } = req.body as any;
+  const { name, description, coinCost, icon, glowColor } = req.body as LootboxCmsBody;
   try {
-    const updates: any = {};
+    const updates: Record<string, unknown> = {};
     if (name !== undefined) updates.name = name;
     if (description !== undefined) updates.description = description;
     if (coinCost !== undefined) updates.coinCost = Number(coinCost);
@@ -154,7 +166,7 @@ router.get("/admin/cms/quests", async (req, res) => {
 
 router.post("/admin/cms/quests", async (req, res) => {
   if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
-  const { title, description, type, metric, target, xpReward, coinReward, icon, difficulty } = req.body as any;
+  const { title, description, type, metric, target, xpReward, coinReward, icon, difficulty } = req.body as QuestCmsBody;
   if (!title || !type || !metric || target === undefined) {
     res.status(400).json({ error: "title, type, metric, target required" }); return;
   }
@@ -179,9 +191,9 @@ router.post("/admin/cms/quests", async (req, res) => {
 router.patch("/admin/cms/quests/:questId", async (req, res) => {
   if (!await checkAuth(req)) { res.status(403).json({ error: "Forbidden" }); return; }
   const { questId } = req.params as { questId: string };
-  const { title, description, type, metric, target, xpReward, coinReward, icon, isActive, difficulty } = req.body as any;
+  const { title, description, type, metric, target, xpReward, coinReward, icon, isActive, difficulty } = req.body as QuestCmsBody;
   try {
-    const updates: any = {};
+    const updates: Record<string, unknown> = {};
     if (title !== undefined) updates.title = title;
     if (description !== undefined) updates.description = description;
     if (type !== undefined) updates.type = type;
@@ -327,7 +339,7 @@ router.post("/admin/cms/grant-coins", async (req, res) => {
     if (!wallet) { res.status(404).json({ error: "User wallet not found" }); return; }
     const newBalance = await mintCoins(userId, Number(amount), "admin_grant", {
       description: reason ? `Admin grant (${reason})` : "Admin grant",
-      metadata: { actor: (req as any).userId ?? "admin" },
+      metadata: { actor: req.userId ?? "admin" },
     });
     await db.insert(notificationsTable).values({
       userId, type: "system", read: false,
@@ -360,7 +372,7 @@ router.post("/admin/cms/grant-coins/bulk", async (req, res) => {
         if (!wallet) continue;
         await mintCoins(id, amt, "admin_grant_bulk", {
           description: reason ? `Admin bulk grant (${reason})` : "Admin bulk grant",
-          metadata: { actor: (req as any).userId ?? "admin" },
+          metadata: { actor: req.userId ?? "admin" },
         });
         await db.insert(notificationsTable).values({
           userId: id, type: "system", read: false,

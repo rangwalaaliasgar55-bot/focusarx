@@ -4,6 +4,7 @@ import { Check, ChevronDown, ClipboardList, Coins, Flame, Plus, X } from "lucide
 import { useQuery } from "@tanstack/react-query";
 import { apiJson } from "@/lib/api";
 import { useFocusSessionState } from "@/lib/focusSessionBus";
+import { useActivePet } from "@/hooks/useActivePet";
 import { useAuth } from "@/lib/auth";
 import { SessionRecoveryProvider } from "@/components/SessionRecoveryContext";
 import Timer from "@/components/Timer";
@@ -352,10 +353,14 @@ function MotivationalLine() {
  * Battle arena + YouTube companion. Both used to be mounted with
  * `isActive={false}` and `sessionProgress={0}` frozen in, so the arena never
  * appeared and the video never played — they now follow the live session bus.
+ * The arena's pet also used to be hard-coded to level 1 regardless of the
+ * companion the user actually raised; it reads the active pet like the
+ * companion widget does.
  */
 function SessionCompanions() {
   const live = useFocusSessionState();
   const durationSec = live.totalSeconds;
+  const { data: activePet } = useActivePet();
   return (
     <div className="mt-6 w-full max-w-2xl space-y-4">
       <Suspense fallback={<HeavyWidgetFallback />}>
@@ -363,7 +368,7 @@ function SessionCompanions() {
           isActive={live.active}
           sessionDuration={durationSec}
           sessionProgress={live.active ? live.progress : 0}
-          petLevel={1}
+          petLevel={activePet?.level ?? 1}
         />
       </Suspense>
       {/* YouTubeFocusTimer removed: it shipped placeholder video ids (including
@@ -412,11 +417,15 @@ function MobileSidePanelDrawer() {
 
   return (
     <>
-      {/* Floating trigger — mobile only, sits above the bottom tab bar */}
+      {/* Floating trigger — mobile only, sits above the bottom tab bar. The
+          right corner belongs to the coach + quick-launch orb column (see
+          index.css), so this pill docks on the left, where the FloatingTimer
+          would be — but that one hides on this exact route, so the two can
+          never collide. */}
       <button
         aria-label="Open tasks & stats"
         onClick={() => setOpen(true)}
-        className="fixed bottom-[76px] right-4 z-[var(--z-nav)] flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--surface-overlay)] px-4 py-2.5 text-xs font-semibold text-[var(--brand-strong)] shadow-[var(--shadow-lg)] backdrop-blur-xl transition-colors active:bg-[var(--surface-hover)] md:bottom-5 lg:hidden"
+        className="fixed bottom-[76px] left-4 z-[var(--z-nav)] flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--surface-overlay)] px-4 py-2.5 text-xs font-semibold text-[var(--brand-strong)] shadow-[var(--shadow-lg)] backdrop-blur-xl transition-colors active:bg-[var(--surface-hover)] md:bottom-5 lg:hidden"
       >
         <ClipboardList size={14} />
         Tasks & Stats

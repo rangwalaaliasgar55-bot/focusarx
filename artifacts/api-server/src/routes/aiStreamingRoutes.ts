@@ -12,7 +12,7 @@ export const aiStreamingRouter = Router();
 /**
  * Format SSE data message
  */
-function sseData(data: { type: string; content: string; metadata?: any }): string {
+function sseData(data: { type: string; content: string; metadata?: Record<string, unknown> }): string {
   return `data: ${JSON.stringify(data)}\n\n`;
 }
 

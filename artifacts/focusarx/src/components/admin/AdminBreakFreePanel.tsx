@@ -74,7 +74,7 @@ export function AdminBreakFreePanel({ authHeaders, onManageUser }: AdminPanelPro
 
   useEffect(() => { void load(); }, [load]);
 
-  async function act(key: string, fn: () => Promise<Response>, success: (d: any) => string) {
+  async function act(key: string, fn: () => Promise<Response>, success: (d: Record<string, unknown>) => string) {
     setBusy(key);
     try {
       const r = await fn();

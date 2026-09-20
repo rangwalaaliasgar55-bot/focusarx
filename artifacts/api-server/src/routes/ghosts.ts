@@ -1,4 +1,4 @@
-import { Router } from "express";
+import express, { Router } from "express";
 import { db, sessionGhostsTable } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
 import { extractUserId } from "./auth";
@@ -7,14 +7,15 @@ import { sendUnauthorized } from "../lib/httpErrors";
 
 const router = Router();
 
-function auth(req: any, res: any, next: any) {
+function auth(req: express.Request, res: express.Response, next: express.NextFunction) {
   const userId = extractUserId(req);
   if (!userId) { sendUnauthorized(res); return; }
   req.userId = userId;
   next();
 }
 
-router.get("/ghosts", auth, async (req: any, res) => {
+router.get("/ghosts", auth, async (req: express.Request, res) => {
+  if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
     const ghosts = await db
       .select()
@@ -28,7 +29,8 @@ router.get("/ghosts", auth, async (req: any, res) => {
   }
 });
 
-router.get("/ghosts/:category", auth, async (req: any, res) => {
+router.get("/ghosts/:category", auth, async (req: express.Request, res) => {
+  if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
     const category = decodeURIComponent(req.params.category as string);
     const [ghost] = await db
@@ -45,7 +47,8 @@ router.get("/ghosts/:category", auth, async (req: any, res) => {
   }
 });
 
-router.post("/ghosts", auth, async (req: any, res) => {
+router.post("/ghosts", auth, async (req: express.Request, res) => {
+  if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   const { taskCategory, durationSec, unbrokenSec, sessionId } = req.body as {
     taskCategory?: string;
     durationSec?: number;

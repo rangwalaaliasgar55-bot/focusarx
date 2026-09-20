@@ -65,7 +65,7 @@ export function initSocket(httpServer: import("http").Server) {
       const secret = getServerConfig().jwtSecret;
       userId = secret ? verifySocketTicket(ticket, secret)?.sub ?? null : null;
     } else if (token) {
-      const fakeReq = { headers: { authorization: `Bearer ${token}` } } as any;
+      const fakeReq = { headers: { authorization: `Bearer ${token}` } } as unknown as Parameters<typeof extractUserId>[0];
       userId = extractUserId(fakeReq);
     }
 
@@ -74,12 +74,12 @@ export function initSocket(httpServer: import("http").Server) {
       next(new Error(ticket || token ? "Invalid credentials" : "Authentication required"));
       return;
     }
-    (socket as any).userId = userId;
+    socket.data.userId = userId;
     next();
   });
 
   io.on("connection", (socket: Socket) => {
-    const userId = (socket as any).userId as string;
+    const userId = socket.data.userId;
     if (!userId) { socket.disconnect(); return; }
 
     if (!userSockets.has(userId)) userSockets.set(userId, new Set());
@@ -214,7 +214,7 @@ export function initSocket(httpServer: import("http").Server) {
 
     // Generic message handler with validation
     socket.on("room:typing", async (payload: unknown) => {
-      const parsed = roomIdSchema.safeParse((payload as any)?.roomId ?? payload);
+      const parsed = roomIdSchema.safeParse((payload as { roomId?: unknown } | null)?.roomId ?? payload);
       if (!parsed.success) return;
       const roomId = parsed.data;
       if (!socket.rooms.has(`room:${roomId}`)) return;

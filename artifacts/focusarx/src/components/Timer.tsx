@@ -136,8 +136,9 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     []
   );
 
-  monitorEnabledRef.current = monitorEnabled;
-
+  useEffect(() => {
+    monitorEnabledRef.current = monitorEnabled;
+  }, [monitorEnabled]);
 
   useEffect(() => {
     const token = getToken();
@@ -332,7 +333,9 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     onRecoveryReady: () => setRecoveryReady(true),
   });
 
-  persistenceRef.current = persistence;
+  useEffect(() => {
+    persistenceRef.current = persistence;
+  }, [persistence]);
 
   useEffect(() => {
     if (!recoveryReady) return;
@@ -544,7 +547,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     setTotalFocusSec(0);
     setLockMode("none");
     setExitPhrase("");
-  }, [status, mode, persistence, reset]);
+  }, [persistence, reset, getSnapshot]);
 
   const handleCancelNoSave = useCallback(() => {
     setShowExitConfirm(false);

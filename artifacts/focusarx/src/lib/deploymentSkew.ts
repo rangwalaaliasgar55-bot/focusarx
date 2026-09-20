@@ -720,7 +720,10 @@ export function useDeploymentSkewDetector() {
   const mountedRef = useRef(true);
   const visibilityHandlerRef = useRef<(() => void) | null>(null);
 
-  // Schedule the next poll with the current interval and backoff
+  // Schedule the next poll with the current interval and backoff. The timer
+  // callback re-arms through scheduleRef so it can reference the callback
+  // before its declaration completes.
+  const scheduleRef = useRef<() => void>(() => {});
   const scheduleNextPoll = useCallback(() => {
     if (!mountedRef.current) return;
     if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
@@ -742,9 +745,14 @@ export function useDeploymentSkewDetector() {
           );
         }
       }
-      scheduleNextPoll(); // Schedule next after completion
+      scheduleRef.current(); // Schedule next after completion
     }, interval);
   }, []);
+
+  // Keep the re-arm pointer pointed at the latest closure.
+  useEffect(() => {
+    scheduleRef.current = scheduleNextPoll;
+  }, [scheduleNextPoll]);
 
   useEffect(() => {
     mountedRef.current = true;

@@ -118,9 +118,10 @@ export function AdminUserPanel({ data, stats, authHeaders, onDataChanged, onMana
       const d = await r.json();
       setBulkResult(r.ok ? `Granted ${amt} coins to ${d.granted}/${d.attempted} users.` : ("Error: " + (d.error ?? "Failed")));
       if (r.ok) { clearSelection(); onDataChanged(); }
-    } catch (e: any) { setBulkResult("Error: " + e.message); }
+    } catch (e) { setBulkResult("Error: " + (e instanceof Error ? e.message : "Failed")); }
     finally { setBulkLoading(false); }
   }
+
 
   async function bulkDeleteUsers() {
     const ids = [...selectedUsers];
@@ -143,7 +144,7 @@ export function AdminUserPanel({ data, stats, authHeaders, onDataChanged, onMana
       const d = await r.json();
       setBulkResult(r.ok ? `Deleted ${d.deleted}/${d.attempted} users (admins skipped).` : ("Error: " + (d.error ?? "Failed")));
       if (r.ok) { clearSelection(); onDataChanged(); }
-    } catch (e: any) { setBulkResult("Error: " + e.message); }
+    } catch (e) { setBulkResult("Error: " + (e instanceof Error ? e.message : "Failed")); }
     finally { setBulkLoading(false); }
   }
 

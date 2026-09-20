@@ -260,7 +260,7 @@ function EffectsSettings() {
         <div className="flex flex-col gap-2">
           <Label className="text-sm font-medium">3D effects</Label>
           <p className="text-xs text-[var(--foreground-subtle)]">High uses shadows, reflections, and post-processing. Battery saver reduces detail and disables animations.</p>
-          <Select value={appearance} onValueChange={(v) => setAppearance(v as any)}>
+          <Select value={appearance} onValueChange={(v) => setAppearance(v as "on" | "reduced" | "off")}>
             <SelectTrigger className="min-h-[44px]">
               <SelectValue />
             </SelectTrigger>

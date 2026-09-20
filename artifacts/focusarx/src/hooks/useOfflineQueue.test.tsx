@@ -34,35 +34,38 @@ import {
 /** What the app currently sees. Updated by `Probe` on every render. */
 type View = { queueCount: number; queue: QueuedItem[]; needsAttention: boolean; summary: { needsAttention: number } };
 
-function Probe({ into }: { into: React.RefObject<View | null> }) {
+function Probe({ onState }: { onState: (v: View) => void }) {
   const state = useOfflineQueue();
+  const { queueCount, queue, needsAttention, summary } = state;
   useEffect(() => {
-    into.current = {
-      queueCount: state.queueCount,
-      queue: state.queue,
-      needsAttention: state.needsAttention,
-      summary: state.summary,
-    };
-  });
+    onState({ queueCount, queue, needsAttention, summary });
+  }, [onState, queueCount, queue, needsAttention, summary]);
   return null;
 }
 
 /** Renders two independent consumers, so a divergence between them shows up. */
+/** Plain mutable sink: the probes publish through callbacks, not shared refs. */
+type Sink = { current: View | null };
+const sink = (): Sink => ({ current: null });
+
 function mount() {
-  const view = { current: null as View | null };
-  const banner = { current: null as View | null };
-  const timer = { current: null as View | null };
+  const view = sink();
+  const banner = sink();
+  const timer = sink();
+  // Stable identities (same function objects for the lifetime of the test) so
+  // the probes' effects don't loop on a changing callback prop.
+  const publish = (s: Sink) => (v: View) => { s.current = v; };
   const utils = render(
     <>
-      <Probe into={view} />
-      <Probe into={banner} />
-      <Probe into={timer} />
+      <Probe onState={publish(view)} />
+      <Probe onState={publish(banner)} />
+      <Probe onState={publish(timer)} />
     </>,
   );
   return { ...utils, view, banner, timer };
 }
 
-const read = (ref: React.RefObject<View | null>): View =>
+const read = (ref: Sink): View =>
   ref.current ?? { queueCount: -1, queue: [], needsAttention: false, summary: { needsAttention: 0 } };
 
 beforeEach(() => {
@@ -110,9 +113,11 @@ describe("the offline queue is shared between consumers", () => {
     // unstable snapshot shows up as unbounded renders, not as a passing assert.
     const renders = { current: 0 };
     function Counting() {
-      const ref = useRef(0);
-      ref.current += 1;
-      renders.current = ref.current;
+      const n = useRef(0);
+      useEffect(() => {
+        n.current += 1;
+        renders.current = n.current;
+      });
       useOfflineQueue();
       return null;
     }

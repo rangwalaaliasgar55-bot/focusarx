@@ -297,7 +297,7 @@ router.delete("/tasks", authMiddleware, async (req: AuthRequest, res) => {
       await db.delete(tasksTable).where(and(eq(tasksTable.userId, req.userId), eq(tasksTable.completed, true)));
       res.json({ ok: true });
     } else if (status === "archived") {
-      await db.delete(tasksTable).where(and(eq(tasksTable.userId, req.userId), eq(tasksTable.status as any, "archived")));
+      await db.delete(tasksTable).where(and(eq(tasksTable.userId, req.userId), eq(tasksTable.status, "archived")));
       res.json({ ok: true });
     } else {
       res.status(400).json({ error: "Specify ?completed=true or ?status=archived to bulk delete" });

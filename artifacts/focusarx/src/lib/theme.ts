@@ -53,7 +53,7 @@ export function registerPremiumChecker(check: () => Promise<boolean>) {
 export function getTheme(): Theme {
   try {
     const stored = localStorage.getItem(LS_KEY) as Theme | null;
-    if (stored && (THEME_META as any)[stored]) return stored;
+    if (stored && stored in THEME_META) return stored;
     // Default to dark theme for better focus experience
     return "dark";
   } catch {}
@@ -116,7 +116,7 @@ export function useTheme(): [Theme, (t: Theme) => Promise<boolean>] {
 
   useEffect(() => {
     applyTheme(theme);
-  }, []);
+  }, [theme]);
 
   useEffect(() => {
     const handler = (e: Event) => {

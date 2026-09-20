@@ -250,7 +250,9 @@ function useOfflineQueue() {
   // Kept in a ref so the effect below never needs `state` in its deps and the
   // intervals are not torn down and rebuilt on every queue change.
   const stateRef = useRef(state);
-  stateRef.current = state;
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   useEffect(() => {
     const onOnline = () => void flushOfflineQueue(false);

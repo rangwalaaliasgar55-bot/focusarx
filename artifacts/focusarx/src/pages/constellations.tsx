@@ -52,11 +52,20 @@ type Constellation = {
   color: string;
 };
 
-function sessionToStar(session: any, cx: number, cy: number, maxRadius: number): Star {
-  const date = new Date(session.completedAt ?? session.createdAt);
+interface FocusSessionPoint {
+  id: string;
+  completedAt?: string | null;
+  createdAt?: string | null;
+  durationSec?: number;
+  focusScore?: number;
+  mode?: string | null;
+}
+
+function sessionToStar(session: FocusSessionPoint, cx: number, cy: number, maxRadius: number): Star {
+  const date = new Date(session.completedAt ?? session.createdAt ?? Date.now());
   const hour = date.getHours() + date.getMinutes() / 60;
   const angle = (hour / 24) * 2 * Math.PI - Math.PI / 2; // 0h at top
-  const durationMin = Math.floor(session.durationSec / 60);
+  const durationMin = Math.floor((session.durationSec ?? 0) / 60);
   const radius = Math.min(maxRadius, 40 + (durationMin / 120) * (maxRadius - 40));
   const score = session.focusScore ?? 70;
   const size = 2 + (score / 100) * 4;
@@ -65,7 +74,7 @@ function sessionToStar(session: any, cx: number, cy: number, maxRadius: number):
     sessionId: session.id,
     angle, radius, size, opacity, duration: durationMin, hour: Math.floor(hour),
     date: date.toISOString().slice(0, 10),
-    score: session.focusScore,
+    score: session.focusScore ?? 70,
     x: cx + radius * Math.cos(angle),
     y: cy + radius * Math.sin(angle),
   };
@@ -106,7 +115,7 @@ const MAX_RADIUS = 210;
 const RINGS = [70, 120, 170, 210];
 
 export default function ConstellationsPage() {
-  const [sessions, setSessions] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<FocusSessionPoint[]>([]);
   const [stars, setStars] = useState<Star[]>([]);
   const [constellations, setConstellations] = useState<Constellation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,12 +130,12 @@ export default function ConstellationsPage() {
     fetch("/api/sessions/history?limit=200", { headers: authHeaders() })
       .then(r => r.ok ? r.json() : fetch("/api/sessions?limit=200", { headers: authHeaders() }).then(r2 => r2.json()))
       .then(d => {
-        const sessionList = d.sessions ?? d ?? [];
+        const sessionList = (d.sessions ?? d ?? []) as FocusSessionPoint[];
         setSessions(sessionList);
         const mapped = sessionList
-          .filter((s: any) => s.durationSec >= 60 && (s.mode === "focus" || !s.mode))
+          .filter((s) => (s.durationSec ?? 0) >= 60 && (s.mode === "focus" || !s.mode))
           .slice(0, 150)
-          .map((s: any) => sessionToStar(s, CX, CY, MAX_RADIUS));
+          .map((s) => sessionToStar(s, CX, CY, MAX_RADIUS));
         setStars(mapped);
         setConstellations(findConstellations(mapped));
       })
@@ -136,7 +145,7 @@ export default function ConstellationsPage() {
 
   const retry = () => { setLoading(true); setLoadError(false); setReloadKey((k) => k + 1); };
 
-  const totalHours = sessions.reduce((s, sess) => s + Math.floor(sess.durationSec / 60), 0) / 60;
+  const totalHours = sessions.reduce((s, sess) => s + Math.floor(sess.durationSec ?? 0 / 60), 0) / 60;
 
   return (
     <PageTransition>
@@ -183,7 +192,7 @@ export default function ConstellationsPage() {
                     <circle key={`bg${i}`}
                       cx={Math.sin(i * 2.3) * 240 + CX}
                       cy={Math.cos(i * 1.7) * 240 + CY}
-                      r={Math.random() * 0.8 + 0.2}
+                      r={0.2 + ((i * 37) % 80) / 100}
                       fill="var(--palette-white)" opacity={0.08 + (i % 5) * 0.04} />
                   ))}
 

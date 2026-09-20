@@ -53,7 +53,18 @@ function formatDays(days: number | null) {
 }
 
 export default function DreamsPage() {
-  const [dream, setDream] = useState<any>(null);
+interface DreamBlock { label: string; minutes: number; kind: string; weightPercent?: number }
+interface DreamSubject { name: string; percent: number }
+interface DreamSystem {
+  tagline?: string; nextMilestone?: string; blocks?: DreamBlock[]; dailyHabit?: string;
+  checkIn?: string; milestones?: Array<{ label: string; reached?: boolean; current?: boolean; at?: number }>; subjects?: DreamSubject[];
+}
+interface DreamPayload {
+  dreamType?: string; emoji?: string | null; system?: DreamSystem | null; customGoal?: string | null;
+  dailyTargetMinutes?: number; expectedMinutes?: number; totalMinutesLogged?: number;
+  progressPct?: number; daysLeft?: number; daysSinceStart?: number; onTrack?: boolean;
+}
+  const [dream, setDream] = useState<DreamPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -317,7 +328,7 @@ export default function DreamsPage() {
               <div className="lg:col-span-2">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">Today's plan</p>
                 <ul className="mt-2 space-y-1.5">
-                  {dream.system.blocks.map((block: { label: string; minutes: number; kind: string; weightPercent: number }) => (
+                  {(dream.system.blocks ?? []).map((block) => (
                     <li key={block.label} className="flex items-center gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-hover)]/40 px-3 py-2">
                       <span aria-hidden="true" className="text-base">
                         {block.kind === "deep" ? "🎯" : block.kind === "practice" ? "🏋️" : block.kind === "output" ? "✍️" : "🔁"}
@@ -335,7 +346,7 @@ export default function DreamsPage() {
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">Weekly split</p>
                 <ul className="mt-2 space-y-2">
-                  {dream.system.subjects.map((subject: { name: string; percent: number }) => (
+                  {(dream.system.subjects ?? []).map((subject) => (
                     <li key={subject.name}>
                       <div className="flex items-center justify-between text-[11px] text-[var(--foreground-muted)]">
                         <span>{subject.name}</span><span className="tabular-nums">{subject.percent}%</span>
@@ -353,7 +364,7 @@ export default function DreamsPage() {
             <div className="mt-4 border-t border-[var(--border-subtle)] pt-4">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">Milestones</p>
               <ol className="mt-2 flex flex-wrap gap-2">
-                {dream.system.milestones.map((milestone: { label: string; reached: boolean; current: boolean }) => (
+                {(dream.system.milestones ?? []).map((milestone) => (
                   <li key={milestone.label}
                     className={`rounded-full border px-3 py-1 text-[11px] ${
                       milestone.reached

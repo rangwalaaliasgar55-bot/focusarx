@@ -574,32 +574,48 @@ h1, h2, .text-display, .text-h1 {
 @keyframes aurora-spin { to { transform: rotate(360deg); } }
 
 /* ── Quick Launch orb geometry ──────────────────────────────────────────────
-   The mobile bottom nav is exactly `4.5rem + safe-area` tall. The orb sits
-   that PLUS a visible gap above it (never touching the nav border), and the
-   panel clears the orb by its own height + gap. On md+ the nav is hidden,
-   so both anchor to the plain viewport corner instead of floating 4.5rem
-   above nothing. On phones the panel is inset from BOTH edges (it can never
-   clip the screen side); on desktop it right-anchors beside the orb. The
-   viewport-derived max-height + internal scroll means short screens get a
-   scrollable panel, never one that runs under the header. */
+   The bottom-right corner is a deliberate FAB column, bottom to top:
+     coach orb (h-12, AI) → quick-launch orb (h-14, Explore FocusArx).
+   Both used to anchor independently to the same corner and overlapped on
+   every viewport; now the quick-launch orb is pinned exactly one gap above
+   the coach orb on both breakpoints (the coach orb itself does not move).
+
+   Mobile: nav 4.5rem+safe · coach orb 7–10rem · gap 0.75 · QL orb 10.75–14.25rem.
+   md+:    coach orb 2.5–5.5rem (bottom-10 right-6) · gap 0.75 · QL orb 6.25–9.75rem,
+   right-aligned with the coach orb's right-6 edge instead of right-4.
+   The panel opens above its own orb (orb top + 0.75rem gap), is inset from
+   both edges on phones, and scrolls internally via a viewport-derived
+   max-height, so short screens get a scrollable panel, never one that runs
+   under the header. The coach orb positions itself without env(safe-area),
+   so the stack does too — otherwise the gap between them would drift on
+   notched devices.
+
+   When the coach chat panel is open it occupies exactly the band the orb
+   sits in, so CoachPanel flags <html data-coach-open> and the orb steps
+   aside (visibility, not display, so the exit transition stays cheap). */
 .quicklaunch-orb {
-  bottom: calc(4.5rem + env(safe-area-inset-bottom) + 0.75rem);
+  bottom: 10.75rem;
 }
 .quicklaunch-panel {
   inset-inline: 1rem;
-  bottom: calc(4.5rem + env(safe-area-inset-bottom) + 5.5rem);
-  max-height: calc(100dvh - 7.5rem - env(safe-area-inset-bottom));
+  bottom: 15rem;
+  max-height: calc(100dvh - 16rem);
 }
 @media (min-width: 768px) {
   .quicklaunch-orb {
-    bottom: 1.5rem;
+    bottom: 6.25rem;
+    right: 1.5rem;
   }
   .quicklaunch-panel {
     inset-inline: auto 1.5rem;
     width: 22rem;
-    bottom: calc(1.5rem + 3.5rem + 0.75rem);
-    max-height: calc(100dvh - 8.5rem);
+    bottom: 10.5rem;
+    max-height: calc(100dvh - 12rem);
   }
+}
+html[data-coach-open] .quicklaunch-orb {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 /* Display serif for marketing headlines — adopted from the focusarx-resource

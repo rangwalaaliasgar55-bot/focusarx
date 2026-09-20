@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth, getToken } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
@@ -172,7 +172,7 @@ export default function ConsequencesPage() {
   // is stored — silently, since a missing token reads as "logged out".
   const token = getToken;
 
-  const load = () => {
+  const load = useCallback(() => {
     fetch("/api/consequences", { headers: { Authorization: `Bearer ${token()}` } })
       .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then((d: ConsequencesData) => { setData(d); setLoadError(null); })
@@ -181,12 +181,12 @@ export default function ConsequencesPage() {
         toast("Couldn't load your contracts. Pull to refresh or try again.", "error");
       })
       .finally(() => setLoaded(true));
-  };
+  }, [toast, token]);
 
   useEffect(() => {
     if (status !== "authenticated") return;
     load();
-  }, [status]);
+  }, [status, load]);
 
   const save = async () => {
     setSaving(true);

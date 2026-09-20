@@ -1,7 +1,23 @@
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { Send, RefreshCw, CheckCircle, AlertTriangle, Search } from "lucide-react";
 import { Badge, LoadingState, MotionTab, SectionHeader, adminFetch } from "./AdminHelpers";
 import type { AdminPanelProps } from "./AdminTypes";
+
+interface EmailLog {
+  id: string;
+  recipientEmail: string;
+  template: string;
+  status: string;
+  sentAt?: string;
+}
+interface AdminEmailUser {
+  id: string;
+  name?: string;
+  email: string;
+  currentStreak?: number;
+  isPremium?: boolean;
+  isBot?: boolean;
+}
 
 export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
   const [template, setTemplate] = useState("welcome");
@@ -11,48 +27,54 @@ export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
   const [blasting, setBlasting] = useState(false);
   const [result, setResult] = useState<{ sent: number; failed: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<EmailLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
   const [templates, setTemplates] = useState<{ key: string; subject: string }[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<AdminEmailUser[]>([]);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [streakMin, setStreakMin] = useState(7);
   const [newUserDays, setNewUserDays] = useState(7);
   const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => { loadLogs(); loadTemplates(); loadUsers(); }, []);
-
-  async function loadLogs() {
+  const loadLogs = useCallback(async () => {
     setLogsLoading(true);
     try {
       const r = await adminFetch("/api/admin/email/logs", { headers: authHeaders(), credentials: "include" }, { silent: true });
       if (r.ok) { const d = await r.json(); setLogs(d.logs ?? []); }
     } finally { setLogsLoading(false); }
-  }
+  }, [authHeaders]);
 
-  async function loadTemplates() {
+  const loadTemplates = useCallback(async () => {
     try {
       const r = await adminFetch("/api/admin/email/templates", { headers: authHeaders(), credentials: "include" }, { silent: true });
       if (r.ok) { const d = await r.json(); setTemplates(d.templates ?? []); }
     } catch { /* ignore */ }
-  }
+  }, [authHeaders]);
 
-  async function loadUsers() {
+  const loadUsers = useCallback(async () => {
     try {
       const r = await adminFetch("/api/admin/users", { headers: authHeaders(), credentials: "include" }, { silent: true });
       if (r.ok) { 
         const d = await r.json(); 
         // Filter out bot users
-        const realUsers = (d.users ?? []).filter((u: any) => !u.isBot);
+        const realUsers = ((d.users ?? []) as AdminEmailUser[]).filter((u) => !u.isBot);
         setUsers(realUsers); 
       }
     } catch { /* ignore */ }
-  }
+  }, [authHeaders]);
+
+  // Mount-only. Deferred by a tick so the loaders' first setState is not
+  // synchronous inside the effect (cascading-render guard), matching the
+  // deferred-load pattern used across the admin/dev pages.
+  useEffect(() => {
+    const t = setTimeout(() => { void loadLogs(); void loadTemplates(); void loadUsers(); }, 0);
+    return () => clearTimeout(t);
+  }, [loadLogs, loadTemplates, loadUsers]);
 
   async function sendBlast() {
     setBlasting(true); setResult(null); setError(null);
     try {
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         template,
         audience,
         customSubject: customSubject || undefined,
@@ -77,7 +99,7 @@ export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
       const d = await r.json();
       if (r.ok) { setResult(d); loadLogs(); }
       else setError(d.error ?? "Failed to send");
-    } catch (e: any) { setError(e.message); }
+    } catch (e) { setError(e instanceof Error ? e.message : "Failed to send"); }
     finally { setBlasting(false); }
   }
 
@@ -135,7 +157,7 @@ export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
 
           <div>
             <label htmlFor="adminemailpanel-audience" className="block text-xs text-[var(--palette-zinc-500)] mb-1">Audience</label>
-            <select id="adminemailpanel-audience" className="admin-input" value={audience} onChange={e => setAudience(e.target.value as any)}>
+            <select id="adminemailpanel-audience" className="admin-input" value={audience} onChange={e => setAudience(e.target.value as typeof audience)}>
               <option value="all">All registered users (no bots)</option>
               <option value="inactive">Inactive users (7+ days)</option>
               <option value="premium">Premium users only</option>
@@ -211,7 +233,7 @@ export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
                   </div>
                 ) : (
                   <div className="divide-y divide-[var(--palette-zinc-800)]">
-                    {filteredUsers.map((user: any) => (
+                    {filteredUsers.map((user) => (
                       <label 
                         key={user.id}
                         className="flex items-center gap-3 px-3 py-2 hover:bg-[var(--palette-zinc-900)] cursor-pointer"
@@ -233,7 +255,7 @@ export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
                         {user.isPremium && (
                           <Badge label="Premium" color="bg-[var(--palette-violet-950)] text-[var(--palette-violet-400)]" />
                         )}
-                        {user.currentStreak > 0 && (
+                        {(user.currentStreak ?? 0) > 0 && (
                           <Badge label={`${user.currentStreak}🔥`} color="bg-[var(--palette-orange-950)] text-[var(--palette-orange-400)]" />
                         )}
                       </label>
@@ -306,7 +328,7 @@ export function AdminEmailPanel({ authHeaders }: AdminPanelProps) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--palette-zinc-800)]/50">
-                  {logs.map((log: any) => (
+                  {logs.map((log) => (
                     <tr key={log.id} className="hover:bg-[var(--palette-zinc-900)]/30">
                       <td className="px-3 py-2 text-[var(--palette-zinc-300)] truncate max-w-[160px]">{log.recipientEmail}</td>
                       <td className="px-3 py-2 text-[var(--palette-zinc-500)]">{log.template}</td>

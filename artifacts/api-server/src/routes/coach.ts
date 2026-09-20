@@ -1,5 +1,5 @@
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
-import { Router } from "express";
+import { Router, type Response } from "express";
 import { db } from "@workspace/db";
 import { usersTable, distractionLogsTable, readinessLogsTable, activeSessionsTable } from "@workspace/db";
 import { eq, desc, and } from "drizzle-orm";
@@ -83,7 +83,7 @@ router.post("/coach/chat", authMiddleware, requirePremium, aiCoachLimiter, async
 
   // Per-user daily limit (free tier discipline)
   try {
-    const isPremium = Boolean((req as any).isPremium);
+    const isPremium = Boolean(req.isPremium);
     if (!isPremium) {
       const used = await userPurposeCalls(req.userId, "coach_chat");
       if (used >= 30) {
@@ -116,7 +116,7 @@ router.post("/coach/chat", authMiddleware, requirePremium, aiCoachLimiter, async
 
     const context: string[] = [];
     if (user?.name) context.push(`User's name: ${user.name}`);
-    const od = user?.onboardingData as any;
+    const od = user?.onboardingData as Record<string, unknown> | null | undefined;
     if (od?.goal) {
       const safeGoal = (od.goal as string)
         .replace(/[\r\n`"]/g, " ")
@@ -167,7 +167,7 @@ router.post("/coach/chat", authMiddleware, requirePremium, aiCoachLimiter, async
 
 router.get("/coach/status", authMiddleware, premiumStatusMiddleware, async (req: AuthRequest, res) => {
   try {
-    const isPremium = Boolean((req as any).isPremium);
+    const isPremium = Boolean(req.isPremium);
     if (isPremium) {
       res.json({ isPremium: true });
       return;
@@ -177,7 +177,7 @@ router.get("/coach/status", authMiddleware, premiumStatusMiddleware, async (req:
       getActivePlans().catch(() => []),
       getTokenBalance(req.userId!).catch(() => 0),
     ]);
-    const cheapest = plans.sort((a: any, b: any) => a.tokenCost - b.tokenCost)[0];
+    const cheapest = [...plans].sort((a, b) => a.tokenCost - b.tokenCost)[0];
     const required = cheapest?.tokenCost ?? 10000;
     const needed = Math.max(0, required - balance);
     res.json({
@@ -205,7 +205,7 @@ router.get("/coach/status", authMiddleware, premiumStatusMiddleware, async (req:
   }
 });
 
-router.get("/coach/session-tip", authMiddleware, requirePremium, async (req: AuthRequest, res) => {
+const sessionTipHandler = async (req: AuthRequest, res: Response) => {
   try {
     const today = dayKeyInZone(Date.now(), await userZone(req.userId));
     const [readiness] = await db.select({ score: readinessLogsTable.score })
@@ -231,6 +231,8 @@ router.get("/coach/session-tip", authMiddleware, requirePremium, async (req: Aut
   } catch {
     res.json({ tip: "Start your timer, close every other tab." });
   }
-});
+};
+router.get("/coach/session-tip", authMiddleware, requirePremium, sessionTipHandler);
+router.post("/coach/session-tip", authMiddleware, requirePremium, sessionTipHandler);
 
 export { router as coachRouter };

@@ -43,7 +43,7 @@ seasonalRouter.get("/seasonal/premium-challenges", async (req, res) => {
   res.json({ challenges: PREMIUM_CHALLENGES });
 });
 
-seasonalRouter.get("/seasonal/:eventId/progress", async (req: any, res) => {
+seasonalRouter.get("/seasonal/:eventId/progress", async (req, res) => {
   const userId = extractUserId(req);
   if (!userId) return sendUnauthorized(res);
   try {

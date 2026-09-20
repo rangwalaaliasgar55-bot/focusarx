@@ -170,17 +170,75 @@ function NotAdminMessage({ reason }: { reason: string }) {
   );
 }
 
+// ── developer console API payloads ──────────────────────────────────────────
+
+interface DevUser {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  role?: string;
+  isGuest?: boolean;
+  createdAt?: string;
+  userId?: string;
+  level?: number;
+  coins?: number;
+  totalXp?: number;
+  wallet?: { level: number; coins: number; totalXp: number } | null;
+}
+interface DevOverview {
+  deployment?: { version?: string; environment?: string };
+  users?: { total?: number; guests?: number; onboarded?: number };
+  sessions?: { today?: number; thisWeek?: number; avgDuration?: number };
+  economy?: { totalCoins?: number; totalXp?: number; avgLevel?: number };
+  streaks?: { avgStreak?: number; maxStreak?: number };
+  premium?: { active?: number };
+  tasks?: { total?: number; completed?: number };
+  goals?: { total?: number; completed?: number };
+  recentUsers?: DevUser[];
+}
+interface DevUserDetails {
+  sessionStats?: { total?: number; totalMinutes?: number; avgFocus?: number };
+  streak?: { currentStreak?: number; longestStreak?: number };
+  taskStats?: { total?: number; completed?: number };
+  goalStats?: { total?: number; completed?: number };
+  premium?: { isActive?: boolean };
+}
+interface DevEconomy {
+  totals?: { totalCoins?: number; totalXp?: number; avgLevel?: number; usersWithWallets?: number };
+  topCoins?: DevUser[];
+  topXp?: DevUser[];
+}
+interface DevFlag {
+  id: string;
+  key: string;
+  description?: string | null;
+  enabled: boolean;
+  rolloutPercentage?: number;
+}
+interface DevAiBudget {
+  date?: string;
+  error?: string;
+  todayBudget?: Array<{ provider: string; cap: number; calls_used: number }>;
+  recentUsage?: Array<{ provider: string; model?: string; purpose?: string; call_count?: number; avg_latency_ms?: number }>;
+}
+interface DevHealth {
+  timestamp?: string;
+  database?: { connected?: boolean; latencyMs?: number; tableCount?: number };
+  deployment?: { version?: string; environment?: string };
+  migrations?: { status?: string; lockStatus?: string; lockedBy?: string };
+}
+
 // ─── Overview Tab ────────────────────────────────────────────────────────────
 
 function OverviewTab() {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<DevOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await apiJson("/api/developer/overview");
+      const result = await apiJson<DevOverview>("/api/developer/overview");
       setData(result);
       setError(null);
     } catch {
@@ -256,17 +314,17 @@ function OverviewTab() {
       </div>
 
       {/* Recent signups */}
-      {data.recentUsers?.length > 0 && (
+      {(data.recentUsers?.length ?? 0) > 0 && (
         <div className="border border-white/10 rounded-xl overflow-hidden">
           <div className="px-4 py-3 bg-white/5 border-b border-white/10">
             <h3 className="font-medium text-white text-sm">Recent Signups</h3>
           </div>
           <div className="divide-y divide-white/5">
-            {data.recentUsers.map((u: any) => (
+            {(data.recentUsers ?? []).map((u) => (
               <div key={u.id} className="px-4 py-2.5 flex items-center gap-3 text-sm">
                 <span className={`w-2 h-2 rounded-full ${u.isGuest ? "bg-gray-400" : "bg-emerald-400"}`} />
                 <span className="text-white/70 flex-1 truncate">{u.name || u.email}</span>
-                <span className="text-white/30 text-xs">{new Date(u.createdAt).toLocaleDateString()}</span>
+                <span className="text-white/30 text-xs">{u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}</span>
               </div>
             ))}
           </div>
@@ -297,9 +355,9 @@ function StatCard({ title, total, completed }: { title: string; total?: number; 
 function UsersTab() {
   const confirm = useConfirm();
   const [search, setSearch] = useState("");
-  const [users, setUsers] = useState<any[]>([]);
-  const [selectedUser, setSelectedUser] = useState<any>(null);
-  const [userDetails, setUserDetails] = useState<any>(null);
+  const [users, setUsers] = useState<DevUser[]>([]);
+  const [selectedUser, setSelectedUser] = useState<DevUser | null>(null);
+  const [userDetails, setUserDetails] = useState<DevUserDetails | null>(null);
   const [loading, setLoading] = useState(false);
   const [actionResult, setActionResult] = useState<string | null>(null);
   const [customCoins, setCustomCoins] = useState("1000");
@@ -310,7 +368,7 @@ function UsersTab() {
   const searchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await apiJson<{ users: any[] }>(`/api/developer/users?search=${encodeURIComponent(search)}&limit=20`);
+      const result = await apiJson<{ users: DevUser[] }>(`/api/developer/users?search=${encodeURIComponent(search)}&limit=20`);
       setUsers(result.users);
     } catch { setUsers([]); }
     setLoading(false);
@@ -320,12 +378,12 @@ function UsersTab() {
 
   const loadUserDetails = async (userId: string) => {
     try {
-      const details = await apiJson(`/api/developer/users/${userId}/details`);
+      const details = await apiJson<DevUserDetails>(`/api/developer/users/${userId}/details`);
       setUserDetails(details);
     } catch { setUserDetails(null); }
   };
 
-  const selectUser = (u: any) => {
+  const selectUser = (u: DevUser) => {
     if (selectedUser?.id === u.id) {
       setSelectedUser(null);
       setUserDetails(null);
@@ -544,12 +602,12 @@ function ActionButton({ icon: Icon, label, onClick }: { icon: typeof Coins; labe
 // ─── Economy Tab ─────────────────────────────────────────────────────────────
 
 function EconomyTab() {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<DevEconomy | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { setData(await apiJson("/api/developer/economy")); } catch {}
+    try { setData(await apiJson<DevEconomy>("/api/developer/economy")); } catch {}
     setLoading(false);
   }, []);
 
@@ -588,14 +646,14 @@ function EconomyTab() {
             <h3 className="font-medium text-yellow-300 flex items-center gap-2"><Coins className="w-4 h-4" /> Richest Users</h3>
           </div>
           <div className="divide-y divide-white/5">
-            {(data.topCoins ?? []).map((u: any, i: number) => (
+            {(data.topCoins ?? []).map((u, i) => (
               <div key={u.userId} className="px-4 py-2.5 flex items-center gap-3">
                 <span className="text-sm text-white/30 w-6">{i + 1}</span>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-white truncate">{u.name || u.email?.split("@")[0]}</div>
                   <div className="text-xs text-white/40">Level {u.level}</div>
                 </div>
-                <span className="text-sm font-medium text-yellow-400">{formatNumber(u.coins)} 🪙</span>
+                <span className="text-sm font-medium text-yellow-400">{formatNumber(u.coins ?? 0)} 🪙</span>
               </div>
             ))}
           </div>
@@ -607,14 +665,14 @@ function EconomyTab() {
             <h3 className="font-medium text-purple-300 flex items-center gap-2"><Zap className="w-4 h-4" /> Top XP Earners</h3>
           </div>
           <div className="divide-y divide-white/5">
-            {(data.topXp ?? []).map((u: any, i: number) => (
+            {(data.topXp ?? []).map((u, i) => (
               <div key={u.userId} className="px-4 py-2.5 flex items-center gap-3">
                 <span className="text-sm text-white/30 w-6">{i + 1}</span>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-white truncate">{u.name || u.email?.split("@")[0]}</div>
                   <div className="text-xs text-white/40">Level {u.level}</div>
                 </div>
-                <span className="text-sm font-medium text-purple-400">{formatNumber(u.totalXp)} XP</span>
+                <span className="text-sm font-medium text-purple-400">{formatNumber(u.totalXp ?? 0)} XP</span>
               </div>
             ))}
           </div>
@@ -627,13 +685,13 @@ function EconomyTab() {
 // ─── Flags Tab ───────────────────────────────────────────────────────────────
 
 function FlagsTab() {
-  const [flags, setFlags] = useState<any[]>([]);
+  const [flags, setFlags] = useState<DevFlag[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await apiJson<{ flags: any[] }>("/api/developer/flags");
+      const result = await apiJson<{ flags: DevFlag[] }>("/api/developer/flags");
       setFlags(result.flags);
     } catch { /* */ }
     setLoading(false);
@@ -668,7 +726,7 @@ function FlagsTab() {
               {flag.description && <div className="text-xs text-white/40 mt-0.5">{flag.description}</div>}
             </div>
             <div className="text-xs text-white/30">
-              Rollout: {flag.rolloutPercentage}%
+              Rollout: {flag.rolloutPercentage ?? 100}%
             </div>
           </div>
         ))
@@ -680,13 +738,13 @@ function FlagsTab() {
 // ─── AI Budget Tab ───────────────────────────────────────────────────────────
 
 function AiBudgetTab() {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<DevAiBudget | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await apiJson("/api/developer/ai-budget");
+      const result = await apiJson<DevAiBudget>("/api/developer/ai-budget");
       setData(result);
     } catch { /* */ }
     setLoading(false);
@@ -701,9 +759,9 @@ function AiBudgetTab() {
       {/* Budget */}
       <div>
         <h3 className="text-sm font-medium text-white/60 mb-3">Today's Budget ({data?.date})</h3>
-        {data?.todayBudget?.length > 0 ? (
+        {(data?.todayBudget?.length ?? 0) > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {data.todayBudget.map((b: any) => {
+            {(data?.todayBudget ?? []).map((b) => {
               const pct = Math.round((b.calls_used / b.cap) * 100);
               return (
                 <div key={b.provider} className="p-4 bg-white/5 border border-white/10 rounded-xl">
@@ -729,7 +787,7 @@ function AiBudgetTab() {
       {/* Recent Usage */}
       <div>
         <h3 className="text-sm font-medium text-white/60 mb-3">Last 24h Usage</h3>
-        {data?.recentUsage?.length > 0 ? (
+        {(data?.recentUsage?.length ?? 0) > 0 ? (
           <div className="border border-white/10 rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
@@ -742,13 +800,13 @@ function AiBudgetTab() {
                 </tr>
               </thead>
               <tbody>
-                {data.recentUsage.map((r: any, i: number) => (
+                {(data?.recentUsage ?? []).map((r, i) => (
                   <tr key={i} className="border-t border-white/5">
                     <td className="px-3 py-2 text-white/70">{r.provider}</td>
                     <td className="px-3 py-2 font-mono text-white/50 text-xs">{r.model}</td>
                     <td className="px-3 py-2 text-white/70">{r.purpose}</td>
-                    <td className="px-3 py-2 text-right text-white/70">{r.call_count}</td>
-                    <td className="px-3 py-2 text-right text-white/50">{r.avg_latency_ms}</td>
+                    <td className="px-3 py-2 text-right text-white/70">{r.call_count ?? 0}</td>
+                    <td className="px-3 py-2 text-right text-white/50">{r.avg_latency_ms ?? 0}</td>
                   </tr>
                 ))}
               </tbody>
@@ -765,17 +823,17 @@ function AiBudgetTab() {
 // ─── Health Tab ──────────────────────────────────────────────────────────────
 
 function HealthTab() {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<DevHealth | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [devHealth, migrations] = await Promise.all([
-        apiJson("/api/developer/health"),
-        apiJson("/api/healthz/migrations").catch(() => ({ status: "unknown" })),
+        apiJson<DevHealth>("/api/developer/health"),
+        apiJson<DevHealth["migrations"]>("/api/healthz/migrations").catch(() => ({ status: "unknown" })),
       ]);
-      setData({ ...devHealth as any, migrations });
+      setData({ ...devHealth, migrations });
     } catch { /* */ }
     setLoading(false);
   }, []);
@@ -790,31 +848,31 @@ function HealthTab() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <HealthCard
           title="Database"
-          status={data.database?.connected ? "ok" : "error"}
+          status={data?.database?.connected ? "ok" : "error"}
           details={[
-            `Latency: ${data.database?.latencyMs ?? "?"}ms`,
-            `Tables: ${data.database?.tableCount ?? "?"}`,
+            `Latency: ${data?.database?.latencyMs ?? "?"}ms`,
+            `Tables: ${data?.database?.tableCount ?? "?"}`,
           ]}
         />
         <HealthCard
           title="Deployment"
           status="ok"
           details={[
-            `Version: ${data.deployment?.version ?? "?"}`,
-            `Env: ${data.deployment?.environment ?? "?"}`,
+            `Version: ${data?.deployment?.version ?? "?"}`,
+            `Env: ${data?.deployment?.environment ?? "?"}`,
           ]}
         />
         <HealthCard
           title="Migrations"
-          status={data.migrations?.lockStatus === "unlocked" ? "ok" : "warning"}
+          status={data?.migrations?.lockStatus === "unlocked" ? "ok" : "warning"}
           details={[
-            `Lock: ${data.migrations?.lockStatus ?? "unknown"}`,
-            data.migrations?.lockedBy ? `By: ${data.migrations.lockedBy}` : "",
+            `Lock: ${data?.migrations?.lockStatus ?? "unknown"}`,
+            data?.migrations?.lockedBy ? `By: ${data.migrations.lockedBy}` : "",
           ].filter(Boolean)}
         />
       </div>
       <div className="text-xs text-white/30">
-        Last checked: {data.timestamp}
+        Last checked: {data?.timestamp ?? "—"}
       </div>
     </div>
   );

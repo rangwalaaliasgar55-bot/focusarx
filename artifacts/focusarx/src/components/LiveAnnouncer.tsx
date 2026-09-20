@@ -27,14 +27,17 @@ export default function LiveAnnouncer() {
     const sock = getSocket();
     const cleanups: Array<() => void> = [];
     if (sock) {
-      const bind = (event: string, format: (data: any) => string) => {
-        const handler = (data: any) => announce(format(data));
+      const bind = (event: string, format: (data: unknown) => string) => {
+        const handler = (data: unknown) => announce(format(data));
         sock.on(event, handler);
         cleanups.push(() => { sock.off(event, handler); });
       };
-      bind("achievement:unlock", (d) => `Achievement unlocked: ${d?.badge?.name ?? "new badge"}.`);
-      bind("streak:milestone", (d) => `Streak milestone reached: ${d?.days ?? "?"} days.`);
-      bind("user:levelup", (d) => `Level up! You reached level ${d?.newLevel ?? d?.level ?? ""}.`);
+      bind("achievement:unlock", (d) => `Achievement unlocked: ${(d as { badge?: { name?: string } } | null)?.badge?.name ?? "new badge"}.`);
+      bind("streak:milestone", (d) => `Streak milestone reached: ${(d as { days?: number } | null)?.days ?? "?"} days.`);
+      bind("user:levelup", (d) => {
+        const p = d as { newLevel?: number; level?: number } | null;
+        return `Level up! You reached level ${p?.newLevel ?? p?.level ?? ""}.`;
+      });
     }
 
     return () => {

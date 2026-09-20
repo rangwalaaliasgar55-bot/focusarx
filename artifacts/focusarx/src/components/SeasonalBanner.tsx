@@ -11,7 +11,20 @@ function authHeaders() {
 }
 
 export default function SeasonalBanner() {
-  const [event, setEvent] = useState<any>(null);
+interface SeasonalEvent {
+  name: string;
+  description?: string | null;
+  endDate: string;
+  bannerColor?: string | null;
+  locked?: boolean;
+  premiumOnly?: boolean;
+  xpMultiplier?: number;
+}
+  const [event, setEvent] = useState<SeasonalEvent | null>(null);
+  // Days-left is computed when the event payload arrives (async context, where
+  // the clock is allowed) — render must stay pure and the count is
+  // day-granular anyway.
+  const [daysLeft, setDaysLeft] = useState(0);
   const [dismissed, setDismissed] = useState(() => {
     if (typeof window === "undefined") return false;
     const d = localStorage.getItem("focusarx-seasonal-banner-dismissed");
@@ -24,7 +37,10 @@ export default function SeasonalBanner() {
     fetch("/api/seasonal/active", { headers: authHeaders() })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (d) setEvent(d);
+        if (d) {
+          setEvent(d);
+          setDaysLeft(Math.max(0, Math.ceil((new Date(d.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))));
+        }
       })
       .catch(() => {});
   }, [dismissed]);
@@ -36,10 +52,6 @@ export default function SeasonalBanner() {
 
   if (!event || dismissed) return null;
 
-  const daysLeft = Math.max(
-    0,
-    Math.ceil((new Date(event.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
-  );
   const color = event.bannerColor || "var(--brand-violet)";
 
   return (
@@ -72,7 +84,7 @@ export default function SeasonalBanner() {
                 {event.name}
               </p>
               <div className="flex flex-wrap items-center gap-1.5">
-                {event.xpMultiplier > 1 && (
+                {(event.xpMultiplier ?? 0) > 1 && (
                   <span
                     className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold"
                     style={{

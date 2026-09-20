@@ -18,7 +18,12 @@ export function useNetworkStatus() {
     window.addEventListener("offline", handleOffline);
 
     // Check connection effective type for slow detection
-    const conn = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+    const nav = navigator as Navigator & {
+      connection?: { effectiveType?: string; addEventListener?: (t: string, l: () => void) => void; removeEventListener?: (t: string, l: () => void) => void };
+      mozConnection?: { effectiveType?: string; addEventListener?: (t: string, l: () => void) => void; removeEventListener?: (t: string, l: () => void) => void };
+      webkitConnection?: { effectiveType?: string; addEventListener?: (t: string, l: () => void) => void; removeEventListener?: (t: string, l: () => void) => void };
+    };
+    const conn = nav.connection ?? nav.mozConnection ?? nav.webkitConnection;
     if (conn) {
       const updateEffective = () => {
         setEffectiveType(conn.effectiveType || null);

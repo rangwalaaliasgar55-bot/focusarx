@@ -73,7 +73,7 @@ router.get("/pets", authMiddleware, async (req: AuthRequest, res: Response) => {
 });
 
 router.post("/pets", authMiddleware, async (req: AuthRequest, res: Response) => {
-  const { petType, petName } = req.body as any;
+  const { petType, petName } = req.body as { petType?: string; petName?: string };
   if (!petType) { res.status(400).json({ error: "petType required" }); return; }
   const validType = PET_TYPES.find(p => p.id === petType);
   if (!validType) { res.status(400).json({ error: "Invalid pet type" }); return; }

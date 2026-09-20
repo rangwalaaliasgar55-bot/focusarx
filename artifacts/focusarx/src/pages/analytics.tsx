@@ -75,9 +75,12 @@ function buildHeatmapGrid(heatmap: Record<string, number> | undefined) {
   return cells;
 }
 
+type TooltipPayloadItem = { value?: number | string; name?: string; dataKey?: string | number; color?: string };
+interface TooltipProps { active?: boolean; payload?: TooltipPayloadItem[]; label?: string }
+
 const HOUR_COLORS = ["var(--brand-600)", "var(--brand-400)", "var(--brand-teal)", "var(--brand-gold)", "var(--palette-f97316)"];
 
-const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: any[]; label?: string }) => {
+const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-lg border border-[var(--rgba-124-58-237-0_3)] bg-[var(--rgba-12-17-40-0_95)] px-3 py-2 text-xs text-[var(--foreground)] shadow-xl backdrop-blur-xl">
@@ -109,7 +112,7 @@ function legacyWeekTrend(wc: { thisWeekMinutes: number; lastWeekMinutes: number 
   };
 }
 
-const BarTooltip = ({ active, payload, label }: { active?: boolean; payload?: any[]; label?: string }) => {
+const BarTooltip = ({ active, payload, label }: TooltipProps) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-lg border border-[var(--rgba-124-58-237-0_3)] bg-[var(--rgba-12-17-40-0_95)] px-3 py-2 text-xs text-[var(--foreground)] shadow-xl backdrop-blur-xl">

@@ -10,7 +10,12 @@ import { logger } from "../lib/logger";
 const router = Router();
 
 // Seed catalog if empty — called lazily
-const DEFAULT_PETS = [
+interface SeedPet {
+  slug: string; name: string; description: string; rarity: string; category: string;
+  isPremium: boolean; tokenCost?: number; sortOrder: number; thumbnailUrl?: string | null;
+  modelUrl?: string | null; fallbackImageUrl?: string | null; maxLevel?: number; isSeasonal?: boolean;
+}
+const DEFAULT_PETS: SeedPet[] = [
   { slug: "owl", name: "Sage Owl", description: "Wise and calm. Perfect for deep study.", rarity: "common", category: "starter", isPremium: false, tokenCost: 0, sortOrder: 0, thumbnailUrl: null, modelUrl: null, fallbackImageUrl: null, maxLevel: 20 },
   { slug: "fox", name: "Focus Fox", description: "Sharp and cunning. Thrives on consistency.", rarity: "common", category: "starter", isPremium: false, tokenCost: 0, sortOrder: 1 },
   { slug: "robot", name: "Study Bot", description: "Logical and precise. Optimizes sessions.", rarity: "common", category: "starter", isPremium: false, tokenCost: 0, sortOrder: 2 },
@@ -34,15 +39,15 @@ async function ensureSeeded() {
         slug: p.slug,
         name: p.name,
         description: p.description,
-        rarity: p.rarity as any,
-        category: p.category as any,
+        rarity: p.rarity,
+        category: p.category,
         isPremium: p.isPremium,
         tokenCost: p.tokenCost ?? 0,
         sortOrder: p.sortOrder,
         isActive: true,
         maxLevel: 20,
         unlockSource: p.category,
-        isSeasonal: (p as any).isSeasonal ?? false,
+        isSeasonal: p.isSeasonal ?? false,
       }).onConflictDoNothing();
     }
   } catch (e) {
@@ -93,7 +98,7 @@ router.get("/pets/inventory", authMiddleware, async (req: AuthRequest, res) => {
               acquiredFrom: "starter",
             }).onConflictDoNothing().returning();
             if (inv) {
-              inventory.unshift({ inventory: inv, catalog: cat[0] } as any);
+              inventory.unshift({ inventory: inv, catalog: cat[0] });
             }
           } catch {}
         }
@@ -142,8 +147,8 @@ router.post("/pets/catalog/:slug/unlock", authMiddleware, async (req: AuthReques
       const idempotencyKey = `pet_unlock_${req.userId}_${catalog.id}`;
       try {
         await spendTokens(req.userId!, catalog.tokenCost, "cosmetic_purchase", idempotencyKey, { description: `pet ${slug}`, relatedEntityId: catalog.id });
-      } catch (e: any) {
-        if (e.message === "INSUFFICIENT_BALANCE") {
+      } catch (e) {
+        if ((e as { message?: string }).message === "INSUFFICIENT_BALANCE") {
           return res.status(400).json({ error: "Insufficient tokens" });
         }
         // idempotent duplicate — treat as success if already owned

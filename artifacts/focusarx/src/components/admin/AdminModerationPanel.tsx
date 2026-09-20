@@ -1,33 +1,26 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { LoadingState, MotionTab, SectionHeader, adminFetch } from "./AdminHelpers";
 import type { AdminPanelProps } from "./AdminTypes";
 
 export function AdminModerationPanel({ authHeaders }: AdminPanelProps) {
-  const [posts, setPosts] = useState<any[]>([]);
+interface ModerationPost {
+  id: string;
+  type?: string;
+  author?: { name?: string; email?: string } | null;
+  content: string;
+  createdAt?: string;
+  moderationStatus?: string;
+  moderationReason?: string | null;
+}
+  const [posts, setPosts] = useState<ModerationPost[]>([]);
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
   const [digestSending, setDigestSending] = useState(false);
   const [digestResult, setDigestResult] = useState<string | null>(null);
 
-  useEffect(() => { loadQueue(); }, []);
-
-  useEffect(() => {
-    if (posts.length === 0) return;
-    const handleShortcut = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (target?.matches("input, textarea, select, [contenteditable='true']")) return;
-      const first = posts[0];
-      if (!first || actionId) return;
-      if (event.key.toLowerCase() === "a") { event.preventDefault(); void moderatePost(first.id, "approve"); }
-      if (event.key.toLowerCase() === "r") { event.preventDefault(); void moderatePost(first.id, "reject"); }
-    };
-    window.addEventListener("keydown", handleShortcut);
-    return () => window.removeEventListener("keydown", handleShortcut);
-  }, [actionId, posts]);
-
-  async function loadQueue() {
+  const loadQueue = useCallback(async () => {
     setLoading(true);
     try {
       const r = await adminFetch("/api/admin/moderation/queue", { headers: authHeaders(), credentials: "include" });
@@ -37,9 +30,9 @@ export function AdminModerationPanel({ authHeaders }: AdminPanelProps) {
         setCount(d.flaggedCount ?? 0);
       }
     } finally { setLoading(false); }
-  }
+  }, [authHeaders]);
 
-  async function moderatePost(postId: string, action: "approve" | "reject") {
+  const moderatePost = useCallback(async (postId: string, action: "approve" | "reject") => {
     setActionId(postId);
     try {
       const r = await adminFetch(`/api/admin/moderation/${postId}/${action}`, {
@@ -53,7 +46,27 @@ export function AdminModerationPanel({ authHeaders }: AdminPanelProps) {
         setCount((c) => Math.max(0, c - 1));
       }
     } finally { setActionId(null); }
-  }
+  }, [authHeaders]);
+
+  // Deferred a tick so the first setState isn't synchronous in the effect.
+  useEffect(() => {
+    const t = setTimeout(() => void loadQueue(), 0);
+    return () => clearTimeout(t);
+  }, [loadQueue]);
+
+  useEffect(() => {
+    if (posts.length === 0) return;
+    const handleShortcut = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.matches("input, textarea, select, [contenteditable='true']")) return;
+      const first = posts[0];
+      if (!first || actionId) return;
+      if (event.key.toLowerCase() === "a") { event.preventDefault(); void moderatePost(first.id, "approve"); }
+      if (event.key.toLowerCase() === "r") { event.preventDefault(); void moderatePost(first.id, "reject"); }
+    };
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+  }, [actionId, posts, moderatePost]);
 
   async function sendDigest() {
     setDigestSending(true); setDigestResult(null);
@@ -62,7 +75,7 @@ export function AdminModerationPanel({ authHeaders }: AdminPanelProps) {
       const d = await r.json();
       if (r.ok) setDigestResult(d.sent ? `Digest emailed with ${d.flaggedCount} flagged post(s).` : (d.reason ?? "Nothing to send."));
       else setDigestResult("Error: " + (d.error ?? "Failed"));
-    } catch (e: any) { setDigestResult("Error: " + e.message); }
+    } catch (e) { setDigestResult("Error: " + (e instanceof Error ? e.message : "Failed")); }
     finally { setDigestSending(false); }
   }
 
@@ -108,7 +121,7 @@ export function AdminModerationPanel({ authHeaders }: AdminPanelProps) {
                       {p.author?.name || p.author?.email || "Unknown"} · {p.type}
                     </span>
                     <span className="text-[11px] text-[var(--palette-zinc-600)]">
-                      {new Date(p.createdAt).toLocaleString()}
+                      {p.createdAt ? new Date(p.createdAt).toLocaleString() : "—"}
                     </span>
                   </div>
                   <p className="text-sm text-[var(--palette-zinc-200)] whitespace-pre-wrap break-words">{p.content}</p>

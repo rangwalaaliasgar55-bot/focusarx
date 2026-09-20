@@ -9,12 +9,35 @@ import { Link } from "wouter";
 import { usePremium } from "@/hooks/usePremium";
 
 /** Shared client: cookie-first auth, silent refresh, readable error messages. */
-function apiFetch<T = any>(path: string, opts?: RequestInit): Promise<T> {
+function apiFetch<T = unknown>(path: string, opts?: RequestInit): Promise<T> {
   return apiJson<T>(path, opts);
 }
 
+interface BattlePassTier {
+  tier: number;
+  xpRequired: number;
+  freeReward?: { name?: string; label?: string; coins?: number; tokenAmount?: number; cosmeticId?: string | null; petId?: string | null; icon?: string | null } | null;
+  premiumReward?: { name?: string; label?: string; coins?: number; tokenAmount?: number; cosmeticId?: string | null; petId?: string | null; icon?: string | null } | null;
+}
+interface BattlePassData {
+  seasonId?: string;
+  countdown?: { endsAt?: string; endDate?: string; graceEndsAt?: string } | null;
+  endDate?: string;
+  graceEndsAt?: string;
+  inGracePeriod?: boolean;
+  tokenBalance?: number;
+  tiers?: BattlePassTier[];
+  progress?: {
+    currentTier?: number;
+    seasonXp?: number;
+    claimedFree?: number[];
+    claimedPremium?: number[];
+  };
+}
+
 function Countdown({ endsAt, graceEndsAt }: { endsAt: string; graceEndsAt?: string }) {
-  const [now, setNow] = useState(Date.now());
+  // Lazy init: the initial value must not be computed in render body.
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
@@ -42,16 +65,16 @@ export default function BattlePassPage() {
   const { isPremium } = usePremium();
   const [previewTier, setPreviewTier] = useState<number | null>(null);
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery<BattlePassData>({
     queryKey: ["battle-pass-enhanced"],
-    queryFn: () => apiFetch("/api/battle-pass/current"),
+    queryFn: () => apiFetch<BattlePassData>("/api/battle-pass/current"),
     staleTime: 30_000,
   });
 
   const claimMutation = useMutation({
     mutationFn: ({ tier, isPremiumReward }: { tier: number; isPremiumReward?: boolean }) =>
-      apiFetch("/api/battle-pass/claim", { method: "POST", body: JSON.stringify({ tier, isPremiumReward, battlePassId: data?.seasonId }) }),
-    onSuccess: (res: any) => {
+      apiFetch<{ alreadyClaimed?: boolean; tokenReward?: number }>("/api/battle-pass/claim", { method: "POST", body: JSON.stringify({ tier, isPremiumReward, battlePassId: data?.seasonId }) }),
+    onSuccess: (res) => {
       if (res.alreadyClaimed) toast("Already claimed", "info");
       else toast(`Claimed! +${res.tokenReward ?? 0} Focus Tokens`, "success");
       qc.invalidateQueries({ queryKey: ["battle-pass-enhanced"] });
@@ -60,8 +83,8 @@ export default function BattlePassPage() {
   });
 
   const claimAllMutation = useMutation({
-    mutationFn: () => apiFetch("/api/battle-pass/claim-all", { method: "POST", body: JSON.stringify({ battlePassId: data?.seasonId }) }),
-    onSuccess: (res: any) => {
+    mutationFn: () => apiFetch<{ claimedCount: number }>("/api/battle-pass/claim-all", { method: "POST", body: JSON.stringify({ battlePassId: data?.seasonId }) }),
+    onSuccess: (res) => {
       toast(`Claimed ${res.claimedCount} rewards!`, "success");
       qc.invalidateQueries({ queryKey: ["battle-pass-enhanced"] });
     },
@@ -71,11 +94,11 @@ export default function BattlePassPage() {
   if (isLoading) return <div className="flex min-h-screen items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--brand-600)] border-t-transparent" /></div>;
   if (isError || !data) return <div className="p-8 text-center"><p className="text-sm text-[var(--foreground-muted)]">Battle pass unavailable</p><button onClick={() => void refetch()} className="mt-3 rounded-xl bg-[var(--brand-600)] px-4 py-2 text-xs font-bold text-white">Retry</button></div>;
 
-  const tiers = data.tiers ?? [];
-  const currentTier = data.progress?.currentTier ?? 0;
-  const seasonXp = data.progress?.seasonXp ?? 0;
-  const claimedFree = new Set(data.progress?.claimedFree ?? []);
-  const claimedPremium = new Set(data.progress?.claimedPremium ?? []);
+  const tiers = data?.tiers ?? [];
+  const currentTier = data?.progress?.currentTier ?? 0;
+  const seasonXp = data?.progress?.seasonXp ?? 0;
+  const claimedFree = new Set(data?.progress?.claimedFree ?? []);
+  const claimedPremium = new Set(data?.progress?.claimedPremium ?? []);
   const nextTier = tiers[currentTier];
   const xpForNext = nextTier?.xpRequired ?? seasonXp;
   const xpPrev = currentTier > 0 ? tiers[currentTier - 1]?.xpRequired ?? 0 : 0;
@@ -95,7 +118,7 @@ export default function BattlePassPage() {
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2"><Trophy size={18} className="shrink-0 text-[var(--palette-amber-400)]" /><span className="text-xs font-bold uppercase tracking-widest text-[var(--palette-amber-400)]">Season {data.seasonId}</span><span className="rounded-full bg-[var(--surface-1)] px-2 py-0.5 text-[11px]">{tiers.length} tiers • 28-30 days</span></div>
               <h1 className="mt-2 text-3xl font-semibold">Battle Pass</h1>
-              <p className="mt-1 flex items-center gap-1.5 text-xs text-[var(--foreground-muted)]"><Clock size={12} /><Countdown endsAt={data.countdown?.endsAt ?? data.endDate} graceEndsAt={data.countdown?.graceEndsAt ?? data.graceEndsAt} /></p>
+              <p className="mt-1 flex items-center gap-1.5 text-xs text-[var(--foreground-muted)]"><Clock size={12} /><Countdown endsAt={data.countdown?.endsAt ?? data.endDate ?? ""} graceEndsAt={data.countdown?.graceEndsAt ?? data.graceEndsAt} /></p>
               {data.inGracePeriod && <p className="mt-1 text-xs font-bold text-[var(--palette-amber-400)]">Grace period active — claim your rewards before they expire!</p>}
             </div>
             {/* Progress block: full-width left-aligned on mobile (the old fixed
@@ -135,7 +158,7 @@ export default function BattlePassPage() {
             <p className="text-[11px] text-[var(--foreground-subtle)]">Idempotent claims • Grace period 3 days • Preview on hover</p>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {tiers.map((t: any) => {
+            {tiers.map((t) => {
               const reached = currentTier >= t.tier;
               const freeClaimed = claimedFree.has(t.tier);
               const premClaimed = claimedPremium.has(t.tier);

@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useMemo, useState, useEffect } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
 import { QueryError } from "@/components/ui/QueryError";
@@ -47,26 +47,12 @@ export default function RoadmapPage() {
 
   const validPayload = useMemo(() => ({ goal, dailyHours, level, deadline: deadline || undefined, currentProgress: currentProgress || undefined }), [goal, dailyHours, level, deadline, currentProgress]);
 
-  const authHeaders = () => {
+  const authHeaders = useCallback(() => {
     const token = getToken();
     return { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-  };
+  }, []);
 
-  useEffect(() => {
-    if (authStatus !== "authenticated") return;
-    void fetchSavedList();
-  }, [authStatus]);
-
-  /**
-   * A failed load left `savedRoadmaps` empty, and since the "Saved Protocols"
-   * section renders only when the list has something in it, the whole section
-   * disappeared — no message, no retry, nothing. A user with five saved
-   * roadmaps saw none of them and no reason to think they still existed. The
-   * empty catch made it silent in the other direction too: a
-   * rejected request was indistinguishable from an empty list on our side as
-   * well, so nobody would ever have found out.
-   */
-  async function fetchSavedList() {
+  const fetchSavedList = useCallback(async () => {
     setLoadingList(true);
     setListError(false);
     try {
@@ -79,7 +65,24 @@ export default function RoadmapPage() {
     } finally {
       setLoadingList(false);
     }
-  }
+  }, [authHeaders]);
+
+  useEffect(() => {
+    if (authStatus !== "authenticated") return;
+    // Deferred a tick so the first setState isn't synchronous in the effect.
+    const t = setTimeout(() => void fetchSavedList(), 0);
+    return () => clearTimeout(t);
+  }, [authStatus, fetchSavedList]);
+
+  /**
+   * A failed load left `savedRoadmaps` empty, and since the "Saved Protocols"
+   * section renders only when the list has something in it, the whole section
+   * disappeared — no message, no retry, nothing. A user with five saved
+   * roadmaps saw none of them and no reason to think they still existed. The
+   * empty catch made it silent in the other direction too: a
+   * rejected request was indistinguishable from an empty list on our side as
+   * well, so nobody would ever have found out.
+   */
 
   async function generate() {
     setError(null);

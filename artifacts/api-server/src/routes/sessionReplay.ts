@@ -1,4 +1,4 @@
-import { Router } from "express";
+import express, { Router } from "express";
 import { db, focusSessionsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 import { extractUserId } from "./auth";
@@ -8,14 +8,15 @@ import { generateAi } from "../lib/aiProvider";
 
 const router = Router();
 
-function auth(req: any, res: any, next: any) {
+function auth(req: express.Request, res: express.Response, next: express.NextFunction) {
   const userId = extractUserId(req);
   if (!userId) { sendUnauthorized(res); return; }
   req.userId = userId;
   next();
 }
 
-router.get("/session-replay", auth, async (req: any, res) => {
+router.get("/session-replay", auth, async (req: express.Request, res) => {
+  if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
     const sessions = await db
       .select()
@@ -30,7 +31,8 @@ router.get("/session-replay", auth, async (req: any, res) => {
   }
 });
 
-router.post("/session-replay/:id/caption", auth, async (req: any, res) => {
+router.post("/session-replay/:id/caption", auth, async (req: express.Request, res) => {
+  if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
     const [session] = await db
       .select()

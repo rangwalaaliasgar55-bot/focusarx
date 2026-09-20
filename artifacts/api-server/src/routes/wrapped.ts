@@ -1,4 +1,4 @@
-import { Router } from "express";
+import express, { Router } from "express";
 import { db, focusSessionsTable, tasksTable, userWalletsTable, studyStreaksTable, wrappedSnapshotsTable, userBadgesTable } from "@workspace/db";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { extractUserId } from "./auth";
@@ -9,7 +9,7 @@ import { sendUnauthorized } from "../lib/httpErrors";
 
 const router = Router();
 
-function authMiddleware(req: any, res: any, next: any) {
+function authMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
   const userId = extractUserId(req);
   if (!userId) { sendUnauthorized(res); return; }
   req.userId = userId;
@@ -30,7 +30,8 @@ function getDateRange(period: string, periodType: string) {
   }
 }
 
-router.get("/wrapped/:period", authMiddleware, async (req: any, res) => {
+router.get("/wrapped/:period", authMiddleware, async (req: express.Request, res) => {
+  if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   const { period } = req.params as { period: string };
   const periodType = period.includes("-") ? "monthly" : "yearly";
 

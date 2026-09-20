@@ -15,8 +15,84 @@ import { BLUR_IN, STAGGER, STAGGER_CHILD } from "@/lib/animations";
  * auth, silent token refresh and a human-readable error message (the old
  * local helper threw the raw response body, so toasts showed JSON blobs).
  */
-function apiFetch<T = any>(path: string, opts?: RequestInit): Promise<T> {
+function apiFetch<T = unknown>(path: string, opts?: RequestInit): Promise<T> {
   return apiJson<T>(path, opts);
+}
+
+// ── API models (shapes returned by /api/social/*, /api/feed, /api/posts) ──────
+interface SocialUser {
+  id: string;
+  name: string;
+  level?: number;
+  xp?: number;
+  streak?: number;
+  isAdmin?: boolean;
+}
+
+interface Friend extends SocialUser {
+  isStudying?: boolean;
+  studyStartedAt?: string | null;
+  studyingFor?: number;
+}
+
+interface LeaderboardEntry extends SocialUser {
+  userId: string;
+  isMe?: boolean;
+}
+
+interface PostAuthor {
+  name?: string;
+  level?: number;
+  isAdmin?: boolean;
+}
+
+interface PostMetadata {
+  icon?: string;
+  title?: string;
+  description?: string;
+}
+
+interface Post {
+  id: string;
+  userId?: string;
+  content: string;
+  type?: string;
+  createdAt?: string;
+  commentCount?: number;
+  totalReactions?: number;
+  reactionCounts?: Record<string, number>;
+  myReaction?: string | null;
+  isSaved?: boolean;
+  author?: PostAuthor;
+  metadata?: PostMetadata;
+}
+
+interface PostComment {
+  id: string;
+  content: string;
+  createdAt: string;
+  author?: PostAuthor;
+  authorName?: string;
+  isAdmin?: boolean;
+}
+
+interface FriendRequest {
+  id: string;
+  otherUser?: { name?: string; email?: string };
+}
+
+interface FriendRequests {
+  incoming?: FriendRequest[];
+  outgoing?: FriendRequest[];
+}
+
+interface ActivityItem {
+  id: string;
+  type: string;
+  userName?: string;
+  isAdmin?: boolean;
+  userLevel?: number;
+  data?: { durationMin?: number; badgeId?: string };
 }
 
 function Avatar({ name, size = 36, level }: { name: string; size?: number, level?: number }) {
@@ -48,9 +124,13 @@ function IdentityBadges({ isAdmin, className = "" }: { isAdmin?: boolean; classN
   );
 }
 
-function FriendCard({ friend }: { friend: any }) {
+function FriendCard({ friend }: { friend: Friend }) {
+  // Frozen once per mount: render must not read the clock (react-hooks/purity),
+  // and a "12m in deep work" label that re-derives on every parent render only
+  // flickers. The card remounts whenever the friends query refetches.
+  const [now] = useState(() => Date.now());
   const focusMinutes = friend.isStudying && friend.studyStartedAt
-    ? Math.floor((Date.now() - new Date(friend.studyStartedAt).getTime()) / 60000)
+    ? Math.max(0, Math.floor((now - new Date(friend.studyStartedAt).getTime()) / 60000))
     : (friend.studyingFor ?? 0);
 
   return (
@@ -75,7 +155,7 @@ function FriendCard({ friend }: { friend: any }) {
              {focusMinutes > 0 ? `${focusMinutes}m In deep work` : "Initializing..."}
           </p>
         ) : (
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">LV.{friend.level} · {friend.xp.toLocaleString()} XP</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">LV.{friend.level} · {(friend.xp ?? 0).toLocaleString()} XP</p>
         )}
       </div>
       <div className="text-right shrink-0">
@@ -85,7 +165,7 @@ function FriendCard({ friend }: { friend: any }) {
   );
 }
 
-function LeaderboardTable({ data, followingIds, onFollow, followBusy }: { data: any[]; followingIds?: Set<string>; onFollow?: (userId: string) => void; followBusy?: boolean }) {
+function LeaderboardTable({ data, followingIds, onFollow, followBusy }: { data: LeaderboardEntry[]; followingIds?: Set<string>; onFollow?: (userId: string) => void; followBusy?: boolean }) {
   const medals = ["🥇", "🥈", "🥉"];
   return (
     <div className="space-y-2">
@@ -103,10 +183,10 @@ function LeaderboardTable({ data, followingIds, onFollow, followBusy }: { data: 
               <IdentityBadges isAdmin={e.isAdmin} />
               {e.isMe && <span className="text-[var(--brand-400)]">(You)</span>}
             </p>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">LV.{e.level} · {e.streak}d STREAK</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">LV.{e.level} · {e.streak ?? 0}d STREAK</p>
           </div>
           <div className="text-right shrink-0">
-             <p className="text-sm font-semibold text-[var(--brand-400)] tabular-nums">{e.xp.toLocaleString()}</p>
+             <p className="text-sm font-semibold text-[var(--brand-400)] tabular-nums">{(e.xp ?? 0).toLocaleString()}</p>
              <p className="text-[11px] font-semibold text-[var(--foreground-subtle)] uppercase tracking-widest">Points</p>
           </div>
           {!e.isMe && onFollow && (
@@ -138,7 +218,7 @@ const REACTIONS = [
   { key: "love", emoji: "❤️", label: "Love" },
 ];
 
-function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted, onFollow, isFollowed }: { post: any; currentUserId: string; onReacted: () => void; onSaved: () => void; onDeleted: () => void; onFollow?: (userId: string) => void; isFollowed?: boolean }) {
+function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted, onFollow, isFollowed }: { post: Post; currentUserId: string; onReacted: () => void; onSaved: () => void; onDeleted: () => void; onFollow?: (userId: string) => void; isFollowed?: boolean }) {
   const { toast } = useToast();
   const [showComments, setShowComments] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
@@ -152,7 +232,7 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted, onFollow
 
   const save = useMutation({
     mutationFn: () => apiFetch(`/api/posts/${post.id}/save`, { method: "POST" }),
-    onSuccess: (r: any) => { toast(r?.saved ? "Saved" : "Removed from saved", "info"); onSaved(); },
+    onSuccess: (r: { saved?: boolean } | undefined) => { toast(r?.saved ? "Saved" : "Removed from saved", "info"); onSaved(); },
   });
   const confirmDialog = useConfirm();
   const del = useMutation({
@@ -160,9 +240,9 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted, onFollow
     onSuccess: onDeleted,
   });
 
-  const { data: comments = [], refetch: refetchComments } = useQuery({
+  const { data: comments = [], refetch: refetchComments } = useQuery<PostComment[]>({
     queryKey: ["post-comments", post.id],
-    queryFn: () => apiFetch(`/api/posts/${post.id}/comments`),
+    queryFn: () => apiFetch<PostComment[]>(`/api/posts/${post.id}/comments`),
     enabled: showComments,
     staleTime: 30_000,
   });
@@ -173,8 +253,10 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted, onFollow
     onError: (e: unknown) => toast(errorMessage(e), "error"),
   });
 
+  // Same frozen-clock pattern as FriendCard: stable labels, pure render.
+  const [now] = useState(() => Date.now());
   const timeAgo = (date: string) => {
-    const diff = Date.now() - new Date(date).getTime();
+    const diff = now - new Date(date).getTime();
     if (diff < 60000) return "just now";
     if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
     if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
@@ -183,7 +265,7 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted, onFollow
 
   const totalReactions = post.totalReactions || 0;
   const dominantReaction = totalReactions > 0
-    ? REACTIONS.find(r => r.key === Object.entries(post.reactionCounts || {}).sort((a: any, b: any) => b[1] - a[1])[0]?.[0])
+    ? REACTIONS.find(r => r.key === Object.entries(post.reactionCounts || {}).sort((a, b) => b[1] - a[1])[0]?.[0])
     : null;
 
   return (
@@ -206,7 +288,7 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted, onFollow
                 <span className="rounded-full bg-[var(--palette-white)]/5 px-2.5 py-1 text-[11px] font-semibold text-[var(--foreground-subtle)]" title="You follow this learner">Following</span>
               ) : (
                 <button
-                  onClick={() => onFollow(post.userId)}
+                  onClick={() => post.userId && onFollow(post.userId)}
                   aria-label={`Follow ${post.author?.name || "this learner"}`}
                   className="rounded-full border border-[var(--brand-teal)]/30 bg-[var(--brand-teal)]/10 px-2.5 py-1 text-[11px] font-semibold text-[var(--brand-teal)] transition-all hover:bg-[var(--brand-teal)]/20 hover:scale-105 active:scale-95"
                 >
@@ -291,13 +373,13 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted, onFollow
                 </button>
               </div>
               <div className="space-y-4 max-h-64 overflow-y-auto pr-2 scrollbar-none">
-                {comments.map((c: any) => (
+                {comments.map((c: PostComment) => (
                   <div key={c.id} className="flex gap-3">
                     <Avatar name={c.author?.name || c.authorName || "U"} size={28} />
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-0.5">
                         <p className="text-xs font-bold text-[var(--palette-white)]">{c.author?.name || c.authorName || "User"}</p>
-                        <IdentityBadges isAdmin={c.author?.isAdmin ?? (c as any).isAdmin} />
+                        <IdentityBadges isAdmin={c.author?.isAdmin ?? c.isAdmin} />
                         <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">{timeAgo(c.createdAt)}</p>
                       </div>
                       <p className="text-xs text-[var(--palette-zinc-400)] leading-relaxed">{c.content}</p>
@@ -322,9 +404,9 @@ export default function SocialPage() {
   const [search, setSearch] = useState("");
   const [newPost, setNewPost] = useState("");
 
-  const { data: feedData, isLoading: postsLoading, refetch: refetchPosts } = useQuery({
+  const { data: feedData, isLoading: postsLoading, refetch: refetchPosts } = useQuery<Post[] | { posts?: Post[] }>({
     queryKey: ["posts", tab],
-    queryFn: () => apiFetch(tab === "feed" ? "/api/feed?type=discover&limit=30" : "/api/feed?type=following&limit=30"),
+    queryFn: () => apiFetch<Post[] | { posts?: Post[] }>(tab === "feed" ? "/api/feed?type=discover&limit=30" : "/api/feed?type=following&limit=30"),
     enabled: tab === "feed",
     staleTime: 60_000,
   });
@@ -340,42 +422,42 @@ export default function SocialPage() {
 
   const { data: searchResults = [] } = useQuery({
     queryKey: ["user-search", search],
-    queryFn: () => apiFetch(`/api/social/search?q=${encodeURIComponent(search)}`),
+    queryFn: () => apiFetch<SocialUser[]>(`/api/social/search?q=${encodeURIComponent(search)}`),
     enabled: search.length > 2,
   });
 
   const { data: friends = [], isLoading: friendsLoading } = useQuery({
-    queryKey: ["friends"], queryFn: () => apiFetch("/api/social/friends"),
+    queryKey: ["friends"], queryFn: () => apiFetch<Friend[]>("/api/social/friends"),
     enabled: tab === "friends" || tab === "feed",
   });
 
   const { data: requests = { incoming: [], outgoing: [] } } = useQuery({
-    queryKey: ["friend-requests"], queryFn: () => apiFetch("/api/social/requests"),
+    queryKey: ["friend-requests"], queryFn: () => apiFetch<FriendRequests>("/api/social/requests"),
     enabled: tab === "requests",
   });
 
   const { data: leaderboard = [] } = useQuery({
-    queryKey: ["social-leaderboard", period], queryFn: () => apiFetch(`/api/social/leaderboard?period=${period === "alltime" ? "total" : period}&scope=global`),
+    queryKey: ["social-leaderboard", period], queryFn: () => apiFetch<LeaderboardEntry[]>(`/api/social/leaderboard?period=${period === "alltime" ? "total" : period}&scope=global`),
     enabled: tab === "leaderboard",
   });
 
   const { data: activity = [] } = useQuery({
-    queryKey: ["friends-activity"], queryFn: () => apiFetch("/api/social/activity"),
+    queryKey: ["friends-activity"], queryFn: () => apiFetch<ActivityItem[]>("/api/social/activity"),
     enabled: tab === "activity",
   });
 
   // /api/social/following and /followers return flat arrays. Both load on any
   // tab so the header can show X/Instagram-style counts and every user row can
   // tell whether you already follow that person (follow vs. following state).
-  const { data: following = [], isLoading: followingLoading } = useQuery<any[]>({
-    queryKey: ["following-data"], queryFn: () => apiFetch("/api/social/following"),
+  const { data: following = [], isLoading: followingLoading } = useQuery<SocialUser[]>({
+    queryKey: ["following-data"], queryFn: () => apiFetch<SocialUser[]>("/api/social/following"),
     staleTime: 60_000,
   });
-  const { data: followers = [] } = useQuery<any[]>({
-    queryKey: ["followers-data"], queryFn: () => apiFetch("/api/social/followers"),
+  const { data: followers = [] } = useQuery<SocialUser[]>({
+    queryKey: ["followers-data"], queryFn: () => apiFetch<SocialUser[]>("/api/social/followers"),
     staleTime: 60_000,
   });
-  const followingIds = new Set((following as any[]).map((u) => u?.id));
+  const followingIds = new Set(following.map((u) => u?.id));
 
   const sendRequest = useMutation({
     mutationFn: (userId: string) => apiFetch("/api/social/requests", { method: "POST", body: JSON.stringify({ toUserId: userId }) }),
@@ -407,8 +489,8 @@ export default function SocialPage() {
     onSuccess: () => { toast("Request cancelled", "info"); qc.invalidateQueries({ queryKey: ["friend-requests"] }); },
   });
 
-  const incoming: any[] = requests.incoming || [];
-  const outgoing: any[] = requests.outgoing || [];
+  const incoming: FriendRequest[] = requests.incoming || [];
+  const outgoing: FriendRequest[] = requests.outgoing || [];
 
   return (
     <PageTransition>
@@ -450,7 +532,7 @@ export default function SocialPage() {
                 {searchResults.length === 0 ? (
                   <p className="text-center py-6 text-xs font-semibold uppercase text-[var(--foreground-subtle)] tracking-widest">No users found</p>
                 ) : (
-                  searchResults.map((u: any) => (
+                  searchResults.map((u: SocialUser) => (
                     <div key={u.id} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-[var(--palette-white)]/5 transition-all">
                       <Avatar name={u.name} level={u.level} />
                       <div className="flex-1 min-w-0">
@@ -484,7 +566,7 @@ export default function SocialPage() {
             { id: "following", label: "Network", icon: <Check size={14} /> },
             { id: "requests", label: "Connects", icon: <Bell size={14} />, badge: incoming.length },
           ].map(t => (
-            <button key={t.id} onClick={() => setTab(t.id as any)}
+            <button key={t.id} onClick={() => setTab(t.id as "feed" | "friends" | "requests" | "leaderboard" | "following" | "activity")}
               className={`flex-1 min-w-fit flex items-center justify-center gap-2 rounded-2xl py-3 px-4 text-[11px] font-semibold uppercase tracking-widest transition-all ${tab === t.id ? "bg-[var(--brand-teal)] text-[var(--palette-black)] shadow-lg shadow-[var(--brand-teal)]/20" : "text-[var(--foreground-subtle)] hover:bg-[var(--palette-white)]/5 hover:text-[var(--palette-white)]"}`}>
               {t.icon} {t.label}
               {(t.badge ?? 0) > 0 && <span className="rounded-full bg-[var(--palette-red-500)] text-[var(--palette-white)] w-4 h-4 flex items-center justify-center text-[11px] animate-bounce">{t.badge}</span>}
@@ -525,14 +607,14 @@ export default function SocialPage() {
                {postsLoading ? (
                  <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-48 animate-pulse rounded-[32px] bg-[var(--palette-white)]/[0.01] border border-[var(--border)]" />)}</div>
                ) : (
-                 posts.map((p: any) => <PostCard key={p.id} post={p} currentUserId={session?.user?.id || ""} onReacted={() => refetchPosts()} onSaved={() => refetchPosts()} onDeleted={() => refetchPosts()} onFollow={(id) => followUser.mutate(id)} isFollowed={followingIds.has(p.userId)} />)
+                 posts.map((p: Post) => <PostCard key={p.id} post={p} currentUserId={session?.user?.id || ""} onReacted={() => refetchPosts()} onSaved={() => refetchPosts()} onDeleted={() => refetchPosts()} onFollow={(id) => followUser.mutate(id)} isFollowed={followingIds.has(p.userId ?? "")} />)
                )}
             </motion.div>
           )}
 
           {tab === "friends" && (
             <motion.div key="friends" variants={STAGGER} initial="initial" animate="animate" className="grid gap-4 sm:grid-cols-2">
-               {friendsLoading ? <div className="col-span-full py-20 flex justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--brand-teal)] border-t-transparent" /></div> : friends.map((f: any) => <FriendCard key={f.id} friend={f} />)}
+               {friendsLoading ? <div className="col-span-full py-20 flex justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--brand-teal)] border-t-transparent" /></div> : friends.map((f: Friend) => <FriendCard key={f.id} friend={f} />)}
                {!friendsLoading && friends.length === 0 && <div className="col-span-full py-32 text-center opacity-30"><Users size={48} className="mx-auto mb-6" /><p className="text-sm font-semibold uppercase tracking-widest">No friends yet</p></div>}
             </motion.div>
           )}
@@ -550,7 +632,7 @@ export default function SocialPage() {
 
           {tab === "activity" && (
             <motion.div key="activity" variants={STAGGER} initial="initial" animate="animate" className="space-y-4">
-               {activity.map((a: any) => (
+               {activity.map((a: ActivityItem) => (
                   <motion.div variants={STAGGER_CHILD} key={a.id} className="rounded-2xl border border-[var(--border)] bg-[var(--palette-white)]/[0.01] p-5 flex items-center justify-between glass group">
                      <div className="flex items-center gap-4">
                         <div className="text-2xl h-12 w-12 rounded-xl bg-[var(--palette-white)]/5 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -579,7 +661,7 @@ export default function SocialPage() {
                 <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">Incoming · {incoming.length}</h2>
                 {incoming.length === 0 ? (
                   <p className="rounded-2xl border border-[var(--border)] p-6 text-center text-sm text-[var(--foreground-subtle)]">No pending requests.</p>
-                ) : incoming.map((r: any) => (
+                ) : incoming.map((r: FriendRequest) => (
                   <motion.div variants={STAGGER_CHILD} key={r.id} className="mb-2 flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--palette-white)]/[0.01] p-4 glass">
                     <Avatar name={r.otherUser?.name || "User"} />
                     <div className="min-w-0 flex-1">
@@ -595,7 +677,7 @@ export default function SocialPage() {
                 <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">Sent · {outgoing.length}</h2>
                 {outgoing.length === 0 ? (
                   <p className="rounded-2xl border border-[var(--border)] p-6 text-center text-sm text-[var(--foreground-subtle)]">Search above to send a request.</p>
-                ) : outgoing.map((r: any) => (
+                ) : outgoing.map((r: FriendRequest) => (
                   <motion.div variants={STAGGER_CHILD} key={r.id} className="mb-2 flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--palette-white)]/[0.01] p-4 glass">
                     <Avatar name={r.otherUser?.name || "User"} />
                     <div className="min-w-0 flex-1">
@@ -619,7 +701,7 @@ export default function SocialPage() {
                     <div className="flex justify-center py-20"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--brand-teal)] border-t-transparent" /></div>
                   ) : following.length === 0 ? (
                     <div className="py-16 text-center opacity-30"><Check size={40} className="mx-auto mb-4" /><p className="text-sm font-semibold uppercase tracking-widest">You are not following anyone yet</p><p className="mt-2 text-xs text-[var(--foreground-subtle)]">Find learners on the leaderboard or public feed.</p></div>
-                  ) : following.map((u: any) => (
+                  ) : following.map((u: SocialUser) => (
                     <motion.div variants={STAGGER_CHILD} key={u.id} className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--palette-white)]/[0.01] p-4 glass">
                       <Avatar name={u.name} level={u.level} />
                       <div className="min-w-0 flex-1">
@@ -639,7 +721,7 @@ export default function SocialPage() {
                   <p className="rounded-2xl border border-[var(--border)] p-6 text-center text-sm text-[var(--foreground-subtle)]">No followers yet — post in the public feed to get noticed.</p>
                 ) : (
                   <div className="space-y-2">
-                    {[...followers].sort((a: any, b: any) => Number(b.level ?? 0) - Number(a.level ?? 0)).map((u: any, i: number) => (
+                    {[...followers].sort((a, b) => Number(b.level ?? 0) - Number(a.level ?? 0)).map((u: SocialUser, i: number) => (
                       <motion.div variants={STAGGER_CHILD} key={u.id} className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--palette-white)]/[0.01] p-4 glass">
                         <Avatar name={u.name} level={u.level} />
                         <div className="min-w-0 flex-1">

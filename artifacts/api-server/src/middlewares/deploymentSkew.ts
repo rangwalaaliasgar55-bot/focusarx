@@ -153,7 +153,7 @@ export function deploymentSkewGuard(req: Request, res: Response, next: NextFunct
       method: req.method,
       path: req.path,
       idempotent,
-      requestId: (req as any).id,
+      requestId: req.id,
     },
     "deployment skew detected — blocking mutation"
   );
@@ -173,7 +173,7 @@ export function deploymentSkewGuard(req: Request, res: Response, next: NextFunct
       hint: idempotent
         ? "This request is idempotent and will be automatically retried after refresh."
         : "Refresh the page to load the latest version. Your unsaved work will be preserved.",
-      requestId: (req as any).id,
+      requestId: req.id,
     },
   });
 }

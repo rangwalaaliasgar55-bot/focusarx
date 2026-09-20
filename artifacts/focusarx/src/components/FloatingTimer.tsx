@@ -40,13 +40,18 @@ export default function FloatingTimer() {
     return () => clearInterval(id);
   }, []);
 
+  // Interpolate remaining time from the last server checkpoint. Frozen per
+  // mount (render must not read the clock); the component remounts with the
+  // session row, so the interpolation stays fresh enough for a stale check.
+  const [driftedMs] = useState(() => {
+    const s = query.data?.session;
+    return s ? Date.now() - new Date(s.updatedAt).getTime() : Number.MAX_SAFE_INTEGER;
+  });
+
   if (status !== "authenticated" || location === "/" || query.isError) return null;
 
   const session = query.data?.session;
   if (!session || session.mode !== "focus" || session.timerStatus !== "running") return null;
-
-  // Interpolate remaining time from the last server checkpoint.
-  const driftedMs = Date.now() - new Date(session.updatedAt).getTime();
   if (driftedMs > 2 * 60 * 60 * 1000) return null; // stale row — ignore
   const remaining = Math.round((session.secondsLeft ?? 0) - driftedMs / 1000);
   if (remaining <= 0) return null;

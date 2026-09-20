@@ -69,7 +69,9 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
     }
   });
   const persistKeyRef = useRef(options.persistKey ?? null);
-  persistKeyRef.current = options.persistKey ?? null;
+  useEffect(() => {
+    persistKeyRef.current = options.persistKey ?? null;
+  }, [options.persistKey]);
 
   const [mode, setMode] = useState<TimerMode>(() => restored?.mode ?? "focus");
   const [status, setStatus] = useState<TimerStatus>(() => restored?.status ?? "idle");
@@ -90,7 +92,7 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
       if (m === "longBreak") return customConfigs.longBreakDuration ?? config.longBreakDuration;
       return customConfigs.breakDuration ?? config.breakDuration;
     },
-    [config, customConfigs]
+    [config.focusDuration, config.longBreakDuration, config.breakDuration, customConfigs]
   );
 
   const [secondsLeft, setSecondsLeft] = useState(() => restored?.secondsLeft ?? getDuration("focus"));
@@ -284,7 +286,9 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
   }, [clearDeadline]);
 
   const pauseRef = useRef(pause);
-  pauseRef.current = pause;
+  useEffect(() => {
+    pauseRef.current = pause;
+  }, [pause]);
 
   useEffect(() => {
     if (status !== "running") return;
@@ -388,7 +392,7 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
       activeSecondsRef.current = 0;
       lastTickRef.current = null;
     },
-    [clearDeadline, config.focusDuration, getDuration, publishScene]
+    [clearDeadline, getDuration, publishScene]
   );
 
   const skipToNext = useCallback(() => {

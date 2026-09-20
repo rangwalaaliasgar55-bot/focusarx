@@ -15,7 +15,9 @@ import {
 import { and, eq, gte, sql, desc } from "drizzle-orm";
 import { logger } from "./logger";
 
-type DbOrTx = any;
+type DbOrTx =
+  | typeof db
+  | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export type TransactionType = "earn" | "spend" | "refund" | "admin_grant" | "adjustment" | "expiration";
 export type TokenSource =
@@ -145,9 +147,9 @@ export async function earnTokens(
   } catch {}
 
   // Transactional mint
-  return await (tx ? Promise.resolve(tx) : db.transaction(async (trx) => {
-    return await earnTokensInner(userId, source, amount, idempotencyKey, meta, trx);
-  })) as any;
+  return tx
+    ? earnTokensInner(userId, source, amount, idempotencyKey, meta, tx)
+    : db.transaction((trx) => earnTokensInner(userId, source, amount, idempotencyKey, meta, trx));
 
   // If tx provided, run inner directly
   // Note: when tx is provided, caller is responsible for transaction wrapper
@@ -203,9 +205,10 @@ async function earnTokensInner(
 
     logger.info({ userId, source, amount, balanceAfter }, "tokens earned");
     return { balanceAfter, ledgerId: entry.id };
-  } catch (err: any) {
+  } catch (err) {
     // If duplicate idempotency key, fetch existing
-    if (err?.code === "23505" || err?.message?.includes("duplicate") || err?.message?.includes("unique")) {
+    const e = err as { code?: string; message?: string };
+    if (e?.code === "23505" || e?.message?.includes("duplicate") || e?.message?.includes("unique")) {
       const [existing] = await trx.select().from(tokenLedgerTable).where(eq(tokenLedgerTable.idempotencyKey, idempotencyKey)).limit(1);
       if (existing) {
         return { balanceAfter: existing.balanceAfter, ledgerId: existing.id };
@@ -286,8 +289,9 @@ async function spendTokensInner(
 
     logger.info({ userId, source, amount, balanceAfter }, "tokens spent");
     return { balanceAfter, ledgerId: entry.id };
-  } catch (err: any) {
-    if (err?.code === "23505" || err?.message?.includes("duplicate")) {
+  } catch (err) {
+    const dup = err as { code?: string; message?: string };
+    if (dup.code === "23505" || dup.message?.includes("duplicate")) {
       const [existing] = await trx.select().from(tokenLedgerTable).where(eq(tokenLedgerTable.idempotencyKey, idempotencyKey)).limit(1);
       if (existing) {
         return { balanceAfter: existing.balanceAfter, ledgerId: existing.id };

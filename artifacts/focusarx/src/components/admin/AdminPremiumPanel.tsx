@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { RefreshCw, CheckCircle, AlertTriangle } from "lucide-react";
 import { Badge, LoadingState, MotionTab, SectionHeader, adminFetch } from "./AdminHelpers";
 import type { AdminPanelProps, AdminUser } from "./AdminTypes";
@@ -10,18 +10,22 @@ export function AdminPremiumPanel({ authHeaders }: AdminPanelProps) {
   const [granting, setGranting] = useState(false);
   const [grantResult, setGrantResult] = useState<string | null>(null);
 
-  useEffect(() => { loadUsers(); }, []);
-
-  async function loadUsers() {
+  const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
       const r = await adminFetch("/api/admin/users", { headers: authHeaders(), credentials: "include" });
       if (r.ok) {
         const d = await r.json();
-        setUsers((d.users ?? []).filter((u: any) => u.role !== "guest"));
+        setUsers(((d.users ?? []) as AdminUser[]).filter((u) => u.role !== "guest"));
       }
     } finally { setLoading(false); }
-  }
+  }, [authHeaders]);
+
+  // Deferred a tick so the first setState isn't synchronous in the effect.
+  useEffect(() => {
+    const t = setTimeout(() => void loadUsers(), 0);
+    return () => clearTimeout(t);
+  }, [loadUsers]);
 
   async function grantPremium() {
     if (!grantId) return;
@@ -35,14 +39,11 @@ export function AdminPremiumPanel({ authHeaders }: AdminPanelProps) {
       });
       if (r.ok) { setGrantResult("Premium granted for 30 days!"); loadUsers(); }
       else { const d = await r.json(); setGrantResult("Error: " + (d.error ?? "Unknown")); }
-    } catch (e: any) { setGrantResult("Error: " + e.message); }
+    } catch (e) { setGrantResult("Error: " + (e instanceof Error ? e.message : "Failed")); }
     finally { setGranting(false); }
   }
 
-  const premiumCount = users.filter((u) => {
-    const sub = (u as any).premiumUntil;
-    return sub && new Date(sub) > new Date();
-  }).length;
+  const premiumCount = users.filter((u) => Boolean(u.premiumUntil && new Date(u.premiumUntil) > new Date())).length;
 
   return (
     <MotionTab>

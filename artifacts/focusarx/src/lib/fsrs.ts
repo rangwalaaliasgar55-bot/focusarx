@@ -230,10 +230,16 @@ export function getDueCards(cards: CardState[], now: Date = new Date()): CardSta
   return cards.filter(card => card.dueDate <= now);
 }
 
+/** JSON-safe shape of a CardState (dates as ISO strings). */
+export interface SerializedCardState extends Omit<CardState, "lastReview" | "dueDate"> {
+  lastReview: string | null;
+  dueDate: string;
+}
+
 /**
  * Serialize card state for storage
  */
-export function serializeCard(card: CardState): any {
+export function serializeCard(card: CardState): SerializedCardState {
   return {
     ...card,
     lastReview: card.lastReview?.toISOString() ?? null,
@@ -244,7 +250,7 @@ export function serializeCard(card: CardState): any {
 /**
  * Deserialize card state from storage
  */
-export function deserializeCard(data: any): CardState {
+export function deserializeCard(data: SerializedCardState): CardState {
   return {
     ...data,
     lastReview: data.lastReview ? new Date(data.lastReview) : null,

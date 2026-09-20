@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { Save, X, Plus, Pencil, Trash2, RefreshCw } from "lucide-react";
 import { Badge, EmptyState, LoadingState, MotionTab, SectionHeader, adminFetch } from "./AdminHelpers";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
@@ -24,15 +24,19 @@ export function AdminMarketplacePanel({ authHeaders }: AdminPanelProps) {
   const [form, setForm] = useState<Partial<MarketplaceItem>>({});
   const [addMode, setAddMode] = useState(false);
 
-  useEffect(() => { load(); }, []);
-
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const r = await adminFetch("/api/admin/cms/marketplace", { headers: authHeaders(), credentials: "include" });
       if (r.ok) { const d = await r.json(); setItems(d.items ?? []); }
     } finally { setLoading(false); }
-  }
+  }, [authHeaders]);
+
+  // Deferred a tick so the first setState isn't synchronous in the effect.
+  useEffect(() => {
+    const t = setTimeout(() => void load(), 0);
+    return () => clearTimeout(t);
+  }, [load]);
 
   async function saveItem(isNew: boolean) {
     const url = isNew ? "/api/admin/cms/marketplace" : `/api/admin/cms/marketplace/${form.id}`;

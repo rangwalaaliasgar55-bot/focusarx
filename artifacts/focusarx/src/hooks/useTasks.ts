@@ -1,5 +1,5 @@
 
-import { useCallback } from "react";
+import { useMemo, useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { generateId } from "@/lib/timerUtils";
 import { apiJson, apiFetch } from "@/lib/api";
@@ -20,7 +20,7 @@ export function useTasks() {
     queryFn: async () => (await apiJson<{ tasks: ServerTask[] }>("/api/tasks")).tasks.map(toTask),
     refetchInterval: refreshEvery,
   });
-  const tasks = query.data ?? [];
+  const tasks = useMemo(() => query.data ?? [], [query.data]);
   const invalidateRelated = useCallback(() => {
     void qc.invalidateQueries({ queryKey: key });
     void qc.invalidateQueries({ queryKey: ["dashboard-stats"] });

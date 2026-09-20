@@ -42,7 +42,7 @@ export type MarketplaceItem = {
 export type LootBoxType = {
   id: string; name: string; description: string; coinCost: number;
   rarity: string; icon: string; glowColor: string; sessionsRequired: number;
-  possibleRewards: any[];
+  possibleRewards: Array<{ name?: string; kind?: string; amount?: number }>;
 };
 
 export type QuestDef = {
@@ -91,3 +91,21 @@ export interface AdminPanelProps {
   authHeaders: () => Record<string, string>;
   onDataChanged?: () => void;
 }
+
+/** Payload of /api/admin/retention (AdminRetentionPanel + admin overview). */
+export type RetentionData = {
+  loginRewards?: { totalClaims?: number; usersWithClaims?: number; avgStreak?: number };
+  streakFreeze?: { totalTokensGiven?: number; totalTokensUsed?: number; usersWithTokens?: number };
+  notifications?: { total?: number; unread?: number } | null;
+  cohorts?: {
+    dau?: number; wau?: number; mau?: number; stickiness?: number;
+    activated?: number; activationRate?: number; signedUp?: number; signedUp7d?: number;
+    activated7d?: number; returned7d?: number;
+    atRisk?: number; dormant?: number; returning?: number; returningShare?: number;
+    healthyStreaks?: number; endangeredStreaks?: number;
+  };
+  battlePass?: {
+    totalUsers?: number; premiumCount?: number; avgSeasonXp?: number; avgTier?: number;
+    tierDistribution?: Array<{ tier: number; count: number }>;
+  };
+};

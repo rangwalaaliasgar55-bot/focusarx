@@ -97,11 +97,10 @@ export function FocusCamera({ className = "" }: FocusCameraProps) {
   const releaseCamera = useCallback(() => {
     stopMediaStream(streamRef.current);
     streamRef.current = null;
+    // Only stop the tracks; the webcam element is owned by useWebcam, and
+    // writing into its DOM node from here fought the hook's own lifecycle.
     const video = webcamRef.current?.video;
-    if (video?.srcObject) {
-      stopMediaStream(video.srcObject as MediaStream);
-      video.srcObject = null;
-    }
+    if (video?.srcObject) stopMediaStream(video.srcObject as MediaStream);
   }, []);
 
   const handleEnable = useCallback(async () => {
