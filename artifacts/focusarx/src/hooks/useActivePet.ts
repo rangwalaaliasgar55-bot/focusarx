@@ -78,10 +78,12 @@ export async function fetchActivePet(): Promise<ActivePet | null> {
     /* ignore */
   }
 
-  // Fallback starter companion if user has not yet adopted a pet
+  // Fallback starter companion if user has not yet adopted a pet. Bulbasaur
+  // has bundled artwork on every surface, so a guest never sees the historic
+  // owl/plant placeholder while the catalog request is still unavailable.
   return {
-    slug: "owl",
-    name: "Sage Owl",
+    slug: "bulbasaur",
+    name: "Bulbasaur",
     level: 1,
     category: "starter",
   };

@@ -34,6 +34,7 @@ import {
 } from "../lib/sessionStateMachine";
 import { deriveActiveSessionTiming, reconcileActiveSessionSync } from "../lib/activeSessionTiming";
 import { serializeFocusTimeline } from "../lib/focusTimeline";
+import { ensureDefaultLootBoxTypes } from "../lib/lootBoxCatalog";
 
 async function maybeDropLootBox(userId: string, sessionCount: number): Promise<boolean> {
   try {
@@ -44,6 +45,7 @@ async function maybeDropLootBox(userId: string, sessionCount: number): Promise<b
     else if (sessionCount >= 50) boxTypeId = "lb-r-1";
     else if (sessionCount >= 20) boxTypeId = "lb-u-1";
     else boxTypeId = "lb-c-1";
+    await ensureDefaultLootBoxTypes();
     await db.insert(userLootBoxesTable).values({
       userId,
       boxTypeId,
@@ -138,7 +140,10 @@ const sessionSchema = z.object({
   sessionStatus: z.enum(["completed", "completed_early", "cancelled"]).optional().default("completed"),
   focusScore: z.number().min(0).max(100).nullable().optional(),
   focusQuality: z.string().max(20).nullable().optional(),
-  stabilityRating: z.number().min(0).max(100).nullable().optional(),
+  // Older clients sent a numeric score; the current focus monitor stores the
+  // human-readable enum used by the dashboard. Accept both while persisting
+  // the text column so a completed Flowtime session cannot fail validation.
+  stabilityRating: z.union([z.string().max(64), z.number().min(0).max(100)]).nullable().optional(),
   focusTimeline: z.unknown().optional(),
   sessionInsights: z.unknown().optional(),
   taskId: z.string().uuid().nullable().optional(),

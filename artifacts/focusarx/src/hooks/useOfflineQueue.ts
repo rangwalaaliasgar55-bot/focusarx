@@ -188,6 +188,14 @@ export async function flushOfflineQueue(force = true): Promise<void> {
     working = updated === null
       ? working.filter((i) => i.id !== item.id)
       : working.map((i) => (i.id === item.id ? updated : i));
+    if (updated === null && typeof window !== "undefined") {
+      // Let a Flowtime surface that intentionally stayed mounted for an
+      // offline completion leave only after the queued server mutation has
+      // actually been accepted (including an idempotent 409 replay).
+      window.dispatchEvent(new CustomEvent("focusarx:offline-session-synced", {
+        detail: { idempotencyKey: item.idempotencyKey },
+      }));
+    }
     // Persisted after every item, not at the end: a tab closed midway through a
     // long flush must not re-send what already succeeded or lose what did not.
     items = working;

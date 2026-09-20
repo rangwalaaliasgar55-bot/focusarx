@@ -38,6 +38,7 @@ import { MaintenanceGate } from "@/components/MaintenanceGate";
 import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 import SeasonalBanner from "@/components/SeasonalBanner";
 import { DeploymentUpdateBanner } from "@/components/DeploymentUpdateBanner";
+import { DropBanner } from "@/components/DropBanner";
 import { useDeploymentSkewDetector } from "@/lib/deploymentSkew";
 
 /**
@@ -491,6 +492,10 @@ function AppWithPalette() {
       <AnnouncementBanner />
       <DeploymentUpdateBanner />
       {status === "authenticated" && <div className="px-3 pt-2 sm:px-5"><SeasonalBanner /></div>}
+      {/* Drops are public hype and authenticated rewards. Mount once at the app
+          root so an admin-created drop is visible on every route, not only on
+          Focus and Community. */}
+      <div className="px-3 pt-2 sm:px-5"><DropBanner /></div>
       <DailyRewardBanner />
       <FloatingTimer />
       <LiveAnnouncer />

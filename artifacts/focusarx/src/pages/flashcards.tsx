@@ -12,11 +12,11 @@ import { BookOpen, Plus, Brain, Clock, CheckCircle, XCircle, RotateCcw, Sparkles
 import { PageSEO } from '@/components/PageSEO';
 import { getToken } from '@/lib/auth';
 import { useToast } from '@/components/Toast';
-import { schedule, createNewCard, Grade, type CardState, type SerializedCardState, serializeCard, deserializeCard } from '@/lib/fsrs';
+import { schedule, createNewCard, Grade, type CardState, type SerializedCardState, serializeCard } from '@/lib/fsrs';
 import { QueryError } from '@/components/ui/QueryError';
 
 interface Deck {
-  id: number;
+  id: string;
   title: string;
   description: string;
   cardCount: number;
@@ -24,15 +24,60 @@ interface Deck {
 }
 
 interface Card {
-  id: number;
-  deckId: number;
+  id: string;
+  deckId: string;
   front: string;
   back: string;
   fsrs: CardState;
 }
 
-interface RawDeck { id: number; title?: string | null; description?: string | null; cardCount?: number; dueCount?: number }
-interface RawCard { id: number; deckId?: number | null; front: string; back: string; fsrs?: unknown }
+interface RawDeck { id: string; title?: string | null; description?: string | null; cardCount?: number; dueCount?: number }
+interface RawCard {
+  id: string;
+  deckId?: string | null;
+  front: string;
+  back: string;
+  fsrs?: unknown;
+  fsrsDifficulty?: number | null;
+  fsrsStability?: number | null;
+  fsrsReps?: number | null;
+  fsrsLapses?: number | null;
+  fsrsLastReview?: string | null;
+  fsrsDueDate?: string | null;
+  /** Legacy due column returned by the API; keep it as a fallback for older rows. */
+  nextReviewAt?: string | null;
+  fsrsInterval?: number | null;
+  fsrsState?: string | null;
+}
+
+type SerializedStateLike = Partial<SerializedCardState> & { dueDate?: string; lastReview?: string | null };
+
+function validDate(value: unknown, fallback: Date): Date {
+  if (typeof value !== "string") return fallback;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? fallback : date;
+}
+
+/** Accept both the new `{ fsrs: {...} }` response and the persisted flat DB columns. */
+function stateFromRawCard(card: RawCard): CardState {
+  const raw = card.fsrs && typeof card.fsrs === "object" ? card.fsrs as SerializedStateLike : {};
+  const dueFallback = card.fsrsDueDate ?? card.nextReviewAt ?? undefined;
+  const dueDate = validDate(raw.dueDate ?? dueFallback, new Date());
+  return {
+    difficulty: Number.isFinite(Number(raw.difficulty)) ? Number(raw.difficulty) : Number(card.fsrsDifficulty ?? 0),
+    stability: Number.isFinite(Number(raw.stability)) ? Number(raw.stability) : Number(card.fsrsStability ?? 0),
+    reps: Number.isFinite(Number(raw.reps)) ? Number(raw.reps) : Number(card.fsrsReps ?? 0),
+    lapses: Number.isFinite(Number(raw.lapses)) ? Number(raw.lapses) : Number(card.fsrsLapses ?? 0),
+    lastReview: raw.lastReview !== undefined
+      ? (raw.lastReview ? validDate(raw.lastReview, new Date()) : null)
+      : (card.fsrsLastReview ? validDate(card.fsrsLastReview, new Date()) : null),
+    dueDate,
+    interval: Number.isFinite(Number(raw.interval)) ? Number(raw.interval) : Number(card.fsrsInterval ?? 0),
+    state: raw.state === "learning" || raw.state === "review" || raw.state === "relearning" || raw.state === "new"
+      ? raw.state
+      : (card.fsrsState === "learning" || card.fsrsState === "review" || card.fsrsState === "relearning" ? card.fsrsState : "new"),
+  };
+}
 
 export default function FlashcardsPage() {
   const [decks, setDecks] = useState<Deck[]>([]);
@@ -41,6 +86,7 @@ export default function FlashcardsPage() {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [decksLoading, setDecksLoading] = useState(true);
   const [showCreateDeck, setShowCreateDeck] = useState(false);
   const [newDeckTitle, setNewDeckTitle] = useState('');
   const [newCardFront, setNewCardFront] = useState('');
@@ -76,14 +122,20 @@ export default function FlashcardsPage() {
    * surfaced and stays on screen until the writes succeed.
    */
   const [unsavedReviews, setUnsavedReviews] = useState(0);
+  const [savingReviewIds, setSavingReviewIds] = useState<Record<string, boolean>>({});
+  const [reviewedThisSession, setReviewedThisSession] = useState(0);
 
   const token = typeof window !== 'undefined' ? getToken() : null;
   const { toast } = useToast();
 
   // Load decks. A non-ok response is an error, not an empty list.
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      setDecksLoading(false);
+      return;
+    }
     let cancelled = false;
+    setDecksLoading(true);
     (async () => {
       try {
         const res = await fetch('/api/flashcards/decks', { headers: { Authorization: `Bearer ${token}` } });
@@ -101,6 +153,8 @@ export default function FlashcardsPage() {
       } catch (err) {
         if (cancelled) return;
         setDecksError(err instanceof Error ? err.message : 'Request failed');
+      } finally {
+        if (!cancelled) setDecksLoading(false);
       }
     })();
   return () => {
@@ -124,19 +178,21 @@ export default function FlashcardsPage() {
       });
       const d = await res.json();
       if (!res.ok) { setAutoMsg(d.error ?? "Could not generate the deck"); return; }
-      const deck = d.deck as { id: number; title: string; existed: boolean };
+      const deck = d.deck as { id: string; title: string; existed: boolean };
       setDecks(prev => prev.some(x => x.id === deck.id)
         ? prev
         : [...prev, { id: deck.id, title: deck.title, description: `Auto-built for ${autoDraft.board}`, cardCount: d.cards?.length ?? 0, dueCount: d.cards?.length ?? 0 }]);
       setAutoMsg(`${deck.existed ? "Added" : "Created"} ${d.cards?.length ?? 0} cards in “${deck.title}”.`);
       setAutoOpen(false);
+    } catch {
+      setAutoMsg("Could not reach Gemini. Try again in a moment.");
     } finally {
       setAutoBusy(false);
     }
   };
 
   // Load cards for active deck
-  const loadCards = useCallback(async (deckId: number) => {
+  const loadCards = useCallback(async (deckId: string) => {
     if (!token) return;
     setIsLoading(true);
     try {
@@ -153,10 +209,11 @@ export default function FlashcardsPage() {
         deckId: c.deckId || deckId,
         front: c.front,
         back: c.back,
-        fsrs: c.fsrs ? deserializeCard(c.fsrs as SerializedCardState) : createNewCard(),
+        fsrs: stateFromRawCard(c),
       }));
       setCards(converted);
       setCurrentCardIndex(0);
+      setReviewedThisSession(0);
       setShowAnswer(false);
       setStudyComplete(false);
       setCardsError(null);
@@ -169,56 +226,78 @@ export default function FlashcardsPage() {
     setIsLoading(false);
   }, [token, toast]);
 
-  const handleGrade = useCallback(async (grade: Grade) => {
-    const card = cards[currentCardIndex];
-    if (!card) return;
+  // Only cards that are new or due belong in the current study queue. Keeping
+  // future cards in `cards` means a reload can show the complete deck without
+  // accidentally making a scheduled card appear early.
+  const dueCards = cards.filter((card) => card.fsrs.state === 'new' || card.fsrs.dueDate <= new Date());
 
-    // Apply FSRS scheduling
+  const handleGrade = useCallback((grade: Grade) => {
+    const card = dueCards[currentCardIndex];
+    if (!card || savingReviewIds[card.id]) return;
+
     const result = schedule(card.fsrs, grade);
-    
-    // Update card in local state
-    const updatedCards = [...cards];
-    updatedCards[currentCardIndex] = { ...card, fsrs: result.newState };
-    setCards(updatedCards);
+    setCards((previous) => previous.map((item) => (
+      item.id === card.id ? { ...item, fsrs: result.newState } : item
+    )));
+    setReviewedThisSession((count) => count + 1);
 
-    // Save to API.
-    //
-    // This used to be `fetch(...).catch(() => {})` with no `res.ok` check, so
-    // both a network failure *and* a 4xx/5xx were discarded. The card's FSRS
-    // state advanced locally either way and the user moved on believing the
-    // review counted — but the server still held the old schedule, so the
-    // interval the algorithm promises was drifting from reality in silence.
-    //
-    // One immediate retry covers the transient case. Anything still failing is
-    // counted and shown on screen, because "your grades are not being saved" is
-    // something the user has to know before they finish a deck, not after.
-    if (token) {
-      const payload = JSON.stringify({ grade, fsrs: serializeCard(result.newState) });
-      void (async () => {
-        for (let attempt = 0; attempt < 2; attempt += 1) {
-          try {
-            const res = await fetch(`/api/flashcards/cards/${card.id}/review`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-              body: payload,
-            });
-            if (res.ok) return;
-          } catch {
-            // Fall through to the retry, then to the counter.
-          }
-        }
-        setUnsavedReviews((n) => n + 1);
-      })();
-    }
-
-    // Move to next card
+    // The reviewed card has just moved out of the due queue. Start the next
+    // card at index zero because the queue is derived from the updated state.
+    const now = new Date();
+    const remainingDueCards = dueCards.filter((item) => (
+      item.id !== card.id && (item.fsrs.state === 'new' || item.fsrs.dueDate <= now)
+    ));
     setShowAnswer(false);
-    if (currentCardIndex + 1 >= cards.length) {
-      setStudyComplete(true);
-    } else {
-      setCurrentCardIndex(prev => prev + 1);
-    }
-  }, [cards, currentCardIndex, token]);
+    setCurrentCardIndex(0);
+    if (remainingDueCards.length === 0) setStudyComplete(true);
+
+    if (!token) return;
+
+    setSavingReviewIds((previous) => ({ ...previous, [card.id]: true }));
+    const payload = JSON.stringify({ grade, fsrs: serializeCard(result.newState) });
+    void (async () => {
+      let saved = false;
+      for (let attempt = 0; attempt < 2 && !saved; attempt += 1) {
+        try {
+          const res = await fetch(`/api/flashcards/cards/${card.id}/review`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: payload,
+          });
+          if (res.ok) {
+            saved = true;
+            // Reconcile the local scheduler with the server's persisted values.
+            // This protects against timestamp/rounding differences and proves
+            // that the response contract is actually being consumed.
+            try {
+              const body: unknown = await res.json();
+              if (body && typeof body === 'object' && 'fsrs' in body) {
+                const serverCard = { ...card, fsrs: (body as { fsrs: unknown }).fsrs } as RawCard;
+                const normalized = stateFromRawCard(serverCard);
+                setCards((previous) => previous.map((item) => (
+                  item.id === card.id ? { ...item, fsrs: normalized } : item
+                )));
+              }
+            } catch {
+              // A successful write is still a success if a proxy stripped the
+              // optional JSON response.
+            }
+          } else if (res.status < 500) {
+            // Validation/auth/ownership errors will not be fixed by retrying.
+            break;
+          }
+        } catch {
+          // Retry one transient network/server failure immediately.
+        }
+      }
+      setSavingReviewIds((previous) => {
+        const next = { ...previous };
+        delete next[card.id];
+        return next;
+      });
+      if (!saved) setUnsavedReviews((count) => count + 1);
+    })();
+  }, [cards, currentCardIndex, dueCards, savingReviewIds, token]);
 
   const createDeck = useCallback(async () => {
     if (!newDeckTitle.trim() || !token) return;
@@ -271,8 +350,8 @@ export default function FlashcardsPage() {
     }
   }, [newCardFront, newCardBack, token, activeDeck, toast]);
 
-  const currentCard = cards[currentCardIndex];
-  const dueCards = cards.filter(c => c.fsrs.dueDate <= new Date() || c.fsrs.state === 'new');
+  const currentCard = dueCards[currentCardIndex];
+  const currentCardSaving = currentCard ? Boolean(savingReviewIds[currentCard.id]) : false;
 
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
@@ -407,7 +486,11 @@ export default function FlashcardsPage() {
               </div>
             )}
 
-            {decksError ? (
+            {decksLoading ? (
+              <div className="rounded-2xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/60 p-8 text-center" aria-busy="true">
+                <p className="text-sm text-[var(--palette-zinc-500)]">Loading your decks…</p>
+              </div>
+            ) : decksError ? (
               /* Before the empty branch: a failed request is not an empty deck. */
               <QueryError what="your decks" onRetry={() => window.location.reload()} />
             ) : decks.length === 0 ? (
@@ -448,7 +531,7 @@ export default function FlashcardsPage() {
                 ← Back to decks
               </button>
               <div className="text-xs text-[var(--palette-zinc-500)]">
-                {currentCardIndex + 1} / {dueCards.length}
+                {dueCards.length > 0 ? `${currentCardIndex + 1} / ${dueCards.length}` : "No cards due"}
               </div>
             </div>
 
@@ -479,19 +562,19 @@ export default function FlashcardsPage() {
                       {currentCard.back}
                     </p>
                     <div className="grid grid-cols-4 gap-2 w-full max-w-md">
-                      <button onClick={() => handleGrade(Grade.Again)} className="rounded-xl border border-[var(--palette-red-500)]/30 bg-[var(--palette-red-500)]/10 p-3 text-center hover:bg-[var(--palette-red-500)]/20 transition-all">
+                      <button disabled={currentCardSaving} onClick={() => handleGrade(Grade.Again)} className="rounded-xl border border-[var(--palette-red-500)]/30 bg-[var(--palette-red-500)]/10 p-3 text-center hover:bg-[var(--palette-red-500)]/20 transition-all">
                         <XCircle size={16} className="mx-auto mb-1 text-[var(--palette-red-400)]" />
                         <span className="text-[11px] font-bold text-[var(--palette-red-300)]">Forgot</span>
                       </button>
-                      <button onClick={() => handleGrade(Grade.Hard)} className="rounded-xl border border-[var(--palette-orange-500)]/30 bg-[var(--palette-orange-500)]/10 p-3 text-center hover:bg-[var(--palette-orange-500)]/20 transition-all">
+                      <button disabled={currentCardSaving} onClick={() => handleGrade(Grade.Hard)} className="rounded-xl border border-[var(--palette-orange-500)]/30 bg-[var(--palette-orange-500)]/10 p-3 text-center hover:bg-[var(--palette-orange-500)]/20 transition-all">
                         <Clock size={16} className="mx-auto mb-1 text-[var(--palette-orange-400)]" />
                         <span className="text-[11px] font-bold text-[var(--palette-orange-300)]">Hard</span>
                       </button>
-                      <button onClick={() => handleGrade(Grade.Good)} className="rounded-xl border border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/10 p-3 text-center hover:bg-[var(--palette-emerald-500)]/20 transition-all">
+                      <button disabled={currentCardSaving} onClick={() => handleGrade(Grade.Good)} className="rounded-xl border border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/10 p-3 text-center hover:bg-[var(--palette-emerald-500)]/20 transition-all">
                         <CheckCircle size={16} className="mx-auto mb-1 text-[var(--palette-emerald-400)]" />
                         <span className="text-[11px] font-bold text-[var(--palette-emerald-300)]">Good</span>
                       </button>
-                      <button onClick={() => handleGrade(Grade.Easy)} className="rounded-xl border border-[var(--palette-blue-500)]/30 bg-[var(--palette-blue-500)]/10 p-3 text-center hover:bg-[var(--palette-blue-500)]/20 transition-all">
+                      <button disabled={currentCardSaving} onClick={() => handleGrade(Grade.Easy)} className="rounded-xl border border-[var(--palette-blue-500)]/30 bg-[var(--palette-blue-500)]/10 p-3 text-center hover:bg-[var(--palette-blue-500)]/20 transition-all">
                         <Sparkles size={16} className="mx-auto mb-1 text-[var(--palette-blue-400)]" />
                         <span className="text-[11px] font-bold text-[var(--palette-blue-300)]">Easy</span>
                       </button>
@@ -507,7 +590,9 @@ export default function FlashcardsPage() {
               </div>
             ) : (
               <div className="rounded-2xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/60 p-8 text-center">
-                <p className="text-sm text-[var(--palette-zinc-500)]">No cards in this deck. Add some to get started!</p>
+                <p className="text-sm text-[var(--palette-zinc-500)]">
+                  {cards.length > 0 ? "You are caught up — all cards are scheduled for a later review." : "No cards in this deck. Add some to get started!"}
+                </p>
               </div>
             )}
 
@@ -531,7 +616,7 @@ export default function FlashcardsPage() {
             <div className="text-4xl mb-4"><PartyPopper size={16} aria-hidden="true" /></div>
             <h2 className="text-xl font-semibold text-[var(--palette-white)] mb-2">Study Session Complete!</h2>
             <p className="text-sm text-[var(--palette-zinc-500)] mb-6">
-              You reviewed {cards.length} cards. Your FSRS algorithm has scheduled optimal review times.
+              You reviewed {reviewedThisSession} cards. Your FSRS algorithm has scheduled optimal review times.
             </p>
             <button
               onClick={() => { setStudyComplete(false); setCurrentCardIndex(0); setShowAnswer(false); }}

@@ -16,6 +16,9 @@ interface SeedPet {
   modelUrl?: string | null; fallbackImageUrl?: string | null; maxLevel?: number; isSeasonal?: boolean;
 }
 const DEFAULT_PETS: SeedPet[] = [
+  // Bundled Bulbasaur artwork is rendered client-side, so this remains a
+  // reliable starter even when an external sprite host is unavailable.
+  { slug: "bulbasaur", name: "Bulbasaur", description: "A gentle seed Pokémon and a steady deep-work companion.", rarity: "common", category: "starter", isPremium: false, tokenCost: 0, sortOrder: -1, thumbnailUrl: null, modelUrl: null, fallbackImageUrl: null, maxLevel: 20 },
   { slug: "owl", name: "Sage Owl", description: "Wise and calm. Perfect for deep study.", rarity: "common", category: "starter", isPremium: false, tokenCost: 0, sortOrder: 0, thumbnailUrl: null, modelUrl: null, fallbackImageUrl: null, maxLevel: 20 },
   { slug: "fox", name: "Focus Fox", description: "Sharp and cunning. Thrives on consistency.", rarity: "common", category: "starter", isPremium: false, tokenCost: 0, sortOrder: 1 },
   { slug: "robot", name: "Study Bot", description: "Logical and precise. Optimizes sessions.", rarity: "common", category: "starter", isPremium: false, tokenCost: 0, sortOrder: 2 },
@@ -32,9 +35,14 @@ const DEFAULT_PETS: SeedPet[] = [
 
 async function ensureSeeded() {
   try {
-    const existing = await db.select({ id: petCatalogTable.id }).from(petCatalogTable).limit(1);
-    if (existing.length > 0) return;
+    // Older deployments already have the original catalog, so only seeding
+    // when the table is empty would leave Bulbasaur missing forever. Add any
+    // newly shipped defaults idempotently while preserving admin catalogue
+    // edits and existing sort order.
+    const existing = await db.select({ slug: petCatalogTable.slug }).from(petCatalogTable);
+    const existingSlugs = new Set(existing.map((row) => row.slug));
     for (const p of DEFAULT_PETS) {
+      if (existingSlugs.has(p.slug)) continue;
       await db.insert(petCatalogTable).values({
         slug: p.slug,
         name: p.name,
@@ -71,7 +79,7 @@ router.get("/pets/catalog", async (req, res) => {
 router.get("/pets/inventory", authMiddleware, async (req: AuthRequest, res) => {
   await ensureSeeded();
   try {
-    const inventory = await db.select({
+    let inventory = await db.select({
       inventory: userPetInventoryTable,
       catalog: petCatalogTable,
     }).from(userPetInventoryTable)
@@ -101,6 +109,34 @@ router.get("/pets/inventory", authMiddleware, async (req: AuthRequest, res) => {
               inventory.unshift({ inventory: inv, catalog: cat[0] });
             }
           } catch {}
+        }
+      }
+    }
+
+    // New accounts get a real Bulbasaur starter, not a client-side owl or
+    // plant-emoji placeholder. This is idempotent and only runs when there is
+    // no legacy pet and no catalog inventory to preserve.
+    if (!legacy && inventory.length === 0) {
+      const [starter] = await db.select().from(petCatalogTable)
+        .where(and(eq(petCatalogTable.slug, "bulbasaur"), eq(petCatalogTable.isActive, true)))
+        .limit(1);
+      if (starter) {
+        try {
+          const [inv] = await db.insert(userPetInventoryTable).values({
+            userId: req.userId!,
+            petId: starter.id,
+            level: 1,
+            bondXp: 0,
+            nickname: null,
+            mood: "happy",
+            isActive: true,
+            acquiredFrom: "starter",
+          }).onConflictDoNothing().returning();
+          if (inv) {
+            inventory.unshift({ inventory: inv, catalog: starter });
+          }
+        } catch {
+          // A concurrent inventory request may have won the unique insert.
         }
       }
     }

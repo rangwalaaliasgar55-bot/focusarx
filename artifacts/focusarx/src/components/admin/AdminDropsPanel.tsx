@@ -52,7 +52,7 @@ const DEFAULT_FORM: DropForm = {
   startsInMin: 15,
   durationH: 3,
   coinsPerClaim: 250,
-  poolTotal: 25000,
+  poolTotal: 100,
   multiplier: 2,
   targetMinutes: 120,
   rewardCoins: 1000,
@@ -200,7 +200,7 @@ export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
             <label className="block">
               <span className="mb-1 block text-[0.6875rem] font-medium text-[var(--palette-zinc-400)]">Announcement text</span>
               <input value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                placeholder="e.g. Coins are raining — grab yours before the pool runs out!"
+                placeholder="e.g. Coins are raining — grab yours before the claim slots run out!"
                 className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-900)] px-3 py-2 text-xs text-[var(--palette-zinc-200)] outline-none focus:border-[var(--accent)]"
               />
             </label>
@@ -208,7 +208,7 @@ export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
               {numField("Starts in (minutes)", "startsInMin")}
               {numField("Window length (hours)", "durationH")}
               {(form.type === "coin_rain" || form.type === "streak_freeze") && numField(form.type === "coin_rain" ? "Coins per claim" : "Tokens per claim", "coinsPerClaim")}
-              {(form.type === "coin_rain" || form.type === "streak_freeze") && numField("Total pool", "poolTotal")}
+              {(form.type === "coin_rain" || form.type === "streak_freeze") && numField("Total claim slots", "poolTotal")}
               {(form.type === "double_xp" || form.type === "board_shakeup") && numField("XP multiplier (×)", "multiplier", 0.5)}
               {form.type === "flash_quest" && numField("Target focus minutes", "targetMinutes")}
               {form.type === "flash_quest" && numField("Reward coins", "rewardCoins")}

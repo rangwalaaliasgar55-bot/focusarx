@@ -8,6 +8,7 @@ export type AuditAction =
   | "admin_bot_seed"
   | "admin_bot_delete"
   | "admin_economy_adjust"
+  | "admin_study_adjust"
   | "admin_content_moderation"
   | "admin_settings_change"
   | "admin_bot_settings_change"

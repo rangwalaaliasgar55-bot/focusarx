@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { db, flashcardDecksTable, flashcardsTable } from "@workspace/db";
+import { db, flashcardDecksTable, flashcardsTable, flashcardReviewsTable } from "@workspace/db";
 import { eq, and, desc, lte, inArray, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
@@ -168,53 +168,147 @@ router.delete("/flashcards/cards/:id", async (req: AuthRequest, res) => {
 });
 
 /**
- * Review a card (spaced repetition). `rating` is "again" | "hard" | "good" | "easy".
- * "again" → box 1 (review again in 10 min); otherwise advance the Leitner box.
+ * Review a card using the same FSRS state the page calculated.
+ *
+ * The page used to send `{ grade, fsrs }` while this route only understood the
+ * old `{ rating }` Leitner contract. That made every review either fail
+ * validation or advance only the legacy box, so a reload brought the card back
+ * with its old schedule. FSRS is now the source of truth; the Leitner columns
+ * are still maintained for older clients and reports.
  */
+const serializedFsrsSchema = z.object({
+  difficulty: z.number().finite().min(0).max(20),
+  stability: z.number().finite().min(0).max(100000),
+  reps: z.number().int().min(0).max(100000),
+  lapses: z.number().int().min(0).max(100000),
+  lastReview: z.string().datetime({ offset: true }).nullable(),
+  dueDate: z.string().datetime({ offset: true }),
+  interval: z.number().int().min(0).max(36500),
+  state: z.enum(["new", "learning", "review", "relearning"]),
+});
+
+const reviewSchema = z.object({
+  grade: z.number().int().min(1).max(4).optional(),
+  rating: z.enum(["again", "hard", "good", "easy"]).optional(),
+  fsrs: serializedFsrsSchema.optional(),
+  reviewDurationMs: z.number().int().min(0).max(3_600_000).optional(),
+}).refine((body) => body.grade !== undefined || body.rating !== undefined, {
+  message: "grade or rating is required",
+});
+
 router.post("/flashcards/cards/:id/review", async (req: AuthRequest, res) => {
-  const { rating } = req.body as { rating?: string };
-  if (!rating || !["again", "hard", "good", "easy"].includes(rating)) {
-    res.status(400).json({ error: "rating must be again|hard|good|easy" }); return;
+  const parsed = reviewSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "grade must be 1..4 (or rating must be again|hard|good|easy)" });
+    return;
   }
+
+  const ratingToGrade: Record<string, number> = { again: 1, hard: 2, good: 3, easy: 4 };
+  const grade = parsed.data.grade ?? ratingToGrade[parsed.data.rating ?? ""];
+  if (!grade) {
+    res.status(400).json({ error: "grade must be 1..4" });
+    return;
+  }
+
   try {
-    const [ownedRow] = await db.select({ card: flashcardsTable })
-      .from(flashcardsTable)
-      .innerJoin(flashcardDecksTable, eq(flashcardsTable.deckId, flashcardDecksTable.id))
-      .where(and(
-        eq(flashcardsTable.id, req.params.id as string),
-        eq(flashcardDecksTable.userId, req.userId),
-      ))
-      .limit(1);
-    const card = ownedRow?.card;
-    if (!card) { res.status(404).json({ error: "Card not found" }); return; }
+    const result = await db.transaction(async (tx) => {
+      const [ownedRow] = await tx.select({ card: flashcardsTable })
+        .from(flashcardsTable)
+        .innerJoin(flashcardDecksTable, eq(flashcardsTable.deckId, flashcardDecksTable.id))
+        .where(and(
+          eq(flashcardsTable.id, req.params.id as string),
+          eq(flashcardDecksTable.userId, req.userId),
+        ))
+        .limit(1);
+      const card = ownedRow?.card;
+      if (!card) return null;
 
-    let newBox: number;
-    let intervalDays: number;
-    if (rating === "again") {
-      newBox = 1;
-      intervalDays = 0; // 10 minutes from now
-    } else if (rating === "hard") {
-      newBox = Math.max(1, card.box);
-      intervalDays = BOX_INTERVALS_DAYS[newBox] ?? 1;
-    } else if (rating === "easy") {
-      newBox = Math.min(5, card.box + 2);
-      intervalDays = BOX_INTERVALS_DAYS[newBox] ?? 30;
-    } else { // good
-      newBox = Math.min(5, card.box + 1);
-      intervalDays = BOX_INTERVALS_DAYS[newBox] ?? 7;
-    }
+      const fsrs = parsed.data.fsrs;
+      // Drizzle's insert model intentionally excludes SQL expressions, while
+      // review counters are updated atomically from their current values.
+      // Keep the expression-bearing update local and let Drizzle validate the
+      // final statement shape at the query boundary.
+      let update: Record<string, unknown>;
+      let intervalAfter: number;
+      let stabilityAfter: number | null = null;
 
-    const nextReviewAt = new Date(Date.now() + (intervalDays === 0 ? 10 * 60_000 : intervalDays * 86_400_000));
-    const correct = rating === "again" ? 0 : 1;
+      if (fsrs) {
+        // The client and server run the same deterministic scheduler. Clamp
+        // values once more at the persistence boundary so a malformed client
+        // can never violate the database checks or create an immortal card.
+        const dueDate = new Date(fsrs.dueDate);
+        const lastReview = fsrs.lastReview ? new Date(fsrs.lastReview) : null;
+        intervalAfter = Math.max(0, Math.min(36500, Math.round(fsrs.interval)));
+        stabilityAfter = fsrs.stability;
+        const box = Math.min(5, Math.max(1, Math.ceil(Math.log2(Math.max(1, intervalAfter)) + 1)));
+        update = {
+          box,
+          // Keep the legacy due index in lockstep with FSRS. Deck summaries
+          // and older clients read nextReviewAt, so omitting this made a
+          // successfully reviewed card appear due again after reload.
+          nextReviewAt: dueDate,
+          correctCount: sql`${flashcardsTable.correctCount} + ${grade === 1 ? 0 : 1}`,
+          incorrectCount: sql`${flashcardsTable.incorrectCount} + ${grade === 1 ? 1 : 0}`,
+          fsrsDifficulty: fsrs.difficulty,
+          fsrsStability: fsrs.stability,
+          fsrsReps: fsrs.reps,
+          fsrsLapses: fsrs.lapses,
+          fsrsLastReview: lastReview,
+          fsrsDueDate: dueDate,
+          fsrsInterval: intervalAfter,
+          fsrsState: fsrs.state,
+        };
+      } else {
+        // Legacy callers remain supported and get a review log as well.
+        let newBox: number;
+        let intervalDays: number;
+        const rating = parsed.data.rating ?? (["", "again", "hard", "good", "easy"][grade] ?? "good");
+        if (rating === "again") { newBox = 1; intervalDays = 0; }
+        else if (rating === "hard") { newBox = Math.max(1, card.box); intervalDays = BOX_INTERVALS_DAYS[newBox] ?? 1; }
+        else if (rating === "easy") { newBox = Math.min(5, card.box + 2); intervalDays = BOX_INTERVALS_DAYS[newBox] ?? 30; }
+        else { newBox = Math.min(5, card.box + 1); intervalDays = BOX_INTERVALS_DAYS[newBox] ?? 7; }
+        const dueDate = new Date(Date.now() + (intervalDays === 0 ? 10 * 60_000 : intervalDays * 86_400_000));
+        intervalAfter = intervalDays;
+        update = {
+          box: newBox,
+          nextReviewAt: dueDate,
+          correctCount: sql`${flashcardsTable.correctCount} + ${grade === 1 ? 0 : 1}`,
+          incorrectCount: sql`${flashcardsTable.incorrectCount} + ${grade === 1 ? 1 : 0}`,
+        };
+      }
 
-    const [updated] = await db.update(flashcardsTable).set({
-      box: newBox,
-      nextReviewAt,
-      correctCount: sql`correct_count + ${correct}`,
-      incorrectCount: sql`incorrect_count + ${correct === 0 ? 1 : 0}`,
-    }).where(eq(flashcardsTable.id, card.id)).returning();
+      const [updated] = await tx.update(flashcardsTable)
+        .set(update)
+        .where(eq(flashcardsTable.id, card.id))
+        .returning();
 
-    res.json(updated);
+      await tx.insert(flashcardReviewsTable).values({
+        cardId: card.id,
+        userId: req.userId,
+        grade,
+        intervalBefore: card.fsrsInterval ?? card.box,
+        intervalAfter,
+        stabilityBefore: card.fsrsStability ?? null,
+        stabilityAfter,
+        elapsedDays: card.fsrsLastReview ? Math.max(0, (Date.now() - card.fsrsLastReview.getTime()) / 86_400_000) : 0,
+        reviewDurationMs: parsed.data.reviewDurationMs ?? null,
+      });
+
+      return updated;
+    });
+
+    if (!result) { res.status(404).json({ error: "Card not found" }); return; }
+    const fsrsState = {
+      difficulty: result.fsrsDifficulty ?? 0,
+      stability: result.fsrsStability ?? 0,
+      reps: result.fsrsReps ?? 0,
+      lapses: result.fsrsLapses ?? 0,
+      lastReview: result.fsrsLastReview?.toISOString() ?? null,
+      dueDate: (result.fsrsDueDate ?? result.nextReviewAt).toISOString(),
+      interval: result.fsrsInterval ?? 0,
+      state: (result.fsrsState ?? "new") as "new" | "learning" | "review" | "relearning",
+    };
+    res.json({ ...result, fsrs: fsrsState });
   } catch (err) {
     logger.error({ err }, "review card error");
     res.status(500).json({ error: "Internal error" });

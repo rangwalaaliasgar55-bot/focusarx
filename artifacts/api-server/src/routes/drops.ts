@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { adminDropsTable, marketplaceItemsTable } from "@workspace/db";
-import { and, desc, eq, gte, isNull } from "drizzle-orm";
-import { authMiddleware, type AuthRequest } from "../middlewares/auth";
+import { adminDropsTable, adminDropClaimsTable, marketplaceItemsTable } from "@workspace/db";
+import { and, desc, eq, gte, inArray, isNull } from "drizzle-orm";
+import { authMiddleware, optionalAuthMiddleware, type AuthRequest } from "../middlewares/auth";
 import { requireAdmin } from "../lib/adminAuth";
 import { generalLimiter, adminLimiter } from "../lib/rateLimiter";
 import { logger } from "../lib/logger";
@@ -23,7 +23,7 @@ export const dropsRouter = Router();
 
 // ─── GET /drops — public: live + upcoming drops for the countdown chip ───────
 
-dropsRouter.get("/drops", async (_req, res) => {
+dropsRouter.get("/drops", optionalAuthMiddleware, async (req, res) => {
   try {
     const now = new Date();
     const horizon = new Date(now.getTime() + 24 * 3600 * 1000);
@@ -38,6 +38,19 @@ dropsRouter.get("/drops", async (_req, res) => {
       .orderBy(desc(adminDropsTable.startsAt))
       .limit(10);
 
+    // The public list is still public, but an authenticated visitor should not
+    // be shown a dead "Claim" button after a reload. Include only that user's
+    // claim ids; no reward or other-user data leaves the server.
+    const userId = (req as AuthRequest).userId;
+    const claimedIds = userId && drops.length > 0
+      ? new Set((await db.select({ dropId: adminDropClaimsTable.dropId })
+          .from(adminDropClaimsTable)
+          .where(and(
+            eq(adminDropClaimsTable.userId, userId),
+            inArray(adminDropClaimsTable.dropId, drops.map((drop) => drop.id)),
+          ))).map((row) => row.dropId))
+      : new Set<string>();
+
     res.json({
       drops: drops.map((d) => ({
         id: d.id,
@@ -48,9 +61,10 @@ dropsRouter.get("/drops", async (_req, res) => {
         startsAt: d.startsAt,
         endsAt: d.endsAt,
         poolTotal: d.poolTotal,
-        poolRemaining: d.poolTotal - d.poolClaimed,
+        poolRemaining: Math.max(0, d.poolTotal - d.poolClaimed),
         live: isDropLive(d, now),
         upcoming: d.startsAt > now && d.startsAt <= horizon,
+        claimed: claimedIds.has(d.id),
       })),
     });
   } catch (err) {

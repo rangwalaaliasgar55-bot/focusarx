@@ -50,7 +50,17 @@ export async function mintCoins(
       });
     const after = await t.select({ coins: userWalletsTable.coins })
       .from(userWalletsTable).where(eq(userWalletsTable.userId, userId));
-    return Number(after[0]?.coins ?? amount);
+    const balanceAfter = Number(after[0]?.coins ?? amount);
+    // The lazy-create path must be just as auditable as the update path. The
+    // old helper returned here before writing the ledger row, so first-time
+    // rewards changed the wallet without an earn transaction.
+    await t.insert(coinTransactionsTable).values({
+      userId, type: "earn", amount, reason,
+      description: meta.description ?? `${reason.replace(/_/g, " ")}: +${amount} coins`,
+      balanceAfter,
+      metadata: (meta.metadata ?? null) as SQL | Record<string, unknown> | null,
+    });
+    return balanceAfter;
   }
 
   const balanceAfter = Number(rows[0].coins);
