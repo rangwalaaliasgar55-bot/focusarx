@@ -105,12 +105,21 @@ router.patch("/admin/site/settings", adminLimiter, async (req, res) => {
 
 export const AMBIENT_TRACKS_META_KEY = "ambient_custom_tracks_v1";
 
+const YOUTUBE_URL_RE = /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/;
+
+export function extractYouTubeId(url: string): string | null {
+  const match = url.match(YOUTUBE_URL_RE);
+  return match ? match[1]! : null;
+}
+
 const ambientTrackSchema = z.object({
-  id: z.string().min(1).max(60),
-  label: z.string().min(1).max(40),
+  id: z.string().min(1).max(64),
+  label: z.string().min(1).max(60),
   emoji: z.string().max(8).optional().default("🎵"),
-  url: z.string().url().refine((u) => u.startsWith("https://"), "Track URL must use https"),
+  url: z.string().url().refine((u) => u.startsWith("https://") || u.startsWith("http://"), "Track URL must be valid"),
   credit: z.string().max(120).optional().default(""),
+  type: z.enum(["audio", "youtube"]).optional(),
+  youtubeId: z.string().max(32).optional().nullable(),
 });
 
 /** Public — the ambient mixer reads the admin-published track list. */
@@ -129,7 +138,7 @@ router.get("/site/ambient-tracks", async (_req, res) => {
   }
 });
 
-const ambientTracksUpdateSchema = z.array(ambientTrackSchema).max(20, "At most 20 custom tracks");
+const ambientTracksUpdateSchema = z.array(ambientTrackSchema).max(30, "At most 30 custom tracks");
 
 /** Admin — replace the whole published list (idempotent). */
 router.put("/admin/ambient-tracks", adminLimiter, async (req, res) => {
@@ -142,13 +151,23 @@ router.put("/admin/ambient-tracks", adminLimiter, async (req, res) => {
   const tracks = parsed.data;
   // Enforce unique ids client-side mistakes can't produce duplicates.
   const seen = new Set<string>();
-  const unique = tracks.filter((t) => (seen.has(t.id) ? false : (seen.add(t.id), true)));
+  const normalized = tracks
+    .map((t) => {
+      const ytId = extractYouTubeId(t.url);
+      return {
+        ...t,
+        type: (ytId ? "youtube" : (t.type || "audio")) as "youtube" | "audio",
+        youtubeId: ytId || t.youtubeId || null,
+      };
+    })
+    .filter((t) => (seen.has(t.id) ? false : (seen.add(t.id), true)));
+
   try {
     await db.insert(platformMetaTable)
-      .values({ key: AMBIENT_TRACKS_META_KEY, value: unique })
-      .onConflictDoUpdate({ target: platformMetaTable.key, set: { value: unique, updatedAt: new Date() } });
-    logger.info({ count: unique.length }, "admin updated ambient track list");
-    res.json({ ok: true, tracks: unique });
+      .values({ key: AMBIENT_TRACKS_META_KEY, value: normalized })
+      .onConflictDoUpdate({ target: platformMetaTable.key, set: { value: normalized, updatedAt: new Date() } });
+    logger.info({ count: normalized.length }, "admin updated ambient track list");
+    res.json({ ok: true, tracks: normalized });
   } catch (err) {
     logger.error({ err }, "ambient tracks update error");
     sendInternal(res);

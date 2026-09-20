@@ -7,6 +7,7 @@ import { getTimerSkin, skinTextGradient, type MembershipTier } from "@/lib/membe
 import type { TimerTheme } from "@/lib/timerTheme";
 import { useNow } from "@/hooks/useNow";
 import type { TimerMode } from "@/types/timer";
+import { FlipClockDisplay } from "@/components/FlipClockDisplay";
 
 interface TimerDisplayProps {
   secondsLeft: number;
@@ -146,6 +147,18 @@ export function TimerDisplay({
   const sparkX = SIZE / 2 + radius * Math.cos(sparkAngle);
   const sparkY = SIZE / 2 + radius * Math.sin(sparkAngle);
   const showSpark = skinned && skin.spark && isRunning && clamped > 0.002 && clamped < 0.998;
+
+  if (!skinned && theme === "flip") {
+    return (
+      <FlipClockDisplay
+        secondsLeft={secondsLeft}
+        mode={mode}
+        isRunning={isRunning}
+        onEditClick={onEditClick}
+        sessionType={sessionType}
+      />
+    );
+  }
 
   return (
     <motion.div

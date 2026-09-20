@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getToken } from "@/lib/auth";
 import { petSpeciesVisual } from "@/lib/petSpecies";
-import { ACTIVE_PET_EVENT, fetchActivePet } from "@/hooks/useActivePet";
+import { ACTIVE_PET_EVENT, useActivePet, type ActivePet } from "@/hooks/useActivePet";
 
 // ── Speech messages ────────────────────────────────────────────────────────────
 const SPEECH_MESSAGES = [
@@ -186,18 +186,15 @@ export interface PetCompanionProps {
   sessionDurationSeconds?: number;
 }
 
-// The active pet (catalog inventory first, legacy row as fallback) and its
-// re-read event live in hooks/useActivePet — shared with the battle arena so
-// both focus-tab widgets always render the same companion.
-type ActivePet = Awaited<ReturnType<typeof fetchActivePet>>;
-
 // ── Component ──────────────────────────────────────────────────────────────────
 export default function PetCompanion({
   isRunning, mode,
   progress = 0,
   sessionDurationSeconds = 1500,
 }: PetCompanionProps) {
-  const [pet, setPet] = useState<ActivePet>(null);
+  const { data: activePet } = useActivePet();
+  const [localPet, setLocalPet] = useState<ActivePet | null>(null);
+  const pet = activePet || localPet;
   const [inventory, setInventory] = useState<{ itemId: string; equipped: boolean; type?: string }[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [showXp, setShowXp] = useState(false);
@@ -219,21 +216,12 @@ export default function PetCompanion({
   }
 
   useEffect(() => {
-    void fetchActivePet().then(setPet);
     fetch("/api/marketplace/inventory", { headers: authH() })
       .then(r => r.json())
       .then((d: { inventory?: { itemId: string; equipped: boolean; type?: string }[] }) => {
         if (d.inventory) setInventory(d.inventory);
       })
       .catch(() => {});
-  }, []);
-
-  // The pets page dispatches this after adopting/activating, so a companion
-  // already sitting on the focus tab switches species without a reload.
-  useEffect(() => {
-    const reread = () => void fetchActivePet().then(setPet);
-    window.addEventListener(ACTIVE_PET_EVENT, reread);
-    return () => window.removeEventListener(ACTIVE_PET_EVENT, reread);
   }, []);
 
   // Refresh inventory when session ends or after purchases
