@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { BrandMark } from "@/components/ui/brand";
 import { useFeatureFlags, FEATURE_FLAG_KEYS } from "@/hooks/useFeatureFlags";
@@ -22,6 +22,7 @@ import {
   Medal,
   Menu,
   MessageCircle,
+  Mic,
   Moon,
   Crown,
   PawPrint,
@@ -47,6 +48,7 @@ import { useSessionHistory } from "@/hooks/useSessionHistory";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { openVoiceCapture } from "@/lib/voiceCapture";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -70,6 +72,8 @@ import { QuickLaunchOrb } from "@/components/QuickLaunchOrb";
 import { NetworkStatusBanner } from "@/components/mobile/NetworkStatusBanner";
 import { FeatureCompassModal } from "@/components/FeatureCompassModal";
 import { isActiveRoute } from "@/lib/navActive";
+
+const VoiceCaptureManager = lazy(() => import("@/components/VoiceCapture").then((module) => ({ default: module.VoiceCaptureManager })));
 
 interface NavEntry {
   href: string;
@@ -365,6 +369,17 @@ function Topbar({ onMenu, onOpenGuide }: { onMenu: () => void; onOpenGuide: () =
         <LiveSessionPill />
         <Button
           type="button"
+          variant="ghost"
+          size="icon"
+          className="min-h-[44px] min-w-[44px]"
+          onClick={() => openVoiceCapture()}
+          aria-label="Open voice planner (Alt+M)"
+          title="Voice planner (Alt+M)"
+        >
+          <Mic size={18} />
+        </Button>
+        <Button
+          type="button"
           variant="secondary"
           size="sm"
           onClick={onOpenGuide}
@@ -492,6 +507,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           an active focus session never gets a new distraction. */}
       {!hideBottomNav && <QuickLaunchOrb />}
       {status === "authenticated" && <CoachPanel />}
+      {status === "authenticated" && <Suspense fallback={null}><VoiceCaptureManager /></Suspense>}
       <FeatureCompassModal open={guideOpen} onClose={() => setGuideOpen(false)} />
     </div>
   );

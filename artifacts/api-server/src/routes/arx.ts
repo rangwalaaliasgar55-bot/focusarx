@@ -17,7 +17,6 @@ import { generateAi } from "../lib/aiProvider";
 import { arxTemplateReply, sanitizeNeverNegative, ARX_SYSTEM_PROMPT } from "../lib/aiTemplates";
 import { userPurposeCalls } from "../lib/aiBudget";
 import { logger } from "../lib/logger";
-import { db, tasksTable, goalsTable } from "@workspace/db";
 
 const router = Router();
 
@@ -167,34 +166,6 @@ function parseVoiceAction(raw: unknown): VoiceAction {
   return { type: "none" };
 }
 
-/** Execute a validated action, returning the created row for the client. */
-async function applyVoiceAction(userId: string, action: VoiceAction): Promise<{ kind: string; id: string; title: string } | null> {
-  if (action.type === "create_task") {
-    const [task] = await db.insert(tasksTable).values({
-      userId,
-      text: action.title,
-      completed: false,
-      order: 0,
-      estimatedMinutes: action.estimatedMinutes,
-      category: "Voice",
-      priority: action.priority,
-      tags: ["voice"],
-      status: "active",
-    }).returning({ id: tasksTable.id, text: tasksTable.text });
-    return task ? { kind: "task", id: task.id, title: task.text } : null;
-  }
-  if (action.type === "create_goal") {
-    const [goal] = await db.insert(goalsTable).values({
-      userId,
-      title: action.title,
-      description: action.description,
-      completed: false,
-    }).returning({ id: goalsTable.id, title: goalsTable.title });
-    return goal ? { kind: "goal", id: goal.id, title: goal.title } : null;
-  }
-  return null;
-}
-
 router.post("/arx/voice", authMiddleware, async (req: AuthRequest, res: Response) => {
   const parsed = voiceSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Say something a little longer (2–600 characters)" });
@@ -243,20 +214,18 @@ Context on the current screen: ${parsed.data.context ?? "unknown"}.`,
       source = "template";
     }
 
-    const created = await applyVoiceAction(req.userId, action).catch((err) => {
-      logger.error({ err }, "arx voice action failed");
-      return null;
-    });
-
+    // Arx may propose planning intent, but never writes from an uncertain speech
+    // transcript. The client hands proposals to the editable voice planner.
+    const needsReview = action.type !== "none";
+    const safeReply = needsReview ? `${reply} Review the draft before saving it.` : reply;
     res.json({
-      reply: created && action.type !== "none"
-        ? `${reply}`.trim()
-        : reply,
+      reply: safeReply,
       transcript,
       source,
-      action: created ? { type: action.type, created } : action,
-      created,
-      spoken: reply,
+      action,
+      created: null,
+      needsReview,
+      spoken: safeReply,
       llmUsed: source === "llm",
       llmRemaining: Math.max(0, ARX_DAILY_LLM_CAP - (source === "llm" ? llmUsedToday + 1 : llmUsedToday)),
     });

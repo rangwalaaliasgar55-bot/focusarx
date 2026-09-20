@@ -14,6 +14,7 @@ import {
 import { useTasks } from "@/hooks/useTasks";
 import { useToast } from "@/components/Toast";
 import PageHeader from "@/components/PageHeader";
+import { VoiceCaptureLauncher } from "@/components/VoiceCapture";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -227,7 +228,7 @@ export default function TasksPage() {
         title="Tasks"
         subtitle="Capture what matters, then clear the list one focused step at a time. Changes sync optimistically across FocusArx."
         icon={<CheckSquare2 />}
-        actions={<Button onClick={() => inputRef.current?.focus()}><Plus /> Add task</Button>}
+        actions={<div className="flex flex-wrap gap-2"><VoiceCaptureLauncher /><Button onClick={() => inputRef.current?.focus()}><Plus /> Add task</Button></div>}
       />
 
       <form onSubmit={submit} className="ui-panel mb-5 flex flex-col gap-2 p-2 sm:flex-row" aria-label="Quick add task">
