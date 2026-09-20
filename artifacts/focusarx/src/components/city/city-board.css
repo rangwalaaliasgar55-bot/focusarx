@@ -1,0 +1,73 @@
+.city-game {
+  --sky-a: #93c5fd;
+  --sky-b: #dbeafe;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--brand-400) 25%, transparent);
+  border-radius: 24px;
+  background: linear-gradient(180deg, var(--sky-a), var(--sky-b) 52%, #bbf7d0 52%, #86efac);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, .22), inset 0 1px rgba(255,255,255,.6);
+}
+.city-game--sunset { --sky-a: #7c3aed; --sky-b: #fb923c; }
+.city-game--night { --sky-a: #07152f; --sky-b: #1e3a8a; }
+.city-game--aurora { --sky-a: #052e2b; --sky-b: #6d28d9; }
+.city-game--snow { background: linear-gradient(180deg,var(--sky-a),var(--sky-b) 52%,#e2e8f0 52%,#f8fafc); }
+.city-game__sky { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+.city-game__sun { position:absolute; right:9%; top:76px; width:60px; height:60px; border-radius:50%; background:#fff7c2; box-shadow:0 0 40px #fde68a; }
+.city-game--night .city-game__sun { width:46px; height:46px; background:#e0e7ff; box-shadow:0 0 26px #c7d2fe; }
+.city-game__cloud { position:absolute; color:rgba(255,255,255,.7); font-size:52px; filter:drop-shadow(0 8px 6px rgba(30,64,175,.1)); }
+.city-game__cloud--one { top:80px; left:7%; animation:city-cloud 18s ease-in-out infinite alternate; }
+.city-game__cloud--two { top:135px; right:20%; font-size:36px; animation:city-cloud 13s ease-in-out infinite alternate-reverse; }
+.city-game--clear .city-game__cloud { opacity:.35; }
+.city-game--rain::after { content:""; position:absolute; inset:120px 0 0; pointer-events:none; opacity:.25; background:repeating-linear-gradient(105deg,transparent 0 18px,#dbeafe 19px 20px,transparent 21px 38px); animation:city-rain .5s linear infinite; }
+.city-game__toolbar { position:relative; z-index:70; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin:14px; padding:14px 16px; color:#f8fafc; border:1px solid rgba(255,255,255,.2); border-radius:16px; background:rgba(10,20,45,.72); backdrop-filter:blur(14px); box-shadow:0 10px 30px rgba(15,23,42,.2); }
+.city-game__toolbar h2 { margin:2px 0; font-size:18px; font-weight:800; }
+.city-game__toolbar p { margin:0; font-size:12px; color:#cbd5e1; }
+.city-game__eyebrow { display:flex; align-items:center; gap:5px; font-size:10px; font-weight:900; letter-spacing:.14em; color:#a7f3d0; }
+.city-game__cancel { min-height:38px; padding:0 14px; border:1px solid rgba(255,255,255,.22); border-radius:11px; background:rgba(255,255,255,.09); color:white; font-size:12px; font-weight:800; }
+.city-game__viewport { position:relative; z-index:4; overflow:auto; min-height:475px; scrollbar-color:rgba(255,255,255,.45) transparent; }
+.city-game__board { position:relative; min-width:640px; margin:0 auto; }
+.city-plot { position:absolute; width:66px; height:38px; border:0; background:transparent; padding:0; overflow:visible; cursor:default; }
+.city-plot__ground { position:absolute; inset:0; clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%); background:#62bd70; border:1px solid rgba(22,101,52,.22); filter:drop-shadow(0 3px 0 #3d8f52); transition:filter .15s,background .15s,transform .15s; }
+.city-plot:nth-child(3n) .city-plot__ground { background:#6cc679; }
+.city-plot--available { cursor:pointer; }
+.city-plot--available .city-plot__ground { background:#a7f3d0; filter:drop-shadow(0 3px 0 #34d399) drop-shadow(0 0 8px rgba(52,211,153,.75)); animation:city-plot-pulse 1.4s ease-in-out infinite; }
+.city-plot--available:hover .city-plot__ground,.city-plot--available:focus-visible .city-plot__ground { background:#fef3c7; transform:translateY(-3px); filter:drop-shadow(0 6px 0 #f59e0b); }
+.city-plot__plus { position:absolute; z-index:2; left:26px; top:8px; color:#065f46; font-size:18px; font-weight:900; line-height:1; }
+.city-plot__tree { position:absolute; z-index:3; left:19px; bottom:12px; font-size:28px; filter:drop-shadow(4px 6px 2px rgba(15,23,42,.25)); pointer-events:none; }
+.city-plot--road .city-plot__ground { background:#64748b; filter:drop-shadow(0 3px 0 #334155); }
+.city-road { position:absolute; z-index:4; left:23px; top:4px; color:#f8fafc; font-size:23px; line-height:1; transform:scaleX(1.55); text-shadow:0 1px #334155; pointer-events:none; }
+.city-plot--zone .city-plot__ground { opacity:.9; }
+.city-plot--residential .city-plot__ground { background:#86efac; filter:drop-shadow(0 3px 0 #16a34a); }
+.city-plot--commercial .city-plot__ground { background:#67e8f9; filter:drop-shadow(0 3px 0 #0891b2); }
+.city-plot--industrial .city-plot__ground { background:#fcd34d; filter:drop-shadow(0 3px 0 #d97706); }
+.city-zone { position:absolute; z-index:4; left:25px; top:7px; display:grid; place-items:center; width:17px; height:17px; border:1px solid rgba(255,255,255,.7); border-radius:5px; background:rgba(15,23,42,.55); color:white; font-size:9px; font-weight:900; pointer-events:none; }
+.city-building { position:absolute; z-index:5; left:8px; bottom:17px; width:52px; height:72px; pointer-events:none; }
+.city-building__body { position:absolute; left:7px; bottom:0; display:grid; place-items:center; width:40px; height:49px; border:1px solid rgba(255,255,255,.65); border-radius:9px 9px 4px 4px; background:linear-gradient(135deg,#ede9fe,#a78bfa); box-shadow:inset -9px -8px rgba(76,29,149,.15), 6px 9px 4px rgba(15,23,42,.24); transform:skewY(-4deg); }
+.city-building__body::before { content:""; position:absolute; top:-10px; left:1px; width:36px; height:19px; border-radius:4px; background:linear-gradient(135deg,#f5f3ff,#8b5cf6); transform:skewY(22deg); }
+.city-building__body span { position:relative; z-index:2; font-size:26px; transform:skewY(4deg); filter:drop-shadow(1px 2px 1px rgba(0,0,0,.15)); }
+.city-building__shadow { position:absolute; left:18px; bottom:-7px; width:47px; height:13px; border-radius:50%; background:rgba(15,23,42,.25); transform:skewX(-30deg); }
+.city-building__label { position:absolute; left:50%; bottom:-29px; transform:translateX(-50%); width:max-content; max-width:100px; overflow:hidden; text-overflow:ellipsis; padding:3px 6px; border-radius:7px; background:rgba(15,23,42,.78); color:white; font-size:9px; font-weight:800; white-space:nowrap; opacity:0; transition:opacity .15s; }
+.city-plot--occupied { cursor:pointer; }
+.city-plot--occupied:hover .city-building__label,.city-plot--occupied:focus-visible .city-building__label { opacity:1; }
+.city-building__move { position:absolute; right:-4px; top:9px; display:grid; place-items:center; width:20px; height:20px; border-radius:50%; background:#fff; color:#4c1d95; opacity:0; box-shadow:0 3px 10px rgba(0,0,0,.25); transition:opacity .15s; }
+.city-building__incident { position:absolute; z-index:8; right:-8px; top:-9px; font-size:22px; animation:city-plot-pulse .7s ease-in-out infinite; filter:drop-shadow(0 2px 2px rgba(0,0,0,.4)); }
+.city-building--incident .city-building__body { filter:saturate(.6); }
+.city-building--abandoned .city-building__body { filter:grayscale(1) brightness(.62); opacity:.78; }
+.city-plot--occupied:hover .city-building__move,.city-plot--occupied:focus-visible .city-building__move { opacity:1; }
+.city-game__road { position:absolute; z-index:2; left:50%; top:295px; width:430px; height:38px; transform:translateX(-50%) rotate(27deg); background:#475569; border:4px solid #94a3b8; color:#f8fafc; line-height:25px; letter-spacing:17px; overflow:hidden; opacity:.78; }
+.city-game__legend { position:relative; z-index:70; display:flex; flex-wrap:wrap; gap:8px 16px; margin:0 14px 14px; padding:11px 14px; border:1px solid rgba(255,255,255,.18); border-radius:14px; background:rgba(10,20,45,.72); color:#e2e8f0; font-size:11px; font-weight:700; backdrop-filter:blur(12px); }
+.city-game__legend span { display:flex; align-items:center; gap:5px; }
+.city-game__selected { margin-left:auto; color:#6ee7b7; }
+@keyframes city-cloud { to { transform:translateX(35px); } }
+@keyframes city-rain { to { background-position:0 38px; } }
+@keyframes city-plot-pulse { 50% { opacity:.72; } }
+@media (max-width:640px) {
+  .city-game { border-radius:18px; }
+  .city-game__toolbar { margin:10px; }
+  .city-game__viewport { min-height:405px; }
+  .city-game__board { transform:scale(.84); transform-origin:top center; margin-bottom:-70px; }
+  .city-game__legend { margin:0 10px 10px; }
+  .city-game__selected { width:100%; margin-left:0; }
+}
+@media (prefers-reduced-motion:reduce) { .city-game * { animation:none !important; } }
