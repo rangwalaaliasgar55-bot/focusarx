@@ -12,10 +12,12 @@ export const focusCitiesTable = pgTable('focus_cities', {
   totalSessions: integer('total_sessions').notNull().default(0),
   unlockedDistricts: jsonb('unlocked_districts').$type<string[]>().default(['downtown']),
   buildings: jsonb('buildings').$type<Record<string, boolean>>().default({}),
+  buildingLayout: jsonb('building_layout').$type<Record<string, { x: number; y: number }>>().default({}),
   atmosphere: text('atmosphere').notNull().default('day'),
   selectedSkin: text('selected_skin').notNull().default('classic'),
   weather: text('weather').notNull().default('clear'),
   weatherUpdatedAt: timestamp('weather_updated_at').defaultNow(),
+  lastTaxAt: timestamp('last_tax_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (t) => [
   index('focus_cities_user_idx').on(t.userId),

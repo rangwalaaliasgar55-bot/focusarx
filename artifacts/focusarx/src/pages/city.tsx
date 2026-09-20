@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Building2, Camera, Crown, Lock, Moon, MoonStar, Sparkles, Sun, Sunset, Users, Zap } from "lucide-react";
+import { Building2, Camera, Clock3, Coins, Crown, Lock, Moon, MoonStar, Sparkles, Sun, Sunset, Users, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
@@ -12,6 +12,7 @@ import { ErrorState } from "@/components/ErrorState";
 import { QueryError } from "@/components/ui/QueryError";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Building, City, Wallet } from "@/types/gamification";
+import { CityBoard } from "@/components/city/CityBoard";
 
 function authHeaders() {
   const t = getToken();
@@ -42,8 +43,8 @@ const WEATHER_MEANING: Record<string, string> = {
   rain: "No focus in a while — one session clears the sky",
 };
 
-function BuildingCard({ building, owned, onBuy, wallet, busy, balanceKnown }: {
-  building: Building; owned: boolean; onBuy: (b: Building) => void; wallet: Wallet | null; busy?: boolean;
+function BuildingCard({ building, owned, selected, onBuy, wallet, busy, balanceKnown }: {
+  building: Building; owned: boolean; selected?: boolean; onBuy: (b: Building) => void; wallet: Wallet | null; busy?: boolean;
   /**
    * False when the wallet request failed. `canAfford` was `wallet ? ... : false`,
    * so an unknown balance silently made every building unaffordable — and the
@@ -64,7 +65,7 @@ function BuildingCard({ building, owned, onBuy, wallet, busy, balanceKnown }: {
     <motion.div
       variants={CARD}
       className={`relative rounded-2xl border p-4 transition-all ${
-        owned
+        owned || selected
           ? "border-[var(--rgba-124-58-237-0_4)] bg-[var(--rgba-124-58-237-0_08)]"
           : "border-[var(--border-subtle)] bg-[var(--muted)]"
       } ${busy ? "opacity-70" : ""}`}
@@ -123,10 +124,12 @@ function BuildingCard({ building, owned, onBuy, wallet, busy, balanceKnown }: {
               <span className="inline-block h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" aria-hidden="true" />
               Building…
             </>
+          ) : selected ? (
+            "✓ Choose a plot above"
           ) : building.coinCost === 0 ? (
-            "Build Free"
+            "Select · Free"
           ) : (
-            `🪙 ${building.coinCost.toLocaleString()}`
+            `Select · 🪙 ${building.coinCost.toLocaleString()}`
           )}
         </button>
       )}
@@ -135,7 +138,16 @@ function BuildingCard({ building, owned, onBuy, wallet, busy, balanceKnown }: {
 }
 
 type CitySkin = { id: string; name: string; emoji: string; gradient: string; premiumOnly: boolean; locked: boolean };
-type CityView = City & { selectedSkin?: string; skins?: CitySkin[]; premium?: boolean };
+type Plot = { x: number; y: number };
+type CityTax = { ratePerHour: number; available: number; storageHours: number; nextCoinInSeconds: number };
+type CityView = City & {
+  selectedSkin?: string;
+  skins?: CitySkin[];
+  premium?: boolean;
+  buildingLayout?: Record<string, Plot>;
+  grid?: { width: number; height: number };
+  tax?: CityTax;
+};
 
 export default function CityPage() {
   const [city, setCity] = useState<CityView | null>(null);
@@ -158,6 +170,9 @@ export default function CityPage() {
   const [walletFailed, setWalletFailed] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [building, setBuilding] = useState<string | null>(null);
+  const [selectedBuilding, setSelectedBuilding] = useState<string | null>(null);
+  const [movingBuilding, setMovingBuilding] = useState<string | null>(null);
+  const [collectingTax, setCollectingTax] = useState(false);
   const [filter, setFilter] = useState("all");
   const [toast, setToast] = useState<string | null>(null);
   const { isPremium } = usePremium();
@@ -216,24 +231,63 @@ export default function CityPage() {
     try { return (await res.json()) as Record<string, unknown>; } catch { return {}; }
   };
 
-  const handleBuy = async (b: Building) => {
+  const handleBuy = async (b: Building, position?: Plot) => {
     if (building) return;
     setBuilding(b.slug);
     try {
       const res = await fetch(`/api/city/buildings/${b.slug}/build`, {
         method: "POST",
         headers: authHeaders(),
+        body: JSON.stringify(position ? { position } : {}),
       });
       const data = await readBody(res);
       if (!res.ok) { showToast(typeof data.error === "string" ? data.error : "Failed to build"); return; }
       setCity(data.city as CityView);
       setWallet((w) => w ? { ...w, coins: (data.newCoins as number) ?? w.coins } : w);
       setBuildings(prev => prev.map(x => x.slug === b.slug ? { ...x, _owned: true } : x));
-      showToast(`${b.icon} ${b.name} built!`);
+      setSelectedBuilding(null);
+      showToast(`${b.icon} ${b.name} built — your city is growing!`);
     } catch {
       showToast("Couldn't reach the city service — try again");
     } finally {
       setBuilding(null);
+    }
+  };
+
+  const moveBuilding = async (slug: string, position: Plot) => {
+    if (building) return;
+    setBuilding(slug);
+    try {
+      const response = await fetch(`/api/city/buildings/${slug}/move`, {
+        method: "PATCH", headers: authHeaders(), body: JSON.stringify({ position }),
+      });
+      const data = await readBody(response);
+      if (!response.ok) { showToast(typeof data.error === "string" ? data.error : "Could not move building"); return; }
+      setCity((current) => current ? { ...current, ...(data.city as CityView) } : current);
+      setMovingBuilding(null);
+      showToast("Building moved");
+    } catch {
+      showToast("Couldn't reach the city service — try again");
+    } finally {
+      setBuilding(null);
+    }
+  };
+
+  const collectTax = async () => {
+    if (collectingTax) return;
+    setCollectingTax(true);
+    try {
+      const response = await fetch("/api/city/tax/collect", { method: "POST", headers: authHeaders() });
+      const data = await readBody(response);
+      if (!response.ok) { showToast(typeof data.error === "string" ? data.error : "Could not collect tax"); return; }
+      const collected = Number(data.collected ?? 0);
+      setCity((current) => current ? { ...current, ...(data.city as CityView), tax: data.tax as CityTax } : current);
+      if (typeof data.newCoins === "number") setWallet((current) => current ? { ...current, coins: data.newCoins as number } : current);
+      showToast(collected > 0 ? `🪙 Citizens contributed ${collected.toLocaleString()} coins!` : "Your treasury is still filling");
+    } catch {
+      showToast("Couldn't reach the treasury — try again");
+    } finally {
+      setCollectingTax(false);
     }
   };
 
@@ -340,6 +394,47 @@ export default function CityPage() {
           </div>
         </div>
 
+        {/* The playable district: owned properties persist on an isometric grid. */}
+        <CityBoard
+          buildings={buildings}
+          owned={owned}
+          layout={city?.buildingLayout ?? {}}
+          selectedSlug={selectedBuilding}
+          movingSlug={movingBuilding}
+          width={city?.grid?.width}
+          height={city?.grid?.height}
+          time={selectedTime}
+          weather={selectedWeather}
+          busy={!!building}
+          onSelect={setSelectedBuilding}
+          onMoveStart={(slug) => { setMovingBuilding(slug); setSelectedBuilding(null); }}
+          onPlace={(definition, plot) => void handleBuy(definition, plot)}
+          onMove={(slug, plot) => void moveBuilding(slug, plot)}
+        />
+
+        {/* Citizen economy */}
+        <section className="grid gap-4 rounded-2xl border border-[var(--rgba-245-158-11-0_28)] bg-gradient-to-br from-[var(--card)] to-[var(--rgba-245-158-11-0_07)] p-5 sm:grid-cols-[1fr_auto] sm:items-center">
+          <div className="flex gap-4">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[var(--rgba-245-158-11-0_15)] text-[var(--color-warning)]"><Coins size={24} /></div>
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[.14em] text-[var(--color-warning)]">Citizen treasury</p>
+              <h2 className="mt-1 text-lg font-bold">Your city works while you focus</h2>
+              <p className="mt-1 text-xs text-[var(--foreground-subtle)]">
+                Citizens contribute <strong className="text-[var(--foreground)]">{city?.tax?.ratePerHour ?? Math.max(1, Math.floor((city?.population ?? 0) / 10))} coins/hour</strong>. Revenue stores for up to {city?.tax?.storageHours ?? 24} hours.
+              </p>
+              <span className="mt-2 inline-flex items-center gap-1 text-[11px] text-[var(--foreground-subtle)]"><Clock3 size={11} /> Grow population and add properties to raise revenue</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => void collectTax()}
+            disabled={collectingTax || (city?.tax?.available ?? 0) < 1}
+            className="min-h-12 rounded-xl bg-[var(--color-warning)] px-5 text-sm font-black text-[var(--palette-0d0f1c)] shadow-lg transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0"
+          >
+            {collectingTax ? "Collecting…" : `Collect 🪙 ${(city?.tax?.available ?? 0).toLocaleString()}`}
+          </button>
+        </section>
+
         {/* Premium City Modes */}
         <section className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4">
           <div className="mb-3 flex items-center justify-between">
@@ -428,7 +523,16 @@ export default function CityPage() {
         {/* Buildings grid */}
         <motion.div variants={STAGGER} initial="initial" animate="animate" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {displayed.map((b) => (
-            <BuildingCard key={b.slug} building={b} owned={!!owned[b.slug]} onBuy={handleBuy} wallet={wallet} busy={building === b.slug} balanceKnown={!walletFailed} />
+            <BuildingCard
+              key={b.slug}
+              building={b}
+              owned={!!owned[b.slug]}
+              selected={selectedBuilding === b.slug}
+              onBuy={() => { setSelectedBuilding(b.slug); setMovingBuilding(null); window.scrollTo({ top: 180, behavior: "smooth" }); }}
+              wallet={wallet}
+              busy={building === b.slug}
+              balanceKnown={!walletFailed}
+            />
           ))}
         </motion.div>
 
