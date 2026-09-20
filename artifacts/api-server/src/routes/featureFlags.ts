@@ -6,10 +6,11 @@ import { logger } from "../lib/logger";
 
 const router = Router();
 
-// GET /api/feature-flags — public, list enabled
+// GET /api/feature-flags — public. Return both enabled and disabled rows:
+// omitting disabled rows made the fail-open client interpret every OFF switch as ON.
 router.get("/feature-flags", async (_req, res) => {
   try {
-    const flags = await db.select().from(featureFlagsTable).where(eq(featureFlagsTable.enabled, true));
+    const flags = await db.select().from(featureFlagsTable);
     const map: Record<string, boolean> = {};
     flags.forEach(f => { map[f.key] = f.enabled; });
     res.json({ flags: map, all: flags });

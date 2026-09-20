@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import { createHmac } from "node:crypto";
 import {
   parseCompletedCheckout,
+  parseEndedSubscription,
+  parsePaidInvoice,
   parseStripeSignature,
   verifyStripeSignature,
 } from "./stripe";
@@ -33,13 +35,36 @@ describe("stripe webhook verification (no network)", () => {
     expect(
       parseCompletedCheckout({
         type: "checkout.session.completed",
-        data: { object: { id: "cs_1", customer: "cus_1", metadata: { userId: "u_1", interval: "year" } } },
+        data: { object: { id: "cs_1", mode: "subscription", payment_status: "paid", subscription: "sub_1", customer: "cus_1", metadata: { userId: "u_1", interval: "year" } } },
       }),
-    ).toEqual({ sessionId: "cs_1", userId: "u_1", interval: "year", customerId: "cus_1" });
+    ).toEqual({ sessionId: "cs_1", userId: "u_1", interval: "year", customerId: "cus_1", subscriptionId: "sub_1" });
     expect(parseCompletedCheckout({ type: "customer.subscription.deleted" })).toBeNull();
     expect(
       parseCompletedCheckout({ type: "checkout.session.completed", data: { object: { id: "cs_1" } } }),
     ).toBeNull();
+  });
+
+  it("parses renewal and terminal cancellation lifecycle events", () => {
+    expect(parsePaidInvoice({
+      type: "invoice.paid",
+      data: { object: {
+        id: "in_1",
+        status: "paid",
+        parent: { subscription_details: { subscription: "sub_1", metadata: { userId: "u_1", interval: "month" } } },
+        lines: { data: [{ period: { end: 1_800_000_000 } }] },
+      } },
+    })).toEqual({
+      invoiceId: "in_1",
+      subscriptionId: "sub_1",
+      userId: "u_1",
+      interval: "month",
+      periodEnd: new Date(1_800_000_000_000),
+    });
+    expect(parsePaidInvoice({ type: "invoice.payment_failed" })).toBeNull();
+    expect(parseEndedSubscription({
+      type: "customer.subscription.deleted",
+      data: { object: { id: "sub_1", metadata: { userId: "u_1" } } },
+    })).toEqual({ subscriptionId: "sub_1", userId: "u_1" });
   });
 
   it("rejects malformed signature headers", () => {

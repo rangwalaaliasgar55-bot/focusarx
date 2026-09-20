@@ -194,6 +194,16 @@ function CountBadge({ count }: { count: number }) {
 const NAV_FLAG_MAP: Record<string, string> = {
   "/leaderboard": FEATURE_FLAG_KEYS.leaderboard,
   "/social": FEATURE_FLAG_KEYS.social,
+  "/city": FEATURE_FLAG_KEYS.city,
+  "/pets": FEATURE_FLAG_KEYS.pets,
+  "/missions": FEATURE_FLAG_KEYS.missions,
+  "/quests": FEATURE_FLAG_KEYS.quests,
+  "/achievements": FEATURE_FLAG_KEYS.achievements,
+  "/habits": FEATURE_FLAG_KEYS.habits,
+  "/groups": FEATURE_FLAG_KEYS.groups,
+  "/messages": FEATURE_FLAG_KEYS.messages,
+  "/wallet": FEATURE_FLAG_KEYS.wallet,
+  "/shop": FEATURE_FLAG_KEYS.shop,
 };
 
 function Navigation({ onNavigate }: { onNavigate?: () => void }) {

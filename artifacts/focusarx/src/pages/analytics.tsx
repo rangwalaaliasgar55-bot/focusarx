@@ -145,7 +145,7 @@ function PremiumLock({ feature, description }: { feature: string; description: s
       <p className="mx-auto mt-1 max-w-sm text-xs text-[var(--foreground-muted)]">{description}</p>
       {cheapest && (
         <p className="mt-2 text-xs text-[var(--foreground-subtle)]">
-          You have <span className="font-bold text-[var(--brand-400)]">{balance.toLocaleString()}</span> Focus Tokens
+          You have <span className="font-bold text-[var(--brand-400)]">{balance.toLocaleString()}</span> Focus Credits
           {needed > 0 ? `, need ${needed.toLocaleString()} more for ${cheapest.durationDays} days` : ""}.
         </p>
       )}

@@ -180,6 +180,28 @@ export const voiceCaptureBatchesTable = pgTable("voice_capture_batches", {
 
 export type VoiceCaptureBatch = typeof voiceCaptureBatchesTable.$inferSelect;
 
+/** Payment-provider-neutral checkout binding. It prevents a valid payment
+ * signature from being replayed against a different FocusArx account. */
+export const paymentCheckoutIntentsTable = pgTable("payment_checkout_intents", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull(),
+  providerOrderId: text("provider_order_id").notNull(),
+  interval: text("interval").notNull(),
+  amountMinor: integer("amount_minor").notNull(),
+  currency: text("currency").notNull(),
+  status: text("status").notNull().default("pending"),
+  providerPaymentId: text("provider_payment_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+}, (t) => [
+  uniqueIndex("payment_checkout_intents_provider_order_uidx").on(t.provider, t.providerOrderId),
+  uniqueIndex("payment_checkout_intents_provider_payment_uidx").on(t.provider, t.providerPaymentId),
+  index("payment_checkout_intents_user_created_idx").on(t.userId, t.createdAt),
+]);
+
+export type PaymentCheckoutIntent = typeof paymentCheckoutIntentsTable.$inferSelect;
+
 export const userWalletsTable = pgTable("user_wallets", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull().unique().references(() => usersTable.id, { onDelete: "cascade" }),

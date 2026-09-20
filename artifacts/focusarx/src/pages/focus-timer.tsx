@@ -28,7 +28,7 @@ export default function FocusTimerPage() {
               Free Focus Timer for Deep Work
             </h1>
             <p className="mx-auto max-w-2xl text-[15px] leading-relaxed text-[var(--foreground-muted)]">
-              Start a Pomodoro or custom 10–180 min deep work session. Earn Focus Tokens, level up pets, build your Focus City. Premium unlocks rituals, sound mixing, intentions, reflections, templates, animations.
+              Start a Pomodoro or custom 10–180 min deep work session. Earn Focus Credits, level up pets, build your Focus City. Premium unlocks rituals, sound mixing, intentions, reflections, templates, animations.
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <Link href="/" className="min-h-[44px] inline-flex items-center justify-center rounded-xl bg-[var(--brand-600)] px-6 text-sm font-bold text-white hover:bg-[var(--brand-700)]">Start Focusing — Free</Link>
@@ -51,14 +51,14 @@ export default function FocusTimerPage() {
           </div>
 
           <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-1)] p-6">
-            <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><Sparkles size={18} className="text-[var(--brand-400)]" /> How Focus Tokens Work</h2>
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><Sparkles size={18} className="text-[var(--brand-400)]" /> How Focus Credits Work</h2>
             <div className="grid sm:grid-cols-2 gap-3 text-sm">
               {[
-                "Earn 50 tokens per 25m+ focus session (max 10/day)",
+                "Earn 50 credits per 25m+ focus session (max 10/day)",
                 "Daily quests +30, weekly +100, streak +20",
                 "Battle pass milestones, pet milestones, city upgrades",
                 "Seasonal events, referrals, achievements",
-                "Spend tokens for Premium (10k/25k/80k), pets, cosmetics",
+                "Spend credits for Premium (10k/25k/80k), pets, cosmetics",
                 "Ledger is source of truth — idempotent, audited, no real money",
               ].map((t) => (
                 <div key={t} className="flex items-start gap-2"><CheckCircle size={14} className="text-[var(--success)] mt-0.5 shrink-0" /><span className="text-[var(--foreground-muted)]">{t}</span></div>
@@ -92,7 +92,7 @@ export default function FocusTimerPage() {
           </div>
 
           <div className="mt-8 text-center">
-            <p className="text-xs text-[var(--foreground-subtle)]">Free forever. Premium unlocked purely with earned Focus Tokens — no Stripe/PayPal.</p>
+            <p className="text-xs text-[var(--foreground-subtle)]">The core stays free. Unlock Pro with earned Focus Credits, or use card and UPI checkout.</p>
           </div>
         </div>
       </div>
