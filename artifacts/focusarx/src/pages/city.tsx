@@ -13,6 +13,7 @@ import { QueryError } from "@/components/ui/QueryError";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Building, City, Wallet } from "@/types/gamification";
 import { CityBoard } from "@/components/city/CityBoard";
+import { CityWorld3D } from "@/components/city/CityWorld3D";
 
 function authHeaders() {
   const t = getToken();
@@ -140,6 +141,15 @@ function BuildingCard({ building, owned, selected, onBuy, wallet, busy, balanceK
 type CitySkin = { id: string; name: string; emoji: string; gradient: string; premiumOnly: boolean; locked: boolean };
 type Plot = { x: number; y: number };
 type CityTax = { ratePerHour: number; available: number; storageHours: number; nextCoinInSeconds: number };
+type SimCell = { kind: "road" | "zone" | "building"; zone?: string; building?: string; level?: number; condition?: number; incident?: string };
+type CitySimulation = {
+  width: number; height: number; day: number; cells: Record<string, SimCell>; population: number; jobs: number; employed: number; vacancies: number; happiness: number;
+  power: { capacity: number; demand: number }; water: { capacity: number; demand: number };
+  daily: { income: number; maintenance: number; net: number }; disastersSurvived: number;
+  logs: Array<{ day: number; tone: "good" | "neutral" | "danger"; message: string }>;
+};
+type SimSpec = { name: string; icon: string; zone: string; jobs: number; population: number };
+type SimulationPayload = { simulation: CitySimulation; catalog: Record<string, SimSpec>; costs: { tools: Record<string, number>; specials: Record<string, number> } };
 type CityView = City & {
   selectedSkin?: string;
   skins?: CitySkin[];
@@ -178,6 +188,13 @@ export default function CityPage() {
   const { isPremium } = usePremium();
   const [selectedWeather, setSelectedWeather] = useState<string>("clear");
   const [selectedTime, setSelectedTime] = useState<string>("day");
+  const [simulation, setSimulation] = useState<CitySimulation | null>(null);
+  const [simulationCatalog, setSimulationCatalog] = useState<Record<string, SimSpec>>({});
+  const [simulationCosts, setSimulationCosts] = useState<SimulationPayload["costs"]>({ tools: {}, specials: {} });
+  const [activeTool, setActiveTool] = useState<string | null>(null);
+  const [selectedSpecial, setSelectedSpecial] = useState<string>("powerPlant");
+  const [simBusy, setSimBusy] = useState(false);
+  const [cityViewMode, setCityViewMode] = useState<"3d" | "map">("3d");
 
   useEffect(() => {
     let cancelled = false;
@@ -185,10 +202,11 @@ export default function CityPage() {
       setLoading(true);
       setLoadFailed(false);
       try {
-        const [cr, br, wr] = await Promise.all([
+        const [cr, br, wr, sr] = await Promise.all([
           fetch("/api/city", { headers: authHeaders() }),
           fetch("/api/city/buildings", { headers: authHeaders() }),
           fetch("/api/gamification/wallet", { headers: authHeaders() }),
+          fetch("/api/city/simulation", { headers: authHeaders() }),
         ]);
         if (cancelled) return;
         // A failed /api/city used to leave `city` null, which renders identically
@@ -206,6 +224,12 @@ export default function CityPage() {
           setWalletFailed(false);
         } else {
           setWalletFailed(true);
+        }
+        if (sr.ok) {
+          const payload = await sr.json() as Partial<SimulationPayload>;
+          if (payload.simulation?.cells) setSimulation(payload.simulation);
+          if (payload.catalog) setSimulationCatalog(payload.catalog);
+          if (payload.costs) setSimulationCosts(payload.costs);
         }
       } catch {
         if (!cancelled) setLoadFailed(true);
@@ -289,6 +313,36 @@ export default function CityPage() {
     } finally {
       setCollectingTax(false);
     }
+  };
+
+  const runSimulationAction = async (position: Plot) => {
+    if (!activeTool || simBusy) return;
+    setSimBusy(true);
+    try {
+      const response = await fetch("/api/city/simulation/action", {
+        method: "POST", headers: authHeaders(), body: JSON.stringify({ tool: activeTool, ...position, ...(activeTool === "special" ? { building: selectedSpecial } : {}) }),
+      });
+      const data = await readBody(response);
+      if (!response.ok) { showToast(typeof data.error === "string" ? data.error : "City action failed"); return; }
+      setSimulation(data.simulation as CitySimulation);
+      if (typeof data.newCoins === "number") setWallet((current) => current ? { ...current, coins: data.newCoins as number } : current);
+      showToast(typeof data.message === "string" ? data.message : "City updated");
+    } catch {
+      showToast("Couldn't save your city action — try again");
+    } finally { setSimBusy(false); }
+  };
+
+  const advanceDay = async () => {
+    if (simBusy) return;
+    setSimBusy(true);
+    try {
+      const response = await fetch("/api/city/simulation/advance", { method: "POST", headers: authHeaders() });
+      const data = await readBody(response);
+      if (!response.ok) { showToast(typeof data.error === "string" ? data.error : "Could not advance the city"); return; }
+      setSimulation(data.simulation as CitySimulation);
+      showToast(`Day ${(data.simulation as CitySimulation).day} complete`);
+    } catch { showToast("Couldn't advance the city — try again"); }
+    finally { setSimBusy(false); }
   };
 
   const selectSkin = async (skin: CitySkin) => {
@@ -394,23 +448,91 @@ export default function CityPage() {
           </div>
         </div>
 
-        {/* The playable district: owned properties persist on an isometric grid. */}
-        <CityBoard
-          buildings={buildings}
-          owned={owned}
-          layout={city?.buildingLayout ?? {}}
-          selectedSlug={selectedBuilding}
-          movingSlug={movingBuilding}
-          width={city?.grid?.width}
-          height={city?.grid?.height}
-          time={selectedTime}
-          weather={selectedWeather}
-          busy={!!building}
-          onSelect={setSelectedBuilding}
-          onMoveStart={(slug) => { setMovingBuilding(slug); setSelectedBuilding(null); }}
-          onPlace={(definition, plot) => void handleBuy(definition, plot)}
-          onMove={(slug, plot) => void moveBuilding(slug, plot)}
-        />
+        {/* Full simulation controls */}
+        {simulation && (
+          <section className="space-y-4 rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[.14em] text-[var(--brand-400)]">City operations · Day {simulation.day}</p>
+                <h2 className="text-lg font-bold">Plan roads, zones, utilities and services</h2>
+              </div>
+              <div className="flex gap-2">
+                <div className="flex rounded-xl border border-[var(--border)] p-1">
+                  <button type="button" onClick={() => setCityViewMode("3d")} className={`rounded-lg px-3 text-xs font-bold ${cityViewMode === "3d" ? "bg-[var(--brand-soft)] text-[var(--brand-400)]" : ""}`}>3D</button>
+                  <button type="button" onClick={() => setCityViewMode("map")} className={`rounded-lg px-3 text-xs font-bold ${cityViewMode === "map" ? "bg-[var(--brand-soft)] text-[var(--brand-400)]" : ""}`}>Map</button>
+                </div>
+                <button type="button" onClick={() => void advanceDay()} disabled={simBusy} className="min-h-11 rounded-xl bg-[var(--brand-600)] px-5 text-sm font-bold text-white disabled:opacity-50">
+                  {simBusy ? "Saving…" : "Run next day ▶"}
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+              {[
+                ["road", "🛣️", "Road"], ["residential", "🏠", "Homes"], ["commercial", "🏪", "Commerce"], ["industrial", "🏭", "Industry"], ["special", "🏥", "Services"], ["repair", "🛠️", "Repair"], ["bulldoze", "🚧", "Bulldoze"],
+              ].map(([id, emoji, label]) => (
+                <button key={id} type="button" aria-pressed={activeTool === id} onClick={() => { setActiveTool(activeTool === id ? null : id); setSelectedBuilding(null); setMovingBuilding(null); }}
+                  className={`min-h-16 rounded-xl border p-2 text-center transition ${activeTool === id ? "border-[var(--brand-400)] bg-[var(--brand-soft)]" : "border-[var(--border)]"}`}>
+                  <span className="text-xl">{emoji}</span><span className="block text-[11px] font-bold">{label}</span><span className="block text-[10px] text-[var(--foreground-subtle)]">🪙 {id === "special" ? simulationCosts.specials[selectedSpecial] ?? 0 : simulationCosts.tools[id] ?? 0}</span>
+                </button>
+              ))}
+            </div>
+            {activeTool === "special" && (
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {Object.entries(simulationCatalog).filter(([, spec]) => spec.zone === "service" || spec.zone === "utility").map(([id, spec]) => (
+                  <button key={id} type="button" onClick={() => setSelectedSpecial(id)} className={`min-w-28 rounded-xl border p-2 text-left ${selectedSpecial === id ? "border-[var(--brand-400)] bg-[var(--brand-soft)]" : "border-[var(--border)]"}`}>
+                    <span className="text-xl">{spec.icon}</span><span className="block text-[11px] font-bold">{spec.name}</span><span className="text-[10px] text-[var(--foreground-subtle)]">🪙 {simulationCosts.specials[id] ?? 0}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4 lg:grid-cols-8">
+              {[
+                ["Citizens", simulation.population, "👥"], ["Employed", `${simulation.employed}/${simulation.jobs}`, "💼"], ["Happiness", `${simulation.happiness}%`, "😊"],
+                ["Power", `${simulation.power.demand}/${simulation.power.capacity}`, "⚡"], ["Water", `${simulation.water.demand}/${simulation.water.capacity}`, "💧"],
+                ["Income", simulation.daily.income, "↗"], ["Costs", simulation.daily.maintenance, "↘"], ["Net/day", simulation.daily.net, "🪙"],
+              ].map(([label, value, icon]) => <div key={String(label)} className="rounded-xl bg-[var(--surface-1)] p-2"><span>{icon}</span><strong className="ml-1">{value}</strong><span className="block text-[10px] text-[var(--foreground-subtle)]">{label}</span></div>)}
+            </div>
+          </section>
+        )}
+
+        {/* The playable district: licensed models in 3D, with an accessible map fallback. */}
+        {cityViewMode === "3d" && simulation ? (
+          <CityWorld3D cells={simulation.cells} width={simulation.width} height={simulation.height} active={!!activeTool && !simBusy} onPlot={(x, y) => void runSimulationAction({ x, y })} />
+        ) : (
+          <CityBoard
+            buildings={buildings}
+            owned={owned}
+            layout={city?.buildingLayout ?? {}}
+            selectedSlug={selectedBuilding}
+            movingSlug={movingBuilding}
+            width={city?.grid?.width}
+            height={city?.grid?.height}
+            time={selectedTime}
+            weather={selectedWeather}
+            busy={!!building || simBusy}
+            simulationCells={simulation?.cells}
+            simulationCatalog={simulationCatalog}
+            activeTool={activeTool}
+            onSimulationAction={(plot) => void runSimulationAction(plot)}
+            onSelect={setSelectedBuilding}
+            onMoveStart={(slug) => { setMovingBuilding(slug); setSelectedBuilding(null); }}
+            onPlace={(definition, plot) => void handleBuy(definition, plot)}
+            onMove={(slug, plot) => void moveBuilding(slug, plot)}
+          />
+        )}
+
+        {simulation?.logs.length ? (
+          <section className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4">
+            <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-bold">City dispatch</h2><span className="text-[11px] text-[var(--foreground-subtle)]">{simulation.disastersSurvived} emergencies resolved</span></div>
+            <div className="space-y-2">
+              {simulation.logs.slice(0, 5).map((entry, index) => (
+                <div key={`${entry.day}-${index}`} className={`flex gap-3 rounded-xl border p-3 text-xs ${entry.tone === "danger" ? "border-red-500/25 bg-red-500/5" : entry.tone === "good" ? "border-emerald-500/25 bg-emerald-500/5" : "border-[var(--border)]"}`}>
+                  <span className="shrink-0 font-bold text-[var(--foreground-subtle)]">Day {entry.day}</span><span>{entry.message}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         {/* Citizen economy */}
         <section className="grid gap-4 rounded-2xl border border-[var(--rgba-245-158-11-0_28)] bg-gradient-to-br from-[var(--card)] to-[var(--rgba-245-158-11-0_07)] p-5 sm:grid-cols-[1fr_auto] sm:items-center">

@@ -148,6 +148,13 @@
       "when": 1789920000000,
       "tag": "0020_city_builder_economy",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1789921000000,
+      "tag": "0021_city_simulation",
+      "breakpoints": true
     }
   ]
 }

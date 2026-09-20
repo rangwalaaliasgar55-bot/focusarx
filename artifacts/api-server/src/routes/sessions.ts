@@ -34,6 +34,7 @@ import {
 } from "../lib/sessionStateMachine";
 import { deriveActiveSessionTiming, reconcileActiveSessionSync } from "../lib/activeSessionTiming";
 import { serializeFocusTimeline } from "../lib/focusTimeline";
+import { advanceSimulationDay, createCitySimulation, type CitySimulation } from "../lib/citySimulation";
 
 async function maybeDropLootBox(userId: string, sessionCount: number): Promise<boolean> {
   try {
@@ -68,10 +69,14 @@ async function updateCityProgress(userId: string): Promise<void> {
     else if (newTotal >= 90)  { newTier = "city";       newTierName = "Knowledge City"; }
     else if (newTotal >= 40)  { newTier = "town";       newTierName = "Learning Town"; }
     else if (newTotal >= 15)  { newTier = "village";    newTierName = "Focus Village"; }
+    const stored = city.simulation as Partial<CitySimulation> | null;
+    const simulation = advanceSimulationDay(stored?.version === 1 ? stored as CitySimulation : createCitySimulation(), newTotal + userId.length);
     await db.update(focusCitiesTable).set({
       totalSessions: newTotal,
       tier: newTier,
       tierName: newTierName,
+      simulation: simulation as unknown as Record<string, unknown>,
+      population: Math.max(5, simulation.population),
       updatedAt: new Date(),
     }).where(eq(focusCitiesTable.userId, userId));
   } catch { /* best effort */ }

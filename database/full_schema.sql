@@ -122,6 +122,7 @@ CREATE TABLE IF NOT EXISTS "focus_cities" (
 	"unlocked_districts" jsonb DEFAULT '["downtown"]'::jsonb,
 	"buildings" jsonb DEFAULT '{}'::jsonb,
 	"building_layout" jsonb DEFAULT '{}'::jsonb,
+	"simulation" jsonb DEFAULT '{}'::jsonb,
 	"atmosphere" text DEFAULT 'day' NOT NULL,
 	"selected_skin" text DEFAULT 'classic' NOT NULL,
 	"weather" text DEFAULT 'clear' NOT NULL,
