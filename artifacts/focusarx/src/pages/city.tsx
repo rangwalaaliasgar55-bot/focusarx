@@ -141,11 +141,14 @@ function BuildingCard({ building, owned, selected, onBuy, wallet, busy, balanceK
 type CitySkin = { id: string; name: string; emoji: string; gradient: string; premiumOnly: boolean; locked: boolean };
 type Plot = { x: number; y: number };
 type CityTax = { ratePerHour: number; available: number; storageHours: number; nextCoinInSeconds: number };
-type SimCell = { kind: "road" | "zone" | "building"; zone?: string; building?: string; level?: number; condition?: number; incident?: string };
+type SimCell = { kind: "road" | "zone" | "building"; zone?: string; building?: string; level?: number; condition?: number; incident?: string; age?: number; stressDays?: number; abandoned?: boolean; residents?: number; employees?: number; landValue?: number };
 type CitySimulation = {
   width: number; height: number; day: number; cells: Record<string, SimCell>; population: number; jobs: number; employed: number; vacancies: number; happiness: number;
   power: { capacity: number; demand: number }; water: { capacity: number; demand: number };
-  daily: { income: number; maintenance: number; net: number }; disastersSurvived: number;
+  daily: { income: number; maintenance: number; net: number };
+  demand: { residential: number; commercial: number; industrial: number };
+  environment: { landValue: number; pollution: number; congestion: number; roadAccess: number };
+  coverage: { fire: number; health: number; police: number }; abandonedBuildings: number; disastersSurvived: number;
   logs: Array<{ day: number; tone: "good" | "neutral" | "danger"; message: string }>;
 };
 type SimSpec = { name: string; icon: string; zone: string; jobs: number; population: number };
@@ -195,6 +198,7 @@ export default function CityPage() {
   const [selectedSpecial, setSelectedSpecial] = useState<string>("powerPlant");
   const [simBusy, setSimBusy] = useState(false);
   const [cityViewMode, setCityViewMode] = useState<"3d" | "map">("3d");
+  const [selectedSimPlot, setSelectedSimPlot] = useState<Plot | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -363,6 +367,8 @@ export default function CityPage() {
   const categories = ["all", ...Array.from(new Set(buildings.map((b) => b.category)))];
   const displayed = filter === "all" ? buildings : buildings.filter((b) => b.category === filter);
   const owned = city?.buildings ?? {};
+  const selectedSimCell = selectedSimPlot && simulation ? simulation.cells[`${selectedSimPlot.x}:${selectedSimPlot.y}`] : undefined;
+  const selectedSimSpec = selectedSimCell?.building ? simulationCatalog[selectedSimCell.building] : undefined;
 
   if (loading) {
     return (
@@ -492,12 +498,23 @@ export default function CityPage() {
                 ["Income", simulation.daily.income, "↗"], ["Costs", simulation.daily.maintenance, "↘"], ["Net/day", simulation.daily.net, "🪙"],
               ].map(([label, value, icon]) => <div key={String(label)} className="rounded-xl bg-[var(--surface-1)] p-2"><span>{icon}</span><strong className="ml-1">{value}</strong><span className="block text-[10px] text-[var(--foreground-subtle)]">{label}</span></div>)}
             </div>
+            <div className="grid gap-3 lg:grid-cols-2">
+              <div className="rounded-xl border border-[var(--border)] p-3">
+                <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-[var(--foreground-subtle)]">Live zoning demand</p>
+                {([ ["Residential", simulation.demand.residential, "bg-emerald-500"], ["Commercial", simulation.demand.commercial, "bg-cyan-500"], ["Industrial", simulation.demand.industrial, "bg-amber-500"] ] as const).map(([label, value, color]) => (
+                  <div key={label} className="mb-2 grid grid-cols-[76px_1fr_34px] items-center gap-2 text-[11px]"><span>{label}</span><span className="h-2 overflow-hidden rounded-full bg-[var(--surface-2)]"><span className={`block h-full rounded-full ${color}`} style={{ width: `${Math.round(value * 100)}%` }} /></span><strong>{Math.round(value * 100)}%</strong></div>
+                ))}
+              </div>
+              <div className="grid grid-cols-4 gap-2 rounded-xl border border-[var(--border)] p-3 text-center text-[11px]">
+                {[["Land value", simulation.environment.landValue, "🏘️"], ["Pollution", simulation.environment.pollution, "🏭"], ["Traffic", simulation.environment.congestion, "🚗"], ["Road access", simulation.environment.roadAccess, "🛣️"], ["Fire cover", simulation.coverage.fire, "🚒"], ["Health cover", simulation.coverage.health, "🚑"], ["Police cover", simulation.coverage.police, "🚓"], ["Abandoned", simulation.abandonedBuildings, "🏚️"]].map(([label, value, icon]) => <div key={String(label)}><span className="text-base">{icon}</span><strong className="block">{value}{label === "Abandoned" ? "" : "%"}</strong><span className="text-[9px] text-[var(--foreground-subtle)]">{label}</span></div>)}
+              </div>
+            </div>
           </section>
         )}
 
         {/* The playable district: licensed models in 3D, with an accessible map fallback. */}
         {cityViewMode === "3d" && simulation ? (
-          <CityWorld3D cells={simulation.cells} width={simulation.width} height={simulation.height} active={!!activeTool && !simBusy} onPlot={(x, y) => void runSimulationAction({ x, y })} />
+          <CityWorld3D cells={simulation.cells} width={simulation.width} height={simulation.height} active={!!activeTool && !simBusy} onPlot={(x, y) => activeTool ? void runSimulationAction({ x, y }) : setSelectedSimPlot({ x, y })} />
         ) : (
           <CityBoard
             buildings={buildings}
@@ -514,11 +531,28 @@ export default function CityPage() {
             simulationCatalog={simulationCatalog}
             activeTool={activeTool}
             onSimulationAction={(plot) => void runSimulationAction(plot)}
+            onSimulationInspect={setSelectedSimPlot}
             onSelect={setSelectedBuilding}
             onMoveStart={(slug) => { setMovingBuilding(slug); setSelectedBuilding(null); }}
             onPlace={(definition, plot) => void handleBuy(definition, plot)}
             onMove={(slug, plot) => void moveBuilding(slug, plot)}
           />
+        )}
+
+        {selectedSimPlot && selectedSimCell && (
+          <section className="rounded-2xl border border-[var(--brand-400)]/30 bg-[var(--card)] p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex gap-3"><span className="text-3xl">{selectedSimSpec?.icon ?? (selectedSimCell.kind === "road" ? "🛣️" : "🏗️")}</span><div><p className="text-[11px] font-bold uppercase tracking-wider text-[var(--brand-400)]">Plot {selectedSimPlot.x + 1}, {selectedSimPlot.y + 1}</p><h3 className="font-bold">{selectedSimSpec?.name ?? selectedSimCell.zone ?? selectedSimCell.kind}</h3></div></div>
+              <button type="button" onClick={() => setSelectedSimPlot(null)} className="rounded-lg border border-[var(--border)] px-3 py-1 text-xs">Close</button>
+            </div>
+            {selectedSimCell.kind === "building" && (
+              <div className="mt-3 grid grid-cols-3 gap-2 text-xs sm:grid-cols-6">
+                {[["Level", selectedSimCell.level ?? 1], ["Condition", `${selectedSimCell.condition ?? 100}%`], ["Age", `${selectedSimCell.age ?? 0} days`], ["Residents", selectedSimCell.residents ?? 0], ["Employees", selectedSimCell.employees ?? 0], ["Land value", selectedSimCell.landValue ?? simulation?.environment.landValue ?? 0]].map(([label, value]) => <div key={String(label)} className="rounded-xl bg-[var(--surface-1)] p-2"><strong>{value}</strong><span className="block text-[10px] text-[var(--foreground-subtle)]">{label}</span></div>)}
+              </div>
+            )}
+            {selectedSimCell.abandoned && <p className="mt-3 rounded-xl bg-red-500/10 p-3 text-xs text-red-300">This building is abandoned. Restore utilities, road access, jobs and land value to attract occupants before it collapses.</p>}
+            {(selectedSimCell.stressDays ?? 0) > 0 && !selectedSimCell.abandoned && <p className="mt-3 text-xs text-[var(--color-warning)]">⚠ Under stress for {selectedSimCell.stressDays} day(s). Inspect utilities, employment and road access.</p>}
+          </section>
         )}
 
         {simulation?.logs.length ? (

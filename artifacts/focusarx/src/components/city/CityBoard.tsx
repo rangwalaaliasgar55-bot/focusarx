@@ -4,7 +4,7 @@ import type { Building } from "@/types/gamification";
 import "./city-board.css";
 
 type Plot = { x: number; y: number };
-type SimCell = { kind: "road" | "zone" | "building"; zone?: string; building?: string; level?: number; condition?: number; incident?: string };
+type SimCell = { kind: "road" | "zone" | "building"; zone?: string; building?: string; level?: number; condition?: number; incident?: string; abandoned?: boolean };
 type SimSpec = { name: string; icon: string };
 
 type Props = {
@@ -22,6 +22,7 @@ type Props = {
   simulationCatalog?: Record<string, SimSpec>;
   activeTool?: string | null;
   onSimulationAction?: (plot: Plot) => void;
+  onSimulationInspect?: (plot: Plot) => void;
   onSelect: (slug: string | null) => void;
   onMoveStart: (slug: string | null) => void;
   onPlace: (building: Building, plot: Plot) => void;
@@ -38,7 +39,7 @@ function buildingIcon(building: Building | undefined) {
 
 export function CityBoard({
   buildings, owned, layout, selectedSlug, movingSlug, width = 10, height = 8,
-  time, weather, busy, simulationCells = {}, simulationCatalog = {}, activeTool = null, onSimulationAction,
+  time, weather, busy, simulationCells = {}, simulationCatalog = {}, activeTool = null, onSimulationAction, onSimulationInspect,
   onSelect, onMoveStart, onPlace, onMove,
 }: Props) {
   const bySlug = useMemo(() => new Map(buildings.map((item) => [item.slug, item])), [buildings]);
@@ -106,7 +107,7 @@ export function CityBoard({
                 key={key}
                 className={`city-plot ${slug || simCell ? "city-plot--occupied" : ""} ${canPlace ? "city-plot--available" : ""} ${simCell ? `city-plot--${simCell.kind} city-plot--${simCell.zone ?? ""}` : ""}`}
                 style={{ left, top, zIndex: plot.x + plot.y + (slug || simCell?.kind === "building" ? 20 : 0) }}
-                onClick={() => activeTool ? choosePlot(plot) : slug ? onMoveStart(slug) : choosePlot(plot)}
+                onClick={() => activeTool ? choosePlot(plot) : simCell ? onSimulationInspect?.(plot) : slug ? onMoveStart(slug) : choosePlot(plot)}
                 disabled={busy || (!slug && !simCell && !canPlace)}
                 aria-label={simCell ? `${simDefinition?.name ?? simCell.zone ?? simCell.kind}, plot ${plot.x + 1} ${plot.y + 1}` : slug ? `${definition?.name ?? slug}, plot ${plot.x + 1} ${plot.y + 1}. Select to move` : `Empty plot ${plot.x + 1} ${plot.y + 1}`}
               >
@@ -115,10 +116,10 @@ export function CityBoard({
                 {simCell?.kind === "road" && <span className="city-road" aria-hidden="true">╋</span>}
                 {simCell?.kind === "zone" && <span className="city-zone" aria-hidden="true">{simCell.zone?.slice(0, 1).toUpperCase()}</span>}
                 {simCell?.kind === "building" && (
-                  <span className={`city-building ${simCell.incident ? "city-building--incident" : ""}`}>
+                  <span className={`city-building ${simCell.incident ? "city-building--incident" : ""} ${simCell.abandoned ? "city-building--abandoned" : ""}`}>
                     <span className="city-building__shadow" />
                     <span className="city-building__body"><span>{simDefinition?.icon ?? "🏢"}</span></span>
-                    <span className="city-building__label">{simDefinition?.name ?? simCell.building}{(simCell.level ?? 1) > 1 ? ` · Lv${simCell.level}` : ""}</span>
+                    <span className="city-building__label">{simDefinition?.name ?? simCell.building}{(simCell.level ?? 1) > 1 ? ` · Lv${simCell.level}` : ""}{simCell.abandoned ? " · Abandoned" : ""}</span>
                     {simCell.incident && <span className="city-building__incident">{simCell.incident === "fire" ? "🔥" : "⚠️"}</span>}
                   </span>
                 )}
