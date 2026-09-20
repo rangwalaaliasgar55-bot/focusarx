@@ -253,7 +253,7 @@ function EffectsSettings() {
           </div>
           {sceneLocked && (
             <p className="text-xs text-[var(--warning)]" role="status">
-              That scene needs Pro — unlock it with tokens or card on the Premium page.
+              That scene needs Pro — unlock it with Focus Credits or card on the Premium page.
             </p>
           )}
         </div>

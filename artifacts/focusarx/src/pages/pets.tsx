@@ -46,12 +46,12 @@ function emojiForPet(catalog: { slug?: string; category?: string } | null | unde
 
 const LEVEL_UNLOCKS: Record<number, string[]> = {
   1: ["Pet unlocked"],
-  3: ["Custom nickname", "10 Focus Tokens"],
+  3: ["Custom nickname", "10 Focus Credits"],
   5: ["Hat accessory slot"],
-  8: ["Glasses accessory slot", "50 Focus Tokens"],
-  10: ["Evolution stage 2", "100 Focus Tokens", "New animation"],
-  15: ["Evolution stage 3", "Aura slot", "150 Focus Tokens"],
-  20: ["Legendary evolution", "500 Focus Tokens", "Exclusive badge", "Premium emote"],
+  8: ["Glasses accessory slot", "50 Focus Credits"],
+  10: ["Evolution stage 2", "100 Focus Credits", "New animation"],
+  15: ["Evolution stage 3", "Aura slot", "150 Focus Credits"],
+  20: ["Legendary evolution", "500 Focus Credits", "Exclusive badge", "Premium emote"],
 };
 
 function authHeaders() {
@@ -109,7 +109,7 @@ export default function PetsPage() {
    * pet the user already owned lost its "Owned" badge and grew an active
    * price button; the tab read "My Pets (0)"; and the inventory tab said
    * "No pets yet — unlock from collection", which is a false statement about
-   * the user's own collection that also *directs them to go and spend tokens
+   * the user's own collection that also *directs them to go and spend credits
    * again*. The server is idempotent (`alreadyOwned` short-circuits before the
    * ledger), so nobody is charged twice — but the page told a confident lie
    * about what the user owns, and then celebrated a purchase they had already

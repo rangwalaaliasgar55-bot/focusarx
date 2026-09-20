@@ -1,3 +1,5 @@
+import { acquisitionEventData } from "@/lib/acquisition";
+
 /**
  * Site analytics client — persistent visitor ID, session reuse, batched events.
  * Non-blocking: all network I/O is deferred and debounced.
@@ -21,6 +23,9 @@ export type AnalyticsEventType =
   | "user_logged_in"
   | "user_signed_up"
   | "device_context"
+  | "cta_clicked"
+  | "checkout_started"
+  | "checkout_completed"
   | "page_view";
 
 type PendingEvent = {
@@ -132,7 +137,7 @@ export function trackSiteEvent(eventType: AnalyticsEventType, eventData?: Record
   pendingEvents.push({
     eventId: `ev_${crypto.randomUUID()}`,
     eventType,
-    eventData,
+    eventData: { ...acquisitionEventData(), ...(eventData ?? {}) },
   });
   if (pendingEvents.length >= MAX_BATCH) void flush();
   else scheduleFlush();
@@ -155,6 +160,7 @@ export function trackPageView(path: string) {
     visitorId: getOrCreateVisitorId(),
     sessionId: sessionId ?? undefined,
     page: path,
+    ...acquisitionEventData(),
     ...(linkedUserId ? { userId: linkedUserId } : {}),
   });
 }

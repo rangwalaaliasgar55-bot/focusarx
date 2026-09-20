@@ -478,7 +478,7 @@ export default function CityPage() {
               ].map(([id, emoji, label]) => (
                 <button key={id} type="button" aria-pressed={activeTool === id} onClick={() => { setActiveTool(activeTool === id ? null : id); setSelectedBuilding(null); setMovingBuilding(null); }}
                   className={`min-h-16 rounded-xl border p-2 text-center transition ${activeTool === id ? "border-[var(--brand-400)] bg-[var(--brand-soft)]" : "border-[var(--border)]"}`}>
-                  <span className="text-xl">{emoji}</span><span className="block text-[11px] font-bold">{label}</span><span className="block text-[10px] text-[var(--foreground-subtle)]">🪙 {id === "special" ? simulationCosts.specials[selectedSpecial] ?? 0 : simulationCosts.tools[id] ?? 0}</span>
+                  <span className="text-xl">{emoji}</span><span className="block text-[11px] font-bold">{label}</span><span className="block text-[11px] text-[var(--foreground-subtle)]">🪙 {id === "special" ? simulationCosts.specials[selectedSpecial] ?? 0 : simulationCosts.tools[id] ?? 0}</span>
                 </button>
               ))}
             </div>
@@ -486,7 +486,7 @@ export default function CityPage() {
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {Object.entries(simulationCatalog).filter(([, spec]) => spec.zone === "service" || spec.zone === "utility").map(([id, spec]) => (
                   <button key={id} type="button" onClick={() => setSelectedSpecial(id)} className={`min-w-28 rounded-xl border p-2 text-left ${selectedSpecial === id ? "border-[var(--brand-400)] bg-[var(--brand-soft)]" : "border-[var(--border)]"}`}>
-                    <span className="text-xl">{spec.icon}</span><span className="block text-[11px] font-bold">{spec.name}</span><span className="text-[10px] text-[var(--foreground-subtle)]">🪙 {simulationCosts.specials[id] ?? 0}</span>
+                    <span className="text-xl">{spec.icon}</span><span className="block text-[11px] font-bold">{spec.name}</span><span className="text-[11px] text-[var(--foreground-subtle)]">🪙 {simulationCosts.specials[id] ?? 0}</span>
                   </button>
                 ))}
               </div>
@@ -496,7 +496,7 @@ export default function CityPage() {
                 ["Citizens", simulation.population, "👥"], ["Employed", `${simulation.employed}/${simulation.jobs}`, "💼"], ["Happiness", `${simulation.happiness}%`, "😊"],
                 ["Power", `${simulation.power.demand}/${simulation.power.capacity}`, "⚡"], ["Water", `${simulation.water.demand}/${simulation.water.capacity}`, "💧"],
                 ["Income", simulation.daily.income, "↗"], ["Costs", simulation.daily.maintenance, "↘"], ["Net/day", simulation.daily.net, "🪙"],
-              ].map(([label, value, icon]) => <div key={String(label)} className="rounded-xl bg-[var(--surface-1)] p-2"><span>{icon}</span><strong className="ml-1">{value}</strong><span className="block text-[10px] text-[var(--foreground-subtle)]">{label}</span></div>)}
+              ].map(([label, value, icon]) => <div key={String(label)} className="rounded-xl bg-[var(--surface-1)] p-2"><span>{icon}</span><strong className="ml-1">{value}</strong><span className="block text-[11px] text-[var(--foreground-subtle)]">{label}</span></div>)}
             </div>
             <div className="grid gap-3 lg:grid-cols-2">
               <div className="rounded-xl border border-[var(--border)] p-3">
@@ -506,7 +506,7 @@ export default function CityPage() {
                 ))}
               </div>
               <div className="grid grid-cols-4 gap-2 rounded-xl border border-[var(--border)] p-3 text-center text-[11px]">
-                {[["Land value", simulation.environment.landValue, "🏘️"], ["Pollution", simulation.environment.pollution, "🏭"], ["Traffic", simulation.environment.congestion, "🚗"], ["Road access", simulation.environment.roadAccess, "🛣️"], ["Fire cover", simulation.coverage.fire, "🚒"], ["Health cover", simulation.coverage.health, "🚑"], ["Police cover", simulation.coverage.police, "🚓"], ["Abandoned", simulation.abandonedBuildings, "🏚️"]].map(([label, value, icon]) => <div key={String(label)}><span className="text-base">{icon}</span><strong className="block">{value}{label === "Abandoned" ? "" : "%"}</strong><span className="text-[9px] text-[var(--foreground-subtle)]">{label}</span></div>)}
+                {[["Land value", simulation.environment.landValue, "🏘️"], ["Pollution", simulation.environment.pollution, "🏭"], ["Traffic", simulation.environment.congestion, "🚗"], ["Road access", simulation.environment.roadAccess, "🛣️"], ["Fire cover", simulation.coverage.fire, "🚒"], ["Health cover", simulation.coverage.health, "🚑"], ["Police cover", simulation.coverage.police, "🚓"], ["Abandoned", simulation.abandonedBuildings, "🏚️"]].map(([label, value, icon]) => <div key={String(label)}><span className="text-base">{icon}</span><strong className="block">{value}{label === "Abandoned" ? "" : "%"}</strong><span className="text-[11px] text-[var(--foreground-subtle)]">{label}</span></div>)}
               </div>
             </div>
           </section>
@@ -547,7 +547,7 @@ export default function CityPage() {
             </div>
             {selectedSimCell.kind === "building" && (
               <div className="mt-3 grid grid-cols-3 gap-2 text-xs sm:grid-cols-6">
-                {[["Level", selectedSimCell.level ?? 1], ["Condition", `${selectedSimCell.condition ?? 100}%`], ["Age", `${selectedSimCell.age ?? 0} days`], ["Residents", selectedSimCell.residents ?? 0], ["Employees", selectedSimCell.employees ?? 0], ["Land value", selectedSimCell.landValue ?? simulation?.environment.landValue ?? 0]].map(([label, value]) => <div key={String(label)} className="rounded-xl bg-[var(--surface-1)] p-2"><strong>{value}</strong><span className="block text-[10px] text-[var(--foreground-subtle)]">{label}</span></div>)}
+                {[["Level", selectedSimCell.level ?? 1], ["Condition", `${selectedSimCell.condition ?? 100}%`], ["Age", `${selectedSimCell.age ?? 0} days`], ["Residents", selectedSimCell.residents ?? 0], ["Employees", selectedSimCell.employees ?? 0], ["Land value", selectedSimCell.landValue ?? simulation?.environment.landValue ?? 0]].map(([label, value]) => <div key={String(label)} className="rounded-xl bg-[var(--surface-1)] p-2"><strong>{value}</strong><span className="block text-[11px] text-[var(--foreground-subtle)]">{label}</span></div>)}
               </div>
             )}
             {selectedSimCell.abandoned && <p className="mt-3 rounded-xl bg-red-500/10 p-3 text-xs text-red-300">This building is abandoned. Restore utilities, road access, jobs and land value to attract occupants before it collapses.</p>}

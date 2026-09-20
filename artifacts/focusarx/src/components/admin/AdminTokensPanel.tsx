@@ -79,7 +79,7 @@ export function AdminTokensPanel({ authHeaders }: { authHeaders: () => Record<st
 
   return (
     <MotionTab>
-      <SectionHeader title="Token Economy" sub="Focus Tokens circulation, ledger audit, grant/remove with reason + immutable audit + before/after balance. Anti-abuse: idempotency, daily caps, rate limits." />
+      <SectionHeader title="Token Economy" sub="Focus Credits circulation, ledger audit, grant/remove with reason + immutable audit + before/after balance. Anti-abuse: idempotency, daily caps, rate limits." />
       <div className="grid gap-3 sm:grid-cols-4">
         <StatCard label="Total circulation" value={String(analytics?.totalCirculation ?? 0)} accent="amber" />
         <StatCard label="Total earned" value={String(analytics?.totalEarned ?? 0)} accent="emerald" />

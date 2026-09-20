@@ -34,7 +34,7 @@ const FAQS = [
     cat: "Premium",
     items: [
       { q: "How does Premium work?", a: "Premium is unlocked with 9,000 in-app coins, which you earn by completing focus sessions and missions. It adds XP and coin multipliers, exclusive themes and pets, premium loot boxes, and unlimited AI coaching." },
-      { q: "Do I need a credit card?", a: "No. FocusArx core is free forever, and Premium is activated with coins you earn in the app — no payment required." },
+      { q: "Do I need a credit card?", a: "No. FocusArx core is free forever, and Pro can be activated with Focus Credits earned from completed sessions. Optional card and UPI checkout is available for convenience." },
     ]
   },
 ];

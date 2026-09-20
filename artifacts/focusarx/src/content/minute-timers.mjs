@@ -223,7 +223,7 @@ export const MINUTE_TIMER_PAGES = {
       },
     ],
     faq: [
-      ["Is the 15 minute timer free to use?", "Yes. No signup, no trial, no card. Logging sessions to a streak is free too; Focus Tokens unlock Premium extras."],
+      ["Is the 15 minute timer free to use?", "Yes. No signup, no trial, no card. Logging sessions to a streak is free too; Focus Credits unlock Premium extras."],
       ["Does active recall really work better than rereading?", "Testing effect studies find retrieval practice produces better later recall than an equal amount of rereading, including on inference questions. Dunlosky and colleagues rated practice testing high utility across ages and materials."],
       ["Can I tag the sprint to a subject?", "Yes — the study timer links blocks to subjects, so revision time per topic is measurable instead of a feeling."],
       ["What if I finish the set early?", "Add a second pass on the items you missed rather than stopping. The misses are the useful part; a clean sweep usually means the questions were too easy."],
@@ -291,7 +291,7 @@ export const MINUTE_TIMER_PAGES = {
       },
     ],
     faq: [
-      ["Is the 30 minute timer free?", "Yes — the timer, tasks, streaks and session history are free forever. Premium extras are unlocked with Focus Tokens earned by completing sessions."],
+      ["Is the 30 minute timer free?", "Yes — the timer, tasks, streaks and session history are free forever. Premium extras are unlocked with Focus Credits earned by completing sessions."],
       ["Do I need an account?", "No. Start the block immediately; an account only keeps your history, focus score and streak across devices."],
       ["Is half an hour enough for deep work?", "For most tasks, yes — it clears the warm-up and produces something you can point to. Reserve 50 or 90 minutes for work that needs sustained state, and use thirty for everything else so you can do it several times a day."],
       ["Should I silence notifications?", "Yes, before the block starts. An interruption costs more than its own length because reloading the task afterwards takes minutes; removing the possibility is cheaper than resisting it."],
@@ -359,7 +359,7 @@ export const MINUTE_TIMER_PAGES = {
       },
     ],
     faq: [
-      ["Is the 45 minute timer free?", "Yes, with no signup required. Sessions, streaks and the focus score are free too; Focus Tokens unlock Premium extras."],
+      ["Is the 45 minute timer free?", "Yes, with no signup required. Sessions, streaks and the focus score are free too; Focus Credits unlock Premium extras."],
       ["Does it suit board exams as well as entrance exams?", "Yes. CBSE papers are three hours, so practising in forty-five-minute sections with short breaks maps closely onto the real paper's structure and pacing."],
       ["How long should the break be?", "About ten minutes, away from the screen. After two or three blocks take a longer break — the aim is repeated quality, not maximum hours."],
       ["Can I study with other people at the same time?", "Live study rooms run the same countdown for everyone in the room, camera optional and off by default. It is useful for mock timing because everybody starts together."],

@@ -142,7 +142,7 @@ router.post("/pets/catalog/:slug/unlock", authMiddleware, async (req: AuthReques
       const { spendTokens, getTokenBalance } = await import("../lib/tokenLedger");
       const balance = await getTokenBalance(req.userId!);
       if (balance < catalog.tokenCost) {
-        return res.status(400).json({ error: "Insufficient Focus Tokens", balance, required: catalog.tokenCost, needed: catalog.tokenCost - balance });
+        return res.status(400).json({ error: "Insufficient Focus Credits", balance, required: catalog.tokenCost, needed: catalog.tokenCost - balance });
       }
       const idempotencyKey = `pet_unlock_${req.userId}_${catalog.id}`;
       try {
@@ -220,9 +220,9 @@ router.get("/pets/progression", async (_req, res) => {
       if (lvl === 3) unlocks.push("Custom nickname");
       if (lvl === 5) unlocks.push("Accessory slot: hat");
       if (lvl === 8) unlocks.push("Accessory slot: glasses");
-      if (lvl === 10) unlocks.push("Evolution stage 2 + 100 Focus Tokens");
+      if (lvl === 10) unlocks.push("Evolution stage 2 + 100 Focus Credits");
       if (lvl === 15) unlocks.push("Evolution stage 3 + aura");
-      if (lvl === 20) unlocks.push("Legendary evolution + 500 Focus Tokens + exclusive badge");
+      if (lvl === 20) unlocks.push("Legendary evolution + 500 Focus Credits + exclusive badge");
       return { level: lvl, xpNeeded, unlocks };
     }),
   });

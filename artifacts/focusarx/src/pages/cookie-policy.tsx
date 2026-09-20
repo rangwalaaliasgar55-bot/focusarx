@@ -1,10 +1,12 @@
 import { PageTransition } from "@/components/PageTransition";
 import { Link } from "wouter";
 import { Database, ArrowLeft } from "lucide-react";
+import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 
 export default function CookiePolicyPage() {
   return (
     <div className="relative min-h-[100dvh] forge-bg-glow">
+      <PageSEO {...PAGE_SEO.cookiePolicy} />
       <main id="main-content" className="relative z-[var(--z-content)] mx-auto max-w-3xl px-4 py-10">
         <PageTransition>
           <Link href="/" className="mb-6 inline-flex items-center gap-2 text-xs text-[var(--foreground-subtle)] hover:text-[var(--brand-400)] transition-colors">
@@ -21,7 +23,7 @@ export default function CookiePolicyPage() {
                 <h1 className="text-2xl font-bold text-[var(--foreground)]">Cookie Policy</h1>
               </div>
             </div>
-            <p className="text-xs text-[var(--foreground-subtle)]">Last updated: August 2026</p>
+            <p className="text-xs text-[var(--foreground-subtle)]">Last updated: September 2026</p>
           </header>
 
           <div className="space-y-8">
@@ -32,10 +34,11 @@ export default function CookiePolicyPage() {
             <Section title="localStorage Items">
               <p>The following items are stored in your browser's localStorage:</p>
               <ul>
-                <li><code className="rounded bg-[var(--rgba-124-58-237-0_15)] px-1.5 py-0.5 text-[var(--brand-400)]">focusarx-auth-token</code> — Your JWT authentication token (expires after 7 days).</li>
+                <li><code className="rounded bg-[var(--rgba-124-58-237-0_15)] px-1.5 py-0.5 text-[var(--brand-400)]">focusarx-auth-token</code> — The short-lived access token used for authenticated API requests. A secure first-party refresh cookie may also maintain your session.</li>
                 <li><code className="rounded bg-[var(--rgba-124-58-237-0_15)] px-1.5 py-0.5 text-[var(--brand-400)]">focusarx-guest-key</code> — Anonymous guest session identifier.</li>
                 <li><code className="rounded bg-[var(--rgba-124-58-237-0_15)] px-1.5 py-0.5 text-[var(--brand-400)]">focusarx-timer-*</code> — Active timer state backup (allows recovery if you close your tab).</li>
                 <li><code className="rounded bg-[var(--rgba-124-58-237-0_15)] px-1.5 py-0.5 text-[var(--brand-400)]">focusarx-onboarding-*</code> — Onboarding completion flags.</li>
+                <li><code className="rounded bg-[var(--rgba-124-58-237-0_15)] px-1.5 py-0.5 text-[var(--brand-400)]">focusarx:acquisition:v1</code> — Last-touch source and campaign fields, retained for up to 90 days.</li>
               </ul>
             </Section>
 
@@ -43,12 +46,12 @@ export default function CookiePolicyPage() {
               <p>The admin panel uses a short-lived <code className="rounded bg-[var(--rgba-124-58-237-0_15)] px-1.5 py-0.5 text-[var(--brand-400)]">focusarx_admin</code> HttpOnly cookie for session management. This cookie is only set when accessing the admin dashboard and is not used for tracking.</p>
             </Section>
 
-            <Section title="Third-Party Cookies">
-              <p>We do not use third-party advertising or tracking cookies. Google Fonts are loaded from Google's CDN, which may set its own cookies per Google's policies.</p>
+            <Section title="Third-Party Services">
+              <p>Google Analytics and optional Plausible analytics may receive page and product events according to the configured consent state. AdSense is disabled by default; when explicitly enabled it loads only on public reading pages after the applicable ads consent decision. Stripe and Razorpay may set essential cookies or local storage while their hosted checkout is open. Their own policies govern those provider surfaces.</p>
             </Section>
 
             <Section title="Analytics">
-              <p>Our analytics system uses an anonymous <code className="rounded bg-[var(--rgba-124-58-237-0_15)] px-1.5 py-0.5 text-[var(--brand-400)]">focusarx-visitor-id</code> stored in localStorage to count unique visitors without identifying them personally.</p>
+              <p>Our first-party analytics uses an anonymous <code className="rounded bg-[var(--rgba-124-58-237-0_15)] px-1.5 py-0.5 text-[var(--brand-400)]">focusarx_visitor_id</code> in localStorage and a matching first-party cookie to measure sessions and funnels. Campaign parameters may be attached to conversion events, but OAuth codes, passwords, access tokens, and other credential-like query fields are stripped from analytics page locations.</p>
             </Section>
 
             <Section title="Managing Your Stored Data">

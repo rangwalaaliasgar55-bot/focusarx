@@ -211,7 +211,7 @@ export const ROUTES = [
       ],
       [
         "Is FocusArx actually free?",
-        "The core is free forever: the timer, tasks, streaks, study rooms, leaderboards, flashcards, the guide library and the analytics. Premium is optional and is paid for with Focus Tokens earned by finishing sessions rather than with money — 10,000 tokens buys 30 days — so the paid tier is reachable without a card.",
+        "The core is free forever: the timer, tasks, streaks, study rooms, leaderboards, flashcards, the guide library and the analytics. Premium is optional and is paid for with Focus Credits earned by finishing sessions rather than with money — 10,000 credits buys 30 days — so the paid tier is reachable without a card.",
       ],
       [
         "What is the Focus Score?",
@@ -306,7 +306,7 @@ export const ROUTES = [
     sections: [
       {
         h: "Popular topics",
-        p: "How focus sessions and the Focus Score work; how streaks and XP are earned; how the two currencies differ — Focus Tokens buy Premium, Coins buy cosmetics; how live study rooms and leaderboards work; how optional on-device attention monitoring protects privacy; and how to manage or delete your account data.",
+        p: "How focus sessions and the Focus Score work; how streaks and XP are earned; how the two currencies differ — Focus Credits buy Premium, Coins buy cosmetics; how live study rooms and leaderboards work; how optional on-device attention monitoring protects privacy; and how to manage or delete your account data.",
       },
       {
         h: "The three questions we get most",
@@ -322,52 +322,43 @@ export const ROUTES = [
   },
   {
     path: "/pricing",
-    title: "FocusArx pricing: free plan, or premium coins",
+    title: "FocusArx Pricing — Free, Pro, or Focus Credits",
     description:
-      "FocusArx is completely free forever. Unlock Premium — advanced AI coaching, exclusive themes, deep insights — with coins you earn by focusing. No subscriptions.",
-    h1: "Free forever. Premium by focusing.",
-    lead: "The core platform — timer, tasks, streaks, analytics, study rooms — is free forever. Premium features are unlocked with Focus Tokens you earn by completing sessions, not with a credit card. Coins are a separate currency for cosmetics.",
+      "The core stays free. Pro is ₹199 monthly or ₹1,499 yearly in India, with international card pricing and an earned Focus Credits option.",
+    h1: "Pay with money or pay with focus",
+    lead: "The timer, tasks, goals, streaks, analytics, study rooms and guides stay free. Pro can be activated through UPI or card, or with Focus Credits earned by completing verified sessions.",
     sections: [
       {
-        h: "Free plan",
-        p: "Unlimited Pomodoro and deep-work sessions, task and habit tracking, XP and streaks, basic analytics, live study rooms, and every guide in the FocusArx library.",
+        h: "Free forever at the core",
+        p: "Run unlimited Pomodoro and deep-work sessions, plan tasks and goals, build a streak, use the core analytics, join study rooms and read every public guide without entering a payment method. Guest sessions work before signup; an account adds sync and history.",
       },
       {
-        h: "Premium (earned, not paid)",
-        p: "Advanced AI coaching, exclusive themes and cosmetics, deeper Focus DNA insights, and productivity boosts — all purchased with Focus Tokens earned during sessions.",
+        h: "Pro subscription",
+        p: "India launch pricing is ₹199 a month or ₹1,499 a year through Razorpay UPI and card checkout when enabled. International Stripe checkout launches at $4.99 monthly or $39 yearly. Pro adds unlimited AI coaching, advanced analytics, Focus DNA and premium customization.",
       },
       {
-        h: "Coins and Tokens are two different things",
-        p: "FocusArx has two earned currencies and it is worth keeping them straight. Coins buy cosmetics and marketplace items. Focus Tokens buy Premium time, and they are what the plans are priced in. Both are earned by using the product; neither is sold.",
+        h: "Pro with Focus Credits",
+        p: "The earned door stays: 10,000 Focus Credits buys 30 days, 25,000 buys 90 days and 80,000 buys a year. A verified completed session earns 50 credits under daily anti-abuse limits. This grants the same entitlement as payment, not a reduced tier.",
       },
       {
-        h: "What Premium actually costs",
-        p: "30 days is 10,000 Focus Tokens, 90 days is 25,000, and a year is 80,000. A completed focus session earns 50 tokens with a daily cap of 500, so ten sessions in a day is the ceiling; daily quests add 30, streaks 20, a referral 200. At the session rate alone a month of Premium is roughly 200 finished sessions, and quests, streaks and events shorten that. Every earn and spend is written to a ledger you can read, so nothing is quietly deducted.",
+        h: "Payment and privacy boundaries",
+        p: "FocusArx does not store card or UPI details. Stripe and Razorpay handle payment credentials; FocusArx receives signed payment confirmation and creates a provider-neutral Pro entitlement. Coins remain separate and buy cosmetics only.",
       },
     ],
     faq: [
-      [
-        "What exactly is free?",
-        "Unlimited focus and deep-work sessions, tasks, habits and goals, XP and streaks, the session analytics, live study rooms, leaderboards, flashcards, and the whole guide library. There is no session limit, no trial timer and no account required to run the timer itself.",
-      ],
-      [
-        "How do I earn Focus Tokens?",
-        "By finishing focus sessions — 50 tokens each, capped at 500 a day — plus daily and weekly quests, streaks, daily rewards, battle-pass tiers and referrals. The caps exist so the Premium tier keeps meaning something, and the ledger records every earn and spend with its source.",
-      ],
-      [
-        "Will there be a paid subscription?",
-        "The token economy is the model, not a teaser for one: the intent is that Premium is reachable by using the product. Card payments are not the way in, and nothing that is free today moves behind a paywall to make that work.",
-      ],
+      ["What exactly is free?", "Unlimited timer sessions, tasks, goals, streaks, core analytics, public study rooms and the guide library. There is no session limit or expiring trial on the core loop."],
+      ["Do I need a card for Pro?", "No. Card and UPI checkout are optional convenience routes. Focus Credits earned from completed sessions can activate the same Pro access."],
+      ["What does Pro cost?", "₹199 monthly or ₹1,499 yearly in India; international launch pricing is $4.99 monthly or $39 yearly. The earned option starts at 10,000 Focus Credits for 30 days."],
     ],
-    related: relatedFor("/pricing", ["/signup|Start free", "/premium|Premium overview"], EDITION_PRICING_LINKS, COMPANY_LINKS),
+    related: relatedFor("/pricing", ["/focus|Start free", "/premium|Activate Pro"], EDITION_PRICING_LINKS, COMPANY_LINKS),
   },
   {
     path: "/premium",
-    title: "Premium Membership — Unlock with Focus Tokens",
+    title: "FocusArx Pro — Card, UPI, or Focus Credits",
     description:
-      "FocusArx Premium unlocks advanced AI coaching, exclusive themes, deeper Focus DNA insights and boosts — bought with Focus Tokens you earn by studying. No card.",
-    h1: "FocusArx Premium",
-    lead: "Premium amplifies everything that works about FocusArx — smarter coaching, richer insights, exclusive cosmetics — and it's earned with focus, not bought.",
+      "Activate FocusArx Pro through card or UPI checkout, or with Focus Credits earned by studying. All routes grant the same advanced tools.",
+    h1: "FocusArx Pro",
+    lead: "Pro adds smarter coaching, deeper insights and premium customization. Pay for convenience or earn the same access with focus.",
     sections: [],
     related: relatedFor("/premium", ["/pricing|Pricing", "/signup|Start free", "/leaderboard|Leaderboard", "/achievements|Achievements"], COMPANY_LINKS),
   },
@@ -1243,7 +1234,11 @@ export const ROUTES = [
       "How FocusArx collects, uses, and protects your data. Optional webcam attention monitoring is processed on-device — video never leaves your browser.",
     h1: "FocusArx privacy policy",
     lead: "What data FocusArx collects, how it's used, and the choices you control — including the principle that optional attention monitoring never uploads video.",
-    sections: [],
+    sections: [
+      { h: "Data and purpose", p: "Account details, focus sessions, tasks and product events are used to provide sync, analytics and progression. FocusArx does not sell personal data. Webcam attention monitoring runs on-device; video frames are not uploaded. AI prompts are sent only when an AI feature is used." },
+      { h: "Payments and measurement", p: "Stripe or Razorpay handles optional Pro checkout credentials. FocusArx stores provider references, amount, status and entitlement dates, not complete card or UPI credentials. First-party attribution may retain source and UTM fields for up to 90 days." },
+      { h: "Control and deletion", p: "Users can request access, correction or deletion through the data-deletion workflow or support. Local browser data can be cleared in browser settings. Guest data may be purged after inactivity, while legal payment records may be retained where required." },
+    ],
     related: relatedFor("/privacy", POLICY_LINKS, ["/contact|Contact us"], COMPANY_LINKS.slice(0, 1)),
   },
   {
@@ -1252,16 +1247,24 @@ export const ROUTES = [
     description: "The terms governing your use of the FocusArx AI productivity platform.",
     h1: "FocusArx terms of service",
     lead: "The agreement between you and FocusArx when you use the platform.",
-    sections: [],
+    sections: [
+      { h: "Using FocusArx", p: "Users must be at least 13, protect their credentials and use the service lawfully. Attempts to manipulate verified sessions, rewards, leaderboards, payments or other accounts may result in suspension. User-created tasks, goals and notes remain the user's content." },
+      { h: "Pro and Focus Credits", p: "Pro may be activated through recurring checkout or earned Focus Credits. Focus Credits have no cash value and are not cryptocurrency. Provider checkout shows the authoritative charge. Cancellation, refund and consumer rights follow applicable law and provider rules." },
+      { h: "Service boundaries", p: "AI output is informational rather than professional advice. FocusArx is supplied without a promise of uninterrupted availability, but these terms do not exclude statutory rights or liability that applicable law does not permit us to exclude." },
+    ],
     related: relatedFor("/terms", POLICY_LINKS, COMPANY_LINKS.slice(0, 1)),
   },
   {
     path: "/cookie-policy",
     title: "Cookie Policy | FocusArx",
-    description: "How FocusArx uses cookies — minimal, for authentication and analytics. No third-party tracking cookies.",
+    description: "How FocusArx uses first-party storage, analytics consent, campaign attribution, hosted checkout, and optional content-page advertising.",
     h1: "FocusArx cookie policy",
     lead: "We use the minimum number of cookies needed to keep you signed in and improve the product.",
-    sections: [],
+    sections: [
+      { h: "Essential storage", p: "FocusArx uses first-party cookies and browser storage for authentication, refresh sessions, timer recovery, preferences, consent and anonymous visitor measurement. Clearing site data signs the browser out and removes local preferences and guest recovery state." },
+      { h: "Analytics and attribution", p: "First-party analytics uses an anonymous visitor identifier. Configured Google Analytics or Plausible measurement follows consent settings. Campaign source and standard UTM fields may be retained, while OAuth codes, passwords and credential-like query fields are stripped." },
+      { h: "Payments and advertising", p: "Stripe and Razorpay may use essential storage on hosted checkout surfaces. AdSense is disabled by default and, when enabled, loads only on public reading pages after the relevant consent decision; ads do not appear while a user is focusing or planning." },
+    ],
     related: relatedFor("/cookie-policy", POLICY_LINKS, COMPANY_LINKS.slice(0, 1)),
   },
   {
@@ -1270,7 +1273,11 @@ export const ROUTES = [
     description: "Guidelines for responsible use of the FocusArx platform and community standards.",
     h1: "FocusArx acceptable use policy",
     lead: "The short list of things that keep FocusArx safe and useful for everyone.",
-    sections: [],
+    sections: [
+      { h: "Respect people and systems", p: "Do not harass users, publish illegal or abusive material, impersonate others, evade moderation or probe accounts and infrastructure without authorization. Community spaces are for study support, not spam, commercial solicitation or coordinated manipulation." },
+      { h: "Keep progress honest", p: "Do not automate fake sessions, replay completion requests, farm Focus Credits, manipulate leaderboards or exploit multiple accounts. Security research should be reported privately with enough detail to reproduce the issue and without accessing other people's data." },
+      { h: "Enforcement", p: "FocusArx may remove content, limit features or suspend accounts to protect users and service integrity. Serious illegal activity may be reported where required. Appeals and mistaken enforcement can be raised through the support contact." },
+    ],
     related: relatedFor("/acceptable-use", POLICY_LINKS, ["/contact|Report a problem"], COMPANY_LINKS.slice(0, 1)),
   },
   {
@@ -1279,7 +1286,11 @@ export const ROUTES = [
     description: "How FocusArx uses artificial intelligence — our AI features, data handling, and privacy-first approach to machine learning.",
     h1: "How FocusArx uses AI",
     lead: "Where AI appears in the product, what it does and doesn't touch, and the privacy-first rules it operates under.",
-    sections: [],
+    sections: [
+      { h: "Where AI is used", p: "AI can help draft coaching responses, roadmaps, flashcards and planning suggestions. Deterministic fallbacks keep core workflows available without an AI provider. Voice planning always previews structured drafts and requires confirmation before creating tasks or goals." },
+      { h: "Data boundaries", p: "Only the prompt and limited context needed for a request are sent to a configured AI provider. Webcam frames are processed locally and are not supplied to AI models. Do not put secrets, sensitive health details or information about another person into a prompt." },
+      { h: "Human responsibility", p: "AI can be incomplete or wrong and is not medical, legal, financial or academic-authority advice. Users should check important outputs. Provider responses are constrained and sanitized, but the user remains responsible for decisions based on generated material." },
+    ],
     related: relatedFor("/ai-policy", POLICY_LINKS, ["/focus-guide|How to focus guide"], COMPANY_LINKS.slice(0, 1)),
   },
 
@@ -1309,15 +1320,15 @@ export const ROUTES = [
       },
       {
         h: "What Premium adds",
-        p: "Custom 10–180 minute presets, session sequences, fullscreen zen mode, sound mixing, intentions and reflections, saved templates, and 180-day analytics with export. Premium is unlocked with Focus Tokens earned from completed sessions rather than purchased.",
+        p: "Custom 10–180 minute presets, session sequences, fullscreen zen mode, sound mixing, intentions and reflections, saved templates, and 180-day analytics with export. Premium is unlocked with Focus Credits earned from completed sessions rather than purchased.",
       },
       {
-        h: "How Focus Tokens work",
-        p: "You earn 50 tokens for each focus session of 25 minutes or more (capped at 10 per day), plus bonuses for daily and weekly quests and streaks. Spend them on Premium, pets and cosmetics. The ledger is server-authoritative and idempotent — no real money is involved anywhere.",
+        h: "How Focus Credits work",
+        p: "You earn 50 credits for each focus session of 25 minutes or more (capped at 10 per day), plus bonuses for daily and weekly quests and streaks. Spend them on Premium, pets and cosmetics. The ledger is server-authoritative and idempotent — no real money is involved anywhere.",
       },
     ],
     faq: [
-      ["Is the focus timer free?", "Yes. The core timer, tasks, streaks and public rooms are free forever. Premium unlocks with Focus Tokens earned from completed sessions."],
+      ["Is the focus timer free?", "Yes. The core timer, tasks, streaks and public rooms are free forever. Premium unlocks with Focus Credits earned from completed sessions."],
       ["How long can a session be?", "The default is 25 minutes. Premium presets allow 10 to 180 minutes for deep-work blocks."],
       ["Do I need an account?", "Only to save sessions, streaks and analytics. The timer runs without one."],
     ],

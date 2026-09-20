@@ -23,7 +23,7 @@ export default function PrivacyPage() {
                 <h1 className="text-2xl font-bold text-[var(--foreground)]">Privacy Policy</h1>
               </div>
             </div>
-            <p className="text-xs text-[var(--foreground-subtle)]">Last updated: August 2026</p>
+            <p className="text-xs text-[var(--foreground-subtle)]">Last updated: September 2026</p>
           </header>
 
           <div className="prose-legal space-y-8">
@@ -52,18 +52,23 @@ export default function PrivacyPage() {
             </Section>
 
             <Section title="5. Cookies & Local Storage">
-              <p>We use browser local storage for your session token and preferences. We do not use third-party advertising cookies. For analytics, we use a self-hosted system that collects anonymous visitor metrics.</p>
+              <p>We use first-party cookies and browser storage for authentication, timer recovery, preferences, consent, anonymous visitor measurement, and campaign attribution. Configured analytics and optional content-page advertising may use provider storage only under the applicable consent state. See the Cookie Policy for names, purposes, and controls.</p>
             </Section>
 
-            <Section title="6. Sharing & Disclosure">
-              <p>We do not sell your personal data. We may share aggregated, non-identifiable statistics publicly (e.g. total focus hours across the platform). We will disclose information where required by law.</p>
+            <Section title="6. Payments, Analytics & Service Providers">
+              <p>Optional Pro checkout is processed by Stripe or Razorpay. FocusArx sends the provider your account-bound order reference and plan choice, but does not receive or store complete card or UPI credentials. We retain provider order and payment identifiers, amount, status, and entitlement dates for fulfilment, fraud prevention, refunds, and accounting.</p>
+              <p className="mt-3">Acquisition parameters such as <code>src</code> and standard UTM campaign fields may be retained for up to 90 days and associated with product events. Google Analytics or Plausible run only as configured and subject to consent controls. Content-page advertising is disabled by default and, when enabled, is kept outside working surfaces.</p>
             </Section>
 
-            <Section title="7. Your Rights">
+            <Section title="7. Sharing & Disclosure">
+              <p>We do not sell your personal data or webcam data. We share only what is needed with infrastructure, AI, analytics, email, and payment providers that operate the service. We may publish aggregated, non-identifiable statistics and disclose information where required by law.</p>
+            </Section>
+
+            <Section title="8. Your Rights">
               <p>Depending on your jurisdiction, you may have rights to access, correct, or delete your personal data. Contact us or use the <Link href="/data-deletion" className="text-[var(--brand-400)] hover:underline">data deletion page</Link> to exercise these rights.</p>
             </Section>
 
-            <Section title="8. Contact">
+            <Section title="9. Contact">
               <p>Questions about this policy? Reach us at <span className="text-[var(--brand-400)]">focusarx@gmail.com</span></p>
             </Section>
           </div>
