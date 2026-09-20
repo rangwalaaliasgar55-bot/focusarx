@@ -4,6 +4,7 @@ import { aiRoadmapLimiter } from "../lib/rateLimiter";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { premiumStatusMiddleware } from "../lib/premiumCheck";
 import { checkBudget, recordCall, recordRateLimit, userPurposeCalls } from "../lib/aiBudget";
+import { MODELS } from "../lib/aiBudgetCore";
 import { sanitizeAiInput, detectPromptInjection, checkIpLimit, isSafeFallbackError } from "../lib/aiGuardrails";
 import { z } from "zod";
 
@@ -81,10 +82,11 @@ ${premium ? `- "milestone": a measurable outcome for the day
 
 Make each day progressively build on the previous. ${premium ? "This is a Premium roadmap: make it more detailed, measurable, resource-rich, and adaptive." : "Keep the free roadmap concise."} Be specific to the goal, not generic. No markdown, no explanation — pure JSON array only.`;
 
+  const model = MODELS.gemini;
   const start = Date.now();
   try {
     const resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -107,7 +109,7 @@ Make each day progressively build on the previous. ${premium ? "This is a Premiu
         await recordRateLimit("gemini").catch(() => {});
         await recordCall({
           provider: "gemini",
-          model: "gemini-2.5-flash",
+          model,
           purpose: "roadmap",
           status: "rate_limited",
           latencyMs,
@@ -136,7 +138,7 @@ Make each day progressively build on the previous. ${premium ? "This is a Premiu
 
     await recordCall({
       provider: "gemini",
-      model: "gemini-2.5-flash",
+      model,
       purpose: "roadmap",
       tokensIn: data.usageMetadata?.promptTokenCount,
       tokensOut: data.usageMetadata?.candidatesTokenCount,

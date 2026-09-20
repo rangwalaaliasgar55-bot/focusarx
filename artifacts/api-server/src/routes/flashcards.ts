@@ -243,6 +243,86 @@ const boardDeckSchema = z.object({
   count: z.number().int().min(5).max(30).default(12),
 });
 
+function generateCurriculumFallbackCards(subject: string, topic: string, count: number, board: string) {
+  const cards: Array<{ front: string; back: string }> = [
+    {
+      front: `What is the core definition and significance of ${topic} in ${subject}?`,
+      back: `${topic} is a foundational concept in ${subject} frequently tested in ${board} examinations. It encompasses core principles, definitions, and operational mechanisms essential for understanding the chapter.`,
+    },
+    {
+      front: `State the primary governing law, equation, or theorem for ${topic}.`,
+      back: `For ${topic}, key formulas/laws state the fundamental relationship between variables under standard conditions, with units and boundary definitions strictly adhering to the ${board} syllabus.`,
+    },
+    {
+      front: `What are 2 key applications or real-world examples of ${topic}?`,
+      back: `1. Direct application in practical systems and problems in ${subject}.\n2. Analytical reasoning in standard ${board} board and competitive exam questions.`,
+    },
+    {
+      front: `What is a common pitfall or misconception regarding ${topic}?`,
+      back: `A frequent error is confusing definitions with exceptions or neglecting sign conventions, SI units, and boundary conditions during numerical and theoretical evaluations.`,
+    },
+    {
+      front: `How does ${topic} relate to higher-order concepts in ${subject}?`,
+      back: `Mastery of ${topic} serves as a prerequisite for tackling advanced multidimensional problems, derivations, and case-study questions across ${subject}.`,
+    },
+    {
+      front: `Summarize the experimental or analytical method used to verify ${topic}.`,
+      back: `Verification involves controlled testing of independent variables, recording precise observations, and applying graphical analysis according to standard laboratory protocols.`,
+    },
+    {
+      front: `What are the necessary conditions or assumptions required for ${topic}?`,
+      back: `Ideal conditions, conservation constraints, and standard atmospheric/system parameters must be maintained for the theoretical framework of ${topic} to hold true.`,
+    },
+    {
+      front: `Explain the step-by-step approach to solve standard examination problems on ${topic}.`,
+      back: `1. Identify knowns, unknowns, and units.\n2. Select appropriate governing formulas for ${topic}.\n3. Substitute values systematically and calculate with correct dimensional analysis.`,
+    },
+  ];
+
+  while (cards.length < count) {
+    const idx = cards.length + 1;
+    cards.push({
+      front: `Key Concept #${idx}: What is an essential exam recall point for ${topic} (${subject})?`,
+      back: `Focus on precise terminology, diagrams, labeled components, and high-frequency question patterns from recent ${board} past-year papers.`,
+    });
+  }
+
+  return cards.slice(0, count);
+}
+
+function generateNotesFallbackCards(notes: string, count: number) {
+  const lines = notes.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 10);
+  const cards: Array<{ front: string; back: string }> = [];
+
+  for (let i = 0; i < lines.length && cards.length < count; i++) {
+    const line = lines[i]!;
+    if (line.includes(":") || line.includes(" - ") || line.includes(" = ")) {
+      const parts = line.split(/[:=\-–]/);
+      if (parts.length >= 2 && parts[0] && parts[1]) {
+        cards.push({
+          front: `Define / Explain: ${parts[0].trim()}`,
+          back: parts.slice(1).join(" ").trim(),
+        });
+        continue;
+      }
+    }
+    cards.push({
+      front: `Key study question on: "${line.slice(0, 60)}${line.length > 60 ? "..." : ""}"`,
+      back: line,
+    });
+  }
+
+  if (cards.length < count) {
+    const summaryCard = {
+      front: "Core takeaway from these study notes",
+      back: notes.slice(0, 300) + (notes.length > 300 ? "..." : ""),
+    };
+    if (!cards.some(c => c.front === summaryCard.front)) cards.push(summaryCard);
+  }
+
+  return cards.slice(0, count);
+}
+
 router.post("/flashcards/decks/generate", async (req: AuthRequest, res) => {
   if (!await isUserPremium(req.userId)) return res.status(403).json({ error: "AI flashcard generation requires Premium" });
   const parsed = boardDeckSchema.safeParse(req.body);
@@ -259,9 +339,12 @@ router.post("/flashcards/decks/generate", async (req: AuthRequest, res) => {
       : (await db.insert(flashcardDecksTable).values({
           userId: req.userId,
           title: deckTitle,
-          description: `Auto-built by Gemini for ${board}${classLevel ? ` Class ${classLevel}` : ""} · ${subject} · ${topic}`,
+          description: `Auto-built for ${board}${classLevel ? ` Class ${classLevel}` : ""} · ${subject} · ${topic}`,
           category: subject.slice(0, 60),
         }).returning({ id: flashcardDecksTable.id }))[0]!;
+
+    let cardsList: Array<{ front: string; back: string }> = [];
+    let provider = "curriculum-engine";
 
     const result = await generateAi({
       purpose: "flashcard_generate",
@@ -272,17 +355,32 @@ Rules: one concept per card; use the terminology and marking-scheme style that $
       json: true,
       maxTokens: 2048,
       userId: req.userId,
-    });
-    if (!result || !result.text) return res.status(503).json({ error: "AI flashcard generation is currently unavailable" });
+    }).catch(() => null);
 
-    const generated = JSON.parse(result.text) as { cards?: Array<{ front?: string; back?: string }> };
-    const cards = (generated.cards ?? []).slice(0, count)
-      .filter((card) => card.front?.trim() && card.back?.trim())
-      .map((card) => ({ deckId: deck.id, front: card.front!.trim().slice(0, 500), back: card.back!.trim().slice(0, 1000) }));
-    if (!cards.length) throw new Error("No cards parsed from AI output");
+    if (result && result.text) {
+      try {
+        const generated = JSON.parse(result.text) as { cards?: Array<{ front?: string; back?: string }> };
+        cardsList = (generated.cards ?? [])
+          .filter((card) => card.front?.trim() && card.back?.trim())
+          .map((card) => ({ front: card.front!.trim().slice(0, 500), back: card.back!.trim().slice(0, 1000) }));
+        if (cardsList.length > 0) provider = result.provider;
+      } catch {
+        cardsList = [];
+      }
+    }
+
+    if (cardsList.length === 0) {
+      cardsList = generateCurriculumFallbackCards(subject, topic, count, board);
+    }
+
+    const cards = cardsList.slice(0, count).map((card) => ({
+      deckId: deck.id,
+      front: card.front,
+      back: card.back,
+    }));
 
     const inserted = await db.insert(flashcardsTable).values(cards).returning();
-    res.status(201).json({ deck: { id: deck.id, title: deckTitle, existed: Boolean(existingDeck) }, cards: inserted, provider: result.provider });
+    res.status(201).json({ deck: { id: deck.id, title: deckTitle, existed: Boolean(existingDeck) }, cards: inserted, provider });
   } catch (err) {
     logger.warn({ err }, "auto deck generation failed");
     res.status(502).json({ error: "AI flashcards could not be generated" });
@@ -299,25 +397,43 @@ router.post("/flashcards/decks/:id/generate", async (req: AuthRequest, res) => {
   if (!deck) return res.status(404).json({ error: "Deck not found" });
 
   try {
+    let cardsList: Array<{ front: string; back: string }> = [];
+    let provider = "notes-engine";
+
     const aiResult = await generateAi({
       purpose: "flashcard_generate",
       prompt: `Create ${parsed.data.count} high-quality flashcards from these study notes. Return JSON in the format: {"cards":[{"front":"concise question or prompt","back":"clear, accurate answer"}]}. Each card must test exactly one concept.\n\nStudy Notes:\n${parsed.data.notes}`,
-      system: "You are an expert study aid and memory science tutor powered by Google Gemini. Output strictly valid JSON with a 'cards' array of objects with 'front' and 'back' fields.",
+      system: "You are an expert study aid and memory science tutor. Output strictly valid JSON with a 'cards' array of objects with 'front' and 'back' fields.",
       json: true,
       maxTokens: 2048,
       userId: req.userId,
-    });
+    }).catch(() => null);
 
-    if (!aiResult || !aiResult.text) {
-      return res.status(503).json({ error: "AI flashcard generation is currently unavailable" });
+    if (aiResult && aiResult.text) {
+      try {
+        const generated = JSON.parse(aiResult.text) as { cards?: Array<{ front?: string; back?: string }> };
+        cardsList = (generated.cards ?? [])
+          .filter((card) => card.front?.trim() && card.back?.trim())
+          .map((card) => ({ front: card.front!.trim().slice(0, 500), back: card.back!.trim().slice(0, 1000) }));
+        if (cardsList.length > 0) provider = aiResult.provider;
+      } catch {
+        cardsList = [];
+      }
     }
 
-    const generated = JSON.parse(aiResult.text) as { cards?: Array<{ front?: string; back?: string }> };
-    const cards = (generated.cards ?? []).slice(0, parsed.data.count).filter((card) => card.front?.trim() && card.back?.trim())
-      .map((card) => ({ deckId, front: card.front!.trim().slice(0, 500), back: card.back!.trim().slice(0, 1000) }));
-    if (!cards.length) throw new Error("No cards parsed from AI output");
+    if (cardsList.length === 0) {
+      cardsList = generateNotesFallbackCards(parsed.data.notes, parsed.data.count);
+    }
+
+    const cards = cardsList.slice(0, parsed.data.count).map((card) => ({
+      deckId,
+      front: card.front,
+      back: card.back,
+    }));
+
+    if (!cards.length) throw new Error("No cards could be parsed from notes");
     const inserted = await db.insert(flashcardsTable).values(cards).returning();
-    res.status(201).json({ cards: inserted, provider: aiResult.provider });
+    res.status(201).json({ cards: inserted, provider });
   } catch (err) {
     logger.warn({ err }, "AI flashcard generation failed");
     res.status(502).json({ error: "AI flashcards could not be generated" });

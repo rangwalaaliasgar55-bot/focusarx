@@ -18,7 +18,7 @@ export const COST_PER_1K: Record<AiProvider, { in: number; out: number }> = {
 };
 
 export const MODELS: Record<AiProvider, string> = {
-  gemini: "gemini-2.5-flash",
+  gemini: process.env.GEMINI_MODEL || "gemini-1.5-flash",
   groq: "llama-3.3-70b-versatile",
 };
 

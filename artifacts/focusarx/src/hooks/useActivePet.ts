@@ -32,7 +32,6 @@ export async function fetchActivePet(): Promise<ActivePet | null> {
   const h: Record<string, string> = {};
   const token = getToken();
   if (token) h["Authorization"] = `Bearer ${token}`;
-  if (!token) return null;
 
   try {
     const res = await fetch("/api/pets/inventory", { headers: h });
@@ -47,8 +46,15 @@ export async function fetchActivePet(): Promise<ActivePet | null> {
           category: active.catalog?.category,
         };
       }
-      // No active row: an unlocked-but-never-activated pet must not hide the
-      // companion — fall through to the legacy row below.
+      if (data.inventory && data.inventory.length > 0) {
+        const first = data.inventory[0]!;
+        return {
+          slug: first.catalog?.slug ?? "owl",
+          name: first.inventory.nickname ?? first.catalog?.name ?? "Companion",
+          level: first.inventory.level ?? 1,
+          category: first.catalog?.category,
+        };
+      }
     }
   } catch {
     /* offline — legacy fetch below will also fail quietly */
@@ -56,19 +62,29 @@ export async function fetchActivePet(): Promise<ActivePet | null> {
 
   try {
     const res = await fetch("/api/pets", { headers: h });
-    if (!res.ok) return null;
-    const data = (await res.json()) as {
-      pet?: { petType: string; petName: string | null; petLevel: number } | null;
-    };
-    if (!data.pet) return null;
-    return {
-      slug: data.pet.petType,
-      name: data.pet.petName ?? data.pet.petType,
-      level: data.pet.petLevel ?? 1,
-    };
+    if (res.ok) {
+      const data = (await res.json()) as {
+        pet?: { petType: string; petName: string | null; petLevel: number } | null;
+      };
+      if (data.pet) {
+        return {
+          slug: data.pet.petType,
+          name: data.pet.petName ?? data.pet.petType,
+          level: data.pet.petLevel ?? 1,
+        };
+      }
+    }
   } catch {
-    return null;
+    /* ignore */
   }
+
+  // Fallback starter companion if user has not yet adopted a pet
+  return {
+    slug: "owl",
+    name: "Sage Owl",
+    level: 1,
+    category: "starter",
+  };
 }
 
 /** Shared query for every surface that renders the companion. */

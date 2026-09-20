@@ -23,6 +23,8 @@ import { playCoachVoice, playSessionComplete, playBreakOver, playCoinEarn, isMut
 import FlowTimer from "@/components/FlowTimer";
 import DistractionModal from "@/components/DistractionModal";
 import { SESSION_PRESETS, getPresetById, getSessionPreset, setSessionPreset } from "@/lib/sessionPresets";
+import { TIMER_THEMES, getStoredTimerTheme, setStoredTimerTheme, type TimerTheme } from "@/lib/timerTheme";
+import { FlipClockDisplay } from "@/components/FlipClockDisplay";
 import type { Session } from "@/types/timer";
 import { usePremium } from "@/hooks/usePremium";
 import { getTimerSkin, skinTextGradient } from "@/lib/membershipSkin";
@@ -55,6 +57,11 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
   const [showPark, setShowPark] = useState(false);
   // Session-mode preset (9.1): chosen once, remembered.
   const [presetId, setPresetIdState] = useState<string>(() => getSessionPreset());
+  const [timerTheme, setTimerThemeState] = useState<TimerTheme>(() => getStoredTimerTheme());
+  const chooseTimerTheme = useCallback((t: TimerTheme) => {
+    setTimerThemeState(t);
+    setStoredTimerTheme(t);
+  }, []);
   // Membership skin — cosmetic only (see lib/membershipSkin.ts).
   const { tier: membershipTier } = usePremium();
   const skin = getTimerSkin(membershipTier);
@@ -404,6 +411,15 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
             onFinish={recordMobileSession}
             onExitPreset={() => applyPreset("pomodoro")}
           />
+        ) : timerTheme === "flip" ? (
+          <div className="w-full flex justify-center py-2">
+            <FlipClockDisplay
+              secondsLeft={secondsLeft}
+              mode={mode}
+              isRunning={isRunning}
+              sessionType={mode === "focus" ? "Deep Work" : mode === "break" ? "Break" : "Long Break"}
+            />
+          </div>
         ) : (
         <>
         <div className="relative flex flex-col items-center" data-tier={skin.tier}>
@@ -540,19 +556,35 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
 
         {/* Duration chips - numeric keyboard friendly */}
         {isIdle && mode === "focus" && (
-          <div className="flex flex-wrap items-center justify-center gap-2" role="group" aria-label="Session mode">
-            {SESSION_PRESETS.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => applyPreset(p.id)}
-                aria-pressed={presetId === p.id}
-                className={`min-h-[36px] rounded-full border px-3.5 text-xs font-bold ${presetId === p.id ? "border-[var(--brand-500)] bg-[var(--brand-soft)] text-[var(--brand-strong)]" : "border-[var(--border-subtle)] bg-[var(--surface-1)] text-[var(--foreground-subtle)]"}`}
-                aria-label={p.blurb}
-              >
-                {p.label}{p.focusMin ? ` ${p.focusMin}m` : ""}
-              </button>
-            ))}
+          <div className="flex flex-col items-center gap-2 w-full">
+            <div className="flex flex-wrap items-center justify-center gap-2" role="group" aria-label="Session mode">
+              {SESSION_PRESETS.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => applyPreset(p.id)}
+                  aria-pressed={presetId === p.id}
+                  className={`min-h-[36px] rounded-full border px-3.5 text-xs font-bold ${presetId === p.id ? "border-[var(--brand-500)] bg-[var(--brand-soft)] text-[var(--brand-strong)]" : "border-[var(--border-subtle)] bg-[var(--surface-1)] text-[var(--foreground-subtle)]"}`}
+                  aria-label={p.blurb}
+                >
+                  {p.label}{p.focusMin ? ` ${p.focusMin}m` : ""}
+                </button>
+              ))}
+            </div>
+            {/* Theme switcher */}
+            <div className="flex items-center justify-center gap-1.5 pt-1" role="group" aria-label="Timer theme">
+              {TIMER_THEMES.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => chooseTimerTheme(t.id)}
+                  aria-pressed={timerTheme === t.id}
+                  className={`min-h-[28px] rounded-full border px-2.5 text-[11px] font-semibold transition-colors ${timerTheme === t.id ? "border-[var(--brand-500)] bg-[var(--brand-soft)] text-[var(--brand-strong)]" : "border-[var(--border-subtle)] bg-[var(--surface-1)] text-[var(--foreground-subtle)] hover:text-[var(--foreground)]"}`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
         </>)}

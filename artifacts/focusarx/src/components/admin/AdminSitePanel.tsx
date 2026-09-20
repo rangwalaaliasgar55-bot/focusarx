@@ -2,8 +2,13 @@ import { useCallback, useState, useEffect } from "react";
 import { LoadingState, MotionTab, SectionHeader, adminFetch } from "./AdminHelpers";
 import type { AdminPanelProps, SiteSettings } from "./AdminTypes";
 
-type AdminTrack = { id: string; label: string; emoji?: string; url: string; credit?: string };
+type AdminTrack = { id: string; label: string; emoji?: string; url: string; credit?: string; type?: "audio" | "youtube"; youtubeId?: string | null };
 type CustomSetting = { key: string; value: string | number | boolean | null; public: boolean; note: string; updatedAt: string };
+
+function extractYouTubeId(url: string): string | null {
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
+  return match ? match[1]! : null;
+}
 
 export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
@@ -103,15 +108,18 @@ export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
   function addTrack() {
     const label = trackDraft.label.trim();
     const url = trackDraft.url.trim();
-    if (!label || !url) { setTrackMsg("Error: a label and an https URL are required."); return; }
-    if (!url.startsWith("https://")) { setTrackMsg("Error: track URL must use https."); return; }
-    if (tracks.length >= 20) { setTrackMsg("Error: at most 20 tracks — remove one first."); return; }
+    if (!label || !url) { setTrackMsg("Error: a label and a valid URL are required."); return; }
+    if (!url.startsWith("https://") && !url.startsWith("http://")) { setTrackMsg("Error: track URL must use https."); return; }
+    if (tracks.length >= 30) { setTrackMsg("Error: at most 30 tracks — remove one first."); return; }
+    const ytId = extractYouTubeId(url);
     const track: AdminTrack = {
       id: `t-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      label: label.slice(0, 40),
-      emoji: trackDraft.emoji.trim() || "🎵",
+      label: label.slice(0, 60),
+      emoji: trackDraft.emoji.trim() || (ytId ? "▶️" : "🎵"),
       url,
       credit: trackDraft.credit.trim() || undefined,
+      type: ytId ? "youtube" : "audio",
+      youtubeId: ytId || null,
     };
     void saveTracks([...tracks, track]);
     setTrackDraft({ label: "", emoji: "", url: "", credit: "" });
@@ -312,19 +320,25 @@ export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
         </div>
         {/* Curated ambient tracks */}
         <div className="rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 p-5 lg:col-span-2">
-          <h3 className="mb-1 text-sm font-semibold text-[var(--palette-zinc-100)]">🎵 Curated Ambient Tracks</h3>
+          <h3 className="mb-1 text-sm font-semibold text-[var(--palette-zinc-100)]">🎵 Curated Ambient & YouTube Tracks</h3>
           <p className="mb-4 text-xs text-[var(--palette-zinc-500)]">
-            Publish streamed music tracks (licensed lofi loops, nature recordings…) to every user's ambient mixer.
-            Built-in soundscapes are synthesized; tracks added here stream from the URL you provide. Max 20.
+            Publish streamed music tracks or YouTube songs (lo-fi streams, ambient music, study playlists, binaural beats) to every user's ambient sound bar. Max 30.
           </p>
 
           {tracks.length > 0 && (
             <ul className="mb-4 space-y-1.5">
               {tracks.map((t) => (
                 <li key={t.id} className="flex items-center gap-2 rounded-lg border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-950)] px-3 py-2">
-                  <span aria-hidden>{t.emoji || "🎵"}</span>
+                  <span aria-hidden>{t.emoji || (t.type === "youtube" ? "▶️" : "🎵")}</span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-semibold text-[var(--palette-zinc-200)]">{t.label}</span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="truncate text-xs font-semibold text-[var(--palette-zinc-200)]">{t.label}</span>
+                      {t.type === "youtube" && (
+                        <span className="rounded bg-[var(--danger-soft)] border border-[var(--danger)]/30 px-1.5 py-0.5 text-[11px] font-bold text-[var(--danger)] uppercase tracking-wider">
+                          YouTube
+                        </span>
+                      )}
+                    </span>
                     <span className="block truncate text-[11px] text-[var(--palette-zinc-500)]">{t.credit ? `${t.credit} · ` : ""}{t.url}</span>
                   </span>
                   <button type="button" onClick={() => removeTrack(t.id)}
@@ -340,27 +354,27 @@ export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
             <div>
               <label htmlFor="adminsitepanel-track-label" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">Track label</label>
               <input id="adminsitepanel-track-label" value={trackDraft.label} onChange={(e) => setTrackDraft((d) => ({ ...d, label: e.target.value }))}
-                placeholder="Midnight Lofi Study"
+                placeholder="Lofi Hip Hop Study Beats"
                 className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]" />
             </div>
             <div>
               <label htmlFor="adminsitepanel-track-emoji" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">Emoji</label>
               <input id="adminsitepanel-track-emoji" value={trackDraft.emoji} onChange={(e) => setTrackDraft((d) => ({ ...d, emoji: e.target.value }))}
-                placeholder="🎵" maxLength={8}
+                placeholder="🎧" maxLength={8}
                 className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]" />
             </div>
           </div>
           <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_1fr]">
             <div>
-              <label htmlFor="adminsitepanel-track-url" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">Audio URL (https, mp3/m4a/ogg)</label>
+              <label htmlFor="adminsitepanel-track-url" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">Track Link (YouTube URL or Direct Audio .mp3/.ogg)</label>
               <input id="adminsitepanel-track-url" value={trackDraft.url} onChange={(e) => setTrackDraft((d) => ({ ...d, url: e.target.value }))}
-                placeholder="https://cdn.example.com/lofi-loop.mp3" inputMode="url"
+                placeholder="https://www.youtube.com/watch?v=... or https://cdn.example.com/song.mp3" inputMode="url"
                 className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]" />
             </div>
             <div>
-              <label htmlFor="adminsitepanel-track-credit" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">Credit (optional)</label>
+              <label htmlFor="adminsitepanel-track-credit" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">Artist / Channel Credit (optional)</label>
               <input id="adminsitepanel-track-credit" value={trackDraft.credit} onChange={(e) => setTrackDraft((d) => ({ ...d, credit: e.target.value }))}
-                placeholder="Artist / license note"
+                placeholder="Lofi Girl / ChilledCow"
                 className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]" />
             </div>
           </div>

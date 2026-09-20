@@ -576,9 +576,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     // prompt before the user could correct it. The dialog validates in place.
     const input = await prompt({
       title: `Custom duration for ${mode}`,
-      description: isPremium
-        ? "Any length from 1 to 240 minutes."
-        : "Free sessions run 15, 25 or 50 minutes. 10-180 with Premium.",
+      description: "Any length from 1 to 240 minutes.",
       label: "Minutes",
       type: "number",
       min: 1,
@@ -587,9 +585,8 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
       confirmLabel: "Set duration",
       validate: (raw) => {
         const val = Number(raw);
-        // Free users: 15/25/50 plus anything inside 10-50, focus mode only.
-        if (!isPremium && mode === "focus" && ![15, 25, 50].includes(val) && (val < 10 || val > 50)) {
-          return "Custom 10-180m is Premium only. Free: 15, 25, 50m.";
+        if (isNaN(val) || val < 1 || val > 240) {
+          return "Please enter a duration between 1 and 240 minutes.";
         }
         return null;
       },
@@ -629,13 +626,13 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
 
   return (
     <>
-    <div className="flex w-full flex-col items-center gap-6 md:flex-row md:items-start md:gap-8">
+    <div className="flex w-full flex-col items-center justify-center gap-6 lg:flex-row lg:items-start lg:gap-8">
 
     {/* ── MAIN TIMER CARD ─────────────────────────────────────────────── */}
     <motion.section
       layout
       animate={justCompleted ? { scale: [1, 1.02, 1] } : { scale: 1 }}
-      className="w-full max-w-md shrink-0"
+      className="w-full max-w-md shrink-0 lg:max-w-[420px] xl:max-w-md"
       transition={{ type: "spring", stiffness: 260, damping: 32 }}
     >
       <div
@@ -1027,7 +1024,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     </motion.section>
 
     {/* ── RIGHT COLUMN ────────────────────────────────────────────────── */}
-    <div className="flex w-full max-w-md flex-col gap-4">
+    <div className="flex w-full max-w-md flex-col gap-4 lg:max-w-[380px] xl:max-w-md">
 
       {/* Ambient mixer — always visible on desktop, no scrolling needed */}
       <AmbientSoundBar variant="panel" className="hidden lg:block" />
