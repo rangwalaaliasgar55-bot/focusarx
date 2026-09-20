@@ -7,6 +7,7 @@ import { dayKeyInZone, resolveUserZone, shiftDayKey } from "../lib/timezone";
 import { eq, sql } from "drizzle-orm";
 import { isUserPremium } from "../lib/premiumCheck";
 import { burnCoins, mintCoins } from "../lib/coinLedger";
+import { advanceSimulationDay, applyGridAction, createCitySimulation, SIM_BUILDINGS, SPECIAL_COSTS, TOOL_COSTS, type CitySimulation, type CityTool } from "../lib/citySimulation";
 
 export const CITY_SKINS = [
   { id: "classic", name: "Classic Academy", emoji: "🏛️", premiumOnly: false, gradient: "#0f172a,#312e81" },
@@ -109,11 +110,13 @@ function normalizeLayout(owned: Record<string, boolean>, stored: Record<string, 
 
 /** Coins produced each hour. Population keeps every city productive while
  * buildings provide a visible incentive to keep expanding. */
-function taxRate(city: { population: number | null; totalBuildings: number | null }): number {
-  return Math.max(1, Math.floor((city.population ?? 0) / 10) + (city.totalBuildings ?? 0) * 2);
+function taxRate(city: { population: number | null; totalBuildings: number | null; simulation?: unknown }): number {
+  const simulation = city.simulation as Partial<CitySimulation> | null | undefined;
+  const simulatedNet = Math.max(0, Number(simulation?.daily?.net ?? 0));
+  return Math.max(1, Math.floor((city.population ?? 0) / 10) + (city.totalBuildings ?? 0) * 2 + simulatedNet);
 }
 
-export function taxSnapshot(city: { population: number | null; totalBuildings: number | null; lastTaxAt: Date | null }, now = new Date()) {
+export function taxSnapshot(city: { population: number | null; totalBuildings: number | null; lastTaxAt: Date | null; simulation?: unknown }, now = new Date()) {
   const ratePerHour = taxRate(city);
   const elapsedHours = Math.max(0, Math.min(MAX_TAX_HOURS, (now.getTime() - (city.lastTaxAt?.getTime() ?? now.getTime())) / 3_600_000));
   return {
@@ -179,6 +182,75 @@ cityRouter.get("/city/buildings", authMiddleware, async (req: AuthRequest, res: 
     res.json(defs);
   } catch {
     res.status(500).json({ error: "Failed to load buildings" });
+  }
+});
+
+function simulationFor(city: { simulation: unknown }): CitySimulation {
+  const stored = city.simulation as Partial<CitySimulation> | null;
+  return stored?.version === 1 && stored.cells && stored.width && stored.height ? stored as CitySimulation : createCitySimulation();
+}
+
+cityRouter.get("/city/simulation", authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const city = await getOrCreateCity(req.userId);
+    const simulation = simulationFor(city);
+    if ((city.simulation as Partial<CitySimulation> | null)?.version !== 1) {
+      await db.update(focusCitiesTable).set({ simulation: simulation as unknown as Record<string, unknown>, updatedAt: new Date() }).where(eq(focusCitiesTable.id, city.id));
+    }
+    res.json({ simulation, catalog: SIM_BUILDINGS, costs: { tools: TOOL_COSTS, specials: SPECIAL_COSTS } });
+  } catch (err) {
+    logger.error({ err }, "city simulation load failed");
+    res.status(500).json({ error: "Failed to load city simulation" });
+  }
+});
+
+cityRouter.post("/city/simulation/action", authMiddleware, async (req: AuthRequest, res: Response) => {
+  const body = req.body as { tool?: string; x?: number; y?: number; building?: string };
+  const validTools = new Set(["road", "residential", "commercial", "industrial", "bulldoze", "repair", "special"]);
+  if (!body.tool || !validTools.has(body.tool) || !Number.isInteger(body.x) || !Number.isInteger(body.y)) {
+    return res.status(400).json({ error: "Invalid city action" });
+  }
+  try {
+    await getOrCreateCity(req.userId);
+    const result = await db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT id FROM focus_cities WHERE user_id = ${req.userId} FOR UPDATE`);
+      const [city] = await tx.select().from(focusCitiesTable).where(eq(focusCitiesTable.userId, req.userId)).limit(1);
+      if (!city) throw new Error("City not found");
+      const applied = applyGridAction(simulationFor(city), { tool: body.tool as CityTool | "special", x: body.x!, y: body.y!, building: body.building });
+      if (applied.cost > 0) {
+        const balance = await burnCoins(req.userId, applied.cost, "city_simulation", {
+          description: applied.message,
+          metadata: { tool: body.tool, building: body.building, x: body.x, y: body.y },
+        }, tx);
+        if (balance === null) return { insufficient: true as const, required: applied.cost };
+        const [updated] = await tx.update(focusCitiesTable).set({ simulation: applied.state as unknown as Record<string, unknown>, population: Math.max(5, applied.state.population), updatedAt: new Date() })
+          .where(eq(focusCitiesTable.id, city.id)).returning();
+        return { simulation: applied.state, city: updated, newCoins: balance, message: applied.message };
+      }
+      return { simulation: applied.state, city, newCoins: null, message: applied.message };
+    });
+    if (result.insufficient) return res.status(400).json({ error: `You need ${result.required} coins for that action` });
+    res.json(result);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "City action failed";
+    if (["Invalid city plot", "There is nothing to bulldoze", "That building does not need repairs", "That plot is occupied", "Zones must touch a road", "Service buildings must touch a road", "Unknown service building"].includes(message)) {
+      return res.status(400).json({ error: message });
+    }
+    logger.error({ err }, "city simulation action failed");
+    res.status(500).json({ error: "City action failed" });
+  }
+});
+
+cityRouter.post("/city/simulation/advance", authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const city = await getOrCreateCity(req.userId);
+    const simulation = advanceSimulationDay(simulationFor(city), city.id.length + city.totalSessions);
+    const [updated] = await db.update(focusCitiesTable).set({ simulation: simulation as unknown as Record<string, unknown>, population: Math.max(5, simulation.population), updatedAt: new Date() })
+      .where(eq(focusCitiesTable.id, city.id)).returning();
+    res.json({ simulation, city: updated });
+  } catch (err) {
+    logger.error({ err }, "city simulation advance failed");
+    res.status(500).json({ error: "Failed to advance city day" });
   }
 });
 

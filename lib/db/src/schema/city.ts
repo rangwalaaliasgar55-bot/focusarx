@@ -13,6 +13,7 @@ export const focusCitiesTable = pgTable('focus_cities', {
   unlockedDistricts: jsonb('unlocked_districts').$type<string[]>().default(['downtown']),
   buildings: jsonb('buildings').$type<Record<string, boolean>>().default({}),
   buildingLayout: jsonb('building_layout').$type<Record<string, { x: number; y: number }>>().default({}),
+  simulation: jsonb('simulation').$type<Record<string, unknown>>().default({}),
   atmosphere: text('atmosphere').notNull().default('day'),
   selectedSkin: text('selected_skin').notNull().default('classic'),
   weather: text('weather').notNull().default('clear'),
