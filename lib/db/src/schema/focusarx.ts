@@ -164,6 +164,22 @@ export const goalsTable = pgTable("goals", {
 
 export type Goal = typeof goalsTable.$inferSelect;
 
+/** One row per confirmed voice batch. The user/key constraint makes network
+ * retries return the original result instead of creating duplicate work. */
+export const voiceCaptureBatchesTable = pgTable("voice_capture_batches", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  idempotencyKey: text("idempotency_key").notNull(),
+  transcript: text("transcript").notNull(),
+  result: jsonb("result").$type<{ taskIds: string[]; goalIds: string[]; createdCount: number }>().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("voice_capture_batches_user_key_uidx").on(t.userId, t.idempotencyKey),
+  index("voice_capture_batches_user_created_idx").on(t.userId, t.createdAt),
+]);
+
+export type VoiceCaptureBatch = typeof voiceCaptureBatchesTable.$inferSelect;
+
 export const userWalletsTable = pgTable("user_wallets", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull().unique().references(() => usersTable.id, { onDelete: "cascade" }),

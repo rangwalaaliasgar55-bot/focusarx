@@ -6,6 +6,7 @@ import { Target, Plus, Trash2, CheckCircle2, Circle, Sparkles } from "lucide-rea
 import { motion, AnimatePresence } from "framer-motion";
 import { TiltCard } from "@/components/TiltCard";
 import PageHeader from "@/components/PageHeader";
+import { VoiceCaptureLauncher } from "@/components/VoiceCapture";
 import { apiJson, errorMessage } from "@/lib/api";
 
 
@@ -72,12 +73,15 @@ export default function GoalsPage() {
         title="Focus Goals"
         subtitle="Set ambitious goals and track your journey"
         actions={
-          <button
-            onClick={() => setShowForm(s => !s)}
-            className="flex items-center gap-1.5 rounded-xl bg-[var(--brand-600)] px-4 py-2 text-[12px] font-bold text-[var(--palette-white)] hover:bg-[var(--palette-6d31d4)] transition-colors shadow-lg shadow-[var(--rgba-124-58-237-0_25)]"
-          >
-            <Plus size={14} /> New Goal
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <VoiceCaptureLauncher />
+            <button
+              onClick={() => setShowForm(s => !s)}
+              className="flex items-center gap-1.5 rounded-xl bg-[var(--brand-600)] px-4 py-2 text-[12px] font-bold text-[var(--palette-white)] hover:bg-[var(--palette-6d31d4)] transition-colors shadow-lg shadow-[var(--rgba-124-58-237-0_25)]"
+            >
+              <Plus size={14} /> New Goal
+            </button>
+          </div>
         }
       />
 
