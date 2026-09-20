@@ -19,7 +19,6 @@ import {
 } from "lucide-react";
 import { PageSEO } from "@/components/PageSEO";
 import StripeCheckoutCard from "@/components/StripeCheckoutCard";
-import RazorpayCheckoutCard from "@/components/RazorpayCheckoutCard";
 import { Link } from "wouter";
 import { apiJson } from "@/lib/api";
 import { errorMessage } from "@/lib/api";
@@ -31,7 +30,7 @@ const BENEFITS = [
   { icon: BarChart2, label: "Advanced Analytics", desc: "Full history, best hours, streak consistency, export, premium charts" },
   { icon: Palette, label: "Premium Focus City", desc: "Night/sunset modes, weather, seasonal decor, premium buildings, private districts" },
   { icon: Star, label: "Premium Profile", desc: "Avatar frames, animated nameplates, backgrounds, aura, streak effects" },
-  { icon: Zap, label: "Premium Convenience", desc: "More pets, presets, private rooms, daily quests, recovery credits" },
+  { icon: Zap, label: "Premium Convenience", desc: "More pets, presets, private rooms, daily quests, recovery tokens" },
   { icon: Gift, label: "Exclusive Pets & Cosmetics", desc: "Rare legendary companions, skins, accessories" },
   { icon: Crown, label: "Premium Battle Pass", desc: "Unlock premium reward track, exclusive pet near end" },
 ];
@@ -155,9 +154,9 @@ export default function PremiumPage() {
   return (
     <div className="min-h-[100dvh] px-4 py-6 sm:px-6 pb-[calc(6rem+env(safe-area-inset-bottom))]">
       <PageSEO
-        title="FocusArx Pro — Pay or Unlock with Focus Credits"
+        title="Premium Membership — Unlock with Focus Tokens"
         noindex
-        description="Activate FocusArx Pro by card, UPI, or Focus Credits earned through completed sessions."
+        description="Unlock Premium access using Focus Tokens earned through productivity. AI coach, advanced analytics, premium Focus City, exclusive pets, and more."
         canonical="/premium"
       />
       <div className="mx-auto max-w-4xl space-y-6">
@@ -168,7 +167,7 @@ export default function PremiumPage() {
               <Crown className="text-[var(--palette-amber-400)]" /> Premium Membership
             </h1>
             <p className="mt-1 text-sm text-[var(--foreground-muted)]">
-              Pay by card or UPI, or unlock with <span className="font-semibold text-[var(--brand-400)]">Focus Credits</span> earned through focus.
+              Unlock with <span className="font-semibold text-[var(--brand-400)]">Focus Tokens</span> — no real-money payments. Earn tokens through focus.
             </p>
           </div>
           <Link href="/dashboard" className="text-xs font-medium text-[var(--brand-400)] hover:underline">
@@ -176,10 +175,7 @@ export default function PremiumPage() {
           </Link>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <RazorpayCheckoutCard />
-          <StripeCheckoutCard />
-        </div>
+        <StripeCheckoutCard />
 
         {/* Current status */}
         {isLoading ? (
@@ -221,7 +217,7 @@ export default function PremiumPage() {
                     onClick={() => handlePurchaseClick(p.id)}
                     className="min-h-[44px] rounded-full bg-[var(--brand-600)] px-5 text-xs font-bold text-white"
                   >
-                    Renew {p.durationDays}d for {p.tokenCost.toLocaleString()} credits
+                    Renew {p.durationDays}d for {p.tokenCost.toLocaleString()} tokens
                   </button>
                 ))}
               </div>
@@ -238,16 +234,16 @@ export default function PremiumPage() {
                 <Coins size={20} />
               </span>
               <div className="flex-1">
-                <p className="text-sm font-semibold">Your Focus Credits</p>
+                <p className="text-sm font-semibold">Your Focus Tokens</p>
                 <p className="text-xs text-[var(--foreground-muted)]">
-                  <span className="font-bold tabular-nums text-[var(--brand-400)]">{balance.toLocaleString()}</span> credits available
+                  <span className="font-bold tabular-nums text-[var(--brand-400)]">{balance.toLocaleString()}</span> tokens available
                   {selected && !canAffordSelected && (
                     <span className="ml-2 text-[var(--danger)]">• Need {needed.toLocaleString()} more for {selected.name}</span>
                   )}
                 </p>
               </div>
               <Link href="/quests" className="min-h-[36px] rounded-full border border-[var(--border-subtle)] bg-[var(--surface-hover)] px-4 py-2 text-xs font-semibold">
-                Earn credits
+                Earn tokens
               </Link>
             </div>
           </motion.div>
@@ -280,9 +276,9 @@ export default function PremiumPage() {
                   <p className="mt-1 text-xs text-[var(--foreground-muted)]">{plan.description}</p>
                   <div className="mt-4 flex items-baseline gap-1">
                     <span className="text-2xl font-semibold tabular-nums">{plan.tokenCost.toLocaleString()}</span>
-                    <span className="text-xs text-[var(--foreground-subtle)]">credits</span>
+                    <span className="text-xs text-[var(--foreground-subtle)]">tokens</span>
                   </div>
-                  <p className="text-xs text-[var(--foreground-subtle)]">{plan.durationDays} days • {(plan.tokenCost / plan.durationDays).toFixed(0)} credits/day</p>
+                  <p className="text-xs text-[var(--foreground-subtle)]">{plan.durationDays} days • {(plan.tokenCost / plan.durationDays).toFixed(0)} tokens/day</p>
 
                   <div className="mt-4 flex-1 space-y-1.5">
                     {(plan.benefits ?? []).slice(0, 4).map((b: string) => (
@@ -300,7 +296,7 @@ export default function PremiumPage() {
                       isPremium ? "bg-[var(--surface-hover)] text-[var(--foreground-muted)]" : afford ? "bg-[var(--brand-600)] text-white shadow-[var(--shadow-violet-sm)]" : "bg-[var(--surface-hover)] text-[var(--foreground-subtle)]"
                     }`}
                   >
-                    {isPremium ? "Extend membership" : afford ? `Unlock for ${plan.tokenCost.toLocaleString()} credits` : `Need ${(plan.tokenCost - balance).toLocaleString()} more`}
+                    {isPremium ? "Extend membership" : afford ? `Unlock for ${plan.tokenCost.toLocaleString()} tokens` : `Need ${(plan.tokenCost - balance).toLocaleString()} more`}
                   </button>
                 </motion.div>
               );
@@ -333,21 +329,21 @@ export default function PremiumPage() {
           </div>
 
           <div className="space-y-4">
-            {/* How to earn credits */}
+            {/* How to earn tokens */}
             <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-1)] p-5">
               <h3 className="flex items-center gap-2 text-sm font-semibold">
-                <Target size={16} className="text-[var(--brand-400)]" /> How to earn Focus Credits
+                <Target size={16} className="text-[var(--brand-400)]" /> How to earn Focus Tokens
               </h3>
               <div className="mt-3 grid gap-2 text-xs">
                 {[
-                  ["🎯 Focus Session", "50 credits per 25min+ session (max 500/day)"],
-                  ["🔥 Streak", "20 credits/day for maintaining streak"],
-                  ["📋 Daily Quest", "30 credits per quest (max 150/day)"],
-                  ["📅 Weekly Quest", "100 credits per weekly quest"],
-                  ["🏆 Achievement", "50 credits per badge unlock"],
-                  ["🎁 Daily Reward", "25 credits daily"],
-                  ["👥 Referral", "200 credits per invited friend"],
-                  ["🌟 Battle Pass", "50 credits per tier"],
+                  ["🎯 Focus Session", "50 tokens per 25min+ session (max 500/day)"],
+                  ["🔥 Streak", "20 tokens/day for maintaining streak"],
+                  ["📋 Daily Quest", "30 tokens per quest (max 150/day)"],
+                  ["📅 Weekly Quest", "100 tokens per weekly quest"],
+                  ["🏆 Achievement", "50 tokens per badge unlock"],
+                  ["🎁 Daily Reward", "25 tokens daily"],
+                  ["👥 Referral", "200 tokens per invited friend"],
+                  ["🌟 Battle Pass", "50 tokens per tier"],
                 ].map(([title, desc]) => (
                   <div key={title as string} className="flex justify-between gap-2 rounded-lg bg-[var(--surface-hover)] px-3 py-2">
                     <span className="font-medium">{title}</span>
@@ -396,7 +392,7 @@ export default function PremiumPage() {
                     <div key={e.id} className="flex items-center justify-between rounded-lg bg-[var(--surface-hover)] px-3 py-2 text-xs">
                       <div>
                         <p className="font-medium">
-                          {e.planId ? plans.find((p) => p.id === e.planId)?.name ?? "Premium" : "Premium (Admin grant)"} • {e.tokenCost ? `${e.tokenCost} credits` : "Granted"}
+                          {e.planId ? plans.find((p) => p.id === e.planId)?.name ?? "Premium" : "Premium (Admin grant)"} • {e.tokenCost ? `${e.tokenCost} tokens` : "Granted"}
                         </p>
                         <p className="text-[var(--foreground-subtle)]">
                           {new Date(e.startsAt ?? "now").toLocaleDateString()} → {new Date(e.endsAt ?? "now").toLocaleDateString()} • {e.status}
@@ -413,11 +409,11 @@ export default function PremiumPage() {
           </div>
         </div>
 
-        {/* Credit ledger recent */}
+        {/* Token ledger recent */}
         {ledgerData?.entries && ledgerData.entries.length > 0 && (
           <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-1)] p-5">
             <h3 className="flex items-center gap-2 text-sm font-semibold">
-              <Coins size={16} /> Recent credit activity
+              <Coins size={16} /> Recent token activity
             </h3>
             <div className="mt-3 space-y-1">
               {ledgerData.entries.slice(0, 8).map((entry) => (
@@ -451,13 +447,13 @@ export default function PremiumPage() {
             >
               <h3 className="text-lg font-bold">Confirm Premium unlock?</h3>
               <p className="mt-2 text-sm text-[var(--foreground-muted)]">
-                You are about to unlock <span className="font-semibold text-[var(--foreground)]">{selected.name}</span> for <span className="font-bold text-[var(--brand-400)]">{selected.tokenCost.toLocaleString()} Focus Credits</span>.
+                You are about to unlock <span className="font-semibold text-[var(--foreground)]">{selected.name}</span> for <span className="font-bold text-[var(--brand-400)]">{selected.tokenCost.toLocaleString()} Focus Tokens</span>.
               </p>
 
               <div className="mt-4 rounded-xl bg-[var(--surface-hover)] p-4 text-xs space-y-2">
-                <div className="flex justify-between"><span>Current balance</span><span className="font-bold tabular-nums">{balance.toLocaleString()} credits</span></div>
-                <div className="flex justify-between"><span>Cost</span><span className="font-bold tabular-nums">{selected.tokenCost.toLocaleString()} credits</span></div>
-                <div className="flex justify-between border-t border-[var(--border-subtle)] pt-2 font-bold"><span>Balance after</span><span className="tabular-nums">{(balance - selected.tokenCost).toLocaleString()} credits</span></div>
+                <div className="flex justify-between"><span>Current balance</span><span className="font-bold tabular-nums">{balance.toLocaleString()} tokens</span></div>
+                <div className="flex justify-between"><span>Cost</span><span className="font-bold tabular-nums">{selected.tokenCost.toLocaleString()} tokens</span></div>
+                <div className="flex justify-between border-t border-[var(--border-subtle)] pt-2 font-bold"><span>Balance after</span><span className="tabular-nums">{(balance - selected.tokenCost).toLocaleString()} tokens</span></div>
                 <div className="flex justify-between"><span>Duration</span><span>{selected.durationDays} days</span></div>
                 <div className="flex justify-between"><span>Expires</span><span>{new Date(now + selected.durationDays * 86400000).toLocaleDateString()}</span></div>
               </div>
@@ -465,7 +461,7 @@ export default function PremiumPage() {
               {!canAffordSelected && (
                 <div className="mt-4 flex items-center gap-2 rounded-lg bg-[var(--danger-soft)] px-3 py-2.5 text-xs text-[var(--danger)]">
                   <AlertTriangle size={14} />
-                  You need {needed.toLocaleString()} more credits. Complete quests and focus sessions to earn.
+                  You need {needed.toLocaleString()} more tokens. Complete quests and focus sessions to earn.
                 </div>
               )}
 
@@ -484,7 +480,7 @@ export default function PremiumPage() {
                   disabled={activating || !canAffordSelected}
                   className="min-h-[44px] flex-1 rounded-full bg-[var(--brand-600)] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"
                 >
-                  {activating ? "Processing…" : `Unlock for ${selected.tokenCost.toLocaleString()} credits`}
+                  {activating ? "Processing…" : `Unlock for ${selected.tokenCost.toLocaleString()} tokens`}
                 </button>
               </div>
 
@@ -495,7 +491,7 @@ export default function PremiumPage() {
                 </p>
               )}
 
-              <p className="mt-3 text-[11px] text-[var(--foreground-subtle)]">No real-money charge. Credits are deducted atomically with idempotency protection. No auto-renewal without confirmation.</p>
+              <p className="mt-3 text-[11px] text-[var(--foreground-subtle)]">No real-money charge. Tokens are deducted atomically with idempotency protection. No auto-renewal without confirmation.</p>
             </motion.div>
           </>
         )}

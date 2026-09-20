@@ -22,7 +22,6 @@ import {
   adminDropClaimsTable,
   usersTable,
   userWalletsTable,
-  coinTransactionsTable,
   freezeTokensTable,
   focusSessionsTable,
   marketplaceItemsTable,
@@ -33,15 +32,16 @@ import { logger } from "./logger";
 import { sendPush } from "./pushSender";
 import { sendEmail } from "../routes/email";
 import { emitDrop } from "./socketManager";
+import { burnCoins, mintCoins } from "./coinLedger";
 
 export type DropType = "coin_rain" | "double_xp" | "board_shakeup" | "flash_quest" | "streak_freeze" | "item_flash_sale";
 
 export const DROP_TYPES: Array<{ type: DropType; label: string; description: string; defaultPayload: Record<string, unknown> }> = [
-  { type: "coin_rain", label: "🪙 Coin Rain", description: "Limited coin pool — first claimers win. Live 'X coins left' ticker.", defaultPayload: { coinsPerClaim: 250, poolTotal: 25000 } },
+  { type: "coin_rain", label: "🪙 Coin Rain", description: "Limited claim slots — each winner gets coins. Live claim counter.", defaultPayload: { coinsPerClaim: 250, poolTotal: 100 } },
   { type: "double_xp", label: "⚡ Double-XP Hour", description: "All focus sessions in the window earn 2× XP (server-side).", defaultPayload: { multiplier: 2 } },
   { type: "board_shakeup", label: "🏆 Leaderboard Shake-up", description: "Next 2 hours count 1.5× on the weekly board.", defaultPayload: { multiplier: 1.5, scope: "weekly" } },
   { type: "flash_quest", label: "🚩 Flash Quest", description: "Focus N minutes during the window to claim a big reward.", defaultPayload: { targetMinutes: 120, rewardCoins: 1000, rewardXp: 500 } },
-  { type: "streak_freeze", label: "❄️ Streak-Freeze Giveaway", description: "Claim a streak-freeze token during the window.", defaultPayload: { tokensPerClaim: 1, poolTotal: 500 } },
+  { type: "streak_freeze", label: "❄️ Streak-Freeze Giveaway", description: "Limited claim slots — each winner gets a streak-freeze token.", defaultPayload: { tokensPerClaim: 1, poolTotal: 500 } },
   { type: "item_flash_sale", label: "🏷️ Rare Item Flash Sale", description: "A marketplace item at 40–70% off for the window.", defaultPayload: { itemId: "", discountPct: 50 } },
 ];
 
@@ -93,7 +93,7 @@ export async function createDrop(input: DropInput): Promise<{ id: string; fanned
     const recipients = await db
       .select({ id: usersTable.id, email: usersTable.email })
       .from(usersTable)
-      .where(and(eq(usersTable.isGuest, false), eq(usersTable.role, "user")));
+      .where(and(eq(usersTable.isGuest, false), sql`coalesce(${usersTable.role}, 'user') <> 'bot'`));
 
     if (recipients.length) {
       const ids = recipients.map((r) => r.id);
@@ -146,7 +146,7 @@ export async function emailBlastForDrop(dropId: string): Promise<{ recipients: n
   const recipients = await db
     .select({ email: usersTable.email })
     .from(usersTable)
-    .where(and(eq(usersTable.isGuest, false), eq(usersTable.role, "user")));
+    .where(and(eq(usersTable.isGuest, false), sql`coalesce(${usersTable.role}, 'user') <> 'bot'`));
   const html = `
     <div style="font-family: ui-sans-serif, system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; color: #18181b;">
       <h1 style="font-size: 20px; margin: 0 0 8px;">${drop.title}</h1>
@@ -220,147 +220,133 @@ export type ClaimResult =
   | { ok: false; error: string; code: "not_live" | "no_claim" | "pool_empty" | "already_claimed" | "quest_not_met" | "not_found" | "sale_not_live" | "already_owned" | "cant_afford" };
 
 export async function claimDrop(dropId: string, userId: string): Promise<ClaimResult> {
-  const [drop] = await db.select().from(adminDropsTable).where(eq(adminDropsTable.id, dropId)).limit(1);
-  if (!drop) return { ok: false, error: "Drop not found", code: "not_found" };
-  const now = new Date();
-  if (!isDropLive(drop, now)) return { ok: false, error: "This drop is not live right now", code: "not_live" };
+  return db.transaction(async (tx) => {
+    // Lock the drop row for the complete claim/grant operation. The old code
+    // checked the unique claim and decremented the pool on different database
+    // connections, so two simultaneous requests could both mint before one
+    // of their claim inserts lost the uniqueness race.
+    const [drop] = await tx.select().from(adminDropsTable)
+      .where(eq(adminDropsTable.id, dropId)).limit(1).for("update");
+    if (!drop) return { ok: false, error: "Drop not found", code: "not_found" };
+    const now = new Date();
+    if (!isDropLive(drop, now)) return { ok: false, error: "This drop is not live right now", code: "not_live" };
 
-  // Per-user duplicate guard (unique constraint is the last line of defence).
-  const [existing] = await db.select({ id: adminDropClaimsTable.id })
-    .from(adminDropClaimsTable)
-    .where(and(eq(adminDropClaimsTable.dropId, dropId), eq(adminDropClaimsTable.userId, userId)))
-    .limit(1);
-  if (existing) return { ok: false, error: "You already claimed this drop", code: "already_claimed" };
-
-  let rewardCoins = 0;
-  let rewardXp = 0;
-  let itemGranted: string | undefined;
-
-  if (drop.type === "coin_rain" || drop.type === "streak_freeze") {
-    // Atomic pool decrement — exactly one claimer wins the last unit.
-    const res = await pool.query(
-      `UPDATE admin_drops
-       SET pool_claimed = pool_claimed + 1
-       WHERE id = $1 AND is_active = true AND cancelled_at IS NULL AND ended_at IS NULL
-         AND starts_at <= now() AND ends_at > now()
-         AND pool_claimed + 1 <= pool_total
-       RETURNING pool_claimed, pool_total`,
-      [dropId],
-    );
-    if (!res.rowCount) return { ok: false, error: "The pool is empty", code: "pool_empty" };
-    const poolRemaining = Number(res.rows[0].pool_total) - Number(res.rows[0].pool_claimed);
-
-    if (drop.type === "coin_rain") {
-      rewardCoins = Math.max(1, Math.floor(Number(drop.payload?.coinsPerClaim) || 100));
-      await awardCoins(userId, rewardCoins, "drop_claim", `🪙 ${drop.title}`, { dropId });
-    } else {
-      const tokens = Math.max(1, Math.floor(Number(drop.payload?.tokensPerClaim) || 1));
-      await db.insert(freezeTokensTable)
-        .values({ userId, tokensAvailable: tokens })
-        .onConflictDoUpdate({ target: freezeTokensTable.userId, set: { tokensAvailable: sql`${freezeTokensTable.tokensAvailable} + ${tokens}`, updatedAt: new Date() } });
-    }
-    await db.insert(adminDropClaimsTable).values({ dropId, userId, rewardCoins }).onConflictDoNothing();
-    return { ok: true, rewardCoins, rewardXp, poolRemaining };
-  }
-
-  if (drop.type === "flash_quest") {
-    const targetMinutes = Math.max(5, Math.floor(Number(drop.payload?.targetMinutes) || 60));
-    const [row] = await db.select({ mins: sql<number>`coalesce(sum(${focusSessionsTable.durationSec}), 0) / 60` })
-      .from(focusSessionsTable)
-      .where(and(
-        eq(focusSessionsTable.userId, userId),
-        eq(focusSessionsTable.mode, "focus"),
-        gte(focusSessionsTable.completedAt, drop.startsAt),
-        lt(focusSessionsTable.completedAt, drop.endsAt),
-      ));
-    const mins = Math.floor(Number(row?.mins ?? 0));
-    if (mins < targetMinutes) {
-      return { ok: false, error: `Focus ${targetMinutes - mins} more minutes to claim this quest`, code: "quest_not_met" };
-    }
-    rewardCoins = Math.max(0, Math.floor(Number(drop.payload?.rewardCoins) || 0));
-    rewardXp = Math.max(0, Math.floor(Number(drop.payload?.rewardXp) || 0));
-    if (rewardCoins) await awardCoins(userId, rewardCoins, "drop_claim", `🚩 ${drop.title}`, { dropId });
-    if (rewardXp) await awardXp(userId, rewardXp, { dropId });
-    await db.insert(adminDropClaimsTable).values({ dropId, userId, rewardCoins, rewardXp }).onConflictDoNothing();
-    return { ok: true, rewardCoins, rewardXp, poolRemaining: 0 };
-  }
-
-  if (drop.type === "item_flash_sale") {
-    const itemId = String(drop.payload?.itemId ?? "");
-    const [item] = itemId
-      ? await db.select().from(marketplaceItemsTable).where(and(eq(marketplaceItemsTable.id, itemId), eq(marketplaceItemsTable.isActive, true))).limit(1)
-      : [];
-    if (!item) return { ok: false, error: "This sale's item is not available", code: "sale_not_live" };
-    const [owned] = await db.select({ id: userInventoryTable.id })
-      .from(userInventoryTable)
-      .where(and(eq(userInventoryTable.userId, userId), eq(userInventoryTable.itemId, item.id)))
+    const [existing] = await tx.select({ id: adminDropClaimsTable.id })
+      .from(adminDropClaimsTable)
+      .where(and(eq(adminDropClaimsTable.dropId, dropId), eq(adminDropClaimsTable.userId, userId)))
       .limit(1);
-    if (owned) return { ok: false, error: "You already own this item", code: "already_owned" };
-    const discountPct = Math.min(70, Math.max(0, Number(drop.payload?.discountPct) || 0));
-    const price = Math.max(1, Math.round(item.costCoins * (100 - discountPct) / 100));
-    const [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, userId)).limit(1);
-    if (!wallet || wallet.coins < price) {
-      return { ok: false, error: `Need ${price} coins for this sale`, code: "cant_afford" };
-    }
-    // Atomic spend: only succeeds if balance still covers the price.
-    const spend = await pool.query(
-      `UPDATE user_wallets SET coins = coins - $2, updated_at = now()
-       WHERE user_id = $1 AND coins >= $2 RETURNING coins`,
-      [userId, price],
-    );
-    if (!spend.rowCount) return { ok: false, error: "Not enough coins", code: "cant_afford" };
-    await db.insert(coinTransactionsTable).values({
-      userId, type: "spend", amount: -price, reason: "drop_purchase",
-      description: `🏷️ ${item.name} (flash sale, ${discountPct}% off)`,
-      balanceAfter: Number(spend.rows[0].coins), metadata: { dropId, itemId: item.id, discountPct },
-    });
-    await db.insert(userInventoryTable).values({ userId, itemId: item.id, equipped: false }).onConflictDoNothing();
-    itemGranted = item.name;
-    await db.insert(adminDropClaimsTable).values({ dropId, userId, itemGranted: item.id }).onConflictDoNothing();
-    return { ok: true, rewardCoins: 0, rewardXp: 0, itemGranted, poolRemaining: 0 };
-  }
+    if (existing) return { ok: false, error: "You already claimed this drop", code: "already_claimed" };
 
-  // double_xp / board_shakeup have nothing to claim — the multiplier applies
-  // to sessions automatically during the window.
-  return { ok: false, error: "Nothing to claim — the multiplier applies automatically to your sessions", code: "no_claim" };
+    let rewardCoins = 0;
+    let rewardXp = 0;
+    let itemGranted: string | undefined;
+    let poolRemaining = 0;
+
+    if (drop.type === "coin_rain" || drop.type === "streak_freeze") {
+      const [poolRow] = await tx.update(adminDropsTable)
+        .set({ poolClaimed: sql`${adminDropsTable.poolClaimed} + 1` })
+        .where(and(
+          eq(adminDropsTable.id, dropId),
+          sql`${adminDropsTable.poolClaimed} + 1 <= ${adminDropsTable.poolTotal}`,
+        ))
+        .returning({ poolClaimed: adminDropsTable.poolClaimed, poolTotal: adminDropsTable.poolTotal });
+      if (!poolRow) return { ok: false, error: "The pool is empty", code: "pool_empty" };
+      poolRemaining = poolRow.poolTotal - poolRow.poolClaimed;
+
+      if (drop.type === "coin_rain") {
+        rewardCoins = Math.max(1, Math.floor(Number(drop.payload?.coinsPerClaim) || 100));
+        await awardCoins(userId, rewardCoins, "drop_claim", `🪙 ${drop.title}`, { dropId }, tx);
+      } else {
+        const tokens = Math.max(1, Math.floor(Number(drop.payload?.tokensPerClaim) || 1));
+        await tx.insert(freezeTokensTable)
+          .values({ userId, tokensAvailable: tokens })
+          .onConflictDoUpdate({
+            target: freezeTokensTable.userId,
+            set: { tokensAvailable: sql`${freezeTokensTable.tokensAvailable} + ${tokens}`, updatedAt: new Date() },
+          });
+        itemGranted = `${tokens} streak-freeze token${tokens === 1 ? "" : "s"}`;
+      }
+    } else if (drop.type === "flash_quest") {
+      const targetMinutes = Math.max(5, Math.floor(Number(drop.payload?.targetMinutes) || 60));
+      const [row] = await tx.select({ mins: sql<number>`coalesce(sum(${focusSessionsTable.durationSec}), 0) / 60` })
+        .from(focusSessionsTable)
+        .where(and(
+          eq(focusSessionsTable.userId, userId),
+          eq(focusSessionsTable.mode, "focus"),
+          gte(focusSessionsTable.completedAt, drop.startsAt),
+          lt(focusSessionsTable.completedAt, drop.endsAt),
+        ));
+      const mins = Math.floor(Number(row?.mins ?? 0));
+      if (mins < targetMinutes) {
+        return { ok: false, error: `Focus ${targetMinutes - mins} more minutes to claim this quest`, code: "quest_not_met" };
+      }
+      rewardCoins = Math.max(0, Math.floor(Number(drop.payload?.rewardCoins) || 0));
+      rewardXp = Math.max(0, Math.floor(Number(drop.payload?.rewardXp) || 0));
+      if (rewardCoins) await awardCoins(userId, rewardCoins, "drop_claim", `🚩 ${drop.title}`, { dropId }, tx);
+      if (rewardXp) await awardXp(userId, rewardXp, { dropId }, tx);
+    } else if (drop.type === "item_flash_sale") {
+      const itemId = String(drop.payload?.itemId ?? "");
+      const [item] = itemId
+        ? await tx.select().from(marketplaceItemsTable).where(and(eq(marketplaceItemsTable.id, itemId), eq(marketplaceItemsTable.isActive, true))).limit(1)
+        : [];
+      if (!item) return { ok: false, error: "This sale's item is not available", code: "sale_not_live" };
+      const [owned] = await tx.select({ id: userInventoryTable.id })
+        .from(userInventoryTable)
+        .where(and(eq(userInventoryTable.userId, userId), eq(userInventoryTable.itemId, item.id)))
+        .limit(1);
+      if (owned) return { ok: false, error: "You already own this item", code: "already_owned" };
+      const discountPct = Math.min(70, Math.max(0, Number(drop.payload?.discountPct) || 0));
+      const price = Math.max(1, Math.round(item.costCoins * (100 - discountPct) / 100));
+      const balanceAfter = await burnCoins(userId, price, "drop_purchase", {
+        description: `🏷️ ${item.name} (flash sale, ${discountPct}% off)`,
+        metadata: { dropId, itemId: item.id, discountPct },
+      }, tx);
+      if (balanceAfter === null) return { ok: false, error: `Need ${price} coins for this sale`, code: "cant_afford" };
+      await tx.insert(userInventoryTable).values({ userId, itemId: item.id, equipped: false });
+      itemGranted = item.name;
+    } else {
+      // double_xp / board_shakeup have nothing to claim — their multiplier
+      // applies automatically to qualifying sessions during the window.
+      return { ok: false, error: "Nothing to claim — the multiplier applies automatically to your sessions", code: "no_claim" };
+    }
+
+    await tx.insert(adminDropClaimsTable).values({
+      dropId,
+      userId,
+      rewardCoins,
+      rewardXp,
+      itemGranted: itemGranted ?? null,
+    });
+    return { ok: true, rewardCoins, rewardXp, itemGranted, poolRemaining };
+  });
 }
 
 // ── ledger helpers (every drop mint/burn is a coin_transaction — rule C) ────
 
-async function awardCoins(userId: string, amount: number, reason: string, description: string, metadata: Record<string, unknown>): Promise<void> {
-  const res = await pool.query(
-    `UPDATE user_wallets SET coins = coins + $2, updated_at = now()
-     WHERE user_id = $1 RETURNING coins`,
-    [userId, amount],
-  );
-  if (!res.rowCount) {
-    // User has no wallet row yet — create it with the balance (never update
-    // on top of the insert or the reward would double).
-    await db.insert(userWalletsTable).values({ userId, coins: amount, totalXp: 0, weeklyXp: 0 }).onConflictDoUpdate({
-      target: userWalletsTable.userId,
-      set: { coins: sql`${userWalletsTable.coins} + ${amount}`, updatedAt: new Date() },
-    });
-  }
-  const after = await pool.query(`SELECT coins FROM user_wallets WHERE user_id = $1`, [userId]);
-  await db.insert(coinTransactionsTable).values({
-    userId, type: "earn", amount, reason, description,
-    balanceAfter: Number(after.rows[0]?.coins ?? amount), metadata,
-  });
+type DropDb = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+async function awardCoins(
+  userId: string,
+  amount: number,
+  reason: string,
+  description: string,
+  metadata: Record<string, unknown>,
+  tx?: DropDb,
+): Promise<void> {
+  await mintCoins(userId, amount, reason, { description, metadata }, tx);
 }
 
-async function awardXp(userId: string, amount: number, metadata: Record<string, unknown>): Promise<void> {
-  const res = await pool.query(
-    `UPDATE user_wallets
-     SET total_xp = total_xp + $2,
-         weekly_xp = weekly_xp + $2,
-         level = GREATEST(1, floor(sqrt((total_xp + $2) / 100.0)) + 1),
-         updated_at = now()
-     WHERE user_id = $1 RETURNING 1`,
-    [userId, amount],
-  );
-  if (!res.rowCount) {
-    await db.insert(userWalletsTable).values({ userId, coins: 0, totalXp: amount, weeklyXp: amount }).onConflictDoNothing();
-  }
+async function awardXp(userId: string, amount: number, metadata: Record<string, unknown>, tx?: DropDb): Promise<void> {
+  const t = (tx ?? db) as typeof db;
+  const xp = Math.max(0, Math.floor(amount));
+  if (!xp) return;
+  await t.insert(userWalletsTable).values({ userId, coins: 0, totalXp: 0, weeklyXp: 0 }).onConflictDoNothing();
+  await t.update(userWalletsTable).set({
+    totalXp: sql`${userWalletsTable.totalXp} + ${xp}`,
+    weeklyXp: sql`${userWalletsTable.weeklyXp} + ${xp}`,
+    level: sql`GREATEST(1, floor(sqrt((${userWalletsTable.totalXp} + ${xp}) / 100.0)) + 1)`,
+    updatedAt: new Date(),
+  }).where(eq(userWalletsTable.userId, userId));
   void metadata;
 }
 

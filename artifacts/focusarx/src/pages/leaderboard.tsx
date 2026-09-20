@@ -6,6 +6,7 @@ import { useNow } from "@/hooks/useNow";
 import { PageTransition } from "@/components/PageTransition";
 import { TiltCard } from "@/components/TiltCard";
 import { ErrorState } from "@/components/ErrorState";
+import { AdSlot } from "@/components/AdSlot";
 
 interface LeaderboardEntry {
   rank: number;
@@ -542,6 +543,7 @@ export default function LeaderboardPage() {
 
         {/* Ad below the board — outside the interactive ranking table. */}
         <div className="mx-auto mt-10 max-w-3xl px-4 sm:px-6">
+          <AdSlot name="leaderboardBottom" minHeight={250} />
         </div>
       </main>
     </div>

@@ -172,12 +172,12 @@ export const SEO_PAGES = {
         h: "What FocusArx adds to a plain timer",
         p: [
           "A plain timer ends. FocusArx scores the session, stores it against the task you set, and folds it into a streak and a focus score you can see week over week. Optional study rooms put other learners working beside you during the same interval, which is the body-doubling effect. An AI coach then turns the accumulated history into concrete suggestions about when and how long you should work.",
-          "The core timer, tasks, streaks and analytics are free. Pro is optional: unlock it with Focus Credits earned from completed sessions or choose a paid monthly or yearly plan when checkout is enabled.",
+          "The core timer, tasks, streaks and analytics are free. Premium is unlocked with Focus Tokens you earn by completing sessions — there is no payment step.",
         ],
       },
     ],
     faq: [
-      ["Is the Pomodoro timer free?", "Yes. The timer, task list, streaks and session history are free forever. Pro features such as custom 10–180 minute presets, sound mixing and 180-day analytics can be unlocked with earned Focus Credits or an optional paid plan."],
+      ["Is the Pomodoro timer free?", "Yes. The timer, task list, streaks and session history are free forever. Premium features such as custom 10–180 minute presets, sound mixing and 180-day analytics are unlocked with Focus Tokens earned from completed sessions, not with money."],
       ["Do I need an account to start a timer?", "No. You can start immediately. An account is only needed if you want sessions, streaks and analytics saved across devices."],
       ["How long should a Pomodoro break be?", "Five minutes between intervals and 15–30 minutes after every four intervals. Keep breaks screen-free where you can — scrolling does not restore attention the way movement does."],
       ["Can I change the 25/5 lengths?", "Yes. FocusArx supports custom intervals from 10 to 180 minutes so you can run 50/10 deep-work blocks or longer writing sessions."],
@@ -456,7 +456,7 @@ export const SEO_PAGES = {
       ["Do I need a diagnosis to use it?", "No. The tools are free and open to anyone. Nothing is gated behind a condition."],
       ["Does the webcam feature send my video anywhere?", "No. Attention monitoring is optional, off by default, and runs locally in your browser with MediaPipe. Frames are not uploaded to our servers. You can delete related data at any time."],
       ["Are streaks going to punish me for a bad day?", "No. Streaks include recovery so a single missed day does not reset your history to zero."],
-      ["Does it cost money?", "The core timer, tasks, streaks and rooms are free forever. Premium unlocks with Focus Credits earned from completed sessions."],
+      ["Does it cost money?", "The core timer, tasks, streaks and rooms are free forever. Premium unlocks with Focus Tokens earned from completed sessions."],
     ],
     cta: { href: "/focus", label: "Try the free ADHD-friendly timer" },
     related: ["/adhd-focus-tips|How to focus with ADHD", "/body-doubling|Body doubling explained", ...ROOMS.slice(0, 3), ...TOOLS.slice(0, 2), "/camera-data|How camera data is handled"],
@@ -576,7 +576,7 @@ export const SEO_PAGES = {
       },
     ],
     faq: [
-      ["Is the study timer free?", "Yes. The timer, task list, streaks and session history are free and stay free. Pro features such as custom 10 to 180-minute presets and longer analytics can be unlocked with earned Focus Credits or an optional paid plan."],
+      ["Is the study timer free?", "Yes. The timer, task list, streaks and session history are free and stay free. Premium features such as custom 10 to 180-minute presets and longer analytics are unlocked with Focus Tokens earned from completed sessions — there is no payment step."],
       ["Can I set 50/10 blocks instead of 25/5?", "Yes. Custom intervals run from 10 to 180 minutes, so 50/10 for question banks and 90 or 180 for mock sections both work."],
       ["Does it work offline in a hospital?", "FocusArx is installable as a PWA, so once it has loaded the timer keeps running without a connection. Sessions sync when you are back online — useful on a campus where the ward wifi does not reach."],
       ["Is it useful for USMLE or PLAB prep as well as NEET PG?", "The method is the same anywhere: timed question blocks, spaced cards and error review. What changes is the block length, which you set to match the section timing of the exam you are sitting."],
@@ -652,7 +652,7 @@ export const SEO_PAGES = {
       },
     ],
     faq: [
-      ["Is the focus timer free?", "Yes. The timer, tasks, streaks and session history are free. Custom 10 to 180-minute presets and longer analytics unlock with Focus Credits earned from completed sessions rather than money."],
+      ["Is the focus timer free?", "Yes. The timer, tasks, streaks and session history are free. Custom 10 to 180-minute presets and longer analytics unlock with Focus Tokens earned from completed sessions rather than money."],
       ["Can I run 90-minute or 2-hour blocks?", "Yes. Intervals run from 10 to 180 minutes, so 50/10, 90/20 and a full two-hour deep block are all one setting."],
       ["Does it work without a connection?", "FocusArx installs as a PWA and keeps timing offline, which matters on a train, in a data centre or anywhere the network is worse than your laptop."],
       ["Does it record which task a block went to?", "Yes. Each session is stored against the task you set, so the log reads as work completed rather than time elapsed."],
@@ -884,7 +884,7 @@ export const SEO_PAGES = {
         h: "Facts you can use",
         p: [
           "Free forever core: timer, tasks, streaks, analytics and public study rooms, with no credit card.",
-          "Premium is unlocked with Focus Credits earned by completing sessions rather than purchased.",
+          "Premium is unlocked with Focus Tokens earned by completing sessions rather than purchased.",
           "Optional attention monitoring runs on-device with MediaPipe; video is not uploaded.",
           "Exam-prep content is India-first: JEE, NEET, UPSC, SSC, GATE, CAT, CBSE, NDA, CTET and IBPS.",
         ],
@@ -904,7 +904,7 @@ export const SEO_PAGES = {
     ],
     faq: [
       ["Can I get user numbers for a story?", "Only sourced ones. See our evidence page for what we can stand behind and how each figure is defined."],
-      ["Are you free to use?", "The core product is free forever. Premium unlocks with in-product credits rather than payment."],
+      ["Are you free to use?", "The core product is free forever. Premium unlocks with in-product tokens rather than payment."],
       ["Do you upload webcam video?", "No. Attention monitoring is optional, off by default, and processes video locally in the browser."],
     ],
     cta: { href: "/contact", label: "Contact the FocusArx team" },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deriveCityWeather, taxSnapshot } from "./city";
+import { deriveCityWeather } from "./city";
 
 const today = "2026-09-06";
 const yesterday = "2026-09-05";
@@ -24,21 +24,5 @@ describe("Focus City weather reflects behaviour", () => {
   it("rains after four or more quiet days", () => {
     expect(deriveCityWeather({ lastStudyDate: "2026-09-02", currentStreak: 0, today, yesterday })).toBe("rain");
     expect(deriveCityWeather({ lastStudyDate: "2026-07-01", currentStreak: 0, today, yesterday })).toBe("rain");
-  });
-});
-
-describe("Focus City citizen tax", () => {
-  const now = new Date("2026-09-20T12:00:00.000Z");
-
-  it("scales revenue with citizens and properties", () => {
-    const tax = taxSnapshot({ population: 100, totalBuildings: 3, lastTaxAt: new Date("2026-09-20T10:00:00.000Z") }, now);
-    expect(tax.ratePerHour).toBe(16);
-    expect(tax.available).toBe(32);
-  });
-
-  it("caps unattended revenue at 24 hours", () => {
-    const tax = taxSnapshot({ population: 50, totalBuildings: 0, lastTaxAt: new Date("2026-09-01T00:00:00.000Z") }, now);
-    expect(tax.available).toBe(120);
-    expect(tax.storageHours).toBe(24);
   });
 });

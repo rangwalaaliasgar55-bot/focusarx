@@ -12,6 +12,7 @@ import { useToast } from "@/components/Toast";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { PageTransition } from "@/components/PageTransition";
 import { EmotePicker } from "@/components/EmotePicker";
+import { AdSlot } from "@/components/AdSlot";
 import { Button } from "@/components/ui/button";
 import { ambientEngine, AMBIENT_PRESETS } from "@/lib/ambientEngine";
 
@@ -729,6 +730,7 @@ export default function StudyRoomsPage() {
                 }}
               />
             ))}
+            <AdSlot name="studyRoomsInFeed" minHeight={120} />
           </div>
         </PageTransition>
       </main>

@@ -41,22 +41,22 @@ export function PremiumGate({
         {feature} is Premium
       </h2>
       <p className="text-sm text-[var(--foreground-muted)] max-w-md mb-6 leading-relaxed">
-        {description ?? `Unlock FocusArx Premium to access ${feature.toLowerCase()} and other exclusive tools. No real-money payments — earn Focus Credits through focus.`}
+        {description ?? `Unlock FocusArx Premium to access ${feature.toLowerCase()} and other exclusive tools. No real-money payments — earn Focus Tokens through focus.`}
       </p>
 
       {/* Cost / balance card */}
       <div className="w-full max-w-sm rounded-2xl border border-[var(--rgba-255-255-255-0_08)] bg-[var(--rgba-255-255-255-0_03)] p-4 mb-6 text-left">
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs font-semibold text-[var(--foreground-subtle)] uppercase tracking-wide">Your Balance</span>
-          <span className="flex items-center gap-1 text-sm font-bold text-[var(--foreground)]"><Coins size={14} className="text-[var(--brand-400)]" /> {balance.toLocaleString()} Credits</span>
+          <span className="flex items-center gap-1 text-sm font-bold text-[var(--foreground)]"><Coins size={14} className="text-[var(--brand-400)]" /> {balance.toLocaleString()} Tokens</span>
         </div>
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs font-semibold text-[var(--foreground-subtle)] uppercase tracking-wide">Premium Cost</span>
-          <span className="text-sm font-bold text-[var(--palette-amber-400)]">{cheapestCost.toLocaleString()} Credits (30d)</span>
+          <span className="text-sm font-bold text-[var(--palette-amber-400)]">{cheapestCost.toLocaleString()} Tokens (30d)</span>
         </div>
         {!canAfford && (
           <div className="rounded-xl bg-[var(--warning-soft)] border border-[var(--warning)]/20 px-3 py-2 text-xs text-[var(--warning)]">
-            Need {needed.toLocaleString()} more credits to unlock
+            Need {needed.toLocaleString()} more tokens to unlock
           </div>
         )}
         {canAfford && (
@@ -79,13 +79,13 @@ export function PremiumGate({
           className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--rgba-255-255-255-0_10)] bg-[var(--rgba-255-255-255-0_04)] px-6 py-3 text-sm font-semibold text-[var(--foreground-muted)] hover:text-[var(--foreground)] transition-colors min-h-[44px]"
         >
           <Gift className="h-4 w-4" />
-          Earn Credits
+          Earn Tokens
         </Link>
       </div>
 
       {/* Earn actions */}
       <div className="mt-8 w-full max-w-sm">
-        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--foreground-subtle)] mb-3 text-left">How to earn Focus Credits</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--foreground-subtle)] mb-3 text-left">How to earn Focus Tokens</p>
         <div className="grid grid-cols-3 gap-2">
           <Link href="/" className="rounded-xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_02)] p-3 hover:bg-[var(--rgba-255-255-255-0_05)] transition-colors">
             <Flame size={18} className="mx-auto mb-1 text-[var(--palette-f97316)]" />
@@ -103,7 +103,7 @@ export function PremiumGate({
             <p className="text-[11px] text-[var(--brand-400)] font-bold">+20-100</p>
           </Link>
         </div>
-        <p className="mt-3 text-[11px] text-[var(--foreground-subtle)] text-center">No real-money. Premium is unlocked purely with earned credits.</p>
+        <p className="mt-3 text-[11px] text-[var(--foreground-subtle)] text-center">No real-money. Premium is unlocked purely with earned tokens.</p>
       </div>
     </div>
   );

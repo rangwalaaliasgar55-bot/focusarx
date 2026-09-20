@@ -24,8 +24,9 @@ const ADSENSE_CLIENT =
 function hasAdConsent(): boolean {
   if (typeof window === "undefined") return false;
   const v = window.localStorage.getItem("focusarx:consent:ads");
-  // Advertising is strictly opt-in. No recorded decision means no request;
-  // the banner can explicitly grant it later.
+  // No banner decision recorded yet → treat as not consented for personalised
+  // ads, but still allow the (non-personalised) unit to render.
+  if (v === null) return true;
   return v === "granted";
 }
 
@@ -102,7 +103,7 @@ export function AdSense({
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (hasAdConsent()) ensureAdScript();
+    ensureAdScript();
   }, []);
 
   // Request the ad once the slot is actually near the viewport.
@@ -167,9 +168,9 @@ export function AdSenseAnchor({ slot }: { slot: string }) {
   const pushed = useRef(false);
 
   useEffect(() => {
-    if (!hasAdConsent()) return;
     ensureAdScript();
     if (!ref.current || pushed.current) return;
+    if (!hasAdConsent()) return;
     try {
       (window.adsbygoogle = window.adsbygoogle || []).push({});
       pushed.current = true;

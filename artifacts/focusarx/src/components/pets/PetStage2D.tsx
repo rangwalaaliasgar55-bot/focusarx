@@ -3,6 +3,7 @@ import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { cn } from "@/lib/utils";
+import { BulbasaurArtwork, isBulbasaurSpecies } from "./PetArtwork";
 
 /**
  * Presentation stage for a companion when the three.js pet is not an option —
@@ -45,6 +46,8 @@ interface PetStage2DProps {
   /** Animated sprite from the catalog, shown instead of the glyph when it
      loads — this is what makes released staged pets move on the page. */
   imageUrl?: string | null;
+  /** Catalog slug. Bulbasaur has bundled artwork instead of a plant glyph. */
+  species?: string | null;
   /** Companion name — used in the accessible label. */
   name: string;
   rarity?: string;
@@ -55,7 +58,7 @@ interface PetStage2DProps {
   className?: string;
 }
 
-export function PetStage2D({ emoji, imageUrl, name, rarity = "common", mood, size = 280, className }: PetStage2DProps) {
+export function PetStage2D({ emoji, imageUrl, species, name, rarity = "common", mood, size = 280, className }: PetStage2DProps) {
   const reduceMotion = useReducedMotion();
   const finePointer = useMediaQuery("(pointer: fine)");
   const [hovered, setHovered] = useState(false);
@@ -160,7 +163,9 @@ export function PetStage2D({ emoji, imageUrl, name, rarity = "common", mood, siz
               border: `2px solid ${glow}`,
             }}
           >
-            {imageUrl && !spriteFailed ? (
+            {isBulbasaurSpecies(species) ? (
+              <BulbasaurArtwork size={Math.round(discSize * 0.82)} />
+            ) : imageUrl && !spriteFailed ? (
               // Decorative: the stage button carries the accessible name
               // ("Say hi to …"), so the sprite itself is aria-hidden.
               <img

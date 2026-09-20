@@ -25,6 +25,13 @@ export interface AdminUserProfile {
   streak: { currentStreak: number; longestStreak: number; lastStudyDate: string | null } | null;
   premium: { isActive: boolean; expiresAt: string | null } | null;
   stats: { sessionCount: number; totalFocusMinutes: number; lastSessionAt: string | null; postCount: number };
+  studyDays: Array<{
+    date: string;
+    focusMinutes: number;
+    sessionsCompleted: number;
+    tasksCompleted: number;
+    productivityScore: number | null;
+  }>;
   recentSessions: Array<{
     id: string; mode: string; durationSec: number; focusScore: number | null;
     completedAt: string | null; sessionStatus: string | null;
@@ -68,6 +75,12 @@ export function UserManagerDialog({
   const [password, setPassword] = useState("");
   const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [notify, setNotify] = useState({ title: "", message: "" });
+  const [studyDay, setStudyDay] = useState({
+    date: new Date().toISOString().slice(0, 10),
+    focusMinutes: "",
+    sessionsCompleted: "",
+    tasksCompleted: "",
+  });
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -160,6 +173,29 @@ export function UserManagerDialog({
       longestStreak: Number(streakForm.longestStreak || 0),
     });
     if (d) { setSaveState({ kind: "ok", msg: "Streak saved" }); onChanged(); void load(); }
+  };
+
+  const selectStudyDay = (day: AdminUserProfile["studyDays"][number]) => {
+    setStudyDay({
+      date: day.date,
+      focusMinutes: String(day.focusMinutes ?? 0),
+      sessionsCompleted: String(day.sessionsCompleted ?? 0),
+      tasksCompleted: String(day.tasksCompleted ?? 0),
+    });
+  };
+
+  const saveStudyDay = async () => {
+    const body = {
+      focusMinutes: Number(studyDay.focusMinutes || 0),
+      sessionsCompleted: Number(studyDay.sessionsCompleted || 0),
+      tasksCompleted: Number(studyDay.tasksCompleted || 0),
+    };
+    const d = await call("study-day", `/api/admin/users/${userId}/study-days/${studyDay.date}`, "PATCH", body);
+    if (d) {
+      setSaveState({ kind: "ok", msg: `Study total saved for ${studyDay.date}` });
+      onChanged();
+      void load();
+    }
   };
 
   const resetPassword = async () => {
@@ -304,6 +340,47 @@ export function UserManagerDialog({
                   className="flex items-center gap-1.5 rounded-lg bg-[var(--palette-violet-700)] px-4 py-2 text-xs font-semibold text-[var(--palette-white)] hover:bg-[var(--palette-violet-600)] disabled:opacity-50">
                   {busy === "streak" ? <RefreshCw size={12} className="animate-spin" /> : <Save size={12} />} Save streak
                 </button>
+              </div>
+            </section>
+
+            {/* Daily study correction */}
+            <section className="rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 p-4">
+              <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--palette-zinc-400)]">
+                <Flame size={12} className="text-[var(--palette-emerald-400)]" /> Daily study totals
+              </p>
+              <p className="mb-3 text-[11px] text-[var(--palette-zinc-500)]">
+                Add or correct a user’s studied time without fabricating a rewarded focus session. The value feeds their daily and weekly charts.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-4">
+                <Field label="Date">
+                  <input type="date" className={inputCls} value={studyDay.date} onChange={e => setStudyDay(d => ({ ...d, date: e.target.value }))} />
+                </Field>
+                <Field label="Focus minutes">
+                  <input type="number" min="0" max="1440" className={inputCls} value={studyDay.focusMinutes} onChange={e => setStudyDay(d => ({ ...d, focusMinutes: e.target.value }))} placeholder="0" />
+                </Field>
+                <Field label="Sessions">
+                  <input type="number" min="0" max="500" className={inputCls} value={studyDay.sessionsCompleted} onChange={e => setStudyDay(d => ({ ...d, sessionsCompleted: e.target.value }))} placeholder="0" />
+                </Field>
+                <Field label="Tasks">
+                  <input type="number" min="0" max="500" className={inputCls} value={studyDay.tasksCompleted} onChange={e => setStudyDay(d => ({ ...d, tasksCompleted: e.target.value }))} placeholder="0" />
+                </Field>
+              </div>
+              <div className="mt-3 flex items-center gap-3">
+                <button onClick={() => void saveStudyDay()} disabled={busy === "study-day" || !/^\d{4}-\d{2}-\d{2}$/.test(studyDay.date)}
+                  className="flex items-center gap-1.5 rounded-lg bg-[var(--palette-emerald-700)] px-4 py-2 text-xs font-semibold text-[var(--palette-white)] hover:bg-[var(--palette-emerald-600)] disabled:opacity-50">
+                  {busy === "study-day" ? <RefreshCw size={12} className="animate-spin" /> : <Save size={12} />} Save daily total
+                </button>
+                <span className="text-[11px] text-[var(--palette-zinc-600)]">Existing days below are editable.</span>
+              </div>
+              <div className="mt-3 max-h-48 space-y-1 overflow-y-auto">
+                {(profile.studyDays ?? []).length === 0 ? (
+                  <p className="text-xs text-[var(--palette-zinc-600)]">No daily aggregates yet. Enter a date and add one.</p>
+                ) : (profile.studyDays ?? []).map(day => (
+                  <button key={day.date} type="button" onClick={() => selectStudyDay(day)} className="flex w-full items-center justify-between rounded-lg border border-[var(--palette-zinc-800)] px-3 py-2 text-left text-xs hover:bg-[var(--palette-zinc-800)]/60">
+                    <span className="font-semibold text-[var(--palette-zinc-300)]">{day.date}</span>
+                    <span className="text-[var(--palette-zinc-500)]">{day.focusMinutes}m · {day.sessionsCompleted} sessions · edit</span>
+                  </button>
+                ))}
               </div>
             </section>
 

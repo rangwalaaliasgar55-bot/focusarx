@@ -15,7 +15,6 @@ import MissedTaskReview, { useMissedTaskReview } from "@/components/MissedTaskRe
 import FeedbackModal, { useFeedbackTrigger } from "@/components/FeedbackModal";
 import StreakNudge from "@/components/StreakNudge";
 import SmartSuggestion from "@/components/SmartSuggestion";
-import { DropBanner } from "@/components/DropBanner";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { FocusTimerMobileFirst } from "@/components/mobile/FocusTimerMobileFirst";
 import { NotificationPermissionPrompt } from "@/components/mobile/NotificationPermissionPrompt";
@@ -527,9 +526,6 @@ export default function FocusHomePage() {
         <FocusChamberHeader />
         <StreakNudge />
         <SmartSuggestion />
-        <div className="w-full px-4 sm:px-6 pt-3 pb-1">
-          <DropBanner />
-        </div>
         <div className="flex-1 flex flex-col lg:flex-row gap-0 overflow-auto">
           {/* Timer area - mobile-first */}
           <div className="flex-1 flex flex-col items-center justify-start gap-3 px-4 sm:px-6 py-6 lg:py-8">

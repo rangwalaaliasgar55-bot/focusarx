@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Building2, Camera, Clock3, Coins, Crown, Lock, Moon, MoonStar, Sparkles, Sun, Sunset, Users, Zap } from "lucide-react";
+import { Building2, Camera, Crown, Lock, Moon, MoonStar, Sparkles, Sun, Sunset, Users, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
@@ -12,8 +12,6 @@ import { ErrorState } from "@/components/ErrorState";
 import { QueryError } from "@/components/ui/QueryError";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Building, City, Wallet } from "@/types/gamification";
-import { CityBoard } from "@/components/city/CityBoard";
-import { CityWorld3D } from "@/components/city/CityWorld3D";
 
 function authHeaders() {
   const t = getToken();
@@ -44,8 +42,8 @@ const WEATHER_MEANING: Record<string, string> = {
   rain: "No focus in a while — one session clears the sky",
 };
 
-function BuildingCard({ building, owned, selected, onBuy, wallet, busy, balanceKnown }: {
-  building: Building; owned: boolean; selected?: boolean; onBuy: (b: Building) => void; wallet: Wallet | null; busy?: boolean;
+function BuildingCard({ building, owned, onBuy, wallet, busy, balanceKnown }: {
+  building: Building; owned: boolean; onBuy: (b: Building) => void; wallet: Wallet | null; busy?: boolean;
   /**
    * False when the wallet request failed. `canAfford` was `wallet ? ... : false`,
    * so an unknown balance silently made every building unaffordable — and the
@@ -66,7 +64,7 @@ function BuildingCard({ building, owned, selected, onBuy, wallet, busy, balanceK
     <motion.div
       variants={CARD}
       className={`relative rounded-2xl border p-4 transition-all ${
-        owned || selected
+        owned
           ? "border-[var(--rgba-124-58-237-0_4)] bg-[var(--rgba-124-58-237-0_08)]"
           : "border-[var(--border-subtle)] bg-[var(--muted)]"
       } ${busy ? "opacity-70" : ""}`}
@@ -125,12 +123,10 @@ function BuildingCard({ building, owned, selected, onBuy, wallet, busy, balanceK
               <span className="inline-block h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" aria-hidden="true" />
               Building…
             </>
-          ) : selected ? (
-            "✓ Choose a plot above"
           ) : building.coinCost === 0 ? (
-            "Select · Free"
+            "Build Free"
           ) : (
-            `Select · 🪙 ${building.coinCost.toLocaleString()}`
+            `🪙 ${building.coinCost.toLocaleString()}`
           )}
         </button>
       )}
@@ -139,28 +135,7 @@ function BuildingCard({ building, owned, selected, onBuy, wallet, busy, balanceK
 }
 
 type CitySkin = { id: string; name: string; emoji: string; gradient: string; premiumOnly: boolean; locked: boolean };
-type Plot = { x: number; y: number };
-type CityTax = { ratePerHour: number; available: number; storageHours: number; nextCoinInSeconds: number };
-type SimCell = { kind: "road" | "zone" | "building"; zone?: string; building?: string; level?: number; condition?: number; incident?: string; age?: number; stressDays?: number; abandoned?: boolean; residents?: number; employees?: number; landValue?: number };
-type CitySimulation = {
-  width: number; height: number; day: number; cells: Record<string, SimCell>; population: number; jobs: number; employed: number; vacancies: number; happiness: number;
-  power: { capacity: number; demand: number }; water: { capacity: number; demand: number };
-  daily: { income: number; maintenance: number; net: number };
-  demand: { residential: number; commercial: number; industrial: number };
-  environment: { landValue: number; pollution: number; congestion: number; roadAccess: number };
-  coverage: { fire: number; health: number; police: number }; abandonedBuildings: number; disastersSurvived: number;
-  logs: Array<{ day: number; tone: "good" | "neutral" | "danger"; message: string }>;
-};
-type SimSpec = { name: string; icon: string; zone: string; jobs: number; population: number };
-type SimulationPayload = { simulation: CitySimulation; catalog: Record<string, SimSpec>; costs: { tools: Record<string, number>; specials: Record<string, number> } };
-type CityView = City & {
-  selectedSkin?: string;
-  skins?: CitySkin[];
-  premium?: boolean;
-  buildingLayout?: Record<string, Plot>;
-  grid?: { width: number; height: number };
-  tax?: CityTax;
-};
+type CityView = City & { selectedSkin?: string; skins?: CitySkin[]; premium?: boolean };
 
 export default function CityPage() {
   const [city, setCity] = useState<CityView | null>(null);
@@ -183,22 +158,11 @@ export default function CityPage() {
   const [walletFailed, setWalletFailed] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [building, setBuilding] = useState<string | null>(null);
-  const [selectedBuilding, setSelectedBuilding] = useState<string | null>(null);
-  const [movingBuilding, setMovingBuilding] = useState<string | null>(null);
-  const [collectingTax, setCollectingTax] = useState(false);
   const [filter, setFilter] = useState("all");
   const [toast, setToast] = useState<string | null>(null);
   const { isPremium } = usePremium();
   const [selectedWeather, setSelectedWeather] = useState<string>("clear");
   const [selectedTime, setSelectedTime] = useState<string>("day");
-  const [simulation, setSimulation] = useState<CitySimulation | null>(null);
-  const [simulationCatalog, setSimulationCatalog] = useState<Record<string, SimSpec>>({});
-  const [simulationCosts, setSimulationCosts] = useState<SimulationPayload["costs"]>({ tools: {}, specials: {} });
-  const [activeTool, setActiveTool] = useState<string | null>(null);
-  const [selectedSpecial, setSelectedSpecial] = useState<string>("powerPlant");
-  const [simBusy, setSimBusy] = useState(false);
-  const [cityViewMode, setCityViewMode] = useState<"3d" | "map">("3d");
-  const [selectedSimPlot, setSelectedSimPlot] = useState<Plot | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -206,11 +170,10 @@ export default function CityPage() {
       setLoading(true);
       setLoadFailed(false);
       try {
-        const [cr, br, wr, sr] = await Promise.all([
+        const [cr, br, wr] = await Promise.all([
           fetch("/api/city", { headers: authHeaders() }),
           fetch("/api/city/buildings", { headers: authHeaders() }),
           fetch("/api/gamification/wallet", { headers: authHeaders() }),
-          fetch("/api/city/simulation", { headers: authHeaders() }),
         ]);
         if (cancelled) return;
         // A failed /api/city used to leave `city` null, which renders identically
@@ -228,12 +191,6 @@ export default function CityPage() {
           setWalletFailed(false);
         } else {
           setWalletFailed(true);
-        }
-        if (sr.ok) {
-          const payload = await sr.json() as Partial<SimulationPayload>;
-          if (payload.simulation?.cells) setSimulation(payload.simulation);
-          if (payload.catalog) setSimulationCatalog(payload.catalog);
-          if (payload.costs) setSimulationCosts(payload.costs);
         }
       } catch {
         if (!cancelled) setLoadFailed(true);
@@ -259,94 +216,25 @@ export default function CityPage() {
     try { return (await res.json()) as Record<string, unknown>; } catch { return {}; }
   };
 
-  const handleBuy = async (b: Building, position?: Plot) => {
+  const handleBuy = async (b: Building) => {
     if (building) return;
     setBuilding(b.slug);
     try {
       const res = await fetch(`/api/city/buildings/${b.slug}/build`, {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify(position ? { position } : {}),
       });
       const data = await readBody(res);
       if (!res.ok) { showToast(typeof data.error === "string" ? data.error : "Failed to build"); return; }
       setCity(data.city as CityView);
       setWallet((w) => w ? { ...w, coins: (data.newCoins as number) ?? w.coins } : w);
       setBuildings(prev => prev.map(x => x.slug === b.slug ? { ...x, _owned: true } : x));
-      setSelectedBuilding(null);
-      showToast(`${b.icon} ${b.name} built — your city is growing!`);
+      showToast(`${b.icon} ${b.name} built!`);
     } catch {
       showToast("Couldn't reach the city service — try again");
     } finally {
       setBuilding(null);
     }
-  };
-
-  const moveBuilding = async (slug: string, position: Plot) => {
-    if (building) return;
-    setBuilding(slug);
-    try {
-      const response = await fetch(`/api/city/buildings/${slug}/move`, {
-        method: "PATCH", headers: authHeaders(), body: JSON.stringify({ position }),
-      });
-      const data = await readBody(response);
-      if (!response.ok) { showToast(typeof data.error === "string" ? data.error : "Could not move building"); return; }
-      setCity((current) => current ? { ...current, ...(data.city as CityView) } : current);
-      setMovingBuilding(null);
-      showToast("Building moved");
-    } catch {
-      showToast("Couldn't reach the city service — try again");
-    } finally {
-      setBuilding(null);
-    }
-  };
-
-  const collectTax = async () => {
-    if (collectingTax) return;
-    setCollectingTax(true);
-    try {
-      const response = await fetch("/api/city/tax/collect", { method: "POST", headers: authHeaders() });
-      const data = await readBody(response);
-      if (!response.ok) { showToast(typeof data.error === "string" ? data.error : "Could not collect tax"); return; }
-      const collected = Number(data.collected ?? 0);
-      setCity((current) => current ? { ...current, ...(data.city as CityView), tax: data.tax as CityTax } : current);
-      if (typeof data.newCoins === "number") setWallet((current) => current ? { ...current, coins: data.newCoins as number } : current);
-      showToast(collected > 0 ? `🪙 Citizens contributed ${collected.toLocaleString()} coins!` : "Your treasury is still filling");
-    } catch {
-      showToast("Couldn't reach the treasury — try again");
-    } finally {
-      setCollectingTax(false);
-    }
-  };
-
-  const runSimulationAction = async (position: Plot) => {
-    if (!activeTool || simBusy) return;
-    setSimBusy(true);
-    try {
-      const response = await fetch("/api/city/simulation/action", {
-        method: "POST", headers: authHeaders(), body: JSON.stringify({ tool: activeTool, ...position, ...(activeTool === "special" ? { building: selectedSpecial } : {}) }),
-      });
-      const data = await readBody(response);
-      if (!response.ok) { showToast(typeof data.error === "string" ? data.error : "City action failed"); return; }
-      setSimulation(data.simulation as CitySimulation);
-      if (typeof data.newCoins === "number") setWallet((current) => current ? { ...current, coins: data.newCoins as number } : current);
-      showToast(typeof data.message === "string" ? data.message : "City updated");
-    } catch {
-      showToast("Couldn't save your city action — try again");
-    } finally { setSimBusy(false); }
-  };
-
-  const advanceDay = async () => {
-    if (simBusy) return;
-    setSimBusy(true);
-    try {
-      const response = await fetch("/api/city/simulation/advance", { method: "POST", headers: authHeaders() });
-      const data = await readBody(response);
-      if (!response.ok) { showToast(typeof data.error === "string" ? data.error : "Could not advance the city"); return; }
-      setSimulation(data.simulation as CitySimulation);
-      showToast(`Day ${(data.simulation as CitySimulation).day} complete`);
-    } catch { showToast("Couldn't advance the city — try again"); }
-    finally { setSimBusy(false); }
   };
 
   const selectSkin = async (skin: CitySkin) => {
@@ -367,8 +255,6 @@ export default function CityPage() {
   const categories = ["all", ...Array.from(new Set(buildings.map((b) => b.category)))];
   const displayed = filter === "all" ? buildings : buildings.filter((b) => b.category === filter);
   const owned = city?.buildings ?? {};
-  const selectedSimCell = selectedSimPlot && simulation ? simulation.cells[`${selectedSimPlot.x}:${selectedSimPlot.y}`] : undefined;
-  const selectedSimSpec = selectedSimCell?.building ? simulationCatalog[selectedSimCell.building] : undefined;
 
   if (loading) {
     return (
@@ -453,143 +339,6 @@ export default function CityPage() {
             ) : null}
           </div>
         </div>
-
-        {/* Full simulation controls */}
-        {simulation && (
-          <section className="space-y-4 rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[.14em] text-[var(--brand-400)]">City operations · Day {simulation.day}</p>
-                <h2 className="text-lg font-bold">Plan roads, zones, utilities and services</h2>
-              </div>
-              <div className="flex gap-2">
-                <div className="flex rounded-xl border border-[var(--border)] p-1">
-                  <button type="button" onClick={() => setCityViewMode("3d")} className={`rounded-lg px-3 text-xs font-bold ${cityViewMode === "3d" ? "bg-[var(--brand-soft)] text-[var(--brand-400)]" : ""}`}>3D</button>
-                  <button type="button" onClick={() => setCityViewMode("map")} className={`rounded-lg px-3 text-xs font-bold ${cityViewMode === "map" ? "bg-[var(--brand-soft)] text-[var(--brand-400)]" : ""}`}>Map</button>
-                </div>
-                <button type="button" onClick={() => void advanceDay()} disabled={simBusy} className="min-h-11 rounded-xl bg-[var(--brand-600)] px-5 text-sm font-bold text-white disabled:opacity-50">
-                  {simBusy ? "Saving…" : "Run next day ▶"}
-                </button>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
-              {[
-                ["road", "🛣️", "Road"], ["residential", "🏠", "Homes"], ["commercial", "🏪", "Commerce"], ["industrial", "🏭", "Industry"], ["special", "🏥", "Services"], ["repair", "🛠️", "Repair"], ["bulldoze", "🚧", "Bulldoze"],
-              ].map(([id, emoji, label]) => (
-                <button key={id} type="button" aria-pressed={activeTool === id} onClick={() => { setActiveTool(activeTool === id ? null : id); setSelectedBuilding(null); setMovingBuilding(null); }}
-                  className={`min-h-16 rounded-xl border p-2 text-center transition ${activeTool === id ? "border-[var(--brand-400)] bg-[var(--brand-soft)]" : "border-[var(--border)]"}`}>
-                  <span className="text-xl">{emoji}</span><span className="block text-[11px] font-bold">{label}</span><span className="block text-[11px] text-[var(--foreground-subtle)]">🪙 {id === "special" ? simulationCosts.specials[selectedSpecial] ?? 0 : simulationCosts.tools[id] ?? 0}</span>
-                </button>
-              ))}
-            </div>
-            {activeTool === "special" && (
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {Object.entries(simulationCatalog).filter(([, spec]) => spec.zone === "service" || spec.zone === "utility").map(([id, spec]) => (
-                  <button key={id} type="button" onClick={() => setSelectedSpecial(id)} className={`min-w-28 rounded-xl border p-2 text-left ${selectedSpecial === id ? "border-[var(--brand-400)] bg-[var(--brand-soft)]" : "border-[var(--border)]"}`}>
-                    <span className="text-xl">{spec.icon}</span><span className="block text-[11px] font-bold">{spec.name}</span><span className="text-[11px] text-[var(--foreground-subtle)]">🪙 {simulationCosts.specials[id] ?? 0}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-            <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4 lg:grid-cols-8">
-              {[
-                ["Citizens", simulation.population, "👥"], ["Employed", `${simulation.employed}/${simulation.jobs}`, "💼"], ["Happiness", `${simulation.happiness}%`, "😊"],
-                ["Power", `${simulation.power.demand}/${simulation.power.capacity}`, "⚡"], ["Water", `${simulation.water.demand}/${simulation.water.capacity}`, "💧"],
-                ["Income", simulation.daily.income, "↗"], ["Costs", simulation.daily.maintenance, "↘"], ["Net/day", simulation.daily.net, "🪙"],
-              ].map(([label, value, icon]) => <div key={String(label)} className="rounded-xl bg-[var(--surface-1)] p-2"><span>{icon}</span><strong className="ml-1">{value}</strong><span className="block text-[11px] text-[var(--foreground-subtle)]">{label}</span></div>)}
-            </div>
-            <div className="grid gap-3 lg:grid-cols-2">
-              <div className="rounded-xl border border-[var(--border)] p-3">
-                <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-[var(--foreground-subtle)]">Live zoning demand</p>
-                {([ ["Residential", simulation.demand.residential, "bg-emerald-500"], ["Commercial", simulation.demand.commercial, "bg-cyan-500"], ["Industrial", simulation.demand.industrial, "bg-amber-500"] ] as const).map(([label, value, color]) => (
-                  <div key={label} className="mb-2 grid grid-cols-[76px_1fr_34px] items-center gap-2 text-[11px]"><span>{label}</span><span className="h-2 overflow-hidden rounded-full bg-[var(--surface-2)]"><span className={`block h-full rounded-full ${color}`} style={{ width: `${Math.round(value * 100)}%` }} /></span><strong>{Math.round(value * 100)}%</strong></div>
-                ))}
-              </div>
-              <div className="grid grid-cols-4 gap-2 rounded-xl border border-[var(--border)] p-3 text-center text-[11px]">
-                {[["Land value", simulation.environment.landValue, "🏘️"], ["Pollution", simulation.environment.pollution, "🏭"], ["Traffic", simulation.environment.congestion, "🚗"], ["Road access", simulation.environment.roadAccess, "🛣️"], ["Fire cover", simulation.coverage.fire, "🚒"], ["Health cover", simulation.coverage.health, "🚑"], ["Police cover", simulation.coverage.police, "🚓"], ["Abandoned", simulation.abandonedBuildings, "🏚️"]].map(([label, value, icon]) => <div key={String(label)}><span className="text-base">{icon}</span><strong className="block">{value}{label === "Abandoned" ? "" : "%"}</strong><span className="text-[11px] text-[var(--foreground-subtle)]">{label}</span></div>)}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* The playable district: licensed models in 3D, with an accessible map fallback. */}
-        {cityViewMode === "3d" && simulation ? (
-          <CityWorld3D cells={simulation.cells} width={simulation.width} height={simulation.height} active={!!activeTool && !simBusy} onPlot={(x, y) => activeTool ? void runSimulationAction({ x, y }) : setSelectedSimPlot({ x, y })} />
-        ) : (
-          <CityBoard
-            buildings={buildings}
-            owned={owned}
-            layout={city?.buildingLayout ?? {}}
-            selectedSlug={selectedBuilding}
-            movingSlug={movingBuilding}
-            width={city?.grid?.width}
-            height={city?.grid?.height}
-            time={selectedTime}
-            weather={selectedWeather}
-            busy={!!building || simBusy}
-            simulationCells={simulation?.cells}
-            simulationCatalog={simulationCatalog}
-            activeTool={activeTool}
-            onSimulationAction={(plot) => void runSimulationAction(plot)}
-            onSimulationInspect={setSelectedSimPlot}
-            onSelect={setSelectedBuilding}
-            onMoveStart={(slug) => { setMovingBuilding(slug); setSelectedBuilding(null); }}
-            onPlace={(definition, plot) => void handleBuy(definition, plot)}
-            onMove={(slug, plot) => void moveBuilding(slug, plot)}
-          />
-        )}
-
-        {selectedSimPlot && selectedSimCell && (
-          <section className="rounded-2xl border border-[var(--brand-400)]/30 bg-[var(--card)] p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex gap-3"><span className="text-3xl">{selectedSimSpec?.icon ?? (selectedSimCell.kind === "road" ? "🛣️" : "🏗️")}</span><div><p className="text-[11px] font-bold uppercase tracking-wider text-[var(--brand-400)]">Plot {selectedSimPlot.x + 1}, {selectedSimPlot.y + 1}</p><h3 className="font-bold">{selectedSimSpec?.name ?? selectedSimCell.zone ?? selectedSimCell.kind}</h3></div></div>
-              <button type="button" onClick={() => setSelectedSimPlot(null)} className="rounded-lg border border-[var(--border)] px-3 py-1 text-xs">Close</button>
-            </div>
-            {selectedSimCell.kind === "building" && (
-              <div className="mt-3 grid grid-cols-3 gap-2 text-xs sm:grid-cols-6">
-                {[["Level", selectedSimCell.level ?? 1], ["Condition", `${selectedSimCell.condition ?? 100}%`], ["Age", `${selectedSimCell.age ?? 0} days`], ["Residents", selectedSimCell.residents ?? 0], ["Employees", selectedSimCell.employees ?? 0], ["Land value", selectedSimCell.landValue ?? simulation?.environment.landValue ?? 0]].map(([label, value]) => <div key={String(label)} className="rounded-xl bg-[var(--surface-1)] p-2"><strong>{value}</strong><span className="block text-[11px] text-[var(--foreground-subtle)]">{label}</span></div>)}
-              </div>
-            )}
-            {selectedSimCell.abandoned && <p className="mt-3 rounded-xl bg-red-500/10 p-3 text-xs text-red-300">This building is abandoned. Restore utilities, road access, jobs and land value to attract occupants before it collapses.</p>}
-            {(selectedSimCell.stressDays ?? 0) > 0 && !selectedSimCell.abandoned && <p className="mt-3 text-xs text-[var(--color-warning)]">⚠ Under stress for {selectedSimCell.stressDays} day(s). Inspect utilities, employment and road access.</p>}
-          </section>
-        )}
-
-        {simulation?.logs.length ? (
-          <section className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4">
-            <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-bold">City dispatch</h2><span className="text-[11px] text-[var(--foreground-subtle)]">{simulation.disastersSurvived} emergencies resolved</span></div>
-            <div className="space-y-2">
-              {simulation.logs.slice(0, 5).map((entry, index) => (
-                <div key={`${entry.day}-${index}`} className={`flex gap-3 rounded-xl border p-3 text-xs ${entry.tone === "danger" ? "border-red-500/25 bg-red-500/5" : entry.tone === "good" ? "border-emerald-500/25 bg-emerald-500/5" : "border-[var(--border)]"}`}>
-                  <span className="shrink-0 font-bold text-[var(--foreground-subtle)]">Day {entry.day}</span><span>{entry.message}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
-
-        {/* Citizen economy */}
-        <section className="grid gap-4 rounded-2xl border border-[var(--rgba-245-158-11-0_28)] bg-gradient-to-br from-[var(--card)] to-[var(--rgba-245-158-11-0_07)] p-5 sm:grid-cols-[1fr_auto] sm:items-center">
-          <div className="flex gap-4">
-            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[var(--rgba-245-158-11-0_15)] text-[var(--color-warning)]"><Coins size={24} /></div>
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[.14em] text-[var(--color-warning)]">Citizen treasury</p>
-              <h2 className="mt-1 text-lg font-bold">Your city works while you focus</h2>
-              <p className="mt-1 text-xs text-[var(--foreground-subtle)]">
-                Citizens contribute <strong className="text-[var(--foreground)]">{city?.tax?.ratePerHour ?? Math.max(1, Math.floor((city?.population ?? 0) / 10))} coins/hour</strong>. Revenue stores for up to {city?.tax?.storageHours ?? 24} hours.
-              </p>
-              <span className="mt-2 inline-flex items-center gap-1 text-[11px] text-[var(--foreground-subtle)]"><Clock3 size={11} /> Grow population and add properties to raise revenue</span>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => void collectTax()}
-            disabled={collectingTax || (city?.tax?.available ?? 0) < 1}
-            className="min-h-12 rounded-xl bg-[var(--color-warning)] px-5 text-sm font-black text-[var(--palette-0d0f1c)] shadow-lg transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0"
-          >
-            {collectingTax ? "Collecting…" : `Collect 🪙 ${(city?.tax?.available ?? 0).toLocaleString()}`}
-          </button>
-        </section>
 
         {/* Premium City Modes */}
         <section className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4">
@@ -679,16 +428,7 @@ export default function CityPage() {
         {/* Buildings grid */}
         <motion.div variants={STAGGER} initial="initial" animate="animate" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {displayed.map((b) => (
-            <BuildingCard
-              key={b.slug}
-              building={b}
-              owned={!!owned[b.slug]}
-              selected={selectedBuilding === b.slug}
-              onBuy={() => { setSelectedBuilding(b.slug); setMovingBuilding(null); window.scrollTo({ top: 180, behavior: "smooth" }); }}
-              wallet={wallet}
-              busy={building === b.slug}
-              balanceKnown={!walletFailed}
-            />
+            <BuildingCard key={b.slug} building={b} owned={!!owned[b.slug]} onBuy={handleBuy} wallet={wallet} busy={building === b.slug} balanceKnown={!walletFailed} />
           ))}
         </motion.div>
 

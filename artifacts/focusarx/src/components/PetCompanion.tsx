@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getToken } from "@/lib/auth";
 import { petSpeciesVisual } from "@/lib/petSpecies";
+import { BulbasaurArtwork, isBulbasaurSpecies } from "@/components/pets/PetArtwork";
 import { ACTIVE_PET_EVENT, useActivePet, type ActivePet } from "@/hooks/useActivePet";
 
 // ── Speech messages ────────────────────────────────────────────────────────────
@@ -408,7 +409,9 @@ export default function PetCompanion({
                 whileTap={{ scale: 0.88, transition: { duration: 0.15 } }}
                 title="Click your companion!"
               >
-                {petEmoji}
+                {isBulbasaurSpecies(pet.slug) ? (
+                  <BulbasaurArtwork size={130} className="max-h-[clamp(80px,18vw,130px)] max-w-[clamp(80px,18vw,130px)]" />
+                ) : petEmoji}
               </motion.div>
             </motion.div>
           </motion.div>

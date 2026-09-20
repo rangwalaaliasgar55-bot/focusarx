@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSocketEvent } from "@/lib/socket";
 import { haptic } from "@/lib/haptics";
+import { getToken } from "@/lib/auth";
 
 interface Drop {
   id: string;
@@ -24,6 +25,7 @@ interface Drop {
   poolRemaining: number;
   live: boolean;
   upcoming: boolean;
+  claimed?: boolean;
 }
 
 const TYPE_ICONS: Record<string, string> = {
@@ -57,10 +59,16 @@ export function DropBanner() {
 
   const refresh = useCallback(async () => {
     try {
-      const r = await fetch("/drops", { credentials: "include" });
+      const token = getToken();
+      const r = await fetch("/api/drops", {
+        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       if (r.ok) {
-        const d = await r.json();
-        setDrops(Array.isArray(d.drops) ? d.drops : []);
+        const d = await r.json() as { drops?: Drop[] };
+        const nextDrops = Array.isArray(d.drops) ? d.drops : [];
+        setDrops(nextDrops);
+        setClaimed(Object.fromEntries(nextDrops.filter((drop) => drop.claimed).map((drop) => [drop.id, true])));
       }
     } catch { /* best effort */ }
   }, []);
@@ -93,11 +101,16 @@ export function DropBanner() {
   }
 
   async function claim(id: string) {
+    const token = getToken();
+    if (!token) {
+      showToast("Sign in to claim this reward.");
+      return;
+    }
     setClaiming(id);
     try {
-      const r = await fetch(`/drops/${id}/claim`, {
+      const r = await fetch(`/api/drops/${id}/claim`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         credentials: "include",
         body: "{}",
       });
@@ -128,7 +141,9 @@ export function DropBanner() {
           const msLeft = new Date(d.endsAt).getTime() - now;
           const msUntil = new Date(d.startsAt).getTime() - now;
           const icon = TYPE_ICONS[d.type] ?? "🔥";
-          const claimable = d.live && !claimed[d.id] && ["coin_rain", "streak_freeze", "flash_quest", "item_flash_sale"].includes(d.type);
+          const isLimitedPool = d.type === "coin_rain" || d.type === "streak_freeze";
+          const poolAvailable = !isLimitedPool || d.poolRemaining > 0;
+          const claimable = d.live && !claimed[d.id] && poolAvailable && ["coin_rain", "streak_freeze", "flash_quest", "item_flash_sale"].includes(d.type);
 
           let label: string;
           if (d.live) {
@@ -143,7 +158,7 @@ export function DropBanner() {
                 label = `Focus ${d.payload?.targetMinutes ?? 60} min before it ends → ${Number(d.payload?.rewardCoins ?? 0).toLocaleString()} coins (${fmtCountdown(msLeft)} left)`;
                 break;
               case "coin_rain":
-                label = `${d.poolRemaining.toLocaleString()} coins left — ${fmtCountdown(msLeft)}`;
+                label = `${d.poolRemaining.toLocaleString()} claim slots left — ${fmtCountdown(msLeft)}`;
                 break;
               case "streak_freeze":
                 label = `${d.poolRemaining.toLocaleString()} streak-freezes left — ${fmtCountdown(msLeft)}`;
@@ -179,6 +194,9 @@ export function DropBanner() {
               )}
               {claimed[d.id] && (
                 <span className="shrink-0 text-[0.6875rem] font-semibold text-[var(--palette-emerald-400)]">Claimed ✓</span>
+              )}
+              {d.live && !claimed[d.id] && isLimitedPool && d.poolRemaining <= 0 && (
+                <span className="shrink-0 text-[0.6875rem] font-semibold text-[var(--foreground-subtle)]">Fully claimed</span>
               )}
               <button
                 onClick={() => setDismissed((s) => ({ ...s, [d.id]: true }))}

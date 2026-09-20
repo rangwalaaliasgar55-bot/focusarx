@@ -75,9 +75,7 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
-    // Keep acquisition funnels working in Chrome 80-era Android WebViews and
-    // Safari 13 instead of shipping syntax only current browsers understand.
-    target: ["es2019", "chrome80", "safari13"],
+    target: "esnext",
     cssCodeSplit: true,
     sourcemap: false,
     rollupOptions: {

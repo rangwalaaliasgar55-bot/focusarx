@@ -11,6 +11,7 @@ const router = Router();
 const PET_XP_PER_LEVEL = 500;
 
 export const PET_TYPES = [
+  { id: "bulbasaur", name: "Bulbasaur", emoji: "🦎", desc: "A gentle seed Pokémon and a steady deep-work companion.", evolutions: ["Tiny Seed", "Growing Bulbasaur", "Blooming Bulbasaur", "Venusaur Spirit"], premiumOnly: false },
   { id: "owl", name: "Sage Owl", emoji: "🦉", desc: "Wise and calm. Perfect for deep study sessions.", evolutions: ["Owlet", "Wise Owl", "Elder Sage", "Celestial Owl"], premiumOnly: false },
   { id: "fox", name: "Focus Fox", emoji: "🦊", desc: "Sharp and cunning. Thrives on consistency.", evolutions: ["Fox Kit", "Quick Fox", "Silver Fox", "Phantom Fox"], premiumOnly: false },
   { id: "dragon", name: "Study Dragon", emoji: "🐲", desc: "Fierce and powerful. Grows with your ambition.", evolutions: ["Hatchling", "Drake", "Fire Drake", "Legendary Dragon"], premiumOnly: true },

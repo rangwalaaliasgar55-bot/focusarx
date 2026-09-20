@@ -23,7 +23,7 @@ export default function TermsPage() {
                 <h1 className="text-2xl font-bold text-[var(--foreground)]">Terms of Service</h1>
               </div>
             </div>
-            <p className="text-xs text-[var(--foreground-subtle)]">Last updated: September 2026</p>
+            <p className="text-xs text-[var(--foreground-subtle)]">Last updated: August 2026</p>
           </header>
 
           <div className="space-y-8">
@@ -60,28 +60,23 @@ export default function TermsPage() {
               <p>FocusArx and its original content, features, and functionality are owned by FocusArx and are protected by applicable intellectual property laws. You retain ownership of any content you create (tasks, notes, goals).</p>
             </Section>
 
-            <Section title="8. Pro Purchases, Focus Credits & Refunds">
-              <p>Pro may be activated through a recurring card/UPI plan or through Focus Credits earned inside the service. Display prices include the billing interval shown at checkout; the payment provider's final checkout screen is authoritative. Focus Credits have no cash value, cannot be transferred or withdrawn, and are not cryptocurrency.</p>
-              <p className="mt-3">You can cancel a recurring plan through the applicable payment support flow; access continues through the paid period unless a refund requires earlier revocation. Refund requests are reviewed under applicable consumer law and provider rules. Contact focusarx@gmail.com with the account email and provider payment ID—never send full card or UPI credentials.</p>
+            <Section title="8. Disclaimers & Limitation of Liability">
+              <p>FocusArx is provided "as is" without warranty of any kind. We are not liable for any indirect, incidental, or consequential damages arising from your use of the service. FocusArx core is free, and Premium is unlocked with in-app coins — no monetary payments are collected — so our aggregate liability is limited to the fullest extent permitted by law.</p>
             </Section>
 
-            <Section title="9. Disclaimers & Limitation of Liability">
-              <p>FocusArx is provided "as is" without warranty of uninterrupted availability. To the extent permitted by law, we are not liable for indirect, incidental, or consequential damages. Nothing in these terms excludes consumer rights or liability that applicable law does not permit us to exclude.</p>
-            </Section>
-
-            <Section title="10. Termination">
+            <Section title="9. Termination">
               <p>We reserve the right to suspend or terminate accounts that violate these terms. You may delete your account at any time via the <Link href="/data-deletion" className="text-[var(--brand-400)] hover:underline">data deletion page</Link>.</p>
             </Section>
 
-            <Section title="11. Changes to Terms">
+            <Section title="10. Changes to Terms">
               <p>We may update these terms periodically. Continued use of the service after changes constitutes acceptance of the revised terms. We will notify registered users of material changes by email where possible.</p>
             </Section>
 
-            <Section title="12. Governing Law">
+            <Section title="11. Governing Law">
               <p>These terms are governed by applicable laws. Any disputes shall be resolved through good-faith negotiation before any formal proceedings.</p>
             </Section>
 
-            <Section title="13. Contact">
+            <Section title="12. Contact">
               <p>Questions? Email <a href="mailto:focusarx@gmail.com" className="text-[var(--brand-400)] hover:underline">focusarx@gmail.com</a> or call <a href="tel:+917725004639" className="text-[var(--brand-400)] hover:underline">+91 77250 04639</a>.</p>
             </Section>
           </div>

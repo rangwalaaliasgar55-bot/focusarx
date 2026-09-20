@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { BulbasaurArtwork, isBulbasaurSpecies } from "./PetArtwork";
 
 /**
  * Animated pet artwork wherever the catalog carries it.
@@ -16,13 +17,21 @@ interface PetSpriteProps {
   src?: string | null;
   /** Emoji glyph used when there is no (working) sprite. */
   glyph: string;
+  /** Catalog slug. Bulbasaur has bundled artwork instead of a plant glyph. */
+  species?: string | null;
   /** Rendered box size in px (art is square, object-contain). */
   size?: number;
   className?: string;
 }
 
-export function PetSprite({ src, glyph, size = 64, className }: PetSpriteProps) {
+export function PetSprite({ src, glyph, species, size = 64, className }: PetSpriteProps) {
   const [failed, setFailed] = useState(false);
+
+  // Bulbasaur is a real companion, not the old 🌱 placeholder. Prefer the
+  // bundled illustration even when a staged catalog row has no image URL.
+  if (isBulbasaurSpecies(species)) {
+    return <BulbasaurArtwork size={size} className={className} />;
+  }
 
   if (!src || failed) {
     return (

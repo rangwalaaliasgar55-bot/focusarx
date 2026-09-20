@@ -1,14 +1,11 @@
 import { Router } from "express";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
 import { db, premiumEntitlementsTable, premiumSubscriptionsTable } from "@workspace/db";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { logger } from "../lib/logger";
 import {
   daysForInterval,
   parseCompletedCheckout,
-  parseEndedSubscription,
-  parsePaidInvoice,
   priceForInterval,
   stripeConfigured,
   stripeWebhookConfigured,
@@ -120,36 +117,19 @@ router.post("/stripe/webhook", async (req, res) => {
     return;
   }
 
-  const ended = parseEndedSubscription(event);
-  if (ended) {
-    try {
-      await db.update(premiumSubscriptionsTable)
-        .set({ isActive: false, expiresAt: new Date() })
-        .where(eq(premiumSubscriptionsTable.userId, ended.userId));
-      logger.info({ userId: ended.userId, subscriptionId: ended.subscriptionId }, "stripe subscription ended");
-      res.json({ received: true, handled: true });
-    } catch (err) {
-      logger.error({ err }, "stripe cancellation update failed");
-      res.status(500).json({ error: { code: "INTERNAL_ERROR" } });
-    }
-    return;
-  }
-
-  const checkout = parseCompletedCheckout(event);
-  const invoice = parsePaidInvoice(event);
-  if (!checkout && !invoice) {
+  const grant = parseCompletedCheckout(event);
+  if (!grant) {
+    // Includes subscription lifecycle events we intentionally ignore for now.
     res.json({ received: true, handled: false });
     return;
   }
-  const userId = checkout?.userId ?? invoice!.userId;
-  const interval = checkout?.interval ?? invoice!.interval;
-  const endsAt = invoice?.periodEnd ?? new Date(Date.now() + daysForInterval(interval) * 86_400_000);
-  const idempotencyKey = `stripe_${checkout?.sessionId ?? invoice!.invoiceId}`;
 
   try {
+    const endsAt = new Date(Date.now() + daysForInterval(grant.interval) * 86_400_000);
+    const idempotencyKey = `stripe_${grant.sessionId}`;
     const result = await db.transaction(async (tx) => {
       const inserted = await tx.insert(premiumEntitlementsTable).values({
-        userId: userId,
+        userId: grant.userId,
         planId: null,
         source: "stripe",
         status: "active",
@@ -162,7 +142,7 @@ router.post("/stripe/webhook", async (req, res) => {
         return { replay: true as const };
       }
       await tx.insert(premiumSubscriptionsTable).values({
-        userId: userId,
+        userId: grant.userId,
         expiresAt: endsAt,
         isActive: true,
         grantedByAdmin: false,
@@ -172,7 +152,7 @@ router.post("/stripe/webhook", async (req, res) => {
       });
       return { replay: false as const };
     });
-    logger.info({ userId: userId, interval: interval, replay: result.replay }, "stripe premium granted");
+    logger.info({ userId: grant.userId, interval: grant.interval, replay: result.replay }, "stripe premium granted");
     res.json({ received: true, handled: true, replay: result.replay });
   } catch (err) {
     logger.error({ err }, "stripe grant failed");

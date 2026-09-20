@@ -68,7 +68,9 @@ const SPECIES: Record<string, PetSpeciesVisual> = {
   pikachu:    { emoji: "⚡", color: "var(--palette-yellow-400)" },
   charmander: { emoji: "🦎", color: "var(--palette-orange-500)" },
   charizard:  { emoji: "🐲", color: "var(--palette-orange-600)" },
-  bulbasaur:  { emoji: "🌱", color: "var(--palette-emerald-400)" },
+  // Bulbasaur surfaces use bundled artwork; this glyph is only a final
+  // accessibility-safe fallback if an older caller cannot render artwork.
+  bulbasaur:  { emoji: "🦎", color: "var(--palette-emerald-400)" },
   squirtle:   { emoji: "🐢", color: "var(--palette-cyan-400)" },
   gengar:     { emoji: "👻", color: "var(--palette-purple-500)" },
   eevee:      { emoji: "🦊", color: "var(--palette-amber-400)" },

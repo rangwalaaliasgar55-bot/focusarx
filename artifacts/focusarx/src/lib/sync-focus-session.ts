@@ -17,9 +17,9 @@ export async function syncFocusSessionToCloud(
   session: Session,
   dbSessionId?: string | null,
   earlyCompletionData?: {
-    plannedDurationSec: number;
+    plannedDurationSec: number | null;
     completedEarly: boolean;
-    completionPercentage: number;
+    completionPercentage: number | null;
     sessionStatus: "completed" | "completed_early";
   }
 ): Promise<SyncResult> {
@@ -50,7 +50,18 @@ export async function syncFocusSessionToCloud(
       }),
     });
     if (!res.ok) {
-      return { success: false, streakUpdated: false, error: `HTTP ${res.status}` };
+      // A transient server response is the same data-safety case as a dropped
+      // connection: keep the completion in the offline queue instead of
+      // showing an error and discarding the user's elapsed work. Permanent
+      // auth/validation responses remain visible failures and are not retried
+      // automatically by this helper.
+      const transient = res.status >= 500 || res.status === 408 || res.status === 425 || res.status === 429;
+      return {
+        success: false,
+        streakUpdated: false,
+        error: `HTTP ${res.status}`,
+        ...(transient ? { offline: true } : {}),
+      };
     }
     const data = await res.json() as {
       session?: { id?: string };

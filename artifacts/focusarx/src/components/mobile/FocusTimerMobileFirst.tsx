@@ -74,7 +74,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
   );
 
   // Shared completion pipeline: countdown sessions AND Flowtime runs.
-  const recordMobileSession = async (session: Session) => {
+  const recordMobileSession = async (session: Session, flowServerSessionId?: string | null) => {
       addSession(session);
       if (session.mode === "focus") {
         trackSessionComplete(session.durationSeconds, session.focusScore ?? 0, 0, false);
@@ -87,7 +87,11 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
       }
 
       setIsSaving(true);
-      const dbSessionId = persistenceRef.current?.getDbSessionId() ?? null;
+      const dbSessionId = flowServerSessionId ?? persistenceRef.current?.getDbSessionId() ?? null;
+      // Keep Flowtime mounted when an authenticated active row is waiting for
+      // the offline queue; enabling countdown recovery immediately would show
+      // the same server session twice.
+      let canLeaveFlow = !flowServerSessionId;
 
       // Offline handling with idempotency key
       if (!navigator.onLine) {
@@ -101,6 +105,14 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
             sessionId: dbSessionId,
             focusScore: session.focusScore,
             idempotencyKey,
+            ...(session.completedEarly
+              ? {
+                  plannedDurationSec: session.plannedDurationSec ?? null,
+                  completedEarly: true,
+                  completionPercentage: session.completionPercentage ?? null,
+                  sessionStatus: "completed_early" as const,
+                }
+              : {}),
           },
           idempotencyKey
         );
@@ -110,10 +122,21 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
         setSummary({ minutes: Math.round(session.durationSeconds / 60), xp: 0, coins: 0 });
         setShowSummary(true);
         onSessionComplete?.();
-        return;
+        return canLeaveFlow;
       }
 
-      const res = await syncFocusSessionToCloud(session, dbSessionId);
+      const res = await syncFocusSessionToCloud(
+        session,
+        dbSessionId,
+        session.completedEarly
+          ? {
+              plannedDurationSec: session.plannedDurationSec ?? null,
+              completedEarly: true,
+              completionPercentage: session.completionPercentage ?? null,
+              sessionStatus: "completed_early",
+            }
+          : undefined,
+      );
       setIsSaving(false);
       await persistenceRef.current?.onPhaseCompleted();
 
@@ -127,6 +150,14 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
             clientNonce: session.id,
             sessionId: dbSessionId,
             idempotencyKey,
+            ...(session.completedEarly
+              ? {
+                  plannedDurationSec: session.plannedDurationSec ?? null,
+                  completedEarly: true,
+                  completionPercentage: session.completionPercentage ?? null,
+                  sessionStatus: "completed_early" as const,
+                }
+              : {}),
           },
           idempotencyKey
         );
@@ -144,6 +175,8 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
           new Notification("Focus session complete — time for a break.");
         }
       }
+      if (res.success) canLeaveFlow = true;
+      return canLeaveFlow;
   };
 
   const {
@@ -230,6 +263,9 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
   const [recoveryReady, setRecoveryReady] = useState(false);
 
   const persistence = useSessionPersistence({
+    // FlowTimer owns its own local/server stopwatch; avoid restoring its active
+    // row into the countdown hook as a duplicate timer.
+    enabled: !isFlow,
     getTimerSnapshot: getSnapshot,
     restoreTimer: restoreFromSnapshot,
     isMonitorEnabled: () => false,
@@ -295,17 +331,22 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
 
   const handleReset = useCallback(() => {
     const snap = getSnapshot();
-    if (snap.status === "running" && snap.mode === "focus") {
+    // A paused focus block still contains real work. Route both running and
+    // paused exits through the save-progress dialog instead of resetting it
+    // into oblivion.
+    if ((snap.status === "running" || snap.status === "paused") && snap.mode === "focus" && getActiveSeconds() > 0) {
       setShowExitConfirm(true);
       return;
     }
     persistence.clearDbSession();
     reset(false);
-  }, [getSnapshot, persistence, reset]);
+  }, [getSnapshot, persistence, reset, getActiveSeconds]);
 
   const handleCompleteEarly = useCallback(async () => {
     const activeSec = getActiveSeconds();
-    if (activeSec < 10) {
+    // Preserve even a very short real block; a ten-second discard threshold
+    // made an early, safe exit lose elapsed work.
+    if (activeSec <= 0) {
       persistence.clearDbSession();
       reset(false);
       setShowExitConfirm(false);
@@ -314,50 +355,73 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
     setShowExitConfirm(false);
     setIsSaving(true);
     const dbSessionId = persistenceRef.current?.getDbSessionId() ?? null;
-    const actualSec = Math.floor(activeSec);
+    const actualSec = Math.max(1, Math.floor(activeSec));
+    const completedAt = new Date().toISOString();
+    const session: Session = {
+      id: `early-${Date.now()}`,
+      mode: "focus",
+      completedAt,
+      durationSeconds: actualSec,
+      focusScore: null,
+      focusQuality: null,
+      focusTimeline: null,
+      stabilityRating: null,
+      sessionInsights: null,
+      completedEarly: true,
+      plannedDurationSec: totalPlanned > 0 ? totalPlanned : null,
+      completionPercentage: totalPlanned > 0
+        ? Math.min(100, Math.round((actualSec / totalPlanned) * 100))
+        : null,
+    };
+
+    // The desktop timer adds partial sessions to local history through the
+    // shared completion pipeline. Mobile must do the same; otherwise an early
+    // exit appeared to succeed but vanished from the user's history.
+    addSession(session);
+    trackSessionComplete(session.durationSeconds, 0, 0, true);
     const res = await syncFocusSessionToCloud(
-      {
-        id: `early-${Date.now()}`,
-        mode: "focus",
-        completedAt: new Date().toISOString(),
-        durationSeconds: actualSec,
-        focusScore: null,
-        focusQuality: null,
-        focusTimeline: null,
-        stabilityRating: null,
-        sessionInsights: null,
-      },
+      session,
       dbSessionId,
       {
-        plannedDurationSec: totalPlanned,
+        plannedDurationSec: session.plannedDurationSec ?? null,
         completedEarly: true,
-        completionPercentage: Math.min(100, Math.round((actualSec / totalPlanned) * 100)),
+        completionPercentage: session.completionPercentage ?? null,
         sessionStatus: "completed_early",
-      }
+      },
     );
     setIsSaving(false);
-    persistence.clearDbSession();
+    // Clear only the client-side active-session reference. If the network is
+    // down, keep the server row as evidence for the queued completion instead
+    // of deleting it before the retry can arrive.
+    await persistenceRef.current?.onPhaseCompleted();
     reset(false);
     if (res.success) {
       toast(`Saved — ${Math.floor(actualSec / 60)}m recorded!`, "success");
       setSummary({ minutes: Math.floor(actualSec / 60), xp: res.earnedXp ?? 0, coins: res.earnedCoins ?? 0 });
       setShowSummary(true);
     } else if (res.offline) {
-      const key = `completion_early-${Date.now()}`;
+      const key = `completion_${session.id}`;
       enqueueOffline(
         {
-          mode: "focus",
-          durationSec: actualSec,
-          completedAt: new Date().toISOString(),
-          clientNonce: key,
+          mode: session.mode,
+          durationSec: session.durationSeconds,
+          completedAt: session.completedAt,
+          clientNonce: session.id,
           sessionId: dbSessionId,
+          focusScore: session.focusScore,
           idempotencyKey: key,
+        plannedDurationSec: session.plannedDurationSec ?? null,
+        completedEarly: true,
+        completionPercentage: session.completionPercentage ?? null,
+        sessionStatus: "completed_early" as const,
         },
-        key
+        key,
       );
       toast(`Saved ${Math.floor(actualSec / 60)}m offline`, "info");
+    } else {
+      toast(`Failed to save: ${res.error ?? "Unknown error"}`, "error");
     }
-  }, [getActiveSeconds, persistence, reset, totalPlanned, toast, enqueueOffline, setShowSummary]);
+  }, [addSession, getActiveSeconds, persistence, reset, totalPlanned, toast, enqueueOffline]);
 
   const { m, s } = formatTime(secondsLeft);
 

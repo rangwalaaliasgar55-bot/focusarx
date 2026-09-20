@@ -259,9 +259,9 @@ function CustomizationTab() {
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><Palette size={16}/> Profile customization</CardTitle><CardDescription>Frames, nameplates, backgrounds, badges, aura, emotes. Premium unlocks exclusive styles with Focus Credits.</CardDescription></CardHeader>
+        <CardHeader><CardTitle className="flex items-center gap-2"><Palette size={16}/> Profile customization</CardTitle><CardDescription>Frames, nameplates, backgrounds, badges, aura, emotes. Premium unlocks exclusive styles with Focus Tokens.</CardDescription></CardHeader>
         <CardContent>
-          {!isPremium && <div className="mb-4 rounded-xl border border-[var(--palette-amber-500)]/20 bg-[var(--palette-amber-950)]/10 p-3 text-xs"><Crown size={12} className="inline text-[var(--palette-amber-400)]"/> Premium styles require Premium membership + Focus Credits. <Link href="/premium" className="font-bold text-[var(--palette-amber-400)]">Unlock Premium</Link></div>}
+          {!isPremium && <div className="mb-4 rounded-xl border border-[var(--palette-amber-500)]/20 bg-[var(--palette-amber-950)]/10 p-3 text-xs"><Crown size={12} className="inline text-[var(--palette-amber-400)]"/> Premium styles require Premium membership + Focus Tokens. <Link href="/premium" className="font-bold text-[var(--palette-amber-400)]">Unlock Premium</Link></div>}
           {Object.entries(grouped).map(([type, items]) => (
             <div key={type} className="mb-6">
               <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--foreground-subtle)]">{type.replace("_", " ")}</h4>
@@ -273,7 +273,7 @@ function CustomizationTab() {
                     <div key={c.id} className={`rounded-xl border p-3 ${inv?.equipped ? "border-[var(--brand-400)] bg-[var(--brand-soft)]" : "border-[var(--border-subtle)] bg-[var(--surface-hover)]"}`}>
                       <p className="text-sm font-semibold">{c.name}</p>
                       <p className="text-[11px] text-[var(--foreground-subtle)]">{c.description ?? c.type} • {c.rarity} {c.premium ? "• Premium" : ""}</p>
-                      {(c.tokenCost ?? 0) > 0 && <p className="mt-1 text-[11px] font-bold text-[var(--palette-amber-400)]">🪙 {c.tokenCost} Focus Credits</p>}
+                      {(c.tokenCost ?? 0) > 0 && <p className="mt-1 text-[11px] font-bold text-[var(--palette-amber-400)]">🪙 {c.tokenCost} tokens</p>}
                       <div className="mt-2 flex gap-1.5">
                         {owned ? <button onClick={() => handleEquip(c.id)} className={`flex-1 rounded-lg py-1.5 text-xs font-bold ${inv?.equipped ? "bg-[var(--surface-1)] text-[var(--brand-400)]" : "bg-[var(--brand-600)] text-white"}`}>{inv?.equipped ? "Equipped" : "Equip"}</button> : <button onClick={() => handleUnlock(c.id)} className="flex-1 rounded-lg bg-[var(--surface-1)] py-1.5 text-xs font-bold">{(c.tokenCost ?? 0) > 0 ? "Unlock" : "Claim"}</button>}
                       </div>

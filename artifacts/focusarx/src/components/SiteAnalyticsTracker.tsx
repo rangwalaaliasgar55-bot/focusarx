@@ -5,7 +5,6 @@ import { trackPageView as trackGAPageView } from "@/lib/gtag";
 import { getDeviceTier, markTierReported, probeDeviceCaps } from "@/lib/deviceTier";
 import { captureReferralFromUrl } from "@/lib/referral";
 import { initPlausible, trackPlausiblePageview } from "@/lib/plausible";
-import { captureAcquisition } from "@/lib/acquisition";
 
 /** Report capability tier + acquisition source once per tab session (Phase 6.1/4.5). */
 function reportDeviceContextOnce() {
@@ -59,7 +58,6 @@ export function SiteAnalyticsTracker() {
 
   useEffect(() => {
     const path = location || "/";
-    captureAcquisition(window.location.search, window.location.pathname);
     const t = setTimeout(() => {
       trackPageView(path);
       trackGAPageView(path);

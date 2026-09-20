@@ -3,7 +3,7 @@
 > FocusArx is a free, browser-based focus and deep work platform. It combines a
 > Pomodoro and deep work timer, task and habit tracking, session analytics, live
 > study rooms, and an AI coach. The core is free forever; Premium is unlocked with
-> Focus Credits earned by completing sessions rather than purchased.
+> Focus Tokens earned by completing sessions rather than purchased.
 
 FocusArx targets students and professionals who need external structure to start
 and sustain focused work. Optional attention monitoring runs entirely on-device
@@ -26,20 +26,20 @@ language rather than machine-translated, and the hreflang clusters are
 reciprocal with the English pages they sit beside.
 
 - [India](https://www.focusarx.site/in): for JEE, NEET, UPSC, CA, GATE, CLAT, CTET, CUET, SSC, IBPS, NDA, CAT and CBSE board aspirants — 21 of the 23 exam guides are Indian exams, and streaks key off the IST calendar.
-- [India — pricing](https://www.focusarx.site/in/pricing): free core, ₹199 monthly or ₹1,499 annual Pro through UPI/card, and the earned Focus Credits alternative.
+- [India — pricing](https://www.focusarx.site/in/pricing): what Premium costs in Focus Tokens, and why there is no rupee price.
 - [United States](https://www.focusarx.site/us): the timer for US students and remote workers, plus GRE and GMAT guides.
-- [United States — pricing](https://www.focusarx.site/us/pricing): free core, international card pricing, and the earned Focus Credits alternative.
+- [United States — pricing](https://www.focusarx.site/us/pricing): token pricing, and why there is no subscription.
 - [हिन्दी](https://www.focusarx.site/hi): पढ़ाई के लिए मुफ़्त पोमोडोरो टाइमर, हिन्दी में।
 - [हिन्दी — pricing](https://www.focusarx.site/hi/pricing): प्रीमियम की कीमत टोकन में।
 - [Español](https://www.focusarx.site/es): temporizador Pomodoro gratis para estudiar.
-- [Español — precios](https://www.focusarx.site/es/pricing): cuánto cuesta Premium en credits.
+- [Español — precios](https://www.focusarx.site/es/pricing): cuánto cuesta Premium en tokens.
 - [Português (Brasil)](https://www.focusarx.site/pt-br): timer Pomodoro grátis para estudar.
-- [Português — preços](https://www.focusarx.site/pt-br/pricing): quanto custa o Premium em credits.
+- [Português — preços](https://www.focusarx.site/pt-br/pricing): quanto custa o Premium em tokens.
 
 ## Free tools
 
 - [Pomodoro Timer](https://www.focusarx.site/pomodoro-timer): free 25/5 browser timer with custom intervals from 10–180 minutes, session history and streaks. No signup required to start.
-- [Focus Timer](https://www.focusarx.site/focus-timer): focus and deep work sessions with Focus Credits, city progression and analytics.
+- [Focus Timer](https://www.focusarx.site/focus-timer): focus and deep work sessions with Focus Tokens, city progression and analytics.
 - [Study Timer](https://www.focusarx.site/study-timer): timed study blocks tied to subjects, for exam revision planning.
 - [5 Minute Timer](https://www.focusarx.site/5-minute-timer): pre-armed five-minute countdown for micro-breaks, task transitions and the two-minute rule.
 - [10 Minute Timer](https://www.focusarx.site/10-minute-timer): pre-armed ten-minute countdown built around the ten-minute rule for starting tasks you are avoiding.
@@ -151,7 +151,7 @@ facts are limited to what those companies state publicly.
 ## Optional
 
 - [Pricing](https://www.focusarx.site/pricing): free forever at the core.
-- [Premium](https://www.focusarx.site/premium): what Premium adds, and how Focus Credits unlock it without a card.
+- [Premium](https://www.focusarx.site/premium): what Premium adds, and how Focus Tokens unlock it without a card.
 - [Help Center](https://www.focusarx.site/support): FAQs and how to reach a human.
 - [Product Roadmap](https://www.focusarx.site/roadmap)
 - [Changelog](https://www.focusarx.site/changelog): what shipped, most recent first.

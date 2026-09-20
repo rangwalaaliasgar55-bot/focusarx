@@ -9,7 +9,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Mic, Sparkles, Send, Square } from "lucide-react";
-import { openVoiceCapture } from "@/lib/voiceCapture";
 
 type Reply = {
   reply: string;
@@ -99,10 +98,7 @@ export default function AskArx() {
       if (!r.ok) throw new Error(`voice:${r.status}`);
       const d = await r.json();
       setReply({ reply: d.reply, source: d.source === "llm" ? "llm" : "template", llmRemaining: d.llmRemaining ?? 30 });
-      setCreated(null);
-      if (d.needsReview || (d.action?.type && d.action.type !== "none")) {
-        openVoiceCapture(transcript);
-      }
+      setCreated(d.created ?? null);
       speak(d.spoken ?? d.reply);
     } catch {
       setVoiceError("I couldn't hear that clearly — try again or type it.");

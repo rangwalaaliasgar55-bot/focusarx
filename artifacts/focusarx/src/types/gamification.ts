@@ -28,7 +28,6 @@ export interface City {
   totalBuildings: number;
   weather: 'clear' | 'cloudy' | 'rain' | 'storm' | 'snow' | 'fog' | 'wind' | 'rainbow';
   buildings: Record<string, boolean>;
-  buildingLayout?: Record<string, { x: number; y: number }>;
 }
 
 export interface Mission {

@@ -1,6 +1,6 @@
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Swords, Coffee, Moon, Sprout, Zap, Flame, Gem, Star, Crown, Bird, Rocket, Sparkles, Trophy, Coins, Bell, Flower2, NotebookPen, PictureInPicture, Mountain, CheckCircle2, X } from "lucide-react";
+import { Swords, Coffee, Moon, Sprout, Zap, Flame, Gem, Star, Crown, Bird, Rocket, Sparkles, Trophy, Coins, Bell, Flower2, NotebookPen, PictureInPicture, Mountain, CheckCircle2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { syncFocusSessionToCloud } from "@/lib/sync-focus-session";
 import { useSessionRecovery } from "@/components/SessionRecoveryContext";
@@ -21,7 +21,7 @@ import { SESSION_PRESETS, getPresetById, getSessionPreset, setSessionPreset } fr
 import { TIMER_THEMES, getStoredTimerTheme, setStoredTimerTheme, type TimerTheme } from "@/lib/timerTheme";
 import { isDocumentPipSupported, openMiniTimer, writePipSnapshot } from "@/lib/miniTimer";
 import { trackSiteEvent } from "@/lib/site-analytics";
-import { trackSessionStart, trackSessionComplete, trackSessionAbandoned } from "@/lib/analytics";
+import { trackSessionStart, trackSessionComplete } from "@/lib/analytics";
 import { haptic } from "@/lib/haptics";
 import type { PersistedActiveSession } from "@/types/session-persistence";
 import type { Session, TimerMode } from "@/types/timer";
@@ -43,6 +43,7 @@ import PetCompanion from "./PetCompanion";
 import { TimerRitualsPanel, ReflectionModal } from "./TimerRituals";
 import { LeaderMirrorChip } from "./LeaderMirrorChip";
 import { usePremium } from "@/hooks/usePremium";
+import { useOfflineQueue } from "@/hooks/useOfflineQueue";
 
 const MODES: TimerMode[] = ["focus", "break", "longBreak"];
 
@@ -79,6 +80,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
   const { activeTasks, completedTasks, refreshTasks } = useTasks();
   const { wallet, refresh: refreshWallet } = useCoinXP();
   const { isPremium, tier: membershipTier } = usePremium();
+  const { enqueue: enqueueOffline } = useOfflineQueue();
   const [intention] = useState("");
   const [showReflection, setShowReflection] = useState(false);
   const [reflectionDuration, setReflectionDuration] = useState(0);
@@ -160,7 +162,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
 
   // Shared completion pipeline: countdown sessions AND Flowtime runs land
   // here (record → sounds → cloud sync → summary → reflection → notify).
-  const handleSessionRecorded = async (session: Session) => {
+  const handleSessionRecorded = async (session: Session, flowServerSessionId?: string | null) => {
       addSession(session);
       playSessionNotification(session.mode);
       if (session.mode === "focus") {
@@ -176,17 +178,53 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
           session.durationSeconds,
           session.focusScore ?? 0,
           0, // earnedXp resolved after API call below
-          false
+          session.completedEarly ?? false
         );
       }
       setIsSaving(true);
-      const dbSessionId = persistenceRef.current?.getDbSessionId() ?? null;
-      const res = await syncFocusSessionToCloud(session, dbSessionId);
+      const dbSessionId = flowServerSessionId ?? persistenceRef.current?.getDbSessionId() ?? null;
+      // Flowtime should not switch back to countdown mode while its active
+      // server row is waiting in the offline queue.
+      let canLeaveFlow = !flowServerSessionId;
+      const res = await syncFocusSessionToCloud(
+        session,
+        dbSessionId,
+        session.completedEarly
+          ? {
+              plannedDurationSec: session.plannedDurationSec ?? null,
+              completedEarly: true,
+              completionPercentage: session.completionPercentage ?? null,
+              sessionStatus: "completed_early",
+            }
+          : undefined,
+      );
       setIsSaving(false);
       await persistenceRef.current?.onPhaseCompleted();
       if (res.offline) {
-        toast("Saved locally (offline mode).", "info");
+        const idempotencyKey = `completion_${session.id}`;
+        enqueueOffline(
+          {
+            mode: session.mode,
+            durationSec: session.durationSeconds,
+            completedAt: session.completedAt,
+            clientNonce: session.id,
+            sessionId: dbSessionId,
+            focusScore: session.focusScore,
+            idempotencyKey,
+            ...(session.completedEarly
+              ? {
+                  plannedDurationSec: session.plannedDurationSec ?? null,
+                  completedEarly: true,
+                  completionPercentage: session.completionPercentage ?? null,
+                  sessionStatus: "completed_early" as const,
+                }
+              : {}),
+          },
+          idempotencyKey,
+        );
+        toast("Saved locally — it will sync when you're back online.", "info");
       } else if (res.success) {
+        canLeaveFlow = true;
         if (res.shieldUsed) {
           setTimeout(() => { toast("A Streak Shield covered yesterday. Streak protected.", "info"); }, 900);
         }
@@ -215,8 +253,8 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
           focusScore: null,
           earnedXp: res.earnedXp ?? 0,
           earnedCoins: res.earnedCoins ?? 0,
-          completedEarly: false,
-          completionPercentage: null,
+          completedEarly: session.completedEarly ?? false,
+          completionPercentage: session.completionPercentage ?? null,
         });
         setShowSummary(true);
         setShowConfetti(true);
@@ -251,6 +289,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
           }).catch(() => {});
         }
       }
+      return canLeaveFlow;
   };
 
   const {
@@ -326,6 +365,9 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
   }, [status, toggle]);
 
   const persistence = useSessionPersistence({
+    // FlowTimer owns its own local/server stopwatch so the countdown recovery
+    // hook must not restore the same active row into a second clock.
+    enabled: !getPresetById(presetId).flow,
     getTimerSnapshot: getSnapshot,
     restoreTimer: restoreFromSnapshot,
     isMonitorEnabled: () => monitorEnabledRef.current,
@@ -491,7 +533,9 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
   const handleCompleteEarly = useCallback(async () => {
     if (mode !== "focus") return;
     const activeSeconds = getActiveSeconds();
-    if (activeSeconds < 10) {
+    // Even a short, real block is worth recording. The old ten-second guard
+    // silently threw away elapsed work when a user exited just after start.
+    if (activeSeconds <= 0) {
       persistence.clearDbSession();
       reset(false);
       setLockMode("none");
@@ -500,67 +544,56 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
       return;
     }
     setShowExitConfirm(false);
-    setIsSaving(true);
     const plannedSec = totalFocusSec;
-    const actualSec = Math.floor(activeSeconds);
+    const actualSec = Math.max(1, Math.floor(activeSeconds));
     const pct = plannedSec > 0 ? Math.min(100, Math.round((actualSec / plannedSec) * 100)) : null;
     const dbSessionId = persistenceRef.current?.getDbSessionId() ?? null;
-    const res = await syncFocusSessionToCloud(
-      { id: `early-${Date.now()}`, mode: "focus", completedAt: new Date().toISOString(), durationSeconds: actualSec, focusScore: null, focusQuality: null, focusTimeline: null, stabilityRating: null, sessionInsights: null },
-      dbSessionId,
-      { plannedDurationSec: plannedSec, completedEarly: true, completionPercentage: pct ?? 0, sessionStatus: "completed_early" }
-    );
-    setIsSaving(false);
-    persistence.clearDbSession();
+    const session: Session = {
+      id: `early-${Date.now()}`,
+      mode: "focus",
+      completedAt: new Date().toISOString(),
+      durationSeconds: actualSec,
+      focusScore: null,
+      focusQuality: null,
+      focusTimeline: null,
+      stabilityRating: null,
+      sessionInsights: null,
+      completedEarly: true,
+      plannedDurationSec: plannedSec > 0 ? plannedSec : null,
+      completionPercentage: pct,
+    };
+
+    // Route direct early exits through the same recorder as naturally finished
+    // blocks. That keeps history, the retry queue, rewards, and summary state in
+    // one place instead of leaving this button as a second, lossy API client.
     reset(false);
     setLockMode("none");
     setExitPhrase("");
-    if (res.success) {
-      toast(`Session saved — ${Math.floor(actualSec / 60)}m of focus recorded!`, "success");
-      if (res.streakUpdated) {
-        const token = getToken();
-        if (token) {
-          fetch("/api/streak", { headers: { Authorization: `Bearer ${token}` } })
-            .then(r => r.ok ? r.json() : null)
-            .then((d: { streak?: { currentStreak?: number } } | null) => {
-              if (d?.streak?.currentStreak) setCurrentStreak(d.streak.currentStreak);
-            })
-            .catch(() => {});
-        }
-      }
-      setSummaryData({ durationSeconds: actualSec, completedTaskCount: completedTasks.length, focusScore: null, earnedXp: res.earnedXp ?? 0, earnedCoins: res.earnedCoins ?? 0, completedEarly: true, completionPercentage: pct });
-      setShowSummary(true);
-      setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 3000);
-    } else if (res.offline) {
-      toast(`Saved ${Math.floor(actualSec / 60)}m locally (offline)`, "info");
-    } else {
-      toast("Failed to save session progress", "error");
-    }
-  }, [mode, getActiveSeconds, totalFocusSec, persistence, reset, toast, completedTasks.length]);
+    await handleSessionRecorded(session, dbSessionId);
+  }, [handleSessionRecorded, mode, getActiveSeconds, totalFocusSec, persistence, reset]);
 
   const handleReset = useCallback(() => {
     const snap = getSnapshot();
-    if (snap.status === "running" && snap.mode === "focus") { setShowExitConfirm(true); return; }
+    // Resetting a paused focus block used to discard its accumulated seconds
+    // without even showing the save dialog. Treat running and paused focus
+    // blocks consistently: leaving always offers the partial-session recorder.
+    if ((snap.status === "running" || snap.status === "paused") && snap.mode === "focus" && getActiveSeconds() > 0) {
+      setShowExitConfirm(true);
+      return;
+    }
     persistence.clearDbSession();
     reset(false);
     setTotalFocusSec(0);
     setLockMode("none");
     setExitPhrase("");
-  }, [persistence, reset, getSnapshot]);
+  }, [persistence, reset, getSnapshot, getActiveSeconds]);
 
+  // There is no destructive exit from a focus block: every exit path uses the
+  // same partial-session recorder so elapsed time cannot disappear behind a
+  // red "abandon" button.
   const handleCancelNoSave = useCallback(() => {
-    setShowExitConfirm(false);
-    setShowDistractionModal(true);
-    // Analytics: track abandoned session
-    if (mode === "focus") {
-      trackSessionAbandoned(Math.floor(getActiveSeconds()), "user_exit");
-    }
-    persistence.clearDbSession();
-    reset(false);
-    setLockMode("none");
-    setExitPhrase("");
-  }, [persistence, reset, mode, getActiveSeconds]);
+    void handleCompleteEarly();
+  }, [handleCompleteEarly]);
 
   const handleLockExit = useCallback(() => { setShowExitConfirm(true); }, []);
 
@@ -1252,10 +1285,11 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
               </button>
               <button
                 onClick={handleCancelNoSave}
-                className="w-full rounded-xl border border-[var(--palette-red-500)]/15 bg-[var(--palette-red-500)]/8 px-4 py-3 text-left transition-all hover:bg-[var(--palette-red-500)]/15"
+                disabled={isSaving}
+                className="w-full rounded-xl border border-[var(--palette-amber-500)]/20 bg-[var(--palette-amber-500)]/8 px-4 py-3 text-left transition-all hover:bg-[var(--palette-amber-500)]/15 disabled:opacity-50"
               >
-                <p className="text-xs font-bold text-[var(--palette-red-400)]"><X size={13} aria-hidden="true" /> Abandon Session</p>
-                <p className="text-[11px] text-[var(--palette-red-400)]/60 mt-0.5">Discard all progress</p>
+                <p className="text-xs font-bold text-[var(--palette-amber-400)]"><CheckCircle2 size={13} aria-hidden="true" /> Save & Exit</p>
+                <p className="text-[11px] text-[var(--palette-amber-400)]/60 mt-0.5">Record every second as an early session</p>
               </button>
             </div>
           </motion.div>

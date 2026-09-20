@@ -29,12 +29,12 @@ import { LandingMobileCta } from "@/components/landing/LandingMobileCta";
 import { LandingCursorGlow } from "@/components/landing/LandingCursorGlow";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 import { Reveal, RevealStagger, RevealItem, ScrollScale, HeroScrub, Parallax } from "@/components/motion/Scroll";
+import { AdSlot } from "@/components/AdSlot";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
-import { trackSiteEvent } from "@/lib/site-analytics";
 
 const Hero3D = lazy(() => import("@/components/Hero3D"));
 
@@ -80,7 +80,7 @@ function MarketingNav() {
               the button — "start focusing" — is one click true. Sending this to
               /signup asked for an account before showing the product, which is
               the leak behind the 0.2-0.7% landing-to-timer rate. */}
-          <Button asChild><Link href="/focus" onClick={() => trackSiteEvent("cta_clicked", { placement: "header", destination: "/focus" })}>Start focusing <ArrowRight /></Link></Button>
+          <Button asChild><Link href="/focus">Start focusing <ArrowRight /></Link></Button>
         </div>
         <div className="flex items-center gap-1 md:hidden">
           <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
@@ -96,7 +96,7 @@ function MarketingNav() {
             <a href="#features" onClick={() => setOpen(false)} className="flex min-h-11 items-center rounded-lg px-3 text-sm">Features</a>
             <Link href="/guides" className="flex min-h-11 items-center rounded-lg px-3 text-sm">Study guides</Link>
             <Link href="/pricing" className="flex min-h-11 items-center rounded-lg px-3 text-sm">Pricing</Link>
-            <div className="mt-3 grid grid-cols-2 gap-2"><Button asChild variant="outline"><Link href="/login">Sign in</Link></Button><Button asChild><Link href="/focus" onClick={() => trackSiteEvent("cta_clicked", { placement: "mobile_menu", destination: "/focus" })}>Get started</Link></Button></div>
+            <div className="mt-3 grid grid-cols-2 gap-2"><Button asChild variant="outline"><Link href="/login">Sign in</Link></Button><Button asChild><Link href="/focus">Get started</Link></Button></div>
           </div>
         </div>
       )}
@@ -194,7 +194,7 @@ export default function LandingPage() {
               Pomodoro sessions, AI coaching, and streaks that keep you focused — free, no credit card required.
             </motion.p>
             <motion.div {...entrance} className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Button asChild size="xl"><Link href="/focus" onClick={() => trackSiteEvent("cta_clicked", { placement: "hero", destination: "/focus" })}>Start Focusing Free <ArrowRight /></Link></Button>
+              <Button asChild size="xl"><Link href="/focus">Start Focusing Free <ArrowRight /></Link></Button>
               <Button asChild size="xl" variant="outline"><a href="#product">See how it works <ChevronRight /></a></Button>
             </motion.div>
             <motion.p {...entrance} className="mt-3 text-xs text-[var(--foreground-subtle)]">
@@ -337,6 +337,7 @@ export default function LandingPage() {
             CTA, so it satisfies AdSense's accidental-click policy. */}
         <section className="px-4 sm:px-6">
           <div className="mx-auto max-w-5xl">
+            <AdSlot name="landingMid" />
           </div>
         </section>
 
@@ -411,7 +412,7 @@ export default function LandingPage() {
             <span className="mx-auto grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] bg-[var(--brand-soft)] text-[var(--brand-strong)]"><Clock3 /></span>
             <h2 className="font-display-serif mx-auto mt-6 max-w-2xl text-balance text-3xl tracking-[-0.02em] sm:text-5xl">Your next focused hour starts now.</h2>
             <p className="mx-auto mt-5 max-w-xl text-base text-[var(--foreground-muted)]">Choose one task and begin with a single focus block. No account and no credit card required — save your streak later if you want to.</p>
-            <Button asChild size="xl" className="mt-8"><Link href="/focus" onClick={() => trackSiteEvent("cta_clicked", { placement: "footer", destination: "/focus" })}>Start Focusing Free <ArrowRight /></Link></Button>
+            <Button asChild size="xl" className="mt-8"><Link href="/focus">Start Focusing Free <ArrowRight /></Link></Button>
             <p className="mt-4 text-xs text-[var(--foreground-subtle)]">Free forever — Premium activated with coins you earn by focusing</p>
           </Reveal>
         </section>
@@ -419,6 +420,7 @@ export default function LandingPage() {
         {/* ── AD SLOT: above the footer ─────────────────────────── */}
         <section className="px-4 pb-16 sm:px-6">
           <div className="mx-auto max-w-5xl">
+            <AdSlot name="landingFooter" />
           </div>
         </section>
       </main>

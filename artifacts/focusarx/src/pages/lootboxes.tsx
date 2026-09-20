@@ -38,7 +38,7 @@ interface MyBox { id: string; boxTypeId: string; status: string }
 interface LootWallet { coins: number }
 interface LootReward {
   type?: string;
-  value?: number;
+  value?: number | string;
   label?: string;
   description?: string | null;
   emoji?: string | null;

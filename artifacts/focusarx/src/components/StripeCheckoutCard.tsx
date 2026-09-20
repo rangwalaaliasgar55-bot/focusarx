@@ -12,7 +12,6 @@ import { useQuery } from "@tanstack/react-query";
 import { CreditCard } from "lucide-react";
 import { apiJson } from "@/lib/api";
 import { useToast } from "@/components/Toast";
-import { trackSiteEvent } from "@/lib/site-analytics";
 
 export default function StripeCheckoutCard() {
   const { toast } = useToast();
@@ -29,7 +28,6 @@ export default function StripeCheckoutCard() {
 
   const checkout = async (interval: "month" | "year") => {
     setBusy(interval);
-    trackSiteEvent("checkout_started", { provider: "stripe", interval });
     try {
       const res = await apiJson<{ url: string }>("/api/premium/stripe/checkout", {
         method: "POST",
@@ -52,7 +50,7 @@ export default function StripeCheckoutCard() {
         </span>
         <div>
           <p className="text-sm font-bold">Pay by card</p>
-          <p className="text-xs text-[var(--foreground-muted)]">International Pro checkout. Same entitlement as Focus Credits.</p>
+          <p className="text-xs text-[var(--foreground-muted)]">Pro, billed monthly or yearly. Same perks as token unlocks.</p>
         </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
@@ -64,7 +62,7 @@ export default function StripeCheckoutCard() {
             onClick={() => void checkout(interval)}
             className="min-h-[44px] rounded-full bg-[var(--surface-hover)] px-5 text-xs font-bold text-[var(--foreground)] ring-1 ring-[var(--border-subtle)] transition-colors hover:ring-[var(--brand-500)] disabled:opacity-60"
           >
-            {busy === interval ? "Starting…" : interval === "month" ? "$4.99 monthly" : "$39 yearly"}
+            {busy === interval ? "Starting…" : interval === "month" ? "Pro Monthly" : "Pro Yearly (save 2 months)"}
           </button>
         ))}
       </div>

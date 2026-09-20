@@ -239,9 +239,9 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   },
   pricing: {
     canonical: "/pricing",
-    title: "FocusArx Pricing — Free, Pro, or Focus Credits",
-    description: "The core stays free. Pro is ₹199 monthly or ₹1,499 yearly in India, with international card pricing and an earned Focus Credits option.",
-    keywords: "FocusArx pricing, free focus timer, study app pro, UPI study app, Focus Credits",
+    title: "FocusArx pricing: free plan, or premium coins",
+    description: "FocusArx is completely free forever. Unlock Premium — advanced AI coaching, exclusive themes, deep insights — with coins you earn by focusing. No subscriptions.",
+    keywords: "FocusArx free, free focus timer, free study app, deep work features, FocusArx premium coins",
   },
   onboarding: {
     canonical: "/onboarding",
@@ -361,7 +361,7 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   cookiePolicy: {
     canonical: "/cookie-policy",
     title: "Cookie Policy | FocusArx",
-    description: "How FocusArx uses first-party storage, analytics consent, campaign attribution, hosted checkout, and optional content-page advertising.",
+    description: "How FocusArx uses cookies — minimal, for authentication and analytics. No third-party tracking cookies.",
     keywords: "FocusArx cookies, FocusArx cookie policy",
   },
   acceptableUse: {
@@ -436,9 +436,9 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   },
   premium: {
     canonical: "/premium",
-    title: "FocusArx Pro — Card, UPI, or Focus Credits",
-    description: "Activate FocusArx Pro through card or UPI checkout, or with Focus Credits earned by studying. All routes grant the same advanced tools.",
-    keywords: "FocusArx Pro, Focus Credits, premium membership, UPI study app, productivity premium",
+    title: "Premium Membership — Unlock with Focus Tokens",
+    description: "FocusArx Premium unlocks advanced AI coaching, exclusive themes, deeper Focus DNA insights and boosts — bought with Focus Tokens you earn by studying. No card.",
+    keywords: "FocusArx premium, focus tokens, premium membership, productivity premium, token economy",
   },
   pets: {
     canonical: "/pets",
@@ -450,7 +450,7 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   battlePass: {
     canonical: "/battle-pass",
     title: "Battle Pass | 30 Tiers • Free + Premium Tracks | FocusArx",
-    description: "28-30 day battle pass with 30 tiers, free and premium tracks unlocked with Focus Credits only. Claim-all, grace period, no real money.",
+    description: "28-30 day battle pass with 30 tiers, free and premium tracks unlocked with Focus Tokens only. Claim-all, grace period, no real money.",
     keywords: "battle pass, focus battle pass, token rewards, premium track",
     noindex: true,
   },
@@ -470,9 +470,9 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   },
   quests: {
     canonical: "/quests",
-    title: "Quests | Earn Focus Credits Daily | FocusArx",
-    description: "Daily and weekly quests to earn Focus Credits. Pro gets more quests and streak credit bonuses.",
-    keywords: "quests, focus credits, daily quests",
+    title: "Quests | Earn Focus Tokens Daily | FocusArx",
+    description: "Daily and weekly quests to earn Focus Tokens. Premium gets more quests and streak token bonuses.",
+    keywords: "quests, focus tokens, daily quests",
     noindex: true,
   },
   profile: {

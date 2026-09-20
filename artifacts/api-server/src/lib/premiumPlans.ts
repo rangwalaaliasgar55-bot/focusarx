@@ -1,6 +1,6 @@
 /**
  * Premium plans and entitlements — token-based membership
- * No real-money payments, only Focus Credits
+ * No real-money payments, only Focus Tokens
  */
 
 import { db } from "@workspace/db";
@@ -33,7 +33,7 @@ const DEFAULT_PLANS: PremiumPlanConfig[] = [
   {
     slug: "premium_30",
     name: "30-Day Premium",
-    description: "Unlock all premium features for 30 days using Focus Credits",
+    description: "Unlock all premium features for 30 days using Focus Tokens",
     durationDays: 30,
     tokenCost: 10000,
     benefits: [
@@ -402,7 +402,7 @@ export async function purchasePremiumWithTokens(
   } catch (err) {
     const e = err as { message?: string; code?: string };
     if (e.message === "INSUFFICIENT_BALANCE") {
-      return { success: false, error: `Insufficient Focus Credits. Need ${plan.tokenCost.toLocaleString()} credits.` };
+      return { success: false, error: `Insufficient Focus Tokens. Need ${plan.tokenCost.toLocaleString()} tokens.` };
     }
     if (e.code === "23505" || e.message?.includes("duplicate") || e.message?.includes("unique")) {
       // Idempotency race — fetch existing

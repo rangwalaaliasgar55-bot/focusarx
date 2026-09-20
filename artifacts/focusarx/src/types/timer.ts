@@ -22,6 +22,10 @@ export interface Session {
   stabilityRating?: string | null;
   sessionInsights?: SessionInsights | null;
   taskId?: string;
+  /** A Flowtime exit is a real partial completion, not a discarded reset. */
+  completedEarly?: boolean;
+  plannedDurationSec?: number | null;
+  completionPercentage?: number | null;
 }
 
 export interface Task {

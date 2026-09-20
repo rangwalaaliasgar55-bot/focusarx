@@ -141,34 +141,6 @@
       "when": 1789300000000,
       "tag": "0019_webhooks_and_integrations",
       "breakpoints": true
-    },
-    {
-      "idx": 20,
-      "version": "7",
-      "when": 1789920000000,
-      "tag": "0020_city_builder_economy",
-      "breakpoints": true
-    },
-    {
-      "idx": 21,
-      "version": "7",
-      "when": 1789921000000,
-      "tag": "0021_city_simulation",
-      "breakpoints": true
-    },
-    {
-      "idx": 22,
-      "version": "7",
-      "when": 1789922000000,
-      "tag": "0022_voice_capture_batches",
-      "breakpoints": true
-    },
-    {
-      "idx": 23,
-      "version": "7",
-      "when": 1789923000000,
-      "tag": "0023_payment_checkout_intents",
-      "breakpoints": true
     }
   ]
 }

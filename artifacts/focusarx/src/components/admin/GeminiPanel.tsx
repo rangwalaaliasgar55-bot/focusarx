@@ -83,6 +83,12 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
      when the flag row is absent, so the optimistic default here matches. */
   const [autoPublish, setAutoPublish] = useState(true);
   const [autoPublishBusy, setAutoPublishBusy] = useState(false);
+  const [adminAction, setAdminAction] = useState<"feed_post" | "announcement" | "quest_builder" | "marketplace_steward">("feed_post");
+  const [actionTitle, setActionTitle] = useState("");
+  const [actionBody, setActionBody] = useState("");
+  const [actionTheme, setActionTheme] = useState("");
+  const [actionBusy, setActionBusy] = useState(false);
+  const [actionResult, setActionResult] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -242,6 +248,42 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
     } finally { setGenBusy(null); }
   };
 
+  const executeAdminAction = async () => {
+    setActionBusy(true);
+    setActionResult(null);
+    try {
+      const r = await adminFetch("/api/admin/gemini/actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        credentials: "include",
+        body: JSON.stringify({
+          action: adminAction,
+          ...(adminAction === "feed_post" || adminAction === "announcement"
+            ? { title: actionTitle, body: actionBody }
+            : adminAction === "quest_builder"
+              ? { theme: actionTheme || undefined, count: 1 }
+              : { introduce: 1, retire: 1 }),
+        }),
+      });
+      const d = await r.json() as { message?: string; error?: string; postId?: string };
+      if (!r.ok) {
+        setActionResult(`Error: ${d.error ?? "Action failed"}`);
+        return;
+      }
+      setActionResult(d.message ?? (d.postId ? `Published post ${d.postId}.` : "Action completed."));
+      if (adminAction === "feed_post" || adminAction === "announcement") {
+        setActionTitle("");
+        setActionBody("");
+      }
+      await loadStatus();
+      await loadIdeas();
+    } catch {
+      setActionResult("Error: could not reach the admin action service.");
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
   const pct = (n: number, cap: number) => (cap > 0 ? Math.min(100, Math.round((n / cap) * 100)) : 0);
 
   return (
@@ -266,7 +308,12 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
                 </span>
               </div>
               <p className="mt-2 text-2xl font-bold tabular-nums text-[var(--foreground)]">
-                {v ? `${v.used} <span className="text-sm font-medium text-[var(--foreground-subtle)]">/ {v.cap} today</span>` : "—"}
+                {v ? (
+                  <>
+                    {v.used}
+                    <span className="ml-1 text-sm font-medium text-[var(--foreground-subtle)]">/ {v.cap} today</span>
+                  </>
+                ) : "—"}
               </p>
               <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-hover)]">
                 <div
@@ -445,6 +492,67 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
             <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--foreground-muted)]">
               <Sparkles size={13} /> Officers (lazy ticks — no cron)
             </p>
+
+            {/* Explicit command centre: admins choose a bounded operation and
+                enter the content/parameters. It executes on the server and
+                reports the actual post/quest result instead of pretending that
+                a prompt was acted on. */}
+            <div className="mb-4 rounded-xl border border-[var(--brand-strong)]/25 bg-[var(--brand-soft)]/30 p-3">
+              <p className="text-xs font-semibold text-[var(--foreground)]">Gemini action centre</p>
+              <p className="mt-1 text-[11px] leading-relaxed text-[var(--foreground-subtle)]">
+                Give Gemini a safe, concrete operation. Publishing is immediate and audit-logged; it never moderates accounts or moves currency.
+              </p>
+              <select
+                value={adminAction}
+                onChange={(e) => setAdminAction(e.target.value as typeof adminAction)}
+                className="mt-2 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] px-2.5 py-2 text-xs text-[var(--foreground)]"
+                aria-label="Gemini admin action"
+              >
+                <option value="feed_post">Publish a community feed post</option>
+                <option value="announcement">Publish a site announcement</option>
+                <option value="quest_builder">Build one quest for everyone</option>
+                <option value="marketplace_steward">Curate one marketplace item</option>
+              </select>
+              {(adminAction === "feed_post" || adminAction === "announcement") ? (
+                <div className="mt-2 space-y-2">
+                  <input
+                    value={actionTitle}
+                    onChange={(e) => setActionTitle(e.target.value)}
+                    placeholder={adminAction === "feed_post" ? "Post title" : "Announcement title"}
+                    maxLength={140}
+                    className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] px-2.5 py-2 text-xs text-[var(--foreground)] outline-none focus:border-[var(--brand-strong)]"
+                  />
+                  <textarea
+                    value={actionBody}
+                    onChange={(e) => setActionBody(e.target.value)}
+                    placeholder={adminAction === "feed_post" ? "What should Gemini publish?" : "What should everyone see?"}
+                    maxLength={4000}
+                    rows={3}
+                    className="w-full resize-y rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] px-2.5 py-2 text-xs text-[var(--foreground)] outline-none focus:border-[var(--brand-strong)]"
+                  />
+                </div>
+              ) : adminAction === "quest_builder" ? (
+                <input
+                  value={actionTheme}
+                  onChange={(e) => setActionTheme(e.target.value)}
+                  placeholder="Optional quest theme, e.g. JEE revision"
+                  maxLength={120}
+                  className="mt-2 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] px-2.5 py-2 text-xs text-[var(--foreground)] outline-none focus:border-[var(--brand-strong)]"
+                />
+              ) : (
+                <p className="mt-2 text-[11px] text-[var(--foreground-subtle)]">Introduces one bounded item and retires one eligible item.</p>
+              )}
+              <button
+                type="button"
+                onClick={() => void executeAdminAction()}
+                disabled={actionBusy || ((adminAction === "feed_post" || adminAction === "announcement") && (!actionTitle.trim() || !actionBody.trim()))}
+                className="mt-2 w-full rounded-lg border border-[var(--brand-strong)] bg-[var(--brand-strong)] px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+              >
+                {actionBusy ? "Executing…" : "Execute selected action"}
+              </button>
+              {actionResult && <p role="status" className={cn("mt-2 text-[11px] font-medium", actionResult.startsWith("Error:") ? "text-[var(--danger)]" : "text-[var(--success)]")}>{actionResult}</p>}
+            </div>
+
             <div className="space-y-2">
               <button
                 onClick={() => void generate("daily")}

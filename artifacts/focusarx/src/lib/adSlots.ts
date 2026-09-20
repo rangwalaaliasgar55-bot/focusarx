@@ -21,7 +21,7 @@ import { lazy } from "react";
 
 /** Master switch — flip off to ship the app with no ad requests at all. */
 export const ENABLE_ADS =
-  (import.meta.env.VITE_ENABLE_ADS as string | undefined) === "true";
+  (import.meta.env.VITE_ENABLE_ADS as string | undefined) !== "false";
 
 /**
  * Sticky mobile anchor ads. OFF by default — they permanently consume ~90px of

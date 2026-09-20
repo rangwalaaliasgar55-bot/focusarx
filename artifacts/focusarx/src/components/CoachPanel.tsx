@@ -159,7 +159,7 @@ export default function CoachPanel() {
     } catch (e) {
       if (e instanceof ApiError && e.status === 403) {
         // Premium required — show lock
-        setMessages((h) => [...h, { role: "assistant", content: "Focus Coach is Premium-only. Unlock with Focus Credits to continue." }]);
+        setMessages((h) => [...h, { role: "assistant", content: "Focus Coach is Premium-only. Unlock with Focus Tokens to continue." }]);
         setLoading(false);
         return;
       }
@@ -248,7 +248,7 @@ export default function CoachPanel() {
                 <div>
                   <h3 className="text-sm font-bold">Focus Coach is available with Premium access</h3>
                   <p className="mt-2 text-xs leading-relaxed text-[var(--foreground-muted)]">
-                    {lockScreen?.description ?? "Unlock personalized focus plans, session analysis, and productivity guidance using Focus Credits."}
+                    {lockScreen?.description ?? "Unlock personalized focus plans, session analysis, and productivity guidance using Focus Tokens."}
                   </p>
                 </div>
 
@@ -271,17 +271,17 @@ export default function CoachPanel() {
                       <span className="flex items-center gap-1.5">
                         <Coins size={14} className="text-[var(--brand-400)]" /> Your balance
                       </span>
-                      <span className="font-bold tabular-nums">{lockScreen.currentBalance?.toLocaleString() ?? 0} credits</span>
+                      <span className="font-bold tabular-nums">{lockScreen.currentBalance?.toLocaleString() ?? 0} tokens</span>
                     </div>
                     {lockScreen.plan && (
                       <>
                         <div className="mt-1.5 flex items-center justify-between text-[var(--foreground-subtle)]">
                           <span>Need for {lockScreen.plan.durationDays} days</span>
-                          <span className="font-medium">{lockScreen.plan.tokenCost?.toLocaleString()} credits</span>
+                          <span className="font-medium">{lockScreen.plan.tokenCost?.toLocaleString()} tokens</span>
                         </div>
                         {(lockScreen.tokensNeeded ?? 0) > 0 && (
                           <p className="mt-2 text-[11px] text-[var(--warning)]">
-                            You currently have {lockScreen.currentBalance?.toLocaleString()} credits and need {lockScreen.tokensNeeded?.toLocaleString()} more for {lockScreen.plan.durationDays} days of Premium.
+                            You currently have {lockScreen.currentBalance?.toLocaleString()} tokens and need {lockScreen.tokensNeeded?.toLocaleString()} more for {lockScreen.plan.durationDays} days of Premium.
                           </p>
                         )}
                       </>
@@ -302,7 +302,7 @@ export default function CoachPanel() {
                     className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-hover)] px-4 py-2.5 text-sm font-medium"
                     onClick={() => setOpen(false)}
                   >
-                    Earn credits through quests <ArrowRight size={14} />
+                    Earn tokens through quests <ArrowRight size={14} />
                   </Link>
                 </div>
                 <p className="text-[11px] text-[var(--foreground-subtle)]">No real-money payments. Unlock purely through productivity.</p>

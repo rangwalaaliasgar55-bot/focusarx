@@ -24,8 +24,8 @@
 //     would be a translation of a sentence that does not earn its place, it is
 //     simply not here.
 //   • Every factual claim traces to the code. Currency figures come from
-//     api-server/src/lib/premiumPlans.ts (10,000 / 25,000 / 80,000 Focus Credits
-//     for 30 / 90 / 365 days) and tokenLedger.ts (50 credits per completed
+//     api-server/src/lib/premiumPlans.ts (10,000 / 25,000 / 80,000 Focus Tokens
+//     for 30 / 90 / 365 days) and tokenLedger.ts (50 tokens per completed
 //     session, 500 per day cap). Timezone behaviour comes from
 //     api-server/src/lib/timezone.ts and istDate.ts. No edition claims a price
 //     in rupees, reais or euros — the product has no currency conversion, no
@@ -96,14 +96,14 @@ const CONTENT = {
         ],
       },
       {
-        h: "The core stays free; Pro has two doors",
-        p: "The timer, study rooms and guides stay free. Pro can be activated with UPI or card for ₹199 monthly or ₹1,499 yearly, or with Focus Credits earned by finishing sessions. Students without a payment method can still reach the same Pro entitlement by studying.",
+        h: "Nothing to pay, and no card anywhere in the product",
+        p: "The timer, the study rooms, the guides and the AI coach are free. Premium is not sold for money at all — it is bought with Focus Tokens that you earn by finishing sessions, so the only thing standing between you and it is study time. There is no payment gateway in this product, which means there is no card form to fill in and nothing to cancel.",
       },
     ],
     faq: [
       [
         "Is FocusArx free for Indian students?",
-        "Yes. The focus timer, exam guides, study rooms and AI coach are free with no credit card. Premium is bought with Focus Credits earned from completed sessions — 50 credits per session, up to 500 a day — so 30 days of Premium costs 10,000 credits, roughly 200 finished sessions.",
+        "Yes. The focus timer, exam guides, study rooms and AI coach are free with no credit card. Premium is bought with Focus Tokens earned from completed sessions — 50 tokens per session, up to 500 a day — so 30 days of Premium costs 10,000 tokens, roughly 200 finished sessions.",
       ],
       [
         "Which Indian exams does FocusArx cover?",
@@ -124,55 +124,55 @@ const CONTENT = {
       `${en("exam/upsc-cse")}|UPSC CSE study plan`,
       `${en("exam/cbse-class-12")}|CBSE Class 12 board plan`,
       `${en("exam")}|All 23 exam guides`,
-      "/in/pricing|What Premium costs in credits",
+      "/in/pricing|What Premium costs in tokens",
     ],
     cta: { href: "/focus?duration=50&src=in", label: "Start a 50-minute session — free" },
   },
 
   "in/pricing": {
-    title: "FocusArx India Pricing — Free, UPI or Credits",
+    title: "FocusArx Pricing for India — No Card Required",
     description:
-      "Core FocusArx tools are free. Pro is ₹199 monthly or ₹1,499 yearly through UPI/card, or 10,000 earned Focus Credits for 30 days.",
-    h1: "FocusArx pricing in India",
-    lead: "Keep the core free, pay for Pro by UPI or card, or pay with focus. The earned route grants the same Pro access as the ₹199 monthly and ₹1,499 annual plans.",
+      "No rupee price: FocusArx takes no payments. Premium costs Focus Tokens you earn studying — 10,000 for 30 days, about 200 sessions. No card.",
+    h1: "What FocusArx costs in India: nothing, in rupees",
+    lead: "There is no rupee price because there is no way to pay in rupees — or in dollars. FocusArx has no payment gateway. Premium is exchanged for Focus Tokens, which you earn by finishing study sessions.",
     lastReviewed: "2026-09-18",
     sections: [
       {
-        h: "Pay with money or pay with focus",
-        p: "Pro costs ₹199 monthly or ₹1,499 yearly through Razorpay when checkout is enabled. The alternative earned prices are:",
+        h: "How Premium is actually bought",
+        p: "Premium plans have a token price, not a currency price. You earn tokens by studying and spend them on the plan you want:",
         bullets: [
-          "30 days of Premium — 10,000 Focus Credits",
-          "90 days of Premium — 25,000 Focus Credits",
-          "365 days of Premium — 80,000 Focus Credits",
-          "One completed session earns 50 credits, capped at 500 per day",
-          "Daily quests earn 30 credits (150 per day), weekly quests 100, and keeping a streak earns 20",
+          "30 days of Premium — 10,000 Focus Tokens",
+          "90 days of Premium — 25,000 Focus Tokens",
+          "365 days of Premium — 80,000 Focus Tokens",
+          "One completed session earns 50 tokens, capped at 500 per day",
+          "Daily quests earn 30 tokens (150 per day), weekly quests 100, and keeping a streak earns 20",
         ],
       },
       {
         h: "What that works out to",
-        p: "At the session rate alone — 50 credits per finished session — 30 days of Premium is about 200 sessions, and the 500-credit daily cap means a heavy day cannot shortcut the whole month. Realistically a student studying two or three focused sessions a day reaches a month of Premium in a couple of months. Nothing expires while it sits in your wallet, and a purchase cannot be charged twice: every credit spend is recorded against an idempotency key in the ledger.",
+        p: "At the session rate alone — 50 tokens per finished session — 30 days of Premium is about 200 sessions, and the 500-token daily cap means a heavy day cannot shortcut the whole month. Realistically a student studying two or three focused sessions a day reaches a month of Premium in a couple of months. Nothing expires while it sits in your wallet, and a purchase cannot be charged twice: every token spend is recorded against an idempotency key in the ledger.",
       },
       {
-        h: "Payment privacy and the no-card route",
-        p: "UPI and card details are handled by Razorpay or Stripe and are not stored on FocusArx servers. A payment method is optional because Focus Credits remain a complete route to Pro. Coins are separate: they buy cosmetics in the marketplace and cannot be spent on Pro.",
+        h: "Why there is no card form",
+        p: "The product does not store payment details, does not call a payment processor and has no subscription to cancel. For a student in a hostel on someone else's card, that removes the whole question. Coins — the other currency in the app — are separate again: they buy cosmetics in the marketplace and cannot be spent on Premium.",
       },
     ],
     faq: [
       [
         "Does FocusArx accept UPI or cards in India?",
-        "Yes. India checkout supports UPI and cards through Razorpay when enabled: ₹199 monthly or ₹1,499 yearly. You can also unlock Pro with Focus Credits and no payment method.",
+        "It accepts neither, because it takes no payments at all. There is no payment gateway in the product. Premium is bought with Focus Tokens earned by finishing sessions.",
       ],
       [
         "How many sessions is 30 days of Premium?",
-        "About 200. A completed session earns 50 credits and 30 days costs 10,000, with a cap of 500 credits earned per day.",
+        "About 200. A completed session earns 50 tokens and 30 days costs 10,000, with a cap of 500 tokens earned per day.",
       ],
       [
         "Is the timer free without any account?",
         "Yes — /focus is public and starts without a login. An account only adds saved history, streaks and study rooms.",
       ],
       [
-        "Do my credits expire?",
-        "No. Earned credits stay in your wallet until you spend them, and every spend is written to the ledger so a double-charge cannot happen.",
+        "Do my tokens expire?",
+        "No. Earned tokens stay in your wallet until you spend them, and every spend is written to the ledger so a double-charge cannot happen.",
       ],
     ],
     related: [
@@ -182,7 +182,7 @@ const CONTENT = {
       `${en("evidence")}|Where the study science comes from`,
       "/focus|Start the free timer",
     ],
-    cta: { href: "/focus?src=in-pricing", label: "Start earning credits — free" },
+    cta: { href: "/focus?src=in-pricing", label: "Start earning tokens — free" },
   },
 
   // ────────────────────────────────────────────────────────────────
@@ -215,7 +215,7 @@ const CONTENT = {
       },
       {
         h: "Free, with no card anywhere",
-        p: "There is no trial on the free timer and no payment method is required. Pro can be paid for by card or unlocked with Focus Credits earned from finished sessions. You can use the timer indefinitely without telling us your name.",
+        p: "There is no trial, no billing page and no payment processor in the product. Premium exists, but it is bought with Focus Tokens earned from finished sessions rather than money, so the only cost is study time. You can use the timer indefinitely without telling us your name.",
       },
     ],
     faq: [
@@ -225,7 +225,7 @@ const CONTENT = {
       ],
       [
         "Is there a free trial or a credit card requirement?",
-        "Neither is required for the free timer. Pro has optional card checkout, while earned Focus Credits provide a complete no-card alternative.",
+        "Neither. The product has no payment processor, so there is no card form and no subscription to cancel. Premium is bought with tokens you earn by studying.",
       ],
       [
         "Which US exams does FocusArx have guides for?",
@@ -233,7 +233,7 @@ const CONTENT = {
       ],
       [
         "What session lengths are available?",
-        "Preset timers for 5, 10, 15, 30 and 45 minutes, plus any custom length up to 240 minutes. A finished session earns Focus Credits toward Premium.",
+        "Preset timers for 5, 10, 15, 30 and 45 minutes, plus any custom length up to 240 minutes. A finished session earns Focus Tokens toward Premium.",
       ],
     ],
     related: [
@@ -247,25 +247,25 @@ const CONTENT = {
   },
 
   "us/pricing": {
-    title: "FocusArx Pricing — Free or Pro",
+    title: "FocusArx Pricing — Free, No Credit Card",
     description:
-      "Core FocusArx tools are free. Pro launches at $4.99 monthly or $39 yearly, or unlocks with Focus Credits earned from finished sessions.",
-    h1: "Free at the core, with two routes to Pro",
-    lead: "Use the focus timer and planning tools free. Choose international card checkout for convenience, or exchange Focus Credits earned from finished sessions for the same Pro entitlement.",
+      "FocusArx has no paid plans and no payment processor. Premium is bought with Focus Tokens earned from finished sessions: 10,000 tokens for 30 days.",
+    h1: "There is no price, because there is no payment",
+    lead: "FocusArx does not take money. There is no billing page, no trial that ends and no card stored anywhere in the product. Premium exists and it costs Focus Tokens — the currency you earn by finishing study sessions.",
     lastReviewed: "2026-09-18",
     sections: [
       {
-        h: "What Premium costs in credits",
+        h: "What Premium costs in tokens",
         bullets: [
-          "30 days — 10,000 Focus Credits (about 200 finished sessions)",
-          "90 days — 25,000 Focus Credits",
-          "365 days — 80,000 Focus Credits",
+          "30 days — 10,000 Focus Tokens (about 200 finished sessions)",
+          "90 days — 25,000 Focus Tokens",
+          "365 days — 80,000 Focus Tokens",
         ],
-        p: "A completed session earns 50 credits with a cap of 500 per day. Daily quests earn 30 (capped at 150 a day), a weekly quest earns 100, and holding a streak earns 20 a day.",
+        p: "A completed session earns 50 tokens with a cap of 500 per day. Daily quests earn 30 (capped at 150 a day), a weekly quest earns 100, and holding a streak earns 20 a day.",
       },
       {
         h: "Why the daily cap matters",
-        p: "Without a cap, a single marathon day could buy a month of Premium and the credits would mean nothing. At 500 a day the fastest route to 30 days of Premium is about twenty days of consistent study, which is the behaviour the whole product is trying to produce. Credits do not expire, and every spend is recorded against an idempotency key in the ledger so a purchase cannot be double-charged.",
+        p: "Without a cap, a single marathon day could buy a month of Premium and the tokens would mean nothing. At 500 a day the fastest route to 30 days of Premium is about twenty days of consistent study, which is the behaviour the whole product is trying to produce. Tokens do not expire, and every spend is recorded against an idempotency key in the ledger so a purchase cannot be double-charged.",
       },
       {
         h: "Coins are a different currency",
@@ -275,15 +275,15 @@ const CONTENT = {
     faq: [
       [
         "Is FocusArx really free?",
-        "The timer, guides and study rooms are free with no card. Pro is optional: pay $4.99 monthly or $39 yearly when Stripe is enabled, or use Focus Credits earned by studying.",
+        "The timer, the guides, study rooms and the AI coach are free with no card. Premium is optional and is bought with Focus Tokens you earn by studying, not with money.",
       ],
       [
-        "Do I have to subscribe?",
-        "No. Subscription checkout is one option; Focus Credits earned from completed sessions remain a no-card route to the same Pro access.",
+        "Why is there no subscription?",
+        "The product has no payment processor, so there is nothing to subscribe to and nothing to cancel. Premium is a token exchange inside the app.",
       ],
       [
         "How long does a month of Premium take to earn?",
-        "About 200 finished sessions, or roughly twenty days at the 500-credit daily cap. Credits never expire while they sit in your wallet.",
+        "About 200 finished sessions, or roughly twenty days at the 500-token daily cap. Tokens never expire while they sit in your wallet.",
       ],
     ],
     related: [
@@ -293,7 +293,7 @@ const CONTENT = {
       `${en("privacy")}|What we store`,
       "/focus|Start the free timer",
     ],
-    cta: { href: "/focus?src=us-pricing", label: "Start a session and earn credits" },
+    cta: { href: "/focus?src=us-pricing", label: "Start a session and earn tokens" },
   },
 
   // ────────────────────────────────────────────────────────────────
@@ -326,13 +326,13 @@ const CONTENT = {
       },
       {
         h: "पैसे की बात",
-        p: "टाइमर, गाइड और स्टडी रूम मुफ़्त हैं। Pro के लिए UPI या कार्ड से भुगतान कर सकते हैं, या पूरे किए गए सेशन से Focus Credits कमाकर वही एक्सेस पा सकते हैं। भुगतान विवरण FocusArx सर्वर पर नहीं रखे जाते।",
+        p: "टाइमर, गाइड, स्टडी रूम और AI कोच — सब मुफ़्त हैं। प्रीमियम पैसों से नहीं खरीदा जाता; वह Focus Tokens से मिलता है, जो आप सेशन पूरे करके कमाते हैं। ऐप में कोई पेमेंट गेटवे नहीं है, इसलिए कोई कार्ड फ़ॉर्म भी नहीं।",
       },
     ],
     faq: [
       [
         "क्या यह टाइमर पूरी तरह मुफ़्त है?",
-        "हाँ। टाइमर, परीक्षा गाइड, स्टडी रूम और AI कोच मुफ़्त हैं और किसी कार्ड की ज़रूरत नहीं। प्रीमियम Focus Credits से मिलता है, जो एक सेशन पूरा करने पर 50 की दर से मिलते हैं।",
+        "हाँ। टाइमर, परीक्षा गाइड, स्टडी रूम और AI कोच मुफ़्त हैं और किसी कार्ड की ज़रूरत नहीं। प्रीमियम Focus Tokens से मिलता है, जो एक सेशन पूरा करने पर 50 की दर से मिलते हैं।",
       ],
       [
         "क्या टाइमर चलाने के लिए अकाउंट बनाना ज़रूरी है?",
@@ -358,19 +358,19 @@ const CONTENT = {
   },
 
   "hi/pricing": {
-    title: "FocusArx की कीमत — मुफ़्त, UPI या Focus Credits",
+    title: "FocusArx की कीमत — कोई कार्ड नहीं",
     description:
-      "मुख्य टूल मुफ़्त हैं। Pro ₹199 प्रति माह या ₹1,499 प्रति वर्ष है, या 30 दिनों के लिए 10,000 कमाए हुए Focus Credits।",
-    h1: "पैसे से या फ़ोकस से Pro लें",
-    lead: "टाइमर और मुख्य पढ़ाई टूल मुफ़्त रहते हैं। सुविधा के लिए UPI/कार्ड से Pro लें, या पूरे किए गए सेशन से Focus Credits कमाकर वही Pro एक्सेस पाएँ।",
+      "FocusArx रुपये में कुछ नहीं लेता। प्रीमियम Focus Tokens से मिलता है: 30 दिन के लिए 10,000 टोकन, यानी लगभग 200 पूरे सेशन। कोई पेमेंट गेटवे नहीं।",
+    h1: "कीमत रुपये में नहीं, टोकन में",
+    lead: "FocusArx कोई पेमेंट नहीं लेता — न रुपये, न डॉलर। ऐप में कोई पेमेंट गेटवे ही नहीं है। प्रीमियम Focus Tokens से खरीदा जाता है, और टोकन आप पढ़ाई करके कमाते हैं।",
     lastReviewed: "2026-09-18",
     sections: [
       {
         h: "प्रीमियम के टोकन",
         bullets: [
-          "30 दिन का प्रीमियम — 10,000 Focus Credits",
-          "90 दिन का प्रीमियम — 25,000 Focus Credits",
-          "365 दिन का प्रीमियम — 80,000 Focus Credits",
+          "30 दिन का प्रीमियम — 10,000 Focus Tokens",
+          "90 दिन का प्रीमियम — 25,000 Focus Tokens",
+          "365 दिन का प्रीमियम — 80,000 Focus Tokens",
         ],
         p: "एक पूरा सेशन 50 टोकन देता है, और एक दिन में अधिकतम 500 टोकन मिल सकते हैं। दैनिक क्वेस्ट से 30 (रोज़ाना अधिकतम 150), साप्ताहिक क्वेस्ट से 100 और स्ट्रीक बनाए रखने पर 20 टोकन मिलते हैं।",
       },
@@ -386,7 +386,7 @@ const CONTENT = {
     faq: [
       [
         "क्या FocusArx UPI या कार्ड स्वीकार करता है?",
-        "हाँ। उपलब्ध होने पर Razorpay से UPI और कार्ड स्वीकार होते हैं: ₹199 प्रति माह या ₹1,499 प्रति वर्ष। बिना कार्ड के Focus Credits वाला विकल्प भी बना रहता है।",
+        "नहीं, क्योंकि यह कोई पेमेंट ही नहीं लेता। ऐप में पेमेंट गेटवे नहीं है; प्रीमियम टोकन से मिलता है।",
       ],
       [
         "30 दिन के प्रीमियम में कितने सेशन लगेंगे?",
@@ -437,7 +437,7 @@ const CONTENT = {
       },
       {
         h: "Gratis, y sin tarjeta en ningún sitio",
-        p: "El temporizador gratis no tiene período de prueba ni exige pago. Pro se puede pagar con tarjeta o desbloquear con Focus Credits ganados al terminar sesiones. Puedes usar el temporizador indefinidamente sin decirnos tu nombre.",
+        p: "No hay período de prueba, ni página de pago, ni procesador de pagos en el producto. Existe un plan Premium, pero se compra con Focus Tokens que ganas terminando sesiones, así que el único coste es tiempo de estudio. Puedes usar el temporizador indefinidamente sin decirnos tu nombre.",
       },
     ],
     faq: [
@@ -447,11 +447,11 @@ const CONTENT = {
       ],
       [
         "¿Hay prueba gratuita o tarjeta de crédito?",
-        "Ninguna es necesaria para el temporizador gratis. Pro ofrece pago opcional con tarjeta y una alternativa completa con Focus Credits ganados estudiando.",
+        "Ninguna de las dos. El producto no tiene procesador de pagos, así que no hay formulario de tarjeta ni suscripción que cancelar. Premium se compra con tokens que ganas estudiando.",
       ],
       [
         "¿Qué duraciones de sesión hay?",
-        "Temporizadores de 5, 10, 15, 30 y 45 minutos, más cualquier duración personalizada hasta 240 minutos. Cada sesión terminada suma Focus Credits.",
+        "Temporizadores de 5, 10, 15, 30 y 45 minutos, más cualquier duración personalizada hasta 240 minutos. Cada sesión terminada suma Focus Tokens.",
       ],
       [
         "¿Está disponible en español?",
@@ -469,25 +469,25 @@ const CONTENT = {
   },
 
   "es/pricing": {
-    title: "Precios de FocusArx — gratis o Pro",
+    title: "Precios de FocusArx — gratis, sin tarjeta",
     description:
-      "Las herramientas principales son gratis. Pro cuesta $4,99 al mes o $39 al año, o 10.000 Focus Credits ganados por 30 días.",
-    h1: "Paga con dinero o con concentración",
-    lead: "El temporizador y las herramientas principales siguen siendo gratis. Puedes pagar Pro con tarjeta o conseguir el mismo acceso con Focus Credits ganados al terminar sesiones.",
+      "FocusArx no cobra dinero: no tiene procesador de pagos. Premium se compra con Focus Tokens que ganas terminando sesiones — 10.000 tokens por 30 días.",
+    h1: "No hay precio, porque no hay pago",
+    lead: "FocusArx no cobra dinero. No hay página de facturación, ni prueba que caduque, ni tarjeta guardada en ningún sitio. Existe Premium, y cuesta Focus Tokens: la moneda que ganas terminando sesiones de estudio.",
     lastReviewed: "2026-09-18",
     sections: [
       {
-        h: "Cuánto cuesta Premium en credits",
+        h: "Cuánto cuesta Premium en tokens",
         bullets: [
-          "30 días — 10.000 Focus Credits (unas 200 sesiones terminadas)",
-          "90 días — 25.000 Focus Credits",
-          "365 días — 80.000 Focus Credits",
+          "30 días — 10.000 Focus Tokens (unas 200 sesiones terminadas)",
+          "90 días — 25.000 Focus Tokens",
+          "365 días — 80.000 Focus Tokens",
         ],
-        p: "Una sesión completada da 50 credits, con un máximo de 500 al día. Las misiones diarias dan 30 (máximo 150 al día), la misión semanal 100 y mantener la racha 20 al día.",
+        p: "Una sesión completada da 50 tokens, con un máximo de 500 al día. Las misiones diarias dan 30 (máximo 150 al día), la misión semanal 100 y mantener la racha 20 al día.",
       },
       {
         h: "Por qué existe el límite diario",
-        p: "Sin límite, una sola maratón compraría un mes de Premium y los credits no significarían nada. Con 500 al día, el camino más rápido a 30 días de Premium son unas tres semanas de estudio constante, que es justo el comportamiento que el producto intenta producir. Los credits no caducan y cada gasto se registra con una clave de idempotencia en el libro contable, así que una compra no puede cobrarse dos veces.",
+        p: "Sin límite, una sola maratón compraría un mes de Premium y los tokens no significarían nada. Con 500 al día, el camino más rápido a 30 días de Premium son unas tres semanas de estudio constante, que es justo el comportamiento que el producto intenta producir. Los tokens no caducan y cada gasto se registra con una clave de idempotencia en el libro contable, así que una compra no puede cobrarse dos veces.",
       },
       {
         h: "Las monedas son otra cosa",
@@ -497,15 +497,15 @@ const CONTENT = {
     faq: [
       [
         "¿FocusArx es realmente gratis?",
-        "El temporizador, las guías y las salas de estudio son gratis. Pro es opcional: $4,99 al mes o $39 al año, o Focus Credits ganados estudiando.",
+        "El temporizador, las guías, las salas de estudio y el coach de IA son gratis y sin tarjeta. Premium es opcional y se compra con Focus Tokens ganados estudiando, no con dinero.",
       ],
       [
-        "¿Tengo que suscribirme?",
-        "No. La suscripción es una opción; los Focus Credits ganados siguen siendo una ruta sin tarjeta al mismo acceso Pro.",
+        "¿Por qué no hay suscripción?",
+        "Porque el producto no tiene procesador de pagos: no hay nada a lo que suscribirse ni nada que cancelar. Premium es un intercambio de tokens dentro de la aplicación.",
       ],
       [
         "¿Cuánto tarda en ganarse un mes de Premium?",
-        "Unas 200 sesiones terminadas, o alrededor de veinte días si alcanzas el límite diario de 500 credits. Los credits no caducan.",
+        "Unas 200 sesiones terminadas, o alrededor de veinte días si alcanzas el límite diario de 500 tokens. Los tokens no caducan.",
       ],
     ],
     related: [
@@ -515,7 +515,7 @@ const CONTENT = {
       `${en("about")}|Qué es FocusArx`,
       "/focus|Empezar el temporizador",
     ],
-    cta: { href: "/focus?src=es-pricing", label: "Empezar una sesión y ganar credits" },
+    cta: { href: "/focus?src=es-pricing", label: "Empezar una sesión y ganar tokens" },
   },
 
   // ────────────────────────────────────────────────────────────────
@@ -548,7 +548,7 @@ const CONTENT = {
       },
       {
         h: "Grátis, e sem cartão em lugar nenhum",
-        p: "O timer grátis não tem período de teste nem exige pagamento. O Pro pode ser pago com cartão ou desbloqueado com Focus Credits ganhos ao concluir sessões. Você pode usar o timer indefinidamente sem nos dizer seu nome.",
+        p: "Não há período de teste, página de pagamento nem processador de pagamentos no produto. Existe um plano Premium, mas ele é comprado com Focus Tokens que você ganha terminando sessões — ou seja, o único custo é tempo de estudo. Você pode usar o timer indefinidamente sem nos dizer seu nome.",
       },
     ],
     faq: [
@@ -558,11 +558,11 @@ const CONTENT = {
       ],
       [
         "Existe teste grátis ou cartão de crédito?",
-        "Nenhum é necessário para o timer grátis. O Pro oferece pagamento opcional com cartão e uma alternativa completa com Focus Credits ganhos estudando.",
+        "Nenhum dos dois. O produto não tem processador de pagamentos, então não há formulário de cartão nem assinatura para cancelar. O Premium é comprado com tokens que você ganha estudando.",
       ],
       [
         "Quais durações de sessão existem?",
-        "Timers prontos de 5, 10, 15, 30 e 45 minutos, além de qualquer duração personalizada até 240 minutos. Cada sessão concluída rende Focus Credits.",
+        "Timers prontos de 5, 10, 15, 30 e 45 minutos, além de qualquer duração personalizada até 240 minutos. Cada sessão concluída rende Focus Tokens.",
       ],
       [
         "Está disponível em português?",
@@ -580,25 +580,25 @@ const CONTENT = {
   },
 
   "pt-br/pricing": {
-    title: "Preços do FocusArx — grátis ou Pro",
+    title: "Preços do FocusArx — grátis, sem cartão",
     description:
-      "As ferramentas principais são grátis. O Pro custa US$4,99 por mês ou US$39 por ano, ou 10.000 Focus Credits ganhos por 30 dias.",
-    h1: "Pague com dinheiro ou com foco",
-    lead: "O timer e as ferramentas principais continuam grátis. Pague o Pro com cartão ou obtenha o mesmo acesso com Focus Credits ganhos ao concluir sessões.",
+      "O FocusArx não cobra dinheiro: não há processador de pagamentos. O Premium é comprado com Focus Tokens ganhos em sessões — 10.000 tokens por 30 dias.",
+    h1: "Não há preço, porque não há pagamento",
+    lead: "O FocusArx não cobra dinheiro. Não há página de cobrança, teste que expira ou cartão guardado em lugar algum. Existe o Premium, e ele custa Focus Tokens: a moeda que você ganha terminando sessões de estudo.",
     lastReviewed: "2026-09-18",
     sections: [
       {
-        h: "Quanto custa o Premium em credits",
+        h: "Quanto custa o Premium em tokens",
         bullets: [
-          "30 dias — 10.000 Focus Credits (cerca de 200 sessões concluídas)",
-          "90 dias — 25.000 Focus Credits",
-          "365 dias — 80.000 Focus Credits",
+          "30 dias — 10.000 Focus Tokens (cerca de 200 sessões concluídas)",
+          "90 dias — 25.000 Focus Tokens",
+          "365 dias — 80.000 Focus Tokens",
         ],
-        p: "Uma sessão concluída rende 50 credits, com teto de 500 por dia. As missões diárias rendem 30 (máximo de 150 por dia), a missão semanal 100 e manter a sequência rende 20 por dia.",
+        p: "Uma sessão concluída rende 50 tokens, com teto de 500 por dia. As missões diárias rendem 30 (máximo de 150 por dia), a missão semanal 100 e manter a sequência rende 20 por dia.",
       },
       {
         h: "Por que existe o teto diário",
-        p: "Sem teto, uma única maratona compraria um mês de Premium e os credits não significariam nada. Com 500 por dia, o caminho mais rápido até 30 dias de Premium são umas três semanas de estudo constante — que é exatamente o comportamento que o produto tenta produzir. Os credits não expiram e cada gasto é registrado com uma chave de idempotência no livro-razão, então uma compra não pode ser cobrada duas vezes.",
+        p: "Sem teto, uma única maratona compraria um mês de Premium e os tokens não significariam nada. Com 500 por dia, o caminho mais rápido até 30 dias de Premium são umas três semanas de estudo constante — que é exatamente o comportamento que o produto tenta produzir. Os tokens não expiram e cada gasto é registrado com uma chave de idempotência no livro-razão, então uma compra não pode ser cobrada duas vezes.",
       },
       {
         h: "As moedas são outra coisa",
@@ -608,15 +608,15 @@ const CONTENT = {
     faq: [
       [
         "O FocusArx é realmente grátis?",
-        "O timer, os guias e as salas de estudo são grátis. O Pro é opcional: US$4,99 por mês ou US$39 por ano, ou Focus Credits ganhos estudando.",
+        "O timer, os guias, as salas de estudo e o coach de IA são grátis e sem cartão. O Premium é opcional e é comprado com Focus Tokens ganhos estudando, não com dinheiro.",
       ],
       [
-        "Preciso assinar?",
-        "Não. A assinatura é uma opção; Focus Credits ganhos continuam sendo uma rota sem cartão para o mesmo acesso Pro.",
+        "Por que não há assinatura?",
+        "Porque o produto não tem processador de pagamentos: não há nada para assinar nem nada para cancelar. O Premium é uma troca de tokens dentro do aplicativo.",
       ],
       [
         "Quanto tempo leva para ganhar um mês de Premium?",
-        "Cerca de 200 sessões concluídas, ou uns vinte dias se você atingir o teto diário de 500 credits. Os credits não expiram.",
+        "Cerca de 200 sessões concluídas, ou uns vinte dias se você atingir o teto diário de 500 tokens. Os tokens não expiram.",
       ],
     ],
     related: [
@@ -626,7 +626,7 @@ const CONTENT = {
       `${en("about")}|O que é o FocusArx`,
       "/focus|Começar o timer",
     ],
-    cta: { href: "/focus?src=pt-br-pricing", label: "Começar uma sessão e ganhar credits" },
+    cta: { href: "/focus?src=pt-br-pricing", label: "Começar uma sessão e ganhar tokens" },
   },
 };
 

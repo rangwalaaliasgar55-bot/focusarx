@@ -46,12 +46,12 @@ function emojiForPet(catalog: { slug?: string; category?: string } | null | unde
 
 const LEVEL_UNLOCKS: Record<number, string[]> = {
   1: ["Pet unlocked"],
-  3: ["Custom nickname", "10 Focus Credits"],
+  3: ["Custom nickname", "10 Focus Tokens"],
   5: ["Hat accessory slot"],
-  8: ["Glasses accessory slot", "50 Focus Credits"],
-  10: ["Evolution stage 2", "100 Focus Credits", "New animation"],
-  15: ["Evolution stage 3", "Aura slot", "150 Focus Credits"],
-  20: ["Legendary evolution", "500 Focus Credits", "Exclusive badge", "Premium emote"],
+  8: ["Glasses accessory slot", "50 Focus Tokens"],
+  10: ["Evolution stage 2", "100 Focus Tokens", "New animation"],
+  15: ["Evolution stage 3", "Aura slot", "150 Focus Tokens"],
+  20: ["Legendary evolution", "500 Focus Tokens", "Exclusive badge", "Premium emote"],
 };
 
 function authHeaders() {
@@ -75,6 +75,23 @@ interface CatalogPet {
   maxLevel?: number;
   unlockSource?: string;
 }
+
+// The showcase should not disappear just because the catalogue request is
+// temporarily unavailable. This is presentation-only (never treated as owned
+// inventory or sent to an unlock endpoint), and matches the server's starter.
+const FALLBACK_BULBASAUR: CatalogPet = {
+  id: "starter-bulbasaur",
+  slug: "bulbasaur",
+  name: "Bulbasaur",
+  description: "A gentle seed Pokémon and a steady deep-work companion.",
+  rarity: "common",
+  category: "starter",
+  thumbnailUrl: null,
+  modelUrl: null,
+  tokenCost: 0,
+  isPremium: false,
+  maxLevel: 20,
+};
 
 interface InventoryEntry {
   inventory?: { id: string; isActive: boolean; level: number; bondXp: number; nickname: string | null; petId: string };
@@ -109,7 +126,7 @@ export default function PetsPage() {
    * pet the user already owned lost its "Owned" badge and grew an active
    * price button; the tab read "My Pets (0)"; and the inventory tab said
    * "No pets yet — unlock from collection", which is a false statement about
-   * the user's own collection that also *directs them to go and spend credits
+   * the user's own collection that also *directs them to go and spend tokens
    * again*. The server is idempotent (`alreadyOwned` short-circuits before the
    * ledger), so nobody is charged twice — but the page told a confident lie
    * about what the user owns, and then celebrated a purchase they had already
@@ -158,12 +175,37 @@ export default function PetsPage() {
         setInventory(inv);
         setInventoryFailed(false);
         const active = inv.find((i: InventoryEntry) => i.inventory?.isActive || i.isActive);
-        setActivePet(active ?? inv[0] ?? null);
+        const starter = (catData.pets as CatalogPet[]).find((pet) => pet.slug === "bulbasaur") ?? FALLBACK_BULBASAUR;
+        // Guests and brand-new accounts should still see the actual starter
+        // companion while the authenticated inventory is being created. This
+        // preview is not added to `inventory`, so it cannot pretend ownership
+        // or offer a fake token purchase.
+        setActivePet(active ?? inv[0] ?? (starter ? {
+          catalog: starter,
+          inventory: { id: "starter-preview", isActive: true, level: 1, bondXp: 0, nickname: null, petId: starter.id },
+        } : null));
       } else {
         setInventoryFailed(true);
+        const starter = (catData.pets as CatalogPet[]).find((pet) => pet.slug === "bulbasaur") ?? FALLBACK_BULBASAUR;
+        if (starter) {
+          setActivePet({
+            catalog: starter,
+            inventory: { id: "starter-preview", isActive: true, level: 1, bondXp: 0, nickname: null, petId: starter.id },
+          });
+        }
       }
     } catch {
-      setLoadError(true);
+      // Keep the companion surface useful during a transient catalogue/API
+      // outage. The fallback is deliberately preview-only; authenticated
+      // inventory remains empty/unknown and all spending controls stay gated.
+      setCatalog([FALLBACK_BULBASAUR]);
+      setInventory([]);
+      setInventoryFailed(true);
+      setActivePet({
+        catalog: FALLBACK_BULBASAUR,
+        inventory: { id: "starter-preview", isActive: true, level: 1, bondXp: 0, nickname: null, petId: FALLBACK_BULBASAUR.id },
+      });
+      setLoadError(false);
     } finally {
       setLoading(false);
     }
@@ -264,8 +306,8 @@ export default function PetsPage() {
               <div className="text-center">
                 {view3d ? (
                   <div className="mx-auto h-64 max-w-sm">
-                    <Suspense fallback={<div className="text-8xl">{activePet.catalog?.thumbnailUrl ? "🐾" : "🦉"}</div>}>
-                      <Pet3D petType={activePet.catalog?.slug ?? activePet.petType ?? "owl"} mood={activeMood} evolutionStage={Math.min(3, Math.floor(((activePet.inventory?.level ?? 1) - 1) / 5))} accessories={[]} onCrash={() => setView3d(false)} />
+                    <Suspense fallback={<PetSprite species={activePet.catalog?.slug ?? activePet.petType} src={activePet.catalog?.thumbnailUrl} glyph={emojiForPet(activePet.catalog ?? { slug: activePet.petType })} size={128} />}>
+                      <Pet3D petType={activePet.catalog?.slug ?? activePet.petType ?? "bulbasaur"} mood={activeMood} evolutionStage={Math.min(3, Math.floor(((activePet.inventory?.level ?? 1) - 1) / 5))} accessories={[]} onCrash={() => setView3d(false)} />
                     </Suspense>
                   </div>
                 ) : (
@@ -275,6 +317,7 @@ export default function PetsPage() {
                   <PetStage2D
                     emoji={emojiForPet(activePet.catalog ?? { slug: activePet.petType })}
                     imageUrl={activePet.catalog?.thumbnailUrl}
+                    species={activePet.catalog?.slug ?? activePet.petType}
                     name={activePet.inventory?.nickname ?? activePet.catalog?.name ?? activePet.petName ?? "Companion"}
                     rarity={activePet.catalog?.rarity}
                     mood={activeMood}
@@ -369,7 +412,7 @@ export default function PetsPage() {
                     {owned && <span className="absolute left-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-[var(--brand-600)] text-white"><CheckCircle size={12}/></span>}
                     <div className="text-center">
                       <div className="grid h-16 place-items-center">
-                        <PetSprite src={pet.thumbnailUrl} glyph={petSpeciesEmoji(pet.slug, pet.category)} size={56} />
+                        <PetSprite src={pet.thumbnailUrl} species={pet.slug} glyph={petSpeciesEmoji(pet.slug, pet.category)} size={56} />
                       </div>
                       <h3 className="mt-2 text-sm font-bold">{pet.name}</h3>
                       <p className="mt-0.5 line-clamp-2 text-[11px] text-[var(--foreground-subtle)]">{pet.description}</p>
@@ -411,7 +454,7 @@ export default function PetsPage() {
                 <div key={inv.id} className={`rounded-2xl border p-4 ${inv.isActive ? "border-[var(--brand-400)] bg-[var(--brand-soft)]" : "border-[var(--forge-border)] bg-[var(--card)]"}`}>
                   <div className="text-center">
                     <div className="grid h-16 place-items-center">
-                      <PetSprite src={cat?.thumbnailUrl} glyph={petSpeciesEmoji(cat?.slug, cat?.category)} size={56} />
+                      <PetSprite src={cat?.thumbnailUrl} species={cat?.slug} glyph={petSpeciesEmoji(cat?.slug, cat?.category)} size={56} />
                     </div>
                     <h3 className="mt-2 text-sm font-bold">{inv.nickname ?? cat?.name ?? "Pet"}</h3>
                     <p className="text-xs text-[var(--foreground-subtle)]">Lvl {inv.level ?? 1}/20 • {inv.bondXp ?? 0} XP</p>

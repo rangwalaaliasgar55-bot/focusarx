@@ -204,7 +204,7 @@ export const BLOG_POSTS = [
       },
     ],
     faq: [
-      ["Is it free?", "Yes. Timer, tasks, streaks and rooms are free forever. Premium unlocks with Focus Credits earned by focusing."],
+      ["Is it free?", "Yes. Timer, tasks, streaks and rooms are free forever. Premium unlocks with Focus Tokens earned by focusing."],
       ["Can I run Pomodoro too?", "Yes. 25/5 and 90/15 are both one setting — 10–180 min custom."],
     ],
     related: [

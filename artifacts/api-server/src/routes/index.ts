@@ -78,8 +78,6 @@ import { stripeRouter } from "./stripe";
 import { recapRouter } from "./recap";
 import { webhooksRouter } from "./webhooks";
 import { integrationsRouter } from "./integrations";
-import { voiceCaptureRouter } from "./voiceCapture";
-import { razorpayRouter } from "./razorpay";
 
 const router: IRouter = Router();
 
@@ -162,7 +160,5 @@ router.use(stripeRouter);
 router.use(recapRouter);
 router.use(webhooksRouter);
 router.use(integrationsRouter);
-router.use(voiceCaptureRouter);
-router.use(razorpayRouter);
 
 export default router;

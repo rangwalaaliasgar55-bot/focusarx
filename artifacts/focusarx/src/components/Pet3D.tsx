@@ -542,6 +542,71 @@ function PhoenixPet({ mood }: ModelProps) {
   );
 }
 
+function BulbasaurPet({ mood }: ModelProps) {
+  const { pet, eyes, head } = usePetRig(mood);
+  return (
+    <group ref={pet}>
+      {/* The bulb is behind the body, with three broad leaves so the model is
+          recognisably Bulbasaur rather than a generic green blob. */}
+      <group position={[0, 1.16, -0.34]}>
+        <mesh scale={[0.58, 0.72, 0.52]}>
+          <sphereGeometry args={[0.55, 24, 20]} />
+          <meshStandardMaterial color="#4f9d55" roughness={0.82} />
+        </mesh>
+        {[
+          { position: [-0.35, 0.48, -0.03] as [number, number, number], rotation: [0.1, 0.15, -0.55] as [number, number, number] },
+          { position: [0.34, 0.48, -0.03] as [number, number, number], rotation: [0.1, -0.15, 0.55] as [number, number, number] },
+          { position: [0, 0.62, 0.02] as [number, number, number], rotation: [0, 0, 0] as [number, number, number] },
+        ].map((leaf) => (
+          <mesh key={`${leaf.position[0]}-${leaf.position[1]}`} position={leaf.position} rotation={leaf.rotation} scale={[0.36, 0.68, 0.08]}>
+            <sphereGeometry args={[0.42, 16, 12]} />
+            <meshStandardMaterial color="#78c85a" roughness={0.72} />
+          </mesh>
+        ))}
+      </group>
+
+      {/* Low, sturdy body and pale belly */}
+      <mesh position={[0, 0.58, 0]} scale={[1.08, 0.86, 1.08]}>
+        <sphereGeometry args={[0.62, 24, 20]} />
+        <meshStandardMaterial color="#65bd5d" roughness={0.86} />
+      </mesh>
+      <mesh position={[0, 0.52, 0.5]} scale={[0.7, 0.72, 0.3]}>
+        <sphereGeometry args={[0.48, 20, 16]} />
+        <meshStandardMaterial color="#a4d978" roughness={0.9} />
+      </mesh>
+      {[-0.42, 0.42].map((x) => (
+        <mesh key={x} position={[x, 0.16, 0.28]} scale={[1.2, 0.72, 0.9]}>
+          <sphereGeometry args={[0.2, 16, 14]} />
+          <meshStandardMaterial color="#4f9d55" roughness={0.84} />
+        </mesh>
+      ))}
+
+      {/* Head, pointed ears and bright red eyes */}
+      <group ref={head} position={[0, 1.28, 0.18]}>
+        <mesh scale={[1.06, 0.96, 0.92]}>
+          <sphereGeometry args={[0.48, 24, 20]} />
+          <meshStandardMaterial color="#72c968" roughness={0.82} />
+        </mesh>
+        {[-0.3, 0.3].map((x) => (
+          <mesh key={x} position={[x, 0.4, -0.02]} rotation-z={x > 0 ? -0.28 : 0.28}>
+            <coneGeometry args={[0.14, 0.32, 10]} />
+            <meshStandardMaterial color="#4f9d55" roughness={0.8} />
+          </mesh>
+        ))}
+        <Eyes y={0.06} z={0.43} spacing={0.2} size={0.15} dark="#111827" eyeRef={eyes} />
+        <mesh position={[0, -0.14, 0.47]} scale={[1.2, 0.65, 0.55]}>
+          <sphereGeometry args={[0.14, 14, 12]} />
+          <meshStandardMaterial color="#79bd62" roughness={0.82} />
+        </mesh>
+        <mesh position={[0, -0.17, 0.57]} rotation-x={Math.PI / 2}>
+          <torusGeometry args={[0.08, 0.018, 8, 16, Math.PI]} />
+          <meshStandardMaterial color="#286341" roughness={0.65} />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
 const MODELS: Record<string, (p: ModelProps) => ReactNode> = {
   owl: (p) => <OwlPet {...p} />,
   fox: (p) => <FoxPet {...p} />,
@@ -549,13 +614,14 @@ const MODELS: Record<string, (p: ModelProps) => ReactNode> = {
   robot: (p) => <RobotPet {...p} />,
   cat: (p) => <CatPet {...p} />,
   phoenix: (p) => <PhoenixPet {...p} />,
+  bulbasaur: (p) => <BulbasaurPet {...p} />,
 };
 
 // ── accessories ─────────────────────────────────────────────────────────────
 
-const HAT_TOP: Record<string, number> = { owl: 1.92, fox: 1.66, dragon: 1.78, robot: 1.62, cat: 1.7, phoenix: 1.68 };
-const EYE_Y: Record<string, number> = { owl: 1.45, fox: 1.36, dragon: 1.44, robot: 1.34, cat: 1.38, phoenix: 1.38 };
-const EYE_Z: Record<string, number> = { owl: 0.44, fox: 0.4, dragon: 0.42, robot: 0.31, cat: 0.4, phoenix: 0.36 };
+const HAT_TOP: Record<string, number> = { owl: 1.92, fox: 1.66, dragon: 1.78, robot: 1.62, cat: 1.7, phoenix: 1.68, bulbasaur: 1.72 };
+const EYE_Y: Record<string, number> = { owl: 1.45, fox: 1.36, dragon: 1.44, robot: 1.34, cat: 1.38, phoenix: 1.38, bulbasaur: 1.34 };
+const EYE_Z: Record<string, number> = { owl: 0.44, fox: 0.4, dragon: 0.42, robot: 0.31, cat: 0.4, phoenix: 0.36, bulbasaur: 0.61 };
 
 function Hat({ itemId, topY }: { itemId: string; topY: number }) {
   const id = itemId.toLowerCase();

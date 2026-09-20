@@ -350,10 +350,9 @@ GRE and GMAT; the AI coach's system prompt is written for Indian aspirants
 American-English homepage to every market. That is the gap the editions close.
 
 Each page is authored, not machine-translated, and each is held to the same
-150-word content-depth gate as every English page. Regional pricing pages now
-state the configured Pro offer while keeping the free core and earned Focus
-Credits route explicit. Checkout remains environment-gated, so payment controls
-are hidden unless the matching provider and webhook configuration is complete.
+150-word content-depth gate as every English page. No edition claims a price in
+rupees, reais or euros — the product has no payment processor and no card
+requirement, and saying so is a stronger offer than a number it cannot charge.
 
 What the build now enforces, in `scripts/seo-validate.mjs`:
 

@@ -76,7 +76,7 @@ export default function BattlePassPage() {
       apiFetch<{ alreadyClaimed?: boolean; tokenReward?: number }>("/api/battle-pass/claim", { method: "POST", body: JSON.stringify({ tier, isPremiumReward, battlePassId: data?.seasonId }) }),
     onSuccess: (res) => {
       if (res.alreadyClaimed) toast("Already claimed", "info");
-      else toast(`Claimed! +${res.tokenReward ?? 0} Focus Credits`, "success");
+      else toast(`Claimed! +${res.tokenReward ?? 0} Focus Tokens`, "success");
       qc.invalidateQueries({ queryKey: ["battle-pass-enhanced"] });
     },
     onError: (e: unknown) => toast(errorMessage(e, "Claim failed"), "error"),
@@ -133,15 +133,15 @@ export default function BattlePassPage() {
           </div>
 
           <div className="relative mt-4 flex flex-wrap items-center gap-2">
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--palette-amber-500)]/20 bg-[var(--palette-amber-500)]/10 px-3 py-1 text-xs font-bold text-[var(--palette-amber-400)]"><Coins size={12} /> {data.tokenBalance?.toLocaleString?.() ?? data.tokenBalance ?? 0} Focus Credits</div>
-            {isPremium ? <span className="inline-flex items-center gap-1 rounded-full bg-[var(--palette-amber-500)] px-3 py-1 text-xs font-bold text-white"><Crown size={12}/> Premium active</span> : <Link href="/premium" className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-1)] px-3 py-1 text-xs font-bold text-[var(--foreground-muted)] hover:text-[var(--palette-amber-400)]"><Crown size={12}/> Unlock premium track with credits</Link>}
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--palette-amber-500)]/20 bg-[var(--palette-amber-500)]/10 px-3 py-1 text-xs font-bold text-[var(--palette-amber-400)]"><Coins size={12} /> {data.tokenBalance?.toLocaleString?.() ?? data.tokenBalance ?? 0} Focus Tokens</div>
+            {isPremium ? <span className="inline-flex items-center gap-1 rounded-full bg-[var(--palette-amber-500)] px-3 py-1 text-xs font-bold text-white"><Crown size={12}/> Premium active</span> : <Link href="/premium" className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-1)] px-3 py-1 text-xs font-bold text-[var(--foreground-muted)] hover:text-[var(--palette-amber-400)]"><Crown size={12}/> Unlock premium track with tokens</Link>}
             <button onClick={() => claimAllMutation.mutate()} disabled={claimAllMutation.isPending} className="ml-auto inline-flex items-center gap-1 rounded-full bg-[var(--brand-600)] px-4 py-1.5 text-xs font-bold text-white hover:bg-[var(--brand-700)] disabled:opacity-50">
               <Gift size={12}/> Claim all eligible
             </button>
           </div>
 
           <div className="relative mt-4 rounded-xl border border-[var(--forge-border)] bg-[var(--surface-1)]/80 p-3">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--foreground-subtle)]">How to earn Battle Pass XP — no real money, credits only</p>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--foreground-subtle)]">How to earn Battle Pass XP — no real money, tokens only</p>
             <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-4">
               <div className="rounded-lg bg-[var(--surface-2)] p-2 text-center">🎯 Focus session<br/><span className="font-bold text-[var(--brand-400)]">+50 XP</span></div>
               <div className="rounded-lg bg-[var(--surface-2)] p-2 text-center">✅ Quest complete<br/><span className="font-bold text-[var(--palette-emerald-400)]">+100 XP</span></div>
@@ -177,7 +177,7 @@ export default function BattlePassPage() {
                     <div className="flex-1">
                       <p className="text-[11px] font-bold uppercase text-[var(--foreground-subtle)]">Free</p>
                       <p className="text-xs font-semibold">{t.freeReward?.label ?? `${t.freeReward?.coins ?? 0} coins`}</p>
-                      {t.freeReward?.tokenAmount && <p className="text-[11px] text-[var(--palette-amber-400)]">🪙 {t.freeReward.tokenAmount} credits</p>}
+                      {t.freeReward?.tokenAmount && <p className="text-[11px] text-[var(--palette-amber-400)]">🪙 {t.freeReward.tokenAmount} tokens</p>}
                     </div>
                     {reached && !freeClaimed ? <button onClick={() => claimMutation.mutate({ tier: t.tier })} className="rounded-full bg-[var(--palette-emerald-500)] px-3 py-1 text-[11px] font-bold text-black">Claim</button> : freeClaimed ? <Check size={14} className="text-[var(--palette-emerald-400)]" /> : null}
                   </div>
@@ -187,11 +187,11 @@ export default function BattlePassPage() {
                     <div className="flex-1">
                       <p className="text-[11px] font-bold uppercase text-[var(--foreground-subtle)]">Premium</p>
                       <p className="text-xs font-semibold">{t.premiumReward?.label ?? `${t.premiumReward?.coins ?? 0} coins`}</p>
-                      {t.premiumReward?.tokenAmount && <p className="text-[11px] text-[var(--palette-amber-400)]">🪙 {t.premiumReward.tokenAmount} credits {t.premiumReward?.cosmeticId ? "• Cosmetic" : ""} {t.premiumReward?.petId ? "• Pet" : ""}</p>}
+                      {t.premiumReward?.tokenAmount && <p className="text-[11px] text-[var(--palette-amber-400)]">🪙 {t.premiumReward.tokenAmount} tokens {t.premiumReward?.cosmeticId ? "• Cosmetic" : ""} {t.premiumReward?.petId ? "• Pet" : ""}</p>}
                     </div>
                     {isPremium ? (reached && !premClaimed ? <button onClick={() => claimMutation.mutate({ tier: t.tier, isPremiumReward: true })} className="rounded-full bg-[var(--palette-amber-500)] px-3 py-1 text-[11px] font-bold text-black">Claim</button> : premClaimed ? <Check size={14} className="text-[var(--palette-emerald-400)]" /> : null) : <Lock size={12} className="text-[var(--foreground-subtle)]" />}
                   </div>
-                  {!isPremium && reached && <Link href="/premium" className="mt-2 flex w-full items-center justify-center gap-1 rounded-xl bg-[var(--surface-1)] py-1.5 text-[11px] font-bold text-[var(--palette-amber-400)]"><Crown size={10}/> Unlock premium track with credits</Link>}
+                  {!isPremium && reached && <Link href="/premium" className="mt-2 flex w-full items-center justify-center gap-1 rounded-xl bg-[var(--surface-1)] py-1.5 text-[11px] font-bold text-[var(--palette-amber-400)]"><Crown size={10}/> Unlock premium track with tokens</Link>}
                 </div>
               );
             })}
@@ -201,7 +201,7 @@ export default function BattlePassPage() {
         {/* Season builder note for admin */}
         <div className="mt-8 rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4">
           <h3 className="flex items-center gap-1.5 text-sm font-bold"><Sparkles size={14}/> Admin Builder (draft/preview/publish/rollback)</h3>
-          <p className="mt-1 text-xs text-[var(--foreground-muted)]">Admins can create 28-30d seasons with 30-50 tiers, free+premium tracks, Focus Credit unlocks alongside optional paid Pro access. Builder supports draft → preview → publish → rollback with audit.</p>
+          <p className="mt-1 text-xs text-[var(--foreground-muted)]">Admins can create 28-30d seasons with 30-50 tiers, free+premium tracks, token-only unlock, no real-money. Builder supports draft → preview → publish → rollback with audit.</p>
           <Link href="/admin" className="mt-3 inline-flex items-center gap-1 rounded-full bg-[var(--surface-1)] px-4 py-2 text-xs font-bold">Go to Admin <ArrowRight size={12}/></Link>
         </div>
       </div>

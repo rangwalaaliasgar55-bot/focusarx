@@ -1,5 +1,5 @@
 /**
- * tokenLedger — central Focus Credits economy
+ * tokenLedger — central Focus Tokens economy
  * - Ledger is source of truth
  * - Idempotent via idempotencyKey
  * - Transactional balance updates

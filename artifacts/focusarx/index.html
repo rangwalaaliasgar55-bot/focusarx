@@ -330,7 +330,7 @@
           "name": "How do I cancel my FocusArx Premium?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "You can cancel a recurring FocusArx Pro plan through the applicable payment support flow; access normally continues through the paid period. Pro unlocked with earned Focus Credits expires automatically and does not renew."
+            "text": "FocusArx Premium is activated using earned coins, not subscriptions. There is nothing to cancel. If your Premium expires, you can reactivate it anytime by earning more coins through focus sessions."
           }
         }
       ]
@@ -409,6 +409,7 @@
          each origin by overlapping DNS + TCP + TLS with page parse.
     ══════════════════════════════════════════════════════════════ -->
     <!-- Fonts are self-hosted (@fontsource) — no fonts.gstatic.com connection needed. -->
+    <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossorigin />
     <link rel="dns-prefetch" href="https://tpc.googlesyndication.com" />
     <!-- images.unsplash.com used to be pre-fetched here for two hotlinked hero
          illustrations; both are self-hosted WebP now (public/content/), so the
@@ -472,6 +473,21 @@
         cookie_update: true,
       });
     </script>
+
+    <!-- ══════════════════════════════════════════════════════════
+         GOOGLE ADSENSE
+         - `async` so it never blocks first paint
+         - `id` + the window flag let src/components/AdSense.tsx detect that
+           the loader is already present and skip a duplicate injection
+         - requires /ads.txt (public/ads.txt) and the googlesyndication /
+           doubleclick origins allowlisted in the server CSP
+    ══════════════════════════════════════════════════════════════ -->
+    <script
+      id="adsbygoogle-js"
+      async
+      src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3831356027941619"
+      crossorigin="anonymous"
+      onload="window.__adsbygoogleLoaded=true"></script>
 
     <!-- Production assets are injected by vite build. In dev mode, src/main.tsx is used. -->
   </head>

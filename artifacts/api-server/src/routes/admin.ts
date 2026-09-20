@@ -2,7 +2,7 @@ import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { Router } from "express";
 import jwt from "jsonwebtoken";
-import { db, pool, usersTable, focusSessionsTable, studyStreaksTable, activeSessionsTable, userMissionProgressTable, loginRewardsTable, freezeTokensTable, battlePassProgressTable, notificationsTable, premiumSubscriptionsTable, userWalletsTable, socialPostsTable, followsTable, platformMetaTable } from "@workspace/db";
+import { db, pool, usersTable, focusSessionsTable, studyStreaksTable, activeSessionsTable, productivityLogsTable, userMissionProgressTable, loginRewardsTable, freezeTokensTable, battlePassProgressTable, notificationsTable, premiumSubscriptionsTable, userWalletsTable, socialPostsTable, followsTable, platformMetaTable } from "@workspace/db";
 import { desc, eq, gte, inArray, and, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { mintCoins, burnCoins } from "../lib/coinLedger";
@@ -357,6 +357,17 @@ router.get("/admin/users/:id/profile", async (req, res) => {
       .orderBy(sql`${focusSessionsTable.completedAt} desc nulls last`)
       .limit(10);
 
+    const studyDays = await db.select({
+      date: productivityLogsTable.date,
+      focusMinutes: productivityLogsTable.focusMinutes,
+      sessionsCompleted: productivityLogsTable.sessionsCompleted,
+      tasksCompleted: productivityLogsTable.tasksCompleted,
+      productivityScore: productivityLogsTable.productivityScore,
+    }).from(productivityLogsTable)
+      .where(eq(productivityLogsTable.userId, id))
+      .orderBy(desc(productivityLogsTable.date))
+      .limit(60);
+
     const hasPassword = await (async () => {
       const [row] = await db.select({ hashed: usersTable.hashedPassword }).from(usersTable).where(eq(usersTable.id, id));
       return Boolean(row?.hashed);
@@ -387,9 +398,88 @@ router.get("/admin/users/:id/profile", async (req, res) => {
         postCount: Number(postAgg?.count ?? 0),
       },
       recentSessions,
+      studyDays,
     });
   } catch (err) {
     logger.error({ err }, "admin user profile error");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// ─── EDIT DAILY STUDY TOTALS ───────────────────────────────────────────────────
+//
+// This deliberately edits the per-day aggregate rather than fabricating a
+// rewarded focus-session row. Admin corrections show up in stats/charts without
+// creating a fake completion that could advance streaks or mint XP twice.
+
+router.patch("/admin/users/:id/study-days/:date", adminLimiter, async (req, res) => {
+  if (!await checkAuth(req)) { sendUnauthorized(res); return; }
+  const { id, date } = req.params as { id: string; date: string };
+  const dateParts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  const parsedDate = dateParts ? new Date(`${date}T00:00:00.000Z`) : null;
+  const validDate = Boolean(
+    dateParts && parsedDate && !Number.isNaN(parsedDate.getTime())
+      && parsedDate.getUTCFullYear() === Number(dateParts[1])
+      && parsedDate.getUTCMonth() + 1 === Number(dateParts[2])
+      && parsedDate.getUTCDate() === Number(dateParts[3]),
+  );
+  if (!validDate) {
+    res.status(400).json({ error: "date must be a real YYYY-MM-DD date" });
+    return;
+  }
+  const body = req.body as Record<string, unknown>;
+  const numberField = (key: string, max: number) => {
+    const value = body[key];
+    return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.min(max, Math.round(value))) : null;
+  };
+  const focusMinutes = numberField("focusMinutes", 24 * 60);
+  const sessionsCompleted = numberField("sessionsCompleted", 500);
+  const tasksCompleted = numberField("tasksCompleted", 500);
+  if (focusMinutes === null && sessionsCompleted === null && tasksCompleted === null) {
+    res.status(400).json({ error: "focusMinutes, sessionsCompleted or tasksCompleted is required" });
+    return;
+  }
+
+  try {
+    const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, id)).limit(1);
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    const [existing] = await db.select().from(productivityLogsTable)
+      .where(and(eq(productivityLogsTable.userId, id), eq(productivityLogsTable.date, date)))
+      .orderBy(desc(productivityLogsTable.createdAt))
+      .limit(1);
+
+    // Keep the derived chart metric consistent with an edited total. Session
+    // writes use the same formula: minutes are the base, with a focus-score
+    // component when one exists. Leaving the old score in place made the
+    // productivity endpoint show yesterday's value after an admin correction.
+    const nextFocusMinutes = focusMinutes ?? existing?.focusMinutes ?? 0;
+    const productivityScore = existing?.avgFocusScore != null
+      ? Math.round((nextFocusMinutes * 0.6) + (existing.avgFocusScore * 0.4))
+      : nextFocusMinutes;
+    const values = {
+      ...(focusMinutes !== null ? { focusMinutes } : {}),
+      ...(sessionsCompleted !== null ? { sessionsCompleted } : {}),
+      ...(tasksCompleted !== null ? { tasksCompleted } : {}),
+      productivityScore,
+    };
+    if (existing) {
+      // Older session writers did not have a unique (user, date) constraint,
+      // so a busy day can contain duplicate aggregate rows. Correct every row
+      // for that day instead of leaving one stale duplicate for stats queries.
+      await db.update(productivityLogsTable).set(values)
+        .where(and(eq(productivityLogsTable.userId, id), eq(productivityLogsTable.date, date)));
+    } else {
+      await db.insert(productivityLogsTable).values({ userId: id, date, ...values });
+    }
+    const [updated] = await db.select().from(productivityLogsTable)
+      .where(and(eq(productivityLogsTable.userId, id), eq(productivityLogsTable.date, date)))
+      .orderBy(desc(productivityLogsTable.createdAt))
+      .limit(1);
+    auditLog({ action: "admin_study_adjust", userId: id, ip: getClientIp(req), details: { date, ...values } });
+    res.json({ ok: true, studyDay: updated });
+  } catch (err) {
+    logger.error({ err, id, date }, "admin study day update error");
     res.status(500).json({ error: "Internal error" });
   }
 });

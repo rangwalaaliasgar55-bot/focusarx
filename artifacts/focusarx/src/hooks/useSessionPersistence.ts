@@ -32,6 +32,8 @@ export type PomodoroSnapshot = {
 };
 
 type UseSessionPersistenceOptions = {
+  /** Flowtime owns its own stopwatch persistence and active-session row. */
+  enabled?: boolean;
   getTimerSnapshot: () => PomodoroSnapshot;
   restoreTimer: (snapshot: PomodoroSnapshot) => void;
   isMonitorEnabled: () => boolean;
@@ -96,6 +98,7 @@ export function useSessionPersistence(options: UseSessionPersistenceOptions) {
   }, []);
 
   const runSync = useCallback(async () => {
+    if (optionsRef.current.enabled === false) return false;
     const payload = buildSyncPayload();
     if (!payload) return false;
     writeLsBackup(payload);
@@ -103,6 +106,7 @@ export function useSessionPersistence(options: UseSessionPersistenceOptions) {
   }, [buildSyncPayload]);
 
   const ensureActiveSession = useCallback(async () => {
+    if (optionsRef.current.enabled === false) return null;
     if (dbSessionIdRef.current) return dbSessionIdRef.current;
 
     const timer = optionsRef.current.getTimerSnapshot();
@@ -119,6 +123,7 @@ export function useSessionPersistence(options: UseSessionPersistenceOptions) {
   }, []);
 
   const onTimerStarted = useCallback(async () => {
+    if (optionsRef.current.enabled === false) return;
     await ensureActiveSession();
     void runSync();
   }, [ensureActiveSession, runSync]);
@@ -126,6 +131,7 @@ export function useSessionPersistence(options: UseSessionPersistenceOptions) {
   const onPhaseCompleted = useCallback(async () => {
     dbSessionIdRef.current = null;
     clearLsBackup();
+    if (optionsRef.current.enabled === false) return;
     await new Promise<void>((resolve) => queueMicrotask(resolve));
     const timer = optionsRef.current.getTimerSnapshot();
     if (timer.status === "running") {
@@ -146,13 +152,21 @@ export function useSessionPersistence(options: UseSessionPersistenceOptions) {
   }, []);
 
   useEffect(() => {
+    if (optionsRef.current.enabled === false) {
+      optionsRef.current.onRecoveryReady?.();
+      return;
+    }
     const fallback = window.setTimeout(() => {
       optionsRef.current.onRecoveryReady?.();
     }, 5000);
     return () => clearTimeout(fallback);
-  }, []);
+  }, [options.enabled]);
 
   useEffect(() => {
+    if (options.enabled === false) {
+      optionsRef.current.onRecoveryReady?.();
+      return;
+    }
     if (authStatus === "loading") return;
     if (authStatus !== "authenticated") {
       // Guests have no server row: nothing to recover, so do not hold the
@@ -220,9 +234,10 @@ export function useSessionPersistence(options: UseSessionPersistenceOptions) {
 
     void recover();
     return () => { cancelled = true; };
-  }, [authStatus]);
+  }, [authStatus, options.enabled]);
 
   useEffect(() => {
+    if (options.enabled === false) return;
     const id = window.setInterval(() => {
       if (!dbSessionIdRef.current) return;
       void runSync();

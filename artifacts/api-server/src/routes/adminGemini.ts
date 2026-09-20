@@ -43,6 +43,22 @@ const ideaSchema = z.object({
   impact: z.enum(["low", "medium", "high"]).default("medium"),
 });
 
+/**
+ * These are deliberately explicit, bounded admin commands. Gemini can draft
+ * ideas, but it must not interpret arbitrary prose as a moderation, account,
+ * or money-moving instruction. The admin picks the safe operation and enters
+ * the content/parameters that should be carried out.
+ */
+const adminActionSchema = z.object({
+  action: z.enum(["feed_post", "announcement", "quest_builder", "marketplace_steward"]),
+  title: z.string().trim().max(140).optional(),
+  body: z.string().trim().max(4000).optional(),
+  count: z.number().int().min(1).max(4).optional(),
+  theme: z.string().trim().max(120).optional(),
+  introduce: z.number().int().min(0).max(3).optional(),
+  retire: z.number().int().min(0).max(3).optional(),
+});
+
 async function guard(req: Request, res: Response): Promise<boolean> {
   if (!(await checkAdminAuth(req))) {
     sendUnauthorized(res);
@@ -124,6 +140,95 @@ async function publishIdea(idea: AiIdeaRow, channel: "feed" | "announcement", pr
   await db.update(aiIdeasTable).set({ status: "published", updatedAt: new Date() }).where(eq(aiIdeasTable.id, idea.id));
   return publishedWhere;
 }
+
+/**
+ * G10: execute a basic admin-entered operation. This is the non-dead-end path
+ * for an operator who already knows what should happen and does not need to
+ * manufacture an idea row first.
+ */
+router.post("/admin/gemini/actions", async (req, res) => {
+  if (!(await guard(req, res))) return;
+  const parsed = adminActionSchema.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid action request", details: parsed.error.flatten() });
+    return;
+  }
+
+  const input = parsed.data;
+  const actor = extractUserId(req) ?? "admin";
+  try {
+    let result: Record<string, unknown>;
+    let outcome: "executed" | "no_change" = "executed";
+
+    if (input.action === "feed_post" || input.action === "announcement") {
+      if (!input.title || input.title.length < 3 || !input.body || input.body.length < 3) {
+        res.status(400).json({ error: "title and body are required for publishing" });
+        return;
+      }
+
+      if (input.action === "feed_post") {
+        let authorId: string | null = actor === "admin" ? null : actor;
+        if (!authorId) {
+          const [admin] = await db.select({ id: usersTable.id }).from(usersTable)
+            .where(eq(usersTable.role, "admin")).limit(1);
+          authorId = admin?.id ?? null;
+        }
+        if (!authorId) {
+          res.status(503).json({ error: "No admin account is available to author the post" });
+          return;
+        }
+        const content = `${input.title}\n\n${input.body}`.trim();
+        const [post] = await db.insert(socialPostsTable).values({
+          userId: authorId,
+          content,
+          type: "general",
+          isPublic: true,
+          moderationStatus: "approved",
+        }).returning({ id: socialPostsTable.id });
+        if (!post) throw new Error("Post was not created");
+        await queueBotReplies(post.id, authorId, content, false);
+        result = { channel: "feed", postId: post.id, message: "Posted to the community feed and queued bot replies." };
+      } else {
+        const updates = {
+          announcementEnabled: true,
+          announcementTitle: input.title.slice(0, 100),
+          announcementText: input.body.slice(0, 500),
+          announcementEmoji: "✨",
+          updatedAt: new Date(),
+        };
+        const [existing] = await db.select().from(siteSettingsTable).limit(1);
+        if (existing) await db.update(siteSettingsTable).set(updates).where(eq(siteSettingsTable.id, existing.id));
+        else await db.insert(siteSettingsTable).values({ id: "default", ...updates });
+        invalidateSiteSettingsCache();
+        result = { channel: "announcement", message: "Site announcement is live." };
+      }
+    } else if (input.action === "quest_builder") {
+      const built = await buildQuests({ count: input.count, theme: input.theme });
+      outcome = built.created.length > 0 ? "executed" : "no_change";
+      result = { ...built, message: built.created.length > 0 ? `Published ${built.created.length} quest(s).` : "No new quests were needed." };
+    } else {
+      const curated = await runMarketplaceSteward({ introduce: input.introduce, retire: input.retire });
+      outcome = curated.introduced.length > 0 || curated.retired.length > 0 ? "executed" : "no_change";
+      result = {
+        ...curated,
+        message: `Introduced ${curated.introduced.length} item(s) and retired ${curated.retired.length}.`,
+      };
+    }
+
+    await db.insert(aiActionAuditTable).values({
+      actor,
+      actorRole: "admin",
+      action: `admin_command_${input.action}`,
+      payload: { request: input, result },
+      outcome,
+      approvedBy: null,
+    });
+    res.json({ ok: true, action: input.action, ...result });
+  } catch (err) {
+    logger.error({ err, action: input.action }, "gemini admin action error");
+    res.status(500).json({ error: "Action failed — no partial result was published" });
+  }
+});
 
 // ── G3/G5: status ────────────────────────────────────────────────────────────
 

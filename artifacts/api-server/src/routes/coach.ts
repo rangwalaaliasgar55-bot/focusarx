@@ -184,7 +184,7 @@ router.get("/coach/status", authMiddleware, premiumStatusMiddleware, async (req:
       isPremium: false,
       lockScreen: {
         title: "Focus Coach is available with Premium access",
-        description: "Unlock personalized focus plans, session analysis, and productivity guidance using Focus Credits.",
+        description: "Unlock personalized focus plans, session analysis, and productivity guidance using Focus Tokens.",
         benefits: [
           "Personalized focus plan",
           "Session reflection & analysis",

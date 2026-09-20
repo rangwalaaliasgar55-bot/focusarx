@@ -6,7 +6,6 @@ import { apiJson, errorMessage } from "@/lib/api";
 import { useToast } from "@/components/Toast";
 import { Users, UserPlus, Trophy, Activity, Check, Bell, Rss, MessageCircle as MessageCircleIcon, Plus, Send, Image, Trash2, ArrowUpRight, Star as StarIcon, Shield } from "lucide-react";
 import { PageTransition } from "@/components/PageTransition";
-import { DropBanner } from "@/components/DropBanner";
 import { motion, AnimatePresence } from "framer-motion";
 import { BLUR_IN, STAGGER, STAGGER_CHILD } from "@/lib/animations";
 
@@ -577,7 +576,6 @@ export default function SocialPage() {
         <AnimatePresence mode="wait">
           {tab === "feed" && (
             <motion.div key="feed" variants={STAGGER} initial="initial" animate="animate" exit="exit" className="space-y-6">
-               <DropBanner />
                <div className="rounded-[32px] border border-[var(--border)] bg-[var(--palette-white)]/[0.01] p-6 glass-heavy">
                   <div className="flex gap-4">
                      <Avatar name={session?.user?.name || "U"} size={44} level={12} />

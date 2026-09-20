@@ -461,13 +461,13 @@ describe("15. mobile layout and build hygiene", () => {
     expect(s, "recharts/d3 must not sit in the entry chunk").toMatch(/return "vendor-charts"/);
   });
 
-  it("loads AdSense lazily and identifies it so it is never injected twice", () => {
+  it("the AdSense loader is identified so it is never injected twice", () => {
     const html = read(path.join(FRONTEND, "index.html"));
     const component = read(path.join(FRONTEND, "src/components/AdSense.tsx"));
-    expect(html, "the interactive app shell must not load AdSense globally").not.toContain('id="adsbygoogle-js"');
-    expect(component, "AdSense.tsx must identify and check its lazy loader").toContain("adsbygoogle-js");
-    // The lazy loader must stay async — a sync third-party script blocks first paint.
-    expect(component).toMatch(/\.async\s*=\s*true/);
+    expect(html).toContain('id="adsbygoogle-js"');
+    expect(component, "AdSense.tsx must check for the existing loader").toContain("adsbygoogle-js");
+    // The loader must stay async — a sync third-party script blocks first paint.
+    expect(html.slice(html.indexOf("adsbygoogle-js"), html.indexOf("adsbygoogle-js") + 400)).toMatch(/async/);
   });
 
   it("ads reserve layout height so filling them causes no CLS", () => {

@@ -121,13 +121,10 @@ CREATE TABLE IF NOT EXISTS "focus_cities" (
 	"total_sessions" integer DEFAULT 0 NOT NULL,
 	"unlocked_districts" jsonb DEFAULT '["downtown"]'::jsonb,
 	"buildings" jsonb DEFAULT '{}'::jsonb,
-	"building_layout" jsonb DEFAULT '{}'::jsonb,
-	"simulation" jsonb DEFAULT '{}'::jsonb,
 	"atmosphere" text DEFAULT 'day' NOT NULL,
 	"selected_skin" text DEFAULT 'classic' NOT NULL,
 	"weather" text DEFAULT 'clear' NOT NULL,
 	"weather_updated_at" timestamp DEFAULT now(),
-	"last_tax_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "focus_cities_user_id_unique" UNIQUE("user_id"),
 	CONSTRAINT "focus_cities_counters_non_negative" CHECK ("focus_cities"."population" >= 0 AND "focus_cities"."total_buildings" >= 0 AND "focus_cities"."total_sessions" >= 0)
