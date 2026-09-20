@@ -61,8 +61,8 @@ export function AdminFlagsPanel({ authHeaders }: { authHeaders: () => Record<str
         return next;
       });
       setMessage(`${flag.key} is now ${flag.enabled ? "ON" : "OFF"}.`);
-    } catch (e: any) {
-      setMessage(`Error: ${e.message}`);
+    } catch (e) {
+      setMessage(`Error: ${e instanceof Error ? e.message : "Request failed"}`);
     } finally {
       setBusyKey(null);
     }

@@ -1,6 +1,7 @@
 import { SectionHeader, StatCard, MotionTab, EmptyState } from "./AdminHelpers";
+import type { RetentionData } from "./AdminTypes";
 
-export function AdminRetentionPanel({ data }: { data: any }) {
+export function AdminRetentionPanel({ data }: { data: RetentionData | null }) {
   if (!data) {
     return (
       <MotionTab>
@@ -80,8 +81,8 @@ export function AdminRetentionPanel({ data }: { data: any }) {
           <div className="mt-4 rounded-xl border border-[var(--palette-zinc-800)]/80 bg-[var(--palette-zinc-900)]/40 p-5">
             <p className="text-xs text-[var(--palette-zinc-500)] mb-3">Tier distribution</p>
             <div className="flex items-end gap-1 h-20">
-              {data.battlePass.tierDistribution.map((d: any) => {
-                const maxC = Math.max(1, ...data.battlePass.tierDistribution.map((x: any) => x.count));
+              {(data.battlePass?.tierDistribution ?? []).map((d) => {
+                const maxC = Math.max(1, ...(data.battlePass?.tierDistribution ?? []).map((x) => x.count));
                 return (
                   <div key={d.tier} className="flex flex-1 flex-col items-center gap-1">
                     <div className="w-full rounded-t bg-[var(--palette-violet-500)]/60 hover:bg-[var(--palette-violet-400)]/80 transition-colors"

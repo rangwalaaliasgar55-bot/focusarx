@@ -19,11 +19,14 @@ const DIFF_STYLE: Record<string, { color: string; bg: string; border: string }> 
   hard:   { color: "var(--color-error)", bg: "var(--rgba-239-68-68-0_08)",   border: "var(--rgba-239-68-68-0_2)"   },
 };
 
-function QuestCard({ progress, onClaim, claiming }: { progress: any; onClaim: (id: string) => void; claiming: string | null }) {
+interface QuestDef { id: string; title: string; description?: string; icon?: string; difficulty?: string; target: number; xpReward: number; coinReward: number; metric?: string }
+interface QuestProgress { id: string; quest?: QuestDef | null; current?: number; completed?: boolean; claimedAt?: string | null }
+
+function QuestCard({ progress, onClaim, claiming }: { progress: QuestProgress; onClaim: (id: string) => void; claiming: string | null }) {
   const quest = progress.quest;
   if (!quest) return null;
   const pct = Math.min(100, Math.round(((progress.current ?? 0) / quest.target) * 100));
-  const diff = DIFF_STYLE[quest.difficulty] ?? DIFF_STYLE.easy;
+  const diff = DIFF_STYLE[quest.difficulty ?? "easy"] ?? DIFF_STYLE.easy;
   const isComplete = progress.completed;
   const isClaimed = !!progress.claimedAt;
 
@@ -87,7 +90,7 @@ function QuestCard({ progress, onClaim, claiming }: { progress: any; onClaim: (i
 }
 
 export default function QuestsPage() {
-  const [quests, setQuests] = useState<{ daily: any[]; weekly: any[] }>({ daily: [], weekly: [] });
+  const [quests, setQuests] = useState<{ daily: QuestProgress[]; weekly: QuestProgress[] }>({ daily: [], weekly: [] });
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -98,7 +101,7 @@ export default function QuestsPage() {
     try {
       const res = await fetch("/api/quests", { headers: authHeaders() });
       if (!res.ok) throw new Error(String(res.status));
-      setQuests(await res.json());
+      setQuests((await res.json()) as { daily: QuestProgress[]; weekly: QuestProgress[] });
       setLoadError(false);
     } catch {
       // Previously `if (res.ok) setQuests(…)` with no else, so a failed request

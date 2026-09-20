@@ -70,10 +70,12 @@ describe.runIf(hasDb)("marketplace 2.0 (Workstream C)", () => {
   }
 
   it("ships 25+ new items within the rarity-ladder price bands", async () => {
-    // Legacy catalogue: 31 items; M2.0 adds 27 more.
+    // Legacy catalogue: 31 items; M2.0 adds 27 more, and the curation pass
+    // retired 2 of them (`RETIRED_ITEM_IDS` in routes/marketplace.ts), so the
+    // purchasable catalogue is 31 + 27 − 2 = 56 active rows.
     const [cnt] = await db.select({ n: sql<number>`count(*)` }).from(marketplaceItemsTable).where(eq(marketplaceItemsTable.isActive, true));
     const total = Number(cnt.n);
-    expect(total).toBeGreaterThanOrEqual(58);
+    expect(total).toBeGreaterThanOrEqual(56);
 
     // Rarity ladder bands (Workstream C spec) — every new M2.0 item must sit
     // inside its rarity's band.

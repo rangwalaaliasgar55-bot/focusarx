@@ -1,6 +1,6 @@
 import { SectionHeader, StatCard, Badge, MotionTab, EmptyState } from "./AdminHelpers";
 
-type MissionData = {
+export type MissionData = {
   missions: { key: string; title: string; icon: string; type: string; difficulty?: string; completions: number; claims: number; completionRate: number; xpReward: number; coinReward: number }[];
   totalCompletions: number;
   totalClaims: number;

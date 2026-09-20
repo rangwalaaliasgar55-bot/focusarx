@@ -34,6 +34,8 @@ interface Habit {
   recentDates: string[];
 }
 
+type NewHabit = { name: string; icon: string; color: string; frequency: string };
+
 interface HabitStats {
   total: number;
   completedToday: number;
@@ -71,7 +73,7 @@ function HabitHeatmap({ dates, color }: { dates: string[]; color: string }) {
   );
 }
 
-function CreateHabitModal({ onClose, onCreate }: { onClose: () => void; onCreate: (data: any) => void }) {
+function CreateHabitModal({ onClose, onCreate }: { onClose: () => void; onCreate: (data: NewHabit) => void }) {
   const [form, setForm] = useState({ name: "", icon: "⭐", color: "var(--brand-600)", frequency: "daily" });
 
   return (
@@ -215,7 +217,7 @@ export default function HabitsPage() {
   });
 
   const createHabit = useMutation({
-    mutationFn: (data: any) => {
+    mutationFn: (data: NewHabit) => {
       const token = typeof data.color === "string" ? data.color.match(/^var\((--[\w-]+)\)$/)?.[1] : undefined;
       const payload = token ? { ...data, color: resolveColorToken(token as `--${string}`) } : data;
       return apiJson("/api/habits", { method: "POST", body: JSON.stringify(payload) });
@@ -242,8 +244,8 @@ export default function HabitsPage() {
     onSuccess: () => { toast("Habit deleted", "success"); qc.invalidateQueries({ queryKey: ["habits"] }); qc.invalidateQueries({ queryKey: ["habits-stats"] }); },
   });
 
-  const completedCount = (habits as any[]).filter((h: any) => h.completedToday).length;
-  const totalCount = (habits as any[]).length;
+  const completedCount = habits.filter((h) => h.completedToday).length;
+  const totalCount = habits.length;
   const completionPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   return (
@@ -316,9 +318,9 @@ export default function HabitsPage() {
         <div className="grid gap-3 lg:grid-cols-2">
           {[1, 2, 3, 4].map(i => <div key={i} className="h-20 animate-pulse rounded-2xl bg-[var(--surface-hover)]" />)}
         </div>
-      ) : isError && (habits as any[]).length === 0 ? (
+      ) : isError && habits.length === 0 ? (
         <QueryError what="your habits" onRetry={() => void refetch()} retrying={isRefetching} />
-      ) : (habits as any[]).length === 0 ? (
+      ) : habits.length === 0 ? (
         <div className="text-center py-16">
           <p className="text-5xl mb-4"><Sprout size={16} aria-hidden="true" /></p>
           <p className="text-lg font-semibold text-[var(--foreground)] mb-2">No habits yet</p>
@@ -330,7 +332,7 @@ export default function HabitsPage() {
       ) : (
         <div className="grid gap-3 lg:grid-cols-2 lg:items-start">
           {/* Incomplete first */}
-          {(habits as any[]).filter((h: any) => !h.completedToday).map((h: any) => (
+          {habits.filter((h) => !h.completedToday).map((h) => (
             <HabitCard
               key={h.id} habit={h}
               onComplete={() => completeHabit.mutate(h.id)}
@@ -339,10 +341,10 @@ export default function HabitsPage() {
             />
           ))}
           {/* Completed */}
-          {(habits as any[]).filter((h: any) => h.completedToday).length > 0 && (
+          {habits.filter((h) => h.completedToday).length > 0 && (
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-2 mt-4">Completed today ✓</p>
-              {(habits as any[]).filter((h: any) => h.completedToday).map((h: any) => (
+              {habits.filter((h) => h.completedToday).map((h) => (
                 <HabitCard
                   key={h.id} habit={h}
                   onComplete={() => completeHabit.mutate(h.id)}

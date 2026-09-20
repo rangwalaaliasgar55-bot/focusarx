@@ -259,11 +259,11 @@ async function sendEmailViaResend(
         html,
       }),
     });
-    const data = await response.json() as any;
+    const data = await response.json() as { message?: string; id?: string };
     if (!response.ok) return { ok: false, error: data.message ?? "Send failed" };
     return { ok: true, id: data.id };
-  } catch (err: any) {
-    return { ok: false, error: err.message };
+  } catch (err) {
+    return { ok: false, error: (err as Error).message };
   }
 }
 

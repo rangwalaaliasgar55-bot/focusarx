@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { Save, X, Plus, Pencil, Trash2, RefreshCw } from "lucide-react";
 import { Badge, EmptyState, LoadingState, MotionTab, SectionHeader, adminFetch } from "./AdminHelpers";
 import { useToast } from "@/components/Toast";
@@ -18,15 +18,19 @@ export function AdminQuestsPanel({ authHeaders }: AdminPanelProps) {
   const [form, setForm] = useState<Partial<QuestDef>>({});
   const [addMode, setAddMode] = useState(false);
 
-  useEffect(() => { load(); }, []);
-
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const r = await adminFetch("/api/admin/cms/quests", { headers: authHeaders(), credentials: "include" });
       if (r.ok) { const d = await r.json(); setQuests(d.quests ?? []); }
     } finally { setLoading(false); }
-  }
+  }, [authHeaders]);
+
+  // Deferred a tick so the first setState isn't synchronous in the effect.
+  useEffect(() => {
+    const t = setTimeout(() => void load(), 0);
+    return () => clearTimeout(t);
+  }, [load]);
 
   async function saveQuest(isNew: boolean) {
     const url = isNew ? "/api/admin/cms/quests" : `/api/admin/cms/quests/${form.id}`;

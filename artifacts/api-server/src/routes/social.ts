@@ -269,7 +269,7 @@ socialRouter.get("/social/activity", authMiddleware, async (req: AuthRequest, re
       isAdmin: boolean;
       isBot: boolean;
       timestamp: Date;
-      data: any;
+      data: Record<string, unknown>;
     }[] = [];
 
     for (const s of sessions) {

@@ -117,7 +117,7 @@ Make each day progressively build on the previous. ${premium ? "This is a Premiu
       return null;
     }
 
-    const data = await resp.json() as any;
+    const data = await resp.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>; usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number } };
     const raw = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!raw) return null;
 
@@ -233,14 +233,14 @@ router.post("/ai/roadmap", authMiddleware, premiumStatusMiddleware, aiRoadmapLim
       }
     }
 
-    let roadmap: any = null;
+    let roadmap: RoadmapDay[] | null = null;
     if (premium) {
       roadmap = await generateRoadmapWithGemini(sanitizedGoal, hours, level ?? "intermediate", numDays, sanitizedProgress, premium);
     }
     const finalRoadmap = roadmap ?? buildRoadmapFallback(sanitizedGoal, hours, level ?? "intermediate", numDays, sanitizedProgress, premium);
 
     // Final validation before sending to frontend
-    const validated = finalRoadmap.filter((d: any) => roadmapDaySchema.safeParse(d).success);
+    const validated = finalRoadmap.filter((d) => roadmapDaySchema.safeParse(d).success);
 
     res.json({
       roadmap: validated.length > 0 ? validated : finalRoadmap,

@@ -1,12 +1,12 @@
 import { Response } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
-import { Router } from "express";
+import express, { Router } from "express";
 import { db } from "@workspace/db";
 import { appFeedbackTable, userWalletsTable } from "@workspace/db";
 import { eq, desc, avg, count } from "drizzle-orm";
 import { logger } from "../lib/logger";
 
-function adminAuth(req: any, res: any, next: any) {
+function adminAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
   const adminCookie = req.cookies?.focusarx_admin;
   if (!adminCookie) { res.status(401).json({ error: "Admin only" }); return; }
   next();

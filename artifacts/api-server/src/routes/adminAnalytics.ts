@@ -345,7 +345,7 @@ router.get("/admin/analytics/premium-economy", async (req, res) => {
         expiringSoon: expiringSoon?.c ?? 0,
       },
       battlePass: {
-        participantsMonth: Number((bpParticipants as any)?.c ?? 0),
+        participantsMonth: Number(bpParticipants?.c ?? 0),
         claimsWeek: bpClaimsWeek?.c ?? 0,
       },
       pets: {

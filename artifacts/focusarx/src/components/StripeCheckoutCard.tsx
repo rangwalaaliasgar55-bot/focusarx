@@ -33,7 +33,7 @@ export default function StripeCheckoutCard() {
         method: "POST",
         body: JSON.stringify({ interval }),
       });
-      if (res.url) window.location.href = res.url;
+      if (res.url) window.location.assign(res.url);
       else toast("Could not start checkout.", "error");
     } catch {
       toast("Could not start checkout.", "error");

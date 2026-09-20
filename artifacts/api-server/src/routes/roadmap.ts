@@ -1,4 +1,4 @@
-import { Router } from "express";
+import express, { Router } from "express";
 import { db, roadmapsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 import { logger } from "../lib/logger";
@@ -10,7 +10,7 @@ import { premiumStatusMiddleware } from "../lib/premiumCheck";
 
 const router = Router();
 
-function extractUserId(req: any): string | null {
+function extractUserId(req: express.Request): string | null {
   const header: string = req.headers.authorization ?? "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
   if (!token) return null;

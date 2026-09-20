@@ -17,7 +17,7 @@ interface Drop {
   type: string;
   title: string;
   description: string | null;
-  payload: Record<string, any>;
+  payload: Record<string, unknown>;
   startsAt: string;
   endsAt: string;
   poolTotal: number;
@@ -48,7 +48,8 @@ function fmtCountdown(ms: number): string {
 
 export function DropBanner() {
   const [drops, setDrops] = useState<Drop[]>([]);
-  const [now, setNow] = useState(Date.now());
+  // Lazy init — the initial value must not be computed in the render body.
+  const [now, setNow] = useState(() => Date.now());
   const [claiming, setClaiming] = useState<string | null>(null);
   const [claimed, setClaimed] = useState<Record<string, boolean>>({});
   const [toast, setToast] = useState<string | null>(null);

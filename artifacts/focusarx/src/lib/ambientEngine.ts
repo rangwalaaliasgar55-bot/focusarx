@@ -1344,7 +1344,7 @@ export class AmbientEngine {
 
   private ensureCtx(): AudioContext {
     if (!this.ctx) {
-      this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      this.ctx = new (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
       // master → trim → DC block → low shelf → high shelf → focus lowpass
       //        → analyser → safety limiter → out
       this.master = this.ctx.createGain();

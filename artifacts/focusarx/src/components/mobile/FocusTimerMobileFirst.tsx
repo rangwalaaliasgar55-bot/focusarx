@@ -229,7 +229,9 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
     onRecovered: () => toast("Session restored — pick up where you left off", "info"),
     onRecoveryReady: () => setRecoveryReady(true),
   });
-  persistenceRef.current = persistence;
+  useEffect(() => {
+    persistenceRef.current = persistence;
+  }, [persistence]);
 
   // Track status for persistence
   const prevStatusRef = useRef(status);
@@ -282,7 +284,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
     if (isRunning) haptic("tap");
     else haptic("select");
     toggle();
-  }, [isIdle, mode, secondsLeft, toggle, activeTasks.length, toast]);
+  }, [isIdle, mode, secondsLeft, toggle, activeTasks.length, toast, isRunning]);
 
   const handleReset = useCallback(() => {
     const snap = getSnapshot();
@@ -348,7 +350,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
       );
       toast(`Saved ${Math.floor(actualSec / 60)}m offline`, "info");
     }
-  }, [getActiveSeconds, persistence, reset, totalPlanned, toast, enqueueOffline]);
+  }, [getActiveSeconds, persistence, reset, totalPlanned, toast, enqueueOffline, setShowSummary]);
 
   const { m, s } = formatTime(secondsLeft);
 

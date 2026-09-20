@@ -252,8 +252,8 @@ export default function CityPage() {
 
   const tier = city ? TIER_CONFIG[city.tier] ?? TIER_CONFIG.hamlet : TIER_CONFIG.hamlet;
   const selectedSkin = city?.skins?.find((skin) => skin.id === city.selectedSkin) ?? city?.skins?.[0];
-  const categories = ["all", ...Array.from(new Set(buildings.map((b: any) => b.category)))];
-  const displayed = filter === "all" ? buildings : buildings.filter((b: any) => b.category === filter);
+  const categories = ["all", ...Array.from(new Set(buildings.map((b) => b.category)))];
+  const displayed = filter === "all" ? buildings : buildings.filter((b) => b.category === filter);
   const owned = city?.buildings ?? {};
 
   if (loading) {
@@ -427,7 +427,7 @@ export default function CityPage() {
 
         {/* Buildings grid */}
         <motion.div variants={STAGGER} initial="initial" animate="animate" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {displayed.map((b: any) => (
+          {displayed.map((b) => (
             <BuildingCard key={b.slug} building={b} owned={!!owned[b.slug]} onBuy={handleBuy} wallet={wallet} busy={building === b.slug} balanceKnown={!walletFailed} />
           ))}
         </motion.div>

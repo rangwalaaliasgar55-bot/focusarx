@@ -5,7 +5,7 @@ import { AuthorBlock } from "@/components/AuthorBlock";
 import { GUIDE_LIBRARY_REVIEWED } from "@/content/seo-pages.mjs";
 import { ClusterLinks } from "@/components/ClusterLinks";
 
-function TipCard({ icon: Icon, title, body, color }: { icon: React.ComponentType<any>; title: string; body: string; color: string }) {
+function TipCard({ icon: Icon, title, body, color }: { icon: React.ComponentType<{ size?: number | string; className?: string; style?: React.CSSProperties }>; title: string; body: string; color: string }) {
   return (
     <div className="rounded-3xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] p-8 hover:border-[var(--palette-f87171)]/30 transition-all group">
       <div className="h-12 w-12 rounded-2xl bg-[var(--palette-white)]/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">

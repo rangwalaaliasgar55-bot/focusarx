@@ -27,7 +27,7 @@ router.post("/admin/tokens/grant", async (req, res) => {
     const finalAmount = type === "remove" ? -Math.abs(amount) : Math.abs(amount);
     const idempotencyKey = `admin_${req.userId}_${userId}_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
 
-    const result = await grantTokensAdmin(userId, finalAmount, adminId, reason, idempotencyKey, { description: `admin ${type} ${reason}` } as any);
+    const result = await grantTokensAdmin(userId, finalAmount, adminId, reason, idempotencyKey, { metadata: { description: `admin ${type} ${reason}` } });
     const afterBalance = result.balanceAfter;
 
     // Audit log already in ledger with adminReason, but also log to logger

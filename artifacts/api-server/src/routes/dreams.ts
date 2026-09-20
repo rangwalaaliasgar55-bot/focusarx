@@ -93,7 +93,8 @@ router.get("/dreams", authMiddleware, async (req: AuthRequest, res: Response) =>
 });
 
 router.post("/dreams", authMiddleware, async (req: AuthRequest, res: Response) => {
-  const { dreamType, customGoal, targetDate, dailyTargetMinutes, emoji } = req.body as any;
+  const { dreamType, customGoal, targetDate, dailyTargetMinutes, emoji } =
+    req.body as { dreamType?: string; customGoal?: string; targetDate?: string; dailyTargetMinutes?: number; emoji?: string };
   if (!dreamType) { res.status(400).json({ error: "dreamType required" }); return; }
   try {
     const today = dayKeyInZone(Date.now(), await userZone(req.userId));

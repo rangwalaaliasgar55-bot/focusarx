@@ -13,11 +13,9 @@ import { db } from "@workspace/db";
 import { userWalletsTable, coinTransactionsTable } from "@workspace/db";
 import { and, eq, gte, sql, type SQL } from "drizzle-orm";
 
-type TxOrDb = {
-  update: (t: typeof userWalletsTable) => any;
-  insert: (t: any) => any;
-  select: () => any;
-};
+type TxOrDb =
+  | typeof db
+  | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 interface TxMeta {
   description?: string;

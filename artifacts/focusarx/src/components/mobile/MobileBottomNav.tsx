@@ -148,17 +148,3 @@ export function MobileBottomNav({ onMoreClick, hidden }: MobileBottomNavProps) {
     </nav>
   );
 }
-
-// Secondary more menu trigger - optional floating button for secondary items
-export function MobileMoreTrigger({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label="More options"
-      className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-[var(--z-nav)] grid h-11 w-11 place-items-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] shadow-lg md:hidden"
-    >
-      <MoreHorizontal size={20} />
-    </button>
-  );
-}

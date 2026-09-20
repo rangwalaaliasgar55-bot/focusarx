@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getToken } from "@/lib/auth";
+import { petSpeciesVisual } from "@/lib/petSpecies";
+import { ACTIVE_PET_EVENT, fetchActivePet } from "@/hooks/useActivePet";
 
 // ── Speech messages ────────────────────────────────────────────────────────────
 const SPEECH_MESSAGES = [
@@ -25,14 +27,10 @@ const PHASE_MESSAGES: Record<string, string[]> = {
 };
 
 // ── Pet visuals ────────────────────────────────────────────────────────────────
-const PET_EMOJIS: Record<string, string> = {
-  owl: "🦉", fox: "🦊", dragon: "🐲", robot: "🤖", cat: "🐱", phoenix: "🦅",
-};
+// Species emoji/colors live in lib/petSpecies.ts (shared with the pets page
+// and the battle arena) so every catalog species renders as itself — the old
+// 6-entry map here is what made newly-released pets all show up as the owl.
 
-const PET_COLORS: Record<string, string> = {
-  owl: "var(--color-warning)", fox: "var(--color-error)", dragon: "var(--brand-500)",
-  robot: "var(--palette-06b6d4)", cat: "var(--palette-ec4899)", phoenix: "var(--palette-f97316)",
-};
 
 // ── Accessory system ───────────────────────────────────────────────────────────
 type AccessorySlot = "hat" | "glasses" | "back" | "wings" | "frame" | "bg";
@@ -90,17 +88,35 @@ function resolveAccessories(inventory: { itemId: string; equipped: boolean }[]) 
 // ── Confetti ───────────────────────────────────────────────────────────────────
 const CONFETTI_COLORS = ["var(--brand-600)","var(--brand-400)","var(--brand-teal)","var(--brand-gold)","var(--palette-f97316)","var(--palette-ec4899)","var(--color-info)","var(--neutral-0)","var(--palette-fde047)"];
 
+interface ConfettiParticle {
+  id: number;
+  x: number;
+  delay: number;
+  duration: number;
+  color: string;
+  w: number;
+  h: number;
+  rot: number;
+}
+
 function ConfettiEffect() {
-  const particles = Array.from({ length: 32 }, (_, i) => ({
-    id: i,
-    x: 5 + Math.random() * 90,
-    delay: Math.random() * 0.7,
-    duration: 1.6 + Math.random() * 1.2,
-    color: CONFETTI_COLORS[i % CONFETTI_COLORS.length]!,
-    w: 7 + Math.random() * 9,
-    h: 4 + Math.random() * 6,
-    rot: Math.random() * 360,
-  }));
+  // Particles are random, and randomness is a side effect: generating them in
+  // the render body made every re-render reshuffle the falling paper (and the
+  // compiler purity gate rightly rejected it). The lazy useState initializer
+  // rolls them exactly once per mount — same pattern as the timer page's
+  // MotivationalLine.
+  const [particles] = useState<ConfettiParticle[]>(() =>
+    Array.from({ length: 32 }, (_, i) => ({
+      id: i,
+      x: 5 + Math.random() * 90,
+      delay: Math.random() * 0.7,
+      duration: 1.6 + Math.random() * 1.2,
+      color: CONFETTI_COLORS[i % CONFETTI_COLORS.length]!,
+      w: 7 + Math.random() * 9,
+      h: 4 + Math.random() * 6,
+      rot: Math.random() * 360,
+    })),
+  );
   return (
     <div className="pointer-events-none absolute inset-x-[-20%] -top-12 h-[200%] overflow-hidden z-[var(--z-modal)]">
       {particles.map(p => (
@@ -170,13 +186,18 @@ export interface PetCompanionProps {
   sessionDurationSeconds?: number;
 }
 
+// The active pet (catalog inventory first, legacy row as fallback) and its
+// re-read event live in hooks/useActivePet — shared with the battle arena so
+// both focus-tab widgets always render the same companion.
+type ActivePet = Awaited<ReturnType<typeof fetchActivePet>>;
+
 // ── Component ──────────────────────────────────────────────────────────────────
 export default function PetCompanion({
   isRunning, mode,
   progress = 0,
   sessionDurationSeconds = 1500,
 }: PetCompanionProps) {
-  const [pet, setPet] = useState<any>(null);
+  const [pet, setPet] = useState<ActivePet>(null);
   const [inventory, setInventory] = useState<{ itemId: string; equipped: boolean; type?: string }[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [showXp, setShowXp] = useState(false);
@@ -198,14 +219,21 @@ export default function PetCompanion({
   }
 
   useEffect(() => {
-    const h = authH();
-    Promise.all([
-      fetch("/api/pets", { headers: h }).then(r => r.json()),
-      fetch("/api/marketplace/inventory", { headers: h }).then(r => r.json()),
-    ]).then(([pd, id_]) => {
-      if (pd.pet) setPet(pd.pet);
-      if (id_.inventory) setInventory(id_.inventory);
-    }).catch(() => {});
+    void fetchActivePet().then(setPet);
+    fetch("/api/marketplace/inventory", { headers: authH() })
+      .then(r => r.json())
+      .then((d: { inventory?: { itemId: string; equipped: boolean; type?: string }[] }) => {
+        if (d.inventory) setInventory(d.inventory);
+      })
+      .catch(() => {});
+  }, []);
+
+  // The pets page dispatches this after adopting/activating, so a companion
+  // already sitting on the focus tab switches species without a reload.
+  useEffect(() => {
+    const reread = () => void fetchActivePet().then(setPet);
+    window.addEventListener(ACTIVE_PET_EVENT, reread);
+    return () => window.removeEventListener(ACTIVE_PET_EVENT, reread);
   }, []);
 
   // Refresh inventory when session ends or after purchases
@@ -271,8 +299,7 @@ export default function PetCompanion({
 
   if (!pet) return null;
 
-  const petEmoji  = PET_EMOJIS[pet.petType] ?? "🦉";
-  const petColor  = PET_COLORS[pet.petType] ?? "var(--brand-600)";
+  const { emoji: petEmoji, color: petColor } = petSpeciesVisual(pet.slug, pet.category);
   const accs      = resolveAccessories(inventory);
   const anim      = PHASE_ANIM[phase];
   const dur       = PHASE_DUR[phase];
@@ -447,10 +474,10 @@ export default function PetCompanion({
           className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold border"
           style={{ color: petColor, borderColor: `color-mix(in srgb, ${petColor} 27%, transparent)`, background: `color-mix(in srgb, ${petColor} 9%, transparent)` }}
         >
-          LVL {pet.petLevel}
+          LVL {pet.level}
         </span>
         <p className="text-xs font-semibold text-[var(--foreground-muted)]">
-          {pet.petName || pet.petType}
+          {pet.name}
         </p>
         <AnimatePresence mode="wait">
           {phaseLabel && (

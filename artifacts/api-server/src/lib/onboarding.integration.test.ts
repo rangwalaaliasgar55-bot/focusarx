@@ -124,6 +124,7 @@ describe.runIf(hasDb)("onboarding personalisation", () => {
   });
 
   it("never overwrites an account that already has work", async () => {
+    const onboardingRowsBeforeCall = await countOnboardingRows(userId);
     await db.insert(tasksTable).values({ userId, text: "Pre-existing task the learner wrote", completed: false });
     const metaKey = `onboarding_plan_${userId}`;
     await db.delete(platformMetaTable).where(eq(platformMetaTable.key, metaKey)); // simulate a plan-less but used account
@@ -138,6 +139,10 @@ describe.runIf(hasDb)("onboarding personalisation", () => {
 
     const rows = await pool.query<{ text: string }>(`SELECT text FROM tasks WHERE user_id = $1`, [userId]);
     expect(rows.rows.map(r => r.text)).toContain("Pre-existing task the learner wrote");
-    expect(await countOnboardingRows(userId)).toBe(0); // nothing new tagged as kickoff
+    // "Nothing new tagged as kickoff" — the onboarding-tagged rows from the
+    // earlier tests in this file still exist (only beforeAll cleans up), so
+    // the honest assertion is that the guarded call created none, not that
+    // the count is zero.
+    expect(await countOnboardingRows(userId)).toBe(onboardingRowsBeforeCall);
   });
 });

@@ -58,15 +58,17 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 
 /**
  * Geometry contract (this is what the overlap bugs were):
- * - The mobile bottom nav is exactly `4.5rem + safe-area` tall, so the orb
- *   sits that PLUS a visible gap above it — never touching the nav border.
- * - On md+ the nav is hidden, so both orb and panel anchor to the plain
- *   viewport corner instead of floating 4.5rem above nothing (handled in
- *   index.css via a media query, since inline styles would outrank it).
+ * - The bottom-right corner is one deliberate FAB column: the AI coach orb
+ *   (h-12) sits nearest the corner, and this orb (h-14) stacks exactly one
+ *   0.75rem gap above it — on mobile above the `4.5rem + safe-area` nav plus
+ *   the coach orb, on md+ above the coach orb alone (both pinned in
+ *   index.css, since inline styles would outrank the media queries).
+ * - While the coach chat panel is open it occupies the orb's band, so
+ *   CoachPanel flags `html[data-coach-open]` and this orb hides (CSS).
  * - The panel is inset from both edges on phones (it can never clip the
- *   screen side), right-anchored beside the orb on desktop, and its grid
- *   scrolls internally with a viewport-derived max-height, so short screens
- *   get a scrollable panel instead of one that runs under the header.
+ *   screen side), right-anchored beside the orb column on desktop, and its
+ *   grid scrolls internally with a viewport-derived max-height, so short
+ *   screens get a scrollable panel instead of one that runs under the header.
  */
 
 export function QuickLaunchOrb() {

@@ -92,9 +92,9 @@ dmRouter.get("/dm/conversations", authMiddleware, async (req: AuthRequest, res: 
       };
     }));
 
-    res.json(result.filter(Boolean).sort((a: any, b: any) =>
-      new Date(b?.lastMessageAt || 0).getTime() - new Date(a?.lastMessageAt || 0).getTime()
-    ));
+    res.json(result
+      .filter((c): c is NonNullable<(typeof result)[number]> => c != null)
+      .sort((a, b) => new Date(b.lastMessageAt || 0).getTime() - new Date(a.lastMessageAt || 0).getTime()));
   } catch (err) {
     logger.error({ err, userId: req.userId, route: "GET /dm/conversations" }, "Failed to load conversations");
     res.status(500).json({ error: "Failed to load conversations" });

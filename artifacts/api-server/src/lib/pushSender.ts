@@ -50,8 +50,9 @@ export async function sendPush(
         { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
         JSON.stringify({ title: payload.title, body: payload.body, url: payload.url || "/", priority: sub.priorityEnabled, sound: sub.sound })
       );
-    } catch (err: any) {
-      if (err?.statusCode === 410 || err?.statusCode === 404) {
+    } catch (err) {
+      const code = (err as { statusCode?: number } | null)?.statusCode;
+      if (code === 410 || code === 404) {
         await db.delete(pushSubscriptionsTable)
           .where(eq(pushSubscriptionsTable.id, sub.id)).catch(() => {});
       } else {

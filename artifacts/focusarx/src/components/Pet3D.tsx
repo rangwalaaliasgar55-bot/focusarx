@@ -10,8 +10,8 @@
  * motion) and keep the emoji render for devices without it. An internal
  * error boundary falls back (onCrash) if the GPU context fails at runtime.
  */
-import { Component, Suspense, useMemo, useRef, type MutableRefObject, type ReactNode } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Component, Suspense, useMemo, useRef, type RefObject, type ReactNode } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { is3DCapable } from "@/lib/webglCapability";
 import { installThreeConsoleFilter, onWebGLContextLost } from "@/lib/threeConsole";
@@ -38,14 +38,6 @@ class Pet3DErrorBoundary extends Component<{ onCrash?: () => void; children: Rea
 
 // ── rig: shared animation targets ───────────────────────────────────────────
 
-type Rig = {
-  eyes: THREE.Group | null;
-  head: THREE.Group | null;
-  wingsL: THREE.Group | null;
-  wingsR: THREE.Group | null;
-  tail: THREE.Group | null;
-};
-
 type MoodName = "happy" | "excited" | "sleepy" | "focused";
 
 const MOODS: Record<MoodName, { amp: number; speed: number; headTilt: number; headNod: number; eyeScale: number; flap: number; flapSpeed: number }> = {
@@ -59,11 +51,56 @@ const STAGE_SCALE = [0.85, 1.0, 1.12, 1.22];
 
 // ── shared bits ─────────────────────────────────────────────────────────────
 
-function Eyes({ y, z, spacing, size = 0.15, dark = "#0f172a", rig }: {
-  y: number; z: number; spacing: number; size?: number; dark?: string; rig: MutableRefObject<Rig>;
+// Shared mood animation for every species. The hook owns the refs and only
+// ever touches them from useFrame; models destructure the result and bind each
+// ref in their own JSX.
+function usePetRig(mood: string) {
+  const pet = useRef<THREE.Group>(null);
+  const eyes = useRef<THREE.Group>(null);
+  const head = useRef<THREE.Group>(null);
+  const wingsL = useRef<THREE.Group>(null);
+  const wingsR = useRef<THREE.Group>(null);
+  const tail = useRef<THREE.Group>(null);
+  const blink = useRef({ next: 2.5, until: 0 });
+
+  useFrame(({ clock }) => {
+    const t = clock.getElapsedTime();
+    const m = MOODS[mood as MoodName] ?? MOODS.happy;
+
+    if (pet.current) {
+      pet.current.position.y = Math.sin(t * m.speed) * m.amp;
+      pet.current.rotation.y = Math.sin(t * 0.4) * 0.07;
+    }
+    if (head.current) {
+      head.current.rotation.z += (m.headTilt - head.current.rotation.z) * 0.08;
+      head.current.rotation.x += (m.headNod - head.current.rotation.x) * 0.08;
+    }
+    // blink
+    const b = blink.current;
+    if (t > b.next) {
+      b.until = t + 0.14;
+      b.next = t + 2.4 + Math.random() * 3;
+    }
+    if (eyes.current) {
+      const target = t < b.until ? 0.12 : m.eyeScale;
+      eyes.current.scale.y += (target - eyes.current.scale.y) * 0.5;
+    }
+    // wings
+    const flap = Math.sin(t * m.flapSpeed) * m.flap;
+    if (wingsL.current) wingsL.current.rotation.z += (flap - wingsL.current.rotation.z) * 0.3;
+    if (wingsR.current) wingsR.current.rotation.z += (-flap - wingsR.current.rotation.z) * 0.3;
+    // tail
+    if (tail.current) tail.current.rotation.x = Math.sin(t * 2.2) * 0.12;
+  });
+
+  return { pet, eyes, head, wingsL, wingsR, tail };
+}
+
+function Eyes({ y, z, spacing, size = 0.15, dark = "#0f172a", eyeRef }: {
+  y: number; z: number; spacing: number; size?: number; dark?: string; eyeRef: RefObject<THREE.Group | null>;
 }) {
   return (
-    <group position={[0, y, z]} ref={(g) => { rig.current.eyes = g; }}>
+    <group position={[0, y, z]} ref={eyeRef}>
       {[-1, 1].map((s) => (
         <group key={s} position={[s * spacing, 0, 0]}>
           <mesh>
@@ -89,13 +126,14 @@ function BlobShadow({ scale = 1 }: { scale?: number }) {
   );
 }
 
-type ModelProps = { rig: MutableRefObject<Rig>; stage: number };
+type ModelProps = { mood: string; stage: number };
 
 // ── species ─────────────────────────────────────────────────────────────────
 
-function OwlPet({ rig }: ModelProps) {
+function OwlPet({ mood }: ModelProps) {
+  const { pet, eyes, head, wingsL, wingsR } = usePetRig(mood);
   return (
-    <group>
+    <group ref={pet}>
       {/* body */}
       <mesh position={[0, 0.62, 0]} scale={[1, 1.18, 0.95]}>
         <sphereGeometry args={[0.62, 24, 24]} />
@@ -106,13 +144,13 @@ function OwlPet({ rig }: ModelProps) {
         <meshStandardMaterial color="#e2e8f0" roughness={0.9} />
       </mesh>
       {/* wings */}
-      <group ref={(g) => { rig.current.wingsL = g; }} position={[-0.6, 0.68, 0]}>
+      <group ref={wingsL} position={[-0.6, 0.68, 0]}>
         <mesh scale={[0.35, 0.9, 0.55]}>
           <sphereGeometry args={[0.3, 16, 16]} />
           <meshStandardMaterial color="#64748b" roughness={0.85} />
         </mesh>
       </group>
-      <group ref={(g) => { rig.current.wingsR = g; }} position={[0.6, 0.68, 0]}>
+      <group ref={wingsR} position={[0.6, 0.68, 0]}>
         <mesh scale={[0.35, 0.9, 0.55]}>
           <sphereGeometry args={[0.3, 16, 16]} />
           <meshStandardMaterial color="#64748b" roughness={0.85} />
@@ -126,7 +164,7 @@ function OwlPet({ rig }: ModelProps) {
         </mesh>
       ))}
       {/* head */}
-      <group ref={(g) => { rig.current.head = g; }} position={[0, 1.42, 0]}>
+      <group ref={head} position={[0, 1.42, 0]}>
         <mesh>
           <sphereGeometry args={[0.52, 24, 24]} />
           <meshStandardMaterial color="#94a3b8" roughness={0.8} />
@@ -140,7 +178,7 @@ function OwlPet({ rig }: ModelProps) {
           <coneGeometry args={[0.12, 0.24, 10]} />
           <meshStandardMaterial color="#64748b" roughness={0.85} />
         </mesh>
-        <Eyes y={0.03} z={0.42} spacing={0.2} rig={rig} />
+        <Eyes y={0.03} z={0.42} spacing={0.2} eyeRef={eyes} />
         <mesh position={[0, -0.14, 0.5]} rotation-x={Math.PI / 2}>
           <coneGeometry args={[0.07, 0.16, 10]} />
           <meshStandardMaterial color="#f59e0b" roughness={0.5} />
@@ -150,11 +188,12 @@ function OwlPet({ rig }: ModelProps) {
   );
 }
 
-function FoxPet({ rig }: ModelProps) {
+function FoxPet({ mood }: ModelProps) {
+  const { pet, eyes, head, tail } = usePetRig(mood);
   return (
-    <group>
+    <group ref={pet}>
       {/* tail (behind, sways) */}
-      <group ref={(g) => { rig.current.tail = g; }} position={[0, 0.55, -0.5]}>
+      <group ref={tail} position={[0, 0.55, -0.5]}>
         <mesh rotation-x={-0.7} scale={[0.55, 0.42, 1.7]}>
           <sphereGeometry args={[0.22, 16, 16]} />
           <meshStandardMaterial color="#fb923c" roughness={0.8} />
@@ -181,7 +220,7 @@ function FoxPet({ rig }: ModelProps) {
         </mesh>
       ))}
       {/* head */}
-      <group ref={(g) => { rig.current.head = g; }} position={[0, 1.28, 0]}>
+      <group ref={head} position={[0, 1.28, 0]}>
         <mesh>
           <sphereGeometry args={[0.42, 24, 24]} />
           <meshStandardMaterial color="#fb923c" roughness={0.8} />
@@ -204,17 +243,18 @@ function FoxPet({ rig }: ModelProps) {
           <sphereGeometry args={[0.05, 10, 10]} />
           <meshStandardMaterial color="#1c1917" roughness={0.4} />
         </mesh>
-        <Eyes y={0.08} z={0.36} spacing={0.17} size={0.11} dark="#431407" rig={rig} />
+        <Eyes y={0.08} z={0.36} spacing={0.17} size={0.11} dark="#431407" eyeRef={eyes} />
       </group>
     </group>
   );
 }
 
-function DragonPet({ rig }: ModelProps) {
+function DragonPet({ mood }: ModelProps) {
+  const { pet, eyes, head, wingsL, wingsR, tail } = usePetRig(mood);
   return (
-    <group>
+    <group ref={pet}>
       {/* tail chain */}
-      <group ref={(g) => { rig.current.tail = g; }} position={[0, 0.5, -0.6]}>
+      <group ref={tail} position={[0, 0.5, -0.6]}>
         {[0, 0.3, 0.55].map((d, i) => (
           <mesh key={d} position={[0, -0.12 * i, -d]}>
             <sphereGeometry args={[0.16 - i * 0.04, 14, 14]} />
@@ -223,13 +263,13 @@ function DragonPet({ rig }: ModelProps) {
         ))}
       </group>
       {/* wings */}
-      <group ref={(g) => { rig.current.wingsL = g; }} position={[-0.7, 1.0, -0.2]}>
+      <group ref={wingsL} position={[-0.7, 1.0, -0.2]}>
         <mesh scale={[1, 0.6, 0.12]} rotation-y={0.3}>
           <sphereGeometry args={[0.55, 16, 16]} />
           <meshStandardMaterial color="#a78bfa" roughness={0.6} transparent opacity={0.92} />
         </mesh>
       </group>
-      <group ref={(g) => { rig.current.wingsR = g; }} position={[0.7, 1.0, -0.2]}>
+      <group ref={wingsR} position={[0.7, 1.0, -0.2]}>
         <mesh scale={[1, 0.6, 0.12]} rotation-y={-0.3}>
           <sphereGeometry args={[0.55, 16, 16]} />
           <meshStandardMaterial color="#a78bfa" roughness={0.6} transparent opacity={0.92} />
@@ -252,7 +292,7 @@ function DragonPet({ rig }: ModelProps) {
         </mesh>
       ))}
       {/* head */}
-      <group ref={(g) => { rig.current.head = g; }} position={[0, 1.38, 0.05]}>
+      <group ref={head} position={[0, 1.38, 0.05]}>
         <mesh scale={[1, 0.95, 1.15]}>
           <sphereGeometry args={[0.4, 24, 24]} />
           <meshStandardMaterial color="#8b5cf6" roughness={0.6} />
@@ -271,15 +311,16 @@ function DragonPet({ rig }: ModelProps) {
           <sphereGeometry args={[0.14, 14, 14]} />
           <meshStandardMaterial color="#7c3aed" roughness={0.6} />
         </mesh>
-        <Eyes y={0.06} z={0.38} spacing={0.16} size={0.1} dark="#1e1b4b" rig={rig} />
+        <Eyes y={0.06} z={0.38} spacing={0.16} size={0.1} dark="#1e1b4b" eyeRef={eyes} />
       </group>
     </group>
   );
 }
 
-function RobotPet({ rig }: ModelProps) {
+function RobotPet({ mood }: ModelProps) {
+  const { pet, eyes, head, wingsL, wingsR } = usePetRig(mood);
   return (
-    <group>
+    <group ref={pet}>
       {/* body */}
       <mesh position={[0, 0.55, 0]}>
         <boxGeometry args={[0.8, 0.9, 0.6]} />
@@ -291,7 +332,7 @@ function RobotPet({ rig }: ModelProps) {
         <meshStandardMaterial color="#0f172a" roughness={0.3} emissive="#164e63" emissiveIntensity={0.9} />
       </mesh>
       {/* arms */}
-      <group ref={(g) => { rig.current.wingsL = g; }} position={[-0.5, 0.62, 0]}>
+      <group ref={wingsL} position={[-0.5, 0.62, 0]}>
         <mesh rotation-z={0.18}>
           <cylinderGeometry args={[0.055, 0.055, 0.46, 12]} />
           <meshStandardMaterial color="#1e293b" roughness={0.4} metalness={0.5} />
@@ -301,7 +342,7 @@ function RobotPet({ rig }: ModelProps) {
           <meshStandardMaterial color="#0e7490" roughness={0.4} metalness={0.4} />
         </mesh>
       </group>
-      <group ref={(g) => { rig.current.wingsR = g; }} position={[0.5, 0.62, 0]}>
+      <group ref={wingsR} position={[0.5, 0.62, 0]}>
         <mesh rotation-z={-0.18}>
           <cylinderGeometry args={[0.055, 0.055, 0.46, 12]} />
           <meshStandardMaterial color="#1e293b" roughness={0.4} metalness={0.5} />
@@ -319,7 +360,7 @@ function RobotPet({ rig }: ModelProps) {
         </mesh>
       ))}
       {/* head */}
-      <group ref={(g) => { rig.current.head = g; }} position={[0, 1.32, 0]}>
+      <group ref={head} position={[0, 1.32, 0]}>
         <mesh>
           <boxGeometry args={[0.62, 0.5, 0.55]} />
           <meshStandardMaterial color="#0891b2" roughness={0.35} metalness={0.45} />
@@ -343,7 +384,7 @@ function RobotPet({ rig }: ModelProps) {
           <meshStandardMaterial color="#f0abfc" emissive="#f0abfc" emissiveIntensity={1.4} roughness={0.3} />
         </mesh>
         {/* eyes */}
-        <group ref={(g) => { rig.current.eyes = g; }} position={[0, 0.02, 0.29]}>
+        <group ref={eyes} position={[0, 0.02, 0.29]}>
           {[-0.14, 0.14].map((x) => (
             <mesh key={x} position={[x, 0, 0]}>
               <boxGeometry args={[0.13, 0.06, 0.02]} />
@@ -356,11 +397,12 @@ function RobotPet({ rig }: ModelProps) {
   );
 }
 
-function CatPet({ rig }: ModelProps) {
+function CatPet({ mood }: ModelProps) {
+  const { pet, eyes, head, tail } = usePetRig(mood);
   return (
-    <group>
+    <group ref={pet}>
       {/* tail curl */}
-      <group ref={(g) => { rig.current.tail = g; }} position={[0.42, 0.32, -0.42]}>
+      <group ref={tail} position={[0.42, 0.32, -0.42]}>
         <mesh position={[0.12, 0.18, -0.1]}>
           <sphereGeometry args={[0.11, 14, 14]} />
           <meshStandardMaterial color="#ec4899" roughness={0.8} />
@@ -391,7 +433,7 @@ function CatPet({ rig }: ModelProps) {
         </mesh>
       ))}
       {/* head */}
-      <group ref={(g) => { rig.current.head = g; }} position={[0, 1.32, 0]}>
+      <group ref={head} position={[0, 1.32, 0]}>
         <mesh>
           <sphereGeometry args={[0.44, 24, 24]} />
           <meshStandardMaterial color="#ec4899" roughness={0.8} />
@@ -427,17 +469,19 @@ function CatPet({ rig }: ModelProps) {
             </mesh>
           ))
         )}
-        <Eyes y={0.06} z={0.38} spacing={0.18} size={0.11} dark="#500724" rig={rig} />
+        <Eyes y={0.06} z={0.38} spacing={0.18} size={0.11} dark="#500724" eyeRef={eyes} />
       </group>
     </group>
   );
 }
 
-function PhoenixPet({ rig }: ModelProps) {
+function PhoenixPet({ mood }: ModelProps) {
+  const rig = usePetRig(mood);
+  const { pet, eyes, head, wingsL, wingsR, tail } = rig;
   return (
-    <group>
+    <group ref={pet}>
       {/* tail plume */}
-      <group ref={(g) => { rig.current.tail = g; }} position={[0, 0.7, -0.55]}>
+      <group ref={tail} position={[0, 0.7, -0.55]}>
         <mesh rotation-z={0.5} position={[-0.16, -0.28, -0.1]}>
           <coneGeometry args={[0.1, 0.6, 10]} />
           <meshStandardMaterial color="#fbbf24" roughness={0.6} emissive="#f97316" emissiveIntensity={0.25} />
@@ -452,13 +496,13 @@ function PhoenixPet({ rig }: ModelProps) {
         </mesh>
       </group>
       {/* wings */}
-      <group ref={(g) => { rig.current.wingsL = g; }} position={[-0.78, 1.05, -0.12]}>
+      <group ref={wingsL} position={[-0.78, 1.05, -0.12]}>
         <mesh scale={[1.2, 0.55, 0.1]} rotation-y={0.25}>
           <sphereGeometry args={[0.55, 16, 16]} />
           <meshStandardMaterial color="#ef4444" roughness={0.5} emissive="#f97316" emissiveIntensity={0.3} />
         </mesh>
       </group>
-      <group ref={(g) => { rig.current.wingsR = g; }} position={[0.78, 1.05, -0.12]}>
+      <group ref={wingsR} position={[0.78, 1.05, -0.12]}>
         <mesh scale={[1.2, 0.55, 0.1]} rotation-y={-0.25}>
           <sphereGeometry args={[0.55, 16, 16]} />
           <meshStandardMaterial color="#ef4444" roughness={0.5} emissive="#f97316" emissiveIntensity={0.3} />
@@ -476,7 +520,7 @@ function PhoenixPet({ rig }: ModelProps) {
       {/* glow */}
       <pointLight position={[0, 0.9, 0.4]} intensity={1.1} distance={3.5} color="#fb923c" />
       {/* head */}
-      <group ref={(g) => { rig.current.head = g; }} position={[0, 1.34, 0]}>
+      <group ref={head} position={[0, 1.34, 0]}>
         <mesh>
           <sphereGeometry args={[0.36, 24, 24]} />
           <meshStandardMaterial color="#f97316" roughness={0.55} emissive="#c2410c" emissiveIntensity={0.18} />
@@ -492,7 +536,7 @@ function PhoenixPet({ rig }: ModelProps) {
           <coneGeometry args={[0.06, 0.16, 10]} />
           <meshStandardMaterial color="#fbbf24" roughness={0.4} />
         </mesh>
-        <Eyes y={0.04} z={0.32} spacing={0.15} size={0.1} dark="#431407" rig={rig} />
+        <Eyes y={0.04} z={0.32} spacing={0.15} size={0.1} dark="#431407" eyeRef={eyes} />
       </group>
     </group>
   );
@@ -727,44 +771,14 @@ function PetScene({ petType, mood, stage, accessories }: {
   stage: number;
   accessories: Array<{ itemId: string; slot: string }>;
 }) {
-  const rig = useRef<Rig>({ eyes: null, head: null, wingsL: null, wingsR: null, tail: null });
-  const pet = useRef<THREE.Group>(null);
-  const blink = useRef({ next: 2.5, until: 0 });
-  const { camera } = useThree();
   const stageClamped = Math.min(3, Math.max(0, Math.floor(stage)));
   const model = MODELS[petType] ?? MODELS.owl;
 
-  // Gentle orbiting camera so the pet is never fully static.
-  useFrame(({ clock }) => {
+  // Gentle orbiting camera so the pet is never fully static. Runs through the
+  // frame callback's own state — mutating hook results is what the compiler
+  // rejects, callback parameters are fine.
+  useFrame(({ clock, camera }) => {
     const t = clock.getElapsedTime();
-    const m = MOODS[mood as MoodName] ?? MOODS.happy;
-
-    if (pet.current) {
-      pet.current.position.y = Math.sin(t * m.speed) * m.amp;
-      pet.current.rotation.y = Math.sin(t * 0.4) * 0.07;
-    }
-    if (rig.current.head) {
-      rig.current.head.rotation.z += (m.headTilt - rig.current.head.rotation.z) * 0.08;
-      rig.current.head.rotation.x += (m.headNod - rig.current.head.rotation.x) * 0.08;
-    }
-    // blink
-    const b = blink.current;
-    if (t > b.next) {
-      b.until = t + 0.14;
-      b.next = t + 2.4 + Math.random() * 3;
-    }
-    if (rig.current.eyes) {
-      const target = t < b.until ? 0.12 : m.eyeScale;
-      rig.current.eyes.scale.y += (target - rig.current.eyes.scale.y) * 0.5;
-    }
-    // wings
-    const flap = Math.sin(t * m.flapSpeed) * m.flap;
-    if (rig.current.wingsL) rig.current.wingsL.rotation.z += (flap - rig.current.wingsL.rotation.z) * 0.3;
-    if (rig.current.wingsR) rig.current.wingsR.rotation.z += (-flap - rig.current.wingsR.rotation.z) * 0.3;
-    // tail
-    if (rig.current.tail) rig.current.tail.rotation.x = Math.sin(t * 2.2) * 0.12;
-
-    // slow camera drift
     camera.position.x = Math.sin(t * 0.12) * 0.35;
     camera.lookAt(0, 0.9, 0);
   });
@@ -775,8 +789,8 @@ function PetScene({ petType, mood, stage, accessories }: {
       <directionalLight position={[3, 5, 2]} intensity={1.25} />
       <pointLight position={[-3, 2, -2]} intensity={0.6} color="#a78bfa" />
       <BlobShadow scale={STAGE_SCALE[stageClamped]} />
-      <group ref={pet} scale={STAGE_SCALE[stageClamped]}>
-        {model({ rig, stage: stageClamped })}
+      <group scale={STAGE_SCALE[stageClamped]}>
+        {model({ mood, stage: stageClamped })}
         <Accessories petType={petType} accessories={accessories} />
       </group>
       <group scale={STAGE_SCALE[stageClamped]}>

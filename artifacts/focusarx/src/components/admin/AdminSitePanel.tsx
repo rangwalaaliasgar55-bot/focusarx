@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { LoadingState, MotionTab, SectionHeader, adminFetch } from "./AdminHelpers";
 import type { AdminPanelProps, SiteSettings } from "./AdminTypes";
 
@@ -23,9 +23,7 @@ export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
   const [customDraft, setCustomDraft] = useState({ key: "", value: "", isPublic: false, note: "" });
   const [customMsg, setCustomMsg] = useState<string | null>(null);
 
-  useEffect(() => { load(); void loadTracks(); void loadCustom(); }, []);
-
-  async function loadCustom() {
+  const loadCustom = useCallback(async () => {
     try {
       const r = await adminFetch("/api/admin/site/custom-settings", { headers: authHeaders(), credentials: "include" });
       if (r.ok) {
@@ -33,7 +31,7 @@ export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
         setCustom(Array.isArray(d.settings) ? d.settings : []);
       }
     } catch { /* the list is optional chrome — never block the settings form */ }
-  }
+  }, [authHeaders]);
 
   /**
    * Coerce the typed-in text into the value the server will store. We cannot
@@ -74,7 +72,7 @@ export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
     setCustomMsg(`${key} deleted.`);
   }
 
-  async function loadTracks() {
+  const loadTracks = useCallback(async () => {
     try {
       const r = await adminFetch("/api/site/ambient-tracks", { headers: authHeaders(), credentials: "include" });
       if (r.ok) {
@@ -82,7 +80,7 @@ export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
         if (Array.isArray(d)) setTracks(d);
       }
     } catch { /* ignore */ }
-  }
+  }, [authHeaders]);
 
   async function saveTracks(next: AdminTrack[]) {
     setTrackMsg(null);
@@ -99,7 +97,7 @@ export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
         const detail = typeof d?.error === "string" ? d.error : (d?.error?.message ?? "Failed to save tracks");
         setTrackMsg("Error: " + detail);
       }
-    } catch (e: any) { setTrackMsg("Error: " + e.message); }
+    } catch (e) { setTrackMsg("Error: " + (e instanceof Error ? e.message : "Failed")); }
   }
 
   function addTrack() {
@@ -123,7 +121,7 @@ export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
     void saveTracks(tracks.filter((t) => t.id !== id));
   }
 
-  async function load() {
+  const load = useCallback(async () => {
     try {
       const r = await adminFetch("/api/admin/site/settings", { headers: authHeaders(), credentials: "include" });
       if (r.ok) {
@@ -143,7 +141,13 @@ export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
         });
       }
     } catch { /* ignore */ }
-  }
+  }, [authHeaders]);
+
+  // Deferred a tick so the first setState isn't synchronous in the effect.
+  useEffect(() => {
+    const t = setTimeout(() => { void load(); void loadTracks(); void loadCustom(); }, 0);
+    return () => clearTimeout(t);
+  }, [load, loadTracks, loadCustom]);
 
   async function save(next?: SiteSettings) {
     const s = next ?? settings;
@@ -180,7 +184,7 @@ export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
         const detail = typeof d?.error === "string" ? d.error : (d?.error?.message ?? "Failed to save");
         setResult("Error: " + detail);
       }
-    } catch (e: any) { setResult("Error: " + e.message); }
+    } catch (e) { setResult("Error: " + (e instanceof Error ? e.message : "Failed")); }
     finally { setSaving(false); }
   }
 

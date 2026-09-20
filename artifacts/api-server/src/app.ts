@@ -24,7 +24,7 @@ app.set("trust proxy", 1);
 app.use((req, _res, next) => {
   const existing = req.headers["x-request-id"] as string | undefined;
   const requestId = existing && existing.length < 128 ? existing : `req_${crypto.randomUUID()}`;
-  (req as any).id = requestId;
+  req.id = requestId;
   next();
 });
 
@@ -108,7 +108,7 @@ app.use(
 app.use(
   pinoHttp({
     logger,
-    genReqId: (req) => (req as any).id ?? `req_${crypto.randomUUID()}`,
+    genReqId: (req) => req.id ?? `req_${crypto.randomUUID()}`,
     serializers: {
       req(req) {
         return { id: req.id, method: req.method, url: req.url?.split("?")[0] };
@@ -151,8 +151,8 @@ app.use((_req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  const reqId = (_req as any).id;
-  if (reqId) res.setHeader("X-Request-Id", reqId);
+  const reqId = _req.id;
+  if (reqId) res.setHeader("X-Request-Id", String(reqId));
   next();
 });
 
@@ -199,14 +199,14 @@ app.use("/api", (req, res, next) => {
   try {
     missing = getConfigErrors();
   } catch (err) {
-    logger.error({ err, requestId: (req as any).id }, "config gate failed");
+    logger.error({ err, requestId: req.id }, "config gate failed");
     res.status(503).json({
       error: {
         code: "CONFIG_ERROR",
         message: "Server configuration could not be validated",
         hint: "Check the API server logs for [env] lines naming the invalid variable.",
         docs: "See docs/ENVIRONMENT.md",
-        requestId: (req as any).id,
+        requestId: req.id,
       },
     });
     return;
@@ -220,7 +220,7 @@ app.use("/api", (req, res, next) => {
         missing,
         hint: "Fix these in your deployment's environment variables: " + missing.join(", "),
         docs: "See docs/ENVIRONMENT.md",
-        requestId: (req as any).id,
+        requestId: req.id,
       },
     });
     return;
@@ -247,7 +247,7 @@ app.use("/api", async (req, res, next) => {
           code: "MAINTENANCE",
           message: "FocusArx is temporarily in maintenance mode",
           hint: "We're making things better — please check back in a few minutes.",
-          requestId: (req as any).id,
+          requestId: req.id,
         },
       });
       return;
@@ -274,7 +274,7 @@ app.use("/api", (req, res) => {
     error: {
       code: "NOT_FOUND",
       message: `Unknown API endpoint: ${req.method} ${req.path}`,
-      requestId: (req as any).id,
+      requestId: req.id,
     },
   });
 });
@@ -282,10 +282,12 @@ app.use("/api", (req, res) => {
 // ── Centralized error handling ─────────────────────────────────────────────
 // Standardized `{ error: { code, message, requestId } }` envelope for every
 // failure path, with the original exception logged server-side only.
-app.use(async (err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  const requestId = (req as any).id ?? `req_${crypto.randomUUID()}`;
+app.use(async (err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const requestId = req.id ?? `req_${crypto.randomUUID()}`;
+  // Narrow once: every branch below only needs `message`/`type`/`status`.
+  const httpError = err as { message?: string; type?: string; name?: string; code?: string; status?: number; statusCode?: number; expose?: boolean; stack?: string };
 
-  if (err.message?.startsWith("CORS")) {
+  if (httpError.message?.startsWith("CORS")) {
     res.status(403).json({
       error: {
         code: "CORS_FORBIDDEN",
@@ -300,7 +302,7 @@ app.use(async (err: any, req: express.Request, res: express.Response, _next: exp
   // runs, so without this branch a client sending malformed JSON got a 500 —
   // which is both wrong (it is a client error) and indistinguishable from a
   // real server fault in the logs.
-  if (err.type === "entity.parse.failed" || err instanceof SyntaxError) {
+  if (httpError.type === "entity.parse.failed" || err instanceof SyntaxError) {
     logger.warn({ requestId, url: req.url }, "malformed JSON request body");
     res.status(400).json({
       error: {
@@ -312,7 +314,7 @@ app.use(async (err: any, req: express.Request, res: express.Response, _next: exp
     return;
   }
 
-  if (err.type === "entity.too.large") {
+  if (httpError.type === "entity.too.large") {
     res.status(413).json({
       error: {
         code: "PAYLOAD_TOO_LARGE",
@@ -324,7 +326,7 @@ app.use(async (err: any, req: express.Request, res: express.Response, _next: exp
   }
 
   // Zod validation errors
-  if (err.name === "ZodError" || err.code === "VALIDATION_ERROR") {
+  if (httpError.name === "ZodError" || httpError.code === "VALIDATION_ERROR") {
     res.status(400).json({
       error: {
         code: "VALIDATION_ERROR",
@@ -336,7 +338,7 @@ app.use(async (err: any, req: express.Request, res: express.Response, _next: exp
   }
 
   // Rate limit errors from express-rate-limit
-  if (err.status === 429) {
+  if (httpError.status === 429) {
     res.status(429).json({
       error: {
         code: "RATE_LIMITED",
@@ -350,13 +352,13 @@ app.use(async (err: any, req: express.Request, res: express.Response, _next: exp
   // Errors that already carry a deliberate HTTP status (4xx from a helper that
   // threw rather than responded) keep that status instead of being flattened
   // into a 500.
-  const errStatus = typeof err.status === "number" ? err.status : 0;
+  const errStatus = typeof httpError.status === "number" ? httpError.status : 0;
   if (errStatus >= 400 && errStatus < 500) {
     logger.warn({ err, requestId, url: req.url, method: req.method }, "client error");
     res.status(errStatus).json({
       error: {
-        code: err.code ?? "BAD_REQUEST",
-        message: typeof err.message === "string" && err.expose ? err.message : "The request could not be completed",
+        code: httpError.code ?? "BAD_REQUEST",
+        message: typeof httpError.message === "string" && httpError.expose ? httpError.message : "The request could not be completed",
         requestId,
       },
     });
@@ -380,7 +382,7 @@ app.use(async (err: any, req: express.Request, res: express.Response, _next: exp
       code: "INTERNAL_ERROR",
       message: "An unexpected error occurred",
       requestId,
-      ...(isProd ? {} : { details: err.message }),
+      ...(isProd ? {} : { details: httpError.message }),
     },
   });
 });

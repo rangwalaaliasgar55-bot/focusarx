@@ -43,11 +43,23 @@ interface RevealProps extends Omit<React.ComponentProps<typeof motion.div>, "chi
   as?: "div" | "section" | "article" | "header" | "li" | "span";
 }
 
+/** motion components for the semantic tags Reveal can render as. */
+const MOTION_TAGS = {
+  div: motion.div,
+  section: motion.section,
+  article: motion.article,
+  header: motion.header,
+  li: motion.li,
+  span: motion.span,
+} as const;
+
 export function Reveal({ delay = 0, distance = 24, as = "div", children, ...rest }: RevealProps) {
   const reduced = useReducedMotion();
-  const Tag = (motion as any)[as] as typeof motion.div;
+  // Props are typed for a div (RevealProps); the other tags accept the same
+  // subset we actually pass, so one cast keeps the call site honest.
+  const Tag = MOTION_TAGS[as] as typeof motion.div;
   if (reduced) {
-    const { style, className } = rest as any;
+    const { style, className } = rest as { style?: React.CSSProperties; className?: string };
     const Plain = as;
     return <Plain style={style} className={className}>{children}</Plain>;
   }
@@ -84,7 +96,7 @@ type StaggerProps = Omit<React.ComponentProps<typeof motion.div>, "children"> & 
 export function RevealStagger({ children, ...rest }: StaggerProps) {
   const reduced = useReducedMotion();
   if (reduced) {
-    const { style, className } = rest as any;
+    const { style, className } = rest as { style?: React.CSSProperties; className?: string };
     return <div style={style} className={className}>{children}</div>;
   }
   return (
@@ -97,7 +109,7 @@ export function RevealStagger({ children, ...rest }: StaggerProps) {
 export function RevealItem({ children, ...rest }: StaggerProps) {
   const reduced = useReducedMotion();
   if (reduced) {
-    const { style, className } = rest as any;
+    const { style, className } = rest as { style?: React.CSSProperties; className?: string };
     return <div style={style} className={className}>{children}</div>;
   }
   return (

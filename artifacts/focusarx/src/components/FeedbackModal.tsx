@@ -8,7 +8,7 @@ const STORAGE_KEY = "focusarx_feedback_shown";
 const SESSION_COUNT_KEY = "focusarx_total_sessions";
 
 /** Shared client: cookie-first auth, silent refresh, readable error messages. */
-function apiFetch<T = any>(path: string, opts?: RequestInit): Promise<T> {
+function apiFetch<T = unknown>(path: string, opts?: RequestInit): Promise<T> {
   return apiJson<T>(path, opts);
 }
 

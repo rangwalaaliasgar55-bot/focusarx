@@ -117,6 +117,18 @@ export async function seedPremiumPlans(): Promise<void> {
   }
 }
 
+export type PremiumPlanRow = typeof premiumPlansTable.$inferSelect;
+export type PremiumEntitlementRow = typeof premiumEntitlementsTable.$inferSelect;
+/** Legacy subscription row still honoured for pre-migration users. */
+export type LegacyPremiumSubRow = typeof premiumSubscriptionsTable.$inferSelect;
+/** Callers must treat either membership source as an entitlement. */
+export type AnyPremiumEntitlement = PremiumEntitlementRow | LegacyPremiumSubRow;
+
+/** Minimal contract the ledger spend call needs from a DB-or-tx handle. */
+type SpendTx =
+  | typeof db
+  | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 /**
  * Get all active plans
  */
@@ -142,7 +154,7 @@ export async function getActivePlans() {
       sortOrder: p.sortOrder ?? i,
       createdAt: new Date(),
       updatedAt: new Date(),
-    })) as any;
+    }));
   }
 }
 
@@ -178,7 +190,7 @@ export async function getPlanById(idOrSlug: string) {
       sortOrder: fallback.sortOrder ?? 0,
       createdAt: new Date(),
       updatedAt: new Date(),
-    } as any;
+    } satisfies PremiumPlanRow;
   }
 }
 
@@ -246,7 +258,7 @@ export async function resolveMembershipTier(
 /**
  * Check if user has active premium entitlement
  */
-export async function hasActivePremium(userId: string): Promise<{ active: boolean; entitlement?: any; expiresAt?: Date }> {
+export async function hasActivePremium(userId: string): Promise<{ active: boolean; entitlement?: AnyPremiumEntitlement; expiresAt?: Date }> {
   try {
     const now = new Date();
     const [entitlement] = await db
@@ -284,7 +296,7 @@ export async function purchasePremiumWithTokens(
   userId: string,
   planIdOrSlug: string,
   idempotencyKey: string
-): Promise<{ success: boolean; entitlement?: any; error?: string; newBalance?: number }> {
+): Promise<{ success: boolean; entitlement?: AnyPremiumEntitlement; error?: string; newBalance?: number }> {
   const plan = await getPlanById(planIdOrSlug);
   if (!plan) {
     return { success: false, error: "Plan not found" };
@@ -310,7 +322,7 @@ export async function purchasePremiumWithTokens(
         description: `Premium purchase: ${plan.name} (${plan.durationDays} days)`,
         relatedEntityId: plan.id,
         metadata: { planId: plan.id, planSlug: plan.slug, durationDays: plan.durationDays },
-      }, tx as any);
+      }, tx as SpendTx);
 
       if (!spendResult) {
         throw new Error("INSUFFICIENT_BALANCE");
@@ -387,11 +399,12 @@ export async function purchasePremiumWithTokens(
     logger.info({ userId, planId: plan.id, cost: plan.tokenCost }, "premium purchased");
 
     return { success: true, entitlement: result.entitlement, newBalance: result.balanceAfter };
-  } catch (err: any) {
-    if (err.message === "INSUFFICIENT_BALANCE") {
+  } catch (err) {
+    const e = err as { message?: string; code?: string };
+    if (e.message === "INSUFFICIENT_BALANCE") {
       return { success: false, error: `Insufficient Focus Tokens. Need ${plan.tokenCost.toLocaleString()} tokens.` };
     }
-    if (err.code === "23505" || err.message?.includes("duplicate") || err.message?.includes("unique")) {
+    if (e.code === "23505" || e.message?.includes("duplicate") || e.message?.includes("unique")) {
       // Idempotency race — fetch existing
       try {
         const [existing] = await db.select().from(premiumEntitlementsTable).where(eq(premiumEntitlementsTable.idempotencyKey, idempotencyKey)).limit(1);

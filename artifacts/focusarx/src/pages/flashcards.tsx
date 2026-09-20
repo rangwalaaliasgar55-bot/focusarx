@@ -12,7 +12,7 @@ import { BookOpen, Plus, Brain, Clock, CheckCircle, XCircle, RotateCcw, Sparkles
 import { PageSEO } from '@/components/PageSEO';
 import { getToken } from '@/lib/auth';
 import { useToast } from '@/components/Toast';
-import { schedule, createNewCard, Grade, type CardState, serializeCard, deserializeCard } from '@/lib/fsrs';
+import { schedule, createNewCard, Grade, type CardState, type SerializedCardState, serializeCard, deserializeCard } from '@/lib/fsrs';
 import { QueryError } from '@/components/ui/QueryError';
 
 interface Deck {
@@ -30,6 +30,9 @@ interface Card {
   back: string;
   fsrs: CardState;
 }
+
+interface RawDeck { id: number; title?: string | null; description?: string | null; cardCount?: number; dueCount?: number }
+interface RawCard { id: number; deckId?: number | null; front: string; back: string; fsrs?: unknown }
 
 export default function FlashcardsPage() {
   const [decks, setDecks] = useState<Deck[]>([]);
@@ -87,7 +90,7 @@ export default function FlashcardsPage() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data: unknown = await res.json();
         if (cancelled) return;
-        setDecks((Array.isArray(data) ? data : []).map((d: any) => ({
+        setDecks((Array.isArray(data) ? (data as RawDeck[]) : []).map((d) => ({
           id: d.id,
           title: d.title || 'Untitled',
           description: d.description || '',
@@ -145,12 +148,12 @@ export default function FlashcardsPage() {
       // "No cards in this deck. Add some to get started!"
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: unknown = await res.json();
-      const converted: Card[] = (Array.isArray(data) ? data : []).map((c: any) => ({
+      const converted: Card[] = (Array.isArray(data) ? (data as RawCard[]) : []).map((c) => ({
         id: c.id,
         deckId: c.deckId || deckId,
         front: c.front,
         back: c.back,
-        fsrs: c.fsrs ? deserializeCard(c.fsrs) : createNewCard(),
+        fsrs: c.fsrs ? deserializeCard(c.fsrs as SerializedCardState) : createNewCard(),
       }));
       setCards(converted);
       setCurrentCardIndex(0);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { Save, X, Plus, Pencil, RefreshCw } from "lucide-react";
 import { Badge, EmptyState, LoadingState, MotionTab, SectionHeader, adminFetch } from "./AdminHelpers";
 import { useToast } from "@/components/Toast";
@@ -12,15 +12,19 @@ export function AdminLootboxPanel({ authHeaders }: AdminPanelProps) {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<LootBoxType>>({});
 
-  useEffect(() => { load(); }, []);
-
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const r = await adminFetch("/api/admin/cms/lootboxes", { headers: authHeaders(), credentials: "include" });
       if (r.ok) { const d = await r.json(); setTypes(d.types ?? []); }
     } finally { setLoading(false); }
-  }
+  }, [authHeaders]);
+
+  // Deferred a tick so the first setState isn't synchronous in the effect.
+  useEffect(() => {
+    const t = setTimeout(() => void load(), 0);
+    return () => clearTimeout(t);
+  }, [load]);
 
   async function save(typeId: string) {
     const r = await adminFetch(`/api/admin/cms/lootboxes/${typeId}`, {

@@ -1,6 +1,6 @@
 import { Response } from "express";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
-import { Router } from "express";
+import express, { Router } from "express";
 import { db } from "@workspace/db";
 import {
   socialPostsTable, postReactionsTable, postCommentsTable, postSavesTable,
@@ -17,9 +17,9 @@ import { logger } from "../lib/logger";
 
 const REPEAT_OFFENDER_THRESHOLD = 3;
 
-function optionalAuth(req: any, res: any, next: any) {
+function optionalAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
   const userId = extractUserId(req);
-  req.userId = userId;
+  if (userId) req.userId = userId;
   next();
 }
 
@@ -44,7 +44,9 @@ async function loadVisiblePost(postId: string, viewerId: string | null) {
   return post && await canViewPost(post, viewerId) ? post : null;
 }
 
-async function enrichPost(post: any, viewerId: string | null) {
+type SocialPostRow = typeof socialPostsTable.$inferSelect;
+
+async function enrichPost(post: SocialPostRow, viewerId: string | null) {
   const [author] = await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, role: usersTable.role })
     .from(usersTable).where(eq(usersTable.id, post.userId)).limit(1);
   const [wallet] = await db.select({ level: userWalletsTable.level })
@@ -106,7 +108,7 @@ postsRouter.get("/feed", authMiddleware, async (req: AuthRequest, res: Response)
     await materializeDueBotReplies();
   }
 
-  let posts: any[] = [];
+  let posts: SocialPostRow[] = [];
 
   if (type === "following") {
     const following = await db.select({ followingId: followsTable.followingId })

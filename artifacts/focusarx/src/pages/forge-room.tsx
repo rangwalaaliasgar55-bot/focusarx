@@ -210,7 +210,7 @@ export default function ForgeRoomPage() {
     staleTime: 10_000,
   });
 
-  const rooms = roomsQuery.data ?? [];
+  const rooms = useMemo(() => roomsQuery.data ?? [], [roomsQuery.data]);
   // Fall back to the busiest room so the page opens on something real.
   const selected = useMemo(() => {
     if (rooms.length === 0) return null;

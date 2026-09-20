@@ -8,11 +8,33 @@ import { Trophy, Flame, Clock, CheckSquare, Star, Users, Zap, Crown, ArrowLeft, 
 import { User } from "lucide-react";
 
 /** Shared client: cookie-first auth, silent refresh, readable error messages. */
-function apiFetch<T = any>(path: string, opts?: RequestInit): Promise<T> {
+interface PublicProfile {
+  id?: string;
+  name?: string;
+  bio?: string | null;
+  level?: number;
+  xp?: number;
+  role?: string;
+  isPremium?: boolean;
+  isBot?: boolean;
+  streak?: number;
+  longestStreak?: number;
+  timezone?: string | null;
+  joinedAt?: string;
+  prestige?: number;
+  totalSessions?: number;
+  totalFocusHours?: number;
+  tasksCompleted?: number;
+  friendCount?: number;
+  badgeCount?: number;
+  recentBadges?: Array<{ id?: string; name?: string; icon?: string | null }>;
+}
+
+function apiFetch<T = unknown>(path: string, opts?: RequestInit): Promise<T> {
   return apiJson<T>(path, opts);
 }
 
-function StatBubble({ icon: Icon, label, value, color = "var(--brand-600)" }: { icon: React.ComponentType<any>; label: string; value: string | number; color?: string }) {
+function StatBubble({ icon: Icon, label, value, color = "var(--brand-600)" }: { icon: React.ComponentType<{ size?: number | string; className?: string; style?: React.CSSProperties }>; label: string; value: string | number; color?: string }) {
   return (
     <div className="flex flex-col items-center rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4 gap-1">
       <Icon size={16} style={{ color }} />
@@ -77,7 +99,7 @@ export default function UserProfilePage() {
 
   const { data: profile, isLoading, error } = useQuery({
     queryKey: ["public-profile", username],
-    queryFn: () => apiFetch(`/api/u/${encodeURIComponent(username!)}`),
+    queryFn: () => apiFetch<PublicProfile>(`/api/u/${encodeURIComponent(username!)}`),
     enabled: !!username,
     staleTime: 120_000,
   });
@@ -140,7 +162,7 @@ export default function UserProfilePage() {
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-2xl font-semibold text-[var(--foreground)]">{profile.name}</h1>
             {profile.isPremium && <span className="flex items-center gap-1 rounded-full border border-[var(--brand-gold)]/40 bg-[var(--brand-gold)]/10 px-2 py-0.5 text-xs text-[var(--brand-gold)] font-bold"><Crown size={10} /> Premium</span>}
-            {profile.prestige > 0 && <span className="flex items-center gap-1 rounded-full border border-[var(--palette-amber-500)]/40 bg-[var(--palette-amber-500)]/10 px-2 py-0.5 text-xs text-[var(--palette-amber-400)] font-bold"><Crown size={10} /> Prestige {profile.prestige}</span>}
+            {(profile.prestige ?? 0) > 0 && <span className="flex items-center gap-1 rounded-full border border-[var(--palette-amber-500)]/40 bg-[var(--palette-amber-500)]/10 px-2 py-0.5 text-xs text-[var(--palette-amber-400)] font-bold"><Crown size={10} /> Prestige {profile.prestige}</span>}
             {(profile.isBot || profile.role === "bot") && <span className="inline-flex items-center gap-1 rounded-full border border-[var(--forge-border)] bg-[var(--surface-1)] px-2.5 py-1 text-[11px] font-medium text-[var(--foreground-subtle)]" title="Focus Companion — fictional identity for community simulation, not a real person"><span className="h-1.5 w-1.5 rounded-full bg-[var(--foreground-subtle)]"/> Focus Companion</span>}
           </div>
           {(profile.isBot || profile.role === "bot") && <p className="mt-2 text-[11px] leading-relaxed text-[var(--foreground-subtle)]">This is a Focus Companion — a fictional community member to make study rooms feel alive. Not a real person, no real testimonials.</p>}
@@ -148,7 +170,7 @@ export default function UserProfilePage() {
           <div className="flex items-center gap-3 mt-2 text-xs text-[var(--foreground-subtle)]">
             <span className="flex items-center gap-1"><Users size={11} /> {profile.friendCount} friends</span>
             <span>·</span>
-            <span>Joined {new Date(profile.joinedAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>
+            <span>Joined {profile.joinedAt ? new Date(profile.joinedAt).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "recently"}</span>
             {profile.timezone && <><span>·</span><span>🕐 {profile.timezone}</span></>}
           </div>
         </div>
@@ -156,7 +178,7 @@ export default function UserProfilePage() {
         {/* Level bar */}
         <div className="rounded-2xl border border-[var(--brand-600)]/30 bg-[var(--surface-hover)] p-4 mb-5">
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2"><Zap size={15} className="text-[var(--brand-600)]" /><span className="text-sm font-bold text-[var(--foreground)]">Level {level}</span>{profile.prestige > 0 && <span className="text-[11px] font-bold text-[var(--palette-amber-400)]">✦ P{profile.prestige}</span>}</div>
+            <div className="flex items-center gap-2"><Zap size={15} className="text-[var(--brand-600)]" /><span className="text-sm font-bold text-[var(--foreground)]">Level {level}</span>{(profile.prestige ?? 0) > 0 && <span className="text-[11px] font-bold text-[var(--palette-amber-400)]">✦ P{profile.prestige}</span>}</div>
             <span className="text-xs text-[var(--foreground-subtle)]">{xp.toLocaleString()} XP</span>
           </div>
           <div className="h-2 rounded-full bg-[var(--rgba-255-255-255-0_06)] overflow-hidden">
@@ -167,22 +189,22 @@ export default function UserProfilePage() {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3 mb-5">
           <StatBubble icon={Flame} label="Streak" value={`${profile.streak}d`} color="var(--palette-f97316)" />
-          <StatBubble icon={Clock} label="Focus Hours" value={profile.totalFocusHours} color="var(--color-warning)" />
-          <StatBubble icon={CheckSquare} label="Tasks Done" value={profile.tasksCompleted} color="var(--palette-22d387)" />
-          <StatBubble icon={Trophy} label="Sessions" value={profile.totalSessions} color="var(--info)" />
+          <StatBubble icon={Clock} label="Focus Hours" value={profile.totalFocusHours ?? 0} color="var(--color-warning)" />
+          <StatBubble icon={CheckSquare} label="Tasks Done" value={profile.tasksCompleted ?? 0} color="var(--palette-22d387)" />
+          <StatBubble icon={Trophy} label="Sessions" value={profile.totalSessions ?? 0} color="var(--info)" />
           <StatBubble icon={Flame} label="Best Streak" value={`${profile.longestStreak}d`} color="var(--color-error)" />
-          <StatBubble icon={Star} label="Badges" value={profile.badgeCount} color="var(--brand-400)" />
+          <StatBubble icon={Star} label="Badges" value={profile.badgeCount ?? 0} color="var(--brand-400)" />
         </div>
 
         {/* Recent badges */}
-        {profile.recentBadges?.length > 0 && (
+        {(profile.recentBadges?.length ?? 0) > 0 && (
           <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4 mb-8">
             <p className="text-xs font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] mb-3">Recent Badges</p>
             <div className="flex flex-wrap gap-2">
-              {profile.recentBadges.map((b: string) => (
-                <div key={b} className="flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--muted)] px-3 py-1.5 text-sm">
-                  <span>{BADGE_EMOJI[b] ?? "🏆"}</span>
-                  <span className="text-xs text-[var(--foreground-subtle)] capitalize">{b.replace(/_/g, " ")}</span>
+              {(profile.recentBadges ?? []).map((b) => (
+                <div key={b.id ?? b.name} className="flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--muted)] px-3 py-1.5 text-sm">
+                  <span>{BADGE_EMOJI[b.name ?? ""] ?? "🏆"}</span>
+                  <span className="text-xs text-[var(--foreground-subtle)] capitalize">{(b.name ?? "").replace(/_/g, " ")}</span>
                 </div>
               ))}
             </div>

@@ -53,8 +53,10 @@ function InstancedStars({ count = 1200, reducedMotion = false }: { count?: numbe
   const meshRef = useRef<THREE.InstancedMesh>(null!);
   const dummy = useMemo(() => new THREE.Object3D(), []);
   
-  // Generate star positions once
-  const { positions, colors } = useMemo(() => {
+  // Generate star positions once. Lazy state instead of useMemo: the jitter
+  // uses Math.random, which may not run during render (useMemo included) —
+  // and a starfield never needs to re-deal while mounted anyway.
+  const [starfield] = useState(() => {
     const positions: THREE.Vector3[] = [];
     const colors: THREE.Color[] = [];
     const colorOptions = [
@@ -78,7 +80,8 @@ function InstancedStars({ count = 1200, reducedMotion = false }: { count?: numbe
       colors.push(colorOptions[Math.floor(Math.random() * colorOptions.length)]!);
     }
     return { positions, colors };
-  }, [count]);
+  });
+  const { positions, colors } = starfield;
 
   // Set up instances
   useEffect(() => {
@@ -114,7 +117,8 @@ function InstancedStars({ count = 1200, reducedMotion = false }: { count?: numbe
 
 function NebulaCloud({ position, color, scale }: { position: [number, number, number]; color: string; scale: number }) {
   const meshRef = useRef<THREE.Mesh>(null!);
-  const seed = useMemo(() => Math.random() * 100, []);
+  // Same render-purity rule as the starfield above.
+  const [seed] = useState(() => Math.random() * 100);
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime() + seed;

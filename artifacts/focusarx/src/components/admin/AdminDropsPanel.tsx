@@ -7,10 +7,24 @@ import { useConfirm } from "@/components/ui/ConfirmDialog";
 
 import type { AdminPanelProps } from "./AdminTypes";
 
+interface Drop {
+  id: string;
+  title: string;
+  description?: string | null;
+  type: string;
+  live?: boolean;
+  cancelledAt?: string | null;
+  startsAt: string;
+  endsAt: string;
+  claims: number;
+  poolTotal: number;
+  poolRemaining?: number | null;
+  createdVia?: string | null;
+}
 type DropsState = {
-  drops: any[];
+  drops: Drop[];
   sparklines: Record<string, Array<{ bucket: string; n: number }>>;
-  templates: Array<{ type: string; label: string; description: string; defaultPayload: Record<string, any> }>;
+  templates: Array<{ type: string; label: string; description: string; defaultPayload: Record<string, unknown> }>;
   items: Array<{ id: string; name: string; costCoins: number }>;
 };
 
@@ -65,7 +79,7 @@ export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
 
   useEffect(() => { if (!state) void load(); }, [load, state]);
 
-  function dropPayloadFor(f: DropForm): Record<string, any> {
+  function dropPayloadFor(f: DropForm): Record<string, unknown> {
     switch (f.type) {
       case "coin_rain": return { coinsPerClaim: f.coinsPerClaim, poolTotal: f.poolTotal };
       case "streak_freeze": return { tokensPerClaim: 1, poolTotal: f.poolTotal };
@@ -125,7 +139,9 @@ export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
   const templates = state?.templates ?? [];
   const items = state?.items ?? [];
   const sparklines = state?.sparklines ?? {};
-  const now = Date.now();
+  // Frozen per mount: comparing drop windows to a re-derived clock in render
+  // is both impure and jittery; this panel refreshes via load() anyway.
+  const [now] = useState(() => Date.now());
   const currentTemplate = templates.find((t) => t.type === form.type);
 
 
@@ -235,9 +251,9 @@ export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
           {drops.length === 0 && <p className="text-xs text-[var(--palette-zinc-500)]">No drops yet. Create your first drop — it announces instantly to every member.</p>}
           <div className="max-h-[32rem] space-y-2 overflow-y-auto pr-1">
             {drops.map((d) => {
-              const state = d.live ? "live" : d.cancelledAt ? "cancelled" : d.startsAt > new Date(now) ? "upcoming" : "ended";
+              const state = d.live ? "live" : d.cancelledAt ? "cancelled" : new Date(d.startsAt) > new Date(now) ? "upcoming" : "ended";
               const spark = sparklines[d.id] ?? [];
-              const maxN = Math.max(1, ...spark.map((s: any) => s.n));
+              const maxN = Math.max(1, ...spark.map((s) => s.n));
               const pct = d.poolTotal > 0 ? Math.max(0, Math.min(100, Math.round(((d.poolRemaining ?? 0) / d.poolTotal) * 100))) : null;
               return (
                 <div key={d.id} className="rounded-lg border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/50 p-3">
@@ -245,7 +261,7 @@ export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="truncate text-xs font-semibold text-[var(--palette-zinc-200)]">{d.title}</span>
-                        <StatusBadge status={state as any} />
+                        <StatusBadge status={state as "live" | "upcoming" | "ended" | "cancelled"} />
                       </div>
                       {d.description && <p className="mt-0.5 truncate text-[0.6875rem] text-[var(--palette-zinc-500)]">{d.description}</p>}
                       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-[var(--palette-zinc-500)]">
@@ -261,7 +277,7 @@ export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
                       )}
                       {spark.length > 0 && (
                         <div className="mt-2 flex h-8 items-end gap-0.5">
-                          {spark.map((sp: any, i: number) => (
+                          {spark.map((sp, i) => (
                             <div key={i} className="flex-1 rounded-sm bg-[var(--accent)]/50" style={{ height: `${Math.max(8, (sp.n / maxN) * 100)}%` }} title={`${sp.bucket} — ${sp.n} claims`} />
                           ))}
                         </div>
@@ -282,7 +298,7 @@ export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
                           <button onClick={() => void dropAction(d.id, "duplicate")} className="rounded border border-[var(--palette-zinc-700)] px-2 py-1 text-[11px] text-[var(--palette-zinc-300)] hover:text-[var(--palette-zinc-100)]">Repeat</button>
                         </>
                       )}
-                      {!d.live && !d.cancelledAt && d.startsAt > new Date(now) && (
+                      {!d.live && !d.cancelledAt && new Date(d.startsAt) > new Date(now) && (
                         <button onClick={async () => {
                           const ok = await confirm({
                             title: `Cancel "${d.title}"?`,

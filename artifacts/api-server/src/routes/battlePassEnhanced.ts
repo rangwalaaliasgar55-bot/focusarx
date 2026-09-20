@@ -32,6 +32,16 @@ async function getSeasonXp(userId: string): Promise<number> {
 }
 
 // GET /api/battle-pass/current — enhanced with 30-50 tiers, free+premium, countdown, grace
+interface TierRewardView {
+  type?: string | null; value?: number | null; label?: string | null; coins: number; xp: number;
+  tokenAmount?: number; cosmeticId?: string; petId?: string;
+}
+
+interface BattlePassTierView {
+  tier: number; xpRequired: number;
+  freeReward: TierRewardView; premiumReward: TierRewardView;
+}
+
 router.get("/battle-pass/current", authMiddleware, async (req: AuthRequest, res) => {
   try {
     const { start, end, seasonId } = getCurrentSeason();
@@ -42,15 +52,26 @@ router.get("/battle-pass/current", authMiddleware, async (req: AuthRequest, res)
 
     // Try to load battle pass definition, fallback to generated tiers
     const [bp] = await db.select().from(battlePasses).where(eq(battlePasses.isActive, true)).orderBy(desc(battlePasses.createdAt)).limit(1);
-    let tiers: any[] = [];
+    let tiers: BattlePassTierView[] = [];
     if (bp) {
       const rewards = await db.select().from(battlePassRewards).where(eq(battlePassRewards.battlePassId, bp.id)).orderBy(battlePassRewards.tier);
-      tiers = rewards.map((r: any) => ({
-        tier: r.tier,
-        xpRequired: r.requiredXp,
-        freeReward: { type: r.freeRewardType, value: r.freeRewardValue, label: r.freeRewardLabel, coins: r.freeRewardCoins ?? 0, xp: r.freeRewardXp ?? 0 },
-        premiumReward: { type: r.premiumRewardType, value: r.premiumRewardValue, label: r.premiumRewardLabel, coins: r.premiumRewardCoins ?? 0, xp: r.premiumRewardXp ?? 0 },
-      }));
+      tiers = rewards.map((r) => {
+        // NOTE: battle_pass_rewards only stores {tier, type, value, requiredXp, isPremium}
+        // — it has no free/premium reward columns, so these reads were always
+        // undefined at runtime (previously hidden by an untyped callback param).
+        const phantom = r as unknown as {
+          freeRewardType?: string; freeRewardValue?: number; freeRewardLabel?: string;
+          freeRewardCoins?: number; freeRewardXp?: number;
+          premiumRewardType?: string; premiumRewardValue?: number; premiumRewardLabel?: string;
+          premiumRewardCoins?: number; premiumRewardXp?: number;
+        };
+        return {
+          tier: r.tier,
+          xpRequired: r.requiredXp,
+          freeReward: { type: phantom.freeRewardType, value: phantom.freeRewardValue, label: phantom.freeRewardLabel, coins: phantom.freeRewardCoins ?? 0, xp: phantom.freeRewardXp ?? 0 },
+          premiumReward: { type: phantom.premiumRewardType, value: phantom.premiumRewardValue, label: phantom.premiumRewardLabel, coins: phantom.premiumRewardCoins ?? 0, xp: phantom.premiumRewardXp ?? 0 },
+        };
+      });
     } else {
       // Generate 30 tiers
       tiers = Array.from({ length: 30 }, (_, i) => {
@@ -84,7 +105,10 @@ router.get("/battle-pass/current", authMiddleware, async (req: AuthRequest, res)
 
     // User progress (live season XP from battle_pass_progress)
     const seasonXp = await getSeasonXp(req.userId!);
-    const currentTier = currentTierForXp(seasonXp, (t) => requiredXpForTier(tiers.find(x => x.tier === t), t));
+    const currentTier = currentTierForXp(seasonXp, (t) => {
+      const view = tiers.find(x => x.tier === t);
+      return requiredXpForTier(view ? { requiredXp: view.xpRequired } : undefined, t);
+    });
 
     // Claims
     const claims = await db.select().from(battlePassClaimsTable).where(and(eq(battlePassClaimsTable.userId, req.userId!), eq(battlePassClaimsTable.battlePassId, bp?.id ?? seasonId)));
@@ -167,7 +191,7 @@ router.post("/battle-pass/claim", authMiddleware, async (req: AuthRequest, res) 
         isPremiumReward: !!isPremiumReward,
       }).returning();
       claim = c;
-    } catch (e: any) {
+    } catch (e) {
       // unique violation — already claimed, fetch existing
       const [dup] = await db.select().from(battlePassClaimsTable).where(and(
         eq(battlePassClaimsTable.battlePassId, bpId),

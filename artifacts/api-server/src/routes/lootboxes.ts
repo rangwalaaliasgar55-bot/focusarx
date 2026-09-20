@@ -8,8 +8,13 @@ import { burnCoins, mintCoins } from "../lib/coinLedger";
 
 export const lootboxesRouter = Router();
 
-function pickReward(rewards: any[]): any {
-  const total = rewards.reduce((s: number, r: any) => s + (r.weight ?? 10), 0);
+interface BoxReward {
+  type?: string; rarity?: string; label?: string; description?: string; emoji?: string | null;
+  value?: number; weight?: number; itemId?: string | null;
+}
+
+function pickReward(rewards: BoxReward[]): BoxReward {
+  const total = rewards.reduce((s: number, r: BoxReward) => s + (r.weight ?? 10), 0);
   let rand = Math.random() * total;
   for (const r of rewards) {
     rand -= r.weight ?? 10;
@@ -18,7 +23,7 @@ function pickReward(rewards: any[]): any {
   return rewards[rewards.length - 1];
 }
 
-function describeReward(r: any): { label: string; description: string; emoji: string } {
+function describeReward(r: BoxReward): { label: string; description: string; emoji: string } {
   switch (r.type) {
     case "coins": return { label: `${r.value} Coins`, description: `You earned ${r.value} coins!`, emoji: "🪙" };
     case "xp":    return { label: `${r.value} XP`, description: `You gained ${r.value} XP!`, emoji: "⚡" };
@@ -107,7 +112,7 @@ lootboxesRouter.post("/lootboxes/:boxId/open", authMiddleware, async (req: AuthR
       const [boxType] = await tx.select().from(lootBoxTypesTable).where(eq(lootBoxTypesTable.id, box.boxTypeId)).limit(1);
       if (!boxType) return { error: "Box type not found", status: 404 } as const;
 
-      const rewards = boxType.possibleRewards as any[];
+      const rewards = boxType.possibleRewards as BoxReward[];
       const picked = pickReward(rewards);
 
       await tx.update(userLootBoxesTable).set({

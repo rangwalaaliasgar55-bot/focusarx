@@ -271,7 +271,7 @@ export default function MonsterBattleArena({
   petLevel = 1,
   onComplete,
 }: MonsterBattleArenaProps) {
-  const [battleState, setBattleState] = useState<BattleState>({
+  const [battleState, setBattleState] = useState<BattleState>(() => ({
     petHp: 100 + petLevel * 20,
     petMaxHp: 100 + petLevel * 20,
     monsterHp: 80 + petLevel * 15,
@@ -280,8 +280,9 @@ export default function MonsterBattleArena({
     battleActive: false,
     outcome: "none",
     petLevel,
+    // Rolled in the lazy initializer: Math.random may not run during render.
     monsterLevel: Math.max(1, petLevel - 1 + Math.floor(Math.random() * 3)),
-  });
+  }));
 
   const [showResult, setShowResult] = useState(false);
 

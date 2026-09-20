@@ -194,9 +194,9 @@ export async function isUsersPremium(userIds: readonly string[]): Promise<Set<st
  */
 export async function premiumStatusMiddleware(req: AuthRequest, _res: Response, next: NextFunction) {
   try {
-    (req as any).isPremium = req.userId ? await isUserPremium(req.userId) : false;
+    req.isPremium = req.userId ? await isUserPremium(req.userId) : false;
   } catch {
-    (req as any).isPremium = false;
+    req.isPremium = false;
   }
   next();
 }
@@ -207,7 +207,7 @@ export async function premiumStatusMiddleware(req: AuthRequest, _res: Response, 
  * (to avoid a duplicate DB query).
  */
 export async function requirePremium(req: AuthRequest, res: Response, next: NextFunction) {
-  if ((req as any).isPremium) {
+  if (req.isPremium) {
     next();
     return;
   }
@@ -215,7 +215,7 @@ export async function requirePremium(req: AuthRequest, res: Response, next: Next
   if (req.userId) {
     const premium = await isUserPremium(req.userId);
     if (premium) {
-      (req as any).isPremium = true;
+      req.isPremium = true;
       next();
       return;
     }

@@ -6,8 +6,23 @@ import { Bell, CheckCheck, Trash2, X } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { isPushSubscribed, requestPushPermission } from "@/lib/pushNotifications";
 
+interface AppNotification {
+  id: string;
+  type: string;
+  title?: string;
+  message?: string;
+  read?: boolean;
+  createdAt?: string;
+}
+interface PushPreferences {
+  premium?: boolean;
+  priorityEnabled?: boolean;
+  sound?: string;
+}
+interface NotificationsPayload { notifications?: AppNotification[] }
+
 /** Shared client: cookie-first auth, silent refresh, readable error messages. */
-function apiFetch<T = any>(path: string, opts?: RequestInit): Promise<T> {
+function apiFetch<T = unknown>(path: string, opts?: RequestInit): Promise<T> {
   return apiJson<T>(path, opts);
 }
 
@@ -113,7 +128,7 @@ export default function NotificationsPage() {
 
   const { data, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ["notifications"],
-    queryFn: () => apiFetch("/api/notifications"),
+    queryFn: () => apiFetch<NotificationsPayload>("/api/notifications"),
     staleTime: 15_000,
     refetchInterval: 30_000,
   });
@@ -138,38 +153,38 @@ export default function NotificationsPage() {
     onSuccess: () => { toast("All notifications cleared", "success"); qc.invalidateQueries({ queryKey: ["notifications"] }); },
   });
 
-  const preferences = useQuery({ queryKey: ["push-preferences"], queryFn: () => apiFetch("/api/push/preferences") });
+  const preferences = useQuery<PushPreferences>({ queryKey: ["push-preferences"], queryFn: () => apiFetch<PushPreferences>("/api/push/preferences") });
   const savePreferences = useMutation({
     mutationFn: (value: { priorityEnabled: boolean; sound: string }) => apiFetch("/api/push/preferences", { method: "PATCH", body: JSON.stringify(value) }),
     onSuccess: () => { toast("Notification preferences saved", "success"); void preferences.refetch(); },
     onError: () => toast("Premium is required for custom notification controls", "danger"),
   });
 
-  const notifications = useMemo<any[]>(() => data?.notifications ?? [], [data]);
-  const unread = notifications.filter((n: any) => !n.read).length;
+  const notifications = useMemo<AppNotification[]>(() => data?.notifications ?? [], [data]);
+  const unread = notifications.filter((n) => !n.read).length;
 
   const counts = useMemo(() => {
     const map: Record<string, number> = { all: notifications.length, unread };
     for (const f of FILTERS) {
       if (!f.types) continue;
-      map[f.id] = notifications.filter((n: any) => (f.types as readonly string[]).includes(n.type)).length;
+      map[f.id] = notifications.filter((n) => (f.types as readonly string[]).includes(n.type)).length;
     }
     return map;
   }, [notifications, unread]);
 
   const visible = useMemo(() => {
     const active = FILTERS.find((f) => f.id === filter);
-    if (filter === "unread") return notifications.filter((n: any) => !n.read);
+    if (filter === "unread") return notifications.filter((n) => !n.read);
     if (!active?.types) return notifications;
-    return notifications.filter((n: any) => (active.types as readonly string[]).includes(n.type));
+    return notifications.filter((n) => (active.types as readonly string[]).includes(n.type));
   }, [notifications, filter]);
 
   // Unread first inside each day so the important rows sit at the top of the
   // bucket, then newest-first as the server sent them.
   const groups = useMemo(() => {
-    const buckets = new Map<string, any[]>();
-    for (const n of [...visible].sort((a: any, b: any) => Number(!!a.read) - Number(!!b.read))) {
-      const key = dayLabel(n.createdAt);
+    const buckets = new Map<string, AppNotification[]>();
+    for (const n of [...visible].sort((a, b) => Number(!!a.read) - Number(!!b.read))) {
+      const key = dayLabel(n.createdAt ?? "");
       const list = buckets.get(key) ?? [];
       list.push(n);
       buckets.set(key, list);
@@ -287,7 +302,7 @@ export default function NotificationsPage() {
               <span className="text-[11px] text-[var(--foreground-subtle)]">{list.length}</span>
             </div>
             <div className="grid gap-2 lg:grid-cols-2">
-        {list.map((n: any) => (
+        {list.map((n) => (
           <div
             key={n.id}
             role="button"
@@ -302,7 +317,7 @@ export default function NotificationsPage() {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-[var(--foreground)]">{n.title}</p>
               <p className="text-xs text-[var(--foreground-subtle)] mt-0.5">{n.message}</p>
-              <p className="text-[11px] text-[var(--foreground-subtle)] mt-1" title={new Date(n.createdAt).toLocaleString()}>{agoLabel(n.createdAt)}</p>
+              <p className="text-[11px] text-[var(--foreground-subtle)] mt-1" title={n.createdAt ? new Date(n.createdAt).toLocaleString() : ""}>{agoLabel(n.createdAt ?? "")}</p>
             </div>
             <button onClick={e => { e.stopPropagation(); deleteNotif.mutate(n.id); }} className="shrink-0 rounded-lg p-1 text-[var(--foreground-subtle)] hover:text-[var(--palette-red-400)] hover:bg-[var(--palette-red-500)]/10 transition-colors">
               <X size={13} />

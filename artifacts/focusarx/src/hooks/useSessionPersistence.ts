@@ -59,7 +59,9 @@ export function useSessionPersistence(options: UseSessionPersistenceOptions) {
   const dbSessionIdRef = useRef<string | null>(null);
   const hasRestoredRef = useRef(false);
   const optionsRef = useRef(options);
-  optionsRef.current = options;
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
 
   const getDbSessionId = useCallback(() => dbSessionIdRef.current, []);
 

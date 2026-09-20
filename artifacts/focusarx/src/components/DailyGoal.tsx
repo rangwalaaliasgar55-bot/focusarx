@@ -34,7 +34,9 @@ const MOTIVATIONS = [
 ];
 
 export default function DailyGoal() {
-  const motivation = useMemo(() => MOTIVATIONS[Math.floor(Date.now() / 86400000) % MOTIVATIONS.length], []);
+  // Day-granular pick, frozen at mount: render may not read the clock, and the
+  // line can't rotate mid-day anyway. Lazy init keeps Math/legal purity.
+  const [motivation] = useState(() => MOTIVATIONS[Math.floor(Date.now() / 86400000) % MOTIVATIONS.length]!);
   const { sessions } = useSessionHistory();
   const [goalStr, setGoalStr] = useState<string>(() => localStorage.getItem(GOAL_KEY) ?? "120");
   const [editing, setEditing] = useState(false);

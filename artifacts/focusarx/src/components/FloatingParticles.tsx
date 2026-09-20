@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 
 interface Particle {
@@ -21,7 +21,9 @@ const COLORS = [
 ];
 
 export function FloatingParticles({ count = 18 }: { count?: number }) {
-  const particles: Particle[] = useMemo(() =>
+  // Frozen at mount via lazy state: Math.random may not run during render
+  // (useMemo included), and a background layer never needs to re-deal anyway.
+  const [particles] = useState<Particle[]>(() =>
     Array.from({ length: count }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
@@ -31,7 +33,7 @@ export function FloatingParticles({ count = 18 }: { count?: number }) {
       delay: Math.random() * -14,
       opacity: 0.3 + Math.random() * 0.4,
       color: COLORS[Math.floor(Math.random() * COLORS.length)]!,
-    })), [count]);
+    })));
 
   return (
     <div className="pointer-events-none fixed inset-0 overflow-hidden" style={{ zIndex: 1 }} aria-hidden>

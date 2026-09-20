@@ -33,18 +33,44 @@ function authHeaders() {
   return h;
 }
 
+interface ShopItem {
+  id: string;
+  name: string;
+  description?: string | null;
+  emoji?: string | null;
+  type?: string;
+  rarity?: string;
+  costCoins: number;
+  salePrice?: number | null;
+  saleDiscountPct?: number | null;
+  owned?: boolean;
+  locked?: boolean;
+  equipped?: boolean;
+}
+interface ShopBundle {
+  id: string;
+  name: string;
+  description?: string | null;
+  items: Array<{ emoji?: string | null }>;
+  price: number;
+  fullPrice: number;
+  discountPct?: number | null;
+  owned?: boolean;
+}
+interface ShopWallet { coins: number }
+
 export default function MarketplacePage() {
   const { toast } = useToast();
   const confirm = useConfirm();
   const prompt = usePrompt();
-  const [items, setItems] = useState<any[]>([]);
-  const [wallet, setWallet] = useState<any>(null);
+  const [items, setItems] = useState<ShopItem[]>([]);
+  const [wallet, setWallet] = useState<ShopWallet | null>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [justBought, setJustBought] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [bundles, setBundles] = useState<any[]>([]);
+  const [bundles, setBundles] = useState<ShopBundle[]>([]);
   const [inventoryMap, setInventoryMap] = useState<Record<string, string>>({}); // itemId -> inventory row id
   const [equipping, setEquipping] = useState<string | null>(null);
   const [busyGift, setBusyGift] = useState<string | null>(null);
@@ -61,9 +87,9 @@ export default function MarketplacePage() {
       const itemsData = await itemsRes.json();
       const walletData = await walletRes.json();
       const invData = await invRes.json();
-      setItems(itemsData.items ?? []);
-      setBundles(itemsData.bundles ?? []);
-      setWallet(walletData ?? null);
+      setItems((itemsData.items ?? []) as ShopItem[]);
+      setBundles((itemsData.bundles ?? []) as ShopBundle[]);
+      setWallet((walletData ?? null) as ShopWallet | null);
       const map: Record<string, string> = {};
       for (const row of invData.inventory ?? []) map[row.itemId] = row.id;
       setInventoryMap(map);
@@ -95,7 +121,7 @@ export default function MarketplacePage() {
    * you wear, "Use" for a booster, "Place" for city decor. Owning an item used
    * to be the end of the story: coins left the wallet and nothing changed.
    */
-  function equipLabel(item: any) {
+  function equipLabel(item: ShopItem) {
     switch (item.type) {
       case "frame": return "Wear frame";
       case "avatar": return "Use avatar";
@@ -107,7 +133,7 @@ export default function MarketplacePage() {
     }
   }
 
-  async function toggleEquip(item: any) {
+  async function toggleEquip(item: ShopItem) {
     const invId = inventoryMap[item.id];
     if (!invId) return;
     setEquipping(item.id);
@@ -156,7 +182,7 @@ export default function MarketplacePage() {
     }
   }
 
-  async function sellBack(item: any) {
+  async function sellBack(item: ShopItem) {
     const refund = Math.floor(item.costCoins * 0.5);
     const ok = await confirm({
       title: `Sell “${item.name}” back?`,
@@ -180,7 +206,7 @@ export default function MarketplacePage() {
     }
   }
 
-  async function buyBundle(bundle: any) {
+  async function buyBundle(bundle: ShopBundle) {
     const ok = await confirm({
       title: `Buy “${bundle.name}”?`,
       description: `${bundle.items.length} items for ${bundle.price.toLocaleString()} coins.`,
@@ -277,7 +303,7 @@ export default function MarketplacePage() {
             <div className="grid gap-3 sm:grid-cols-3">
               {bundles.map((b) => (
                 <div key={b.id} className="rounded-2xl border border-[var(--rgba-124-58-237-0_25)] bg-[var(--rgba-124-58-237-0_06)] p-4 flex flex-col gap-2">
-                  <div className="text-2xl">{b.items.map((i: any) => i.emoji).join("")}</div>
+                  <div className="text-2xl">{b.items.map((i) => i.emoji).join("")}</div>
                   <div className="text-sm font-semibold text-[var(--palette-white)]">{b.name}</div>
                   <div className="text-[11px] text-[var(--muted-fg)] leading-relaxed">{b.description}</div>
                   <div className="text-[11px] text-[var(--foreground-subtle)]">

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Coins, Gift, Lock, Package, Star } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
@@ -24,11 +24,32 @@ const RARITY_STYLES: Record<string, { border: string; bg: string; glow: string; 
   legendary: { border: "var(--rgba-245-158-11-0_4)",   bg: "var(--rgba-245-158-11-0_08)",  glow: "0 0 28px var(--rgba-245-158-11-0_25)",  label: "Legendary", color: "var(--color-warning)" },
 };
 
+interface BoxType {
+  id: string;
+  name: string;
+  icon?: string | null;
+  description?: string | null;
+  rarity: string;
+  coinCost: number;
+  premiumOnly?: boolean;
+  sessionsRequired?: number;
+}
+interface MyBox { id: string; boxTypeId: string; status: string }
+interface LootWallet { coins: number }
+interface LootReward {
+  type?: string;
+  value?: number;
+  label?: string;
+  description?: string | null;
+  emoji?: string | null;
+}
+interface GrantedItem { itemId: string; name: string; emoji: string | null; type: string; rarity: string; alreadyOwned: boolean }
+
 function BoxTypeCard({ boxType, myBoxes, wallet, onBuy, onOpen }: {
-  boxType: any; myBoxes: any[]; wallet: any; onBuy: (id: string) => void; onOpen: (id: string) => void;
+  boxType: BoxType; myBoxes: MyBox[]; wallet: LootWallet | null; onBuy: (id: string) => void; onOpen: (id: string) => void;
 }) {
   const style = RARITY_STYLES[boxType.rarity] ?? RARITY_STYLES.common;
-  const owned = myBoxes.filter((b: any) => b.boxTypeId === boxType.id && b.status === "unopened");
+  const owned = myBoxes.filter((b) => b.boxTypeId === boxType.id && b.status === "unopened");
   const canAfford = wallet && wallet.coins >= boxType.coinCost;
 
   return (
@@ -80,7 +101,7 @@ function BoxTypeCard({ boxType, myBoxes, wallet, onBuy, onOpen }: {
             🪙 {boxType.coinCost.toLocaleString()} coins
           </button>
         )}
-        {boxType.sessionsRequired > 0 && boxType.coinCost === 0 && (
+        {(boxType.sessionsRequired ?? 0) > 0 && boxType.coinCost === 0 && (
           <div className="flex items-center justify-center gap-1 text-[11px] text-[var(--foreground-subtle)]">
             <Star size={10} /> Earn by completing {boxType.sessionsRequired} sessions
           </div>
@@ -116,7 +137,7 @@ type RevealStage = "shake" | "burst" | "reveal";
  *     up, and an item reward offers the one action that makes it real: wear it.
  */
 function OpeningAnimation({ reward, rarity = "rare", grantedItem, inventoryId, onClose, onEquip }: {
-  reward: any;
+  reward: LootReward | null;
   rarity?: string;
   grantedItem?: { itemId: string; name: string; emoji: string | null; type: string; rarity: string; alreadyOwned: boolean } | null;
   inventoryId?: string | null;
@@ -136,11 +157,13 @@ function OpeningAnimation({ reward, rarity = "rare", grantedItem, inventoryId, o
 
   // Deterministic-ish particle ring: fixed angles, jittered distance, so the
   // burst never looks like the same screenshot twice but costs no animation lib.
-  const sparks = useMemo(() => Array.from({ length: r.burst }, (_, i) => {
+  // Frozen at mount via lazy state — Math.random is impure and may not run in
+  // render (useMemo included), but lazy initializers are exempt.
+  const [sparks] = useState(() => Array.from({ length: r.burst }, (_, i) => {
     const angle = (i / r.burst) * Math.PI * 2;
     const distance = 120 + Math.random() * 90;
     return { id: i, x: Math.cos(angle) * distance, y: Math.sin(angle) * distance, size: 4 + Math.random() * 6 };
-  }), [r.burst]);
+  }));
 
   const coinReward = reward?.type === "coins" ? Number(reward.value ?? 0) : 0;
 
@@ -209,7 +232,7 @@ function OpeningAnimation({ reward, rarity = "rare", grantedItem, inventoryId, o
                 className="text-8xl drop-shadow-[0_0_24px_var(--rgba-0-0-0-0_6)]"
                 style={{ filter: `drop-shadow(0 0 18px ${r.glow})` }}
               >
-                {reward.emoji ?? grantedItem?.emoji ?? "🎁"}
+                {reward?.emoji ?? grantedItem?.emoji ?? "🎁"}
               </motion.div>
             )}
           </div>
@@ -220,8 +243,8 @@ function OpeningAnimation({ reward, rarity = "rare", grantedItem, inventoryId, o
                 style={{ color: r.color, border: `1px solid ${r.color}` }}>
                 {r.label}
               </span>
-              <h2 className="mt-3 text-xl font-bold text-[var(--foreground)]">{reward.label}</h2>
-              <p className="mt-1 text-sm text-[var(--foreground-subtle)]">{reward.description}</p>
+              <h2 className="mt-3 text-xl font-bold text-[var(--foreground)]">{reward?.label ?? "Reward"}</h2>
+              <p className="mt-1 text-sm text-[var(--foreground-subtle)]">{reward?.description}</p>
 
               {coinReward > 0 && (
                 <p className="mt-3 text-3xl font-bold tabular-nums text-[var(--color-warning)]">
@@ -274,14 +297,14 @@ function OpeningAnimation({ reward, rarity = "rare", grantedItem, inventoryId, o
 }
 
 export default function LootBoxesPage() {
-  const [boxTypes, setBoxTypes] = useState<any[]>([]);
-  const [myBoxes, setMyBoxes] = useState<any[]>([]);
-  const [wallet, setWallet] = useState<any>(null);
+  const [boxTypes, setBoxTypes] = useState<BoxType[]>([]);
+  const [myBoxes, setMyBoxes] = useState<MyBox[]>([]);
+  const [wallet, setWallet] = useState<LootWallet | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   /** The reveal payload: reward copy plus what (if anything) was granted, so the
    *  modal can offer "Equip now" instead of ending at a congratulations screen. */
-  const [reveal, setReveal] = useState<{ reward: any; rarity: string; grantedItem: any; inventoryId: string | null } | null>(null);
+  const [reveal, setReveal] = useState<{ reward: LootReward | null; rarity: string; grantedItem: GrantedItem | null; inventoryId: string | null } | null>(null);
   const [processing, setProcessing] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -295,9 +318,9 @@ export default function LootBoxesPage() {
         fetch("/api/gamification/wallet", { headers: authHeaders() }),
       ]);
       if (!tr.ok || !mr.ok || !wr.ok) throw new Error("Unable to load loot boxes");
-      setBoxTypes(await tr.json());
-      setMyBoxes(await mr.json());
-      setWallet(await wr.json());
+      setBoxTypes((await tr.json()) as BoxType[]);
+      setMyBoxes((await mr.json()) as MyBox[]);
+      setWallet((await wr.json()) as LootWallet);
     } catch {
       setLoadError(true);
     } finally {
@@ -318,7 +341,7 @@ export default function LootBoxesPage() {
       });
       const data = await res.json();
       if (!res.ok) { setToast(data.error || "Failed to buy"); setTimeout(() => setToast(null), 3000); return; }
-      setWallet((w: any) => w ? { ...w, coins: data.newCoins } : w);
+      setWallet((w) => w ? { ...w, coins: data.newCoins as number } : w);
       setMyBoxes(prev => [data.box, ...prev]);
       setToast("📦 Box added to your collection!");
       setTimeout(() => setToast(null), 3000);
@@ -339,7 +362,7 @@ export default function LootBoxesPage() {
       if (!res.ok) { setToast(data.error || "Failed to open"); setTimeout(() => setToast(null), 3000); return; }
       setReveal({ reward: data.reward, rarity: data.rarity ?? "rare", grantedItem: data.grantedItem ?? null, inventoryId: data.inventoryId ?? null });
       setMyBoxes(prev => prev.filter(b => b.id !== boxId));
-      if (data.newCoins !== undefined) setWallet((w: any) => w ? { ...w, coins: data.newCoins } : w);
+      if (data.newCoins !== undefined) setWallet((w) => w ? { ...w, coins: data.newCoins as number } : w);
     } finally {
       setProcessing(null);
     }
@@ -400,7 +423,7 @@ export default function LootBoxesPage() {
 
         {/* Box types grid */}
         <motion.div variants={STAGGER} initial="initial" animate="animate" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {boxTypes.map((bt: any) => (
+          {boxTypes.map((bt) => (
             <BoxTypeCard key={bt.id} boxType={bt} myBoxes={myBoxes} wallet={wallet} onBuy={handleBuy} onOpen={handleOpen} />
           ))}
         </motion.div>

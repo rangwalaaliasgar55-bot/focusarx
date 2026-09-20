@@ -49,6 +49,11 @@ interface PremiumPlan {
 interface PremiumEntitlement {
   id: string;
   label: string;
+  planId?: string | null;
+  tokenCost?: number | null;
+  status?: string;
+  startsAt?: string;
+  endsAt?: string;
 }
 
 interface PremiumStatus {
@@ -65,6 +70,9 @@ interface PremiumLedgerEntry {
   amount: number;
   reason?: string | null;
   createdAt: string;
+  source: string;
+  transactionType: string;
+  balanceAfter: number;
 }
 
 export default function PremiumPage() {
@@ -73,8 +81,8 @@ export default function PremiumPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [activating, setActivating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<any>(null);
-  const [idempotencyKey, setIdempotencyKey] = useState<string>("");
+  type PurchaseSuccess = { expiresAt?: string; entitlement?: { endsAt?: string } | null };
+  const [success, setSuccess] = useState<PurchaseSuccess | null>(null);
 
   const { data: status, isLoading } = useQuery({
     queryKey: ["premium-status"],
@@ -106,14 +114,15 @@ export default function PremiumPage() {
   const canAffordSelected = selected ? balance >= selected.tokenCost : false;
   const needed = selected ? Math.max(0, selected.tokenCost - balance) : 0;
 
+  // Frozen at mount: render may not read the clock, and a day count that
+  // drifts mid-session only causes label flicker.
+  const [now] = useState(() => Date.now());
   // Expiring soon warning
-  const daysLeft = expiresAt ? Math.ceil((new Date(expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+  const daysLeft = expiresAt ? Math.ceil((new Date(expiresAt).getTime() - now) / (1000 * 60 * 60 * 24)) : null;
   const expiringSoon = daysLeft !== null && daysLeft <= 3 && daysLeft > 0;
 
   const handlePurchaseClick = (planId: string) => {
     setSelectedPlan(planId);
-    const key = `premium_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    setIdempotencyKey(key);
     setShowConfirm(true);
     setError(null);
   };
@@ -123,9 +132,12 @@ export default function PremiumPage() {
     setActivating(true);
     setError(null);
     try {
-      const res = await apiJson("/api/premium/purchase", {
+      // Generated here rather than in render/click scope: the key only needs to
+      // exist when the request actually fires, and render must stay pure.
+      const key = `premium_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const res = await apiJson<PurchaseSuccess>("/api/premium/purchase", {
         method: "POST",
-        body: JSON.stringify({ planId: selected.id, idempotencyKey }),
+        body: JSON.stringify({ planId: selected.id, idempotencyKey: key }),
       });
       setSuccess(res);
       setShowConfirm(false);
@@ -376,14 +388,14 @@ export default function PremiumPage() {
                   <History size={16} /> Purchase history
                 </h3>
                 <div className="mt-3 space-y-2">
-                  {entitlements.slice(0, 5).map((e: any) => (
+                  {entitlements.slice(0, 5).map((e) => (
                     <div key={e.id} className="flex items-center justify-between rounded-lg bg-[var(--surface-hover)] px-3 py-2 text-xs">
                       <div>
                         <p className="font-medium">
                           {e.planId ? plans.find((p) => p.id === e.planId)?.name ?? "Premium" : "Premium (Admin grant)"} • {e.tokenCost ? `${e.tokenCost} tokens` : "Granted"}
                         </p>
                         <p className="text-[var(--foreground-subtle)]">
-                          {new Date(e.startsAt).toLocaleDateString()} → {new Date(e.endsAt).toLocaleDateString()} • {e.status}
+                          {new Date(e.startsAt ?? "now").toLocaleDateString()} → {new Date(e.endsAt ?? "now").toLocaleDateString()} • {e.status}
                         </p>
                       </div>
                       <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${e.status === "active" ? "bg-[var(--success-soft)] text-[var(--success)]" : "bg-[var(--surface-1)] text-[var(--foreground-subtle)]"}`}>
@@ -404,7 +416,7 @@ export default function PremiumPage() {
               <Coins size={16} /> Recent token activity
             </h3>
             <div className="mt-3 space-y-1">
-              {ledgerData.entries.slice(0, 8).map((entry: any) => (
+              {ledgerData.entries.slice(0, 8).map((entry) => (
                 <div key={entry.id} className="flex items-center justify-between rounded-lg px-3 py-2 text-xs hover:bg-[var(--surface-hover)]">
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{entry.source.replace(/_/g, " ")} • {entry.transactionType}</p>
@@ -443,7 +455,7 @@ export default function PremiumPage() {
                 <div className="flex justify-between"><span>Cost</span><span className="font-bold tabular-nums">{selected.tokenCost.toLocaleString()} tokens</span></div>
                 <div className="flex justify-between border-t border-[var(--border-subtle)] pt-2 font-bold"><span>Balance after</span><span className="tabular-nums">{(balance - selected.tokenCost).toLocaleString()} tokens</span></div>
                 <div className="flex justify-between"><span>Duration</span><span>{selected.durationDays} days</span></div>
-                <div className="flex justify-between"><span>Expires</span><span>{new Date(Date.now() + selected.durationDays * 86400000).toLocaleDateString()}</span></div>
+                <div className="flex justify-between"><span>Expires</span><span>{new Date(now + selected.durationDays * 86400000).toLocaleDateString()}</span></div>
               </div>
 
               {!canAffordSelected && (
@@ -494,7 +506,7 @@ export default function PremiumPage() {
                 <CheckCircle size={28} />
               </div>
               <h3 className="mt-4 text-lg font-bold">Premium unlocked! 👑</h3>
-              <p className="mt-1 text-sm text-[var(--foreground-muted)]">Active until {new Date(success.expiresAt ?? success.entitlement?.endsAt).toLocaleDateString()}</p>
+              <p className="mt-1 text-sm text-[var(--foreground-muted)]">Active until {new Date(success.expiresAt ?? success.entitlement?.endsAt ?? "now").toLocaleDateString()}</p>
               <div className="mt-4 flex justify-center gap-2">
                 <Link href="/" className="min-h-[44px] rounded-full bg-[var(--brand-600)] px-5 py-2.5 text-sm font-bold text-white">
                   Start focusing

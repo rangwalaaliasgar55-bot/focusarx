@@ -16,14 +16,20 @@ import { apiJson, errorMessage } from "@/lib/api";
  * already assumed, so a field rename on the API now fails the build instead of
  * rendering `undefined` to a user.
  */
+type NewGroupInput = { name: string; avatarEmoji?: string; [key: string]: unknown };
+
 interface GroupParticipant {
   userId: string;
   name?: string;
+  role?: string;
+  xpContribution?: number;
 }
 
 interface Group {
   id: string;
   name: string;
+  members?: GroupParticipant[];
+  inviteCode?: string | null;
   description: string | null;
   avatarEmoji?: string | null;
   isPublic: boolean;
@@ -87,7 +93,7 @@ function GroupCard({ group, onJoin, isMember }: { group: Group; onJoin: (id: str
   );
 }
 
-function CreateGroupModal({ onClose, onCreate }: { onClose: () => void; onCreate: (data: any) => void }) {
+function CreateGroupModal({ onClose, onCreate }: { onClose: () => void; onCreate: (data: NewGroupInput) => void }) {
   const [form, setForm] = useState({ name: "", description: "", avatarEmoji: "🎯", isPublic: true, maxMembers: 20, tagInput: "", tags: [] as string[] });
   const emojis = ["🎯", "📚", "💻", "🧠", "🏆", "🚀", "⚡", "🎮", "🔬", "🎨"];
   return (
@@ -177,13 +183,13 @@ export default function GroupsPage() {
   });
 
   const createGroup = useMutation({
-    mutationFn: (data: any) => apiJson("/api/groups", { method: "POST", body: JSON.stringify(data) }),
+    mutationFn: (data: NewGroupInput) => apiJson("/api/groups", { method: "POST", body: JSON.stringify(data) }),
     onSuccess: () => { toast("Group created!", "success"); setShowCreate(false); qc.invalidateQueries({ queryKey: ["groups-mine"] }); qc.invalidateQueries({ queryKey: ["groups-all"] }); },
     onError: (e: unknown) => toast(errorMessage(e), "error"),
   });
 
   const createRoom = useMutation({
-    mutationFn: (data: any) => apiJson("/api/study-rooms", { method: "POST", body: JSON.stringify(data) }),
+    mutationFn: (data: NewGroupInput) => apiJson("/api/study-rooms", { method: "POST", body: JSON.stringify(data) }),
     onSuccess: () => { toast("Study room created! 🚀", "success"); qc.invalidateQueries({ queryKey: ["study-rooms"] }); },
     onError: (e: unknown) => toast(errorMessage(e), "error"),
   });
@@ -205,8 +211,8 @@ export default function GroupsPage() {
     onSuccess: () => { toast("Left room", "success"); qc.invalidateQueries({ queryKey: ["study-rooms"] }); },
   });
 
-  const myGroupIds = new Set(myGroups.map((g: any) => g.id));
-  const filtered = allGroups.filter((g: any) => !search || g.name.toLowerCase().includes(search.toLowerCase()));
+  const myGroupIds = new Set(myGroups.map((g) => g.id));
+  const filtered = allGroups.filter((g) => !search || g.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="min-h-screen bg-[var(--muted)] text-[var(--foreground)] p-4 sm:p-6 max-w-3xl mx-auto">
@@ -257,7 +263,7 @@ export default function GroupsPage() {
           ) : (
             <div className="space-y-3">
               {filtered.length === 0 && <div className="text-center py-12 text-[var(--foreground-subtle)]"><Users size={40} className="mx-auto mb-3 opacity-30" /><p>No groups found</p></div>}
-              {filtered.map((g: any) => <GroupCard key={g.id} group={g} onJoin={(id) => joinGroup.mutate(id)} isMember={myGroupIds.has(g.id)} />)}
+              {filtered.map((g) => <GroupCard key={g.id} group={g} onJoin={(id) => joinGroup.mutate(id)} isMember={myGroupIds.has(g.id)} />)}
             </div>
           )}
         </div>
@@ -266,7 +272,7 @@ export default function GroupsPage() {
       {tab === "mine" && (
         <div className="space-y-3">
           {myGroups.length === 0 && <div className="text-center py-12 text-[var(--foreground-subtle)]"><Users size={40} className="mx-auto mb-3 opacity-30" /><p>You haven't joined any groups yet</p><button onClick={() => setTab("discover")} className="mt-3 text-xs text-[var(--brand-600)] hover:underline">Discover groups →</button></div>}
-          {myGroups.map((g: any) => (
+          {myGroups.map((g) => (
             <div key={g.id} className="rounded-2xl border border-[var(--brand-600)]/30 bg-[var(--surface-hover)] p-4">
               <div className="flex items-center gap-3 mb-3">
                 <span className="text-3xl">{g.avatarEmoji}</span>
@@ -274,9 +280,9 @@ export default function GroupsPage() {
                 {g.inviteCode && <div className="text-right"><p className="text-[11px] text-[var(--foreground-subtle)] uppercase tracking-wider mb-0.5">Invite</p><p className="text-sm font-bold text-[var(--brand-600)] font-mono tracking-widest">{g.inviteCode}</p></div>}
               </div>
               <div className="space-y-1 max-h-32 overflow-y-auto">
-                {(g.members ?? []).slice(0, 5).map((m: any) => (
+                {(g.members ?? []).slice(0, 5).map((m) => (
                   <div key={m.userId} className="flex items-center gap-2 text-xs">
-                    <span className="flex items-center gap-1">{ROLE_ICONS[m.role]}</span>
+                    <span className="flex items-center gap-1">{m.role ? ROLE_ICONS[m.role] : null}</span>
                     <span className="text-[var(--foreground-subtle)] flex-1 truncate">{m.name}</span>
                     <span className="text-[var(--foreground-subtle)]">{m.xpContribution?.toLocaleString() ?? 0} XP</span>
                   </div>

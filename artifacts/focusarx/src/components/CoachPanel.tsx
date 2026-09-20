@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getToken } from "@/lib/auth";
+import { apiJson, ApiError } from "@/lib/api";
 import { Volume2, Crown, Lock, Coins, ArrowRight, Sparkles } from "lucide-react";
 import { Brain } from "lucide-react";
 import { usePremium } from "@/hooks/usePremium";
@@ -25,13 +25,18 @@ const PROACTIVE_MESSAGES = [
 ];
 
 
+interface CoachStatus {
+  isPremium?: boolean;
+  lockScreen?: {
+    description?: string;
+    benefits?: string[];
+    currentBalance?: number; tokensNeeded?: number;
+    plan?: { durationDays?: number; tokenCost?: number } | null;
+  } | null;
+}
+
 async function fetchCoachStatus() {
-  const token = getToken();
-  const res = await fetch("/api/coach/status", {
-    headers: { Authorization: `Bearer ${token ?? ""}` },
-  });
-  if (!res.ok) throw new Error("Failed");
-  return res.json();
+  return apiJson<CoachStatus>("/api/coach/status");
 }
 
 export default function CoachPanel() {
@@ -71,36 +76,33 @@ export default function CoachPanel() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const [proactiveMsg, setProactiveMsg] = useState(() => PROACTIVE_MESSAGES[0]!);
   useEffect(() => {
     if (open || hasProactive || isLocked) return;
-    const t = setTimeout(() => setHasProactive(true), 3 * 60 * 1000);
+    const t = setTimeout(() => {
+      // Picked at fire time, not in render: the clock may not run during render.
+      setProactiveMsg(PROACTIVE_MESSAGES[Math.floor(Date.now() / 300_000) % PROACTIVE_MESSAGES.length]!);
+      setHasProactive(true);
+    }, 3 * 60 * 1000);
     return () => clearTimeout(t);
   }, [open, hasProactive, isLocked]);
 
-  const headers = () => {
-    const token = getToken();
-    return {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-  };
-
+  // While the chat panel is open it occupies exactly the band the Quick
+  // Launch orb sits in (index.css). Flag it on <html> so the orb steps aside
+  // for as long as the panel is up — the same document-attribute pattern the
+  // focus mode uses with [data-focus-mode='active'].
   useEffect(() => {
-    if (open && messages.length === 0 && !isLocked) {
-      void fetchTip();
+    const root = document.documentElement;
+    if (open) {
+      root.setAttribute("data-coach-open", "true");
+      return () => root.removeAttribute("data-coach-open");
     }
-    if (open) setTimeout(() => inputRef.current?.focus(), 300);
-  }, [open, isLocked]);
+  }, [open]);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
-
-  const fetchTip = async () => {
+  const fetchTip = useCallback(async () => {
     if (isLocked) return; // Do not load AI model for free users
     try {
-      const r = await fetch("/api/coach/session-tip", { headers: headers() });
-      const d = (await r.json()) as { tip?: string | null; error?: string; fallback?: boolean };
+      const d = await apiJson<{ tip?: string | null; error?: string; fallback?: boolean }>("/api/coach/session-tip", { method: "POST" });
       if (d.fallback) setIsFallback(true);
       if (d.tip) {
         setMessages([{ role: "assistant", content: d.tip }]);
@@ -110,7 +112,28 @@ export default function CoachPanel() {
     } catch {
       setMessages([{ role: "assistant", content: "Hey! I'm your FocusArx Coach. Ask me anything about focus, productivity, or your current session 🎯" }]);
     }
-  };
+  }, [isLocked]);
+
+  useEffect(() => {
+    // Deferred a tick: fetchTip sets state, and a synchronous call here would
+    // cascade renders during the effect phase.
+    if (open && messages.length === 0 && !isLocked) {
+      const t = setTimeout(() => void fetchTip(), 0);
+      if (open) {
+        const f = setTimeout(() => inputRef.current?.focus(), 300);
+        return () => { clearTimeout(t); clearTimeout(f); };
+      }
+      return () => clearTimeout(t);
+    }
+    if (open) {
+      const f = setTimeout(() => inputRef.current?.focus(), 300);
+      return () => clearTimeout(f);
+    }
+  }, [open, isLocked, messages.length, fetchTip]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
 
   const send = async () => {
     if (isLocked) return; // Block AI requests for free users
@@ -123,31 +146,28 @@ export default function CoachPanel() {
     setLoading(true);
 
     try {
-      const r = await fetch("/api/coach/chat", {
+      const d = await apiJson<{ reply?: string; error?: string; fallback?: boolean }>("/api/coach/chat", {
         method: "POST",
-        headers: headers(),
         body: JSON.stringify({
           message: text,
           conversationHistory: messages.slice(-8),
         }),
       });
-      if (r.status === 403) {
+      if (d.fallback) setIsFallback(true);
+      const reply = d.reply ?? "Stay focused — you've got this!";
+      setMessages((h) => [...h, { role: "assistant", content: reply }]);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 403) {
         // Premium required — show lock
         setMessages((h) => [...h, { role: "assistant", content: "Focus Coach is Premium-only. Unlock with Focus Tokens to continue." }]);
         setLoading(false);
         return;
       }
-      const d = (await r.json()) as { reply?: string; error?: string; fallback?: boolean };
-      if (d.fallback) setIsFallback(true);
-      const reply = d.reply ?? "Stay focused — you've got this!";
-      setMessages((h) => [...h, { role: "assistant", content: reply }]);
-    } catch {
       setMessages((h) => [...h, { role: "assistant", content: "Connection issue — try again in a moment." }]);
     }
     setLoading(false);
   };
 
-  const proactiveMsg = PROACTIVE_MESSAGES[Math.floor(Date.now() / 300_000) % PROACTIVE_MESSAGES.length]!;
 
   return (
     <>
@@ -163,7 +183,7 @@ export default function CoachPanel() {
               setOpen(true);
               setHasProactive(false);
             }}
-            className="fixed bottom-44 right-4 z-[var(--z-nav)] max-w-[220px] rounded-2xl border border-[var(--rgba-124-58-237-0_35)] bg-[var(--rgba-8-12-28-0_96)] px-4 py-3 text-left shadow-[0_4px_20px_var(--rgba-124-58-237-0_25)] backdrop-blur-2xl md:bottom-28 md:right-20"
+            className="fixed bottom-28 right-20 z-[var(--z-nav)] max-w-[220px] rounded-2xl border border-[var(--rgba-124-58-237-0_35)] bg-[var(--rgba-8-12-28-0_96)] px-4 py-3 text-left shadow-[0_4px_20px_var(--rgba-124-58-237-0_25)] backdrop-blur-2xl"
           >
             <p className="mb-1 text-[11px] font-semibold text-[var(--brand-400)]">Coach tip 🧠</p>
             <p className="text-[11px] leading-relaxed text-[var(--foreground-muted)]">{proactiveMsg}</p>
@@ -259,7 +279,7 @@ export default function CoachPanel() {
                           <span>Need for {lockScreen.plan.durationDays} days</span>
                           <span className="font-medium">{lockScreen.plan.tokenCost?.toLocaleString()} tokens</span>
                         </div>
-                        {lockScreen.tokensNeeded > 0 && (
+                        {(lockScreen.tokensNeeded ?? 0) > 0 && (
                           <p className="mt-2 text-[11px] text-[var(--warning)]">
                             You currently have {lockScreen.currentBalance?.toLocaleString()} tokens and need {lockScreen.tokensNeeded?.toLocaleString()} more for {lockScreen.plan.durationDays} days of Premium.
                           </p>

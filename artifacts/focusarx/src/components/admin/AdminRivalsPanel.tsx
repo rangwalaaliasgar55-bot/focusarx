@@ -6,8 +6,9 @@ import { useConfirm } from "@/components/ui/ConfirmDialog";
 
 import type { AdminPanelProps } from "./AdminTypes";
 
+interface RivalBot { id: string; name: string; email?: string | null }
 type BotsState = {
-  bots: any[];
+  bots: RivalBot[];
   total: number;
   personas: number;
   stats?: { total: number; today: { posts: number; comments: number; reactions: number; follows: number; pendingReplies: number } };
@@ -410,7 +411,7 @@ export function AdminRivalsPanel({ authHeaders, onManageUser }: AdminPanelProps 
         />
       ) : (
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {bots.map((b: any) => (
+          {bots.map((b) => (
             <div key={b.id} className="flex items-center gap-3 rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 px-4 py-3">
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--palette-sky-950)] text-[var(--palette-sky-400)]"><Bot size={16} /></span>
               <div className="min-w-0 flex-1">

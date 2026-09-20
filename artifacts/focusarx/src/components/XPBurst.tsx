@@ -10,6 +10,8 @@ interface Particle {
   label: string;
   color: string;
   size: number;
+  /** Rolled where the particle is created (not during render). */
+  duration: number;
 }
 
 interface XPBurstProps {
@@ -51,6 +53,7 @@ export function XPBurst({ active, earnedXp, earnedCoins, originRef }: XPBurstPro
           label: i === 0 ? `+${earnedXp} XP` : "✦",
           color: i === 0 ? "var(--brand-400)" : "var(--brand-600)",
           size: i === 0 ? 14 : 10,
+          duration: 1.2 + Math.random() * 0.6,
         });
       }
     }
@@ -70,6 +73,7 @@ export function XPBurst({ active, earnedXp, earnedCoins, originRef }: XPBurstPro
           label: i === 0 ? `+${earnedCoins} 🪙` : "◆",
           color: i === 0 ? "var(--warning)" : "var(--color-warning)",
           size: i === 0 ? 14 : 9,
+          duration: 1.2 + Math.random() * 0.6,
         });
       }
     }
@@ -87,6 +91,7 @@ export function XPBurst({ active, earnedXp, earnedCoins, originRef }: XPBurstPro
         label: ["✦", "✧", "⬡", "★"][Math.floor(Math.random() * 4)]!,
         color: ["var(--brand-600)", "var(--brand-400)", "var(--warning)", "var(--brand-teal)", "var(--info)"][Math.floor(Math.random() * 5)]!,
         size: 8 + Math.random() * 6,
+      duration: 1.2 + Math.random() * 0.6,
       });
     }
 
@@ -95,7 +100,7 @@ export function XPBurst({ active, earnedXp, earnedCoins, originRef }: XPBurstPro
     const raf = requestAnimationFrame(() => setParticles(newParticles));
     const timer = setTimeout(() => setParticles([]), 1800);
     return () => { cancelAnimationFrame(raf); clearTimeout(timer); };
-  }, [active]);
+  }, [active, earnedCoins, earnedXp, originRef]);
 
   if (particles.length === 0) return null;
 
@@ -119,7 +124,7 @@ export function XPBurst({ active, earnedXp, earnedCoins, originRef }: XPBurstPro
             }}
             exit={{ opacity: 0 }}
             transition={{
-              duration: 1.2 + Math.random() * 0.6,
+              duration: p.duration,
               ease: [0.2, 0, 0.8, 1],
             }}
             style={{

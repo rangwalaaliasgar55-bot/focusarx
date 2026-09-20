@@ -37,7 +37,10 @@ import { GeminiPanel } from "@/components/admin/GeminiPanel";
 import { SqlConsolePanel } from "@/components/admin/SqlConsolePanel";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
-import type { AdminStats, AdminData, CmsOverview, Tab } from "@/components/admin/AdminTypes";
+import type { AdminStats, AdminData, BattlePassStats, CmsOverview, PetStats, RetentionData, Tab } from "@/components/admin/AdminTypes";
+import type { MissionData } from "@/components/admin/AdminMissionsPanel";
+
+
 
 // ─── Main Page ──────────────────────────────────────────────────────────────
 
@@ -48,10 +51,10 @@ export default function AdminPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("overview");
-  const [missionData, setMissionData] = useState<any>(null);
-  const [retentionData, setRetentionData] = useState<any>(null);
-  const [bpStats, setBpStats] = useState<{ stats: any; tierDistribution: any[] }>({ stats: null, tierDistribution: [] });
-  const [petStats, setPetStats] = useState<{ stats: any[]; totalPets: number }>({ stats: [], totalPets: 0 });
+  const [missionData, setMissionData] = useState<MissionData>(null);
+  const [retentionData, setRetentionData] = useState<RetentionData | null>(null);
+  const [bpStats, setBpStats] = useState<BattlePassStats>({ stats: null, tierDistribution: [] });
+  const [petStats, setPetStats] = useState<PetStats>({ stats: [], totalPets: 0 });
   const [cmsOverview, setCmsOverview] = useState<CmsOverview>({ users: null, wallets: null, marketplace: null, quests: null });
   const [managingUserId, setManagingUserId] = useState<string | null>(null);
 
@@ -72,8 +75,8 @@ export default function AdminPage() {
       if (usersRes.status === 401 || usersRes.status === 403) { setAuthed(false); return; }
       if (usersRes.ok) { setData(await usersRes.json() as AdminData); setAuthed(true); }
       if (statsRes.ok) setStats(await statsRes.json() as AdminStats);
-      if (missionsRes.ok) setMissionData(await missionsRes.json());
-      if (retentionRes.ok) setRetentionData(await retentionRes.json());
+      if (missionsRes.ok) setMissionData(await missionsRes.json() as MissionData);
+      if (retentionRes.ok) setRetentionData(await retentionRes.json() as RetentionData);
     } finally { setLoading(false); }
   }, [authHeaders, authStatus]);
 
@@ -93,7 +96,9 @@ export default function AdminPage() {
       adminFetch("/api/admin/cms/overview", { headers: authHeaders(), credentials: "include" })
         .then(r => r.ok ? r.json() : null).then(d => d && setCmsOverview(d)).catch(() => {});
     }
-  }, [tab, authHeaders]);
+  // Guards make the lazy loads idempotent, so re-running on fetched-data
+  // changes is safe — and listing them satisfies exhaustive-deps.
+  }, [tab, authHeaders, bpStats.stats, cmsOverview.users, petStats.stats]);
 
   // ─── Loading / Auth States ────────────────────────────────────────────────
 

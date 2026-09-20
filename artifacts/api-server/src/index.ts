@@ -44,7 +44,7 @@ if (rawPort) {
   const io = initSocket(httpServer);
 
   // Export io for use in route handlers
-  (app as any)._io = io;
+  app.set("io", io);
 
   initVapid();
 

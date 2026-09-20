@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
@@ -16,6 +16,7 @@ import { authLimiter, forgotPasswordLimiter, resetLinkLimiter, guestLimiter, ref
 import { createRefreshFamily, rotateRefreshToken, revokeRefreshToken, revokeAllUserRefreshTokens } from "../lib/refreshTokens";
 import { issueSocketTicket } from "../lib/socketTickets";
 import { sendUnauthorized, sendServiceUnavailable } from "../lib/httpErrors";
+import { isValidTimeZone } from "../lib/timezone";
 
 /**
  * Emails are normalised BEFORE the format check.
@@ -248,7 +249,7 @@ export function extractUserId(req: { headers: { authorization?: string; cookie?:
   }
 
   // 2. Try httpOnly cookie (secure path)
-  const cookies = (req as any).cookies ?? {};
+  const cookies = (req.cookies ?? {}) as Record<string, string | undefined>;
   const cookieToken = cookies["access_token"] ?? cookies["focusarx_token"];
   if (cookieToken) {
     const payload = verifyAnyAccessToken(cookieToken, secret);
@@ -272,7 +273,7 @@ export function extractUserId(req: { headers: { authorization?: string; cookie?:
   return null;
 }
 
-function setAuthCookies(res: any, accessToken: string, refreshToken: string) {
+function setAuthCookies(res: Pick<Response, "cookie">, accessToken: string, refreshToken: string) {
   const baseOpts = {
     httpOnly: true,
     secure: IS_PROD,
@@ -299,7 +300,7 @@ function setAuthCookies(res: any, accessToken: string, refreshToken: string) {
   });
 }
 
-function clearAuthCookies(res: any) {
+function clearAuthCookies(res: Response) {
   const baseOpts = {
     httpOnly: true,
     secure: IS_PROD,
@@ -316,7 +317,7 @@ function clearAuthCookies(res: any) {
  * token, and set cookies. Stateless JWT refresh tokens are no longer minted.
  */
 async function issueRefreshCredentials(
-  res: { cookie: (name: string, value: string, opts: Record<string, unknown>) => void },
+  res: Pick<Response, "cookie">,
   userId: string,
   secret: string,
   req: { headers: { "user-agent"?: string }; ip?: string },
@@ -571,8 +572,8 @@ router.post("/auth/refresh", refreshLimiter, async (req, res) => {
   const secret = jwtSecretOrRespond(res);
   if (!secret) return;
 
-  const cookies = (req as any).cookies ?? {};
-  const presented = cookies["refresh_token"] ?? (req.body as any)?.refreshToken;
+  const cookies = (req.cookies ?? {}) as Record<string, string | undefined>;
+  const presented = cookies["refresh_token"] ?? (req.body as { refreshToken?: string } | undefined)?.refreshToken;
 
   if (!presented || typeof presented !== "string") {
     sendUnauthorized(res, "Refresh token required");
@@ -643,7 +644,7 @@ router.post("/auth/refresh", refreshLimiter, async (req, res) => {
 router.post("/auth/logout", async (req, res) => {
   // Revoke the presented refresh token so a stolen/copied cookie cannot be
   // replayed after "sign out". Cookies are cleared regardless.
-  const cookies = (req as any).cookies ?? {};
+  const cookies = (req.cookies ?? {}) as Record<string, string | undefined>;
   const presented = cookies["refresh_token"];
   if (typeof presented === "string" && presented) {
     try {
@@ -1109,7 +1110,18 @@ router.patch("/auth/profile", async (req, res) => {
   const updates: Record<string, unknown> = {};
   if (typeof name === "string" && name.trim()) updates.name = name.trim().slice(0, 60);
   if (typeof bio === "string") updates.bio = bio.slice(0, 300);
-  if (typeof timezone === "string") updates.timezone = timezone;
+  // The timezone keys every calendar computation the user has (streaks,
+  // weekly resets — see lib/timezone.ts), so it must be a zone Node can
+  // actually format in, and it must not be an unbounded string: it is the
+  // only profile field that used to be stored without a length cap.
+  if (typeof timezone === "string") {
+    const tz = timezone.trim();
+    if (tz.length > 60 || !isValidTimeZone(tz)) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid timezone" } });
+      return;
+    }
+    updates.timezone = tz;
+  }
   if (Object.keys(updates).length === 0) {
     res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "No valid fields to update" } });
     return;
