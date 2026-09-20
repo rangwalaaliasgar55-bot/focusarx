@@ -50,6 +50,53 @@ describe("city simulation", () => {
     expect(state.happiness).toBeGreaterThan(50);
   });
 
+  it("derives RCI demand from the real labor imbalance", () => {
+    const base = createCitySimulation();
+    const workerShortage = recalculate({ ...base, cells: { ...base.cells,
+      "2:3": { kind: "building", building: "house", condition: 100 },
+      "4:3": { kind: "building", building: "office", condition: 100 },
+    } });
+    expect(workerShortage.demand.residential).toBeGreaterThan(workerShortage.demand.commercial);
+    const jobShortage = recalculate({ ...base, cells: { ...base.cells,
+      "2:3": { kind: "building", building: "apartments", condition: 100 },
+      "4:3": { kind: "building", building: "house", condition: 100 },
+    } });
+    expect(jobShortage.demand.commercial + jobShortage.demand.industrial).toBeGreaterThan(jobShortage.demand.residential);
+  });
+
+  it("computes emergency coverage over connected roads", () => {
+    const base = createCitySimulation();
+    const covered = recalculate({ ...base, cells: { ...base.cells,
+      "2:3": { kind: "building", building: "fireStation", condition: 100 },
+      "4:3": { kind: "building", building: "house", condition: 100 },
+    } });
+    expect(covered.coverage.fire).toBe(100);
+    expect(covered.environment.roadAccess).toBe(100);
+  });
+
+  it("abandons buildings after persistent utility and happiness stress", () => {
+    let city = createCitySimulation();
+    city = recalculate({ ...city, cells: { ...city.cells, "2:3": { kind: "building", building: "house", condition: 100, residents: 8 } } });
+    for (let day = 0; day < 3; day += 1) city = advanceSimulationDay(city, 900 + day);
+    expect(city.cells["2:3"]?.abandoned).toBe(true);
+    expect(city.abandonedBuildings).toBe(1);
+  });
+
+  it("down-levels unsupported density before abandonment", () => {
+    let city = createCitySimulation();
+    city = recalculate({ ...city, cells: { ...city.cells, "2:3": { kind: "building", building: "apartments", level: 3, condition: 100, residents: 72 } } });
+    city = advanceSimulationDay(city, 1200);
+    city = advanceSimulationDay(city, 1201);
+    expect(city.cells["2:3"]?.level).toBe(2);
+  });
+
+  it("returns a persistently abandoned property to its original zone", () => {
+    let city = createCitySimulation();
+    city = recalculate({ ...city, cells: { ...city.cells, "2:3": { kind: "building", building: "house", condition: 25, residents: 8, stressDays: 2, abandoned: true } } });
+    for (let day = 0; day < 5; day += 1) city = advanceSimulationDay(city, 1500 + day);
+    expect(city.cells["2:3"]).toMatchObject({ kind: "zone", zone: "residential" });
+  });
+
   it("repairs damaged buildings and clears active incidents", () => {
     const city = createCitySimulation();
     const damaged = recalculate({ ...city, cells: { ...city.cells, "2:3": { kind: "building", building: "house", condition: 45, incident: "fire" } } });

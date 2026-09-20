@@ -7,7 +7,7 @@ import { dayKeyInZone, resolveUserZone, shiftDayKey } from "../lib/timezone";
 import { eq, sql } from "drizzle-orm";
 import { isUserPremium } from "../lib/premiumCheck";
 import { burnCoins, mintCoins } from "../lib/coinLedger";
-import { advanceSimulationDay, applyGridAction, createCitySimulation, SIM_BUILDINGS, SPECIAL_COSTS, TOOL_COSTS, type CitySimulation, type CityTool } from "../lib/citySimulation";
+import { advanceSimulationDay, applyGridAction, createCitySimulation, recalculate, SIM_BUILDINGS, SPECIAL_COSTS, TOOL_COSTS, type CitySimulation, type CityTool } from "../lib/citySimulation";
 
 export const CITY_SKINS = [
   { id: "classic", name: "Classic Academy", emoji: "🏛️", premiumOnly: false, gradient: "#0f172a,#312e81" },
@@ -187,7 +187,7 @@ cityRouter.get("/city/buildings", authMiddleware, async (req: AuthRequest, res: 
 
 function simulationFor(city: { simulation: unknown }): CitySimulation {
   const stored = city.simulation as Partial<CitySimulation> | null;
-  return stored?.version === 1 && stored.cells && stored.width && stored.height ? stored as CitySimulation : createCitySimulation();
+  return stored?.version === 1 && stored.cells && stored.width && stored.height ? recalculate(stored as CitySimulation) : createCitySimulation();
 }
 
 cityRouter.get("/city/simulation", authMiddleware, async (req: AuthRequest, res: Response) => {
@@ -243,11 +243,18 @@ cityRouter.post("/city/simulation/action", authMiddleware, async (req: AuthReque
 
 cityRouter.post("/city/simulation/advance", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const city = await getOrCreateCity(req.userId);
-    const simulation = advanceSimulationDay(simulationFor(city), city.id.length + city.totalSessions);
-    const [updated] = await db.update(focusCitiesTable).set({ simulation: simulation as unknown as Record<string, unknown>, population: Math.max(5, simulation.population), updatedAt: new Date() })
-      .where(eq(focusCitiesTable.id, city.id)).returning();
-    res.json({ simulation, city: updated });
+    await getOrCreateCity(req.userId);
+    const result = await db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT id FROM focus_cities WHERE user_id = ${req.userId} FOR UPDATE`);
+      const [city] = await tx.select().from(focusCitiesTable).where(eq(focusCitiesTable.userId, req.userId)).limit(1);
+      if (!city) throw new Error("City not found");
+      const current = simulationFor(city);
+      const simulation = advanceSimulationDay(current, city.id.length + city.totalSessions + current.day);
+      const [updated] = await tx.update(focusCitiesTable).set({ simulation: simulation as unknown as Record<string, unknown>, population: Math.max(5, simulation.population), updatedAt: new Date() })
+        .where(eq(focusCitiesTable.id, city.id)).returning();
+      return { simulation, city: updated };
+    });
+    res.json(result);
   } catch (err) {
     logger.error({ err }, "city simulation advance failed");
     res.status(500).json({ error: "Failed to advance city day" });

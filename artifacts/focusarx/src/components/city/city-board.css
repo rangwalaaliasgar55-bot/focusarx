@@ -53,6 +53,7 @@
 .city-building__move { position:absolute; right:-4px; top:9px; display:grid; place-items:center; width:20px; height:20px; border-radius:50%; background:#fff; color:#4c1d95; opacity:0; box-shadow:0 3px 10px rgba(0,0,0,.25); transition:opacity .15s; }
 .city-building__incident { position:absolute; z-index:8; right:-8px; top:-9px; font-size:22px; animation:city-plot-pulse .7s ease-in-out infinite; filter:drop-shadow(0 2px 2px rgba(0,0,0,.4)); }
 .city-building--incident .city-building__body { filter:saturate(.6); }
+.city-building--abandoned .city-building__body { filter:grayscale(1) brightness(.62); opacity:.78; }
 .city-plot--occupied:hover .city-building__move,.city-plot--occupied:focus-visible .city-building__move { opacity:1; }
 .city-game__road { position:absolute; z-index:2; left:50%; top:295px; width:430px; height:38px; transform:translateX(-50%) rotate(27deg); background:#475569; border:4px solid #94a3b8; color:#f8fafc; line-height:25px; letter-spacing:17px; overflow:hidden; opacity:.78; }
 .city-game__legend { position:relative; z-index:70; display:flex; flex-wrap:wrap; gap:8px 16px; margin:0 14px 14px; padding:11px 14px; border:1px solid rgba(255,255,255,.18); border-radius:14px; background:rgba(10,20,45,.72); color:#e2e8f0; font-size:11px; font-weight:700; backdrop-filter:blur(12px); }

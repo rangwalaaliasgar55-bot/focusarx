@@ -14,7 +14,7 @@ Imported groups:
 - residential and apartment buildings
 - commercial shop and office buildings
 - industrial factory and warehouse buildings
-- straight road mesh
+- straight, end, curve, three-way, and four-way road meshes
 - power plant and water tower
 - fire station, hospital, and police station
 
