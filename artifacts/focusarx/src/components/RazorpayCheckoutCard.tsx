@@ -13,6 +13,18 @@ type RazorpayOptions = {
 };
 declare global { interface Window { Razorpay?: new (options: RazorpayOptions) => { open(): void }; } }
 
+/**
+ * The accent the app is currently painting with, with a safe fallback.
+ *
+ * The provider's sheet is a user-visible surface, so it inherits the live
+ * `--brand-600` — a user on any of the twelve presets (or a custom colour)
+ * gets their own brand at the payment step instead of a hardcoded violet.
+ */
+function liveAccent(): string {
+  if (typeof window === "undefined") return "#4F46E5";
+  return getComputedStyle(document.documentElement).getPropertyValue("--brand-600").trim() || "#4F46E5";
+}
+
 let loader: Promise<boolean> | null = null;
 function loadRazorpay() {
   if (window.Razorpay) return Promise.resolve(true);
@@ -47,7 +59,10 @@ export default function RazorpayCheckoutCard() {
       const payment = new window.Razorpay({
         key: order.keyId, amount: order.amount, currency: order.currency, name: "FocusArx Pro",
         description: interval === "year" ? "Annual membership" : "Monthly membership", order_id: order.orderId,
-        theme: { color: "#7c3aed" }, modal: { ondismiss: () => setBusy(null) },
+        // The provider's sheet inherits the live accent token, so a user on
+        // any of the twelve presets (or a custom colour) sees their own brand
+        // at the payment step instead of a hardcoded violet.
+        theme: { color: liveAccent() }, modal: { ondismiss: () => setBusy(null) },
         handler: (result) => {
           void apiJson<{ verified: boolean; replayed: boolean }>("/api/premium/razorpay/verify", {
             method: "POST", body: JSON.stringify({ ...result, interval }),

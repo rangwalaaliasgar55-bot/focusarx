@@ -8,8 +8,7 @@ const Switch = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root>
 >(({ className, ...props }, ref) => (
   <SwitchPrimitives.Root
-    className={cn(
-      "peer relative inline-flex h-[1.6875rem] w-[2.8125rem] shrink-0 cursor-pointer items-center rounded-full border border-transparent shadow-[inset_0_0_0_1px_rgba(0,0,0,0.04)] after:absolute after:-inset-y-2.5 after:-inset-x-0.5 transition-colors duration-[var(--duration-normal)] ease-[var(--ease-out)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-[var(--success)] data-[state=unchecked]:bg-[var(--palette-black)]/[0.14] dark:data-[state=unchecked]:bg-white/15",
+    className={cn( "peer relative inline-flex h-[1.6875rem] w-[2.8125rem] shrink-0 cursor-pointer items-center rounded-full border border-transparent after:absolute after:-inset-y-2.5 after:-inset-x-0.5 transition-colors duration-[var(--duration-normal)] ease-[var(--ease-out)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-[var(--success)] data-[state=unchecked]:bg-[var(--palette-black)]/[0.14] dark:data-[state=unchecked]:bg-white/15",
       className
     )}
     {...props}

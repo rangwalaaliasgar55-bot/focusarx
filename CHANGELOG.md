@@ -2,6 +2,149 @@
 
 All notable changes to FocusArx. Dates are UTC.
 
+## [2026-09-23] — Design system v5: "Quiet tools"
+
+The interface had accumulated the visual vocabulary of a template: black-violet
+gradients, aurora washes behind every hero, glow shadows under every card,
+gradient headlines, neon borders, a cursor spotlight, a three.js atmosphere
+panel, and roughly 600 lines of decorative CSS that nothing rendered. This
+release replaces that with a system whose rules fit on one screen — and makes
+the product look like what it is, a tool for focusing.
+
+### The five rules (docs/DESIGN.md)
+
+1. **One accent.** `--brand-500` marks the primary action, the active
+   destination and the focus ring — nothing else. Scarcity is what keeps the
+   accent meaning "press this".
+2. **Flat surfaces, hairline separation.** Depth is one tone step plus a 1px
+   border. No glow, no blur, no gradient-as-material.
+3. **No decorative motion.** The countdown is the only thing allowed to move on
+   its own.
+4. **Short motion.** 150–250 ms, transform/opacity only, reduced-motion escapes
+   everywhere (unchanged, and still enforced by the token gate).
+5. **Type carries the design.** One family pair, one scale, tabular figures.
+
+### Colours and surfaces
+
+- **New neutral ramp.** Warm graphite (`#0B0B0C` → `#1D1E22`) in dark,
+  paper-warm white in light. The blue-black page is gone, and with it the
+  "AI dashboard" tint that came from it.
+- **New default accent: indigo `#6366F1`.** The violet-on-black default was the
+  house style of every AI product of the last two years, and it failed as text
+  at the step the chrome used it. The brand mark keeps its violet → azure tile
+  (`docs/BRAND.md`); `DEFAULT_ACCENT`, `ACCENT_PRESETS` and `--brand-500` are
+  now asserted to agree by `AppearanceSettings.test.tsx`.
+- **The accent no longer owns depth.** `buildAccentOverrides` stopped emitting
+  `--glow-*` and `--shadow-violet-*`, so picking a colour grades the interface
+  instead of lighting it up. Pinned by `src/lib/accent.test.ts`.
+- **Radii came down** (6/8/12/16/20 instead of 8/12/16/22/28) and `rounded-3xl`
+  was capped at `--radius-xl` in 37 places; `shadow-2xl` became `--shadow-lg`
+  in 37 more.
+- **The whole glass family is flat.** Translucent fills and 28 px backdrop blur
+  lowered the contrast of everything sitting on them and cost a compositor
+  layer per card. `.glass`, `.glass-card`, `.glass-strong`, `.glass-heavy` and
+  `.glass-chrome` now resolve to a surface step and a hairline.
+- **Hardcoded dark panels were themed.** The timer card, Zen overlay, coach
+  panel, flashcards and missions had literal near-black palette values, so they
+  stayed dark in the light theme. They read semantic tokens now.
+
+### Structure
+
+- **`index.css` is layered.** Eight numbered sections — primitives, semantics,
+  base, type, materials, legacy, components, motion — with the rule that a
+  component reads semantics and never primitives. `docs/DESIGN.md` is the prose
+  version and names the gate that enforces each rule.
+- **The stylesheet got shorter while documenting itself more.** `index.css`
+  went from 2,661 lines to 2,194: the layer the app actually loads lost 324
+  lines of unused keyframes (orbit, marquee, breathe, liquid-fill, sparkle,
+  shimmer-sweep, scan, fire, float-orb), HUD reticles, grain and dot-grid
+  textures, glow/gradient utilities, magnetic hover and perspective cards.
+- **The pre-v5 vocabulary is gone from the components.** `text-gradient`,
+  `glow-*`, `shadow-3d`, `forge-bg-glow`, `hud-*`, `logo-pulse`,
+  `neon-border-pulse`, `texture-*`, `animate-sparkle|shimmer-sweep|fire|scan|
+  float-orb|orbit|marquee|breathe|liquid-fill` and the rest of the atmosphere
+  vocabulary have no call sites left; the rules that remain in the stylesheet
+  are a stub for anything still rendering, and `src/quiet-interface.test.ts`
+  fails the build the moment one comes back.
+- **The MarketingNav, hero and footer were rebuilt**, and 18 decorative
+  `blur-3xl` gradient blobs were removed across 13 pages.
+
+### Swept the components
+
+The stylesheet can only stay quiet if the class names in 300-odd components
+agree with it, so the same rules were applied mechanically across the app
+(admin console excluded — it is a dense tool with its own material):
+
+- **103 backdrop blur utilities removed** across 65 files. Each one was a
+  compositor layer, and the surfaces underneath were already opaque tokens.
+- **76 glow shadows removed** — zero-blur glow shadows (`0 0 Npx` in an arbitrary value), accent-tinted shadows and
+  `drop-shadow` halos. Depth is neutral or it is nothing.
+- **69 decorative gradients flattened** to the token they were standing in for;
+  gradients from a brand hue are now banned by test. Photo and headline scrims
+  (`from-black/…`, `from-transparent`) are untouched.
+- **31 hover scales removed**, 26 `forge-bg-glow` page wrappers dropped, nine
+  nine `rounded-[32px]` and three `rounded-3xl` capped, five `shadow-3d*` mapped to
+  neutral elevation, one gradient headline de-gradiented.
+- **Eleven rarity styles were resolving to nothing.** `pages/lootboxes.tsx`
+  referenced eleven `--rgba-*` tokens that were never declared, so a legendary
+  reward looked exactly like a common one. The tiers read the status hues now.
+- The timer's loading state no longer breathes at you while it waits, and the
+  dashboard hero gave up its 176px conic-gradient ring: the countdown is set
+  large in tabular figures with a 1px progress bar under it.
+
+### Daylight actually works now
+
+- **The white washes are re-inked.** The compatibility ramp is near-white at
+  low alpha — a brush stroke on a black page, and nothing at all on a white
+  one. Every hover fill, inset highlight and separator written against it
+  vanished in light mode, which is why Daylight read as flat. `html.light`
+  restates those alphas as ink.
+- **`--surface-2` is a well in Daylight.** White-on-white has no tone step, so
+  a hovered row or an interactive panel gave no feedback at all. A raised
+  surface is now marginally darker than the card it sits on.
+- `--palette-slate-400`, `--palette-sky-900`, `--neutral-*`, `--control-*`,
+  `--radius-xs`, `--brand-pink` and `--brand-violet-light` were referenced but
+  never declared — an undefined token invalidates the whole declaration, which
+  is how a "white label on the accent" quietly became an inherited colour.
+  They are declared again.
+
+### The homepage
+
+- **Hero is left-aligned and two-column**: the copy on one side, a running
+  timer on the other. No sparkle badge, no aurora, no dot grid, no gradient
+  headline, no cursor spotlight.
+- **The three.js "focus atmosphere" panel is gone** (~890 kB behind an
+  IntersectionObserver, rendering nothing the reader needed). In its place: a
+  diagram of what a focused hour is actually made of.
+- **Marketing type is now the product's type.** The Instrument Serif italic +
+  DM Sans pairing is gone — the serif-italic hero is the signature of every
+  generated landing page, and one voice everywhere is the point.
+- Every section, claim, exam guide, comparison, ad slot and crawlable footer
+  link is preserved; the page still prerenders and passes `seo-validate`.
+
+### Also fixed
+
+- **`RazorpayCheckoutCard` did not typecheck.** It tracked `checkout_started`
+  and `checkout_completed`, which the `AnalyticsEventType` union never declared.
+  The union now includes them (`pnpm typecheck` is green again), and the
+  provider's checkout sheet inherits the live `--brand-600` instead of a
+  hardcoded `#7c3aed`.
+- `styles.tokens.test.ts` now resolves `var()` alias chains before running the
+  contrast maths, so the token layer can be layered without weakening the gate.
+
+### Verification
+
+`pnpm typecheck` is green, all 780 unit tests pass — including the four gates
+that pin this work (`design-tokens.contrast`, `styles.tokens`,
+`quiet-interface`, and `AppearanceSettings` reading `--brand-500` out of the
+stylesheet) — and the full production build passes: 132 prerendered pages,
+`seo-validate`, and the bundle budget, with the entry chunk at 53.2 kB gzipped.
+
+Full-repo `eslint .` still reports the ten errors that predate this change (an
+unused `lazy`, an unused `useRef`, three `set-state-in-effect` sites, a
+memoization the React Compiler cannot preserve, and one shared `Route` type);
+`pnpm lint:changed` — the gate CI runs — is clean for every file touched here.
+
 ## [2026-09-19] — Your first day is no longer an empty dashboard
 
 New accounts used to land on four empty states and a generic wizard. Onboarding

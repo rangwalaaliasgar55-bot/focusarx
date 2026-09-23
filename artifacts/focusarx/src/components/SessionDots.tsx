@@ -29,9 +29,7 @@ export function SessionDots({ completed, total }: SessionDotsProps) {
               opacity: filled ? 1 : 0.35,
             }}
             transition={{ type: "spring", stiffness: 420, damping: 28 }}
-            className={`h-2 w-2 rounded-full ${
-              filled ? "bg-[var(--palette-rose-500)] shadow-[0_0_12px_var(--rgba-244-63-94-0_45)]" : "bg-[var(--palette-zinc-600)]/80"
-            }`}
+            className={`h-2 w-2 rounded-full ${ filled ? "bg-[var(--palette-rose-500)]" : "bg-[var(--palette-zinc-600)]/80" }`}
           />
         );
       })}

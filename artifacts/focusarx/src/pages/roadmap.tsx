@@ -160,11 +160,9 @@ export default function RoadmapPage() {
   }
 
   return (
-    <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow">
+    <div className="relative min-h-[100dvh] overflow-hidden">
       <PageSEO {...PAGE_SEO.roadmap} />
       <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <div className="absolute -left-24 top-0 h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle_at_center,var(--rgba-124-58-237-0_15),transparent_70%)] blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-[360px] w-[360px] rounded-full bg-[radial-gradient(circle_at_center,var(--rgba-6-214-160-0_08),transparent_70%)] blur-3xl" />
       </div>
       <main className="relative z-[var(--z-content)] mx-auto max-w-7xl px-6 py-12 md:py-20">
         <header className="mb-16 text-center max-w-2xl mx-auto">
@@ -179,7 +177,7 @@ export default function RoadmapPage() {
         </header>
 
         <div className="grid gap-12 lg:grid-cols-[400px_1fr]">
-          <motion.aside variants={STAGGER} initial="initial" animate="animate" className="h-fit rounded-[32px] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] p-8 backdrop-blur-2xl shadow-2xl">
+          <motion.aside variants={STAGGER} initial="initial" animate="animate" className="h-fit rounded-[var(--radius-2xl)] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] p-8 shadow-[var(--shadow-lg)]">
             <div className="space-y-6">
                <h2 className="text-lg font-semibold text-[var(--palette-white)] flex items-center gap-2 mb-8">
                   <Sparkles size={18} className="text-[var(--brand-400)]" /> Configuration
@@ -215,7 +213,7 @@ export default function RoadmapPage() {
                  <textarea id="current-progress-184" value={currentProgress} onChange={(e) => setCurrentProgress(e.target.value)} rows={2} className="w-full rounded-2xl bg-[var(--palette-white)]/[0.02] border border-[var(--palette-white)]/5 p-4 text-sm text-[var(--palette-white)] focus:border-[var(--brand-400)] outline-none transition-all resize-none" />
                </div>
 
-               <button disabled={loading} onClick={() => void generate()} className="w-full h-14 rounded-2xl bg-[var(--palette-white)] text-[var(--palette-black)] font-semibold text-lg hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+               <button disabled={loading} onClick={() => void generate()} className="w-full h-14 rounded-2xl bg-[var(--palette-white)] text-[var(--palette-black)] font-semibold text-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2">
                  {loading ? "Generating..." : <>Generate <ArrowRight size={18} /></>}
                </button>
                {error && <p className="text-[11px] text-[var(--palette-red-400)] font-bold uppercase text-center">{error}</p>}
@@ -297,7 +295,7 @@ export default function RoadmapPage() {
 
                    <div className="grid gap-4">
                       {roadmap.map((day) => (
-                        <motion.div key={day.day} className="rounded-3xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] overflow-hidden">
+                        <motion.div key={day.day} className="rounded-[var(--radius-xl)] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] overflow-hidden">
                            <button type="button" onClick={() => setOpenDay(openDay === day.day ? null : day.day)} aria-expanded={openDay === day.day} className="w-full p-6 flex items-center justify-between border-b border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] text-left">
                               <div className="flex items-center gap-4">
                                  <div className="h-10 w-10 rounded-xl bg-[var(--palette-white)]/5 flex items-center justify-center text-xs font-semibold">D{day.day}</div>

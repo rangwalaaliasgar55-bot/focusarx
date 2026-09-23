@@ -166,7 +166,7 @@ export default function ConstellationsPage() {
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Star Map */}
           <div className="flex-1">
-            <div className="relative rounded-3xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--palette-050614)] overflow-hidden" style={{ minHeight: 520 }}>
+            <div className="relative rounded-[var(--radius-xl)] border border-[var(--rgba-124-58-237-0_2)] bg-[var(--surface-1)] overflow-hidden" style={{ minHeight: 520 }}>
               {loading ? (
                 <div className="flex items-center justify-center h-[520px]">
                   <div className="flex flex-col items-center gap-3">

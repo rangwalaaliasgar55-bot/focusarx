@@ -183,10 +183,10 @@ export default function StopProcrastinatingPage() {
         <P>
           Want to go deeper on structuring the blocks themselves? Read the <Link href="/two-hour-study-method" className="text-[var(--brand-400)] hover:underline">2-hour study method</Link>, the <Link href="/focus-guide" className="text-[var(--brand-400)] hover:underline">complete focus guide</Link>, or — if avoidance feels deeper than normal, with intense restlessness or attention swings — our guide on <Link href="/adhd-focus-tips" className="text-[var(--brand-400)] hover:underline">focusing with ADHD</Link>.
         </P>
-        <div className="mt-8 rounded-2xl border border-[var(--brand-600)]/30 bg-gradient-to-br from-[var(--brand-600)]/10 to-transparent p-8 text-center">
+        <div className="mt-8 rounded-2xl border border-[var(--brand-600)]/30 bg-[var(--brand-soft)] to-transparent p-8 text-center">
           <h3 className="mb-2 text-xl font-semibold text-[var(--foreground)]">Beat avoidance with a 2-minute start</h3>
           <p className="mb-6 text-sm text-[var(--foreground-muted)]">Open FocusArx, run one 25-minute session on the thing you're avoiding. Free forever.</p>
-          <Link href="/signup" className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-700)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]">
+          <Link href="/signup" className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-700)] active:scale-[0.98]">
             Start free <ArrowRight size={16} />
           </Link>
         </div>

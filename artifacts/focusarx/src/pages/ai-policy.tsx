@@ -4,7 +4,7 @@ import { Sparkles, ArrowLeft } from "lucide-react";
 
 export default function AiPolicyPage() {
   return (
-    <div className="relative min-h-[100dvh] forge-bg-glow">
+    <div className="relative min-h-[100dvh]">
       <main id="main-content" className="relative z-[var(--z-content)] mx-auto max-w-3xl px-4 py-10">
         <PageTransition>
           <Link href="/" className="mb-6 inline-flex items-center gap-2 text-xs text-[var(--foreground-subtle)] hover:text-[var(--brand-400)] transition-colors">

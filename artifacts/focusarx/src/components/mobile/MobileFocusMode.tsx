@@ -202,7 +202,7 @@ export function MobileFocusMode({
               type="button"
               onClick={isRunning ? onPause : onResume}
               className={cn(
-                "grid h-20 w-20 place-items-center rounded-full text-white shadow-xl transition-transform active:scale-95",
+                "grid h-20 w-20 place-items-center rounded-full text-white shadow-[var(--shadow-lg)] transition-transform active:scale-95",
                 "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--brand-500)]/40"
               )}
               style={{
@@ -269,14 +269,14 @@ export function MobileFocusMode({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[calc(var(--z-focus-overlay)+10)] bg-black/70 backdrop-blur-sm"
+              className="fixed inset-0 z-[calc(var(--z-focus-overlay)+10)] bg-black/70"
               onClick={() => setShowExitConfirm(false)}
             />
             <motion.div
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.95 }}
-              className="fixed inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-[calc(var(--z-focus-overlay)+11)] rounded-[1.25rem] border border-[var(--border-subtle)] bg-[var(--surface-1)] p-5 shadow-2xl md:inset-auto md:bottom-auto md:left-1/2 md:top-1/2 md:w-full md:max-w-sm md:-translate-x-1/2 md:-translate-y-1/2"
+              className="fixed inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-[calc(var(--z-focus-overlay)+11)] rounded-[1.25rem] border border-[var(--border-subtle)] bg-[var(--surface-1)] p-5 shadow-[var(--shadow-lg)] md:inset-auto md:bottom-auto md:left-1/2 md:top-1/2 md:w-full md:max-w-sm md:-translate-x-1/2 md:-translate-y-1/2"
               role="alertdialog"
               aria-modal="true"
               aria-labelledby="end-session-title"

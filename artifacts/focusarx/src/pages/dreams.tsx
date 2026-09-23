@@ -159,11 +159,7 @@ interface DreamPayload {
                 key={dt.id}
                 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                 onClick={() => setSelected(dt.id)}
-                className={`relative rounded-2xl border p-4 text-left transition-all duration-[var(--duration-fast)] ${
-                  selected === dt.id
-                    ? "border-[var(--rgba-124-58-237-0_6)] bg-[var(--rgba-124-58-237-0_15)] shadow-[0_0_20px_var(--rgba-124-58-237-0_25)]"
-                    : "border-[var(--border-subtle)] bg-[var(--surface-hover)] hover:border-[var(--rgba-124-58-237-0_3)] hover:bg-[var(--rgba-124-58-237-0_07)]"
-                }`}
+                className={`relative rounded-2xl border p-4 text-left transition-all duration-[var(--duration-fast)] ${ selected === dt.id ? "border-[var(--rgba-124-58-237-0_6)] bg-[var(--rgba-124-58-237-0_15)]" : "border-[var(--border-subtle)] bg-[var(--surface-hover)] hover:border-[var(--rgba-124-58-237-0_3)] hover:bg-[var(--rgba-124-58-237-0_07)]" }`}
               >
                 {selected === dt.id && (
                   <span className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--brand-600)]">
@@ -287,11 +283,7 @@ interface DreamPayload {
 
         {/* On-track indicator */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
-          className={`rounded-xl border p-4 flex items-center gap-3 ${
-            dream.onTrack
-              ? "border-[var(--rgba-34-211-135-0_25)] bg-[var(--rgba-34-211-135-0_06)]"
-              : "border-[var(--rgba-239-68-68-0_2)] bg-[var(--rgba-239-68-68-0_05)]"
-          }`}>
+          className={`rounded-xl border p-4 flex items-center gap-3 ${ dream.onTrack ? "border-[var(--rgba-34-211-135-0_25)] bg-[var(--rgba-34-211-135-0_06)]" : "border-[var(--rgba-239-68-68-0_2)] bg-[var(--rgba-239-68-68-0_05)]" }`}>
           <div className={`h-2 w-2 rounded-full animate-pulse ${dream.onTrack ? "bg-[var(--palette-22d387)]" : "bg-[var(--color-error)]"}`} />
           <div>
             <p className="text-sm font-medium text-[var(--palette-white)]">
@@ -366,13 +358,7 @@ interface DreamPayload {
               <ol className="mt-2 flex flex-wrap gap-2">
                 {(dream.system.milestones ?? []).map((milestone) => (
                   <li key={milestone.label}
-                    className={`rounded-full border px-3 py-1 text-[11px] ${
-                      milestone.reached
-                        ? "border-[var(--success)]/50 bg-[var(--success-soft)] text-[var(--success)]"
-                        : milestone.current
-                          ? "border-[var(--brand-strong)] bg-[var(--brand-soft)] font-semibold text-[var(--brand-strong)]"
-                          : "border-[var(--border-subtle)] text-[var(--foreground-subtle)]"
-                    }`}>
+                    className={`rounded-full border px-3 py-1 text-[11px] ${ milestone.reached ? "border-[var(--success)]/50 bg-[var(--success-soft)] text-[var(--success)]" : milestone.current ? "border-[var(--brand-strong)] bg-[var(--brand-soft)] font-semibold text-[var(--brand-strong)]" : "border-[var(--border-subtle)] text-[var(--foreground-subtle)]" }`}>
                     {milestone.reached ? "✓ " : milestone.current ? "▶ " : ""}{milestone.label}
                   </li>
                 ))}

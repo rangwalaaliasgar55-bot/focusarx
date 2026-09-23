@@ -112,7 +112,7 @@ export default function BattlePassPage() {
           keeps anchor navigation below the topbar as well. */}
       <div className="mx-auto max-w-5xl px-4 pb-8 pt-6 sm:px-6 sm:pt-8">
         {/* Header with season countdown */}
-        <div className="relative scroll-mt-24 overflow-hidden rounded-2xl border border-[var(--palette-amber-500)]/20 bg-gradient-to-br from-[var(--palette-amber-500)]/10 via-[var(--palette-orange-500)]/5 to-[var(--surface-1)] p-5 sm:p-6">
+        <div className="relative scroll-mt-24 overflow-hidden rounded-2xl border border-[var(--palette-amber-500)]/20 bg-[var(--palette-amber-500)]/10 p-5 sm:p-6">
           <div className="pointer-events-none absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_70%_30%,var(--palette-amber-500),transparent_60%)]" aria-hidden />
           <div className="relative flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
             <div className="min-w-0">

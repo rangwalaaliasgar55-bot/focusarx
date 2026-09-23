@@ -22,7 +22,7 @@ export function AnnouncementBanner() {
         initial={{ height: 0, opacity: 0 }}
         animate={{ height: "auto", opacity: 1 }}
         exit={{ height: 0, opacity: 0 }}
-        className="relative z-[var(--z-modal)] overflow-hidden border-b border-[var(--brand-600)]/30 bg-gradient-to-r from-[var(--brand-600)]/15 via-[var(--palette-4f46e5)]/10 to-[var(--brand-600)]/15 backdrop-blur-xl"
+        className="relative z-[var(--z-modal)] overflow-hidden border-b border-[var(--brand-600)]/30 bg-[var(--brand-soft)]"
       >
         <div className="mx-auto flex max-w-7xl items-start gap-2.5 px-3 py-2.5 sm:items-center sm:gap-3 sm:px-4">
           {settings.announcementEmoji && <span className="mt-0.5 text-base leading-none sm:mt-0 sm:text-lg">{settings.announcementEmoji}</span>}

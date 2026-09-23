@@ -2,12 +2,15 @@ import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
-const badgeVariants = cva(
-  "inline-flex min-h-6 items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[0.6875rem] font-semibold [&_svg]:size-3",
+const badgeVariants = cva( "inline-flex min-h-6 items-center gap-1 whitespace-nowrap rounded-[var(--radius-full)] border px-2.5 py-0.5 text-[0.6875rem] font-semibold [&_svg]:size-3",
   {
     variants: {
       variant: {
-        default: "border-[var(--card-border)] bg-[var(--brand-soft)] text-[var(--brand-strong)]",
+        /* Neutral by default. A badge is a label, not a decoration: it only
+           earns colour when the colour is the message (see the status and
+           gamification variants below). */
+        default: "border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--foreground-muted)]",
+        accent: "border-[color-mix(in_srgb,var(--brand-500)_26%,transparent)] bg-[var(--brand-soft)] text-[var(--brand-strong)]",
         teal: "border-[color-mix(in_srgb,var(--brand-teal)_28%,transparent)] bg-[var(--brand-teal-dim)] text-[var(--brand-teal)]",
         gold: "border-[color-mix(in_srgb,var(--brand-gold)_28%,transparent)] bg-[var(--brand-gold-dim)] text-[var(--brand-gold)]",
         success: "border-[color-mix(in_srgb,var(--success)_28%,transparent)] bg-[var(--success-soft)] text-[var(--success)]",

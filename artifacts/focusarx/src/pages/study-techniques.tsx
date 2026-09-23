@@ -77,7 +77,6 @@ export default function StudyTechniquesPage() {
 
       {/* ── Hero ──────────────────────────────────────────────── */}
       <header className="relative isolate overflow-hidden border-b border-[var(--border-subtle)]">
-        <div className="pointer-events-none absolute left-1/2 top-0 -z-10 h-[32rem] w-[52rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,var(--brand-soft-hover),transparent_68%)] blur-3xl" />
         <div className="relative mx-auto max-w-3xl px-4 py-20 text-center sm:px-6 sm:py-24">
           <motion.div {...reveal}>
             <span className="inline-flex items-center gap-2 rounded-full border border-[var(--card-border)] bg-[var(--brand-soft)] px-3.5 py-1.5 text-xs font-semibold text-[var(--brand-strong)]">
@@ -169,7 +168,7 @@ export default function StudyTechniquesPage() {
         {/* ── CTA ─────────────────────────────────────────────── */}
         <motion.section
           {...reveal}
-          className="mt-14 overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--card-border)] bg-[radial-gradient(circle_at_50%_0%,var(--brand-soft-hover),transparent_65%)] px-6 py-12 text-center shadow-[var(--shadow-violet-sm)] sm:px-10"
+          className="mt-14 overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--card-border)] bg-[radial-gradient(circle_at_50%_0%,var(--brand-soft-hover),transparent_65%)] px-6 py-12 text-center sm:px-10"
         >
           <span className="mx-auto grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] bg-[var(--brand-soft)] text-[var(--brand-strong)]">
             <BookOpen size={22} strokeWidth={1.75} aria-hidden="true" />

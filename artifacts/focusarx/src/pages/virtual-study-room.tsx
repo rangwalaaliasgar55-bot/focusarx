@@ -126,7 +126,6 @@ export default function VirtualStudyRoomPage() {
 
       {/* ── Hero ──────────────────────────────────────────────── */}
       <header className="relative isolate overflow-hidden border-b border-[var(--border-subtle)]">
-        <div className="pointer-events-none absolute left-1/2 top-0 -z-10 h-[36rem] w-[56rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,var(--brand-soft-hover),transparent_68%)] blur-3xl" />
         <div className="relative mx-auto max-w-3xl px-4 py-20 text-center sm:px-6 sm:py-28">
           <motion.div {...reveal}>
             <span className="inline-flex items-center gap-2 rounded-full border border-[var(--card-border)] bg-[var(--brand-soft)] px-3.5 py-1.5 text-xs font-semibold text-[var(--brand-strong)]">
@@ -303,7 +302,7 @@ export default function VirtualStudyRoomPage() {
                     href="/study-rooms"
                     className="group flex h-full items-start gap-4 rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface)] p-5 transition-[border-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:-translate-y-0.5 hover:border-[var(--card-border)] hover:shadow-[var(--shadow-sm)] motion-reduce:hover:translate-y-0"
                   >
-                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--brand-soft)] text-[var(--brand-strong)] transition-transform duration-[var(--duration-fast)] group-hover:scale-105 motion-reduce:group-hover:scale-100">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--brand-soft)] text-[var(--brand-strong)] transition-transform duration-[var(--duration-fast)] motion-reduce:">
                       <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
                     </span>
                     <span>
@@ -421,7 +420,7 @@ export default function VirtualStudyRoomPage() {
         <section className="px-4 pb-20 sm:px-6 sm:pb-28">
           <motion.div
             {...reveal}
-            className="mx-auto max-w-4xl overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--card-border)] bg-[radial-gradient(circle_at_50%_0%,var(--brand-soft-hover),transparent_65%)] px-6 py-14 text-center shadow-[var(--shadow-violet-md)] sm:px-12 sm:py-16"
+            className="mx-auto max-w-4xl overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--card-border)] bg-[radial-gradient(circle_at_50%_0%,var(--brand-soft-hover),transparent_65%)] px-6 py-14 text-center sm:px-12 sm:py-16"
           >
             <span className="mx-auto grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] bg-[var(--brand-soft)] text-[var(--brand-strong)]">
               <GraduationCap size={22} strokeWidth={1.75} aria-hidden="true" />

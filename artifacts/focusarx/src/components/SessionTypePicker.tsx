@@ -74,7 +74,7 @@ export default function SessionTypePicker({ open, onClose, onSelect, selected }:
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[var(--z-modal)] bg-[var(--palette-black)]/50 backdrop-blur-sm sm:flex sm:items-center sm:justify-center sm:p-6"
+          className="fixed inset-0 z-[var(--z-modal)] bg-[var(--palette-black)]/50 sm:flex sm:items-center sm:justify-center sm:p-6"
           onClick={onClose}
         >
           <motion.div
@@ -82,7 +82,7 @@ export default function SessionTypePicker({ open, onClose, onSelect, selected }:
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", stiffness: 280, damping: 28 }}
-            className="fixed inset-x-4 bottom-8 mx-auto max-w-sm rounded-3xl border border-[var(--rgba-124-58-237-0_3)] bg-[var(--rgba-12-17-40-0_97)] p-6 shadow-[0_24px_80px_var(--rgba-0-0-0-0_6)] backdrop-blur-2xl sm:static sm:mx-0 sm:w-full"
+            className="fixed inset-x-4 bottom-8 mx-auto max-w-sm rounded-[var(--radius-xl)] border border-[var(--rgba-124-58-237-0_3)] bg-[var(--rgba-12-17-40-0_97)] p-6 sm:static sm:mx-0 sm:w-full"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-5">

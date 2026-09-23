@@ -18,7 +18,7 @@ export function NotificationPermissionPrompt() {
         exit={{ opacity: 0, y: 40 }}
         className="fixed inset-x-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-[var(--z-modal)] md:bottom-6 md:left-auto md:right-6 md:w-full md:max-w-sm"
       >
-        <div className="rounded-[1.25rem] border border-[var(--border-subtle)] bg-[var(--surface-1)] p-5 shadow-2xl backdrop-blur-xl">
+        <div className="rounded-[1.25rem] border border-[var(--border-subtle)] bg-[var(--surface-1)] p-5 shadow-[var(--shadow-lg)]">
           <button
             type="button"
             onClick={dismissSoftPrompt}

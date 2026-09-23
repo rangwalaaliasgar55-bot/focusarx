@@ -146,7 +146,7 @@ function HabitCard({ habit, onComplete, onUncomplete, onDelete }: { habit: Habit
 
   return (
     <TiltCard intensity={6}>
-    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4 transition-all hover:border-[var(--brand-600)]/20 shadow-3d">
+    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-4 transition-all hover:border-[var(--brand-600)]/20 shadow-[var(--shadow-sm)]">
       <div className="flex items-center gap-3">
         <button
           onClick={habit.completedToday ? onUncomplete : onComplete}
@@ -249,7 +249,7 @@ export default function HabitsPage() {
   const completionPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   return (
-    <div className="min-h-screen forge-bg-glow text-[var(--foreground)] px-4 sm:px-6 py-8 max-w-4xl mx-auto">
+    <div className="min-h-screen text-[var(--foreground)] px-4 sm:px-6 py-8 max-w-4xl mx-auto">
       {showCreate && <CreateHabitModal onClose={() => setShowCreate(false)} onCreate={d => createHabit.mutate(d)} />}
 
       <PageHeader
@@ -258,7 +258,7 @@ export default function HabitsPage() {
         title="Habit Tracker"
         subtitle="Build consistency, one day at a time"
         actions={
-          <button onClick={() => setShowCreate(true)} className="flex items-center gap-1.5 rounded-xl bg-[var(--brand-600)] px-4 py-2 text-[12px] font-bold text-[var(--palette-white)] hover:bg-[var(--palette-6d31d4)] transition-colors shadow-lg shadow-[var(--rgba-124-58-237-0_25)]">
+          <button onClick={() => setShowCreate(true)} className="flex items-center gap-1.5 rounded-xl bg-[var(--brand-600)] px-4 py-2 text-[12px] font-bold text-[var(--palette-white)] hover:bg-[var(--palette-6d31d4)] transition-colors shadow-lg">
             <Plus size={14} /> New Habit
           </button>
         }

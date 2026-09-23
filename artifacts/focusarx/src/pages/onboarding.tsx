@@ -258,7 +258,7 @@ export default function OnboardingPage() {
           </div>
           <div className="h-1 w-full rounded-full bg-[var(--palette-white)]/5">
             <motion.div
-              className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-pink)]"
+              className="h-full rounded-full bg-[var(--brand-600)]"
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.25, ease: "circOut" }}
             />
@@ -268,12 +268,12 @@ export default function OnboardingPage() {
         <AnimatePresence mode="wait">
           {step === "intro" && (
             <motion.div key="intro" variants={BLUR_IN} initial="initial" animate="animate" exit="exit" className="text-center">
-              <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-[var(--brand-600)] to-[var(--brand-pink)] shadow-[0_0_40px_var(--rgba-124-58-237-0_3)]">
+              <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-[var(--radius-xl)] bg-[var(--brand-600)]">
                 <Rocket size={32} className="text-[var(--palette-white)]" />
               </div>
               <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Initialize Your <br /><span className="text-[var(--brand-400)]">Focus DNA</span></h1>
               <p className="mt-6 text-lg text-[var(--foreground-muted)]">Before we begin, we need to calibrate the environment to your cognitive patterns.</p>
-              <button onClick={next} className="mt-12 group flex items-center gap-3 mx-auto rounded-2xl bg-[var(--palette-white)] px-8 py-4 text-lg font-bold text-[var(--palette-black)] hover:scale-105 transition-all">
+              <button onClick={next} className="mt-12 group flex items-center gap-3 mx-auto rounded-2xl bg-[var(--palette-white)] px-8 py-4 text-lg font-bold text-[var(--palette-black)] transition-all">
                 Begin Calibration <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </button>
             </motion.div>
@@ -309,11 +309,7 @@ export default function OnboardingPage() {
                       setData((prev) => ({ ...prev, style: s.id, focusDuration: s.duration }));
                       setTimeout(next, 300);
                     }}
-                    className={`group relative w-full flex items-center gap-4 rounded-2xl border px-6 py-5 text-left transition-all ${
-                      data.style === s.id
-                        ? "border-[var(--brand-400)] bg-[var(--brand-400)]/10"
-                        : "border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] hover:bg-[var(--palette-white)]/[0.05]"
-                    }`}
+                    className={`group relative w-full flex items-center gap-4 rounded-2xl border px-6 py-5 text-left transition-all ${ data.style === s.id ? "border-[var(--brand-400)] bg-[var(--brand-400)]/10" : "border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] hover:bg-[var(--palette-white)]/[0.05]" }`}
                   >
                     <span className="text-3xl">{s.icon}</span>
                     <div>
@@ -336,11 +332,7 @@ export default function OnboardingPage() {
                   <button
                     key={h.id}
                     onClick={() => pick("dailyHours", h.id)}
-                    className={`flex flex-col items-start rounded-2xl border p-6 text-left transition-all ${
-                      data.dailyHours === h.id
-                        ? "border-[var(--brand-400)] bg-[var(--brand-400)]/10"
-                        : "border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] hover:bg-[var(--palette-white)]/[0.05]"
-                    }`}
+                    className={`flex flex-col items-start rounded-2xl border p-6 text-left transition-all ${ data.dailyHours === h.id ? "border-[var(--brand-400)] bg-[var(--brand-400)]/10" : "border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] hover:bg-[var(--palette-white)]/[0.05]" }`}
                   >
                     <p className="text-2xl font-semibold text-[var(--palette-white)]">{h.label}</p>
                     <p className="text-xs font-bold uppercase tracking-widest text-[var(--foreground-subtle)] mt-1">{h.sub}</p>
@@ -362,11 +354,7 @@ export default function OnboardingPage() {
                       <button
                         key={option.id}
                         onClick={() => setDreamType(option.id)}
-                        className={`flex flex-col items-start gap-1 rounded-2xl border p-4 text-left transition-all ${
-                          dreamType === option.id
-                            ? "border-[var(--brand-400)] bg-[var(--brand-400)]/10 shadow-[0_0_30px_var(--rgba-167-139-250-0_15)]"
-                            : "border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] hover:bg-[var(--palette-white)]/[0.05]"
-                        }`}
+                        className={`flex flex-col items-start gap-1 rounded-2xl border p-4 text-left transition-all ${ dreamType === option.id ? "border-[var(--brand-400)] bg-[var(--brand-400)]/10" : "border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] hover:bg-[var(--palette-white)]/[0.05]" }`}
                       >
                         <span className="text-2xl" aria-hidden="true">{option.emoji}</span>
                         <span className="text-sm font-bold text-[var(--palette-white)]">{option.label}</span>
@@ -382,11 +370,7 @@ export default function OnboardingPage() {
                         <button
                           key={w.id}
                           onClick={() => setStudyWindow(w.id)}
-                          className={`rounded-xl border px-3 py-2 text-left transition-all ${
-                            studyWindow === w.id
-                              ? "border-[var(--brand-400)] bg-[var(--brand-400)]/10"
-                              : "border-[var(--palette-white)]/10 hover:bg-[var(--palette-white)]/[0.04]"
-                          }`}
+                          className={`rounded-xl border px-3 py-2 text-left transition-all ${ studyWindow === w.id ? "border-[var(--brand-400)] bg-[var(--brand-400)]/10" : "border-[var(--palette-white)]/10 hover:bg-[var(--palette-white)]/[0.04]" }`}
                         >
                           <span className="block text-xs font-semibold text-[var(--palette-white)]">{w.label}</span>
                           <span className="block text-[11px] text-[var(--foreground-subtle)]">{w.sub}</span>
@@ -423,7 +407,7 @@ export default function OnboardingPage() {
                 </>
               ) : (
                 <motion.div variants={BLUR_IN} initial="initial" animate="animate" className="text-left">
-                  <div className="rounded-3xl border border-[var(--palette-emerald-500)]/25 bg-[var(--palette-emerald-500)]/[0.06] p-5">
+                  <div className="rounded-[var(--radius-xl)] border border-[var(--palette-emerald-500)]/25 bg-[var(--palette-emerald-500)]/[0.06] p-5">
                     <div className="flex items-center gap-3">
                       <span className="text-3xl" aria-hidden="true">{plan.emoji}</span>
                       <div>
@@ -496,7 +480,7 @@ export default function OnboardingPage() {
 
           {step === "ready" && (
             <motion.div key="ready" variants={BLUR_IN} initial="initial" animate="animate" className="text-center">
-              <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-[var(--palette-emerald-500)]/10 border border-[var(--palette-emerald-500)]/20 shadow-[0_0_50px_var(--rgba-16-185-129-0_2)]">
+              <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-[var(--palette-emerald-500)]/10 border border-[var(--palette-emerald-500)]/20">
                 <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 2 }}>
                   <Sparkles size={40} className="text-[var(--palette-emerald-400)]" />
                 </motion.div>
@@ -514,7 +498,7 @@ export default function OnboardingPage() {
               <button
                 onClick={() => void finish()}
                 disabled={saving}
-                className="mt-12 w-full rounded-2xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] py-5 text-lg font-semibold text-[var(--palette-white)] shadow-xl hover:scale-105 transition-all disabled:opacity-50"
+                className="mt-12 w-full rounded-2xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] py-5 text-lg font-semibold text-[var(--palette-white)] shadow-[var(--shadow-lg)] transition-all disabled:opacity-50"
               >
                 {saving ? "Deploying..." : "Enter Command Center"}
               </button>
@@ -571,11 +555,7 @@ function OptionButton({ icon, label, selected, onClick }: { icon: React.ReactNod
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-4 rounded-2xl border p-5 text-left transition-all ${
-        selected
-          ? "border-[var(--brand-400)] bg-[var(--brand-400)]/10 shadow-[0_0_30px_var(--rgba-167-139-250-0_15)]"
-          : "border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] hover:bg-[var(--palette-white)]/[0.05]"
-      }`}
+      className={`flex items-center gap-4 rounded-2xl border p-5 text-left transition-all ${ selected ? "border-[var(--brand-400)] bg-[var(--brand-400)]/10" : "border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] hover:bg-[var(--palette-white)]/[0.05]" }`}
     >
       <span className="text-2xl">{icon}</span>
       <span className="text-sm font-bold text-[var(--palette-white)]">{label}</span>

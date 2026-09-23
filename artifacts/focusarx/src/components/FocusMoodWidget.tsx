@@ -64,7 +64,7 @@ export function FocusMoodWidget({ onSelect, compact = false }: FocusMoodWidgetPr
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4 backdrop-blur-xl"
+      className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4"
     >
       <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.15em] text-[var(--foreground-subtle)] mb-3">Energy Check-in</p>
       <AnimatePresence mode="wait">

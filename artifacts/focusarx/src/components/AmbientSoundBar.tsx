@@ -157,7 +157,7 @@ export default function AmbientSoundBar({ variant = "pill", className = "" }: Pr
   const visibleSounds = showAll ? AMBIENT_SOUNDS : AMBIENT_SOUNDS.filter((s) => CORE_IDS.includes(s.id) || state.activeIds.includes(s.id));
 
   const mixerBody = (
-    <div className="flex w-full flex-col overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--card)] shadow-xl">
+    <div className="flex w-full flex-col overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--card)] shadow-[var(--shadow-lg)]">
       {/* Header */}
       <div className="flex items-center justify-between gap-2 border-b border-[var(--border-subtle)] bg-[var(--surface-1)] px-3.5 py-2.5">
         <div className="flex min-w-0 items-center gap-2">
@@ -513,7 +513,7 @@ export default function AmbientSoundBar({ variant = "pill", className = "" }: Pr
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setOpen(false)}
-              className="fixed inset-0 z-[calc(var(--z-modal)-1)] bg-black/40 backdrop-blur-[2px] sm:hidden"
+              className="fixed inset-0 z-[calc(var(--z-modal)-1)] bg-black/40 sm:hidden"
             />
             <div className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] z-[var(--z-modal)] sm:absolute sm:inset-x-auto sm:bottom-full sm:right-0 sm:mb-2 sm:w-[20rem]">
               {mixerBody}

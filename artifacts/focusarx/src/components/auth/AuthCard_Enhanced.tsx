@@ -30,11 +30,9 @@ export function AuthCard({
   className,
 }: AuthCardProps) {
   return (
-    <div className="relative min-h-screen overflow-hidden forge-bg-glow flex items-center justify-center px-4 py-12">
+    <div className="relative min-h-screen overflow-hidden flex items-center justify-center px-4 py-12">
       {/* Ambient glows */}
       <div className="pointer-events-none absolute inset-0 z-[var(--z-base)]" aria-hidden>
-        <div className="absolute -left-40 -top-40 h-[700px] w-[700px] rounded-full bg-[radial-gradient(circle_at_center,var(--rgba-124-58-237-0_12),transparent_65%)] blur-3xl" />
-        <div className="absolute -right-40 bottom-0 h-[600px] w-[600px] rounded-full bg-[radial-gradient(circle_at_center,var(--rgba-79-70-229-0_07),transparent_65%)] blur-3xl" />
       </div>
 
       <motion.div
@@ -45,14 +43,14 @@ export function AuthCard({
       >
         {/* Logo */}
         <div className="mb-8 flex flex-col items-center gap-3">
-          <BrandMark className="logo-pulse h-14 w-14" />
+          <BrandMark className="h-14 w-14" />
           <div className="text-center">
             <p className="text-lg font-bold tracking-tight text-[var(--foreground)]">FocusArx</p>
           </div>
         </div>
 
         {/* Card */}
-        <div className={cn("glass rounded-[var(--radius-2xl)] p-8 shadow-[var(--shadow-xl)]", className)}>
+        <div className={cn("glass rounded-[var(--radius-2xl)] p-8 shadow-[var(--shadow-[var(--shadow-lg)])]", className)}>
           {/* Back button */}
           {onBack && (
             <button
@@ -73,7 +71,7 @@ export function AuthCard({
 
           {/* Loading overlay */}
           {isLoading && (
-            <div className="absolute inset-0 z-[var(--z-content)] flex items-center justify-center rounded-[var(--radius-2xl)] bg-[var(--surface-3)]/60 backdrop-blur-sm">
+            <div className="absolute inset-0 z-[var(--z-content)] flex items-center justify-center rounded-[var(--radius-2xl)] bg-[var(--surface-3)]/60">
               <div className="size-7 animate-spin rounded-full border-2 border-[var(--brand-violet)] border-t-transparent" />
             </div>
           )}

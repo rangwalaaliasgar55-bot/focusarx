@@ -206,7 +206,7 @@ export function ShareCardModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 12 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-2xl rounded-3xl border border-[var(--palette-white)]/10 bg-[#0B0B14] p-5 shadow-2xl"
+            className="w-full max-w-2xl rounded-[var(--radius-xl)] border border-[var(--palette-white)]/10 bg-[#0B0B14] p-5 shadow-[var(--shadow-lg)]"
           >
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">

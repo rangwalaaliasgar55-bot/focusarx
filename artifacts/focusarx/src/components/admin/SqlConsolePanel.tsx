@@ -591,7 +591,7 @@ export function SqlConsolePanel({ authHeaders }: { authHeaders: () => Record<str
             role="dialog"
             aria-modal="true"
             aria-labelledby="sql-unlock-title"
-            className="w-full max-w-md rounded-3xl border border-[var(--border)] bg-[var(--surface-2,rgba(255,255,255,0.04))] p-6 backdrop-blur-xl"
+            className="w-full max-w-md rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface-2,rgba(255,255,255,0.04))] p-6"
           >
             <div className="mb-4 flex items-center gap-3">
               <div className="rounded-2xl bg-amber-500/15 p-2.5"><Unlock size={18} className="text-amber-300" /></div>
@@ -643,7 +643,7 @@ export function SqlConsolePanel({ authHeaders }: { authHeaders: () => Record<str
             role="dialog"
             aria-modal="true"
             aria-labelledby="sql-confirm-title"
-            className="w-full max-w-lg rounded-3xl border border-red-500/30 bg-[var(--surface-2,rgba(255,255,255,0.04))] p-6 backdrop-blur-xl"
+            className="w-full max-w-lg rounded-[var(--radius-xl)] border border-red-500/30 bg-[var(--surface-2,rgba(255,255,255,0.04))] p-6"
           >
             <div className="mb-4 flex items-center gap-3">
               <div className="rounded-2xl bg-red-500/15 p-2.5"><ShieldAlert size={18} className="text-red-400" /></div>

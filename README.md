@@ -36,7 +36,10 @@ A production-grade productivity and focus platform with real-time features, gami
 
 ## Brand & design
 
-Identity, logo assets and usage rules live in [`docs/BRAND.md`](docs/BRAND.md).
+The design system — its five rules, token layers, theming model and migration
+path off the pre-v5 vocabulary — is documented in
+[`docs/DESIGN.md`](docs/DESIGN.md). Identity, logo assets and usage rules live
+in [`docs/BRAND.md`](docs/BRAND.md).
 
 ## Quick Start
 
@@ -107,6 +110,7 @@ focusarx/
 
 ## Documentation
 
+- [Design system](docs/DESIGN.md) — "Quiet tools": rules, tokens, layers, gates
 - [Architecture](docs/ARCHITECTURE.md) — System design and data flow
 - [API Reference](docs/API.md) — All endpoints with auth requirements
 - [Database](docs/DATABASE.md) — Schema, tables, and migration guide

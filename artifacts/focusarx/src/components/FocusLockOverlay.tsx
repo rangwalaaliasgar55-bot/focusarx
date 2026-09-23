@@ -144,7 +144,7 @@ export default function FocusLockOverlay({ mode, exitPhrase, secondsLeft, totalS
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[var(--z-max)] flex flex-col items-center justify-center bg-[var(--rgba-4-6-14-0_97)] backdrop-blur-xl"
+      className="fixed inset-0 z-[var(--z-max)] flex flex-col items-center justify-center bg-[var(--rgba-4-6-14-0_97)]"
       style={{ border: redBorder ? "3px solid var(--color-error)" : "none", transition: "border 0.2s" }}
     >
       <AnimatePresence>
@@ -194,11 +194,7 @@ export default function FocusLockOverlay({ mode, exitPhrase, secondsLeft, totalS
           )}
 
           <div className="flex items-center gap-2">
-            <span className={`text-xs rounded-full px-2 py-0.5 font-semibold ${
-              mode === "soft" ? "bg-[var(--palette-yellow-900)]/30 text-[var(--palette-yellow-400)]" :
-              mode === "hard" ? "bg-[var(--palette-red-900)]/30 text-[var(--palette-red-400)]" :
-              "bg-[var(--palette-zinc-900)] text-[var(--palette-zinc-300)]"
-            }`}>
+            <span className={`text-xs rounded-full px-2 py-0.5 font-semibold ${ mode === "soft" ? "bg-[var(--palette-yellow-900)]/30 text-[var(--palette-yellow-400)]" : mode === "hard" ? "bg-[var(--palette-red-900)]/30 text-[var(--palette-red-400)]" : "bg-[var(--palette-zinc-900)] text-[var(--palette-zinc-300)]" }`}>
               {mode === "soft" ? "🟡 Soft Lock" : mode === "hard" ? "🔴 Hard Lock" : "⚫ Beast Mode"}
             </span>
           </div>
@@ -214,7 +210,7 @@ export default function FocusLockOverlay({ mode, exitPhrase, secondsLeft, totalS
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="z-[var(--z-sticky)] w-full max-w-sm rounded-2xl border border-[var(--rgba-239-68-68-0_3)] bg-[var(--rgba-20-8-8-0_95)] p-7 shadow-2xl"
+          className="z-[var(--z-sticky)] w-full max-w-sm rounded-2xl border border-[var(--rgba-239-68-68-0_3)] bg-[var(--rgba-20-8-8-0_95)] p-7 shadow-[var(--shadow-lg)]"
         >
           <h3 className="mb-5 text-center text-lg font-bold text-[var(--palette-red-400)]">Exit Focus Session?</h3>
 
@@ -305,23 +301,19 @@ export function LockModePicker({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-[var(--palette-black)]/60 px-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-[var(--palette-black)]/60 px-4"
     >
       <motion.div
         initial={{ scale: 0.93, y: 16 }}
         animate={{ scale: 1, y: 0 }}
-        className="w-full max-w-sm rounded-2xl border border-[var(--rgba-124-58-237-0_3)] bg-[var(--rgba-8-12-28-0_98)] p-6 shadow-2xl"
+        className="w-full max-w-sm rounded-2xl border border-[var(--rgba-124-58-237-0_3)] bg-[var(--rgba-8-12-28-0_98)] p-6 shadow-[var(--shadow-lg)]"
       >
         <h3 className="mb-1 text-base font-bold text-[var(--foreground)]">Commitment level</h3>
         <p className="mb-5 text-xs text-[var(--foreground-subtle)]">How locked in do you want to be?</p>
         <div className="space-y-2.5">
           {modes.map(m => (
             <button key={m.id} onClick={() => setSelected(m.id)}
-              className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all ${
-                selected === m.id
-                  ? "border-[var(--brand-600)] bg-[var(--rgba-124-58-237-0_15)]"
-                  : "border-[var(--rgba-124-58-237-0_12)] hover:border-[var(--rgba-124-58-237-0_3)]"
-              }`}
+              className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all ${ selected === m.id ? "border-[var(--brand-600)] bg-[var(--rgba-124-58-237-0_15)]" : "border-[var(--rgba-124-58-237-0_12)] hover:border-[var(--rgba-124-58-237-0_3)]" }`}
             >
               <span className="text-lg">{m.emoji}</span>
               <div>

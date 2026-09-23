@@ -50,7 +50,7 @@ function ToastItem({ record, onRemove }: { record: ToastRecord; onRemove: (id: s
       animate={{ opacity: 1, x: 0, y: 0 }}
       exit={{ opacity: 0, x: 16, scale: 0.98 }}
       transition={{ duration: 0.25, ease: "easeOut" }}
-      className="pointer-events-auto relative flex w-[min(calc(100vw-2rem),24rem)] items-start gap-3 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-strong)] bg-[var(--surface-overlay)] p-4 text-[var(--foreground)] shadow-[var(--shadow-xl)] backdrop-blur-xl"
+      className="pointer-events-auto relative flex w-[min(calc(100vw-2rem),24rem)] items-start gap-3 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-strong)] bg-[var(--surface-overlay)] p-4 text-[var(--foreground)] shadow-[var(--shadow-[var(--shadow-lg)])]"
       role={record.type === "danger" || record.type === "error" ? "alert" : "status"}
       aria-label={visual.label}
     >

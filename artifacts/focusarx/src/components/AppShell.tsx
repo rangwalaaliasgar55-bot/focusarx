@@ -173,7 +173,7 @@ function Brand({ compact = false }: { compact?: boolean }) {
 function CountBadge({ count }: { count: number }) {
   if (!count) return null;
   return (
-    <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--brand-soft)] px-1.5 py-0.5 text-[11px] font-bold tabular-nums text-[var(--brand-strong)]">
+    <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--surface-2)] px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-[var(--foreground-muted)]">
       {count > 99 ? "99+" : count}
     </span>
   );
@@ -200,7 +200,7 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
   const { isOn } = useFeatureFlags();
 
   return (
-    <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5" aria-label="Primary navigation">
+    <nav className="flex-1 space-y-5 overflow-y-auto px-2.5 py-4" aria-label="Primary navigation">
       {NAV_GROUPS.map((group) => {
         const entries = group.entries.filter((entry) => !entry.admin || isAdminUser(user?.user))
           .filter((entry) => {
@@ -212,11 +212,11 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
           <section key={group.label} aria-labelledby={`nav-${group.label.toLowerCase()}`}>
             <h2
               id={`nav-${group.label.toLowerCase()}`}
-              className="mb-2 px-3 text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-[var(--foreground-subtle)]"
+              className="mb-1.5 px-3 text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-[var(--foreground-subtle)]"
             >
               {group.label}
             </h2>
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {entries.map((entry) => {
                 const Icon = entry.icon;
                 const active = isActiveRoute(location, entry.href);
@@ -272,8 +272,8 @@ function UserMenu({ compact = false }: { compact?: boolean }) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className={cn("h-11 min-h-[44px] justify-start px-2", compact ? "w-11" : "w-full")} aria-label="Open user menu">
-          <Avatar className="h-8 w-8 border border-[var(--border-strong)]">
-            <AvatarFallback className="bg-[var(--brand-soft)] text-xs font-bold text-[var(--brand-strong)]">{initials}</AvatarFallback>
+          <Avatar className="h-7 w-7 border border-[var(--border-subtle)]">
+            <AvatarFallback className="bg-[var(--surface-2)] text-[0.6875rem] font-semibold text-[var(--foreground-muted)]">{initials}</AvatarFallback>
           </Avatar>
           {!compact && (
             <>
@@ -358,17 +358,17 @@ function Topbar({ onMenu, onOpenGuide }: { onMenu: () => void; onOpenGuide: () =
       <button type="button" onClick={openPalette} className="global-search min-h-[44px]" aria-label="Open global search">
         <Search size={17} aria-hidden="true" />
         <span className="hidden sm:inline">Search FocusArx</span>
-        <kbd className="ml-auto hidden rounded-md border border-[var(--border)] bg-[var(--surface-raised)] px-2 py-0.5 text-[0.6875rem] text-[var(--foreground-subtle)] sm:inline">Ctrl K</kbd>
+        <kbd className="ml-auto hidden rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--surface-2)] px-1.5 py-0.5 text-[0.6875rem] font-medium text-[var(--foreground-subtle)] sm:inline">Ctrl K</kbd>
       </button>
 
       <div className="ml-auto flex items-center gap-1 sm:gap-2">
         <LiveSessionPill />
         <Button
           type="button"
-          variant="secondary"
+          variant="ghost"
           size="sm"
           onClick={onOpenGuide}
-          className="hidden min-h-[36px] items-center gap-1.5 md:inline-flex"
+          className="hidden items-center gap-1.5 px-2.5 text-[var(--foreground-subtle)] md:inline-flex"
           aria-label="Explore features"
         >
           <Compass size={15} />
@@ -438,21 +438,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </a>
 
       <aside className="app-sidebar hidden md:flex" aria-label="Application sidebar">
-        <div className="flex h-[4.5rem] shrink-0 items-center border-b border-[var(--border)] px-5">
+        <div className="flex h-[var(--topbar-height)] shrink-0 items-center border-b border-[var(--border-subtle)] px-4">
           <Brand />
         </div>
         <Navigation />
-        <div className="border-t border-[var(--border)] p-3 space-y-2">
+        <div className="space-y-1 border-t border-[var(--border-subtle)] p-3">
+          {/* Secondary tools live in the rail's foot: reachable, never
+              competing with the destinations above them. */}
           <Button
             type="button"
             variant="ghost"
             onClick={() => setGuideOpen(true)}
-            className="h-9 w-full justify-start gap-2 text-xs text-[var(--brand-strong)] hover:bg-[var(--brand-soft)]"
+            className="w-full justify-start gap-2 px-3 text-xs"
           >
-            <Compass size={15} /> <span>Feature Guide & Compass</span>
+            <Compass size={15} /> <span>Feature guide</span>
           </Button>
           <UserMenu />
-          <div className="mt-2 flex gap-3 px-2 text-[0.6875rem] text-[var(--foreground-subtle)]">
+          <div className="mt-2 flex gap-3 px-3 text-[0.6875rem] text-[var(--foreground-subtle)]">
             <Link href="/support" className="hover:text-[var(--foreground)]">Help</Link>
             <Link href="/privacy" className="hover:text-[var(--foreground)]">Privacy</Link>
           </div>
@@ -466,19 +468,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="flex w-[min(90vw,22rem)] flex-col p-0">
-          <SheetHeader className="border-b border-[var(--border)] px-5 py-4 text-left">
+          <SheetHeader className="border-b border-[var(--border-subtle)] px-5 py-4 text-left">
             <SheetTitle><Brand /></SheetTitle>
             <SheetDescription className="sr-only">Navigate FocusArx</SheetDescription>
           </SheetHeader>
           <Navigation onNavigate={() => setMobileOpen(false)} />
-          <div className="border-t border-[var(--border)] p-3">
+          <div className="border-t border-[var(--border-subtle)] p-3">
             <Button
               type="button"
               variant="ghost"
               onClick={() => { setMobileOpen(false); setGuideOpen(true); }}
-              className="mb-2 h-9 w-full justify-start gap-2 text-xs text-[var(--brand-strong)] hover:bg-[var(--brand-soft)]"
+              className="mb-1 w-full justify-start gap-2 px-3 text-xs"
             >
-              <Compass size={15} /> <span>Feature Guide</span>
+              <Compass size={15} /> <span>Feature guide</span>
             </Button>
             <UserMenu />
           </div>

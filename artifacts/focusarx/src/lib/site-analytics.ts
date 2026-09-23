@@ -21,7 +21,12 @@ export type AnalyticsEventType =
   | "user_logged_in"
   | "user_signed_up"
   | "device_context"
-  | "page_view";
+  | "page_view"
+  /* Checkout funnel. These were already being tracked by
+     `RazorpayCheckoutCard` but were missing from the union, so the file did
+     not typecheck. */
+  | "checkout_started"
+  | "checkout_completed";
 
 type PendingEvent = {
   eventId: string;

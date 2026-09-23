@@ -116,7 +116,7 @@ function FaqAccordion({ faq, headingId }: { faq: [string, string][]; headingId?:
 
 function CtaBlock() {
   return (
-    <div className="mt-16 rounded-3xl border border-[var(--card-border)] bg-gradient-to-br from-[var(--palette-violet-500)]/10 to-[var(--palette-indigo-500)]/10 p-8 text-center">
+    <div className="mt-16 rounded-[var(--radius-xl)] border border-[var(--card-border)] bg-[var(--palette-violet-500)]/10 p-8 text-center">
       <Timer size={28} className="mx-auto mb-4 text-[var(--palette-violet-400)]" />
       <h3 className="text-2xl font-semibold mb-2">Turn the plan into focused hours</h3>
       <p className="text-sm text-[var(--foreground-muted)] max-w-md mx-auto mb-6">
@@ -126,7 +126,7 @@ function CtaBlock() {
       <div className="flex flex-wrap items-center justify-center gap-3">
         <Link
           href="/signup"
-          className="rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] px-6 py-3 text-sm font-bold text-white shadow-lg transition-transform hover:scale-[1.02]"
+          className="rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] px-6 py-3 text-sm font-bold text-white shadow-lg transition-transform"
         >
           Start focusing free
         </Link>
@@ -178,7 +178,7 @@ function ExamGuideBody({ slug }: { slug: string }) {
         <div className="max-w-3xl mx-auto px-6 py-32 text-center">
           <h1 className="text-4xl font-semibold mb-4">Guide not found</h1>
           <p className="text-[var(--foreground-muted)] mb-8">No exam guide at this address. The full library is one click away.</p>
-          <Link href="/exam" className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-700)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]">
+          <Link href="/exam" className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-700)] active:scale-[0.98]">
             <ArrowLeft size={15} /> All exam guides
           </Link>
         </div>
@@ -209,7 +209,7 @@ function ExamGuideBody({ slug }: { slug: string }) {
         <Breadcrumbs path={`/exam/${guide.slug}`} title={guide.h1} className="mb-6" />
 
         <header className="mb-12">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--palette-violet-300)] mb-6">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--brand-500)]/40 bg-[var(--palette-violet-500)]/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--palette-violet-300)] mb-6">
             <GraduationCap size={12} /> {guide.exam ? guide.exam.name : "Universal exam strategy"}
           </div>
           <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight leading-tight mb-5">{guide.h1}</h1>
@@ -364,7 +364,7 @@ export function ExamHubPage() {
       <div className="max-w-5xl mx-auto px-6 py-16 sm:py-24">
         <header className="text-center mb-14">
           <Breadcrumbs path="/exam" title={EXAM_HUB.h1} className="mb-8 flex justify-center [&>ol]:justify-center" />
-          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--palette-violet-300)] mb-8">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--brand-500)]/40 bg-[var(--palette-violet-500)]/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--palette-violet-300)] mb-8">
             <Sparkles size={12} /> Exam guide library
           </div>
           <h1 className="text-4xl sm:text-6xl font-semibold tracking-tight mb-6">{EXAM_HUB.h1}</h1>

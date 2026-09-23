@@ -101,8 +101,7 @@ function ThemeAndColorSettings() {
                   aria-label={`${preset.label} accent color`}
                   aria-pressed={active}
                   onClick={() => setAccentColor(preset.color)}
-                  className={cn(
-                    "grid h-9 w-9 place-items-center rounded-full border-2 transition-transform hover:scale-110",
+                  className={cn( "grid h-9 w-9 place-items-center rounded-full border-2 transition-transform",
                     active ? "border-[var(--foreground)]" : "border-transparent",
                   )}
                   style={{ background: preset.color }}
@@ -205,11 +204,7 @@ function EffectsSettings() {
                 key={t}
                 type="button"
                 onClick={() => pickTier(t)}
-                className={`min-h-[44px] rounded-xl border px-3 py-2 text-xs font-bold capitalize transition-colors ${
-                  tierPref === t
-                    ? "border-[var(--brand-500)] bg-[var(--brand-soft)] text-[var(--brand-strong)]"
-                    : "border-[var(--border-subtle)] bg-[var(--surface-1)] text-[var(--foreground-subtle)]"
-                }`}
+                className={`min-h-[44px] rounded-xl border px-3 py-2 text-xs font-bold capitalize transition-colors ${ tierPref === t ? "border-[var(--brand-500)] bg-[var(--brand-soft)] text-[var(--brand-strong)]" : "border-[var(--border-subtle)] bg-[var(--surface-1)] text-[var(--foreground-subtle)]" }`}
                 aria-pressed={tierPref === t}
               >
                 {t}
@@ -230,11 +225,7 @@ function EffectsSettings() {
                   type="button"
                   disabled={locked}
                   onClick={() => pickScene(p.id as ScenePresetId)}
-                  className={`min-h-[44px] rounded-xl border px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                    active
-                      ? "border-[var(--brand-500)] bg-[var(--brand-soft)]"
-                      : "border-[var(--border-subtle)] bg-[var(--surface-1)]"
-                  }`}
+                  className={`min-h-[44px] rounded-xl border px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${ active ? "border-[var(--brand-500)] bg-[var(--brand-soft)]" : "border-[var(--border-subtle)] bg-[var(--surface-1)]" }`}
                   aria-pressed={active}
                   title={p.available ? (p.pro ? `${p.blurb} (Pro)` : p.blurb) : `${p.blurb} (coming soon)`}
                 >
@@ -281,11 +272,7 @@ function EffectsSettings() {
                 key={q}
                 type="button"
                 onClick={() => setQuality(q)}
-                className={`min-h-[44px] rounded-xl border px-3 py-2 text-xs font-bold capitalize transition-colors ${
-                  quality === q
-                    ? "border-[var(--brand-500)] bg-[var(--brand-soft)] text-[var(--brand-strong)]"
-                    : "border-[var(--border-subtle)] bg-[var(--surface-1)] text-[var(--foreground-subtle)]"
-                }`}
+                className={`min-h-[44px] rounded-xl border px-3 py-2 text-xs font-bold capitalize transition-colors ${ quality === q ? "border-[var(--brand-500)] bg-[var(--brand-soft)] text-[var(--brand-strong)]" : "border-[var(--border-subtle)] bg-[var(--surface-1)] text-[var(--foreground-subtle)]" }`}
                 aria-pressed={quality === q}
               >
                 {q === "battery" ? "Battery saver" : q}

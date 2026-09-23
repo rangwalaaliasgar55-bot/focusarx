@@ -73,7 +73,7 @@ export default function MobileWelcomePage() {
     <div className="flex min-h-[100dvh] flex-col bg-[var(--palette-zinc-950)] px-5 py-8 overflow-hidden">
       {/* Logo */}
       <div className="mb-8 flex items-center gap-2">
-        <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-[var(--palette-rose-500)] to-[var(--palette-violet-600)] flex items-center justify-center text-xs font-semibold text-[var(--palette-white)]">F</div>
+        <div className="h-7 w-7 rounded-lg bg-[var(--palette-rose-500)] flex items-center justify-center text-xs font-semibold text-[var(--palette-white)]">F</div>
         <span className="text-sm font-bold text-[var(--palette-zinc-200)] tracking-tight">FocusArx</span>
       </div>
 
@@ -136,11 +136,7 @@ export default function MobileWelcomePage() {
                   <button
                     key={s.id}
                     onClick={() => pick(setStyle, s.id)}
-                    className={`flex items-center gap-4 rounded-2xl border px-5 py-4 text-left transition-all ${
-                      style === s.id
-                        ? "border-[var(--palette-rose-500)]/60 bg-[var(--palette-rose-950)]/30 ring-1 ring-[var(--palette-rose-500)]/30"
-                        : "border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 hover:border-[var(--palette-zinc-700)]"
-                    }`}
+                    className={`flex items-center gap-4 rounded-2xl border px-5 py-4 text-left transition-all ${ style === s.id ? "border-[var(--palette-rose-500)]/60 bg-[var(--palette-rose-950)]/30 ring-1 ring-[var(--palette-rose-500)]/30" : "border-[var(--border-subtle)] bg-[var(--palette-zinc-900)]/40 hover:border-[var(--palette-zinc-700)]" }`}
                   >
                     <span className="text-2xl">{s.icon}</span>
                     <div className="flex-1">
@@ -157,7 +153,7 @@ export default function MobileWelcomePage() {
           {step === "auth" && (
             <StepSlide key="auth">
               <div className="flex flex-col items-center text-center pt-4">
-                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[var(--palette-rose-500)]/20 to-[var(--palette-violet-600)]/20 text-3xl ring-1 ring-[var(--palette-rose-500)]/30"><Target size={16} aria-hidden="true" /></div>
+                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--palette-rose-500)]/20 text-3xl ring-1 ring-[var(--palette-rose-500)]/30"><Target size={16} aria-hidden="true" /></div>
                 <h2 className="text-2xl font-bold text-[var(--palette-zinc-100)] mb-2">You're ready to focus.</h2>
                 <p className="text-sm text-[var(--palette-zinc-400)] mb-2 max-w-xs">
                   Create a free account to save your progress, streaks, and AI insights.
@@ -234,11 +230,7 @@ function OptionBtn({ icon, label, selected, onClick }: {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2.5 rounded-2xl border px-4 py-3.5 text-left transition-all active:scale-95 ${
-        selected
-          ? "border-[var(--palette-rose-500)]/60 bg-[var(--palette-rose-950)]/30 ring-1 ring-[var(--palette-rose-500)]/30"
-          : "border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40"
-      }`}
+      className={`flex items-center gap-2.5 rounded-2xl border px-4 py-3.5 text-left transition-all active:scale-95 ${ selected ? "border-[var(--palette-rose-500)]/60 bg-[var(--palette-rose-950)]/30 ring-1 ring-[var(--palette-rose-500)]/30" : "border-[var(--border-subtle)] bg-[var(--palette-zinc-900)]/40" }`}
     >
       <span className="text-xl">{icon}</span>
       <span className="text-sm font-medium text-[var(--palette-zinc-200)] leading-snug">{label}</span>

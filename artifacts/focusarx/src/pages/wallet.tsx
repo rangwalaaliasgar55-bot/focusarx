@@ -108,7 +108,7 @@ export default function WalletPage() {
         {wallet && (
           <StaggerContainer className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <StaggerItem><TiltCard intensity={10}>
-              <div className="rounded-2xl border border-[var(--rgba-245-158-11-0_2)] bg-[var(--rgba-245-158-11-0_06)] p-4 shadow-3d-violet">
+              <div className="rounded-2xl border border-[var(--rgba-245-158-11-0_2)] bg-[var(--rgba-245-158-11-0_06)] p-4 shadow-[var(--shadow-sm)]">
                 <div className="flex items-center gap-2 mb-2">
                   <motion.span className="text-xl" whileHover={{ scale: 1.3, rotate: 15 }} transition={{ type: "spring", stiffness: 400 }}><Coins size={16} aria-hidden="true" /></motion.span>
                   <span className="text-[11px] text-[var(--color-warning)] font-semibold uppercase tracking-wider">Coins</span>
@@ -117,7 +117,7 @@ export default function WalletPage() {
               </div>
             </TiltCard></StaggerItem>
             <StaggerItem><TiltCard intensity={10}>
-              <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-124-58-237-0_06)] p-4 shadow-3d-violet">
+              <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-124-58-237-0_06)] p-4 shadow-[var(--shadow-sm)]">
                 <div className="flex items-center gap-2 mb-2">
                   <motion.div whileHover={{ scale: 1.2, rotate: -10 }}><Zap size={14} className="text-[var(--brand-400)]" /></motion.div>
                   <span className="text-[11px] text-[var(--brand-400)] font-semibold uppercase tracking-wider">Total XP</span>
@@ -126,7 +126,7 @@ export default function WalletPage() {
               </div>
             </TiltCard></StaggerItem>
             <StaggerItem><TiltCard intensity={10}>
-              <div className="rounded-2xl border border-[var(--rgba-6-214-160-0_2)] bg-[var(--rgba-6-214-160-0_06)] p-4 shadow-3d-violet">
+              <div className="rounded-2xl border border-[var(--rgba-6-214-160-0_2)] bg-[var(--rgba-6-214-160-0_06)] p-4 shadow-[var(--shadow-sm)]">
                 <div className="flex items-center gap-2 mb-2">
                   <motion.div whileHover={{ scale: 1.2, y: -2 }}><TrendingUp size={14} className="text-[var(--brand-teal)]" /></motion.div>
                   <span className="text-[11px] text-[var(--brand-teal)] font-semibold uppercase tracking-wider">Weekly XP</span>
@@ -135,7 +135,7 @@ export default function WalletPage() {
               </div>
             </TiltCard></StaggerItem>
             <StaggerItem><TiltCard intensity={10}>
-              <div className="rounded-2xl border border-[var(--rgba-255-184-0-0_2)] bg-[var(--rgba-255-184-0-0_06)] p-4 shadow-3d-violet">
+              <div className="rounded-2xl border border-[var(--rgba-255-184-0-0_2)] bg-[var(--rgba-255-184-0-0_06)] p-4 shadow-[var(--shadow-sm)]">
                 <div className="flex items-center gap-2 mb-2">
                   <motion.span className="text-xl" animate={{ rotate: [0, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}><Medal size={16} aria-hidden="true" /></motion.span>
                   <span className="text-[11px] text-[var(--brand-gold)] font-semibold uppercase tracking-wider">Level</span>
@@ -155,7 +155,7 @@ export default function WalletPage() {
             </div>
             <div className="h-2 rounded-full bg-[var(--rgba-124-58-237-0_12)] overflow-hidden">
               <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)]"
+                className="h-full rounded-full bg-[var(--brand-600)]"
                 initial={{ width: 0 }}
                 animate={{ width: `${Math.round(xpProgress * 100)}%` }}
                 transition={{ duration: 0.25, ease: "easeOut" }}

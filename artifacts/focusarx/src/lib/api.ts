@@ -225,7 +225,7 @@ export async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
  *
  *   • a non-Error rejection (a thrown string, a DOMException from an aborted
  *     fetch) has no `.message`, so the toast renders the literal string
- *     "undefined";
+ * "undefined";
  *   • a network failure has a `.message` like "Failed to fetch", which is a
  *     developer's sentence, not a user's;
  *   • the offline page and the rate-limit page both say something the user can

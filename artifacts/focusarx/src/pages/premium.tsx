@@ -262,9 +262,7 @@ export default function PremiumPage() {
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className={`relative flex flex-col rounded-2xl border p-5 transition-all ${
-                    isSelected ? "border-[var(--brand-500)] bg-[var(--brand-soft)] shadow-[var(--shadow-violet-sm)]" : "border-[var(--border-subtle)] bg-[var(--surface-1)] hover:border-[var(--border-strong)]"
-                  } ${plan.slug === "premium_90" ? "ring-1 ring-[var(--brand-400)]/20" : ""}`}
+                  className={`relative flex flex-col rounded-2xl border p-5 transition-all ${ isSelected ? "border-[var(--brand-500)] bg-[var(--brand-soft)]" : "border-[var(--border-subtle)] bg-[var(--surface-1)] hover:border-[var(--border-strong)]" } ${plan.slug === "premium_90" ? "ring-1 ring-[var(--brand-400)]/20" : ""}`}
                 >
                   {plan.slug === "premium_90" && (
                     <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-[var(--brand-600)] px-2.5 py-0.5 text-[11px] font-bold text-white">Best Value</span>
@@ -292,9 +290,7 @@ export default function PremiumPage() {
                   <button
                     onClick={() => handlePurchaseClick(plan.id)}
                     disabled={activating}
-                    className={`mt-5 min-h-[44px] w-full rounded-full px-4 py-2.5 text-sm font-bold transition-transform active:scale-[0.98] ${
-                      isPremium ? "bg-[var(--surface-hover)] text-[var(--foreground-muted)]" : afford ? "bg-[var(--brand-600)] text-white shadow-[var(--shadow-violet-sm)]" : "bg-[var(--surface-hover)] text-[var(--foreground-subtle)]"
-                    }`}
+                    className={`mt-5 min-h-[44px] w-full rounded-full px-4 py-2.5 text-sm font-bold transition-transform active:scale-[0.98] ${ isPremium ? "bg-[var(--surface-hover)] text-[var(--foreground-muted)]" : afford ? "bg-[var(--brand-600)] text-white" : "bg-[var(--surface-hover)] text-[var(--foreground-subtle)]" }`}
                   >
                     {isPremium ? "Extend membership" : afford ? `Unlock for ${plan.tokenCost.toLocaleString()} tokens` : `Need ${(plan.tokenCost - balance).toLocaleString()} more`}
                   </button>
@@ -436,12 +432,12 @@ export default function PremiumPage() {
       <AnimatePresence>
         {showConfirm && selected && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[var(--z-modal)] bg-black/60 backdrop-blur-sm" onClick={() => setShowConfirm(false)} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[var(--z-modal)] bg-black/60" onClick={() => setShowConfirm(false)} />
             <motion.div
               initial={{ opacity: 0, y: 20, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.96 }}
-              className="fixed inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-[var(--z-modal)] rounded-[1.5rem] border border-[var(--border-subtle)] bg-[var(--surface-1)] p-6 shadow-2xl md:left-1/2 md:top-1/2 md:bottom-auto md:w-full md:max-w-md md:-translate-x-1/2 md:-translate-y-1/2"
+              className="fixed inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-[var(--z-modal)] rounded-[1.5rem] border border-[var(--border-subtle)] bg-[var(--surface-1)] p-6 shadow-[var(--shadow-lg)] md:left-1/2 md:top-1/2 md:bottom-auto md:w-full md:max-w-md md:-translate-x-1/2 md:-translate-y-1/2"
               role="dialog"
               aria-modal="true"
             >
@@ -500,8 +496,8 @@ export default function PremiumPage() {
       {/* Success */}
       <AnimatePresence>
         {success && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="w-full max-w-sm rounded-[1.5rem] bg-[var(--surface-1)] p-6 text-center shadow-2xl">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/60 p-4">
+            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="w-full max-w-sm rounded-[1.5rem] bg-[var(--surface-1)] p-6 text-center shadow-[var(--shadow-lg)]">
               <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[var(--success-soft)] text-[var(--success)]">
                 <CheckCircle size={28} />
               </div>

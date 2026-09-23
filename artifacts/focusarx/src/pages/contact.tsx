@@ -65,7 +65,7 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="relative min-h-[100dvh] forge-bg-glow">
+    <div className="relative min-h-[100dvh]">
       <PageSEO {...PAGE_SEO.contact} />
       <main id="main-content" className="relative z-[var(--z-content)] mx-auto max-w-5xl px-4 py-10">
         <PageTransition>
@@ -102,7 +102,7 @@ export default function ContactPage() {
 
           <div className="grid lg:grid-cols-2 gap-8">
             {/* Contact form */}
-            <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-12-14-28-0_8)] p-6 backdrop-blur-sm">
+            <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-12-14-28-0_8)] p-6">
               <h2 className="mb-5 text-base font-bold text-[var(--foreground)]">Send a Message</h2>
               {status === "sent" ? (
                 <motion.div
@@ -185,7 +185,7 @@ export default function ContactPage() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.25, delay: i * 0.08 }}
                   whileHover={{ x: 4 }}
-                  className="flex items-start gap-4 rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-12-14-28-0_8)] p-5 backdrop-blur-sm transition-colors hover:border-[var(--rgba-124-58-237-0_35)] group"
+                  className="flex items-start gap-4 rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-12-14-28-0_8)] p-5 transition-colors hover:border-[var(--rgba-124-58-237-0_35)] group"
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--rgba-124-58-237-0_15)]">
                     <opt.icon size={18} className="text-[var(--brand-400)]" />

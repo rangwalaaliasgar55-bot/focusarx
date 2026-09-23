@@ -6,10 +6,10 @@ import { Link } from "wouter";
 import { claimMission, invalidateAfterMissionClaim, useMissionsQuery } from "@/lib/missionsQuery";
 
 const DIFF_COLOR: Record<string, string> = {
-  easy:   "var(--success)",
+  easy: "var(--success)",
   medium: "var(--color-warning)",
-  hard:   "var(--danger)",
-  epic:   "var(--brand-400)",
+  hard: "var(--danger)",
+  epic: "var(--brand-400)",
 };
 
 export default function MissionsWidget() {
@@ -67,7 +67,7 @@ export default function MissionsWidget() {
           </div>
           <div className="h-1 rounded-full bg-[var(--surface-hover)] overflow-hidden">
             <motion.div
-              className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)]"
+              className="h-full rounded-full bg-[var(--brand-600)]"
               initial={{ width: 0 }}
               animate={{ width: `${(stats.dailyCompleted / Math.max(stats.totalDaily, 1)) * 100}%` }}
               transition={{ duration: 0.25, ease: "easeOut" }}
@@ -92,11 +92,7 @@ export default function MissionsWidget() {
             return (
               <div
                 key={m.key}
-                className={`rounded-xl p-3 border transition-colors ${
-                  canClaim
-                    ? "border-[color-mix(in_srgb,var(--success)_35%,transparent)] bg-[var(--success-soft)]"
-                    : "border-[var(--border-subtle)] bg-[var(--surface-hover)]"
-                }`}
+                className={`rounded-xl p-3 border transition-colors ${ canClaim ? "border-[color-mix(in_srgb,var(--success)_35%,transparent)] bg-[var(--success-soft)]" : "border-[var(--border-subtle)] bg-[var(--surface-hover)]" }`}
               >
                 <div className="flex items-start gap-2.5">
                   <span className="text-lg leading-none mt-0.5 shrink-0">{m.icon}</span>

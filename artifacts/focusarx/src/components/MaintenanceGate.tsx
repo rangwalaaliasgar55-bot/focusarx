@@ -20,7 +20,7 @@ export function MaintenanceGate({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[var(--background)] px-6 text-center">
-      <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-[var(--brand-600)] to-[var(--brand-pink)] shadow-[0_0_60px_var(--rgba-124-58-237-0_4)]">
+      <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-[var(--radius-xl)] bg-[var(--brand-600)]">
         <Rocket size={36} className="text-[var(--palette-white)]" />
       </div>
       <h1 className="text-3xl font-semibold text-[var(--palette-white)] sm:text-5xl">We're upgrading the ship</h1>

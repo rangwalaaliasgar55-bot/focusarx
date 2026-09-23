@@ -140,7 +140,7 @@ export function MobileDashboard({ onStartFocus, stats, recentSessions, wallet, t
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-[1.25rem] border border-[var(--brand-500)]/20 bg-gradient-to-br from-[var(--brand-600)] to-[var(--brand-700)] p-5 text-white shadow-[var(--shadow-violet-md)]"
+        className="relative overflow-hidden rounded-[1.25rem] border border-[var(--brand-500)]/20 bg-[var(--brand-600)] p-5 text-white"
       >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(255,255,255,0.15),transparent_60%)]" />
         <div className="relative">
@@ -152,7 +152,7 @@ export function MobileDashboard({ onStartFocus, stats, recentSessions, wallet, t
                 {nextTask ? `Next up: ${nextTask.title}` : "25 min of deep work. One task, no noise."}
               </p>
             </div>
-            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white/15 backdrop-blur">
+            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white/15">
               <Timer size={24} />
             </span>
           </div>

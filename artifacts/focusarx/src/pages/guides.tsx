@@ -68,7 +68,6 @@ export default function GuidesPage() {
 
       {/* Hero */}
       <div className="relative isolate overflow-hidden border-b border-[var(--border-subtle)]">
-        <div className="pointer-events-none absolute left-1/2 top-0 -z-10 h-[30rem] w-[52rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,var(--brand-soft-hover),transparent_68%)] blur-3xl" />
         <div className="relative mx-auto max-w-3xl px-4 py-20 text-center sm:px-6">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--card-border)] bg-[var(--brand-soft)] px-3.5 py-1.5 text-xs font-semibold text-[var(--brand-strong)]">
             <BookOpen size={12} /> Free guide library · Updated 2026
@@ -122,14 +121,14 @@ export default function GuidesPage() {
         ))}
 
         {/* CTA */}
-        <div className="rounded-[var(--radius-2xl)] border border-[var(--card-border)] bg-[radial-gradient(circle_at_50%_0%,var(--brand-soft-hover),transparent_65%)] p-8 text-center shadow-[var(--shadow-violet-sm)]">
+        <div className="rounded-[var(--radius-2xl)] border border-[var(--card-border)] bg-[radial-gradient(circle_at_50%_0%,var(--brand-soft-hover),transparent_65%)] p-8 text-center">
           <h3 className="mb-2 text-xl font-semibold tracking-[-0.02em] text-[var(--foreground)]">Turn what you read into what you do</h3>
           <p className="mb-6 text-sm text-[var(--foreground-muted)]">
             Every guide works better with a timer, streaks, and an AI coach keeping you honest. FocusArx is free forever.
           </p>
           <Link
             href="/signup"
-            className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-700)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]"
+            className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-700)] active:scale-[0.98]"
           >
             Start focusing free <ArrowRight size={16} />
           </Link>

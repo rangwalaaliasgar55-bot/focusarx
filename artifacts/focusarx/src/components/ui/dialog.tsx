@@ -15,12 +15,7 @@ const DialogOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
-    className={cn(
-      "fixed inset-0 z-[var(--z-modal)]",
-      "bg-[var(--palette-black)]/60 backdrop-blur-[4px]",
-      "data-[state=open]:animate-in   data-[state=closed]:animate-out",
-      "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-      "duration-[var(--duration-fast)]",
+    className={cn( "fixed inset-0 z-[var(--z-modal)]", "bg-[var(--palette-black)]/60-[4px]", "data-[state=open]:animate-in   data-[state=closed]:animate-out", "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0", "duration-[var(--duration-fast)]",
       className
     )}
     {...props}
@@ -42,12 +37,7 @@ const DialogContent = React.forwardRef<
         "fixed left-1/2 top-1/2 z-[var(--z-modal)] -translate-x-1/2 -translate-y-1/2",
         "w-full max-w-lg",
 
-        // Appearance
-        "bg-[var(--surface-3)]",
-        "border border-[var(--rgba-124-58-237-0_20)]",
-        "rounded-[var(--radius-xl)]",
-        "shadow-[var(--shadow-xl),var(--shadow-violet-sm)]",
-        "p-0 overflow-hidden",
+        // Appearance "bg-[var(--surface-3)]", "border border-[var(--rgba-124-58-237-0_20)]", "rounded-[var(--radius-xl)]", "", "p-0 overflow-hidden",
 
         // Animation
         "data-[state=open]:animate-in   data-[state=closed]:animate-out",

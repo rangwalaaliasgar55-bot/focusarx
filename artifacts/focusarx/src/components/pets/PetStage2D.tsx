@@ -204,7 +204,7 @@ export function PetStage2D({ emoji, imageUrl, species, name, rarity = "common", 
       </motion.div>
 
       {(moodLabel || taps > 0) && (
-        <span className="absolute bottom-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--surface-overlay)] px-3.5 py-1.5 backdrop-blur-xl">
+        <span className="absolute bottom-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--surface-overlay)] px-3.5 py-1.5">
           {moodLabel && (
             <>
               <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" />

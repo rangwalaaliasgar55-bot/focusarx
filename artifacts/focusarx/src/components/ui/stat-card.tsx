@@ -142,7 +142,7 @@ export function StatCard({
       className={cn(
         "flex h-full flex-col rounded-[var(--radius-xl)] border bg-[var(--surface)] p-5 transition-[border-color,box-shadow,transform] duration-[var(--duration-normal)]",
         isPrimary
-          ? "border-[var(--card-border)] shadow-[var(--shadow-violet-md)]"
+          ? "border-[var(--card-border)]"
           : "border-[var(--border-subtle)] shadow-[var(--shadow-sm)]",
         href && "group-hover:-translate-y-0.5 group-hover:border-[var(--card-border)] group-hover:shadow-[var(--shadow-md)]",
         className,

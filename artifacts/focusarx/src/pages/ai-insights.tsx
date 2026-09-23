@@ -46,7 +46,7 @@ function HabitBar({ label, value, max }: { label: string; value: number; max: nu
         <span className="text-[var(--foreground)] font-medium">{value}</span>
       </div>
       <div className="h-1.5 rounded-full bg-[var(--surface-hover)] overflow-hidden">
-        <div className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)] transition-all" style={{ width: `${pct}%` }} />
+        <div className="h-full rounded-full bg-[var(--brand-600)] transition-all" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
@@ -99,7 +99,7 @@ function AiInsightsContent() {
   };
 
   return (
-    <div className="min-h-screen forge-bg-glow">
+    <div className="min-h-screen">
       <div className="relative z-[var(--z-content)] mx-auto max-w-3xl px-4 py-8">
         <PageTransition>
           <PageHeader
@@ -116,11 +116,7 @@ function AiInsightsContent() {
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
-                className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2.5 text-[12px] font-semibold transition-all duration-[var(--duration-fast)] ${
-                  tab === t.id
-                    ? "bg-[var(--brand-600)] text-[var(--palette-white)] shadow-[0_2px_8px_var(--rgba-124-58-237-0_3)]"
-                    : "text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]"
-                }`}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2.5 text-[12px] font-semibold transition-all duration-[var(--duration-fast)] ${ tab === t.id ? "bg-[var(--brand-600)] text-[var(--palette-white)]" : "text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]" }`}
               >
                 <t.icon size={13} />
                 <span className="hidden sm:inline">{t.label}</span>
@@ -197,7 +193,7 @@ function AiInsightsContent() {
                 <QueryError what="your report" onRetry={() => refetchReport()} retrying={reportLoading} />
               )}
               {report && !reportLoading && !reportError && (
-                <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_2)] bg-gradient-to-br from-[var(--rgba-124-58-237-0_06)] to-[var(--rgba-79-70-229-0_03)] p-5">
+                <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-124-58-237-0_06)] p-5">
                   {report.aiPowered && (
                     <div className="flex items-center gap-2 mb-4 text-[11px] text-[var(--brand-600)] font-bold uppercase tracking-[0.14em]">
                       <Sparkles size={11} /> AI-powered report
@@ -252,7 +248,7 @@ function AiInsightsContent() {
                     </div>
                     <div className="h-2.5 rounded-full bg-[var(--surface-hover)] overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-22d387)] transition-all duration-[var(--duration-slow)]"
+                        className="h-full rounded-full bg-[var(--brand-600)] transition-all duration-[var(--duration-slow)]"
                         style={{ width: `${Math.min(100, habits.monthlyGoalProgress ?? 0)}%` }}
                       />
                     </div>

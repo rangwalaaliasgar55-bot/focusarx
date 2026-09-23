@@ -27,11 +27,7 @@ function Slider({ label, emoji, value, onChange, lowLabel, highLabel }: {
           <button
             key={n}
             onClick={() => onChange(n)}
-            className={`h-8 flex-1 rounded-lg border text-xs font-semibold transition-all ${
-              n <= value
-                ? "border-[var(--brand-600)] bg-[var(--rgba-124-58-237-0_25)] text-[var(--brand-400)]"
-                : "border-[var(--rgba-124-58-237-0_15)] bg-transparent text-[var(--foreground-subtle)] hover:border-[var(--rgba-124-58-237-0_4)]"
-            }`}
+            className={`h-8 flex-1 rounded-lg border text-xs font-semibold transition-all ${ n <= value ? "border-[var(--brand-600)] bg-[var(--rgba-124-58-237-0_25)] text-[var(--brand-400)]" : "border-[var(--rgba-124-58-237-0_15)] bg-transparent text-[var(--foreground-subtle)] hover:border-[var(--rgba-124-58-237-0_4)]" }`}
           >
             {n}
           </button>
@@ -120,14 +116,14 @@ export default function ReadinessCheckInModal() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-[var(--palette-black)]/60 backdrop-blur-sm px-4"
+          className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-[var(--palette-black)]/60 px-4"
         >
           <motion.div
             initial={{ scale: 0.93, y: 24 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.95, y: 16, opacity: 0 }}
             transition={{ type: "spring", stiffness: 320, damping: 28 }}
-            className="w-full max-w-sm rounded-2xl border border-[var(--rgba-124-58-237-0_3)] bg-[var(--rgba-8-10-24-0_98)] p-6 shadow-2xl"
+            className="w-full max-w-sm rounded-2xl border border-[var(--rgba-124-58-237-0_3)] bg-[var(--rgba-8-10-24-0_98)] p-6 shadow-[var(--shadow-lg)]"
           >
             <AnimatePresence mode="wait">
               {done && result ? (

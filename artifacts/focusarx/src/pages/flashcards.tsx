@@ -86,7 +86,9 @@ export default function FlashcardsPage() {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [decksLoading, setDecksLoading] = useState(true);
+  // With no token there is nothing to load: start settled instead of flipping
+  // the flag from inside an effect on mount.
+  const [decksLoading, setDecksLoading] = useState(() => Boolean(typeof window !== "undefined" && getToken()));
   const [showCreateDeck, setShowCreateDeck] = useState(false);
   const [newDeckTitle, setNewDeckTitle] = useState('');
   const [newCardFront, setNewCardFront] = useState('');
@@ -130,13 +132,13 @@ export default function FlashcardsPage() {
 
   // Load decks. A non-ok response is an error, not an empty list.
   useEffect(() => {
-    if (!token) {
-      setDecksLoading(false);
-      return;
-    }
+    if (!token) return;
     let cancelled = false;
-    setDecksLoading(true);
-    (async () => {
+    // Everything the fetch needs to set — including "loading" — is set from
+    // inside the async body, so mounting this effect never re-renders twice
+    // before the request has even been sent.
+    void (async () => {
+      setDecksLoading(true);
       try {
         const res = await fetch('/api/flashcards/decks', { headers: { Authorization: `Bearer ${token}` } });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -157,7 +159,7 @@ export default function FlashcardsPage() {
         if (!cancelled) setDecksLoading(false);
       }
     })();
-  return () => {
+    return () => {
       cancelled = true;
     };
   }, [token]);
@@ -297,7 +299,7 @@ export default function FlashcardsPage() {
       });
       if (!saved) setUnsavedReviews((count) => count + 1);
     })();
-  }, [cards, currentCardIndex, dueCards, savingReviewIds, token]);
+  }, [currentCardIndex, dueCards, savingReviewIds, token]);
 
   const createDeck = useCallback(async () => {
     if (!newDeckTitle.trim() || !token) return;
@@ -540,7 +542,7 @@ export default function FlashcardsPage() {
                 key={currentCardIndex}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="rounded-3xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/80 p-8 min-h-[280px] flex flex-col items-center justify-center"
+                className="rounded-[var(--radius-xl)] border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/80 p-8 min-h-[280px] flex flex-col items-center justify-center"
               >
                 {/* Front */}
                 {!showAnswer ? (
@@ -611,7 +613,7 @@ export default function FlashcardsPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="rounded-3xl border border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/5 p-12 text-center"
+            className="rounded-[var(--radius-xl)] border border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/5 p-12 text-center"
           >
             <div className="text-4xl mb-4"><PartyPopper size={16} aria-hidden="true" /></div>
             <h2 className="text-xl font-semibold text-[var(--palette-white)] mb-2">Study Session Complete!</h2>
@@ -634,7 +636,7 @@ export default function FlashcardsPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
               onClick={() => setShowCreateDeck(false)}
             >
               <motion.div
@@ -672,7 +674,7 @@ export default function FlashcardsPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
               onClick={() => setShowAddCard(false)}
             >
               <motion.div

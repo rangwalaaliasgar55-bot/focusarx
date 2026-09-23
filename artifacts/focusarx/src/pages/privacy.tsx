@@ -5,7 +5,7 @@ import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 
 export default function PrivacyPage() {
   return (
-    <div className="relative min-h-[100dvh] forge-bg-glow">
+    <div className="relative min-h-[100dvh]">
       <PageSEO {...PAGE_SEO.privacy} />
       <main id="main-content" className="relative z-[var(--z-content)] mx-auto max-w-3xl px-4 py-10">
         <PageTransition>

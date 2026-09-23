@@ -1,5 +1,10 @@
 # FocusArx Brand
 
+> **Where this meets the interface:** the mark is the one place the iris
+> gradient lives. Everything else in the product reads the neutral and accent
+> tokens described in [`DESIGN.md`](DESIGN.md) — the UI accent is a
+> user-configurable indigo, and the chrome never glow-tints the mark's colours.
+
 The FocusArx identity is the **iris mark**: a liquid-glass squircle in the
 brand iris gradient (violet → azure) holding a calm focus reticle — a precise
 ring with a luminous center point. It reads as *focus made visible*: one

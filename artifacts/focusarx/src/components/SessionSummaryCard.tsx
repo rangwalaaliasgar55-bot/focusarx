@@ -115,7 +115,7 @@ export default function SessionSummaryCard({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[var(--z-modal)] flex items-end justify-center bg-[var(--palette-black)]/60 px-4 pb-6 backdrop-blur-sm sm:items-center sm:pb-0"
+          className="fixed inset-0 z-[var(--z-modal)] flex items-end justify-center bg-[var(--palette-black)]/60 px-4 pb-6 sm:items-center sm:pb-0"
           onClick={onClose}
         >
           <motion.div
@@ -123,7 +123,7 @@ export default function SessionSummaryCard({
             animate={{ y: 0, scale: 1, opacity: 1 }}
             exit={{ y: 40, scale: 0.96, opacity: 0 }}
             transition={{ type: "spring", stiffness: 320, damping: 28 }}
-            className="w-full max-w-sm rounded-3xl border border-[var(--palette-emerald-500)]/20 bg-[var(--rgba-8-12-28-0_98)] p-6 shadow-2xl"
+            className="w-full max-w-sm rounded-[var(--radius-xl)] border border-[var(--palette-emerald-500)]/20 bg-[var(--rgba-8-12-28-0_98)] p-6 shadow-[var(--shadow-lg)]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Celebration checkmark */}
@@ -221,7 +221,7 @@ export default function SessionSummaryCard({
               </button>
               <button
                 onClick={onKeepGoing}
-                className="flex-1 rounded-xl border border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/10 py-2.5 text-sm font-semibold text-[var(--palette-violet-400)] transition-colors hover:bg-[var(--palette-violet-500)]/20"
+                className="flex-1 rounded-xl border border-[var(--brand-500)]/40 bg-[var(--palette-violet-500)]/10 py-2.5 text-sm font-semibold text-[var(--palette-violet-400)] transition-colors hover:bg-[var(--palette-violet-500)]/20"
               >
                 {completedEarly ? "New session" : "Keep going"}
               </button>

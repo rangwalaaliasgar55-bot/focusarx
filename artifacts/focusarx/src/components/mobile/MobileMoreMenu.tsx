@@ -80,7 +80,7 @@ export function MobileMoreMenu({ open, onClose }: MobileMoreMenuProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[var(--z-modal)] bg-black/60 backdrop-blur-sm md:hidden"
+            className="fixed inset-0 z-[var(--z-modal)] bg-black/60 md:hidden"
             onClick={onClose}
             aria-hidden="true"
           />
@@ -89,7 +89,7 @@ export function MobileMoreMenu({ open, onClose }: MobileMoreMenuProps) {
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-0 z-[var(--z-modal)] max-h-[85dvh] overflow-hidden rounded-t-[1.5rem] border-t border-[var(--border-subtle)] bg-[var(--surface-1)] shadow-2xl md:hidden"
+            className="fixed inset-x-0 bottom-0 z-[var(--z-modal)] max-h-[85dvh] overflow-hidden rounded-t-[1.5rem] border-t border-[var(--border-subtle)] bg-[var(--surface-1)] shadow-[var(--shadow-lg)] md:hidden"
             role="dialog"
             aria-modal="true"
             aria-label="More options"

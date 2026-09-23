@@ -52,7 +52,7 @@ export function MobileAdAnchor({ hideOnFocus = false }: { hideOnFocus?: boolean 
   const cfg = AD_SLOTS.mobileAnchor;
   return (
     <div
-      className="fixed inset-x-0 z-[var(--z-nav)] block border-t border-[var(--border-subtle)] bg-[var(--backdrop)] backdrop-blur-[24px] md:hidden"
+      className="fixed inset-x-0 z-[var(--z-nav)] block border-t border-[var(--border-subtle)] bg-[var(--backdrop)] md:hidden"
       style={{ bottom: BOTTOM_NAV_HEIGHT }}
       aria-hidden="true"
     >
